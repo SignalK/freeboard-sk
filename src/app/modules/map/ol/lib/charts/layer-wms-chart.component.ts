@@ -16,7 +16,7 @@ import { MapComponent } from '../map.component';
 import { FBChart } from 'src/app/types';
 import { Map } from 'ol';
 import { MapService } from '../map.service';
-import { resolveLayerMaxZoom } from './zoom-utils';
+import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -118,7 +118,8 @@ export class WmsChartLayerComponent implements OnDestroy {
         zIndex: this.zIndex(),
         minZoom: minZ,
         maxZoom: layerMaxZ,
-        opacity: chart[1].defaultOpacity ?? 1
+        opacity: chart[1].defaultOpacity ?? 1,
+        extent: extentFromBounds(chart[1].bounds)
       });
 
       if (this.layer) {
@@ -143,6 +144,7 @@ export class WmsChartLayerComponent implements OnDestroy {
       this.layer.setMinZoom(minZ);
       this.layer.setMaxZoom(layerMaxZ);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
+      this.layer.setExtent(extentFromBounds(chart[1].bounds));
       const src = this.layer.getSource() as TileWMS;
       const l = chart[1].layers ? chart[1].layers.join(',') : '';
       const p = src.getParams();

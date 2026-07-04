@@ -1,37 +1,22 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'Deprecation Notice',
+    title: 'RADAR Overlay',
     message: `
-        With the recent release of the <b>Notifications API</b>, Freeboard-SK
-        will be moving it's notification and alarm features to use this API
-        exclusively in an upcoming release.
+        New RADAR API support.
         <br>&nbsp;<br>
-        Be sure to keep your Signal K server installation up to date
-        to ensure notification and alarm features to remain operational.
-      `
-  },
-  {
-    type: 'signalk-server-node',
-    title: 'New Feature',
-    message: `
-        <b>Server Unit Preferences</b>
+        Display a RADAR overlay when your Signal K Server is connected to a
+        MAYARA server.
         <br>&nbsp;<br>
-        Initial support has been added for unit preferences defined on the Signal K server
-        for the speed, depth, distance and temperature unit categories.
-        <br>&nbsp;<br>
-        See <a href="assets/help/index.html#settings" target="help">HELP</a> 
+        See <a href="assets/help/index.html" target="help">HELP</a> 
         for more details.
       `
   },
   {
     type: 'signalk-server-node',
-    title: 'Updated Feature',
+    title: 'Waypoint Icons',
     message: `
-        <b>Range Rings</b>
-        <br>&nbsp;<br>
-        Define the distance between range rings instead of it being determined by the zoom
-        level of the map.
+        You can now change waypoint icons in the Waypoint Details screen.
       `
   }
 ];

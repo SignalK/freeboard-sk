@@ -1,0 +1,111 @@
+<div
+  style="
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: stretch;
+    height: 100%;
+  "
+>
+  <div>
+    <div style="display: flex">
+      <div>
+        <mat-button-toggle-group
+          name="connection"
+          [value]="app.uiCtrl().radarLayer"
+          [hideSingleSelectionIndicator]="true"
+          (change)="handleConnect($event.value)"
+        >
+          <mat-button-toggle [value]="false">Off</mat-button-toggle>
+          <mat-button-toggle [value]="true">
+            On
+            <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      <div
+        style="flex: 1; font-size: 10pt; padding: 0 0 0 10px; text-align: right"
+      >
+        {{radar().device.name ?? radar().device.id ?? ''}}
+        <br />
+        {{radar()?.device?.brand}}
+      </div>
+    </div>
+    <div style="display: flex">
+      <div style="flex: 1; padding-top: 1em">Opacity</div>
+      <div style="flex: 1 1 auto">
+        <mat-slider
+          style="width: stretch"
+          [min]="0"
+          [max]="1"
+          [step]="0.1"
+          showTickMarks
+          discrete
+        >
+          <input
+            matSliderThumb
+            [value]="app.config.radars.opacity"
+            (input)="handleOpacity($event)"
+          />
+        </mat-slider>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div
+    style="
+      flex: 2 1 auto;
+      overflow-y: auto;
+      padding-left: 5px;
+      padding-top: 10px;
+    "
+  >
+    @for( control of this.radar().controls; track control[0]) { @let cdef =
+    this.radar().capabilities.controls[control[0]];
+    <div class="kvRow">
+      <div style="flex: 2; text-align: right">
+        <mat-form-field style="width: stretch" [matTooltip]="cdef.description">
+          <mat-label> {{cdef.name}} </mat-label>
+          <mat-hint
+            style="
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-box-orient: vertical;
+              -webkit-line-clamp: 1;
+              line-clamp: 1;
+              text-overflow: ellipsis;
+            "
+          >
+            {{cdef.description}}
+          </mat-hint>
+          @if(cdef.dataType === 'enum' || (cdef.dataType === 'number' &&
+          cdef.validValues)) {
+          <mat-select
+            [disabled]="cdef.isReadOnly || !app.uiCtrl().radarLayer || forceReadOnly"
+            [value]="control[1].value"
+            (selectionChange)="handleControl(control[0], $event.value)"
+          >
+            @for(i of cdef.validValues; track i) {
+            <mat-option [value]="i">
+              {{cdef.descriptions ? cdef.descriptions[i] : i}}
+            </mat-option>
+            }
+          </mat-select>
+          } @else if(cdef.dataType === 'number') {
+          <input
+            matInput
+            type="number"
+            [disabled]="cdef.isReadOnly || !app.uiCtrl().radarLayer || forceReadOnly"
+            [min]="cdef.minValue ?? 0"
+            [max]="cdef.maxValue ?? undefined"
+            [value]="control[1].value"
+          />
+          }
+        </mat-form-field>
+      </div>
+    </div>
+    }
+  </div>
+</div>

@@ -1,11 +1,12 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   signal,
-  effect
+  effect,
+  output,
+  inject,
+  input,
+  DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -28,6 +29,7 @@ import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'waypoint-list',
@@ -48,26 +50,26 @@ import { SingleSelectListDialog } from 'src/app/lib/components';
   ]
 })
 export class WaypointListComponent extends ResourceListBase {
-  @Input() activeWaypoint: string;
-  @Input() editingWaypointId: string;
-  @Output() goto: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() deactivate: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() center: EventEmitter<Position> = new EventEmitter();
-  @Output() notes: EventEmitter<{ id: string; readOnly: boolean }> =
-    new EventEmitter();
+  activeWaypoint = input<string>();
+  editingWaypointId = input<string>();
+  select = output<FBResourceSelect>();
+  goto = output<FBResourceSelect>();
+  deactivate = output<FBResourceSelect>();
+  closed = output<void>();
+  center = output<Position>();
+  notes = output<{ id: string; readOnly: boolean }>();
 
   protected override fullList: FBWaypoints = [];
   protected override filteredList = signal<FBWaypoints>([]);
   protected disableRefresh = false;
 
-  constructor(
-    public app: AppFacade,
-    protected override skres: SKResourceService,
-    private worker: SKWorkerService,
-    protected dialog: MatDialog,
-    protected skgroups: SKResourceGroupService
-  ) {
+  protected app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+  private dialog = inject(MatDialog);
+  private skgroups = inject(SKResourceGroupService);
+  private destroyRef = inject(DestroyRef);
+
+  constructor(protected override skres: SKResourceService) {
     super('waypoints', skres);
     // resources delta handler
     effect(() => {
@@ -84,8 +86,8 @@ export class WaypointListComponent extends ResourceListBase {
   ngOnChanges() {
     this.initItems();
     if (
-      this.editingWaypointId &&
-      this.editingWaypointId.indexOf('waypoint') !== -1
+      this.editingWaypointId() &&
+      this.editingWaypointId().indexOf('waypoint') !== -1
     ) {
       this.disableRefresh = true;
     } else {
@@ -162,7 +164,7 @@ export class WaypointListComponent extends ResourceListBase {
    * @param id waypoint identifier
    */
   protected itemProperties(id: string) {
-    this.skres.editWaypointInfo(id);
+    this.select.emit({ id: id });
   }
 
   /**
@@ -227,6 +229,7 @@ export class WaypointListComponent extends ResourceListBase {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {

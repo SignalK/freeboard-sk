@@ -365,9 +365,13 @@ export class CourseService {
     // ** process preferred course data **
     if (typeof v.courseCalcs.crossTrackError !== 'undefined') {
       c.xte =
-        this.app.config.units.distance === 'm'
+        this.app.config.units.distance === 'kilometer'
           ? v.courseCalcs.crossTrackError / 1000
-          : Convert.kmToNauticalMiles(v.courseCalcs.crossTrackError / 1000);
+          : Convert.transform(
+              v.courseCalcs.crossTrackError,
+              'm',
+              this.app.config.units.distance
+            );
     }
 
     if (typeof v.courseCalcs.bearingTrue !== 'undefined') {
@@ -394,16 +398,20 @@ export class CourseService {
 
     if (typeof v.courseCalcs.distance !== 'undefined') {
       c.dtg =
-        this.app.config.units.distance === 'm'
+        this.app.config.units.distance === 'kilometer'
           ? v.courseCalcs.distance / 1000
-          : Convert.kmToNauticalMiles(v.courseCalcs.distance / 1000);
+          : Convert.transform(v.courseCalcs.distance, 'm', 'naut-mile');
     }
 
     if (typeof v.courseCalcs['route.distance'] !== 'undefined') {
       c.route.dtg =
-        this.app.config.units.distance === 'm'
-          ? v.courseCalcs.distance / 1000
-          : Convert.kmToNauticalMiles(v.courseCalcs['route.distance'] / 1000);
+        this.app.config.units.distance === 'kilometer'
+          ? v.courseCalcs['route.distance'] / 1000
+          : Convert.transform(
+              v.courseCalcs['route.distance'],
+              'm',
+              'naut-mile'
+            );
     }
 
     if (typeof v.courseCalcs.timeToGo !== 'undefined') {
@@ -446,7 +454,7 @@ export class CourseService {
 
     if (Array.isArray(rte[1].feature.properties.coordinatesMeta)) {
       c.pointNames = rte[1].feature.properties.coordinatesMeta.map((pt) => {
-        return pt.name ?? '';
+        return pt?.name ?? '';
       });
       if (c.pointIndex !== -1 && c.pointIndex < c.pointNames.length) {
         c.destPointName = c.pointNames[c.pointIndex];

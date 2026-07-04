@@ -1,4 +1,4 @@
-import { Component, inject, Inject, resource, signal } from '@angular/core';
+import { Component, inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   MatDialogModule,
@@ -26,9 +26,6 @@ import {
 import { NodeTreeSelect } from './node-tree-select';
 import { NodeListSelect } from './node-list-select';
 
-/********* ChartPropertiesDialog **********
-	data: <SKChart>
-***********************************/
 @Component({
   selector: 'ap-chartproperties',
   imports: [
@@ -229,20 +226,18 @@ import { NodeListSelect } from './node-list-select';
         </div>
       </mat-dialog-content>
       @if (isEditable()) {
-        <mat-dialog-actions>
-          <div style="text-align:center;width:100%;">
-            <button
-              mat-raised-button
-              [disabled]="
-                inpname.invalid ||
-                (['wms', 'wmts'].includes(data.type.toLowerCase()) &&
-                  data.layers.length === 0)
-              "
-              (click)="handleClose(true)"
-            >
-              SAVE
-            </button>
-          </div>
+        <mat-dialog-actions align="right">
+          <button
+            mat-flat-button
+            [disabled]="
+              inpname.invalid ||
+              (['wms', 'wmts'].includes(data.type.toLowerCase()) &&
+                data.layers.length === 0)
+            "
+            (click)="handleClose(true)"
+          >
+            SAVE
+          </button>
         </mat-dialog-actions>
       }
     </div>
@@ -302,9 +297,10 @@ export class ChartPropertiesDialog {
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<ChartPropertiesDialog>);
+  protected data = inject<SKChart>(MAT_DIALOG_DATA);
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: SKChart) {
-    if (data.source?.toLowerCase() === 'resources-provider') {
+  constructor() {
+    if (this.data.source?.toLowerCase() === 'resources-provider') {
       this.isEditable.set(true);
     }
   }

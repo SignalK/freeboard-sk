@@ -27,6 +27,10 @@
         <mat-icon>map</mat-icon>
         &nbsp;Charts
       </button>
+      <button mat-menu-item (click)="displayLeftMenu('weatherList', true)">
+        <mat-icon>cloud</mat-icon>
+        &nbsp;Weather
+      </button>
       @if (app.featureFlags().resourceGroups) {
         <button mat-menu-item (click)="displayLeftMenu('resourceGroups', true)">
           <mat-icon>category</mat-icon>
@@ -233,12 +237,13 @@
         </a>
       }
       @if (
-        app.config.experiments &&
         !isInteracting() &&
         app.featureFlags().radarApi &&
-        radarApi.defaultRadar()
+        radarApi.radarId() &&
+        !this.app.instrumentPanel().open &&
+        this.app.data.vessels.showSelf
       ) {
-        <a mat-menu-item (click)="toggleRadar()">
+        <a mat-menu-item (click)="showRadarPanel()">
           @if (app.uiCtrl().radarLayer) {
             <mat-icon class="icon-accent">check_box</mat-icon>
           } @else {
@@ -284,22 +289,78 @@
 
     <!-- content -->
     <div class="view" theme-main>
-      <mat-sidenav-container hasBackdrop="false">
-        <!--instruments-->
-        @if (app.instrumentPanelAvailable()) {
-          <mat-sidenav
-            #sideright
-            mode="side"
-            position="end"
-            (openedChange)="rightSideNavAction($event)"
-            style="width: 350px"
-          >
+      <mat-sidenav-container hasBackdrop="false" class="pe-view-main">
+        <!--info-panel-->
+        <mat-sidenav
+          #sideright
+          [disableClose]="false"
+          mode="side"
+          position="end"
+          [style.width]="app.instrumentPanel().open ? '350px' : '250px'"
+        >
+          @if (this.infoPanel.item && !app.instrumentPanel().open) {
+            <info-panel (closed)="closeDrawer()">
+              @if (infoPanel.item()?.type === 'radars') {
+                <radar-panel
+                  [radar]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  (connect)="connectRadar()"
+                  (disconnect)="disconnectRadar()"
+                />
+              }
+              @if (infoPanel.item()?.type === 'notes') {
+                <note-panel
+                  [note]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [interacting]="isInteracting()"
+                  (edit)="
+                    skres.showNoteEditor({
+                      id: $event
+                    })
+                  "
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+              @if (infoPanel.item()?.type === 'regions') {
+                <region-panel
+                  [region]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [related]="infoPanel.related()"
+                  [interacting]="isInteracting()"
+                  (edit)="skres.editRegionInfo($event)"
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+              @if (infoPanel.item()?.type === 'waypoints') {
+                <waypoint-panel
+                  [waypoint]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [related]="infoPanel.related()"
+                  [interacting]="isInteracting()"
+                  (edit)="skres.editWaypointInfo($event)"
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+              @if (infoPanel.item()?.type === 'routes') {
+                <route-panel
+                  [route]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [related]="infoPanel.related()"
+                  [interacting]="isInteracting()"
+                  (edit)="onRouteInfoEdit($event)"
+                  (activate)="activateRoute($event)"
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+            </info-panel>
+          } @else {
+            <!-- instrument panel-->
             <div
               style="display: flex; flex-direction: column; position: relative"
             >
               <mat-nav-list>
                 <a mat-list-item>
-                  <a mat-icon-button (click)="sideright.toggle()">
+                  <a mat-icon-button (click)="closeInstrumentPanel()">
                     <mat-icon>arrow_forward</mat-icon>
                   </a>
                   &nbsp;&nbsp;&nbsp;&nbsp;
@@ -307,7 +368,7 @@
                     <a
                       mat-icon-button
                       [href]="instUrl()"
-                      (click)="sideright.toggle()"
+                      (click)="closeInstrumentPanel()"
                       target="_blank"
                       matTooltip="Open Instruments in window."
                       matTooltipPosition="right"
@@ -350,7 +411,7 @@
                   -webkit-overfow-scrolling: touch;
                 "
               >
-                @if (instrumentPanel().activate) {
+                @if (app.instrumentPanel().activate) {
                   <iframe
                     [src]="instUrl()"
                     style="width: 345px; height: 100%"
@@ -360,8 +421,10 @@
                 }
               </div>
             </div>
-          </mat-sidenav>
-        }
+          }
+        </mat-sidenav>
+
+        <!-- main display content-->
         <mat-sidenav-content style="overflow: hidden">
           @if (app.sIsFetching()) {
             <div
@@ -560,7 +623,7 @@
                       [editingRouteId]="app.data.editingId"
                       (activate)="activateRoute($event.id)"
                       (deactivate)="clearDestination()"
-                      (properties)="skres.resourceProperties($event)"
+                      (select)="handleResourceInfo('routes', $event.id)"
                       (points)="
                         featureProperties({ id: $event.id, type: 'route' })
                       "
@@ -581,6 +644,7 @@
                     <waypoint-list
                       [activeWaypoint]="app.data.activeWaypoint"
                       [editingWaypointId]="app.data.editingId"
+                      (select)="handleResourceInfo('waypoints', $event.id)"
                       (goto)="course.navigateToWaypoint($event.id)"
                       (deactivate)="clearDestination()"
                       (center)="centerAndZoom($event)"
@@ -609,7 +673,7 @@
                   @defer {
                     <note-list
                       [notes]="skres.notes()"
-                      (select)="skres.noteSelected($event.id, $event.isGroup)"
+                      (select)="handleResourceInfo('notes', $event.id)"
                       (pan)="centerAndZoom($event.center, $event.zoomLevel)"
                       (closed)="displayLeftMenu()"
                     >
@@ -620,6 +684,7 @@
                   @defer {
                     <region-list
                       [regions]="skres.regions()"
+                      (select)="handleResourceInfo('regions', $event.id)"
                       (pan)="centerAndZoom($event.center, $event.zoomLevel)"
                       (closed)="displayLeftMenu()"
                     >
@@ -666,17 +731,24 @@
                   <anchor-watch
                     [showSelf]="app.data.vessels.showSelf"
                     [radius]="this.anchor.radius()"
-                    [feet]="app.config.units.depth !== 'm' ? true : false"
                     [raised]="anchor.raised()"
                     (closed)="displayLeftMenu()"
                   >
                   </anchor-watch>
                 }
+                @if (leftMenuCtrl().weatherList) {
+                  @defer {
+                    <weather-list (closed)="displayLeftMenu()"></weather-list>
+                  }
+                }
               </div>
             }
 
             <!-- Status Bar -->
-            <div class="statusBar">
+            <div
+              class="statusBar"
+              [style.top.px]="20 + plotterExt.toolbarTopOffset()"
+            >
               @if (!wakeLock.enabled() && wakeLock.isAvailable) {
                 <div class="statusBarItem">
                   <mat-icon
@@ -727,7 +799,10 @@
 
             <!-- right button bar -->
             <!-- show/hide  -->
-            <div class="rightTop buttonPanel">
+            <div
+              class="rightTop buttonPanel"
+              [style.top.px]="plotterExt.toolbarTopOffset()"
+            >
               <div class="buttonPanelItem">
                 <button
                   class="button-secondary"
@@ -747,18 +822,23 @@
               </div>
             </div>
             @if (app.uiConfig().toolbarButtons) {
-              <div class="buttonPanel right">
+              <div
+                class="buttonPanel right"
+                [style.top.px]="60 + plotterExt.toolbarTopOffset()"
+              >
                 <!-- instrument sidebar open button -->
                 <div class="instrumentPanelToggle buttonPanelItem">
                   @if (
                     app.instrumentPanelAvailable() &&
+                    !app.instrumentPanel().open &&
+                    !infoPanel.opened() &&
                     !isInteracting() &&
                     !app.data.vessels.activeId
                   ) {
                     <button
                       class="button-toolbar"
                       mat-mini-fab
-                      (click)="sideright.toggle()"
+                      (click)="openInstrumentPanel()"
                       matTooltip="Instruments"
                       matTooltipPosition="before"
                     >
@@ -785,7 +865,7 @@
                 }
 
                 <!-- fullscreen enable -->
-                @if (displayFullscreen().enabled) {
+                @if (this.app.isTopWindow() && displayFullscreen().enabled) {
                   <div class="buttonPanelItem">
                     <button
                       mat-mini-fab
@@ -901,6 +981,56 @@
                     <br />&nbsp;<br />
                   </div>
                 }
+
+                <!-- Radar console-->
+                @if (
+                  app.featureFlags().radarApi &&
+                  radarApi.radarId() &&
+                  app.config.display.fab !== 'radar'
+                ) {
+                  <div class="buttonPanelItem">
+                    <button
+                      mat-mini-fab
+                      [ngClass]="{
+                        'button-primary': app.uiCtrl().radarLayer,
+                        'button-toolbar': !app.uiCtrl().radarLayer
+                      }"
+                      [disabled]="this.app.instrumentPanel().open"
+                      matTooltip="Radar"
+                      matTooltipPosition="before"
+                      (click)="showRadarPanel()"
+                    >
+                      <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+
+                <!-- plotter extension buttons -->
+                @for (
+                  entry of plotterExt.toolbarButtons();
+                  track entry.extension + '/' + entry.button.id
+                ) {
+                  <div class="buttonPanelItem">
+                    <button
+                      class="button-toolbar"
+                      mat-mini-fab
+                      [matTooltip]="entry.button.title"
+                      matTooltipPosition="before"
+                      (click)="
+                        plotterExt.handleButtonAction(
+                          entry.extension,
+                          entry.button
+                        )
+                      "
+                    >
+                      <mat-icon>{{
+                        entry.button.icon || 'extension'
+                      }}</mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
               </div>
             }
             <!-- /right button bar -->
@@ -937,6 +1067,9 @@
             </fb-map>
           </div>
           <!--/map panel-->
+
+          <!-- Plotter extension widget overlay -->
+          <fb-plotterext-overlay></fb-plotterext-overlay>
 
           <!-- North Arrow -->
           <div style="position: absolute; top: 60px; left: 56px; width: 50px">
@@ -1094,7 +1227,7 @@
                           ? course.courseData().xte.toFixed(1)
                           : course.courseData().xte.toFixed(3)
                       "
-                      [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+                      [units]="convert.getSymbol(app.config.units.distance)"
                     >
                     </ap-dial-text>
                   }
@@ -1104,9 +1237,7 @@
                         [title]="'DTG'"
                         subTitle="RT"
                         [value]="course.courseData().route.dtg.toFixed(1)"
-                        [units]="
-                          app.config.units.distance === 'm' ? 'km' : 'NM'
-                        "
+                        [units]="convert.getSymbol(app.config.units.distance)"
                       >
                       </ap-dial-text>
                     }
@@ -1130,7 +1261,7 @@
                     <ap-dial-text
                       [title]="'DTG'"
                       [value]="course.courseData().dtg.toFixed(1)"
-                      [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+                      [units]="convert.getSymbol(app.config.units.distance)"
                     >
                     </ap-dial-text>
                   }
@@ -1150,10 +1281,20 @@
             </div>
           }
           @if (!isInteracting() && !app.kioskMode()) {
-            <mfb-container [action]="app.config.display.fab"> </mfb-container>
+            <mfb-container
+              [action]="app.config.display.fab"
+              (radarClick)="showRadarPanel()"
+            >
+            </mfb-container>
           }
         </mat-sidenav-content>
       </mat-sidenav-container>
+
+      <!-- Plotter extension panel drawer: pushes the display left when open -->
+      <fb-plotterext-panel-drawer></fb-plotterext-panel-drawer>
+
+      <!-- Plotter extension headless background runtimes (hidden iframes) -->
+      <fb-plotterext-runtimes></fb-plotterext-runtimes>
     </div>
     <!-- /content -->
   </div>

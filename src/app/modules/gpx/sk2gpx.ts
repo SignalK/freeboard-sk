@@ -8,6 +8,7 @@ import {
   GPXTrack,
   GPXTrackSegment
 } from './gpxlib';
+import { getSymbolGpxMapping } from 'src/app/modules/icons';
 
 export class SK2GPX {
   public gpx: GPX;
@@ -110,6 +111,18 @@ export class SK2GPX {
     wpt.src = w.feature.properties['src'] || null;
     wpt.sym = w.feature.properties['sym'] || null;
     wpt.type = w.feature.properties['type'] || null;
+    // If a 'waypoint'-type waypoint uses a symbol, write that symbol's GPX
+    // mapping back to the file — gpxType → <type> and gpxSym → <sym> — using
+    // whichever values the symbol actually provides.
+    if (w.type === 'waypoint') {
+      const gpx = getSymbolGpxMapping(w.feature.properties['skIcon']);
+      if (gpx?.gpxType) {
+        wpt.type = gpx.gpxType;
+      }
+      if (gpx?.gpxSym) {
+        wpt.sym = gpx.gpxSym;
+      }
+    }
     wpt.fix = w.feature.properties['fix'] || null;
     wpt.sat = w.feature.properties['sat'] || null;
     wpt.hdop = w.feature.properties['hdop'] || null;

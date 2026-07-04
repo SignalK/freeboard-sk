@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -12,9 +12,6 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { AppFacade } from 'src/app/app.facade';
 import { SKInfoLayer } from '../../custom-resource-classes';
 
-/********* InfoLayerPropertiesDialog **********
-	data: <SKInfoLayer>
-***********************************/
 @Component({
   selector: 'ap-infolayerproperties',
   imports: [
@@ -108,11 +105,11 @@ import { SKInfoLayer } from '../../custom-resource-classes';
   ]
 })
 export class InfoLayerPropertiesDialog {
-  public icon: string;
+  protected icon: string;
 
-  constructor(
-    public app: AppFacade,
-    public dialogRef: MatDialogRef<InfoLayerPropertiesDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: SKInfoLayer
-  ) {}
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<InfoLayerPropertiesDialog>);
+  protected data = inject<SKInfoLayer>(MAT_DIALOG_DATA);
+
+  constructor() {}
 }

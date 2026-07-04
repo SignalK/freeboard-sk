@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -19,7 +19,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { GeoJSONLoadFacade } from './geojson-dialog.facade';
 import { AppFacade } from 'src/app/app.facade';
 
-//** GeoJSON import dialog **
 @Component({
   selector: 'geojson-dialog',
   imports: [
@@ -54,13 +53,16 @@ export class GeoJSONImportDialog implements OnInit {
 
   private unsubscribe = [];
 
-  constructor(
-    public app: AppFacade,
-    public facade: GeoJSONLoadFacade,
-    public dialogRef: MatDialogRef<GeoJSONImportDialog>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
+  protected dialogRef = inject(MatDialogRef<GeoJSONImportDialog>);
+  protected data = inject<{
+    fileData: string;
+    fileName: string;
+  }>(MAT_DIALOG_DATA);
+
+  protected app = inject(AppFacade);
+  protected facade = inject(GeoJSONLoadFacade);
+
+  constructor() {}
 
   ngOnInit() {
     this.data.fileData = this.data.fileData || null;
@@ -78,13 +80,11 @@ export class GeoJSONImportDialog implements OnInit {
     this.unsubscribe.forEach((i) => i.unsubscribe());
   }
 
-  // ** upload features to server **
   load() {
     this.facade.uploadToServer(this.geoData.value);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseFileData(fileData: any) {
+  parseFileData(fileData: string) {
     this.geoData.value = this.facade.validate(fileData);
     if (!this.geoData.value) {
       console.warn('Error:', 'Invalid GeoJSON file!');

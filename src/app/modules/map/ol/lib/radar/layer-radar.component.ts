@@ -8,7 +8,10 @@ import {
   SimpleChanges,
   ChangeDetectorRef,
   OnDestroy,
-  inject
+  inject,
+  output,
+  input,
+  effect
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Coordinate } from '../models';
@@ -33,6 +36,9 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() zIndex: number;
   @Input() visible: boolean;
   @Input() layerProperties: { [index: string]: any };
+  @Input() opacity: number = 1;
+
+  onError = output<Error>();
 
   private state: ShipState = { location: [0, 0], heading: 0 };
   private subject = new BehaviorSubject<ShipState>({
@@ -49,10 +55,20 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
     this.changeDetectorRef.detach();
   }
 
+  parseOpacity(value: number = this.opacity): number {
+    let o = value ?? 1;
+    o = Math.max(Math.min(o, 1), 0);
+    return o;
+  }
+
   ngOnInit() {
-    this.layer = new ImageLayer(
-      Object.assign(this, { ...this.layerProperties })
-    );
+    this.layer = new ImageLayer({
+      zIndex: this.zIndex,
+      visible: this.visible,
+      opacity: this.parseOpacity(),
+      ...this.layerProperties
+    });
+
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
       map.addLayer(this.layer);
@@ -61,19 +77,25 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
       this.layerReady.complete();
     }
 
-    this.radarRenderService.connect().then(() => {
-      let radars = this.radarRenderService.getRadars();
-      let radar = radars.get(radars.keys().next().value);
-      if (radar) {
-        this.layer.setSource(
-          this.radarRenderService.createRadarSource(radar, this.subject)
-        );
-      }
-    });
+    const radar = this.radarRenderService
+      .connect()
+      .then((radar) => {
+        if (radar) {
+          this.layer.setSource(
+            this.radarRenderService.createRadarSource(radar, this.subject)
+          );
+        }
+      })
+      .catch((error) => this.onError.emit(error));
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      if (changes['opacity']) {
+        this.layer.setOpacity(
+          this.parseOpacity(changes['opacity'].currentValue)
+        );
+      }
       if (changes['position'] || changes['heading']) {
         if (changes['position']) {
           let position = changes['position'].currentValue;

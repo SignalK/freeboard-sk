@@ -14,7 +14,8 @@ import {
   UpdateMessage,
   TrailMessage,
   ResultPayload,
-  ResourceMessage
+  ResourceMessage,
+  RadarMessage
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
@@ -110,7 +111,7 @@ const aisMgr = {
   maxTrack: 20 // max point count in track
 };
 
-let vesselPrefs = { cogLine: 10, aisCogLine: 10 }; // selections.vessel
+let vesselPrefs = { selfLines: { cog: { length: 10 } }, aisCogLine: 10 }; // selections.vessel
 
 // ** Vessel trail management **
 const trailMgr: VesselTrailConfig = {
@@ -366,15 +367,20 @@ function closeStream(fromCommand = false) {
 }
 
 // fetch from api endpoint
+let isFetching = false;
 function apiGet(url: string): Promise<unknown> {
+  if (isFetching) return;
   return new Promise((resolve, reject) => {
+    isFetching = true;
     fetch(`${url}`)
       .then((r: Response) => {
+        isFetching = false;
         r.json()
           .then((j) => resolve(j))
           .catch((err) => reject(err));
       })
       .catch((err) => {
+        isFetching = false;
         reject(err);
       });
   });
@@ -804,6 +810,9 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       d.resourceUpdates.push(v);
       // emit immediate resource update for single path
       processResourceUpdate(v);
+    } else if (v.path.startsWith('radars')) {
+      // emit immediate radar update for single path
+      processRadarUpdate(v);
     } else if (v.path.startsWith('navigation.racing')) {
       d.properties[v.path] = v.value;
     } else if (v.path === 'performance.beatAngle') {
@@ -826,6 +835,15 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       } else if (v.path.includes('arrivalCircle')) {
         d.courseApi.arrivalCircle = v.value;
       }
+    }
+    // ** radar data
+    else if (v.path.startsWith('radars.')) {
+      const pk = v.path.split('.');
+      const p = pk.slice(2).join('.');
+      if (!d.radars[pk[1]]) {
+        d.radars[pk[1]] = {};
+      }
+      d.radars[pk[1]][p] = v.value;
     }
     // ** record received preferred path names for selection
     const cp =
@@ -1006,13 +1024,27 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
   // ** cog vector **
   const cog = d.cogTrue ?? d.cogMagnetic ?? undefined;
   if (typeof cog !== 'undefined' && d.position) {
-    const cogLen = isSelf ? vesselPrefs.cogLine : vesselPrefs.aisCogLine;
+    const cogLen = isSelf
+      ? vesselPrefs.selfLines.cog.length
+      : vesselPrefs.aisCogLine;
     const cvlen = (d.sog ?? 0) * (cogLen * 60);
     d.vectors.cog = [
       d.position,
-      GeoUtils.destCoordinate(d.position, cog, cvlen)
+      GeoUtils.rhumbDestination(d.position, cog, cvlen)
     ];
   }
+}
+
+// process radar messages **
+function processRadarUpdate(v: PathValue) {
+  const msg: ResourceMessage = new RadarMessage();
+  msg.playback = playbackMode;
+  msg.result = {
+    path: v.path,
+    value: v.value,
+    sourceRef: $source
+  };
+  postMessage(msg);
 }
 
 // process resources messages **
@@ -1086,8 +1118,9 @@ function processAtoN(id: string, v): string {
     const aton = new SKAtoN();
     aton.id = id;
     aton.position = null;
+    aton.type.id = null;
     if (isBaseStation) {
-      aton.type.id = -1;
+      aton.type.id = -2;
       aton.type.name = 'Basestation';
     }
     vessels.atons.set(id, aton);

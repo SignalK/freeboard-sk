@@ -18,9 +18,12 @@ import { Geometry, Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
+import { MapImageRegistry } from '../map-image-registry.service';
+
+/** Symbol id used to override the own-vessel marker. */
+export const VESSEL_SELF_MARKER = 'vessel-self';
 
 // Helper to validate L/B ratio (realistic ship ratios are 1.5:1 to 12:1)
 function isValidLBRatio(length: number, beam: number): boolean {
@@ -169,7 +172,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() position: Coordinate;
   @Input() heading = 0;
   @Input() vesselStyles: { [key: string]: Style };
-  @Input() vesselLines: { [key: string]: Array<Coordinate> };
   @Input() fixedLocation: boolean;
   @Input() iconScale = 1;
   @Input() vesselDimensions = { length: 10, beam: 3 };
@@ -184,12 +186,12 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() layerProperties: { [index: string]: any };
 
   vessel: Feature;
-  headingLine: Feature;
   selfStyle: Style;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected mapImages: MapImageRegistry
   ) {
     this.changeDetectorRef.detach();
   }
@@ -199,10 +201,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     this.parseVessel();
     if (this.vessel) {
       fa.push(this.vessel);
-    }
-    this.renderVesselLines();
-    if (this.headingLine) {
-      fa.push(this.headingLine);
     }
 
     this.source = new VectorSource({ features: fa });
@@ -233,10 +231,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         ) {
           if (this.source) {
             this.parseVessel();
-          }
-        } else if (key === 'vesselLines') {
-          if (this.source) {
-            this.renderVesselLines();
           }
         } else if (
           key === 'vesselStyles' ||
@@ -324,6 +318,20 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         image: new Icon(vesselIconDef as Options)
       });
     }
+    // External symbol override for the own-vessel marker
+    const ext = this.mapImages.getExternalSymbol(VESSEL_SELF_MARKER);
+    if (ext) {
+      const img = ext.clone();
+      img.setRotateWithView(true);
+      if (this.iconScale) {
+        img.setScale(Math.abs(this.iconScale));
+      }
+      this.selfStyle = new Style({ image: img });
+    } else {
+      this.selfStyle = new Style({
+        image: new Icon(vesselIconDef as Options)
+      });
+    }
   }
 
   // build target style
@@ -364,47 +372,5 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
     return cs;
-  }
-
-  // remove feature from layer
-  removeFeature(f: Feature) {
-    if (this.source) {
-      this.source.removeFeature(f);
-    }
-  }
-
-  renderVesselLines() {
-    if (!this.vesselLines) {
-      return;
-    }
-    if ('heading' in this.vesselLines) {
-      this.headingLine = this.updateLine(
-        this.headingLine,
-        this.vesselLines.heading
-      );
-      this.headingLine.setStyle(
-        new Style({
-          stroke: new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 })
-        })
-      );
-    } else {
-      this.removeFeature(this.headingLine);
-    }
-  }
-
-  // ** update line geometry **
-  updateLine(lf: Feature, coords: Array<Coordinate>) {
-    if (!coords || !Array.isArray(coords)) {
-      return;
-    }
-    if (!lf) {
-      // create feature
-      lf = new Feature(new LineString(fromLonLatArray(mapifyCoords(coords))));
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const g: any = lf.getGeometry();
-      g.setCoordinates(fromLonLatArray(mapifyCoords(coords)));
-    }
-    return lf;
   }
 }

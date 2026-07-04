@@ -1,26 +1,26 @@
 <div class="ap-file-input" (dragover)="dragOver($event)" (drop)="drop($event)">
-  <div id="ctrl" [ngClass]="{ disabled: disabled }">
+  <div id="ctrl" [ngClass]="{ disabled: disabled() }">
     <label mat-menu-item>
       <ng-content></ng-content>
-      @if (icon) {
+      @if (icon()) {
         <span>
           <i class="material-icons">upload</i>
-          &nbsp;<span style="font-size: 10pt">{{ label }}</span>
+          &nbsp;<span style="font-size: 10pt">{{ label() }}</span>
         </span>
       }
       <input
         #input
         type="file"
         style="display: none"
-        [multiple]="multiple"
-        [disabled]="disabled"
-        [accept]="accept"
+        [multiple]="multiple()"
+        [disabled]="disabled()"
+        [accept]="accept()"
         (change)="fileChange(input)"
         (click)="input.value = null"
       />
     </label>
   </div>
-  @if (preview && avatar) {
+  @if (preview() && avatar) {
     <div id="avatar" style="display: inline-flex">
       <img [attr.src]="avatar" alt="" />
       @if (avatar) {

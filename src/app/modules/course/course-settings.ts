@@ -20,7 +20,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { Convert } from 'src/app/lib/convert';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { CourseService, SKStreamFacade } from 'src/app/modules';
 import { UpdateMessage } from 'src/app/types';
 import { Subscription } from 'rxjs';
@@ -83,9 +83,7 @@ import { Subscription } from 'rxjs';
             placeholder="100"
             matTooltip="Enter Arrival circle radius"
           />
-          <span matSuffix>{{
-            app.config.units.distance === 'm' ? app.config.units.distance : 'NM'
-          }}</span>
+          <span matSuffix>{{ renderSymbol(app.config.units.distance) }}</span>
         </mat-form-field>
 
         <div style="padding-right: 10px;">
@@ -222,10 +220,12 @@ export class CourseSettingsModal implements OnInit {
         ? 0
         : this.course.courseData().arrivalCircle;
     this.frmArrivalCircle =
-      this.app.config.units.distance === 'm'
+      this.app.config.units.distance === 'kilometer'
         ? this.frmArrivalCircle
         : Number(
-            Convert.kmToNauticalMiles(this.frmArrivalCircle / 1000).toFixed(1)
+            Convert.transform(this.frmArrivalCircle, 'm', 'naut-mile').toFixed(
+              1
+            )
           );
 
     this.deltaSub = this.stream.delta$().subscribe((e: UpdateMessage) => {
@@ -283,7 +283,7 @@ export class CourseSettingsModal implements OnInit {
     if (e.target && e.target.id === 'arrivalCircle') {
       if (e.target.value !== '' && e.target.value !== null) {
         let d =
-          this.app.config.units.distance === 'm'
+          this.app.config.units.distance === 'kilometer'
             ? Number(e.target.value)
             : Convert.nauticalMilesToKm(Number(e.target.value)) * 1000;
         d = d <= 0 ? null : d;
@@ -382,5 +382,9 @@ export class CourseSettingsModal implements OnInit {
       v.push(('00' + i).slice(-2));
     }
     return v;
+  }
+
+  renderSymbol(unit: TARGET_UNIT) {
+    return Convert.getSymbol(unit);
   }
 }

@@ -73,6 +73,16 @@
                       Allow Device to Sleep
                     </mat-checkbox>
                   </div>
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.preferInfoPanel"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Un-check to prefer dialogs over the information panel"
+                    >
+                      Prefer Info-Panel
+                    </mat-checkbox>
+                  </div>
                 </div>
               </mat-card-content>
             </mat-card>
@@ -209,6 +219,46 @@
               </mat-card-content>
             </mat-card>
           </div>
+          <div class="setting-group">
+            <div class="setting-group-title">STATUS BAR OPTIONS</div>
+            <mat-card class="setting-card">
+              <mat-card-content>
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.statusBar.liveEta"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Show the bearing, distance and ETA from the vessel to the cursor in the status bar (mouse only)."
+                    >
+                      Live ETA at cursor
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%" floatLabel="always">
+                      <mat-label
+                        >Reference Boat Speed ({{ speedUnitSymbol }})</mat-label
+                      >
+                      <input
+                        matInput
+                        type="number"
+                        #refspeed="ngModel"
+                        min="0"
+                        [disabled]="!facade.settings.display.statusBar.liveEta"
+                        [(ngModel)]="facade.settings.display.statusBar.referenceSpeed"
+                        (change)="parseNumber(refspeed)"
+                        matTooltip="Boat speed used to estimate ETA when SOG is unavailable (e.g. at anchor or hove to)."
+                      />
+                      @if ( refspeed.invalid && (refspeed.dirty ||
+                      refspeed.touched) ) {
+                      <mat-error>Please enter a number &gt;= 0</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
         </div>
       </div>
     </mat-tab>
@@ -262,7 +312,7 @@
                             <mat-select
                               [disabled]="facade.settings.units.useServerPrefs"
                               [(ngModel)]="facade.settings.units.depth"
-                              (selectionChange)="raiseChange();persistModel()"
+                              (selectionChange)="raiseChange();doS57()"
                             >
                               @for(i of options.availableUnits.depth; track
                               i[0]) {
@@ -274,13 +324,13 @@
 
                         <div class="setting-card-row-item">
                           <mat-form-field style="width: 100%">
-                            <mat-label>Speed units</mat-label>
+                            <mat-label>Length units</mat-label>
                             <mat-select
                               [disabled]="facade.settings.units.useServerPrefs"
-                              [(ngModel)]="facade.settings.units.speed"
+                              [(ngModel)]="facade.settings.units.length"
                               (selectionChange)="raiseChange();persistModel()"
                             >
-                              @for(i of options.availableUnits.speed; track
+                              @for(i of options.availableUnits.length; track
                               i[0]) {
                               <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                               }
@@ -298,6 +348,22 @@
                             >
                               @for(i of options.availableUnits.temperature;
                               track i[0]) {
+                              <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
+
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Speed units</mat-label>
+                            <mat-select
+                              [disabled]="facade.settings.units.useServerPrefs"
+                              [(ngModel)]="facade.settings.units.speed"
+                              (selectionChange)="raiseChange();persistModel()"
+                            >
+                              @for(i of options.availableUnits.speed; track
+                              i[0]) {
                               <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                               }
                             </mat-select>
@@ -552,6 +618,21 @@
                       <span matSuffix>m</span>
                     </mat-form-field>
                   </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Layers</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.map.s57Options.otherLayers"
+                        (selectionChange)="doS57()"
+                        multiple
+                        placeholder="Layers"
+                      >
+                        @for(i of options.map.s57.otherLayers; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
                 </div>
               </mat-card-content>
             </mat-card>
@@ -804,32 +885,76 @@
                     </div>
                     <div class="setting-card-row" style="padding-bottom: 10px">
                       <div class="setting-card-row-item">
-                        <mat-form-field style="width: 100%">
-                          <mat-label>Heading Line Length</mat-label>
-                          <mat-select
-                            matTooltip="Length of heading line."
-                            [(ngModel)]="facade.settings.vessels.headingLineSize"
-                            (selectionChange)="persistModel()"
+                        <fieldset>
+                          <legend>Heading Line</legend>
+                          <div
+                            class="setting-card-row"
+                            style="padding-bottom: 10px"
                           >
-                            @for(i of options.vessel.headingLine; track i[0] ) {
-                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
+                            <div class="setting-card-row-item">
+                              <mat-form-field>
+                                <mat-label>Heading Line Length</mat-label>
+                                <mat-select
+                                  matTooltip="Length of heading line."
+                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.length"
+                                  (selectionChange)="persistModel()"
+                                >
+                                  @for(i of options.vessel.headingLine; track
+                                  i[0] ) {
+                                  <mat-option [value]="i[0]"
+                                    >{{i[1]}}</mat-option
+                                  >
+                                  }
+                                </mat-select>
+                              </mat-form-field>
+                            </div>
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.selfLines.heading.color"
+                                [dash]="facade.settings.vessels.selfLines.heading.dash"
+                                [weight]="facade.settings.vessels.selfLines.heading.weight"
+                                (selectionChange)="onLineStyle('heading', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
                       </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
                       <div class="setting-card-row-item">
-                        <mat-form-field style="width: 100%">
-                          <mat-label>COG Line Length</mat-label>
-                          <mat-select
-                            matTooltip="Length of COG line."
-                            [(ngModel)]="facade.settings.vessels.cogLine"
-                            (selectionChange)="persistModel()"
+                        <fieldset>
+                          <legend>COG Line</legend>
+                          <div
+                            class="setting-card-row"
+                            style="padding-bottom: 10px"
                           >
-                            @for(i of options.vessel.cogLine; track i[0]) {
-                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
+                            <div class="setting-card-row-item">
+                              <mat-form-field>
+                                <mat-label>COG Line Length</mat-label>
+                                <mat-select
+                                  matTooltip="Length of COG line."
+                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.length"
+                                  (selectionChange)="persistModel()"
+                                >
+                                  @for(i of options.vessel.cogLine; track i[0])
+                                  {
+                                  <mat-option [value]="i[0]"
+                                    >{{i[1]}}</mat-option
+                                  >
+                                  }
+                                </mat-select>
+                              </mat-form-field>
+                            </div>
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.selfLines.cog.color"
+                                [dash]="facade.settings.vessels.selfLines.cog.dash"
+                                [weight]="facade.settings.vessels.selfLines.cog.weight"
+                                (selectionChange)="onLineStyle('cog', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
                       </div>
                     </div>
                   </fieldset>
@@ -891,8 +1016,7 @@
                         <mat-form-field floatLabel="always">
                           <mat-label>
                             Distance between circles
-                            ({{facade.settings.units.distance === 'm' ? 'km' :
-                            'NM'}})
+                            ({{renderSymbol(facade.settings.units.distance)}})
                           </mat-label>
                           <input
                             matInput
@@ -946,7 +1070,7 @@
                         <mat-form-field floatLabel="always">
                           <mat-label>
                             Distance when underway
-                            ({{facade.settings.units.distance === 'm' ? 'km' :
+                            ({{facade.settings.units.distance === 'kilometer' ? 'km' :
                             'NM'}})
                           </mat-label>
                           <input
@@ -1357,6 +1481,45 @@
       </div>
     </mat-tab>
 
+    @if(app.featureFlags().radarApi) {
+    <mat-tab label="Radar">
+      <div class="theme-page settings">
+        <div class="theme-panel">
+          <div class="setting-group" id="sectExperiments">
+            <div class="setting-group-title">RADAR SETTINGS</div>
+            <mat-card class="setting-card">
+              <div class="setting-card-row">
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: stretch">
+                    <mat-label>Radar Devices</mat-label>
+                    <mat-select
+                      #radarlist
+                      [disabled]="!radarList().length || this.app.uiCtrl().radarLayer"
+                      [(ngModel)]="facade.settings.radars.deviceId"
+                      (selectionChange)="doRadar()"
+                      matToolTip="Select radar device"
+                      matTooltipPosition="below"
+                    >
+                      @for(i of radarList(); track i.id) {
+                      <mat-option [value]="i.id">{{i.name}}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+                <div class="setting-card-row-item">
+                  <button mat-raised-button (click)="refreshRadars()">
+                    <mat-icon> refresh</mat-icon>
+                    REFRESH
+                  </button>
+                </div>
+              </div>
+            </mat-card>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+    }
+
     <mat-tab label="Signal K">
       <div class="theme-page settings">
         <div class="theme-panel">
@@ -1462,19 +1625,6 @@
         </div>
       </div>
     </mat-tab>
-
-    @if(app.config.experiments && app.featureFlags().radarApi) {
-    <mat-tab label="Radar">
-      <div class="theme-page settings">
-        <div class="theme-panel">
-          <div class="setting-group" id="sectExperiments">
-            <div class="setting-group-title">RADAR SETTINGS</div>
-            <mat-card class="setting-card"> </mat-card>
-          </div>
-        </div>
-      </div>
-    </mat-tab>
-    }
 
     <mat-tab label="Experiments">
       <div class="theme-page settings">

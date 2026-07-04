@@ -21,6 +21,7 @@ See the [FAQs](https://github.com/SignalK/freeboard-sk/wiki) for more informatio
 Moving map display with:
 
 - Multiple chart overlay using both of online and locally served charts 
+- Radar overlay
 - Built in support (no plugin required) for OpenStreetMap and OpenSeaMap(from Signal K server)  
 - North-up / Vessel-up orientation   
 - Moving Map / Moving Vessel
@@ -78,6 +79,16 @@ Whilst not specifically defined in the Signal K specification, Freeboard-SK supp
 
 ---
 
+### Radar Overlay:  
+
+Freeboard-SK supports the Signal K RADAR API which provides connection to radars via the MAYARA server.
+
+> Note: Requires `signalk-container` & `@marineyachtradar/signalk-plugin` to be installed on the Signal K Server.
+
+![image](https://github.com/user-attachments/assets/5b51f641-59e0-496c-bc10-a33b0a5ec692)
+
+---
+
 ### Autopilot Console:  
 
 Freeboard-SK supports the Signal K Autopilot API which enables common operations to be performed
@@ -129,6 +140,22 @@ When more than one app is selected you can cycle through them within the instrum
 _Note: The `Signal K Instrument Panel` app will be displayed if no user selection has been made._
 
 ![instruments](https://user-images.githubusercontent.com/38519157/128668406-02cbb8d8-2353-4e93-ae5e-12e0c7d507fe.png)
+
+---
+
+### Screen Widgets:
+
+If you have installed any plugins on your Signal K server that provide screen widgets, you can place them directly onto the chart screen.
+
+Widgets sit in the corners and at the centre of the top and bottom edges of the screen _(the top-left corner is reserved for Freeboard's own menu)_.
+
+![widgets](https://raw.githubusercontent.com/joelkoz/signalk-instrument-widgets/refs/heads/main/docs/screenshots/1_freeboard-widget.png)
+
+**To add a widget**, press and hold an empty spot in any of these areas for at least 1.5 seconds (or right-click if you are using a mouse and keyboard). A short list of the widgets that fit there appears — choose one and it is added to your screen. As you add more, widgets stack neatly from the edge inward.
+
+**To change or remove a widget** you have already placed, press and hold the widget itself for 1.5 seconds. This opens its settings, where you can adjust it (if it has any options) or remove it from the screen.
+
+Your layout is remembered, so the widgets you place are still there the next time you open Freeboard-SK.
 
 ---
 
@@ -187,11 +214,10 @@ The following features require that the Signal K server have plugins / providers
 
 The following plugins are recommended for installation on the Signal K Server to enable full functionality:
 
-- @signalk/course-provider _(Course calculations e.g. XTE, DTG, etc.)_
-- @signalk/charts-plugin *(Mapbox tiles chart provider)*
-- signalk-pmtiles-plugin *(ProtoMaps chart provider)*
-- signalk-anchoralarm-plugin _(Anchor alarm settings & notifications)_
-- signalk-simple-notifications _(Depth alarm notifications)_
+- Charts: `@signalk/charts-plugin`, `signalk-chart-provider-simple`, `signalk-pmtiles-plugin`, etc.
+- Anchor Watch: `signalk-anchoralarm-plugin`
+- Weather Forcasts: `signalk-openweather-provider`
+- Display RADAR overlay: `signalk-container` & `@marineyachtradar/signalk-plugin`
 
 ---
 

@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -26,7 +26,9 @@ export class WptButtonComponent {
   protected position = input<Position>([0, 0]);
   protected active = input<boolean>(false);
 
-  constructor(private skres: SKResourceService) {}
+  private skres = inject(SKResourceService);
+
+  constructor() {}
 
   protected dropWaypoint() {
     this.skres.newWaypointAt(this.position());

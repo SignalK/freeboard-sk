@@ -13,6 +13,7 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Map, MapBrowserEvent } from 'ol';
+import { Modify } from 'ol/interaction';
 import MapEvent from 'ol/MapEvent';
 import ObjectEvent from 'ol/Object';
 import RenderEvent from 'ol/render/Event';
@@ -31,6 +32,9 @@ export interface FBMapEvent extends MapEvent {
   extent: Extent;
   projCode: string;
   resolution: number;
+  topCenter: Coordinate;
+  rightCenter: Coordinate;
+  rotation: number;
 }
 
 export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
@@ -144,6 +148,9 @@ export class MapComponent implements OnInit, OnDestroy {
     if (!this.map) {
       return;
     }
+    // Cancel any pending long-press timer so touchHold cannot fire after the
+    // map is torn down (it dereferences this.map).
+    this.clearTouchTimer();
     this.map.un('singleclick', this.emitSingleClickEvent);
     this.map.un('dblclick', this.emitDblClickEvent);
     this.map.un('click', this.emitClickEvent);
@@ -224,19 +231,93 @@ export class MapComponent implements OnInit, OnDestroy {
   // Long Press Detection (iOS & Android)
   private touchTimer: any;
   private evCache: { [id: number]: MouseEvent } = {};
+  private touchStartXY: { x: number; y: number } | null = null;
   private clearTouchTimer = () => {
     clearTimeout(this.touchTimer);
     this.evCache = {};
+    this.touchStartXY = null;
+  };
+  /** Cancel the long-press only once the pointer has moved beyond a small
+   *  tolerance. A press inevitably jitters a few pixels (and a press on a
+   *  Modify vertex often emits an immediate pointermove/drag) — without this,
+   *  the hold was cancelled instantly and tap-hold never fired. */
+  private clearTimerIfMoved = (event: MapBrowserEvent<PointerEvent>) => {
+    if (!this.touchStartXY) {
+      return;
+    }
+    const oe = event.originalEvent;
+    if (
+      Math.hypot(
+        oe.clientX - this.touchStartXY.x,
+        oe.clientY - this.touchStartXY.y
+      ) > 15
+    ) {
+      this.clearTouchTimer();
+      this.map.set('vertexDeleteOnRelease', false);
+    }
   };
   private touchHold = () => {
-    if (Object.keys(this.evCache).length === 1) {
-      this.mapContextMenu.emit(Object.values(this.evCache)[0] as any);
-      this.rightClickHandler(Object.values(this.evCache)[0]);
+    if (!this.map) {
+      // Destroyed before the timer fired.
+      return;
     }
+    if (Object.keys(this.evCache).length !== 1) {
+      return;
+    }
+    const src = Object.values(this.evCache)[0];
+    // Tap-hold to remove a route vertex (touch/tablet parity with Ctrl-Click;
+    // OL 10 emits no contextmenu for touch). Flag a delete-on-release as the
+    // reliable fallback, then try to remove the grabbed vertex immediately
+    // (mid-hold, the way touch plotters work). removePoint() refuses if the last
+    // event was a drag, so replay a pointermove at the press point to clear that
+    // state first.
+    const modify = this.map
+      .getInteractions()
+      .getArray()
+      .find((i) => i instanceof Modify && i.getActive()) as Modify | undefined;
+    if (modify) {
+      // Touch/pen only — a mouse user deletes a vertex with Ctrl-Click, so a
+      // long mouse hold (e.g. pausing to decide where to drag a point) must not
+      // delete it.
+      const pointerType = (src as PointerEvent).pointerType;
+      if (pointerType !== 'touch' && pointerType !== 'pen') {
+        return;
+      }
+      this.map.set('vertexDeleteOnRelease', true);
+      try {
+        this.map.getViewport().dispatchEvent(
+          new PointerEvent('pointermove', {
+            clientX: src.clientX,
+            clientY: src.clientY,
+            bubbles: true,
+            cancelable: true,
+            pointerId: (src as PointerEvent).pointerId ?? 1,
+            pointerType: (src as PointerEvent).pointerType ?? 'touch'
+          })
+        );
+        if (modify.removePoint()) {
+          this.map.set('vertexDeleteOnRelease', false);
+        }
+      } catch {
+        // Fall back to delete-on-release via the deleteCondition flag.
+      }
+      return;
+    }
+    this.mapContextMenu.emit(src as any);
+    this.rightClickHandler(src);
   };
   private pointerDownHandler = (event) => {
     this.evCache[event.pointerId] = event;
-    this.touchTimer = setTimeout(this.touchHold, 500);
+    this.map.set('vertexDeleteOnRelease', false);
+    this.touchStartXY = { x: event.clientX, y: event.clientY };
+    // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
+    // pause mid-edit doesn't delete a point; the chart context-menu long-press
+    // stays at 500 ms.
+    const modifying = this.map
+      .getInteractions()
+      .getArray()
+      .some((i) => i instanceof Modify && i.getActive());
+    this.touchTimer = setTimeout(this.touchHold, modifying ? 1500 : 500);
     const c = toLonLat(this.map.getEventCoordinate(event));
     const e = Object.assign(event, { lonlat: c });
     this.mapService.clearFeatureUrls();
@@ -294,7 +375,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapMoveEnd.emit(this.augmentMoveEvent(event));
   };
 
-  // ** add {lonlat, zoom, extent, projection code} fields to event
+  // ** add {lonlat, zoom, extent, projCode, topCenter, rightCenter, rotation} fields to event
   private augmentMoveEvent(event: MapEvent) {
     const zoom = this.map.getView().getZoom();
     const resolution = this.map.getView().getResolution();
@@ -304,16 +385,21 @@ export class MapComponent implements OnInit, OnDestroy {
       zoomChanged: this.zoomAtStart !== zoom,
       extent: this.getMapExtent(),
       projCode: this.map.getView().getProjection().getCode(),
-      resolution: resolution
+      resolution: resolution,
+      topCenter: this.getMapViewTopCenter(),
+      rightCenter: this.getMapViewRightCenter(),
+      rotation: this.map.getView().getRotation()
     });
   }
 
   private emitPointerDragEvent = (event: MapBrowserEvent<PointerEvent>) => {
-    this.clearTouchTimer();
+    // Only a real move (beyond tolerance) cancels the hold / pending delete —
+    // a real drag means "move the vertex", a jitter does not.
+    this.clearTimerIfMoved(event);
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
   };
   private emitPointerMoveEvent = (event: MapBrowserEvent<PointerEvent>) => {
-    this.clearTouchTimer();
+    this.clearTimerIfMoved(event);
     this.mapPointerMove.emit(this.augmentPointerEvent(event));
   };
 
@@ -368,6 +454,46 @@ export class MapComponent implements OnInit, OnDestroy {
       v.calculateExtent(this.map.getSize()),
       mrid,
       'EPSG:4326'
+    );
+  }
+
+  /**
+   * Returns the geographic coordinates [lon, lat] of the viewport's
+   * top-centre pixel, correctly accounting for map rotation.
+   * In OL, positive rotation is CCW. The projected-space unit vector
+   * pointing "up" on screen is (-sin θ, cos θ).
+   */
+  getMapViewTopCenter(): Coordinate {
+    if (!this.map) {
+      return [0, 0];
+    }
+    const v = this.map.getView();
+    const center = v.getCenter();
+    const rot = v.getRotation();
+    const hh = (this.map.getSize()[1] / 2) * v.getResolution();
+    return toLonLat(
+      [center[0] - hh * Math.sin(rot), center[1] + hh * Math.cos(rot)],
+      v.getProjection()
+    );
+  }
+
+  /**
+   * Returns the geographic coordinates [lon, lat] of the viewport's
+   * right-centre pixel, correctly accounting for map rotation.
+   * In OL, positive rotation is CCW. The projected-space unit vector
+   * pointing "right" on screen is (cos θ, sin θ).
+   */
+  getMapViewRightCenter(): Coordinate {
+    if (!this.map) {
+      return [0, 0];
+    }
+    const v = this.map.getView();
+    const center = v.getCenter();
+    const rot = v.getRotation();
+    const hw = (this.map.getSize()[0] / 2) * v.getResolution();
+    return toLonLat(
+      [center[0] + hw * Math.cos(rot), center[1] + hw * Math.sin(rot)],
+      v.getProjection()
     );
   }
 }

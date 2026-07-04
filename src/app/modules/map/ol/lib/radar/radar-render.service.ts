@@ -7,24 +7,33 @@ import { Coordinate } from 'ol/coordinate';
 import { createEmpty } from 'ol/extent';
 import {
   RadarAPIService,
-  SKRadar
+  SKRadarLegendEntry
 } from 'src/app/modules/radar/radar-api.service';
 import { ShipState } from './ship-state.model';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { AppFacade } from 'src/app/app.facade';
-import { legend } from './legend';
+
+// Radar Definition for rendering
+export interface RadarRenderDef {
+  id: string;
+  name: string;
+  spokesPerRevolution: number;
+  maxSpokeLen: number;
+  streamUrl: string;
+  legend: Record<string, SKRadarLegendEntry>;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class RadarRenderService {
   public hasWebgl: boolean = false;
-
-  private radars: Map<string, SKRadar> = new Map<string, SKRadar>();
-  private workers: Worker[] = [];
+  private worker: Worker;
 
   private app = inject(AppFacade);
   private radarApi = inject(RadarAPIService);
+
+  private shipStateSubscription: Subscription;
 
   constructor() {
     const gl = new OffscreenCanvas(10, 10).getContext('webgl2');
@@ -34,57 +43,62 @@ export class RadarRenderService {
     }
   }
 
-  public async connect() {
-    //this.radars = await firstValueFrom(this.signalk.get("/plugins/radar-sk/v1/api/radars")
-    // .pipe(map((re) => new Map<string, SKRadar>(Object.entries(re)))));
-
-    // SK Radar API
-    const state = await this.radarApi.getState(this.radarApi.defaultRadar());
-    const r = await this.radarApi.getRadar(this.radarApi.defaultRadar());
-    this.radars.set(r.id, {
-      id: r.id,
-      name: r.name,
-      spokes: r.spokesPerRevolution,
-      maxSpokeLen: r.maxSpokeLen,
-      streamUrl:
-        state.streamUrl ??
-        `${this.app.hostDef.ssl ? 'wss' : 'ws'}://${this.app.hostDef.name}:${
-          this.app.hostDef.port
-        }/signalk/v2/api/vessels/self/radars/${state.id}/stream`,
-      legend: legend
+  public async connect(): Promise<RadarRenderDef> {
+    if (!this.hasWebgl) {
+      this.app.showMessage('Web-GL is not available!');
+      return;
+    }
+    if (!this.radarApi.radar()) {
+      this.app.showMessage('No Radar speciified!');
+      return;
+    }
+    // map legend for rendering
+    const legend = {};
+    let idx = 0;
+    this.radarApi.radar().capabilities?.legend?.pixels?.forEach((i) => {
+      legend[idx] = i;
+      idx++;
     });
+
+    return {
+      id: this.radarApi.radar().device.id,
+      name: this.radarApi.radar().device.name,
+      spokesPerRevolution: this.radarApi.radar().device.spokesPerRevolution,
+      maxSpokeLen: this.radarApi.radar().device.maxSpokeLen,
+      streamUrl: `${this.app.hostDef.ssl ? 'wss' : 'ws'}://${this.app.hostDef.name}:${
+        this.app.hostDef.port
+      }/signalk/v2/api/vessels/self/radars/${this.radarApi.radarId()}/stream`,
+      legend: legend
+    };
   }
 
   public async disconnect() {
-    this.workers.forEach((w) => {
-      w.terminate();
-    });
-    this.workers = [];
-  }
-
-  public getRadars(): Map<string, SKRadar> {
-    return this.radars;
+    this.shipStateSubscription?.unsubscribe();
+    this.worker?.terminate();
+    this.worker = undefined;
+    this.app.showMessage(`Radar connection closed`);
   }
 
   public createRadarSource(
-    radar: SKRadar,
+    radar: RadarRenderDef,
     shipState: Observable<ShipState>
   ): ImageSource {
     let range = 0;
     let location: Coordinate = [0, 0];
     let rangeExtent = createEmpty();
 
-    function UpdateExtent(location: Coordinate, range: number) {
-      let extent = circular(location, 25465)
+    const updateExtent = (location: Coordinate, range: number) => {
+      const radius = range > 0 ? range : 25465; // fallback for initial render
+      let extent = circular(location, radius)
         .transform('EPSG:4326', 'EPSG:3857')
         .getExtent();
       rangeExtent[0] = extent[0];
       rangeExtent[1] = extent[1];
       rangeExtent[2] = extent[2];
       rangeExtent[3] = extent[3];
-    }
+    };
 
-    UpdateExtent(location, range);
+    updateExtent(location, range);
 
     const projection = new Projection({
       code: 'EPSG:3857', //'radar',
@@ -108,43 +122,55 @@ export class RadarRenderService {
       })
     });
 
-    var worker: Worker;
     if (this.hasWebgl) {
-      worker = new Worker(new URL('./radar-gl.worker', import.meta.url));
-    } else {
-      worker = new Worker(new URL('./radar.worker', import.meta.url));
+      this.worker = new Worker(new URL('./radar-gl.worker', import.meta.url));
     }
 
-    let lastUpdate = 0;
-    // throttle layer source refresh
-    const refreshSource = () => {
-      const shift = Date.now() - lastUpdate;
-      if (shift > 500) {
+    this.worker.postMessage({ canvas: offscreenRadarCanvas, radar: radar }, [
+      offscreenRadarCanvas
+    ]);
+
+    let lastRedraw = 0;
+    const REDRAW_INTERVAL_MS = 33;
+
+    this.worker.onmessage = (event) => {
+      if (event.data.redraw) {
+        const now = Date.now();
+        if (now - lastRedraw >= REDRAW_INTERVAL_MS) {
+          radarSource.refresh();
+          lastRedraw = now;
+        }
+      } else if (event.data.range) {
+        range = event.data.range;
+        updateExtent(location, range);
         radarSource.refresh();
-        lastUpdate = Date.now();
+      }
+      if (event.data.msg) {
+        this.app.showMessage(event.data.msg);
       }
     };
 
-    this.workers.push(worker);
-    worker.postMessage({ canvas: offscreenRadarCanvas, radar: radar }, [
-      offscreenRadarCanvas
-    ]);
-    worker.onmessage = (event) => {
-      if (event.data.redraw) {
-        //radarSource.refresh();
-        refreshSource();
-      } else if (event.data.range) {
-        range = event.data.range;
-        UpdateExtent(location, range);
+    let lastHeading: number;
+
+    this.shipStateSubscription = shipState.subscribe((state) => {
+      const locationChanged =
+        state.location[0] !== location[0] || state.location[1] !== location[1];
+
+      location = state.location;
+
+      if (locationChanged) {
+        updateExtent(location, range);
         radarSource.refresh();
       }
-    };
-    shipState.subscribe((state) => {
-      location = state.location;
-      UpdateExtent(location, range);
-      worker.postMessage({ heading: state.heading });
-      //radarSource.refresh();
-      refreshSource();
+      if (
+        lastHeading === undefined ||
+        Math.abs(state.heading - lastHeading) > 0.5
+      ) {
+        this.worker.postMessage({
+          heading: state.heading
+        });
+        lastHeading = state.heading;
+      }
     });
     return radarSource;
   }

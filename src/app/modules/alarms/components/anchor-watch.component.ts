@@ -7,8 +7,13 @@ import {
   SimpleChanges,
   ViewChild,
   ElementRef,
-  inject
+  inject,
+  signal,
+  computed,
+  DestroyRef
 } from '@angular/core';
+
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -36,6 +41,7 @@ import { AnchorService } from '../anchor.service';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 
 @Component({
   selector: 'anchor-watch',
@@ -59,8 +65,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 export class AnchorWatchComponent {
   @Input() radius: number;
   @Input() min = 5;
-  @Input() max = 100;
-  @Input() feet = false;
+  @Input() max = 250;
   @Input() raised = true;
   @Input() showSelf = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
@@ -68,37 +73,50 @@ export class AnchorWatchComponent {
   @ViewChild('slideCtl', { static: true }) slideCtl: ElementRef<MatSlideToggle>;
 
   protected bgImage: string;
-  protected displayRadius: number | null;
-
   protected sliderValue: number;
   protected rodeOut = false;
+  protected convert = Convert;
 
   // set controls
   protected useDefaultRadius: boolean;
-  protected defaultAlarmRadius: number;
   protected useSetManual: boolean;
-  protected defaultRodeLength: number;
+  protected defaultRodeLength = signal<number>(10);
+  protected defaultAlarmRadius = signal<number>(10);
+
   protected disableRaiseDrop: boolean;
 
   private anchor = inject(AnchorService);
-  private app = inject(AppFacade);
+  protected app = inject(AppFacade);
   private signalk = inject(SignalKClient);
+  private destroyRef = inject(DestroyRef);
+
+  protected radiusValue = signal<number>(0); // incoming alarm radius
+  protected formattedRadiusValue = computed(() => {
+    if (!Number.isFinite(this.radiusValue()) || this.raised) {
+      return '--';
+    } else {
+      return `${Math.round(this.radiusValue())}${Convert.getSymbol(this.app.config.units.length)}`;
+    }
+  });
+  protected displayRadius = signal<string>('--');
 
   constructor() {}
 
   ngOnInit() {
-    this.displayRadius = this.sliderValue;
-    this.defaultAlarmRadius = this.app.config.anchor.radius;
     this.useDefaultRadius = this.app.config.anchor.setRadius;
     this.useSetManual = this.app.config.anchor.manualSet;
-    this.defaultRodeLength = this.app.config.anchor.rodeLength;
+    this.defaultRodeLength.update(() => {
+      return Math.round(this.transformValue(this.app.config.anchor.rodeLength));
+    });
+    this.defaultAlarmRadius.update(() => {
+      return Math.round(this.transformValue(this.app.config.anchor.radius));
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.radius) {
       if (changes.radius.previousValue === -1) {
         this.sliderValue = Math.round(changes.radius.currentValue);
-        this.displayRadius = this.sliderValue;
         this.max = this.sliderValue + 100;
       } else if (
         changes.radius.firstChange &&
@@ -107,7 +125,14 @@ export class AnchorWatchComponent {
         this.sliderValue = Math.round(changes.radius.currentValue);
         this.max = this.sliderValue + 100;
       }
+      this.radiusValue.update(() =>
+        this.transformValue(changes.radius.currentValue)
+      );
+      this.displayRadius.update(() =>
+        this.formatTransformedValue(changes.radius.currentValue)
+      );
     }
+
     this.bgImage = `url('${
       this.raised
         ? './assets/img/anchor-radius-raised.png'
@@ -118,20 +143,65 @@ export class AnchorWatchComponent {
       !this.showSelf || (this.raised && this.useSetManual);
   }
 
+  /**
+   * Convert the formatted value based on config.units.length
+   * @param value to convert
+   * @returns Transformed value
+   */
+  transformValue(value: number): number {
+    return Convert.transform(
+      value,
+      'm',
+      this.app.config.units.length as TARGET_UNIT
+    );
+  }
+
+  /**
+   * Convert and format the value for display
+   * @param value Value to display
+   * @returns Formatted string of transformed for display
+   */
+  formatTransformedValue(value: number): string {
+    return `${Math.round(this.transformValue(value))} ${Convert.getSymbol(this.app.config.units.length)}`;
+  }
+
+  /** Format slider thumb value for display */
+  get formatSliderLabel() {
+    return (value: number): string => {
+      return this.formatTransformedValue(value);
+    };
+  }
+
   onDefaultRadiusChecked(e: MatCheckboxChange) {
     this.useDefaultRadius = e.checked;
     this.app.config.anchor.setRadius = e.checked;
     if (!e.checked) {
-      this.defaultAlarmRadius = this.app.config.anchor.radius;
+      this.defaultAlarmRadius.update(() => {
+        return Math.round(this.transformValue(this.app.config.anchor.radius));
+      });
     }
     this.app.saveConfig();
+  }
+
+  onDefaultRadiusChange(e: any) {
+    this.app.config.anchor.radius = Math.round(
+      Convert.transform(
+        e,
+        this.app.config.units.length as SI_BASE_UNIT,
+        'm' as TARGET_UNIT
+      )
+    );
   }
 
   onSetManualCheck(e: MatCheckboxChange) {
     this.useSetManual = e.checked;
     this.app.config.anchor.manualSet = e.checked;
     if (!e.checked) {
-      this.defaultRodeLength = this.app.config.anchor.rodeLength;
+      this.defaultRodeLength.update(() => {
+        return Math.round(
+          this.transformValue(this.app.config.anchor.rodeLength)
+        );
+      });
     }
     this.disableRaiseDrop = this.raised && this.useSetManual;
     this.app.saveConfig();
@@ -147,27 +217,23 @@ export class AnchorWatchComponent {
    */
   setRadius(value?: number) {
     this.rodeOut = true;
-    this.displayRadius =
-      typeof value === 'number'
-        ? this.feet
-          ? this.ftToM(value)
-          : value
-        : value;
+    this.displayRadius.update(() => this.formatTransformedValue(value));
     if (!this.raised) {
       this.signalk
         .post(
           '/plugins/anchoralarm/setRadius',
           typeof value === 'number' ? { radius: value } : {}
         )
-        .subscribe(
-          () => {
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
             this.app.config.anchor.radius = value;
             this.app.saveConfig();
           },
-          (err: HttpErrorResponse) => {
+          error: (err: HttpErrorResponse) => {
             this.app.parseHttpErrorResponse(err);
           }
-        );
+        });
     }
   }
 
@@ -175,23 +241,30 @@ export class AnchorWatchComponent {
    * @description Set anchor position using the rode length
    */
   setManualAnchor() {
-    if (typeof this.defaultRodeLength !== 'number') {
+    if (typeof this.defaultRodeLength() !== 'number') {
       this.app.showAlert('Error', 'Rode length value is not a number!');
       return;
     }
-    this.app.config.anchor.rodeLength = this.defaultRodeLength;
+    this.app.config.anchor.rodeLength = Math.round(
+      Convert.transform(
+        this.defaultRodeLength(),
+        this.app.config.units.length as SI_BASE_UNIT,
+        'm' as TARGET_UNIT
+      )
+    );
     this.signalk
       .post('/plugins/anchoralarm/setManualAnchor', {
         rodeLength: this.app.config.anchor.rodeLength
       })
-      .subscribe(
-        () => {
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
           this.app.saveConfig();
         },
-        (err: HttpErrorResponse) => {
+        error: (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }
-      );
+      });
   }
 
   /**
@@ -201,7 +274,7 @@ export class AnchorWatchComponent {
   dropRaiseAnchor(e: MatSlideToggleChange) {
     if (e.checked) {
       this.dropAnchor(
-        this.useDefaultRadius ? this.defaultAlarmRadius : undefined
+        this.useDefaultRadius ? this.app.config.anchor.radius : undefined
       );
     } else {
       this.raiseAnchor();
@@ -220,27 +293,31 @@ export class AnchorWatchComponent {
         '/plugins/anchoralarm/dropAnchor',
         typeof radius === 'number' ? { radius: radius } : {}
       )
-      .subscribe(
-        () => {
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
           this.app.saveConfig();
         },
-        (err: HttpErrorResponse) => {
+        error: (err: HttpErrorResponse) => {
           this.anchor.setRaisedSignal(true);
           this.app.parseHttpErrorResponse(err);
         }
-      );
+      });
   }
 
   /**
    * @description Raise the Anchor
    */
   raiseAnchor() {
-    this.signalk.post('/plugins/anchoralarm/raiseAnchor', {}).subscribe(
-      () => undefined,
-      (err: HttpErrorResponse) => {
-        this.app.parseHttpErrorResponse(err);
-      }
-    );
+    this.signalk
+      .post('/plugins/anchoralarm/raiseAnchor', {})
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => undefined,
+        error: (err: HttpErrorResponse) => {
+          this.app.parseHttpErrorResponse(err);
+        }
+      });
   }
 
   /**
@@ -263,12 +340,5 @@ export class AnchorWatchComponent {
 
   close() {
     this.closed.emit();
-  }
-
-  mToFt(value: number) {
-    return Math.round(value * 3.28084);
-  }
-  ftToM(value: number) {
-    return Math.round(value / 3.28084);
   }
 }

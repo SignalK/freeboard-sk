@@ -1,4 +1,4 @@
-import { Component, Output, OnInit, EventEmitter, input } from '@angular/core';
+import { Component, OnInit, input, inject } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -111,10 +111,10 @@ export class ChartLayers implements OnInit {
 
   protected chartList = [];
 
-  constructor(
-    public app: AppFacade,
-    private skres: SKResourceService
-  ) {}
+  public app = inject(AppFacade);
+  private skres = inject(SKResourceService);
+
+  constructor() {}
 
   //** lifecycle: events **
   ngOnInit() {

@@ -12,21 +12,20 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
   template: `
     <button
       [ngClass]="{
-        'button-primary': radarApi.defaultRadar() && app.uiCtrl().radarLayer,
+        'button-primary': radarApi.radarId() && app.uiCtrl().radarLayer,
         'button-toolbar':
           !app.featureFlags().radarApi || !app.uiCtrl().radarLayer
       }"
       mat-fab
-      [disabled]="!active()"
-      (click)="handleClick()"
+      [disabled]="
+        !active() ||
+        !this.app.data.vessels.showSelf ||
+        this.app.instrumentPanel().open
+      "
       matTooltip="Radar Overlay"
       matTooltipPosition="above"
     >
-      @if (app.uiCtrl().radarLayer) {
-        <mat-icon class="ob" svgIcon="chart-radar-overlay-iec"></mat-icon>
-      } @else {
-        <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
-      }
+      <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
     </button>
   `,
   styles: []
@@ -39,10 +38,16 @@ export class RadarButtonComponent {
 
   constructor() {}
 
-  handleClick() {
+  /*handleClick() {
+    if (!this.app.uiCtrl().radarLayer) {
+      if (!this.radarApi.hasWebGL) {
+        this.radarApi.showNoWebGLMessage();
+        return;
+      }
+    }
     this.app.uiCtrl.update((current) => {
       const show = !current.radarLayer;
       return Object.assign({}, current, { radarLayer: show });
     });
-  }
+  }*/
 }

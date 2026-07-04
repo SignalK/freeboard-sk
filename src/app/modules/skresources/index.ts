@@ -11,9 +11,11 @@ export * from './components/signalk-details.component';
 export * from './components/notes/notelist';
 export * from './components/notes/note-dialog';
 export * from './components/notes/relatednotes-dialog';
+export * from './components/notes/note-panel';
 
 export * from './components/regions/regionlist';
 export * from './components/regions/region-dialog';
+export * from './components/regions/region-panel';
 
 export * from './components/ais/aislist';
 export * from './components/ais/ais-properties-modal';
@@ -31,17 +33,20 @@ export * from './components/tracks/track-dialog';
 
 export * from './components/routes/routelist';
 export * from './components/routes/route-dialog';
+export * from './components/routes/route-panel';
 export * from './components/routes/build-route.component';
 export { RouteNextPointComponent } from './components/routes/nextpoint.component';
 
 export * from './components/waypoints/waypointlist';
 export * from './components/waypoints/waypoint-dialog';
+export * from './components/waypoints/waypoint-panel';
 
 export * from './components/groups/grouplist';
 
 export * from './components/resourcesets/resourceset-list-modal';
 export * from './components/resourcesets/resourceset-feature-properties-modal';
-export * from './components/resourcesets/resource-upload-dialog';
 
 export * from './components/infolayers/infolayerlist';
 export * from './components/infolayers/infolayer-properties-dialog';
+
+export * from './components/weather/weatherlist';

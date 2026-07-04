@@ -1,7 +1,4 @@
-/** Waypoint Details Dialog Component **
- ********************************/
-
-import { Component, Inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import {
@@ -17,6 +14,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -27,16 +27,19 @@ import { CoordsPipe } from 'src/app/lib/pipes';
 import { SKWaypoint } from '../../resource-classes';
 import { merge } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AppIconDef, getResourceIcon, getSvgList } from 'src/app/modules/icons';
-import { MatTooltip } from '@angular/material/tooltip';
+import {
+  AppIconDef,
+  getResourceIcon,
+  persistSkIcon,
+  selListWaypointIcons
+} from 'src/app/modules/icons';
 
-/********* WaypointDialog **********
-	data: {
-    title: <string> title text,
-    addMode: <boolean> Add vs update waypoint,
-    waypoint: <SKWaypoint> Waypoint resource
-  }
-***********************************/
+interface DialogData {
+  title: string; // title text,
+  addMode: boolean; // Add vs update waypoint,
+  waypoint: SKWaypoint; // Waypoint resource
+}
+
 @Component({
   selector: 'ap-waypointdialog',
   imports: [
@@ -52,30 +55,36 @@ import { MatTooltip } from '@angular/material/tooltip';
     MatDialogModule,
     CoordsPipe,
     ReactiveFormsModule,
-    MatTooltip
+    MatTooltip,
+    MatChipsModule,
+    MatSlideToggleModule
   ],
   template: `
     <div class="_ap-waypoint">
-      <div style="display:flex;">
-        <div style="padding: 15px 0 0 10px;">
-          <mat-icon class="icon-waypoint">{{ icon }}</mat-icon>
-        </div>
+      <mat-toolbar style="background-color: transparent">
         <div>
-          <h1 mat-dialog-title>{{ data['title'] }}</h1>
+          <mat-icon class="icon-waypoint">{{ dialogIcon }}</mat-icon>
         </div>
-      </div>
-
+        <span style="flex: 1 1 auto; text-align: center;">{{
+          data.title
+        }}</span>
+        <div style="width: 50px;text-align:right;">
+          <button mat-icon-button (click)="handleClose(false)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </mat-toolbar>
       <mat-dialog-content>
-        <div>
-          <div style="padding-left: 10px;">
+        <div style="display: flex">
+          <div style="flex: 1 1 auto">
             <div>
-              <mat-form-field floatLabel="always">
+              <mat-form-field floatLabel="always" style="width:100%;">
                 <mat-label>Name</mat-label>
                 <input
                   matInput
                   type="text"
                   required
-                  [readonly]="readOnly"
+                  [readonly]="wptReadOnly"
                   [formControl]="inpName"
                   (blur)="updateErrorMessage()"
                 />
@@ -85,86 +94,27 @@ import { MatTooltip } from '@angular/material/tooltip';
               </mat-form-field>
             </div>
             <div>
-              <mat-form-field floatLabel="always">
+              <mat-form-field floatLabel="always" style="width:100%;">
                 <mat-label>Description</mat-label>
                 <textarea
                   matInput
-                  rows="2"
+                  rows="3"
                   #inpcmt="ngModel"
-                  [readonly]="readOnly"
-                  [(ngModel)]="description"
+                  [readonly]="wptReadOnly"
+                  [(ngModel)]="wptDescription"
                 >
                 </textarea>
               </mat-form-field>
             </div>
 
-            <div>
-              <mat-form-field style="width:100%;" floatLabel="always">
-                <mat-label>Type</mat-label>
-                <mat-select
-                  [disabled]="readOnly"
-                  [(value)]="wptType"
-                  (selectionChange)="handleWptTypeChange($event)"
-                >
-                  @for (wt of waypointTypes; track wt) {
-                    <mat-optgroup [label]="wt.group">
-                      @for (i of wt.icons; track i) {
-                        <mat-option [value]="i.type">
-                          <mat-icon
-                            [class]="i.icon.class"
-                            [svgIcon]="i.icon.svgIcon"
-                            >{{ i.icon.name }}</mat-icon
-                          >
-                          {{ i.name }}
-                        </mat-option>
-                      }
-                    </mat-optgroup>
-                  }
-                </mat-select>
-              </mat-form-field>
-            </div>
-
-            <!-- select icon -->
-            @if (selectableIcons.includes(wptType)) {
-              <div style="padding-bottom: 15px;">
-                <button mat-stroked-button (click)="handleChangeIcon()">
-                  <mat-icon
-                    [class]="wptIcon.class"
-                    [svgIcon]="wptIcon.svgIcon"
-                    >{{ wptIcon.name }}</mat-icon
-                  >
-                  Change icon
-                </button>
-              </div>
-            }
-            @if (iconsForSelection().length !== 0) {
-              <div style="display:flex;flex-wrap:wrap;">
-                @for (i of iconsForSelection(); track i) {
-                  <div
-                    style="background-color:silver;padding:2px;"
-                    [ngClass]="{
-                      'selected-icon': i.svgIcon === this.wptIcon.svgIcon,
-                      'unselected-icon': i.svgIcon !== this.wptIcon.svgIcon
-                    }"
-                    (click)="handleIconSelected(i.svgIcon)"
-                  >
-                    <mat-icon
-                      [svgIcon]="i.svgIcon"
-                      [matTooltip]="i.svgIcon"
-                    ></mat-icon>
-                  </div>
-                }
-              </div>
-            }
-
-            <div style="font-size: 10pt;">
+            <div style="font-size: 10pt;display:flex;flex-wrap:wrap">
               <div style="display:flex;">
-                @if (readOnly) {
+                @if (wptReadOnly) {
                   <div style="width:45px;font-weight:bold;">Lat:</div>
                   <div
                     style="flex: 1 1 auto;"
                     [innerText]="
-                      lat | coords: app.config.units.positionFormat : true
+                      wptLat | coords: app.config.units.positionFormat : true
                     "
                   ></div>
                 } @else {
@@ -187,12 +137,14 @@ import { MatTooltip } from '@angular/material/tooltip';
                   </div>
                 }
               </div>
-              <div style="display:flex;">
-                @if (readOnly) {
+              <div style="display:flex;padding-left: 5px;">
+                @if (wptReadOnly) {
                   <div style="width:45px;font-weight:bold;">Lon:</div>
                   <div
                     style="flex: 1 1 auto;"
-                    [innerText]="lon | coords: app.config.units.positionFormat"
+                    [innerText]="
+                      wptLon | coords: app.config.units.positionFormat
+                    "
                   ></div>
                 } @else {
                   <div style="flex: 1 1 auto;">
@@ -214,25 +166,77 @@ import { MatTooltip } from '@angular/material/tooltip';
                 }
               </div>
             </div>
+
+            <div style="font-size: 10pt;display:flex;flex-wrap:wrap">
+              <div>
+                <div>
+                  <div
+                    style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"
+                  >
+                    <mat-chip-listbox
+                      selectable
+                      (change)="handleWptTypeChange($event.value)"
+                    >
+                      @for (i of iconTypeSelection; track i) {
+                        <mat-chip-option
+                          [value]="i.id"
+                          [selected]="wptType === i.id"
+                        >
+                          {{ i.group }}
+                        </mat-chip-option>
+                      }
+                    </mat-chip-listbox>
+                    @if (wptType === 'waypoint') {
+                      <mat-slide-toggle
+                        labelPosition="before"
+                        [hideIcon]="true"
+                        [checked]="showAllIcons()"
+                        (change)="onShowAllToggle($event.checked)"
+                        style="font-size:10pt;margin-left:4px;"
+                      >
+                        Show all symbols
+                      </mat-slide-toggle>
+                    }
+                  </div>
+                  <div
+                    style="display:flex;flex-wrap:wrap;padding-bottom:10px;height:64px;overflow-y:auto;"
+                  >
+                    @for (i of iconsForSelection(); track i) {
+                      <div
+                        style="background-color:silver;padding:2px;"
+                        [ngClass]="{
+                          'selected-icon': i.svgIcon === this.wptIcon().svgIcon,
+                          'unselected-icon':
+                            i.svgIcon !== this.wptIcon().svgIcon
+                        }"
+                        (click)="handleIconSelected($index)"
+                      >
+                        <mat-icon
+                          [svgIcon]="i.svgIcon"
+                          [matTooltip]="i.svgIcon"
+                        ></mat-icon>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <div style="text-align:center;width:100%;">
-          @if (!readOnly) {
-            <button
-              mat-raised-button
-              [disabled]="
-                inpLat.invalid || inpLon.invalid || inpName.invalid || readOnly
-              "
-              (click)="handleClose(true)"
-            >
-              SAVE
-            </button>
-          }
-          <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
-        </div>
-      </mat-dialog-actions>
+      @if (!wptReadOnly) {
+        <mat-dialog-actions align="end">
+          <button
+            mat-flat-button
+            [disabled]="
+              inpLat.invalid || inpLon.invalid || inpName.invalid || wptReadOnly
+            "
+            (click)="handleClose(true)"
+          >
+            SAVE
+          </button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -252,106 +256,77 @@ import { MatTooltip } from '@angular/material/tooltip';
   ]
 })
 export class WaypointDialog {
-  protected icon: string;
-  protected waypointTypes: Array<any>;
+  protected dialogIcon: string; // dialog add / edit icon
 
-  protected description: string;
+  // waypoint properties
   protected wptType: string;
-  protected wptIcon: AppIconDef;
-  protected skIcon: string;
-  protected lat: number;
-  protected lon: number;
-  protected readOnly = false;
+  protected wptDescription: string;
+  protected wptReadOnly = false;
+  protected wptLat: number;
+  protected wptLon: number;
+  protected wptIcon = signal<AppIconDef>(undefined); // selected icon
 
   protected inpLat: FormControl;
   protected inpLon: FormControl;
   protected inpName: FormControl;
 
-  protected selectableIcons = ['pseudoaton'];
+  protected errorMessage = signal('');
 
-  errorMessage = signal('');
-  iconsForSelection = signal<AppIconDef[]>([]);
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<WaypointDialog>);
+  protected data = inject<DialogData>(MAT_DIALOG_DATA);
 
-  constructor(
-    protected app: AppFacade,
-    protected dialogRef: MatDialogRef<WaypointDialog>,
-    @Inject(MAT_DIALOG_DATA)
-    protected data: {
-      title: string;
-      addMode: boolean;
-      waypoint: SKWaypoint;
+  protected wptOptions!: Record<
+    string,
+    {
+      group: string;
+      icons: Array<AppIconDef>;
     }
-  ) {
-    this.description = this.data.waypoint.description ?? '';
-    this.wptType = this.data.waypoint.type ?? '';
-    this.wptIcon = this.getIconDef(this.data.waypoint);
+  >;
+  protected iconTypeSelection: Array<{ id: string; group: string }> = [];
+  protected iconsForSelection = signal<AppIconDef[]>([]);
+  protected showAllIcons = signal(false);
+
+  constructor() {
+    this.dialogIcon = this.data.addMode ? 'add_location' : 'edit_location';
+
+    // initialise waypoint icons and selections
+    this.rebuildIconOptions(false);
+    const typeKeys = Object.keys(this.wptOptions);
+    this.wptType = !typeKeys.includes(this.data.waypoint.type)
+      ? 'waypoint'
+      : this.data.waypoint.type;
+
+    this.wptIcon.update(() => this.getIconDef(this.data.waypoint));
+
+    // If the current icon isn't visible in the merged Waypoints list (e.g. a
+    // 'default:' pin or a non-waypoint-role symbol, both shown only under
+    // "Show all symbols"), start with the slider on so the selection is shown.
+    if (this.wptType === 'waypoint') {
+      const sel = this.wptIcon().svgIcon;
+      const visible = this.wptOptions['waypoint'].icons.some(
+        (i) => i.svgIcon === sel
+      );
+      if (sel && !visible) {
+        this.showAllIcons.set(true);
+        this.rebuildIconOptions(true);
+      }
+    }
+
+    this.iconsForSelection.set(
+      this.wptOptions[this.wptType]?.icons ?? this.wptOptions['waypoint'].icons
+    );
+    this.wptDescription = this.data.waypoint.description ?? '';
+    this.wptReadOnly = this.data.waypoint.feature.properties?.readOnly ?? false;
     const coords = this.data.waypoint.feature.geometry.coordinates ?? [0, 0];
-    this.lat = coords[1];
-    this.lon = coords[0];
-    this.readOnly = this.data.waypoint.feature.properties?.readOnly ?? false;
-    this.icon = this.data.addMode ? 'add_location' : 'edit_location';
-    this.inpLat = new FormControl(this.lat, [Validators.required]);
-    this.inpLon = new FormControl(this.lon, [Validators.required]);
+    this.wptLat = coords[1];
+    this.wptLon = coords[0];
+
+    this.inpLat = new FormControl(this.wptLat, [Validators.required]);
+    this.inpLon = new FormControl(this.wptLon, [Validators.required]);
     this.inpName = new FormControl(this.data.waypoint.name ?? '', [
       Validators.required
     ]);
-
-    const wptIcons = {
-      default: getResourceIcon('waypoints', undefined),
-      pseudoaton: getResourceIcon('waypoints', 'pseudoaton'),
-      whale: getResourceIcon('waypoints', 'whale'),
-      pob: getResourceIcon('waypoints', 'pob'),
-      startboat: getResourceIcon('waypoints', 'start-boat'),
-      startpin: getResourceIcon('waypoints', 'start-pin')
-    };
-
-    this.waypointTypes = [
-      {
-        group: 'Points of Interest',
-        icons: [
-          {
-            type: '',
-            name: 'Waypoint',
-            icon: wptIcons.default
-          },
-          {
-            type: 'pseudoaton',
-            name: 'Pseudo AtoN',
-            icon: wptIcons.pseudoaton
-          },
-          {
-            type: 'whale',
-            name: 'Whale Sighting',
-            icon: wptIcons.whale
-          }
-        ]
-      },
-      {
-        group: 'Racing',
-        icons: [
-          {
-            type: 'start-boat',
-            name: 'Start Boat',
-            icon: wptIcons.startboat
-          },
-          {
-            type: 'start-pin',
-            name: 'Start Pin',
-            icon: wptIcons.startpin
-          }
-        ]
-      },
-      {
-        group: 'Alarms',
-        icons: [
-          {
-            type: 'pob',
-            name: 'Person Overboard',
-            icon: wptIcons.pob
-          }
-        ]
-      }
-    ];
 
     merge(
       this.inpLat.statusChanges,
@@ -365,7 +340,7 @@ export class WaypointDialog {
       .subscribe(() => this.updateErrorMessage());
   }
 
-  updateErrorMessage() {
+  protected updateErrorMessage() {
     if (this.inpLat.hasError('required') || this.inpLon.hasError('required')) {
       this.errorMessage.set('You must enter a value.');
     } else if (this.inpName.hasError('required')) {
@@ -379,20 +354,22 @@ export class WaypointDialog {
     }
   }
 
-  handleClose(save: boolean) {
+  protected handleClose(save: boolean) {
     if (save) {
       this.data.waypoint.name = this.inpName.value;
-      this.data.waypoint.description = this.description;
+      this.data.waypoint.description = this.wptDescription;
       this.data.waypoint.type = this.wptType;
       this.data.waypoint.feature.geometry.coordinates = [
         this.inpLon.value,
         this.inpLat.value
       ];
-      if (this.skIcon) {
-        this.data.waypoint.feature.properties.skIcon = this.skIcon;
-      } else {
-        delete this.data.waypoint.feature.properties.skIcon;
-      }
+      // Only the 'waypoint' category participates in symbol overrides, so only
+      // it gets the bare-vs-default: persistence treatment. Other categories
+      // (start-pin, …) save their icon id verbatim.
+      this.data.waypoint.feature.properties.skIcon =
+        this.wptType === 'waypoint'
+          ? persistSkIcon(this.wptIcon().svgIcon)
+          : this.wptIcon().svgIcon;
     }
     this.dialogRef.close({ save: save, waypoint: this.data.waypoint });
   }
@@ -402,31 +379,35 @@ export class WaypointDialog {
     return getResourceIcon('waypoints', wpt ?? this.data.waypoint);
   }
 
-  protected handleWptTypeChange(e) {
-    const w = Object.assign({}, this.data.waypoint);
-    w.type = this.wptType;
-    this.wptIcon = this.getIconDef(w);
-    this.iconsForSelection.set([]);
-    this.skIcon = undefined;
+  protected onShowAllToggle(checked: boolean) {
+    this.showAllIcons.set(checked);
+    this.rebuildIconOptions(checked);
+    // Stay on the current category (only the Waypoints chip shows the toggle).
+    const currentGroup = this.wptOptions[this.wptType]
+      ? this.wptType
+      : 'waypoint';
+    this.iconsForSelection.set(this.wptOptions[currentGroup].icons);
   }
 
-  protected handleChangeIcon() {
-    if (this.wptType === 'pseudoaton') {
-      const { svgIcon } = getResourceIcon('waypoints', 'pseudoaton');
-      const d = getSvgList()
-        .filter((i) => i.id.includes('virtual-'))
-        .map((i) => {
-          return { svgIcon: i.id };
-        });
-      d.unshift({ svgIcon: svgIcon });
-      this.iconsForSelection.update(() => d);
+  private rebuildIconOptions(showAll: boolean) {
+    this.wptOptions = selListWaypointIcons(showAll);
+    this.iconTypeSelection = Object.entries(this.wptOptions).map((i) => ({
+      id: i[0],
+      group: i[1].group
+    }));
+  }
+
+  protected handleWptTypeChange(value: string) {
+    this.iconsForSelection.set(this.wptOptions[value].icons);
+    if (this.data.waypoint.type === value) {
+      this.wptIcon.update(() => this.getIconDef(this.data.waypoint));
+    } else {
+      this.wptIcon.set(this.wptOptions[value].icons[0]);
     }
+    this.wptType = value;
   }
 
-  protected handleIconSelected(skIcon: string) {
-    this.skIcon = skIcon;
-    const w = Object.assign({}, this.data.waypoint);
-    w.feature.properties.skIcon = skIcon;
-    this.wptIcon = this.getIconDef(w);
+  protected handleIconSelected(index: number) {
+    this.wptIcon.set(this.wptOptions[this.wptType].icons[index]);
   }
 }

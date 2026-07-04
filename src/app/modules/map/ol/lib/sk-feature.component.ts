@@ -51,7 +51,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() minResolution: number;
   @Input() maxResolution: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties: Record<string, any>;
 
   constructor(
     protected mapComponent: MapComponent,
@@ -214,6 +214,9 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
     const im = style.getImage();
     if (im) {
       im.setRotation(value ?? 0);
+      // Ensure orientation markers (incl. external symbol overrides, which are
+      // built with rotateWithView=false) rotate with the map view like built-ins.
+      im.setRotateWithView(true);
       style.setImage(im);
     }
     return style;

@@ -74,17 +74,17 @@ export class SKNote {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authors: Array<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  properties: { [key: string]: any };
+  properties: Record<string, any>;
 
   constructor(note?: NoteResource) {
     this.name = note?.name ?? '';
     this.description = note?.description ?? '';
-    this.position = note?.position ?? null;
-    this.href = note?.href ?? null;
+    this.position = note?.position;
+    this.href = note?.href;
     this.mimeType = note?.mimeType ?? '';
     this.url = note?.url ?? '';
     // ca reports
-    this.group = note?.group ?? null;
+    this.group = note?.group;
     this.authors =
       note?.authors && Array.isArray(note?.authors) ? note.authors : [];
     this.properties =
@@ -127,6 +127,7 @@ export class SKChart {
   format: string;
   minZoom = 0;
   maxZoom = 24;
+  tileSize = 256;
   type: string;
   url: string;
   source: string;
@@ -145,6 +146,8 @@ export class SKChart {
       typeof chart?.minzoom !== 'undefined' ? chart.minzoom : this.minZoom;
     this.maxZoom =
       typeof chart?.maxzoom !== 'undefined' ? chart.maxzoom : this.maxZoom;
+    this.tileSize =
+      typeof chart?.tileSize !== 'undefined' ? chart.tileSize : this.tileSize;
     this.type = chart?.type ? chart.type : undefined;
     this.url = chart?.url ? chart.url : undefined;
     this.scale =
@@ -223,7 +226,7 @@ export class SKVessel extends SKTargetBase {
     nextPoint: {},
     previousPoint: {}
   };
-  courseCalcs: { [key: string]: any } = {};
+  courseCalcs: Record<string, any> = {};
   distanceToSelf: number;
   environment = {
     mode: null, // day | night
@@ -236,8 +239,9 @@ export class SKVessel extends SKTargetBase {
     beatAngle: null,
     gybeAngle: null
   };
-  racing: { [key: string]: string };
-  registrations: { [key: string]: string } = {};
+  racing: Record<string, any>;
+  radars: Record<string, any> = {};
+  registrations: Record<string, any> = {};
   resourceUpdates = []; // resource deltas
   sog: number;
   track: Array<Position[]> = [];

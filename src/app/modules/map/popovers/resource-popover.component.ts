@@ -1,10 +1,12 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
-  inject
+  inject,
+  signal,
+  output,
+  effect,
+  input,
+  linkedSignal
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -14,7 +16,7 @@ import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 
 import { AppFacade } from 'src/app/app.facade';
-import { Convert } from 'src/app/lib/convert';
+import { RemarkModule } from 'ngx-remark';
 import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 
@@ -26,18 +28,14 @@ interface PopoverCtrl {
   showRelatedButton: boolean;
   showPointsButton: boolean;
   showNotesButton: boolean;
+  showSaveButton: boolean;
   canActivate: boolean;
   isActive: boolean;
   activeText: string;
   isReadOnly: boolean;
+  modifyLabel: string;
 }
 
-/*********** Resource Popover ***************
-title: string -  title text,
-resource: resource data
-type: string - resource type
-id: string - resource id
-*************************************************/
 @Component({
   selector: 'resource-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,24 +45,41 @@ id: string - resource id
     MatIconModule,
     CoordsPipe,
     PopoverComponent,
-    CoordsPipe
+    CoordsPipe,
+    RemarkModule
   ],
   template: `
     <ap-popover
-      [title]="title"
+      [title]="_title()"
       [icon]="icon"
-      [canClose]="canClose"
+      [canClose]="canClose()"
       (closed)="handleClose()"
     >
-      <div
-        style="flex: 1 1 auto;text-align:left;font-style: italic; overflow: hidden;
-                                display: -webkit-box;
-                                -webkit-box-orient: vertical;
-                                -webkit-line-clamp: 2;
-                                line-clamp: 2;
-                                text-overflow:ellipsis;"
-        [innerHTML]="resource[1].description ?? ''"
-      ></div>
+      @if (hasMarkdown()) {
+        <remark
+          style="flex: 1 1 auto;text-align:left;font-style: italic; overflow: hidden;
+                                  display: -webkit-box;
+                                  -webkit-box-orient: vertical;
+                                  -webkit-line-clamp: 2;
+                                  line-clamp: 2;
+                                  text-overflow:ellipsis;"
+          [markdown]="resource()[1].description ?? ''"
+        >
+          <ng-template remarkTemplate="heading" let-node>
+            <h1 [remarkNode]="node" style="font-size:10pt;"></h1>
+          </ng-template>
+        </remark>
+      } @else {
+        <div
+          style="flex: 1 1 auto;text-align:left;font-style: italic; overflow: hidden;
+                                  display: -webkit-box;
+                                  -webkit-box-orient: vertical;
+                                  -webkit-line-clamp: 2;
+                                  line-clamp: 2;
+                                  text-overflow:ellipsis;"
+          [innerHTML]="resource()[1].description ?? ''"
+        ></div>
+      }
       @for (p of properties; track p) {
         <div style="display:flex;">
           <div style="font-weight:bold;">{{ p[0] }}:</div>
@@ -97,7 +112,10 @@ id: string - resource id
 
       <div style="display:flex;flex-wrap: wrap;">
         @if (ctrl.showModifyButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 1 : null"
+          >
             <button
               mat-button
               (click)="emitModify()"
@@ -106,7 +124,7 @@ id: string - resource id
               [disabled]="this.ctrl.isReadOnly"
             >
               <mat-icon>touch_app</mat-icon>
-              MOVE
+              {{ ctrl.modifyLabel }}
             </button>
           </div>
         }
@@ -124,13 +142,16 @@ id: string - resource id
           </div>
         }
         @if (ctrl.showDeleteButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 6 : null"
+          >
             <button
               mat-button
+              [disabled]="ctrl.isReadOnly || ctrl.isActive"
               (click)="emitDelete()"
               matTooltip="Delete"
               matTooltipPosition="after"
-              [disabled]="this.ctrl.isReadOnly"
             >
               <mat-icon>delete</mat-icon>
               DELETE
@@ -138,12 +159,15 @@ id: string - resource id
           </div>
         }
         @if (ctrl.canActivate && !ctrl.isActive) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 2 : null"
+          >
             <button
               mat-button
               (click)="emitActive(true)"
               [matTooltip]="
-                type === 'waypoint'
+                type() === 'waypoint'
                   ? 'Navigate to Waypoint'
                   : 'Navigate to first point'
               "
@@ -154,7 +178,10 @@ id: string - resource id
             </button>
           </div>
         } @else if (ctrl.canActivate && ctrl.isActive) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 2 : null"
+          >
             <button
               mat-button
               (click)="emitActive(false)"
@@ -167,14 +194,17 @@ id: string - resource id
           </div>
         }
         @if (ctrl.showPointsButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 3 : null"
+          >
             <button
               mat-button
               (click)="emitPoints()"
               matTooltip="Route Points"
               matTooltipPosition="after"
             >
-              <mat-icon>flag</mat-icon>
+              <mat-icon>location_on</mat-icon>
               POINTS
             </button>
           </div>
@@ -193,7 +223,10 @@ id: string - resource id
           </div>
         }
         @if (ctrl.showNotesButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 4 : null"
+          >
             <button
               mat-button
               (click)="emitNotes()"
@@ -206,7 +239,10 @@ id: string - resource id
           </div>
         }
         @if (ctrl.showInfoButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 5 : null"
+          >
             <button
               mat-button
               (click)="emitInfo()"
@@ -218,32 +254,53 @@ id: string - resource id
             </button>
           </div>
         }
+        @if (ctrl.showSaveButton) {
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 2 : null"
+          >
+            <button
+              mat-button
+              color="primary"
+              (click)="emitSave()"
+              matTooltip="Save Route"
+              matTooltipPosition="after"
+            >
+              <mat-icon>save</mat-icon>
+              SAVE
+            </button>
+          </div>
+        }
       </div>
     </ap-popover>
   `,
   styleUrls: [`./popover.component.scss`]
 })
 export class ResourcePopoverComponent {
-  @Input() title: string;
-  @Input() type: string;
-  @Input() resource: SKRoute | SKWaypoint | SKNote | SKRegion;
-  @Input() active: boolean;
-  @Input() featureCount = 0;
-  @Input() units = 'm';
-  @Input() canClose: boolean;
-  @Output() modify: EventEmitter<void> = new EventEmitter();
-  @Output() delete: EventEmitter<void> = new EventEmitter();
-  @Output() addNote: EventEmitter<void> = new EventEmitter();
-  @Output() activated: EventEmitter<void> = new EventEmitter();
-  @Output() deactivated: EventEmitter<void> = new EventEmitter();
-  @Output() related: EventEmitter<string> = new EventEmitter();
-  @Output() info: EventEmitter<string> = new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() points: EventEmitter<void> = new EventEmitter();
-  @Output() notes: EventEmitter<void> = new EventEmitter();
+  title = input<string>(); // popover title text
+  resource = input<SKRoute | SKWaypoint | SKNote | SKRegion>();
+  type = input<string>(); // resource type
+  active = input<boolean>();
+  featureCount = input<number>(0);
+  units = input<string>('m');
+  canClose = input<boolean>();
+  /** Host-set: this route is an unsaved draft → show the Save shortcut. */
+  canSave = input<boolean>(false);
+  modify = output<void>();
+  save = output<void>();
+  delete = output<void>();
+  addNote = output<void>();
+  activated = output<void>();
+  deactivated = output<void>();
+  related = output<void>();
+  info = output<void>();
+  closed = output<void>();
+  points = output<void>();
+  notes = output<void>();
+
+  protected _title = linkedSignal(() => this.title());
 
   properties: Array<unknown>; // ** resource properties
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ctrl: PopoverCtrl = {
     showInfoButton: false,
     showModifyButton: false,
@@ -252,42 +309,61 @@ export class ResourcePopoverComponent {
     showRelatedButton: false,
     showPointsButton: false,
     showNotesButton: false,
+    showSaveButton: false,
     canActivate: false,
     isActive: false,
     activeText: 'ACTIVE',
-    isReadOnly: false
+    isReadOnly: false,
+    modifyLabel: 'MOVE'
   };
-
+  protected hasMarkdown = signal<boolean>(false);
   protected icon: AppIconDef;
   protected app = inject(AppFacade);
 
-  constructor() {}
-
-  ngOnChanges() {
-    this.parse();
-    this.ctrl.showModifyButton =
-      this.type !== 'destination' && this.featureCount > 0 ? true : false;
+  constructor() {
+    effect(() => {
+      this.resource();
+      this.type();
+      this.active();
+      this.parse();
+      this.ctrl.showModifyButton =
+        this.type() !== 'destination' && this.featureCount() > 0 ? true : false;
+      // Routes/regions are shape-edited ("Modify"); points are moved ("Move").
+      this.ctrl.modifyLabel =
+        this.type() === 'route' || this.type() === 'region' ? 'MODIFY' : 'MOVE';
+      // Save shortcut: only for an unsaved route (host-decided via canSave).
+      this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
+      if (this.ctrl.showSaveButton) {
+        // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
+        // the actions that only work against a stored resource — Start
+        // (navigation), Route Points and Show Notes — which a draft has none of.
+        this.ctrl.showDeleteButton = true;
+        this.ctrl.canActivate = false;
+        this.ctrl.showPointsButton = false;
+        this.ctrl.showNotesButton = false;
+      }
+    });
   }
 
-  parse() {
-    if (this.type === 'destination') {
+  private parse() {
+    if (this.type() === 'destination') {
       this.parseDestination();
     }
-    if (this.type === 'waypoint') {
+    if (this.type() === 'waypoint') {
       this.parseWaypoint();
     }
-    if (this.type === 'route') {
+    if (this.type() === 'route') {
       this.parseRoute();
     }
-    if (this.type === 'note') {
+    if (this.type() === 'note') {
       this.parseNote();
     }
-    if (this.type === 'region') {
+    if (this.type() === 'region') {
       this.parseRegion();
     }
   }
 
-  parseDestination() {
+  private parseDestination() {
     this.icon = undefined;
     this.ctrl.isActive = this.app.data.activeRoute ? false : true;
     this.ctrl.activeText = 'GO TO';
@@ -300,122 +376,138 @@ export class ResourcePopoverComponent {
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
     this.properties = [];
-    if (this.resource[1].name) {
-      this.properties.push(['Name', this.resource[1].name]);
+    if (this.resource()[1].name) {
+      this.properties.push(['Name', this.resource()[1].name]);
     }
-    if (this.resource[1].description) {
-      this.properties.push(['Desc.', this.resource[1].description]);
+    if (this.resource()[1].description) {
+      this.properties.push(['Desc.', this.resource()[1].description]);
     }
     this.properties.push([
       'Latitude',
-      this.resource[1].feature.geometry.coordinates[1]
+      this.resource()[1].feature.geometry.coordinates[1]
     ]);
     this.properties.push([
       'Longitude',
-      this.resource[1].feature.geometry.coordinates[0]
+      this.resource()[1].feature.geometry.coordinates[0]
     ]);
+    this.hasMarkdown.set(true);
   }
 
-  parseWaypoint() {
+  private parseWaypoint() {
+    this.ctrl.isReadOnly = this.resource()[1].feature.properties?.readOnly;
     this.ctrl.isActive =
-      this.active && this.active === this.resource[0] ? true : false;
+      this.active() && this.active() === this.resource()[0] ? true : false;
     this.ctrl.activeText = 'GO TO';
     this.ctrl.canActivate = true;
     this.ctrl.showInfoButton = true;
-    this.ctrl.showModifyButton = true;
-    this.ctrl.showDeleteButton = true;
-    this.ctrl.showNotesButton = true;
+    this.ctrl.showModifyButton = !this.ctrl.isReadOnly;
+    this.ctrl.showDeleteButton = this.app.useInfoPanel()
+      ? false
+      : !this.ctrl.isReadOnly;
+    this.ctrl.showNotesButton = this.app.useInfoPanel() ? false : true;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
-    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
+
     this.properties = [];
 
-    this.icon = getResourceIcon('waypoints', this.resource[1]);
-    this.title = this.resource[1].name ?? '';
+    this.icon = getResourceIcon('waypoints', this.resource()[1]);
+    this._title.set(this.resource()[1].name ?? '');
 
     this.properties.push([
       'Latitude',
-      this.resource[1].feature.geometry.coordinates[1]
+      this.resource()[1].feature.geometry.coordinates[1]
     ]);
     this.properties.push([
       'Longitude',
-      this.resource[1].feature.geometry.coordinates[0]
+      this.resource()[1].feature.geometry.coordinates[0]
     ]);
+    this.hasMarkdown.set(true);
   }
 
-  parseRoute() {
+  private parseRoute() {
+    this.ctrl.isReadOnly = this.resource()[1].feature.properties?.readOnly;
     this.ctrl.isActive =
-      this.active && this.active === this.resource[0] ? true : false;
+      this.active() && this.active() === this.resource()[0] ? true : false;
     this.ctrl.activeText = 'START';
     this.ctrl.canActivate = true;
     this.ctrl.showInfoButton = true;
-    this.ctrl.showModifyButton = true;
-    this.ctrl.showPointsButton = true;
-    this.ctrl.showNotesButton = true;
+    this.ctrl.showModifyButton = !this.ctrl.isReadOnly;
+    this.ctrl.showPointsButton = this.app.useInfoPanel() ? false : true;
+    this.ctrl.showNotesButton = this.app.useInfoPanel() ? false : true;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showRelatedButton = false;
-    this.ctrl.showDeleteButton = this.ctrl.isActive ? false : true;
-    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
+    // Always offer Delete for routes (consistent lower-right action), even with
+    // the info panel; the button itself is disabled when the route is active.
+    this.ctrl.showDeleteButton = !this.ctrl.isReadOnly;
 
-    this.icon = getResourceIcon('routes', this.resource[1]);
-    this.title = this.resource[1].name ?? '';
+    this.icon = getResourceIcon('routes', this.resource()[1]);
+    this._title.set(this.resource()[1].name ?? '');
     this.properties = [];
-    const d =
-      this.units === 'm'
-        ? [(this.resource[1].distance / 1000).toFixed(1), 'km']
-        : [
-            Convert.kmToNauticalMiles(this.resource[1].distance / 1000).toFixed(
-              1
-            ),
-            'NM'
-          ];
-    this.properties.push(['Distance', `${d[0]} ${d[1]}`]);
+    const d = this.app.formatValueForDisplay(this.resource()[1].distance, 'm');
+    this.properties.push(['Distance', d]);
+    this.hasMarkdown.set(true);
   }
 
-  parseNote() {
+  private parseNote() {
+    this.ctrl.isReadOnly = this.resource()[1].properties?.readOnly;
     this.ctrl.isActive = false;
     this.ctrl.activeText = '';
     this.ctrl.canActivate = false;
     this.ctrl.showInfoButton = true;
-    this.ctrl.showModifyButton = true;
-    this.ctrl.showDeleteButton = true;
+    this.ctrl.showModifyButton = !this.ctrl.isReadOnly;
+    this.ctrl.showDeleteButton = this.app.useInfoPanel()
+      ? false
+      : !this.ctrl.isReadOnly;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showNotesButton = false;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton =
-      this.resource[1].group && this.app.config.resources.notes.groupNameEdit
+      this.resource()[1].group && this.app.config.resources.notes.groupNameEdit
         ? true
         : false;
 
-    this.icon = getResourceIcon('notes', this.resource[1]);
-    this.title = this.resource[1].name ?? '';
+    this.icon = getResourceIcon('notes', this.resource()[1]);
+    this._title.set(this.resource()[1].name ?? '');
     this.properties = [];
-    this.ctrl.isReadOnly = this.resource[1].properties?.readOnly;
+    this.ctrl.isReadOnly = this.resource()[1].properties?.readOnly;
+    this.hasMarkdown.update(() =>
+      this.resource()[1].mimeType?.includes('markdown')
+    );
   }
 
-  parseRegion() {
+  private parseRegion() {
+    this.ctrl.isReadOnly = this.resource()[1].feature.properties?.readOnly;
     this.ctrl.isActive = false;
     this.ctrl.activeText = '';
     this.ctrl.canActivate = false;
     this.ctrl.showInfoButton = true;
     this.ctrl.showModifyButton =
-      this.resource[1].feature.geometry.type === 'MultiPolygon' ? false : true;
-    this.ctrl.showDeleteButton = true;
+      this.resource()[1].feature.geometry.type === 'MultiPolygon'
+        ? false
+        : !this.ctrl.isReadOnly;
+    this.ctrl.showDeleteButton = this.app.useInfoPanel()
+      ? false
+      : !this.ctrl.isReadOnly;
     this.ctrl.showAddNoteButton = false;
-    this.ctrl.showNotesButton = true;
+    this.ctrl.showNotesButton = this.app.useInfoPanel() ? false : true;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
-    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
+
     this.properties = [];
-    this.icon = getResourceIcon('regions', this.resource[1]);
-    this.title = this.resource[1].name ?? '';
+    this.icon = getResourceIcon('regions', this.resource()[1]);
+    this._title.set(this.resource()[1].name ?? '');
+    this.hasMarkdown.set(true);
   }
 
   // *** BUTTON actions *******
 
   emitModify() {
     this.modify.emit();
+  }
+
+  emitSave() {
+    this.save.emit();
   }
 
   emitAddNote() {
@@ -447,7 +539,7 @@ export class ResourcePopoverComponent {
   }
 
   emitRelated() {
-    this.related.emit(this.resource[1].group);
+    this.related.emit(this.resource()[1].group);
   }
 
   handleClose() {
@@ -455,18 +547,17 @@ export class ResourcePopoverComponent {
   }
 }
 
-/*********** ResourceSet Popover ***************
-title: string -  title text,
-resource: resource data
-type: string - resource type
-id: string - resource id
-*************************************************/
 @Component({
   selector: 'resourceset-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatButtonModule, MatTooltipModule, MatIconModule, PopoverComponent],
   template: `
-    <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
+    <ap-popover
+      [title]="title()"
+      [icon]="icon"
+      [canClose]="canClose"
+      (closed)="handleClose()"
+    >
       @for (p of properties; track p) {
         @if (p[0] === 'Description') {
           <div style="font-weight:bold;">{{ p[0] }}:</div>
@@ -503,17 +594,25 @@ id: string - resource id
   styleUrls: [`./popover.component.scss`]
 })
 export class ResourceSetPopoverComponent {
-  @Input() title: string;
+  title = input<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() resource: any;
-  @Input() canClose: boolean;
-  @Output() info: EventEmitter<string> = new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  resource = input<any>();
+  canClose = input<boolean>();
+  info = output<void>();
+  closed = output<void>();
 
   protected properties: Array<unknown>; // ** resource properties
+  protected icon: AppIconDef;
   protected app = inject(AppFacade);
 
-  constructor() {}
+  constructor() {
+    effect(() => {
+      this.title();
+      this.resource();
+      this.canClose();
+      this.parse();
+    });
+  }
 
   ngOnChanges() {
     this.parse();
@@ -521,11 +620,15 @@ export class ResourceSetPopoverComponent {
 
   parse() {
     this.properties = [];
-    this.properties.push(['Name', this.resource.properties.name ?? '']);
+    this.properties.push(['Name', this.resource().properties.name ?? '']);
     this.properties.push([
       'Description',
-      this.resource.properties.description ?? ''
+      this.resource().properties.description ?? ''
     ]);
+    this.icon = {
+      name: 'star',
+      svgIcon: undefined
+    };
   }
 
   // *** BUTTON actions *******

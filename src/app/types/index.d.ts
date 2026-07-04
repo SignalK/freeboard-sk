@@ -9,6 +9,8 @@ import {
   SKAircraft,
   SKVessel
 } from '../modules/skresources/resource-classes';
+import { DEPTH_UNIT } from '../lib/convert';
+import { Options } from '../modules/map/ol/lib/charts/s57.service';
 
 export * from './resources/signalk';
 export * from './resources/custom';
@@ -53,6 +55,12 @@ export interface CourseData {
   destPointName: string;
 }
 
+export type TemperatureUnitDef = 'C' | 'F';
+export type DepthUnitDef = 'm' | 'foot';
+export type LengthUnitDef = 'm' | 'foot';
+export type SpeedUnitDef = 'kn' | 'm/s' | 'km/h' | 'mph';
+export type DistanceUnitDef = 'kilometer' | 'naut-mile';
+
 export interface IAppConfig {
   ui: {
     mapNorthUp: boolean;
@@ -78,12 +86,18 @@ export interface IAppConfig {
       parameters: string | null;
       favourites: string[];
     };
+    preferInfoPanel: boolean;
+    statusBar: {
+      liveEta: boolean; // show cursor bearing/distance/ETA in the status bar (mouse only)
+      referenceSpeed: number; // fallback boat speed (in display speed units) for ETA when SOG is ~0
+    };
   };
   units: {
-    distance: 'm' | 'ft';
-    depth: 'm' | 'ft';
-    speed: 'kn' | 'msec' | 'kmh' | 'mph';
-    temperature: 'c' | 'f';
+    distance: DistanceUnitDef;
+    depth: DepthUnitDef;
+    length: LengthUnitDef;
+    speed: SpeedUnitDef;
+    temperature: TemperatureUnitDef;
     positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
     headingAttribute: 'navigation.headingTrue' | 'navigation.headingMagnetic';
     preferredPaths: {
@@ -105,15 +119,7 @@ export interface IAppConfig {
     doubleClickZoom: boolean; // true=zoom
     overZoomTiles: boolean; // keep tiles visible beyond chart max zoom
     centerOffset: number; // vessel offset south of center (%)
-    s57Options: {
-      graphicsStyle: 'Simplified' | 'Paper';
-      boundaries: 'Symbolized' | 'Plain';
-      colors: 2 | 4;
-      shallowDepth: number;
-      safetyDepth: number;
-      deepDepth: number;
-      colorTable: number;
-    };
+    s57Options: Options; // S57 chart Options
     popoverMulti: boolean; // close popovers using cose button
   };
   course: {
@@ -128,12 +134,24 @@ export interface IAppConfig {
     trail: boolean; // display trail
     windVectors: boolean; // display vessel TWD, AWD vectors
     laylines: boolean;
-    cogLine: number; // (minutes) length = cogLine * sog
+    selfLines: {
+      cog: {
+        length: number; // (minutes) length = cogLine * sog
+        color: string;
+        weight: number;
+        dash: LineStyleDash;
+      };
+      heading: {
+        length: number; // mode for display of heading line -1 = default
+        color: string;
+        weight: number;
+        dash: LineStyleDash;
+      };
+    };
     aisCogLine: number; // (minutes) length = cogLine * sog
-    headingLineSize: number; // mode for display of heading line -1 = default
-    iconScale: number; // scale to apply to self Vessel icon (used when scaleToSize is false)
-    scaleToSize: boolean; // draw vessel icon to actual scale based on dimensions
-    vesselDimensions: { length: number; beam: number }; // vessel dimensions in meters for scale-to-size rendering
+    iconScale: number;
+    scaleToSize: boolean;
+    vesselDimensions: { length: number; beam: number };
     rangeCircles: boolean; //display range circles
     rangeCirclesFixed: boolean; // use a fixed distance rather than zoom level calc
     rangeCirclesDistance: number; // distance between circles when fixed is true
@@ -159,10 +177,10 @@ export interface IAppConfig {
   resources: {
     // ** resource options
     fetchFilter: string; // param string to provide record filtering
-    fetchRadius: number; // radius (NM/km) within which to return resources
+    fetchRadius: number; // radius (nmi/km) within which to return resources
     notes: {
       rootFilter: string; // param string to provide record filtering
-      getRadius: number; // radius (NM/km) within which to return notes
+      getRadius: number; // radius (nmi/km) within which to return notes
       groupNameEdit: boolean;
       groupRequiresPosition: boolean;
       minZoom: number;
@@ -183,7 +201,24 @@ export interface IAppConfig {
     maxRadius: number; // max radius within which AIS targets are displayed
     proxied: boolean; // server behind a proxy server
   };
+  radars: {
+    deviceId: string;
+    opacity: number;
+  };
   experiments: boolean;
+  plotterExtensions: {
+    // ** plotter extension host (plotterExtensions resource type).
+    // No enabled list: extension availability is controlled on the server
+    // (plugin install/enable); presence in the resources response = enabled.
+    widgets: Array<{
+      instanceId: string; // host-assigned GUID for this placement
+      extension: string; // extension (resource) id
+      widget: string; // manifest-local widget id
+      anchor: 'tr' | 'ct' | 'cb' | 'bl' | 'br';
+      col: number; // origin cell column (0 | 1)
+      row: number; // origin cell row (0 | 1)
+    }>;
+  };
   anchor: {
     radius: number; // most recent anchor radius setting
     setRadius: boolean; // checks inital anchor radius setting
@@ -198,6 +233,7 @@ export interface IAppConfig {
     tracks: string[] | null;
     charts: string[];
     chartOrder: string[]; // chart layer ordering
+    chartOpacity: Record<string, number>;
     aisTargets: string[];
     aisTargetTypes: number[];
     aisFilterByShipType: boolean;
@@ -205,6 +241,8 @@ export interface IAppConfig {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resourceSets: { [key: string]: any }; // additional resources
     infolayers: string[];
+    weatherWindEnabled: boolean;
+    oceanCurrentsEnabled: boolean;
   };
 }
 
@@ -243,6 +281,7 @@ export interface FBAppData {
     closest: string[];
     prefAvailablePaths: { [key: string]: string }; // preference paths available from source
     flagged: string[];
+    showTrack: string[]; // ais targets to display track for (session-only, independent of aisShowTrack)
   };
   aircraft: Map<string, SKAircraft>; // received AIS aircraft data
   atons: Map<string, SKAtoN>; // received AIS AtoN data
@@ -255,13 +294,31 @@ export interface FBAppData {
 
 export interface SKServerUnitPrefs {
   name: string;
-  categories: Record<
-    string,
-    | {
-        baseUnit: string;
-        targetUnit: string;
-        displayFormat: string;
-      }
-    | undefined
-  >;
+  categories: Record<string, SKUnitCategory | undefined>;
 }
+
+export type SKUnitCategory = {
+  baseUnit: string;
+  targetUnit: string;
+  displayFormat: string;
+  symbol: string;
+};
+
+/**
+ * Per-path display-unit override as published by the Signal K server in a path's
+ * metadata (`meta.displayUnits`). Carries the user's preferred unit for that
+ * specific path, which can differ from the category preset (e.g. wind speed in m/s
+ * while boat speed is in knots).
+ *
+ * `formatValueForDisplay()` currently consumes `targetUnit` and `symbol`. The
+ * `formula`/`inverseFormula` (Math.js) and `displayFormat` fields are part of the
+ * server contract but not yet consumed — reserved for future use.
+ */
+export type SKPathDisplayUnits = {
+  category: string;
+  targetUnit: string;
+  formula?: string;
+  inverseFormula?: string;
+  symbol?: string;
+  displayFormat?: string;
+};

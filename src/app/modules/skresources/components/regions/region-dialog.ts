@@ -1,7 +1,4 @@
-/** Region Details Dialog Component **
- ********************************/
-
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -12,14 +9,14 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-import { SKRegion } from '../../resource-classes';
 import { MatCheckbox } from '@angular/material/checkbox';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { SKRegion } from '../../resource-classes';
 
-/********* RegionDialog **********
-	data: {
-    region: SKRegion
-  }
-***********************************/
+interface DialogData {
+  region: SKRegion;
+}
+
 @Component({
   selector: 'ap-regiondialog',
   imports: [
@@ -28,24 +25,28 @@ import { MatCheckbox } from '@angular/material/checkbox';
     MatIconModule,
     MatButtonModule,
     MatDialogModule,
+    MatToolbarModule,
     MatCheckbox
   ],
   template: `
     <div class="_ap-region">
-      <div style="display:flex;">
-        <div style="padding: 15px 0 0 10px;">
+      <mat-toolbar style="background-color: transparent">
+        <div>
           <mat-icon class="icon-region">tab_unselected</mat-icon>
         </div>
-        <div>
-          <h1 mat-dialog-title>Region Details</h1>
+        <span style="flex: 1 1 auto; text-align: center;">Region Details</span>
+        <div style="width: 50px;text-align:right;">
+          <button mat-icon-button (click)="handleClose(false)">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
-      </div>
+      </mat-toolbar>
 
       <mat-dialog-content>
-        <div>
-          <div style="padding-left: 10px;">
+        <div style="display: flex">
+          <div style="flex: 1 1 auto">
             <div>
-              <mat-form-field floatLabel="always">
+              <mat-form-field floatLabel="always" style="width:100%">
                 <mat-label>Name</mat-label>
                 <input
                   matInput
@@ -61,7 +62,7 @@ import { MatCheckbox } from '@angular/material/checkbox';
               </mat-form-field>
             </div>
             <div>
-              <mat-form-field floatLabel="always">
+              <mat-form-field floatLabel="always" style="width:100%">
                 <mat-label>Description</mat-label>
                 <textarea
                   matInput
@@ -83,20 +84,17 @@ import { MatCheckbox } from '@angular/material/checkbox';
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <div style="text-align:center;width:100%;">
-          @if (!readOnly) {
-            <button
-              mat-raised-button
-              [disabled]="inpname.invalid || readOnly"
-              (click)="handleClose(true)"
-            >
-              SAVE
-            </button>
-          }
-          <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
-        </div>
-      </mat-dialog-actions>
+      @if (!readOnly) {
+        <mat-dialog-actions align="end">
+          <button
+            mat-flat-button
+            [disabled]="inpname.invalid || readOnly"
+            (click)="handleClose(true)"
+          >
+            SAVE
+          </button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -113,13 +111,10 @@ export class RegionDialog implements OnInit {
   protected isHazard: boolean;
   protected readOnly = false;
 
-  constructor(
-    private dialogRef: MatDialogRef<RegionDialog>,
-    @Inject(MAT_DIALOG_DATA)
-    protected data: {
-      region: SKRegion;
-    }
-  ) {}
+  private dialogRef = inject(MatDialogRef<RegionDialog>);
+  protected data = inject<DialogData>(MAT_DIALOG_DATA);
+
+  constructor() {}
 
   ngOnInit() {
     this.name = this.data.region.name ?? '';

@@ -1,6 +1,6 @@
 /** Settings abstraction Facade
  * ************************************/
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { SK2GPX } from './sk2gpx';
 import { SKTrack } from 'src/app/modules';
@@ -17,7 +17,9 @@ export class GPXSaveFacade {
 
   // *******************************************************
 
-  constructor(private signalk: SignalKClient) {
+  private signalk = inject(SignalKClient);
+
+  constructor() {
     this.resultSource = new Subject<number>();
     this.result$ = this.resultSource.asObservable();
     this.hasFSA = 'showOpenFilePicker' in window;

@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
@@ -78,12 +78,12 @@ export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 export class SKResourceService {
   private reOpen: { key?: string; value?: string; readOnly?: boolean };
 
-  constructor(
-    private dialog: MatDialog,
-    private signalk: SignalKClient,
-    private worker: SKWorkerService,
-    private app: AppFacade
-  ) {
+  private app = inject(AppFacade);
+  private dialog = inject(MatDialog);
+  private signalk = inject(SignalKClient);
+  private worker = inject(SKWorkerService);
+
+  constructor() {
     this.worker
       .resource$()
       .subscribe((msg: PathValue[]) => this.processResourceMessage(msg));
@@ -332,7 +332,7 @@ export class SKResourceService {
    * @param id
    * @returns Transformed SK resource class
    */
-  private transform(
+  public transform(
     collection: SKResourceType,
     resource:
       | RouteResource
@@ -353,7 +353,7 @@ export class SKResourceService {
       case 'notes':
         return this.transformNote(resource as NoteResource, id);
       case 'charts':
-        return this.transformChart(resource as ChartResource);
+        return this.transformChart(resource as ChartResource, id);
       case 'tracks':
         return this.transformTrack(resource as TrackResource);
     }
@@ -525,7 +525,7 @@ export class SKResourceService {
 
   // **** CHARTS ****
 
-  private chartCacheSignal = signal([]);
+  private chartCacheSignal = signal<FBCharts>([]);
   readonly charts = this.chartCacheSignal.asReadonly();
 
   /**
@@ -566,6 +566,17 @@ export class SKResourceService {
             : this.app.config.selections.charts.includes('openseamap')
       ]
     ];
+    // The built-in charts are constructed from scratch (not through
+    // transformChart), so apply any user-set opacity from config here too —
+    // otherwise a chart.setOpacity on openstreetmap/openseamap is lost on refresh.
+    if (this.app) {
+      OSM.forEach((c: FBChart) => {
+        const op = this.app.config.selections.chartOpacity[c[0]];
+        if (typeof op !== 'undefined') {
+          c[1].defaultOpacity = op;
+        }
+      });
+    }
     chtList.push(OSM[1]);
     chtList.unshift(OSM[0]);
     return chtList;
@@ -600,9 +611,10 @@ export class SKResourceService {
   /**
    * @description Signal K v2 API transformation
    * @param chart Chart entry from server
+   * @param id Chart resource identifier
    * @returns SKChart object
    */
-  private transformChart(chart: ChartResource): SKChart {
+  private transformChart(chart: ChartResource, id: string): SKChart {
     // v1->2 alignment
     if (chart.tilemapUrl) {
       chart.url = chart.tilemapUrl;
@@ -614,10 +626,15 @@ export class SKResourceService {
       chart.type = chart.serverType;
     }
     if (chart.type) {
-      // ** ensure host is in url
+      // ensure host is in url
       if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
         chart.url = this.app.hostDef.url + chart.url;
       }
+    }
+    // map local chart opacity (use a defined-check, not truthiness, so a fully
+    // transparent 0 is honored rather than silently dropped on refresh)
+    if (typeof this.app.config.selections.chartOpacity[id] !== 'undefined') {
+      chart.defaultOpacity = this.app.config.selections.chartOpacity[id];
     }
     return new SKChart(chart);
   }
@@ -784,6 +801,30 @@ export class SKResourceService {
   }
 
   /**
+   * @description Update opacity value of Chart object in the Chart Cache
+   * @param id Chart identifier
+   * @param value Opacity value to set (0-1)
+   */
+  public chartSetOpacity(id: string, value: number) {
+    if (!id || !Number.isFinite(value)) {
+      return;
+    }
+    const idx = this.chartCacheSignal().findIndex((c: FBChart) => c[0] === id);
+    if (idx !== -1) {
+      this.chartCacheSignal.update((current: FBCharts) => {
+        return current.map((c: FBChart) => {
+          if (c[0] !== id) {
+            return c;
+          }
+          const updated = new SKChart(c[1]);
+          updated.defaultOpacity = value;
+          return [c[0], updated, c[2]];
+        });
+      });
+    }
+  }
+
+  /**
    * @description Select the charts with the supplied ids for inclusion into the cache.
    * @param ids Array of chart identifiers
    */
@@ -797,6 +838,132 @@ export class SKResourceService {
       }
     });
     this.refreshCharts();
+  }
+
+  // **** CHARTS: Plotter Extensions host API (`charts` capability) ****
+
+  /**
+   * @description Full available chart set (server charts + built-in defaults)
+   * in host-API display order: **topmost first**. Visible charts come first in
+   * their current stacking order (the rendered order reversed); hidden charts
+   * follow. Backs the `chart.list` host method.
+   * @returns Promise resolving to an ordered FBChart array
+   */
+  public async chartsForHostApi(): Promise<FBCharts> {
+    let available: FBCharts;
+    try {
+      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+    } catch (err) {
+      this.app.debug('** chartsForHostApi:', err);
+      available = this.appendOSM([]);
+    }
+    // Reconcile the rendered set against the freshly-fetched available charts:
+    // a chart dropped server-side may still linger in the cache, and callers
+    // treat this list as the source of truth for which ids are managed.
+    const availableIds = new Set(available.map((c: FBChart) => c[0]));
+    const visibleKnown = this.chartCacheSignal()
+      .slice()
+      .reverse()
+      .filter((c: FBChart) => availableIds.has(c[0]));
+    const seen = new Set(visibleKnown.map((c: FBChart) => c[0]));
+    const hidden = available.filter((c: FBChart) => !seen.has(c[0]));
+    return visibleKnown.concat(hidden);
+  }
+
+  /**
+   * @description Set the visibility of a set of charts to an explicit value
+   * (idempotent). Mirrors the chart-list UI's selection algorithm: recompute
+   * the visible id set, then either unfilter (all shown) or store the explicit
+   * subset. Callers should pass ids already known to be managed charts.
+   * @param ids Chart identifiers to show/hide
+   * @param visible true to show, false to hide
+   */
+  public async setChartsVisibility(ids: string[], visible: boolean) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return;
+    }
+    let available: FBCharts;
+    try {
+      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+    } catch (err) {
+      // A transient fetch failure leaves us unable to reason about the current
+      // visible set; degrade like the sibling chart methods and leave the
+      // selection state untouched rather than corrupt it.
+      this.app.debug('** setChartsVisibility:', err);
+      return;
+    }
+    const nowVisible = new Set(
+      available.filter((c: FBChart) => c[2]).map((c: FBChart) => c[0])
+    );
+    let changed = false;
+    ids.forEach((id: string) => {
+      if (nowVisible.has(id) === visible) {
+        return;
+      }
+      changed = true;
+      if (visible) {
+        nowVisible.add(id);
+      } else {
+        nowVisible.delete(id);
+      }
+    });
+    if (!changed) {
+      return;
+    }
+    if (nowVisible.size >= available.length) {
+      this.selectionUnfilter('charts');
+    } else {
+      this.selectionClear('charts');
+      this.selectionAdd('charts', [...nowVisible]);
+    }
+    await this.refreshCharts();
+  }
+
+  /**
+   * @description Set display opacity (0-1) on a set of charts. Persists to
+   * config so the value survives a refresh and applies to a chart once it
+   * becomes visible; also updates the rendered cache for currently-visible ones.
+   * @param ids Chart identifiers
+   * @param value Opacity value (0-1)
+   */
+  public setChartsOpacity(ids: string[], value: number) {
+    if (
+      !Array.isArray(ids) ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      value > 1
+    ) {
+      return;
+    }
+    ids.forEach((id: string) => {
+      this.app.config.selections.chartOpacity[id] = value;
+      this.chartSetOpacity(id, value);
+    });
+    this.app.saveConfig();
+  }
+
+  /**
+   * @description Set the chart display/stacking order from a **topmost-first**
+   * id list. Ids the caller omits keep their existing relative order below the
+   * named ones. The stored `chartOrder` is bottom-first (see the chart-layers
+   * reorder), so the request is reversed before storing; `chartReorder()` then
+   * applies it to the rendered set (host-clamped to the visible charts).
+   * @param orderTopmostFirst Chart identifiers, topmost first
+   */
+  public setChartsOrder(orderTopmostFirst: string[]) {
+    if (!Array.isArray(orderTopmostFirst)) {
+      return;
+    }
+    const existing = Array.isArray(this.app.config.selections.chartOrder)
+      ? this.app.config.selections.chartOrder.slice()
+      : [];
+    const requestedBottomFirst = orderTopmostFirst.slice().reverse();
+    const named = new Set(requestedBottomFirst);
+    const remainder = existing.filter((id: string) => !named.has(id));
+    this.app.config.selections.chartOrder =
+      remainder.concat(requestedBottomFirst);
+    this.app.saveConfig();
+    this.chartReorder();
   }
 
   /**
@@ -834,14 +1001,26 @@ export class SKResourceService {
       return;
     }
     let chart: SKChart;
-    try {
-      this.app.sIsFetching.set(true);
-      chart = await this.fromServer('charts', id);
-      this.app.sIsFetching.set(false);
-    } catch (err) {
-      this.app.sIsFetching.set(false);
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
-      return;
+    if (['openseamap', 'openstreetmap'].includes(id)) {
+      chart = new SKChart({
+        name: id === 'openseamap' ? 'Sea Map' : 'World Map',
+        description: id === 'openseamap' ? 'Open Sea Map' : 'Open Street Map',
+        url: `https://${id === 'openseamap' ? 'tiles.openseamap.org/seamark' : 'tile.openstreetmap.org}/{z}/{x}/{y}.png'}`,
+        minzoom: 1,
+        maxzoom: 24,
+        bounds: [-180, -90, 180, 90],
+        type: 'tilelayer'
+      });
+    } else {
+      try {
+        this.app.sIsFetching.set(true);
+        chart = await this.fromServer('charts', id);
+        this.app.sIsFetching.set(false);
+      } catch (err) {
+        this.app.sIsFetching.set(false);
+        this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+        return;
+      }
     }
     this.dialog
       .open(ChartPropertiesDialog, {
@@ -897,26 +1076,20 @@ export class SKResourceService {
           );
           this.signalk
             .post(`/signalk/chart-tiles/cache/${chart[0]}`, req)
-            .subscribe(
-              (res) => {
+            .subscribe({
+              next: (res) => {
                 this.app.showAlert(
                   'Chart Cache',
                   `Tile cache seed job created successfully.`
                 );
               },
-              (err) => {
+              error: (err) => {
                 this.app.parseHttpErrorResponse(err);
               }
-            );
+            });
         }
       });
   }
-
-  /**
-   * @description Submit cache seeding job for a proxied chart
-   * @param id Chart identifier
-   * @param data Object containing seed job attributes
-   */
 
   // **** ROUTES ****
 
@@ -966,6 +1139,9 @@ export class SKResourceService {
     if (typeof rte.name === 'undefined') {
       rte.name = 'Rte-' + id.slice(-6);
     }
+    if (rte.feature && !rte.feature.properties) {
+      rte.feature.properties = {};
+    }
     if (typeof rte.feature?.properties?.points !== 'undefined') {
       // check for v2 array
       if (!Array.isArray(rte.feature.properties.points)) {
@@ -989,7 +1165,7 @@ export class SKResourceService {
     }
     // ensure coords & coordsMeta array lengths are aligned
     if (
-      rte.feature.properties.coordinatesMeta &&
+      rte.feature?.properties?.coordinatesMeta &&
       rte.feature.properties.coordinatesMeta.length !==
         rte.feature.geometry.coordinates.length
     ) {
@@ -1107,6 +1283,40 @@ export class SKResourceService {
   }
 
   /**
+   * @description Open the Route Details dialog for an unsaved route and, on
+   * save, persist it to the server. Resolves with the saved resource id, or
+   * null if the user cancelled (closed the dialog without saving). Used to
+   * persist a live edit buffer into a stored route.
+   */
+  public saveNewRoute(route: SKRoute): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+      this.dialog
+        .open(RouteDialog, {
+          disableClose: true,
+          data: { title: 'Route Details', route }
+        })
+        .afterClosed()
+        .subscribe(async (r: { save: boolean; route: SKRoute }) => {
+          if (r?.save) {
+            try {
+              const rte = await this.postToServer('routes', r.route);
+              this.selectionAdd('routes', rte.id);
+              resolve(rte.id);
+            } catch (err) {
+              // A server rejection is a real failure, not a cancel — reject so
+              // callers don't mistake it for the user dismissing the dialog.
+              this.app.parseHttpErrorResponse(err);
+              reject(err);
+            }
+          } else {
+            // User dismissed / chose not to save.
+            resolve(null);
+          }
+        });
+    });
+  }
+
+  /**
    * @description Fetch Route with supplied id and display edit dialog
    * @param id route identifier
    */
@@ -1147,35 +1357,54 @@ export class SKResourceService {
    * @description Confirm deletion of Route with supplied id
    * @param id Route identifier
    */
-  public async deleteRoute(id: string) {
+  public async deleteRoute(id: string): Promise<boolean> {
     if (!id) {
-      return;
+      return false;
     }
     // are there notes attached?
     const notes = await this.fetchRelatedNotes('routes', id);
     const checkText = notes?.length !== 0 ? 'Delete attached Notes.' : '';
-    this.app
-      .showConfirm(
-        'Do you want to delete this Route from the server?\n',
-        'Delete Route:',
-        'YES',
-        'NO',
-        checkText
-      )
-      .subscribe(async (result: { ok: boolean; checked: boolean }) => {
-        if (result && result.ok) {
-          try {
-            await this.deleteFromServer('routes', id);
-            if (result.checked) {
-              notes.forEach((note: FBNote) => {
-                this.deleteFromServer('notes', note[0]);
-              });
+    // Resolve true only once the user confirms AND the server delete succeeds,
+    // so callers can defer destructive local cleanup (dropping live buffers,
+    // closing panels) until the route is actually gone.
+    return new Promise<boolean>((resolve) => {
+      this.app
+        .showConfirm(
+          'Do you want to delete this Route from the server?\n',
+          'Delete Route:',
+          'YES',
+          'NO',
+          checkText
+        )
+        .subscribe(async (result: { ok: boolean; checked: boolean }) => {
+          if (result && result.ok) {
+            try {
+              await this.deleteFromServer('routes', id);
+              if (result.checked) {
+                // The route itself is gone; attached-note deletes are
+                // best-effort — await them so a failure is surfaced (not an
+                // unhandled rejection), but don't fail the route delete over one.
+                const outcomes = await Promise.allSettled(
+                  notes.map((note: FBNote) =>
+                    this.deleteFromServer('notes', note[0])
+                  )
+                );
+                for (const o of outcomes) {
+                  if (o.status === 'rejected') {
+                    this.app.parseHttpErrorResponse(o.reason);
+                  }
+                }
+              }
+              resolve(true);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+              resolve(false);
             }
-          } catch (err) {
-            this.app.parseHttpErrorResponse(err);
+          } else {
+            resolve(false);
           }
-        }
-      });
+        });
+    });
   }
 
   // Modify Route point coordinates & refresh course
@@ -1190,10 +1419,10 @@ export class SKResourceService {
     coords: Array<Position>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
-  ) {
+  ): Promise<boolean> {
     const r = this.fromCache('routes', id);
     if (!r) {
-      return;
+      return Promise.resolve(false);
     }
     const rte = r[1];
     rte['feature']['geometry']['coordinates'] =
@@ -1203,9 +1432,14 @@ export class SKResourceService {
     if (coordsMeta) {
       rte['feature']['properties']['coordinatesMeta'] = coordsMeta;
     }
-    this.putToServer('routes', id, rte).catch((err) => {
-      this.app.parseHttpErrorResponse(err);
-    });
+    // Resolves true on success, false on failure (the error is surfaced here);
+    // callers that only fire-and-forget can ignore the result.
+    return this.putToServer('routes', id, rte)
+      .then(() => true)
+      .catch((err) => {
+        this.app.parseHttpErrorResponse(err);
+        return false;
+      });
   }
 
   // **** WAYPOINTS ****
@@ -1246,6 +1480,9 @@ export class SKResourceService {
     if (typeof (wpt as any).position !== 'undefined') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (wpt as any).position;
+    }
+    if (wpt.feature && !wpt.feature.properties) {
+      wpt.feature.properties = {};
     }
     if (!wpt.name) {
       if (wpt.feature.properties.name) {
@@ -1368,7 +1605,7 @@ export class SKResourceService {
         if (r.save) {
           try {
             const w = await this.postToServer('waypoints', r.waypoint);
-            this.selectionAdd('routes', w.id);
+            this.selectionAdd('waypoints', w.id);
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
           }
@@ -1760,7 +1997,7 @@ export class SKResourceService {
       }
     }
     if (!note.href) {
-      note.href = note['region'] ?? null;
+      note.href = note['region'] ?? '';
       if (note['region']) {
         delete note['region'];
       }
@@ -1828,6 +2065,8 @@ export class SKResourceService {
     this.dialog
       .open(NoteDialog, {
         disableClose: true,
+        minWidth: '50vw',
+        maxWidth: '400px',
         data: {
           note: e.note,
           editable: e.editable,
@@ -1845,6 +2084,9 @@ export class SKResourceService {
             this.createNote(note);
           } else {
             // update note
+            if (typeof note.href !== 'undefined' && !note.href) {
+              delete note.href;
+            }
             try {
               await this.putToServer('notes', e.noteId, note);
               this.reopenRelatedDialog();
@@ -1875,6 +2117,25 @@ export class SKResourceService {
       } else {
         this.reOpen = { key: null, value: null, readOnly: undefined };
       }
+    }
+  }
+
+  /**
+   * Fetch a list of related notes for the supplied resource identifier
+   * @param collection - Type of resource
+   * @param id - Resource identifier
+   */
+  public async getRelatedNotes(
+    collection: SKResourceType,
+    id: string
+  ): Promise<FBNotes> {
+    try {
+      return await this.listFromServer<FBNote>(
+        'notes',
+        `href=/resources/${collection}/${id}`
+      );
+    } catch (err) {
+      return [];
     }
   }
 
@@ -1997,7 +2258,6 @@ export class SKResourceService {
       if (e.group) {
         note.group = e.group;
       }
-      note.position = null;
       note.name = '';
       note.description = '';
       data.note = note;

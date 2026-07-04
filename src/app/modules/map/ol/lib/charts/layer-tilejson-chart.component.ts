@@ -14,7 +14,7 @@ import { TileJSON } from 'ol/source';
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
-import { resolveLayerMaxZoom } from './zoom-utils';
+import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
 
 // ** Freeboard TileJSON Chart **
 @Component({
@@ -79,7 +79,8 @@ export class TileJsonChartLayerComponent implements OnDestroy {
         zIndex: this.zIndex(),
         minZoom: minZ,
         maxZoom: layerMaxZ,
-        opacity: chart[1].defaultOpacity ?? 1
+        opacity: chart[1].defaultOpacity ?? 1,
+        extent: extentFromBounds(chart[1].bounds)
       });
 
       if (this.layer) {
@@ -104,6 +105,7 @@ export class TileJsonChartLayerComponent implements OnDestroy {
       this.layer.setMinZoom(minZ);
       this.layer.setMaxZoom(layerMaxZ);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
+      this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
     map.render();
   }

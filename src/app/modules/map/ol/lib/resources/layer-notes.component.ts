@@ -62,9 +62,7 @@ export class FreeboardNoteLayerComponent extends FBFeatureLayerComponent {
       f.setId('note.' + n[0]);
       f.set(
         'icon',
-        n[1].properties?.skIcon
-          ? `sk-${n[1].properties?.skIcon}`
-          : 'local_offer'
+        n[1].properties?.skIcon ? `${n[1].properties?.skIcon}` : 'local_offer'
       );
       f.setStyle(this.buildStyle(n[1]).clone());
       fa.push(f);
@@ -74,7 +72,7 @@ export class FreeboardNoteLayerComponent extends FBFeatureLayerComponent {
 
   // build note feature style
   buildStyle(note: SKNote | NoteResource): Style {
-    const icon = this.mapImages.getPOI(note.properties.skIcon ?? 'default');
+    const icon = this.mapImages.getSymbol(note.properties?.skIcon ?? 'default');
     if (icon) {
       return new Style({
         image: icon,

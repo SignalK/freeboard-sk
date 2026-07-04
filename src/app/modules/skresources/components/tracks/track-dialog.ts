@@ -1,7 +1,4 @@
-/** Track Details Dialog Component **
- ********************************/
-
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -13,12 +10,12 @@ import {
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
 import { SKTrack } from '../../resource-classes';
+import { MatToolbarModule } from '@angular/material/toolbar';
 
-/********* TrackDialog **********
-	data: {
-    track: SKTrack
-  }
-***********************************/
+interface DialogData {
+  track: SKTrack;
+}
+
 @Component({
   selector: 'ap-trackdialog',
   imports: [
@@ -26,18 +23,22 @@ import { SKTrack } from '../../resource-classes';
     MatInputModule,
     MatIconModule,
     MatButtonModule,
-    MatDialogModule
+    MatDialogModule,
+    MatToolbarModule
   ],
   template: `
     <div class="_ap-track">
-      <div style="display:flex;">
-        <div style="padding: 15px 0 0 10px;">
-          <mat-icon class="icon-track">show_chart</mat-icon>
-        </div>
-        <div>
-          <h1 mat-dialog-title>Track Details</h1>
-        </div>
-      </div>
+      <mat-toolbar style="background-color: transparent">
+        <span class="dialog-icon"
+          ><mat-icon class="icon-track">show_chart</mat-icon></span
+        >
+        <span style="flex: 1 1 auto; text-align: center">Track Details</span>
+        <span style="text-align: right">
+          <button mat-icon-button (click)="handleClose(false)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </span>
+      </mat-toolbar>
 
       <mat-dialog-content>
         <div>
@@ -74,20 +75,18 @@ import { SKTrack } from '../../resource-classes';
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <div style="text-align:center;width:100%;">
-          @if (!readOnly) {
-            <button
-              mat-raised-button
-              [disabled]="inpname.invalid || readOnly"
-              (click)="handleClose(true)"
-            >
-              SAVE
-            </button>
-          }
-          <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
-        </div>
-      </mat-dialog-actions>
+
+      @if (!readOnly) {
+        <mat-dialog-actions align="right">
+          <button
+            mat-flat-button
+            [disabled]="inpname.invalid || readOnly"
+            (click)="handleClose(true)"
+          >
+            SAVE
+          </button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -103,13 +102,10 @@ export class TrackDialog implements OnInit {
   protected description: string;
   protected readOnly = false;
 
-  constructor(
-    private dialogRef: MatDialogRef<TrackDialog>,
-    @Inject(MAT_DIALOG_DATA)
-    protected data: {
-      track: SKTrack;
-    }
-  ) {}
+  protected data = inject<DialogData>(MAT_DIALOG_DATA);
+  private dialogRef = inject(MatDialogRef<TrackDialog>);
+
+  constructor() {}
 
   ngOnInit() {
     this.name = this.data.track.feature?.properties?.name ?? '';

@@ -1,4 +1,4 @@
-import { Component, ElementRef } from '@angular/core';
+import { Component, ElementRef, inject } from '@angular/core';
 
 @Component({
   selector: 'ol-map > ol-content',
@@ -6,5 +6,7 @@ import { Component, ElementRef } from '@angular/core';
   standalone: false
 })
 export class ContentComponent {
-  constructor(public elementRef: ElementRef) {}
+  protected elementRef = inject(ElementRef);
+
+  constructor() {}
 }

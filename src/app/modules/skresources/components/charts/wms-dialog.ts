@@ -1,4 +1,4 @@
-import { Component, inject, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -46,26 +46,25 @@ import { wmsCapabilitiesInWorker } from './maplib';
         </span>
       </mat-toolbar>
       <mat-dialog-content>
-        @if (true) {
-          <mat-form-field floatLabel="always" style="width:100%">
-            <mat-label> WMS host. </mat-label>
-            <input matInput #txturl type="url" required [(value)]="hostUrl" />
-            @if (txturl) {
-              <button
-                matSuffix
-                mat-icon-button
-                [disabled]="txturl.value.length === 0"
-                (click)="getCapabilities(txturl.value)"
-              >
-                <mat-icon>arrow_forward</mat-icon>
-              </button>
-            }
-            <mat-hint> Enter url of the WMS host. </mat-hint>
-            @if (txturl.invalid) {
-              <mat-error>WMS host is required!</mat-error>
-            }
-          </mat-form-field>
-        }
+        <mat-form-field floatLabel="always" style="width:100%">
+          <mat-label> WMS host. </mat-label>
+          <input matInput #txturl type="url" required [(value)]="hostUrl" />
+          @if (txturl) {
+            <button
+              matSuffix
+              mat-icon-button
+              [disabled]="txturl.value.length === 0"
+              (click)="getCapabilities(txturl.value)"
+            >
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          }
+          <mat-hint> Enter url of the WMS host. </mat-hint>
+          @if (txturl.invalid) {
+            <mat-error>WMS host is required!</mat-error>
+          }
+        </mat-form-field>
+
         @if (isFetching) {
           <mat-progress-bar mode="query"></mat-progress-bar>
         } @else {
@@ -81,9 +80,9 @@ import { wmsCapabilitiesInWorker } from './maplib';
         }
       </mat-dialog-content>
       @if (data.format !== 'chartprovider') {
-        <mat-dialog-actions>
+        <mat-dialog-actions align="right">
           <button
-            mat-raised-button
+            mat-flat-button
             [disabled]="this.selections.length === 0"
             (click)="handleSave()"
           >
@@ -126,14 +125,11 @@ export class WMSDialog {
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<WMSDialog>);
+  protected data = inject<{ format: 'chartprovider' | 'infolayer' }>(
+    MAT_DIALOG_DATA
+  );
 
-  constructor(
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      format: 'chartprovider' | 'infolayer';
-    }
-  ) {}
-
+  constructor() {}
   /**
    * Handle layer selections and build WMS source objects
    */

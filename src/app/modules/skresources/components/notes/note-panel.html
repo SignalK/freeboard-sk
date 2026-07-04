@@ -1,0 +1,172 @@
+<div
+  style="
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: stretch;
+    height: 100%;
+  "
+>
+  <div>
+    <div style="display: flex">
+      <div>
+        @if(!icon.svgIcon) {
+        <mat-icon [class]="icon.class">{{icon.name}}</mat-icon>
+        } @else {
+        <mat-icon [svgIcon]="icon.svgIcon"></mat-icon>
+        }
+        <br />
+        <span style="font-size: smaller; font-style: italic"
+          >{{_note().properties.skIcon ?? ''}}</span
+        >
+      </div>
+      @if(_note().position) {
+      <div
+        style="flex: 1; font-size: 10pt; padding: 0 0 0 10px; text-align: right"
+      >
+        <span style="font-weight: bold">Lat:</span>&nbsp;
+        {{_note()?.position?.latitude | coords : app.config.units.positionFormat
+        : true}}
+
+        <br />
+        <span>
+          <span style="font-weight: bold">Lon:</span>&nbsp;
+          {{_note()?.position?.longitude | coords :
+          app.config.units.positionFormat : false}}
+        </span>
+      </div>
+      }
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div style="display: flex">
+      <div>
+        <button
+          mat-button
+          [disabled]="_note().properties?.readOnly || interacting()"
+          (click)="onEdit()"
+          matTooltip="Edit Note"
+        >
+          <mat-icon>edit</mat-icon>
+          EDIT
+        </button>
+        @if(_note().url) { &nbsp;
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="openNoteUrl()"
+          matTooltip="Open Note link in browser window"
+        >
+          <mat-icon>open_in_new</mat-icon>
+          LINK
+        </button>
+        } @if(_note().position) { &nbsp;
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onGoto()"
+          matTooltip="Navigate To"
+        >
+          <mat-icon>near_me</mat-icon>
+          GO TO
+        </button>
+        &nbsp;
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onPanTo()"
+          matTooltip="Center Note"
+        >
+          <mat-icon>center_focus_strong</mat-icon>
+          CENTER
+        </button>
+        &nbsp;
+        <button
+          mat-button
+          [disabled]="_note().properties?.readOnly  || interacting()"
+          (click)="onDelete()"
+          matTooltip="Delete Note"
+        >
+          <mat-icon>delete</mat-icon>
+          DELETE
+        </button>
+        }
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        padding-left: 5px;
+        padding-top: 15px;
+      "
+    >
+      <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
+        {{_note()?.name}}
+      </div>
+    </div>
+  </div>
+
+  @if(_note().properties.draft) {
+  <div
+    style="font-size: 12pt; font-weight: bold; padding-left: 5px; color: red"
+  >
+    ** Draft **
+  </div>
+  } @if(note().mimeType.includes('markdown')) {
+  <remark
+    [markdown]="note().description"
+    style="flex: 2 1 auto; overflow-y: auto; padding-left: 5px"
+  >
+    <ng-template remarkTemplate="heading" let-node>
+      @if(node.depth === 1) {
+      <h1 [remarkNode]="node" style="font-size: 14pt"></h1>
+      } @if(node.depth === 2) {
+      <h2 [remarkNode]="node" style="font-size: 12pt"></h2>
+      } @if(node.depth === 3) {
+      <h3 [remarkNode]="node" style="font-size: 10pt"></h3>
+      } @if(node.depth === 4) {
+      <h4 [remarkNode]="node" style="font-size: 8pt"></h4>
+      }
+    </ng-template>
+  </remark>
+  } @else {
+  <div
+    class="note-description"
+    style="
+      flex: 2 1 auto;
+      overflow-y: auto;
+      padding-left: 5px;
+      padding-top: 10px;
+    "
+    target="notelink"
+    [innerHTML]="_note().description | addTarget: '_notes'"
+  ></div>
+  }
+
+  <!--<div style="border: 1px orange solid;height:10px;">
+    @if(_note().group) {
+    <div style="padding-bottom: 5px; display: flex">
+      <div style="font-weight: bold; vertical-align: top">Group:</div>
+      <div style="padding-left: 10px; flex: 1 1 auto">
+        {{_note()?.group}}
+      </div>
+      @if(_note().group && app.config.resources.notes.groupNameEdit) {
+      <div>
+        <button
+          mat-button
+          (click)="onGroup()"
+          matTooltip="View Group Notes"
+        >
+          <mat-icon>style</mat-icon>
+        </button>
+      </div>
+      }
+    </div>
+  }
+  </div>-->
+</div>

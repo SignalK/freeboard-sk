@@ -1,7 +1,4 @@
-/** Resource Group Details Dialog Component **
- ********************************/
-
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -11,6 +8,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -22,13 +20,7 @@ import { SKResourceService, SKResourceType } from '../../resources.service';
 import { FBChart, FBRegion, FBRoute, FBWaypoint } from 'src/app/types';
 import { MultiSelectListDialog } from 'src/app/lib/components';
 import { AppIconDef } from 'src/app/modules/icons';
-
-/********* ResourceGroupDialog **********
-	data: {
-    addMode: true= new group, false edit group
-    group: SKResourceGroup
-  }
-***********************************/
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface RListEntry {
   id: string;
@@ -46,30 +38,24 @@ interface RListEntry {
     MatTabsModule,
     MatListModule,
     MatTooltipModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    MatToolbarModule
   ],
   template: `
     <div class="_ap-group">
-      <div style="display:flex;widht:100%;">
-        <div style="padding: 15px 0 0 10px;">
-          <mat-icon>category</mat-icon>
+      <mat-toolbar style="background-color: transparent">
+        <div>
+          <mat-icon class="icon-region">category</mat-icon>
         </div>
-        <div style="flex: 1 1 auto;">
-          <h1 mat-dialog-title>
-            {{ this.data.addMode ? 'New Group' : 'Group Information' }}
-          </h1>
-        </div>
-        <div style="padding: 15px 0 0 0;width:90px;">
-          <button
-            mat-raised-button
-            [disabled]="selTab === 0"
-            (click)="addResources()"
-            matTooltip="Add Resource"
-          >
-            ADD
+        <span style="flex: 1 1 auto; text-align: center;">
+          {{ this.data.addMode ? 'New Group' : 'Group Information' }}
+        </span>
+        <div style="width: 50px;text-align:right;">
+          <button mat-icon-button (click)="handleClose(false)">
+            <mat-icon>close</mat-icon>
           </button>
         </div>
-      </div>
+      </mat-toolbar>
 
       <mat-dialog-content>
         <mat-tab-group
@@ -231,16 +217,25 @@ interface RListEntry {
           }
         </mat-tab-group>
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <div style="text-align:center;width:100%;">
+      <mat-dialog-actions align="left">
+        <div style="text-align:left;flex: 1;">
           <button
-            mat-raised-button
+            mat-flat-button
+            [disabled]="selTab === 0"
+            (click)="addResources()"
+            matTooltip="Add Resource"
+          >
+            ADD
+          </button>
+        </div>
+        <div style="text-align:right;flex: 1;">
+          <button
+            mat-flat-button
             [disabled]="inpname.invalid"
             (click)="handleClose(true)"
           >
             SAVE
           </button>
-          <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
         </div>
       </mat-dialog-actions>
     </div>
@@ -267,16 +262,16 @@ export class ResourceGroupDialog implements OnInit {
     charts: false
   };
 
-  constructor(
-    private dialogRef: MatDialogRef<ResourceGroupDialog>,
-    private skres: SKResourceService,
-    protected dialog: MatDialog,
-    @Inject(MAT_DIALOG_DATA)
-    protected data: {
-      addMode: boolean;
-      group: SKResourceGroup;
-    }
-  ) {}
+  private dialogRef = inject(MatDialogRef<ResourceGroupDialog>);
+  private skres = inject(SKResourceService);
+  private destroyRef = inject(DestroyRef);
+  protected dialog = inject(MatDialog);
+  protected data = inject<{
+    addMode: boolean;
+    group: SKResourceGroup;
+  }>(MAT_DIALOG_DATA);
+
+  constructor() {}
 
   ngOnInit() {
     this.gItem = {
@@ -459,6 +454,7 @@ export class ResourceGroupDialog implements OnInit {
         }
       })
       .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((items: RListEntry[]) => {
         if (items) {
           // routes

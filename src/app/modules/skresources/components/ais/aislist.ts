@@ -1,9 +1,9 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  output,
+  input,
+  inject
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -43,12 +43,11 @@ import { getAisIcon } from 'src/app/modules/icons';
   ]
 })
 export class AISListComponent extends ResourceListBase {
-  @Input() focusId: string;
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() properties: EventEmitter<string> = new EventEmitter();
-  @Output() focusVessel: EventEmitter<string> = new EventEmitter();
-  @Output() pan: EventEmitter<{ center: Position; zoomLevel: number }> =
-    new EventEmitter();
+  focusId = input<string>();
+  closed = output<void>();
+  properties = output<string>();
+  focusVessel = output<string>();
+  pan = output<{ center: Position; zoomLevel: number }>();
 
   aisAvailable = [];
   onlyIMO = false;
@@ -125,10 +124,9 @@ export class AISListComponent extends ResourceListBase {
     return getAisIcon(id).svgIcon;
   }
 
-  constructor(
-    protected app: AppFacade,
-    protected override skres: SKResourceService
-  ) {
+  protected app = inject(AppFacade);
+
+  constructor(protected override skres: SKResourceService) {
     super('aisTargets', skres);
   }
 

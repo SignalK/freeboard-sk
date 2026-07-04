@@ -197,7 +197,10 @@ export class SKStreamFacade {
       cmd: 'subscribe',
       options: {
         context: 'vessels.self',
-        path: [{ path: 'notifications.*', period: 1000 }]
+        path: [
+          { path: 'notifications.*', period: 1000 },
+          { path: 'radars.*', period: 1000 }
+        ]
       }
     });
     this.worker.postMessage({
@@ -233,13 +236,6 @@ export class SKStreamFacade {
       options: {
         context: 'meteo.*',
         path: [{ path: '*', period: 1000 }]
-      }
-    });
-    this.worker.postMessage({
-      cmd: 'subscribe',
-      options: {
-        context: 'meteo.*',
-        path: [{ path: 'notifications.*', period: 1000 }]
       }
     });
   }
@@ -404,10 +400,10 @@ export class SKStreamFacade {
         : value.wind.twd;
 
       value.orientation =
-        value.cogTrue ??
         value.headingTrue ??
-        value.cogMagnetic ??
         value.headingMagnetic ??
+        value.cogTrue ??
+        value.cogMagnetic ??
         0;
     });
   }

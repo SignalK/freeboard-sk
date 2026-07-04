@@ -5,9 +5,6 @@
     text-align: left;
   }
 
-  .mat-form-field {
-    width: 100%;
-  }
   .nosmall {
     display: none;
   }
@@ -32,22 +29,30 @@
     }
   }
 </style>
-
-@if(!data.editable) {
-<div class="note-details">
+<div>
   <mat-toolbar style="background-color: transparent">
-    <span class="dialog-icon">
-      <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon"
-        >{{icon.name}}</mat-icon
+    <span>
+      @if(!data.editable) {
+      <mat-icon [class]="icon?.class" [svgIcon]="icon?.svgIcon"
+        >{{icon?.name}}</mat-icon
       >
+      }
     </span>
-    <span style="flex: 1 1 auto; text-align: center">Note Details</span>
-    <span style="text-align: right">
-      <button mat-icon-button (click)="dialogRef.close({result:false})">
+    <span style="flex: 1 1 auto; text-align: center">
+      @if(!data.editable) { {{'Note Details'}} } @else { {{(!data.title) ?
+      (data.addMode) ? 'New Note' : 'Edit Note' : data.title}} }
+    </span>
+    <div style="width: 50px">
+      <button
+        mat-icon-button
+        (click)="dialogRef.close({result:false, data: null})"
+      >
         <mat-icon>close</mat-icon>
       </button>
-    </span>
+    </div>
   </mat-toolbar>
+
+  @if(!data.editable) {
   <mat-dialog-content>
     <mat-card appearance="outlined">
       <mat-card-content>
@@ -82,12 +87,18 @@
             <div style="font-weight: bold; vertical-align: top">
               Description:
             </div>
+            @if(data.note.mimeType.includes('markdown')) {
+            <div>
+              <remark [markdown]="data.note.description" />
+            </div>
+            } @else {
             <div
               class="note-description"
               style="overflow-y: auto; height: 150px"
               target="notelink"
               [innerHTML]="data.note.description | addTarget: '_notes'"
             ></div>
+            }
           </div>
         </div>
       </mat-card-content>
@@ -143,21 +154,13 @@
       }
     </mat-card>
   </mat-dialog-content>
-</div>
-} @else {
-<div>
-  <mat-toolbar style="background-color: transparent">
-    <span style="flex: 1 1 auto; text-align: center"
-      >{{(!data.title) ? (data.addMode) ? 'New Note' : 'Edit Note' :
-      data.title}}</span
-    >
-  </mat-toolbar>
+  } @else {
   <mat-dialog-content>
-    <div class="note-details" style="display: flex">
+    <div style="display: flex">
       <div style="flex: 1 1 auto">
         <div>
           <mat-form-field floatLabel="always" style="width: 100%">
-            <mat-label>Note name</mat-label>
+            <mat-label>Name</mat-label>
             <input
               matInput
               #inptitle="ngModel"
@@ -173,7 +176,7 @@
         </div>
         @if(app.config.resources.notes.groupNameEdit) {
         <div>
-          <mat-form-field floatLabel="always">
+          <mat-form-field floatLabel="always" style="width: 100%">
             <mat-label>Group Name</mat-label>
             <input
               matInput
@@ -184,8 +187,17 @@
           </mat-form-field>
         </div>
         }
-        <div class="note-editor">
-          @defer{
+        <div>
+          @if(data.note.mimeType.includes('markdown')) {
+          <mat-form-field floatLabel="always" style="width: 100%">
+            <mat-label>Description</mat-label>
+            <textarea
+              matInput
+              rows="3"
+              [(ngModel)]="data.note.description"
+            ></textarea>
+          </mat-form-field>
+          } @else { @defer{
           <angular-editor
             height
             [config]="editorConfig"
@@ -193,7 +205,7 @@
             [(ngModel)]="data.note.description"
           >
           </angular-editor>
-          }
+          } }
         </div>
 
         <div>
@@ -207,47 +219,77 @@
             />
           </mat-form-field>
         </div>
-        <div>
-          <mat-slide-toggle
-            labelPosition="before"
-            [hideIcon]="true"
-            [checked]="data.note.properties.draft"
-            (change)="data.note.properties.draft=$event.checked;"
-          >
-            Draft:
-          </mat-slide-toggle>
-        </div>
-        @if(data.position) {
-        <div style="font-size: 10pt">
-          <div style="display: flex">
-            <div style="width: 45px; font-weight: bold">Lat:</div>
-            <div style="flex: 1 1 auto">{{data.note.position.latitude}}</div>
+        <div style="display: flex">
+          <div style="padding-left: 10px">
+            <mat-form-field style="width: 80px">
+              <mat-select
+                [ngModel]="icon.svgIcon"
+                (ngModelChange)="onIconSelected($event)"
+              >
+                <mat-select-trigger>
+                  @if(icon?.svgIcon?.length) {
+                  <mat-icon [svgIcon]="icon?.svgIcon"></mat-icon>
+                  } @else {
+                  <mat-icon>{{icon?.name}}</mat-icon>
+                  }
+                </mat-select-trigger>
+                @for(i of poiIcons; track i.id) {
+                <mat-option [value]="i.id" [matTooltip]="i.name"
+                  ><mat-icon [svgIcon]="i.id">{{i.name}}</mat-icon>
+                </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-slide-toggle
+              labelPosition="before"
+              [hideIcon]="true"
+              [checked]="showAllIcons()"
+              (change)="onShowAllToggle($event.checked)"
+              style="font-size: 10pt; margin-left: 8px; vertical-align: middle"
+            >
+              Show all symbols
+            </mat-slide-toggle>
           </div>
-          <div style="display: flex">
-            <div style="width: 45px; font-weight: bold">Lon:</div>
-            <div style="flex: 1 1 auto">{{data.note.position.longitude}}</div>
+          <div style="padding-left: 10px">
+            <mat-form-field style="width: 145px">
+              <mat-label>Format</mat-label>
+              <mat-select [(ngModel)]="data.note.mimeType">
+                <mat-option value="text/markdown">Markdown</mat-option>
+                <mat-option value="">HTML</mat-option>
+              </mat-select>
+            </mat-form-field>
           </div>
+          @if(data.position) {
+          <div style="font-size: 10pt">
+            <div style="display: flex">
+              <div style="width: 45px; font-weight: bold">Lat:</div>
+              <div style="flex: 1 1 auto">{{data.note.position.latitude}}</div>
+            </div>
+            <div style="display: flex">
+              <div style="width: 45px; font-weight: bold">Lon:</div>
+              <div style="flex: 1 1 auto">{{data.note.position.longitude}}</div>
+            </div>
+          </div>
+          }
         </div>
-        }
       </div>
     </div>
   </mat-dialog-content>
-  <mat-dialog-actions>
-    <div style="text-align: center; width: 100%">
-      <button
-        mat-raised-button
-        [disabled]="inptitle.invalid"
-        (click)="dialogRef.close({result:true, data: data.note, action: 'save'})"
+  <mat-dialog-actions align="right">
+    <div>
+      <mat-slide-toggle
+        labelPosition="before"
+        [hideIcon]="true"
+        [checked]="data.note.properties.draft"
+        (change)="data.note.properties.draft=$event.checked;"
       >
-        SAVE
-      </button>
-      <button
-        mat-raised-button
-        (click)="dialogRef.close({result:false, data: null})"
-      >
-        CANCEL
-      </button>
+        Draft:
+      </mat-slide-toggle>
     </div>
+    <div style="flex: 2">&nbsp;</div>
+    <button mat-flat-button [disabled]="inptitle.invalid" (click)="onSave()">
+      SAVE
+    </button>
   </mat-dialog-actions>
+  }
 </div>
-}

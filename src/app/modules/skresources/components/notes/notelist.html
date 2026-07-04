@@ -80,7 +80,7 @@
               <div>
                 @if(r[1].properties?.skIcon) {
                 <mat-icon
-                  [svgIcon]="'sk-' + r[1].properties?.skIcon"
+                  [svgIcon]="r[1].properties?.skIcon | resolveSkIcon"
                 ></mat-icon>
                 } @else {
                 <mat-icon class="icon-note icon-accent">local_offer</mat-icon>
@@ -122,7 +122,7 @@
               >
                 <mat-icon>style</mat-icon>
               </button>
-              }
+              } @if(r[1].position){
               <button
                 mat-icon-button
                 [disabled]="app.uiConfig().mapMove"
@@ -132,7 +132,7 @@
               >
                 <mat-icon>center_focus_strong</mat-icon>
               </button>
-
+              }
               <button
                 mat-icon-button
                 (click)="viewNote(r[0])"

@@ -1,21 +1,13 @@
-/** Route NextPoint Component **
- ************************/
-
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  output,
+  input
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-/*********** NextPoint ***************
-index: number - index of current point,
-total: number - total number of points
-***********************************/
 @Component({
   selector: 'route-nextpoint',
   imports: [MatButtonModule, MatTooltipModule, MatIconModule],
@@ -32,7 +24,7 @@ total: number - total number of points
             mat-icon-button
             matTooltip="Previous point"
             matTootipPosition="top"
-            [disabled]="!circular && index === 0"
+            [disabled]="!circular() && index() === 0"
             (click)="changeIndex(-1)"
           >
             <mat-icon>skip_previous</mat-icon>
@@ -44,7 +36,7 @@ total: number - total number of points
             mat-icon-button
             matTooltip="Next point"
             matTootipPosition="top"
-            [disabled]="!circular && index >= total - 1"
+            [disabled]="!circular() && index() >= total() - 1"
             (click)="changeIndex(1)"
           >
             <mat-icon>skip_next</mat-icon>
@@ -52,7 +44,7 @@ total: number - total number of points
         </div>
       </div>
       <div style="font-family:roboto;line-height: 40px;">
-        {{ index + 1 }} of {{ total }}
+        {{ index() + 1 }} of {{ total() }}
       </div>
     </div>
   `,
@@ -65,25 +57,23 @@ total: number - total number of points
   ]
 })
 export class RouteNextPointComponent {
-  @Input() index: number;
-  @Input() total: number;
-  @Input() circular = false;
-  @Output() selected: EventEmitter<number> = new EventEmitter();
-
-  //constructor() {}
+  index = input<number>();
+  total = input<number>();
+  circular = input<boolean>();
+  selected = output<number>();
 
   changeIndex(i: number) {
     if (i === 1) {
-      if (this.circular && this.index === this.total - 1) {
+      if (this.circular() && this.index() === this.total() - 1) {
         this.selected.emit(1);
       } else {
-        this.selected.emit(this.index + 1);
+        this.selected.emit(this.index() + 1);
       }
     } else {
-      if (this.circular && this.index === 0) {
-        this.selected.emit(this.total - 2);
+      if (this.circular() && this.index() === 0) {
+        this.selected.emit(this.total() - 2);
       } else {
-        this.selected.emit(this.index - 1);
+        this.selected.emit(this.index() - 1);
       }
     }
   }

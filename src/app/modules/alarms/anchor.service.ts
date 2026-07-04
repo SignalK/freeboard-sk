@@ -56,12 +56,12 @@ export class AnchorService {
             longitude: position[0]
           }
         })
-        .subscribe(
-          () => resolve(true),
-          (err: HttpErrorResponse) => {
+        .subscribe({
+          next: () => resolve(true),
+          error: (err: HttpErrorResponse) => {
             reject(err);
           }
-        );
+        });
     });
   }
 

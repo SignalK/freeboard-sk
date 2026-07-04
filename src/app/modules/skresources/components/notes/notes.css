@@ -5,8 +5,8 @@
     -webkit-transform:rotate(300deg);
     position: absolute;
     z-index: 0;
-    left: 25%;
-    bottom: 0;
+    left: 0;
+    bottom: 10%;
     opacity: .4;   
 }
 

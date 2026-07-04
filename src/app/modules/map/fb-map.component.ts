@@ -8,10 +8,10 @@ import {
   ViewChild,
   SimpleChanges,
   signal,
+  computed,
   input,
   effect,
-  inject,
-  computed
+  inject
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -32,7 +32,10 @@ import {
   AlarmPopoverComponent,
   ResourcePopoverComponent,
   ResourceSetPopoverComponent,
-  VesselPopoverComponent
+  VesselPopoverComponent,
+  S57PopoverComponent,
+  S57_CLICKABLE_LAYERS,
+  S57_NAMES
 } from './popovers';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
@@ -43,11 +46,19 @@ import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
-import { Convert } from 'src/app/lib/convert';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { LineString, MultiLineString, Position } from 'src/app/types';
+import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
+import {
+  FBRoute,
+  FBRoutes,
+  LineString,
+  MultiLineString,
+  Position
+} from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
+import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
   SKResourceService,
@@ -65,11 +76,11 @@ import {
   CourseService,
   SettingsFacade,
   WeatherForecastModal,
-  FeaturePropertiesModal
+  InfoPanelFacade,
+  SKResourceType
 } from 'src/app/modules';
 import {
   mapControls,
-  basestationStyles,
   aircraftStyles,
   sarStyles,
   regionStyles,
@@ -79,10 +90,16 @@ import {
   destinationStyles,
   laylineStyles,
   drawStyles,
+  routeDraftStyles,
   targetAngleStyle,
   raceCourseStyles,
   bearingDistanceStyle
 } from './mapconfig';
+import { SKRoute } from 'src/app/modules/skresources/resource-classes';
+import {
+  RouteBuffer,
+  RouteBufferRegistry
+} from 'src/app/modules/plotterext/route-buffer.registry';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
@@ -104,6 +121,9 @@ import { ScaleLine } from 'ol/control';
 import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
+import { AppIconDef } from '../icons';
+import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
+import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 
 interface IResource {
   id: string;
@@ -148,7 +168,10 @@ enum INTERACTION_MODE {
     AlarmPopoverComponent,
     ResourcePopoverComponent,
     ResourceSetPopoverComponent,
-    VesselPopoverComponent
+    VesselPopoverComponent,
+    S57PopoverComponent,
+    LayerWindWeatherComponent,
+    LayerCurrentsWeatherComponent
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
@@ -231,7 +254,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     anchor: anchorStyles,
     alarm: alarmStyles,
     destination: destinationStyles,
-    basestation: basestationStyles,
     aircraft: aircraftStyles,
     sar: sarStyles,
     layline: laylineStyles,
@@ -239,6 +261,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
     raceCourse: raceCourseStyles,
     bearingDistance: bearingDistanceStyle
   };
+
+  // Live route edit buffers (unsaved drafts) rendered via a second fb-routes
+  // layer in the amber draft style.
+  protected draftRouteStyles = routeDraftStyles;
+  protected bufferRoutes = computed<FBRoutes>(() =>
+    this.routeBuffers
+      .live()
+      // A saved + clean route renders from the resource layer (green); only
+      // unsaved or dirty routes get the amber draft styling.
+      .filter((b) => !b.saved || b.dirty)
+      .map((b) => this.bufferToFBRoute(b))
+  );
 
   // ** map feature data
   protected dfeat: IFeatureData = {
@@ -261,7 +295,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: [0, 0],
     xy: null
   };
+  // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
+  // when the "Live ETA at cursor" option is enabled (null = hidden).
+  protected cursorInfo = signal<CursorEtaInfo | null>(null);
   contextMenuPosition = { x: '0px', y: '0px' };
+  // Empty widget-anchor cell at the last right-click (or null) — gates and
+  // drives the "Add widget here" context-menu item (desktop).
+  protected addableWidgetCell: ReturnType<
+    PlotterExtensionService['addableCellAt']
+  > = null;
 
   private obsList = [];
 
@@ -272,11 +314,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected skstream = inject(SKStreamFacade);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
+  protected plotterExt = inject(PlotterExtensionService);
   protected course = inject(CourseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
+  private infoPanel = inject(InfoPanelFacade);
+  protected routeBuffers = inject(RouteBufferRegistry);
 
   constructor() {
     effect(() => {
@@ -375,7 +420,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // set map scale units
   private setScaleUnits() {
     try {
-      const u: Units = this.scaleUnits() === 'm' ? 'metric' : 'nautical';
+      const u: Units = ['kilometer', 'm'].includes(this.scaleUnits())
+        ? 'metric'
+        : 'nautical';
       const c = this.olMap.getMap().getControls().getArray();
       (c[0] as ScaleLine).setUnits(u);
     } catch (err) {
@@ -433,7 +480,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.app.data.vessels.closest.forEach((id: string) => {
           if (this.app.data.vessels.aisTargets.has(id)) {
             const a = this.app.data.vessels.aisTargets.get(id);
-            v.push([a.position, this.app.data.vessels.self.position]);
+            if (a.position) {
+              v.push([a.position, this.app.data.vessels.self.position]);
+            }
           }
         });
       }
@@ -501,6 +550,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ********** RADAR EVENT HANDLERS *****************
+
+  handleRadarError(error: Error) {
+    this.app.showAlert('Radar', error.message);
+    this.app.uiCtrl.update((current) => {
+      return Object.assign(current, { radarLayer: false });
+    });
+  }
+
   // ********** MAP EVENT HANDLERS *****************
 
   private toggleDblClickZoom(set?: boolean) {
@@ -554,6 +612,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'measure':
         this.mapInteract.startMeasuring();
         break;
+      case 'add_widget':
+        if (this.addableWidgetCell) {
+          this.plotterExt.openAddWidgetPicker(
+            this.addableWidgetCell.anchor,
+            this.addableWidgetCell.cell
+          );
+        }
+        break;
       case 'get_feature_info':
         this.getFeatureInfo();
         break;
@@ -569,11 +635,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mapResolution.set(e.resolution);
 
     this.app.mapExtent.update(() => e.extent);
+    this.app.mapViewTopCenter.update(() => e.topCenter as Position);
+    this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
+    this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
 
     this.drawVesselLines();
     if (!this.movingMap) {
-      this.app.saveConfig();
+      // debounce: a flurry of pans/zooms collapses into one save
+      this.app.saveConfigDebounced();
       this.isDirty = false;
     } else {
       this.isDirty = true;
@@ -588,6 +658,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
     this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+    this.updateCursorInfo(e.lonlat as Position);
     if (this.mapInteract.isMeasuring()) {
       if (
         this.mapInteract.measureGeometryType === 'LineString' &&
@@ -632,6 +703,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!this.app.config.map.lockMoveMap && this.app.uiConfig().mapMove) {
       this.exitMovingMap.emit(true);
     }
+  }
+
+  // Update the status-bar cursor bearing/distance/ETA readout. Off unless the
+  // "Live ETA at cursor" option is enabled and the vessel position is known.
+  private updateCursorInfo(cursor: Position) {
+    const vessel = this.app.data.vessels.self;
+    if (
+      !this.app.config.display.statusBar?.liveEta ||
+      !vessel?.positionReceived ||
+      !vessel.position
+    ) {
+      this.cursorInfo.set(null);
+      return;
+    }
+    // referenceSpeed is stored in the user's display speed unit; convert to m/s.
+    const factor =
+      Convert.transform(1, 'm/s', this.app.config.units.speed as TARGET_UNIT) ??
+      1;
+    const refSpeed = this.app.config.display.statusBar.referenceSpeed;
+    const referenceSpeedMs =
+      factor > 0 && typeof refSpeed === 'number' ? refSpeed / factor : 0;
+    this.cursorInfo.set(
+      computeCursorEta(vessel.position, cursor, vessel.sog, referenceSpeedMs)
+    );
   }
 
   protected onMapPointerDown(e: FBPointerEvent) {
@@ -694,6 +789,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     e.preventDefault();
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
+    // Resolve the click to an empty widget-anchor cell (desktop right-click
+    // equivalent of the press-and-hold add gesture). Null when not over one.
+    this.addableWidgetCell = this.plotterExt.addableCellAt(
+      e.clientX,
+      e.clientY
+    );
     this.contextMenu.menuData = { item: this.mouse.coords };
     if (this.mapInteract.isMeasuring()) {
       this.parseClickInMeasureMode(this.mouse.xy.lonlat);
@@ -847,16 +948,72 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Enter modify mode */
+  /** Convert a live route edit buffer to the FBRoute tuple fb-routes renders. */
+  /** The route buffer for `routeId` only when it represents an unsaved draft or
+   *  a route with pending edits. The registry now also mirrors clean saved
+   *  routes, so a plain `routeBuffers.has()` would wrongly treat those as
+   *  unsaved. */
+  private getUnsavedRouteBuffer(routeId: string): RouteBuffer | undefined {
+    const b = this.routeBuffers.get(routeId);
+    return b && (!b.saved || b.dirty) ? b : undefined;
+  }
+
+  private bufferToFBRoute(b: RouteBuffer): FBRoute {
+    const rte = new SKRoute();
+    rte.name = b.name ?? '';
+    rte.description = b.description ?? '';
+    rte.feature.geometry.coordinates = b.points.map(
+      (p) => p.position
+    ) as LineString;
+    // Carry per-point metadata so editing a named draft (which seeds
+    // coordsMetadata from the rendered feature's pointMetadata) doesn't drop
+    // waypoint names/descriptions on save.
+    const coordsMeta = b.points.map((p) => ({
+      ...(p.name ? { name: p.name } : {}),
+      ...(p.description ? { description: p.description } : {})
+    }));
+    if (coordsMeta.some((m) => Object.keys(m).length > 0)) {
+      rte.feature.properties.coordinatesMeta = coordsMeta;
+    }
+    rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
+    return [b.routeId, rte, true];
+  }
+
+  /** True when the popover's route is an unsaved draft (or has pending edits). */
+  protected isUnsavedRoute(): boolean {
+    if (this.overlay().type !== 'route') {
+      return false;
+    }
+    const b = this.routeBuffers.get(this.overlay().id);
+    return !!b && (!b.saved || b.dirty);
+  }
+
+  /**
+   * Popover "Save" shortcut for an unsaved route — opens the standard Route
+   * Details dialog (same path as the info-panel SAVE) and persists. Saves the
+   * user a trip through INFO.
+   */
+  protected async saveRouteFromPopover() {
+    try {
+      await this.plotterExt.saveBuffer(this.overlay().id, { dialog: true });
+    } catch {
+      // saveBuffer surfaced the server error via parseHttpErrorResponse; the
+      // buffer stays dirty so the user can retry.
+    }
+  }
+
   protected modifyFeature(featureType?: string) {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
     }
     this.mapInteract.startModifying(this.overlay());
     if (this.overlay().type === 'route') {
-      this.mapInteract.measurementCoords = this.skres.fromCache(
-        'routes',
-        this.overlay().id
-      )[1].feature.geometry.coordinates;
+      const rid = this.overlay().id;
+      this.mapInteract.measurementCoords = this.routeBuffers.has(rid)
+        ? (this.routeBuffers
+            .get(rid)!
+            .points.map((p) => p.position) as LineString)
+        : this.skres.fromCache('routes', rid)[1].feature.geometry.coordinates;
     }
     if (featureType === 'anchor') {
       this.overlay().type = featureType;
@@ -939,12 +1096,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Process pointer click in non-interaction mode */
   private processMapClick(e) {
+    this.s57Features = {};
     const featureList: Map<
       string,
       {
         id: string;
         coord: Position;
-        icon: string;
+        icon: AppIconDef;
         text: string;
       }
     > = new Map(); // features under pointer
@@ -962,18 +1120,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // process list of features at click location
     e.features.forEach((feature: Feature) => {
-      const id = feature.getId();
+      let id = feature.getId() as string;
       let addToFeatureList = false;
       let aton: SKAtoN;
       let sar: SKSaR;
       let meteo: SKMeteo;
       let aircraft: SKAircraft;
       let vessel: SKVessel;
+      let icon: AppIconDef;
+      let text: string;
       if (id && typeof id === 'string') {
         const t = id.split('.');
-        let icon: string;
-        let text: string;
-
         if (t[0] === 'chart-backdrop') {
           maskPopover = true;
           return;
@@ -982,45 +1139,73 @@ export class FBMapComponent implements OnInit, OnDestroy {
           chartBoundsFeatures.set(id, {
             id: t[1],
             coord: e.lonlat,
-            icon: icon,
+            icon: 'map',
             text: feature.get('name')
           });
         }
         switch (t[0]) {
           case 'rset':
             addToFeatureList = true;
-            icon = 'star';
+            icon = {
+              name: 'star',
+              svgIcon: undefined
+            };
             text = feature.get('name');
             break;
           case 'alarm':
             addToFeatureList = true;
-            icon = 'notification_important';
+            icon = {
+              name: 'notification_important',
+              svgIcon: undefined
+            };
             text = `Alarm: ${feature.get('type')}`;
             break;
           case 'anchor':
             addToFeatureList = true;
-            icon = 'anchor';
+            icon = {
+              name: 'anchor',
+              svgIcon: undefined
+            };
             text = `${t[0]}`;
             break;
           case 'dest':
             addToFeatureList = true;
-            icon = 'flag';
+            icon = {
+              name: 'flag',
+              svgIcon: undefined
+            };
             text = 'Destination';
             break;
           case 'note':
-            icon = feature.get('icon');
+            icon = {
+              svgIcon: feature.get('icon'),
+              name: undefined
+            };
             addToFeatureList = true;
             const n = this.skres.fromCache('notes', t[1]);
             text = n[1].name ?? '';
             break;
           case 'route':
-            icon = 'route'; //'directions';
+            icon = {
+              svgIcon: 'route',
+              name: undefined,
+              class: 'icon-route'
+            };
             addToFeatureList = true;
-            const r = this.skres.fromCache('routes', t[1]);
-            text = r[1].name;
+            const ub = this.getUnsavedRouteBuffer(t[1]);
+            if (ub) {
+              text = ub.name || 'Route (unsaved)';
+            } else {
+              const r = this.skres.fromCache('routes', t[1]);
+              text = r[1].name;
+            }
             break;
           case 'waypoint':
-            icon = 'location_on';
+            icon = {
+              name: 'location_on',
+              svgIcon: undefined,
+              class: 'icon-waypoint'
+            };
             addToFeatureList = true;
             const w = this.skres.fromCache('waypoints', t[1]);
             text = w[1].name ?? '';
@@ -1028,31 +1213,46 @@ export class FBMapComponent implements OnInit, OnDestroy {
           case 'atons':
           case 'aton':
           case 'shore':
-            icon = 'beenhere';
+            icon = {
+              name: 'beenhere',
+              svgIcon: undefined
+            };
             addToFeatureList = true;
             aton = this.app.data.atons.get(id);
             text = aton ? aton.name || aton.mmsi : '';
             break;
           case 'sar':
-            icon = 'tour';
+            icon = {
+              name: 'tour',
+              svgIcon: undefined
+            };
             addToFeatureList = true;
             sar = this.app.data.sar.get(id);
             text = sar ? sar.name || sar.mmsi : 'SaR Beacon';
             break;
           case 'meteo':
-            icon = 'air';
+            icon = {
+              name: 'air',
+              svgIcon: undefined
+            };
             addToFeatureList = true;
             meteo = this.app.data.meteo.get(id);
             text = meteo ? meteo.name || meteo.mmsi : 'Weather Station';
             break;
           case 'ais-vessels':
-            icon = 'directions_boat';
+            icon = {
+              name: 'directions_boat',
+              svgIcon: undefined
+            };
             addToFeatureList = true;
             vessel = this.dfeat.ais.get(`vessels.${t[1]}`);
             text = vessel ? vessel.name || vessel.mmsi : '';
             break;
           case 'vessels':
-            icon = 'directions_boat';
+            icon = {
+              name: 'directions_boat',
+              svgIcon: undefined
+            };
             addToFeatureList = true;
             text = this.dfeat.self.name
               ? this.dfeat.self.name + ' (self)'
@@ -1060,25 +1260,46 @@ export class FBMapComponent implements OnInit, OnDestroy {
             break;
           case 'region':
             addToFeatureList = true;
-            icon = 'tab_unselected';
+            icon = {
+              name: 'tab_unselected',
+              svgIcon: undefined,
+              class: 'icon-region'
+            };
             text = feature.get('name');
             break;
           case 'aircraft':
-            icon = 'airplanemode_active';
+            icon = {
+              name: 'airplanemode_active',
+              svgIcon: undefined
+            };
             addToFeatureList = true;
             aircraft = this.app.data.aircraft.get(id);
             text = aircraft ? aircraft.name || aircraft.mmsi : '';
             break;
         }
-        if (addToFeatureList && !featureList.has(id)) {
-          featureList.set(id, {
-            id: id,
-            coord: e.lonlat,
-            icon: icon,
-            text: text
-          });
-          fa.push(feature);
+      } else if (!id && feature.getProperties) {
+        const props = feature.getProperties();
+        // S57 features
+        if (props['RCID'] && S57_CLICKABLE_LAYERS.has(props['layer'])) {
+          id = `s57.${props['LNAM']}`;
+          addToFeatureList = true;
+          icon = {
+            name: 'beenhere',
+            svgIcon: undefined
+          };
+          text = S57_NAMES[props['layer']];
+          this.s57Features[id] = props;
         }
+      }
+
+      if (addToFeatureList && !featureList.has(id)) {
+        featureList.set(id, {
+          id: id,
+          coord: e.lonlat,
+          icon: icon,
+          text: text
+        });
+        fa.push(feature);
       }
     });
 
@@ -1100,6 +1321,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.formatPopover('list.', e.lonlat, featureList);
     }
   }
+
+  private s57Features: Record<string, Record<string, string | number>> = {};
 
   // ******** POPOVER ACTIONS ************
 
@@ -1139,6 +1362,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     let aid: string;
 
     switch (t[0]) {
+      case 's57':
+        poData.id = id;
+        poData.title = 'S57 Feature';
+        poData.type = 's57';
+        poData.s57Feature = this.s57Features[id];
+        poData.position = coord;
+        poData.show = true;
+        poData.readOnly = true;
+        break;
       case 'anchor':
         this.modifyFeature('anchor');
         return;
@@ -1248,6 +1480,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.resource = item[0];
         poData.show = true;
         poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
+        if (this.infoPanel.opened()) {
+          this.overlay.set(poData);
+          this.popoverInfo();
+        }
         break;
       case 'note':
         item = this.skres.fromCache('notes', t[1]);
@@ -1255,29 +1491,48 @@ export class FBMapComponent implements OnInit, OnDestroy {
           return false;
         }
         poData.readOnly = item[1]?.properties?.readOnly ?? false;
-        if (poData.readOnly) {
-          poData.show = false;
-          this.skres.showNoteDetails(item[0]);
-        } else {
-          poData.id = t[1];
-          poData.type = t[0];
-          poData.title = 'Note';
-          poData.resource = item;
-          poData.show = true;
-        }
-        break;
-      case 'route':
-        item = [this.skres.fromCache('routes', t[1])];
-        if (!item) {
-          return false;
-        }
         poData.id = t[1];
         poData.type = t[0];
-        poData.title = 'Route';
-        poData.resource = item[0];
+        poData.title = 'Note';
+        poData.resource = item;
         poData.show = true;
-        poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
+        if (this.infoPanel.opened()) {
+          this.overlay.set(poData);
+          this.popoverInfo();
+        }
         break;
+      case 'route': {
+        const ub = this.getUnsavedRouteBuffer(t[1]);
+        if (ub) {
+          // Unsaved live edit buffer (amber draft): build the popover from the
+          // registry, not the saved-route cache. The popover header shows the
+          // route name, so fall back to "(unsaved)" for an unnamed draft.
+          const skr = this.bufferToFBRoute(ub)[1];
+          skr.name = skr.name || '(unsaved)';
+          poData.id = t[1];
+          poData.type = 'route';
+          poData.title = 'Route (unsaved)';
+          poData.resource = [t[1], skr];
+          poData.show = true;
+          poData.readOnly = false;
+        } else {
+          item = [this.skres.fromCache('routes', t[1])];
+          if (!item) {
+            return false;
+          }
+          poData.id = t[1];
+          poData.type = t[0];
+          poData.title = 'Route';
+          poData.resource = item[0];
+          poData.show = true;
+          poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
+        }
+        if (this.infoPanel.opened()) {
+          this.overlay.set(poData);
+          this.popoverInfo();
+        }
+        break;
+      }
       case 'waypoint':
         item = [this.skres.fromCache('waypoints', t[1])];
         if (!item) {
@@ -1289,6 +1544,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.title = 'Waypoint';
         poData.show = true;
         poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
+        if (this.infoPanel.opened()) {
+          this.overlay.set(poData);
+          this.popoverInfo();
+        }
         break;
       case 'dest':
         poData.id = id;
@@ -1312,9 +1571,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       default:
         return;
     }
-    this.overlay.update(() => {
-      return poData;
-    });
+    this.overlay.set(poData);
   }
 
   /** handle selection from the FeatureList popover */
@@ -1328,6 +1585,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
     this.mapInteract.draw.features = sf;
     this.formatPopover(feature.id, feature.coord);
+  }
+
+  /** handle popover info event */
+  protected popoverInfo() {
+    const collection = `${this.overlay().type}s` as SKResourceType;
+    if (
+      ['notes', 'regions', 'waypoints', 'routes'].includes(collection) &&
+      this.app.useInfoPanel()
+    ) {
+      const ub = this.getUnsavedRouteBuffer(this.overlay().id);
+      if (collection === 'routes' && ub) {
+        // Unsaved live buffer: open the info panel directly from the registry
+        // (it is not on the server, so infoPanel.open()'s fetch would fail).
+        this.infoPanel.openWith('routes', this.bufferToFBRoute(ub));
+      } else {
+        this.infoPanel.open(collection, this.overlay().id);
+      }
+    } else {
+      this.skres.resourceProperties(this.overlay());
+    }
   }
 
   /** handle popover closed event */
@@ -1406,7 +1683,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // center map to active vessel position
   private centerVessel() {
-    const pos = this.app.calcMapCenter(this.dfeat.active.position);
+    const pos = this.app.calcMapCenter();
     this.mapCenterPositon.update(() => pos);
   }
 
@@ -1430,16 +1707,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
       const sog = this.dfeat.active.sog || 0;
       let hl = 0;
-      if (this.app.config.vessels.headingLineSize === -1) {
+      if (this.app.config.vessels.selfLines.heading.length === -1) {
         hl = (sog > wMax ? wMax : sog) * offset;
       } else {
         hl =
-          Convert.nauticalMilesToKm(this.app.config.vessels.headingLineSize) *
-          1000;
+          Convert.nauticalMilesToKm(
+            this.app.config.vessels.selfLines.heading.length
+          ) * 1000;
       }
       const heading = [
         this.dfeat.active.position,
-        GeoUtils.destCoordinate(
+        GeoUtils.rhumbDestination(
           this.dfeat.active.position,
           this.dfeat.active.orientation,
           hl
@@ -1498,7 +1776,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           ) < (ga_diff ?? 0);
 
       const dtg =
-        this.app.config.units.distance === 'm'
+        this.app.config.units.distance === 'kilometer'
           ? this.course.courseData().dtg * 1000
           : Convert.nauticalMilesToKm(this.course.courseData().dtg * 1000);
 
@@ -1621,14 +1899,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ********************
 
   // ** delete selected feature **
-  protected deleteFeature(id: string, type: string) {
+  protected async deleteFeature(id: string, type: string) {
     switch (type) {
       case 'waypoint':
         this.skres.deleteWaypoint(id);
         break;
-      case 'route':
-        this.skres.deleteRoute(id);
+      case 'route': {
+        const b = this.routeBuffers.get(id);
+        if (b && !b.saved) {
+          // Unsaved draft — discard the live buffer locally.
+          this.routeBuffers.delete(id);
+        } else {
+          // Saved route (clean or dirty, with or without a buffer) — delete the
+          // stored resource by its href (a saved draft keeps its draft routeId),
+          // and only drop the live buffer once the server delete is confirmed so
+          // a cancel/failure doesn't lose it. hiddenSaved=false so the registry's
+          // hidden event reports a permanent delete, not a hide.
+          const ok = await this.skres.deleteRoute(b?.href ?? id);
+          if (ok && b) {
+            this.routeBuffers.delete(id, false);
+          }
+        }
         break;
+      }
       case 'note':
         this.skres.deleteNote(id);
         break;
@@ -1744,9 +2037,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.debug(`distance map moved: ${d}`);
     // ** if d is more than half the getRadius
     const cr =
-      this.app.config.units.distance === 'ft'
-        ? Convert.nauticalMilesToKm(threshold) * 1000
-        : threshold * 1000;
+      this.app.config.units.distance === 'kilometer'
+        ? threshold * 1000
+        : Convert.nauticalMilesToKm(threshold) * 1000;
 
     this.app.debug(`mapMoveThresholdExceeded: ${d >= cr / 2}`);
     if (d >= cr / 2) {

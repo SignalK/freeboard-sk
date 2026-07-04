@@ -1,4 +1,11 @@
-import { Component, OnInit, ElementRef, signal, effect } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ElementRef,
+  signal,
+  effect,
+  inject
+} from '@angular/core';
 
 import { FormsModule, NgModel } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,6 +25,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTabsModule } from '@angular/material/tabs';
 
+import {
+  LineStyleConfig,
+  LineStyleDef,
+  LineStyleSelectComponent
+} from './linestyle-select.component';
 import { SignalKPreferredPathsComponent } from './signalk-preferredpaths.component';
 import { SettingsFacade } from '../settings.facade';
 import { WakeLockService } from 'src/app/lib/services';
@@ -25,7 +37,8 @@ import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
-import { Convert } from 'src/app/lib/convert';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
+import { RadarAPIService, SKRadar } from '../../radar/radar-api.service';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -53,7 +66,8 @@ interface PreferredPathsResult {
     MatMenuModule,
     MatToolbarModule,
     MatTabsModule,
-    SignalKPreferredPathsComponent
+    SignalKPreferredPathsComponent,
+    LineStyleSelectComponent
   ],
   templateUrl: './settings-dialog.html',
   styleUrls: ['./settings-dialog.css']
@@ -77,17 +91,19 @@ export class SettingsDialog implements OnInit {
   };
 
   protected unitsChangedSignal = signal<number>(0);
+  protected radarList = signal<SKRadar[]>([]);
 
   private saveOnClose = false;
 
-  constructor(
-    protected facade: SettingsFacade,
-    protected myElement: ElementRef,
-    protected dialogRef: MatDialogRef<SettingsDialog>,
-    protected wakeLock: WakeLockService,
-    private s57: S57Service,
-    protected app: AppFacade
-  ) {
+  protected facade = inject(SettingsFacade);
+  protected myElement = inject(ElementRef);
+  protected dialogRef = inject(MatDialogRef<SettingsDialog>);
+  protected wakeLock = inject(WakeLockService);
+  private s57 = inject(S57Service);
+  protected app = inject(AppFacade);
+  protected radarApi = inject(RadarAPIService);
+
+  constructor() {
     this.options = new SettingsOptions();
 
     effect(() => {
@@ -103,22 +119,42 @@ export class SettingsDialog implements OnInit {
         this.aisStateFilter[i] = true;
       }
     });
+    this.refreshRadars();
+  }
+
+  protected refreshRadars() {
+    this.radarApi
+      .listRadars()
+      .then((rl) => {
+        this.radarList.set(rl);
+      })
+      .catch(() => {
+        this.radarList.set([]);
+      });
   }
 
   // format numbers in model used for form fields
   formatNumberModel() {
     this.formattedNumberModel = {
       rangeCirclesDistance:
-        this.facade.settings.units.distance === 'm'
-          ? this.facade.settings.vessels.rangeCirclesDistance / 1000
-          : Convert.kmToNauticalMiles(
-              this.facade.settings.vessels.rangeCirclesDistance / 1000
+        this.facade.settings.units.distance === 'kilometer'
+          ? Math.floor(this.facade.settings.vessels.rangeCirclesDistance / 1000)
+          : Math.floor(
+              Convert.transform(
+                this.facade.settings.vessels.rangeCirclesDistance,
+                'm',
+                'naut-mile'
+              )
             ),
       rangeCirclesDynamicDistance:
-        this.facade.settings.units.distance === 'm'
-          ? this.facade.settings.vessels.rangeCirclesDynamicDistance / 1000
-          : Convert.kmToNauticalMiles(
-              this.facade.settings.vessels.rangeCirclesDynamicDistance / 1000
+        this.facade.settings.units.distance === 'kilometer'
+          ? Math.floor(this.facade.settings.vessels.rangeCirclesDynamicDistance / 1000)
+          : Math.floor(
+              Convert.transform(
+                this.facade.settings.vessels.rangeCirclesDynamicDistance,
+                'm',
+                'naut-mile'
+              )
             )
     };
   }
@@ -150,12 +186,44 @@ export class SettingsDialog implements OnInit {
 
   /** apply S57 Options  */
   doS57(numericAttrib?: any) {
+    this.facade.settings.map.s57Options.depthUnit =
+      this.facade.settings.units.depth;
     if (numericAttrib) {
       this.parseNumber(numericAttrib);
     } else {
       this.persistModel();
     }
-    this.s57.SetOptions(this.facade.settings.map.s57Options);
+    this.s57.setOptions(this.facade.settings.map.s57Options);
+  }
+
+  /** apply RADAR Options  */
+  doRadar() {
+    this.radarApi
+      .init(this.facade.settings.radars.deviceId)
+      .then((id: string) => {
+        if (id) {
+          this.persistModel();
+        }
+      });
+  }
+
+  /** handle line style change */
+  onLineStyle(
+    lineType: 'cog' | 'heading',
+    value: { lineStyle: LineStyleDef; config: LineStyleConfig }
+  ) {
+    const l = this.facade.settings.vessels.selfLines[lineType];
+    if (l) {
+      l.color = value.config.color;
+      l.dash = value.config.dash;
+      l.weight = value.config.weight;
+      this.app.selfLines.update((current) => {
+        const c = Object.assign({}, current);
+        c[lineType] = value.lineStyle;
+        return c;
+      });
+      this.persistModel();
+    }
   }
 
   /**
@@ -193,23 +261,26 @@ export class SettingsDialog implements OnInit {
       e.reset(Math.abs(e.model));
     }
 
-    // Check which field based on the ngModel name/reference
     const isDynamicDistance = e.name === 'rangeCirclesDynamicDistance';
 
     if (isDynamicDistance) {
       this.facade.settings.vessels.rangeCirclesDynamicDistance =
-        this.facade.settings.units.distance === 'm'
-          ? this.formattedNumberModel.rangeCirclesDynamicDistance * 1000
-          : Convert.nauticalMilesToKm(
-              this.formattedNumberModel.rangeCirclesDynamicDistance
-            ) * 1000;
+        this.facade.settings.units.distance === 'kilometer'
+          ? Math.floor(this.formattedNumberModel.rangeCirclesDynamicDistance * 1000)
+          : Math.floor(
+              Convert.nauticalMilesToKm(
+                this.formattedNumberModel.rangeCirclesDynamicDistance
+              ) * 1000
+            );
     } else {
       this.facade.settings.vessels.rangeCirclesDistance =
-        this.facade.settings.units.distance === 'm'
-          ? this.formattedNumberModel.rangeCirclesDistance * 1000
-          : Convert.nauticalMilesToKm(
-              this.formattedNumberModel.rangeCirclesDistance
-            ) * 1000;
+        this.facade.settings.units.distance === 'kilometer'
+          ? Math.floor(this.formattedNumberModel.rangeCirclesDistance * 1000)
+          : Math.floor(
+              Convert.nauticalMilesToKm(
+                this.formattedNumberModel.rangeCirclesDistance
+              ) * 1000
+            );
     }
     this.persistModel();
   }
@@ -220,6 +291,11 @@ export class SettingsDialog implements OnInit {
    */
   private fallbackToDefault() {
     const dconfig = defaultConfig();
+    if (
+      typeof this.facade.settings.display.statusBar.referenceSpeed !== 'number'
+    ) {
+      return dconfig.display.statusBar.referenceSpeed;
+    }
     if (typeof this.facade.settings.map.s57Options.shallowDepth !== 'number') {
       return dconfig.map.s57Options.shallowDepth;
     }
@@ -246,6 +322,10 @@ export class SettingsDialog implements OnInit {
   persistModel(value?: string) {
     this.facade.applySettings();
     this.facade.emitChangeEvent(value);
+  }
+
+  protected get speedUnitSymbol(): string {
+    return Convert.getSymbol(this.facade.settings.units.speed);
   }
 
   /**
@@ -323,5 +403,9 @@ export class SettingsDialog implements OnInit {
    */
   clearAuthToken() {
     this.facade.clearToken();
+  }
+
+  renderSymbol(unit: TARGET_UNIT) {
+    return Convert.getSymbol(unit);
   }
 }

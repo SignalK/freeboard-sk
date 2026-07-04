@@ -30,8 +30,10 @@ export const AtoNsType1: AppIconSet = {
 const AtoNsType2: AppIconSet = {
   path: './assets/img/atons',
   files: [
+    'real-basestation.svg',
     'real-aton.svg',
     'real-safe.svg',
+    'virtual-basestation.svg',
     'virtual-aton.svg',
     'virtual-safe.svg'
   ],
@@ -41,13 +43,16 @@ const AtoNsType2: AppIconSet = {
 
 export const ATON_TYPE_IDS = {
   aton: 'aton',
+  '-2': 'basestation',
   '-1': 'weatherStation',
+  //fixed
   9: 'north',
   10: 'east',
   11: 'south',
   12: 'west',
   13: 'port',
   14: 'starboard',
+  // floating
   20: 'north',
   21: 'east',
   22: 'south',

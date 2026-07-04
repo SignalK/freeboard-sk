@@ -1,10 +1,10 @@
 import {
   Component,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   signal,
-  effect
+  effect,
+  output,
+  inject
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -22,6 +22,7 @@ import { SKResourceService, SKResourceType } from 'src/app/modules/skresources';
 import { FBTrack, FBTracks, Position } from 'src/app/types';
 import { SKWorkerService } from 'src/app/modules';
 import { ResourceListBase } from '../resource-list-baseclass';
+import { RemarkModule } from 'ngx-remark';
 
 @Component({
   selector: 'track-list',
@@ -37,21 +38,21 @@ import { ResourceListBase } from '../resource-list-baseclass';
     FormsModule,
     MatInputModule,
     ScrollingModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    RemarkModule
   ]
 })
 export class TrackListComponent extends ResourceListBase {
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() center: EventEmitter<Position> = new EventEmitter();
+  closed = output<void>();
+  center = output<Position>();
 
   protected override fullList: FBTracks = [];
   protected override filteredList = signal<FBTracks>([]);
 
-  constructor(
-    protected app: AppFacade,
-    protected override skres: SKResourceService,
-    private worker: SKWorkerService
-  ) {
+  protected app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+
+  constructor(protected override skres: SKResourceService) {
     super('tracks', skres);
     // resources delta handler
     effect(() => {

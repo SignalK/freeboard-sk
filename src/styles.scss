@@ -41,12 +41,16 @@ b { font-weight: 500; }
     animation-iteration-count: infinite;
 }
 
-.ol-scale-line {
+.ol-scale-bar {
     bottom: unset;
     top: 10px;
     left: 180px;
     background-color: transparent;
     font-family: 'Roboto';
+}
+
+.transparent-backdrop {
+    background: transparent !important;
 }
 
 @keyframes colorchange

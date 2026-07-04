@@ -15,7 +15,7 @@ import { XYZ } from 'ol/source';
 import { initPMTilesXYZLayer } from './pmtiles-utils';
 import { osmLayer } from '../util';
 import { MapComponent } from '../map.component';
-import { resolveLayerMaxZoom } from './zoom-utils';
+import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
 
 import { FBChart } from 'src/app/types';
 
@@ -87,7 +87,8 @@ export class RasterChartLayerComponent implements OnDestroy {
           this.layer = new TileLayer({
             source: new XYZ({
               url: chart[1].url,
-              maxZoom: maxZ
+              maxZoom: maxZ,
+              tileSize: chart[1].tileSize ?? 256
             }),
             preload: 0,
             zIndex: this.zIndex(),
@@ -102,6 +103,7 @@ export class RasterChartLayerComponent implements OnDestroy {
         }
       }
       if (this.layer) {
+        this.layer.setExtent(extentFromBounds(chart[1].bounds));
         this.layer.set('id', chart[0]);
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
@@ -123,6 +125,7 @@ export class RasterChartLayerComponent implements OnDestroy {
       this.layer.setMinZoom(minZ);
       this.layer.setMaxZoom(layerMaxZ);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
+      this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
     map.render();
   }

@@ -4,7 +4,7 @@ import { initAlarms, shutdownAlarms } from './alarms/alarms';
 
 import * as openapi from './openApi.json';
 
-const defaultPollInterval = 60;
+//const defaultPollInterval = 60;
 
 const CONFIG_SCHEMA = {
   properties: {}

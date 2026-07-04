@@ -9,26 +9,36 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
+import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 
 import {
   AlertDialog,
   ConfirmDialog,
   WelcomeDialog,
   MessageBarComponent,
-  MsgBox,
-  ErrorListDialog
+  MsgBox
 } from './lib/components/dialogs';
+import { ErrorListDialog } from './lib/components/dialogs/errorlist-dialog';
 
-import { Convert } from './lib/convert';
+import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
+
+// Package version — single source of truth is package.json, bumped by `npm version`
+import { version as PACKAGE_VERSION } from '../../package.json';
 
 import {
   Position,
   ErrorList,
   IAppConfig,
   LineString,
-  SKServerUnitPrefs
+  SKServerUnitPrefs,
+  SKPathDisplayUnits,
+  TemperatureUnitDef,
+  DepthUnitDef,
+  SpeedUnitDef,
+  DistanceUnitDef,
+  LengthUnitDef
 } from './types';
 
 import {
@@ -44,6 +54,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
 import { S57Service } from './modules/map/ol';
+import {
+  LineStyleDash,
+  LineStyleDef
+} from './modules/settings/components/linestyle-select.component';
 
 /** Parent Window message */
 interface ParentMessage {
@@ -60,7 +74,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.20.0',
+  version: PACKAGE_VERSION,
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -69,7 +83,7 @@ const SERVER_APPDATA_VERSION = '1.0.0';
 
 // Development SK server host details
 const DEV_SERVER = {
-  host: 'localhost', //'192.168.86.32', // host name || ip address
+  host: 'localhost', // host name || ip address
   port: 3000, // port number
   ssl: false
 };
@@ -121,7 +135,11 @@ export class AppFacade extends InfoService {
   }
 
   public serverConfig = {
-    unitPreferences: signal<SKServerUnitPrefs>(undefined)
+    unitPreferences: signal<SKServerUnitPrefs>(undefined),
+    // Per-path display-unit overrides keyed by Signal K path (server
+    // `meta.displayUnits`). Populated from path metadata; consumed by
+    // formatValueForDisplay() when a path is supplied.
+    pathDisplayUnits: signal<Record<string, SKPathDisplayUnits>>({})
   };
 
   // controls map zoom limits
@@ -148,6 +166,14 @@ export class AppFacade extends InfoService {
 
   sIsFetching = signal<boolean>(false); // show progress for fetching data from server
   sTrueMagChoice = signal<string>(''); // preferred path True / Magnetic
+
+  instrumentPanel = signal<{
+    open: boolean;
+    activate: boolean;
+  }>({
+    open: false,
+    activate: false
+  });
 
   // non-persisted UIstate attributes
   uiCtrl = signal<{
@@ -212,9 +238,33 @@ export class AppFacade extends InfoService {
     buddyList: false
   });
 
+  selfLines = signal<{ cog: LineStyleDef; heading: LineStyleDef }>({
+    cog: {
+      fill: { color: 'rgba(204, 12, 225, 0.7)' },
+      stroke: {
+        color: 'rgba(204, 12, 225, 0.7)',
+        width: 1,
+        lineDash: null
+      }
+    },
+    heading: {
+      fill: { color: 'rgba(221, 99, 0, 0.5)' },
+      stroke: {
+        color: 'rgba(221, 99, 0, 0.5)',
+        width: 4,
+        lineDash: null
+      }
+    }
+  });
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
   selfTrailFromServer = signal<LineString>([]); // vessel trail from server
   mapExtent = signal<Extent>([]); // map viewport extent
+  mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
+  mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)
+  mapViewRotation = signal<number>(0); // OL view rotation in radians (CCW positive)
+  // programmatic map move request (e.g. from a plotter extension). A new
+  // object reference each time so the consuming effect always reacts.
+  mapMoveRequest = signal<{ center: Position; zoom?: number } | null>(null);
 
   protected signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
@@ -279,18 +329,31 @@ export class AppFacade extends InfoService {
 
     /** Load persisted configuration */
     this.loadConfig();
-    this.parseLoadedConfig();
+    this.parseLocalConfig();
 
     // respond to signals
     effect(() => {
       this.uiConfig();
       this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
       this.config.ui = this.uiConfig();
-      this.saveConfig();
+      this.saveConfigDebounced();
     });
     effect(() => {
       this.alignUnitPrefs(this.serverConfig.unitPreferences());
     });
+  }
+
+  /**
+   * Detemine whether InfoPanel is used to display resource details based
+   * on the device screen width.
+   */
+  public useInfoPanel(): boolean {
+    const mediaQuery = window.matchMedia('(max-width: 760px)');
+    return (
+      !mediaQuery.matches &&
+      !this.instrumentPanel().open &&
+      this.config.display.preferInfoPanel
+    );
   }
 
   /**
@@ -301,9 +364,68 @@ export class AppFacade extends InfoService {
     this.signalk.get('/signalk/v1/unitpreferences/active').subscribe({
       next: (res: SKServerUnitPrefs) => {
         this.serverConfig.unitPreferences.set(res);
+        this.refreshPathDisplayUnits();
       },
       error: () => {
         this.debug('No server unit preferences...using fallback!');
+      }
+    });
+  }
+
+  /**
+   * Paths whose per-path display-unit override (`meta.displayUnits`) Freeboard
+   * honors so they can display in a different unit than their category preset.
+   * Currently wind speed only (see issue #304): the true-wind path is the user's
+   * preferred TWS path.
+   */
+  /**
+   * True-wind path used as the per-path display-unit cache key and lookup. Shared
+   * with display consumers (e.g. the vessel popover) so the key always matches.
+   */
+  public twsDisplayUnitPath(): string {
+    return this.config.units.preferredPaths.tws ?? 'environment.wind.speedTrue';
+  }
+
+  private displayUnitPaths(): string[] {
+    return [this.twsDisplayUnitPath(), 'environment.wind.speedApparent'];
+  }
+
+  /**
+   * Refresh the per-path display-unit cache from the server. Only applied when
+   * the user has opted into server unit preferences; otherwise the cache is
+   * cleared so display falls back to the category preset.
+   */
+  public refreshPathDisplayUnits() {
+    if (!this.config.units.useServerPrefs) {
+      this.serverConfig.pathDisplayUnits.set({});
+      return;
+    }
+    this.displayUnitPaths().forEach((path) => this.fetchPathDisplayUnits(path));
+  }
+
+  /**
+   * Fetch a path's per-path display-unit override (`meta.displayUnits`) from the
+   * server and cache it. Paths with no published override are left uncached and
+   * fall back to the category preset.
+   */
+  public fetchPathDisplayUnits(path: string) {
+    const p = path.split('.').join('/');
+    this.signalk.get(`/signalk/v1/api/vessels/self/${p}/meta`).subscribe({
+      next: (meta: { displayUnits?: SKPathDisplayUnits }) => {
+        // Re-check useServerPrefs: it may have been turned off while this
+        // request was in flight (a stale response must not re-add an override).
+        if (
+          this.config.units.useServerPrefs &&
+          meta?.displayUnits?.targetUnit
+        ) {
+          this.setPathDisplayUnits(path, meta.displayUnits);
+        } else {
+          this.clearPathDisplayUnits(path);
+        }
+      },
+      error: () => {
+        this.debug(`No display units for path: ${path}`);
+        this.clearPathDisplayUnits(path);
       }
     });
   }
@@ -348,10 +470,30 @@ export class AppFacade extends InfoService {
   }
 
   /** Parse, clean loaded config */
-  private parseLoadedConfig() {
+  private parseLocalConfig() {
     cleanConfig(this.config, this.hostDef.params);
-    this.doPostConfigLoad();
     this.s57.init(this.config.map.s57Options);
+    this.doPostConfigLoad();
+  }
+
+  // line dash style helpers
+  get lineDashMap() {
+    return new Map([
+      ['none', 'none'],
+      ['short', '2 2'],
+      ['medium', '4 4'],
+      ['long', '8 4'],
+      ['alt', '8 4 2 4']
+    ]);
+  }
+
+  // line dash style format helpers
+  formatLineDashArray(value: LineStyleDash): number[] | null {
+    return value === 'none'
+      ? null
+      : Array.from(this.lineDashMap.get(value))
+          .filter((i) => i !== ' ')
+          .map((i) => Number(i));
   }
 
   /** Initialise and raise "settings$.load" event */
@@ -366,7 +508,34 @@ export class AppFacade extends InfoService {
       this.config.map.center = [...this.config.vessels.fixedPosition];
     }
 
+    this.selfLines.update((current) => {
+      const c = {
+        cog: {
+          fill: { color: this.config.vessels.selfLines.cog.color },
+          stroke: {
+            color: this.config.vessels.selfLines.cog.color,
+            width: this.config.vessels.selfLines.cog.weight,
+            lineDash: this.formatLineDashArray(
+              this.config.vessels.selfLines.cog.dash
+            )
+          }
+        },
+        heading: {
+          fill: { color: this.config.vessels.selfLines.heading.color },
+          stroke: {
+            color: this.config.vessels.selfLines.heading.color,
+            width: this.config.vessels.selfLines.heading.weight,
+            lineDash: this.formatLineDashArray(
+              this.config.vessels.selfLines.heading.dash
+            )
+          }
+        }
+      };
+      return c;
+    });
+
     this.sTrueMagChoice.set(this.config.units.headingAttribute);
+    this.s57.setOptions(this.config.map.s57Options);
 
     // emit settings$.ready
     this.debug(`doPostConfigLoad(): emit config$.ready`);
@@ -374,64 +543,15 @@ export class AppFacade extends InfoService {
     this.suppressPersist = false; // allow persisting of config.
   }
 
-  /**
-   * Align server unit prefernce settings with FB units config.
-   */
-  public alignUnitPrefs(units: SKServerUnitPrefs) {
-    if (!this.config.units.useServerPrefs) return;
-    this.debug('Aligning Unit preferences from server:', units);
-    if (!units?.categories) {
-      this.debug('No Unit preferences available!');
-      return;
-    }
-    if (units.categories.speed) {
-      this.config.units.speed =
-        units.categories.speed.targetUnit === 'm/s'
-          ? 'msec'
-          : ['km/h', 'kph'].includes(units.categories.speed.targetUnit)
-            ? 'kmh'
-            : units.categories.speed.targetUnit === 'mph'
-              ? 'mph'
-              : ['kn', 'knot'].includes(units.categories.speed.targetUnit)
-                ? 'kn'
-                : this.config.units.speed;
-    }
-    if (units.categories.depth) {
-      this.config.units.depth =
-        units.categories.depth.targetUnit === 'm'
-          ? 'm'
-          : units.categories.depth.targetUnit === 'foot'
-            ? 'ft'
-            : this.config.units.depth;
-    }
-    if (units.categories.distance) {
-      this.config.units.distance = ['naut-mile'].includes(
-        units.categories.distance.targetUnit
-      )
-        ? 'ft'
-        : ['kilometer'].includes(units.categories.distance.targetUnit)
-          ? 'm'
-          : this.config.units.distance;
-    }
-    if (units.categories.temperature) {
-      this.config.units.temperature =
-        units.categories.depth.targetUnit === 'C'
-          ? 'c'
-          : units.categories.temperature.targetUnit === 'F'
-            ? 'f'
-            : this.config.units.temperature;
-    }
-  }
-
   /** Retrieve and apply saved config from server */
-  public async loadSettingsfromServer(): Promise<boolean> {
+  public async loadUserConfigfromServer(): Promise<boolean> {
     return new Promise((resolve) => {
       this.signalk.isLoggedIn().subscribe({
         next: (r: boolean) => {
           this.isLoggedIn.set(r);
           if (r) {
             this.debug(
-              'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
+              'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
             );
             this.signalk.appDataGet('/').subscribe({
               next: (serverSettings: IAppConfig) => {
@@ -457,18 +577,124 @@ export class AppFacade extends InfoService {
             });
           } else {
             this.debug(
-              'loadSettingsfromServer(): Not authenticated to SK Server!'
+              'loadUserConfigfromServer(): Not authenticated to SK Server!'
             );
             return resolve(false);
           }
         },
         error: () => {
           this.isLoggedIn.set(false);
-          this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
+          this.debug('loadUserConfigfromServer(): Error fetching loginStatus!');
           resolve(false);
         }
       });
     });
+  }
+
+  /**
+   * Returns the per-path display-unit override for a Signal K path, or undefined
+   * when the server has published none for it.
+   */
+  public getPathDisplayUnits(path: string): SKPathDisplayUnits | undefined {
+    return this.serverConfig.pathDisplayUnits()[path];
+  }
+
+  /**
+   * Store the per-path display-unit override for a Signal K path (from the path's
+   * `meta.displayUnits`).
+   */
+  public setPathDisplayUnits(path: string, displayUnits: SKPathDisplayUnits) {
+    this.serverConfig.pathDisplayUnits.update((m) => ({
+      ...m,
+      [path]: displayUnits
+    }));
+  }
+
+  /**
+   * Remove the cached per-path display-unit override for a Signal K path, so it
+   * reverts to the category preset.
+   */
+  public clearPathDisplayUnits(path: string) {
+    this.serverConfig.pathDisplayUnits.update((m) => {
+      if (!(path in m)) return m;
+      const next = { ...m };
+      delete next[path];
+      return next;
+    });
+  }
+
+  /**
+   * Align server unit prefernce settings with FB units config.
+   */
+  public alignUnitPrefs(units: SKServerUnitPrefs) {
+    if (!this.config.units.useServerPrefs) return;
+    this.debug('Aligning Unit preferences from server:', units);
+    if (!units?.categories) {
+      this.debug('No Unit preferences available!');
+      return;
+    }
+    if (units.categories.speed) {
+      this.config.units.speed = ['kn', 'm/s', 'km/h', 'mph'].includes(
+        units.categories.speed.targetUnit
+      )
+        ? (units.categories.speed.targetUnit as SpeedUnitDef)
+        : this.config.units.speed;
+      Convert.setSymbol(
+        units.categories.speed.targetUnit as TARGET_UNIT,
+        units.categories.speed.symbol
+      );
+    }
+    if (units.categories.temperature) {
+      this.config.units.temperature = ['C', 'F'].includes(
+        units.categories.temperature.targetUnit
+      )
+        ? (units.categories.temperature.targetUnit as TemperatureUnitDef)
+        : this.config.units.temperature;
+
+      Convert.setSymbol(
+        units.categories.temperature.targetUnit as TARGET_UNIT,
+        units.categories.temperature.symbol
+      );
+    }
+
+    if (units.categories.distance) {
+      this.config.units.distance = ['kilometer', 'naut-mile'].includes(
+        units.categories.distance.targetUnit
+      )
+        ? (units.categories.distance.targetUnit as DistanceUnitDef)
+        : this.config.units.distance;
+
+      Convert.setSymbol(
+        units.categories.distance.targetUnit as TARGET_UNIT,
+        units.categories.distance.symbol
+      );
+    }
+
+    if (units.categories.depth) {
+      this.config.units.depth = ['m', 'foot'].includes(
+        units.categories.depth.targetUnit
+      )
+        ? (units.categories.depth.targetUnit as DepthUnitDef)
+        : this.config.units.depth;
+
+      Convert.setSymbol(
+        units.categories.depth.targetUnit as TARGET_UNIT,
+        units.categories.depth.symbol
+      );
+    }
+
+    if (units.categories.length) {
+      this.config.units.length = ['m', 'foot'].includes(
+        units.categories.length.targetUnit
+      )
+        ? (units.categories.length.targetUnit as LengthUnitDef)
+        : this.config.units.length;
+
+      Convert.setSymbol(
+        units.categories.length.targetUnit as TARGET_UNIT,
+        units.categories.length.symbol
+      );
+    }
   }
 
   /** Initialises Material IconRegistry with custom icons */
@@ -561,7 +787,7 @@ export class AppFacade extends InfoService {
   }
 
   /** returns true if not embedded (is top window)*/
-  private isTopWindow(): boolean {
+  public isTopWindow(): boolean {
     try {
       return window.self === window.top;
     } catch (e) {
@@ -655,30 +881,58 @@ export class AppFacade extends InfoService {
     });
   }
 
+  /** Whether the AIS vessel's individual track is displayed (session-only) */
+  isVesselTrackShown(id: string): boolean {
+    return isTrackShown(this.data.vessels.showTrack, id);
+  }
+
+  /** Toggle display of an AIS vessel's individual track on the map (session-only) */
+  toggleVesselTrack(id: string) {
+    this.data.vessels.showTrack = toggleTrackSelection(
+      this.data.vessels.showTrack,
+      id
+    );
+  }
+
   /** Calculate the position to center the map.
    * Tales into account the amount of offset to apply
    */
-  calcMapCenter(ref: Position): Position {
-    const ctrOfExtent: Position = GeoUtils.centreOfPolygon([
-      this.mapExtent().slice(0, 2) as Position,
-      [this.mapExtent()[0], this.mapExtent()[3]],
-      this.mapExtent().slice(-2) as Position,
-      [this.mapExtent()[2], this.mapExtent()[1]],
-      this.mapExtent().slice(0, 2) as Position
-    ]);
-    const offsetDistance =
-      GeoUtils.distanceTo(this.mapExtent().slice(0, 2) as Position, [
-        this.mapExtent()[0],
-        ctrOfExtent[1]
-      ]) * (this.config.map.centerOffset ?? 0.5);
-    const pos: Position = true //this.app.config.display.mapCenterOffset ?
-      ? GeoUtils.destCoordinate(
-          this.data.vessels.active.position,
-          0,
-          offsetDistance
-        )
-      : ref;
-    return pos;
+  calcMapCenter(): Position {
+    const cog =
+      this.data.vessels.active.cogTrue ?? this.data.vessels.active.headingTrue;
+    if (cog === null) {
+      return this.data.vessels.active.position;
+    }
+    // Compute the geodetic distance from the viewport centre to the screen
+    // edge in the exact CoG direction. This correctly handles any map rotation
+    // mode (north-up or heading-up) and any screen aspect ratio.
+    //
+    // In OL, a CW bearing β has projected-space direction (sin β, cos β).
+    // With OL view rotation rot (CCW), the screen-space components are:
+    //   sx = sin(β + rot)  (rightward)   sy = cos(β + rot)  (upward)
+    // The edge of the viewport rectangle lies at min(hw/|sx|, hh/|sy|)
+    // where hw = geodetic half-width, hh = geodetic half-height.
+    const hh = GeoUtils.distanceTo(
+      this.config.map.center as Position,
+      this.mapViewTopCenter()
+    );
+    const hw = GeoUtils.distanceTo(
+      this.config.map.center as Position,
+      this.mapViewRightCenter()
+    );
+    const rot = this.mapViewRotation();
+    const sx = Math.abs(Math.sin(cog + rot));
+    const sy = Math.abs(Math.cos(cog + rot));
+    const edgeDistance = Math.min(
+      sx > 1e-10 ? hw / sx : Infinity,
+      sy > 1e-10 ? hh / sy : Infinity
+    );
+    const offsetDistance = edgeDistance * (this.config.map.centerOffset ?? 0.5);
+    return GeoUtils.destCoordinate(
+      this.data.vessels.active.position,
+      cog,
+      offsetDistance
+    );
   }
 
   /**
@@ -706,6 +960,14 @@ export class AppFacade extends InfoService {
         error: () => this.debug('saveConfig: Cannot save config to server!')
       });
     }
+  }
+
+  private saveCfgTimer: ReturnType<typeof setTimeout>;
+  /** Debounced saveConfig — collapses a flurry of saves (e.g. repeated map
+   * pans or rapid UI toggles) into a single localStorage write + server PUT. */
+  saveConfigDebounced(ms = 1000) {
+    clearTimeout(this.saveCfgTimer);
+    this.saveCfgTimer = setTimeout(() => this.saveConfig(), ms);
   }
 
   /** show Help at specified anchor */
@@ -858,62 +1120,150 @@ export class AppFacade extends InfoService {
 
   /** returns a formatted string containing the value (converted to the preferred units)
    * and units. (e.g. 12.5 knots, 8.8 m/s)
-   * Numbers are fixed to 1 decimal point unless precision is specified
+   * Numbers are fixed to 1 decimal point unless precision is specified.
+   *
+   * When `options.path` is supplied and the server has published a per-path
+   * display-unit override for it (`meta.displayUnits`), that override takes
+   * precedence over the category preset — so a path can display in a different
+   * unit than others in its category. Otherwise the category / source-unit
+   * preset is used.
    */
   formatValueForDisplay(
     value: number,
-    sourceUnits: 'K' | 'm/s' | 'rad' | 'm' | 'ratio' | 'deg' | 'sec',
-    depthValue?: boolean,
-    precision: number = 1
+    sourceUnit: SI_BASE_UNIT,
+    options?: {
+      path?: string;
+      category?: string;
+      noSymbol?: boolean;
+      precision?: number;
+    }
   ): string {
     if (typeof value === 'number') {
-      if (sourceUnits === 'K') {
-        return this.config.units.temperature === 'c'
-          ? `${Convert.kelvinToCelsius(value).toFixed(
-              precision
-            )}${String.fromCharCode(186)}C`
-          : `${Convert.kelvinToFarenheit(value).toFixed(
-              1
-            )}${String.fromCharCode(186)}F`;
-      } else if (sourceUnits === 'ratio') {
-        return Math.abs(value) <= 1
-          ? `${(value * 100).toFixed(precision)}%`
-          : value.toFixed(4);
-      } else if (sourceUnits === 'rad') {
-        return `${Convert.radiansToDegrees(value).toFixed(
-          1
-        )}${String.fromCharCode(186)}`;
-      } else if (sourceUnits === 'deg') {
-        return `${value.toFixed(precision)}${String.fromCharCode(186)}`;
-      } else if (sourceUnits === 'm') {
-        if (depthValue) {
-          return this.config.units.depth === 'm'
-            ? `${value.toFixed(precision)} m`
-            : `${Convert.metersToFeet(value).toFixed(precision)} ft`;
+      const precision = options?.precision ?? 1;
+      let symbol = '';
+      let nv: string;
+
+      const displayUnits = options?.path
+        ? this.getPathDisplayUnits(options.path)
+        : undefined;
+      if (displayUnits) {
+        try {
+          // Ratios format like the category preset (0-1 → %, out-of-range shown raw)
+          // rather than a plain unit transform, so keep parity here.
+          nv =
+            sourceUnit === 'ratio'
+              ? this.formatNumericDisplay(
+                  Math.abs(value) <= 1 ? value * 100 : value,
+                  Math.abs(value) <= 1 ? precision : 4
+                )
+              : this.formatNumericDisplay(
+                  Convert.transform(
+                    value,
+                    sourceUnit,
+                    displayUnits.targetUnit as TARGET_UNIT
+                  ),
+                  precision
+                );
+          symbol =
+            displayUnits.symbol ??
+            Convert.getSymbol(displayUnits.targetUnit as TARGET_UNIT);
+          return `${nv}${options?.noSymbol ? '' : symbol}`;
+        } catch {
+          // Malformed server-published displayUnits (e.g. unknown targetUnit) —
+          // warn and fall back to the category preset.
+          console.warn(
+            `formatValueForDisplay: invalid displayUnits for path "${options.path}" — falling back to category preset.`
+          );
+        }
+      }
+
+      if (sourceUnit === 'K') {
+        symbol = Convert.getSymbol(this.config.units.temperature);
+        nv = this.formatNumericDisplay(
+          Convert.transform(
+            value,
+            sourceUnit,
+            this.config.units.temperature as TARGET_UNIT
+          ),
+          precision
+        );
+      } else if (sourceUnit === 'rad') {
+        symbol = Convert.getSymbol('degree');
+        nv = this.formatNumericDisplay(
+          Convert.transform(value, sourceUnit, 'degree'),
+          precision
+        );
+      } else if (sourceUnit === 'm/s') {
+        symbol = Convert.getSymbol(this.config.units.speed);
+        nv = this.formatNumericDisplay(
+          Convert.transform(
+            value,
+            sourceUnit,
+            this.config.units.speed as TARGET_UNIT
+          ),
+          precision
+        );
+      } else if (sourceUnit === 'ratio') {
+        symbol = Convert.getSymbol('percent');
+        nv =
+          Math.abs(value) <= 1
+            ? this.formatNumericDisplay(value * 100, precision)
+            : this.formatNumericDisplay(value, 4);
+      } else if (sourceUnit === 'deg') {
+        symbol = Convert.getSymbol('degree');
+        nv = this.formatNumericDisplay(value, precision);
+      } else if (sourceUnit === 'm') {
+        if (options?.category === 'depth') {
+          symbol = Convert.getSymbol(this.config.units.depth);
+          nv = this.formatNumericDisplay(
+            Convert.transform(
+              value,
+              sourceUnit,
+              this.config.units.depth as TARGET_UNIT
+            ),
+            precision
+          );
+        } else if (options?.category === 'length') {
+          symbol = Convert.getSymbol(this.config.units.length);
+          nv = this.formatNumericDisplay(
+            Convert.transform(
+              value,
+              sourceUnit,
+              this.config.units.length as TARGET_UNIT
+            ),
+            precision
+          );
         } else {
-          if (this.config.units.distance !== 'ft') {
-            return value < 1000
-              ? `${value.toFixed(Math.floor(value) === 0 ? precision : 0)} m`
-              : `${(value / 1000).toFixed(precision)} km`;
+          // distance
+          if (this.config.units.distance === 'kilometer' && value < 1000) {
+            symbol = Convert.getSymbol('m');
+            nv = this.formatNumericDisplay(value, 0);
+          } else if (this.config.units.distance === 'naut-mile') {
+            const nm = Convert.transform(
+              value,
+              sourceUnit,
+              this.config.units.distance
+            );
+            if (nm < 0.5) {
+              symbol = Convert.getSymbol(this.config.units.length);
+              nv = this.formatNumericDisplay(nm, 0);
+            } else {
+              symbol = Convert.getSymbol(this.config.units.distance);
+              nv = this.formatNumericDisplay(nm, precision);
+            }
           } else {
-            const nm = Convert.kmToNauticalMiles(value / 1000);
-            return nm < 0.5
-              ? this.formatValueForDisplay(value, 'm', true)
-              : `${nm.toFixed(precision)} NM`;
+            symbol = Convert.getSymbol(this.config.units.distance);
+            nv = this.formatNumericDisplay(
+              Convert.transform(
+                value,
+                sourceUnit,
+                this.config.units.distance as TARGET_UNIT
+              ),
+              precision
+            );
           }
         }
-      } else if (sourceUnits === 'm/s') {
-        switch (this.config.units.speed) {
-          case 'kmh':
-            return `${Convert.msecToKmh(value).toFixed(precision)} km/h`;
-          case 'kn':
-            return `${Convert.msecToKnots(value).toFixed(precision)} knots`;
-          case 'mph':
-            return `${Convert.msecToMph(value).toFixed(precision)} mph`;
-          default:
-            return `${value} ${sourceUnits}`;
-        }
-      } else if (sourceUnits === 'sec') {
+      } else if (sourceUnit === 's') {
         const minutes = Math.floor(value / 60);
         const hr = minutes / 60;
         if (hr >= 24) {
@@ -927,7 +1277,13 @@ export class AppFacade extends InfoService {
           return `${Math.floor(hr)}h ${fms}`;
         }
         return `${minutes} min`;
+      } else {
+        nv = this.formatNumericDisplay(
+          Convert.transform(value, sourceUnit, sourceUnit as TARGET_UNIT),
+          precision
+        );
       }
+      return `${nv}${options?.noSymbol ? '' : symbol}`;
     } else {
       // timestamp
       if (typeof value === 'string') {
@@ -935,37 +1291,42 @@ export class AppFacade extends InfoService {
           return new Date(value).toLocaleString();
         }
       }
-      return `${value}${sourceUnits}`;
+      return `${value}${sourceUnit}`;
     }
+  }
+
+  /**
+   * Formats numeric value as text for display
+   * @param value Numeric value
+   * @param precision Number of decimal places
+   * @returns Formatted string value '--' when value is non-numeric
+   */
+  formatNumericDisplay(value: number, precision?: number): string {
+    precision = Number.isFinite(precision) ? precision : 1;
+    return !Number.isFinite(value)
+      ? '---'.slice(0 - precision)
+      : Number.isFinite(precision)
+        ? value.toFixed(precision)
+        : `${value}`;
   }
 
   // convert speed value and set the value of this.app.formattedSpeedUnits
   formatSpeed(value: number, asString = false): string | number {
-    const valIsNumber = typeof value === 'number';
-    switch (this.config.units.speed) {
-      case 'kn':
-        value = Convert.msecToKnots(value);
-        this.formattedSpeedUnits = 'knots';
-        break;
-      case 'kmh':
-        value = Convert.msecToKmh(value);
-        this.formattedSpeedUnits = 'km/h';
-        break;
-      case 'mph':
-        value = Convert.msecToMph(value);
-        this.formattedSpeedUnits = 'mph';
-        break;
-      default:
-        this.formattedSpeedUnits = 'm/s';
-    }
-    if (asString) {
-      return valIsNumber ? value.toFixed(1) : '-';
-    } else {
-      return valIsNumber ? value : '-';
+    this.formattedSpeedUnits = Convert.getSymbol(this.config.units.speed);
+    try {
+      value = Convert.transform(
+        value,
+        'm/s',
+        this.config.units.speed as TARGET_UNIT
+      );
+    } catch {
+      value = null;
+    } finally {
+      return asString ? this.formatNumericDisplay(value) : value;
     }
   }
 
-  formattedSpeedUnits = 'knots';
+  formattedSpeedUnits = Convert.getSymbol('kn');
 }
 
 /******************

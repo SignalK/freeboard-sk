@@ -10,7 +10,6 @@ export class RadarMessage extends pb_1.Message {
     data?:
       | any[]
       | {
-          radar?: number;
           spokes?: RadarMessage.Spoke[];
         }
   ) {
@@ -24,19 +23,10 @@ export class RadarMessage extends pb_1.Message {
       this.#one_of_decls
     );
     if (!Array.isArray(data) && typeof data == 'object') {
-      if ('radar' in data && data.radar != undefined) {
-        this.radar = data.radar;
-      }
       if ('spokes' in data && data.spokes != undefined) {
         this.spokes = data.spokes;
       }
     }
-  }
-  get radar() {
-    return pb_1.Message.getFieldWithDefault(this, 1, 0) as number;
-  }
-  set radar(value: number) {
-    pb_1.Message.setField(this, 1, value);
   }
   get spokes() {
     return pb_1.Message.getRepeatedWrapperField(
@@ -49,13 +39,9 @@ export class RadarMessage extends pb_1.Message {
     pb_1.Message.setRepeatedWrapperField(this, 2, value);
   }
   static fromObject(data: {
-    radar?: number;
     spokes?: ReturnType<typeof RadarMessage.Spoke.prototype.toObject>[];
   }): RadarMessage {
     const message = new RadarMessage({});
-    if (data.radar != null) {
-      message.radar = data.radar;
-    }
     if (data.spokes != null) {
       message.spokes = data.spokes.map((item) =>
         RadarMessage.Spoke.fromObject(item)
@@ -65,12 +51,8 @@ export class RadarMessage extends pb_1.Message {
   }
   toObject() {
     const data: {
-      radar?: number;
       spokes?: ReturnType<typeof RadarMessage.Spoke.prototype.toObject>[];
     } = {};
-    if (this.radar != null) {
-      data.radar = this.radar;
-    }
     if (this.spokes != null) {
       data.spokes = this.spokes.map((item: RadarMessage.Spoke) =>
         item.toObject()
@@ -82,7 +64,6 @@ export class RadarMessage extends pb_1.Message {
   serialize(w: pb_1.BinaryWriter): void;
   serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
     const writer = w || new pb_1.BinaryWriter();
-    if (this.radar != 0) writer.writeUint32(1, this.radar);
     if (this.spokes.length)
       writer.writeRepeatedMessage(2, this.spokes, (item: RadarMessage.Spoke) =>
         item.serialize(writer)
@@ -98,9 +79,6 @@ export class RadarMessage extends pb_1.Message {
     while (reader.nextField()) {
       if (reader.isEndGroup()) break;
       switch (reader.getFieldNumber()) {
-        case 1:
-          message.radar = reader.readUint32();
-          break;
         case 2:
           reader.readMessage(message.spokes, () =>
             pb_1.Message.addToRepeatedWrapperField(
@@ -350,8 +328,8 @@ export namespace RadarMessage {
       if (this.has_bearing) writer.writeUint32(2, this.bearing);
       if (this.range != 0) writer.writeUint32(3, this.range);
       if (this.has_time) writer.writeUint64(4, this.time);
-      if (this.has_lat) writer.writeInt64(6, this.lat);
-      if (this.has_lon) writer.writeInt64(7, this.lon);
+      if (this.has_lat) writer.writeDouble(6, this.lat);
+      if (this.has_lon) writer.writeDouble(7, this.lon);
       if (this.data.length) writer.writeBytes(5, this.data);
       if (!w) return writer.getResultBuffer();
     }
@@ -377,10 +355,10 @@ export namespace RadarMessage {
             message.time = reader.readUint64();
             break;
           case 6:
-            message.lat = reader.readInt64();
+            message.lat = reader.readDouble();
             break;
           case 7:
-            message.lon = reader.readInt64();
+            message.lon = reader.readDouble();
             break;
           case 5:
             message.data = reader.readBytes();

@@ -1,11 +1,13 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   signal,
-  effect
+  computed,
+  effect,
+  inject,
+  output,
+  input,
+  DestroyRef
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -20,7 +22,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog } from '@angular/material/dialog';
 
 import { AppFacade } from 'src/app/app.facade';
-import { Convert } from 'src/app/lib/convert';
 import {
   FBRoute,
   FBResourceSelect,
@@ -31,6 +32,8 @@ import { SKResourceService, SKResourceType } from '../../resources.service';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
+import { RemarkModule } from 'ngx-remark';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'route-list',
@@ -46,34 +49,38 @@ import { SingleSelectListDialog } from 'src/app/lib/components';
     FormsModule,
     MatInputModule,
     ScrollingModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    RemarkModule
   ]
 })
 export class RouteListComponent extends ResourceListBase {
-  @Input() activeRoute: string;
-  @Input() editingRouteId: string;
-  @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() delete: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() activate: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() deactivate: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() refresh: EventEmitter<void> = new EventEmitter();
-  @Output() properties: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() points: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() notes: EventEmitter<{ id: string; readOnly: boolean }> =
-    new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  activeRoute = input<string>();
+  editingRouteId = input<string>();
+  select = output<FBResourceSelect>();
+  delete = output<FBResourceSelect>();
+  activate = output<FBResourceSelect>();
+  deactivate = output<FBResourceSelect>();
+  refresh = output<void>();
+  points = output<FBResourceSelect>();
+  notes = output<{ id: string; readOnly: boolean }>();
+  closed = output<void>();
 
   protected override fullList: FBRoutes = [];
   protected override filteredList = signal<FBRoutes>([]);
-  disableRefresh = false;
+  /** Disable list/visibility actions while a route is being edited. Reactive
+   *  (computed from the editingRouteId signal input) so it re-enables the moment
+   *  editing ends — ngOnChanges does not fire for signal-input changes. */
+  disableRefresh = computed(
+    () => this.editingRouteId()?.startsWith('route.') ?? false
+  );
 
-  constructor(
-    public app: AppFacade,
-    protected override skres: SKResourceService,
-    private worker: SKWorkerService,
-    protected dialog: MatDialog,
-    protected skgroups: SKResourceGroupService
-  ) {
+  protected app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+  private dialog = inject(MatDialog);
+  private skgroups = inject(SKResourceGroupService);
+  private destroyRef = inject(DestroyRef);
+
+  constructor(protected override skres: SKResourceService) {
     super('routes', skres);
     // resources delta handler
     effect(() => {
@@ -89,8 +96,6 @@ export class RouteListComponent extends ResourceListBase {
 
   ngOnChanges() {
     this.initItems();
-    this.disableRefresh =
-      this.editingRouteId && this.editingRouteId.indexOf('route') !== -1;
   }
 
   /**
@@ -161,7 +166,7 @@ export class RouteListComponent extends ResourceListBase {
    * @param id route identifier
    */
   protected itemProperties(id: string) {
-    this.skres.editRouteInfo(id);
+    this.select.emit({ id: id });
   }
 
   /**
@@ -227,6 +232,7 @@ export class RouteListComponent extends ResourceListBase {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {
@@ -242,10 +248,10 @@ export class RouteListComponent extends ResourceListBase {
     }
   }
 
-  /** Convert km to nautical miles
-   * @param v Distsnce in km
+  /** Format distance value
+   * @param valaue Distance in meters
    */
-  protected km2Nm(value: number) {
-    return Convert.kmToNauticalMiles(value);
+  protected formatDistance(value: number) {
+    return `(${this.app.formatValueForDisplay(value, 'm', { precision: 2 })})`;
   }
 }

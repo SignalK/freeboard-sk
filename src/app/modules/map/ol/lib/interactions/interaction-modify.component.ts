@@ -54,15 +54,23 @@ export class InteractionModifyComponent {
         features: this.features,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         deleteCondition: (e: MapBrowserEvent<any>) => {
+          // A long-press (touch or mouse) flagged a delete-on-release in
+          // map.component; consume it on the click/release. OL 10 emits no
+          // contextmenu event for touch, so this is the only delete path there.
           if (
+            (e.type === 'pointerup' ||
+              e.type === 'singleclick' ||
+              e.type === 'click') &&
+            e.map.get('vertexDeleteOnRelease')
+          ) {
+            e.map.set('vertexDeleteOnRelease', false);
+            return true;
+          }
+          return (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (e.type === 'click' && (e.originalEvent as any).ctrlKey) ||
             e.type === 'contextmenu'
-          ) {
-            return true;
-          } else {
-            return false;
-          }
+          );
         }
       });
       this.interaction.on('change', this.emitChangeEvent);

@@ -1,10 +1,7 @@
-import { FBAppData, IAppConfig } from './types';
+import { FBAppData, IAppConfig, TemperatureUnitDef } from './types';
 import { Convert } from './lib/convert';
 import { SKVessel } from './modules';
-/*import {
-  cleanConfig as cleanRadarConfig,
-  DefaultRadarConfig
-} from './modules/radar/settings';*/
+import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -26,22 +23,22 @@ export function cleanConfig(
   /** v2 formatting */
   if (typeof settings.ui === 'undefined') {
     settings.ui = {
-      mapNorthUp: (settings as any).map.northUp ?? true,
-      mapMove: (settings as any).map.moveMap ?? false,
-      mapConstrainZoom: (settings as any).map.limitZoom ?? false,
-      invertColor: (settings as any).map.invertColor ?? false,
-      toolbarButtons: (settings as any).toolBarButtons ?? true,
-      showCourseData: (settings as any).courseData ?? true,
-      showAisTargets: (settings as any).aisTargets ?? true,
+      mapNorthUp: true,
+      mapMove: false,
+      mapConstrainZoom: false,
+      invertColor: false,
+      toolbarButtons: true,
+      showCourseData: true,
+      showAisTargets: true,
       showNotes: true,
-      autoNightMode: (settings as any).autoNightMode ?? false
+      autoNightMode: false
     };
   } else {
     if (typeof settings.ui.showCourseData === 'undefined') {
-      settings.ui.showCourseData = (settings as any).courseData ?? true;
+      settings.ui.showCourseData = true;
     }
     if (typeof settings.ui.showAisTargets === 'undefined') {
-      settings.ui.showAisTargets = (settings as any).aisTargets ?? true;
+      settings.ui.showAisTargets = true;
     }
     if (typeof settings.ui.showNotes === 'undefined') {
       settings.ui.showNotes = true;
@@ -52,62 +49,105 @@ export function cleanConfig(
     settings.display = {
       fab: 'wpt',
       disableWakelock: false,
-      darkMode: (settings as any).darkMode ?? { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
-      nightMode: (settings as any).nightMode ?? false, // auto set night mode based on environment.mode
-      muteSound: (settings as any).muteSound ?? false,
-      depthAlarm: (settings as any).depthAlarm ?? {
+      darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
+      nightMode: false, // auto set night mode based on environment.mode
+      muteSound: false,
+      depthAlarm: {
         enabled: false,
         smoothing: 10000
       },
       plugins: {
-        instruments:
-          (settings as any).plugins.instruments ?? '/@signalk/instrumentpanel',
-        startOnOpen: (settings as any).plugins.startOnOpen ?? true,
-        parameters: (settings as any).plugins.parameters ?? null,
-        favourites: (settings as any).selections.pluginFavourites ?? []
+        instruments: '/@signalk/instrumentpanel',
+        startOnOpen: true,
+        parameters: null,
+        favourites: []
+      },
+      preferInfoPanel: true,
+      statusBar: {
+        liveEta: false,
+        referenceSpeed: 6
       }
     };
+  } else {
+    if (typeof settings.display.preferInfoPanel === 'undefined') {
+      settings.display.preferInfoPanel = true;
+    }
+    if (typeof settings.display.statusBar === 'undefined') {
+      settings.display.statusBar = {
+        liveEta: false,
+        referenceSpeed: 6
+      };
+    }
   }
+
+  if (typeof settings.units.temperature === 'undefined') {
+    settings.units.temperature = 'C';
+  }
+  settings.units.temperature =
+    settings.units.temperature.toUpperCase() as TemperatureUnitDef;
+  settings.units.depth =
+    (settings.units.depth as any) === 'ft' ? 'foot' : settings.units.depth;
+  if (typeof settings.units.length === 'undefined') {
+    settings.units.length = settings.units.depth ?? 'm';
+  }
+  settings.units.speed =
+    (settings.units.speed as any) === 'msec'
+      ? 'm/s'
+      : (settings.units.speed as any) === 'kmh'
+        ? 'km/h'
+        : settings.units.speed;
+  settings.units.distance =
+    (settings.units.distance as any) === 'm'
+      ? 'kilometer'
+      : (settings.units.distance as any) === 'ft'
+        ? 'naut-mile'
+        : settings.units.distance;
 
   if (typeof settings.map.s57Options === 'undefined') {
     settings.map.s57Options = {
-      graphicsStyle:
-        (settings as any).selections.s57Options.graphicsStyle ?? 'Paper',
-      boundaries: (settings as any).selections.s57Options.boundaries ?? 'Plain',
-      colors: (settings as any).selections.s57Options.colors ?? 4,
-      shallowDepth: (settings as any).selections.s57Options.shallowDepth ?? 2,
-      safetyDepth: (settings as any).selections.s57Options.safetyDepth ?? 3,
-      deepDepth: (settings as any).selections.s57Options.deepDepth ?? 6,
-      colorTable: 0
+      graphicsStyle: 'Paper',
+      boundaries: 'Plain',
+      colors: 4,
+      shallowDepth: 2,
+      safetyDepth: 3,
+      deepDepth: 6,
+      colorTable: 0,
+      otherLayers: DefaultOptions.otherLayers,
+      depthUnit: settings.units.depth ?? 'm'
     };
+  } else {
+    if (typeof settings.map.s57Options.otherLayers === 'undefined') {
+      settings.map.s57Options.otherLayers = DefaultOptions.otherLayers;
+    }
+    if (typeof settings.map.s57Options.depthUnit === 'undefined') {
+      settings.map.s57Options.depthUnit = settings.units.depth ?? 'm';
+    }
   }
+
   if (typeof settings.map.labelsMinZoom === 'undefined') {
-    settings.map.labelsMinZoom =
-      (settings as any).selections.labelsMinZoom ?? 8;
+    settings.map.labelsMinZoom = 8;
   }
   if (typeof settings.map.lockMoveMap === 'undefined') {
     settings.map.lockMoveMap = false;
   }
   if (typeof settings.map.popoverMulti === 'undefined') {
-    settings.map.popoverMulti = (settings as any).popoverMulti ?? false;
+    settings.map.popoverMulti = false;
   }
   if (typeof settings.map.centerOffset === 'undefined') {
     settings.map.centerOffset = 0;
   }
   if (typeof settings.map.doubleClickZoom === 'undefined') {
-    settings.map.doubleClickZoom = (settings as any).mapDoubleClick ?? false;
+    settings.map.doubleClickZoom = false;
   }
   if (typeof settings.map.overZoomTiles === 'undefined') {
     settings.map.overZoomTiles = true;
   }
 
   if (!settings.units.positionFormat) {
-    settings.units.positionFormat =
-      (settings as any).selections.positionFormat ?? 'XY';
+    settings.units.positionFormat = 'XY';
   }
   if (typeof settings.units.headingAttribute === 'undefined') {
-    settings.units.headingAttribute =
-      (settings as any).selections.headingAttribute ?? 'navigation.headingTrue';
+    settings.units.headingAttribute = 'navigation.headingTrue';
   }
   if (typeof settings.units.preferredPaths === 'undefined') {
     settings.units.preferredPaths = {
@@ -122,7 +162,7 @@ export function cleanConfig(
   }
 
   if (typeof settings.course === 'undefined') {
-    settings.course = (settings as any).selections.course ?? {
+    settings.course = {
       autoNextPointOnArrival: false,
       autoNextPointDelay: 5000,
       autoNextPointTrigger: 'perpendicularPassed',
@@ -136,16 +176,27 @@ export function cleanConfig(
 
   if (typeof settings.vessels === 'undefined') {
     settings.vessels = {
-      fixedLocationMode: (settings as any).fixedLocationMode ?? false,
-      fixedPosition: (settings as any).fixedPosition ?? [0, 0],
-      trail: (settings as any).selections.vessel.trail ?? true,
-      windVectors: (settings as any).selections.vessel.windVectors ?? true,
-      laylines: (settings as any).selections.vessel.laylines ?? false,
-      cogLine: (settings as any).selections.vessel.cogLine ?? 10,
-      aisCogLine: (settings as any).selections.vessel.aisCogLine ?? 10,
-      headingLineSize:
-        (settings as any).selections.vessel.headingLineSize ?? -1,
-      iconScale: (settings as any).selections.vessel.iconScale ?? 0.9,
+      fixedLocationMode: false,
+      fixedPosition: [0, 0],
+      trail: true,
+      windVectors: true,
+      laylines: false,
+      selfLines: {
+        cog: {
+          length: 10,
+          color: 'rgba(204, 12, 225, 0.7)',
+          weight: 1,
+          dash: 'none'
+        },
+        heading: {
+          length: -1,
+          color: 'rgba(221, 99, 0, 0.5)',
+          weight: 4,
+          dash: 'none'
+        }
+      },
+      aisCogLine: 10,
+      iconScale: 0.9,
       scaleToSize: false,
       vesselDimensions: { length: 10, beam: 3 },
       rangeCircles: false,
@@ -156,14 +207,14 @@ export function cleanConfig(
       rangeCirclesDynamicDistance: 100,
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
-      aisStaleAge: (settings as any).selections.aisStaleAge ?? 360000,
-      aisMaxAge: (settings as any).selections.aisMaxAge ?? 540000,
-      aisWindApparent: (settings as any).selections.aisWindApparent ?? false,
-      aisWindMinZoom: (settings as any).selections.aisWindMinZoom ?? 15,
-      aisShowTrack: (settings as any).selections.aisShowTrack ?? false,
-      trailFromServer: (settings as any).selections.trailFromServer ?? false,
-      trailDuration: (settings as any).selections.trailDuration ?? 24,
-      trailResolution: (settings as any).selections.trailResolution ?? {
+      aisStaleAge: 360000,
+      aisMaxAge: 540000,
+      aisWindApparent: false,
+      aisWindMinZoom: 15,
+      aisShowTrack: false,
+      trailFromServer: false,
+      trailDuration: 24,
+      trailResolution: {
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
@@ -187,6 +238,24 @@ export function cleanConfig(
     }
     if (typeof settings.vessels.rangeCirclesDistance === 'undefined') {
       settings.vessels.rangeCirclesDistance = 1000;
+    }
+    if (typeof settings.vessels.selfLines === 'undefined') {
+      settings.vessels.selfLines = {
+        cog: {
+          length: (settings as any).vessels.cogLine ?? 10,
+          color: 'rgba(204, 12, 225, 0.7)',
+          weight: 1,
+          dash: 'none'
+        },
+        heading: {
+          length: (settings as any).vessels.headingLineSize ?? -1,
+          color: 'rgba(221, 99, 0, 0.5)',
+          weight: 4,
+          dash: 'none'
+        }
+      };
+      delete (settings as any).vessels.cogLine;
+      delete (settings as any).vessels.headingLineSize;
     }
     if (typeof settings.vessels.rangeCirclesDynamic === 'undefined') {
       settings.vessels.rangeCirclesDynamic = false;
@@ -220,8 +289,7 @@ export function cleanConfig(
     };
   } else {
     if (typeof settings.resources.notes.minZoom === 'undefined') {
-      settings.resources.notes.minZoom =
-        (settings as any).selections.notesMinZoom ?? 10;
+      settings.resources.notes.minZoom = 10;
     }
     if (typeof settings.resources.video === 'undefined') {
       settings.resources.video = { enable: false, url: '' };
@@ -239,7 +307,7 @@ export function cleanConfig(
   }
 
   if (typeof settings.signalk === 'undefined') {
-    settings.signalk = (settings as any).selections.signalk ?? {
+    settings.signalk = {
       vessels: true,
       atons: true,
       aircraft: false,
@@ -255,63 +323,74 @@ export function cleanConfig(
 
   if (typeof settings.anchor === 'undefined') {
     settings.anchor = {
-      radius: (settings as any).anchorRadius ?? 40,
-      setRadius: (settings as any).anchorSetRadius ?? false,
-      manualSet: (settings as any).anchorManualSet ?? false,
-      rodeLength: (settings as any).anchorRodeLength ?? 50
+      radius: 40,
+      setRadius: false,
+      manualSet: false,
+      rodeLength: 50
     };
   }
 
-  /**
-   * v2 disconinued experiments
-   * @todo For removal (Applied 2.19.7)
-   */
-  delete (settings as any).resources.featureServer;
+  if (
+    !settings.plotterExtensions ||
+    typeof settings.plotterExtensions !== 'object' ||
+    Array.isArray(settings.plotterExtensions)
+  ) {
+    settings.plotterExtensions = {
+      widgets: []
+    };
+  }
+  // migrate early plotterExtensions config shape
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (settings.plotterExtensions as any).enabled;
+  if (!Array.isArray(settings.plotterExtensions.widgets)) {
+    settings.plotterExtensions.widgets = [];
+  }
+  settings.plotterExtensions.widgets = settings.plotterExtensions.widgets
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((w: any) => {
+      // early builds used `corner` with a `tl` option
+      if (w.corner && !w.anchor) {
+        w.anchor = w.corner === 'tl' ? 'tr' : w.corner;
+        delete w.corner;
+      }
+      return w;
+    })
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (w: any) => ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
+    );
 
-  /**
-   * v2 deprecations
-   * @todo For removal (Applied 2.17.0)
-   */
-  delete (settings as any).anchorRadius;
-  delete (settings as any).anchorSetRadius;
-  delete (settings as any).anchorManualSet;
-  delete (settings as any).anchorRodeLength;
-  delete (settings as any).courseData;
-  delete (settings as any).selections.s57Options;
-  delete (settings as any).popoverMulti;
-  delete (settings as any).mapDoubleClick;
-  delete (settings as any).darkMode;
-  delete (settings as any).nightMode;
-  delete (settings as any).muteSound;
-  delete (settings as any).depthAlarm;
-  delete (settings as any).plugins;
-  delete (settings as any).notes;
-  delete (settings as any).aisTargets;
-  delete (settings as any).selections.notesMinZoom;
-  delete (settings as any).selections.signalk;
-  delete (settings as any).fixedLocationMode;
-  delete (settings as any).fixedPosition;
-  delete (settings as any).selections.labelsMinZoom;
-  delete (settings as any).selections.positionFormat;
-  delete (settings as any).selections.headingAttribute;
-  delete (settings as any).selections.preferredPaths;
-  delete (settings as any).selections.pluginFavourites;
-  delete (settings as any).selections.course;
-  delete (settings as any).selections.aisStaleAge;
-  delete (settings as any).selections.aisMaxAge;
-  delete (settings as any).selections.aisWindApparent;
-  delete (settings as any).selections.aisWindMinZoom;
-  delete (settings as any).selections.aisShowTrack;
-  delete (settings as any).selections.vessel;
-  delete (settings as any).selections.trailFromServer;
-  delete (settings as any).selections.trailDuration;
-  delete (settings as any).selections.trailResolution;
+  if (typeof settings.radars === 'undefined') {
+    settings.radars = {
+      deviceId: '',
+      opacity: 1
+    };
+  } else {
+    if (typeof settings.radars.opacity === 'undefined') {
+      settings.radars.opacity = 1;
+    }
+  }
 
   // ************************************************
 
   if (typeof settings.selections === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (settings as any).selections = {};
+    settings.selections = {
+      routes: [],
+      waypoints: [],
+      regions: [],
+      tracks: null,
+      charts: ['openstreetmap', 'openseamap'],
+      chartOrder: ['openstreetmap', 'openseamap'],
+      chartOpacity: {},
+      aisTargets: null,
+      aisTargetTypes: [],
+      aisFilterByShipType: false,
+      aisState: [],
+      resourceSets: {},
+      infolayers: null,
+      weatherWindEnabled: false,
+      oceanCurrentsEnabled: false
+    };
   }
 
   if (typeof settings.selections.aisTargetTypes === 'undefined') {
@@ -327,6 +406,10 @@ export function cleanConfig(
   if (typeof settings.selections.chartOrder === 'undefined') {
     settings.selections.chartOrder = [];
   }
+  if (typeof settings.selections.chartOpacity === 'undefined') {
+    settings.selections.chartOpacity = {};
+  }
+
   if (typeof settings.selections.tracks === 'undefined') {
     settings.selections.tracks = [];
   }
@@ -339,9 +422,16 @@ export function cleanConfig(
   if (typeof settings.selections.regions === 'undefined') {
     settings.selections.regions = [];
   }
+  if (typeof settings.selections.weatherWindEnabled === 'undefined') {
+    settings.selections.weatherWindEnabled = false;
+  }
+  if (typeof settings.selections.oceanCurrentsEnabled === 'undefined') {
+    settings.selections.oceanCurrentsEnabled = false;
+  }
 
-  if (typeof settings.units.temperature === 'undefined') {
-    settings.units.temperature = 'c';
+  // ensure legacy notes selections section is removed
+  if (typeof (settings as any).selections.notes) {
+    delete (settings as any).selections.notes;
   }
 
   // apply url params
@@ -391,13 +481,19 @@ export function defaultConfig(): IAppConfig {
         startOnOpen: true,
         parameters: null,
         favourites: []
+      },
+      preferInfoPanel: true,
+      statusBar: {
+        liveEta: false,
+        referenceSpeed: 6
       }
     },
     units: {
-      distance: 'm',
+      distance: 'kilometer',
       depth: 'm',
+      length: 'm',
       speed: 'kn',
-      temperature: 'c',
+      temperature: 'C',
       positionFormat: 'XY',
       headingAttribute: 'navigation.headingTrue',
       preferredPaths: {
@@ -409,7 +505,6 @@ export function defaultConfig(): IAppConfig {
       useServerPrefs: false
     },
     map: {
-      // ** map config
       zoomLevel: 2,
       center: [0, 0],
       rotation: 0,
@@ -426,7 +521,9 @@ export function defaultConfig(): IAppConfig {
         shallowDepth: 2,
         safetyDepth: 3,
         deepDepth: 6,
-        colorTable: 0
+        colorTable: 0,
+        otherLayers: DefaultOptions.otherLayers,
+        depthUnit: 'm'
       },
       popoverMulti: false // close popovers using cose button
     },
@@ -442,9 +539,21 @@ export function defaultConfig(): IAppConfig {
       trail: false, // display trail
       windVectors: true, // display vessel TWD, AWD vectors
       laylines: false,
-      cogLine: 10, // self COG line time (mins)
+      selfLines: {
+        cog: {
+          length: 10, // (minutes) length = cogLine * sog
+          color: 'rgba(204, 12, 225, 0.7)',
+          weight: 1,
+          dash: 'none'
+        },
+        heading: {
+          length: -1, // mode for display of heading line -1 = default
+          color: 'rgba(221, 99, 0, 0.5)',
+          weight: 4,
+          dash: 'none'
+        }
+      },
       aisCogLine: 10, // ais COG line time (mins)
-      headingLineSize: -1, // mode for display of heading line -1 = default
       iconScale: 0.9,
       scaleToSize: false,
       vesselDimensions: { length: 10, beam: 3 },
@@ -474,11 +583,11 @@ export function defaultConfig(): IAppConfig {
       // ** resource options
       fetchFilter:
         '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
-      fetchRadius: 0, // radius (NM/km) within which to return resources
+      fetchRadius: 0, // radius (nmi/km) within which to return resources
       notes: {
         rootFilter:
           '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%', // param string to provide record filtering
-        getRadius: 20, // radius (NM/km) within which to return notes
+        getRadius: 20, // radius (nmi/km) within which to return notes
         groupNameEdit: false,
         groupRequiresPosition: true,
         minZoom: 10
@@ -505,7 +614,14 @@ export function defaultConfig(): IAppConfig {
       manualSet: false, // checks manual set setting
       rodeLength: 50 // rode length setting
     },
+    radars: {
+      deviceId: undefined,
+      opacity: 1
+    },
     experiments: false,
+    plotterExtensions: {
+      widgets: []
+    },
     selections: {
       routes: [],
       waypoints: [],
@@ -513,12 +629,15 @@ export function defaultConfig(): IAppConfig {
       tracks: null,
       charts: ['openstreetmap', 'openseamap'],
       chartOrder: ['openstreetmap', 'openseamap'], // chart layer ordering
+      chartOpacity: {},
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,
       aisState: [], // list of ais state values used to filter targets
       resourceSets: {}, // additional resources
-      infolayers: null
+      infolayers: null,
+      weatherWindEnabled: false,
+      oceanCurrentsEnabled: false
     }
   };
 }
@@ -557,7 +676,8 @@ export function initData(): FBAppData {
       active: null,
       closest: [],
       prefAvailablePaths: {}, // preference paths available from source,
-      flagged: [] // flagged ais targets
+      flagged: [], // flagged ais targets
+      showTrack: [] // ais targets to display track for (session-only)
     },
     aircraft: new Map(), // received AIS aircraft data
     atons: new Map(), // received AIS AtoN data
@@ -585,7 +705,7 @@ export const processUrlTokens = (s: string, config: IAppConfig): string => {
         return Math.floor(config.map.zoomLevel);
       } else if (i === 'note:radius') {
         const dist =
-          config.units.distance === 'm'
+          config.units.distance === 'kilometer'
             ? config.resources.notes.getRadius
             : Math.floor(
                 Convert.nauticalMilesToKm(config.resources.notes.getRadius)
@@ -593,7 +713,7 @@ export const processUrlTokens = (s: string, config: IAppConfig): string => {
         return dist * 1000;
       } else if (i === 'fetch:radius') {
         const dist =
-          config.units.distance === 'm'
+          config.units.distance === 'kilometer'
             ? config.resources.notes.getRadius
             : Math.floor(
                 Convert.nauticalMilesToKm(config.resources.fetchRadius)

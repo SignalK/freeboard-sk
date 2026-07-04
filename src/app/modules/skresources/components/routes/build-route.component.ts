@@ -1,14 +1,11 @@
-/***********************************
-Build Route from  waypoints, locations component
-    <route-builder>
-***********************************/
 import {
   Component,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  EventEmitter,
-  Output,
-  signal
+  signal,
+  output,
+  inject,
+  DestroyRef
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -26,6 +23,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { SKResourceService } from '../../resources.service';
 import { FBWaypoint, LineString } from 'src/app/types';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'route-builder',
@@ -145,17 +143,18 @@ export class BuildRouteComponent {
   wpts = signal([]);
   rtepts = [];
 
-  @Output() save: EventEmitter<{
+  save = output<{
     coordinates: LineString;
     meta?: Array<{ href?: string; name?: string }>;
-  }> = new EventEmitter();
-  @Output() close: EventEmitter<void> = new EventEmitter();
+  }>();
+  close = output<void>();
 
-  constructor(
-    protected app: AppFacade,
-    private skres: SKResourceService,
-    private cdr: ChangeDetectorRef
-  ) {}
+  protected app = inject(AppFacade);
+  private skres = inject(SKResourceService);
+  private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
+
+  constructor() {}
 
   ngAfterViewInit() {
     this.getWaypoints();
@@ -209,6 +208,7 @@ export class BuildRouteComponent {
           'Changes have not been saved.\nDo you want to save?',
           'Unsaved Changes'
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((res: boolean) => {
           if (res) {
             this.doSave();

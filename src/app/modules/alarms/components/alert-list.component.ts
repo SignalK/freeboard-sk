@@ -17,6 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AppFacade } from 'src/app/app.facade';
 import { getAlertIcon } from '../../icons';
@@ -32,6 +33,7 @@ import { NotificationManager } from '../notification-manager';
     MatCardModule,
     MatIconModule,
     MatMenuModule,
+    MatSlideToggleModule,
     FormsModule,
     CdkDrag
   ],
@@ -43,40 +45,23 @@ import { NotificationManager } from '../notification-manager';
         <mat-icon class="ob" svgIcon="alarm-mob"></mat-icon>
         &nbsp;Overboard!
       </button>
-      @if (!app.featureFlags().notificationApi) {
-        <button mat-menu-item (click)="raiseAlarm('fire')">
-          <mat-icon class="ob" svgIcon="alarm-fire"></mat-icon>
-          &nbsp;Fire
-        </button>
-        <button mat-menu-item (click)="raiseAlarm('aground')">
-          <mat-icon class="ob" svgIcon="alarm-aground"></mat-icon>
-          &nbsp;Aground
-        </button>
-        <button mat-menu-item (click)="raiseAlarm('abandon')">
-          <mat-icon class="ob" svgIcon="alarm-abandon"></mat-icon>
-          &nbsp;Abandon
-        </button>
-        <button mat-menu-item (click)="raiseAlarm('piracy')">
-          <mat-icon class="" svgIcon="alarm-acknowledged-iec"></mat-icon>
-          &nbsp;Piracy
-        </button>
-      }
     </mat-menu>
     <mat-card appearance="outlined">
       <div class="alert-list-main mat-app-background" cdkDrag>
         <div class="title" cdkDragHandle>
-          <div>
-            <button
-              class="button-warn"
-              mat-raised-button
-              matTooltip="Raise Alarm"
-              matTooltipPosition="right"
-              [matMenuTriggerFor]="alarmsmenu"
-            >
-              <mat-icon>warning</mat-icon>
-              Raise
-            </button>
-          </div>
+          @if (app.featureFlags().notificationApi) {
+            <div>
+              <button
+                class="button-warn"
+                mat-raised-button
+                matTooltip="Raise Alarm"
+                [matMenuTriggerFor]="alarmsmenu"
+              >
+                <mat-icon>warning</mat-icon>
+                Raise
+              </button>
+            </div>
+          }
           <div
             style="flex: 1 1 auto;
             font-size: 14pt;
@@ -86,26 +71,23 @@ import { NotificationManager } from '../notification-manager';
           >
             Alert List
           </div>
-          <div>
+          <div style="display:flex">
             <button
               mat-icon-button
-              [matTooltip]="
-                this.app.config.display.muteSound
-                  ? 'Sound is Off'
-                  : 'Sound is On'
-              "
-              matTooltipPosition="left"
-              (click)="togglePlaySound()"
+              matTooltip="Silence All"
+              (click)="silenceAll()"
             >
-              <mat-icon
-                class="ob"
-                [svgIcon]="
-                  this.app.config.display.muteSound
-                    ? 'sound-off-fill'
-                    : 'sound-high-fill'
-                "
-              ></mat-icon>
+              <mat-icon class="ob" svgIcon="sound-off-fill"></mat-icon>
             </button>
+            &nbsp; &nbsp;
+            <div>
+              <mat-slide-toggle
+                matTooltip="Sound on /off"
+                [checked]="!this.app.config.display.muteSound"
+                (toggleChange)="togglePlaySound()"
+              >
+              </mat-slide-toggle>
+            </div>
             &nbsp;
             <button mat-icon-button (click)="handleClose()">
               <mat-icon>close</mat-icon>
@@ -143,7 +125,11 @@ import { NotificationManager } from '../notification-manager';
                     {{ item[1].message }}
                   </div>
                   <div style="width:90px;">
-                    @if (item[1].sound && item[1].canSilence) {
+                    @if (
+                      app.featureFlags().notificationApi &&
+                      item[1].sound &&
+                      item[1].canSilence
+                    ) {
                       <button
                         mat-icon-button
                         [matTooltip]="item[1].silenced ? 'Silenced' : 'Silence'"
@@ -162,7 +148,10 @@ import { NotificationManager } from '../notification-manager';
                       </button>
                       &nbsp;
                     }
-                    @if (item[1].canAcknowledge) {
+                    @if (
+                      app.featureFlags().notificationApi &&
+                      item[1].canAcknowledge
+                    ) {
                       @if (!item[1].acknowledged) {
                         <button
                           mat-icon-button
@@ -227,6 +216,10 @@ export class AlertListComponent {
 
   protected clearAlert(path: string) {
     this.notiMgr.clear(path);
+  }
+
+  protected silenceAll() {
+    this.notiMgr.silenceAll();
   }
 
   /**

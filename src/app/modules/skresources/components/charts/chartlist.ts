@@ -1,11 +1,12 @@
 import {
   Component,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   effect,
   signal,
-  input
+  input,
+  inject,
+  output,
+  DestroyRef
 } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -23,20 +24,21 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKResourceType } from '../../resources.service';
 import { ChartLayers } from './chart-layers.component';
-import { ChartPropertiesDialog } from './chart-properties-dialog';
 import { FBCharts, FBChart } from 'src/app/types';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
 import { JsonMapSourceDialog } from './jsonmapsource-dialog';
-import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
-import { SingleSelectListDialog } from 'src/app/lib/components';
+import {
+  SingleSelectListDialog,
+  SliderInputDialog,
+  SliderInputDialogResult
+} from 'src/app/lib/components';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'chart-list',
@@ -59,7 +61,7 @@ import { SKChart } from '../../resource-classes';
   ]
 })
 export class ChartListComponent extends ResourceListBase {
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  closed = output<void>();
 
   selectedCharts = input<string[]>();
 
@@ -68,15 +70,14 @@ export class ChartListComponent extends ResourceListBase {
 
   displayChartLayers = false;
 
-  constructor(
-    protected app: AppFacade,
-    private dialog: MatDialog,
-    private signalk: SignalKClient,
-    protected override skres: SKResourceService,
-    private worker: SKWorkerService,
-    private mapInteract: FBMapInteractService,
-    protected skgroups: SKResourceGroupService
-  ) {
+  protected app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+  private dialog = inject(MatDialog);
+  private skgroups = inject(SKResourceGroupService);
+  private mapInteract = inject(FBMapInteractService);
+  private destroyRef = inject(DestroyRef);
+
+  constructor(protected override skres: SKResourceService) {
     super('charts', skres);
     // selection.charts changed
     effect(() => {
@@ -124,6 +125,7 @@ export class ChartListComponent extends ResourceListBase {
       this.fullList = this.skres.appendOSM(this.fullList);
       this.app.sIsFetching.set(false);
       this.doFilter();
+      this.cleanOpacityConfig();
       this.skres.selectionClean(
         this.collection,
         this.fullList.map((i) => i[0])
@@ -133,6 +135,19 @@ export class ChartListComponent extends ResourceListBase {
       this.app.parseHttpErrorResponse(err);
       this.fullList = [];
     }
+  }
+
+  /**
+   * Clean orphaned chartOpacity keys from config
+   */
+  cleanOpacityConfig() {
+    const keys = Object.keys(this.app.config.selections.chartOpacity);
+    const listIds = this.fullList.map((i) => i[0]);
+    keys.forEach((key) => {
+      if (!listIds.includes(key)) {
+        delete this.app.config.selections.chartOpacity[key];
+      }
+    });
   }
 
   /**
@@ -199,6 +214,65 @@ export class ChartListComponent extends ResourceListBase {
     this.skres.deleteChart(id);
   }
 
+  protected itemOpacity(chart: FBChart) {
+    const toPercent = (value: number) => {
+      return Number.isFinite(value)
+        ? Math.round(Math.min(100, (value ?? 1) * 100))
+        : 100;
+    };
+    const toRatio = (value: number) => {
+      return Number.isFinite(value)
+        ? Math.min(100, Math.max(0, Math.round(value))) / 100
+        : 1;
+    };
+    const originalOpacity =
+      this.app.config.selections.chartOpacity[chart[0]] ??
+      chart[1]?.defaultOpacity ??
+      1;
+
+    this.dialog
+      .open(SliderInputDialog, {
+        disableClose: true,
+        backdropClass: 'transparent-backdrop',
+        data: {
+          resId: chart[0],
+          title: 'Set Opacity',
+          text: chart[1]?.name ?? '',
+          value: toPercent(originalOpacity),
+          onChange: (value: number) => {
+            const fo = toRatio(value);
+            if (fo !== chart[1].defaultOpacity) {
+              this.skres.chartSetOpacity(chart[0], fo);
+            }
+          }
+        }
+      })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: SliderInputDialogResult) => {
+        if (result?.apply) {
+          const op = toRatio(result.value);
+          this.app.config.selections.chartOpacity[chart[0]] = op;
+          chart[1].defaultOpacity = op;
+          this.updateFullList(chart);
+          this.app.saveConfig();
+        } else {
+          // cancelled
+          this.skres.chartSetOpacity(chart[0], originalOpacity);
+          return;
+        }
+      });
+  }
+
+  updateFullList(chart: FBChart) {
+    const idx = this.fullList.findIndex((i: FBChart) => chart[0] === i[0]);
+    if (idx === -1) {
+      return;
+    }
+    this.fullList[idx] = [chart[0], new SKChart(chart[1]), chart[2]];
+    this.doFilter();
+  }
+
   /**
    * @description Show chart boundaries on map.
    */
@@ -240,22 +314,25 @@ export class ChartListComponent extends ResourceListBase {
       );
       return;
     }
-    dref.afterClosed().subscribe((sources) => {
-      if (sources && sources.length !== 0) {
-        if (['wmts', 'wms'].includes(type)) {
-          sources[0].source = 'resources-provider';
-          this.skres.newChart(sources[0]);
-          return;
+    dref
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((sources) => {
+        if (sources && sources.length !== 0) {
+          if (['wmts', 'wms'].includes(type)) {
+            sources[0].source = 'resources-provider';
+            this.skres.newChart(sources[0]);
+            return;
+          }
+          if (['json'].includes(type)) {
+            sources[0].source = 'resources-provider';
+            const c = new SKChart(sources[0]);
+            c.source = 'resources-provider';
+            this.skres.newChart(c);
+            return;
+          }
         }
-        if (['json'].includes(type)) {
-          sources[0].source = 'resources-provider';
-          const c = new SKChart(sources[0]);
-          c.source = 'resources-provider';
-          this.skres.newChart(c);
-          return;
-        }
-      }
-    });
+      });
   }
 
   /**
@@ -297,6 +374,7 @@ export class ChartListComponent extends ResourceListBase {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {

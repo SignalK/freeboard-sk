@@ -94,7 +94,14 @@
   <!-- Cursor position control -->
   <ol-control>
     <ol-content>
-      <div class="ol-mouse-position">
+      <div
+        class="ol-mouse-position"
+        [style.bottom]="
+          plotterExt.statusBarLift() > 0
+            ? plotterExt.statusBarLift() + 'px'
+            : null
+        "
+      >
         <span
           style="
             background-color: rgba(250, 250, 250, 0.7);
@@ -121,6 +128,31 @@
           ></span>
           &nbsp;
           <span [innerText]="'Zm: ' + mapZoomLevel().toFixed(1)"></span>
+          @if (cursorInfo(); as ci) {
+            &nbsp;
+            <span
+              [innerText]="
+                'Brg: ' +
+                app.formatValueForDisplay(ci.bearing, 'deg', {
+                  precision: 0
+                })
+              "
+            ></span>
+            &nbsp;
+            <span
+              [innerText]="
+                'Dist: ' + app.formatValueForDisplay(ci.distance, 'm')
+              "
+            ></span>
+            @if (ci.timeToGo !== null) {
+              &nbsp;
+              <span
+                [innerText]="
+                  'ETA: ' + app.formatValueForDisplay(ci.timeToGo, 's')
+                "
+              ></span>
+            }
+          }
         </span>
       </div>
     </ol-content>
@@ -170,7 +202,9 @@
       >
       </fb-tilelayer-vector>
     } @else if (
-      c[0] === 'openstreetmap' || c[1].type?.toLowerCase() === 'tilelayer'
+      c[0] === 'openstreetmap' ||
+      c[1].type?.toLowerCase() === 'tilelayer' ||
+      !c[1]?.type
     ) {
       <fb-tilelayer-raster
         [zIndex]="10 + idx"
@@ -197,6 +231,8 @@
       [heading]="dfeat.self.orientation"
       [mapZoom]="mapZoomLevel()"
       [zIndex]="99"
+      [opacity]="app.config.radars.opacity"
+      (onError)="handleRadarError($event)"
     >
     </fb-radar>
   }
@@ -214,15 +250,20 @@
   }
 
   <!-- AIS target tracks -->
-  @if (app.config.ui.showAisTargets && app.config.vessels.aisShowTrack) {
+  @if (
+    app.config.ui.showAisTargets &&
+    (app.config.vessels.aisShowTrack || app.data.vessels.showTrack.length > 0)
+  ) {
     <ais-targets-track
       [tracks]="app.data.vessels.aisTracks"
+      [showAll]="app.config.vessels.aisShowTrack"
+      [selectedIds]="app.data.vessels.showTrack"
       [tracksMinZoom]="10"
       targetContext="vessels"
       [updateIds]="skstream.aisStatus().updated"
       [removeIds]="skstream.aisStatus().expired"
       [mapZoom]="mapZoomLevel()"
-      zIndex="110"
+      [zIndex]="110"
     >
     </ais-targets-track>
   }
@@ -255,6 +296,18 @@
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [zIndex]="500"
+  >
+  </fb-routes>
+
+  <!-- Route edit buffers (unsaved drafts) rendered amber over saved routes -->
+  <fb-routes
+    [routes]="bufferRoutes()"
+    [routeStyles]="draftRouteStyles"
+    [activeRoute]="activeRoute"
+    [darkMode]="app.uiConfig().invertColor"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
+    [mapZoom]="mapZoomLevel()"
+    [zIndex]="510"
   >
   </fb-routes>
 
@@ -300,7 +353,6 @@
   <sk-ais-targets
     [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.atons"
-    [targetStyles]="featureStyles.basestation"
     targetContext="shore.basestations"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
@@ -453,9 +505,9 @@
   >
   </fb-regions>
 
-  <!-- Notes -->
+  <!-- Notes (display-filtered by plotter extensions) -->
   @if (showNoteslayer()) {
-    <fb-notes [notes]="skres.notes()" [zIndex]="450"> </fb-notes>
+    <fb-notes [notes]="plotterExt.visibleNotes()" [zIndex]="450"> </fb-notes>
   }
 
   <!-- Distance & Bearing to -->
@@ -517,6 +569,14 @@
         >
         </feature-list-popover>
       }
+      @if (this.overlay().type === 's57') {
+        <s57-popover
+          [canClose]="app.config.map.popoverMulti"
+          [properties]="this.overlay().s57Feature"
+          (closed)="popoverClosed()"
+        >
+        </s57-popover>
+      }
       @if (
         overlay().type === 'destination' ||
         overlay().type === 'waypoint' ||
@@ -536,7 +596,9 @@
           "
           [featureCount]="overlay().featureCount"
           [units]="scaleUnits()"
+          [canSave]="isUnsavedRoute()"
           (modify)="modifyFeature(); popoverClosed()"
+          (save)="saveRouteFromPopover(); popoverClosed()"
           (delete)="
             deleteFeature(overlay().id, overlay().type); popoverClosed()
           "
@@ -558,7 +620,7 @@
             );
             popoverClosed()
           "
-          (info)="skres.resourceProperties(overlay()); popoverClosed()"
+          (info)="popoverInfo(); popoverClosed()"
           (points)="itemInfo(overlay().id, overlay().type); popoverClosed()"
           (closed)="popoverClosed()"
         >
@@ -725,10 +787,22 @@
     >
     </fb-range-circles>
   }
-  @if (app.config.vessels.cogLine !== 0) {
+
+  @if (app.config.vessels.selfLines.cog.length !== 0) {
+    <fb-heading-line
+      [coords]="vesselLines().heading"
+      [lineStyle]="app.selfLines().heading"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="344"
+    >
+    </fb-heading-line>
+  }
+
+  @if (app.config.vessels.selfLines.cog.length !== 0) {
     <fb-cog-line
       [coords]="vesselLines().cog"
-      [cogTime]="app.config.vessels.cogLine"
+      [cogTime]="app.config.vessels.selfLines.cog.length"
+      [lineStyle]="app.selfLines().cog"
       [units]="app.config.units.distance"
       [darkMode]="app.uiConfig().invertColor"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -763,7 +837,6 @@
     [heading]="dfeat.self.orientation"
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
-    [vesselLines]="vesselLines()"
     [iconScale]="app.config.vessels.iconScale"
     [vesselDimensions]="app.config.vessels.vesselDimensions"
     [mapResolution]="mapResolution()"
@@ -782,9 +855,26 @@
     </fb-vessel-trail>
   }
 
+  <!-- weather overlays -->
+  <fb-weather-wind
+    [show]="app.config.selections.weatherWindEnabled"
+    [opacity]="0.55"
+  >
+  </fb-weather-wind>
+
+  <fb-weather-currents
+    [show]="app.config.selections.oceanCurrentsEnabled"
+    [opacity]="0.55"
+  >
+  </fb-weather-currents>
+
   <!-- chart boundaries-->
   @if (app.data.chartBounds.show) {
-    <fb-chart-bounds [zIndex]="250" [charts]="app.data.chartBounds.charts">
+    <fb-chart-bounds
+      [zIndex]="250"
+      [charts]="app.data.chartBounds.charts"
+      [layerProperties]="{ declutter: true }"
+    >
     </fb-chart-bounds>
   }
 </ol-map>
@@ -906,6 +996,17 @@
       >
         <mat-icon>info</mat-icon>
         <span>Get Feature Info</span>
+      </button>
+    }
+    @if (addableWidgetCell) {
+      <mat-divider></mat-divider>
+      <button
+        mat-menu-item
+        (click)="onContextMenuAction('add_widget', item)"
+        (contextmenu)="$event.preventDefault()"
+      >
+        <mat-icon>widgets</mat-icon>
+        Add widget here
       </button>
     }
   </ng-template>

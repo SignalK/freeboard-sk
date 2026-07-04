@@ -156,14 +156,14 @@ const SoundFiles = {
                             [disabled]="nextPointClicked"
                             [icon]="'skip_next'"
                             [label]="'Next point in'"
-                            [cancelledLabel]="'Next Point'"
+                            [cancelledLabel]="'NEXT POINT'"
                             [period]="app.config.course.autoNextPointDelay"
                             (nextPoint)="gotoNextPoint()"
                           >
                           </timer-button>
                         }
                       </div>
-                    } @else {
+                    } @else if (showStaticNextPoint) {
                       @if (isLastPoint) {
                         <button
                           mat-button
@@ -208,6 +208,7 @@ export class AlertComponent {
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
   @Output() routeEnd: EventEmitter<void> = new EventEmitter();
 
+  protected showStaticNextPoint = false;
   protected showAutoNextPoint = false;
   protected nextPointClicked = false;
   private audio: HTMLAudioElement;
@@ -224,8 +225,12 @@ export class AlertComponent {
       const ack = this.acknowledged();
       const mute = this.silenced();
       const al = this.alert();
+      this.showStaticNextPoint = [
+        'perpendicularPassed',
+        'arrivalCircleEntered'
+      ].includes(al.type);
       this.showAutoNextPoint =
-        ['perpendicularPassed', 'arrivalCircleEntered'].includes(al.type) &&
+        this.showStaticNextPoint &&
         this.app.config.course.autoNextPointTrigger === al.type;
       if (typeof this.doNotPlaySound() !== 'undefined') {
       }

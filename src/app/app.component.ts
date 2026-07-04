@@ -11,9 +11,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Observable, Subject } from 'rxjs';
 
-// standalone
 import { CommonModule } from '@angular/common';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -33,9 +31,8 @@ import {
   TTGDialComponent
 } from './lib/components';
 
-// ****
-
 import { AppFacade } from './app.facade';
+import { InfoPanelFacade, InfoPanelComponent } from './modules/info-panel';
 import { SignalKClient } from 'signalk-client-angular';
 import { WakeLockService } from 'src/app/lib/services';
 
@@ -44,10 +41,8 @@ import {
   AtoNPropertiesModal,
   AircraftPropertiesModal,
   ActiveResourcePropertiesModal,
-  ResourceImportDialog,
   ResourceSetModal,
   ResourceSetFeatureModal,
-  SettingsDialog,
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
@@ -62,8 +57,6 @@ import {
   WeatherForecastModal,
   CourseSettingsModal,
   NotificationManager,
-  GPXImportDialog,
-  GPXExportDialog,
   CourseService,
   SettingsFacade,
   AutopilotService,
@@ -83,7 +76,11 @@ import {
   AISListComponent,
   GroupListComponent,
   InfoLayerListComponent,
-  BuildRouteComponent
+  BuildRouteComponent,
+  NotePanel,
+  RegionPanel,
+  RadarPanel,
+  WeatherListComponent
 } from 'src/app/modules';
 
 import {
@@ -116,6 +113,17 @@ import {
   SelectionResultDef
 } from './modules/map/fbmap-interact.service';
 import { RadarAPIService } from './modules/radar/radar-api.service';
+import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
+import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
+import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.component';
+import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
+import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
+import {
+  RoutePanel,
+  SKResourceType,
+  WaypointPanel
+} from './modules/skresources';
+import { SymbolService, setSymbolRegistry } from './modules/icons';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -165,7 +173,17 @@ interface DrawEndEvent {
     AISListComponent,
     GroupListComponent,
     InfoLayerListComponent,
-    BuildRouteComponent
+    BuildRouteComponent,
+    InfoPanelComponent,
+    NotePanel,
+    RegionPanel,
+    WaypointPanel,
+    RoutePanel,
+    RadarPanel,
+    PlotterExtensionOverlay,
+    PlotterBackgroundHost,
+    PlotterPanelDrawer,
+    WeatherListComponent
   ]
 })
 export class AppComponent {
@@ -185,14 +203,6 @@ export class AppComponent {
 
   protected playbackTime = signal<string | null>(null);
 
-  protected instrumentPanel = signal<{
-    open: boolean;
-    activate: boolean;
-  }>({
-    open: false,
-    activate: false
-  });
-
   protected leftMenuCtrl = signal<{
     leftMenuPanel: boolean;
     routeList: boolean;
@@ -205,6 +215,7 @@ export class AppComponent {
     resourceGroups: boolean;
     infoLayerList: boolean;
     anchorWatch: boolean;
+    weatherList: boolean;
   }>({
     leftMenuPanel: false,
     routeList: false,
@@ -216,7 +227,8 @@ export class AppComponent {
     aisList: false,
     resourceGroups: false,
     infoLayerList: false,
-    anchorWatch: false
+    anchorWatch: false,
+    weatherList: false
   });
 
   protected displayFullscreen = signal<{
@@ -238,7 +250,7 @@ export class AppComponent {
   private selFavourite = -1;
   protected vidUrl = signal<SafeResourceUrl | null>(null);
 
-  public convert = Convert;
+  protected convert = Convert;
   private obsList = []; // observables array
   private streamOptions = { options: null, toMode: null };
 
@@ -256,6 +268,7 @@ export class AppComponent {
   });
 
   protected app = inject(AppFacade);
+  protected infoPanel = inject(InfoPanelFacade);
   protected mapInteract = inject(FBMapInteractService);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
@@ -272,20 +285,13 @@ export class AppComponent {
   private settings = inject(SettingsFacade);
   protected autopilot = inject(AutopilotService);
   protected radarApi = inject(RadarAPIService);
+  private symbols = inject(SymbolService);
+  protected routeBuffers = inject(RouteBufferRegistry);
+  protected plotterExt = inject(PlotterExtensionService);
 
   constructor() {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
-
-    // CONFIG$ - handle app.config$ event
-    this.obsList.push(
-      this.app.config$.subscribe((value: string) => {
-        // config has been loaded and cleaned (ready)
-        if (value === 'ready') {
-          this.fetchResources(true);
-        }
-      })
-    );
 
     // handle skAuthChange signal
     effect(() => {
@@ -305,6 +311,33 @@ export class AppComponent {
     effect(() => {
       this.app.uiConfig();
       this.handleSettingChangeEvent(undefined);
+    });
+
+    effect(() => {
+      if (this.infoPanel.opened() || this.app.instrumentPanel().activate) {
+        if (!this.sideright?.opened) {
+          this.openDrawer();
+        }
+      } else {
+        if (this.sideright?.opened) {
+          this.closeDrawer();
+        }
+      }
+    });
+
+    // apply programmatic map move requests (e.g. from plotter extensions)
+    // through Freeboard's own centering path so chart layers refresh.
+    effect(() => {
+      const req = this.app.mapMoveRequest();
+      if (req) {
+        // An explicit reposition outranks follow-vessel mode: turn it off so
+        // the requested view isn't immediately re-centered on the vessel.
+        // update() (not a reactive read) avoids a read/write feedback loop.
+        this.app.uiConfig.update((c) =>
+          c.mapMove ? { ...c, mapMove: false } : c
+        );
+        this.centerAndZoom(req.center, req.zoom);
+      }
     });
   }
 
@@ -338,7 +371,7 @@ export class AppComponent {
 
     // ** apply loaded app config
     this.mapCenter.update(() => this.app.config.map.center);
-    this.instrumentPanel.update((current) => {
+    this.app.instrumentPanel.update((current) => {
       return Object.assign({}, current, {
         activate: !this.app.config.display.plugins.startOnOpen
       });
@@ -435,11 +468,33 @@ export class AppComponent {
 
   /** TOOLBAR ACTIONS */
 
-  protected toggleRadar() {
-    this.app.uiCtrl.update((current) => {
-      return Object.assign({}, current, { radarLayer: !current.radarLayer });
-    });
+  protected showRadarPanel() {
+    if (!this.radarApi.hasWebGL) {
+      this.radarApi.showNoWebGLMessage();
+      return;
+    }
+    if (this.app.instrumentPanel().open) {
+      this.closeInstrumentPanel();
+    }
+    this.connectRadar();
+    this.infoPanel.openRadar(this.radarApi.radar());
     this.focusMap();
+  }
+
+  protected connectRadar() {
+    if (!this.app.uiCtrl().radarLayer) {
+      this.app.uiCtrl.update((current) => {
+        return Object.assign({}, current, { radarLayer: true });
+      });
+    }
+  }
+
+  protected disconnectRadar() {
+    if (this.app.uiCtrl().radarLayer) {
+      this.app.uiCtrl.update((current) => {
+        return Object.assign({}, current, { radarLayer: false });
+      });
+    }
   }
 
   protected toggleMoveMap(exit = false) {
@@ -527,23 +582,26 @@ export class AppComponent {
 
   /** ************* */
 
+  private darkThemeApplied: boolean;
   private setDarkTheme() {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-
-    if (
+    const enabled =
       (this.app.config.display.darkMode.source === 0 && mq.matches) ||
       (this.app.config.display.darkMode.source === 1 &&
         this.app.data.vessels.self.environment.mode === 'night') ||
-      this.app.config.display.darkMode.source === -1
-    ) {
-      this.overlayContainer.getContainerElement().classList.add('dark-theme');
-      this.app.config.display.darkMode.enabled = true;
-    } else {
-      this.overlayContainer
-        .getContainerElement()
-        .classList.remove('dark-theme');
-      this.app.config.display.darkMode.enabled = false;
+      this.app.config.display.darkMode.source === -1;
+    // called on every realtime delta — skip the DOM work when unchanged
+    if (enabled === this.darkThemeApplied) {
+      return;
     }
+    this.darkThemeApplied = enabled;
+    const el = this.overlayContainer.getContainerElement();
+    if (enabled) {
+      el.classList.add('dark-theme');
+    } else {
+      el.classList.remove('dark-theme');
+    }
+    this.app.config.display.darkMode.enabled = enabled;
   }
 
   private formatInstrumentsUrl() {
@@ -619,7 +677,9 @@ export class AppComponent {
     }
   }
   // ** create route from vessel trail **
-  protected trailToRoute() {
+  protected async trailToRoute() {
+    const { Trail2RouteDialog } =
+      await import('src/app/lib/components/dialogs/trail2route-dialog');
     this.dialog
       .open(Trail2RouteDialog, {
         disableClose: true,
@@ -736,27 +796,35 @@ export class AppComponent {
         this.app.hostDef.port,
         this.app.hostDef.ssl
       )
-      .subscribe(
-        () => {
+      .subscribe({
+        next: () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
-          this.app.loadSettingsfromServer().then((result: boolean) => {
-            if (!result && this.app.launchStatus.result === 'first_run') {
-              const wr = this.app.showWelcome(false);
-              if (wr) {
-                wr.afterClosed().subscribe((r) => {
-                  if (r) this.openSettings();
-                });
+          this.app
+            .loadUserConfigfromServer()
+            .then((loaded: boolean) => {
+              if (!loaded && this.app.launchStatus.result === 'first_run') {
+                const wr = this.app.showWelcome(false);
+                if (wr) {
+                  wr.afterClosed().subscribe((r) => {
+                    if (r) this.openSettings();
+                  });
+                }
+              } else {
+                const wr = this.app.showWelcome(true);
               }
-            } else {
-              const wr = this.app.showWelcome(true);
-            }
-          });
+            })
+            .finally(() => {
+              this.loadSymbolsThenFetchResources();
+              // after user config is final so persisted widget placements
+              // reflect the server-stored layout, not a stale local copy
+              this.plotterExt.init();
+            });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
         },
-        () => {
+        error: () => {
           this.app.showMessage(
             'Unable to contact Signal K server! (Retrying in 5 secs)',
             false,
@@ -764,7 +832,7 @@ export class AppComponent {
           );
           setTimeout(() => this.connectSignalKServer(), 5000);
         }
-      );
+      });
   }
 
   // ** discover server features **
@@ -950,7 +1018,7 @@ export class AppComponent {
         this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
       );
       // update instrument app state
-      this.instrumentPanel.update((current) => {
+      this.app.instrumentPanel.update((current) => {
         return Object.assign({}, current, {
           activate: this.app.config.display.plugins.startOnOpen
             ? current.open
@@ -989,18 +1057,40 @@ export class AppComponent {
 
   // ********* SIDENAV ACTIONS *************
 
-  protected rightSideNavAction(e: boolean) {
-    this.instrumentPanel.update((current) => {
+  protected openDrawer() {
+    this.sideright.open();
+  }
+
+  protected closeDrawer() {
+    this.sideright.close();
+  }
+
+  protected openInstrumentPanel() {
+    if (this.app.instrumentPanel().open) {
+      return;
+    }
+    if (this.infoPanel.opened()) {
+      this.infoPanel.close();
+    }
+
+    this.app.instrumentPanel.update((current) => {
       return Object.assign({}, current, {
-        open: e,
+        open: true,
+        activate: true
+      });
+    });
+  }
+
+  protected closeInstrumentPanel() {
+    this.app.instrumentPanel.update((current) => {
+      return Object.assign({}, current, {
+        open: false,
         activate: this.app.config.display.plugins.startOnOpen
-          ? e
+          ? false
           : current.activate
       });
     });
-    if (!e) {
-      this.focusMap();
-    } // set when closed
+    this.focusMap();
   }
 
   /** control left menu display  */
@@ -1016,7 +1106,8 @@ export class AppComponent {
       aisList: false,
       resourceGroups: false,
       infoLayerList: false,
-      anchorWatch: false
+      anchorWatch: false,
+      weatherList: false
     };
     switch (menulist) {
       case 'routeList':
@@ -1049,6 +1140,9 @@ export class AppComponent {
       case 'infoLayerList':
         lm.infoLayerList = show;
         break;
+      case 'weatherList':
+        lm.weatherList = show;
+        break;
       default:
         lm.leftMenuPanel = false;
     }
@@ -1058,10 +1152,27 @@ export class AppComponent {
     }
   }
 
+  /** handle resource info event */
+  protected handleResourceInfo(collection: SKResourceType, id: string) {
+    if (collection === 'notes' && !this.app.useInfoPanel()) {
+      this.skres.noteSelected(id, false);
+    } else if (collection === 'regions' && !this.app.useInfoPanel()) {
+      this.skres.editRegionInfo(id);
+    } else if (collection === 'waypoints' && !this.app.useInfoPanel()) {
+      this.skres.editWaypointInfo(id);
+    } else if (collection === 'routes' && !this.app.useInfoPanel()) {
+      this.skres.editRouteInfo(id);
+    } else {
+      this.infoPanel.open(collection, id);
+    }
+  }
+
   // ********* MAIN MENU ACTIONS *************
 
   // ** open about dialog **
-  protected openAbout() {
+  protected async openAbout() {
+    const { AboutDialog } =
+      await import('src/app/lib/components/dialogs/common-dialogs');
     this.dialog
       .open(AboutDialog, {
         disableClose: false,
@@ -1078,12 +1189,14 @@ export class AppComponent {
   }
 
   // ** open settings dialog **
-  protected openSettings() {
+  protected async openSettings() {
+    const { SettingsDialog } =
+      await import('src/app/modules/settings/components/settings-dialog');
     this.dialog
       .open(SettingsDialog, {
         disableClose: true,
         data: {},
-        maxWidth: '90vw',
+        maxWidth: '1000px',
         minHeight: '80vh'
       })
       .afterClosed()
@@ -1107,7 +1220,9 @@ export class AppComponent {
   }
 
   /** process GPX file */
-  protected processGPX(f: { data: string | ArrayBuffer; name: string }) {
+  protected async processGPX(f: { data: string | ArrayBuffer; name: string }) {
+    const { GPXImportDialog } =
+      await import('src/app/modules/gpx/gpxload-dialog');
     this.dialog
       .open(GPXImportDialog, {
         disableClose: true,
@@ -1137,7 +1252,9 @@ export class AppComponent {
   }
 
   /** Export resources to GPX file */
-  protected exportToGPX() {
+  protected async exportToGPX() {
+    const { GPXExportDialog } =
+      await import('src/app/modules/gpx/gpxsave-dialog');
     this.dialog
       .open(GPXExportDialog, {
         disableClose: true,
@@ -1166,7 +1283,12 @@ export class AppComponent {
   }
 
   /** process GeoJSON file */
-  protected processGeoJSON(f: { data: string | ArrayBuffer; name: string }) {
+  protected async processGeoJSON(f: {
+    data: string | ArrayBuffer;
+    name: string;
+  }) {
+    const { GeoJSONImportDialog } =
+      await import('src/app/lib/components/dialogs/geojson/geojson-dialog');
     this.dialog
       .open(GeoJSONImportDialog, {
         disableClose: true,
@@ -1197,7 +1319,9 @@ export class AppComponent {
   }
 
   /** Import ResourceSet */
-  protected importResourceSet() {
+  protected async importResourceSet() {
+    const { ResourceImportDialog } =
+      await import('src/app/modules/skresources/components/resourcesets/resource-upload-dialog');
     this.dialog
       .open(ResourceImportDialog, {
         disableClose: true,
@@ -1222,12 +1346,13 @@ export class AppComponent {
   }
 
   // ** show login dialog **
-  protected showLogin(
+  protected async showLogin(
     message?: string,
     cancelWarning = true,
     onConnect?: boolean
-  ): Observable<boolean> {
-    const lis: Subject<boolean> = new Subject();
+  ): Promise<void> {
+    const { LoginDialog } =
+      await import('src/app/lib/components/dialogs/common-dialogs');
     this.dialog
       .open(LoginDialog, {
         disableClose: true,
@@ -1236,18 +1361,25 @@ export class AppComponent {
       .afterClosed()
       .subscribe((res) => {
         if (!res.cancel) {
-          this.signalk.login(res.user, res.pwd).subscribe(
-            (r) => {
+          this.signalk.login(res.user, res.pwd).subscribe({
+            next: (r) => {
               // ** authenticated
               this.app.persistToken(r['token']);
-              this.app.loadSettingsfromServer();
+              this.app.loadUserConfigfromServer().then((loaded: boolean) => {
+                if (loaded) {
+                  this.loadSymbolsThenFetchResources();
+                  // re-run plotter extension discovery now that we are
+                  // authenticated, so auth-gated extensions and the
+                  // server-stored widget layout appear without a page reload
+                  this.plotterExt.init();
+                }
+              });
               if (onConnect) {
                 this.queryAfterConnect();
               }
               this.app.isLoggedIn.set(true);
-              lis.next(true);
             },
-            () => {
+            error: () => {
               // ** auth failed
               this.app.persistToken(null);
               this.signalk.isLoggedIn().subscribe((r) => {
@@ -1278,7 +1410,7 @@ export class AppComponent {
                   });
               }
             }
-          );
+          });
         } else {
           this.app.hasAuthToken.set(false); // show login menu item
           this.signalk.isLoggedIn().subscribe((r: boolean) => {
@@ -1293,15 +1425,15 @@ export class AppComponent {
                 `Update operations are NOT available until you have authenticated to the Signal K server.`
               );
             }
-            lis.next(false);
           }
         }
         this.focusMap();
       });
-    return lis.asObservable();
   }
 
-  protected showPlaybackSettings() {
+  protected async showPlaybackSettings() {
+    const { PlaybackDialog } =
+      await import('src/app/lib/components/dialogs/playback-dialog');
     this.dialog
       .open(PlaybackDialog, {
         disableClose: false
@@ -1337,7 +1469,7 @@ export class AppComponent {
    * Center the map relative to the vessel position
    */
   protected centerVessel() {
-    const pos = this.app.calcMapCenter(this.app.data.vessels.active.position);
+    const pos = this.app.calcMapCenter();
     this.centerAndZoom(pos);
   }
 
@@ -1722,8 +1854,53 @@ export class AppComponent {
   }
 
   /** Handle feature DrawEnded event and prompt to save */
+  /**
+   * Route info-panel "edit" action. For an unsaved live buffer this is the
+   * "Save" button: persist it to a stored route. For a saved route it edits
+   * the name/description as before.
+   */
+  protected onRouteInfoEdit(id: string) {
+    // The registry also mirrors clean saved routes, so route only an unsaved
+    // draft / pending-edit buffer to the save flow; a clean saved route uses the
+    // normal route-details edit path.
+    const b = this.routeBuffers.get(id);
+    if (b && (!b.saved || b.dirty)) {
+      this.saveRouteBuffer(id);
+    } else {
+      this.skres.editRouteInfo(id);
+    }
+  }
+
+  /**
+   * Persist an unsaved route edit buffer to a stored route via the Route
+   * Details dialog (name/description). On save, discard the buffer and re-open
+   * the info panel on the now-saved route (so its action becomes "Edit").
+   * Cancelling the dialog leaves the buffer unsaved.
+   */
+  protected async saveRouteBuffer(bufferId: string) {
+    // The shared save bridge handles the naming dialog, the server write,
+    // the route.saved event and discarding the buffer; we just re-open the
+    // info panel on the now-saved route so its action becomes "Edit".
+    // dialog: true — the FSK SAVE button always prompts for a name.
+    try {
+      const result = await this.plotterExt.saveBuffer(bufferId, {
+        dialog: true
+      });
+      if (result) {
+        this.infoPanel.open('routes', result.href);
+      }
+    } catch {
+      // saveBuffer already surfaced the server error via parseHttpErrorResponse;
+      // the buffer stays dirty so the user can retry.
+    }
+  }
+
   protected handleDrawEnded(e: DrawFeatureInfo) {
     this.mapInteract.isDrawing();
+    // A completed draw is no longer being edited — clear the marker (set on
+    // modify drags during the draw, otherwise never reset) so resource-list
+    // visibility checkboxes don't stay disabled.
+    this.app.data.editingId = '';
     switch (this.mapInteract.draw.resourceType) {
       case 'note':
         const params = { position: e.coordinates };
@@ -1736,7 +1913,16 @@ export class AppComponent {
         this.skres.newWaypointAt(e.coordinates as Position);
         break;
       case 'route':
-        this.skres.newRouteAt(e.coordinates as LineString);
+        // Draw a route into a live edit buffer (rendered as an amber draft)
+        // rather than immediately prompting to save. This lets routes-capable
+        // extensions (e.g. auto-routing) lock onto and rewrite the route before
+        // the user decides to persist it. Saving a buffer to a stored route
+        // (route.save) is a later slice.
+        this.routeBuffers.create({
+          points: (e.coordinates as LineString).map((position) => ({
+            position
+          }))
+        });
         break;
       case 'region':
         const region = new SKRegion();
@@ -1750,6 +1936,10 @@ export class AppComponent {
 
   /** End interaction mode */
   protected closeInteraction() {
+    // No feature is being edited once an interaction ends — clear the marker
+    // (it is set on every modify drag and otherwise never reset), so dependent
+    // UI such as the route-list visibility checkboxes re-enables.
+    this.app.data.editingId = '';
     if (this.mapInteract.isBoxSelecting()) {
       this.mapInteract.stopBoxSelection();
     }
@@ -1771,24 +1961,58 @@ export class AppComponent {
           return;
         }
 
-        // save changes
+        // save changes. Editing an unsaved live buffer just applies the change
+        // to the draft (it is not persisted here — that is an explicit Save),
+        // so word the prompt to match rather than implying a named save.
+        const fsParts = this.mapInteract.draw.forSave.id.split('.');
+        // A draft edit (unsaved live buffer) just stages the change; a saved
+        // route — or a saved buffer — persists on confirm, so word to match.
+        const draftBuf =
+          fsParts[0] === 'route'
+            ? this.routeBuffers.get(fsParts[1])
+            : undefined;
+        const isDraftEdit = !!draftBuf && !draftBuf.saved;
         this.app
           .showConfirm(
-            `Do you want to save the changes made to ${
-              this.mapInteract.draw.forSave.id.split('.')[0]
-            }?`,
-            'Save Changes'
+            isDraftEdit
+              ? 'Keep the changes to this unsaved route?'
+              : `Do you want to save the changes made to ${fsParts[0]}?`,
+            isDraftEdit ? 'Keep Changes' : 'Save Changes'
           )
           .subscribe((result) => {
             const r = this.mapInteract.draw.forSave.id.split('.');
             if (result) {
               // save changes
               if (r[0] === 'route') {
-                this.skres.updateRouteCoords(
-                  r[1],
-                  this.mapInteract.draw.forSave.coords,
-                  this.mapInteract.draw.forSave.coordsMetadata
-                );
+                const buf = this.routeBuffers.get(r[1]);
+                if (buf && !buf.saved) {
+                  // Unsaved draft: stage the modified geometry to the buffer
+                  // (emits route.dirty). Persisted only via an explicit Save.
+                  // Carry the per-point name/description so the metadata is not
+                  // dropped on a later Save.
+                  const meta = this.mapInteract.draw.forSave.coordsMetadata as
+                    | Array<{ name?: string; description?: string }>
+                    | undefined;
+                  this.routeBuffers.replace(
+                    r[1],
+                    this.mapInteract.draw.forSave.coords.map((position, i) => ({
+                      position,
+                      ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
+                      ...(meta?.[i]?.description
+                        ? { description: meta[i].description }
+                        : {})
+                    }))
+                  );
+                } else {
+                  // Saved route (plain resource or a saved buffer): persist the
+                  // edit, mirrored through the registry so extensions observe it
+                  // (route.visible/dirty → route.saved).
+                  this.plotterExt.saveNativeRouteEdit(
+                    r[1],
+                    this.mapInteract.draw.forSave.coords,
+                    this.mapInteract.draw.forSave.coordsMetadata
+                  );
+                }
               }
               if (r[0] === 'waypoint') {
                 this.skres.updateWaypointPosition(
@@ -1818,7 +2042,17 @@ export class AppComponent {
             } else {
               // do not save
               if (r[0] === 'route') {
-                this.skres.refreshRoutes();
+                const buf = this.routeBuffers.get(r[1]);
+                if (buf && (!buf.saved || buf.dirty)) {
+                  // Restore the draft (or dirty saved buffer): the Modify
+                  // interaction moved the map feature, but the buffer itself
+                  // was never changed.
+                  this.routeBuffers.refresh();
+                } else {
+                  // Clean saved route — re-render from the resource to revert
+                  // the unsaved geometry move.
+                  this.skres.refreshRoutes();
+                }
               }
               if (r[0] === 'waypoint') {
                 this.skres.refreshWaypoints();
@@ -1839,12 +2073,21 @@ export class AppComponent {
 
   // ******** SIGNAL K STREAM *************
 
+  /** Load external symbols then fetch all resource types. */
+  private async loadSymbolsThenFetchResources(): Promise<void> {
+    await this.symbols.load();
+    // Register SymbolService with the module-level hook so pure functions
+    // in app.icons.ts can resolve external symbols without DI injection.
+    setSymbolRegistry(this.symbols);
+    this.fetchResources(true);
+  }
+
   /** fetch resource types from server */
   private fetchResources(allTypes = false) {
     this.skres.refreshRoutes();
     this.skres.refreshWaypoints();
     this.skres.refreshCharts();
-    this.skres.refreshNotes();
+    // this.skres.refreshNotes(); // triggered via map center change
     this.skres.refreshRegions();
     if (allTypes) {
       this.fetchOtherResources();
@@ -1888,7 +2131,6 @@ export class AppComponent {
           cmd: 'vessel',
           options: { context: 'self', name: r['name'] }
         });
-        this.fetchResources(true); // fetch all resource types from server
         if (this.app.config.vessels.trailFromServer) {
           this.stream.requestTrailFromServer(); // request trail from server
         }
@@ -1897,10 +2139,8 @@ export class AppComponent {
           undefined,
           this.app.data.vessels.self.position
         );
-        // query radar API
-        this.radarApi.listRadars().catch((err: Error) => {
-          this.app.debug(err.message);
-        });
+        // query radars / align defaultId
+        this.radarApi.init();
       },
       (err: HttpErrorResponse) => {
         if (err.status && err.status === 401) {
