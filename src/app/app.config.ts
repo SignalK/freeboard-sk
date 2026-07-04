@@ -183,13 +183,13 @@ export function cleanConfig(
       laylines: false,
       selfLines: {
         cog: {
-          length: 10, // (minutes) length = cogLine * sog
+          length: 10,
           color: 'rgba(204, 12, 225, 0.7)',
           weight: 1,
           dash: 'none'
         },
         heading: {
-          length: -1, // mode for display of heading line -1 = default
+          length: -1,
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
@@ -197,9 +197,14 @@ export function cleanConfig(
       },
       aisCogLine: 10,
       iconScale: 0.9,
+      scaleToSize: false,
+      vesselDimensions: { length: 10, beam: 3 },
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000,
+      rangeCirclesDynamic: false,
+      rangeCirclesDynamicSpeed: 0.5,
+      rangeCirclesDynamicDistance: 100,
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
       aisStaleAge: 360000,
@@ -222,6 +227,12 @@ export function cleanConfig(
     if (typeof settings.vessels.rangeCircleMinZoom === 'undefined') {
       settings.vessels.rangeCircleMinZoom = 8;
     }
+    if (typeof settings.vessels.scaleToSize === 'undefined') {
+      settings.vessels.scaleToSize = false;
+    }
+    if (typeof settings.vessels.vesselDimensions === 'undefined') {
+      settings.vessels.vesselDimensions = { length: 10, beam: 3 };
+    }
     if (typeof settings.vessels.rangeCirclesFixed === 'undefined') {
       settings.vessels.rangeCirclesFixed = false;
     }
@@ -243,9 +254,17 @@ export function cleanConfig(
           dash: 'none'
         }
       };
-      // @todo remove (implemented) v2.22.2
       delete (settings as any).vessels.cogLine;
       delete (settings as any).vessels.headingLineSize;
+    }
+    if (typeof settings.vessels.rangeCirclesDynamic === 'undefined') {
+      settings.vessels.rangeCirclesDynamic = false;
+    }
+    if (typeof settings.vessels.rangeCirclesDynamicSpeed === 'undefined') {
+      settings.vessels.rangeCirclesDynamicSpeed = 0.5;
+    }
+    if (typeof settings.vessels.rangeCirclesDynamicDistance === 'undefined') {
+      settings.vessels.rangeCirclesDynamicDistance = 100;
     }
   }
 
@@ -536,9 +555,14 @@ export function defaultConfig(): IAppConfig {
       },
       aisCogLine: 10, // ais COG line time (mins)
       iconScale: 0.9,
+      scaleToSize: false,
+      vesselDimensions: { length: 10, beam: 3 },
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000, // distance in m
+      rangeCirclesDynamic: false,
+      rangeCirclesDynamicSpeed: 0.5, // speed threshold in knots
+      rangeCirclesDynamicDistance: 100, // distance in m when underway
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
       aisStaleAge: 360000, // time since last update in ms (6 min)

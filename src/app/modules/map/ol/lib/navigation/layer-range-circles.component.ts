@@ -48,6 +48,10 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   protected darkMode = input<boolean>(false);
   protected fixedMode = input<boolean>(false);
   protected fixedDistance = input<number>(1000);
+  protected dynamicMode = input<boolean>(false);
+  protected dynamicSpeed = input<number>(0.5);
+  protected dynamicDistance = input<number>(100);
+  protected vesselSpeed = input<number>(0);
 
   /**
    * This event is triggered after the layer is initialized
@@ -82,6 +86,10 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     effect(() => {
       this.fixedMode();
       this.fixedDistance();
+      this.dynamicMode();
+      this.dynamicSpeed();
+      this.dynamicDistance();
+      this.vesselSpeed();
       this.processChange();
     });
   }
@@ -161,7 +169,12 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
                             ? 500
                             : 250;
     } else {
-      range = this.fixedDistance();
+      // Check if dynamic distance mode is enabled and vessel is underway
+      if (this.dynamicMode() && this.vesselSpeed() >= this.dynamicSpeed()) {
+        range = this.dynamicDistance();
+      } else {
+        range = this.fixedDistance();
+      }
     }
     const fa: Feature[] = [];
     if (this.mapZoom >= this.minZoom) {

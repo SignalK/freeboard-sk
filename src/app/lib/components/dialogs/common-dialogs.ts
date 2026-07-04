@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -531,6 +531,117 @@ export class WelcomeDialog {
     );
     if (sh) {
       sh[0]['style']['display'] = 'none';
+    }
+  }
+}
+
+/********* GotoLocationDialog **********
+	data: {
+        latitude: number (optional initial value),
+        longitude: number (optional initial value)
+    }
+    
+    Returns: { latitude: number, longitude: number } or null
+***************************************/
+@Component({
+  selector: 'ap-goto-location-dialog',
+  imports: [
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    FormsModule
+  ],
+  template: `
+    <div class="_ap-goto-location">
+      <h1 mat-dialog-title>
+        <mat-icon>place</mat-icon>
+        &nbsp;Goto Location
+      </h1>
+      <mat-dialog-content>
+        <div style="display: flex; flex-direction: column; gap: 16px; min-width: 250px;">
+          <mat-form-field>
+            <mat-label>Latitude</mat-label>
+            <input
+              matInput
+              type="number"
+              [(ngModel)]="latitude"
+              placeholder="e.g. 10.90126"
+              min="-90"
+              max="90"
+              step="0.000001"
+            />
+            <span matSuffix>°</span>
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>Longitude</mat-label>
+            <input
+              matInput
+              type="number"
+              [(ngModel)]="longitude"
+              placeholder="e.g. -75.054816"
+              min="-180"
+              max="180"
+              step="0.000001"
+            />
+            <span matSuffix>°</span>
+          </mat-form-field>
+        </div>
+      </mat-dialog-content>
+      <mat-dialog-actions align="end">
+        <button mat-button (click)="dialogRef.close(null)">Cancel</button>
+        <button
+          mat-raised-button
+          color="primary"
+          [disabled]="!isValid()"
+          (click)="gotoLocation()"
+        >
+          <mat-icon>search</mat-icon>
+          Find
+        </button>
+      </mat-dialog-actions>
+    </div>
+  `,
+  styles: [
+    `
+      ._ap-goto-location {
+        font-family: Roboto;
+      }
+    `
+  ]
+})
+export class GotoLocationDialog {
+  latitude: number | null = null;
+  longitude: number | null = null;
+
+  constructor(
+    public dialogRef: MatDialogRef<GotoLocationDialog>,
+    @Inject(MAT_DIALOG_DATA) public data: { latitude?: number; longitude?: number } | null
+  ) {
+    if (data) {
+      this.latitude = data.latitude ?? null;
+      this.longitude = data.longitude ?? null;
+    }
+  }
+
+  isValid(): boolean {
+    return (
+      this.latitude !== null &&
+      this.longitude !== null &&
+      this.latitude >= -90 &&
+      this.latitude <= 90 &&
+      this.longitude >= -180 &&
+      this.longitude <= 180
+    );
+  }
+
+  gotoLocation() {
+    if (this.isValid()) {
+      this.dialogRef.close({
+        latitude: this.latitude,
+        longitude: this.longitude
+      });
     }
   }
 }

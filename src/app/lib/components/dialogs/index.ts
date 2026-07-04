@@ -5,7 +5,8 @@ export {
   WelcomeDialog,
   LoginDialog,
   MessageBarComponent,
-  MsgBox
+  MsgBox,
+  GotoLocationDialog
 } from './common-dialogs';
 export * from './errorlist-dialog';
 export * from './playback-dialog';

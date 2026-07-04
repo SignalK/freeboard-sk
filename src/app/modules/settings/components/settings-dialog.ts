@@ -86,7 +86,8 @@ export class SettingsDialog implements OnInit {
 
   // model to hold numbers that require unit conversion
   protected formattedNumberModel = {
-    rangeCirclesDistance: 1000
+    rangeCirclesDistance: 1000,
+    rangeCirclesDynamicDistance: 100
   };
 
   protected unitsChangedSignal = signal<number>(0);
@@ -141,6 +142,16 @@ export class SettingsDialog implements OnInit {
           : Math.floor(
               Convert.transform(
                 this.facade.settings.vessels.rangeCirclesDistance,
+                'm',
+                'naut-mile'
+              )
+            ),
+      rangeCirclesDynamicDistance:
+        this.facade.settings.units.distance === 'kilometer'
+          ? Math.floor(this.facade.settings.vessels.rangeCirclesDynamicDistance / 1000)
+          : Math.floor(
+              Convert.transform(
+                this.facade.settings.vessels.rangeCirclesDynamicDistance,
                 'm',
                 'naut-mile'
               )
@@ -239,6 +250,7 @@ export class SettingsDialog implements OnInit {
 
   /**
    * Parse & convert the entered number value to SI units and fall back to default if null.
+   * Handles both rangeCirclesDistance and rangeCirclesDynamicDistance fields.
    * Resultant number value is always positive unless allowNegative = true.
    */
   parseFormattedNumber(e: NgModel, allowNegative?: boolean) {
@@ -248,14 +260,28 @@ export class SettingsDialog implements OnInit {
     if (!allowNegative && e.model < 0) {
       e.reset(Math.abs(e.model));
     }
-    this.facade.settings.vessels.rangeCirclesDistance =
-      this.facade.settings.units.distance === 'kilometer'
-        ? Math.floor(this.formattedNumberModel.rangeCirclesDistance * 1000)
-        : Math.floor(
-            Convert.nauticalMilesToKm(
-              this.formattedNumberModel.rangeCirclesDistance
-            ) * 1000
-          );
+
+    const isDynamicDistance = e.name === 'rangeCirclesDynamicDistance';
+
+    if (isDynamicDistance) {
+      this.facade.settings.vessels.rangeCirclesDynamicDistance =
+        this.facade.settings.units.distance === 'kilometer'
+          ? Math.floor(this.formattedNumberModel.rangeCirclesDynamicDistance * 1000)
+          : Math.floor(
+              Convert.nauticalMilesToKm(
+                this.formattedNumberModel.rangeCirclesDynamicDistance
+              ) * 1000
+            );
+    } else {
+      this.facade.settings.vessels.rangeCirclesDistance =
+        this.facade.settings.units.distance === 'kilometer'
+          ? Math.floor(this.formattedNumberModel.rangeCirclesDistance * 1000)
+          : Math.floor(
+              Convert.nauticalMilesToKm(
+                this.formattedNumberModel.rangeCirclesDistance
+              ) * 1000
+            );
+    }
     this.persistModel();
   }
 

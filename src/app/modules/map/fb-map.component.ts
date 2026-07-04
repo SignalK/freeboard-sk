@@ -189,6 +189,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Input() vesselTrail: Array<Position> = [];
   @Input() dblClickZoom = false;
   @Input() overZoomTiles = true;
+  @Input() gotoMarkerPosition: Position | null = null;
   @Output() drawEnded: EventEmitter<DrawFeatureInfo> = new EventEmitter();
   @Output() activate: EventEmitter<string> = new EventEmitter();
   @Output() deactivate: EventEmitter<string> = new EventEmitter();
@@ -233,8 +234,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected mapZoomLevel = signal<number>(1);
   protected mapCenterPositon = signal<Position>([0, 0]);
   protected mapRotation = signal<number>(0);
+  protected mapResolution = signal<number>(null);
 
   protected showNoteslayer = signal<boolean>(false); //control notes layer display
+  protected gotoMarker = signal<Position | null>(null); // goto location marker
+  protected gotoMarkerLabel = computed(() => {
+    const pos = this.gotoMarker();
+    if (pos && Array.isArray(pos) && pos.length >= 2) {
+      // Position is [lon, lat], display as "lat, lon"
+      return `${pos[1].toFixed(5)}, ${pos[0].toFixed(5)}`;
+    }
+    return '';
+  });
 
   // ** map feature styles
   protected featureStyles = {
@@ -400,6 +411,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     if (changes && changes.dblClickZoom) {
       this.toggleDblClickZoom(changes.dblClickZoom.currentValue);
+    }
+    if (changes && changes.gotoMarkerPosition) {
+      this.gotoMarker.set(changes.gotoMarkerPosition.currentValue);
     }
   }
 
@@ -618,6 +632,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // handle map move / zoom
   protected onMapMoveEnd(e: FBMapEvent) {
     this.app.config.map.zoomLevel = e.zoom;
+    this.mapResolution.set(e.resolution);
 
     this.app.mapExtent.update(() => e.extent);
     this.app.mapViewTopCenter.update(() => e.topCenter as Position);

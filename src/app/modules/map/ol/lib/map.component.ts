@@ -31,11 +31,9 @@ export interface FBMapEvent extends MapEvent {
   zoomChanged: boolean;
   extent: Extent;
   projCode: string;
-  /** Geographic coords of the viewport's top-centre pixel (rotation-aware) */
+  resolution: number;
   topCenter: Coordinate;
-  /** Geographic coords of the viewport's right-centre pixel (rotation-aware) */
   rightCenter: Coordinate;
-  /** OL view rotation in radians (CCW positive) at the time of the event */
   rotation: number;
 }
 
@@ -380,12 +378,14 @@ export class MapComponent implements OnInit, OnDestroy {
   // ** add {lonlat, zoom, extent, projCode, topCenter, rightCenter, rotation} fields to event
   private augmentMoveEvent(event: MapEvent) {
     const zoom = this.map.getView().getZoom();
+    const resolution = this.map.getView().getResolution();
     return Object.assign(event, {
       lonlat: this.getMapCenter(),
       zoom: zoom,
       zoomChanged: this.zoomAtStart !== zoom,
       extent: this.getMapExtent(),
       projCode: this.map.getView().getProjection().getCode(),
+      resolution: resolution,
       topCenter: this.getMapViewTopCenter(),
       rightCenter: this.getMapViewRightCenter(),
       rotation: this.map.getView().getRotation()

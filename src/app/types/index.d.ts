@@ -149,10 +149,15 @@ export interface IAppConfig {
       };
     };
     aisCogLine: number; // (minutes) length = cogLine * sog
-    iconScale: number; // scale to apply to self Vessel icon
+    iconScale: number;
+    scaleToSize: boolean;
+    vesselDimensions: { length: number; beam: number };
     rangeCircles: boolean; //display range circles
     rangeCirclesFixed: boolean; // use a fixed distance rather than zoom level calc
     rangeCirclesDistance: number; // distance between circles when fixed is true
+    rangeCirclesDynamic: boolean; // use dynamic distance based on vessel speed
+    rangeCirclesDynamicSpeed: number; // speed threshold in knots for dynamic distance
+    rangeCirclesDynamicDistance: number; // distance between circles when underway (in meters)
     rangeCircleCount: number; // number of circles to display
     rangeCircleMinZoom: number; // min zoom level where they are displayed
     aisStaleAge: number; // time since last update in ms (6 min)

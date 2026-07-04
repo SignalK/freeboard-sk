@@ -736,28 +736,62 @@
                   <div class="setting-card-row-item">
                     <fieldset>
                       <legend>Vessel Icon Size</legend>
-                      <div
-                        class="setting-card-row"
-                        style="padding-bottom: 10px"
+                      <mat-checkbox
+                        [(ngModel)]="facade.settings.vessels.scaleToSize"
+                        (change)="persistModel()"
+                        matTooltip="Draw vessel icon to actual scale based on dimensions"
+                        label="after"
                       >
+                        Scale to actual size
+                      </mat-checkbox>
+                      <div class="setting-card-row" style="padding-top: 10px">
                         <div class="setting-card-row-item">
-                          <mat-radio-group
-                            [(ngModel)]="facade.settings.vessels.iconScale"
-                            (change)="persistModel()"
-                          >
-                            @for(i of options.vessel.selfIconScale; track i[0])
-                            {
-                            <mat-radio-button [value]="i[0]">
-                              <img
-                                src="./assets/img/vessels/self.png"
-                                [style]="`transform: scale(${i[0]})`"
-                              />
-                              ({{i[1]}})
-                            </mat-radio-button>
-                            }
-                          </mat-radio-group>
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Length</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              #vesselLength="ngModel"
+                              [disabled]="!facade.settings.vessels.scaleToSize"
+                              [(ngModel)]="facade.settings.vessels.vesselDimensions.length"
+                              (change)="persistModel()"
+                              min="1"
+                              step="0.5"
+                            />
+                            <span matSuffix>m</span>
+                          </mat-form-field>
+                        </div>
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Beam</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              #vesselBeam="ngModel"
+                              [disabled]="!facade.settings.vessels.scaleToSize"
+                              [(ngModel)]="facade.settings.vessels.vesselDimensions.beam"
+                              (change)="persistModel()"
+                              min="0.5"
+                              step="0.1"
+                            />
+                            <span matSuffix>m</span>
+                          </mat-form-field>
                         </div>
                       </div>
+                      <mat-form-field style="width: 100%">
+                        <mat-label>Icon Scale (when not scaled to size)</mat-label>
+                        <input
+                          matInput
+                          type="number"
+                          #iconScale="ngModel"
+                          [disabled]="facade.settings.vessels.scaleToSize"
+                          [(ngModel)]="facade.settings.vessels.iconScale"
+                          (change)="persistModel()"
+                          min="0.1"
+                          max="5"
+                          step="0.05"
+                        />
+                      </mat-form-field>
                     </fieldset>
                   </div>
                 </div>
@@ -987,21 +1021,78 @@
                           <input
                             matInput
                             type="number"
+                            name="rangeCirclesDistance"
                             #rangeCirclesDistance="ngModel"
                             required
                             [(ngModel)]="formattedNumberModel.rangeCirclesDistance"
                             (change)="parseFormattedNumber(rangeCirclesDistance)"
                             [disabled]="!facade.settings.vessels.rangeCircles || !facade.settings.vessels.rangeCirclesFixed"
-                            min="1"
+                            min="0.0001"
+                            step="0.0001"
                           />
                           @if(rangeCirclesDistance.invalid &&
                           (rangeCirclesDistance.dirty ||
                           rangeCirclesDistance.touched)) {
-                          <mat-error> Please enter a number >= 1. </mat-error>
+                          <mat-error> Please enter a number >= 0.0001. </mat-error>
                           }
                         </mat-form-field>
                       </div>
                     </div>
+                    <mat-divider></mat-divider>
+                    <div class="setting-card-row" style="padding-top: 10px; padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <mat-checkbox
+                          [(ngModel)]="facade.settings.vessels.rangeCirclesDynamic"
+                          [disabled]="!facade.settings.vessels.rangeCircles || !facade.settings.vessels.rangeCirclesFixed"
+                          (change)="persistModel()"
+                          label="after"
+                        >
+                          Use Dynamic Distance
+                        </mat-checkbox>
+                      </div>
+                    </div>
+                    @if (facade.settings.vessels.rangeCirclesDynamic) {
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <mat-form-field floatLabel="always">
+                          <mat-label>Speed threshold (knots)</mat-label>
+                          <input
+                            matInput
+                            type="number"
+                            [(ngModel)]="facade.settings.vessels.rangeCirclesDynamicSpeed"
+                            (change)="persistModel()"
+                            min="0.1"
+                            step="0.1"
+                          />
+                        </mat-form-field>
+                      </div>
+                      <div class="setting-card-row-item">
+                        <mat-form-field floatLabel="always">
+                          <mat-label>
+                            Distance when underway
+                            ({{facade.settings.units.distance === 'kilometer' ? 'km' :
+                            'NM'}})
+                          </mat-label>
+                          <input
+                            matInput
+                            type="number"
+                            name="rangeCirclesDynamicDistance"
+                            #rangeCirclesDynamicDistance="ngModel"
+                            required
+                            [(ngModel)]="formattedNumberModel.rangeCirclesDynamicDistance"
+                            (change)="parseFormattedNumber(rangeCirclesDynamicDistance)"
+                            min="0.0001"
+                            step="0.0001"
+                          />
+                          @if(rangeCirclesDynamicDistance.invalid &&
+                          (rangeCirclesDynamicDistance.dirty ||
+                          rangeCirclesDynamicDistance.touched)) {
+                          <mat-error> Please enter a number >= 0.0001. </mat-error>
+                          }
+                        </mat-form-field>
+                      </div>
+                    </div>
+                    }
                   </fieldset>
                 </div>
               </mat-card-content>

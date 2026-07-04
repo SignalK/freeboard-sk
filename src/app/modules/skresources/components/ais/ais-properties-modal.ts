@@ -109,7 +109,7 @@ import { getAisIcon } from 'src/app/modules/icons';
               </div>
             }
             @if (
-              data.target.design.length?.overall && data.target.design?.beam
+              data.target.design.length && data.target.design?.beam
             ) {
               <div style="display:flex;">
                 <div class="key-label">Dimensions:</div>

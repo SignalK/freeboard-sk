@@ -438,6 +438,8 @@
         [filterByShipType]="app.config.selections.aisFilterByShipType"
         [filterShipTypes]="app.config.selections.aisTargetTypes"
         [cogLineLength]="app.config.vessels.aisCogLine"
+        [scaleToSize]="app.config.vessels.scaleToSize"
+        [mapResolution]="mapResolution()"
       >
       </sk-ais-vessels>
     </div>
@@ -773,6 +775,10 @@
       [maxCircles]="this.app.config.vessels.rangeCircleCount"
       [fixedMode]="this.app.config.vessels.rangeCirclesFixed"
       [fixedDistance]="this.app.config.vessels.rangeCirclesDistance"
+      [dynamicMode]="this.app.config.vessels.rangeCirclesDynamic"
+      [dynamicSpeed]="this.app.config.vessels.rangeCirclesDynamicSpeed"
+      [dynamicDistance]="this.app.config.vessels.rangeCirclesDynamicDistance"
+      [vesselSpeed]="dfeat.active.sog || 0"
       [mapZoom]="mapZoomLevel()"
       [darkMode]="app.uiConfig().invertColor"
       [minZoom]="this.app.config.vessels.rangeCircleMinZoom"
@@ -805,6 +811,14 @@
     >
     </fb-cog-line>
   }
+  @if (gotoMarker()) {
+    <fb-goto-marker
+      [position]="gotoMarker()"
+      [label]="gotoMarkerLabel()"
+      [zIndex]="500"
+    >
+    </fb-goto-marker>
+  }
   @if (app.config.vessels.windVectors) {
     <fb-wind-lines
       [twd]="this.dfeat.active.wind.direction"
@@ -824,6 +838,8 @@
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
     [iconScale]="app.config.vessels.iconScale"
+    [vesselDimensions]="app.config.vessels.vesselDimensions"
+    [mapResolution]="mapResolution()"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [zIndex]="999"
   >

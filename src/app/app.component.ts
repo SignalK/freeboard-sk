@@ -83,6 +83,14 @@ import {
   WeatherListComponent
 } from 'src/app/modules';
 
+import {
+  AboutDialog,
+  LoginDialog,
+  PlaybackDialog,
+  GeoJSONImportDialog,
+  Trail2RouteDialog,
+  GotoLocationDialog
+} from 'src/app/lib/components/dialogs';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
@@ -248,6 +256,7 @@ export class AppComponent {
 
   protected mapSetFocus = signal<string>('');
   protected mapCenter = signal<Position>([0, 0]);
+  protected gotoMarkerPosition = signal<Position | null>(null);
   protected audioStatus = signal<string>('');
   protected isInteracting = computed(() => {
     return (
@@ -349,6 +358,9 @@ export class AppComponent {
   }
 
   ngOnInit() {
+    // ** check for URL query parameter ?q=lat,lon
+    this.parseGotoLocationUrl();
+
     // ** audio context handing **
     this.audioStatus.update(() => this.app.audio.context.state);
     this.app.debug('audio state:', this.audioStatus());
@@ -1461,11 +1473,56 @@ export class AppComponent {
     this.centerAndZoom(pos);
   }
 
+  // ** parse URL query parameter ?q=lat,lon for goto location **
+  private parseGotoLocationUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) {
+      // Parse "lat,lon" format (e.g. "10.90126,-75.054816")
+      const parts = q.split(',');
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0].trim());
+        const lon = parseFloat(parts[1].trim());
+        if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+          const position: Position = [lon, lat];
+          // Set marker and navigate to location after a short delay to ensure map is ready
+          setTimeout(() => {
+            this.gotoMarkerPosition.update(() => position);
+            this.centerAndZoom(position);
+          }, 500);
+        }
+      }
+    }
+  }
+
+  // ** show goto location dialog **
+  protected showGotoLocation(initialLat?: number, initialLon?: number) {
+    this.dialog
+      .open(GotoLocationDialog, {
+        data: { latitude: initialLat, longitude: initialLon }
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result) {
+          // Navigate to the location [lon, lat] format
+          const position: Position = [result.longitude, result.latitude];
+          this.gotoMarkerPosition.update(() => position);
+          this.centerAndZoom(position);
+        }
+        this.focusMap();
+      });
+  }
+
   protected toggleAisTargets() {
     this.app.config.ui.showAisTargets = !this.app.config.ui.showAisTargets;
     if (this.app.config.ui.showAisTargets) {
       this.stream.aisTargetUpdated();
     }
+    this.app.saveConfig();
+  }
+
+  protected toggleScaleToSize() {
+    this.app.config.vessels.scaleToSize = !this.app.config.vessels.scaleToSize;
     this.app.saveConfig();
   }
 
