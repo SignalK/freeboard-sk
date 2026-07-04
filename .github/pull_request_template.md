@@ -25,3 +25,9 @@ See CONTRIBUTING.md / AGENTS.md for the full guidelines.
 
 <!-- How you verified it. New behaviour should have tests (npm run test:ci).
      Include before/after screenshots for visible UI changes. -->
+
+## Checklist
+
+- [ ] One logical change; version numbers untouched.
+- [ ] Skimmed [`DEV-LESSONS-LEARNED.md`](../docs/freeboard/DEV-LESSONS-LEARNED.md) for traps relevant to this change.
+- [ ] Tests added/updated for new behaviour and `npm run test:ci` passes.

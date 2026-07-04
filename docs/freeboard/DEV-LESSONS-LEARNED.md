@@ -32,6 +32,15 @@ feedback loop — the write re-triggers the effect, which writes again.
 or snapshot method) when the same effect also mutates that state, so the read
 doesn't register a reactive dependency.
 
+### Importing one field from a large JSON — use a *named* import
+
+A default/namespace import (`import pkg from '../../package.json'`) ships the **whole
+file** — `devDependencies`, `scripts`, everything — into the client bundle, and the
+build stays green so it's invisible. Import the field by name instead
+(`import { version } from '../../package.json'`) so esbuild drops the rest; add
+`resolveJsonModule: true` to the base `tsconfig.json` for the type-check. Whole-file
+import is fine only when you genuinely use all of it (e.g. `helper/openApi.json`).
+
 ---
 
 ## When testing

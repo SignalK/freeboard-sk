@@ -45,6 +45,13 @@ To build for release: `npm run build:prod` (webapp → `public/`, helper plugin 
 
 Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
 
+> **As you work each phase — coding, testing, building — skim the matching section
+> of [`docs/freeboard/DEV-LESSONS-LEARNED.md`](docs/freeboard/DEV-LESSONS-LEARNED.md)
+> first.** It records non-obvious, repo-specific traps that cost earlier
+> contributors real time (a hung `ng build`, a single-spec run that won't resolve
+> path aliases, a JSON import that bloats the bundle). Reading the relevant section
+> up front is the cheapest way to avoid re-discovering them.
+
 1. [Fork](https://help.github.com/articles/fork-a-repo/) the repo and branch from
    the latest `master`: `git checkout -b my-fix-branch master`.
 2. **One logical change per PR.** Split unrelated work into separate PRs — if the
