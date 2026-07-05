@@ -64,12 +64,7 @@ import { SKWorkerService } from '../skstream/skstream.service';
 import { ChartSeedJobDialog } from './components/charts/chart-seedjob-dialog';
 
 export type SKResourceType =
-  | 'routes'
-  | 'waypoints'
-  | 'regions'
-  | 'notes'
-  | 'charts'
-  | 'tracks';
+  'routes' | 'waypoints' | 'regions' | 'notes' | 'charts' | 'tracks';
 
 export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
@@ -426,13 +421,7 @@ export class SKResourceService {
   public postToServer(
     collection: SKResourceType | 'tracks' | 'infolayers',
     data:
-      | SKRoute
-      | SKWaypoint
-      | SKRegion
-      | SKNote
-      | SKChart
-      | SKTrack
-      | SKInfoLayer
+      SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack | SKInfoLayer
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       this.signalk.api

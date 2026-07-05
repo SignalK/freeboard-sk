@@ -41,12 +41,7 @@ export type FBInfoLayers = Array<FBInfoLayer>;
 export type FBInfoLayer = [string, SKInfoLayer, boolean?];
 
 export type FBResource =
-  | FBRoute
-  | FBWaypoint
-  | FBNote
-  | FBRegion
-  | FBChart
-  | FBTrack;
+  FBRoute | FBWaypoint | FBNote | FBRegion | FBChart | FBTrack;
 
 export type FBResourceSelect = {
   id: string;

@@ -54,15 +54,7 @@ const siBaseFn = {
 };
 
 export type SI_BASE_UNIT =
-  | 'K'
-  | 'rad'
-  | 'deg'
-  | 'ratio'
-  | 'm/s'
-  | 'rad/s'
-  | 'Hz'
-  | 'm'
-  | 's';
+  'K' | 'rad' | 'deg' | 'ratio' | 'm/s' | 'rad/s' | 'Hz' | 'm' | 's';
 export type TARGET_UNIT =
   | 'C'
   | 'F'

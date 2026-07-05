@@ -32,8 +32,7 @@ export interface IPopover {
   content: any[];
   featureCount: number;
   resource?:
-    | [string, SKRoute | SKWaypoint | SKNote | SKRegion]
-    | GeoJSONFeature;
+    [string, SKRoute | SKWaypoint | SKNote | SKRegion] | GeoJSONFeature;
   vessel?: SKVessel;
   isSelf?: boolean;
   aton?: SKAtoN;

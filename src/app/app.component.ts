@@ -1934,8 +1934,7 @@ export class AppComponent {
                   // Carry the per-point name/description so the metadata is not
                   // dropped on a later Save.
                   const meta = this.mapInteract.draw.forSave.coordsMetadata as
-                    | Array<{ name?: string; description?: string }>
-                    | undefined;
+                    Array<{ name?: string; description?: string }> | undefined;
                   this.routeBuffers.replace(
                     r[1],
                     this.mapInteract.draw.forSave.coords.map((position, i) => ({
