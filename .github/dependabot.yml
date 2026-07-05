@@ -13,6 +13,13 @@ updates:
           - major
           - minor
           - patch
+      # Own group: a prettier bump can reformat source and fail format:check.
+      # Isolating it keeps the reformat commit scoped to prettier's PR instead
+      # of turning the whole minor-and-patch group red. Listed before
+      # minor-and-patch so prettier is assigned here (first match wins).
+      prettier:
+        patterns:
+          - 'prettier'
       minor-and-patch:
         update-types:
           - minor
