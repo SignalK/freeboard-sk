@@ -87,6 +87,10 @@ export interface IAppConfig {
       favourites: string[];
     };
     preferInfoPanel: boolean;
+    statusBar: {
+      liveEta: boolean; // show cursor bearing/distance/ETA in the status bar (mouse only)
+      referenceSpeed: number; // fallback boat speed (in display speed units) for ETA when SOG is ~0
+    };
   };
   units: {
     distance: DistanceUnitDef;
@@ -197,6 +201,19 @@ export interface IAppConfig {
     opacity: number;
   };
   experiments: boolean;
+  plotterExtensions: {
+    // ** plotter extension host (plotterExtensions resource type).
+    // No enabled list: extension availability is controlled on the server
+    // (plugin install/enable); presence in the resources response = enabled.
+    widgets: Array<{
+      instanceId: string; // host-assigned GUID for this placement
+      extension: string; // extension (resource) id
+      widget: string; // manifest-local widget id
+      anchor: 'tr' | 'ct' | 'cb' | 'bl' | 'br';
+      col: number; // origin cell column (0 | 1)
+      row: number; // origin cell row (0 | 1)
+    }>;
+  };
   anchor: {
     radius: number; // most recent anchor radius setting
     setRadius: boolean; // checks inital anchor radius setting
@@ -219,6 +236,8 @@ export interface IAppConfig {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resourceSets: { [key: string]: any }; // additional resources
     infolayers: string[];
+    weatherWindEnabled: boolean;
+    oceanCurrentsEnabled: boolean;
   };
 }
 
@@ -257,6 +276,7 @@ export interface FBAppData {
     closest: string[];
     prefAvailablePaths: { [key: string]: string }; // preference paths available from source
     flagged: string[];
+    showTrack: string[]; // ais targets to display track for (session-only, independent of aisShowTrack)
   };
   aircraft: Map<string, SKAircraft>; // received AIS aircraft data
   atons: Map<string, SKAtoN>; // received AIS AtoN data
@@ -277,4 +297,23 @@ export type SKUnitCategory = {
   targetUnit: string;
   displayFormat: string;
   symbol: string;
+};
+
+/**
+ * Per-path display-unit override as published by the Signal K server in a path's
+ * metadata (`meta.displayUnits`). Carries the user's preferred unit for that
+ * specific path, which can differ from the category preset (e.g. wind speed in m/s
+ * while boat speed is in knots).
+ *
+ * `formatValueForDisplay()` currently consumes `targetUnit` and `symbol`. The
+ * `formula`/`inverseFormula` (Math.js) and `displayFormat` fields are part of the
+ * server contract but not yet consumed — reserved for future use.
+ */
+export type SKPathDisplayUnits = {
+  category: string;
+  targetUnit: string;
+  formula?: string;
+  inverseFormula?: string;
+  symbol?: string;
+  displayFormat?: string;
 };

@@ -566,6 +566,17 @@ export class SKResourceService {
             : this.app.config.selections.charts.includes('openseamap')
       ]
     ];
+    // The built-in charts are constructed from scratch (not through
+    // transformChart), so apply any user-set opacity from config here too —
+    // otherwise a chart.setOpacity on openstreetmap/openseamap is lost on refresh.
+    if (this.app) {
+      OSM.forEach((c: FBChart) => {
+        const op = this.app.config.selections.chartOpacity[c[0]];
+        if (typeof op !== 'undefined') {
+          c[1].defaultOpacity = op;
+        }
+      });
+    }
     chtList.push(OSM[1]);
     chtList.unshift(OSM[0]);
     return chtList;
@@ -620,8 +631,9 @@ export class SKResourceService {
         chart.url = this.app.hostDef.url + chart.url;
       }
     }
-    // map local chart opacity
-    if (this.app.config.selections.chartOpacity[id]) {
+    // map local chart opacity (use a defined-check, not truthiness, so a fully
+    // transparent 0 is honored rather than silently dropped on refresh)
+    if (typeof this.app.config.selections.chartOpacity[id] !== 'undefined') {
       chart.defaultOpacity = this.app.config.selections.chartOpacity[id];
     }
     return new SKChart(chart);
@@ -826,6 +838,132 @@ export class SKResourceService {
       }
     });
     this.refreshCharts();
+  }
+
+  // **** CHARTS: Plotter Extensions host API (`charts` capability) ****
+
+  /**
+   * @description Full available chart set (server charts + built-in defaults)
+   * in host-API display order: **topmost first**. Visible charts come first in
+   * their current stacking order (the rendered order reversed); hidden charts
+   * follow. Backs the `chart.list` host method.
+   * @returns Promise resolving to an ordered FBChart array
+   */
+  public async chartsForHostApi(): Promise<FBCharts> {
+    let available: FBCharts;
+    try {
+      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+    } catch (err) {
+      this.app.debug('** chartsForHostApi:', err);
+      available = this.appendOSM([]);
+    }
+    // Reconcile the rendered set against the freshly-fetched available charts:
+    // a chart dropped server-side may still linger in the cache, and callers
+    // treat this list as the source of truth for which ids are managed.
+    const availableIds = new Set(available.map((c: FBChart) => c[0]));
+    const visibleKnown = this.chartCacheSignal()
+      .slice()
+      .reverse()
+      .filter((c: FBChart) => availableIds.has(c[0]));
+    const seen = new Set(visibleKnown.map((c: FBChart) => c[0]));
+    const hidden = available.filter((c: FBChart) => !seen.has(c[0]));
+    return visibleKnown.concat(hidden);
+  }
+
+  /**
+   * @description Set the visibility of a set of charts to an explicit value
+   * (idempotent). Mirrors the chart-list UI's selection algorithm: recompute
+   * the visible id set, then either unfilter (all shown) or store the explicit
+   * subset. Callers should pass ids already known to be managed charts.
+   * @param ids Chart identifiers to show/hide
+   * @param visible true to show, false to hide
+   */
+  public async setChartsVisibility(ids: string[], visible: boolean) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return;
+    }
+    let available: FBCharts;
+    try {
+      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+    } catch (err) {
+      // A transient fetch failure leaves us unable to reason about the current
+      // visible set; degrade like the sibling chart methods and leave the
+      // selection state untouched rather than corrupt it.
+      this.app.debug('** setChartsVisibility:', err);
+      return;
+    }
+    const nowVisible = new Set(
+      available.filter((c: FBChart) => c[2]).map((c: FBChart) => c[0])
+    );
+    let changed = false;
+    ids.forEach((id: string) => {
+      if (nowVisible.has(id) === visible) {
+        return;
+      }
+      changed = true;
+      if (visible) {
+        nowVisible.add(id);
+      } else {
+        nowVisible.delete(id);
+      }
+    });
+    if (!changed) {
+      return;
+    }
+    if (nowVisible.size >= available.length) {
+      this.selectionUnfilter('charts');
+    } else {
+      this.selectionClear('charts');
+      this.selectionAdd('charts', [...nowVisible]);
+    }
+    await this.refreshCharts();
+  }
+
+  /**
+   * @description Set display opacity (0-1) on a set of charts. Persists to
+   * config so the value survives a refresh and applies to a chart once it
+   * becomes visible; also updates the rendered cache for currently-visible ones.
+   * @param ids Chart identifiers
+   * @param value Opacity value (0-1)
+   */
+  public setChartsOpacity(ids: string[], value: number) {
+    if (
+      !Array.isArray(ids) ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      value > 1
+    ) {
+      return;
+    }
+    ids.forEach((id: string) => {
+      this.app.config.selections.chartOpacity[id] = value;
+      this.chartSetOpacity(id, value);
+    });
+    this.app.saveConfig();
+  }
+
+  /**
+   * @description Set the chart display/stacking order from a **topmost-first**
+   * id list. Ids the caller omits keep their existing relative order below the
+   * named ones. The stored `chartOrder` is bottom-first (see the chart-layers
+   * reorder), so the request is reversed before storing; `chartReorder()` then
+   * applies it to the rendered set (host-clamped to the visible charts).
+   * @param orderTopmostFirst Chart identifiers, topmost first
+   */
+  public setChartsOrder(orderTopmostFirst: string[]) {
+    if (!Array.isArray(orderTopmostFirst)) {
+      return;
+    }
+    const existing = Array.isArray(this.app.config.selections.chartOrder)
+      ? this.app.config.selections.chartOrder.slice()
+      : [];
+    const requestedBottomFirst = orderTopmostFirst.slice().reverse();
+    const named = new Set(requestedBottomFirst);
+    const remainder = existing.filter((id: string) => !named.has(id));
+    this.app.config.selections.chartOrder =
+      remainder.concat(requestedBottomFirst);
+    this.app.saveConfig();
+    this.chartReorder();
   }
 
   /**
@@ -1145,6 +1283,40 @@ export class SKResourceService {
   }
 
   /**
+   * @description Open the Route Details dialog for an unsaved route and, on
+   * save, persist it to the server. Resolves with the saved resource id, or
+   * null if the user cancelled (closed the dialog without saving). Used to
+   * persist a live edit buffer into a stored route.
+   */
+  public saveNewRoute(route: SKRoute): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+      this.dialog
+        .open(RouteDialog, {
+          disableClose: true,
+          data: { title: 'Route Details', route }
+        })
+        .afterClosed()
+        .subscribe(async (r: { save: boolean; route: SKRoute }) => {
+          if (r?.save) {
+            try {
+              const rte = await this.postToServer('routes', r.route);
+              this.selectionAdd('routes', rte.id);
+              resolve(rte.id);
+            } catch (err) {
+              // A server rejection is a real failure, not a cancel — reject so
+              // callers don't mistake it for the user dismissing the dialog.
+              this.app.parseHttpErrorResponse(err);
+              reject(err);
+            }
+          } else {
+            // User dismissed / chose not to save.
+            resolve(null);
+          }
+        });
+    });
+  }
+
+  /**
    * @description Fetch Route with supplied id and display edit dialog
    * @param id route identifier
    */
@@ -1185,35 +1357,54 @@ export class SKResourceService {
    * @description Confirm deletion of Route with supplied id
    * @param id Route identifier
    */
-  public async deleteRoute(id: string) {
+  public async deleteRoute(id: string): Promise<boolean> {
     if (!id) {
-      return;
+      return false;
     }
     // are there notes attached?
     const notes = await this.fetchRelatedNotes('routes', id);
     const checkText = notes?.length !== 0 ? 'Delete attached Notes.' : '';
-    this.app
-      .showConfirm(
-        'Do you want to delete this Route from the server?\n',
-        'Delete Route:',
-        'YES',
-        'NO',
-        checkText
-      )
-      .subscribe(async (result: { ok: boolean; checked: boolean }) => {
-        if (result && result.ok) {
-          try {
-            await this.deleteFromServer('routes', id);
-            if (result.checked) {
-              notes.forEach((note: FBNote) => {
-                this.deleteFromServer('notes', note[0]);
-              });
+    // Resolve true only once the user confirms AND the server delete succeeds,
+    // so callers can defer destructive local cleanup (dropping live buffers,
+    // closing panels) until the route is actually gone.
+    return new Promise<boolean>((resolve) => {
+      this.app
+        .showConfirm(
+          'Do you want to delete this Route from the server?\n',
+          'Delete Route:',
+          'YES',
+          'NO',
+          checkText
+        )
+        .subscribe(async (result: { ok: boolean; checked: boolean }) => {
+          if (result && result.ok) {
+            try {
+              await this.deleteFromServer('routes', id);
+              if (result.checked) {
+                // The route itself is gone; attached-note deletes are
+                // best-effort — await them so a failure is surfaced (not an
+                // unhandled rejection), but don't fail the route delete over one.
+                const outcomes = await Promise.allSettled(
+                  notes.map((note: FBNote) =>
+                    this.deleteFromServer('notes', note[0])
+                  )
+                );
+                for (const o of outcomes) {
+                  if (o.status === 'rejected') {
+                    this.app.parseHttpErrorResponse(o.reason);
+                  }
+                }
+              }
+              resolve(true);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+              resolve(false);
             }
-          } catch (err) {
-            this.app.parseHttpErrorResponse(err);
+          } else {
+            resolve(false);
           }
-        }
-      });
+        });
+    });
   }
 
   // Modify Route point coordinates & refresh course
@@ -1228,10 +1419,10 @@ export class SKResourceService {
     coords: Array<Position>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
-  ) {
+  ): Promise<boolean> {
     const r = this.fromCache('routes', id);
     if (!r) {
-      return;
+      return Promise.resolve(false);
     }
     const rte = r[1];
     rte['feature']['geometry']['coordinates'] =
@@ -1241,9 +1432,14 @@ export class SKResourceService {
     if (coordsMeta) {
       rte['feature']['properties']['coordinatesMeta'] = coordsMeta;
     }
-    this.putToServer('routes', id, rte).catch((err) => {
-      this.app.parseHttpErrorResponse(err);
-    });
+    // Resolves true on success, false on failure (the error is surfaced here);
+    // callers that only fire-and-forget can ignore the result.
+    return this.putToServer('routes', id, rte)
+      .then(() => true)
+      .catch((err) => {
+        this.app.parseHttpErrorResponse(err);
+        return false;
+      });
   }
 
   // **** WAYPOINTS ****

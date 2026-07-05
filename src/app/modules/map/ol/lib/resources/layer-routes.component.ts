@@ -15,6 +15,12 @@ import { getRhumbLineBearing } from 'geolib';
 import { GeolibInputCoordinates } from 'geolib/es/types';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBRoutes } from 'src/app/types';
+import { MapImageRegistry } from '../map-image-registry.service';
+
+/** Symbol ids used to override the default route marker shapes. */
+export const ROUTE_MARKER_START = 'route-start';
+export const ROUTE_MARKER_WAYPOINT = 'route-waypoint';
+export const ROUTE_MARKER_END = 'route-end';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -30,7 +36,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
 
   constructor(
     protected override mapComponent: MapComponent,
-    protected override changeDetectorRef: ChangeDetectorRef
+    protected override changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
@@ -70,7 +77,11 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         });
         f.setId('route.' + r[0]);
         f.set('pointMetadata', r[1].feature.properties.coordinatesMeta ?? null);
-        f.setStyle(this.buildStyle(f));
+        // Style FUNCTION (not a static array) so the per-vertex markers, whose
+        // geometries are derived from the line in buildStyle, re-evaluate as the
+        // geometry changes during a Modify drag — otherwise they stay frozen at
+        // the original vertex positions until the edit finishes.
+        f.setStyle((feat) => this.buildStyle(feat as Feature));
         fa.push(f);
       }
     }
@@ -115,6 +126,15 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       });
     }
 
+    // External symbol overrides (null when no provider symbol is registered).
+    // When present, an external symbol replaces the default drawn shape.
+    // Note: external symbols do not inherit the route line colour. The waypoint
+    // symbol is cloned per-segment and rotated to the bearing; start/end symbols
+    // render upright.
+    const startSym = this.mapImages.getExternalSymbol(ROUTE_MARKER_START);
+    const wptSym = this.mapImages.getExternalSymbol(ROUTE_MARKER_WAYPOINT);
+    const endSym = this.mapImages.getExternalSymbol(ROUTE_MARKER_END);
+
     // point styles
     let idx = 0;
     const l = geometry.getCoordinates().length;
@@ -124,18 +144,36 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         styles.push(
           new Style({
             geometry: new Point(start),
-            image: new Circle({
-              radius: 5,
-              stroke: new Stroke({
-                width: 1,
-                color: 'white'
-              }),
-              fill: ptFill
-            })
+            image:
+              startSym ??
+              new Circle({
+                radius: 5,
+                stroke: new Stroke({
+                  width: 1,
+                  color: 'white'
+                }),
+                fill: ptFill
+              })
           })
         );
       } else {
-        if (isActive) {
+        if (wptSym) {
+          // Clone the cached icon so each segment can carry its own bearing
+          // rotation without mutating the shared instance.
+          const d = getRhumbLineBearing(
+            toLonLat(start) as GeolibInputCoordinates,
+            toLonLat(end) as GeolibInputCoordinates
+          );
+          const img = wptSym.clone();
+          img.setRotation((d * Math.PI) / 180);
+          img.setRotateWithView(true);
+          styles.push(
+            new Style({
+              geometry: new Point(start),
+              image: img
+            })
+          );
+        } else if (isActive) {
           styles.push(
             new Style({
               geometry: new Point(start),
@@ -179,16 +217,18 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         styles.push(
           new Style({
             geometry: new Point(end),
-            image: new RegularShape({
-              radius: 6,
-              stroke: new Stroke({
-                width: 1,
-                color: 'white'
-              }),
-              fill: ptFill,
-              points: 4,
-              angle: Math.PI / 4
-            })
+            image:
+              endSym ??
+              new RegularShape({
+                radius: 6,
+                stroke: new Stroke({
+                  width: 1,
+                  color: 'white'
+                }),
+                fill: ptFill,
+                points: 4,
+                angle: Math.PI / 4
+              })
           })
         );
       }

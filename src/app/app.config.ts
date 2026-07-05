@@ -62,11 +62,21 @@ export function cleanConfig(
         parameters: null,
         favourites: []
       },
-      preferInfoPanel: true
+      preferInfoPanel: true,
+      statusBar: {
+        liveEta: false,
+        referenceSpeed: 6
+      }
     };
   } else {
     if (typeof settings.display.preferInfoPanel === 'undefined') {
       settings.display.preferInfoPanel = true;
+    }
+    if (typeof settings.display.statusBar === 'undefined') {
+      settings.display.statusBar = {
+        liveEta: false,
+        referenceSpeed: 6
+      };
     }
   }
 
@@ -301,6 +311,36 @@ export function cleanConfig(
     };
   }
 
+  if (
+    !settings.plotterExtensions ||
+    typeof settings.plotterExtensions !== 'object' ||
+    Array.isArray(settings.plotterExtensions)
+  ) {
+    settings.plotterExtensions = {
+      widgets: []
+    };
+  }
+  // migrate early plotterExtensions config shape
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (settings.plotterExtensions as any).enabled;
+  if (!Array.isArray(settings.plotterExtensions.widgets)) {
+    settings.plotterExtensions.widgets = [];
+  }
+  settings.plotterExtensions.widgets = settings.plotterExtensions.widgets
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((w: any) => {
+      // early builds used `corner` with a `tl` option
+      if (w.corner && !w.anchor) {
+        w.anchor = w.corner === 'tl' ? 'tr' : w.corner;
+        delete w.corner;
+      }
+      return w;
+    })
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (w: any) => ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
+    );
+
   if (typeof settings.radars === 'undefined') {
     settings.radars = {
       deviceId: '',
@@ -328,7 +368,9 @@ export function cleanConfig(
       aisFilterByShipType: false,
       aisState: [],
       resourceSets: {},
-      infolayers: null
+      infolayers: null,
+      weatherWindEnabled: false,
+      oceanCurrentsEnabled: false
     };
   }
 
@@ -361,6 +403,13 @@ export function cleanConfig(
   if (typeof settings.selections.regions === 'undefined') {
     settings.selections.regions = [];
   }
+  if (typeof settings.selections.weatherWindEnabled === 'undefined') {
+    settings.selections.weatherWindEnabled = false;
+  }
+  if (typeof settings.selections.oceanCurrentsEnabled === 'undefined') {
+    settings.selections.oceanCurrentsEnabled = false;
+  }
+
   // ensure legacy notes selections section is removed
   if (typeof (settings as any).selections.notes) {
     delete (settings as any).selections.notes;
@@ -414,7 +463,11 @@ export function defaultConfig(): IAppConfig {
         parameters: null,
         favourites: []
       },
-      preferInfoPanel: true
+      preferInfoPanel: true,
+      statusBar: {
+        liveEta: false,
+        referenceSpeed: 6
+      }
     },
     units: {
       distance: 'kilometer',
@@ -542,6 +595,9 @@ export function defaultConfig(): IAppConfig {
       opacity: 1
     },
     experiments: false,
+    plotterExtensions: {
+      widgets: []
+    },
     selections: {
       routes: [],
       waypoints: [],
@@ -555,7 +611,9 @@ export function defaultConfig(): IAppConfig {
       aisFilterByShipType: false,
       aisState: [], // list of ais state values used to filter targets
       resourceSets: {}, // additional resources
-      infolayers: null
+      infolayers: null,
+      weatherWindEnabled: false,
+      oceanCurrentsEnabled: false
     }
   };
 }
@@ -594,7 +652,8 @@ export function initData(): FBAppData {
       active: null,
       closest: [],
       prefAvailablePaths: {}, // preference paths available from source,
-      flagged: [] // flagged ais targets
+      flagged: [], // flagged ais targets
+      showTrack: [] // ais targets to display track for (session-only)
     },
     aircraft: new Map(), // received AIS aircraft data
     atons: new Map(), // received AIS AtoN data

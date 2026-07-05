@@ -9,6 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
+import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 
 import {
   AlertDialog,
@@ -23,12 +24,16 @@ import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
+// Package version — single source of truth is package.json, bumped by `npm version`
+import { version as PACKAGE_VERSION } from '../../package.json';
+
 import {
   Position,
   ErrorList,
   IAppConfig,
   LineString,
   SKServerUnitPrefs,
+  SKPathDisplayUnits,
   TemperatureUnitDef,
   DepthUnitDef,
   SpeedUnitDef,
@@ -69,7 +74,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.24.0',
+  version: PACKAGE_VERSION,
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -130,7 +135,11 @@ export class AppFacade extends InfoService {
   }
 
   public serverConfig = {
-    unitPreferences: signal<SKServerUnitPrefs>(undefined)
+    unitPreferences: signal<SKServerUnitPrefs>(undefined),
+    // Per-path display-unit overrides keyed by Signal K path (server
+    // `meta.displayUnits`). Populated from path metadata; consumed by
+    // formatValueForDisplay() when a path is supplied.
+    pathDisplayUnits: signal<Record<string, SKPathDisplayUnits>>({})
   };
 
   // controls map zoom limits
@@ -253,6 +262,9 @@ export class AppFacade extends InfoService {
   mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
   mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)
   mapViewRotation = signal<number>(0); // OL view rotation in radians (CCW positive)
+  // programmatic map move request (e.g. from a plotter extension). A new
+  // object reference each time so the consuming effect always reacts.
+  mapMoveRequest = signal<{ center: Position; zoom?: number } | null>(null);
 
   protected signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
@@ -324,7 +336,7 @@ export class AppFacade extends InfoService {
       this.uiConfig();
       this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
       this.config.ui = this.uiConfig();
-      this.saveConfig();
+      this.saveConfigDebounced();
     });
     effect(() => {
       this.alignUnitPrefs(this.serverConfig.unitPreferences());
@@ -352,9 +364,68 @@ export class AppFacade extends InfoService {
     this.signalk.get('/signalk/v1/unitpreferences/active').subscribe({
       next: (res: SKServerUnitPrefs) => {
         this.serverConfig.unitPreferences.set(res);
+        this.refreshPathDisplayUnits();
       },
       error: () => {
         this.debug('No server unit preferences...using fallback!');
+      }
+    });
+  }
+
+  /**
+   * Paths whose per-path display-unit override (`meta.displayUnits`) Freeboard
+   * honors so they can display in a different unit than their category preset.
+   * Currently wind speed only (see issue #304): the true-wind path is the user's
+   * preferred TWS path.
+   */
+  /**
+   * True-wind path used as the per-path display-unit cache key and lookup. Shared
+   * with display consumers (e.g. the vessel popover) so the key always matches.
+   */
+  public twsDisplayUnitPath(): string {
+    return this.config.units.preferredPaths.tws ?? 'environment.wind.speedTrue';
+  }
+
+  private displayUnitPaths(): string[] {
+    return [this.twsDisplayUnitPath(), 'environment.wind.speedApparent'];
+  }
+
+  /**
+   * Refresh the per-path display-unit cache from the server. Only applied when
+   * the user has opted into server unit preferences; otherwise the cache is
+   * cleared so display falls back to the category preset.
+   */
+  public refreshPathDisplayUnits() {
+    if (!this.config.units.useServerPrefs) {
+      this.serverConfig.pathDisplayUnits.set({});
+      return;
+    }
+    this.displayUnitPaths().forEach((path) => this.fetchPathDisplayUnits(path));
+  }
+
+  /**
+   * Fetch a path's per-path display-unit override (`meta.displayUnits`) from the
+   * server and cache it. Paths with no published override are left uncached and
+   * fall back to the category preset.
+   */
+  public fetchPathDisplayUnits(path: string) {
+    const p = path.split('.').join('/');
+    this.signalk.get(`/signalk/v1/api/vessels/self/${p}/meta`).subscribe({
+      next: (meta: { displayUnits?: SKPathDisplayUnits }) => {
+        // Re-check useServerPrefs: it may have been turned off while this
+        // request was in flight (a stale response must not re-add an override).
+        if (
+          this.config.units.useServerPrefs &&
+          meta?.displayUnits?.targetUnit
+        ) {
+          this.setPathDisplayUnits(path, meta.displayUnits);
+        } else {
+          this.clearPathDisplayUnits(path);
+        }
+      },
+      error: () => {
+        this.debug(`No display units for path: ${path}`);
+        this.clearPathDisplayUnits(path);
       }
     });
   }
@@ -517,6 +588,38 @@ export class AppFacade extends InfoService {
           resolve(false);
         }
       });
+    });
+  }
+
+  /**
+   * Returns the per-path display-unit override for a Signal K path, or undefined
+   * when the server has published none for it.
+   */
+  public getPathDisplayUnits(path: string): SKPathDisplayUnits | undefined {
+    return this.serverConfig.pathDisplayUnits()[path];
+  }
+
+  /**
+   * Store the per-path display-unit override for a Signal K path (from the path's
+   * `meta.displayUnits`).
+   */
+  public setPathDisplayUnits(path: string, displayUnits: SKPathDisplayUnits) {
+    this.serverConfig.pathDisplayUnits.update((m) => ({
+      ...m,
+      [path]: displayUnits
+    }));
+  }
+
+  /**
+   * Remove the cached per-path display-unit override for a Signal K path, so it
+   * reverts to the category preset.
+   */
+  public clearPathDisplayUnits(path: string) {
+    this.serverConfig.pathDisplayUnits.update((m) => {
+      if (!(path in m)) return m;
+      const next = { ...m };
+      delete next[path];
+      return next;
     });
   }
 
@@ -778,6 +881,19 @@ export class AppFacade extends InfoService {
     });
   }
 
+  /** Whether the AIS vessel's individual track is displayed (session-only) */
+  isVesselTrackShown(id: string): boolean {
+    return isTrackShown(this.data.vessels.showTrack, id);
+  }
+
+  /** Toggle display of an AIS vessel's individual track on the map (session-only) */
+  toggleVesselTrack(id: string) {
+    this.data.vessels.showTrack = toggleTrackSelection(
+      this.data.vessels.showTrack,
+      id
+    );
+  }
+
   /** Calculate the position to center the map.
    * Tales into account the amount of offset to apply
    */
@@ -844,6 +960,14 @@ export class AppFacade extends InfoService {
         error: () => this.debug('saveConfig: Cannot save config to server!')
       });
     }
+  }
+
+  private saveCfgTimer: ReturnType<typeof setTimeout>;
+  /** Debounced saveConfig — collapses a flurry of saves (e.g. repeated map
+   * pans or rapid UI toggles) into a single localStorage write + server PUT. */
+  saveConfigDebounced(ms = 1000) {
+    clearTimeout(this.saveCfgTimer);
+    this.saveCfgTimer = setTimeout(() => this.saveConfig(), ms);
   }
 
   /** show Help at specified anchor */
@@ -996,12 +1120,19 @@ export class AppFacade extends InfoService {
 
   /** returns a formatted string containing the value (converted to the preferred units)
    * and units. (e.g. 12.5 knots, 8.8 m/s)
-   * Numbers are fixed to 1 decimal point unless precision is specified
+   * Numbers are fixed to 1 decimal point unless precision is specified.
+   *
+   * When `options.path` is supplied and the server has published a per-path
+   * display-unit override for it (`meta.displayUnits`), that override takes
+   * precedence over the category preset — so a path can display in a different
+   * unit than others in its category. Otherwise the category / source-unit
+   * preset is used.
    */
   formatValueForDisplay(
     value: number,
     sourceUnit: SI_BASE_UNIT,
     options?: {
+      path?: string;
       category?: string;
       noSymbol?: boolean;
       precision?: number;
@@ -1011,6 +1142,40 @@ export class AppFacade extends InfoService {
       const precision = options?.precision ?? 1;
       let symbol = '';
       let nv: string;
+
+      const displayUnits = options?.path
+        ? this.getPathDisplayUnits(options.path)
+        : undefined;
+      if (displayUnits) {
+        try {
+          // Ratios format like the category preset (0-1 → %, out-of-range shown raw)
+          // rather than a plain unit transform, so keep parity here.
+          nv =
+            sourceUnit === 'ratio'
+              ? this.formatNumericDisplay(
+                  Math.abs(value) <= 1 ? value * 100 : value,
+                  Math.abs(value) <= 1 ? precision : 4
+                )
+              : this.formatNumericDisplay(
+                  Convert.transform(
+                    value,
+                    sourceUnit,
+                    displayUnits.targetUnit as TARGET_UNIT
+                  ),
+                  precision
+                );
+          symbol =
+            displayUnits.symbol ??
+            Convert.getSymbol(displayUnits.targetUnit as TARGET_UNIT);
+          return `${nv}${options?.noSymbol ? '' : symbol}`;
+        } catch {
+          // Malformed server-published displayUnits (e.g. unknown targetUnit) —
+          // warn and fall back to the category preset.
+          console.warn(
+            `formatValueForDisplay: invalid displayUnits for path "${options.path}" — falling back to category preset.`
+          );
+        }
+      }
 
       if (sourceUnit === 'K') {
         symbol = Convert.getSymbol(this.config.units.temperature);

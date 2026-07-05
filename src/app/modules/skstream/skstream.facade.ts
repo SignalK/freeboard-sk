@@ -400,10 +400,10 @@ export class SKStreamFacade {
         : value.wind.twd;
 
       value.orientation =
-        value.cogTrue ??
         value.headingTrue ??
-        value.cogMagnetic ??
         value.headingMagnetic ??
+        value.cogTrue ??
+        value.cogMagnetic ??
         0;
     });
   }

@@ -25,10 +25,18 @@ mat-nav-list {
 	bottom: 0;
     right: 0;
 	left: 0px;
-    overflow: auto;
+    overflow: hidden;
     scrollbar-width: none;
     position: fixed;
 	border-top: silver 0px solid;
+    /* row layout so an open plotter-extension panel pushes the map left */
+    display: flex;
+    flex-direction: row;
+}
+.view .pe-view-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
 }
 
 .leftMenuPanel {
@@ -117,11 +125,9 @@ mat-nav-list {
 }
 
 .measurePanel {
-    position: absolute;
-    top: 60px;
-    left: 50px;
-    width: 150px;
-    border: black 1px solid;
+    /* Flows in-line inside the positioned ._ap_interact_help container; was
+       position:absolute, which lifted it out of flow and overlapped the
+       measurement readout shown alongside it during a route modify. */
     font-family: roboto;
     font-size: 10pt;
 }

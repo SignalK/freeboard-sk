@@ -8,11 +8,10 @@ import {
   ViewChild,
   SimpleChanges,
   signal,
+  computed,
   input,
   effect,
   inject,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
   NgZone
 } from '@angular/core';
 
@@ -48,11 +47,19 @@ import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
-import { Convert } from 'src/app/lib/convert';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { LineString, MultiLineString, Position } from 'src/app/types';
+import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
+import {
+  FBRoute,
+  FBRoutes,
+  LineString,
+  MultiLineString,
+  Position
+} from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
+import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
   SKResourceService,
@@ -84,10 +91,16 @@ import {
   destinationStyles,
   laylineStyles,
   drawStyles,
+  routeDraftStyles,
   targetAngleStyle,
   raceCourseStyles,
   bearingDistanceStyle
 } from './mapconfig';
+import { SKRoute } from 'src/app/modules/skresources/resource-classes';
+import {
+  RouteBuffer,
+  RouteBufferRegistry
+} from 'src/app/modules/plotterext/route-buffer.registry';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
@@ -110,6 +123,8 @@ import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { AppIconDef } from '../icons';
+import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
+import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 
 interface IResource {
   id: string;
@@ -155,11 +170,12 @@ enum INTERACTION_MODE {
     ResourcePopoverComponent,
     ResourceSetPopoverComponent,
     VesselPopoverComponent,
-    S57PopoverComponent
+    S57PopoverComponent,
+    LayerWindWeatherComponent,
+    LayerCurrentsWeatherComponent
   ],
   templateUrl: './fb-map.component.html',
-  styleUrls: ['./fb-map.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrls: ['./fb-map.component.css']
 })
 export class FBMapComponent implements OnInit, OnDestroy {
   @Input() setFocus: string;
@@ -236,6 +252,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
     bearingDistance: bearingDistanceStyle
   };
 
+  // Live route edit buffers (unsaved drafts) rendered via a second fb-routes
+  // layer in the amber draft style.
+  protected draftRouteStyles = routeDraftStyles;
+  protected bufferRoutes = computed<FBRoutes>(() =>
+    this.routeBuffers
+      .live()
+      // A saved + clean route renders from the resource layer (green); only
+      // unsaved or dirty routes get the amber draft styling.
+      .filter((b) => !b.saved || b.dirty)
+      .map((b) => this.bufferToFBRoute(b))
+  );
+
   // ** map feature data
   protected dfeat: IFeatureData = {
     aircraft: new Map(),
@@ -264,7 +292,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: [0, 0],
     xy: null
   });
+  // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
+  // when the "Live ETA at cursor" option is enabled (null = hidden).
+  protected cursorInfo = signal<CursorEtaInfo | null>(null);
   contextMenuPosition = { x: '0px', y: '0px' };
+  // Empty widget-anchor cell at the last right-click (or null) — gates and
+  // drives the "Add widget here" context-menu item (desktop).
+  protected addableWidgetCell: ReturnType<
+    PlotterExtensionService['addableCellAt']
+  > = null;
 
   private obsList = [];
 
@@ -275,13 +311,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected skstream = inject(SKStreamFacade);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
+  protected plotterExt = inject(PlotterExtensionService);
   protected course = inject(CourseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
-  private cdr = inject(ChangeDetectorRef);
+  protected routeBuffers = inject(RouteBufferRegistry);
   private ngZone = inject(NgZone);
 
   constructor() {
@@ -317,8 +354,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
             });
           }
         }
-        // OnPush: settings changes update plain app.config read by the template.
-        this.cdr.markForCheck();
       })
     );
   }
@@ -508,9 +543,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.movingMap) {
       this.centerVessel();
     }
-    // OnPush: this runs from the (non-Angular-event) vessels$ stream and mutates
-    // the plain `dfeat` bound to child layers, so mark for check to propagate.
-    this.cdr.markForCheck();
   }
 
   // ********** RADAR EVENT HANDLERS *****************
@@ -575,6 +607,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'measure':
         this.mapInteract.startMeasuring();
         break;
+      case 'add_widget':
+        if (this.addableWidgetCell) {
+          this.plotterExt.openAddWidgetPicker(
+            this.addableWidgetCell.anchor,
+            this.addableWidgetCell.cell
+          );
+        }
+        break;
       case 'get_feature_info':
         this.getFeatureInfo();
         break;
@@ -596,7 +636,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     this.drawVesselLines();
     if (!this.movingMap) {
-      this.app.saveConfig();
+      // debounce: a flurry of pans/zooms collapses into one save
+      this.app.saveConfigDebounced();
       this.isDirty = false;
     } else {
       this.isDirty = true;
@@ -613,6 +654,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       xy: e.coordinate,
       coords: GeoUtils.normaliseCoords(e.lonlat as Position)
     });
+    this.updateCursorInfo(e.lonlat as Position);
     if (this.mapInteract.isMeasuring()) {
       if (
         this.mapInteract.measureGeometryType === 'LineString' &&
@@ -659,6 +701,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // so exiting "move map" mode propagates to the UI. Rare one-off transition.
       this.ngZone.run(() => this.exitMovingMap.emit(true));
     }
+  }
+
+  // Update the status-bar cursor bearing/distance/ETA readout. Off unless the
+  // "Live ETA at cursor" option is enabled and the vessel position is known.
+  private updateCursorInfo(cursor: Position) {
+    const vessel = this.app.data.vessels.self;
+    if (
+      !this.app.config.display.statusBar?.liveEta ||
+      !vessel?.positionReceived ||
+      !vessel.position
+    ) {
+      this.cursorInfo.set(null);
+      return;
+    }
+    // referenceSpeed is stored in the user's display speed unit; convert to m/s.
+    const factor =
+      Convert.transform(1, 'm/s', this.app.config.units.speed as TARGET_UNIT) ??
+      1;
+    const refSpeed = this.app.config.display.statusBar.referenceSpeed;
+    const referenceSpeedMs =
+      factor > 0 && typeof refSpeed === 'number' ? refSpeed / factor : 0;
+    this.cursorInfo.set(
+      computeCursorEta(vessel.position, cursor, vessel.sog, referenceSpeedMs)
+    );
   }
 
   protected onMapPointerDown(e: FBPointerEvent) {
@@ -724,6 +790,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     e.preventDefault();
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
+    // Resolve the click to an empty widget-anchor cell (desktop right-click
+    // equivalent of the press-and-hold add gesture). Null when not over one.
+    this.addableWidgetCell = this.plotterExt.addableCellAt(
+      e.clientX,
+      e.clientY
+    );
     this.contextMenu.menuData = { item: this.mouse().coords };
     if (this.mapInteract.isMeasuring()) {
       this.parseClickInMeasureMode(this.mouse().xy.lonlat);
@@ -877,16 +949,72 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Enter modify mode */
+  /** Convert a live route edit buffer to the FBRoute tuple fb-routes renders. */
+  /** The route buffer for `routeId` only when it represents an unsaved draft or
+   *  a route with pending edits. The registry now also mirrors clean saved
+   *  routes, so a plain `routeBuffers.has()` would wrongly treat those as
+   *  unsaved. */
+  private getUnsavedRouteBuffer(routeId: string): RouteBuffer | undefined {
+    const b = this.routeBuffers.get(routeId);
+    return b && (!b.saved || b.dirty) ? b : undefined;
+  }
+
+  private bufferToFBRoute(b: RouteBuffer): FBRoute {
+    const rte = new SKRoute();
+    rte.name = b.name ?? '';
+    rte.description = b.description ?? '';
+    rte.feature.geometry.coordinates = b.points.map(
+      (p) => p.position
+    ) as LineString;
+    // Carry per-point metadata so editing a named draft (which seeds
+    // coordsMetadata from the rendered feature's pointMetadata) doesn't drop
+    // waypoint names/descriptions on save.
+    const coordsMeta = b.points.map((p) => ({
+      ...(p.name ? { name: p.name } : {}),
+      ...(p.description ? { description: p.description } : {})
+    }));
+    if (coordsMeta.some((m) => Object.keys(m).length > 0)) {
+      rte.feature.properties.coordinatesMeta = coordsMeta;
+    }
+    rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
+    return [b.routeId, rte, true];
+  }
+
+  /** True when the popover's route is an unsaved draft (or has pending edits). */
+  protected isUnsavedRoute(): boolean {
+    if (this.overlay().type !== 'route') {
+      return false;
+    }
+    const b = this.routeBuffers.get(this.overlay().id);
+    return !!b && (!b.saved || b.dirty);
+  }
+
+  /**
+   * Popover "Save" shortcut for an unsaved route — opens the standard Route
+   * Details dialog (same path as the info-panel SAVE) and persists. Saves the
+   * user a trip through INFO.
+   */
+  protected async saveRouteFromPopover() {
+    try {
+      await this.plotterExt.saveBuffer(this.overlay().id, { dialog: true });
+    } catch {
+      // saveBuffer surfaced the server error via parseHttpErrorResponse; the
+      // buffer stays dirty so the user can retry.
+    }
+  }
+
   protected modifyFeature(featureType?: string) {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
     }
     this.mapInteract.startModifying(this.overlay());
     if (this.overlay().type === 'route') {
-      this.mapInteract.measurementCoords = this.skres.fromCache(
-        'routes',
-        this.overlay().id
-      )[1].feature.geometry.coordinates;
+      const rid = this.overlay().id;
+      this.mapInteract.measurementCoords = this.routeBuffers.has(rid)
+        ? (this.routeBuffers
+            .get(rid)!
+            .points.map((p) => p.position) as LineString)
+        : this.skres.fromCache('routes', rid)[1].feature.geometry.coordinates;
     }
     if (featureType === 'anchor') {
       this.overlay().type = featureType;
@@ -1065,8 +1193,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
               class: 'icon-route'
             };
             addToFeatureList = true;
-            const r = this.skres.fromCache('routes', t[1]);
-            text = r[1].name;
+            const ub = this.getUnsavedRouteBuffer(t[1]);
+            if (ub) {
+              text = ub.name || 'Route (unsaved)';
+            } else {
+              const r = this.skres.fromCache('routes', t[1]);
+              text = r[1].name;
+            }
             break;
           case 'waypoint':
             icon = {
@@ -1369,22 +1502,38 @@ export class FBMapComponent implements OnInit, OnDestroy {
           this.popoverInfo();
         }
         break;
-      case 'route':
-        item = [this.skres.fromCache('routes', t[1])];
-        if (!item) {
-          return false;
+      case 'route': {
+        const ub = this.getUnsavedRouteBuffer(t[1]);
+        if (ub) {
+          // Unsaved live edit buffer (amber draft): build the popover from the
+          // registry, not the saved-route cache. The popover header shows the
+          // route name, so fall back to "(unsaved)" for an unnamed draft.
+          const skr = this.bufferToFBRoute(ub)[1];
+          skr.name = skr.name || '(unsaved)';
+          poData.id = t[1];
+          poData.type = 'route';
+          poData.title = 'Route (unsaved)';
+          poData.resource = [t[1], skr];
+          poData.show = true;
+          poData.readOnly = false;
+        } else {
+          item = [this.skres.fromCache('routes', t[1])];
+          if (!item) {
+            return false;
+          }
+          poData.id = t[1];
+          poData.type = t[0];
+          poData.title = 'Route';
+          poData.resource = item[0];
+          poData.show = true;
+          poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         }
-        poData.id = t[1];
-        poData.type = t[0];
-        poData.title = 'Route';
-        poData.resource = item[0];
-        poData.show = true;
-        poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         if (this.infoPanel.opened()) {
           this.overlay.set(poData);
           this.popoverInfo();
         }
         break;
+      }
       case 'waypoint':
         item = [this.skres.fromCache('waypoints', t[1])];
         if (!item) {
@@ -1446,7 +1595,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       ['notes', 'regions', 'waypoints', 'routes'].includes(collection) &&
       this.app.useInfoPanel()
     ) {
-      this.infoPanel.open(collection, this.overlay().id);
+      const ub = this.getUnsavedRouteBuffer(this.overlay().id);
+      if (collection === 'routes' && ub) {
+        // Unsaved live buffer: open the info panel directly from the registry
+        // (it is not on the server, so infoPanel.open()'s fetch would fail).
+        this.infoPanel.openWith('routes', this.bufferToFBRoute(ub));
+      } else {
+        this.infoPanel.open(collection, this.overlay().id);
+      }
     } else {
       this.skres.resourceProperties(this.overlay());
     }
@@ -1744,14 +1900,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ********************
 
   // ** delete selected feature **
-  protected deleteFeature(id: string, type: string) {
+  protected async deleteFeature(id: string, type: string) {
     switch (type) {
       case 'waypoint':
         this.skres.deleteWaypoint(id);
         break;
-      case 'route':
-        this.skres.deleteRoute(id);
+      case 'route': {
+        const b = this.routeBuffers.get(id);
+        if (b && !b.saved) {
+          // Unsaved draft — discard the live buffer locally.
+          this.routeBuffers.delete(id);
+        } else {
+          // Saved route (clean or dirty, with or without a buffer) — delete the
+          // stored resource by its href (a saved draft keeps its draft routeId),
+          // and only drop the live buffer once the server delete is confirmed so
+          // a cancel/failure doesn't lose it. hiddenSaved=false so the registry's
+          // hidden event reports a permanent delete, not a hide.
+          const ok = await this.skres.deleteRoute(b?.href ?? id);
+          if (ok && b) {
+            this.routeBuffers.delete(id, false);
+          }
+        }
         break;
+      }
       case 'note':
         this.skres.deleteNote(id);
         break;

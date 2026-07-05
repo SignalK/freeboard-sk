@@ -219,6 +219,46 @@
               </mat-card-content>
             </mat-card>
           </div>
+          <div class="setting-group">
+            <div class="setting-group-title">STATUS BAR OPTIONS</div>
+            <mat-card class="setting-card">
+              <mat-card-content>
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.statusBar.liveEta"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Show the bearing, distance and ETA from the vessel to the cursor in the status bar (mouse only)."
+                    >
+                      Live ETA at cursor
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%" floatLabel="always">
+                      <mat-label
+                        >Reference Boat Speed ({{ speedUnitSymbol }})</mat-label
+                      >
+                      <input
+                        matInput
+                        type="number"
+                        #refspeed="ngModel"
+                        min="0"
+                        [disabled]="!facade.settings.display.statusBar.liveEta"
+                        [(ngModel)]="facade.settings.display.statusBar.referenceSpeed"
+                        (change)="parseNumber(refspeed)"
+                        matTooltip="Boat speed used to estimate ETA when SOG is unavailable (e.g. at anchor or hove to)."
+                      />
+                      @if ( refspeed.invalid && (refspeed.dirty ||
+                      refspeed.touched) ) {
+                      <mat-error>Please enter a number &gt;= 0</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
         </div>
       </div>
     </mat-tab>

@@ -406,7 +406,7 @@ export class CourseService {
     if (typeof v.courseCalcs['route.distance'] !== 'undefined') {
       c.route.dtg =
         this.app.config.units.distance === 'kilometer'
-          ? v.courseCalcs.distance / 1000
+          ? v.courseCalcs['route.distance'] / 1000
           : Convert.transform(
               v.courseCalcs['route.distance'],
               'm',

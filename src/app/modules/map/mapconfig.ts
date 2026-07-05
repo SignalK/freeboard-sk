@@ -89,6 +89,29 @@ export const routeStyles = {
   })
 };
 
+// Live route edit buffers (unsaved drafts). A distinct amber colour so a draft
+// at rest reads differently from a committed (green) saved route; vertex dots
+// come from the line style. Interactive edit-mode handles are added later.
+export const routeDraftStyles = {
+  default: new Style({
+    stroke: new Stroke({
+      color: '#e8932b',
+      width: 3,
+      lineDash: [10, 6]
+    }),
+    text: new Text({
+      text: '',
+      offsetY: 10
+    })
+  }),
+  active: new Style({
+    stroke: new Stroke({
+      color: '#e8932b',
+      width: 4
+    })
+  })
+};
+
 // ***********
 
 export const anchorStyles = {

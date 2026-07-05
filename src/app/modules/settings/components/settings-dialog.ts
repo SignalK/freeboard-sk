@@ -265,6 +265,11 @@ export class SettingsDialog implements OnInit {
    */
   private fallbackToDefault() {
     const dconfig = defaultConfig();
+    if (
+      typeof this.facade.settings.display.statusBar.referenceSpeed !== 'number'
+    ) {
+      return dconfig.display.statusBar.referenceSpeed;
+    }
     if (typeof this.facade.settings.map.s57Options.shallowDepth !== 'number') {
       return dconfig.map.s57Options.shallowDepth;
     }
@@ -291,6 +296,10 @@ export class SettingsDialog implements OnInit {
   persistModel(value?: string) {
     this.facade.applySettings();
     this.facade.emitChangeEvent(value);
+  }
+
+  protected get speedUnitSymbol(): string {
+    return Convert.getSymbol(this.facade.settings.units.speed);
   }
 
   /**

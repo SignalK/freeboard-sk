@@ -28,10 +28,12 @@ interface PopoverCtrl {
   showRelatedButton: boolean;
   showPointsButton: boolean;
   showNotesButton: boolean;
+  showSaveButton: boolean;
   canActivate: boolean;
   isActive: boolean;
   activeText: string;
   isReadOnly: boolean;
+  modifyLabel: string;
 }
 
 @Component({
@@ -110,7 +112,10 @@ interface PopoverCtrl {
 
       <div style="display:flex;flex-wrap: wrap;">
         @if (ctrl.showModifyButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 1 : null"
+          >
             <button
               mat-button
               (click)="emitModify()"
@@ -119,7 +124,7 @@ interface PopoverCtrl {
               [disabled]="this.ctrl.isReadOnly"
             >
               <mat-icon>touch_app</mat-icon>
-              MOVE
+              {{ ctrl.modifyLabel }}
             </button>
           </div>
         }
@@ -137,7 +142,10 @@ interface PopoverCtrl {
           </div>
         }
         @if (ctrl.showDeleteButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 6 : null"
+          >
             <button
               mat-button
               [disabled]="ctrl.isReadOnly || ctrl.isActive"
@@ -151,7 +159,10 @@ interface PopoverCtrl {
           </div>
         }
         @if (ctrl.canActivate && !ctrl.isActive) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 2 : null"
+          >
             <button
               mat-button
               (click)="emitActive(true)"
@@ -167,7 +178,10 @@ interface PopoverCtrl {
             </button>
           </div>
         } @else if (ctrl.canActivate && ctrl.isActive) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 2 : null"
+          >
             <button
               mat-button
               (click)="emitActive(false)"
@@ -180,7 +194,10 @@ interface PopoverCtrl {
           </div>
         }
         @if (ctrl.showPointsButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 3 : null"
+          >
             <button
               mat-button
               (click)="emitPoints()"
@@ -206,7 +223,10 @@ interface PopoverCtrl {
           </div>
         }
         @if (ctrl.showNotesButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 4 : null"
+          >
             <button
               mat-button
               (click)="emitNotes()"
@@ -219,7 +239,10 @@ interface PopoverCtrl {
           </div>
         }
         @if (ctrl.showInfoButton) {
-          <div class="popover-action-button">
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 5 : null"
+          >
             <button
               mat-button
               (click)="emitInfo()"
@@ -228,6 +251,23 @@ interface PopoverCtrl {
             >
               <mat-icon>info_outline</mat-icon>
               INFO
+            </button>
+          </div>
+        }
+        @if (ctrl.showSaveButton) {
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 2 : null"
+          >
+            <button
+              mat-button
+              color="primary"
+              (click)="emitSave()"
+              matTooltip="Save Route"
+              matTooltipPosition="after"
+            >
+              <mat-icon>save</mat-icon>
+              SAVE
             </button>
           </div>
         }
@@ -244,7 +284,10 @@ export class ResourcePopoverComponent {
   featureCount = input<number>(0);
   units = input<string>('m');
   canClose = input<boolean>();
+  /** Host-set: this route is an unsaved draft → show the Save shortcut. */
+  canSave = input<boolean>(false);
   modify = output<void>();
+  save = output<void>();
   delete = output<void>();
   addNote = output<void>();
   activated = output<void>();
@@ -266,10 +309,12 @@ export class ResourcePopoverComponent {
     showRelatedButton: false,
     showPointsButton: false,
     showNotesButton: false,
+    showSaveButton: false,
     canActivate: false,
     isActive: false,
     activeText: 'ACTIVE',
-    isReadOnly: false
+    isReadOnly: false,
+    modifyLabel: 'MOVE'
   };
   protected hasMarkdown = signal<boolean>(false);
   protected icon: AppIconDef;
@@ -283,6 +328,20 @@ export class ResourcePopoverComponent {
       this.parse();
       this.ctrl.showModifyButton =
         this.type() !== 'destination' && this.featureCount() > 0 ? true : false;
+      // Routes/regions are shape-edited ("Modify"); points are moved ("Move").
+      this.ctrl.modifyLabel =
+        this.type() === 'route' || this.type() === 'region' ? 'MODIFY' : 'MOVE';
+      // Save shortcut: only for an unsaved route (host-decided via canSave).
+      this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
+      if (this.ctrl.showSaveButton) {
+        // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
+        // the actions that only work against a stored resource — Start
+        // (navigation), Route Points and Show Notes — which a draft has none of.
+        this.ctrl.showDeleteButton = true;
+        this.ctrl.canActivate = false;
+        this.ctrl.showPointsButton = false;
+        this.ctrl.showNotesButton = false;
+      }
     });
   }
 
@@ -378,9 +437,9 @@ export class ResourcePopoverComponent {
     this.ctrl.showNotesButton = this.app.useInfoPanel() ? false : true;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showRelatedButton = false;
-    this.ctrl.showDeleteButton = this.app.useInfoPanel()
-      ? false
-      : !this.ctrl.isReadOnly;
+    // Always offer Delete for routes (consistent lower-right action), even with
+    // the info panel; the button itself is disabled when the route is active.
+    this.ctrl.showDeleteButton = !this.ctrl.isReadOnly;
 
     this.icon = getResourceIcon('routes', this.resource()[1]);
     this._title.set(this.resource()[1].name ?? '');
@@ -445,6 +504,10 @@ export class ResourcePopoverComponent {
 
   emitModify() {
     this.modify.emit();
+  }
+
+  emitSave() {
+    this.save.emit();
   }
 
   emitAddNote() {

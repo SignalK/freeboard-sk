@@ -116,7 +116,9 @@ export class RadarAPIService {
 
   private testForWebGL(): boolean {
     if (typeof OffscreenCanvas === 'undefined') {
-      console.warn('[FreeBoardSK] OffscreenCanvas not available — WebGL radar display disabled');
+      console.warn(
+        '[FreeBoardSK] OffscreenCanvas not available — WebGL radar display disabled'
+      );
       return false;
     }
     let gl = new OffscreenCanvas(10, 10).getContext('webgl2');
@@ -306,7 +308,7 @@ export class RadarAPIService {
       this.signalk.api
         .put(
           this.app.skApiVersion,
-          `${this.getPath(radarId)}/controls/${radarId}/${controlId}`,
+          `${this.getPath(radarId)}/controls/${controlId}`,
           { value: value }
         )
         .subscribe({
