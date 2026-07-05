@@ -68,7 +68,7 @@
     "google-protobuf": "^4.0.1",
     "signalk-plotterext-bus": "^0.8.0",
     "tslib": "^2.0.0",
-    "uuid": "^11.1.0"
+    "uuid": "^14.0.1"
   },
   "devDependencies": {
     "@angular/animations": "^21.0.5",
