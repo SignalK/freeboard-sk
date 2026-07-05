@@ -632,8 +632,7 @@ export class PlotterExtensionService {
     for (const [id, route] of displayed) {
       const coords = (route.feature?.geometry?.coordinates ?? []) as Position[];
       const meta = route.feature?.properties?.coordinatesMeta as
-        | Array<{ name?: string; description?: string }>
-        | undefined;
+        Array<{ name?: string; description?: string }> | undefined;
       const points = this.pointsFromRoute(coords, meta);
       // Resolve by href, not routeId: a draft saved via route.save keeps its
       // original (draft) routeId while its href points at the new resource, so
@@ -867,8 +866,7 @@ export class PlotterExtensionService {
     const route = cached[1];
     const coords = (route.feature?.geometry?.coordinates ?? []) as Position[];
     const meta = route.feature?.properties?.coordinatesMeta as
-      | Array<{ name?: string; description?: string }>
-      | undefined;
+      Array<{ name?: string; description?: string }> | undefined;
     const points = this.pointsFromRoute(coords, meta);
     const buf = this.routeRegistry.show({
       routeId: ref,

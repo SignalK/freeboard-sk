@@ -20,13 +20,7 @@ import { SKWorkerService } from '../skstream/skstream.service';
 import { ActiveRadar } from '../radar/radar-api.service';
 
 export type InfoPanelResource =
-  | SKRoute
-  | SKWaypoint
-  | SKRegion
-  | SKNote
-  | SKChart
-  | SKTrack
-  | ActiveRadar;
+  SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack | ActiveRadar;
 
 export interface InfoPanelItem {
   type: SKResourceType | 'radars';

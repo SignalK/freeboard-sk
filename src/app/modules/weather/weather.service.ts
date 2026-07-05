@@ -64,8 +64,7 @@ export class WeatherService {
         const samples: WeatherWindSample[] = [];
         responses.forEach((response, i) => {
           const obs: SkObservation | undefined = response?.[0] as
-            | SkObservation
-            | undefined;
+            SkObservation | undefined;
           if (
             !obs?.wind ||
             typeof obs.wind.speedTrue !== 'number' ||
