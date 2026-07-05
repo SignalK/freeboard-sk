@@ -3,11 +3,11 @@
 #   builds/candidate  = current working tree (your changes)
 #   builds/baseline   = working tree with tracked changes stashed (pre-change)
 #
-# Safe: stashes only tracked modifications (the untracked perf-harness/ is left
-# alone), and pops the stash + rebuilds afterwards. Run from the repo root.
+# Safe: stashes only tracked src/ changes (the harness under dev-tools/ is left
+# alone), and pops the stash + rebuilds afterwards. Run from anywhere.
 set -euo pipefail
-cd "$(dirname "$0")/.."   # repo root
-HARNESS=perf-harness
+cd "$(dirname "$0")/../.."   # repo root (harness lives two levels down)
+HARNESS=dev-tools/perf-harness
 
 echo "==> building candidate (current tree)"
 npm run build >/dev/null

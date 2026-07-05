@@ -2,7 +2,7 @@
 # The stock image entrypoint (startup.sh) hardcodes `--securityenabled`, which
 # forces token auth. We override the entrypoint to run the server open (no auth)
 # so the app connects headlessly and the data generator can push deltas over WS.
-# Data is seeded at runtime by perf-harness/sk-feed.mjs (self vessel + N AIS).
+# Data is seeded at runtime by dev-tools/perf-harness/sk-feed.mjs (self vessel + N AIS).
 services:
   signalk:
     image: signalk/signalk-server:latest

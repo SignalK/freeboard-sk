@@ -4,7 +4,7 @@ An automated, reproducible harness for profiling Freeboard-SK under a realistic
 live SignalK data stream, and for measuring the effect of a change with a
 **before/after comparison**.
 
-Everything lives in `perf-harness/`. It is self-contained (its own
+Everything lives in `dev-tools/perf-harness/`. It is self-contained (its own
 `package.json`) and does not touch the main project's dependencies.
 
 ---
@@ -57,7 +57,7 @@ Everything lives in `perf-harness/`. It is self-contained (its own
 ## One-time setup
 
 ```bash
-cd perf-harness
+cd dev-tools/perf-harness
 npm install                 # playwright + http-proxy
 npx playwright install chromium
 docker compose up -d        # SignalK server on http://localhost:3010
@@ -103,12 +103,12 @@ directly when profiling a single build by hand.
 
 `build-variants.sh` builds the current working tree as `builds/candidate` and the
 tree with tracked changes **stashed** as `builds/baseline` (then restores and
-rebuilds). It only stashes tracked source changes — the untracked `perf-harness/`
-is left alone.
+rebuilds). It only stashes tracked `src/` changes — the harness under
+`dev-tools/` is left alone.
 
 ```bash
 ./build-variants.sh
-# => perf-harness/builds/baseline  and  perf-harness/builds/candidate
+# => dev-tools/perf-harness/builds/baseline  and  dev-tools/perf-harness/builds/candidate
 ```
 
 (You can also point the tools at any pre-built directory.)
@@ -121,12 +121,12 @@ is left alone.
 
 ```bash
 DURATION_S=120 AIS_COUNT=50 CENTER=0,0 node sk-feed.mjs &   # start the feed
-LABEL=mybuild BUILD_DIR=../public ZOOM=15 node profile.mjs   # writes results/mybuild.json + .png
+LABEL=mybuild BUILD_DIR=../../public ZOOM=15 node profile.mjs   # writes results/mybuild.json + .png
 ```
 
 | Env | Default | Notes |
 |---|---|---|
-| `BUILD_DIR` | `../public` | built app dir to serve |
+| `BUILD_DIR` | `../../public` | built app dir to serve |
 | `ZOOM` | 15 | initial map zoom |
 | `SETTLE_MS` | 9000 | wait after load for connect + first render |
 | `HEADLESS` | true | `false` runs **headed on the real GPU** — use this for render/frame measurements (see caveat above); headless forces SwiftShader |

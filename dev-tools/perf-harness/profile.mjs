@@ -13,7 +13,7 @@
  * window should show markedly less ScriptDuration and fewer/shorter long tasks.
  *
  * Env:
- *   BUILD_DIR  dir to serve            (default ../public)
+ *   BUILD_DIR  dir to serve            (default ../../public)
  *   PORT       static server port      (default 8087)
  *   SKHOST/SKPORT  SignalK host/port   (default localhost / 3010)
  *   HEADLESS   'true'|'false'          (default true)
@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 import httpProxy from 'http-proxy';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
-const BUILD_DIR = path.resolve(__dir, process.env.BUILD_DIR || '../public');
+const BUILD_DIR = path.resolve(__dir, process.env.BUILD_DIR || '../../public');
 const PORT = Number(process.env.PORT || 8087);
 const SKHOST = process.env.SKHOST || 'localhost';
 const SKPORT = process.env.SKPORT || '3010';
