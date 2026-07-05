@@ -86,7 +86,7 @@
     "@angular/platform-browser-dynamic": "^21.0.5",
     "@kolkov/angular-editor": "^3.0.5",
     "@types/arcgis-rest-api": "^10.4.5",
-    "@types/express": "^4.17.17",
+    "@types/express": "^5.0.6",
     "@types/geojson": "^7946.0.10",
     "@types/node": "^24.10.1",
     "@types/topojson-specification": "^1.0.2",
