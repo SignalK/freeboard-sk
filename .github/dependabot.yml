@@ -20,6 +20,11 @@ updates:
     ignore:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # Angular majors move all @angular/* packages in lockstep; Dependabot
+      # can't express that as one group PR, so it splits into broken
+      # single-package PRs. Do Angular major upgrades manually via `ng update`.
+      - dependency-name: '@angular/*'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: '/'
