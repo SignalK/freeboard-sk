@@ -13,12 +13,24 @@ updates:
           - major
           - minor
           - patch
+      # Own group: a prettier bump can reformat source and fail format:check.
+      # Isolating it keeps the reformat commit scoped to prettier's PR instead
+      # of turning the whole minor-and-patch group red. Listed before
+      # minor-and-patch so prettier is assigned here (first match wins).
+      prettier:
+        patterns:
+          - 'prettier'
       minor-and-patch:
         update-types:
           - minor
           - patch
     ignore:
       - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # Angular majors move all @angular/* packages in lockstep; Dependabot
+      # can't express that as one group PR, so it splits into broken
+      # single-package PRs. Do Angular major upgrades manually via `ng update`.
+      - dependency-name: '@angular/*'
         update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
