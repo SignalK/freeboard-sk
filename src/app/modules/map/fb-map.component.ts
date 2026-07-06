@@ -798,7 +798,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     );
     this.contextMenu.menuData = { item: this.mouse().coords };
     if (this.mapInteract.isMeasuring()) {
-      this.parseClickInMeasureMode(this.mouse().xy.lonlat);
+      // The measure point is added by onMapRightClick, which fires alongside
+      // this handler with a valid lonlat; just suppress the context menu here.
     } else if (!this.modifyMode) {
       if (!this.mouse().xy) {
         return;

@@ -263,6 +263,12 @@ export class AlertComponent {
   }
 
   ngOnDestroy() {
+    // The progress-bar timer runs outside the Angular zone, so clear it here in
+    // case the component is destroyed before the bar self-clears.
+    if (this.timerRef) {
+      clearInterval(this.timerRef);
+      this.timerRef = null;
+    }
     this.audio.pause();
     this.audio = null;
     this.source = null;

@@ -32,4 +32,4 @@ bootstrapApplication(AppComponent, {
       // A probe must never break app startup.
     }
   })
-  .catch((e) => console.log(e));
+  .catch((e) => console.error(e));
