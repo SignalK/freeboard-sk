@@ -944,8 +944,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle OL interaction end event */
   protected onDrawEnd(e: { feature: Feature }) {
-    this.mapInteract.stopDrawing(e.feature);
-    this.drawEnded.emit(this.mapInteract.draw);
+    // OL dispatches drawend synchronously from the map's viewport pointer
+    // handlers, which run outside the Angular zone (see MapComponent). Re-enter
+    // the zone so the save prompt / live-edit draft opened via
+    // drawEnded -> handleDrawEnded gets a change-detection pass.
+    this.ngZone.run(() => {
+      this.mapInteract.stopDrawing(e.feature);
+      this.drawEnded.emit(this.mapInteract.draw);
+    });
   }
 
   /** Enter modify mode */
@@ -1041,6 +1047,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle OL modify end event */
   protected onModifyEnd(e: ModifyEvent) {
+    // Modify interactions dispatch modifyend synchronously from the map's
+    // viewport pointer handlers, which run outside the Angular zone (see
+    // MapComponent). Re-enter the zone so the post-modify UI (the route-editing
+    // toolbar driven by app.data.activeRouteIsEditing / editingId) gets a
+    // change-detection pass.
+    this.ngZone.run(() => this.applyModifyEnd(e));
+  }
+
+  private applyModifyEnd(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
     const fid = f.getId();
