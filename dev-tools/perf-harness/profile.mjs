@@ -23,11 +23,10 @@
  *   STUB_TILES stub external map tiles (default true)
  */
 import { chromium } from 'playwright';
-import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import httpProxy from 'http-proxy';
+import { startServer } from './serve.mjs';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const BUILD_DIR = path.resolve(__dir, process.env.BUILD_DIR || '../../public');
@@ -43,48 +42,8 @@ const ZOOM = Number(process.env.ZOOM || 15);
 const STEADY_MS = Number(process.env.STEADY_MS || 0);
 const CPU_THROTTLE = Number(process.env.CPU_THROTTLE || 1); // 1 = none; 6 ~ Pi-class
 
-const MIME = {
-  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
-  '.css': 'text/css', '.json': 'application/json', '.ico': 'image/x-icon',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
-  '.webp': 'image/webp', '.wasm': 'application/wasm', '.txt': 'text/plain',
-  '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.map': 'application/json'
-};
-
-// Serve the built app AND reverse-proxy the SignalK API + WS stream on the same
-// origin. This avoids the CORS-with-credentials failure you get serving the app
-// cross-origin (Freeboard's HttpClient uses withCredentials, which the browser
-// rejects against `Access-Control-Allow-Origin: *`). Same origin => no CORS.
-function startServer(dir, port, skTarget) {
-  const proxy = httpProxy.createProxyServer({ target: skTarget, ws: true, changeOrigin: true });
-  proxy.on('error', (err, req, res) => {
-    try { if (res && res.writeHead) { res.writeHead(502); res.end('proxy error'); } } catch {}
-  });
-  let wsUpgrades = 0;
-  const isApi = (u) =>
-    u.startsWith('/signalk') || u.startsWith('/skServer') || u.startsWith('/plugins') ||
-    u.startsWith('/admin') || u.startsWith('/apps') || u.startsWith('/restart') || u === '/loginStatus';
-  const server = http.createServer((req, res) => {
-    const u = req.url.split('?')[0];
-    if (isApi(u)) return proxy.web(req, res);
-    try {
-      const p = decodeURIComponent(u);
-      let fp = path.join(dir, p === '/' ? '/index.html' : p);
-      if (!fp.startsWith(dir)) { res.writeHead(403); return res.end(); }
-      if (!fs.existsSync(fp) || fs.statSync(fp).isDirectory()) {
-        if (!path.extname(fp)) fp = path.join(dir, 'index.html');
-      }
-      if (!fs.existsSync(fp)) { res.writeHead(404); return res.end('not found'); }
-      const ext = path.extname(fp).toLowerCase();
-      res.writeHead(200, { 'content-type': MIME[ext] || 'application/octet-stream' });
-      fs.createReadStream(fp).pipe(res);
-    } catch (e) { res.writeHead(500); res.end(String(e)); }
-  });
-  server.on('upgrade', (req, socket, head) => { wsUpgrades++; proxy.ws(req, socket, head); });
-  return new Promise((resolve) =>
-    server.listen(port, () => resolve({ server, getWsUpgrades: () => wsUpgrades }))
-  );
-}
+// The static-app + SignalK-proxy server is shared with the smoke test; see
+// serve.mjs (startServer).
 
 // 1x1 gray PNG (base64) used to stub external map tiles for determinism/offline.
 const STUB_PNG = Buffer.from(

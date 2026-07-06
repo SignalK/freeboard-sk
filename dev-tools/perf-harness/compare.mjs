@@ -46,8 +46,8 @@ function run(cmd, args, env, label) {
     let out = '', err = '';
     p.stdout.on('data', (d) => (out += d));
     p.stderr.on('data', (d) => (err += d));
+    p.on('error', (e) => reject(new Error(`${label} failed to spawn: ${e.message}`)));
     p.on('close', (code) => (code === 0 ? resolve({ out, err }) : reject(new Error(`${label} exited ${code}\n${err.slice(-500)}`))));
-    return p;
   });
 }
 

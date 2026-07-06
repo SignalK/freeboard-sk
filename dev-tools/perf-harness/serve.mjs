@@ -46,7 +46,10 @@ export function startServer(dir, port, skTarget) {
     try {
       const p = decodeURIComponent(u);
       let fp = path.join(dir, p === '/' ? '/index.html' : p);
-      if (!fp.startsWith(dir)) { res.writeHead(403); return res.end(); }
+      // Reject traversal outside `dir`. path.relative avoids the startsWith
+      // prefix-match bypass (e.g. dir=/x/app would wrongly allow /x/app-extra).
+      const rel = path.relative(dir, fp);
+      if (rel.startsWith('..') || path.isAbsolute(rel)) { res.writeHead(403); return res.end(); }
       if (!fs.existsSync(fp) || fs.statSync(fp).isDirectory()) {
         if (!path.extname(fp)) fp = path.join(dir, 'index.html');
       }
@@ -57,9 +60,10 @@ export function startServer(dir, port, skTarget) {
     } catch (e) { res.writeHead(500); res.end(String(e)); }
   });
   server.on('upgrade', (req, socket, head) => { wsUpgrades++; proxy.ws(req, socket, head); });
-  return new Promise((resolve) =>
-    server.listen(port, () => resolve({ server, getWsUpgrades: () => wsUpgrades }))
-  );
+  return new Promise((resolve, reject) => {
+    server.once('error', reject); // surface EADDRINUSE etc. instead of an uncaught throw
+    server.listen(port, () => resolve({ server, getWsUpgrades: () => wsUpgrades }));
+  });
 }
 
 // Run standalone: serve until Ctrl-C.

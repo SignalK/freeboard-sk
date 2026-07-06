@@ -15,7 +15,7 @@ rm -rf "$HARNESS/builds/candidate" && cp -R public "$HARNESS/builds/candidate"
 
 if [ -n "$(git status --porcelain -- src 2>/dev/null)" ]; then
   echo "==> stashing tracked changes, building baseline"
-  git stash push -m perf-baseline >/dev/null
+  git stash push -m perf-baseline -- src >/dev/null
   trap 'git stash pop >/dev/null 2>&1 || true' EXIT
   npm run build >/dev/null
   rm -rf "$HARNESS/builds/baseline" && cp -R public "$HARNESS/builds/baseline"

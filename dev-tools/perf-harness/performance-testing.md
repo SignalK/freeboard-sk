@@ -12,7 +12,7 @@ Everything lives in `dev-tools/perf-harness/`. It is self-contained (its own
 ## What it does
 
 1. Runs a **SignalK server in Docker** (open/no-auth) as the data backend.
-2. Feeds it a **controllable synthetic data stream** — one self vessel plus _N_
+2. Feeds it a **controllable synthetic data stream** — one self-vessel plus _N_
    AIS targets moving deterministically — over the SignalK WebSocket.
 3. Loads the **built app** in headless Chromium (Playwright) through a
    same-origin reverse proxy, waits for the live connection, and runs a fixed,
@@ -50,7 +50,7 @@ Everything lives in `dev-tools/perf-harness/`. It is self-contained (its own
 ## Prerequisites
 
 - **Docker** (with the daemon running) and Docker Compose.
-- **Node** 20+ (uses the global `WebSocket`, available in Node 22+).
+- **Node** 22+ (sk-feed.mjs uses the global `WebSocket`, enabled by default in Node 22+).
 - The main app's dependencies installed at the repo root (`npm ci`) so you can
   `npm run build`.
 
@@ -158,10 +158,11 @@ triggers. It is guarded by the `perfprobe` URL flag (the profiler adds
 
 ```ts
 // src/main.ts — bootstrap .then((appRef) => ...)
-if (location.search.includes('perfprobe')) {
+if (new URLSearchParams(window.location.search).has('perfprobe')) {
   const zone = appRef.injector.get(NgZone);
-  (window as any).__cd = 0;
-  zone.onMicrotaskEmpty.subscribe(() => (window as any).__cd++);
+  const w = window as unknown as { __cd: number };
+  w.__cd = 0;
+  zone.onMicrotaskEmpty.subscribe(() => w.__cd++);
 }
 ```
 
