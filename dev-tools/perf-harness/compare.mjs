@@ -7,7 +7,16 @@
  * drift), and reports median metrics + deltas.
  *
  * Spawns the SignalK data feed for the duration. Requires the dockerised SignalK
- * server already up (docker compose up -d).
+ * server already up (docker compose up -d). Run headed (HEADLESS=false) for
+ * trustworthy render numbers — headless software-GL throttles the OL render loop
+ * to almost nothing and masks the change-detection win.
+ *
+ * KNOWN ISSUE: the alternating A/B interleave can contaminate a run (a baseline
+ * profiled right after a candidate has been seen to collapse to a fraction of its
+ * isolated value). Until that's root-caused, the most trustworthy signal is each
+ * build profiled on its own in a tight loop, e.g.:
+ *   for i in 1 2 3 4 5; do BUILD_DIR=builds/baseline  HEADLESS=false node profile.mjs; done
+ *   for i in 1 2 3 4 5; do BUILD_DIR=builds/candidate HEADLESS=false node profile.mjs; done
  *
  * Env:
  *   REPEATS    runs per build      (default 3)
@@ -15,6 +24,7 @@
  *   BUILD_A/LABEL_A  baseline dir/label (default builds/baseline / baseline)
  *   BUILD_B/LABEL_B  candidate dir/label (default builds/tier1 / tier1)
  *   ZOOM       initial zoom         (default 15)
+ *   HEADLESS   'true'|'false'       (default true; use false for real-GPU numbers)
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -68,7 +78,7 @@ async function main() {
       process.stdout.write(`[compare] run ${label} (port ${port}) ... `);
       await run('node', ['profile.mjs'], {
         BUILD_DIR: path.resolve(__dir, v.dir), LABEL: label, OUT: outFile,
-        PORT: String(port++), ZOOM, HEADLESS: 'true'
+        PORT: String(port++), ZOOM, HEADLESS: process.env.HEADLESS || 'true'
       }, label);
       const r = JSON.parse(fs.readFileSync(outFile, 'utf8'));
       samples[v.label].push(r);
