@@ -6,7 +6,9 @@
   "scripts": {
     "feed": "node sk-feed.mjs",
     "profile": "node profile.mjs",
-    "compare": "node compare.mjs"
+    "compare": "node compare.mjs",
+    "serve": "node serve.mjs",
+    "smoke": "node smoke-draw-modify.mjs"
   },
   "devDependencies": {
     "playwright": "^1.49.0"
