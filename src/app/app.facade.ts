@@ -1224,15 +1224,11 @@ export class AppFacade extends InfoService {
             precision
           );
         } else if (options?.category === 'length') {
-          symbol = Convert.getSymbol(this.config.units.length);
-          nv = this.formatNumericDisplay(
-            Convert.transform(
-              value,
-              sourceUnit,
-              this.config.units.length as TARGET_UNIT
-            ),
+          ({ nv, symbol } = this.formatAsLengthUnit(
+            value,
+            sourceUnit,
             precision
-          );
+          ));
         } else {
           // distance
           if (this.config.units.distance === 'kilometer' && value < 1000) {
@@ -1245,8 +1241,7 @@ export class AppFacade extends InfoService {
               this.config.units.distance
             );
             if (nm < 0.5) {
-              symbol = Convert.getSymbol(this.config.units.length);
-              nv = this.formatNumericDisplay(nm, 0);
+              ({ nv, symbol } = this.formatAsLengthUnit(value, sourceUnit, 0));
             } else {
               symbol = Convert.getSymbol(this.config.units.distance);
               nv = this.formatNumericDisplay(nm, precision);
@@ -1308,6 +1303,28 @@ export class AppFacade extends InfoService {
       : Number.isFinite(precision)
         ? value.toFixed(precision)
         : `${value}`;
+  }
+
+  /**
+   * Formats a metre value in the user's configured length unit (m/ft/…),
+   * returning the numeric text and its symbol.
+   */
+  private formatAsLengthUnit(
+    value: number,
+    sourceUnit: SI_BASE_UNIT,
+    precision: number
+  ): { nv: string; symbol: string } {
+    return {
+      nv: this.formatNumericDisplay(
+        Convert.transform(
+          value,
+          sourceUnit,
+          this.config.units.length as TARGET_UNIT
+        ),
+        precision
+      ),
+      symbol: Convert.getSymbol(this.config.units.length)
+    };
   }
 
   // convert speed value and set the value of this.app.formattedSpeedUnits

@@ -212,3 +212,32 @@ describe('AppFacade per-path display units (#304)', () => {
     ).toBeUndefined();
   });
 });
+
+describe('AppFacade nautical-mile short-distance formatting (#474)', () => {
+  let app: AppFacade;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    app = TestBed.inject(AppFacade);
+    app.config.units.distance = 'naut-mile';
+  });
+
+  // A distance below 0.5 NM (500 m ≈ 0.27 NM) must drop to the length unit and
+  // show the real value — the regression floored it to "0m" by displaying the
+  // sub-1 nautical-mile number under a metre symbol.
+  it('shows sub-0.5 NM distances granularly in the length unit, not a floored 0', () => {
+    app.config.units.length = 'm';
+    expect(app.formatValueForDisplay(500, 'm')).toBe('500m');
+  });
+
+  it('honours a feet length preference for sub-0.5 NM distances', () => {
+    app.config.units.length = 'foot';
+    expect(app.formatValueForDisplay(500, 'm')).toBe('1640ft');
+  });
+
+  // At/above 0.5 NM (2000 m ≈ 1.08 NM) the value stays in nautical miles.
+  it('shows distances at or above 0.5 NM in nautical miles', () => {
+    app.config.units.length = 'm';
+    expect(app.formatValueForDisplay(2000, 'm')).toBe('1.1nmi');
+  });
+});
