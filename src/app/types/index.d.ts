@@ -11,6 +11,7 @@ import {
 } from '../modules/skresources/resource-classes';
 import { DEPTH_UNIT } from '../lib/convert';
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
+import { ChartImageAdjustment } from './resources/signalk';
 
 export * from './resources/signalk';
 export * from './resources/custom';
@@ -229,6 +230,7 @@ export interface IAppConfig {
     charts: string[];
     chartOrder: string[]; // chart layer ordering
     chartOpacity: Record<string, number>;
+    chartImageAdjustment: Record<string, ChartImageAdjustment>;
     aisTargets: string[];
     aisTargetTypes: number[];
     aisFilterByShipType: boolean;

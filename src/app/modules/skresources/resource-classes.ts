@@ -13,7 +13,8 @@ import {
   WaypointResource,
   RegionResource,
   NoteResource,
-  ChartResource
+  ChartResource,
+  ChartImageAdjustment
 } from 'src/app/types';
 
 // ** Signal K route class
@@ -133,6 +134,7 @@ export class SKChart {
   source: string;
   style: string;
   defaultOpacity: number;
+  imageAdjustment?: ChartImageAdjustment;
   proxy: boolean;
 
   constructor(chart?: ChartResource) {
@@ -157,6 +159,7 @@ export class SKChart {
     this.style = chart?.style ?? undefined;
     this.source = chart?.$source ?? undefined;
     this.defaultOpacity = chart?.defaultOpacity ?? 1;
+    this.imageAdjustment = chart?.imageAdjustment;
     this.proxy = chart?.proxy ?? false;
   }
 }

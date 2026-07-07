@@ -54,6 +54,15 @@ export interface NoteResource {
   source: string;
 }
 
+/**
+ * Per-chart image adjustment applied to raster/aerial tile layers. Values are
+ * multipliers where `1` is neutral (unchanged); `0` is black / fully grey.
+ */
+export interface ChartImageAdjustment {
+  brightness: number;
+  contrast: number;
+}
+
 export interface ChartResource {
   name?: string;
   identifier?: string;
@@ -68,6 +77,7 @@ export interface ChartResource {
   layers?: string[];
   tileSize?: number;
   defaultOpacity?: number;
+  imageAdjustment?: ChartImageAdjustment;
   proxy?: boolean;
   $source?: string;
   style?: string;
