@@ -95,4 +95,22 @@ describe('okToRenderTarget — Buddies only filter (#478)', () => {
     // buddy is a buddy but not in the id selection
     expect(c.okToRenderTarget('b')).toBe(false);
   });
+
+  it('ANDs with the ship-type filter', () => {
+    const buddyCargo = vessel({ buddy: true, type: { id: 70, name: 'Cargo' } });
+    const strangerCargo = vessel({
+      buddy: false,
+      type: { id: 70, name: 'Cargo' }
+    });
+    const c = component({
+      targets: new Map([
+        ['bc', buddyCargo],
+        ['sc', strangerCargo]
+      ]),
+      filterByShipType: true,
+      filterShipTypes: [70, -998]
+    });
+    expect(c.okToRenderTarget('bc')).toBe(true);
+    expect(c.okToRenderTarget('sc')).toBe(false);
+  });
 });
