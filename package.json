@@ -99,7 +99,7 @@
     "eslint": "^10.5.0",
     "events": "^3.3.0",
     "jsdom": "^28.1.0",
-    "ng-packagr": "^21.0.0",
+    "ng-packagr": "^22.0.1",
     "ngeohash": "^0.6.3",
     "ngx-remark": "^0.2.2",
     "ol": "^10.7.0",
