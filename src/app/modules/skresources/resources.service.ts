@@ -2309,6 +2309,9 @@ export class SKResourceService {
     this.dialog
       .open(NoteDialog, {
         disableClose: true,
+        width: 'fit-content',
+        minWidth: '350px',
+        maxWidth: '90vw',
         data: { note: note, editable: false }
       })
       .afterClosed()

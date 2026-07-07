@@ -11,6 +11,15 @@
   :host ::ng-deep .ck.ck-editor__main > .ck-editor__editable {
     color: black;
   }
+  /* Note Details: scale wide embedded media (e.g. a tide-station graph) to fit
+     the dialog rather than clipping it. Vertical overflow is handled by the
+     single mat-dialog-content scroll region (max-height: 65vh), so the
+     description must NOT add its own scroller. */
+  :host ::ng-deep .note-description img,
+  :host ::ng-deep .note-description svg {
+    max-width: 100%;
+    height: auto;
+  }
   @media only screen and (min-width: 600px) {
     .ap-confirm-icon {
       min-width: 25%;
@@ -88,13 +97,12 @@
               Description:
             </div>
             @if(data.note.mimeType.includes('markdown')) {
-            <div>
+            <div class="note-description">
               <remark [markdown]="data.note.description" />
             </div>
             } @else {
             <div
               class="note-description"
-              style="overflow-y: auto; height: 150px"
               target="notelink"
               [innerHTML]="data.note.description | addTarget: '_notes'"
             ></div>
