@@ -51,6 +51,7 @@ export class AISListComponent extends ResourceListBase {
 
   aisAvailable = [];
   onlyIMO = false;
+  onlyBuddies = false;
   filterList = [];
   override filterText = '';
   override someSel = false;
@@ -174,6 +175,7 @@ export class AISListComponent extends ResourceListBase {
       i.selected = this.app.config.selections.aisTargetTypes.includes(i.id);
     });
     this.onlyIMO = this.app.config.selections.aisTargetTypes.includes(-999);
+    this.onlyBuddies = this.app.config.selections.aisTargetTypes.includes(-998);
   }
 
   /**
@@ -204,6 +206,7 @@ export class AISListComponent extends ResourceListBase {
       }
     }
     this.onlyIMO = t.includes(-999);
+    this.onlyBuddies = t.includes(-998);
     this.app.config.selections.aisTargetTypes = t.splice(0);
     this.app.saveConfig();
   }

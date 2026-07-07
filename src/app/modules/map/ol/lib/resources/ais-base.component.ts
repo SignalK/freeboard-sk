@@ -119,17 +119,32 @@ export class AISBaseLayerComponent
       }
     };
 
+    // Buddies only
+    const checkBuddy = (id: string) => {
+      const buddiesOnly =
+        Array.isArray(this.filterShipTypes) &&
+        this.filterShipTypes.includes(-998);
+      if (buddiesOnly) {
+        return (this.targets.get(id) as SKVessel).buddy === true;
+      } else {
+        return true;
+      }
+    };
+
+    const passesSentinelFilters = (id: string) =>
+      checkImo(id) && checkBuddy(id);
+
     if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
       const st = Math.floor(this.targets.get(id).type.id / 10) * 10;
-      return this.filterShipTypes.includes(st) && checkImo(id);
+      return this.filterShipTypes.includes(st) && passesSentinelFilters(id);
     }
     if (!this.filterIds) {
-      return checkImo(id);
+      return passesSentinelFilters(id);
     }
     if (Array.isArray(this.filterIds)) {
-      return this.filterIds.includes(id) && checkImo(id);
+      return this.filterIds.includes(id) && passesSentinelFilters(id);
     } else {
-      return checkImo(id);
+      return passesSentinelFilters(id);
     }
   }
 
