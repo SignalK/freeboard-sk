@@ -31,6 +31,37 @@
     top: 160px;
 }
 
+/* Vessel filter: inline "Filter: [Ship Type] [IMO Only]" by default. When the
+   buddy-list plugin adds a third toggle, the row is stacked (label above the
+   toggles) so all three fit; the list then starts lower to clear the taller
+   header. */
+.resourcelist .vessel-filter .filter-label {
+    padding-right: 8px;
+}
+
+.resourcelist .vessel-filter .filter-toggles {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.resourcelist .vessel-filter.stacked {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.resourcelist .vessel-filter.stacked .filter-toggles {
+    width: 100%;
+}
+
+.resourcelist .vessel-filter.stacked .filter-toggles mat-slide-toggle {
+    flex: 1 1 0;
+}
+
+.resourcelist .resources.vessels.buddies {
+    top: 185px;
+}
+
 .resourcelist .vscroller {
     position: absolute;
     top: 0px;

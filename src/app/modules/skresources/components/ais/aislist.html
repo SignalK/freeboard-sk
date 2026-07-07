@@ -60,33 +60,37 @@
         </div>
       </div>
     </mat-card-content>
-    <mat-card-actions>
-      Filter:&nbsp;
-      <mat-slide-toggle
-        [checked]="app.config.selections.aisFilterByShipType"
-        (change)="toggleFilterType($event.checked)"
-      >
-        Ship Type
-      </mat-slide-toggle>
-      &nbsp;
-      <mat-slide-toggle
-        [checked]="onlyIMO"
-        (change)="shipTypeSelect($event.checked, -999)"
-      >
-        IMO Only
-      </mat-slide-toggle>
-      @if (app.featureFlags().buddyList) { &nbsp;
-      <mat-slide-toggle
-        [checked]="onlyBuddies"
-        (change)="shipTypeSelect($event.checked, -998)"
-      >
-        Buddies Only
-      </mat-slide-toggle>
-      }
+    <mat-card-actions
+      class="vessel-filter"
+      [class.stacked]="app.featureFlags().buddyList"
+    >
+      <span class="filter-label">Filter:</span>
+      <div class="filter-toggles">
+        <mat-slide-toggle
+          [checked]="app.config.selections.aisFilterByShipType"
+          (change)="toggleFilterType($event.checked)"
+        >
+          Ship Type
+        </mat-slide-toggle>
+        <mat-slide-toggle
+          [checked]="onlyIMO"
+          (change)="shipTypeSelect($event.checked, -999)"
+        >
+          IMO Only
+        </mat-slide-toggle>
+        @if (app.featureFlags().buddyList) {
+        <mat-slide-toggle
+          [checked]="onlyBuddies"
+          (change)="shipTypeSelect($event.checked, -998)"
+        >
+          Buddies Only
+        </mat-slide-toggle>
+        }
+      </div>
     </mat-card-actions>
   </mat-card>
 
-  <div class="resources vessels">
+  <div class="resources vessels" [class.buddies]="app.featureFlags().buddyList">
     @if(this.app.sIsFetching()) {
     <mat-progress-bar mode="query"></mat-progress-bar>
     } @if (app.config.selections.aisFilterByShipType) {
@@ -153,7 +157,7 @@
           </div>
         </mat-card-content>
         <mat-card-actions>
-          <div style="display: flex">
+          <div style="display: flex; flex-wrap: wrap">
             <div style="flex: 1 1 auto">
               @if(r[0] !== focusId()) {
               <button
