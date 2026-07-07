@@ -36,6 +36,20 @@ updates:
       # supports it lands; in-range TS minor/patch still flow through the groups.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
+      # ng-packagr is peer-pinned by @angular/build (`ng-packagr@^21`), so a
+      # major bump can't install until the Angular major that requires it lands.
+      # In-range minor/patch still flow through the groups; bump the major via
+      # `ng update`.
+      - dependency-name: 'ng-packagr'
+        update-types: ['version-update:semver-major']
+      # zone.js is peer-pinned by @angular/core (`~0.15.0 || ~0.16.0`). Because
+      # zone.js is 0.x, a semver-minor bump (0.16 -> 0.17) is breaking and falls
+      # outside that range, failing `npm ci`; patch releases stay in range. Bump
+      # zone.js in step with the Angular major via `ng update`.
+      - dependency-name: 'zone.js'
+        update-types:
+          - 'version-update:semver-major'
+          - 'version-update:semver-minor'
 
   - package-ecosystem: github-actions
     directory: '/'
