@@ -75,6 +75,14 @@
       >
         IMO Only
       </mat-slide-toggle>
+      @if (app.featureFlags().buddyList) { &nbsp;
+      <mat-slide-toggle
+        [checked]="onlyBuddies"
+        (change)="shipTypeSelect($event.checked, -998)"
+      >
+        Buddies Only
+      </mat-slide-toggle>
+      }
     </mat-card-actions>
   </mat-card>
 
