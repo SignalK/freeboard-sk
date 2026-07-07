@@ -41,6 +41,19 @@ build stays green so it's invisible. Import the field by name instead
 `resolveJsonModule: true` to the base `tsconfig.json` for the type-check. Whole-file
 import is fine only when you genuinely use all of it (e.g. `helper/openApi.json`).
 
+### `mat-dialog-content` is already a 65vh scroll region — don't nest another
+
+**The trap.** Angular Material's `.mat-mdc-dialog-content` ships with
+`overflow: auto; max-height: 65vh` baked in. Give a child of it (a note body, a
+description, any long block) its *own* `max-height` + `overflow-y: auto` and you
+get two independent scrollbars for long content — the inner block scrolls, and the
+dialog content scrolls around it.
+
+**What to do instead.** Let `mat-dialog-content` be the single vertical scroller.
+Style *within* it — scale wide media with `max-width: 100%`, etc. — rather than
+capping height a second time. Only add an inner scroller when you specifically want
+a sub-region that scrolls independently of the rest of the dialog.
+
 ---
 
 ## When testing
