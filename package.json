@@ -104,7 +104,7 @@
     "ngx-remark": "^0.2.2",
     "ol": "^10.7.0",
     "ol-mapbox-style": "^12.3.5",
-    "pmtiles": "^2.7.0",
+    "pmtiles": "^4.4.1",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-attributes": "^1.0.0",
     "proj4": "2.20.9",
