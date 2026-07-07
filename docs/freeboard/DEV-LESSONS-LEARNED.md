@@ -54,6 +54,24 @@ Style *within* it — scale wide media with `max-width: 100%`, etc. — rather t
 capping height a second time. Only add an inner scroller when you specifically want
 a sub-region that scrolls independently of the rest of the dialog.
 
+### A control that "disappeared" may be a *sibling* row overflowing the card
+
+**The trap.** `mat-card` (`.mat-mdc-card`) is `display: flex; flex-direction: column`.
+A **non-wrapping** flex row inside it whose min-content is wider than the panel
+forces the *whole card* wider than its container — and anything right-aligned in the
+card's **other** rows (a checkbox, an icon button) is pushed off-screen. The symptom
+is a control vanishing far from the change that caused it: adding one button to a
+card's action row silently clipped the "Show in Map" checkbox in the row *above* it
+(the AIS vessel list — a `feat` that widened the action row, caught later).
+
+**What to do instead.** When a control goes missing after an unrelated-looking edit,
+suspect horizontal overflow before deleted markup — confirm the element is still in
+the DOM (it usually is), then find the widest sibling row and let it wrap
+(`flex-wrap: wrap`) so the card can't exceed the panel width. Related trap in the
+same components: `resourcelist.css` positions each scrolling list at a **hardcoded
+`top:` px** that must manually track header height — add a header row (e.g. a filter
+toggle line) and the list clips it unless you bump that offset too.
+
 ---
 
 ## When testing
@@ -194,6 +212,18 @@ stale tree and may flag issues already fixed elsewhere.
 
 **What to do instead.** Rebase onto current `master` before relying on a re-review
 (`git fetch && git rebase origin/master`, force-push).
+
+### The Prettier CI gate covers only `ts|html` — don't `prettier --write` the CSS
+
+**The trap.** CI's format check runs `format:check` =
+`prettier --check "src/**/*.+(ts|html)"`, so **CSS/SCSS are out of scope**, and the
+repo's `.css` files use **4-space** indent (not Prettier's 2). Run a bare
+`npx prettier --write some.css` — or even `--check`, which flags every CSS file — and
+Prettier reformats the *entire* file to 2-space, burying your one-line change in a
+whole-file diff CI never asked for.
+
+**What to do instead.** Edit `.css` by hand in the file's existing 4-space style;
+don't run Prettier on it. Only `ts`/`html` go through Prettier (`npm run format`).
 
 ---
 
