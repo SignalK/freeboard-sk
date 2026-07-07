@@ -131,19 +131,20 @@ export class AISBaseLayerComponent
       }
     };
 
+    const passesSentinelFilters = (id: string) =>
+      checkImo(id) && checkBuddy(id);
+
     if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
       const st = Math.floor(this.targets.get(id).type.id / 10) * 10;
-      return (
-        this.filterShipTypes.includes(st) && checkImo(id) && checkBuddy(id)
-      );
+      return this.filterShipTypes.includes(st) && passesSentinelFilters(id);
     }
     if (!this.filterIds) {
-      return checkImo(id) && checkBuddy(id);
+      return passesSentinelFilters(id);
     }
     if (Array.isArray(this.filterIds)) {
-      return this.filterIds.includes(id) && checkImo(id) && checkBuddy(id);
+      return this.filterIds.includes(id) && passesSentinelFilters(id);
     } else {
-      return checkImo(id) && checkBuddy(id);
+      return passesSentinelFilters(id);
     }
   }
 
