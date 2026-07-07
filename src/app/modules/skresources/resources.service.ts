@@ -44,6 +44,7 @@ import {
   Position,
   Regions,
   ChartResource,
+  ChartImageAdjustment,
   FBChart,
   FBCharts,
   FBRegion,
@@ -564,6 +565,10 @@ export class SKResourceService {
         if (typeof op !== 'undefined') {
           c[1].defaultOpacity = op;
         }
+        const adj = this.app.config.selections.chartImageAdjustment?.[c[0]];
+        if (typeof adj !== 'undefined') {
+          c[1].imageAdjustment = adj;
+        }
       });
     }
     chtList.push(OSM[1]);
@@ -624,6 +629,10 @@ export class SKResourceService {
     // transparent 0 is honored rather than silently dropped on refresh)
     if (typeof this.app.config.selections.chartOpacity[id] !== 'undefined') {
       chart.defaultOpacity = this.app.config.selections.chartOpacity[id];
+    }
+    const adj = this.app.config.selections.chartImageAdjustment?.[id];
+    if (typeof adj !== 'undefined') {
+      chart.imageAdjustment = adj;
     }
     return new SKChart(chart);
   }
@@ -807,6 +816,31 @@ export class SKResourceService {
           }
           const updated = new SKChart(c[1]);
           updated.defaultOpacity = value;
+          return [c[0], updated, c[2]];
+        });
+      });
+    }
+  }
+
+  /**
+   * @description Update the image adjustment (brightness/contrast) of a Chart
+   * object in the Chart Cache so a currently-visible layer re-renders.
+   * @param id Chart identifier
+   * @param value Image adjustment to set
+   */
+  public chartSetImageAdjustment(id: string, value: ChartImageAdjustment) {
+    if (!id || !value) {
+      return;
+    }
+    const idx = this.chartCacheSignal().findIndex((c: FBChart) => c[0] === id);
+    if (idx !== -1) {
+      this.chartCacheSignal.update((current: FBCharts) => {
+        return current.map((c: FBChart) => {
+          if (c[0] !== id) {
+            return c;
+          }
+          const updated = new SKChart(c[1]);
+          updated.imageAdjustment = value;
           return [c[0], updated, c[2]];
         });
       });

@@ -15,9 +15,13 @@ import { XYZ } from 'ol/source';
 import { initPMTilesXYZLayer } from './pmtiles-utils';
 import { osmLayer } from '../util';
 import { MapComponent } from '../map.component';
-import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import {
+  attachImageAdjustmentFilter,
+  extentFromBounds,
+  resolveLayerMaxZoom
+} from './chart-utils';
 
-import { FBChart } from 'src/app/types';
+import { ChartImageAdjustment, FBChart } from 'src/app/types';
 
 // ** Freeboard Raster TileLayer Chart **
 @Component({
@@ -33,6 +37,7 @@ export class RasterChartLayerComponent implements OnDestroy {
   protected mapMaxZoom = input<number>();
 
   private layer: TileLayer | WebGLTileLayer;
+  private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -108,6 +113,11 @@ export class RasterChartLayerComponent implements OnDestroy {
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
+        // Brightness/contrast is a canvas filter; the WebGL pmtiles layer has no
+        // 2D context, so it is left unadjusted.
+        if (this.layer instanceof TileLayer) {
+          this.setImageAdjustment = attachImageAdjustmentFilter(this.layer);
+        }
         map.addLayer(this.layer);
       }
     } else {
@@ -127,6 +137,7 @@ export class RasterChartLayerComponent implements OnDestroy {
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
+    this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
   }
 }

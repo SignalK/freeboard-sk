@@ -14,3 +14,4 @@ export * from './trail2route-dialog';
 export * from './multiselectlist-dialog';
 export * from './singleselectlist-dialog';
 export * from './slider-dialog';
+export * from './image-adjustment-dialog';

@@ -12,11 +12,15 @@ import TileLayer from 'ol/layer/Tile';
 
 import { MapComponent } from '../map.component';
 
-import { FBChart } from 'src/app/types';
+import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
-import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import {
+  attachImageAdjustmentFilter,
+  extentFromBounds,
+  resolveLayerMaxZoom
+} from './chart-utils';
 
 // ** Freeboard WMTS Chart **
 @Component({
@@ -33,6 +37,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
 
   private layer: TileLayer;
   private capabilities: string;
+  private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -103,6 +108,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
+        this.setImageAdjustment = attachImageAdjustmentFilter(this.layer);
         map.addLayer(this.layer);
       }
     } else {
@@ -122,6 +128,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
+    this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
   }
 

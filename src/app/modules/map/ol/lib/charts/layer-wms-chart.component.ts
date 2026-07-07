@@ -13,10 +13,14 @@ import { TileWMS } from 'ol/source';
 
 import { MapComponent } from '../map.component';
 
-import { FBChart } from 'src/app/types';
+import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import { Map } from 'ol';
 import { MapService } from '../map.service';
-import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import {
+  attachImageAdjustmentFilter,
+  extentFromBounds,
+  resolveLayerMaxZoom
+} from './chart-utils';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -34,6 +38,7 @@ export class WmsChartLayerComponent implements OnDestroy {
   protected mapMaxZoom = input<number>();
 
   private layer: TileLayer;
+  private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
   private mapService = inject(MapService);
@@ -127,6 +132,7 @@ export class WmsChartLayerComponent implements OnDestroy {
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
+        this.setImageAdjustment = attachImageAdjustmentFilter(this.layer);
         this.map.addLayer(this.layer);
       }
     } else {
@@ -153,6 +159,7 @@ export class WmsChartLayerComponent implements OnDestroy {
         src.refresh();
       }
     }
+    this.setImageAdjustment?.(chart[1].imageAdjustment);
     this.map.render();
   }
 }

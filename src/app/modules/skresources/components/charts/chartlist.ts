@@ -24,7 +24,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKResourceType } from '../../resources.service';
 import { ChartLayers } from './chart-layers.component';
-import { FBCharts, FBChart } from 'src/app/types';
+import { FBCharts, FBChart, ChartImageAdjustment } from 'src/app/types';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
 import { JsonMapSourceDialog } from './jsonmapsource-dialog';
@@ -34,7 +34,9 @@ import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service
 import {
   SingleSelectListDialog,
   SliderInputDialog,
-  SliderInputDialogResult
+  SliderInputDialogResult,
+  ImageAdjustmentDialog,
+  ImageAdjustmentDialogResult
 } from 'src/app/lib/components';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
@@ -126,6 +128,7 @@ export class ChartListComponent extends ResourceListBase {
       this.app.sIsFetching.set(false);
       this.doFilter();
       this.cleanOpacityConfig();
+      this.cleanImageAdjustmentConfig();
       this.skres.selectionClean(
         this.collection,
         this.fullList.map((i) => i[0])
@@ -148,6 +151,40 @@ export class ChartListComponent extends ResourceListBase {
         delete this.app.config.selections.chartOpacity[key];
       }
     });
+  }
+
+  /**
+   * Clean orphaned chartImageAdjustment keys from config
+   */
+  cleanImageAdjustmentConfig() {
+    const keys = Object.keys(this.app.config.selections.chartImageAdjustment);
+    const listIds = this.fullList.map((i) => i[0]);
+    keys.forEach((key) => {
+      if (!listIds.includes(key)) {
+        delete this.app.config.selections.chartImageAdjustment[key];
+      }
+    });
+  }
+
+  /**
+   * @description True when a chart renders as a raster image layer (raster tiles,
+   * tileJSON, WMS, WMTS) — the layers brightness/contrast adjustment applies to.
+   * Vector charts (S-57, mapstyleJSON, MVT/PBF tiles) are excluded.
+   * @param chart Chart entry
+   */
+  protected isImageLayer(chart: FBChart): boolean {
+    if (chart[0] === 'openstreetmap') {
+      return true;
+    }
+    const type = chart[1]?.type?.toLowerCase();
+    const format = chart[1]?.format?.toLowerCase();
+    if (!type) {
+      return true;
+    }
+    if (type === 'tilelayer') {
+      return !(format === 'pbf' || format === 'mvt');
+    }
+    return ['tilejson', 'wms', 'wmts'].includes(type);
   }
 
   /**
@@ -260,6 +297,43 @@ export class ChartListComponent extends ResourceListBase {
           // cancelled
           this.skres.chartSetOpacity(chart[0], originalOpacity);
           return;
+        }
+      });
+  }
+
+  protected itemImageAdjustment(chart: FBChart) {
+    const original: ChartImageAdjustment = {
+      brightness: 1,
+      contrast: 1,
+      ...(this.app.config.selections.chartImageAdjustment[chart[0]] ??
+        chart[1]?.imageAdjustment)
+    };
+
+    this.dialog
+      .open(ImageAdjustmentDialog, {
+        disableClose: true,
+        backdropClass: 'transparent-backdrop',
+        data: {
+          title: 'Image Adjustment',
+          text: chart[1]?.name ?? '',
+          value: { ...original },
+          onChange: (value: ChartImageAdjustment) => {
+            this.skres.chartSetImageAdjustment(chart[0], value);
+          }
+        }
+      })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: ImageAdjustmentDialogResult) => {
+        if (result?.apply) {
+          const adj = result.value;
+          this.app.config.selections.chartImageAdjustment[chart[0]] = adj;
+          chart[1].imageAdjustment = adj;
+          this.updateFullList(chart);
+          this.app.saveConfig();
+        } else {
+          // cancelled - restore the pre-edit adjustment
+          this.skres.chartSetImageAdjustment(chart[0], original);
         }
       });
   }

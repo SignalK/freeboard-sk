@@ -202,7 +202,19 @@
                 <mat-icon>opacity</mat-icon>
               </button>
             </div>
-            @if(r[1].proxy) {
+            @if(isImageLayer(r)) {
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                [disabled]="!r[2]"
+                (click)="itemImageAdjustment(r)"
+                matTooltip="Image Adjustment"
+                matTooltipPosition="above"
+              >
+                <mat-icon>tune</mat-icon>
+              </button>
+            </div>
+            } @if(r[1].proxy) {
             <div style="width: 100%; text-align: right">
               <button
                 mat-icon-button
