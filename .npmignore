@@ -20,3 +20,4 @@ vitest-setup.js
 webpack.config.js
 .angular
 .github
+dev-tools

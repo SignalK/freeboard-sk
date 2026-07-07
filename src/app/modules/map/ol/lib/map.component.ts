@@ -6,6 +6,7 @@ import {
   EventEmitter,
   inject,
   Input,
+  NgZone,
   OnDestroy,
   OnInit,
   Output,
@@ -128,6 +129,7 @@ export class MapComponent implements OnInit, OnDestroy {
   protected changeDetectorRef = inject(ChangeDetectorRef);
   protected element = inject(ElementRef);
   protected mapService = inject(MapService);
+  private ngZone = inject(NgZone);
 
   constructor() {
     this.changeDetectorRef.detach();
@@ -135,14 +137,22 @@ export class MapComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const target = this.element.nativeElement.firstElementChild;
-    this.map = new Map();
-    this.map.setTarget(target);
-    this.map.setProperties(this.properties, true);
-    // register the map in the injectable mapService
-    this.mapService.addMap(this.map);
+    // Create the OL map and register its event handlers OUTSIDE the Angular
+    // zone. zone.js patches requestAnimationFrame, so leaving OL's render loop
+    // inside the zone forces a full app-wide change detection pass on every
+    // render frame (pan/zoom/animation) and every pointer move. Running it
+    // outside the zone eliminates that; the specific handlers that must update
+    // Angular state re-enter the zone via ngZone.run() (see below).
+    this.ngZone.runOutsideAngular(() => {
+      this.map = new Map();
+      this.map.setTarget(target);
+      this.map.setProperties(this.properties, true);
+      // register the map in the injectable mapService
+      this.mapService.addMap(this.map);
 
-    this.map.once('postrender', () => {
-      this.afterMapReady();
+      this.map.once('postrender', () => {
+        this.afterMapReady();
+      });
     });
   }
 
@@ -309,22 +319,29 @@ export class MapComponent implements OnInit, OnDestroy {
     this.rightClickHandler(src);
   };
   private pointerDownHandler = (event) => {
-    this.evCache[event.pointerId] = event;
-    this.map.set('vertexDeleteOnRelease', false);
-    this.touchStartXY = { x: event.clientX, y: event.clientY };
-    // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
-    // pause mid-edit doesn't delete a point; the chart context-menu long-press
-    // stays at 500 ms.
-    const modifying = this.map
-      .getInteractions()
-      .getArray()
-      .some((i) => i instanceof Modify && i.getActive());
-    this.touchTimer = setTimeout(this.touchHold, modifying ? 1500 : 500);
-    const c = toLonLat(this.map.getEventCoordinate(event));
-    const e = Object.assign(event, { lonlat: c });
-    this.mapService.clearFeatureUrls();
-    this.mapPointerDown.emit(e);
-    this._pointerDown.update(() => e);
+    // Re-enter the Angular zone: schedules the long-press timer in-zone (so the
+    // context menu / vertex-delete it triggers gets change detection) and emits
+    // to consumers that update Angular state. The map was created in
+    // runOutsideAngular, so without this the whole pointer-down path (including
+    // the setTimeout that patches into the zone) would run outside it.
+    this.ngZone.run(() => {
+      this.evCache[event.pointerId] = event;
+      this.map.set('vertexDeleteOnRelease', false);
+      this.touchStartXY = { x: event.clientX, y: event.clientY };
+      // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
+      // pause mid-edit doesn't delete a point; the chart context-menu long-press
+      // stays at 500 ms.
+      const modifying = this.map
+        .getInteractions()
+        .getArray()
+        .some((i) => i instanceof Modify && i.getActive());
+      this.touchTimer = setTimeout(this.touchHold, modifying ? 1500 : 500);
+      const c = toLonLat(this.map.getEventCoordinate(event));
+      const e = Object.assign(event, { lonlat: c });
+      this.mapService.clearFeatureUrls();
+      this.mapPointerDown.emit(e);
+      this._pointerDown.update(() => e);
+    });
   };
   private pointerUpHandler = (event) => {
     this.clearTouchTimer();
@@ -334,28 +351,34 @@ export class MapComponent implements OnInit, OnDestroy {
     this.emitRightClickEvent(event);
   };
 
+  // Discrete user actions (clicks) re-enter the Angular zone so consumers that
+  // mutate Angular state / open popovers trigger change detection.
   private emitClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
-    this.mapClick.emit(this.augmentClickEvent(event));
+    this.ngZone.run(() => this.mapClick.emit(this.augmentClickEvent(event)));
   };
 
   private emitRightClickEvent = (event: MouseEvent) => {
-    event.preventDefault();
-    const c = this.map.getEventCoordinate(event);
-    this.mapRightClick.emit({
-      features: this.map.getFeaturesAtPixel(
-        this.map.getPixelFromCoordinateInternal(c),
-        {
-          hitTolerance: this.hitTolerance
-        }
-      ),
-      lonlat: toLonLat(c)
+    this.ngZone.run(() => {
+      event.preventDefault();
+      const c = this.map.getEventCoordinate(event);
+      this.mapRightClick.emit({
+        features: this.map.getFeaturesAtPixel(
+          this.map.getPixelFromCoordinateInternal(c),
+          {
+            hitTolerance: this.hitTolerance
+          }
+        ),
+        lonlat: toLonLat(c)
+      });
     });
   };
   private emitSingleClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
-    this.mapSingleClick.emit(this.augmentClickEvent(event));
+    this.ngZone.run(() =>
+      this.mapSingleClick.emit(this.augmentClickEvent(event))
+    );
   };
   private emitDblClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
-    this.mapDblClick.emit(this.augmentClickEvent(event));
+    this.ngZone.run(() => this.mapDblClick.emit(this.augmentClickEvent(event)));
   };
 
   // ** add {lonlat, features}fields to event
@@ -374,7 +397,9 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapMoveStart.emit(this.augmentMoveEvent(event));
   };
   private emitMoveEndEvent = (event: MapEvent) => {
-    this.mapMoveEnd.emit(this.augmentMoveEvent(event));
+    // Re-enter the zone: move-end writes app config/extent signals and persists
+    // config, which must propagate to the UI.
+    this.ngZone.run(() => this.mapMoveEnd.emit(this.augmentMoveEvent(event)));
   };
 
   // ** add {lonlat, zoom, extent, projCode, topCenter, rightCenter, rotation} fields to event

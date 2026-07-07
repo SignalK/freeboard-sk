@@ -1,0 +1,5 @@
+{
+  "comment": "Freeboard-SK perf harness SignalK server. Data is injected at runtime by sk-feed.mjs over the WS stream (self vessel + AIS targets). Security is disabled via the compose entrypoint override (no --securityenabled) for open headless access.",
+  "interfaces": {},
+  "pipedProviders": []
+}

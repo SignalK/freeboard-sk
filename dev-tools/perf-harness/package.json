@@ -1,0 +1,19 @@
+{
+  "name": "freeboard-sk-perf-harness",
+  "private": true,
+  "type": "module",
+  "description": "Automated perf/profiling harness for Freeboard-SK (SignalK in Docker + Playwright).",
+  "scripts": {
+    "feed": "node sk-feed.mjs",
+    "profile": "node profile.mjs",
+    "compare": "node compare.mjs",
+    "serve": "node serve.mjs",
+    "smoke": "node smoke-draw-modify.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1"
+  }
+}

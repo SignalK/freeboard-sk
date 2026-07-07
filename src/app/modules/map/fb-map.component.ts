@@ -11,7 +11,8 @@ import {
   computed,
   input,
   effect,
-  inject
+  inject,
+  NgZone
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -279,11 +280,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private saveTimer;
   private isDirty = false;
 
-  protected mouse = {
+  // Cursor position readout. A signal so the readout (and measure overlay)
+  // refresh when pointer-move runs OUTSIDE the Angular zone (see MapComponent).
+  protected mouse = signal<{
+    pixel: number[] | null;
+    coords: Position;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    xy: any;
+  }>({
     pixel: null,
     coords: [0, 0],
     xy: null
-  };
+  });
   // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
   // when the "Live ETA at cursor" option is enabled (null = hidden).
   protected cursorInfo = signal<CursorEtaInfo | null>(null);
@@ -311,6 +319,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
   protected routeBuffers = inject(RouteBufferRegistry);
+  private ngZone = inject(NgZone);
 
   constructor() {
     effect(() => {
@@ -640,9 +649,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // pointer events
   protected onMapPointerMove(e: FBPointerEvent) {
-    this.mouse.pixel = e.pixel;
-    this.mouse.xy = e.coordinate;
-    this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+    this.mouse.set({
+      pixel: e.pixel,
+      xy: e.coordinate,
+      coords: GeoUtils.normaliseCoords(e.lonlat as Position)
+    });
     this.updateCursorInfo(e.lonlat as Position);
     if (this.mapInteract.isMeasuring()) {
       if (
@@ -686,7 +697,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   protected onMapPointerDrag() {
     if (!this.app.config.map.lockMoveMap && this.app.uiConfig().mapMove) {
-      this.exitMovingMap.emit(true);
+      // pointer-drag runs outside the Angular zone (see MapComponent); re-enter
+      // so exiting "move map" mode propagates to the UI. Rare one-off transition.
+      this.ngZone.run(() => this.exitMovingMap.emit(true));
     }
   }
 
@@ -715,7 +728,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   protected onMapPointerDown(e: FBPointerEvent) {
-    this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+    this.mouse.update((m) => ({
+      ...m,
+      coords: GeoUtils.normaliseCoords(e.lonlat as Position)
+    }));
     this.contextMenuPosition.x = (e as any).clientX + 'px';
     this.contextMenuPosition.y = (e as any).clientY + 'px';
   }
@@ -780,11 +796,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       e.clientX,
       e.clientY
     );
-    this.contextMenu.menuData = { item: this.mouse.coords };
+    this.contextMenu.menuData = { item: this.mouse().coords };
     if (this.mapInteract.isMeasuring()) {
-      this.parseClickInMeasureMode(this.mouse.xy.lonlat);
+      // The measure point is added by onMapRightClick, which fires alongside
+      // this handler with a valid lonlat; just suppress the context menu here.
     } else if (!this.modifyMode) {
-      if (!this.mouse.xy) {
+      if (!this.mouse().xy) {
         return;
       }
       this.contextMenu.openMenu();
@@ -928,8 +945,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle OL interaction end event */
   protected onDrawEnd(e: { feature: Feature }) {
-    this.mapInteract.stopDrawing(e.feature);
-    this.drawEnded.emit(this.mapInteract.draw);
+    // OL dispatches drawend synchronously from the map's viewport pointer
+    // handlers, which run outside the Angular zone (see MapComponent). Re-enter
+    // the zone so the save prompt / live-edit draft opened via
+    // drawEnded -> handleDrawEnded gets a change-detection pass.
+    this.ngZone.run(() => {
+      this.mapInteract.stopDrawing(e.feature);
+      this.drawEnded.emit(this.mapInteract.draw);
+    });
   }
 
   /** Enter modify mode */
@@ -1025,6 +1048,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle OL modify end event */
   protected onModifyEnd(e: ModifyEvent) {
+    // Modify interactions dispatch modifyend synchronously from the map's
+    // viewport pointer handlers, which run outside the Angular zone (see
+    // MapComponent). Re-enter the zone so the post-modify UI (the route-editing
+    // toolbar driven by app.data.activeRouteIsEditing / editingId) gets a
+    // change-detection pass.
+    this.ngZone.run(() => this.applyModifyEnd(e));
+  }
+
+  private applyModifyEnd(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
     const fid = f.getId();

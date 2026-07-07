@@ -113,7 +113,7 @@
           }
           <span
             [innerText]="
-              mouse.coords[1] | coords: app.config.units.positionFormat : true
+              mouse().coords[1] | coords: app.config.units.positionFormat : true
             "
           ></span>
           &nbsp;
@@ -123,7 +123,7 @@
 
           <span
             [innerText]="
-              mouse.coords[0] | coords: app.config.units.positionFormat
+              mouse().coords[0] | coords: app.config.units.positionFormat
             "
           ></span>
           &nbsp;
