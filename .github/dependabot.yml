@@ -5,14 +5,6 @@ updates:
     schedule:
       interval: weekly
     groups:
-      angular:
-        patterns:
-          - '@angular/*'
-          - '@angular-devkit/*'
-        update-types:
-          - major
-          - minor
-          - patch
       # Own group: a prettier bump can reformat source and fail format:check.
       # Isolating it keeps the reformat commit scoped to prettier's PR instead
       # of turning the whole minor-and-patch group red. Listed before
@@ -27,10 +19,22 @@ updates:
     ignore:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
-      # Angular majors move all @angular/* packages in lockstep; Dependabot
-      # can't express that as one group PR, so it splits into broken
-      # single-package PRs. Do Angular major upgrades manually via `ng update`.
+      # The @angular/* family must move in exact-minor lockstep. Dependabot can't
+      # guarantee that for ANY semver bump — even grouped, it bumps the subset
+      # with an available release and leaves the peer-coupled siblings
+      # (animations, cdk, material, build, router) behind, producing an
+      # unsatisfiable peer graph that fails `npm ci` on every CI job. So ignore
+      # all @angular/* updates here and do Angular upgrades via `ng update`.
       - dependency-name: '@angular/*'
+        update-types:
+          - 'version-update:semver-major'
+          - 'version-update:semver-minor'
+          - 'version-update:semver-patch'
+      # TypeScript majors lead Angular's supported peer range (@angular/build
+      # pins typescript '>=5.9 <6.0'), so a TS-major bump can't install against
+      # Angular 21. Bump TS major via `ng update` when the Angular major that
+      # supports it lands; in-range TS minor/patch still flow through the groups.
+      - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
