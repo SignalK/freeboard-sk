@@ -226,6 +226,7 @@ export class AppFacade extends InfoService {
     resourceTracks: boolean;
     infoLayers: boolean;
     buddyList: boolean;
+    tidalApi: boolean;
   }>({
     anchorApi: true, // default true until API is available
     autopilotApi: false,
@@ -235,7 +236,8 @@ export class AppFacade extends InfoService {
     resourceGroups: false, // ability to store resource groups
     resourceTracks: false, // ability to store track resources
     infoLayers: false, // ability to store map information overlays
-    buddyList: false
+    buddyList: false,
+    tidalApi: false
   });
 
   selfLines = signal<{ cog: LineStyleDef; heading: LineStyleDef }>({

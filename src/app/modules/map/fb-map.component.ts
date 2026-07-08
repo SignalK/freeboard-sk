@@ -125,6 +125,7 @@ import { MapService } from './ol/lib/map.service';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
+import { TidalCurrentsLayerComponent } from './ol/lib/resources/tidal-currents-layer.component';
 
 interface IResource {
   id: string;
@@ -172,7 +173,8 @@ enum INTERACTION_MODE {
     VesselPopoverComponent,
     S57PopoverComponent,
     LayerWindWeatherComponent,
-    LayerCurrentsWeatherComponent
+    LayerCurrentsWeatherComponent,
+    TidalCurrentsLayerComponent
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
@@ -1292,6 +1294,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
             addToFeatureList = true;
             aircraft = this.app.data.aircraft.get(id);
             text = aircraft ? aircraft.name || aircraft.mmsi : '';
+            break;
+          case 'tidal':
+            addToFeatureList = true;
+            icon = {
+              name: 'water',
+              svgIcon: undefined
+            };
+            text = feature.get('name');
             break;
         }
       } else if (!id && feature.getProperties) {

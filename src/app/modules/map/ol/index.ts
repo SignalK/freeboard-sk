@@ -57,6 +57,7 @@ import { RadarComponent } from './lib/radar/layer-radar.component';
 export * from './lib/util';
 export { MapService } from './lib/map.service';
 export { S57Service } from './lib/charts/s57.service';
+export { TidalCurrentsService } from './lib/tidal-currents.service';
 
 export { ContentComponent } from './lib/content.component';
 export { ControlsDirective } from './lib/controls.directive';
@@ -110,6 +111,7 @@ export { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson
 export { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
 export { ChartBoundsLayerComponent } from './lib/charts/layer-chart-bounds.component';
 export { RadarComponent } from './lib/radar/layer-radar.component';
+export { TidalCurrentsLayerComponent } from './lib/resources/tidal-currents-layer.component';
 
 const declarations = [
   ContentComponent,
