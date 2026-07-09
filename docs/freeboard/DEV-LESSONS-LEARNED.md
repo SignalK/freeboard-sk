@@ -163,6 +163,41 @@ a private method to exercise the genuine code path rather than faking its output
 
 ---
 
+### Unit-testing a function that lives *inside* the stream worker
+
+**The trap.** The logic you want to test (e.g. `apiGet`, `getVesselTrail`) is a
+module-private function in `skstream.worker.ts`. There's no facade to reach it
+through, and the file is a Web Worker entry — it calls `addEventListener('message',
+…)` at top level — so it *looks* untestable without spinning up a real `Worker` and
+driving `postMessage`.
+
+**What to do instead.** Just `export` the function and import it directly in a
+co-located `*.spec.ts`. Importing the worker module in a test is safe: the suite
+runs under jsdom with `@vitest/web-worker` in `setupFiles` (see
+`vitest-base.config.ts`), so the top-level `addEventListener` resolves against the
+jsdom global and is a harmless no-op — you do **not** need a `Worker` or
+`postMessage`. Stub browser globals the function uses with `vi.stubGlobal` (e.g.
+`fetch`), and `vi.restoreAllMocks()` in `afterEach`:
+
+```ts
+import { expect, describe, it, vi, afterEach } from 'vitest';
+import { apiGet } from './skstream.worker';
+
+afterEach(() => vi.restoreAllMocks());
+
+it('...', async () => {
+  vi.stubGlobal('fetch', vi.fn((url: string) =>
+    Promise.resolve({ json: () => Promise.resolve({ url }) } as unknown as Response)
+  ));
+  await expect(apiGet('/x')).resolves.toEqual({ url: '/x' });
+});
+```
+
+Adding an `export` for a worker-internal helper doesn't change its runtime
+behaviour (the worker still calls it directly), so it's a cheap, honest seam.
+
+---
+
 ## When building & running locally
 
 ### Build outputs are gitignored
