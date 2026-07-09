@@ -126,6 +126,10 @@ import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 import { TidalCurrentsLayerComponent } from './ol/lib/resources/tidal-currents-layer.component';
+import {
+  TidalCurrentsService,
+  GridSample
+} from './ol/lib/tidal-currents.service';
 
 interface IResource {
   id: string;
@@ -321,6 +325,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
   protected routeBuffers = inject(RouteBufferRegistry);
+  private tidalCurrents = inject(TidalCurrentsService);
   private ngZone = inject(NgZone);
 
   constructor() {
@@ -1354,7 +1359,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private s57Features: Record<string, Record<string, string | number>> = {};
-  private tidalFeatures: Record<string, { speedKn: number; direction: number }> = {};
+  private tidalFeatures: Record<
+    string,
+    Pick<GridSample, 'speedKn' | 'direction'>
+  > = {};
 
   // ******** POPOVER ACTIONS ************
 
@@ -1510,11 +1518,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.readOnly = true;
         if (tf) {
           poData.tidal = {
-            speedLabel: this.app.formatValueForDisplay(
-              tf.speedKn / 1.94384,
-              'm/s',
-              { precision: 1 }
-            ),
+            speedLabel: this.tidalCurrents.formatSpeed(tf.speedKn),
             directionLabel: `${this.app.formatValueForDisplay(tf.direction, 'deg', { precision: 0 })}T`
           };
         }

@@ -88,7 +88,7 @@ export class TidalCurrentsService {
         ms: midMs,
         pct: midPct,
         label: h % 2 === 0 ? String(h).padStart(2, '0') : '',
-        isDayStart: h === 0,
+        isDayStart: h === 0
       });
       t += hourMs;
     }
@@ -109,8 +109,17 @@ export class TidalCurrentsService {
     return `repeating-linear-gradient(to right, transparent ${off}%, transparent ${off + hw}%, ${shade} ${off + hw}%, ${shade} ${off + 2 * hw}%)`;
   });
 
-  constructor(private sk: SignalKClient, private app: AppFacade) {
+  constructor(
+    private sk: SignalKClient,
+    private app: AppFacade
+  ) {
     setInterval(() => this.clockTick.set(Date.now()), 60_000);
+  }
+
+  /** Formats a current speed (in knots) for display in the user's preferred units. */
+  formatSpeed(knots: number): string {
+    const driftMs = knots / 1.94384;
+    return this.app.formatValueForDisplay(driftMs, 'm/s', { precision: 1 });
   }
 
   getGridCurrents(
@@ -118,9 +127,9 @@ export class TidalCurrentsService {
     time?: Date
   ): Observable<TidalCurrentGridResponse> {
     const [w, s, e, n] = bbox;
-    let url = `/currents/grid?bbox=${w},${s},${e},${n}&maxPoints=200`;
+    let url = `/currents/grid?bbox=${encodeURIComponent(`${w},${s},${e},${n}`)}&maxPoints=200`;
     if (time) {
-      url += `&time=${time.toISOString()}`;
+      url += `&time=${encodeURIComponent(time.toISOString())}`;
     }
     return this.sk.api.get(2, url);
   }

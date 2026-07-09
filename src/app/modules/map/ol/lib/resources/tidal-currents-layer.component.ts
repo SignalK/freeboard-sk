@@ -28,7 +28,10 @@ import {
 import { FeatureLike } from 'ol/Feature';
 import { fromLonLat, transformExtent } from 'ol/proj';
 
-import { TidalCurrentsService, TidalCurrentGridResponse } from '../tidal-currents.service';
+import {
+  TidalCurrentsService,
+  TidalCurrentGridResponse
+} from '../tidal-currents.service';
 import { MapComponent } from '../map.component';
 import { AppFacade } from 'src/app/app.facade';
 
@@ -149,13 +152,15 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       return of<TidalCurrentGridResponse | null>(null);
     }
 
-    return this.currents.getGridCurrents(bbox, this.currents.selectedTime()).pipe(
-      tap((response) => this.renderCurrents(response.points)),
-      catchError(() => {
-        console.warn('Failed to fetch tidal currents');
-        return of<TidalCurrentGridResponse | null>(null);
-      })
-    );
+    return this.currents
+      .getGridCurrents(bbox, this.currents.selectedTime())
+      .pipe(
+        tap((response) => this.renderCurrents(response.points)),
+        catchError(() => {
+          console.warn('Failed to fetch tidal currents');
+          return of<TidalCurrentGridResponse | null>(null);
+        })
+      );
   }
 
   private getBbox(): [number, number, number, number] | null {
@@ -170,7 +175,12 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       'EPSG:3857',
       'EPSG:4326'
     );
-    return [extent[0], extent[1], extent[2], extent[3]] as [number, number, number, number];
+    return [extent[0], extent[1], extent[2], extent[3]] as [
+      number,
+      number,
+      number,
+      number
+    ];
   }
 
   private renderCurrents(points: TidalCurrentGridResponse['points']) {
@@ -182,8 +192,10 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
         setDeg: point.direction
       });
       feature.setId('tidal.' + index);
-      const speedLabel = this.formatSpeed(point.speedKn);
-      const dirLabel = this.app.formatValueForDisplay(point.direction, 'deg', { precision: 0 });
+      const speedLabel = this.currents.formatSpeed(point.speedKn);
+      const dirLabel = this.app.formatValueForDisplay(point.direction, 'deg', {
+        precision: 0
+      });
       feature.set('name', `Current: ${speedLabel} @ ${dirLabel}T`);
       return feature;
     });
@@ -211,7 +223,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
     const pixelSize = Math.max(16, Math.min(40, 12 + driftKts * 9));
     const scale = pixelSize / 24;
 
-    const speedLabel = this.formatSpeed(driftKts);
+    const speedLabel = this.currents.formatSpeed(driftKts);
 
     return new Style({
       image: new Icon({
@@ -230,10 +242,5 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
         stroke: new Stroke({ color: 'rgba(20, 60, 95, 0.9)', width: 3 })
       })
     });
-  }
-
-  private formatSpeed(knots: number): string {
-    const driftMs = knots / 1.94384;
-    return this.app.formatValueForDisplay(driftMs, 'm/s', { precision: 1 });
   }
 }
