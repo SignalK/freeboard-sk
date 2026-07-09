@@ -2,6 +2,7 @@
 
 import { AppIconSet } from './app.icons';
 import { MapIconDef } from '../map/ol/lib/map-image-registry.service';
+import { Convert } from 'src/app/lib/convert';
 
 export const AtoNsType1: AppIconSet = {
   path: './assets/img/atons',
@@ -70,6 +71,44 @@ const WeatherStation: MapIconDef = {
   scale: 0.75
 };
 
+// Wind barbs for meteo targets (issue #490). Standard notation — half feather
+// = 5 kn, full = 10 kn, pennant = 50 kn — bundled per 5-knot bucket. Drawn
+// north-up and anchored at the staff base so the renderer rotates each one to
+// the station's reported environment.wind.directionTrue.
+export const METEO_WIND_MIN_KTS = 5;
+export const METEO_WIND_MAX_KTS = 75;
+export const METEO_WIND_STEP_KTS = 5;
+
+const WindBarb = (kts: number): MapIconDef => ({
+  path: `./assets/img/wind/barbs/weatherStation-${kts}.svg`,
+  anchor: [13, 42],
+  scale: 0.75
+});
+
+/**
+ * Wind-speed bucket (knots, in `METEO_WIND_STEP_KTS` steps) selecting the barb
+ * glyph for a meteo target's reported speed. Single source of truth shared by
+ * icon selection and barb rotation.
+ * @param tws reported wind speed in m/s (Signal K native unit)
+ * @returns `null` when no speed is reported, `0` for calm (below the first
+ *   bucket → plain windsock), otherwise the bucket in `[MIN..MAX]` knots.
+ */
+export const meteoWindBucket = (
+  tws: number | null | undefined
+): number | null => {
+  if (typeof tws !== 'number' || !Number.isFinite(tws)) {
+    return null;
+  }
+  const kn = Convert.transform(tws, 'm/s', 'kn');
+  if (kn < METEO_WIND_MIN_KTS) {
+    return 0;
+  }
+  return Math.min(
+    Math.floor(kn / METEO_WIND_STEP_KTS) * METEO_WIND_STEP_KTS,
+    METEO_WIND_MAX_KTS
+  );
+};
+
 /**
  * @description Build MapIcon definitions for use by MapImageRegistry
  */
@@ -94,5 +133,16 @@ export const getAtoNDefs = () => {
   addToList(AtoNsType2);
   atonList['real']['weatherStation'] = WeatherStation;
   atonList['virtual']['weatherStation'] = WeatherStation;
+  // Bundled default barbs — real and virtual share the same artwork; a symbol
+  // provider may override any bucket via a `<variant>-weatherStation-<kts>` alias.
+  for (
+    let kts = METEO_WIND_MIN_KTS;
+    kts <= METEO_WIND_MAX_KTS;
+    kts += METEO_WIND_STEP_KTS
+  ) {
+    const def = WindBarb(kts);
+    atonList['real'][`weatherStation-${kts}`] = def;
+    atonList['virtual'][`weatherStation-${kts}`] = def;
+  }
   return atonList;
 };
