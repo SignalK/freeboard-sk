@@ -182,9 +182,9 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
         setDeg: point.direction
       });
       feature.setId('tidal.' + index);
-      const driftMs = point.speedKn / 1.94384;
-      const speedLabel = this.app.formatValueForDisplay(driftMs, 'm/s', { precision: 1 });
-      feature.set('name', `Current: ${speedLabel} @ ${point.direction.toFixed(0)}°T`);
+      const speedLabel = this.formatSpeed(point.speedKn);
+      const dirLabel = this.app.formatValueForDisplay(point.direction, 'deg', { precision: 0 });
+      feature.set('name', `Current: ${speedLabel} @ ${dirLabel}T`);
       return feature;
     });
     this.source.addFeatures(features);
@@ -211,8 +211,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
     const pixelSize = Math.max(16, Math.min(40, 12 + driftKts * 9));
     const scale = pixelSize / 24;
 
-    const driftMs = driftKts / 1.94384;
-    const speedLabel = this.app.formatValueForDisplay(driftMs, 'm/s', { precision: 1 });
+    const speedLabel = this.formatSpeed(driftKts);
 
     return new Style({
       image: new Icon({
@@ -231,5 +230,10 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
         stroke: new Stroke({ color: 'rgba(20, 60, 95, 0.9)', width: 3 })
       })
     });
+  }
+
+  private formatSpeed(knots: number): string {
+    const driftMs = knots / 1.94384;
+    return this.app.formatValueForDisplay(driftMs, 'm/s', { precision: 1 });
   }
 }

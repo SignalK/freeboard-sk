@@ -46,9 +46,12 @@ export class TidalCurrentsService {
   readonly dragEnd$ = new Subject<void>();
   private playTimer: ReturnType<typeof setInterval> | null = null;
 
+  /** Ticks once a minute so "now"-based computed values keep advancing while scrubTime is null. */
+  private readonly clockTick = signal(Date.now());
+
   /** Thin vertical lines at each whole-hour boundary. */
   readonly hourTicks = computed(() => {
-    const st = this.scrubTime() ?? Date.now();
+    const st = this.scrubTime() ?? this.clockTick();
     const wStart = st - 12 * 3600_000;
     const wEnd = st + 12 * 3600_000;
     const hourMs = 3600_000;
@@ -68,7 +71,7 @@ export class TidalCurrentsService {
 
   /** Labels centered within each hour segment. */
   readonly hourLabels = computed(() => {
-    const st = this.scrubTime() ?? Date.now();
+    const st = this.scrubTime() ?? this.clockTick();
     const wStart = st - 12 * 3600_000;
     const wEnd = st + 12 * 3600_000;
     const hourMs = 3600_000;
@@ -94,7 +97,7 @@ export class TidalCurrentsService {
 
   /** CSS gradient string with stops shifted to align with actual hour boundaries. */
   readonly barBgGradient = computed(() => {
-    const st = this.scrubTime() ?? Date.now();
+    const st = this.scrubTime() ?? this.clockTick();
     const wStart = st - 12 * 3600_000;
     const totalMs = 24 * 3600_000;
     const firstHour = Math.floor(wStart / 3600_000) * 3600_000;
@@ -106,7 +109,9 @@ export class TidalCurrentsService {
     return `repeating-linear-gradient(to right, transparent ${off}%, transparent ${off + hw}%, ${shade} ${off + hw}%, ${shade} ${off + 2 * hw}%)`;
   });
 
-  constructor(private sk: SignalKClient, private app: AppFacade) {}
+  constructor(private sk: SignalKClient, private app: AppFacade) {
+    setInterval(() => this.clockTick.set(Date.now()), 60_000);
+  }
 
   getGridCurrents(
     bbox: [number, number, number, number],
@@ -145,12 +150,12 @@ export class TidalCurrentsService {
 
   stepForwardBig() {
     const current = this.scrubTime() ?? Date.now();
-    this.scrubTime.set(current + 3600_000);
+    this.scrubTime.set(current + 6 * 3600_000);
   }
 
   stepBackBig() {
     const current = this.scrubTime() ?? Date.now();
-    this.scrubTime.set(current - 3600_000);
+    this.scrubTime.set(current - 6 * 3600_000);
   }
 
   resetToNow() {

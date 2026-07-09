@@ -1302,6 +1302,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
               svgIcon: undefined
             };
             text = feature.get('name');
+            this.tidalFeatures[id] = {
+              speedKn: Number(feature.get('driftKts')) || 0,
+              direction: Number(feature.get('setDeg')) || 0
+            };
             break;
         }
       } else if (!id && feature.getProperties) {
@@ -1350,6 +1354,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private s57Features: Record<string, Record<string, string | number>> = {};
+  private tidalFeatures: Record<string, { speedKn: number; direction: number }> = {};
 
   // ******** POPOVER ACTIONS ************
 
@@ -1496,6 +1501,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.position = poData.aircraft.position;
         poData.show = true;
         break;
+      case 'tidal': {
+        const tf = this.tidalFeatures[id];
+        poData.id = id;
+        poData.type = 'tidal';
+        poData.position = coord;
+        poData.show = true;
+        poData.readOnly = true;
+        if (tf) {
+          poData.tidal = {
+            speedLabel: this.app.formatValueForDisplay(
+              tf.speedKn / 1.94384,
+              'm/s',
+              { precision: 1 }
+            ),
+            directionLabel: `${this.app.formatValueForDisplay(tf.direction, 'deg', { precision: 0 })}T`
+          };
+        }
+        break;
+      }
       case 'region':
         item = [this.skres.fromCache('regions', t[1])];
         if (!item) {

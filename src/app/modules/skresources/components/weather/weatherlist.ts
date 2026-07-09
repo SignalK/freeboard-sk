@@ -82,6 +82,7 @@ export class WeatherListComponent implements OnDestroy {
       document.removeEventListener('pointermove', this.onDocPointerMove);
       document.removeEventListener('pointerup', this.onDocPointerUp);
     }
+    this.currents.pause();
   }
 
   protected close() {
@@ -159,6 +160,9 @@ export class WeatherListComponent implements OnDestroy {
   protected toggleTidalCurrents(checked: boolean) {
     if (!this.app.config?.selections) {
       return;
+    }
+    if (!checked) {
+      this.currents.pause();
     }
     this.app.config.selections.tidalCurrentsEnabled = checked;
     this.app.saveConfig();

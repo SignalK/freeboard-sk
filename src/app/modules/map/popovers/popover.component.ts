@@ -35,7 +35,7 @@ measure: boolean= measure mode;
   template: `
     <div
       class="popover top in mat-app-background"
-      [ngClass]="{ measure: measure }"
+      [ngClass]="{ measure: measure, compact: compact }"
     >
       <div class="popover-title">
         <div
@@ -98,6 +98,7 @@ export class PopoverComponent {
   @Input() icon: { class: string; name?: string; svgIcon?: string };
   @Input() canClose = true;
   @Input() measure = false;
+  @Input() compact = false;
   @Input() navTo = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() navigateTo: EventEmitter<void> = new EventEmitter();
