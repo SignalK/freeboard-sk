@@ -65,6 +65,11 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
         this.refresh$.next();
       }
     });
+    this.currents.dragEnd$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.show && this.layer) this.refresh$.next();
+      });
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -108,11 +113,6 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
         switchMap(() => this.fetchCurrents())
       )
       .subscribe();
-    this.currents.dragEnd$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.show && this.layer) this.fetchCurrents().subscribe();
-      });
     this.mapComponent.getMap().on('moveend', this.onMoveEnd);
     this.refresh$.next();
     this.mapComponent.getMap().render();
@@ -184,6 +184,9 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
   }
 
   private renderCurrents(points: TidalCurrentGridResponse['points']) {
+    if (!this.source) {
+      return;
+    }
     this.source.clear();
     const features = points.map((point, index) => {
       const feature = new Feature({
