@@ -367,23 +367,12 @@ function closeStream(fromCommand = false) {
 }
 
 // fetch from api endpoint
-let isFetching = false;
-function apiGet(url: string): Promise<unknown> {
-  if (isFetching) return;
-  return new Promise((resolve, reject) => {
-    isFetching = true;
-    fetch(`${url}`)
-      .then((r: Response) => {
-        isFetching = false;
-        r.json()
-          .then((j) => resolve(j))
-          .catch((err) => reject(err));
-      })
-      .catch((err) => {
-        isFetching = false;
-        reject(err);
-      });
-  });
+// NOTE: must stay safe under concurrency — getVesselTrail() fires several of
+// these in parallel and awaits them with Promise.all. A shared in-flight guard
+// here caused all but the first concurrent call to resolve to undefined, which
+// broke server-side trail/track fetching (#492).
+export function apiGet(url: string): Promise<unknown> {
+  return fetch(url).then((r: Response) => r.json());
 }
 
 // fetch other vessel tracks
