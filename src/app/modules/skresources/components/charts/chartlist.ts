@@ -24,7 +24,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKResourceType } from '../../resources.service';
 import { ChartLayers } from './chart-layers.component';
-import { FBCharts, FBChart, ChartImageAdjustment } from 'src/app/types';
+import { FBCharts, FBChart } from 'src/app/types';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
 import { JsonMapSourceDialog } from './jsonmapsource-dialog';
@@ -34,9 +34,7 @@ import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service
 import {
   SingleSelectListDialog,
   SliderInputDialog,
-  SliderInputDialogResult,
-  ImageAdjustmentDialog,
-  ImageAdjustmentDialogResult
+  SliderInputDialogResult
 } from 'src/app/lib/components';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
@@ -302,40 +300,10 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   protected itemImageAdjustment(chart: FBChart) {
-    const original: ChartImageAdjustment = {
-      brightness: 1,
-      contrast: 1,
-      ...(this.app.config.selections.chartImageAdjustment[chart[0]] ??
-        chart[1]?.imageAdjustment)
-    };
-
-    this.dialog
-      .open(ImageAdjustmentDialog, {
-        disableClose: true,
-        backdropClass: 'transparent-backdrop',
-        data: {
-          title: 'Image Adjustment',
-          text: chart[1]?.name ?? '',
-          value: { ...original },
-          onChange: (value: ChartImageAdjustment) => {
-            this.skres.chartSetImageAdjustment(chart[0], value);
-          }
-        }
-      })
-      .afterClosed()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((result: ImageAdjustmentDialogResult) => {
-        if (result?.apply) {
-          const adj = result.value;
-          this.app.config.selections.chartImageAdjustment[chart[0]] = adj;
-          chart[1].imageAdjustment = adj;
-          this.updateFullList(chart);
-          this.app.saveConfig();
-        } else {
-          // cancelled - restore the pre-edit adjustment
-          this.skres.chartSetImageAdjustment(chart[0], original);
-        }
-      });
+    // The palette is modeless and owned by the service so it survives the chart
+    // list closing, which frees the map for the live adjustment preview.
+    this.skres.openImageAdjustment(chart);
+    this.close();
   }
 
   updateFullList(chart: FBChart) {
