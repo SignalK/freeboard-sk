@@ -63,6 +63,10 @@ import { ActionResult, PathValue } from 'src/app/types';
 import { groupBy } from 'rxjs/operators';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ChartSeedJobDialog } from './components/charts/chart-seedjob-dialog';
+import {
+  ImageAdjustmentDialog,
+  ImageAdjustmentDialogResult
+} from 'src/app/lib/components';
 
 export type SKResourceType =
   'routes' | 'waypoints' | 'regions' | 'notes' | 'charts' | 'tracks';
@@ -845,6 +849,52 @@ export class SKResourceService {
         });
       });
     }
+  }
+
+  /**
+   * @description Open the modeless, draggable Image Adjustment palette for a
+   * chart. Sliders take effect live; SAVE persists per-chart, closing (cancel)
+   * reverts to the pre-edit values. Owned here (not the chart list) so it
+   * survives the chart list closing to free the map.
+   * @param chart Chart to adjust
+   */
+  public openImageAdjustment(chart: FBChart) {
+    const id = chart[0];
+    const original: ChartImageAdjustment = {
+      brightness: 1,
+      contrast: 1,
+      ...(this.app.config.selections.chartImageAdjustment[id] ??
+        chart[1]?.imageAdjustment)
+    };
+
+    this.dialog
+      .open(ImageAdjustmentDialog, {
+        hasBackdrop: false,
+        disableClose: true,
+        autoFocus: false,
+        restoreFocus: false,
+        position: { top: '70px', left: '8px' },
+        width: '290px',
+        data: {
+          title: 'Image Adjustment',
+          text: chart[1]?.name ?? '',
+          value: { ...original },
+          onChange: (value: ChartImageAdjustment) => {
+            this.chartSetImageAdjustment(id, value);
+          }
+        }
+      })
+      .afterClosed()
+      .subscribe((result: ImageAdjustmentDialogResult) => {
+        if (result?.apply) {
+          this.app.config.selections.chartImageAdjustment[id] = result.value;
+          this.chartSetImageAdjustment(id, result.value);
+          this.app.saveConfig();
+        } else {
+          // cancelled - restore the pre-edit adjustment
+          this.chartSetImageAdjustment(id, original);
+        }
+      });
   }
 
   /**
