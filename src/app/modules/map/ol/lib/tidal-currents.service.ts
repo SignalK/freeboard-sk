@@ -2,7 +2,20 @@ import { computed, Injectable, signal, WritableSignal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
+import { Convert } from 'src/app/lib/convert';
 
+// Targets the `signalk-tidal-currents` plugin v0.2.0 `/currents/grid` response, e.g.:
+// { time: "2026-07-10T09:00:00.000Z",
+//   units: { speedKn: "knots (magnitude)", u: "m/s east", v: "m/s north" },
+//   points: [{ latitude: 51.2, longitude: 3.9, speedKn: 1.4, direction: 214.0,
+//              u: -0.57, v: -0.4 }, ...] }
+// `speedKn` is always knots and `direction` always degrees true ("direction
+// TOWARD", the oceanographic convention) — fixed by the plugin, not
+// user/request configurable. `u`/`v` are the east/north velocity components
+// (unused today; the `units` object itself is never read, only the point
+// fields). That plugin is still pre-1.0, so a later 0.x release is free to
+// change this under semver — if the overlay stops rendering after a plugin
+// update, diff its actual response against this shape first.
 export interface GridSample {
   latitude: number;
   longitude: number;
@@ -36,7 +49,7 @@ export interface HourLabel {
 }
 
 const PLAY_STEP_MS = 600;
-const STEP_MINUTES = 15;
+const STEP_MINUTES = 60;
 
 @Injectable({ providedIn: 'root' })
 export class TidalCurrentsService {
@@ -118,7 +131,7 @@ export class TidalCurrentsService {
 
   /** Formats a current speed (in knots) for display in the user's preferred units. */
   formatSpeed(knots: number): string {
-    const driftMs = knots / 1.94384;
+    const driftMs = knots / Convert.transform(1, 'm/s', 'kn');
     return this.app.formatValueForDisplay(driftMs, 'm/s', { precision: 1 });
   }
 

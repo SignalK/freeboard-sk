@@ -65,7 +65,8 @@ export class WeatherListComponent implements OnDestroy {
     if (!this.dragState) return;
 
     if (!this.dragState.isDragging) {
-      const percent = (e.clientX - this.dragState.elLeft) / this.dragState.barWidth;
+      const percent =
+        (e.clientX - this.dragState.elLeft) / this.dragState.barWidth;
       const hourOffset = (percent - 0.5) * 24;
       const newTime = this.dragState.startTime + hourOffset * 3600_000;
       this.currents.scrubTime.set(newTime);
@@ -93,24 +94,32 @@ export class WeatherListComponent implements OnDestroy {
     const t = this.currents.scrubTime();
     const d = t ? new Date(t) : new Date();
     const now = new Date();
-    const isToday = d.getFullYear() === now.getFullYear() &&
+    const isToday =
+      d.getFullYear() === now.getFullYear() &&
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const isTomorrow = d.getFullYear() === tomorrow.getFullYear() &&
+    const isTomorrow =
+      d.getFullYear() === tomorrow.getFullYear() &&
       d.getMonth() === tomorrow.getMonth() &&
       d.getDate() === tomorrow.getDate();
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = d.getFullYear() === yesterday.getFullYear() &&
+    const isYesterday =
+      d.getFullYear() === yesterday.getFullYear() &&
       d.getMonth() === yesterday.getMonth() &&
       d.getDate() === yesterday.getDate();
     let day: string;
     if (isToday) day = 'Today';
     else if (isTomorrow) day = 'Tomorrow';
     else if (isYesterday) day = 'Yesterday';
-    else day = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    else
+      day = d.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
     const p = (n: number) => String(n).padStart(2, '0');
     return `${day} · ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
