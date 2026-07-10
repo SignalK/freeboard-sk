@@ -10,6 +10,8 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { AISBaseLayerComponent, SKTarget } from './ais-base.component';
 import { MapImageRegistry } from '../map-image-registry.service';
+import { SKMeteo } from 'src/app/modules';
+import { meteoWindBucket } from 'src/app/modules/icons';
 
 // ** Signal K non-vessel targets **
 @Component({
@@ -56,7 +58,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
               f.set('name', label, true);
               f.setStyle(
                 this.setTextLabel(
-                  this.setRotation(s, target.orientation),
+                  this.setRotation(s, this.targetRotation(target)),
                   label
                 )
               );
@@ -99,15 +101,33 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       f.set('name', label, true);
       const s = this.buildStyle(target).clone();
       f.setStyle(
-        this.setTextLabel(this.setRotation(s, target.orientation), label)
+        this.setTextLabel(
+          this.setRotation(s, this.targetRotation(target)),
+          label
+        )
       );
       this.source.addFeature(f);
     }
   }
 
+  // Meteo (weather-station) targets render a wind barb rotated to the reported
+  // wind direction; every other target keeps its fixed orientation.
+  private targetRotation(target: SKTarget): number {
+    if (this.targetContext !== 'meteo') {
+      return target.orientation;
+    }
+    const meteo = target as SKMeteo;
+    return meteoWindBucket(meteo.tws) && Number.isFinite(meteo.twd)
+      ? meteo.twd
+      : 0;
+  }
+
   // build target style
   buildStyle(target: SKTarget): Style {
-    const icon = this.mapImages.getAtoN(target.type?.id, target.virtual);
+    const icon =
+      this.targetContext === 'meteo'
+        ? this.mapImages.getMeteoIcon((target as SKMeteo).tws, target.virtual)
+        : this.mapImages.getAtoN(target.type?.id, target.virtual);
     if (icon && typeof this.targetStyles === 'undefined') {
       if (icon) {
         return new Style({

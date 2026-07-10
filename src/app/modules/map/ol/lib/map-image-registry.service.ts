@@ -7,7 +7,8 @@ import {
   getVesselDefs,
   getWaypointDefs,
   AIS_TYPE_IDS,
-  AIS_MOORED_STYLE_IDS
+  AIS_MOORED_STYLE_IDS,
+  meteoWindBucket
 } from 'src/app/modules/icons';
 
 interface MapImageCollection {
@@ -68,7 +69,34 @@ export class MapImageRegistry {
    * @returns Icon object
    */
   getAtoN(id: number | string, virtual?: boolean): Icon {
-    const vid = ATON_TYPE_IDS[id] ?? 'aton';
+    return this.resolveAtoN(ATON_TYPE_IDS[id] ?? 'aton', virtual);
+  }
+
+  /**
+   * @description Returns the barb/windsock image for a meteo (weather-station)
+   * target, chosen by its reported wind speed. Barbs are bundled per 5-knot
+   * bucket (`weatherStation-5..75`) and a provider may override any bucket via a
+   * `<variant>-weatherStation-<kts>` symbol. Below the first bucket, or with no
+   * wind reported, the plain windsock (`weatherStation`) is used.
+   * @param tws reported wind speed in m/s (Signal K native unit), or null/undefined
+   * @param virtual true = virtual AtoN variant
+   * @returns Icon object
+   */
+  getMeteoIcon(tws: number | null | undefined, virtual?: boolean): Icon {
+    const bucket = meteoWindBucket(tws);
+    const vid = bucket ? `weatherStation-${bucket}` : 'weatherStation';
+    return this.resolveAtoN(vid, virtual, 'weatherStation');
+  }
+
+  /**
+   * Resolve an AtoN/meteo icon by its variant id: external symbol override
+   * first, then the bundled artwork, then the supplied fallback id.
+   */
+  private resolveAtoN(
+    vid: string,
+    virtual?: boolean,
+    fallbackVid = 'aton'
+  ): Icon {
     const variant = virtual ? 'virtual' : 'real';
     const defs = virtual ? this.atonImageDefs.virtual : this.atonImageDefs.real;
     // External symbol override keyed by "real-<vid>" / "virtual-<vid>"
@@ -83,9 +111,9 @@ export class MapImageRegistry {
     if (!this.icons.atons[key]) {
       this.buildIcon(this.icons.atons, defs, vid, false, key);
     }
-    const fallback = `${variant}-aton`;
+    const fallback = `${variant}-${fallbackVid}`;
     if (!this.icons.atons[fallback]) {
-      this.buildIcon(this.icons.atons, defs, 'aton', false, fallback);
+      this.buildIcon(this.icons.atons, defs, fallbackVid, false, fallback);
     }
     return this.icons.atons[key] ?? this.icons.atons[fallback];
   }
