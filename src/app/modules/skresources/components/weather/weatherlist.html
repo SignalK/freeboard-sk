@@ -1,5 +1,5 @@
 <div class="resourcelist">
-  <mat-card style="border-radius: unset">
+  <mat-card style="border-radius: unset; height: 100%; box-sizing: border-box">
     <mat-card-title>
       <div class="title-block">
         <div style="width: 50px">
@@ -49,6 +49,213 @@
           Enable ocean currents layer
         </mat-checkbox>
       </div>
+      @if (app.featureFlags().tidalApi) {
+      <div style="border-bottom: 1px solid #ccc; margin: 8px 0"></div>
+      <div
+        style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888"
+      >
+        TIDAL CURRENTS (SIGNALK PLUGIN)
+      </div>
+      <div style="display: flex; align-items: center; padding: 2px 0">
+        <mat-checkbox
+          [checked]="app.config.selections.tidalCurrentsEnabled"
+          (change)="toggleTidalCurrents($event.checked)"
+          matTooltip="Toggle tidal currents overlay"
+          matTooltipPosition="right"
+        >
+          Enable tidal currents layer
+        </mat-checkbox>
+      </div>
+      @if (app.config.selections.tidalCurrentsEnabled) {
+      <div
+        style="margin-top: 6px; border-top: 1px solid #333; padding-top: 6px"
+      >
+        <!-- clickable/draggable 24h time bar -->
+        <div
+          #timeBar
+          style="
+            position: relative;
+            height: 28px;
+            margin-bottom: 10px;
+            user-select: none;
+            touch-action: none;
+          "
+          (pointerdown)="onBarPointerDown($event, timeBar)"
+        >
+          <div
+            style="
+              position: relative;
+              height: 24px;
+              border-radius: 4px;
+              overflow: hidden;
+              cursor: pointer;
+              backdrop-filter: blur(6px);
+            "
+            [style.background]="app.uiConfig().invertColor ? 'rgba(11,26,43,0.85)' : 'rgba(240,244,248,0.9)'"
+            [style.border]="app.uiConfig().invertColor ? '1px solid rgba(79,148,212,0.35)' : '1px solid rgba(79,148,212,0.5)'"
+          >
+            <!-- alternating background aligned to hour boundaries -->
+            <div
+              style="position: absolute; inset: 0; pointer-events: none"
+              [style.background]="currents.barBgGradient()"
+            ></div>
+            <!-- hour tick lines -->
+            @for (tick of currents.hourTicks(); track tick.ms) {
+            <div
+              [style.left.%]="tick.pct"
+              [style.borderLeft]="tick.isDayStart ? '2px dashed #7fd4ff' : (app.uiConfig().invertColor ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.12)')"
+              style="
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                pointer-events: none;
+              "
+            ></div>
+            }
+            <!-- centered hour labels -->
+            @for (lb of currents.hourLabels(); track lb.ms) {
+            <div
+              [style.left.%]="lb.pct"
+              style="
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                transform: translateX(-50%);
+                pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              @if (lb.label) {
+              <span
+                style="font-size: 9px; white-space: nowrap; margin-top: 18px"
+                [style.color]="app.uiConfig().invertColor ? '#7fa8cf' : '#4a6a8a'"
+                >{{ lb.label }}</span
+              >
+              }
+            </div>
+            }
+          </div>
+          <!-- now-tick (dashed, visible when center != now) -->
+          @if (nowTickPct() != null) {
+          <div
+            [style.left.%]="nowTickPct()"
+            style="
+              position: absolute;
+              top: 0;
+              bottom: 0;
+              pointer-events: none;
+              z-index: 1;
+            "
+            [style.borderLeft]="'1px dashed ' + (app.uiConfig().invertColor ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)')"
+          ></div>
+          }
+          <!-- center marker -->
+          <div
+            style="
+              position: absolute;
+              top: 0;
+              bottom: 0;
+              left: 50%;
+              width: 3px;
+              background: #f2b84b;
+              box-shadow: 0 0 6px rgba(242, 184, 75, 0.8);
+              transform: translateX(-1.5px);
+              pointer-events: none;
+              z-index: 2;
+            "
+          ></div>
+          <!-- pill (time label above marker) -->
+          <div
+            style="
+              position: absolute;
+              top: -4px;
+              left: 50%;
+              transform: translate(-50%, -100%);
+              background: #f2b84b;
+              color: #1a2c3d;
+              font-size: 10px;
+              font-weight: 700;
+              padding: 2px 7px;
+              border-radius: 9px;
+              white-space: nowrap;
+              pointer-events: none;
+              z-index: 3;
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            "
+          >
+            {{ fmtScrubTime() }}
+          </div>
+        </div>
+        <!-- step buttons -->
+        <div style="display: flex; align-items: center; gap: 3px">
+          <button
+            mat-icon-button
+            (click)="currents.stepBackBig()"
+            matTooltip="-6h"
+            matTooltipPosition="below"
+            style="width: 26px; height: 26px; line-height: 26px"
+          >
+            <mat-icon style="font-size: 14px">skip_previous</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            (click)="currents.stepBack()"
+            matTooltip="-1h"
+            matTooltipPosition="below"
+            style="width: 26px; height: 26px; line-height: 26px"
+          >
+            <mat-icon style="font-size: 14px">chevron_left</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            (click)="currents.togglePlay()"
+            [matTooltip]="currents.isPlaying() ? 'Pause' : 'Play'"
+            matTooltipPosition="below"
+            style="width: 30px; height: 30px; line-height: 30px"
+          >
+            <mat-icon style="font-size: 18px"
+              >{{ currents.isPlaying() ? 'pause' : 'play_arrow' }}</mat-icon
+            >
+          </button>
+          <button
+            mat-icon-button
+            (click)="currents.stepForward()"
+            matTooltip="+1h"
+            matTooltipPosition="below"
+            style="width: 26px; height: 26px; line-height: 26px"
+          >
+            <mat-icon style="font-size: 14px">chevron_right</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            (click)="currents.stepForwardBig()"
+            matTooltip="+6h"
+            matTooltipPosition="below"
+            style="width: 26px; height: 26px; line-height: 26px"
+          >
+            <mat-icon style="font-size: 14px">skip_next</mat-icon>
+          </button>
+          <span style="flex: 1"></span>
+          <button
+            mat-button
+            (click)="currents.resetToNow()"
+            matTooltip="Reset to Now"
+            matTooltipPosition="below"
+            style="
+              min-width: unset;
+              padding: 0 8px;
+              font-size: 11px;
+              line-height: 26px;
+              height: 26px;
+            "
+          >
+            Now
+          </button>
+        </div>
+      </div>
+      } }
     </mat-card-content>
   </mat-card>
 </div>

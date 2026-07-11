@@ -832,7 +832,8 @@ export class AppComponent {
       weatherApi: false,
       radarApi: false,
       notificationApi: false,
-      buddyList: false
+      buddyList: false,
+      tidalApi: false
     };
     this.signalk.get('/signalk/v2/features?enabled=1').subscribe(
       (res: {
@@ -866,6 +867,11 @@ export class AppComponent {
           if (p.id === 'signalk-pmtiles-plugin') {
             this.app.debug('*** found PMTiles plugin');
             hasPlugin.pmTiles = true;
+          }
+          // tidal currents
+          if (p.id === 'signalk-tidal-currents') {
+            this.app.debug('*** found signalk-tidal-currents plugin');
+            ff.tidalApi = true;
           }
         });
         this.app.featureFlags.update((current) => {

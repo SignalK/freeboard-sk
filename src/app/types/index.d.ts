@@ -240,6 +240,7 @@ export interface IAppConfig {
     infolayers: string[];
     weatherWindEnabled: boolean;
     oceanCurrentsEnabled: boolean;
+    tidalCurrentsEnabled: boolean;
   };
 }
 

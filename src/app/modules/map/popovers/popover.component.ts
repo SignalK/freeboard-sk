@@ -35,54 +35,61 @@ measure: boolean= measure mode;
   template: `
     <div
       class="popover top in mat-app-background"
-      [ngClass]="{ measure: measure }"
+      [ngClass]="{ measure: measure, compact: compact }"
     >
-      <div class="popover-title">
-        <div
-          [ngClass]="{ measure: measure }"
-          style="flex: 1 1 auto;overflow: hidden;
-                                display: -webkit-box;
-                                -webkit-box-orient: vertical;
-                                -webkit-line-clamp: 1;
-                                line-clamp: 1;
-                                text-overflow:ellipsis;"
-        >
-          @if (mmsi) {
-            <mat-icon>
-              <country-flag
-                [mmsi]="mmsi"
-                [host]="app.hostDef.url"
-              ></country-flag>
-            </mat-icon>
-          }
+      @if (title || icon || mmsi || canClose || navTo) {
+        <div class="popover-title">
+          <div
+            [ngClass]="{ measure: measure }"
+            style="flex: 1 1 auto;overflow: hidden;
+                                  display: -webkit-box;
+                                  -webkit-box-orient: vertical;
+                                  -webkit-line-clamp: 1;
+                                  line-clamp: 1;
+                                  text-overflow:ellipsis;"
+          >
+            @if (mmsi) {
+              <mat-icon>
+                <country-flag
+                  [mmsi]="mmsi"
+                  [host]="app.hostDef.url"
+                ></country-flag>
+              </mat-icon>
+            }
 
-          @if (icon?.svgIcon) {
-            <mat-icon [class]="icon?.class" [svgIcon]="icon.svgIcon"></mat-icon>
-          } @else {
-            <mat-icon [class]="icon?.class">{{ icon?.name }}</mat-icon>
-          }
+            @if (icon?.svgIcon) {
+              <mat-icon
+                [class]="icon?.class"
+                [svgIcon]="icon.svgIcon"
+              ></mat-icon>
+            } @else if (icon?.name) {
+              <mat-icon [class]="icon?.class">{{ icon?.name }}</mat-icon>
+            }
 
-          &nbsp;{{ title }}
+            @if (title) {
+              &nbsp;{{ title }}
+            }
+          </div>
+          @if (canClose) {
+            <div style="">
+              <button mat-icon-button (click)="handleClose()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+          @if (!canClose && navTo) {
+            <div style="">
+              <button
+                mat-icon-button
+                matTooltip="Navigate to here"
+                (click)="handleNavTo()"
+              >
+                <mat-icon>near_me</mat-icon>
+              </button>
+            </div>
+          }
         </div>
-        @if (canClose) {
-          <div style="">
-            <button mat-icon-button (click)="handleClose()">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-        }
-        @if (!canClose && navTo) {
-          <div style="">
-            <button
-              mat-icon-button
-              matTooltip="Navigate to here"
-              (click)="handleNavTo()"
-            >
-              <mat-icon>near_me</mat-icon>
-            </button>
-          </div>
-        }
-      </div>
+      }
       <div class="popover-content">
         <ng-content></ng-content>
       </div>
@@ -98,6 +105,7 @@ export class PopoverComponent {
   @Input() icon: { class: string; name?: string; svgIcon?: string };
   @Input() canClose = true;
   @Input() measure = false;
+  @Input() compact = false;
   @Input() navTo = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() navigateTo: EventEmitter<void> = new EventEmitter();

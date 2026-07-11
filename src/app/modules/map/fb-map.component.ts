@@ -125,6 +125,11 @@ import { MapService } from './ol/lib/map.service';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
+import { TidalCurrentsLayerComponent } from './ol/lib/resources/tidal-currents-layer.component';
+import {
+  TidalCurrentsService,
+  GridSample
+} from './ol/lib/tidal-currents.service';
 
 interface IResource {
   id: string;
@@ -172,7 +177,8 @@ enum INTERACTION_MODE {
     VesselPopoverComponent,
     S57PopoverComponent,
     LayerWindWeatherComponent,
-    LayerCurrentsWeatherComponent
+    LayerCurrentsWeatherComponent,
+    TidalCurrentsLayerComponent
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
@@ -319,6 +325,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
   protected routeBuffers = inject(RouteBufferRegistry);
+  private tidalCurrents = inject(TidalCurrentsService);
   private ngZone = inject(NgZone);
 
   constructor() {
@@ -1293,6 +1300,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
             aircraft = this.app.data.aircraft.get(id);
             text = aircraft ? aircraft.name || aircraft.mmsi : '';
             break;
+          case 'tidal':
+            addToFeatureList = true;
+            icon = {
+              name: 'water',
+              svgIcon: undefined
+            };
+            text = feature.get('name');
+            this.tidalFeatures[id] = {
+              speedKn: Number(feature.get('driftKts')) || 0,
+              direction: Number(feature.get('setDeg')) || 0
+            };
+            break;
         }
       } else if (!id && feature.getProperties) {
         const props = feature.getProperties();
@@ -1340,6 +1359,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private s57Features: Record<string, Record<string, string | number>> = {};
+  private tidalFeatures: Record<
+    string,
+    Pick<GridSample, 'speedKn' | 'direction'>
+  > = {};
 
   // ******** POPOVER ACTIONS ************
 
@@ -1486,6 +1509,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.position = poData.aircraft.position;
         poData.show = true;
         break;
+      case 'tidal': {
+        const tf = this.tidalFeatures[id];
+        poData.id = id;
+        poData.type = 'tidal';
+        poData.position = coord;
+        poData.show = true;
+        poData.readOnly = true;
+        if (tf) {
+          poData.tidal = {
+            speedLabel: this.tidalCurrents.formatSpeed(tf.speedKn),
+            directionLabel: `${this.app.formatValueForDisplay(tf.direction, 'deg', { precision: 0 })}T`
+          };
+        }
+        break;
+      }
       case 'region':
         item = [this.skres.fromCache('regions', t[1])];
         if (!item) {

@@ -575,6 +575,33 @@
         >
         </s57-popover>
       }
+      @if (this.overlay().type === 'tidal') {
+        <ap-popover
+          [canClose]="app.config.map.popoverMulti"
+          [compact]="true"
+          (closed)="popoverClosed()"
+        >
+          <div style="display: flex; align-items: center; gap: 8px">
+            <mat-icon style="font-size: 22px; height: 22px; width: 22px"
+              >water</mat-icon
+            >
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <div style="display: flex; align-items: center; gap: 6px">
+                <mat-icon style="font-size: 16px; height: 16px; width: 16px"
+                  >air</mat-icon
+                >
+                <span>{{ overlay().tidal?.speedLabel }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px">
+                <mat-icon style="font-size: 16px; height: 16px; width: 16px"
+                  >explore</mat-icon
+                >
+                <span>{{ overlay().tidal?.directionLabel }}</span>
+              </div>
+            </div>
+          </div>
+        </ap-popover>
+      }
       @if (
         overlay().type === 'destination' ||
         overlay().type === 'waypoint' ||
@@ -851,6 +878,12 @@
     [opacity]="0.55"
   >
   </fb-weather-currents>
+
+  <fb-tidal-currents
+    [show]="app.config.selections.tidalCurrentsEnabled"
+    [opacity]="0.7"
+  >
+  </fb-tidal-currents>
 
   <!-- chart boundaries-->
   @if (app.data.chartBounds.show) {

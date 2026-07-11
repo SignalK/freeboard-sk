@@ -40,6 +40,7 @@ export interface IPopover {
   aircraft?: SKAircraft;
   alarm?: AlertData;
   s57Feature?: Record<string, string | number>;
+  tidal?: { speedLabel: string; directionLabel: string };
   readOnly: boolean;
 }
 

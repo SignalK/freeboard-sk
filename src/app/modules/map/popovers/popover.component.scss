@@ -120,3 +120,20 @@
     flex:1 1 45%;
 }
 
+.popover.compact {
+    min-width: 0;
+    max-width: 170px;
+    width: fit-content;
+}
+
+.popover.compact > .popover-title {
+    padding: 0;
+    line-height: 0;
+    min-height: 0;
+    min-width: unset;
+}
+
+.popover.compact > .popover-content {
+    padding: 6px 10px;
+}
+
