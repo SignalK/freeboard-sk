@@ -308,6 +308,7 @@
                       id: $event
                     })
                   "
+                  (move)="onNoteMove($event)"
                   (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
                 />
               }

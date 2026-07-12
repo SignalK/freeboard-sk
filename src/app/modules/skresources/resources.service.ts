@@ -3,10 +3,12 @@ import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import ngeohash from 'ngeohash';
+import { Collection, Feature } from 'ol';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import { FBMapInteractService } from '../map/fbmap-interact.service';
 
 import {
   NoteDialog,
@@ -83,6 +85,7 @@ export class SKResourceService {
   private dialog = inject(MatDialog);
   private signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
+  private mapInteract = inject(FBMapInteractService);
 
   constructor() {
     this.worker
@@ -2115,6 +2118,28 @@ export class SKResourceService {
   }
 
   /**
+   * @description Start the map Modify interaction to reposition a Note.
+   * Operates on the actual rendered note feature loaded into the draw collection
+   * by the map click that opened the details surface — modifying that feature is
+   * what visually moves the icon and yields the coordinates the save persists.
+   * If it is absent (details reached without a map click, e.g. from a list) there
+   * is nothing to move, so this is a no-op.
+   * @param id Note identifier
+   */
+  public startNoteModify(id: string) {
+    const features = this.mapInteract.draw.features as Collection<Feature>;
+    const target = features
+      ?.getArray?.()
+      .find((f: Feature) => f.getId() === 'note.' + id);
+    if (!target) {
+      return;
+    }
+    // Restrict the interaction to the target note feature.
+    this.mapInteract.draw.features = new Collection([target]);
+    this.mapInteract.startModifying({ type: 'note' });
+  }
+
+  /**
    * @description Create note resource on the server
    * @param note SKNote object
    */
@@ -2412,6 +2437,9 @@ export class SKResourceService {
           }
           if (r.data === 'edit') {
             this.showNoteEditor({ id: id });
+          }
+          if (r.data === 'move') {
+            this.startNoteModify(id);
           }
           if (r.data === 'delete') {
             this.deleteNote(id);

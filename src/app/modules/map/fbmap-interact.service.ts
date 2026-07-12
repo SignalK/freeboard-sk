@@ -250,7 +250,7 @@ export class FBMapInteractService {
   }
 
   /** Start modifying mode */
-  startModifying(overlay: IPopover) {
+  startModifying(overlay: Pick<IPopover, 'type'>) {
     this.app.debug(`startModifying()...`);
     if (this.draw.features.getLength() === 0) {
       return;

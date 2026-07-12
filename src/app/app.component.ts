@@ -1161,6 +1161,16 @@ export class AppComponent {
     }
   }
 
+  /** Start moving a Note from the info panel (close the panel first so the
+   * map's Modify interaction is unobstructed). */
+  protected onNoteMove(id: string) {
+    if (this.infoPanel.opened()) {
+      this.infoPanel.close();
+      this.closeDrawer();
+    }
+    this.skres.startNoteModify(id);
+  }
+
   // ********* MAIN MENU ACTIONS *************
 
   // ** open about dialog **
