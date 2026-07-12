@@ -82,7 +82,7 @@ export const METEO_WIND_STEP_KTS = 5;
 const WindBarb = (kts: number): MapIconDef => ({
   path: `./assets/img/wind/barbs/weatherStation-${kts}.svg`,
   anchor: [13, 42],
-  scale: 0.75
+  scale: 0.9
 });
 
 /**
