@@ -45,6 +45,7 @@ import {
   Regions,
   ChartResource,
   ChartImageAdjustment,
+  PalettePosition,
   FBChart,
   FBCharts,
   FBRegion,
@@ -876,11 +877,15 @@ export class SKResourceService {
         position: { top: '70px', left: '8px' },
         width: '290px',
         data: {
-          title: 'Image Adjustment',
           text: chart[1]?.name ?? '',
           value: { ...original },
+          position: this.app.config.imageAdjustPalettePos,
           onChange: (value: ChartImageAdjustment) => {
             this.chartSetImageAdjustment(id, value);
+          },
+          onMoved: (position: PalettePosition) => {
+            this.app.config.imageAdjustPalettePos = position;
+            this.app.saveConfig();
           }
         }
       })

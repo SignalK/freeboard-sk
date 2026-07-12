@@ -62,6 +62,8 @@ export type LengthUnitDef = 'm' | 'foot';
 export type SpeedUnitDef = 'kn' | 'm/s' | 'km/h' | 'mph';
 export type DistanceUnitDef = 'kilometer' | 'naut-mile';
 
+export type PalettePosition = { x: number; y: number };
+
 export interface IAppConfig {
   ui: {
     mapNorthUp: boolean;
@@ -74,6 +76,7 @@ export interface IAppConfig {
     showNotes: boolean; // show/hide notes
     autoNightMode: boolean;
   };
+  imageAdjustPalettePos: PalettePosition | null; // remembered drag offset of the chart Image Adjustment palette
   display: {
     fab: MFBAction; // FAB button selection
     disableWakelock: boolean;
