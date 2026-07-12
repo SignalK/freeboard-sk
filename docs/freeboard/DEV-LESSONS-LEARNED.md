@@ -161,6 +161,18 @@ a private method to exercise the genuine code path rather than faking its output
 > Import path: in a spec, import collaborators with **relative** paths
 > (`../../app.facade`), not the `src/` alias — see *Running a single spec file*.
 
+> **If your spec `await`s, stub for the constructor effects too.** "Only stub what
+> the constructor and code under test touch" holds for a **synchronous** spec —
+> `TestBed.inject()` alone does not flush `effect()`s, so a sync spec like
+> `plotterext.occupancy.spec.ts` never runs them. But the moment your test `await`s
+> (a real handshake, a timer, anything async), Angular's effect scheduler gets a
+> chance to flush and **every** constructor `effect()` runs — throwing an
+> **uncaught** exception on anything it reads that you didn't stub (e.g. the
+> night-mode effect calls `readNightMode()`, which reads `app.uiCtrl()` and
+> `app.config.display.nightMode`). The tell is a spec whose tests report **passed**
+> but with `Uncaught Exception` errors in the run output. Fix: stub deep enough for
+> every constructor effect, not just the code under test.
+
 ---
 
 ### Unit-testing a function that lives *inside* the stream worker
