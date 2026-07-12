@@ -30,6 +30,7 @@ import { SKResourceService } from 'src/app/modules/skresources/resources.service
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
 import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
+  type BusPort,
   HostConnection,
   MethodHandler,
   type NightModeState,
@@ -65,6 +66,10 @@ import { createNightModeMethods } from './nightmode-methods';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
+// Fixed state/scope key for the embedding-host connection (reverse embedding).
+// The caller's asserted id is adopted into the handshake context.id, but state
+// stays under this single scope — one embedder per server in practice.
+const EMBEDDING_HOST_ID = 'embedding-host';
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
 
 // Recognised resources.setFilter condition operators (see ResourceFilterCondition).
@@ -555,6 +560,8 @@ export class PlotterExtensionService {
   }
 
   private contexts = new Set<LiveContext>();
+  // Detach handle for the embedding-host connection, if one was stood up.
+  private embeddingHostDetach: (() => void) | null = null;
 
   // ---- Signal K delta relay (one WS for all widget contexts) ----
   private ws: WebSocket | null = null;
@@ -1135,6 +1142,7 @@ export class PlotterExtensionService {
     }
     this.refreshActiveWidgets();
     this.initialized.set(true);
+    this.attachEmbeddingHostOnce();
   }
 
   // ---------- discovery ----------
@@ -1617,6 +1625,66 @@ export class PlotterExtensionService {
     });
     this.contexts.add(ctx);
     return () => this.detach(ctx);
+  }
+
+  /**
+   * Reverse embedding: when Freeboard is itself running inside another
+   * application's iframe (an "embedding host", e.g. KIP), expose the full host
+   * API to that parent over the same bus. Freeboard stays the API host but
+   * points its port at `window.parent`; the embedding host is the caller and
+   * initiates the handshake. The origin is pinned to Freeboard's own origin, so
+   * only a same-origin embedder — already sharing the user's session — is
+   * served; a cross-origin embedder is refused (see the API spec, *Embedding
+   * Hosts*). The caller's asserted id is adopted as the handshake `context.id`;
+   * `state.*` stays under a single `embedding-host` scope (one embedder per
+   * server in practice).
+   */
+  attachEmbeddingHost(
+    port: BusPort = windowPort(window.parent, {
+      origin: window.location.origin
+    })
+  ): () => void {
+    const id = EMBEDDING_HOST_ID;
+    const ctx: LiveContext = {
+      extension: id,
+      conn: null as unknown as HostConnection,
+      skSubs: new Map(),
+      skSubSeq: 0
+    };
+    ctx.conn = new HostConnection({
+      port,
+      hostInfo: this.hostInfo(),
+      adoptCallerId: true,
+      context: {
+        kind: 'embedding-host',
+        id,
+        instanceId: null
+      },
+      methods: {
+        ...this.stateMethods(id, null),
+        ...this.signalkMethods(ctx),
+        ...this.unitsMethods(),
+        ...this.resourcesMethods(id),
+        ...this.mapMethods(),
+        ...this.routeMethods(),
+        ...this.chartMethods(),
+        ...this.nightModeMethods(),
+        ...this.uiPanelMethods(id)
+      },
+      onError: (err) => console.warn('plotterext embedding-host error', err)
+    });
+    this.contexts.add(ctx);
+    return () => this.detach(ctx);
+  }
+
+  /**
+   * Stand up the embedding-host connection once, only when Freeboard is embedded
+   * in a parent frame. Idempotent — `init()` may run several times (e.g. a
+   * re-discovery after authentication).
+   */
+  private attachEmbeddingHostOnce(): void {
+    if (this.embeddingHostDetach || this.app.isTopWindow()) return;
+    this.embeddingHostDetach = this.attachEmbeddingHost();
   }
 
   private detach(ctx: LiveContext) {
