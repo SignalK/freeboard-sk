@@ -11,20 +11,38 @@ import { ImageAdjustmentDialogResult } from 'src/app/lib/components';
  * touches `app`, `dialog` and `chartSetImageAdjustment`, so exercise it on a bare
  * prototype instance with those three stubbed — no Angular DI needed.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function svcWithResult(result: ImageAdjustmentDialogResult | undefined) {
   const svc = Object.create(SKResourceService.prototype) as SKResourceService;
   const saveConfig = vi.fn();
   const chartImageAdjustment: Record<string, ChartImageAdjustment> = {};
-  (svc as unknown as { app: unknown }).app = {
-    config: { selections: { chartImageAdjustment } },
-    saveConfig
+  const config: {
+    selections: { chartImageAdjustment: Record<string, ChartImageAdjustment> };
+    imageAdjustPalettePos: { x: number; y: number } | null;
+  } = {
+    selections: { chartImageAdjustment },
+    imageAdjustPalettePos: null
   };
+  (svc as unknown as { app: unknown }).app = { config, saveConfig };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let openedData: any;
   (svc as unknown as { dialog: unknown }).dialog = {
-    open: () => ({ afterClosed: () => of(result) })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    open: (_cmp: unknown, cfg: any) => {
+      openedData = cfg.data;
+      return { afterClosed: () => of(result) };
+    }
   };
   const setSpy = vi.fn();
   svc.chartSetImageAdjustment = setSpy;
-  return { svc, saveConfig, chartImageAdjustment, setSpy };
+  return {
+    svc,
+    saveConfig,
+    chartImageAdjustment,
+    config,
+    setSpy,
+    getData: () => openedData
+  };
 }
 
 const chart = (): FBChart =>
@@ -87,5 +105,30 @@ describe('openImageAdjustment (#457)', () => {
       brightness: 1.4,
       contrast: 0.6
     });
+  });
+
+  it('opens the palette at the remembered position', () => {
+    const { svc, config, getData } = svcWithResult({
+      apply: false,
+      value: { brightness: 1, contrast: 1 }
+    });
+    config.imageAdjustPalettePos = { x: 120, y: 40 };
+
+    svc.openImageAdjustment(chart());
+
+    expect(getData().position).toEqual({ x: 120, y: 40 });
+  });
+
+  it('persists the palette position when dragged', () => {
+    const { svc, config, saveConfig, getData } = svcWithResult({
+      apply: false,
+      value: { brightness: 1, contrast: 1 }
+    });
+
+    svc.openImageAdjustment(chart());
+    getData().onMoved({ x: 200, y: 90 });
+
+    expect(config.imageAdjustPalettePos).toEqual({ x: 200, y: 90 });
+    expect(saveConfig).toHaveBeenCalledOnce();
   });
 });

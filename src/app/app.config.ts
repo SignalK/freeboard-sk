@@ -44,6 +44,9 @@ export function cleanConfig(
       settings.ui.showNotes = true;
     }
   }
+  if (typeof settings.imageAdjustPalettePos === 'undefined') {
+    settings.imageAdjustPalettePos = null;
+  }
 
   if (typeof settings.display === 'undefined') {
     settings.display = {
@@ -458,6 +461,7 @@ export function defaultConfig(): IAppConfig {
       showNotes: true, // show/hide notes
       autoNightMode: false
     },
+    imageAdjustPalettePos: null,
     display: {
       fab: 'wpt', // default FAB button
       disableWakelock: false,

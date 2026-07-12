@@ -8,8 +8,8 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
-import { ChartImageAdjustment } from 'src/app/types';
+import { CdkDrag, CdkDragEnd, CdkDragHandle } from '@angular/cdk/drag-drop';
+import { ChartImageAdjustment, PalettePosition } from 'src/app/types';
 
 export interface ImageAdjustmentDialogResult {
   apply: boolean;
@@ -43,27 +43,26 @@ const toRatio = (percent: number) => percent / 100;
       style="overflow: hidden;"
       cdkDrag
       cdkDragRootElement=".cdk-overlay-pane"
+      [cdkDragFreeDragPosition]="initialPosition"
+      (cdkDragEnded)="onDragEnded($event)"
     >
       <div
         cdkDragHandle
-        style="display:flex; align-items:center; cursor:move; padding: 4px 4px 4px 12px;"
+        style="display:flex; align-items:center; cursor:move; padding: 4px 4px 0 12px;"
       >
         <mat-icon style="opacity:0.6;">tune</mat-icon>
-        <div style="flex: 1 1 auto; padding-left: 8px;">
-          <div style="font-weight:500;">
-            {{ data.title ?? 'Image Adjustment' }}
-          </div>
-          @if (data.text) {
-            <div style="font-size: 11px; opacity: 0.7;">{{ data.text }}</div>
-          }
+        <div style="flex: 1 1 auto; padding-left: 8px; font-weight: 500;">
+          {{ data.text }}
         </div>
         <button mat-icon-button aria-label="Close" (click)="handleClose(false)">
           <mat-icon>close</mat-icon>
         </button>
       </div>
 
-      <mat-dialog-content style="padding-top: 0; overflow-x: hidden;">
-        <div style="display: flex; align-items: center">
+      <mat-dialog-content
+        style="padding: 0 24px; overflow: hidden; margin-top: -4px;"
+      >
+        <div style="display: flex; align-items: center; margin: -11px 0">
           <div style="width: 72px; font-size: 13px;">Brightness</div>
           <mat-slider
             style="flex: 1 1 auto; min-width: 0"
@@ -82,7 +81,7 @@ const toRatio = (percent: number) => percent / 100;
             {{ brightness() }}%
           </div>
         </div>
-        <div style="display: flex; align-items: center">
+        <div style="display: flex; align-items: center; margin: -11px 0">
           <div style="width: 72px; font-size: 13px;">Contrast</div>
           <mat-slider
             style="flex: 1 1 auto; min-width: 0"
@@ -102,10 +101,10 @@ const toRatio = (percent: number) => percent / 100;
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions>
+      <mat-dialog-actions style="min-height: 38px; padding: 0 8px 2px;">
         <button mat-button (click)="reset()">RESET</button>
         <span style="flex: 1 1 auto"></span>
-        <button mat-raised-button (click)="handleClose(true)">SAVE</button>
+        <button mat-button (click)="handleClose(true)">SAVE</button>
       </mat-dialog-actions>
     </div>
   `
@@ -118,11 +117,19 @@ export class ImageAdjustmentDialog implements OnInit {
     MatDialogRef<ImageAdjustmentDialog, ImageAdjustmentDialogResult>
   );
   protected data = inject<{
-    title: string;
     text: string;
     value: ChartImageAdjustment;
+    position: PalettePosition | null;
     onChange: (value: ChartImageAdjustment) => void;
+    onMoved: (position: PalettePosition) => void;
   }>(MAT_DIALOG_DATA);
+
+  // Stable reference so cdkDragFreeDragPosition isn't re-applied (and the palette
+  // reset to origin) on every change-detection pass.
+  protected initialPosition: PalettePosition = this.data.position ?? {
+    x: 0,
+    y: 0
+  };
 
   ngOnInit() {
     this.brightness.set(toPercent(this.data.value?.brightness ?? 1));
@@ -143,6 +150,12 @@ export class ImageAdjustmentDialog implements OnInit {
     this.brightness.set(NEUTRAL_PERCENT);
     this.contrast.set(NEUTRAL_PERCENT);
     this.emitChange();
+  }
+
+  protected onDragEnded(e: CdkDragEnd) {
+    if (typeof this.data?.onMoved === 'function') {
+      this.data.onMoved(e.source.getFreeDragPosition());
+    }
   }
 
   private currentValue(): ChartImageAdjustment {
