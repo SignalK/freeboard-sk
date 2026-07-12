@@ -50,6 +50,19 @@ export class SKStreamFacade {
   private nightModeSignal = signal<boolean>(false);
   readonly selfNightMode = this.nightModeSignal.asReadonly();
 
+  /**
+   * Recompute the resolved auto-night state from the current `environment.mode`
+   * and the "Auto-set Night Mode" setting. Runs on each self delta; also called
+   * when the setting itself changes (e.g. a `nightMode.set({ auto })` host call)
+   * so the change takes effect immediately instead of on the next delta.
+   */
+  refreshSelfNightMode(): void {
+    this.nightModeSignal.set(
+      this.app.data.vessels.self?.environment?.mode === 'night' &&
+        (this.app.config.display.nightMode ?? false)
+    );
+  }
+
   private aisLifecycle = signal<{
     updated: string[];
     stale: string[];
@@ -366,12 +379,7 @@ export class SKStreamFacade {
       };
     });
 
-    this.nightModeSignal.update(() => {
-      return (
-        v.environment.mode === 'night' &&
-        (this.app.config.display.nightMode ?? false)
-      );
-    });
+    this.refreshSelfNightMode();
   }
 
   private parseSelfRacing(v: SKVessel) {
