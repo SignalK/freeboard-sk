@@ -269,6 +269,7 @@ required and optional capabilities and lists your contributions. A real one
 | `routes`            | Read & edit the routes on the chart (`route.*`)               |
 | `charts`            | Manage chart-layer display — visibility/opacity/order (`chart.*`) |
 | `units`             | Read the user's display-unit preferences (`units.get`)        |
+| `nightMode`         | Read/set the host's night-vision display state (`nightMode.*`) |
 | `background.iframe` | Run a headless background runtime                             |
 
 **Contribution fields**

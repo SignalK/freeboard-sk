@@ -120,6 +120,7 @@ extension id (the providing plugin's id is the recommended key):
 | `resources.filter`  | Host implements imperative resource display filters.                                                                              |
 | `routes`            | Host implements live route edit-buffer commands (`route.*`) and emits route lifecycle/mutation events.                            |
 | `charts`            | Host implements chart-layer management (`chart.*`) — enumerate the managed charts, toggle visibility/opacity/order — and emits `chart.*` change events. |
+| `nightMode`         | Host implements the `nightMode.*` methods (read/force the night-vision display state, follow the server's `environment.mode`) and emits `nightMode.changed`. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 
 The vocabulary is open-ended: future versions add ids (buttons, resource
@@ -408,6 +409,8 @@ contract** — any conforming implementation interoperates.
 | `map.getView`           | —                                              | `{ center, zoom, bounds }` |
 | `map.center`            | `{ position: [lon, lat], zoom? }`              | `{}`                       |
 | `map.fitBounds`         | `{ bounds: [minLon, minLat, maxLon, maxLat] }` | `{}`                       |
+| `nightMode.get`         | —                                              | `{ enabled, auto }`        |
+| `nightMode.set`         | `{ enabled?, auto? }`                           | `{}`                       |
 | `ui.openPanel`          | `{ panel }`                                    | `{}`                       |
 | `ui.togglePanel`        | `{ panel }`                                    | `{}`                       |
 | `ui.openConfigPanel`    | — (widget contexts)                            | `{}`                       |
@@ -422,7 +425,8 @@ subscribed to its name via `events.subscribe` (so a context that never
 subscribes pays nothing). A host emits an event when the corresponding
 capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
-(`route.*`) with `routes`; chart events (`chart.*`) with `charts`. The
+(`route.*`) with `routes`; chart events (`chart.*`) with `charts`;
+`nightMode.changed` with `nightMode`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -469,6 +473,11 @@ handled by the protocol layer, not subscribed to.
   emits them for *every* change, whether it came from an extension command or the
   user's own chart controls, so a following extension stays in sync no matter who
   is driving.
+- `nightMode.changed` — `{ enabled, auto }`: the host's night-mode state changed.
+  Like the route and chart events it is **origin-transparent** — emitted for
+  *every* change, whether an extension called `nightMode.set`, the user toggled
+  the host's own night-mode control, or the server's `environment.mode` flipped
+  while `auto` is on. See *Night mode*.
 
 ### Resource queries and display filters
 
@@ -752,6 +761,51 @@ Vocabulary: `speed` `kn|m/s|km/h|mph`; `distance` `kilometer|naut-mile`;
 extensions must tolerate missing ones. Extensions rendering path values
 should combine a path's `meta.units` with these preferences to decide which
 conversions to offer and which to preselect.
+
+### Night mode
+
+Marine chartplotters carry a **night-vision display mode** — a dimmed, low-blue
+appearance for use after dark. The `nightMode` capability lets an extension read
+that state, change it, and follow it, so an embedded panel (e.g. an instrument
+gauge) matches the host instead of glowing white on a dark bridge.
+
+The state has two booleans:
+
+```json
+{ "enabled": true, "auto": false }
+```
+
+- **`enabled`** — whether night mode is *currently applied* (the resolved state the
+  user sees). This is what an extension reads to theme its own UI.
+- **`auto`** — whether the host is deriving `enabled` from the server's
+  `environment.mode` (`night` → on; `day`/`dusk` → off). When `auto` is `true`,
+  `enabled` tracks the server automatically.
+
+**`nightMode.get`** returns the current `{ enabled, auto }`.
+
+**`nightMode.set({ enabled?, auto? })`** changes it. The three effective states an
+extension can request:
+
+- **Force on** — `{ enabled: true }`.
+- **Force off** — `{ enabled: false }`.
+- **Follow the server** — `{ auto: true }`.
+
+Setting `enabled` explicitly is a manual override: it implies `auto: false`, so an
+extension that forces a value takes the display off the server's `environment.mode`
+until `auto` is turned back on. Setting `{ auto: true }` hands control back to the
+server and recomputes `enabled` from the current `environment.mode`. A single call
+may carry both fields.
+
+**`nightMode.changed`** (see *Host events*) is emitted **origin-transparently** for
+every change — an extension's own `set`, the user toggling the host's night-mode
+control, or the server's `environment.mode` flipping while `auto` is on — so an
+extension that subscribes with `{ patterns: ["nightMode.changed"] }` stays in sync
+no matter who is driving. A context that needs the state before the first change
+reads it once with `nightMode.get`.
+
+**Errors** use the standard `error.data.reason` convention: `nightMode.badRequest`
+(invalid params — e.g. a non-boolean `enabled`/`auto`, or neither field present),
+`nightMode.notSupported` (host lacks `nightMode`).
 
 ---
 
