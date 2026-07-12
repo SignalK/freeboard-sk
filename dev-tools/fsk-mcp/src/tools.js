@@ -266,6 +266,34 @@ const TOOLS = [
     ),
     run: (hub, a) =>
       hub.call('chart.setOrder', { order: a.order }, { session: a.session })
+  },
+  {
+    name: 'fsk_get_night_mode',
+    description:
+      "Read Freeboard-SK's night-mode state: { enabled, auto }. `enabled` is whether the dimmed night-vision display is currently applied; `auto` is whether it follows the server's environment.mode (day/night).",
+    inputSchema: withSession(),
+    run: (hub, a) => hub.call('nightMode.get', {}, { session: a.session })
+  },
+  {
+    name: 'fsk_set_night_mode',
+    description:
+      "Control Freeboard-SK's night mode. Force on with { enabled: true }, force off with { enabled: false }, or follow the server's environment.mode with { auto: true }. Setting `enabled` is a manual override and turns `auto` off. Supply at least one field.",
+    inputSchema: withSession({
+      enabled: {
+        type: 'boolean',
+        description: 'Force night mode on (true) or off (false). Implies auto:false.'
+      },
+      auto: {
+        type: 'boolean',
+        description: 'Follow the server environment.mode (true) or stop following (false).'
+      }
+    }),
+    run: (hub, a) => {
+      const params = {};
+      if (typeof a.enabled === 'boolean') params.enabled = a.enabled;
+      if (typeof a.auto === 'boolean') params.auto = a.auto;
+      return hub.call('nightMode.set', params, { session: a.session });
+    }
   }
 ];
 

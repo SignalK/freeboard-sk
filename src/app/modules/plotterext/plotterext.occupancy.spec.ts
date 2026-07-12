@@ -9,6 +9,7 @@ import { RouteBufferRegistry } from './route-buffer.registry';
 import { AppFacade } from '../../app.facade';
 import { SKResourceService } from '../skresources/resources.service';
 import { MapService } from '../map/ol/lib/map.service';
+import { SKStreamFacade } from '../skstream/skstream.facade';
 import {
   HOST_API_VERSION,
   PlacedWidget,
@@ -73,7 +74,14 @@ describe('PlotterExtensionService occupancy (#433)', () => {
         { provide: SignalKClient, useValue: {} },
         { provide: MatDialog, useValue: {} },
         { provide: SKResourceService, useValue: { routes: signal([]) } },
-        { provide: MapService, useValue: {} }
+        { provide: MapService, useValue: {} },
+        {
+          provide: SKStreamFacade,
+          useValue: {
+            selfNightMode: signal(false),
+            refreshSelfNightMode: () => {}
+          }
+        }
       ]
     });
     service = TestBed.inject(PlotterExtensionService);

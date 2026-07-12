@@ -37,8 +37,8 @@ package; Freeboard depends on it (`^0.8.0`) and imports its host entry point
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
 `widgets`, `panels.iframe`, `buttons`, `signalk.stream`, `signalk.put`, `units`,
-`map`, `resources`, `resources.filter`, `routes`, `charts`, `background.iframe`,
-`ui`.
+`map`, `resources`, `resources.filter`, `routes`, `charts`, `nightMode`,
+`background.iframe`, `ui`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -170,6 +170,59 @@ re-read `chart.list` for the full snapshot.
 | `src/app/modules/plotterext/chart-methods.ts` | the `chart.*` handlers + param validation + `FBChart`→`ChartLayer` mapping |
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers to the service and emits `chart.*` events (`emitChartChanges`) |
 | `src/app/modules/skresources/resources.service.ts` | `chartsForHostApi` / `setChartsVisibility` / `setChartsOpacity` / `setChartsOrder` |
+
+## The `nightMode` capability
+
+`nightMode` lets an extension read and control Freeboard's night-vision display
+mode — the dimmed low-light appearance the user toggles from the display settings
+or that tracks the server's `environment.mode`. It exists so an embedded panel
+(e.g. an instrument gauge) can match the host instead of glowing white on a dark
+bridge, and it is the first step in moving the bespoke KIP integration onto the
+standard API.
+
+### The night-mode model
+
+The applied night state (the `app-night` class) is
+`stream.selfNightMode() || uiCtrl().forceNightMode`: the **auto** path
+(`config.display.nightMode`, the "Auto-set Night Mode" setting) turns night on when
+`environment.mode === 'night'`, and the **force** path (`uiCtrl().forceNightMode`)
+is a manual override. The capability maps these to `{ enabled, auto }`:
+
+- **`enabled`** — the resolved applied state (`selfNightMode() || forceNightMode`).
+- **`auto`** — the "Auto-set Night Mode" setting (`config.display.nightMode`).
+
+### Methods
+
+`nightMode.get` → `{ enabled, auto }`; `nightMode.set({ enabled?, auto? })`. The
+three effective requests: force on (`{enabled:true}`), force off
+(`{enabled:false}`), follow the server (`{auto:true}`). Setting `enabled` is a
+manual override — it clears `auto`; setting `{auto:true}` clears any manual force
+so the state purely tracks `environment.mode`. `applyNightMode` calls
+`SKStreamFacade.refreshSelfNightMode()` so an `auto` change takes effect
+immediately rather than on the next delta. The handlers are a pure factory
+(`nightmode-methods.ts`) over service accessors.
+
+### Events (`nightMode.changed`)
+
+`nightMode.changed` (`{ enabled, auto }`) is emitted for **every** change
+regardless of origin — a host `nightMode.set`, the user's own display setting, or
+the server's `environment.mode` flipping while `auto` is on. A reactive `effect`
+covers server/force-driven changes; `applyNightMode` also emits directly so an
+`auto`-only change (which may not move the resolved state) is not missed.
+`emitNightModeChange` de-dupes so each real change fires exactly once.
+
+### Error reasons
+
+`nightMode.badRequest` (malformed params — a non-boolean `enabled`/`auto`, or
+neither field present), `nightMode.notSupported`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/nightmode-methods.ts` | the `nightMode.*` handlers + param validation |
+| `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers (`readNightMode`/`applyNightMode`) and emits `nightMode.changed` (`emitNightModeChange`) |
+| `src/app/modules/skstream/skstream.facade.ts` | `selfNightMode` signal + `refreshSelfNightMode()` |
 
 ## Extending the host API? Update the agent bridge
 

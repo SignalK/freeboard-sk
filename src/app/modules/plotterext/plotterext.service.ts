@@ -32,6 +32,7 @@ import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
   HostConnection,
   MethodHandler,
+  type NightModeState,
   RoutePoint,
   RpcError,
   RPC_ERRORS,
@@ -60,6 +61,8 @@ import {
 import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
+import { createNightModeMethods } from './nightmode-methods';
+import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
@@ -565,7 +568,8 @@ export class PlotterExtensionService {
     private dialog: MatDialog,
     private skres: SKResourceService,
     private mapService: MapService,
-    private routeRegistry: RouteBufferRegistry
+    private routeRegistry: RouteBufferRegistry,
+    private stream: SKStreamFacade
   ) {
     if (isDevMode()) {
       // console handle for exercising the host API during development
@@ -586,6 +590,11 @@ export class PlotterExtensionService {
     // Emit `chart.*` events for every change to the displayed charts, whether it
     // came from a host method or the user's own chart controls (origin-transparent).
     effect(() => this.emitChartChanges(this.skres.charts()));
+    // Emit `nightMode.changed` when the resolved night state changes from a
+    // server `environment.mode` flip (while auto-night is on) or a manual force.
+    // Auto-only changes that don't move the resolved state are emitted directly
+    // by applyNightMode; emitNightModeChange dedups so each real change fires once.
+    effect(() => this.emitNightModeChange(this.readNightMode()));
   }
 
   /**
@@ -734,6 +743,80 @@ export class PlotterExtensionService {
       setOpacity: (ids, opacity) => this.skres.setChartsOpacity(ids, opacity),
       setOrder: (order) => this.skres.setChartsOrder(order)
     });
+  }
+
+  /** Host API handlers for the `nightMode` capability. */
+  private nightModeMethods(): Record<string, MethodHandler> {
+    return createNightModeMethods({
+      getState: () => this.readNightMode(),
+      setState: (next) => this.applyNightMode(next)
+    });
+  }
+
+  /**
+   * The resolved night-mode state. `enabled` mirrors the `app-night` display
+   * class (the auto-derived state OR a manual force); `auto` is the "Auto-set
+   * Night Mode" setting that tracks the server's `environment.mode`.
+   */
+  private readNightMode(): NightModeState {
+    return {
+      enabled: this.stream.selfNightMode() || this.app.uiCtrl().forceNightMode,
+      auto: this.app.config.display.nightMode ?? false
+    };
+  }
+
+  /**
+   * Apply a `nightMode.set`. `auto` toggles server-following (and, when turned
+   * on, clears any manual force so it purely tracks `environment.mode`); an
+   * explicit `enabled` is a manual override that takes control off the server
+   * (auto → false) and forces the resolved state. Recomputes the auto-derived
+   * state immediately so the change takes effect now, then emits.
+   */
+  private applyNightMode(next: Partial<NightModeState>): void {
+    const auto = next.auto;
+    if (typeof auto === 'boolean') {
+      if (auto) {
+        // Following the server: drop any manual force so it purely tracks
+        // environment.mode.
+        this.app.uiCtrl.update((c) => ({ ...c, forceNightMode: false }));
+      } else if (typeof next.enabled !== 'boolean') {
+        // Stop following without an explicit target: hold the current resolved
+        // state by pinning it as a manual force (read before we clear auto).
+        const held = this.readNightMode().enabled;
+        this.app.uiCtrl.update((c) => ({ ...c, forceNightMode: held }));
+      }
+      this.app.config.display.nightMode = auto;
+      this.app.uiConfig.update((c) => ({ ...c, autoNightMode: auto }));
+    }
+    const enabled = next.enabled;
+    if (typeof enabled === 'boolean') {
+      this.app.config.display.nightMode = false;
+      this.app.uiConfig.update((c) => ({ ...c, autoNightMode: false }));
+      this.app.uiCtrl.update((c) => ({ ...c, forceNightMode: enabled }));
+    }
+    this.stream.refreshSelfNightMode();
+    this.emitNightModeChange(this.readNightMode());
+  }
+
+  /** Last night-mode state broadcast, for de-duping `nightMode.changed`. */
+  private prevNightMode: NightModeState | null = null;
+
+  /**
+   * Broadcast `nightMode.changed` when the resolved state changes, from any
+   * origin. Seeds silently on the first run (matching the chart-event pattern)
+   * and de-dupes so the reactive effect and the imperative applyNightMode path
+   * together emit exactly once per real change.
+   */
+  private emitNightModeChange(state: NightModeState): void {
+    const prev = this.prevNightMode;
+    this.prevNightMode = state;
+    if (prev === null) {
+      return;
+    }
+    if (prev.enabled === state.enabled && prev.auto === state.auto) {
+      return;
+    }
+    this.broadcastMessage('nightMode.changed', state);
   }
 
   /** Topmost-first id order + per-chart opacity of the last displayed-chart set,
@@ -1423,6 +1506,7 @@ export class PlotterExtensionService {
         ...this.mapMethods(),
         ...this.routeMethods(),
         ...this.chartMethods(),
+        ...this.nightModeMethods(),
         ...this.uiPanelMethods(placed.extension),
         'ui.openConfigPanel': async () => {
           this.openConfigPanel(placed);
@@ -1479,6 +1563,7 @@ export class PlotterExtensionService {
         ...this.mapMethods(),
         ...this.routeMethods(),
         ...this.chartMethods(),
+        ...this.nightModeMethods(),
         ...this.uiPanelMethods(opts.extension),
         'ui.closePanel': async () => {
           opts.close();
@@ -1525,6 +1610,7 @@ export class PlotterExtensionService {
         ...this.mapMethods(),
         ...this.routeMethods(),
         ...this.chartMethods(),
+        ...this.nightModeMethods(),
         ...this.uiPanelMethods(opts.extension)
       },
       onError: (err) => console.warn('plotterext background error', err)
