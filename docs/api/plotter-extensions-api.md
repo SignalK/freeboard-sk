@@ -334,8 +334,15 @@ inside a routing envelope over `postMessage`**:
   dot-separated event name. Hosts only forward events a context subscribed
   to via `events.subscribe`; subscription patterns support
   eventemitter2-style wildcards (`*` one segment, `**` any remainder).
-- **Connection**: the extension repeats the `bus.ready` notification until
-  the host answers with `bus.handshake`:
+- **Connection**: the **caller** repeats the `bus.ready` notification until
+  the **host** answers with `bus.handshake`. In the standard topology the
+  caller is an extension iframe posting to its parent host; in the
+  reverse-embedding topology the caller is the application embedding the
+  plotter, posting to the plotter's child iframe (see *Embedding Hosts*). A
+  caller MAY include an `id` in its `bus.ready` payload; the host adopts it as
+  `context.id` when it does not otherwise know the caller (the
+  reverse-embedding case). In the standard topology the host determines the
+  context from the manifest and ignores the payload. The handshake:
 
 ```json
 {
@@ -367,15 +374,63 @@ inside a routing envelope over `postMessage`**:
 }
 ```
 
-`context.kind` is `widget`, `panel` or `background` (this version). For a
-configuration panel, `targetInstance`/`targetWidget` identify the widget
-being configured; a `background` runtime carries neither.
+`context.kind` is `widget`, `panel`, `background` or `embedding-host` (this
+version). For a configuration panel, `targetInstance`/`targetWidget` identify
+the widget being configured; a `background` runtime and an `embedding-host`
+carry neither. An `embedding-host` context describes the **caller** — the
+application embedding the plotter — while the plotter remains the API host;
+see *Embedding Hosts*.
 
 The reference implementation of both sides of this protocol is the
 [`signalk-plotterext-bus`](https://github.com/joelkoz/signalk-plotterext-bus)
 npm package (`/host` and `/extension` entry points). Its README documents
 the full wire format; **the documented wire format, not the package, is the
 contract** — any conforming implementation interoperates.
+
+---
+
+## Embedding Hosts
+
+The contributions above put the plotter on the outside: it is the top-level
+page, and each extension runs in a child iframe the plotter created. The bus
+also supports the **reverse** arrangement — the plotter runs inside an iframe
+embedded by another application (for example, an instrument dashboard that
+shows the chart plotter in one of its panes). That outer application is an
+**embedding host**.
+
+Roles do not change with topology, only the window each side addresses:
+
+- The **plotter remains the API host/provider** — it serves the same Host API
+  it serves to extensions. It is now the *child* iframe, so it directs its bus
+  port at `window.parent` instead of at a child iframe's `contentWindow`.
+- The **embedding host is the caller** — it plays the role an extension client
+  plays (it calls host methods and subscribes to host events) and, as the
+  caller, **initiates** the handshake: it posts `bus.ready` to the plotter's
+  iframe until the plotter answers `bus.handshake`.
+
+An embedding host is **not** a manifest contribution — there is no
+`plotterExtensions` entry, no `requires` list, and no per-extension enable
+gate. It discovers what the plotter offers by reading the `capabilities` array
+in the handshake, and it identifies itself with an `id` in its `bus.ready`
+payload (used for `state.*` namespacing and event attribution); a host that
+receives no `id` assigns the default `embedding-host`. The handshake
+`context.kind` is `embedding-host` with `instanceId: null`.
+
+An embedding host is offered the **full host API surface** — the same methods a
+background runtime receives. Methods that reference a manifest contribution (the
+widget and configuration-panel affordances) have no target for an embedding host
+and are simply unused.
+
+**Trust is same-origin, and a host MUST enforce it.** Because the plotter did
+not create the embedding page, a host **MUST** verify that the parent's origin
+matches its own served origin before completing the handshake, and **MUST NOT**
+relax the origin check to `*`. A same-origin embedder — for instance, another
+Signal K webapp served by the same server — already shares the plotter's
+authenticated session and can reach the server's REST/WebSocket APIs directly,
+so exposing the host API to it grants no authority it did not already have; a
+cross-origin embedder is refused. (If the plotter is configured to talk to a
+different server than the one that served the embedding page, the origins will
+not match and the handshake is refused — a deliberate limitation, not a bug.)
 
 ---
 
@@ -868,6 +923,11 @@ adversarial boundary**:
 - Extension contexts are same-origin with the Signal K server and may call
   its REST/WebSocket APIs directly with the user's session where the host
   API does not suffice.
+- When the plotter is itself embedded by another application (see *Embedding
+  Hosts*), it exposes the host API to the embedding page **only** after
+  verifying that page is same-origin; the parent-facing connection MUST pin
+  the origin and MUST NOT use `*`. Same-origin is the sole trust boundary for
+  reverse embedding — a same-origin embedder already shares the user's session.
 
 ---
 
