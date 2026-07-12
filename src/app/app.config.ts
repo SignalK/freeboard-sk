@@ -66,6 +66,7 @@ export function cleanConfig(
         favourites: []
       },
       preferInfoPanel: true,
+      singleClickNoteDetails: false,
       statusBar: {
         liveEta: false,
         referenceSpeed: 6
@@ -74,6 +75,9 @@ export function cleanConfig(
   } else {
     if (typeof settings.display.preferInfoPanel === 'undefined') {
       settings.display.preferInfoPanel = true;
+    }
+    if (typeof settings.display.singleClickNoteDetails === 'undefined') {
+      settings.display.singleClickNoteDetails = false;
     }
     if (typeof settings.display.statusBar === 'undefined') {
       settings.display.statusBar = {
@@ -476,6 +480,7 @@ export function defaultConfig(): IAppConfig {
         favourites: []
       },
       preferInfoPanel: true,
+      singleClickNoteDetails: false,
       statusBar: {
         liveEta: false,
         referenceSpeed: 6

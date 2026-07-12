@@ -84,6 +84,16 @@
         &nbsp;
         <button
           mat-button
+          [disabled]="_note().properties?.readOnly || interacting()"
+          (click)="onMove()"
+          matTooltip="Move Note"
+        >
+          <mat-icon>touch_app</mat-icon>
+          MOVE
+        </button>
+        &nbsp;
+        <button
+          mat-button
           [disabled]="_note().properties?.readOnly  || interacting()"
           (click)="onDelete()"
           matTooltip="Delete Note"

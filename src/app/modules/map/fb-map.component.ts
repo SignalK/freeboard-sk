@@ -1551,7 +1551,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.title = 'Note';
         poData.resource = item;
         poData.show = true;
-        if (this.infoPanel.opened()) {
+        // Single-click-to-details: skip the interim options popover and open the
+        // Note details surface (info panel or dialog) straight away.
+        if (this.app.config.display.singleClickNoteDetails) {
+          poData.show = false;
+          this.overlay.set(poData);
+          this.popoverInfo();
+        } else if (this.infoPanel.opened()) {
           this.overlay.set(poData);
           this.popoverInfo();
         }

@@ -47,6 +47,7 @@ export class NotePanel {
   protected _note = linkedSignal(() => this.note());
 
   edit = output<string>();
+  move = output<string>();
   panTo = output<{
     center: Position;
     zoomLevel: number;
@@ -76,6 +77,10 @@ export class NotePanel {
 
   onEdit() {
     this.edit.emit(this.id());
+  }
+
+  onMove() {
+    this.move.emit(this.id());
   }
 
   onDelete() {

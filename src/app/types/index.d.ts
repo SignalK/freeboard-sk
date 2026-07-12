@@ -91,6 +91,7 @@ export interface IAppConfig {
       favourites: string[];
     };
     preferInfoPanel: boolean;
+    singleClickNoteDetails: boolean;
     statusBar: {
       liveEta: boolean; // show cursor bearing/distance/ETA in the status bar (mouse only)
       referenceSpeed: number; // fallback boat speed (in display speed units) for ETA when SOG is ~0

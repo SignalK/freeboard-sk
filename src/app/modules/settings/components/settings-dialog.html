@@ -83,6 +83,16 @@
                       Prefer Info-Panel
                     </mat-checkbox>
                   </div>
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.singleClickNoteDetails"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Open Note details with a single click instead of showing the pop-up options"
+                    >
+                      Single Click for Note Details
+                    </mat-checkbox>
+                  </div>
                 </div>
               </mat-card-content>
             </mat-card>
