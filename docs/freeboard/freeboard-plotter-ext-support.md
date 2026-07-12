@@ -43,6 +43,27 @@ package; Freeboard depends on it (`^0.8.0`) and imports its host entry point
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
 
+### Embedding hosts (reverse embedding)
+
+Freeboard can also run **inside** another application's iframe (an *embedding
+host*, e.g. KIP) and expose the same host API to that parent — the reverse of the
+usual topology. See the API spec's *Embedding Hosts* section for the contract.
+
+- `PlotterExtensionService.attachEmbeddingHost()` registers one `HostConnection`
+  whose `windowPort` targets `window.parent`, with the full method set and a
+  `kind: 'embedding-host'` context. `init()` calls it once, only when embedded
+  (`!app.isTopWindow()`). Freeboard only stands up the endpoint — the **embedding
+  application initiates** the handshake by calling `connectExtension` from the
+  parent frame.
+- **Same-origin only.** The port pins the origin to Freeboard's own
+  (`window.location.origin`) — a cross-origin embedder is refused. A same-origin
+  embedder already shares the user's session, so this grants no new authority.
+- **Caller identity.** `adoptCallerId: true` adopts the id the embedder asserts in
+  `bus.ready` as the handshake `context.id`; `state.*` stays under a single
+  `embedding-host` scope (one embedder per server in practice).
+- The legacy parent-`postMessage` night-mode bridge in `app.facade.ts`
+  (`parseMessageFromParent`) is retained for backward compatibility.
+
 ## The `routes` capability
 
 `routes` lets an extension create and edit routes on the chart — e.g. an
