@@ -728,7 +728,9 @@
     </fb-anchor-alarm>
   }
   @if (dfeat.closest.length !== 0) {
-    <fb-cpa-alarms [cpaLines]="dfeat.closest" [zIndex]="350"> </fb-cpa-alarms>
+    <!-- CPA lines above the AIS vessel/target layers (900-985) so the collision cue
+         isn't obscured by the AIS icon it refers to; below MOB alarm (995) -->
+    <fb-cpa-alarms [cpaLines]="dfeat.closest" [zIndex]="994"> </fb-cpa-alarms>
   }
 
   <!-- MOB alarms: above the AIS vessel/target layers (900-985) so a survival-craft
