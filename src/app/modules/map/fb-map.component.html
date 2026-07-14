@@ -731,11 +731,12 @@
     <fb-cpa-alarms [cpaLines]="dfeat.closest" [zIndex]="350"> </fb-cpa-alarms>
   }
 
-  <!-- MOB alarms -->
+  <!-- MOB alarms: above the AIS vessel/target layers (900-985) so a survival-craft
+       beacon's own AIS icon can't bury the distress marker; below self vessel (999) -->
   <fb-alarms
     [alarms]="notiMgr.mobAlerts()"
     [alarmStyles]="featureStyles.alarm"
-    [zIndex]="310"
+    [zIndex]="995"
   >
   </fb-alarms>
 
