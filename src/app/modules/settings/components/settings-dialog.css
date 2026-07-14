@@ -1,47 +1,59 @@
 :host ::ng-deep .mat-dialog-content {
-    padding: 0 4px;
+  padding: 0 4px;
+}
+
+/* The dialog is opened at a fixed size (width: 1000px, height: 80vh). Make the
+   content area fill that height and let the active tab scroll within it, so
+   every tab keeps the same size (no per-tab resizing) and long tabs (e.g.
+   Display with the Weather group) neither clip nor leave empty space below the
+   last group. */
+:host ::ng-deep .mat-mdc-dialog-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+}
+:host ::ng-deep .mat-mdc-dialog-content .mat-mdc-tab-group,
+:host ::ng-deep .mat-mdc-dialog-content .mat-mdc-tab-body-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .settings .setting-group-title {
-    font-weight: bold;
-    font-size: 10pt;
-    font-family: Arial, Helvetica, sans-serif;
-    padding: 10px 0 10px 0;
+  font-weight: bold;
+  font-size: 10pt;
+  font-family: Arial, Helvetica, sans-serif;
+  padding: 10px 0 10px 0;
 }
 .setting-card-row {
-    display: flex;
-    flex-wrap: wrap;
+  display: flex;
+  flex-wrap: wrap;
 }
 .settings .setting-card-row-item {
-    padding-right: 15px;
-    flex: 1 1 auto;
+  padding-right: 15px;
+  flex: 1 1 auto;
 }
 
-
 /*ipads*/
-@media only screen
-    and (min-device-width : 768px)
-    and (max-device-width : 1024px),
-/*desktop / laptop */
-only screen	and (min-width : 800px) {
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
+  /*desktop / laptop */ only screen and (min-width: 800px) {
 }
 /*xs*/
 @media only screen and (max-width: 599px) {
-	.settings .setting-group {
-		padding: 5px 5% 5px 5%;
-    }	
+  .settings .setting-group {
+    padding: 5px 5% 5px 5%;
+  }
 }
 @media only screen and (max-height: 500px) {
 }
 /*sm*/
 @media only screen and (min-width: 600px) and (max-width: 959px),
-/*md*/
-screen and (min-width: 960px) and (max-width: 1279px),
-/*lg*/
-screen and (min-width: 1280px) and (max-width: 1919px),
-/*xl*/
-screen and (min-width: 1920px) and (max-width: 5000px) {
-    .settings .setting-group {
-        padding: 5px 5% 5px 5%;
-    } 
+  /*md*/ screen and (min-width: 960px) and (max-width: 1279px),
+  /*lg*/ screen and (min-width: 1280px) and (max-width: 1919px),
+  /*xl*/ screen and (min-width: 1920px) and (max-width: 5000px) {
+  .settings .setting-group {
+    padding: 5px 5% 5px 5%;
+  }
 }
