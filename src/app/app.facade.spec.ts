@@ -15,6 +15,23 @@ describe('AppFacade app version (#458)', () => {
   });
 });
 
+describe('AppFacade.IGNORE_RESOURCES (#514)', () => {
+  let app: AppFacade;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    app = TestBed.inject(AppFacade);
+  });
+
+  // plotterExtensions and symbols are consumed by dedicated subsystems, not
+  // rendered as user-selectable layers — they must be filtered out of the
+  // Settings › Resources › Custom Resources selection list.
+  it('excludes plotterExtensions and symbols from the custom-resource list', () => {
+    expect(app.IGNORE_RESOURCES).toContain('plotterExtensions');
+    expect(app.IGNORE_RESOURCES).toContain('symbols');
+  });
+});
+
 describe('AppFacade.formatValueForDisplay', () => {
   let app: AppFacade;
 

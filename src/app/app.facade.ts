@@ -50,6 +50,8 @@ import {
 
 import { WELCOME_MESSAGES } from './app.messages';
 import { getSvgList } from './modules/icons';
+import { PLOTTER_EXTENSIONS_RESOURCE } from './modules/plotterext/types';
+import { SYMBOL_RESOURCE_TYPE } from './types/symbols';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
@@ -130,7 +132,7 @@ export class AppFacade extends InfoService {
   public get IGNORE_RESOURCES() {
     return this.STANDARD_RESOURCES.concat(
       this.CUSTOM_RESOURCES.map((i) => i.name),
-      ['buddies']
+      ['buddies', PLOTTER_EXTENSIONS_RESOURCE, SYMBOL_RESOURCE_TYPE]
     );
   }
 
