@@ -10,7 +10,7 @@
   </span>
 </mat-toolbar>
 
-<div mat-dialog-content style="display: flex">
+<div mat-dialog-content>
   <mat-tab-group
     dynamicHeight="false"
     mat-stretch-tabs="false"
@@ -263,6 +263,29 @@
                       refspeed.touched) ) {
                       <mat-error>Please enter a number &gt;= 0</mat-error>
                       }
+                    </mat-form-field>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          <div class="setting-group">
+            <div class="setting-group-title">WEATHER</div>
+            <mat-card class="setting-card">
+              <mat-card-content>
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Wind indicator</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.display.windIndicator"
+                        matTooltip="Glyph used to display wind direction and speed."
+                        (selectionChange)="persistModel()"
+                      >
+                        @for(i of options.windIndicator; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
                     </mat-form-field>
                   </div>
                 </div>

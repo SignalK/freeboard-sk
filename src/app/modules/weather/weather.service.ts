@@ -7,8 +7,8 @@ import { SignalKClient } from 'signalk-client-angular';
 export interface WeatherWindSample {
   latitude: number;
   longitude: number;
-  speed: number;
-  direction: number;
+  speed: number; // wind speed in m/s (Signal K native)
+  direction: number; // direction wind blows from, in radians (Signal K native)
 }
 
 export interface OceanCurrentSample {
@@ -75,8 +75,8 @@ export class WeatherService {
           samples.push({
             latitude: points[i].latitude,
             longitude: points[i].longitude,
-            speed: obs.wind.speedTrue * 1.94384,
-            direction: (obs.wind.directionTrue * 180) / Math.PI
+            speed: obs.wind.speedTrue,
+            direction: obs.wind.directionTrue
           });
         });
         return samples;

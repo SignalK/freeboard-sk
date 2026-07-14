@@ -23,6 +23,11 @@ export type ErrorList = Array<{ status: number; message: string }>;
 
 export type MFBAction = 'wpt' | 'pob' | 'autopilot' | 'radar';
 
+// Glyph used to render wind direction/speed on the weather overlays and meteo
+// targets. Shared by the display config, the settings option map, and the layer
+// component inputs.
+export type WindIndicator = 'arrow' | 'barb';
+
 export interface SKApiResponse {
   state: 'FAILED' | 'COMPLETED' | 'PENDING';
   statusCode: number;
@@ -92,6 +97,7 @@ export interface IAppConfig {
     };
     preferInfoPanel: boolean;
     singleClickNoteDetails: boolean;
+    windIndicator: WindIndicator; // glyph used to render wind direction/speed
     statusBar: {
       liveEta: boolean; // show cursor bearing/distance/ETA in the status bar (mouse only)
       referenceSpeed: number; // fallback boat speed (in display speed units) for ETA when SOG is ~0

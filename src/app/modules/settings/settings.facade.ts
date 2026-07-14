@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { FBAppData, IAppConfig, Position } from 'src/app/types';
+import { FBAppData, IAppConfig, Position, WindIndicator } from 'src/app/types';
 import { Observable, Subject } from 'rxjs';
 
 interface SKAppsList {
@@ -163,6 +163,11 @@ export class SettingsOptions {
     [0, 'Use OS setting'],
     [1, 'Use Signal K Mode'],
     [-1, 'On']
+  ]);
+
+  windIndicator = new Map<WindIndicator, string>([
+    ['barb', 'Wind barb'],
+    ['arrow', 'Arrow']
   ]);
 
   vessel = {
