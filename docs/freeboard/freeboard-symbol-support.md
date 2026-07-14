@@ -132,9 +132,26 @@ real-aton   / virtual-aton          (generic / fallback AtoN)
 **Route markers:** `route-start`, `route-waypoint` (cloned per segment, rotated
 to bearing), `route-end`.
 
-The route, own-vessel, AIS, and AtoN markers are chosen automatically by
-Freeboard rather than picked per feature, so they override **globally**: create a
-symbol with the matching id and every marker of that kind uses it.
+**Weather indicators** — flow arrows drawn programmatically and rotated to the
+reported direction:
+
+- `windIndicator-arrow` — wind-direction arrow (the "Arrow" wind indicator).
+- `oceanCurrentIndicator-arrow` — ocean-current flow arrow.
+- `tidalCurrentIndicator-arrow` — tidal-current flow arrow.
+
+> **Current arrows are tinted by speed — draw the override with a white fill.**
+> The ocean and tidal overlays recolour the arrow to encode current speed (ocean:
+> a blue→red velocity gradient; tidal: green/yellow/red severity) by applying the
+> icon's `color`, which *multiplies* the glyph's pixels. So a provider override
+> should use a **white/neutral fill** to come out the intended colour (a black
+> outline is preserved; a pre-coloured glyph is multiplied by the speed colour and
+> will look muddy or wrong). The wind arrow is **not** tinted, so its override
+> renders in its own colours.
+
+The route, own-vessel, AIS, AtoN, and weather-indicator markers are chosen
+automatically by Freeboard rather than picked per feature, so they override
+**globally**: create a symbol with the matching id and every marker of that kind
+uses it.
 
 ## What is NOT overridable (and why)
 

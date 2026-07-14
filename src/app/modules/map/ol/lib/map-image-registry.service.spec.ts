@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   MapImageRegistry,
-  WIND_ARROW_SYMBOL
+  WIND_ARROW_SYMBOL,
+  OCEAN_CURRENT_ARROW_SYMBOL,
+  TIDAL_CURRENT_ARROW_SYMBOL
 } from './map-image-registry.service';
 
 /**
@@ -67,5 +69,47 @@ describe('MapImageRegistry.getWindArrow (#513)', () => {
     );
     // getWindArrow must still return an icon that rotates with the view.
     expect(reg.getWindArrow().getRotateWithView()).toBe(true);
+  });
+});
+
+/**
+ * The current-overlay flow arrows are provider-overridable symbols (#521): the
+ * ocean and tidal overlays each resolve a separate ref so they can be customised
+ * independently, falling back to the bundled glyph and rotating with the view.
+ */
+describe('MapImageRegistry current arrows (#521)', () => {
+  it('returns the bundled ocean/tidal arrows that rotate with the view', () => {
+    const reg = new MapImageRegistry();
+    const ocean = reg.getOceanCurrentArrow();
+    const tidal = reg.getTidalCurrentArrow();
+    expect(ocean.getSrc()).toContain('data:image/svg+xml');
+    expect(tidal.getSrc()).toContain('data:image/svg+xml');
+    expect(ocean.getRotateWithView()).toBe(true);
+    expect(tidal.getRotateWithView()).toBe(true);
+    // Distinct glyphs so the two overlays stay distinguishable.
+    expect(ocean.getSrc()).not.toBe(tidal.getSrc());
+  });
+
+  it('caches and reuses each bundled arrow', () => {
+    const reg = new MapImageRegistry();
+    expect(reg.getOceanCurrentArrow()).toBe(reg.getOceanCurrentArrow());
+    expect(reg.getTidalCurrentArrow()).toBe(reg.getTidalCurrentArrow());
+  });
+
+  it('prefers independent provider overrides for each arrow', () => {
+    const reg = new MapImageRegistry();
+    reg.registerSymbolMarker(OCEAN_CURRENT_ARROW_SYMBOL, {
+      path: './custom-ocean.svg'
+    });
+    reg.registerSymbolMarker(TIDAL_CURRENT_ARROW_SYMBOL, {
+      path: './custom-tidal.svg'
+    });
+    const ocean = reg.getOceanCurrentArrow();
+    const tidal = reg.getTidalCurrentArrow();
+    expect(ocean.getSrc()).toContain('custom-ocean.svg');
+    expect(tidal.getSrc()).toContain('custom-tidal.svg');
+    // Overrides are geographic vectors too — they must rotate with the view.
+    expect(ocean.getRotateWithView()).toBe(true);
+    expect(tidal.getRotateWithView()).toBe(true);
   });
 });

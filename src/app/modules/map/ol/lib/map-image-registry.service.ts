@@ -32,13 +32,38 @@ export interface MapIconDef {
 /** Symbol ref for the wind-direction arrow; a provider may override it. */
 export const WIND_ARROW_SYMBOL = 'windIndicator-arrow';
 
-// Built-in arrow glyph, drawn north-up and rotated by the renderer to point in
-// the direction the wind is flowing towards.
+// Symbol refs for the provider-overridable current-flow arrows (issue #521).
+// Kept separate so the ocean-current and tidal-current overlays can be
+// customised independently and stay distinguishable when shown together.
+export const OCEAN_CURRENT_ARROW_SYMBOL = 'oceanCurrentIndicator-arrow';
+export const TIDAL_CURRENT_ARROW_SYMBOL = 'tidalCurrentIndicator-arrow';
+
+// Built-in wind arrow glyph, drawn north-up and rotated by the renderer to
+// point in the direction the wind is flowing towards.
 const WIND_ARROW_SVG =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="42" viewBox="0 0 28 42">' +
       '<path d="M14 2 L24 16 H18 V40 H10 V16 H4 Z" fill="#2687ff" stroke="white" stroke-width="2" stroke-linejoin="round"/>' +
+      '</svg>'
+  );
+
+// Bundled default current arrows. Each overlay clones the returned icon and
+// applies its own per-feature rotation, scale and colour; the neutral white
+// fill lets the overlay tint it to its speed colour while the black outline is
+// preserved.
+const OCEAN_CURRENT_ARROW_SVG =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="34" viewBox="0 0 24 34">' +
+      '<path d="M12 2 L22 14 H15 V32 H9 V14 H2 Z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linejoin="round"/>' +
+      '</svg>'
+  );
+const TIDAL_CURRENT_ARROW_SVG =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">' +
+      '<path d="M12 2L19 10H14V22H10V10H5L12 2Z" fill="#ffffff" stroke="#000000" stroke-width="1"/>' +
       '</svg>'
   );
 
@@ -56,6 +81,9 @@ export class MapImageRegistry {
     waypoints: Object.create(null),
     symbols: Object.create(null)
   };
+
+  private oceanCurrentArrowIcon: Icon;
+  private tidalCurrentArrowIcon: Icon;
 
   /** Definitions for external symbols registered by SymbolService. */
   private symbolDefs: { [ref: string]: MapIconDef } = Object.create(null);
@@ -260,6 +288,51 @@ export class MapImageRegistry {
       this.buildIcon(this.icons.symbols, this.symbolDefs, id, rotate, key);
     }
     return this.icons.symbols[key] ?? null;
+  }
+
+  /**
+   * @description Returns the flow arrow for the ocean-current overlay, resolving
+   * a `oceanCurrentIndicator-arrow` symbol-provider override before the bundled
+   * glyph. The current arrow is a geographic vector, so callers clone the icon
+   * and apply per-feature rotation/scale/colour and `rotateWithView`.
+   * @returns Icon object
+   */
+  getOceanCurrentArrow(): Icon {
+    const ext = this.getExternalSymbol(OCEAN_CURRENT_ARROW_SYMBOL, true);
+    if (ext) {
+      return ext;
+    }
+    if (!this.oceanCurrentArrowIcon) {
+      this.oceanCurrentArrowIcon = new Icon({
+        src: OCEAN_CURRENT_ARROW_SVG,
+        anchor: [0.5, 0.55],
+        rotateWithView: true
+      });
+    }
+    return this.oceanCurrentArrowIcon;
+  }
+
+  /**
+   * @description Returns the flow arrow for the tidal-current overlay, resolving
+   * a `tidalCurrentIndicator-arrow` symbol-provider override before the bundled
+   * glyph. The bundled arrow is drawn with a neutral fill so the overlay can
+   * tint it to the reported drift's speed bucket. Callers clone the icon and
+   * apply per-feature rotation/scale/colour and `rotateWithView`.
+   * @returns Icon object
+   */
+  getTidalCurrentArrow(): Icon {
+    const ext = this.getExternalSymbol(TIDAL_CURRENT_ARROW_SYMBOL, true);
+    if (ext) {
+      return ext;
+    }
+    if (!this.tidalCurrentArrowIcon) {
+      this.tidalCurrentArrowIcon = new Icon({
+        src: TIDAL_CURRENT_ARROW_SVG,
+        anchor: [0.5, 0.5],
+        rotateWithView: true
+      });
+    }
+    return this.tidalCurrentArrowIcon;
   }
 
   /**

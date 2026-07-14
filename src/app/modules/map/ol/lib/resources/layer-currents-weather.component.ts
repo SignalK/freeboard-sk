@@ -11,7 +11,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Fill, Icon, Stroke, Style, Text } from 'ol/style';
+import { Fill, Stroke, Style, Text } from 'ol/style';
 import {
   Observable,
   Subject,
@@ -30,6 +30,7 @@ import {
   OceanCurrentSample
 } from 'src/app/modules/weather/weather.service';
 import { MapComponent } from '../map.component';
+import { MapImageRegistry } from '../map-image-registry.service';
 
 @Component({
   selector: 'ol-map > fb-weather-currents',
@@ -49,11 +50,10 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
   private readonly gridColumns = 10;
   private readonly gridRows = 8;
 
-  private readonly arrowIcon = this.buildArrowSvg();
-
   constructor(
     private mapComponent: MapComponent,
     private weather: WeatherService,
+    private mapImages: MapImageRegistry,
     changeDetectorRef: ChangeDetectorRef
   ) {
     changeDetectorRef.detach();
@@ -199,15 +199,14 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
     const b = Math.round(245 - t * 200);
     const color = `rgb(${r}, ${g}, ${b})`;
 
+    const image = this.mapImages.getOceanCurrentArrow().clone();
+    image.setRotation(rotation);
+    image.setScale(0.65 + Math.min(0.5, velocity / 8));
+    image.setColor(color);
+    image.setRotateWithView(true);
+
     return new Style({
-      image: new Icon({
-        src: this.arrowIcon,
-        anchor: [0.5, 0.55],
-        scale: 0.65 + Math.min(0.5, velocity / 8),
-        rotation,
-        rotateWithView: false,
-        color
-      }),
+      image,
       text: new Text({
         text: `${(velocity / 1.852).toFixed(1)} kn`,
         offsetY: 28,
@@ -220,16 +219,5 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
 
   private getFlowRotation(directionTo: number) {
     return (directionTo * Math.PI) / 180;
-  }
-
-  private buildArrowSvg() {
-    return (
-      'data:image/svg+xml;utf8,' +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="34" viewBox="0 0 24 34">' +
-          '<path d="M12 2 L22 14 H15 V32 H9 V14 H2 Z" fill="#2687ff" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>' +
-          '</svg>'
-      )
-    );
   }
 }

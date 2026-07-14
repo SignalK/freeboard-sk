@@ -15,7 +15,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Fill, Icon, Stroke, Style, Text } from 'ol/style';
+import { Fill, Stroke, Style, Text } from 'ol/style';
 import {
   Subject,
   Subscription,
@@ -33,6 +33,7 @@ import {
   TidalCurrentGridResponse
 } from '../tidal-currents.service';
 import { MapComponent } from '../map.component';
+import { MapImageRegistry } from '../map-image-registry.service';
 import { AppFacade } from 'src/app/app.facade';
 
 @Component({
@@ -56,6 +57,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
     private mapComponent: MapComponent,
     private currents: TidalCurrentsService,
     private app: AppFacade,
+    private mapImages: MapImageRegistry,
     changeDetectorRef: ChangeDetectorRef
   ) {
     changeDetectorRef.detach();
@@ -210,6 +212,8 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
     const setDeg = Number(feature.get('setDeg')) || 0;
     const setRad = (setDeg * Math.PI) / 180;
 
+    // Traffic-light severity by drift; applied as an icon tint so a provider
+    // override is coloured the same way (the bundled arrow has a neutral fill).
     let color = '#28a745';
     if (driftKts >= 2.0) {
       color = '#dc3545';
@@ -217,26 +221,17 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       color = '#ffc107';
     }
 
-    const svg = `
-      <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2L19 10H14V22H10V10H5L12 2Z" fill="${color}" stroke="#000" stroke-width="1"/>
-      </svg>`;
-
-    const src = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
     const pixelSize = Math.max(16, Math.min(40, 12 + driftKts * 9));
-    const scale = pixelSize / 24;
-
     const speedLabel = this.currents.formatSpeed(driftKts);
 
+    const image = this.mapImages.getTidalCurrentArrow().clone();
+    image.setRotation(setRad);
+    image.setScale(pixelSize / 24);
+    image.setColor(color);
+    image.setRotateWithView(true);
+
     return new Style({
-      image: new Icon({
-        src: src,
-        rotation: setRad,
-        scale: scale,
-        anchor: [0.5, 0.5],
-        anchorXUnits: 'fraction',
-        anchorYUnits: 'fraction'
-      }),
+      image,
       text: new Text({
         text: speedLabel,
         offsetY: 14,
