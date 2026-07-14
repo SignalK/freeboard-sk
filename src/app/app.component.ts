@@ -1200,8 +1200,9 @@ export class AppComponent {
       .open(SettingsDialog, {
         disableClose: true,
         data: {},
-        maxWidth: '1000px',
-        minHeight: '80vh'
+        width: '1000px',
+        maxWidth: '96vw',
+        height: '80vh'
       })
       .afterClosed()
       .subscribe(() => {

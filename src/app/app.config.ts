@@ -67,6 +67,7 @@ export function cleanConfig(
       },
       preferInfoPanel: true,
       singleClickNoteDetails: false,
+      windIndicator: 'barb',
       statusBar: {
         liveEta: false,
         referenceSpeed: 6
@@ -78,6 +79,9 @@ export function cleanConfig(
     }
     if (typeof settings.display.singleClickNoteDetails === 'undefined') {
       settings.display.singleClickNoteDetails = false;
+    }
+    if (typeof settings.display.windIndicator === 'undefined') {
+      settings.display.windIndicator = 'barb';
     }
     if (typeof settings.display.statusBar === 'undefined') {
       settings.display.statusBar = {
@@ -481,6 +485,7 @@ export function defaultConfig(): IAppConfig {
       },
       preferInfoPanel: true,
       singleClickNoteDetails: false,
+      windIndicator: 'barb',
       statusBar: {
         liveEta: false,
         referenceSpeed: 6

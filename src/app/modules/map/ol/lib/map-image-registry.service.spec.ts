@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { MapImageRegistry } from './map-image-registry.service';
+import {
+  MapImageRegistry,
+  WIND_ARROW_SYMBOL
+} from './map-image-registry.service';
 
 /**
  * `getMeteoIcon` picks the wind-barb glyph for a meteo target by reported wind
@@ -27,5 +30,42 @@ describe('MapImageRegistry.getMeteoIcon (#490)', () => {
     expect(reg.getMeteoIcon(6, true).getSrc()).toContain(
       'weatherStation-10.svg'
     );
+  });
+});
+
+/**
+ * `getWindArrow` supplies the glyph used by the "arrow with speed" wind indicator
+ * (#513). It returns the bundled arrow by default and a symbol-provider override
+ * when one is registered under `windIndicator-arrow`.
+ */
+describe('MapImageRegistry.getWindArrow (#513)', () => {
+  it('returns the built-in arrow when no provider override exists', () => {
+    const reg = new MapImageRegistry();
+    expect(reg.getWindArrow().getSrc()).toContain('data:image/svg+xml');
+  });
+
+  it('caches and reuses the built-in arrow icon', () => {
+    const reg = new MapImageRegistry();
+    expect(reg.getWindArrow()).toBe(reg.getWindArrow());
+  });
+
+  it('prefers a symbol-provider override registered for the arrow', () => {
+    const reg = new MapImageRegistry();
+    reg.registerSymbolMarker(WIND_ARROW_SYMBOL, { path: './custom-arrow.svg' });
+    const arrow = reg.getWindArrow();
+    expect(arrow.getSrc()).toContain('custom-arrow.svg');
+    // A provider arrow is a geographic vector — it must rotate with the view.
+    expect(arrow.getRotateWithView()).toBe(true);
+  });
+
+  it('does not let a non-rotated cache entry poison the rotated arrow', () => {
+    const reg = new MapImageRegistry();
+    reg.registerSymbolMarker(WIND_ARROW_SYMBOL, { path: './custom-arrow.svg' });
+    // Prime the cache with the non-rotated variant first.
+    expect(reg.getExternalSymbol(WIND_ARROW_SYMBOL)?.getRotateWithView()).toBe(
+      false
+    );
+    // getWindArrow must still return an icon that rotates with the view.
+    expect(reg.getWindArrow().getRotateWithView()).toBe(true);
   });
 });
