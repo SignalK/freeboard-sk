@@ -1,0 +1,16 @@
+[
+  { "name": "Charts", "hue": 215 },
+  { "name": "Waypoints", "hue": 30 },
+  { "name": "Routes", "hue": 140 },
+  { "name": "Tracks", "hue": 170 },
+  { "name": "Notes", "hue": 50 },
+  { "name": "Navigation", "hue": 265 },
+  { "name": "Autopilot", "hue": 300 },
+  { "name": "Weather", "hue": 200 },
+  { "name": "Radar", "hue": 110 },
+  { "name": "AIS & Vessels", "hue": 240 },
+  { "name": "Alarms & Notifications", "hue": 5 },
+  { "name": "Import/Export", "hue": 80 },
+  { "name": "Extensions", "hue": 325 },
+  { "name": "Display", "hue": 185 }
+]

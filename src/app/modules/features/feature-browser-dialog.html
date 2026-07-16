@@ -1,0 +1,258 @@
+<div class="feature-browser">
+  <mat-toolbar>
+    <mat-icon class="icon-accent">tips_and_updates</mat-icon>
+    <span class="title">What's New</span>
+    <span class="spacer"></span>
+    <button
+      mat-icon-button
+      aria-label="Close"
+      matTooltip="Close"
+      (click)="dialogRef.close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </mat-toolbar>
+
+  @if (loading()) {
+  <div class="empty">Loading…</div>
+  } @else if (all().length === 0) {
+  <div class="empty">
+    <mat-icon class="empty-icon">tips_and_updates</mat-icon>
+    <p>No features have been documented yet.</p>
+  </div>
+  } @else {
+  <!-- Details pane -->
+  <div class="details">
+    @if (activeFeature(); as f) {
+    <div class="details-flow">
+      @if (f.images.length) {
+      <figure
+        class="shot lead"
+        role="button"
+        tabindex="0"
+        [attr.aria-label]="'Enlarge ' + (f.images[0].alt || 'screenshot')"
+        (click)="openViewer(f.images[0].url)"
+        (keydown.enter)="openViewer(f.images[0].url)"
+        (keydown.space)="openViewer(f.images[0].url); $event.preventDefault()"
+      >
+        <img
+          [src]="resolveShot(f.images[0].url)"
+          [alt]="f.images[0].alt || ''"
+        />
+        @if (f.images[0].alt) {
+        <figcaption>{{ f.images[0].alt }}</figcaption>
+        }
+      </figure>
+      }
+      <h2>{{ f.title }}</h2>
+      <div class="meta">
+        <span class="cat-chip" [style.--cat-hue]="categoryHue(f.category)"
+          >{{ f.category }}</span
+        >
+        @if (f.since) {
+        <span
+          class="since-badge"
+          [class.enhanced]="f.latestKind === 'enhanced'"
+        >
+          {{ sinceLabel(f) }}
+        </span>
+        } @else {
+        <span class="since">Unreleased</span>
+        }
+      </div>
+      <div class="body">
+        <remark [markdown]="f.body">
+          <ng-template remarkTemplate="image" let-node>
+            <figure
+              class="shot"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Enlarge ' + (node.alt || 'screenshot')"
+              (click)="openViewer(node.url)"
+              (keydown.enter)="openViewer(node.url)"
+              (keydown.space)="openViewer(node.url); $event.preventDefault()"
+            >
+              <img [src]="resolveShot(node.url)" [alt]="node.alt || ''" />
+              @if (node.alt) {
+              <figcaption>{{ node.alt }}</figcaption>
+              }
+            </figure>
+          </ng-template>
+        </remark>
+      </div>
+      @if (f.events.length) {
+      <div class="pr-history">
+        <div class="pr-history-title">History</div>
+        <table class="pr-table">
+          @for (e of f.events; track e.pr) {
+          <tr>
+            <td class="pr-date">
+              {{ e.date ? (e.date | date: 'mediumDate') : '' }}
+            </td>
+            <td class="pr-num">
+              <a [href]="prUrl(e.pr)" target="_blank" rel="noopener"
+                >#{{ e.pr }}</a
+              >
+            </td>
+            <td class="pr-title">{{ e.title }}</td>
+          </tr>
+          }
+        </table>
+      </div>
+      }
+    </div>
+    } @else {
+    <div class="empty">No matching features.</div>
+    }
+  </div>
+
+  <!-- Search + sortable list -->
+  <div class="list">
+    <mat-form-field
+      appearance="outline"
+      class="search"
+      subscriptSizing="dynamic"
+    >
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        placeholder="Search features"
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+      />
+      @if (query()) {
+      <button
+        matSuffix
+        mat-icon-button
+        aria-label="Clear search"
+        (click)="query.set('')"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+      }
+    </mat-form-field>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="displayed()">
+        <ng-container matColumnDef="category">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            tabindex="0"
+            [attr.aria-sort]="ariaSort('category')"
+            (click)="setSort('category')"
+            (keydown.enter)="setSort('category')"
+            (keydown.space)="setSort('category'); $event.preventDefault()"
+          >
+            Category
+            <mat-icon class="sort">{{ sortIcon('category') }}</mat-icon>
+          </th>
+          <td mat-cell *matCellDef="let f">
+            <span class="cat-chip" [style.--cat-hue]="categoryHue(f.category)"
+              >{{ f.category }}</span
+            >
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="title">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            tabindex="0"
+            [attr.aria-sort]="ariaSort('title')"
+            (click)="setSort('title')"
+            (keydown.enter)="setSort('title')"
+            (keydown.space)="setSort('title'); $event.preventDefault()"
+          >
+            Feature <mat-icon class="sort">{{ sortIcon('title') }}</mat-icon>
+          </th>
+          <td mat-cell *matCellDef="let f">{{ f.title }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let f">
+            @if (f.latestKind) {
+            <span
+              class="kind-badge"
+              [class.enhanced]="f.latestKind === 'enhanced'"
+              >{{ f.latestKind === 'enhanced' ? 'Updated' : 'New' }}</span
+            >
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="since">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            tabindex="0"
+            [attr.aria-sort]="ariaSort('since')"
+            (click)="setSort('since')"
+            (keydown.enter)="setSort('since')"
+            (keydown.space)="setSort('since'); $event.preventDefault()"
+          >
+            Since <mat-icon class="sort">{{ sortIcon('since') }}</mat-icon>
+          </th>
+          <td mat-cell *matCellDef="let f">{{ f.since ?? '—' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: columns"
+          (click)="select(row)"
+          [class.active]="isActive(row)"
+        ></tr>
+      </table>
+
+      @if (displayed().length === 0) {
+      <div class="empty">No matching features.</div>
+      }
+    </div>
+  </div>
+  } @if (viewerImage(); as img) {
+  <div
+    class="viewer"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="img.alt || 'Image viewer'"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    (click)="closeViewer()"
+  >
+    <button
+      class="viewer-btn viewer-close"
+      mat-icon-button
+      aria-label="Close image viewer"
+      (click)="closeViewer(); $event.stopPropagation()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+    @if (viewerHasMultiple()) {
+    <button
+      class="viewer-btn viewer-prev"
+      mat-icon-button
+      aria-label="Previous image"
+      (click)="stepViewer(-1); $event.stopPropagation()"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <button
+      class="viewer-btn viewer-next"
+      mat-icon-button
+      aria-label="Next image"
+      (click)="stepViewer(1); $event.stopPropagation()"
+    >
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+    }
+    <figure class="viewer-figure" (click)="$event.stopPropagation()">
+      <img [src]="resolveShot(img.url)" [alt]="img.alt || ''" />
+      @if (img.alt) {
+      <figcaption>{{ img.alt }}</figcaption>
+      }
+    </figure>
+  </div>
+  }
+</div>

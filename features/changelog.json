@@ -1,0 +1,7 @@
+[
+  { "feature": "weather-station-wind-barbs", "pr": 495, "kind": "new", "since": "v3.0.0-beta.3", "date": "2026-07-10", "title": "feat(map): render meteo targets as wind barbs" },
+  { "feature": "weather-overlays", "pr": 413, "kind": "new", "since": "v3.0.0-beta.1", "date": "2026-07-03", "title": "feat(weather): add wind and ocean current overlays" },
+  { "feature": "weather-overlays", "pr": 520, "kind": "enhanced", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
+  { "feature": "weather-station-wind-barbs", "pr": 520, "kind": "enhanced", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
+  { "feature": null, "pr": 520, "kind": "skip", "reason": "internal UI fix — settings dialog fixed sizing/scrolling, not a distinct feature" }
+]

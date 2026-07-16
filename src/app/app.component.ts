@@ -1210,6 +1210,21 @@ export class AppComponent {
       });
   }
 
+  protected async openFeatureBrowser() {
+    const { FeatureBrowserDialog } =
+      await import('src/app/modules/features/feature-browser-dialog');
+    this.dialog
+      .open(FeatureBrowserDialog, {
+        data: {},
+        width: '900px',
+        maxWidth: '96vw'
+      })
+      .afterClosed()
+      .subscribe(() => {
+        this.focusMap();
+      });
+  }
+
   /** GPX / GeoJSON imports */
   protected importFile(f: { data: string | ArrayBuffer; name: string }) {
     if ((f.data as string).indexOf('<gpx ') !== -1) {
