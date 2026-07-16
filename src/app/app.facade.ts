@@ -14,7 +14,6 @@ import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 import {
   AlertDialog,
   ConfirmDialog,
-  WelcomeDialog,
   MessageBarComponent,
   MsgBox
 } from './lib/components/dialogs';
@@ -48,7 +47,6 @@ import {
   initData
 } from './app.config';
 
-import { WELCOME_MESSAGES } from './app.messages';
 import { getSvgList } from './modules/icons';
 import { PLOTTER_EXTENSIONS_RESOURCE } from './modules/plotterext/types';
 import { SYMBOL_RESOURCE_TYPE } from './types/symbols';
@@ -978,58 +976,6 @@ export class AppFacade extends InfoService {
   showHelp(anchor?: string) {
     const url = `./assets/help/index.html${anchor ? '#' + anchor : ''}`;
     window.open(url, 'help');
-  }
-
-  /** display Welcome dialog */
-  showWelcome(suppressFirstRun: boolean) {
-    let btnText = 'Get Started';
-    const messages = [];
-    let showPrefs = false;
-
-    if (
-      !this.kioskMode() &&
-      ['first_run', 'major', 'minor'].includes(this.launchStatus.result)
-    ) {
-      if (this.launchStatus.result === 'first_run' && !suppressFirstRun) {
-        messages.push(WELCOME_MESSAGES['welcome']);
-        if (this.data.server && this.data.server.id) {
-          messages.push(WELCOME_MESSAGES[this.data.server.id]);
-          showPrefs = true;
-        }
-      } else {
-        if (
-          WELCOME_MESSAGES['whats-new'] &&
-          WELCOME_MESSAGES['whats-new'].length > 0
-        ) {
-          WELCOME_MESSAGES['whats-new'].forEach((msg) => {
-            if (msg.type) {
-              if (
-                this.data.server &&
-                this.data.server.id &&
-                msg.type === this.data.server.id
-              ) {
-                messages.push(msg);
-              }
-            } else {
-              messages.push(msg);
-            }
-          });
-        }
-        btnText = 'Got it';
-      }
-
-      if (messages.length === 0) {
-        return;
-      }
-      return this.dialog.open(WelcomeDialog, {
-        disableClose: true,
-        data: {
-          buttonText: btnText,
-          content: messages,
-          showPrefs: showPrefs
-        }
-      });
-    }
   }
 
   // ** display MsgBox dialog

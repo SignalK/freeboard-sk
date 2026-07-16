@@ -793,26 +793,12 @@ export class AppComponent {
         next: () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
-          this.app
-            .loadUserConfigfromServer()
-            .then((loaded: boolean) => {
-              if (!loaded && this.app.launchStatus.result === 'first_run') {
-                const wr = this.app.showWelcome(false);
-                if (wr) {
-                  wr.afterClosed().subscribe((r) => {
-                    if (r) this.openSettings();
-                  });
-                }
-              } else {
-                const wr = this.app.showWelcome(true);
-              }
-            })
-            .finally(() => {
-              this.loadSymbolsThenFetchResources();
-              // after user config is final so persisted widget placements
-              // reflect the server-stored layout, not a stale local copy
-              this.plotterExt.init();
-            });
+          this.app.loadUserConfigfromServer().finally(() => {
+            this.loadSymbolsThenFetchResources();
+            // after user config is final so persisted widget placements
+            // reflect the server-stored layout, not a stale local copy
+            this.plotterExt.init();
+          });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
