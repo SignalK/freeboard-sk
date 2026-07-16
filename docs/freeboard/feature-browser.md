@@ -11,7 +11,8 @@ It is backed by a small **feature corpus** that ships with the package, designed
 serves:
 
 - the **Feature Browser** (this dialog), and
-- the **release-notes generator** (renders GitHub Release notes from the same ledger).
+- the **[release-notes generator](../dev-tools/release-notes.md)** (renders GitHub
+  Release notes from the same ledger).
 
 A future "What's New" indicator and an in-app help/search agent are further consumers of
 the same corpus. The rule of thumb: *write the feature's documentation once, in the

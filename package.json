@@ -53,7 +53,9 @@
     "build:all": "npm run build:helper && npm run build:web",
     "build:prod": "npm run build:all",
     "prepack": "npm run build:all",
-    "test:ci": "node scripts/test-ci.mjs"
+    "test:ci": "node scripts/test-ci.mjs",
+    "test:tools": "vitest run --config dev-tools/changelog/vitest.config.mjs",
+    "version": "node dev-tools/changelog/index.mjs stamp && git add features/changelog.json"
   },
   "author": "AdrianP",
   "contributors": [

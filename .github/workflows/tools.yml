@@ -1,0 +1,34 @@
+name: Dev Tools
+
+# The dev-tools/ Node utilities aren't part of the Angular app, so the shared
+# plugin-ci workflow (build:all + test:ci) doesn't cover them. This runs their
+# unit tests when they change.
+
+on:
+  pull_request:
+    paths:
+      - 'dev-tools/**'
+      - '.github/workflows/tools.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [master]
+    paths:
+      - 'dev-tools/**'
+      - '.github/workflows/tools.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  test-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false # don't expose the token to PR-controlled npm scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:tools
