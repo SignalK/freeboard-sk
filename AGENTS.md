@@ -175,6 +175,9 @@ the code. Use the DeepWiki MCP (or the web URLs) before guessing at architecture
 ## Documentation index
 
 **Freeboard-specific** (`docs/freeboard/`):
+- [`feature-browser.md`](docs/freeboard/feature-browser.md) — the Feature Browser and
+  its `features/` corpus + change ledger: how to author a feature doc and record a
+  change (the hand-authoring contract).
 - [`freeboard-plotter-ext-support.md`](docs/freeboard/freeboard-plotter-ext-support.md)
   — Freeboard's host implementation of the Plotter Extensions API (incl. the
   `routes` capability).

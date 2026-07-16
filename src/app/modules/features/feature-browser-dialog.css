@@ -1,0 +1,327 @@
+.feature-browser {
+  position: relative; /* anchors the image viewer overlay */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 72vh;
+  max-height: 680px;
+}
+
+mat-toolbar {
+  min-height: 48px;
+  height: 48px;
+  gap: 8px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
+}
+mat-toolbar .title {
+  font-size: 1rem;
+  font-weight: 500;
+}
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* ---- Details pane ---------------------------------------------------- */
+.details {
+  flex: 1 1 55%;
+  overflow: auto;
+  padding: 20px 20px 16px;
+  min-height: 0;
+}
+.details h2 {
+  margin: 0 0 10px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.details .meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+/* One float context spanning the lead figure, title, meta, and body, so the
+   lead screenshot floats up flush with the title and the prose wraps past it. */
+.details-flow {
+  display: flow-root;
+}
+.details .body {
+  line-height: 1.6;
+}
+
+/* Screenshots: markdown images become captioned figures floated to the right,
+   with the prose wrapping down their left side. */
+figure.shot {
+  float: right;
+  clear: right;
+  width: 46%;
+  max-width: 300px;
+  margin: 2px 0 12px 16px;
+  cursor: pointer;
+}
+figure.shot.lead {
+  margin-top: 0; /* top edge flush with the title */
+}
+figure.shot:focus-visible,
+th[mat-header-cell]:focus-visible {
+  outline: 2px solid var(--mat-sys-primary, #415f91);
+  outline-offset: 2px;
+}
+figure.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant, #d8dae0);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
+}
+figure.shot figcaption {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-style: italic;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant, #6b7079);
+}
+.details .body :first-child {
+  margin-top: 0;
+}
+
+/* Category chip — a stable colour per category via the --cat-hue var. */
+.cat-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 11px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  background: hsl(var(--cat-hue, 210) 58% 90%);
+  color: hsl(var(--cat-hue, 210) 42% 30%);
+}
+
+/* New / Updated badge in the details pane. */
+.since-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: 11px;
+  white-space: nowrap;
+  background: #e4f4e8;
+  color: #1b5e20;
+}
+.since-badge.enhanced {
+  background: #e2eefc;
+  color: #0d47a1;
+}
+.details .since {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* PR history table in the details pane (most recent first). */
+.pr-history {
+  display: flow-root; /* flow beside the floated figures, not forced below them */
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
+}
+.pr-history-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant, #565a63);
+  margin-bottom: 6px;
+}
+.pr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.pr-table td {
+  padding: 4px 10px 4px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--mat-sys-outline-variant, #f0f0f0);
+}
+.pr-table .pr-date {
+  white-space: nowrap;
+  width: 1%;
+  color: var(--mat-sys-on-surface-variant, #6b7079);
+}
+.pr-table .pr-num {
+  white-space: nowrap;
+  width: 1%;
+}
+.pr-table .pr-num a {
+  color: var(--mat-sys-primary, #415f91);
+  text-decoration: none;
+  font-weight: 500;
+}
+.pr-table .pr-num a:hover {
+  text-decoration: underline;
+}
+.pr-table .pr-title {
+  width: 100%;
+}
+
+/* ---- List ------------------------------------------------------------ */
+.list {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
+}
+.list .search {
+  margin: 8px 14px 0;
+}
+/* Compact the outline search field and match the table's 14px font. */
+.list .search ::ng-deep .mat-mdc-text-field-wrapper {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.list .search ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 38px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.list .search ::ng-deep input.mat-mdc-input-element {
+  font-size: 0.875rem;
+}
+.table-scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+table {
+  width: 100%;
+  background: transparent;
+}
+
+/* Tighter rows — the default leaves too much vertical whitespace. */
+tr[mat-row],
+tr[mat-header-row] {
+  height: 42px;
+}
+td[mat-cell],
+th[mat-header-cell] {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: var(--mat-sys-outline-variant, #eee);
+}
+
+th[mat-header-cell] {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant, #565a63);
+  /* Opaque so rows don't show through the sticky header while scrolling.
+     Night mode is a global CSS filter, so a light surface stays consistent. */
+  background-color: var(--mat-sys-surface, #fff);
+}
+.sort {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+/* Row states — hover tint and a coloured (not grey) active highlight. */
+tr[mat-row] {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+tr[mat-row]:hover td {
+  background: rgba(65, 95, 145, 0.07);
+}
+tr[mat-row].active td {
+  background: var(--mat-sys-primary-container, #d7e2ff);
+  color: var(--mat-sys-on-primary-container, #274777);
+  font-weight: 500;
+}
+tr[mat-row].active td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--mat-sys-primary, #415f91);
+}
+
+/* New / Updated badge in the Status column. */
+.kind-badge {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #e4f4e8;
+  color: #1b5e20;
+}
+.kind-badge.enhanced {
+  background: #e2eefc;
+  color: #0d47a1;
+}
+
+.empty {
+  padding: 32px 16px;
+  text-align: center;
+  opacity: 0.7;
+}
+.empty .empty-icon {
+  font-size: 40px;
+  height: 40px;
+  width: 40px;
+  opacity: 0.5;
+}
+
+/* ---- Image viewer (lightbox) ---------------------------------------- */
+.viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 1000; /* above the sticky table header (z-index ~100) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 44px;
+  background: rgba(0, 0, 0, 0.82);
+}
+.viewer-figure {
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.viewer-figure img {
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.55);
+}
+.viewer-figure figcaption {
+  margin-top: 12px;
+  color: #fff;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.viewer-btn {
+  position: absolute;
+  color: #fff;
+}
+.viewer-close {
+  top: 6px;
+  right: 6px;
+}
+.viewer-prev {
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+}
+.viewer-next {
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+}

@@ -37,6 +37,7 @@
   "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "ng": "ng",
+    "prestart": "node scripts/build-features.mjs",
     "start": "ng serve",
     "build": "ng build",
     "test": "ng test",
@@ -45,6 +46,8 @@
     "format:helper": "prettier --ignore-path .gitignore --write \"helper/**/*.+(ts|html)\"",
     "format:all": "npm run format && npm run format:helper",
     "build:helper": "tsc -p tsconfig-helper.json",
+    "build:features": "node scripts/build-features.mjs",
+    "prebuild:web": "node scripts/build-features.mjs",
     "build:web": "node scripts/build-web.mjs",
     "build:sit": "ng build -c development --aot",
     "build:all": "npm run build:helper && npm run build:web",
