@@ -212,3 +212,6 @@ it*:
 - [`fsk-mcp.md`](docs/dev-tools/fsk-mcp.md) — one-time setup for the `dev-tools/fsk-mcp`
   MCP bridge that lets an agent drive a running Freeboard-SK (map view, routes,
   filters, live data) during debugging. Read once when wiring it up.
+- [`release-notes.md`](docs/dev-tools/release-notes.md) — the `dev-tools/changelog`
+  generator: `stamp` (fill/graduate `since`) + `render` (grouped Release body) from
+  the feature ledger; wired into `release.yml`.
