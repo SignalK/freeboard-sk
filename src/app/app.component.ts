@@ -106,6 +106,7 @@ import {
 } from './modules/map/fbmap-interact.service';
 import { RadarAPIService } from './modules/radar/radar-api.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
+import { WhatsNewService } from './modules/features/whats-new.service';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.component';
 import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
@@ -279,6 +280,7 @@ export class AppComponent {
   private symbols = inject(SymbolService);
   protected routeBuffers = inject(RouteBufferRegistry);
   protected plotterExt = inject(PlotterExtensionService);
+  protected whatsNew = inject(WhatsNewService);
 
   constructor() {
     // set self to active vessel
@@ -349,6 +351,9 @@ export class AppComponent {
   }
 
   ngOnInit() {
+    // evaluate the "What's New" indicator (non-blocking)
+    this.whatsNew.init();
+
     // ** audio context handing **
     this.audioStatus.update(() => this.app.audio.context.state);
     this.app.debug('audio state:', this.audioStatus());
@@ -1211,6 +1216,8 @@ export class AppComponent {
   }
 
   protected async openFeatureBrowser() {
+    // opening the browser (any entry point) marks all change events seen
+    this.whatsNew.markAllSeen();
     const { FeatureBrowserDialog } =
       await import('src/app/modules/features/feature-browser-dialog');
     this.dialog
