@@ -2,7 +2,6 @@ export {
   AboutDialog,
   AlertDialog,
   ConfirmDialog,
-  WelcomeDialog,
   LoginDialog,
   MessageBarComponent,
   MsgBox

@@ -594,6 +594,22 @@
                     </button>
                   </div>
                 }
+                @if (whatsNew.hasUnseen()) {
+                  <div class="buttonPanelItem">
+                    <!-- passive "What's New" indicator: only present while
+                         unseen feature changes exist; opening the browser
+                         extinguishes it -->
+                    <button
+                      class="button-accent"
+                      mat-mini-fab
+                      matTooltip="What's New"
+                      matTooltipPosition="right"
+                      (click)="openFeatureBrowser()"
+                    >
+                      <mat-icon>tips_and_updates</mat-icon>
+                    </button>
+                  </div>
+                }
               </div>
             }
             <!-- /left button bar-->
