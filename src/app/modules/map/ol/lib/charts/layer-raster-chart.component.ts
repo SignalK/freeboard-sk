@@ -17,6 +17,7 @@ import { osmLayer } from '../util';
 import { MapComponent } from '../map.component';
 import {
   attachImageAdjustmentFilter,
+  chartLayerClassName,
   extentFromBounds,
   resolveLayerMaxZoom
 } from './chart-utils';
@@ -75,7 +76,7 @@ export class RasterChartLayerComponent implements OnDestroy {
       );
 
       if (chart[0] === 'openstreetmap') {
-        this.layer = osmLayer();
+        this.layer = osmLayer(chartLayerClassName(chart[0]));
         this.layer.setZIndex(this.zIndex());
         this.layer.setMinZoom(chart[1].minZoom);
         this.layer.setMaxZoom(layerMaxZ);
@@ -87,7 +88,11 @@ export class RasterChartLayerComponent implements OnDestroy {
             : chart[1].minZoom;
 
         if (chart[1].url.indexOf('.pmtiles') !== -1) {
-          this.layer = initPMTilesXYZLayer(chart[1], this.zIndex());
+          this.layer = initPMTilesXYZLayer(
+            chart[1],
+            this.zIndex(),
+            chartLayerClassName(chart[0])
+          );
         } else {
           this.layer = new TileLayer({
             source: new XYZ({
@@ -99,7 +104,8 @@ export class RasterChartLayerComponent implements OnDestroy {
             zIndex: this.zIndex(),
             minZoom: minZ,
             maxZoom: layerMaxZ,
-            opacity: chart[1].defaultOpacity ?? 1
+            opacity: chart[1].defaultOpacity ?? 1,
+            className: chartLayerClassName(chart[0])
           });
         }
         if (this.layer) {

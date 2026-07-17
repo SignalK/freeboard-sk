@@ -18,6 +18,7 @@ import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import {
   attachImageAdjustmentFilter,
+  chartLayerClassName,
   extentFromBounds,
   resolveLayerMaxZoom
 } from './chart-utils';
@@ -100,7 +101,8 @@ export class WmtsChartLayerComponent implements OnDestroy {
         minZoom: minZ,
         maxZoom: layerMaxZ,
         opacity: chart[1].defaultOpacity ?? 1,
-        extent: extentFromBounds(chart[1].bounds)
+        extent: extentFromBounds(chart[1].bounds),
+        className: chartLayerClassName(chart[0])
       });
 
       if (this.layer) {

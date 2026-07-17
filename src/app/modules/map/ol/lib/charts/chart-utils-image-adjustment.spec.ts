@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import TileLayer from 'ol/layer/Tile';
 import {
   attachImageAdjustmentFilter,
+  chartLayerClassName,
   imageAdjustmentToFilter
 } from './chart-utils';
 
@@ -33,7 +34,7 @@ describe('imageAdjustmentToFilter (#457)', () => {
   });
 });
 
-/** Minimal OL layer/render-context stand-ins for the prerender/postrender hooks. */
+/** Minimal OL layer stand-in for the postrender hook. */
 function mockLayer() {
   const handlers: Record<string, (e: { context: unknown }) => void> = {};
   const layer = {
@@ -46,42 +47,59 @@ function mockLayer() {
   return { layer, fire };
 }
 
-function mockContext() {
-  return {
-    filter: 'none',
-    save: vi.fn(),
-    restore: vi.fn()
-  } as unknown as CanvasRenderingContext2D & {
-    save: ReturnType<typeof vi.fn>;
-    restore: ReturnType<typeof vi.fn>;
-  };
+/** A real canvas element so the HTMLCanvasElement guard in the helper passes. */
+function canvasContext() {
+  const canvas = document.createElement('canvas');
+  return { canvas, ctx: { canvas } };
 }
 
 describe('attachImageAdjustmentFilter (#457)', () => {
-  it('applies the filter on prerender and restores it on postrender', () => {
+  it('applies the adjustment as a CSS filter on the layer canvas', () => {
     const { layer, fire } = mockLayer();
     const setAdjustment = attachImageAdjustmentFilter(layer);
     setAdjustment({ brightness: 1.2, contrast: 0.8 });
 
-    const ctx = mockContext();
-    fire('prerender', ctx);
-    expect(ctx.save).toHaveBeenCalledOnce();
-    expect(ctx.filter).toBe('brightness(1.2) contrast(0.8)');
-
+    const { canvas, ctx } = canvasContext();
     fire('postrender', ctx);
-    expect(ctx.restore).toHaveBeenCalledOnce();
+    expect(canvas.style.filter).toBe('brightness(1.2) contrast(0.8)');
   });
 
-  it('leaves the context untouched for a neutral adjustment', () => {
+  it('updates the CSS filter immediately once the canvas is known', () => {
     const { layer, fire } = mockLayer();
     const setAdjustment = attachImageAdjustmentFilter(layer);
-    setAdjustment({ brightness: 1, contrast: 1 });
-
-    const ctx = mockContext();
-    fire('prerender', ctx);
+    const { canvas, ctx } = canvasContext();
     fire('postrender', ctx);
-    expect(ctx.save).not.toHaveBeenCalled();
-    expect(ctx.restore).not.toHaveBeenCalled();
-    expect(ctx.filter).toBe('none');
+
+    setAdjustment({ brightness: 1.5, contrast: 1.1 });
+    expect(canvas.style.filter).toBe('brightness(1.5) contrast(1.1)');
+  });
+
+  it('clears the CSS filter for a neutral adjustment', () => {
+    const { layer, fire } = mockLayer();
+    const setAdjustment = attachImageAdjustmentFilter(layer);
+    const { canvas, ctx } = canvasContext();
+    setAdjustment({ brightness: 1.2, contrast: 0.8 });
+    fire('postrender', ctx);
+
+    setAdjustment({ brightness: 1, contrast: 1 });
+    expect(canvas.style.filter).toBe('');
+  });
+
+  it('ignores a non-canvas render context (WebGL layers)', () => {
+    const { layer, fire } = mockLayer();
+    const setAdjustment = attachImageAdjustmentFilter(layer);
+    setAdjustment({ brightness: 1.2, contrast: 0.8 });
+    expect(() => fire('postrender', { canvas: {} })).not.toThrow();
+  });
+});
+
+describe('chartLayerClassName (#457)', () => {
+  it('produces a unique per-chart class retaining ol-layer', () => {
+    expect(chartLayerClassName('my-chart')).toBe('ol-layer chart-my-chart');
+    expect(chartLayerClassName('a')).not.toBe(chartLayerClassName('b'));
+  });
+
+  it('sanitises characters not valid in a class name', () => {
+    expect(chartLayerClassName('a/b.c d')).toBe('ol-layer chart-a-b-c-d');
   });
 });

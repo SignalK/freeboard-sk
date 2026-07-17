@@ -51,7 +51,8 @@ export function initPMTilesWebGLLayer(
 // create a PMTile XYZ source TileLayer
 export function initPMTilesXYZLayer(
   chart: SKChart,
-  zIndex: number
+  zIndex: number,
+  className?: string
 ): TileLayer<XYZ> {
   const tiles = new pmtiles.PMTiles(chart.url);
 
@@ -87,7 +88,8 @@ export function initPMTilesXYZLayer(
       minZoom: chart.minZoom
     }),
     zIndex: zIndex,
-    opacity: chart.defaultOpacity ?? 1
+    opacity: chart.defaultOpacity ?? 1,
+    className
   });
 }
 
