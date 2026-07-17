@@ -124,6 +124,28 @@ runs**, not two full-suite runs — once with the fix reverted (new test fails),
 restored (it passes). Don't reach for `npx vitest` to shortcut it; that's the path
 that fails on the alias.
 
+### A co-located spec's deep import can break an *unrelated* spec in the full suite
+
+**The trap.** Writing a co-located `*.spec.ts`, the natural move is to import the
+app class you're exercising — e.g. `import { SKRoute } from
+'src/app/modules/skresources/resource-classes'`. The spec passes on its own
+(`ng test --include …`), so it looks fine. But in the full `npm run test:ci` run it
+makes a *different, unchanged* spec fail — the AppComponent bootstrap
+(`app.component.spec.ts`, "should create the app") throws
+`TypeError: Cannot read properties of undefined (reading 'ɵcmp')`, with a stack that
+points at Angular's `TestBed` compiler, not at either spec. The deep import pulls a
+second resolution path into a module that also participates in the `src/app/modules`
+barrel, perturbing evaluation order enough to leave a component reference undefined
+during `TestBed` bootstrap. The symptom is maddeningly indirect: your new test is
+green, an old unrelated one is red, and only in the whole-suite run.
+
+**What to do instead.** In a spec, don't deep-import app classes that participate in
+the `src/app/modules` barrel just to build a fixture. Build a minimal plain-object
+stub with only the fields the code under test reads. The tell for this specific
+cause: a `ɵcmp`-undefined failure in a spec you didn't touch, appearing *only* under
+the full suite — suspect the import graph of the spec you just added, not the spec
+that failed.
+
 ### Unit-testing a DI-heavy service whose constructor calls `effect()`
 
 **The trap.** Services like `PlotterExtensionService` inject a large facade
