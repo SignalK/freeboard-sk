@@ -321,28 +321,34 @@ export class ResourcePopoverComponent {
   protected app = inject(AppFacade);
 
   constructor() {
-    effect(() => {
-      this.resource();
-      this.type();
-      this.active();
-      this.parse();
-      this.ctrl.showModifyButton =
-        this.type() !== 'destination' && this.featureCount() > 0 ? true : false;
-      // Routes/regions are shape-edited ("Modify"); points are moved ("Move").
-      this.ctrl.modifyLabel =
-        this.type() === 'route' || this.type() === 'region' ? 'MODIFY' : 'MOVE';
-      // Save shortcut: only for an unsaved route (host-decided via canSave).
-      this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
-      if (this.ctrl.showSaveButton) {
-        // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
-        // the actions that only work against a stored resource — Start
-        // (navigation), Route Points and Show Notes — which a draft has none of.
-        this.ctrl.showDeleteButton = true;
-        this.ctrl.canActivate = false;
-        this.ctrl.showPointsButton = false;
-        this.ctrl.showNotesButton = false;
-      }
-    });
+    effect(() => this.computeControls());
+  }
+
+  /** Derive button/state visibility from the current inputs (effect body). */
+  private computeControls() {
+    this.resource();
+    this.type();
+    this.active();
+    this.parse();
+    this.ctrl.showModifyButton =
+      this.type() !== 'destination' && this.featureCount() > 0;
+    // Routes/regions are shape-edited ("Modify"); points are moved ("Move").
+    this.ctrl.modifyLabel =
+      this.type() === 'route' || this.type() === 'region' ? 'MODIFY' : 'MOVE';
+    // Save shortcut: only for an unsaved route (host-decided via canSave).
+    this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
+    if (this.ctrl.showSaveButton) {
+      // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
+      // the actions that only work against a stored resource — Start
+      // (navigation), Route Points, Show Notes and Info — which a draft has
+      // none of. Info fetches the route from the server, which 404s for a
+      // draft; Save already opens the details dialog for title/description.
+      this.ctrl.showDeleteButton = true;
+      this.ctrl.canActivate = false;
+      this.ctrl.showPointsButton = false;
+      this.ctrl.showNotesButton = false;
+      this.ctrl.showInfoButton = false;
+    }
   }
 
   private parse() {
