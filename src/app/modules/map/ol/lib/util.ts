@@ -14,8 +14,8 @@ export function defaultLayers() {
   return [osmLayer()];
 }
 
-export function osmLayer() {
-  return new TileLayer({ source: new OSM() });
+export function osmLayer(className?: string) {
+  return new TileLayer({ source: new OSM(), className });
 }
 
 export function osmSource() {

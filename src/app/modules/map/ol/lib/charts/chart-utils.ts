@@ -25,37 +25,47 @@ export function imageAdjustmentToFilter(adj?: ChartImageAdjustment): string {
 }
 
 /**
- * Apply a per-chart brightness/contrast filter to a raster (canvas) tile layer
- * by wrapping each render pass in a canvas `filter`. Returns a setter the caller
- * invokes whenever the chart's adjustment changes; a subsequent `map.render()`
- * repaints with the new values. WebGL tile layers have no 2D context and must
- * not be passed here.
+ * Apply a per-chart brightness/contrast adjustment to a raster (canvas) tile
+ * layer as a CSS filter on the layer's canvas element. A CSS element filter is
+ * used (rather than a `CanvasRenderingContext2D.filter`) because WebKit ships
+ * the context filter disabled by default, making it a silent no-op on iOS
+ * browsers. The layer MUST have a unique `className` (see
+ * `chartLayerClassName`) so OpenLayers renders it into its own canvas — layers
+ * sharing the default class are composited into one canvas and would all be
+ * filtered together.
+ * Returns a setter the caller invokes whenever the chart's adjustment changes;
+ * a subsequent `map.render()` repaints with the new values.
  */
 export function attachImageAdjustmentFilter(
   layer: TileLayer
 ): (adj?: ChartImageAdjustment) => void {
   let filter = '';
-  let applied = false;
-  layer.on('prerender', (evt: RenderEvent) => {
-    if (!filter) {
-      return;
+  let canvas: HTMLCanvasElement | null = null;
+  const apply = () => {
+    if (canvas && canvas.style.filter !== filter) {
+      canvas.style.filter = filter;
     }
-    const ctx = evt.context as CanvasRenderingContext2D;
-    ctx.save();
-    ctx.filter = filter;
-    applied = true;
-  });
+  };
   layer.on('postrender', (evt: RenderEvent) => {
-    if (!applied) {
-      return;
+    const cnv = (evt.context as CanvasRenderingContext2D)?.canvas;
+    if (cnv instanceof HTMLCanvasElement) {
+      canvas = cnv;
+      apply();
     }
-    const ctx = evt.context as CanvasRenderingContext2D;
-    ctx.restore();
-    applied = false;
   });
   return (adj?: ChartImageAdjustment) => {
     filter = imageAdjustmentToFilter(adj);
+    apply();
   };
+}
+
+/**
+ * Unique layer class name for a chart so OpenLayers renders the layer into its
+ * own canvas element (required for the per-chart CSS image-adjustment filter).
+ * Retains the default `ol-layer` class alongside the chart-specific one.
+ */
+export function chartLayerClassName(id: string): string {
+  return 'ol-layer chart-' + String(id).replace(/[^\w-]/g, '-');
 }
 
 export function resolveLayerMaxZoom(
