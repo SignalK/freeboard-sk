@@ -18,12 +18,14 @@ import {
   Subscription,
   catchError,
   debounceTime,
+  distinctUntilChanged,
+  map as rxMap,
   of,
   switchMap,
   tap
 } from 'rxjs';
 import { FeatureLike } from 'ol/Feature';
-import { fromLonLat, transformExtent } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 
 import {
   WeatherService,
@@ -31,6 +33,58 @@ import {
 } from 'src/app/modules/weather/weather.service';
 import { MapComponent } from '../map.component';
 import { MapImageRegistry } from '../map-image-registry.service';
+
+export interface CurrentSamplePoint {
+  latitude: number;
+  longitude: number;
+}
+
+// Web Mercator is undefined beyond ~±85.06°; drop grid points past it.
+const MAX_MERCATOR_LATITUDE = 85;
+
+/**
+ * Build the sample grid for a projected (EPSG:3857) viewport extent, snapped to
+ * a stable lattice: at a given zoom the extent's span is invariant to panning,
+ * so a fixed cell size with a snapped origin means panning by less than one cell
+ * yields the *identical* point set. Snapping in projected space (not lon/lat) is
+ * deliberate — Mercator distorts the latitude span, so an equivalent lon/lat
+ * lattice would shift on every north/south pan and defeat de-duplication. Points
+ * are returned in lon/lat with wrapped longitudes normalised to [-180, 180], so
+ * repeated/small moves de-duplicate to the same request (issue #522).
+ */
+export function buildCurrentSampleGrid(
+  extent: number[],
+  columns: number,
+  rows: number,
+  project: (coordinate: number[]) => number[] = toLonLat
+): CurrentSamplePoint[] {
+  const [minX, minY, maxX, maxY] = extent;
+  const cellWidth = (maxX - minX) / columns;
+  const cellHeight = (maxY - minY) / rows;
+  if (!(cellWidth > 0) || !(cellHeight > 0)) {
+    return [];
+  }
+
+  const originX = Math.floor(minX / cellWidth) * cellWidth;
+  const originY = Math.floor(minY / cellHeight) * cellHeight;
+  const round = (n: number) => Number(n.toFixed(4));
+  const points: CurrentSamplePoint[] = [];
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < columns; col++) {
+      const [lon, lat] = project([
+        originX + (col + 0.5) * cellWidth,
+        originY + (row + 0.5) * cellHeight
+      ]);
+      if (lat < -MAX_MERCATOR_LATITUDE || lat > MAX_MERCATOR_LATITUDE) {
+        continue;
+      }
+      const longitude = ((((lon + 180) % 360) + 360) % 360) - 180;
+      points.push({ latitude: round(lat), longitude: round(longitude) });
+    }
+  }
+  return points;
+}
 
 @Component({
   selector: 'ol-map > fb-weather-currents',
@@ -96,8 +150,10 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
 
     this.refreshSub = this.refresh$
       .pipe(
-        debounceTime(400),
-        switchMap(() => this.fetchCurrents())
+        debounceTime(600),
+        rxMap(() => this.getSamplePoints()),
+        distinctUntilChanged((a, b) => this.pointsKey(a) === this.pointsKey(b)),
+        switchMap((points) => this.fetchCurrents(points))
       )
       .subscribe();
     this.mapComponent.getMap().on('moveend', this.onMoveEnd);
@@ -129,13 +185,8 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
     return Math.max(0, Math.min(1, this.opacity ?? 1));
   }
 
-  private fetchCurrents() {
-    if (!this.show || !this.source) {
-      return of<OceanCurrentSample[]>([]);
-    }
-
-    const points = this.getSamplePoints();
-    if (points.length === 0) {
+  private fetchCurrents(points: CurrentSamplePoint[]) {
+    if (!this.show || !this.source || points.length === 0) {
       return of<OceanCurrentSample[]>([]);
     }
 
@@ -145,33 +196,24 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
     );
   }
 
-  private getSamplePoints() {
+  private getSamplePoints(): CurrentSamplePoint[] {
     const map = this.mapComponent.getMap();
     const size = map.getSize();
     if (!size) {
       return [];
     }
 
-    const extent = transformExtent(
+    // Projected (EPSG:3857) extent — its span is pan-invariant at a given zoom,
+    // which is what makes the snapped lattice stable (see buildCurrentSampleGrid).
+    return buildCurrentSampleGrid(
       map.getView().calculateExtent(size),
-      'EPSG:3857',
-      'EPSG:4326'
+      this.gridColumns,
+      this.gridRows
     );
-    const west = Math.max(-180, extent[0]);
-    const south = Math.max(-80, extent[1]);
-    const east = Math.min(180, extent[2]);
-    const north = Math.min(80, extent[3]);
-    const points: Array<{ latitude: number; longitude: number }> = [];
+  }
 
-    for (let row = 0; row < this.gridRows; row++) {
-      const latitude = north - ((north - south) * (row + 0.5)) / this.gridRows;
-      for (let col = 0; col < this.gridColumns; col++) {
-        const longitude =
-          west + ((east - west) * (col + 0.5)) / this.gridColumns;
-        points.push({ latitude, longitude });
-      }
-    }
-    return points;
+  private pointsKey(points: CurrentSamplePoint[]) {
+    return points.map((p) => `${p.latitude},${p.longitude}`).join(';');
   }
 
   private renderCurrents(samples: OceanCurrentSample[]) {
