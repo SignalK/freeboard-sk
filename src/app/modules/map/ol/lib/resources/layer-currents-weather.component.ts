@@ -186,7 +186,13 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
   }
 
   private fetchCurrents(points: CurrentSamplePoint[]) {
-    if (!this.show || !this.source || points.length === 0) {
+    if (!this.show || !this.source) {
+      return of<OceanCurrentSample[]>([]);
+    }
+    if (points.length === 0) {
+      // Clear stale arrows from the previous viewport (e.g. after panning
+      // beyond the supported latitude range).
+      this.source.clear();
       return of<OceanCurrentSample[]>([]);
     }
 

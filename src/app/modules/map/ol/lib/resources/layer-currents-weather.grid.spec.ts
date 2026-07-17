@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
+import VectorSource from 'ol/source/Vector';
 
-import { buildCurrentSampleGrid } from './layer-currents-weather.component';
+import {
+  buildCurrentSampleGrid,
+  LayerCurrentsWeatherComponent
+} from './layer-currents-weather.component';
 
 const COLUMNS = 10;
 const ROWS = 8;
@@ -62,5 +68,30 @@ describe('buildCurrentSampleGrid (#522 request de-duplication)', () => {
     expect(
       buildCurrentSampleGrid([10, 0, 10, 0], COLUMNS, ROWS, identity)
     ).toEqual([]);
+  });
+});
+
+describe('LayerCurrentsWeatherComponent stale-arrow clearing (#522)', () => {
+  it('clears previously rendered arrows when the viewport yields no points', () => {
+    const component = new LayerCurrentsWeatherComponent(
+      {} as never,
+      {} as never,
+      {} as never,
+      { detach: () => undefined } as never
+    );
+    component.show = true;
+    const source = new VectorSource();
+    source.addFeature(new Feature(new Point([0, 0])));
+    (component as never as { source: VectorSource }).source = source;
+
+    (
+      component as never as {
+        fetchCurrents: (p: unknown[]) => { subscribe: () => void };
+      }
+    )
+      .fetchCurrents([])
+      .subscribe();
+
+    expect(source.getFeatures()).toHaveLength(0);
   });
 });
