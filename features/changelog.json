@@ -1,8 +1,8 @@
 [
   { "feature": "weather-station-wind-barbs", "pr": 495, "kind": "new", "since": "v3.0.0-beta.3", "date": "2026-07-10", "title": "feat(map): render meteo targets as wind barbs" },
   { "feature": "weather-overlays", "pr": 413, "kind": "new", "since": "v3.0.0-beta.1", "date": "2026-07-03", "title": "feat(weather): add wind and ocean current overlays" },
-  { "feature": "weather-overlays", "pr": 520, "kind": "enhanced", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
-  { "feature": "weather-station-wind-barbs", "pr": 520, "kind": "enhanced", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
+  { "feature": "weather-overlays", "pr": 520, "kind": "enhanced", "since": "v3.0.0-rc.1", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
+  { "feature": "weather-station-wind-barbs", "pr": 520, "kind": "enhanced", "since": "v3.0.0-rc.1", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
   { "feature": null, "pr": 520, "kind": "skip", "reason": "internal UI fix — settings dialog fixed sizing/scrolling, not a distinct feature" },
   { "feature": "custom-map-symbols", "pr": 394, "kind": "new", "since": "v3.0.0-beta.0", "date": "2026-06-25", "title": "feat(charts): Custom map symbols via symbol providers" },
   { "feature": "screen-widgets", "pr": 395, "kind": "new", "since": "v3.0.0-beta.0", "date": "2026-06-26", "title": "feat: Add plotter extension host: widgets, panels, buttons, resource filters & background runtimes" },
@@ -16,6 +16,6 @@
   { "feature": "weather-overlays", "pr": 491, "kind": "enhanced", "since": "v3.0.0-beta.3", "date": "2026-07-11", "title": "feat(weather): add tidal currents overlay with time-stepping controls" },
   { "feature": "notes", "pr": 485, "kind": "enhanced", "since": "v3.0.0-beta.2", "date": "2026-07-07", "title": "feat(notes): size Note Details dialog to fit its content" },
   { "feature": "notes", "pr": 512, "kind": "enhanced", "since": "v3.0.0-beta.4", "date": "2026-07-12", "title": "feat(notes): add option to open note details on single click" },
-  { "feature": "feature-browser", "pr": 528, "kind": "new", "date": "2026-07-16", "title": "feat(features): add a searchable \"What's New\" feature browser" },
-  { "feature": "feature-browser", "pr": 530, "kind": "enhanced", "date": "2026-07-17", "title": "feat(features): replace forced onboarding modals with a passive What's New indicator" }
+  { "feature": "feature-browser", "pr": 528, "kind": "new", "since": "v3.0.0-rc.1", "date": "2026-07-16", "title": "feat(features): add a searchable \"What's New\" feature browser" },
+  { "feature": "feature-browser", "pr": 530, "kind": "enhanced", "since": "v3.0.0-rc.1", "date": "2026-07-17", "title": "feat(features): replace forced onboarding modals with a passive What's New indicator" }
 ]
