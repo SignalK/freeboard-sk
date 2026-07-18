@@ -40,18 +40,17 @@ choice and won't swap your custom icon back in later.
 
 ## Where custom icons show up
 
-Custom icons work for:
-
-- Notes
-- Waypoints
-- Your own vessel
-- AIS vessels
-- Aids to navigation
-- Route start / turn / end points
-
-They don't apply to special waypoint markers (start pin, start boat,
-sightings, alarms), shaded chart areas, or the dots used for moored vessels
-— those always keep their built-in look.
+| Area | Custom icons? |
+|------|:---:|
+| Notes | Yes |
+| Waypoints | Yes |
+| Your own vessel | Yes |
+| AIS vessels | Yes |
+| Aids to navigation | Yes |
+| Route start / turn / end points | Yes |
+| Special waypoint markers (start pin, start boat, sightings, alarms) | No |
+| Shaded chart areas | No |
+| Dots for moored vessels | No |
 
 Icons that normally rotate to a heading or bearing — your vessel, AIS
 targets, aids to navigation, route turn points — keep rotating correctly even

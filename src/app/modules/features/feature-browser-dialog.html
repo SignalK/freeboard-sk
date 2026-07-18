@@ -61,7 +61,7 @@
         }
       </div>
       <div class="body">
-        <remark [markdown]="f.body">
+        <remark [processor]="mdProcessor" [markdown]="f.body">
           <ng-template remarkTemplate="image" let-node>
             <figure
               class="shot"

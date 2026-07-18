@@ -19,6 +19,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDialog } from '@angular/material/dialog';
 
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 
 import { AppFacade } from 'src/app/app.facade';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
@@ -50,6 +51,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: []
 })
 export class WaypointPanel {
+  protected readonly mdProcessor = markdownProcessor;
   waypoint = input<SKWaypoint>(new SKWaypoint());
   id = input<string>(undefined);
   related = input<string>(undefined);

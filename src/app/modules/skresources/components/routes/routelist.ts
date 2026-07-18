@@ -33,6 +33,7 @@ import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -54,6 +55,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   ]
 })
 export class RouteListComponent extends ResourceListBase {
+  protected readonly mdProcessor = markdownProcessor;
   activeRoute = input<string>();
   editingRouteId = input<string>();
   select = output<FBResourceSelect>();

@@ -23,6 +23,7 @@ import { FBTrack, FBTracks, Position } from 'src/app/types';
 import { SKWorkerService } from 'src/app/modules';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 
 @Component({
   selector: 'track-list',
@@ -43,6 +44,7 @@ import { RemarkModule } from 'ngx-remark';
   ]
 })
 export class TrackListComponent extends ResourceListBase {
+  protected readonly mdProcessor = markdownProcessor;
   closed = output<void>();
   center = output<Position>();
 

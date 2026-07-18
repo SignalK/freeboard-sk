@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
@@ -40,6 +41,7 @@ import { Position } from 'src/app/types';
   styleUrls: ['notes.css']
 })
 export class NotePanel {
+  protected readonly mdProcessor = markdownProcessor;
   note = input<SKNote>(new SKNote());
   id = input<string>(undefined);
   interacting = input<boolean>(false);

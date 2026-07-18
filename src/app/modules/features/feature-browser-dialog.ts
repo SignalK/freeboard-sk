@@ -18,6 +18,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { A11yModule } from '@angular/cdk/a11y';
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../lib/markdown';
 
 import { FeatureCorpusService } from './feature-corpus.service';
 import {
@@ -54,6 +55,7 @@ import {
   styleUrl: './feature-browser-dialog.css'
 })
 export class FeatureBrowserDialog implements OnInit {
+  protected readonly mdProcessor = markdownProcessor;
   private corpus = inject(FeatureCorpusService);
   protected dialogRef = inject(MatDialogRef<FeatureBrowserDialog>);
   private host = inject<ElementRef<HTMLElement>>(ElementRef);

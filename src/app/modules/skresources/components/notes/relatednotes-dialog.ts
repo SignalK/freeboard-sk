@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
@@ -46,6 +47,7 @@ interface DialogData {
   styleUrls: ['notes.css']
 })
 export class RelatedNotesDialog implements OnInit {
+  protected readonly mdProcessor = markdownProcessor;
   protected relatedBy: string;
 
   protected data = inject<DialogData>(MAT_DIALOG_DATA);
