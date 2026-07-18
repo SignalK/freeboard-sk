@@ -21,6 +21,7 @@ import {
   AngularEditorConfig
 } from '@kolkov/angular-editor';
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
@@ -64,6 +65,7 @@ interface DialogData {
   styleUrls: ['notes.css']
 })
 export class NoteDialog implements OnInit {
+  protected readonly mdProcessor = markdownProcessor;
   private editorHiddenButtons = [
     [
       //'undo',

@@ -20,6 +20,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDialog } from '@angular/material/dialog';
 
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 
 import { AppFacade } from 'src/app/app.facade';
 import { InfoPanelFacade } from 'src/app/modules/info-panel/info-panel.facade';
@@ -57,6 +58,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: []
 })
 export class RoutePanel {
+  protected readonly mdProcessor = markdownProcessor;
   route = input<SKRoute>(new SKRoute());
   id = input<string>(undefined);
   related = input<string>(undefined);

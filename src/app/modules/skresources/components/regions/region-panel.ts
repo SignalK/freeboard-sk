@@ -17,6 +17,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatExpansionModule } from '@angular/material/expansion';
 
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 
 import { AppFacade } from 'src/app/app.facade';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
@@ -47,6 +48,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: []
 })
 export class RegionPanel {
+  protected readonly mdProcessor = markdownProcessor;
   region = input<SKRegion>(new SKRegion());
   id = input<string>(undefined);
   related = input<string>(undefined);

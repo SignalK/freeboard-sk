@@ -29,6 +29,7 @@ import { SKRegion } from '../../resource-classes';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../../lib/markdown';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -49,6 +50,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   ]
 })
 export class RegionListComponent extends ResourceListBase {
+  protected readonly mdProcessor = markdownProcessor;
   @Input() regions: FBRegions;
   select = output<FBResourceSelect>();
   refresh = output<void>();

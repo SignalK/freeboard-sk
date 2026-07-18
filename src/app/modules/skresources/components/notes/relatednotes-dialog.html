@@ -74,6 +74,7 @@
               </div>
               @if(n[1].mimeType?.includes('markdown')) {
               <remark
+                [processor]="mdProcessor"
                 style="
                   flex: 1 1 auto;
                   text-align: left;

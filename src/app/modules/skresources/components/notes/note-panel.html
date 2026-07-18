@@ -129,6 +129,7 @@
   </div>
   } @if(note().mimeType.includes('markdown')) {
   <remark
+    [processor]="mdProcessor"
     [markdown]="note().description"
     style="flex: 2 1 auto; overflow-y: auto; padding-left: 5px"
   >

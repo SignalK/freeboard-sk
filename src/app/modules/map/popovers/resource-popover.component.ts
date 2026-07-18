@@ -17,6 +17,7 @@ import { PopoverComponent } from './popover.component';
 
 import { AppFacade } from 'src/app/app.facade';
 import { RemarkModule } from 'ngx-remark';
+import { markdownProcessor } from '../../../lib/markdown';
 import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 
@@ -57,6 +58,7 @@ interface PopoverCtrl {
     >
       @if (hasMarkdown()) {
         <remark
+          [processor]="mdProcessor"
           style="flex: 1 1 auto;text-align:left;font-style: italic; overflow: hidden;
                                   display: -webkit-box;
                                   -webkit-box-orient: vertical;
@@ -277,6 +279,7 @@ interface PopoverCtrl {
   styleUrls: [`./popover.component.scss`]
 })
 export class ResourcePopoverComponent {
+  protected readonly mdProcessor = markdownProcessor;
   title = input<string>(); // popover title text
   resource = input<SKRoute | SKWaypoint | SKNote | SKRegion>();
   type = input<string>(); // resource type

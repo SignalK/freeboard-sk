@@ -98,7 +98,10 @@
             </div>
             @if(data.note.mimeType.includes('markdown')) {
             <div class="note-description">
-              <remark [markdown]="data.note.description" />
+              <remark
+                [processor]="mdProcessor"
+                [markdown]="data.note.description"
+              />
             </div>
             } @else {
             <div

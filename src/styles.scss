@@ -71,6 +71,28 @@ b { font-weight: 500; }
     color: inherit;
 }
 
+/* GFM tables rendered by <remark>. ngx-remark ships no CSS and emits a bare
+   <table>, which the browser draws without borders. Scoped to `remark` so it
+   cannot reach Angular Material's tables. Column alignment from the Markdown
+   (`:---:`) is applied inline by ngx-remark and so still wins over this. */
+remark table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5em 0;
+}
+
+remark th,
+remark td {
+    border: 1px solid var(--mat-sys-outline-variant, #ccc);
+    padding: 4px 8px;
+    text-align: left;
+}
+
+remark th {
+    font-weight: 500;
+    background: var(--mat-sys-surface-container, rgba(127, 127, 127, 0.12));
+}
+
 /*xs*/
 @media only screen and (max-width: 599px) {
     .weather-data .mat-horizontal-content-container {
