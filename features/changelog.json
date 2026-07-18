@@ -3,5 +3,19 @@
   { "feature": "weather-overlays", "pr": 413, "kind": "new", "since": "v3.0.0-beta.1", "date": "2026-07-03", "title": "feat(weather): add wind and ocean current overlays" },
   { "feature": "weather-overlays", "pr": 520, "kind": "enhanced", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
   { "feature": "weather-station-wind-barbs", "pr": 520, "kind": "enhanced", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
-  { "feature": null, "pr": 520, "kind": "skip", "reason": "internal UI fix — settings dialog fixed sizing/scrolling, not a distinct feature" }
+  { "feature": null, "pr": 520, "kind": "skip", "reason": "internal UI fix — settings dialog fixed sizing/scrolling, not a distinct feature" },
+  { "feature": "custom-map-symbols", "pr": 394, "kind": "new", "since": "v3.0.0-beta.0", "date": "2026-06-25", "title": "feat(charts): Custom map symbols via symbol providers" },
+  { "feature": "screen-widgets", "pr": 395, "kind": "new", "since": "v3.0.0-beta.0", "date": "2026-06-26", "title": "feat: Add plotter extension host: widgets, panels, buttons, resource filters & background runtimes" },
+  { "feature": "extension-panels", "pr": 395, "kind": "new", "since": "v3.0.0-beta.0", "date": "2026-06-26", "title": "feat: Add plotter extension host: widgets, panels, buttons, resource filters & background runtimes" },
+  { "feature": "route-planning", "pr": 432, "kind": "enhanced", "since": "v3.0.0-beta.0", "date": "2026-06-29", "title": "feat(routes): live route editing — editable drafts + plotter-extension route API" },
+  { "feature": null, "pr": 432, "kind": "skip", "reason": "adds the routes capability to the Plotter Extensions API for extension plugins (e.g. auto-routing); no direct end-user surface in Freeboard itself" },
+  { "feature": "vessel-tracks", "pr": 448, "kind": "enhanced", "since": "v3.0.0-beta.0", "date": "2026-07-02", "title": "feat(map): add per-vessel AIS track display" },
+  { "feature": "cursor-eta", "pr": 455, "kind": "new", "since": "v3.0.0-beta.0", "date": "2026-07-03", "title": "feat(map): show live bearing, distance and ETA at cursor" },
+  { "feature": "buddy-list", "pr": 484, "kind": "enhanced", "since": "v3.0.0-beta.2", "date": "2026-07-07", "title": "feat(ais): add \"Buddies only\" option to the vessel filter" },
+  { "feature": "chart-image-adjustment", "pr": 489, "kind": "new", "since": "v3.0.0-beta.2", "date": "2026-07-07", "title": "feat(charts): add brightness/contrast adjustment for raster image layers" },
+  { "feature": "weather-overlays", "pr": 491, "kind": "enhanced", "since": "v3.0.0-beta.3", "date": "2026-07-11", "title": "feat(weather): add tidal currents overlay with time-stepping controls" },
+  { "feature": "notes", "pr": 485, "kind": "enhanced", "since": "v3.0.0-beta.2", "date": "2026-07-07", "title": "feat(notes): size Note Details dialog to fit its content" },
+  { "feature": "notes", "pr": 512, "kind": "enhanced", "since": "v3.0.0-beta.4", "date": "2026-07-12", "title": "feat(notes): add option to open note details on single click" },
+  { "feature": "feature-browser", "pr": 528, "kind": "new", "date": "2026-07-16", "title": "feat(features): add a searchable \"What's New\" feature browser" },
+  { "feature": "feature-browser", "pr": 530, "kind": "enhanced", "date": "2026-07-17", "title": "feat(features): replace forced onboarding modals with a passive What's New indicator" }
 ]
