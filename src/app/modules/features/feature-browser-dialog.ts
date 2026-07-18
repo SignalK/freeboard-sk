@@ -3,6 +3,7 @@ import {
   ElementRef,
   OnInit,
   computed,
+  effect,
   inject,
   signal
 } from '@angular/core';
@@ -101,6 +102,16 @@ export class FeatureBrowserDialog implements OnInit {
     () => (this.activeFeature()?.images.length ?? 0) > 1
   );
 
+  constructor() {
+    // A new feature starts at its first line: the details pane is its own
+    // scroll region, so without this it inherits the previous feature's
+    // scroll offset and opens part-way down (or past the end of shorter prose).
+    effect(() => {
+      this.activeFeature();
+      this.resetDetailsScroll();
+    });
+  }
+
   async ngOnInit() {
     // Bind via the dialog's keydown stream (not @HostListener) so arrow keys
     // work regardless of which element inside the dialog has focus.
@@ -162,6 +173,12 @@ export class FeatureBrowserDialog implements OnInit {
     // exist in `displayed()` order, so this doesn't depend on change detection
     // having re-applied the highlight class before this callback runs.
     requestAnimationFrame(() => this.revealRow(next));
+  }
+
+  /** Return the details pane to the top so the new feature reads from line one. */
+  private resetDetailsScroll() {
+    const pane = this.host.nativeElement.querySelector<HTMLElement>('.details');
+    if (pane) pane.scrollTop = 0;
   }
 
   /** Bring row `index` fully into view, keeping it clear of the sticky header. */
