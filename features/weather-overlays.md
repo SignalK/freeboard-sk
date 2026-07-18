@@ -1,14 +1,14 @@
 ---
 id: weather-overlays
-title: Wind and Ocean Currents
+title: Wind, Currents & Tides
 category: Weather
 ---
 
 ![Fig 1. Wind and ocean current overlays on the chart](weather-overlays-1.jpg)
 
-Two grid overlays sample live weather data across the visible chart area, each
-toggled independently from the **Weather** panel (opened from the resources
-list):
+Grid overlays sample live weather and current data across the visible chart
+area, each toggled independently from the **Weather** panel (opened from the
+resources list):
 
 - **Wind** — "Enable wind layer" toggle. Requires a Signal K Weather Provider
   plugin installed on the server. Freeboard samples a 5×4 grid of points across
@@ -29,5 +29,16 @@ list):
   colour-graded from blue (slow) to red (fast), sized by speed, and labelled
   with the current's velocity in knots.
 
-Both overlays refresh automatically as you pan or zoom, and can be shown
-together or independently.
+![Fig 2. The Tidal Currents section of the Weather panel, with its 24-hour time bar, and the current overlay on the chart](weather-overlays-2.jpg)
+
+- **Tidal Currents** — appears in the Weather panel as **"Enable tidal
+  currents layer"**, but only when a `signalk-tidal-currents` plugin is
+  installed on the server; otherwise this option doesn't show up at all.
+  Arrows are colour-graded and labelled with speed, the same as Ocean
+  Currents. What sets it apart is a **24-hour time bar** underneath the
+  toggle: drag it, click anywhere on it, or use the step buttons (±1h, ±6h)
+  to see how currents shift through the day, with **Play** to animate
+  through time and **Now** to jump back to the current moment.
+
+All three overlays refresh automatically as you pan or zoom, and can be
+shown together or independently.
