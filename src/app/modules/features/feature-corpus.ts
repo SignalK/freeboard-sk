@@ -21,7 +21,8 @@ export type FeatureChangeKind = 'new' | 'enhanced' | 'skip';
 /** One append-only change event from `features/changelog.json`. */
 export interface FeatureLedgerRow {
   feature: string | null;
-  pr: number;
+  /** Absent for changes that predate the PR workflow (direct commits). */
+  pr?: number | null;
   kind: FeatureChangeKind;
   since?: string | null;
   /** ISO date (e.g. "2026-05-08") the change landed. */
@@ -46,7 +47,8 @@ export interface FeatureCorpusPayload {
 
 /** One PR that changed a feature — a row in the details pane's history table. */
 export interface FeatureEvent {
-  pr: number;
+  /** Null when the change predates the PR workflow — rendered without a link. */
+  pr: number | null;
   date: string | null;
   /** PR title with any `type(scope):` prefix stripped. */
   title: string;
@@ -203,7 +205,7 @@ export function compileCorpus(
           ? latest.kind
           : null,
       events: rows.map((r) => ({
-        pr: r.pr,
+        pr: r.pr ?? null,
         date: r.date ?? null,
         title: stripTypePrefix(r.title ?? '')
       })),
@@ -217,7 +219,7 @@ function compareEvent(a: FeatureLedgerRow, b: FeatureLedgerRow): number {
   const da = a.date ?? '';
   const db = b.date ?? '';
   if (da !== db) return da < db ? -1 : 1;
-  return a.pr - b.pr;
+  return (a.pr ?? 0) - (b.pr ?? 0);
 }
 
 const TYPE_PREFIX_RE =
