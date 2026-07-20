@@ -599,14 +599,14 @@ export class SKResourceService {
       let flist = chts.filter((chart: FBChart) => chart[2]);
       flist = this.sortByScaleDesc(flist);
       flist = this.arrangeChartLayers(flist);
-      // set map zoom extent
-      this.setMapZoomRange();
       this.chartCacheSignal.set(flist);
+      // set map zoom extent (derived from the cache, so populate it first)
+      this.setMapZoomRange();
     } catch (err) {
       this.app.debug('** refreshCharts:', err);
       const flist = this.appendOSM([]);
-      this.setMapZoomRange();
       this.chartCacheSignal.set(flist);
+      this.setMapZoomRange();
     }
   }
 
@@ -672,11 +672,12 @@ export class SKResourceService {
             derivedExtent.max = c[1].maxZoom;
           }
         }
-        this.app.MAP_ZOOM_EXTENT.min =
-          derivedExtent.min === 1000 ? defaultExtent.min : derivedExtent.min;
-        this.app.MAP_ZOOM_EXTENT.max =
-          derivedExtent.max === -1 ? defaultExtent.max : derivedExtent.max;
       });
+      // fall back to the default when no selected chart supplied a bound
+      this.app.MAP_ZOOM_EXTENT = {
+        min: derivedExtent.min === 1000 ? defaultExtent.min : derivedExtent.min,
+        max: derivedExtent.max === -1 ? defaultExtent.max : derivedExtent.max
+      };
       this.app.debug('*** MAP_ZOOM_EXTENT', this.app.MAP_ZOOM_EXTENT);
     }
   }
