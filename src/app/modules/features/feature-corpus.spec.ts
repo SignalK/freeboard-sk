@@ -167,6 +167,26 @@ describe('compileCorpus', () => {
   it('handles an empty corpus', () => {
     expect(compileCorpus({ docs: [], ledger: [] })).toEqual([]);
   });
+
+  it('supports a row with no PR (a change predating the PR workflow)', () => {
+    const old = compileCorpus({
+      docs: [doc('old', { title: 'Old', category: 'Charts' }, 'b')],
+      ledger: [
+        {
+          feature: 'old',
+          kind: 'new',
+          since: 'v2.1.0',
+          date: '2023-07-06',
+          title: 'limit zoom to selected maps'
+        }
+      ]
+    })[0];
+    expect(old.since).toBe('v2.1.0');
+    expect(old.latestKind).toBe('new');
+    // null (not undefined) so the template can guard the PR link on it
+    expect(old.events[0].pr).toBeNull();
+    expect(old.events[0].title).toBe('limit zoom to selected maps');
+  });
 });
 
 describe('sortFeatures', () => {

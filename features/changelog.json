@@ -17,5 +17,6 @@
   { "feature": "notes", "pr": 485, "kind": "enhanced", "since": "v3.0.0-beta.2", "date": "2026-07-07", "title": "feat(notes): size Note Details dialog to fit its content" },
   { "feature": "notes", "pr": 512, "kind": "enhanced", "since": "v3.0.0-beta.4", "date": "2026-07-12", "title": "feat(notes): add option to open note details on single click" },
   { "feature": "feature-browser", "pr": 528, "kind": "new", "since": "v3.0.0-rc.1", "date": "2026-07-16", "title": "feat(features): add a searchable \"What's New\" feature browser" },
-  { "feature": "feature-browser", "pr": 530, "kind": "enhanced", "since": "v3.0.0-rc.1", "date": "2026-07-17", "title": "feat(features): replace forced onboarding modals with a passive What's New indicator" }
+  { "feature": "feature-browser", "pr": 530, "kind": "enhanced", "since": "v3.0.0-rc.1", "date": "2026-07-17", "title": "feat(features): replace forced onboarding modals with a passive What's New indicator" },
+  { "feature": "chart-zoom-limits", "kind": "new", "since": "v2.1.0", "date": "2023-07-06", "title": "limit zoom to selected maps" }
 ]

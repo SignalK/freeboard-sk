@@ -90,9 +90,9 @@
               {{ e.date ? (e.date | date: 'mediumDate') : '' }}
             </td>
             <td class="pr-num">
-              <a [href]="prUrl(e.pr)" target="_blank" rel="noopener"
-                >#{{ e.pr }}</a
-              >
+              @if (e.pr; as pr) {
+              <a [href]="prUrl(pr)" target="_blank" rel="noopener">#{{ pr }}</a>
+              }
             </td>
             <td class="pr-title">{{ e.title }}</td>
           </tr>
