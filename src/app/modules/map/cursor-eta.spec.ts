@@ -27,6 +27,13 @@ describe('computeCursorEta', () => {
     expect(info.timeToGo).toBeCloseTo(info.distance / 3, 5);
   });
 
+  it('treats sub-knot SOG noise while moored as stopped (#555)', () => {
+    // A GPS SOG spike of ~0.5 kn (0.257 m/s) at anchor must not be used directly
+    // (it would yield an absurd multi-day ETA); fall back to the reference speed.
+    const info = computeCursorEta(FROM, TO, 0.257, 3);
+    expect(info.timeToGo).toBeCloseTo(info.distance / 3, 5);
+  });
+
   it('returns a null ETA when stopped with no reference speed', () => {
     const info = computeCursorEta(FROM, TO, 0, 0);
     expect(info.timeToGo).toBeNull();
