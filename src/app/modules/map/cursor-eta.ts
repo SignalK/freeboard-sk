@@ -9,9 +9,13 @@ export interface CursorEtaInfo {
   timeToGo: number | null; // seconds; null when no usable speed
 }
 
-// Below this speed (m/s, ~0.1 kn) the vessel is treated as stopped and the
-// configured reference speed is used for the ETA instead of live SOG.
-const STOPPED_SOG_THRESHOLD = 0.05;
+// At or below this speed the vessel is treated as stopped and the configured reference
+// speed is used for the ETA instead of live SOG. Set at ~1 kn: at anchor or moored,
+// GPS SOG noise routinely spikes to several tenths of a knot — still not making way,
+// but a lower threshold lets those spikes through and produces absurd multi-day ETAs
+// (#555). One knot is the point below which the vessel isn't making meaningful way,
+// so the reference speed gives a more useful estimate.
+const STOPPED_SOG_THRESHOLD = 1 / 1.94384; // ~0.514 m/s (1 kn)
 
 /**
  * Compute the cursor bearing, distance and ETA relative to the vessel position.
