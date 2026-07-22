@@ -24,8 +24,10 @@
     ],
     "recommends": [
       "signalk-charts-provider-simple",
-      "signalk-flags",
-      "signalk-buddylist-plugin",
+      "signalk-instrument-widgets",
+      "signalk-symbol-manager",
+      "@signalk/open-meteo-provider",
+      "signalk-basic-tide-widgets",
       "signalk-restricted-areas"
     ]
   },
