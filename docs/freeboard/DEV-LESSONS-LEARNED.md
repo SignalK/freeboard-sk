@@ -72,6 +72,30 @@ same components: `resourcelist.css` positions each scrolling list at a **hardcod
 `top:` px** that must manually track header height — add a header row (e.g. a filter
 toggle line) and the list clips it unless you bump that offset too.
 
+### Component surfaces styled from `--mat-sys-*` tokens go light in dark mode
+
+**The trap.** FSK's Material theme is built with `define-theme` +
+`all-component-themes` (`app-theme.scss`), which emit the `--mat-*` / `--mdc-*`
+*component* tokens but **not** the Material-3 `--mat-sys-*` *system* palette
+(`--mat-sys-surface`, `--mat-sys-on-surface-variant`, `--mat-sys-primary-container`,
+…). A component that styles its own surfaces from `var(--mat-sys-surface, #fff)`
+therefore always resolves to the **light fallback** — in *both* themes. It looks
+right in the default light theme and under night mode (a global filter), so the bug
+is invisible until someone opens it in the real dark theme: the app flips the dialog
+chrome dark (via the component tokens, which *do* switch) while the component's own
+surfaces, borders and text stay light — a white panel inside a dark dialog,
+black-on-dark prose (Feature Browser issue #566).
+
+**What to do instead.** Don't lean on `--mat-sys-*` for component-owned styling.
+Dark mode is signalled by the `.dark-theme` class FSK adds to the CDK overlay
+container (`app.component.ts`, `setDarkTheme()`), an *ancestor* of dialog content —
+so reach it from an encapsulated component with `:host-context(.dark-theme)` and
+supply the dark surface/text/border values there, leaving the light fallbacks for
+the default theme. Don't treat dark mode as an edge case: iOS Safari follows the
+system appearance and much of FSK's audience runs it on an iPad or iPhone, so this
+path is exercised by real users constantly — verify any new panel or dialog in
+**both** the light theme and OS dark mode before calling it done.
+
 ---
 
 ## When testing
