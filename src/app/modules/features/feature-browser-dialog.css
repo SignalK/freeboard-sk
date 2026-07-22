@@ -325,3 +325,34 @@ tr[mat-row].active td:first-child {
   right: 6px;
   transform: translateY(-50%);
 }
+
+/* ---- Dark theme ------------------------------------------------------ */
+/* This panel styles its own surfaces from --mat-sys-* tokens, but FSK's Material
+   setup (define-theme + all-component-themes) never emits those system tokens, so
+   every var() above resolves to its light fallback in *both* themes. That reads
+   correctly under the light theme and under night mode (a global filter), but the
+   app's real dark theme — .dark-theme, added to the CDK overlay when the OS is in
+   dark mode — turns the dialog chrome dark while these surfaces, borders and text
+   stay light (white header, black prose). Supply the missing dark token set here,
+   scoped to the dark overlay, so the panel matches the themed dialog. */
+:host-context(.dark-theme) {
+  --mat-sys-surface: #181211;
+  --mat-sys-on-surface: #ede0dd;
+  --mat-sys-on-surface-variant: #cabfbc;
+  --mat-sys-outline-variant: #4a4340;
+  --mat-sys-primary: #adc6ff;
+  --mat-sys-primary-container: #2b3b57;
+  --mat-sys-on-primary-container: #d7e2ff;
+}
+/* Prose and history text carry no themed colour of their own — they inherit the
+   dialog's, which is dark. Lift the panel's base text to on-surface in dark mode;
+   themed cells, chips and links keep their own colours. */
+:host-context(.dark-theme) .feature-browser {
+  color: var(--mat-sys-on-surface);
+}
+/* Markdown links render as bare <a> (UA blue) — too dark on the dark surface.
+   remark injects them outside Angular's encapsulation, so reach in with ::ng-deep
+   (as the search field above does). */
+:host-context(.dark-theme) .details .body ::ng-deep a {
+  color: var(--mat-sys-primary);
+}
