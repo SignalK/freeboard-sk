@@ -38,11 +38,16 @@ import {
   S57_CLICKABLE_LAYERS,
   S57_NAMES
 } from './popovers';
-import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
+import {
+  FreeboardOpenlayersModule,
+  FreeboardRouteLayerComponent
+} from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
-import { toLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
+import { LineString as OlLineString } from 'ol/geom';
+import { fromLonLatArray, mapifyCoords } from './ol/lib/util';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
@@ -206,6 +211,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
   @ViewChild('olMap', { static: false }) olMap: MapComponent;
+  @ViewChild(FreeboardRouteLayerComponent)
+  routeLayer: FreeboardRouteLayerComponent;
 
   scaleUnits = input<string>('');
 
@@ -321,6 +328,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected course = inject(CourseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
+  /** Source feature whose MultiLineString geometry is updated live during route editing. */
+  private routeEditSourceFeature: Feature | null = null;
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
@@ -504,8 +513,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       if (this.overlay().isSelf) {
         this.overlay.update((current) => {
+          const newPos = this.dfeat.self.position;
+          const wo = Math.round((current.position[0] - newPos[0]) / 360) * 360;
           return Object.assign({}, current, {
-            position: this.dfeat.self.position,
+            position: wo !== 0 ? [newPos[0] + wo, newPos[1]] : newPos,
             vessel: this.dfeat.self
           });
         });
@@ -522,26 +533,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
         } else {
           if (this.overlay().type === 'ais') {
             this.overlay.update((current) => {
+              const newPos = this.dfeat.ais.get(current.id).position;
+              const wo =
+                Math.round((current.position[0] - newPos[0]) / 360) * 360;
               return Object.assign({}, current, {
-                position: this.dfeat.ais.get(current.id).position,
+                position: wo !== 0 ? [newPos[0] + wo, newPos[1]] : newPos,
                 vessel: this.dfeat.ais.get(current.id)
               });
             });
           }
-        }
-      }
-      if (this.app.mapExtent()[0] < 180 && this.app.mapExtent()[2] > 180) {
-        // if dateline is in view adjust overlay position to stay with vessel
-
-        if (
-          this.overlay().position[0] < 0 &&
-          this.overlay().position[0] > -180
-        ) {
-          this.overlay.update((current) => {
-            return Object.assign({}, current, {
-              position: [current.position[0] + 360, current.position[1]]
-            });
-          });
         }
       }
     }
@@ -1021,15 +1021,73 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
     }
-    this.mapInteract.startModifying(this.overlay());
+    this.routeEditSourceFeature = null;
     if (this.overlay().type === 'route') {
       const rid = this.overlay().id;
-      this.mapInteract.measurementCoords = this.routeBuffers.has(rid)
+      const rawCoords = this.routeBuffers.has(rid)
         ? (this.routeBuffers
             .get(rid)!
             .points.map((p) => p.position) as LineString)
         : this.skres.fromCache('routes', rid)[1].feature.geometry.coordinates;
+      // Keep a reference to the rendered MultiLineString feature so its
+      // geometry can be updated live after each vertex drop.
+      this.routeEditSourceFeature =
+        this.mapInteract.draw.features.getArray()[0] as Feature;
+      // Give OL Modify a scratch LineString with unwrapped (non-split) coords
+      // so there are no phantom ±180° boundary vertices during editing.
+      const mc = mapifyCoords(rawCoords);
+      // Shift the scratch geometry to the world copy the user clicked in.
+      // OL always returns the primary-world Feature regardless of which
+      // rendered copy was hit, so we identify the correct copy explicitly.
+      //
+      // Strategy: the click's raw Mercator x encodes the world copy (thanks to
+      // the transform() fix in map.component.ts).  mapifyCoords() may produce
+      // a geometry spanning n world widths (e.g. a route crossing the
+      // antimeridian multiple times).  We search all shifts in the range
+      // [m-n-1 .. m+n+1] where m = clicked world copy and n = route width in
+      // world copies, and pick the shift that places the nearest vertex closest
+      // to the click.
+      const mercCoords = fromLonLatArray(mc) as Coordinate[];
+      const clickMerc = fromLonLat(this.overlay().position as [number, number]);
+      const clickMercX = clickMerc[0];
+      const clickMercY = clickMerc[1];
+      const worldWidth = 2 * 20037508.3427892;
+      let minX = mercCoords[0][0],
+        maxX = mercCoords[0][0];
+      for (const c of mercCoords) {
+        if (c[0] < minX) minX = c[0];
+        if (c[0] > maxX) maxX = c[0];
+      }
+      const m = Math.round(clickMercX / worldWidth);
+      const n = Math.ceil((maxX - minX) / worldWidth);
+      let bestShift = 0,
+        bestDist = Infinity;
+      for (let k = m - n - 1; k <= m + n + 1; k++) {
+        const shift = k * worldWidth;
+        for (const c of mercCoords) {
+          const dx = c[0] + shift - clickMercX;
+          const dy = c[1] - clickMercY;
+          const dist = dx * dx + dy * dy; // squared Euclidean, no sqrt needed
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestShift = shift;
+          }
+        }
+      }
+      if (bestShift !== 0) {
+        mercCoords.forEach((c) => (c[0] += bestShift));
+      }
+      const scratchGeom = new OlLineString(mercCoords);
+      const scratchFeat = new Feature({ geometry: scratchGeom });
+      scratchFeat.setId(this.routeEditSourceFeature.getId());
+      scratchFeat.set(
+        'pointMetadata',
+        this.routeEditSourceFeature.get('pointMetadata')
+      );
+      this.mapInteract.draw.features = new Collection([scratchFeat]);
+      this.mapInteract.measurementCoords = rawCoords;
     }
+    this.mapInteract.startModifying(this.overlay());
     if (featureType === 'anchor') {
       this.overlay().type = featureType;
       this.mapInteract.draw.forSave.id = featureType;
@@ -1077,8 +1135,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     let pc;
     if (fid.split('.')[0] === 'route') {
+      // c is a flat Coordinate[] from the scratch LineString (EPSG:3857)
       pc = this.transformCoordsArray(c);
       this.mapInteract.measurementCoords = pc;
+      // Re-split at antimeridian and update all source segment features so
+      // the rendered route reflects the edit after each vertex drop.
+      if (this.routeLayer) {
+        this.routeLayer.updateRouteSegments(fid.split('.')[1], pc);
+      }
     } else if (fid.split('.')[0] === 'region') {
       for (let e = 0; e < c.length; e++) {
         if (this.isCoordsArray(c[e])) {
@@ -1400,6 +1464,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     let item = null;
     const t = id.split('.');
     let aid: string;
+    // Shift stored geographic positions to the clicked world copy so the popup
+    // appears at the same world copy the user clicked, not the primary world.
+    const worldOffset = coord ? Math.floor((coord[0] + 180) / 360) * 360 : 0;
+    const wrapPos = (pos: Position): Position =>
+      worldOffset !== 0 ? [pos[0] + worldOffset, pos[1]] : pos;
 
     switch (t[0]) {
       case 's57':
@@ -1453,7 +1522,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'ais';
         poData.isSelf = true;
         poData.vessel = this.dfeat.self;
-        poData.position = this.dfeat.self.position;
+        poData.position = wrapPos(this.dfeat.self.position);
         poData.show = true;
         break;
       case 'ais-vessels':
@@ -1464,7 +1533,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'ais';
         poData.id = aid;
         poData.vessel = this.dfeat.ais.get(aid);
-        poData.position = poData.vessel.position;
+        poData.position = wrapPos(poData.vessel.position);
         poData.show = true;
         break;
       case 'atons':
@@ -1476,7 +1545,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'aton';
         poData.id = id;
         poData.aton = this.app.data.atons.get(id);
-        poData.position = poData.aton.position;
+        poData.position = wrapPos(poData.aton.position);
         poData.show = true;
         break;
       case 'sar':
@@ -1486,7 +1555,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'aton';
         poData.id = id;
         poData.aton = this.app.data.sar.get(id);
-        poData.position = poData.aton.position;
+        poData.position = wrapPos(poData.aton.position);
         poData.show = true;
         break;
       case 'meteo':
@@ -1496,7 +1565,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = t[0];
         poData.id = id;
         poData.aton = this.app.data.meteo.get(id);
-        poData.position = poData.aton.position;
+        poData.position = wrapPos(poData.aton.position);
         poData.show = true;
         break;
       case 'aircraft':
@@ -1506,7 +1575,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = t[0];
         poData.id = id;
         poData.aircraft = this.app.data.aircraft.get(id);
-        poData.position = poData.aircraft.position;
+        poData.position = wrapPos(poData.aircraft.position);
         poData.show = true;
         break;
       case 'tidal': {
