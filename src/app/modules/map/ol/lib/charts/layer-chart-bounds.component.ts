@@ -144,15 +144,13 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
         bounds[3] === 90)
     )
       return [];
-    const rect = mapifyCoords(
-      [
-        [bounds[0], bounds[1]],
-        [bounds[2], bounds[1]],
-        [bounds[2], bounds[3]],
-        [bounds[0], bounds[3]],
-        [bounds[0], bounds[1]]
-      ]
-    );
+    const rect = mapifyCoords([
+      [bounds[0], bounds[1]],
+      [bounds[2], bounds[1]],
+      [bounds[2], bounds[3]],
+      [bounds[0], bounds[3]],
+      [bounds[0], bounds[1]]
+    ]);
     return [fromLonLatArray(rect)];
   }
 }

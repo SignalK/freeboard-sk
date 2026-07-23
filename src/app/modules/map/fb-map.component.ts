@@ -46,13 +46,8 @@ import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { fromLonLat, toLonLat } from 'ol/proj';
-import {
-  LineString as OlLineString
-} from 'ol/geom';
-import {
-  fromLonLatArray,
-  mapifyCoords
-} from './ol/lib/util';
+import { LineString as OlLineString } from 'ol/geom';
+import { fromLonLatArray, mapifyCoords } from './ol/lib/util';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
@@ -539,7 +534,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
           if (this.overlay().type === 'ais') {
             this.overlay.update((current) => {
               const newPos = this.dfeat.ais.get(current.id).position;
-              const wo = Math.round((current.position[0] - newPos[0]) / 360) * 360;
+              const wo =
+                Math.round((current.position[0] - newPos[0]) / 360) * 360;
               return Object.assign({}, current, {
                 position: wo !== 0 ? [newPos[0] + wo, newPos[1]] : newPos,
                 vessel: this.dfeat.ais.get(current.id)
@@ -1056,21 +1052,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
       const clickMercX = clickMerc[0];
       const clickMercY = clickMerc[1];
       const worldWidth = 2 * 20037508.3427892;
-      let minX = mercCoords[0][0], maxX = mercCoords[0][0];
+      let minX = mercCoords[0][0],
+        maxX = mercCoords[0][0];
       for (const c of mercCoords) {
         if (c[0] < minX) minX = c[0];
         if (c[0] > maxX) maxX = c[0];
       }
       const m = Math.round(clickMercX / worldWidth);
       const n = Math.ceil((maxX - minX) / worldWidth);
-      let bestShift = 0, bestDist = Infinity;
+      let bestShift = 0,
+        bestDist = Infinity;
       for (let k = m - n - 1; k <= m + n + 1; k++) {
         const shift = k * worldWidth;
         for (const c of mercCoords) {
           const dx = c[0] + shift - clickMercX;
           const dy = c[1] - clickMercY;
           const dist = dx * dx + dy * dy; // squared Euclidean, no sqrt needed
-          if (dist < bestDist) { bestDist = dist; bestShift = shift; }
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestShift = shift;
+          }
         }
       }
       if (bestShift !== 0) {

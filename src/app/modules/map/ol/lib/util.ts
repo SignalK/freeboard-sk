@@ -102,7 +102,10 @@ export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
       );
       current.push([-180, yIntercept]);
       segments.push(current);
-      current = [[180, yIntercept], [x1, y1]];
+      current = [
+        [180, yIntercept],
+        [x1, y1]
+      ];
     } else if (dLon < -180) {
       // Eastward crossing: x0 is east (positive), x1 is west (negative)
       const dLonUnwrapped = dLon + 360;
@@ -112,7 +115,10 @@ export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
       );
       current.push([180, yIntercept]);
       segments.push(current);
-      current = [[-180, yIntercept], [x1, y1]];
+      current = [
+        [-180, yIntercept],
+        [x1, y1]
+      ];
     } else {
       current.push([x1, y1]);
     }

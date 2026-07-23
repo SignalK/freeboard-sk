@@ -115,7 +115,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   // Route style function
   buildStyle(feature: Feature) {
     const styles = [];
-    const isActive = (feature.getId() as string).split('.')[1] === this.activeRoute;
+    const isActive =
+      (feature.getId() as string).split('.')[1] === this.activeRoute;
     let ptFill: Fill;
 
     if (typeof this.routeStyles === 'undefined') {
