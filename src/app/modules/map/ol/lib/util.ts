@@ -61,14 +61,6 @@ export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
   return coords;
 }
 
-/**
- * Split a LineString at each antimeridian (±180°) crossing.
- * Input coordinates must be in [-180, 180].
- * Returns an array of segments, each fully within [-180, 180], with
- * interpolated endpoints at exactly ±180° where crossings occur.
- * Each segment can be passed independently to fromLonLatArray so that
- * OpenLayers wrapX cloning works correctly on each compact piece.
- */
 /** Convert latitude (degrees) to Mercator Y. */
 function latToMercY(latDeg: number): number {
   const latRad = (latDeg * Math.PI) / 180;
@@ -80,6 +72,14 @@ function mercYToLat(mercY: number): number {
   return ((2 * Math.atan(Math.exp(mercY)) - Math.PI / 2) * 180) / Math.PI;
 }
 
+/**
+ * Split a LineString at each antimeridian (±180°) crossing.
+ * Input coordinates must be in [-180, 180].
+ * Returns an array of segments, each fully within [-180, 180], with
+ * interpolated endpoints at exactly ±180° where crossings occur.
+ * Each segment can be passed independently to fromLonLatArray so that
+ * OpenLayers wrapX cloning works correctly on each compact piece.
+ */
 export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
   if (coords.length < 2) return coords.length === 0 ? [] : [coords];
 
@@ -92,7 +92,7 @@ export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
     const dLon = x1 - x0;
 
     if (dLon > 180) {
-      // Westward crossing: x0 is east (positive), x1 is west (negative)
+      // Westward crossing: x0 is west (negative), x1 is east (positive)
       const dLonUnwrapped = dLon - 360;
       const t = (-180 - x0) / dLonUnwrapped;
       const yIntercept = mercYToLat(
@@ -102,7 +102,7 @@ export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
       segments.push(current);
       current = [[180, yIntercept], [x1, y1]];
     } else if (dLon < -180) {
-      // Eastward crossing: x0 is west (negative), x1 is east (positive)
+      // Eastward crossing: x0 is east (positive), x1 is west (negative)
       const dLonUnwrapped = dLon + 360;
       const t = (180 - x0) / dLonUnwrapped;
       const yIntercept = mercYToLat(
