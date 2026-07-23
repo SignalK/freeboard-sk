@@ -150,4 +150,14 @@ describe('mapifyCoords', () => {
     const coords: [number, number][] = [[90, 45]];
     expect(mapifyCoords(coords)).toEqual([[90, 45]]);
   });
+
+  it('does not mutate the input tuples (regression: shallow-copy callers are safe)', () => {
+    // Before the fix, coords[i][0] -= 360 wrote through shallow-copied tuples
+    // back to the cached SK route coordinates. Verify the originals are intact.
+    const original: [number, number][] = [[170, 0], [-170, 0]];
+    const snapshot: [number, number][] = original.map((p) => [p[0], p[1]]);
+    mapifyCoords(original);
+    expect(original[0]).toEqual(snapshot[0]);
+    expect(original[1]).toEqual(snapshot[1]);
+  });
 });

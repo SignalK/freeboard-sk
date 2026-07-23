@@ -1039,7 +1039,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.mapInteract.draw.features.getArray()[0] as Feature;
       // Give OL Modify a scratch LineString with unwrapped (non-split) coords
       // so there are no phantom ±180° boundary vertices during editing.
-      const mc = mapifyCoords([...rawCoords]);
+      const mc = mapifyCoords(rawCoords);
       // Shift the scratch geometry to the world copy the user clicked in.
       // OL always returns the primary-world Feature regardless of which
       // rendered copy was hit, so we identify the correct copy explicitly.

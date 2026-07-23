@@ -50,15 +50,17 @@ export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
   if (coords.length < 2) {
     return coords;
   }
+  // Deep-copy the tuples so the caller's coordinate objects are not modified.
+  const out: Array<Coordinate> = coords.map((p) => [p[0], p[1]] as Coordinate);
   // Normalise the first point to [-180, 180].
-  while (coords[0][0] > 180) coords[0][0] -= 360;
-  while (coords[0][0] < -180) coords[0][0] += 360;
+  while (out[0][0] > 180) out[0][0] -= 360;
+  while (out[0][0] < -180) out[0][0] += 360;
   // Unwrap subsequent points relative to their predecessor.
-  for (let i = 1; i < coords.length; i++) {
-    while (coords[i][0] - coords[i - 1][0] > 180) coords[i][0] -= 360;
-    while (coords[i - 1][0] - coords[i][0] > 180) coords[i][0] += 360;
+  for (let i = 1; i < out.length; i++) {
+    while (out[i][0] - out[i - 1][0] > 180) out[i][0] -= 360;
+    while (out[i - 1][0] - out[i][0] > 180) out[i][0] += 360;
   }
-  return coords;
+  return out;
 }
 
 /** Convert latitude (degrees) to Mercator Y. */
