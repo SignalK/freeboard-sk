@@ -12,15 +12,21 @@ export interface SKRadarLegendEntry {
   color: string;
 }
 
+// Radar discovery entry (Radar API 3.4.0: lean RadarInfo). `id` is the map key
+// in the /radars envelope, folded back into the entry. Static parameters
+// (spokesPerRevolution, maxSpokeLength, legend) live on /capabilities.
 export interface SKRadar {
   id: string;
   name: string;
   brand: string;
-  status: string;
-  spokesPerRevolution: number;
-  maxSpokeLen: number;
-  range: number;
-  controls: Record<string, Record<string, any>>;
+  model?: string;
+  radarIpAddress?: string;
+}
+
+// GET /radars response envelope (Radar API 3.4.0)
+export interface RadarsResponse {
+  version: string;
+  radars: Record<string, Omit<SKRadar, 'id'>>;
 }
 
 export interface CapabilityManifest {
@@ -28,7 +34,7 @@ export interface CapabilityManifest {
   minRange: number;
   supportedRanges: Array<number>;
   spokesPerRevolution: number;
-  maxSpokeLen: number;
+  maxSpokeLength: number;
   pixelValues: number;
   legend: {
     dopplerApproaching: [number, number];
@@ -98,6 +104,10 @@ export class RadarAPIService {
   readonly radarId = this._selectedRadar.asReadonly();
   private _radar = signal<ActiveRadar>(undefined);
   readonly radar = this._radar.asReadonly();
+  // Radar API version reported by GET /radars. Empty for pre-3.4.0 servers,
+  // which return a bare array with no version envelope.
+  private _apiVersion = signal<string>('');
+  readonly apiVersion = this._apiVersion.asReadonly();
 
   private app = inject(AppFacade);
   private signalk = inject(SignalKClient);
@@ -192,6 +202,9 @@ export class RadarAPIService {
       this._radar.set(undefined);
       return;
     }
+    // Radar API 3.4.0: the discovery object is lean and carries no id; fold in
+    // the selected id so consumers (info panel, render, panel) can read it.
+    rd['device'].id = this._selectedRadar();
     // filter controls
     const baseControls = new Map<string, any>();
     const cdef = rd['capabilities']['controls'];
@@ -228,10 +241,29 @@ export class RadarAPIService {
 
   /** Return list of available radars */
   public async listRadars(): Promise<SKRadar[]> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.signalk.api.get(this.app.skApiVersion, this.basePath).subscribe({
-        next: (val: SKRadar[]) => {
-          resolve(Array.isArray(val) ? val : []);
+        next: (val: SKRadar[] | RadarsResponse) => {
+          if (Array.isArray(val)) {
+            // Legacy (pre-3.4.0) servers return a bare array (no version).
+            this._apiVersion.set('');
+            resolve(val);
+          } else if (
+            val &&
+            val.radars !== null &&
+            typeof val.radars === 'object' &&
+            !Array.isArray(val.radars)
+          ) {
+            // Radar API 3.4.0: { version, radars } keyed by radar id.
+            this._apiVersion.set(val.version ?? '');
+            resolve(
+              Object.entries(val.radars).map(([id, info]) => ({ ...info, id }))
+            );
+          } else {
+            // Malformed / unexpected response — fall back to no radars.
+            this._apiVersion.set('');
+            resolve([]);
+          }
         },
         error: () => resolve([])
       });
