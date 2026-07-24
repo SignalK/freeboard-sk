@@ -17,7 +17,47 @@ they stay in one place.
 
 ## When reading / exploring the code
 
-_No entries yet — add one when something here bites you._
+### OpenLayers already handles the wrapping world — don't design around it
+
+**The trap.** Anything that draws across the antimeridian — tracks, trails, routes,
+laylines — invites the assumption that OpenLayers only understands longitudes
+within `[-180, 180]`, and that Freeboard must therefore split geometry at ±180° to
+get it drawn in every world copy. Designs built on that assumption end up splitting
+a line for rendering and then rebuilding a parallel un-split copy so the `Modify`
+interaction still sees one vertex per waypoint — a lot of machinery to work around
+a limit OL does not have.
+
+**What it actually does** (OL 10.x). The canvas vector renderer builds one replay
+group and re-executes it once per visible world copy, translated by
+`world * worldWidth` (`renderer/canvas/VectorLayer.js` → `renderWorlds`); it never
+consults a feature's extent to decide whether to replicate it. `prepareFrame`
+widens the feature query by a world on each side, and says so directly: *"To
+support geometries in a coordinate range from -540° to +540°, we add at least 1
+world width on each side of the projection extent."*
+
+So **coordinates running continuously past ±180° are a supported input**, not a
+workaround. Only geometry exceeding ±540° fails to render — in practice a track
+that laps the globe, never a hand-built route.
+
+**What to do instead.** Hand OL a continuously unwrapped line (`mapifyCoords` in
+`src/app/modules/map/ol/lib/util.ts`) and let it place the world copies. Reach for
+splitting only where geometry can exceed ±540° *and* nothing edits it — long tracks
+and trails.
+
+If a rendered geometry ever genuinely must differ from the editable one, override it
+in the **style**, not on the feature. These three consumers read different
+geometries:
+
+| Concern | Geometry used | Where |
+|---|---|---|
+| Rendering | the **style** geometry | `renderer/vector.js` — `style.getGeometryFunction()(feature)` |
+| Layer hit-testing | the rendered replay group | `renderer/canvas/VectorLayer.js` — `forEachFeatureAtCoordinate` |
+| `Modify` interaction | the **feature** geometry | `interaction/Modify.js` — `feature.getGeometry()` |
+
+A style `geometry` function runs on every render frame, so a `Modify` drag that
+mutates the feature geometry re-derives the drawn form by itself — you keep live
+feedback while editing, and no split vertex can ever reach saved data, without
+maintaining a shadow feature.
 
 ---
 
