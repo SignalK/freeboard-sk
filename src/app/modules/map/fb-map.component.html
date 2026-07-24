@@ -511,7 +511,11 @@
 
   <!-- Distance & Bearing to -->
   @if (overlay().show && overlay().type === 'bearing_dist') {
-    <ol-overlay [position]="overlay().position" [positioning]="'top-center'">
+    <ol-overlay
+      [position]="overlay().position"
+      [worldOffset]="overlay().worldOffset ?? 0"
+      [positioning]="'top-center'"
+    >
       <ap-popover
         [title]="overlay().title"
         [canClose]="false"
@@ -539,7 +543,11 @@
 
   <!-- Popovers -->
   @if (overlay().show && !mapInteract.isModifying()) {
-    <ol-overlay [position]="overlay().position" [positioning]="'top-center'">
+    <ol-overlay
+      [position]="overlay().position"
+      [worldOffset]="overlay().worldOffset ?? 0"
+      [positioning]="'top-center'"
+    >
       @if (mapInteract.isMeasuring()) {
         <ap-popover
           [title]="overlay().title"

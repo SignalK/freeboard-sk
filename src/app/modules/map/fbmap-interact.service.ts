@@ -26,6 +26,12 @@ export interface IPopover {
   type: string;
   icon?: string;
   position: Position;
+  /**
+   * Render-space offset (EPSG:3857 metres) of the world copy the user clicked
+   * in, relative to the primary world. `position` stays canonical (`[-180,180]`);
+   * this only shifts where the overlay is *drawn*, so it never leaks into data.
+   */
+  worldOffset?: number;
   show: boolean;
   title: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

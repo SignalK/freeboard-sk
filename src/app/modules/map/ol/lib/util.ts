@@ -84,6 +84,23 @@ export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
   return out;
 }
 
+/**
+ * Render-space offset (EPSG:3857 metres) of the world copy a Mercator x lands
+ * in, relative to the primary world. OpenLayers pans horizontally without limit,
+ * so a click east/west of the primary world carries an x outside
+ * `[-worldWidth/2, worldWidth/2]`; this returns the whole-world shift that maps
+ * the primary world onto that copy. The result is always a whole multiple of
+ * `worldWidth`, so adding it to a primary-world position is visually transparent
+ * under wrapX and never produces an out-of-range longitude. Returns 0 for the
+ * primary world. See #572.
+ */
+export function worldCopyOffset(mercX: number, worldWidth: number): number {
+  if (!Number.isFinite(mercX) || !(worldWidth > 0)) {
+    return 0;
+  }
+  return Math.round(mercX / worldWidth) * worldWidth;
+}
+
 // ** return adjusted radius to correctly render circle on ground at given position.
 export function mapifyRadius(radius: number, position: Coordinate): number {
   if (typeof radius === 'undefined' || typeof position === 'undefined') {
