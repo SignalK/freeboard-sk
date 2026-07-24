@@ -248,13 +248,20 @@ export class RadarAPIService {
             // Legacy (pre-3.4.0) servers return a bare array (no version).
             this._apiVersion.set('');
             resolve(val);
-          } else if (val && typeof val.radars === 'object') {
+          } else if (
+            val &&
+            val.radars !== null &&
+            typeof val.radars === 'object' &&
+            !Array.isArray(val.radars)
+          ) {
             // Radar API 3.4.0: { version, radars } keyed by radar id.
             this._apiVersion.set(val.version ?? '');
             resolve(
               Object.entries(val.radars).map(([id, info]) => ({ ...info, id }))
             );
           } else {
+            // Malformed / unexpected response — fall back to no radars.
+            this._apiVersion.set('');
             resolve([]);
           }
         },
