@@ -40,44 +40,48 @@ export function fromLonLatArray(
   }
 }
 
-/** DateLine Crossing:
- * returns true if point is in the zone for dateline transition
- * zoneValue: lower end of 180 to xx range within which Longitude must fall for retun value to be true
- **/
-export function inDLCrossingZone(coord: Coordinate, zoneValue = 170) {
-  return Math.abs(coord[0]) >= zoneValue ? true : false;
-}
-
-// update linestring coords for map display (including dateline crossing)
-export function mapifyCoords(
-  coords: Array<Coordinate>,
-  zoneValue?: number
-): Array<Coordinate> {
-  if (coords.length === 0) {
-    return coords;
+/**
+ * Unwrap longitudes for map display so consecutive points never jump more than
+ * half a world.
+ *
+ * A line stored in [-180, 180] is ambiguous at the antimeridian: successive
+ * points at 179 and -179 are 2 degrees apart on the water but 358 apart
+ * numerically, so the line renders the long way around the globe. Shifting each
+ * point by a multiple of 360 relative to its predecessor makes the sequence
+ * continuous and the rendered segment short.
+ *
+ * Each longitude only ever gains a multiple of 360, so vertex count, order and
+ * latitudes are preserved and the result maps 1:1 back onto the input — which is
+ * what lets an unwrapped geometry stay editable. The first point is normalised
+ * into [-180, 180] so the geometry starts in the primary world; OpenLayers
+ * replicates geometry into adjacent world copies out to +/-540 degrees, and
+ * anchoring the start keeps a line within that range.
+ *
+ * The input is left untouched — callers pass cached Signal K resource
+ * coordinates straight in.
+ */
+export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
+  // Spread rather than [c[0], c[1]] so an optional third ordinate survives.
+  const out: Array<Coordinate> = coords.map((c) => [...c] as Coordinate);
+  if (out.length === 0) {
+    return out;
   }
-  let dlCrossing = 0;
-  const last = coords[0];
-  for (let i = 0; i < coords.length; i++) {
-    if (
-      inDLCrossingZone(coords[i], zoneValue) ||
-      inDLCrossingZone(last, zoneValue)
-    ) {
-      dlCrossing =
-        last[0] > 0 && coords[i][0] < 0
-          ? 1
-          : last[0] < 0 && coords[i][0] > 0
-            ? -1
-            : 0;
-      if (dlCrossing === 1) {
-        coords[i][0] = coords[i][0] + 360;
-      }
-      if (dlCrossing === -1) {
-        coords[i][0] = Math.abs(coords[i][0]) - 360;
-      }
+  // Shift by whole turns in one step. Repeated -= 360 would spin for an
+  // impractical number of iterations on a wildly out-of-range longitude.
+  if (out[0][0] > 180) {
+    out[0][0] -= 360 * Math.ceil((out[0][0] - 180) / 360);
+  } else if (out[0][0] < -180) {
+    out[0][0] += 360 * Math.ceil((-180 - out[0][0]) / 360);
+  }
+  for (let i = 1; i < out.length; i++) {
+    const delta = out[i][0] - out[i - 1][0];
+    if (delta > 180) {
+      out[i][0] -= 360 * Math.ceil((delta - 180) / 360);
+    } else if (delta < -180) {
+      out[i][0] += 360 * Math.ceil((-180 - delta) / 360);
     }
   }
-  return coords;
+  return out;
 }
 
 // ** return adjusted radius to correctly render circle on ground at given position.
