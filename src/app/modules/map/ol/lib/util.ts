@@ -61,22 +61,24 @@ export function fromLonLatArray(
  * coordinates straight in.
  */
 export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
-  const out: Array<Coordinate> = coords.map((c) => [c[0], c[1]] as Coordinate);
+  // Spread rather than [c[0], c[1]] so an optional third ordinate survives.
+  const out: Array<Coordinate> = coords.map((c) => [...c] as Coordinate);
   if (out.length === 0) {
     return out;
   }
-  while (out[0][0] > 180) {
-    out[0][0] -= 360;
-  }
-  while (out[0][0] < -180) {
-    out[0][0] += 360;
+  // Shift by whole turns in one step. Repeated -= 360 would spin for an
+  // impractical number of iterations on a wildly out-of-range longitude.
+  if (out[0][0] > 180) {
+    out[0][0] -= 360 * Math.ceil((out[0][0] - 180) / 360);
+  } else if (out[0][0] < -180) {
+    out[0][0] += 360 * Math.ceil((-180 - out[0][0]) / 360);
   }
   for (let i = 1; i < out.length; i++) {
-    while (out[i][0] - out[i - 1][0] > 180) {
-      out[i][0] -= 360;
-    }
-    while (out[i - 1][0] - out[i][0] > 180) {
-      out[i][0] += 360;
+    const delta = out[i][0] - out[i - 1][0];
+    if (delta > 180) {
+      out[i][0] -= 360 * Math.ceil((delta - 180) / 360);
+    } else if (delta < -180) {
+      out[i][0] += 360 * Math.ceil((-180 - delta) / 360);
     }
   }
   return out;

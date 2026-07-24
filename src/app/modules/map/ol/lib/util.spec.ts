@@ -66,9 +66,9 @@ describe('mapifyCoords', () => {
   });
 
   it('unwraps relative to the preceding point, not the first point', () => {
-    // Regression: the previous implementation compared every point against
-    // coords[0], so a line approaching the antimeridian from far away was
-    // shifted a whole world backwards partway along.
+    // Each point is resolved against its immediate predecessor, so a line
+    // approaching the antimeridian from far away is carried across it rather
+    // than shifted a whole world backwards partway along.
     const coords: Array<Coordinate> = [
       [-50, 0],
       [0, 0],
@@ -100,8 +100,8 @@ describe('mapifyCoords', () => {
   });
 
   it('unwraps a crossing regardless of distance from the antimeridian', () => {
-    // Previously only points within 10 degrees of the antimeridian were
-    // considered, so a sparsely sampled track stepped straight over it.
+    // A crossing is unwrapped on the size of the step alone, so a sparsely
+    // sampled track is carried across however far its samples land from 180.
     expect(
       lons(
         mapifyCoords([
@@ -125,6 +125,25 @@ describe('mapifyCoords', () => {
     ).toEqual([-175, -170]);
   });
 
+  it('preserves an optional third ordinate', () => {
+    // A GeoJSON position may carry altitude; only longitude is ever adjusted.
+    const result = mapifyCoords([
+      [170, 10, 5],
+      [-170, 20, 7]
+    ]);
+    expect(result).toEqual([
+      [170, 10, 5],
+      [190, 20, 7]
+    ]);
+  });
+
+  it('shifts a far out-of-range longitude in a single step', () => {
+    // Whole turns are removed arithmetically, so an implausible longitude
+    // resolves immediately rather than by repeated 360 degree subtraction.
+    expect(lons(mapifyCoords([[1e6, 0]]))[0]).toBeGreaterThanOrEqual(-180);
+    expect(lons(mapifyCoords([[1e6, 0]]))[0]).toBeLessThanOrEqual(180);
+  });
+
   it('preserves vertex count, order and latitudes', () => {
     // Route editing maps the rendered coordinates 1:1 back onto waypoints, so
     // unwrapping must never add, drop or reorder a vertex.
@@ -140,9 +159,8 @@ describe('mapifyCoords', () => {
   });
 
   it('does not mutate the input coordinates', () => {
-    // Regression: the previous implementation wrote longitudes back through the
-    // caller's tuples, corrupting the cached Signal K resource coordinates that
-    // callers pass in directly.
+    // The caller retains ownership of its tuples: callers pass cached Signal K
+    // resource coordinates in directly, and those must survive rendering.
     const coords: Array<Coordinate> = [
       [170, 0],
       [-170, 0]
