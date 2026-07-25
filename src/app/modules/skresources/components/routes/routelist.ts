@@ -4,6 +4,7 @@ import {
   signal,
   computed,
   effect,
+  untracked,
   inject,
   output,
   input,
@@ -90,6 +91,27 @@ export class RouteListComponent extends ResourceListBase {
         this.initItems(true);
       }
     });
+    // Keep the "Show on Map" checkboxes in sync when a route is shown/hidden
+    // from outside the list (e.g. the map route popover's Hide action). Those
+    // change the displayed route cache without a server delta, so re-align each
+    // checkbox with cache membership — which is exactly "shown on map".
+    effect(() => {
+      const shown = new Set(this.skres.routes().map((r: FBRoute) => r[0]));
+      untracked(() => this.alignCheckedWithCache(shown));
+    });
+  }
+
+  /**
+   * @description Re-align each entry's checkbox with the displayed route cache.
+   * @param shown Identifiers of the routes currently shown on the map.
+   */
+  private alignCheckedWithCache(shown: Set<string>) {
+    this.fullList.forEach((item) => (item[2] = shown.has(item[0])));
+    this.filteredList.update((fl) => {
+      fl.forEach((item) => (item[2] = shown.has(item[0])));
+      return [...fl];
+    });
+    this.alignSelections();
   }
 
   ngOnInit() {
