@@ -2126,6 +2126,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ** hide a displayed feature (non-destructive; resource is untouched)
+  protected hideFeature(id: string, type: string) {
+    if (type === 'route') {
+      // Same effect as unchecking "Show on Map" in the Routes list — remove the
+      // route from the displayed set; it reappears when re-selected there.
+      this.skres.routeRemove([id]);
+    }
+  }
+
   // ** activate route / waypoint
   protected setActiveFeature() {
     if (this.overlay().type === 'waypoint') {

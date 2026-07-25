@@ -637,6 +637,7 @@
           (delete)="
             deleteFeature(overlay().id, overlay().type); popoverClosed()
           "
+          (hide)="hideFeature(overlay().id, overlay().type); popoverClosed()"
           (addNote)="
             skres.showNoteEditor({
               type: overlay().type,

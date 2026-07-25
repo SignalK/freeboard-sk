@@ -5,11 +5,11 @@ import { ResourcePopoverComponent } from './resource-popover.component';
 // rather than importing SKRoute, to avoid pulling a second deep module path
 // into the test graph (which perturbs barrel-import evaluation order and can
 // break the AppComponent bootstrap spec).
-const routeStub = () => ({
+const routeStub = (readOnly = false) => ({
   name: '',
   description: '',
   distance: 0,
-  feature: { properties: {} }
+  feature: { properties: { readOnly } }
 });
 
 /**
@@ -29,12 +29,12 @@ const appStub = {
   useInfoPanel: () => false
 };
 
-function popover(canSave: boolean) {
+function popover(canSave: boolean, readOnly = false) {
   const c = Object.create(
     ResourcePopoverComponent.prototype
   ) as ResourcePopoverComponent;
   Object.assign(c, {
-    resource: () => ['route-1', routeStub()],
+    resource: () => ['route-1', routeStub(readOnly)],
     type: () => 'route',
     active: () => undefined,
     featureCount: () => 2,
@@ -46,6 +46,7 @@ function popover(canSave: boolean) {
       showInfoButton: false,
       showModifyButton: false,
       showDeleteButton: false,
+      showHideButton: false,
       showAddNoteButton: false,
       showRelatedButton: false,
       showPointsButton: false,
@@ -60,7 +61,11 @@ function popover(canSave: boolean) {
   });
   (c as unknown as { computeControls: () => void }).computeControls();
   return c as unknown as {
-    ctrl: { showInfoButton: boolean; showSaveButton: boolean };
+    ctrl: {
+      showInfoButton: boolean;
+      showSaveButton: boolean;
+      showHideButton: boolean;
+    };
   };
 }
 
@@ -75,5 +80,34 @@ describe('ResourcePopoverComponent — route Info visibility (#533)', () => {
     const c = popover(true);
     expect(c.ctrl.showSaveButton).toBe(true);
     expect(c.ctrl.showInfoButton).toBe(false);
+  });
+});
+
+/**
+ * Hide action for the route popover (#551). Hide removes a route from the
+ * displayed set (a shortcut for the Routes-list "Show on Map" toggle) without
+ * deleting the resource. It is offered for a saved route but not for an unsaved
+ * draft — a draft isn't in the Routes list, so hiding it would leave no way to
+ * bring it back (Delete/discard is offered there instead).
+ */
+describe('ResourcePopoverComponent — route Hide visibility (#551)', () => {
+  it('offers HIDE for a saved route', () => {
+    const c = popover(false);
+    expect(c.ctrl.showHideButton).toBe(true);
+  });
+
+  it('does not offer HIDE for an unsaved route draft', () => {
+    const c = popover(true);
+    expect(c.ctrl.showSaveButton).toBe(true);
+    expect(c.ctrl.showHideButton).toBe(false);
+  });
+
+  it('offers HIDE for a read-only route (non-destructive display toggle)', () => {
+    const c = popover(false, true) as unknown as {
+      ctrl: { showHideButton: boolean; showDeleteButton: boolean };
+    };
+    // Read-only suppresses DELETE but not HIDE — hiding never touches the resource.
+    expect(c.ctrl.showDeleteButton).toBe(false);
+    expect(c.ctrl.showHideButton).toBe(true);
   });
 });

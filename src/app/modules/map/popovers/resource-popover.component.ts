@@ -25,6 +25,7 @@ interface PopoverCtrl {
   showInfoButton: boolean;
   showModifyButton: boolean;
   showDeleteButton: boolean;
+  showHideButton: boolean;
   showAddNoteButton: boolean;
   showRelatedButton: boolean;
   showPointsButton: boolean;
@@ -143,10 +144,27 @@ interface PopoverCtrl {
             </button>
           </div>
         }
-        @if (ctrl.showDeleteButton) {
+        @if (ctrl.showHideButton) {
           <div
             class="popover-action-button"
             [style.order]="type() === 'route' ? 6 : null"
+          >
+            <button
+              mat-button
+              [disabled]="ctrl.isActive"
+              (click)="emitHide()"
+              matTooltip="Hide from Chart"
+              matTooltipPosition="after"
+            >
+              <mat-icon>visibility_off</mat-icon>
+              HIDE
+            </button>
+          </div>
+        }
+        @if (ctrl.showDeleteButton) {
+          <div
+            class="popover-action-button"
+            [style.order]="type() === 'route' ? 7 : null"
           >
             <button
               mat-button
@@ -292,6 +310,7 @@ export class ResourcePopoverComponent {
   modify = output<void>();
   save = output<void>();
   delete = output<void>();
+  hide = output<void>();
   addNote = output<void>();
   activated = output<void>();
   deactivated = output<void>();
@@ -308,6 +327,7 @@ export class ResourcePopoverComponent {
     showInfoButton: false,
     showModifyButton: false,
     showDeleteButton: false,
+    showHideButton: false,
     showAddNoteButton: false,
     showRelatedButton: false,
     showPointsButton: false,
@@ -351,6 +371,9 @@ export class ResourcePopoverComponent {
       this.ctrl.showPointsButton = false;
       this.ctrl.showNotesButton = false;
       this.ctrl.showInfoButton = false;
+      // An unsaved draft isn't in the Routes list, so Hide would remove it with
+      // no way to bring it back — offer Delete (discard) instead.
+      this.ctrl.showHideButton = false;
     }
   }
 
@@ -380,6 +403,7 @@ export class ResourcePopoverComponent {
     this.ctrl.showInfoButton = false;
     this.ctrl.showModifyButton = false;
     this.ctrl.showDeleteButton = false;
+    this.ctrl.showHideButton = false;
     this.ctrl.showNotesButton = false;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showPointsButton = false;
@@ -413,6 +437,7 @@ export class ResourcePopoverComponent {
     this.ctrl.showDeleteButton = this.app.useInfoPanel()
       ? false
       : !this.ctrl.isReadOnly;
+    this.ctrl.showHideButton = false;
     this.ctrl.showNotesButton = this.app.useInfoPanel() ? false : true;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showPointsButton = false;
@@ -449,6 +474,10 @@ export class ResourcePopoverComponent {
     // Always offer Delete for routes (consistent lower-right action), even with
     // the info panel; the button itself is disabled when the route is active.
     this.ctrl.showDeleteButton = !this.ctrl.isReadOnly;
+    // Hide (remove from the displayed set) is a non-destructive shortcut for the
+    // Routes-list "Show on Map" toggle, so it is offered for every route —
+    // read-only included — and only disabled while the route is active.
+    this.ctrl.showHideButton = true;
 
     this.icon = getResourceIcon('routes', this.resource()[1]);
     this._title.set(this.resource()[1].name ?? '');
@@ -468,6 +497,7 @@ export class ResourcePopoverComponent {
     this.ctrl.showDeleteButton = this.app.useInfoPanel()
       ? false
       : !this.ctrl.isReadOnly;
+    this.ctrl.showHideButton = false;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showNotesButton = false;
     this.ctrl.showPointsButton = false;
@@ -498,6 +528,7 @@ export class ResourcePopoverComponent {
     this.ctrl.showDeleteButton = this.app.useInfoPanel()
       ? false
       : !this.ctrl.isReadOnly;
+    this.ctrl.showHideButton = false;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showNotesButton = this.app.useInfoPanel() ? false : true;
     this.ctrl.showPointsButton = false;
@@ -525,6 +556,10 @@ export class ResourcePopoverComponent {
 
   emitDelete() {
     this.delete.emit();
+  }
+
+  emitHide() {
+    this.hide.emit();
   }
 
   emitActive(activate: boolean) {
