@@ -98,6 +98,29 @@ live.)
   values omit it. Don't call `Convert` directly for display — `Convert` is the pure
   primitive for geometry and numeric math only. See
   [`docs/signalk/unit-preferences.md`](docs/signalk/unit-preferences.md).
+- **Map coordinates → keep render space and data space separate.** The map deals
+  with two coordinate spaces and must not confuse them:
+  - **Data space** — canonical WGS84 in `[-180, 180]`. Everything persisted to the
+    Signal K server, streamed, displayed, or read by another app. GeoJSON requires
+    it (RFC 7946 §3.1.9); a stored longitude of `197` is malformed and other
+    consumers may reject it. **Normalise at every data boundary** (`toLonLat`
+    already does this on the way in; the save path re-normalises on the way out).
+  - **Render space** — EPSG:3857 Mercator, world-copy-aware. OpenLayers pans
+    horizontally without limit and replicates geometry into every visible world
+    copy out to ±540° (see the *reading / exploring* lesson on the wrapping world),
+    so a click east/west of the primary world carries an x outside one world width.
+    This offset is what lets a popover or an edited vertex land in the copy the user
+    is actually looking at.
+  - **The rule.** When you convert a pointer event to a coordinate, place an
+    overlay, or hit-test/​edit a feature, carry the **world offset** in render space
+    and apply it in Mercator — never bake it into a lon/lat (that would leak an
+    out-of-range value toward storage). The shared machinery: `worldCopyOffset()`
+    (`ol/lib/util.ts`) computes the offset; map click events carry it as
+    `worldOffset`; `ol-overlay`'s `worldOffset` input places an overlay in that copy
+    while its `position` stays canonical; `Modify` edits shift the feature by a
+    whole-world offset (visually transparent under wrapX, normalised on save). Route
+    them through these rather than re-deriving with ad-hoc `toLonLat`/`fromLonLat`
+    or `±360` shifts — that fragmentation is exactly what #572 consolidated.
 - **Tests.** New behaviour needs tests where the test infrastructure supports it
   (`*.spec.ts`, run via `npm run test:ci`). Test behaviour, not implementation.
 

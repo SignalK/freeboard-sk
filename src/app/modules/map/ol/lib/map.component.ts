@@ -24,7 +24,8 @@ import { AsyncSubject } from 'rxjs';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
-import { Extent } from 'ol/extent';
+import { Extent, getWidth } from 'ol/extent';
+import { worldCopyOffset } from './util';
 
 export interface FBMapEvent extends MapEvent {
   lonlat: Coordinate;
@@ -43,10 +44,14 @@ export interface FBMapEvent extends MapEvent {
 export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
   features: Array<FeatureLike>;
   lonlat: Coordinate;
+  /** EPSG:3857-metre offset of the clicked world copy from the primary world. */
+  worldOffset: number;
 }
 
 export interface FBPointerEvent extends MapBrowserEvent<PointerEvent> {
   lonlat: Coordinate;
+  /** EPSG:3857-metre offset of the pointer's world copy from the primary world. */
+  worldOffset: number;
 }
 
 // used for wind vector scaling
@@ -90,7 +95,12 @@ export class MapComponent implements OnInit, OnDestroy {
   @Output() mapRightClick: EventEmitter<{
     features: FeatureLike[];
     lonlat: Coordinate;
-  }> = new EventEmitter<{ features: FeatureLike[]; lonlat: Coordinate }>();
+    worldOffset: number;
+  }> = new EventEmitter<{
+    features: FeatureLike[];
+    lonlat: Coordinate;
+    worldOffset: number;
+  }>();
   @Output() mapContextMenu: EventEmitter<FBPointerEvent> =
     new EventEmitter<FBPointerEvent>();
   @Output() mapSingleClick: EventEmitter<FBClickEvent> =
@@ -336,8 +346,12 @@ export class MapComponent implements OnInit, OnDestroy {
         .getArray()
         .some((i) => i instanceof Modify && i.getActive());
       this.touchTimer = setTimeout(this.touchHold, modifying ? 1500 : 500);
-      const c = toLonLat(this.map.getEventCoordinate(event));
-      const e = Object.assign(event, { lonlat: c });
+      const rawCoord = this.map.getEventCoordinate(event);
+      const c = toLonLat(rawCoord);
+      const e = Object.assign(event, {
+        lonlat: c,
+        worldOffset: this.worldOffsetOf(rawCoord)
+      });
       this.mapService.clearFeatureUrls();
       this.mapPointerDown.emit(e);
       this._pointerDown.update(() => e);
@@ -368,7 +382,8 @@ export class MapComponent implements OnInit, OnDestroy {
             hitTolerance: this.hitTolerance
           }
         ),
-        lonlat: toLonLat(c)
+        lonlat: toLonLat(c),
+        worldOffset: this.worldOffsetOf(c)
       });
     });
   };
@@ -381,13 +396,24 @@ export class MapComponent implements OnInit, OnDestroy {
     this.ngZone.run(() => this.mapDblClick.emit(this.augmentClickEvent(event)));
   };
 
-  // ** add {lonlat, features}fields to event
+  // Render-space offset (EPSG:3857 metres) of the world copy a click landed in,
+  // relative to the primary world. `toLonLat` normalises a click to [-180,180]
+  // and so discards which copy the user was looking at; consumers that place an
+  // overlay or hit-test a feature need this offset to work in that copy. It stays
+  // in Mercator and never becomes a lon/lat, so it cannot leak into stored data.
+  private worldOffsetOf(coordinate: Coordinate): number {
+    const worldWidth = getWidth(this.map.getView().getProjection().getExtent());
+    return worldCopyOffset(coordinate[0], worldWidth);
+  }
+
+  // ** add {lonlat, worldOffset, features} fields to event
   private augmentClickEvent(event: MapBrowserEvent<PointerEvent>) {
     return Object.assign(event, {
       features: this.map.getFeaturesAtPixel(event.pixel, {
         hitTolerance: this.hitTolerance
       }),
-      lonlat: toLonLat(event.coordinate)
+      lonlat: toLonLat(event.coordinate),
+      worldOffset: this.worldOffsetOf(event.coordinate)
     });
   }
 
@@ -428,9 +454,12 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapPointerMove.emit(this.augmentPointerEvent(event));
   };
 
-  // ** add {lonlat} field to event
+  // ** add {lonlat, worldOffset} fields to event
   private augmentPointerEvent(event: MapBrowserEvent<PointerEvent>) {
-    return Object.assign(event, { lonlat: toLonLat(event.coordinate) });
+    return Object.assign(event, {
+      lonlat: toLonLat(event.coordinate),
+      worldOffset: this.worldOffsetOf(event.coordinate)
+    });
   }
 
   private emitPostComposeEvent = (event: RenderEvent) =>

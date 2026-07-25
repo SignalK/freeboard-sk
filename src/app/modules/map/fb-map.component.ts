@@ -42,7 +42,7 @@ import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
-import { toLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
@@ -122,6 +122,7 @@ import { ScaleLine } from 'ol/control';
 import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
+import { worldCopyOffset } from './ol/lib/util';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
@@ -285,6 +286,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private saveTimer;
   private isDirty = false;
+  /**
+   * EPSG:3857-metre offset of the world copy the most recent click landed in.
+   * Passed to overlays so a popover is drawn in the copy the user clicked, not
+   * the primary world. Render-space only — never written to stored data (#572).
+   */
+  private clickWorldOffset = 0;
+  /**
+   * Raw EPSG:3857 x of the most recent click, world-copy-aware. Used to align an
+   * edited feature with the copy the user is looking at before Modify hit-tests
+   * it (a route's own coordinates may be unwrapped past ±180, so the click's
+   * world alone isn't enough — align by the feature's extent). See #572.
+   */
+  private clickMercX = 0;
 
   // Cursor position readout. A signal so the readout (and measure overlay)
   // refresh when pointer-move runs OUTSIDE the Angular zone (see MapComponent).
@@ -530,20 +544,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
           }
         }
       }
-      if (this.app.mapExtent()[0] < 180 && this.app.mapExtent()[2] > 180) {
-        // if dateline is in view adjust overlay position to stay with vessel
-
-        if (
-          this.overlay().position[0] < 0 &&
-          this.overlay().position[0] > -180
-        ) {
-          this.overlay.update((current) => {
-            return Object.assign({}, current, {
-              position: [current.position[0] + 360, current.position[1]]
-            });
-          });
-        }
-      }
+      // The popover follows the vessel in whichever world copy it was opened in:
+      // position stays canonical and the overlay's worldOffset (preserved across
+      // these updates) draws it in the right copy (#572).
     }
     this.drawVesselLines(this.app.data.vessels.self.positionReceived);
     this.rotateMap();
@@ -676,6 +679,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.update((current) => {
           return Object.assign({}, current, {
             position: c,
+            // Keep the live measure label in the pointer's world copy (#572).
+            worldOffset: e.worldOffset ?? 0,
             title: `${this.app.formatValueForDisplay(
               lm,
               'm'
@@ -692,6 +697,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.update((current) => {
           return Object.assign({}, current, {
             position: c,
+            // Keep the live measure label in the pointer's world copy (#572).
+            worldOffset: e.worldOffset ?? 0,
             title: `${this.app.formatValueForDisplay(
               lm,
               'm'
@@ -744,6 +751,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   protected onMapSingleClick(e) {
+    // Remember which world copy this click landed in so any popover it opens is
+    // drawn there, and the raw world-aware x so a route edit aligns with it (#572).
+    this.clickWorldOffset = e.worldOffset ?? 0;
+    this.clickMercX = fromLonLat(e.lonlat)[0] + this.clickWorldOffset;
     this.app.data.map.atClick = {
       features: e.features,
       lonlat: e.lonlat
@@ -774,7 +785,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Handle right click / touch hold */
-  protected onMapRightClick(e: { features: FeatureLike[]; lonlat: Position }) {
+  protected onMapRightClick(e: {
+    features: FeatureLike[];
+    lonlat: Position;
+    worldOffset?: number;
+  }) {
+    this.clickWorldOffset = e.worldOffset ?? 0;
+    this.clickMercX = fromLonLat(e.lonlat)[0] + this.clickWorldOffset;
     this.app.data.map.atClick = e;
     this.app.debug(`onRightClick()`, this.app.data.map.atClick);
     if (this.mapInteract.isMeasuring()) {
@@ -1020,6 +1037,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected modifyFeature(featureType?: string) {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
+    }
+    // Align the edit feature with the world copy the user is looking at, so OL
+    // Modify (which hit-tests raw geometry in view-space, ignoring wrapX) matches
+    // where they click. A route's own coordinates may be unwrapped past ±180, so
+    // the click's world alone is wrong — align by the feature's extent centre:
+    // the whole-world shift that puts the feature centre in the clicked world.
+    // It's a whole-world translation, so wrapX still draws the feature in the same
+    // place (visually transparent), no vertices are added, and the edited
+    // coordinates normalise back to [-180,180] on save (#572).
+    const editGeom = (
+      this.mapInteract.draw.features.getArray()[0] as Feature
+    )?.getGeometry();
+    if (editGeom) {
+      // EPSG:3857 world width in metres (the map's Mercator projection).
+      const worldWidth = 2 * 20037508.342789244;
+      const ext = editGeom.getExtent();
+      const centreX = (ext[0] + ext[2]) / 2;
+      const shift = worldCopyOffset(this.clickMercX - centreX, worldWidth);
+      if (shift) {
+        this.mapInteract.draw.features.forEach((f: Feature) =>
+          f.getGeometry()?.translate(shift, 0)
+        );
+      }
     }
     this.mapInteract.startModifying(this.overlay());
     if (this.overlay().type === 'route') {
@@ -1393,6 +1433,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       title: null,
       featureCount: this.mapInteract.draw.features?.getLength(),
       position: coord,
+      // Draw the popover in the world copy the opening click landed in. position
+      // stays canonical; this only shifts where it renders (#572).
+      worldOffset: this.clickWorldOffset,
       readOnly: false,
       isSelf: false
     };
