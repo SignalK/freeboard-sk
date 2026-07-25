@@ -80,4 +80,38 @@ describe('isChartInView', () => {
     expect(isChartInView([10, 40, 20], extent)).toBe(true);
     expect(isChartInView([], extent)).toBe(true);
   });
+
+  describe('antimeridian-crossing view', () => {
+    // View straddling the dateline reported by OpenLayers as maxLon > 180.
+    const eastWrapped = [170, 40, 190, 60];
+    // Equivalent view reported with minLon < -180.
+    const westWrapped = [-190, 40, -170, 60];
+
+    it('keeps a chart just west of the dateline (maxLon > 180 view)', () => {
+      expect(isChartInView([172, 42, 178, 58], eastWrapped)).toBe(true);
+    });
+
+    it('keeps a chart just east of the dateline (maxLon > 180 view)', () => {
+      expect(isChartInView([-178, 42, -172, 58], eastWrapped)).toBe(true);
+    });
+
+    it('keeps a chart east of the dateline (minLon < -180 view)', () => {
+      expect(isChartInView([-178, 42, -172, 58], westWrapped)).toBe(true);
+    });
+
+    it('drops a chart outside a dateline-crossing view', () => {
+      expect(isChartInView([100, 42, 120, 58], eastWrapped)).toBe(false);
+    });
+
+    it('drops a chart within the view longitude but outside its latitude', () => {
+      expect(isChartInView([172, 0, 178, 20], eastWrapped)).toBe(false);
+    });
+
+    it('keeps every chart when the view spans the whole globe', () => {
+      const worldView = [-200, 40, 200, 60];
+      expect(isChartInView([-178, 42, -172, 58], worldView)).toBe(true);
+      expect(isChartInView([0, 42, 10, 58], worldView)).toBe(true);
+      expect(isChartInView([172, 42, 178, 58], worldView)).toBe(true);
+    });
+  });
 });
