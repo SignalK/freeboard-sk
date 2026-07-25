@@ -58,9 +58,13 @@ describe('hitToleranceForPointer', () => {
     expect(hitToleranceForPointer('pen', 5, 15)).toBe(5);
   });
 
-  it('falls back to the mouse radius when pointer type is unknown', () => {
-    // e.g. a synthetic contextmenu MouseEvent has no pointerType.
+  it('falls back to the mouse radius for any non-touch pointer type', () => {
+    // A synthetic contextmenu MouseEvent has no pointerType, and the Pointer
+    // Events spec permits an empty string when the device can't be determined —
+    // everything that isn't 'touch' keeps the mouse radius.
     expect(hitToleranceForPointer(undefined, 5, 15)).toBe(5);
+    expect(hitToleranceForPointer('', 5, 15)).toBe(5);
+    expect(hitToleranceForPointer('unknown', 5, 15)).toBe(5);
   });
 });
 
