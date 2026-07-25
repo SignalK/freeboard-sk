@@ -1,5 +1,6 @@
 import {
   Component,
+  HostListener,
   ViewChild,
   computed,
   effect,
@@ -85,6 +86,7 @@ import {
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import { isUndoKeyEvent } from 'src/app/lib/undo-keys';
 
 import * as semver from 'semver';
 
@@ -1914,6 +1916,28 @@ export class AppComponent {
     } else {
       this.closeInteraction(true);
     }
+  }
+
+  /**
+   * "Undo" from the route draw/modify helper (button or Ctrl/Cmd-Z): step a
+   * draw back one point, or revert the last modify operation (#542).
+   */
+  protected handleInteractionUndo() {
+    this.fbMap.undoInteraction();
+  }
+
+  /**
+   * Ctrl-Z / Cmd-Z undoes the last route edit while drawing or modifying.
+   * Ignored when there is nothing to undo (`isUndoKeyEvent` already excludes
+   * text-editing targets, where the browser's own undo should win).
+   */
+  @HostListener('document:keydown', ['$event'])
+  protected onDocumentKeydown(e: KeyboardEvent) {
+    if (!isUndoKeyEvent(e) || !this.mapInteract.canUndo()) {
+      return;
+    }
+    e.preventDefault();
+    this.handleInteractionUndo();
   }
 
   /**

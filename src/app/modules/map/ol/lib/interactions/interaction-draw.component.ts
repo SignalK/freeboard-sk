@@ -82,6 +82,15 @@ export class InteractionDrawComponent {
     this.interaction?.finishDrawing();
   }
 
+  /**
+   * Remove the last point placed in the current sketch, letting an "Undo"
+   * button step a route draw back one point at a time. Successive calls peel
+   * off successive points; a no-op once the sketch is empty.
+   */
+  removeLastPoint() {
+    this.interaction?.removeLastPoint();
+  }
+
   // ** emit events
   private emitChangeEvent = (event: DrawEvent) => this.change.emit(event);
   private emitDrawStartEvent = (event: DrawEvent) => this.drawStart.emit(event);
