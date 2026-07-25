@@ -29,14 +29,14 @@ const appStub = {
   useInfoPanel: () => false
 };
 
-function popover(canSave: boolean, readOnly = false) {
+function popover(canSave: boolean, readOnly = false, active?: string) {
   const c = Object.create(
     ResourcePopoverComponent.prototype
   ) as ResourcePopoverComponent;
   Object.assign(c, {
     resource: () => ['route-1', routeStub(readOnly)],
     type: () => 'route',
-    active: () => undefined,
+    active: () => active,
     featureCount: () => 2,
     canSave: () => canSave,
     app: appStub,
@@ -65,6 +65,7 @@ function popover(canSave: boolean, readOnly = false) {
       showInfoButton: boolean;
       showSaveButton: boolean;
       showHideButton: boolean;
+      isActive: boolean;
     };
   };
 }
@@ -109,5 +110,13 @@ describe('ResourcePopoverComponent — route Hide visibility (#551)', () => {
     // Read-only suppresses DELETE but not HIDE — hiding never touches the resource.
     expect(c.ctrl.showDeleteButton).toBe(false);
     expect(c.ctrl.showHideButton).toBe(true);
+  });
+
+  it('keeps HIDE present but disabled while the route is active', () => {
+    const c = popover(false, false, 'route-1');
+    // HIDE stays visible; the template disables it via `[disabled]="ctrl.isActive"`
+    // so the route being navigated cannot be hidden out from under navigation.
+    expect(c.ctrl.showHideButton).toBe(true);
+    expect(c.ctrl.isActive).toBe(true);
   });
 });
