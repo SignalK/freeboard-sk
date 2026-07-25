@@ -72,6 +72,16 @@ export class InteractionDrawComponent {
     }
   }
 
+  /**
+   * Complete the current sketch, as a double-click does — dispatches `drawend`
+   * and adds the sketch to the layer, letting a "Finish" button end a route
+   * draw without the double-click gesture. Whether the sketch has enough points
+   * is enforced by the caller's Finish gating, not here.
+   */
+  finishDrawing() {
+    this.interaction?.finishDrawing();
+  }
+
   // ** emit events
   private emitChangeEvent = (event: DrawEvent) => this.change.emit(event);
   private emitDrawStartEvent = (event: DrawEvent) => this.drawStart.emit(event);

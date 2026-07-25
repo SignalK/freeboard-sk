@@ -75,6 +75,7 @@ export interface DrawFeatureInfo {
   forSave: any;
   properties: { [key: string]: any };
   style?: any; // feature draw style
+  name?: string; // display name of the feature being modified (helper title)
 }
 
 @Injectable({ providedIn: 'root' })
@@ -214,6 +215,7 @@ export class FBMapInteractService {
   startDrawing(resType: DrawFeatureType) {
     this.app.debug(`startDrawing()...`);
     this.isDrawing.set(true);
+    this.draw.name = undefined;
     this.draw.resourceType = resType;
     this.draw.featureType =
       resType === 'route'
@@ -262,6 +264,7 @@ export class FBMapInteractService {
       return;
     }
     this.isModifying.set(true);
+    this.draw.name = undefined;
     this.draw.resourceType = overlay.type as DrawFeatureType;
     this.draw.featureType = null;
     this.draw.forSave = { id: null, coords: null };

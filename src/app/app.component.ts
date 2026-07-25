@@ -181,6 +181,7 @@ interface DrawEndEvent {
 })
 export class AppComponent {
   @ViewChild('sideright', { static: false }) sideright;
+  @ViewChild('fbMap', { static: false }) fbMap: FBMapComponent;
 
   protected navDataPanel = signal<{
     show: boolean;
@@ -1902,8 +1903,25 @@ export class AppComponent {
     }
   }
 
-  /** End interaction mode */
-  protected closeInteraction() {
+  /**
+   * "Finish" from the route draw/modify helper. Drawing completes the sketch
+   * (which flows through onDrawEnd → handleDrawEnded); modifying saves the edit
+   * directly (no save-changes prompt — the ✕/Cancel path discards it instead).
+   */
+  protected handleInteractionFinish() {
+    if (this.mapInteract.isDrawing()) {
+      this.fbMap.finishDrawing();
+    } else {
+      this.closeInteraction(true);
+    }
+  }
+
+  /**
+   * End interaction mode. `routeModifySave` decides a pending route edit: the
+   * helper's Finish passes `true` (save), its ✕/Cancel passes `false` (discard);
+   * non-route modifies still confirm before saving.
+   */
+  protected closeInteraction(routeModifySave = false) {
     // No feature is being edited once an interaction ends — clear the marker
     // (it is set on every modify drag and otherwise never reset), so dependent
     // UI such as the route-list visibility checkboxes re-enables.
@@ -1929,113 +1947,113 @@ export class AppComponent {
           return;
         }
 
-        // save changes. Editing an unsaved live buffer just applies the change
-        // to the draft (it is not persisted here — that is an explicit Save),
-        // so word the prompt to match rather than implying a named save.
         const fsParts = this.mapInteract.draw.forSave.id.split('.');
-        // A draft edit (unsaved live buffer) just stages the change; a saved
-        // route — or a saved buffer — persists on confirm, so word to match.
-        const draftBuf =
-          fsParts[0] === 'route'
-            ? this.routeBuffers.get(fsParts[1])
-            : undefined;
-        const isDraftEdit = !!draftBuf && !draftBuf.saved;
+        if (fsParts[0] === 'route') {
+          // The route helper commits directly (issue #545): Finish saves,
+          // ✕/Cancel discards — no save-changes prompt.
+          this.applyModifyResult(routeModifySave);
+          return;
+        }
+
+        // Other resource types still confirm before saving a modify.
         this.app
           .showConfirm(
-            isDraftEdit
-              ? 'Keep the changes to this unsaved route?'
-              : `Do you want to save the changes made to ${fsParts[0]}?`,
-            isDraftEdit ? 'Keep Changes' : 'Save Changes'
+            `Do you want to save the changes made to ${fsParts[0]}?`,
+            'Save Changes'
           )
-          .subscribe((result) => {
-            const r = this.mapInteract.draw.forSave.id.split('.');
-            if (result) {
-              // save changes
-              if (r[0] === 'route') {
-                const buf = this.routeBuffers.get(r[1]);
-                if (buf && !buf.saved) {
-                  // Unsaved draft: stage the modified geometry to the buffer
-                  // (emits route.dirty). Persisted only via an explicit Save.
-                  // Carry the per-point name/description so the metadata is not
-                  // dropped on a later Save.
-                  const meta = this.mapInteract.draw.forSave.coordsMetadata as
-                    Array<{ name?: string; description?: string }> | undefined;
-                  this.routeBuffers.replace(
-                    r[1],
-                    this.mapInteract.draw.forSave.coords.map((position, i) => ({
-                      position,
-                      ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
-                      ...(meta?.[i]?.description
-                        ? { description: meta[i].description }
-                        : {})
-                    }))
-                  );
-                } else {
-                  // Saved route (plain resource or a saved buffer): persist the
-                  // edit, mirrored through the registry so extensions observe it
-                  // (route.visible/dirty → route.saved).
-                  this.plotterExt.saveNativeRouteEdit(
-                    r[1],
-                    this.mapInteract.draw.forSave.coords,
-                    this.mapInteract.draw.forSave.coordsMetadata
-                  );
-                }
-              }
-              if (r[0] === 'waypoint') {
-                this.skres.updateWaypointPosition(
-                  r[1],
-                  this.mapInteract.draw.forSave.coords
-                );
-                // if waypoint the target destination update nextPoint
-                if (r[1] === this.app.data.activeWaypoint) {
-                  this.course.setDestination({
-                    latitude: this.mapInteract.draw.forSave.coords[1],
-                    longitude: this.mapInteract.draw.forSave.coords[0]
-                  });
-                }
-              }
-              if (r[0] === 'note') {
-                this.skres.updateNotePosition(
-                  r[1],
-                  this.mapInteract.draw.forSave.coords
-                );
-              }
-              if (r[0] === 'region') {
-                this.skres.updateRegionCoords(
-                  r[1],
-                  this.mapInteract.draw.forSave.coords
-                );
-              }
-            } else {
-              // do not save
-              if (r[0] === 'route') {
-                const buf = this.routeBuffers.get(r[1]);
-                if (buf && (!buf.saved || buf.dirty)) {
-                  // Restore the draft (or dirty saved buffer): the Modify
-                  // interaction moved the map feature, but the buffer itself
-                  // was never changed.
-                  this.routeBuffers.refresh();
-                } else {
-                  // Clean saved route — re-render from the resource to revert
-                  // the unsaved geometry move.
-                  this.skres.refreshRoutes();
-                }
-              }
-              if (r[0] === 'waypoint') {
-                this.skres.refreshWaypoints();
-              }
-              if (r[0] === 'note') {
-                this.skres.refreshNotes();
-              }
-              if (r[0] === 'region') {
-                this.skres.refreshRegions();
-              }
-            }
-            this.mapInteract.draw.forSave = null;
-            this.focusMap();
-          });
+          .subscribe((result) => this.applyModifyResult(result));
       }
     }
+  }
+
+  /**
+   * Apply (`save`) or revert the pending modify edit described by
+   * `draw.forSave`, then clear it. Shared by the route helper's direct
+   * Finish/Cancel and the confirm prompt used for other resource types.
+   */
+  private applyModifyResult(save: boolean) {
+    const r = this.mapInteract.draw.forSave.id.split('.');
+    if (save) {
+      if (r[0] === 'route') {
+        const buf = this.routeBuffers.get(r[1]);
+        if (buf && !buf.saved) {
+          // Unsaved draft: stage the modified geometry to the buffer (emits
+          // route.dirty). Persisted only via an explicit Save. Carry the
+          // per-point name/description so metadata is not dropped on a later
+          // Save.
+          const meta = this.mapInteract.draw.forSave.coordsMetadata as
+            Array<{ name?: string; description?: string }> | undefined;
+          this.routeBuffers.replace(
+            r[1],
+            this.mapInteract.draw.forSave.coords.map((position, i) => ({
+              position,
+              ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
+              ...(meta?.[i]?.description
+                ? { description: meta[i].description }
+                : {})
+            }))
+          );
+        } else {
+          // Saved route (plain resource or a saved buffer): persist the edit,
+          // mirrored through the registry so extensions observe it
+          // (route.visible/dirty → route.saved).
+          this.plotterExt.saveNativeRouteEdit(
+            r[1],
+            this.mapInteract.draw.forSave.coords,
+            this.mapInteract.draw.forSave.coordsMetadata
+          );
+        }
+      }
+      if (r[0] === 'waypoint') {
+        this.skres.updateWaypointPosition(
+          r[1],
+          this.mapInteract.draw.forSave.coords
+        );
+        // if waypoint the target destination update nextPoint
+        if (r[1] === this.app.data.activeWaypoint) {
+          this.course.setDestination({
+            latitude: this.mapInteract.draw.forSave.coords[1],
+            longitude: this.mapInteract.draw.forSave.coords[0]
+          });
+        }
+      }
+      if (r[0] === 'note') {
+        this.skres.updateNotePosition(
+          r[1],
+          this.mapInteract.draw.forSave.coords
+        );
+      }
+      if (r[0] === 'region') {
+        this.skres.updateRegionCoords(
+          r[1],
+          this.mapInteract.draw.forSave.coords
+        );
+      }
+    } else {
+      if (r[0] === 'route') {
+        const buf = this.routeBuffers.get(r[1]);
+        if (buf && (!buf.saved || buf.dirty)) {
+          // Restore the draft (or dirty saved buffer): the Modify interaction
+          // moved the map feature, but the buffer itself was never changed.
+          this.routeBuffers.refresh();
+        } else {
+          // Clean saved route — re-render from the resource to revert the
+          // unsaved geometry move.
+          this.skres.refreshRoutes();
+        }
+      }
+      if (r[0] === 'waypoint') {
+        this.skres.refreshWaypoints();
+      }
+      if (r[0] === 'note') {
+        this.skres.refreshNotes();
+      }
+      if (r[0] === 'region') {
+        this.skres.refreshRegions();
+      }
+    }
+    this.mapInteract.draw.forSave = null;
+    this.focusMap();
   }
 
   // ******** SIGNAL K STREAM *************

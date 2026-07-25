@@ -120,6 +120,16 @@
     flex:1 1 45%;
 }
 
+.popover.docked {
+    position: static;
+    transform: none;
+    margin: 0;
+}
+
+.popover.docked > .arrow {
+    display: none;
+}
+
 .popover.compact {
     min-width: 0;
     max-width: 170px;

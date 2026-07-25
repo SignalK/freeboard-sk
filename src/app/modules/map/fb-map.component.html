@@ -48,6 +48,7 @@
   }
   @if (mapInteract.isDrawing()) {
     <ol-draw
+      #routeDraw
       [type]="mapInteract.draw.featureType"
       [stopClick]="mapInteract.draw.resourceType === 'route' ? false : true"
       [style]="mapInteract.draw.style"

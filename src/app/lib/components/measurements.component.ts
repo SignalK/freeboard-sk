@@ -22,48 +22,68 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   selector: 'fb-measurements',
   imports: [MatIconModule, MatButtonModule, MatTooltip, MatToolbarModule],
   template: `
-    <div class="_ap_measurements">
-      <mat-toolbar>
-        <div class="_ap_row">
-          <div class="_ap_row">
-            <div class="icon-label">
-              <mat-icon>straighten</mat-icon>
+    @if (card()) {
+      <div class="_ap_measurements_card">
+        <div class="_ap_prop">
+          <div class="_ap_prop_key">Distance:</div>
+          <div class="_ap_prop_val">{{ totalDistance }}</div>
+        </div>
+        @if (!totalOnly()) {
+          <div class="_ap_prop">
+            <div class="_ap_prop_key">Leg:</div>
+            <div class="_ap_prop_val">
+              {{ coords().length < 2 ? '--' : legDistance }}
+              @if (coords().length >= 2 && legBearing !== '--') {
+                · {{ legBearing }}
+              }
             </div>
-            <div class="value">{{ totalDistance }}<br /></div>
           </div>
-          @if (!totalOnly()) {
+        }
+      </div>
+    } @else {
+      <div class="_ap_measurements">
+        <mat-toolbar>
+          <div class="_ap_row">
             <div class="_ap_row">
+              <div class="icon-label">
+                <mat-icon>straighten</mat-icon>
+              </div>
+              <div class="value">{{ totalDistance }}<br /></div>
+            </div>
+            @if (!totalOnly()) {
               <div class="_ap_row">
-                <div style="font-size: 12pt;">
-                  <mat-icon>square_foot</mat-icon><br />
-                  {{
-                    this.coords().length < 2
-                      ? '-'
-                      : this._index() === -1
-                        ? this.coords().length - 1
-                        : this._index() + 1
-                  }}
-                </div>
-                <div class="value">
-                  {{ legDistance }}<br />
-                  {{ legBearing }}
+                <div class="_ap_row">
+                  <div style="font-size: 12pt;">
+                    <mat-icon>square_foot</mat-icon><br />
+                    {{
+                      this.coords().length < 2
+                        ? '-'
+                        : this._index() === -1
+                          ? this.coords().length - 1
+                          : this._index() + 1
+                    }}
+                  </div>
+                  <div class="value">
+                    {{ legDistance }}<br />
+                    {{ legBearing }}
+                  </div>
                 </div>
               </div>
+            }
+            <div>
+              <button
+                matTooltip="Cancel"
+                matTooltipPosition="below"
+                mat-icon-button
+                (click)="close()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
             </div>
-          }
-          <div>
-            <button
-              matTooltip="Cancel"
-              matTooltipPosition="below"
-              mat-icon-button
-              (click)="close()"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
           </div>
-        </div>
-      </mat-toolbar>
-    </div>
+        </mat-toolbar>
+      </div>
+    }
   `,
   styles: [
     `
@@ -71,6 +91,19 @@ import { MatToolbarModule } from '@angular/material/toolbar';
         position: relative;
         top: 0;
         min-width: 200px;
+      }
+
+      ._ap_prop {
+        display: flex;
+        margin: 2px 0;
+      }
+      ._ap_prop_key {
+        font-weight: bold;
+      }
+      ._ap_prop_val {
+        flex: 1 1 auto;
+        text-align: right;
+        white-space: nowrap;
       }
 
       ._ap_row {
@@ -103,6 +136,9 @@ export class Measurements {
   index = input<number>(-1);
   _index = linkedSignal(() => this.index());
   totalOnly = input<boolean>(false);
+  /** Render as plain property rows (for embedding in a popover card) rather
+   *  than the standalone measuring toolbar. */
+  card = input<boolean>(false);
   cancel = output<void>();
 
   protected totalDistance: string;
