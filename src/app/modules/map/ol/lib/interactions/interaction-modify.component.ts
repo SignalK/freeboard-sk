@@ -12,6 +12,37 @@ import { Modify } from 'ol/interaction';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { MapComponent } from '../map.component';
 
+/**
+ * Decides whether a map event should delete the grabbed route vertex.
+ *
+ * Two delete gestures are supported, matching the on-screen instructions
+ * ("Ctrl-Click or Tap-hold to remove point from a line"):
+ * - **Ctrl-Click** (mouse) — a primary-button click, so OpenLayers re-snaps the
+ *   grabbed vertex to the point under the cursor before this runs.
+ * - **Tap-hold** (touch/pen) — map.component flags `vertexDeleteOnRelease`, which
+ *   we consume on the following release. OL 10 emits no `contextmenu` for touch,
+ *   so this is the only touch delete path.
+ *
+ * A mouse right-click (`contextmenu`) is deliberately **not** a delete gesture: it
+ * never re-snaps the grabbed vertex (its pointerdown is not a primary action), so
+ * it would delete whatever vertex was last touched rather than the one clicked
+ * (#575); and Freeboard already uses right-click for the map context menu.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const vertexDeleteCondition = (e: MapBrowserEvent<any>): boolean => {
+  if (
+    (e.type === 'pointerup' ||
+      e.type === 'singleclick' ||
+      e.type === 'click') &&
+    e.map.get('vertexDeleteOnRelease')
+  ) {
+    e.map.set('vertexDeleteOnRelease', false);
+    return true;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return e.type === 'click' && (e.originalEvent as any).ctrlKey;
+};
+
 @Component({
   selector: 'ol-map > ol-modify',
   template: '<ng-content></ng-content>',
@@ -52,26 +83,7 @@ export class InteractionModifyComponent {
     if (undefined !== this.map) {
       this.interaction = new Modify({
         features: this.features,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        deleteCondition: (e: MapBrowserEvent<any>) => {
-          // A long-press (touch or mouse) flagged a delete-on-release in
-          // map.component; consume it on the click/release. OL 10 emits no
-          // contextmenu event for touch, so this is the only delete path there.
-          if (
-            (e.type === 'pointerup' ||
-              e.type === 'singleclick' ||
-              e.type === 'click') &&
-            e.map.get('vertexDeleteOnRelease')
-          ) {
-            e.map.set('vertexDeleteOnRelease', false);
-            return true;
-          }
-          return (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (e.type === 'click' && (e.originalEvent as any).ctrlKey) ||
-            e.type === 'contextmenu'
-          );
-        }
+        deleteCondition: vertexDeleteCondition
       });
       this.interaction.on('change', this.emitChangeEvent);
       this.interaction.on('modifystart', this.emitModifyStartEvent);
