@@ -2131,7 +2131,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (type === 'route') {
       // Same effect as unchecking "Show on Map" in the Routes list — remove the
       // route from the displayed set; it reappears when re-selected there.
-      this.skres.routeRemove([id]);
+      this.skres.routeHide(id);
     }
   }
 

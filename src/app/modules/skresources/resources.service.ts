@@ -1306,6 +1306,25 @@ export class SKResourceService {
   }
 
   /**
+   * @description Hide a single route from the displayed set without deleting it.
+   * The persistent equivalent of unchecking "Show on Map" in the Route list: it
+   * updates the selection so the hide survives a route-cache refresh, then drops
+   * the route from the live cache. While the collection is unfiltered ("show
+   * all"), selectionRemove is a no-op, so the currently-shown routes are first
+   * materialised into an explicit selection — otherwise the route would reappear
+   * on the next refresh and the Route list checkbox would stay ticked.
+   * @param id Route identifier
+   */
+  public routeHide(id: string) {
+    if (!this.selectionIsFiltered('routes')) {
+      const shown = this.routeCacheSignal().map((r: FBRoute) => r[0]);
+      this.selectionClear('routes');
+      this.selectionAdd('routes', shown);
+    }
+    this.routeRemove([id]);
+  }
+
+  /**
    * @description Return a FBRoute object using the supplied coordinates.
    * @params coordinates - Route points
    */
