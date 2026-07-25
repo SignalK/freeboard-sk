@@ -26,6 +26,7 @@ import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
 import { worldCopyOffset } from './util';
+import { tryDeleteHeldVertexOnHold } from './vertex-delete';
 
 export interface FBMapEvent extends MapEvent {
   lonlat: Coordinate;
@@ -287,42 +288,9 @@ export class MapComponent implements OnInit, OnDestroy {
       return;
     }
     const src = Object.values(this.evCache)[0];
-    // Tap-hold to remove a route vertex (touch/tablet parity with Ctrl-Click;
-    // OL 10 emits no contextmenu for touch). Flag a delete-on-release as the
-    // reliable fallback, then try to remove the grabbed vertex immediately
-    // (mid-hold, the way touch plotters work). removePoint() refuses if the last
-    // event was a drag, so replay a pointermove at the press point to clear that
-    // state first.
-    const modify = this.map
-      .getInteractions()
-      .getArray()
-      .find((i) => i instanceof Modify && i.getActive()) as Modify | undefined;
-    if (modify) {
-      // Touch/pen only — a mouse user deletes a vertex with Ctrl-Click, so a
-      // long mouse hold (e.g. pausing to decide where to drag a point) must not
-      // delete it.
-      const pointerType = (src as PointerEvent).pointerType;
-      if (pointerType !== 'touch' && pointerType !== 'pen') {
-        return;
-      }
-      this.map.set('vertexDeleteOnRelease', true);
-      try {
-        this.map.getViewport().dispatchEvent(
-          new PointerEvent('pointermove', {
-            clientX: src.clientX,
-            clientY: src.clientY,
-            bubbles: true,
-            cancelable: true,
-            pointerId: (src as PointerEvent).pointerId ?? 1,
-            pointerType: (src as PointerEvent).pointerType ?? 'touch'
-          })
-        );
-        if (modify.removePoint()) {
-          this.map.set('vertexDeleteOnRelease', false);
-        }
-      } catch {
-        // Fall back to delete-on-release via the deleteCondition flag.
-      }
+    // During route editing a long hold removes the grabbed vertex; otherwise it
+    // opens the chart context menu.
+    if (tryDeleteHeldVertexOnHold(this.map, src)) {
       return;
     }
     this.mapContextMenu.emit(src as any);

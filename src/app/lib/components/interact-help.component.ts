@@ -192,7 +192,7 @@ export class InteractionHelpComponent {
             this.mapInteract.draw.forSave.id !== 'anchor'
               ? [
                   'Click and drag to move point.',
-                  'Ctrl-Click or Tap-hold to remove point from a line.'
+                  'Ctrl-Click or press-and-hold to remove point from a line.'
                 ]
               : []
         };
