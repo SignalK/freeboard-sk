@@ -1,6 +1,6 @@
 /** Map interactions Service
  * ************************************/
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { Feature } from 'ol';
 import { Coordinate } from 'ol/coordinate';
 import { toLonLat } from 'ol/proj';
@@ -78,6 +78,17 @@ export interface DrawFeatureInfo {
   name?: string; // display name of the feature being modified (helper title)
 }
 
+/**
+ * A pre-operation snapshot of a route being modified, used to undo the last
+ * vertex operation (move / add / delete) within the current Modify session.
+ * Coordinates are in render space (EPSG:3857) — the raw feature geometry — so
+ * restoring is a straight `setCoordinates`, world-copy offset and all.
+ */
+export interface ModifyUndoSnapshot {
+  coordinates: Position[];
+  coordsMetadata?: Array<{ name?: string; description?: string }>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FBMapInteractService {
   // signals
@@ -110,9 +121,52 @@ export class FBMapInteractService {
     properties: {}
   };
 
+  /**
+   * Undo history for the current route Modify session: pre-operation geometry
+   * snapshots, most-recent last. Session-scoped — reset when a draw or modify
+   * starts or ends. Route draw uses OpenLayers' own sketch history
+   * (`removeLastPoint`) instead, so it is not stacked here.
+   */
+  private modifyUndoStack: ModifyUndoSnapshot[] = [];
+  private readonly undoDepth = signal<number>(0);
+
+  /**
+   * Whether an Undo is available in the current interaction: during a route
+   * draw once at least one point is placed (OL sketch history), during a modify
+   * once at least one vertex operation has been made.
+   */
+  readonly canUndo = computed<boolean>(() => {
+    if (this.isDrawing()) {
+      return this.measurement().coords.length >= 1;
+    }
+    if (this.isModifying()) {
+      return this.undoDepth() > 0;
+    }
+    return false;
+  });
+
   private app = inject(AppFacade);
 
   constructor() {}
+
+  /** Push a pre-operation snapshot onto the modify undo stack. */
+  pushModifyUndo(snapshot: ModifyUndoSnapshot) {
+    this.modifyUndoStack.push(snapshot);
+    this.undoDepth.set(this.modifyUndoStack.length);
+  }
+
+  /** Pop the most recent modify snapshot, or undefined when the stack is empty. */
+  popModifyUndo(): ModifyUndoSnapshot | undefined {
+    const snap = this.modifyUndoStack.pop();
+    this.undoDepth.set(this.modifyUndoStack.length);
+    return snap;
+  }
+
+  /** Discard all undo history (called when an interaction starts or ends). */
+  private clearUndo() {
+    this.modifyUndoStack = [];
+    this.undoDepth.set(0);
+  }
 
   /** add start coordinate to box select */
   initBoxCoord(coord: Position) {
@@ -329,6 +383,7 @@ export class FBMapInteractService {
   /** Common interaction start tasks */
   private interactionStarted() {
     this.app.debug(`interactionStarted()...`);
+    this.clearUndo();
     this.measurement.set({
       coords: [],
       index: -1,
@@ -343,6 +398,7 @@ export class FBMapInteractService {
   /** Interaction cleanup tasks */
   private interactionEnded() {
     this.app.debug(`interactionEnded()...`);
+    this.clearUndo();
     this.app.uiCtrl.update((current) => {
       return Object.assign({}, current, { suppressContextMenu: false });
     });

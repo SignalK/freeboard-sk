@@ -57,6 +57,18 @@ import { PopoverComponent } from 'src/app/modules/map/popovers/popover.component
             <div class="_ap_action_button">
               <button
                 mat-button
+                [disabled]="!mapInteract.canUndo()"
+                (click)="undoLast()"
+                matTooltip="Undo last change (Ctrl/Cmd-Z)"
+                matTooltipPosition="after"
+              >
+                <mat-icon>undo</mat-icon>
+                UNDO
+              </button>
+            </div>
+            <div class="_ap_action_button">
+              <button
+                mat-button
                 color="primary"
                 [disabled]="!canFinish()"
                 (click)="finishEditing()"
@@ -210,6 +222,7 @@ import { PopoverComponent } from 'src/app/modules/map/popovers/popover.component
 export class InteractionHelpComponent {
   finish = output<void>();
   cancel = output<void>();
+  undo = output<void>();
 
   protected showHelpPanel: Signal<boolean>;
   protected showMeasurePanel: Signal<boolean>;
@@ -353,5 +366,10 @@ export class InteractionHelpComponent {
   /** Finish — complete & keep (drawing finishes the sketch; modify exits). */
   finishEditing() {
     this.finish.emit();
+  }
+
+  /** Undo — step the draw back a point or revert the last modify operation. */
+  undoLast() {
+    this.undo.emit();
   }
 }

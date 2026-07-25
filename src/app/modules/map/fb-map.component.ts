@@ -979,6 +979,62 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.routeDraw?.finishDrawing();
   }
 
+  /**
+   * Undo the last action in the active route interaction (#542): while drawing,
+   * remove the last placed point (repeatable back to the first); while
+   * modifying, revert the last vertex operation from the session undo stack.
+   */
+  undoInteraction() {
+    if (this.mapInteract.isDrawing()) {
+      this.undoDrawPoint();
+    } else if (this.mapInteract.isModifying()) {
+      this.undoModify();
+    }
+  }
+
+  /** Remove the last point placed in the current route draw sketch. */
+  private undoDrawPoint() {
+    this.routeDraw?.removeLastPoint();
+    // Keep the distance read-out in step: the sketch just lost its last placed
+    // point (the floating cursor point is excluded from measurement coords).
+    const coords = this.mapInteract.measurement().coords;
+    this.mapInteract.measurementCoords = coords.slice(
+      0,
+      Math.max(0, coords.length - 1)
+    );
+  }
+
+  /** Revert the last vertex operation of the current route Modify session. */
+  private undoModify() {
+    const snap = this.mapInteract.popModifyUndo();
+    if (!snap) {
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const f: any = this.mapInteract.draw.features?.getArray()[0];
+    if (!f) {
+      return;
+    }
+    // setCoordinates fires the feature's 'change' event; the active OL Modify
+    // interaction listens for it (handleFeatureChange_) and rebuilds its
+    // segment/vertex index whenever the geometry changes outside its own drag
+    // (changingFeature_ is false here), so the next drag targets the restored
+    // vertices — no manual re-sync of the interaction is needed.
+    f.getGeometry().setCoordinates(snap.coordinates);
+    // Restore per-point metadata on the feature too: updateCoordsMeta mutates
+    // pointMetadata in place, and the next modifystart re-reads it from the
+    // feature — so without this a later edit would splice a stale, wrong-length
+    // metadata array.
+    f.set('pointMetadata', snap.coordsMetadata ?? null);
+    // Re-baseline session state to the restored geometry so the next op (and a
+    // subsequent Finish/Cancel) sees the reverted route.
+    this.mapInteract.draw.coordinates = snap.coordinates;
+    this.mapInteract.draw.forSave.coordsMetadata = snap.coordsMetadata;
+    const pc = this.transformCoordsArray(snap.coordinates) as LineString;
+    this.mapInteract.draw.forSave['coords'] = pc;
+    this.mapInteract.measurementCoords = pc;
+  }
+
   /** Handle OL interaction end event */
   protected onDrawEnd(e: { feature: Feature }) {
     // OL dispatches drawend synchronously from the map's viewport pointer
@@ -1128,6 +1184,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const f: any = e.features.getArray()[0];
     const fid = f.getId();
     const c = f.getGeometry().getCoordinates();
+    // Snapshot the pre-operation route geometry so this vertex op (move / add /
+    // delete) can be undone within the current Modify session (#542).
+    // draw.coordinates holds the geometry as it was at modifystart;
+    // coordsMetadata is mutated in place by updateCoordsMeta below, so clone it
+    // now.
+    if (fid.split('.')[0] === 'route') {
+      const meta = this.mapInteract.draw.forSave.coordsMetadata as
+        Array<{ name?: string; description?: string }> | undefined;
+      this.mapInteract.pushModifyUndo({
+        coordinates: (this.mapInteract.draw.coordinates as Position[]).map(
+          (co) => [...co] as Position
+        ),
+        coordsMetadata: meta ? meta.map((m) => ({ ...m })) : undefined
+      });
+    }
     if (f.getGeometry().getType() === 'LineString') {
       this.updateCoordsMeta(
         this.mapInteract.draw.coordinates,

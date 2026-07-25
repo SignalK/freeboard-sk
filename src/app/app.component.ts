@@ -1,5 +1,6 @@
 import {
   Component,
+  HostListener,
   ViewChild,
   computed,
   effect,
@@ -1914,6 +1915,39 @@ export class AppComponent {
     } else {
       this.closeInteraction(true);
     }
+  }
+
+  /**
+   * "Undo" from the route draw/modify helper (button or Ctrl/Cmd-Z): step a
+   * draw back one point, or revert the last modify operation (#542).
+   */
+  protected handleInteractionUndo() {
+    this.fbMap.undoInteraction();
+  }
+
+  /**
+   * Ctrl-Z / Cmd-Z undoes the last route edit while drawing or modifying.
+   * Ignored when the undo would be ambiguous — a text field has focus (native
+   * text undo) or nothing is undoable.
+   */
+  @HostListener('document:keydown', ['$event'])
+  protected onDocumentKeydown(e: KeyboardEvent) {
+    const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z';
+    if (!isUndo || !this.mapInteract.canUndo()) {
+      return;
+    }
+    const el = e.target as HTMLElement | null;
+    const tag = el?.tagName;
+    if (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      el?.isContentEditable
+    ) {
+      return;
+    }
+    e.preventDefault();
+    this.handleInteractionUndo();
   }
 
   /**
