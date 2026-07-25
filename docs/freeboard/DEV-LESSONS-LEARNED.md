@@ -136,6 +136,47 @@ system appearance and much of FSK's audience runs it on an iPad or iPhone, so th
 path is exercised by real users constantly — verify any new panel or dialog in
 **both** the light theme and OS dark mode before calling it done.
 
+### Placing overlays / editing features in a non-primary world copy
+
+**The trap.** OpenLayers pans horizontally without limit and renders every world
+copy (wrapX), but the *interaction* code doesn't automatically follow. Two ways it
+bites:
+
+- **Popover placement.** `toLonLat()` normalises a click to `[-180, 180]`, throwing
+  away *which* copy the user was looking at; `fromLonLat()` then rebuilds the
+  overlay in the primary world, a world-width away from the feature clicked. (The
+  same is true for a vessel/measure overlay that keeps updating.)
+- **Vertex editing.** OL `Modify` hit-tests the feature's **raw geometry in
+  view-space** and ignores world copies — its `wrapX` option only wraps the *sketch
+  overlay*, not the segment rBush (`node_modules/ol/interaction/Modify.js` never
+  reads `wrapX_`). So a vertex clicked in another copy matches nothing.
+
+The seductive-but-wrong fix for editing is to shift the feature by the *clicked
+world's* offset, `round(clickX / worldWidth)`. It fails for routes, because a route
+that crosses the antimeridian is stored **unwrapped** (vertices past ±180). Clicking
+its east end — rendered just past +180 — rounds to "world +1" and jumps the whole
+route a world off-screen, so only half of it stays editable. This is the exact bug
+that shipped in the first cut of #576.
+
+**What to do instead.** Keep an explicit split between **render space** (EPSG:3857,
+world-copy-aware — placement and hit-testing) and **data space** (canonical WGS84 in
+`[-180, 180]` — everything stored/streamed). Carry a render-space **world offset**
+and apply it only in Mercator; never let it become a lon/lat (it would leak an
+out-of-range coordinate to the server). Concretely:
+
+- Overlays: pass the click's `worldOffset` to `ol-overlay` and add it to the Mercator
+  position; the canonical `position` is unchanged.
+- Editing: align the feature to the copy the user clicked **by its extent centre**,
+  not the click's absolute world — `worldCopyOffset(clickMercX − featureCentreX, W)`.
+  That is 0 when you click the base rendering (even one drawn past ±180) and a whole
+  world only for a genuine clone. A whole-world shift is visually transparent under
+  wrapX, adds no vertices, and normalises back on save.
+
+The shared helpers (`worldCopyOffset`, the event `worldOffset`, `ol-overlay`'s
+`worldOffset` input) and the render-vs-data-space rule are in `AGENTS.md` and #576 —
+route new placement/hit-test code through them rather than re-deriving with
+`toLonLat`/`fromLonLat` or `±360` shifts.
+
 ---
 
 ## When testing
