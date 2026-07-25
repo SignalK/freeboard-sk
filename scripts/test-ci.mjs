@@ -10,10 +10,15 @@
 //   - forwards ng's exit code if it exits on its own;
 //   - reads vitest's final "Test Files" summary — any "failed" -> exit 1;
 //   - on an all-passed summary that does not terminate within a grace window,
-//     force-exits 0.
+//     force-exits 0;
+//   - fails fast on an esbuild/angular-compiler build error (e.g. a TypeScript
+//     error in a spec): the build prints the error but then never emits a
+//     vitest summary and the esbuild service lingers, so the run would otherwise
+//     hang to the hard timeout instead of reporting the compile failure.
 // It only exits 0 after seeing a passing summary, so a crash with no summary
-// still fails (via the hard timeout). Used by `npm run test:ci`; plain
-// `npm test` is left as the normal (watch) command for local development.
+// still fails (via the build-error detection, or the hard timeout). Used by
+// `npm run test:ci`; plain `npm test` is left as the normal (watch) command for
+// local development.
 
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -25,6 +30,10 @@ const NG_ARGS = ['test'];
 // Matches vitest's final summary line, e.g. "Test Files  3 passed (3)" or
 // "Test Files  1 failed | 2 passed (3)".
 const SUMMARY = /Test Files\s+\d+\s+(?:failed|passed)/;
+// esbuild's fatal build-error header (used by the Angular compiler plugin too),
+// e.g. "✘ [ERROR] TS2339: ...". A build error means the test bundle never ran,
+// so no vitest summary is coming — fail fast instead of riding the hard timeout.
+const BUILD_ERROR = /✘ \[ERROR\]/;
 const GRACE_MS = 10_000; // let ng exit on its own before we force it
 const HARD_TIMEOUT_MS = 15 * 60 * 1000; // backstop if no summary ever prints
 
@@ -51,6 +60,10 @@ const finish = (code, reason) => {
 const scan = (chunk) => {
   if (settled) return;
   for (const line of stripAnsi(chunk.toString()).split('\n')) {
+    if (BUILD_ERROR.test(line)) {
+      finish(1, 'Build error — tests could not run (likely a compile error).');
+      return;
+    }
     if (!SUMMARY.test(line)) continue;
     if (/failed/.test(line)) {
       finish(1, 'Tests failed.');
