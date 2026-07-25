@@ -187,11 +187,11 @@ interface PopoverCtrl {
             <button
               mat-button
               (click)="emitActive(false)"
-              matTooltip="Clear Destination"
+              matTooltip="Stop Navigating"
               matTooltipPosition="after"
             >
               <mat-icon>clear_all</mat-icon>
-              CLEAR
+              STOP
             </button>
           </div>
         }
