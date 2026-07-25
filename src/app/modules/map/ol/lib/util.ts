@@ -101,6 +101,23 @@ export function worldCopyOffset(mercX: number, worldWidth: number): number {
   return Math.round(mercX / worldWidth) * worldWidth;
 }
 
+/**
+ * Hit-test tolerance (px radius) appropriate for the pointer that generated an
+ * event. A fingertip covers far more area than a mouse cursor, so a thin feature
+ * such as a route line is easy to miss at the mouse-sized tolerance — return the
+ * larger touch radius for a coarse (touch) pointer, the mouse radius otherwise.
+ * `pointerType` is the `PointerEvent.pointerType` field ('mouse' | 'touch' |
+ * 'pen'); `undefined` (e.g. a synthetic contextmenu `MouseEvent`) falls back to
+ * the mouse radius, so mouse behaviour is unchanged.
+ */
+export function hitToleranceForPointer(
+  pointerType: string | undefined,
+  mouseTolerance: number,
+  touchTolerance: number
+): number {
+  return pointerType === 'touch' ? touchTolerance : mouseTolerance;
+}
+
 // ** return adjusted radius to correctly render circle on ground at given position.
 export function mapifyRadius(radius: number, position: Coordinate): number {
   if (typeof radius === 'undefined' || typeof position === 'undefined') {

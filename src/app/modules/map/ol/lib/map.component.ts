@@ -25,7 +25,7 @@ import { toLonLat, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
-import { worldCopyOffset } from './util';
+import { hitToleranceForPointer, worldCopyOffset } from './util';
 import { tryDeleteHeldVertexOnHold } from './vertex-delete';
 
 export interface FBMapEvent extends MapEvent {
@@ -133,6 +133,9 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() properties: { [index: string]: any };
   @Input() setFocus = '';
   @Input() hitTolerance = 5;
+  // Touch pointers get a larger radius than the mouse so a deliberate tap on a
+  // thin route line lands in the common case (#548).
+  @Input() touchHitTolerance = 15;
 
   private _pointerDown = signal<MouseEvent>(undefined);
   public pointerDownSignal = this._pointerDown.asReadonly();
@@ -347,7 +350,11 @@ export class MapComponent implements OnInit, OnDestroy {
         features: this.map.getFeaturesAtPixel(
           this.map.getPixelFromCoordinateInternal(c),
           {
-            hitTolerance: this.hitTolerance
+            hitTolerance: hitToleranceForPointer(
+              (event as PointerEvent).pointerType,
+              this.hitTolerance,
+              this.touchHitTolerance
+            )
           }
         ),
         lonlat: toLonLat(c),
@@ -378,7 +385,11 @@ export class MapComponent implements OnInit, OnDestroy {
   private augmentClickEvent(event: MapBrowserEvent<PointerEvent>) {
     return Object.assign(event, {
       features: this.map.getFeaturesAtPixel(event.pixel, {
-        hitTolerance: this.hitTolerance
+        hitTolerance: hitToleranceForPointer(
+          event.originalEvent?.pointerType,
+          this.hitTolerance,
+          this.touchHitTolerance
+        )
       }),
       lonlat: toLonLat(event.coordinate),
       worldOffset: this.worldOffsetOf(event.coordinate)

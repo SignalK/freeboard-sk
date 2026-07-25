@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapifyCoords, worldCopyOffset } from './util';
+import { hitToleranceForPointer, mapifyCoords, worldCopyOffset } from './util';
 import { Coordinate } from './models';
 
 // EPSG:3857 world width (metres), as OL derives it from the projection extent.
@@ -42,6 +42,25 @@ describe('worldCopyOffset', () => {
     expect(worldCopyOffset(Infinity, W)).toBe(0);
     expect(worldCopyOffset(NaN, W)).toBe(0);
     expect(worldCopyOffset(1000, 0)).toBe(0);
+  });
+});
+
+describe('hitToleranceForPointer', () => {
+  it('uses the larger touch radius for a touch pointer', () => {
+    expect(hitToleranceForPointer('touch', 5, 15)).toBe(15);
+  });
+
+  it('uses the mouse radius for a mouse pointer', () => {
+    expect(hitToleranceForPointer('mouse', 5, 15)).toBe(5);
+  });
+
+  it('uses the mouse radius for a pen pointer (precise stylus)', () => {
+    expect(hitToleranceForPointer('pen', 5, 15)).toBe(5);
+  });
+
+  it('falls back to the mouse radius when pointer type is unknown', () => {
+    // e.g. a synthetic contextmenu MouseEvent has no pointerType.
+    expect(hitToleranceForPointer(undefined, 5, 15)).toBe(5);
   });
 });
 
