@@ -122,6 +122,7 @@ import { ScaleLine } from 'ol/control';
 import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
+import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
 import { worldCopyOffset } from './ol/lib/util';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
@@ -207,6 +208,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
   @ViewChild('olMap', { static: false }) olMap: MapComponent;
+  @ViewChild('routeDraw', { static: false })
+  routeDraw: InteractionDrawComponent;
 
   scaleUnits = input<string>('');
 
@@ -967,6 +970,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Complete the in-progress draw sketch (as a double-click would), so a
+   * "Finish" button can end a route draw. A no-op until the sketch has enough
+   * points; OL then dispatches drawend → onDrawEnd through the normal path.
+   */
+  finishDrawing() {
+    this.routeDraw?.finishDrawing();
+  }
+
   /** Handle OL interaction end event */
   protected onDrawEnd(e: { feature: Feature }) {
     // OL dispatches drawend synchronously from the map's viewport pointer
@@ -1064,6 +1076,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mapInteract.startModifying(this.overlay());
     if (this.overlay().type === 'route') {
       const rid = this.overlay().id;
+      // Route name for the helper title ("Modify <name>"). An unnamed draft
+      // resolves to the "(unsaved)" placeholder from formatPopover(), which we
+      // keep on purpose so the title reads "Modify (unsaved)" — a deliberate
+      // signal that the route has not been saved.
+      const res = this.overlay().resource;
+      this.mapInteract.draw.name = Array.isArray(res)
+        ? ((res[1] as SKRoute)?.name ?? '')
+        : '';
       this.mapInteract.measurementCoords = this.routeBuffers.has(rid)
         ? (this.routeBuffers
             .get(rid)!

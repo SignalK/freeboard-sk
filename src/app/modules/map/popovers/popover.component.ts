@@ -35,7 +35,7 @@ measure: boolean= measure mode;
   template: `
     <div
       class="popover top in mat-app-background"
-      [ngClass]="{ measure: measure, compact: compact }"
+      [ngClass]="{ measure: measure, compact: compact, docked: docked }"
     >
       @if (title || icon || mmsi || canClose || navTo) {
         <div class="popover-title">
@@ -106,6 +106,9 @@ export class PopoverComponent {
   @Input() canClose = true;
   @Input() measure = false;
   @Input() compact = false;
+  /** Render in place (no anchor arrow, static position) for use as a docked
+   *  panel rather than a feature-anchored popover. */
+  @Input() docked = false;
   @Input() navTo = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() navigateTo: EventEmitter<void> = new EventEmitter();

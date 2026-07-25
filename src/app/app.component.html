@@ -1044,6 +1044,7 @@
           >
             <!-- MAP -->
             <fb-map
+              #fbMap
               [scaleUnits]="app.config.units.distance"
               [setFocus]="mapSetFocus()"
               [mapCenter]="mapCenter()"
@@ -1124,7 +1125,11 @@
 
           <!-- Interaction Help Container Panel -->
           @if (isInteracting()) {
-            <fb-interact-help (cancel)="closeInteraction()"> </fb-interact-help>
+            <fb-interact-help
+              (finish)="handleInteractionFinish()"
+              (cancel)="closeInteraction()"
+            >
+            </fb-interact-help>
           }
 
           <!-- *** Nav data panel ***-->
