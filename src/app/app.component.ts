@@ -86,6 +86,7 @@ import {
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import { isUndoKeyEvent } from 'src/app/lib/undo-keys';
 
 import * as semver from 'semver';
 
@@ -1927,23 +1928,12 @@ export class AppComponent {
 
   /**
    * Ctrl-Z / Cmd-Z undoes the last route edit while drawing or modifying.
-   * Ignored when the undo would be ambiguous — a text field has focus (native
-   * text undo) or nothing is undoable.
+   * Ignored when there is nothing to undo (`isUndoKeyEvent` already excludes
+   * text-editing targets, where the browser's own undo should win).
    */
   @HostListener('document:keydown', ['$event'])
   protected onDocumentKeydown(e: KeyboardEvent) {
-    const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z';
-    if (!isUndo || !this.mapInteract.canUndo()) {
-      return;
-    }
-    const el = e.target as HTMLElement | null;
-    const tag = el?.tagName;
-    if (
-      tag === 'INPUT' ||
-      tag === 'TEXTAREA' ||
-      tag === 'SELECT' ||
-      el?.isContentEditable
-    ) {
+    if (!isUndoKeyEvent(e) || !this.mapInteract.canUndo()) {
       return;
     }
     e.preventDefault();
