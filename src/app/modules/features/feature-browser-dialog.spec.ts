@@ -17,6 +17,7 @@ function feature(id: string, title: string): CompiledFeature {
     since: '2.1.0',
     latestKind: 'new',
     events: [],
+    recentChanges: null,
     images: []
   };
 }

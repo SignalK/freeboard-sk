@@ -199,6 +199,13 @@ export class FeatureBrowserDialog implements OnInit {
     }
   }
 
+  /** Jump to the full history from the "+N more" affordance on the strip. */
+  protected scrollToHistory() {
+    this.host.nativeElement
+      .querySelector<HTMLElement>('.pr-history')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   protected isActive(feature: CompiledFeature): boolean {
     return this.activeFeature()?.id === feature.id;
   }

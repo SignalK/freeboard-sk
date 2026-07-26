@@ -16,6 +16,7 @@ function feature(id: string, prs: number[]): CompiledFeature {
     since: null,
     latestKind: 'new',
     events: prs.map((pr) => ({ pr, date: null, title: `change ${pr}` })),
+    recentChanges: null,
     images: []
   };
 }
