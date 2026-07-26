@@ -177,6 +177,27 @@ The shared helpers (`worldCopyOffset`, the event `worldOffset`, `ol-overlay`'s
 route new placement/hit-test code through them rather than re-deriving with
 `toLonLat`/`fromLonLat` or `±360` shifts.
 
+### Adding a map-click behaviour alongside an OL `Modify`/`Draw` interaction — don't guard on `e.features`
+
+**The trap.** When you add a `mapSingleClick` handler that must only fire when the
+click *misses* a feature an OL interaction is already editing (e.g. "extend a route
+by clicking open water, but leave clicks on the route to `Modify`"), the obvious
+guard is the click event's own `e.features` — it's right there on the event. But
+that list is built with the map's feature-selection tolerance
+(`hitToleranceForPointer`, mouse **5**px / touch **15**px), while OL `Modify` acts
+within its *own* `pixelTolerance` (**default 10**). Guard on `e.features` for a
+mouse pointer and a click 6–10px from the line falls in the gap: `Modify` inserts a
+vertex **and** your handler also fires — a double action from one click.
+
+**What to do instead.** Run your own hit-test with a tolerance **≥ Modify's
+`pixelTolerance`** — `this.olMap.getMap().getFeaturesAtPixel(e.pixel, { hitTolerance: 10 })`
+(bump to the touch value for touch pointers) and match the edited feature by id.
+`getFeaturesAtPixel` is world-copy aware, so it matches what the user sees under
+wrapX. The same reasoning applies to any interaction with a configurable
+`pixelTolerance`: reconcile *your* guard tolerance with the *interaction's*, not
+with the map's selection tolerance. (Introduced with the route-extend feature,
+#598.)
+
 ---
 
 ## When testing
