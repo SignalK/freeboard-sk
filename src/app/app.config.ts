@@ -1,5 +1,10 @@
 import { FBAppData, IAppConfig, TemperatureUnitDef } from './types';
 import { Convert } from './lib/convert';
+import {
+  clampCenterOffset,
+  legacyCenterOffset,
+  legacyPanBehavior
+} from './lib/follow-offset';
 import { SKVessel } from './modules';
 import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
 
@@ -138,14 +143,22 @@ export function cleanConfig(
   if (typeof settings.map.labelsMinZoom === 'undefined') {
     settings.map.labelsMinZoom = 8;
   }
-  if (typeof settings.map.lockMoveMap === 'undefined') {
-    settings.map.lockMoveMap = false;
+  if (typeof settings.map.panBehavior === 'undefined') {
+    const legacy = settings.map as unknown as { lockMoveMap?: boolean };
+    settings.map.panBehavior = legacyPanBehavior(legacy.lockMoveMap);
+    delete legacy.lockMoveMap;
   }
   if (typeof settings.map.popoverMulti === 'undefined') {
     settings.map.popoverMulti = false;
   }
   if (typeof settings.map.centerOffset === 'undefined') {
     settings.map.centerOffset = 0;
+  } else if (!Number.isInteger(settings.map.centerOffset)) {
+    // A fractional value is the superseded 0-0.7 preset; the setting now holds
+    // a whole percentage.
+    settings.map.centerOffset = legacyCenterOffset(settings.map.centerOffset);
+  } else {
+    settings.map.centerOffset = clampCenterOffset(settings.map.centerOffset);
   }
   if (typeof settings.map.doubleClickZoom === 'undefined') {
     settings.map.doubleClickZoom = false;
@@ -511,7 +524,7 @@ export function defaultConfig(): IAppConfig {
       zoomLevel: 2,
       center: [0, 0],
       rotation: 0,
-      lockMoveMap: true,
+      panBehavior: 'offset',
       animate: false,
       labelsMinZoom: 8,
       doubleClickZoom: false, // true=zoom

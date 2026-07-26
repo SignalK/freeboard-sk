@@ -38,6 +38,10 @@ import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
+import {
+  CENTER_OFFSET_LIMIT,
+  clampCenterOffset
+} from 'src/app/lib/follow-offset';
 import { RadarAPIService, SKRadar } from '../../radar/radar-api.service';
 
 interface PreferredPathsResult {
@@ -78,6 +82,7 @@ export class SettingsDialog implements OnInit {
   };
 
   protected options: SettingsOptions;
+  protected readonly centerOffsetLimit = CENTER_OFFSET_LIMIT;
 
   protected aisStateFilter = {
     moored: false,
@@ -220,6 +225,15 @@ export class SettingsDialog implements OnInit {
    */
   toggleFavourites() {
     this.show.favourites.update((current) => !current);
+  }
+
+  /**
+   * Parse the entered vessel centre offset, clamping it to a whole percentage
+   * that keeps the vessel on screen. Negative values look behind the vessel.
+   */
+  parseCenterOffset(e: NgModel) {
+    e.reset(typeof e.model === 'number' ? clampCenterOffset(e.model) : 0);
+    this.persistModel();
   }
 
   /**

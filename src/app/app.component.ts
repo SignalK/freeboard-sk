@@ -1481,14 +1481,6 @@ export class AppComponent {
     }
   }
 
-  /**
-   * Center the map relative to the vessel position
-   */
-  protected centerVessel() {
-    const pos = this.app.calcMapCenter();
-    this.centerAndZoom(pos);
-  }
-
   protected toggleAisTargets() {
     this.app.config.ui.showAisTargets = !this.app.config.ui.showAisTargets;
     if (this.app.config.ui.showAisTargets) {

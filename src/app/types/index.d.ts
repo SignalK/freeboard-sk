@@ -28,6 +28,12 @@ export type MFBAction = 'wpt' | 'pob' | 'autopilot' | 'radar';
 // component inputs.
 export type WindIndicator = 'arrow' | 'barb';
 
+// What panning the chart does while follow-vessel mode is on.
+// 'offset' holds the panned-to look-ahead until follow is turned off,
+// 'exit' releases follow mode, 'none' keeps the vessel centred (the map
+// returns to it on the next position update).
+export type MapPanBehavior = 'offset' | 'exit' | 'none';
+
 export interface SKApiResponse {
   state: 'FAILED' | 'COMPLETED' | 'PENDING';
   statusCode: number;
@@ -124,12 +130,12 @@ export interface IAppConfig {
     zoomLevel: number;
     center: Position;
     rotation: number;
-    lockMoveMap: boolean;
+    panBehavior: MapPanBehavior; // what panning the chart does while following the vessel
     animate: boolean;
     labelsMinZoom: number;
     doubleClickZoom: boolean; // true=zoom
     overZoomTiles: boolean; // keep tiles visible beyond chart max zoom
-    centerOffset: number; // vessel offset south of center (%)
+    centerOffset: number; // whole % of the distance to the screen edge that the map centre sits ahead of the vessel (negative = astern)
     s57Options: Options; // S57 chart Options
     popoverMulti: boolean; // close popovers using cose button
   };
