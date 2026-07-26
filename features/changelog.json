@@ -18,5 +18,10 @@
   { "feature": "notes", "pr": 512, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-12", "title": "feat(notes): add option to open note details on single click" },
   { "feature": "feature-browser", "pr": 528, "kind": "new", "since": "v3.0.0", "date": "2026-07-16", "title": "feat(features): add a searchable \"What's New\" feature browser" },
   { "feature": "feature-browser", "pr": 530, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-17", "title": "feat(features): replace forced onboarding modals with a passive What's New indicator" },
-  { "feature": "chart-zoom-limits", "kind": "new", "since": "v2.1.0", "date": "2023-07-06", "title": "limit zoom to selected maps" }
+  { "feature": "chart-zoom-limits", "kind": "new", "since": "v2.1.0", "date": "2023-07-06", "title": "limit zoom to selected maps" },
+  { "feature": "route-planning", "pr": 582, "kind": "enhanced", "date": "2026-07-25", "title": "feat(routes): unify the route draw and modify helper panels" },
+  { "feature": "route-planning", "pr": 584, "kind": "enhanced", "date": "2026-07-25", "title": "feat(routes): add undo for route drawing and editing" },
+  { "feature": "route-planning", "pr": 593, "kind": "enhanced", "date": "2026-07-25", "title": "feat(routes): add a Hide action to the route popover" },
+  { "feature": "route-planning", "pr": 597, "kind": "enhanced", "date": "2026-07-26", "title": "feat(routes): allow reordering points on unsaved routes" },
+  { "feature": "route-planning", "pr": 598, "kind": "enhanced", "date": "2026-07-26", "title": "feat(routes): extend a route by clicking open water in modify mode" }
 ]
