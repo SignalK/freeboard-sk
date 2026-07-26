@@ -12,13 +12,11 @@ import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service
 import type { FBChart, FBCharts } from 'src/app/types';
 
 /**
- * The main chart list must present charts in the user-chosen layer order — top
- * layer first — the same ordering the Re-order (Chart Order) screen uses, rather
- * than the previous alphabetical-by-name sort (#550). The re-order screen derives
- * its order from `skres.arrangeChartLayers(list).reverse()`; `doFilter()` now
- * applies the identical transform, so the two screens agree. These tests drive
- * `doFilter()` with a stubbed `arrangeChartLayers` and assert the observable
- * order of the `filteredList` signal.
+ * The main chart list presents charts in the user-chosen layer order — top layer
+ * first — matching the Re-order (Chart Order) screen. Both derive that order from
+ * `skres.arrangeChartLayers(list).reverse()`, so the two screens agree. These
+ * tests drive `doFilter()` with a stubbed `arrangeChartLayers` and assert the
+ * observable order of the `filteredList` signal.
  *
  * `TestBed.inject` gives a real injection context for the constructor effects
  * without rendering the template.
