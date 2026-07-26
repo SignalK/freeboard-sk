@@ -1587,10 +1587,13 @@ export class AppComponent {
     let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
       try {
-        // An unsaved draft / dirty route has no server copy — the map passes the
-        // buffer-derived route so we open the reorder dialog from it (no fetch).
-        // Navigation actions need a stored route, so hide them for a draft; the
-        // dialog persists reorders back to the buffer (#583).
+        // A route with a live edit buffer — a never-saved draft, or a stored
+        // route with pending edits — is opened from the buffer-derived route the
+        // map passes (no server fetch), and reorders persist back to the buffer
+        // (#583). Navigation is hidden for the whole buffer case (noButtons):
+        // Start/Go-to act on the *persisted* route via its href, but a draft has
+        // none and a dirty route's buffer id isn't its server href — and either
+        // way navigation would ignore the unsaved reordered geometry.
         const isBuffer = !!e.resource;
         let route: FBRoute[1];
         if (isBuffer) {
