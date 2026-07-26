@@ -8,8 +8,8 @@ import { AppFacade } from '../../app.facade';
 /**
  * Route drawing and modifying share one docked popover card (issue #545). These
  * exercise the constructor decision logic that selects that card, its title, and
- * when Finish is allowed — without rendering the template (keeps the test off the
- * barrel-cycle path that flakes full-render component specs).
+ * when Finish is allowed — without rendering the template, which the logic under
+ * test does not need.
  */
 describe('InteractionHelpComponent — unified route helper', () => {
   let svc: FBMapInteractService;

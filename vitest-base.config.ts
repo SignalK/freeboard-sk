@@ -10,6 +10,19 @@ const TEST_TIMEOUT_MS = process.arch === 'arm' ? 20_000 : 5_000;
 
 export default defineConfig({
   test: {
+    // Give every spec file its own module registry. Angular's vitest runner
+    // defaults to `isolate: false` (one shared registry for the whole run, "to
+    // align with Karma"), which makes the suite sensitive to the order files
+    // happen to load in: the app has a large web of barrel (`index.ts`) import
+    // cycles, so whichever spec first enters a cycle decides whether a
+    // transitively-imported component resolves or is still `undefined`. An
+    // `undefined` then gets baked into a component's static `ɵcmp.imports` for
+    // the rest of the process, and app.component.spec — the only spec that
+    // compiles the full app graph — dies walking it with "Cannot read
+    // properties of undefined (reading 'ɵcmp')". Production is unaffected; it
+    // bundles in a stable order. Isolation costs a few seconds and makes the
+    // failure mode impossible.
+    isolate: true,
     testTimeout: TEST_TIMEOUT_MS,
     setupFiles: [
       'vitest-setup.js',

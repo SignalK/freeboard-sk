@@ -250,27 +250,39 @@ runs**, not two full-suite runs — once with the fix reverted (new test fails),
 restored (it passes). Don't reach for `npx vitest` to shortcut it; that's the path
 that fails on the alias.
 
-### A co-located spec's deep import can break an *unrelated* spec in the full suite
+### Don't remove `isolate: true` from the vitest config
 
-**The trap.** Writing a co-located `*.spec.ts`, the natural move is to import the
-app class you're exercising — e.g. `import { SKRoute } from
-'src/app/modules/skresources/resource-classes'`. The spec passes on its own
-(`ng test --include …`), so it looks fine. But in the full `npm run test:ci` run it
-makes a *different, unchanged* spec fail — the AppComponent bootstrap
-(`app.component.spec.ts`, "should create the app") throws
-`TypeError: Cannot read properties of undefined (reading 'ɵcmp')`, with a stack that
-points at Angular's `TestBed` compiler, not at either spec. The deep import pulls a
-second resolution path into a module that also participates in the `src/app/modules`
-barrel, perturbing evaluation order enough to leave a component reference undefined
-during `TestBed` bootstrap. The symptom is maddeningly indirect: your new test is
-green, an old unrelated one is red, and only in the whole-suite run.
+**The trap.** `vitest-base.config.ts` sets `isolate: true`, which costs the suite a few
+seconds — a tempting thing to delete when trimming CI time. Don't. Angular's vitest
+runner (`@angular/build:unit-test`) defaults to `isolate: false`: **one module registry
+shared by every spec file in the run**, to align with the old Karma behaviour. The app
+has a large web of barrel (`index.ts`) import cycles, so with a shared registry the
+result depends on the order vitest happens to load files in. Whichever spec first enters
+a cycle decides whether a transitively-imported component resolves or is still
+`undefined`, and an `undefined` gets baked into that component's static `ɵcmp.imports`
+for the **rest of the process**. `app.component.spec.ts` ("should create the app") — the
+only spec that compiles the full app graph — is then the one that dies, with
+`TypeError: Cannot read properties of undefined (reading 'ɵcmp')` and a stack pointing
+at Angular's `TestBed` compiler rather than at any spec you touched.
 
-**What to do instead.** In a spec, don't deep-import app classes that participate in
-the `src/app/modules` barrel just to build a fixture. Build a minimal plain-object
-stub with only the fields the code under test reads. The tell for this specific
-cause: a `ɵcmp`-undefined failure in a spec you didn't touch, appearing *only* under
-the full suite — suspect the import graph of the spec you just added, not the spec
-that failed.
+It is entirely a test-environment artifact — production bundles in a stable order and is
+unaffected — but it was a genuinely expensive one: as the suite grew past ~45 spec files
+it was failing 3–4 of the 9 CI matrix legs on *every* push, with no platform pattern.
+
+**What to do instead.** Leave isolation on. It makes the failure mode structurally
+impossible: a fresh registry per spec file means no spec can corrupt another. Two
+corollaries worth knowing:
+
+- **A vitest `retry` cannot help with this class of bug.** Under a shared registry the
+  corruption happens once at module-load and lasts the whole process, so an in-process
+  retry re-runs the test body against the same broken modules. Only a fresh process
+  (re-running the CI job) ever "retried" successfully.
+- **Isolation contains the cycles between files, it does not remove them.** Inside a
+  single spec, pulling in a second resolution path to something that also participates
+  in the `src/app/modules` barrel — e.g. a deep `import { SKRoute } from
+  'src/app/modules/skresources/resource-classes'` alongside a full component render —
+  can still perturb evaluation order within that file. Prefer a minimal plain-object
+  stub with only the fields the code under test reads.
 
 ### Unit-testing a DI-heavy service whose constructor calls `effect()`
 
