@@ -343,21 +343,26 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   /**
-   * @description Filter and sort charts by name, additionally restricting the
-   * list to charts visible in the current map view when the in-view filter is on.
+   * @description Order charts to match the Re-order (Chart Order) screen — top
+   * layer first — additionally restricting the list to charts visible in the
+   * current map view when the in-view filter is on.
    */
   protected override doFilter() {
     const text = this.filterText?.toLowerCase() ?? '';
     const extent = this.app.mapExtent();
     const useExtent =
       this.inViewOnly && Array.isArray(extent) && extent.length === 4;
-    const fl = this.fullList.filter((item) => {
+    // Present the list in the user-chosen layer order (top layer first), the
+    // same ordering the Re-order screen uses, so the two screens agree.
+    const ordered = this.skres
+      .arrangeChartLayers(this.fullList.slice())
+      .reverse();
+    const fl = ordered.filter((item) => {
       if (text && !item[1].name?.toLowerCase().includes(text)) {
         return false;
       }
       return useExtent ? isChartInView(item[1].bounds, extent) : true;
     });
-    fl.sort((a, b) => a[1].name.localeCompare(b[1].name));
     this.filteredList.update(() => fl.slice(0));
     this.alignSelections();
   }
@@ -420,6 +425,11 @@ export class ChartListComponent extends ResourceListBase {
    */
   showChartLayers(show = false) {
     this.displayChartLayers = show;
+    if (!show) {
+      // Returning from the Re-order screen: re-apply the (possibly changed)
+      // layer order to the list.
+      this.doFilter();
+    }
   }
 
   /**
