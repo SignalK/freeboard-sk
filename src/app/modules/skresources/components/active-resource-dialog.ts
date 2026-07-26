@@ -23,6 +23,8 @@ import { GeoUtils } from 'src/app/lib/geoutils';
 import { SKResourceService } from '../resources.service';
 import { CourseService } from '../../course';
 import { Convert } from 'src/app/lib/convert';
+import { RouteBufferRegistry } from '../../plotterext/route-buffer.registry';
+import { buildRoutePoints, editsRouteBuffer } from './route-reorder.util';
 
 @Component({
   selector: 'ap-dest-modal',
@@ -207,6 +209,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
   protected modalRef = inject(MatBottomSheetRef<ActiveResourcePropertiesModal>);
   protected course = inject(CourseService);
   protected skres = inject(SKResourceService);
+  protected routeBuffers = inject(RouteBufferRegistry);
   protected data = inject<{
     title: string;
     type: string;
@@ -312,11 +315,20 @@ export class ActiveResourcePropertiesModal implements OnInit {
       moveItemInArray(this.pointMeta, e.previousIndex, e.currentIndex);
 
       this.updateFlag(selPosition);
-      this.skres.updateRouteCoords(
-        this.data.resource[0],
-        this.points,
-        this.data.resource[1].feature.properties.coordinatesMeta
-      );
+      const id = this.data.resource[0];
+      const coordsMeta =
+        this.data.resource[1].feature.properties.coordinatesMeta;
+      if (editsRouteBuffer(this.routeBuffers.get(id))) {
+        // Unsaved draft / dirty route: reorder the edit buffer (emits
+        // route.dirty). Persistence stays deferred to an explicit Save, matching
+        // how draft geometry edits already work (#583).
+        this.routeBuffers.replace(
+          id,
+          buildRoutePoints(this.points, coordsMeta)
+        );
+      } else {
+        this.skres.updateRouteCoords(id, this.points, coordsMeta);
+      }
     }
   }
 

@@ -1579,21 +1579,39 @@ export class AppComponent {
   }
 
   // ** show feature (vessel/AtoN/Aircraft/Route points) properties **
-  protected async featureProperties(e: { id: string; type: string }) {
+  protected async featureProperties(e: {
+    id: string;
+    type: string;
+    resource?: FBRoute;
+  }) {
     let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
       try {
-        this.app.sIsFetching.set(true);
-        v = await this.skres.fromServer('routes', e.id);
-        this.app.sIsFetching.set(false);
-        if (v) {
+        // A route with a live edit buffer — a never-saved draft, or a stored
+        // route with pending edits — is opened from the buffer-derived route the
+        // map passes (no server fetch), and reorders persist back to the buffer
+        // (#583). Navigation is hidden for the whole buffer case (noButtons):
+        // Start/Go-to act on the *persisted* route via its href, but a draft has
+        // none and a dirty route's buffer id isn't its server href — and either
+        // way navigation would ignore the unsaved reordered geometry.
+        const isBuffer = !!e.resource;
+        let route: FBRoute[1];
+        if (isBuffer) {
+          route = e.resource[1];
+        } else {
+          this.app.sIsFetching.set(true);
+          route = await this.skres.fromServer('routes', e.id);
+          this.app.sIsFetching.set(false);
+        }
+        if (route) {
           this.bottomSheet
             .open(ActiveResourcePropertiesModal, {
               disableClose: true,
               data: {
                 title: 'Route Properties',
-                resource: [e.id, v, false],
-                type: e.type
+                resource: [e.id, route, false],
+                type: e.type,
+                noButtons: isBuffer
               }
             })
             .afterDismissed()

@@ -136,6 +136,9 @@ import {
 interface IResource {
   id: string;
   type: string;
+  /** Pre-resolved resource. When set (an unsaved route buffer), the properties
+   *  dialog opens from it instead of fetching from the server (#583). */
+  resource?: FBRoute;
 }
 
 interface IFeatureData {
@@ -2156,6 +2159,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } else {
       this.info.emit({ id: id, type: type });
     }
+  }
+
+  /**
+   * Popover "Points" action → opens the route's reorder dialog. A stored route
+   * takes the normal path (the parent fetches it from the server). An unsaved
+   * draft / dirty route has no server copy, so pass the buffer-derived route:
+   * the parent opens the dialog from it without a fetch and reorders persist
+   * back to the buffer (#583).
+   */
+  protected popoverPoints() {
+    const ub = this.getUnsavedRouteBuffer(this.overlay().id);
+    this.info.emit({
+      id: this.overlay().id,
+      type: this.overlay().type,
+      resource: ub ? this.bufferToFBRoute(ub) : undefined
+    });
   }
 
   protected setActiveVessel(id: string = null) {

@@ -65,6 +65,7 @@ function popover(canSave: boolean, readOnly = false, active?: string) {
       showInfoButton: boolean;
       showSaveButton: boolean;
       showHideButton: boolean;
+      showPointsButton: boolean;
       isActive: boolean;
     };
   };
@@ -118,5 +119,24 @@ describe('ResourcePopoverComponent — route Hide visibility (#551)', () => {
     // so the route being navigated cannot be hidden out from under navigation.
     expect(c.ctrl.showHideButton).toBe(true);
     expect(c.ctrl.isActive).toBe(true);
+  });
+});
+
+/**
+ * Route Points visibility (#583). The Points action reorders a route's
+ * waypoints. It was hidden for an unsaved draft because its dialog operated
+ * against the server; the dialog now edits the route buffer, so a draft's
+ * points are reorderable too and the button is shown.
+ */
+describe('ResourcePopoverComponent — route Points visibility (#583)', () => {
+  it('shows POINTS for a saved route', () => {
+    const c = popover(false);
+    expect(c.ctrl.showPointsButton).toBe(true);
+  });
+
+  it('shows POINTS for an unsaved route draft (dialog edits the buffer)', () => {
+    const c = popover(true);
+    expect(c.ctrl.showSaveButton).toBe(true);
+    expect(c.ctrl.showPointsButton).toBe(true);
   });
 });
