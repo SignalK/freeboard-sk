@@ -6,7 +6,12 @@ import { defineConfig } from 'vitest/config';
 // ~10-20x slower than native and pushes the AppComponent bootstrap test past
 // the 5s default. Only 32-bit ARM (process.arch === 'arm') gets the larger
 // budget; native platforms keep the strict default so real hangs still surface.
-const TEST_TIMEOUT_MS = process.arch === 'arm' ? 20_000 : 5_000;
+const EMULATED_ARM = process.arch === 'arm';
+const TEST_TIMEOUT_MS = EMULATED_ARM ? 20_000 : 5_000;
+// Hooks need the same emulation allowance: a `beforeEach` that mounts a
+// component is as slow under QEMU as the test body it sets up. Native keeps
+// vitest's 10s default rather than inheriting the stricter 5s test budget.
+const HOOK_TIMEOUT_MS = EMULATED_ARM ? 20_000 : 10_000;
 
 export default defineConfig({
   test: {
@@ -24,6 +29,7 @@ export default defineConfig({
     // failure mode impossible.
     isolate: true,
     testTimeout: TEST_TIMEOUT_MS,
+    hookTimeout: HOOK_TIMEOUT_MS,
     setupFiles: [
       'vitest-setup.js',
       '@vitest/web-worker'
