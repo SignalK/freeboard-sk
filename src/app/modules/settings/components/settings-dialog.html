@@ -477,16 +477,18 @@
                     </mat-form-field>
                   </div>
                   <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Offset Vessel Center</mat-label>
-                      <mat-select
+                    <mat-form-field style="width: 100%" floatLabel="always">
+                      <mat-label>Offset Vessel Center (%)</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        #centerOffset="ngModel"
+                        [min]="-centerOffsetLimit"
+                        [max]="centerOffsetLimit"
                         [(ngModel)]="facade.settings.map.centerOffset"
-                        (selectionChange)="persistModel()"
-                      >
-                        @for(i of options.map.centerOffset; track i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
+                        (change)="parseCenterOffset(centerOffset)"
+                        matTooltip="How far ahead of the vessel to centre the map, as a percentage of the distance to the screen edge. Use a negative value to look behind."
+                      />
                     </mat-form-field>
                   </div>
                   <div class="setting-card-row-item">
@@ -520,14 +522,18 @@
                     </mat-checkbox>
                   </div>
                   <div class="setting-card-row-item">
-                    <mat-checkbox
-                      [(ngModel)]="facade.settings.map.lockMoveMap"
-                      (change)="persistModel()"
-                      matTooltip="Do not exit follow vessel when map is panned."
-                      label="after"
-                    >
-                      Lock Follow Vessel
-                    </mat-checkbox>
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Map Pan When Following</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.map.panBehavior"
+                        (selectionChange)="persistModel()"
+                        matTooltip="What panning the chart does while following the vessel."
+                      >
+                        @for(i of options.map.panBehavior; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
                   </div>
                 </div>
               </mat-card-content>

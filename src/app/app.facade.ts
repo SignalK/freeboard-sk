@@ -10,6 +10,11 @@ import { Subject } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
+import {
+  centerOffsetFromPan,
+  edgeDistanceInDirection,
+  mapCenterForOffset
+} from './lib/follow-offset';
 
 import {
   AlertDialog,
@@ -896,45 +901,67 @@ export class AppFacade extends InfoService {
     );
   }
 
+  private activeVesselCourse(): number | null {
+    return (
+      this.data.vessels.active.cogTrue ?? this.data.vessels.active.headingTrue
+    );
+  }
+
+  /** Metres from the viewport centre to the screen edge on the given course. */
+  private viewEdgeDistance(course: number): number {
+    return edgeDistanceInDirection(
+      GeoUtils.distanceTo(
+        this.config.map.center as Position,
+        this.mapViewRightCenter()
+      ),
+      GeoUtils.distanceTo(
+        this.config.map.center as Position,
+        this.mapViewTopCenter()
+      ),
+      course,
+      this.mapViewRotation()
+    );
+  }
+
   /** Calculate the position to center the map.
-   * Tales into account the amount of offset to apply
+   * @param applyOffset false to centre the vessel exactly, ignoring the
+   * configured vessel centre offset.
    */
-  calcMapCenter(): Position {
-    const cog =
-      this.data.vessels.active.cogTrue ?? this.data.vessels.active.headingTrue;
-    if (cog === null) {
-      return this.data.vessels.active.position;
+  calcMapCenter(applyOffset = true): Position {
+    const position = this.data.vessels.active.position;
+    const cog = this.activeVesselCourse();
+    const offset = this.config.map.centerOffset ?? 0;
+    if (cog === null || !applyOffset || !offset) {
+      return position;
     }
-    // Compute the geodetic distance from the viewport centre to the screen
-    // edge in the exact CoG direction. This correctly handles any map rotation
-    // mode (north-up or heading-up) and any screen aspect ratio.
-    //
-    // In OL, a CW bearing β has projected-space direction (sin β, cos β).
-    // With OL view rotation rot (CCW), the screen-space components are:
-    //   sx = sin(β + rot)  (rightward)   sy = cos(β + rot)  (upward)
-    // The edge of the viewport rectangle lies at min(hw/|sx|, hh/|sy|)
-    // where hw = geodetic half-width, hh = geodetic half-height.
-    const hh = GeoUtils.distanceTo(
-      this.config.map.center as Position,
-      this.mapViewTopCenter()
-    );
-    const hw = GeoUtils.distanceTo(
-      this.config.map.center as Position,
-      this.mapViewRightCenter()
-    );
-    const rot = this.mapViewRotation();
-    const sx = Math.abs(Math.sin(cog + rot));
-    const sy = Math.abs(Math.cos(cog + rot));
-    const edgeDistance = Math.min(
-      sx > 1e-10 ? hw / sx : Infinity,
-      sy > 1e-10 ? hh / sy : Infinity
-    );
-    const offsetDistance = edgeDistance * (this.config.map.centerOffset ?? 0.5);
-    return GeoUtils.destCoordinate(
-      this.data.vessels.active.position,
+    return mapCenterForOffset(
+      position,
       cog,
-      offsetDistance
+      this.viewEdgeDistance(cog),
+      offset
     );
+  }
+
+  /**
+   * Adopt a chart pan as the vessel centre offset.
+   * @returns true when the setting changed and needs persisting.
+   */
+  setCenterOffsetFromPan(mapCenter: Position): boolean {
+    const cog = this.activeVesselCourse();
+    if (cog === null) {
+      return false;
+    }
+    const offset = centerOffsetFromPan(
+      this.data.vessels.active.position,
+      mapCenter,
+      cog,
+      this.viewEdgeDistance(cog)
+    );
+    if (offset === null || offset === this.config.map.centerOffset) {
+      return false;
+    }
+    this.config.map.centerOffset = offset;
+    return true;
   }
 
   /**

@@ -543,27 +543,13 @@
                     [matTooltip]="
                       app.uiConfig().mapMove
                         ? 'Turn off Follow Vessel'
-                        : 'Follow Vessel'
+                        : 'Center & Follow Vessel'
                     "
                     matTooltipPosition="right"
                   >
                     <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
                   </button>
                 </div>
-                @if (!app.uiConfig().mapMove) {
-                  <div class="buttonPanelItem">
-                    <button
-                      class="button-toolbar"
-                      mat-mini-fab
-                      (click)="centerVessel()"
-                      [disabled]="!app.data.vessels.showSelf"
-                      matTooltip="Center Vessel"
-                      matTooltipPosition="right"
-                    >
-                      <mat-icon> center_focus_strong </mat-icon>
-                    </button>
-                  </div>
-                }
                 <div class="buttonPanelItem">
                   <button
                     class="button-toolbar"

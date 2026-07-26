@@ -166,6 +166,10 @@ enum INTERACTION_MODE {
   MODIFY
 }
 
+/** How long the vessel is held dead centre after follow mode is turned on,
+ * before the configured centre offset is applied. */
+const OFFSET_GRACE_PERIOD = 2000;
+
 @Component({
   selector: 'fb-map',
   imports: [
@@ -299,6 +303,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private saveTimer;
   private isDirty = false;
+  /** A user drag is in flight under the 'offset' pan behavior — the resulting
+   * map centre becomes the new vessel centre offset. */
+  private userPanned = false;
+  private offsetGraceTimer;
+  /** True while the vessel is held dead centre just after follow mode is
+   * turned on (see startOffsetGrace). */
+  private offsetSuppressed = false;
   /**
    * EPSG:3857-metre offset of the world copy the most recent click landed in.
    * Passed to overlays so a popover is drawn in the copy the user clicked, not
@@ -394,6 +405,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopSaveTimer();
+    this.stopOffsetGrace();
     this.obsList.forEach((i) => i.unsubscribe());
   }
 
@@ -415,10 +427,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (changes && changes.movingMap && !changes.movingMap.firstChange) {
       if (changes.movingMap.currentValue) {
         this.startSaveTimer();
+        this.startOffsetGrace();
       } else {
         this.stopSaveTimer();
+        // Leave the chart where it is when follow mode is released — snapping
+        // back to the vessel would undo the pan that just released it.
+        this.stopOffsetGrace();
+        this.userPanned = false;
       }
-      this.centerVessel();
     }
     if (changes && changes.northUp) {
       this.rotateMap();
@@ -657,6 +673,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
 
+    if (this.userPanned) {
+      // Adopt where the user left the vessel on screen only once the pan (and
+      // any kinetic glide) has settled, so the offset matches what they see.
+      // The pan IS the offset gesture, so it also ends the post-tap grace.
+      this.userPanned = false;
+      this.stopOffsetGrace();
+      if (this.app.setCenterOffsetFromPan(e.lonlat as Position)) {
+        this.app.saveConfigDebounced();
+      }
+    }
+
     this.drawVesselLines();
     if (!this.movingMap) {
       // debounce: a flurry of pans/zooms collapses into one save
@@ -723,10 +750,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   protected onMapPointerDrag() {
-    if (!this.app.config.map.lockMoveMap && this.app.uiConfig().mapMove) {
+    if (!this.app.uiConfig().mapMove) {
+      return;
+    }
+    if (this.app.config.map.panBehavior === 'exit') {
       // pointer-drag runs outside the Angular zone (see MapComponent); re-enter
       // so exiting "move map" mode propagates to the UI. Rare one-off transition.
       this.ngZone.run(() => this.exitMovingMap.emit(true));
+    } else if (this.app.config.map.panBehavior === 'offset') {
+      // Follow mode stays on; onMapMoveEnd() captures the new look-ahead once
+      // the drag settles.
+      this.userPanned = true;
     }
   }
 
@@ -1967,8 +2001,35 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // center map to active vessel position
   private centerVessel() {
-    const pos = this.app.calcMapCenter();
+    if (this.userPanned) {
+      // A pan is in flight under the 'offset' behavior: a position update
+      // arriving mid-drag would snatch the chart back from the user.
+      return;
+    }
+    const pos = this.app.calcMapCenter(!this.offsetSuppressed);
     this.mapCenterPositon.update(() => pos);
+  }
+
+  /**
+   * Hold the vessel dead centre for a moment after follow mode is turned on
+   * before easing out to the configured centre offset. A second tap of the
+   * button inside that window therefore leaves the vessel exactly centred,
+   * which is how "just centre it" is expressed now that one button does both.
+   */
+  private startOffsetGrace() {
+    this.stopOffsetGrace();
+    this.offsetSuppressed = true;
+    this.centerVessel();
+    this.offsetGraceTimer = setTimeout(() => {
+      this.offsetSuppressed = false;
+      this.centerVessel();
+    }, OFFSET_GRACE_PERIOD);
+  }
+
+  private stopOffsetGrace() {
+    clearTimeout(this.offsetGraceTimer);
+    this.offsetGraceTimer = undefined;
+    this.offsetSuppressed = false;
   }
 
   /** construct vessel lines for rendering */

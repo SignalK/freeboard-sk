@@ -4,7 +4,13 @@ import { Injectable } from '@angular/core';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { FBAppData, IAppConfig, Position, WindIndicator } from 'src/app/types';
+import {
+  FBAppData,
+  IAppConfig,
+  MapPanBehavior,
+  Position,
+  WindIndicator
+} from 'src/app/types';
 import { Observable, Subject } from 'rxjs';
 
 interface SKAppsList {
@@ -83,12 +89,10 @@ export class SettingsOptions {
   };
 
   map = {
-    centerOffset: new Map([
-      [0, '0%'],
-      [0.2, '20%'],
-      [0.3, '30%'],
-      [0.5, '50%'],
-      [0.7, '70%']
+    panBehavior: new Map<MapPanBehavior, string>([
+      ['offset', 'Set Follow Offset'],
+      ['exit', 'Exit Follow Mode'],
+      ['none', 'Do nothing']
     ]),
     s57: {
       graphicsStyle: new Map([
