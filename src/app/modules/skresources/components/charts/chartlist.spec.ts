@@ -116,9 +116,9 @@ describe('ChartListComponent — list ordered by chart layer order (#550)', () =
 
     // User re-orders on the Re-order screen (chartOrder changes) then closes it.
     layerBottomFirst = ['osm', 'a', 'b', 'c'];
-    (comp as unknown as { showChartLayers: (s?: boolean) => void }).showChartLayers(
-      false
-    );
+    (
+      comp as unknown as { showChartLayers: (s?: boolean) => void }
+    ).showChartLayers(false);
 
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['c', 'b', 'a', 'osm']);
   });
