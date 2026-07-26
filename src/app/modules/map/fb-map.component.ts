@@ -106,6 +106,7 @@ import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
 import { SKPosition } from 'src/app/types';
 import {
+  FBClickEvent,
   FBMapEvent,
   FBPointerEvent,
   zoomOffsetLevel,
@@ -123,7 +124,13 @@ import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
-import { worldCopyOffset } from './ol/lib/util';
+import { hitToleranceForPointer, worldCopyOffset } from './ol/lib/util';
+import { LineString as OLLineString } from 'ol/geom';
+import {
+  extendRouteAtClick,
+  RoutePointMeta,
+  WORLD_WIDTH_3857
+} from './route-extend';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
@@ -775,6 +782,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       this.onDrawClick(e.features);
     } else if (
+      // modifying a route: a click in open water extends it from the end
+      this.mapInteract.isModifying() &&
+      this.mapInteract.draw.resourceType === 'route'
+    ) {
+      this.extendRouteInModify(e);
+    } else if (
       //not interacting
       !this.mapInteract.isDrawing() &&
       !this.mapInteract.isModifying()
@@ -1121,11 +1134,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.mapInteract.draw.features.getArray()[0] as Feature
     )?.getGeometry();
     if (editGeom) {
-      // EPSG:3857 world width in metres (the map's Mercator projection).
-      const worldWidth = 2 * 20037508.342789244;
       const ext = editGeom.getExtent();
       const centreX = (ext[0] + ext[2]) / 2;
-      const shift = worldCopyOffset(this.clickMercX - centreX, worldWidth);
+      const shift = worldCopyOffset(
+        this.clickMercX - centreX,
+        WORLD_WIDTH_3857
+      );
       if (shift) {
         this.mapInteract.draw.features.forEach((f: Feature) =>
           f.getGeometry()?.translate(shift, 0)
@@ -1194,7 +1208,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // now.
     if (fid.split('.')[0] === 'route') {
       const meta = this.mapInteract.draw.forSave.coordsMetadata as
-        Array<{ name?: string; description?: string }> | undefined;
+        RoutePointMeta[] | undefined;
       this.mapInteract.pushModifyUndo({
         coordinates: (this.mapInteract.draw.coordinates as Position[]).map(
           (co) => [...co] as Position
@@ -1250,6 +1264,78 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.data.editingId = this.mapInteract.draw.forSave.id;
 
     this.app.debug(this.mapInteract.draw.forSave);
+  }
+
+  /**
+   * Extend the route being modified by appending a clicked open-water point as
+   * the new end point (issue #549) — so a route can be lengthened the same way
+   * it is drawn, without leaving modify mode. A click *on* the route belongs to
+   * OL Modify (move / insert / delete a vertex), so only clicks that miss it
+   * extend the route; the state kept in sync here mirrors applyModifyEnd so
+   * Undo, Finish and Cancel all see the new point.
+   */
+  private extendRouteInModify(e: FBClickEvent) {
+    const f = this.mapInteract.draw.features?.getArray()[0] as Feature;
+    const geom = f?.getGeometry();
+    if (!f || geom?.getType() !== 'LineString') {
+      return;
+    }
+    const line = geom as OLLineString;
+    // A click within the modify hit tolerance of the route itself is OL Modify's
+    // (a vertex move / insert / delete); only a genuine miss extends the route.
+    // Use a tolerance >= Modify's own pixelTolerance (OL default 10) so no single
+    // click both inserts a vertex and appends an end point. getFeaturesAtPixel is
+    // world-copy aware, matching what the user sees under wrapX.
+    const tol = hitToleranceForPointer(e.originalEvent?.pointerType, 10, 15);
+    const onRoute = this.olMap
+      .getMap()
+      .getFeaturesAtPixel(e.pixel, { hitTolerance: tol })
+      .some((ft) => ft.getId() === f.getId());
+    if (onRoute) {
+      return;
+    }
+    // Metadata may not be seeded yet if this is the first op of the session (no
+    // modifystart has run) — read it from the feature, matching onModifyStart.
+    let meta = this.mapInteract.draw.forSave.coordsMetadata as
+      RoutePointMeta[] | undefined;
+    if (!meta) {
+      const fm = f.get('pointMetadata');
+      meta = Array.isArray(fm) ? fm : undefined;
+    }
+
+    const ext = line.getExtent();
+    const result = extendRouteAtClick(
+      line.getCoordinates() as Position[],
+      meta,
+      fromLonLat(e.lonlat) as Position,
+      ext[0],
+      ext[2]
+    );
+
+    // Snapshot the pre-append state so the extension can be undone within the
+    // session (#542), mirroring applyModifyEnd.
+    this.mapInteract.pushModifyUndo(result.undo);
+    line.setCoordinates(result.after);
+    // Mirror the length-aligned metadata onto the feature so the next
+    // modifystart re-reads a correct-length array.
+    if (result.meta) {
+      f.set('pointMetadata', result.meta);
+    }
+
+    if (!this.mapInteract.draw.forSave.id) {
+      this.mapInteract.draw.forSave.id = f.getId();
+    }
+    this.mapInteract.draw.forSave.coordsMetadata = result.meta;
+    this.mapInteract.draw.coordinates = result.after;
+    const pc = this.transformCoordsArray(result.after);
+    this.mapInteract.draw.forSave['coords'] = pc;
+    this.mapInteract.measurementCoords = pc as LineString;
+
+    this.app.data.activeRouteIsEditing =
+      !!this.app.data.activeRoute &&
+      this.mapInteract.draw.forSave.id.indexOf(this.app.data.activeRoute) !==
+        -1;
+    this.app.data.editingId = this.mapInteract.draw.forSave.id;
   }
 
   /** Process pointer click in non-interaction mode */
