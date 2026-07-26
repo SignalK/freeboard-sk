@@ -62,4 +62,19 @@ describe('buildRoutePoints (#583)', () => {
     expect(result[0].name).toBeUndefined();
     expect(result[0].description).toBeUndefined();
   });
+
+  it('does not synthesize an href for waypoint-referenced points', () => {
+    // coordinatesMeta can carry an href (a route point that references a stored
+    // waypoint), but RoutePoint / the route buffer don't model waypoint refs.
+    // buildRoutePoints only runs on buffer-derived meta, which never carries
+    // href; href-bearing routes persist through the server path, which keeps the
+    // full coordinatesMeta. Assert the rebuild carries position/name/description
+    // and never invents an href field.
+    const meta: Array<{ name?: string; description?: string; href?: string }> =
+      [{ name: 'WP-1', href: '/resources/waypoints/abc' }];
+    const result = buildRoutePoints([[-80, 25]], meta);
+    expect(result[0].position).toEqual([-80, 25]);
+    expect(result[0].name).toBe('WP-1');
+    expect('href' in result[0]).toBe(false);
+  });
 });
