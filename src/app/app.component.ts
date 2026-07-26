@@ -1579,21 +1579,36 @@ export class AppComponent {
   }
 
   // ** show feature (vessel/AtoN/Aircraft/Route points) properties **
-  protected async featureProperties(e: { id: string; type: string }) {
+  protected async featureProperties(e: {
+    id: string;
+    type: string;
+    resource?: FBRoute;
+  }) {
     let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
       try {
-        this.app.sIsFetching.set(true);
-        v = await this.skres.fromServer('routes', e.id);
-        this.app.sIsFetching.set(false);
-        if (v) {
+        // An unsaved draft / dirty route has no server copy — the map passes the
+        // buffer-derived route so we open the reorder dialog from it (no fetch).
+        // Navigation actions need a stored route, so hide them for a draft; the
+        // dialog persists reorders back to the buffer (#583).
+        const isBuffer = !!e.resource;
+        let route: FBRoute[1];
+        if (isBuffer) {
+          route = e.resource[1];
+        } else {
+          this.app.sIsFetching.set(true);
+          route = await this.skres.fromServer('routes', e.id);
+          this.app.sIsFetching.set(false);
+        }
+        if (route) {
           this.bottomSheet
             .open(ActiveResourcePropertiesModal, {
               disableClose: true,
               data: {
                 title: 'Route Properties',
-                resource: [e.id, v, false],
-                type: e.type
+                resource: [e.id, route, false],
+                type: e.type,
+                noButtons: isBuffer
               }
             })
             .afterDismissed()

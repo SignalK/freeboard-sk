@@ -363,12 +363,13 @@ export class ResourcePopoverComponent {
     if (this.ctrl.showSaveButton) {
       // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
       // the actions that only work against a stored resource — Start
-      // (navigation), Route Points, Show Notes and Info — which a draft has
-      // none of. Info fetches the route from the server, which 404s for a
-      // draft; Save already opens the details dialog for title/description.
+      // (navigation), Show Notes and Info — which a draft has none of. Info
+      // fetches the route from the server, which 404s for a draft; Save already
+      // opens the details dialog for title/description. Route Points stays
+      // visible: its reorder dialog now edits the route buffer (#583), so the
+      // draft's points can be re-ordered before it is saved.
       this.ctrl.showDeleteButton = true;
       this.ctrl.canActivate = false;
-      this.ctrl.showPointsButton = false;
       this.ctrl.showNotesButton = false;
       this.ctrl.showInfoButton = false;
       // An unsaved draft isn't in the Routes list, so Hide would remove it with
