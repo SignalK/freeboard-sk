@@ -35,11 +35,14 @@ describe('PlotterExtensionService embedding host (reverse embedding, #507)', () 
           useValue: {
             // Deep enough for the constructor effects (which an async test
             // flushes, unlike a synchronous spec): readNightMode() reads
-            // uiCtrl() and config.display.nightMode.
+            // uiCtrl() and config.display.nightMode; mapView() reads
+            // config.map and mapExtent().
             config: {
               plotterExtensions: { widgets: [] },
-              display: { nightMode: false }
+              display: { nightMode: false },
+              map: { center: [0, 0], zoomLevel: 10 }
             },
+            mapExtent: signal([]),
             debug: () => {},
             isTopWindow: () => false,
             uiCtrl: signal({ forceNightMode: false })

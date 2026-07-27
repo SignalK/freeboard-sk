@@ -32,6 +32,7 @@ import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
   type BusPort,
   HostConnection,
+  type MapView,
   MethodHandler,
   type NightModeState,
   RoutePoint,
@@ -602,6 +603,11 @@ export class PlotterExtensionService {
     // Auto-only changes that don't move the resolved state are emitted directly
     // by applyNightMode; emitNightModeChange dedups so each real change fires once.
     effect(() => this.emitNightModeChange(this.readNightMode()));
+    // Emit `map.view` whenever the chart viewport settles, whether the user
+    // panned/zoomed, the host recentred, or an extension called map.center /
+    // map.fitBounds (origin-transparent). mapExtent is written once per OL
+    // moveend, so the effect fires per settled change, not per frame.
+    effect(() => this.emitMapViewChange(this.mapView()));
   }
 
   /**
@@ -1987,15 +1993,50 @@ export class PlotterExtensionService {
   // directly bypasses Freeboard's mapCenter/mapZoom signal flow, so chart
   // and resource layers do not refresh after the move.
 
+  /**
+   * The current chart viewport — the single shape shared by `map.getView` and
+   * the `map.view` event, so a following extension seeds and updates from
+   * identical data. Reads mapExtent() reactively; the effect that emits
+   * `map.view` depends on it.
+   */
+  private mapView(): MapView {
+    return {
+      center: this.app.config.map.center as [number, number],
+      zoom: this.app.config.map.zoomLevel,
+      bounds: this.app.mapExtent() as [number, number, number, number]
+    };
+  }
+
+  /** Last viewport broadcast, for de-duping `map.view`. */
+  private prevMapView: MapView | null = null;
+
+  /**
+   * Broadcast `map.view` when the viewport actually moved. Seeds silently on the
+   * first run (matching the chart/night-mode event pattern). mapExtent is
+   * re-assigned on every OL moveend even when the view came back to where it
+   * started, so compare values rather than trusting the signal to have changed.
+   */
+  private emitMapViewChange(view: MapView): void {
+    const prev = this.prevMapView;
+    this.prevMapView = view;
+    if (prev === null) {
+      return;
+    }
+    const same =
+      prev.zoom === view.zoom &&
+      prev.center[0] === view.center[0] &&
+      prev.center[1] === view.center[1] &&
+      prev.bounds.length === view.bounds.length &&
+      prev.bounds.every((v, i) => v === view.bounds[i]);
+    if (same) {
+      return;
+    }
+    this.broadcastMessage('map.view', view);
+  }
+
   private mapMethods(): Record<string, MethodHandler> {
     return {
-      'map.getView': async () => {
-        return {
-          center: this.app.config.map.center,
-          zoom: this.app.config.map.zoomLevel,
-          bounds: this.app.mapExtent()
-        };
-      },
+      'map.getView': async () => this.mapView(),
       'map.center': async (params) => {
         const { position, zoom } = (params ?? {}) as {
           position?: [number, number];

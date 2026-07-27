@@ -245,6 +245,37 @@ neither field present), `nightMode.notSupported`.
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers (`readNightMode`/`applyNightMode`) and emits `nightMode.changed` (`emitNightModeChange`) |
 | `src/app/modules/skstream/skstream.facade.ts` | `selfNightMode` signal + `refreshSelfNightMode()` |
 
+## The `map` capability
+
+`map` exposes the chart viewport: `map.getView` reads it, `map.center` /
+`map.fitBounds` drive it, and `map.view` follows it.
+
+Moves are routed through Freeboard's own centering path
+(`AppFacade.mapMoveRequest` → `AppComponent` effect → `centerAndZoom`), never by
+reaching into the OpenLayers view directly — driving the OL view bypasses the
+`mapCenter`/`mapZoom` signal flow, so chart and resource layers would not refresh
+after the move.
+
+### Events (`map.view`)
+
+`map.view` (`{ center, zoom, bounds }`) is emitted for **every** settled viewport
+change regardless of origin — the user panning/zooming, Freeboard recentring on
+the vessel, or an extension's own `map.center` / `map.fitBounds`. The seam is
+`fb-map.component.ts`'s `onMapMoveEnd`, the OpenLayers `moveend` handler, which
+writes `config.map.center`, `config.map.zoomLevel` and the `mapExtent` signal; a
+reactive `effect` on `mapExtent` therefore fires once per settled move rather than
+per frame. `mapView()` builds the payload so the event and `map.getView` provably
+share one shape, and `emitMapViewChange` de-dupes — OL hands over a fresh extent
+array on every `moveend`, so an unchanged view still re-assigns the signal and the
+comparison must be by value.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/plotterext.service.ts` | the `map.*` handlers, `mapView()`, and `map.view` emission (`emitMapViewChange`) |
+| `src/app/modules/map/fb-map.component.ts` | `onMapMoveEnd` — the OL `moveend` seam that updates the view state |
+
 ## Extending the host API? Update the agent bridge
 
 When you add or change a host API method here, also add or update the matching
