@@ -13,6 +13,8 @@
   { "feature": "cursor-eta", "pr": 455, "kind": "new", "since": "v3.0.0", "date": "2026-07-03", "title": "feat(map): show live bearing, distance and ETA at cursor" },
   { "feature": "buddy-list", "pr": 484, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-07", "title": "feat(ais): add \"Buddies only\" option to the vessel filter" },
   { "feature": "chart-image-adjustment", "pr": 489, "kind": "new", "since": "v3.0.0", "date": "2026-07-07", "title": "feat(charts): add brightness/contrast adjustment for raster image layers" },
+  { "feature": "chart-image-adjustment", "pr": 497, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-10", "title": "feat(charts): make image adjustment a modeless draggable palette" },
+  { "feature": "chart-image-adjustment", "pr": 510, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-12", "title": "feat(charts): trim image adjustment palette and remember its position" },
   { "feature": "weather-overlays", "pr": 491, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-11", "title": "feat(weather): add tidal currents overlay with time-stepping controls" },
   { "feature": "notes", "pr": 485, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-07", "title": "feat(notes): size Note Details dialog to fit its content" },
   { "feature": "notes", "pr": 512, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-12", "title": "feat(notes): add option to open note details on single click" },
