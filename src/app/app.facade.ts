@@ -11,8 +11,9 @@ import { Subject } from 'rxjs';
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 import {
+  CenterOffset,
   centerOffsetFromPan,
-  edgeDistanceInDirection,
+  MapViewport,
   mapCenterForOffset
 } from './lib/follow-offset';
 
@@ -907,20 +908,33 @@ export class AppFacade extends InfoService {
     );
   }
 
-  /** Metres from the viewport centre to the screen edge on the given course. */
-  private viewEdgeDistance(course: number): number {
-    return edgeDistanceInDirection(
-      GeoUtils.distanceTo(
+  /**
+   * The viewport an offset is measured against, or null until the map has
+   * reported an extent — the viewport signals hold [0, 0] until then, which
+   * would size the offset against the distance to null island.
+   */
+  private mapViewport(): MapViewport | null {
+    if (!this.mapExtent().length) {
+      return null;
+    }
+    return {
+      halfWidth: GeoUtils.distanceTo(
         this.config.map.center as Position,
         this.mapViewRightCenter()
       ),
-      GeoUtils.distanceTo(
+      halfHeight: GeoUtils.distanceTo(
         this.config.map.center as Position,
         this.mapViewTopCenter()
       ),
-      course,
-      this.mapViewRotation()
-    );
+      rotation: this.mapViewRotation()
+    };
+  }
+
+  private get centerOffset(): CenterOffset {
+    return {
+      ahead: this.config.map.centerOffset ?? 0,
+      abeam: this.config.map.centerOffsetAbeam ?? 0
+    };
   }
 
   /** Calculate the position to center the map.
@@ -930,16 +944,13 @@ export class AppFacade extends InfoService {
   calcMapCenter(applyOffset = true): Position {
     const position = this.data.vessels.active.position;
     const cog = this.activeVesselCourse();
-    const offset = this.config.map.centerOffset ?? 0;
-    if (cog === null || !applyOffset || !offset) {
+    const offset = this.centerOffset;
+    const viewport =
+      applyOffset && (offset.ahead || offset.abeam) ? this.mapViewport() : null;
+    if (cog === null || !viewport) {
       return position;
     }
-    return mapCenterForOffset(
-      position,
-      cog,
-      this.viewEdgeDistance(cog),
-      offset
-    );
+    return mapCenterForOffset(position, cog, viewport, offset);
   }
 
   /**
@@ -948,19 +959,25 @@ export class AppFacade extends InfoService {
    */
   setCenterOffsetFromPan(mapCenter: Position): boolean {
     const cog = this.activeVesselCourse();
-    if (cog === null) {
+    const viewport = this.mapViewport();
+    if (cog === null || !viewport) {
       return false;
     }
     const offset = centerOffsetFromPan(
       this.data.vessels.active.position,
       mapCenter,
       cog,
-      this.viewEdgeDistance(cog)
+      viewport
     );
-    if (offset === null || offset === this.config.map.centerOffset) {
+    const current = this.centerOffset;
+    if (
+      offset === null ||
+      (offset.ahead === current.ahead && offset.abeam === current.abeam)
+    ) {
       return false;
     }
-    this.config.map.centerOffset = offset;
+    this.config.map.centerOffset = offset.ahead;
+    this.config.map.centerOffsetAbeam = offset.abeam;
     return true;
   }
 

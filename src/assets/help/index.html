@@ -2356,14 +2356,25 @@
               zoom levels below this value.
             </li>
             <li>
-              <b>Offset Vessel Center (%)</b>: How far ahead of the vessel the
-              map is centered while in "Follow Vessel" mode, giving you more
-              visible chart in front of the vessel. The value is a percentage of
-              the distance from the center of the screen to its edge, so
-              <b>50</b> places the vessel half way between the center and the
-              trailing edge. Enter a negative value to look behind the vessel
-              instead.<br />
-              You can also set this by eye: with
+              <b>Offset Vessel Center (%)</b>: Where the vessel sits on screen
+              while in "Follow Vessel" mode, so you can give yourself more
+              visible chart in the direction you care about. Each value is a
+              percentage of the distance from the center of the screen to its
+              edge, and both are measured relative to your course, so the view
+              keeps its bearings as the vessel turns.
+              <ul>
+                <li>
+                  <b>Ahead</b>: moves the vessel back from the center to show
+                  more chart in front of it, so <b>50</b> places the vessel half
+                  way between the center and the trailing edge. A negative value
+                  looks behind the vessel instead.
+                </li>
+                <li>
+                  <b>Abeam</b>: moves the vessel to one side. A positive value
+                  shows more chart to starboard, a negative value more to port.
+                </li>
+              </ul>
+              You can also set both by eye: with
               <b>Map Pan When Following</b> set to <b>Set Follow Offset</b>,
               simply pan the chart to put the vessel where you want it.<br />
             </li>
@@ -2382,7 +2393,7 @@
               <ul>
                 <li>
                   <b>Set Follow Offset</b>: Follow mode stays on and panning
-                  sets the <b>Offset Vessel Center</b> value above, so you can
+                  sets the <b>Offset Vessel Center</b> values above, so you can
                   position the vessel on screen by eye. The offset is saved and
                   used from then on.
                 </li>

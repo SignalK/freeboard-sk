@@ -136,6 +136,7 @@ export interface IAppConfig {
     doubleClickZoom: boolean; // true=zoom
     overZoomTiles: boolean; // keep tiles visible beyond chart max zoom
     centerOffset: number; // whole % of the distance to the screen edge that the map centre sits ahead of the vessel (negative = astern)
+    centerOffsetAbeam: number; // as above, to starboard of the vessel's course (negative = to port)
     s57Options: Options; // S57 chart Options
     popoverMulti: boolean; // close popovers using cose button
   };
