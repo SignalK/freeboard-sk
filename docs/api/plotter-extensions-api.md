@@ -115,7 +115,7 @@ extension id (the providing plugin's id is the recommended key):
 | `signalk.stream`    | Host streams Signal K path values to extension contexts over the message bus.                                                     |
 | `signalk.put`       | Host relays Signal K PUT requests from extension contexts.                                                                        |
 | `units`             | Host exposes the user's preferred display units (`units.get`).                                                                    |
-| `map`               | Host implements the `map.*` methods (view query and control).                                                                     |
+| `map`               | Host implements the `map.*` methods (view query and control) and emits `map.view` when the chart viewport changes.                |
 | `resources`         | Host implements `resources.list` (relayed resource queries).                                                                      |
 | `resources.filter`  | Host implements imperative resource display filters.                                                                              |
 | `routes`            | Host implements live route edit-buffer commands (`route.*`) and emits route lifecycle/mutation events.                            |
@@ -481,7 +481,7 @@ subscribes pays nothing). A host emits an event when the corresponding
 capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
 (`route.*`) with `routes`; chart events (`chart.*`) with `charts`;
-`nightMode.changed` with `nightMode`. The
+`map.view` with `map`; `nightMode.changed` with `nightMode`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -528,6 +528,9 @@ handled by the protocol layer, not subscribed to.
   emits them for *every* change, whether it came from an extension command or the
   user's own chart controls, so a following extension stays in sync no matter who
   is driving.
+- `map.view` — `{ center, zoom, bounds }`: the chart viewport was panned and/or
+  zoomed. The payload is the same shape `map.getView` returns. Emitted once per
+  **settled** view change, not continuously during the gesture. See *Map view*.
 - `nightMode.changed` — `{ enabled, auto }`: the host's night-mode state changed.
   Like the route and chart events it is **origin-transparent** — emitted for
   *every* change, whether an extension called `nightMode.set`, the user toggled
@@ -778,6 +781,56 @@ when a fuller snapshot is needed.
 (one of the supplied ids names no managed chart), `charts.badRequest` (invalid
 params — e.g. a missing `ids` array, a non-boolean `visible`, or an out-of-range
 `opacity`), `charts.notSupported` (host lacks `charts`).
+
+### Map view
+
+The `map` capability covers the chart viewport — where the map is looking. An
+extension **reads** it with `map.getView`, **drives** it with `map.center` /
+`map.fitBounds`, and **follows** it with the `map.view` event.
+
+The view is three values, and `map.getView` and `map.view` carry exactly the same
+shape:
+
+```jsonc
+{
+  "center": [-80.19, 25.77],              // [lon, lat] of the viewport centre
+  "zoom": 13.4,                           // may be fractional
+  "bounds": [-80.5, 25.5, -80.0, 26.0]    // [minLon,minLat,maxLon,maxLat]
+}
+```
+
+`bounds` is the axis-aligned lon/lat box covering what is currently rendered — on
+a host whose map can be rotated, the box that contains the rotated view, not the
+view itself. Treat it as "at least this much is on screen".
+
+**`map.view`** (see *Host events*) is emitted when the viewport has **settled** —
+once the pan or zoom gesture and any kinetic glide have come to rest, which is
+what `moveend` means on the common map engines. It is deliberately **not** a
+per-frame stream: a drag across the chart produces one event, not dozens, so an
+extension that refetches data for the visible area does so once. A single event
+carries the whole view rather than separate pan and zoom notifications, because
+one gesture routinely changes both (a pinch-zoom, or a `map.fitBounds`) — an
+extension that cares which changed compares against the view it last saw.
+
+Like the route, chart and night-mode events it is **origin-transparent**: the host
+emits it for *every* settled change, whether it came from the user dragging the
+chart, the host recentring on the vessel, or an extension's own `map.center` /
+`map.fitBounds` call.
+
+The usual pattern is seed-then-follow — subscribe with
+`{ patterns: ["map.view"] }`, then call `map.getView` once for the starting
+state, so no change is missed between the two:
+
+```js
+await client.subscribe(['map.view'], (_name, view) => applyView(view))
+applyView(await client.call('map.getView'))
+```
+
+**Older hosts.** `map.view` was added after the `map` capability itself, so a host
+built against the earlier contract advertises `map`, answers `map.getView`, and
+never emits. An extension that must work on such a host should fall back to
+polling `map.getView` if no `map.view` arrives — but keep the interval slow, since
+polling for a change is exactly what this event exists to avoid.
 
 ### State storage
 
