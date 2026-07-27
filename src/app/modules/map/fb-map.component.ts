@@ -131,6 +131,7 @@ import {
   RoutePointMeta,
   WORLD_WIDTH_3857
 } from './route-extend';
+import { modifiedLegIndex } from './route-modify-leg';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
@@ -1065,6 +1066,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!f) {
       return;
     }
+    // Capture the geometry before it is replaced: diffed against the restored
+    // coordinates it tells the Leg read-out which vertex the undo puts back
+    // (#581).
+    const undone = f.getGeometry().getCoordinates() as Position[];
     // setCoordinates fires the feature's 'change' event; the active OL Modify
     // interaction listens for it (handleFeatureChange_) and rebuilds its
     // segment/vertex index whenever the geometry changes outside its own drag
@@ -1083,6 +1088,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const pc = this.transformCoordsArray(snap.coordinates) as LineString;
     this.mapInteract.draw.forSave['coords'] = pc;
     this.mapInteract.measurementCoords = pc;
+    this.mapInteract.measurementIndex = modifiedLegIndex(
+      undone,
+      snap.coordinates
+    );
   }
 
   /** Handle OL interaction end event */
@@ -1261,6 +1270,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (fid.split('.')[0] === 'route') {
       pc = this.transformCoordsArray(c);
       this.mapInteract.measurementCoords = pc;
+      // Report the leg ending at the vertex just moved rather than whatever the
+      // last leg happens to be (#581). draw.coordinates still holds the geometry
+      // as it was at modifystart, so it is the pre-operation side of the diff.
+      this.mapInteract.measurementIndex = modifiedLegIndex(
+        this.mapInteract.draw.coordinates as Position[],
+        c as Position[]
+      );
     } else if (fid.split('.')[0] === 'region') {
       for (let e = 0; e < c.length; e++) {
         if (this.isCoordsArray(c[e])) {
@@ -1364,6 +1380,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const pc = this.transformCoordsArray(result.after);
     this.mapInteract.draw.forSave['coords'] = pc;
     this.mapInteract.measurementCoords = pc as LineString;
+    this.mapInteract.measurementIndex = modifiedLegIndex(
+      result.undo.coordinates,
+      result.after
+    );
 
     this.app.data.activeRouteIsEditing =
       !!this.app.data.activeRoute &&
