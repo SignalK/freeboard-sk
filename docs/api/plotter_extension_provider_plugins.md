@@ -265,7 +265,7 @@ required and optional capabilities and lists your contributions. A real one
 | `signalk.put`       | Send SK PUT requests (`client.signalk.put`)                   |
 | `resources`         | Run resource queries (`resources.list`)                       |
 | `resources.filter`  | Push display filters (`resources.setFilter`)                  |
-| `map`               | Read/drive the map view (`map.*`)                             |
+| `map`               | Read/drive/follow the map view (`map.*`, `map.view` event)    |
 | `routes`            | Read & edit the routes on the chart (`route.*`)               |
 | `charts`            | Manage chart-layer display — visibility/opacity/order (`chart.*`) |
 | `units`             | Read the user's display-unit preferences (`units.get`)        |
@@ -478,6 +478,10 @@ Points that generalise:
 - **Filters are display-only and user-owned.** You push an id set or a property
   `match`; the host must surface it as something the user can clear. Watch
   `filters.changed` so an externally-cleared filter updates your UI.
+- **Follow the viewport, don't poll it.** If your results depend on what the
+  user is looking at, subscribe to `map.view` and re-run when it fires — the
+  host emits it once the pan/zoom settles, so you get one refresh per gesture.
+  Seed with `map.getView` so you have a view before the first change.
 - **Guard optional capabilities** with `hasCapability` and carry on without
   them.
 
