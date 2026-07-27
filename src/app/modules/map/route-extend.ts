@@ -21,6 +21,28 @@ export interface RouteExtension {
   undo: { coordinates: Position[]; coordsMetadata?: RoutePointMeta[] };
 }
 
+/** What a map click during route modify is judged against (issue #608). */
+export interface ExtendClickContext {
+  /** The click landed on the route being modified, within Modify's own pixel
+   *  tolerance — it belongs to OL Modify (move / insert / delete a vertex). */
+  onRoute: boolean;
+  /** This same pointer gesture already removed a vertex (long-press or
+   *  Ctrl-Click). */
+  vertexDeleted: boolean;
+}
+
+/**
+ * Whether a map click in modify mode should append a new end point.
+ *
+ * The hit-test alone is not enough: a delete moves the line away from the pixel
+ * that was clicked, so the release completing a delete looks like open water by
+ * the time the click is handled and would extend the route (#608). A gesture
+ * that deleted a vertex never extends.
+ */
+export function shouldExtendRoute(ctx: ExtendClickContext): boolean {
+  return !ctx.onRoute && !ctx.vertexDeleted;
+}
+
 /**
  * Render-space (EPSG:3857) coordinate to append when extending a route by a
  * clicked open-water point. `base` is the click in the primary world; the

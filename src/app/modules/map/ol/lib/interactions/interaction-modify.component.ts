@@ -11,6 +11,7 @@ import { Geometry } from 'ol/geom';
 import { Modify } from 'ol/interaction';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { MapComponent } from '../map.component';
+import { markVertexDeleted } from '../vertex-delete';
 
 /**
  * Decides whether a map event should delete the grabbed route vertex.
@@ -27,6 +28,9 @@ import { MapComponent } from '../map.component';
  * never re-snaps the grabbed vertex (its pointerdown is not a primary action), so
  * it would delete whatever vertex was last touched rather than the one clicked
  * (#575); and Freeboard already uses right-click for the map context menu.
+ *
+ * Either gesture flags `VERTEX_DELETED_IN_GESTURE` so the click the same release
+ * produces is not also read as a route extension (#608).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const vertexDeleteCondition = (e: MapBrowserEvent<any>): boolean => {
@@ -37,10 +41,15 @@ export const vertexDeleteCondition = (e: MapBrowserEvent<any>): boolean => {
     e.map.get('vertexDeleteOnRelease')
   ) {
     e.map.set('vertexDeleteOnRelease', false);
+    markVertexDeleted(e.map);
     return true;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return e.type === 'click' && (e.originalEvent as any).ctrlKey;
+  if (e.type === 'click' && (e.originalEvent as any).ctrlKey) {
+    markVertexDeleted(e.map);
+    return true;
+  }
+  return false;
 };
 
 @Component({

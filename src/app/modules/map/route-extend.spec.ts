@@ -3,10 +3,34 @@ import { Position } from 'src/app/types';
 import {
   WORLD_WIDTH_3857,
   extendRouteAtClick,
+  shouldExtendRoute,
   worldAlignedPoint
 } from './route-extend';
 
 const W = WORLD_WIDTH_3857;
+
+describe('shouldExtendRoute', () => {
+  it('extends on a click in open water', () => {
+    expect(shouldExtendRoute({ onRoute: false, vertexDeleted: false })).toBe(
+      true
+    );
+  });
+
+  it('leaves a click on the route to OL Modify', () => {
+    expect(shouldExtendRoute({ onRoute: true, vertexDeleted: false })).toBe(
+      false
+    );
+  });
+
+  it('does NOT extend on the release that deleted a vertex — regression for #608', () => {
+    // The delete moves the line away from the clicked pixel, so the hit-test
+    // reports open water; without the gesture flag the same release both
+    // removed the vertex and appended a new end point there.
+    expect(shouldExtendRoute({ onRoute: false, vertexDeleted: true })).toBe(
+      false
+    );
+  });
+});
 
 describe('worldAlignedPoint', () => {
   it('leaves a click in the route body world unshifted', () => {

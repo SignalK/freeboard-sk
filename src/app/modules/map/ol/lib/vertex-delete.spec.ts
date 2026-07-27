@@ -2,7 +2,14 @@ import { expect, describe, it, vi } from 'vitest';
 import { Map } from 'ol';
 import { Collection } from 'ol';
 import { Modify } from 'ol/interaction';
-import { tryDeleteHeldVertexOnHold } from './vertex-delete';
+import {
+  clearVertexDeleted,
+  clearVertexDeletedOnDrag,
+  markVertexDeleted,
+  startPointerGesture,
+  tryDeleteHeldVertexOnHold,
+  vertexDeleted
+} from './vertex-delete';
 
 // Minimal stand-in for the OL map: only the members the helper touches.
 function fakeMap(interactions: unknown[]) {
@@ -68,5 +75,61 @@ describe('tryDeleteHeldVertexOnHold', () => {
     const map = fakeMap([]);
     expect(tryDeleteHeldVertexOnHold(map as Map, src('mouse'))).toBe(false);
     expect(map.get('vertexDeleteOnRelease')).toBeUndefined();
+  });
+});
+
+// OpenLayers delays `singleclick` by 250 ms, so the click completing a delete
+// can arrive after the user has pressed down again. The marker is therefore
+// retired only where that click resolves — never as a side effect of a new
+// gesture starting (#608).
+describe('vertexDeleted marker', () => {
+  it('reads false on a map that has never deleted a vertex', () => {
+    expect(vertexDeleted(fakeMap([]))).toBe(false);
+  });
+
+  it('stays set until explicitly cleared, outliving the gesture that set it', () => {
+    const map = fakeMap([]);
+    startPointerGesture(map);
+    markVertexDeleted(map);
+    expect(vertexDeleted(map)).toBe(true);
+
+    // A fast follow-up press begins a new gesture while the delete's click is
+    // still pending — the marker must survive it.
+    startPointerGesture(map);
+    expect(vertexDeleted(map)).toBe(true);
+
+    clearVertexDeleted(map); // the pending singleclick finally lands
+    expect(vertexDeleted(map)).toBe(false);
+  });
+
+  it('is left set by a long-press delete, for the pending click to consume', () => {
+    // The delete lands mid-hold, so the release still produces a click — the
+    // marker must survive the whole gesture for that click to be suppressed.
+    const map = fakeMap([activeModify(true)]);
+    startPointerGesture(map);
+    tryDeleteHeldVertexOnHold(map as Map, src('mouse'));
+    expect(vertexDeleted(map)).toBe(true);
+  });
+
+  it('is retired when the deleting gesture itself drags (no click will come)', () => {
+    const map = fakeMap([]);
+    startPointerGesture(map);
+    markVertexDeleted(map);
+
+    clearVertexDeletedOnDrag(map);
+    expect(vertexDeleted(map)).toBe(false);
+  });
+
+  it('survives a LATER gesture dragging while the delete click is pending', () => {
+    // Delete a vertex, then immediately pan the chart. That drag belongs to a
+    // new gesture; retiring the marker there would let the still-pending
+    // singleclick from the delete append an end point.
+    const map = fakeMap([]);
+    startPointerGesture(map);
+    markVertexDeleted(map);
+
+    startPointerGesture(map); // the pan begins
+    clearVertexDeletedOnDrag(map);
+    expect(vertexDeleted(map)).toBe(true);
   });
 });
