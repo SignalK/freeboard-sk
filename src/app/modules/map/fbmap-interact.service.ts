@@ -183,7 +183,7 @@ export class FBMapInteractService {
     });
   }
 
-  /** set the leg to report in measurement data (-1 = the last leg) */
+  /** -1 reports the last leg, otherwise the leg starting at that index */
   set measurementIndex(value: number) {
     this.measurement.update((current) => {
       return Object.assign({}, current, { index: value });

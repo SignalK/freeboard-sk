@@ -17,7 +17,7 @@ const moveVertex = (at: number, to: Position): Position[] =>
 describe('modifiedLegIndex', () => {
   it('reports the leg ENDING at the dragged vertex, not the last leg (#581)', () => {
     // Dragging the middle point (index 2) describes the leg from point 1 to
-    // point 2 — leg index 1. Before the fix the read-out stayed on leg 3.
+    // point 2 — leg index 1.
     expect(modifiedLegIndex(route, moveVertex(2, [20, 15]))).toBe(1);
   });
 

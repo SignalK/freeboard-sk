@@ -18,7 +18,7 @@ export function modifiedLegIndex(
   before: Position[],
   after: Position[]
 ): number {
-  if (!Array.isArray(after) || after.length < 2 || !Array.isArray(before)) {
+  if (after.length < 2) {
     return -1;
   }
   const lastLeg = after.length - 2;
