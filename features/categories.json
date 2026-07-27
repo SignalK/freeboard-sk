@@ -12,5 +12,6 @@
   { "name": "Alarms & Notifications", "hue": 5 },
   { "name": "Import/Export", "hue": 80 },
   { "name": "Extensions", "hue": 325 },
-  { "name": "Display", "hue": 185 }
+  { "name": "Display", "hue": 185 },
+  { "name": "Map", "hue": 345 }
 ]
