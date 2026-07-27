@@ -1266,19 +1266,22 @@
               <ul>
                 <li>
                   <b>Filter Charts:</b> Type into the text box to filter the
-                  list of charts.
+                  list of charts by name.
+                </li>
+                <li>
+                  <b>In view:</b> Toggle this switch to list only the charts
+                  that cover the current map view.
+                </li>
+                <li>
+                  <b>Bounds:</b> Toggle this switch to display the bounds of the
+                  listed charts. The bounding rectangle of each chart will be
+                  overlayed on the current map display.
                 </li>
                 <li>
                   <b>Re-order charts:</b> Click
                   <i class="material-icons">import_export</i> to arrange the
-                  chart stack to ensure charts are displayed in the correct
-                  order. Drag and drop the charts within the list to chage the
-                  order.
-                </li>
-                <li>
-                  <b>Boundaries:</b> Toggle this switch to display the bounds of
-                  the listed charts. The bounding rectangle of each chart will
-                  be overlayed on the current map display.
+                  chart stack. Drag and drop the charts within the list to
+                  change the order.
                 </li>
                 <li>
                   <b>Add Chart Source:</b> Click
@@ -1300,6 +1303,11 @@
                   <b>Opacity:</b> Click
                   <i class="material-icons">opacity</i> and use the slider to
                   set the chart's opacity.
+                </li>
+                <li>
+                  <b>Image Adjustment:</b> Click
+                  <i class="material-icons">tune</i> to set the brightness and
+                  contrast of an image-based chart.
                 </li>
                 <li>
                   <b>Cache Tiles:</b> Click
@@ -1328,8 +1336,16 @@
               <b>Local Charts</b> hosted on the Signal K server are identified
               with the <i class="material-icons">map</i> icon.
               <br />&nbsp;<br />
-              Charts are displayed in descending order of scale to ensure more
-              detailed charts are on top.
+              Charts you have not re-ordered are stacked in descending order of
+              scale, so that more detailed charts are on top. Once you re-order
+              the chart stack your chosen order is used instead, and the chart
+              list itself is displayed in that same order (top layer first).
+              <br />&nbsp;<br />
+              <i
+                >For how to use these controls, see the <b>Chart List</b> entry
+                in the Feature Browser (<b>More actions</b> &rarr;
+                <b>What's New</b>).</i
+              >
             </div>
           </div>
           <hr />
