@@ -26,7 +26,12 @@ import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
 import { hitToleranceForPointer, worldCopyOffset } from './util';
-import { clearVertexDeleted, tryDeleteHeldVertexOnHold } from './vertex-delete';
+import {
+  clearVertexDeleted,
+  clearVertexDeletedOnDrag,
+  startPointerGesture,
+  tryDeleteHeldVertexOnHold
+} from './vertex-delete';
 
 export interface FBMapEvent extends MapEvent {
   lonlat: Coordinate;
@@ -308,6 +313,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.ngZone.run(() => {
       this.evCache[event.pointerId] = event;
       this.map.set('vertexDeleteOnRelease', false);
+      startPointerGesture(this.map);
       this.touchStartXY = { x: event.clientX, y: event.clientY };
       // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
       // pause mid-edit doesn't delete a point; the chart context-menu long-press
@@ -432,9 +438,10 @@ export class MapComponent implements OnInit, OnDestroy {
     // Only a real move (beyond tolerance) cancels the hold / pending delete —
     // a real drag means "move the vertex", a jitter does not.
     this.clearTimerIfMoved(event);
-    // A gesture that has dragged emits no click at all, so no click is left to
-    // suppress and the marker would otherwise go stale (#608).
-    clearVertexDeleted(this.map);
+    // A gesture that has dragged emits no click at all, so its own delete
+    // marker has nothing left to consume it. Only this gesture's marker —
+    // a later drag must not retire one whose click is still pending (#608).
+    clearVertexDeletedOnDrag(this.map);
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
   };
   private emitPointerMoveEvent = (event: MapBrowserEvent<PointerEvent>) => {

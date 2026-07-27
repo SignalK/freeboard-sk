@@ -1,23 +1,38 @@
 import { Map } from 'ol';
 import { Modify } from 'ol/interaction';
 
+/** Map property holding a monotonic id for the pointer gesture in progress. */
+export const POINTER_GESTURE_SEQ = 'pointerGestureSeq';
+
 /**
- * Map property marking that a vertex delete has been performed and the click it
- * produces is still outstanding. The release completing a delete also produces a
- * `singleclick`, which would otherwise be read as a click in open water and
- * extend the route (#608) — the delete has already moved the line away from the
- * clicked pixel, so a hit-test alone cannot tell the two apart.
+ * Map property naming the gesture whose vertex delete is still awaiting its
+ * click, or `null` when none is outstanding. The release completing a delete
+ * also produces a `singleclick`, which would otherwise be read as a click in
+ * open water and extend the route (#608) — the delete has already moved the
+ * line away from the clicked pixel, so a hit-test alone cannot tell the two
+ * apart.
  *
  * The marker deliberately outlives the gesture that set it: OpenLayers delays
  * `singleclick` by 250 ms (`MapBrowserEventHandler`), so a fast follow-up press
- * begins a new gesture while that click is still pending. It is cleared where
- * the click resolves instead — see `clearVertexDeleted`.
+ * begins a new gesture while that click is still pending. It is retired where
+ * the click resolves instead — see `clearVertexDeleted`. It records *which*
+ * gesture deleted rather than a bare flag so a later gesture cannot retire a
+ * marker that is not its own.
  */
 export const VERTEX_DELETED_IN_GESTURE = 'vertexDeletedInGesture';
 
-/** Mark that a vertex delete has been performed (#608). */
-export function markVertexDeleted(map: Pick<Map, 'set'>): void {
-  map.set(VERTEX_DELETED_IN_GESTURE, true);
+/** Open a new pointer gesture, called from the `pointerdown` handler. */
+export function startPointerGesture(map: Pick<Map, 'get' | 'set'>): void {
+  map.set(POINTER_GESTURE_SEQ, gestureSeq(map) + 1);
+}
+
+function gestureSeq(map: Pick<Map, 'get'>): number {
+  return (map.get(POINTER_GESTURE_SEQ) as number) ?? 0;
+}
+
+/** Mark that the current gesture has deleted a vertex (#608). */
+export function markVertexDeleted(map: Pick<Map, 'get' | 'set'>): void {
+  map.set(VERTEX_DELETED_IN_GESTURE, gestureSeq(map));
 }
 
 /**
@@ -25,18 +40,32 @@ export function markVertexDeleted(map: Pick<Map, 'set'>): void {
  * not also extend the route.
  */
 export function vertexDeleted(map: Pick<Map, 'get'>): boolean {
-  return !!map.get(VERTEX_DELETED_IN_GESTURE);
+  return map.get(VERTEX_DELETED_IN_GESTURE) != null;
 }
 
 /**
- * Release the marker once the click it belongs to has resolved. OpenLayers
- * resolves a gesture as exactly one of `singleclick`, `dblclick` (which cancels
- * the pending `singleclick`) or a drag (a gesture that has dragged emits no
- * click at all), so clearing at those three points retires the marker without
- * ever cutting short a click that is still pending.
+ * Retire the marker once the click it belongs to has resolved — at `singleclick`
+ * (after consumers have read it) and at `dblclick` (which cancels the pending
+ * `singleclick`, so no click is coming).
  */
 export function clearVertexDeleted(map: Pick<Map, 'set'>): void {
-  map.set(VERTEX_DELETED_IN_GESTURE, false);
+  map.set(VERTEX_DELETED_IN_GESTURE, null);
+}
+
+/**
+ * Retire the marker when the gesture that set it starts dragging: a gesture that
+ * has dragged emits no click at all, so nothing is left to consume the marker
+ * and it would otherwise go stale.
+ *
+ * Only that gesture's own drag counts. A *later* gesture may begin dragging
+ * while the delete's `singleclick` is still pending (delete a vertex, then
+ * immediately pan the chart), and retiring the marker there would let that
+ * pending click extend the route — the very bug this guards against.
+ */
+export function clearVertexDeletedOnDrag(map: Pick<Map, 'get' | 'set'>): void {
+  if (map.get(VERTEX_DELETED_IN_GESTURE) === gestureSeq(map)) {
+    clearVertexDeleted(map);
+  }
 }
 
 /**
