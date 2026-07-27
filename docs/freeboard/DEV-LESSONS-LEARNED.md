@@ -221,11 +221,24 @@ one of:
 - **`singleclick`** — clear it after emitting, so consumers have read it first;
 - **`dblclick`** — which cancelled the pending `singleclick`, so nothing else will;
 - **a drag** — `dragging_` is sticky for the whole gesture and gates click
-  emulation, so **a gesture that has dragged emits no click at all**.
+  emulation, so **a gesture that has dragged emits no click at all**, leaving its
+  own marker with nothing to consume it.
 
-That last fact is what makes the scheme complete rather than merely less racy: drag
-and click are mutually exclusive, so clearing on drag closes the stale-marker hole
-without any risk of cutting short a click that is still pending.
+**Scope that last one to the gesture that set the marker.** Drag and click are
+mutually exclusive *within a gesture*, but not across gestures: a **later** gesture
+can start dragging while the earlier delete's `singleclick` is still pending —
+delete a vertex, then immediately pan the chart — and an unconditional clear on
+`pointerdrag` retires a marker that was never consumed, so the pending click acts
+anyway. Clear on drag **only** when the dragging gesture is the one that set the
+marker.
+
+Per-gesture identity has to come from your own side. `click`/`singleclick`/
+`dblclick` all carry `MapBrowserEventHandler`'s `down_` clone as `originalEvent`,
+so they can be correlated with each other — but a marker set *mid-gesture* (a
+long-press) has no access to it, and `down_` is a fresh `new PointerEvent(...)`, so
+an expando you attach to the DOM `pointerdown` does not survive into it. Stamp a
+monotonic gesture id yourself at `pointerdown`, record it alongside the marker, and
+compare.
 
 More generally — **any** state you want a delayed map event to read must not be
 cleared by a *later* input event, because on this map "later input" can precede
