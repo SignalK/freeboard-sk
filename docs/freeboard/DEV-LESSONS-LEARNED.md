@@ -510,21 +510,27 @@ watching the page sees the comments appear and none of this bites.
   review can complete with its findings only in the review body and inline
   comments, leaving the summary with none of the phrases you matched on. A poller
   gated on that text waits forever on a review that finished minutes ago.
-- **Computing a cooldown from the rate-limit notice.** When CodeRabbit declines to
-  start, the notice can carry **no number at all** — "wait until the next included
-  review is available". There is nothing to parse, so a "sleep for the stated
-  minutes" helper silently falls back to whatever default you gave it and either
-  idles long past the real window or fires a redundant `@coderabbitai review` that
-  spends another review against the limit.
+- **Waiting for a rate-limited review to resume by itself.** It never does. When
+  CodeRabbit declines to start, that push has spent its trigger: once the window
+  passes it does **not** come back to the PR, so a poller waiting for it to
+  restart waits forever. The notice also carries **no number** — "wait until the
+  next included review is available" — so there is nothing to parse into a
+  deadline either.
 
 **What to do instead.** Treat the structured endpoints as the completion signal:
 `GET /repos/{owner}/{repo}/pulls/{n}/reviews` and `.../pulls/{n}/comments` — a
-non-empty result means the review landed, whatever the summary prose says. Read the
-summary only afterwards, to classify what it found. For a rate limit, don't compute
-a deadline: CodeRabbit picks the PR back up on its own once the window passes, so
-poll for it to start and reserve `@coderabbitai review` for a PR it never returns
-to. And remember the green **CodeRabbit** status check means "the integration ran",
-not "a review happened" — it is green for a rate-limited non-review too.
+count higher than before your push means the review landed, whatever the summary
+prose says. (Compare against a baseline, not against empty: a re-review adds to
+entries the first review already left.) Read the summary only afterwards, to
+classify what it found.
+
+After a rate-limited review you must **ask again by hand** — post
+`@coderabbitai review` as a PR comment once the window has passed. Since the
+notice gives no figure, there is no way to know when that is except to try; if it
+is refused again, wait longer and repeat. And remember the green **CodeRabbit**
+status check means "the integration ran", not "a review happened" — it is green
+for a rate-limited non-review too, with the description reading *Review rate
+limited*.
 
 ### The Prettier CI gate covers only `ts|html` — don't `prettier --write` the CSS
 
