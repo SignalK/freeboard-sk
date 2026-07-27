@@ -498,6 +498,34 @@ stale tree and may flag issues already fixed elsewhere.
 **What to do instead.** Rebase onto current `master` before relying on a re-review
 (`git fetch && git rebase origin/master`, force-push).
 
+### Waiting on a CodeRabbit review — poll the review endpoints, not its prose
+
+Relevant if you script the wait (an agent polling a PR, a CI helper); a human
+watching the page sees the comments appear and none of this bites.
+
+**The trap.** Two plausible-looking signals both fail:
+
+- **Grepping the summary comment for wording.** CodeRabbit's summary issue-comment
+  does *not* reliably contain "no actionable comments", "Nitpick" or similar — a
+  review can complete with its findings only in the review body and inline
+  comments, leaving the summary with none of the phrases you matched on. A poller
+  gated on that text waits forever on a review that finished minutes ago.
+- **Computing a cooldown from the rate-limit notice.** When CodeRabbit declines to
+  start, the notice can carry **no number at all** — "wait until the next included
+  review is available". There is nothing to parse, so a "sleep for the stated
+  minutes" helper silently falls back to whatever default you gave it and either
+  idles long past the real window or fires a redundant `@coderabbitai review` that
+  spends another review against the limit.
+
+**What to do instead.** Treat the structured endpoints as the completion signal:
+`GET /repos/{owner}/{repo}/pulls/{n}/reviews` and `.../pulls/{n}/comments` — a
+non-empty result means the review landed, whatever the summary prose says. Read the
+summary only afterwards, to classify what it found. For a rate limit, don't compute
+a deadline: CodeRabbit picks the PR back up on its own once the window passes, so
+poll for it to start and reserve `@coderabbitai review` for a PR it never returns
+to. And remember the green **CodeRabbit** status check means "the integration ran",
+not "a review happened" — it is green for a rate-limited non-review too.
+
 ### The Prettier CI gate covers only `ts|html` — don't `prettier --write` the CSS
 
 **The trap.** CI's format check runs `format:check` =
