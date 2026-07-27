@@ -517,12 +517,15 @@ watching the page sees the comments appear and none of this bites.
   next included review is available" — so there is nothing to parse into a
   deadline either.
 
-**What to do instead.** Treat the structured endpoints as the completion signal:
-`GET /repos/{owner}/{repo}/pulls/{n}/reviews` and `.../pulls/{n}/comments` — a
-count higher than before your push means the review landed, whatever the summary
-prose says. (Compare against a baseline, not against empty: a re-review adds to
-entries the first review already left.) Read the summary only afterwards, to
-classify what it found.
+**What to do instead.** Watch both signals, because each catches a different
+outcome. A count higher than before your push on
+`GET /repos/{owner}/{repo}/pulls/{n}/reviews` or `.../pulls/{n}/comments` means
+the review landed **with findings** — compare against a baseline, not against
+empty, since a re-review adds to what the first one left. But a **clean**
+re-review adds nothing to either endpoint, so an unchanged count is not evidence
+of anything; there its only trace is CodeRabbit's summary comment updating to
+*Review finished* / *no actionable comments*. Poll the counts for findings and
+the summary for completion.
 
 After a rate-limited review you must **ask again by hand** — post
 `@coderabbitai review` as a PR comment once the window has passed. Since the
