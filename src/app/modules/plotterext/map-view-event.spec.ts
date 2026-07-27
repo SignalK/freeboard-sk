@@ -135,7 +135,10 @@ describe('PlotterExtensionService map.view event', () => {
 
   it('publishes for a zoom-only change', () => {
     moveEnd([-80.0, 25.5], 12, [-80.5, 25.0, -79.5, 26.0]);
-    moveEnd([-80.0, 25.5], 13, [-80.25, 25.25, -79.75, 25.75]);
+    // Centre and bounds are deliberately held identical — a real zoom would move
+    // the bounds too, but pinning them proves zoom alone is event-worthy rather
+    // than the bounds comparison carrying the test.
+    moveEnd([-80.0, 25.5], 13, [-80.5, 25.0, -79.5, 26.0]);
     const views = published.filter((p) => p.event === 'map.view');
     expect(views).toHaveLength(2);
     expect(views[1].params).toMatchObject({ zoom: 13 });
