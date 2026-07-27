@@ -1,7 +1,17 @@
 import { Map } from 'ol';
 import { Modify } from 'ol/interaction';
 
-/** Map property holding a monotonic id for the pointer gesture in progress. */
+/**
+ * Map property holding a monotonic id for the pointer gesture in progress.
+ *
+ * Gestures need identity because a delete marker can outlive the gesture that
+ * set it (see `VERTEX_DELETED_IN_GESTURE`): without an id, a *later* gesture's
+ * drag would retire a marker whose click is still pending, and that click would
+ * then extend the route. OpenLayers offers nothing usable here — `down_`, the
+ * clone its click events carry, does not exist yet when a long-press sets the
+ * marker mid-gesture, and it is a fresh `PointerEvent`, so a tag put on the DOM
+ * `pointerdown` never reaches it.
+ */
 export const POINTER_GESTURE_SEQ = 'pointerGestureSeq';
 
 /**
