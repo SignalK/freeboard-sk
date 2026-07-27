@@ -30,5 +30,17 @@
   { "feature": "chart-list", "kind": "enhanced", "since": "v2.19.6", "date": "2026-01-07", "title": "Editable chart properties" },
   { "feature": "chart-list", "kind": "enhanced", "since": "v2.22.0", "date": "2026-04-30", "title": "Add chart opacity control (closes #368)" },
   { "feature": "chart-list", "pr": 352, "kind": "enhanced", "date": "2026-07-25", "title": "feat(charts): add In view filter to chart list" },
-  { "feature": "chart-list", "pr": 595, "kind": "enhanced", "date": "2026-07-26", "title": "feat(charts): order chart list to match the chosen layer order" }
+  { "feature": "chart-list", "pr": 595, "kind": "enhanced", "date": "2026-07-26", "title": "feat(charts): order chart list to match the chosen layer order" },
+  { "feature": null, "pr": 454, "kind": "skip", "reason": "adds the charts capability to the Plotter Extensions API — display management of chart layers Freeboard already manages, for extension plugins; no direct end-user surface in Freeboard itself" },
+  { "feature": null, "pr": 505, "kind": "skip", "reason": "implements the nightMode capability of the Plotter Extensions API for extension plugins; the user-facing Dark Mode / Auto-set Night Mode settings are unchanged" },
+  { "feature": null, "pr": 508, "kind": "skip", "reason": "exposes the host API to an embedding application (e.g. KIP) over the plotter-extension bus; an integration topology change with no end-user surface in Freeboard itself" },
+  { "feature": null, "pr": 607, "kind": "skip", "reason": "emits the map.view event of the Plotter Extensions API so extensions stop polling map.getView; no end-user surface" },
+  { "feature": null, "pr": 529, "kind": "skip", "reason": "developer tooling — generates the GitHub Release body from the feature ledger; excluded from the npm package, never shipped to users" },
+  { "feature": null, "pr": 450, "kind": "skip", "reason": "developer tooling — dev-tools/fsk-mcp lets an AI agent drive a running Freeboard; excluded from the npm package, never shipped to users" },
+  { "feature": null, "pr": 419, "kind": "skip", "reason": "performance work — runs OpenLayers and change detection outside the Angular zone; no change to what the user can do" },
+  { "feature": null, "pr": 420, "kind": "skip", "reason": "performance work — debounces config saves and guards dark-mode updates; no change to what the user can do" },
+  { "feature": null, "kind": "skip", "date": "2026-06-05", "title": "feat(charts): honor chart tileSize for raster tile sources", "reason": "corrects the rendering scale of raster charts whose tiles are not 256px; a correctness fix despite the feat prefix, with nothing new for the user to do" },
+  { "feature": null, "kind": "skip", "date": "2026-05-23", "title": "perf(app): lazy-load dialog components on demand", "reason": "performance work — no change to what the user can do" },
+  { "feature": null, "kind": "skip", "date": "2026-05-23", "title": "perf(s57): cache derived text-style config across features", "reason": "performance work — no change to what the user can do" },
+  { "feature": null, "kind": "skip", "date": "2026-04-04", "title": "perf: defer S57 chart symbols loading until first use", "reason": "performance work — no change to what the user can do" }
 ]
