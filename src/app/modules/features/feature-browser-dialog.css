@@ -118,6 +118,51 @@ figure.shot figcaption {
   opacity: 0.7;
 }
 
+/* "New in x.y" strip: the current release series' changes, above the body so a
+   reader skimming what's new never has to reach the history table below it.
+   Colours come from the primary-container tokens, which the dark-theme block at
+   the foot of this file redefines — so this follows the theme for free. */
+.whats-new {
+  display: flow-root; /* narrow beside the lead figure, not forced below it */
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 3px solid var(--mat-sys-primary, #415f91);
+  background: var(--mat-sys-primary-container, #d7e2ff);
+  color: var(--mat-sys-on-primary-container, #274777);
+}
+.whats-new-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.whats-new-title mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+.whats-new ul {
+  margin: 5px 0 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.whats-new-more {
+  margin-top: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* PR history table in the details pane (most recent first). */
 .pr-history {
   display: flow-root; /* flow beside the floated figures, not forced below them */

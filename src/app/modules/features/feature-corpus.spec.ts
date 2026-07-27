@@ -9,8 +9,12 @@ import {
   stripTypePrefix,
   categoryHue,
   extractImages,
+  releaseSeries,
+  currentReleaseSeries,
+  MAX_RECENT_SHOWN,
   CompiledFeature,
-  FeatureCorpusPayload
+  FeatureCorpusPayload,
+  FeatureLedgerRow
 } from './feature-corpus';
 
 const doc = (id: string, front: Record<string, string>, body: string) => ({
@@ -189,6 +193,171 @@ describe('compileCorpus', () => {
   });
 });
 
+describe('releaseSeries', () => {
+  it('reduces a release to its major.minor', () => {
+    expect(releaseSeries('v3.1.2')).toBe('3.1');
+    expect(releaseSeries('2.8.4')).toBe('2.8');
+    expect(releaseSeries('v3.1.0-beta.1')).toBe('3.1');
+  });
+
+  it('is null for a blank or series-less value', () => {
+    expect(releaseSeries(null)).toBeNull();
+    expect(releaseSeries('')).toBeNull();
+    expect(releaseSeries('v3')).toBeNull();
+  });
+});
+
+describe('currentReleaseSeries', () => {
+  it('takes the newest released row, ignoring unreleased and skip rows', () => {
+    expect(
+      currentReleaseSeries([
+        { feature: 'a', kind: 'new', since: 'v3.0.0' },
+        { feature: 'a', kind: 'enhanced', since: 'v3.1.1' },
+        { feature: 'a', kind: 'enhanced' },
+        { feature: null, kind: 'skip', since: 'v9.9.9' }
+      ])
+    ).toBe('3.1');
+  });
+
+  it('is null when nothing has been released', () => {
+    expect(currentReleaseSeries([{ feature: 'a', kind: 'new' }])).toBeNull();
+  });
+});
+
+describe('compileCorpus → recentChanges', () => {
+  const build = (ledger: FeatureLedgerRow[]): CompiledFeature =>
+    compileCorpus({
+      docs: [
+        doc('routes', { title: 'Route Planning', category: 'Navigation' }, 'b')
+      ],
+      ledger
+    })[0];
+
+  it('covers the whole series, so a patch release hides nothing', () => {
+    const f = build([
+      {
+        feature: 'routes',
+        pr: 1,
+        kind: 'new',
+        since: 'v3.1.0',
+        date: '2026-07-01',
+        title: 'feat(routes): plan a route'
+      },
+      {
+        feature: 'routes',
+        pr: 2,
+        kind: 'enhanced',
+        since: 'v3.1.1',
+        date: '2026-07-10',
+        title: 'feat(routes): reverse a route'
+      }
+    ]);
+    expect(f.recentChanges?.label).toBe('New in 3.1');
+    expect(f.recentChanges?.shown).toEqual(['reverse a route', 'plan a route']);
+  });
+
+  it('shows nothing for a feature untouched since an earlier series', () => {
+    const f = build([
+      {
+        feature: 'routes',
+        pr: 1,
+        kind: 'new',
+        since: 'v2.9.0',
+        date: '2025-01-01',
+        title: 'feat(routes): plan a route'
+      },
+      {
+        feature: 'elsewhere',
+        pr: 9,
+        kind: 'enhanced',
+        since: 'v3.1.0',
+        date: '2026-07-01',
+        title: 'feat(x): something newer'
+      }
+    ]);
+    expect(f.recentChanges).toBeNull();
+  });
+
+  it('labels a feature that only gained enhancements in the series', () => {
+    const f = build([
+      {
+        feature: 'routes',
+        pr: 1,
+        kind: 'new',
+        since: 'v3.0.0',
+        date: '2026-01-01',
+        title: 'feat(routes): plan a route'
+      },
+      {
+        feature: 'routes',
+        pr: 2,
+        kind: 'enhanced',
+        since: 'v3.1.0',
+        date: '2026-07-01',
+        title: 'feat(routes): reverse a route'
+      }
+    ]);
+    expect(f.recentChanges?.label).toBe('Updated in 3.1');
+    expect(f.recentChanges?.shown).toEqual(['reverse a route']);
+  });
+
+  it('never announces unreleased work under the shipped release name', () => {
+    const f = build([
+      {
+        feature: 'routes',
+        pr: 1,
+        kind: 'new',
+        since: 'v3.1.0',
+        date: '2026-07-01',
+        title: 'feat(routes): plan a route'
+      },
+      {
+        feature: 'routes',
+        pr: 2,
+        kind: 'enhanced',
+        date: '2026-07-20',
+        title: 'feat(routes): reverse a route'
+      }
+    ]);
+    expect(f.recentChanges?.label).toBe('Unreleased');
+    expect(f.recentChanges?.shown).toEqual(['reverse a route']);
+  });
+
+  it('labels a corpus with nothing released yet as unreleased', () => {
+    const f = build([
+      {
+        feature: 'routes',
+        pr: 1,
+        kind: 'new',
+        date: '2026-07-01',
+        title: 'feat(routes): plan a route'
+      }
+    ]);
+    expect(f.recentChanges?.label).toBe('Unreleased');
+    expect(f.recentChanges?.shown).toEqual(['plan a route']);
+  });
+
+  it('caps the list and reports the remainder', () => {
+    const f = build(
+      Array.from({ length: 5 }, (_, i) => ({
+        feature: 'routes',
+        pr: i + 1,
+        kind: 'enhanced' as const,
+        since: 'v3.1.0',
+        date: `2026-07-0${i + 1}`,
+        title: `feat(routes): change ${i + 1}`
+      }))
+    );
+    expect(f.recentChanges?.shown).toHaveLength(MAX_RECENT_SHOWN);
+    expect(f.recentChanges?.shown[0]).toBe('change 5');
+    expect(f.recentChanges?.more).toBe(2);
+  });
+
+  it('is null for a doc with no ledger rows', () => {
+    expect(build([]).recentChanges).toBeNull();
+  });
+});
+
 describe('sortFeatures', () => {
   const feats: CompiledFeature[] = [
     mk('a', 'Alpha', 'Radar', 'v2.1.0'),
@@ -324,6 +493,7 @@ function mk(
     since,
     latestKind: since ? 'new' : null,
     events: [],
+    recentChanges: null,
     images: []
   };
 }

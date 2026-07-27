@@ -9,15 +9,6 @@ category: Routes
 Draw a route on the chart, review and adjust it, then save it for later —
 or skip saving and just use it right away.
 
-## New in 3.1
-
-- **One editing card** for both drawing and modifying, with the commit and
-  **Cancel** actions always in the same place.
-- **Undo** while drawing or editing — an Undo button, or Ctrl-Z / ⌘-Z.
-- **Extend a saved route** by clicking open water, without leaving Modify.
-- **Reorder points on an unsaved draft**, not just on saved routes.
-- **Hide** a route from the chart directly from its popover.
-
 **To draw a route**, open the edit menu (pencil icon) and choose **Draw
 Route**. Tap each point along your intended route. A small editing card
 shows the running distance and a **Finish** button — tap **Finish** (or

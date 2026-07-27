@@ -60,6 +60,23 @@ export interface FeatureImage {
   alt: string;
 }
 
+/**
+ * A feature's changes in the current release series — the "New in x.y" strip
+ * shown above the body, so a reader skimming what's new doesn't have to reach
+ * the history table at the bottom of the pane.
+ */
+export interface RecentChanges {
+  /** Heading: "New in 3.1", "Updated in 3.1", or "Unreleased". */
+  label: string;
+  /** Change titles, most recent first, capped at `MAX_RECENT_SHOWN`. */
+  shown: string[];
+  /** Changes beyond `shown` — 0 when everything fits. */
+  more: number;
+}
+
+/** Titles listed before the strip defers the rest to the history table. */
+export const MAX_RECENT_SHOWN = 3;
+
 /** A feature ready for display in the browser. */
 export interface CompiledFeature {
   id: string;
@@ -73,6 +90,8 @@ export interface CompiledFeature {
   latestKind: Exclude<FeatureChangeKind, 'skip'> | null;
   /** PRs that changed this feature, most recent first. */
   events: FeatureEvent[];
+  /** What's new in the current release series, or null if nothing is. */
+  recentChanges: RecentChanges | null;
   /** Images embedded in the body, in order; `images[0]` is the lead figure. */
   images: FeatureImage[];
 }
@@ -164,6 +183,63 @@ export function compareSince(a: string | null, b: string | null): number {
 }
 
 /**
+ * The `major.minor` series of a release string (`v3.1.2` → `3.1`), or null if it
+ * names no series. Patch releases share a series deliberately: "New in 3.1" must
+ * mean everything since 3.0, for the whole life of 3.1.
+ */
+export function releaseSeries(since: string | null | undefined): string | null {
+  if (!since) return null;
+  const parts = String(since).replace(/^v/i, '').split('.');
+  return parts.length < 2 ? null : `${parts[0]}.${parts[1]}`;
+}
+
+/**
+ * The newest release series anywhere in the ledger — what "current" means for
+ * the strip. Null when nothing has shipped yet (only unreleased rows).
+ */
+export function currentReleaseSeries(
+  ledger: FeatureLedgerRow[]
+): string | null {
+  let newest: string | null = null;
+  for (const row of ledger) {
+    if (!row || row.kind === 'skip' || !row.since) continue;
+    if (compareSince(row.since, newest) > 0) newest = row.since;
+  }
+  return releaseSeries(newest);
+}
+
+/**
+ * A feature's strip. Unreleased rows win when present: they belong to the *next*
+ * series, so folding them into the current one would announce work that hasn't
+ * shipped under the shipped release's name. Users never see that branch — only
+ * dev and beta builds carry unstamped rows, and it keeps them from being blank.
+ *
+ * Otherwise the strip is the feature's rows in `series`, and null when it has
+ * none — which is how the strip ages out on its own once the next series ships.
+ */
+function buildRecentChanges(
+  rows: FeatureLedgerRow[],
+  series: string | null
+): RecentChanges | null {
+  // `rows` arrives newest-first, so filtering preserves that order.
+  const unreleased = rows.filter((r) => !r.since);
+  const group = unreleased.length
+    ? unreleased
+    : rows.filter((r) => releaseSeries(r.since) === series);
+  const titles = group
+    .map((r) => stripTypePrefix(r.title ?? ''))
+    .filter((t) => t.length > 0);
+  if (titles.length === 0) return null;
+
+  const kind = group.some((r) => r.kind === 'new') ? 'New' : 'Updated';
+  return {
+    label: unreleased.length ? 'Unreleased' : `${kind} in ${series}`,
+    shown: titles.slice(0, MAX_RECENT_SHOWN),
+    more: Math.max(0, titles.length - MAX_RECENT_SHOWN)
+  };
+}
+
+/**
  * Join the raw docs with the ledger into displayable features. Each feature's
  * non-skip rows become its `events` (most recent first, by date then PR); the
  * most recent row also drives `since`/`latestKind`. `skip` rows and rows for
@@ -175,6 +251,7 @@ export function compileCorpus(
   const docs = payload?.docs ?? [];
   const ledger = payload?.ledger ?? [];
 
+  const series = currentReleaseSeries(ledger);
   const rowsByFeature = new Map<string, FeatureLedgerRow[]>();
   for (const row of ledger) {
     if (!row || row.kind === 'skip' || !row.feature) continue;
@@ -209,6 +286,7 @@ export function compileCorpus(
         date: r.date ?? null,
         title: stripTypePrefix(r.title ?? '')
       })),
+      recentChanges: buildRecentChanges(rows, series),
       images
     };
   });

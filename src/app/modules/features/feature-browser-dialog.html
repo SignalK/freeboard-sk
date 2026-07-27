@@ -60,6 +60,28 @@
         <span class="since">Unreleased</span>
         }
       </div>
+      @if (f.recentChanges; as rc) {
+      <div class="whats-new">
+        <div class="whats-new-title">
+          <mat-icon>tips_and_updates</mat-icon>
+          <span>{{ rc.label }}</span>
+        </div>
+        <ul>
+          @for (title of rc.shown; track $index) {
+          <li>{{ title }}</li>
+          }
+        </ul>
+        @if (rc.more) {
+        <button
+          type="button"
+          class="whats-new-more"
+          (click)="scrollToHistory()"
+        >
+          +{{ rc.more }} more
+        </button>
+        }
+      </div>
+      }
       <div class="body">
         <remark [processor]="mdProcessor" [markdown]="f.body">
           <ng-template remarkTemplate="image" let-node>
