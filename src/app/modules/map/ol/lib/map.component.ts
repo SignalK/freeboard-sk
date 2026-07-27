@@ -26,7 +26,7 @@ import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
 import { hitToleranceForPointer, worldCopyOffset } from './util';
-import { tryDeleteHeldVertexOnHold } from './vertex-delete';
+import { clearVertexDeleted, tryDeleteHeldVertexOnHold } from './vertex-delete';
 
 export interface FBMapEvent extends MapEvent {
   lonlat: Coordinate;
@@ -366,9 +366,15 @@ export class MapComponent implements OnInit, OnDestroy {
     this.ngZone.run(() =>
       this.mapSingleClick.emit(this.augmentClickEvent(event))
     );
+    // Consumers have now seen this click, so a vertex delete it completed is
+    // spent and must not suppress the next one (#608).
+    clearVertexDeleted(this.map);
   };
   private emitDblClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
     this.ngZone.run(() => this.mapDblClick.emit(this.augmentClickEvent(event)));
+    // A double click cancels the pending singleclick, so retire the marker here
+    // instead (#608).
+    clearVertexDeleted(this.map);
   };
 
   // Render-space offset (EPSG:3857 metres) of the world copy a click landed in,
@@ -426,6 +432,9 @@ export class MapComponent implements OnInit, OnDestroy {
     // Only a real move (beyond tolerance) cancels the hold / pending delete —
     // a real drag means "move the vertex", a jitter does not.
     this.clearTimerIfMoved(event);
+    // A gesture that has dragged emits no click at all, so no click is left to
+    // suppress and the marker would otherwise go stale (#608).
+    clearVertexDeleted(this.map);
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
   };
   private emitPointerMoveEvent = (event: MapBrowserEvent<PointerEvent>) => {

@@ -129,8 +129,10 @@ import { LineString as OLLineString } from 'ol/geom';
 import {
   extendRouteAtClick,
   RoutePointMeta,
+  shouldExtendRoute,
   WORLD_WIDTH_3857
 } from './route-extend';
+import { vertexDeleted } from './ol/lib/vertex-delete';
 import { modifiedLegIndex } from './route-modify-leg';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
@@ -1321,8 +1323,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * the new end point (issue #549) — so a route can be lengthened the same way
    * it is drawn, without leaving modify mode. A click *on* the route belongs to
    * OL Modify (move / insert / delete a vertex), so only clicks that miss it
-   * extend the route; the state kept in sync here mirrors applyModifyEnd so
-   * Undo, Finish and Cancel all see the new point.
+   * extend the route — and never the click that completes a vertex delete
+   * (#608); the state kept in sync here mirrors applyModifyEnd so Undo, Finish
+   * and Cancel all see the new point.
    */
   private extendRouteInModify(e: FBClickEvent) {
     const f = this.mapInteract.draw.features?.getArray()[0] as Feature;
@@ -1341,7 +1344,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       .getMap()
       .getFeaturesAtPixel(e.pixel, { hitTolerance: tol })
       .some((ft) => ft.getId() === f.getId());
-    if (onRoute) {
+    // A delete has already moved the line away from the clicked pixel, so the
+    // hit-test above cannot recognise the release that completed it (#608).
+    if (
+      !shouldExtendRoute({
+        onRoute,
+        vertexDeleted: vertexDeleted(this.olMap.getMap())
+      })
+    ) {
       return;
     }
     // Metadata may not be seeded yet if this is the first op of the session (no

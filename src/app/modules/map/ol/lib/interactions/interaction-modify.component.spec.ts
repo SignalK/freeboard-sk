@@ -1,5 +1,6 @@
 import { expect, describe, it } from 'vitest';
 import { vertexDeleteCondition } from './interaction-modify.component';
+import { vertexDeleted } from '../vertex-delete';
 
 // Minimal stand-in for the OL map: only get/set of the delete-on-release flag
 // are read by the condition.
@@ -51,5 +52,25 @@ describe('vertexDeleteCondition', () => {
     expect(
       vertexDeleteCondition(ev('pointerup', { map: fakeMap(false) }))
     ).toBe(false);
+  });
+
+  // #608: the release that deletes also produces a click, which the route
+  // extend handler would read as open water once the line has snapped away.
+  it('flags vertexDeletedInGesture when a tap-hold release deletes', () => {
+    const map = fakeMap(true);
+    vertexDeleteCondition(ev('pointerup', { map }));
+    expect(vertexDeleted(map)).toBe(true);
+  });
+
+  it('flags vertexDeletedInGesture when Ctrl-Click deletes', () => {
+    const map = fakeMap();
+    vertexDeleteCondition(ev('click', { ctrlKey: true, map }));
+    expect(vertexDeleted(map)).toBe(true);
+  });
+
+  it('leaves vertexDeletedInGesture unset when nothing is deleted', () => {
+    const map = fakeMap(false);
+    vertexDeleteCondition(ev('click', { map }));
+    expect(vertexDeleted(map)).toBe(false);
   });
 });
