@@ -35,6 +35,29 @@
   padding-right: 15px;
   flex: 1 1 auto;
 }
+/* A label shared by several related inputs, standing in for the mat-label a
+   single control would carry. An empty one is a spacer keeping a neighbouring
+   single control's box level with the group's boxes. */
+.settings .setting-field-group-title {
+  font-size: 10pt;
+  font-family: Arial, Helvetica, sans-serif;
+  opacity: 0.7;
+  line-height: 1.4;
+  min-height: 1.4em;
+  padding-bottom: 2px;
+}
+/* Must wrap: a non-wrapping row wider than the panel stretches the whole card
+   and pushes controls in its sibling rows off screen. */
+.settings .setting-field-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+/* Sized for a two or three digit entry rather than stretched to fill the row. */
+.settings .setting-field-group mat-form-field {
+  flex: 0 1 150px;
+  min-width: 80px;
+}
 
 /*ipads*/
 @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),

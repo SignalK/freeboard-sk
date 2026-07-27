@@ -464,6 +464,10 @@
               <mat-card-content>
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
+                    <!-- spacer keeping this control level with the offset group -->
+                    <div class="setting-field-group-title" aria-hidden="true">
+                      &nbsp;
+                    </div>
                     <mat-form-field style="width: 100%">
                       <mat-label>Feature label zoom level</mat-label>
                       <mat-select
@@ -477,19 +481,37 @@
                     </mat-form-field>
                   </div>
                   <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%" floatLabel="always">
-                      <mat-label>Offset Vessel Center (%)</mat-label>
-                      <input
-                        matInput
-                        type="number"
-                        #centerOffset="ngModel"
-                        [min]="-centerOffsetLimit"
-                        [max]="centerOffsetLimit"
-                        [(ngModel)]="facade.settings.map.centerOffset"
-                        (change)="parseCenterOffset(centerOffset)"
-                        matTooltip="How far ahead of the vessel to centre the map, as a percentage of the distance to the screen edge. Use a negative value to look behind."
-                      />
-                    </mat-form-field>
+                    <div class="setting-field-group-title">
+                      Offset Vessel Center (%)
+                    </div>
+                    <div class="setting-field-group">
+                      <mat-form-field floatLabel="always">
+                        <mat-label>Ahead</mat-label>
+                        <input
+                          matInput
+                          type="number"
+                          #centerOffset="ngModel"
+                          [min]="-centerOffsetLimit"
+                          [max]="centerOffsetLimit"
+                          [(ngModel)]="facade.settings.map.centerOffset"
+                          (change)="parseCenterOffset(centerOffset)"
+                          matTooltip="How far ahead of the vessel to centre the map, as a percentage of the distance to the screen edge. Use a negative value to look behind."
+                        />
+                      </mat-form-field>
+                      <mat-form-field floatLabel="always">
+                        <mat-label>Abeam</mat-label>
+                        <input
+                          matInput
+                          type="number"
+                          #centerOffsetAbeam="ngModel"
+                          [min]="-centerOffsetLimit"
+                          [max]="centerOffsetLimit"
+                          [(ngModel)]="facade.settings.map.centerOffsetAbeam"
+                          (change)="parseCenterOffset(centerOffsetAbeam)"
+                          matTooltip="How far to one side of the vessel to centre the map, as a percentage of the distance to the screen edge. Positive is to starboard, negative to port."
+                        />
+                      </mat-form-field>
+                    </div>
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox

@@ -160,6 +160,9 @@ export function cleanConfig(
   } else {
     settings.map.centerOffset = clampCenterOffset(settings.map.centerOffset);
   }
+  settings.map.centerOffsetAbeam = clampCenterOffset(
+    settings.map.centerOffsetAbeam ?? 0
+  );
   if (typeof settings.map.doubleClickZoom === 'undefined') {
     settings.map.doubleClickZoom = false;
   }
@@ -530,6 +533,7 @@ export function defaultConfig(): IAppConfig {
       doubleClickZoom: false, // true=zoom
       overZoomTiles: true, // keep tiles visible beyond chart max zoom
       centerOffset: 0,
+      centerOffsetAbeam: 0,
       s57Options: {
         graphicsStyle: 'Paper',
         boundaries: 'Plain',
