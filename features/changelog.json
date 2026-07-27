@@ -23,5 +23,12 @@
   { "feature": "route-planning", "pr": 584, "kind": "enhanced", "date": "2026-07-25", "title": "feat(routes): add undo for route drawing and editing" },
   { "feature": "route-planning", "pr": 593, "kind": "enhanced", "date": "2026-07-25", "title": "feat(routes): add a Hide action to the route popover" },
   { "feature": "route-planning", "pr": 597, "kind": "enhanced", "date": "2026-07-26", "title": "feat(routes): allow reordering points on unsaved routes" },
-  { "feature": "route-planning", "pr": 598, "kind": "enhanced", "date": "2026-07-26", "title": "feat(routes): extend a route by clicking open water in modify mode" }
+  { "feature": "route-planning", "pr": 598, "kind": "enhanced", "date": "2026-07-26", "title": "feat(routes): extend a route by clicking open water in modify mode" },
+  { "feature": "chart-list", "kind": "new", "since": "v0.0.2", "date": "2016-07-05", "title": "Add charts find and display" },
+  { "feature": "chart-list", "kind": "enhanced", "since": "v1.14.0", "date": "2020-12-19", "title": "Chart List ordering (closes #88)" },
+  { "feature": "chart-list", "pr": 177, "kind": "enhanced", "since": "v2.11.2", "date": "2024-08-30", "title": "Toggle chart on boundary click" },
+  { "feature": "chart-list", "kind": "enhanced", "since": "v2.19.6", "date": "2026-01-07", "title": "Editable chart properties" },
+  { "feature": "chart-list", "kind": "enhanced", "since": "v2.22.0", "date": "2026-04-30", "title": "Add chart opacity control (closes #368)" },
+  { "feature": "chart-list", "pr": 352, "kind": "enhanced", "date": "2026-07-25", "title": "feat(charts): add In view filter to chart list" },
+  { "feature": "chart-list", "pr": 595, "kind": "enhanced", "date": "2026-07-26", "title": "feat(charts): order chart list to match the chosen layer order" }
 ]
