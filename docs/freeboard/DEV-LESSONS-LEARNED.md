@@ -63,14 +63,46 @@ maintaining a shadow feature.
 
 ## When coding
 
-### Reading and writing the same signal inside `effect()` loops
+### Writing and then reading a signal in an `effect()` — it takes *two* effects to loop
 
-**The trap.** An `effect()` that both reads a signal and writes it creates a
-feedback loop — the write re-triggers the effect, which writes again.
+**The trap.** An `effect()` that writes a signal and then reads it back does **not**
+loop, which is exactly why this is dangerous: the reactive graph records the version
+seen *at read time*, and a read after the write already has the current version, so
+the effect never re-triggers itself. A single effect looks — and tests — completely
+safe.
 
-**What to do instead.** Read the current value **non-reactively** (a plain getter
-or snapshot method) when the same effect also mutates that state, so the read
-doesn't register a reactive dependency.
+It goes wrong as soon as a **second** effect writes and reads that same signal.
+Neither self-triggers, but each one's write invalidates the version the *other* one
+recorded, so they re-trigger each other and ping-pong until the JS heap is exhausted.
+The symptom is a hard browser lockup with nothing pointing at either effect.
+
+That is #617: `ChartListComponent` had `effect(selectedCharts)` and
+`effect(mapExtent)` both ending in `doFilter()`, which writes the `filteredList`
+signal and then reads it back through `alignSelections()`. Each effect alone was
+fine; together, one map move locked Freeboard up.
+
+**What to do instead.** Treat an effect's trigger as deliberate, not incidental: read
+only the signals that should *cause* the effect, and run everything else inside
+[`untracked()`](https://angular.dev/api/core/untracked).
+
+```ts
+effect(() => {
+  this.app.mapExtent();                      // the trigger
+  untracked(() => this.doFilter());          // side effect — not a dependency
+});
+```
+
+Reading the value non-reactively at the point of use (a snapshot, or `untracked()`
+around the read itself) works too, and is the better fix when the write-then-read
+lives in shared code that many callers reach.
+
+**When debugging this,** don't try to reproduce it with one effect — it will pass.
+You need both effects live, which usually means a real component fixture so signal
+`input()`s can be set (`ComponentRef.setInput`); `TestBed.overrideComponent(Cmp, {
+set: { template: '' } })` keeps that cheap when the loop is in the effects rather
+than the view. Have the stubbed collaborator throw after a small number of calls, or
+the runaway takes the vitest worker down with an out-of-memory crash instead of a
+readable failure.
 
 ### Importing one field from a large JSON — use a *named* import
 
