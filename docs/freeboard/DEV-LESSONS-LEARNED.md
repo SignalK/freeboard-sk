@@ -250,6 +250,37 @@ runs**, not two full-suite runs — once with the fix reverted (new test fails),
 restored (it passes). Don't reach for `npx vitest` to shortcut it; that's the path
 that fails on the alias.
 
+### After backgrounding a non-exiting `ng` command, don't trust the shell's cwd
+
+**The trap.** The two entries above leave you backgrounding `ng test` / `ng build`
+routinely — they never self-exit, so that's the normal way to run them. But a
+backgrounded command that outlives the call that started it can leave a *later*
+command in the session running from a different working directory than you expect
+— typically the repo/workspace root rather than the worktree you were in. The
+commands themselves still look right in the transcript, so nothing signals the
+drift until something resolves a relative path.
+
+It is harmless for a read (`ls`, `grep` — you just get confusing output) and
+dangerous for anything destructive. Real occurrence: `rm -rf public plugin`,
+intended to clean a worktree's build outputs before a `build:all`, executed from
+the workspace root instead. Nothing was lost only because no `public/` or
+`plugin/` exists there — `rm -rf` on a non-existent path is a silent no-op, so
+there was no error either way. The same slip one directory over is unrecoverable.
+
+**What to do instead.** Once you have backgrounded a long-running command, stop
+relying on inherited cwd — make every subsequent destructive or build command
+carry its own absolute `cd`:
+
+```bash
+cd /abs/path/to/worktrees/<feature>/freeboard-sk && rm -rf public plugin && npm run build:all
+```
+
+Cheap habits that make the drift visible: chain `pwd &&` in front of a destructive
+command, and prefer explicit paths (`rm -rf "$PWD/public"`) over bare relative
+ones. This matters most in the worktree workflow, where several checkouts of the
+same repo exist side by side and a relative path is valid — but wrong — in all of
+them.
+
 ### Don't remove `isolate: true` from the vitest config
 
 **The trap.** `vitest-base.config.ts` sets `isolate: true`, which costs the suite a few
