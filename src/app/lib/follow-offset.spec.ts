@@ -34,6 +34,14 @@ const fromVessel = (centre: Position) => ({
   bearing: Convert.degreesToRadians(getGreatCircleBearing(VESSEL, centre) ?? 0)
 });
 
+/** A heading-up viewport on an easterly course, taller than it is wide: the
+ *  course points up the screen, and the two axes have different edge distances. */
+const ROTATED: MapViewport = {
+  halfWidth: 800,
+  halfHeight: 2000,
+  rotation: -EAST
+};
+
 /** A map centre panned `distance` metres from the vessel on `bearing`. */
 const panTo = (bearing: number, distance: number) =>
   GeoUtils.destCoordinate(VESSEL, bearing, distance);
@@ -240,5 +248,26 @@ describe('centerOffsetFromPan', () => {
     const centre = mapCenterForOffset(VESSEL, NORTH, SQUARE, offset!);
     expect(centre[0]).toBeCloseTo(panned[0], 3);
     expect(centre[1]).toBeCloseTo(panned[1], 3);
+  });
+
+  it('round-trips through a rotated, non-square viewport', () => {
+    // Heading-up on an easterly course, narrow screen: the two axes have
+    // different edge distances and neither aligns with north.
+    const panned = panTo(EAST + Math.PI / 5, 600);
+    const offset = centerOffsetFromPan(VESSEL, panned, EAST, ROTATED);
+    const centre = mapCenterForOffset(VESSEL, EAST, ROTATED, offset!);
+    expect(centre[0]).toBeCloseTo(panned[0], 3);
+    expect(centre[1]).toBeCloseTo(panned[1], 3);
+  });
+
+  it('constrains a pan that drags the vessel off a rotated viewport', () => {
+    // Dragged well beyond the narrow edge: the stored pair must be the one the
+    // renderer actually uses, or the vessel springs back from the drop point.
+    const panned = panTo(EAST + Math.PI / 4, 4000);
+    const offset = centerOffsetFromPan(VESSEL, panned, EAST, ROTATED)!;
+    const centre = mapCenterForOffset(VESSEL, EAST, ROTATED, offset);
+    const rendered = centerOffsetFromPan(VESSEL, centre, EAST, ROTATED)!;
+    expect(rendered.ahead).toBeCloseTo(offset.ahead, 0);
+    expect(rendered.abeam).toBeCloseTo(offset.abeam, 0);
   });
 });

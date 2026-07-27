@@ -140,6 +140,38 @@ function onScreenScale(
 }
 
 /**
+ * Scale an offset pair back until the vessel is inside the viewport, so that a
+ * stored offset is the one actually rendered. Panning the vessel clean off the
+ * screen otherwise stores a pair the renderer then shrinks, and the vessel
+ * springs back from where it was dropped.
+ * @param offset the offset percentages to constrain
+ * @param course vessel COG (or heading) in radians
+ * @param viewport the current map viewport
+ */
+export function constrainCenterOffset(
+  offset: CenterOffset,
+  course: number,
+  viewport: MapViewport
+): CenterOffset {
+  const { ahead, abeam } = offsetComponents(course, viewport, offset);
+  const distance = Math.hypot(ahead, abeam);
+  if (!distance || !Number.isFinite(distance)) {
+    return offset;
+  }
+  const scale = onScreenScale(
+    normalise(course + Math.atan2(abeam, ahead)),
+    distance,
+    viewport
+  );
+  return scale >= 1
+    ? offset
+    : {
+        ahead: clampCenterOffset(offset.ahead * scale),
+        abeam: clampCenterOffset(offset.abeam * scale)
+      };
+}
+
+/**
  * Resolve the configured offset to a map centre for the vessel's current
  * position and course.
  * @param vessel vessel position `[lon, lat]`
@@ -216,8 +248,14 @@ export function centerOffsetFromPan(
     getGreatCircleBearing(vessel, mapCenter) ?? 0
   );
   const delta = bearing - course;
-  return {
-    ahead: clampCenterOffset(((distance * Math.cos(delta)) / aheadEdge) * 100),
-    abeam: clampCenterOffset(((distance * Math.sin(delta)) / abeamEdge) * 100)
-  };
+  return constrainCenterOffset(
+    {
+      ahead: clampCenterOffset(
+        ((distance * Math.cos(delta)) / aheadEdge) * 100
+      ),
+      abeam: clampCenterOffset(((distance * Math.sin(delta)) / abeamEdge) * 100)
+    },
+    course,
+    viewport
+  );
 }
