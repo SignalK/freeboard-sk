@@ -183,6 +183,13 @@ export class FBMapInteractService {
     });
   }
 
+  /** set the leg to report in measurement data (-1 = the last leg) */
+  set measurementIndex(value: number) {
+    this.measurement.update((current) => {
+      return Object.assign({}, current, { index: value });
+    });
+  }
+
   /** set center position in measurment data */
   set measurementCenter(value: Position) {
     this.measurement.update((current) => {
