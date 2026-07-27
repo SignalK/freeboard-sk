@@ -198,6 +198,40 @@ wrapX. The same reasoning applies to any interaction with a configurable
 with the map's selection tolerance. (Introduced with the route-extend feature,
 #598.)
 
+### A guard for "this gesture already acted" cannot be scoped to the gesture
+
+**The trap.** Sooner or later a map click handler needs to know that the pointer
+gesture producing it *already did something* — "the release that just deleted a
+vertex must not also extend the route" (#608). The instinctive lifetime for that
+marker is set-it-when-it-happens, clear-it-on the next `pointerdown`: one gesture,
+one flag, tidy. It is silently racy.
+
+OpenLayers dispatches `singleclick` on a **250 ms timer** (`MapBrowserEventHandler`),
+and *nothing cancels that timer at `pointerdown`* — only the **next release**
+collapses it into a `dblclick`. So a fast follow-up press starts a new gesture while
+the previous gesture's click is still pending: the `pointerdown` clears the marker,
+then the delayed click arrives and reads `false`. The guard silently does nothing,
+and only for users who tap quickly — which is exactly the user deleting several
+vertices in a row.
+
+**What to do instead.** Let the marker outlive its gesture and retire it where the
+*click* resolves, not where the next gesture starts. A gesture resolves as exactly
+one of:
+
+- **`singleclick`** — clear it after emitting, so consumers have read it first;
+- **`dblclick`** — which cancelled the pending `singleclick`, so nothing else will;
+- **a drag** — `dragging_` is sticky for the whole gesture and gates click
+  emulation, so **a gesture that has dragged emits no click at all**.
+
+That last fact is what makes the scheme complete rather than merely less racy: drag
+and click are mutually exclusive, so clearing on drag closes the stale-marker hole
+without any risk of cutting short a click that is still pending.
+
+More generally — **any** state you want a delayed map event to read must not be
+cleared by a *later* input event, because on this map "later input" can precede
+"earlier event". When in doubt, read OL's `MapBrowserEventHandler` for the event
+you depend on: whether it is timer-delayed, and what actually cancels it.
+
 ---
 
 ## When testing
