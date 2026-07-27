@@ -121,3 +121,105 @@ describe('ChartListComponent — list ordered by chart layer order (#550)', () =
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['c', 'b', 'a', 'osm']);
   });
 });
+
+/**
+ * Two constructor effects — one on `selectedCharts`, one on `app.mapExtent()` —
+ * both end in `doFilter()`, which writes the `filteredList` signal and then reads
+ * it back (via `alignSelections()`). Tracked, that read made each effect a
+ * dependent of the other's write: with the "In view" filter on, a single map move
+ * ping-ponged them forever and Freeboard locked up on zoom/pan (#617).
+ *
+ * Both inputs must be present to reproduce it, so these tests use a real
+ * component fixture (`setInput` needs a `ComponentRef`) with the template
+ * overridden away — the loop is in the effects, not the view.
+ *
+ * `arrangeChartLayers` trips after a small number of calls so a regression fails
+ * as an assertion rather than running the vitest worker out of memory.
+ */
+describe('ChartListComponent — "In view" filter does not loop on map move (#617)', () => {
+  const RUNAWAY = 25;
+  let filterRuns: number;
+  let mapExtent: WritableSignal<number[]>;
+
+  const makeComponent = () => {
+    const fixture = TestBed.createComponent(ChartListComponent);
+    fixture.componentRef.setInput('selectedCharts', ['a']);
+    const comp = fixture.componentInstance;
+    (comp as unknown as { fullList: FBCharts }).fullList.push(
+      chart('a', 'Alpha'),
+      chart('b', 'Bravo')
+    );
+    fixture.detectChanges();
+    return { fixture, comp };
+  };
+
+  const setInViewOnly = (comp: ChartListComponent, on: boolean) =>
+    (
+      comp as unknown as { toggleInViewOnly: (c: boolean) => void }
+    ).toggleInViewOnly(on);
+
+  beforeEach(() => {
+    filterRuns = 0;
+    mapExtent = signal<number[]>([0, 0, 1, 1]);
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SKResourceService,
+          useValue: {
+            arrangeChartLayers: (list: FBCharts) => {
+              if (++filterRuns > RUNAWAY) {
+                throw new Error('doFilter() ran away — effect feedback loop');
+              }
+              return [...list];
+            }
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: {
+            mapExtent,
+            // true → initItems() bails out, leaving the seeded fullList alone
+            sIsFetching: signal(true),
+            debug: vi.fn(),
+            data: { chartBounds: { show: false, charts: [] } }
+          }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+    // The loop lives in the constructor effects; the view is not needed.
+    TestBed.overrideComponent(ChartListComponent, { set: { template: '' } });
+  });
+
+  it('re-filters once, not forever, when the map view changes', () => {
+    const { fixture, comp } = makeComponent();
+    // Charts carry no bounds, so they are treated as global and stay in view —
+    // this is about how often the filter runs, not what it keeps.
+    setInViewOnly(comp, true);
+    fixture.detectChanges();
+    filterRuns = 0;
+
+    mapExtent.set([1, 1, 2, 2]);
+    fixture.detectChanges();
+
+    expect(filterRuns).toBe(1);
+  });
+
+  it('does not re-filter on a map view change while the filter is off', () => {
+    const { fixture, comp } = makeComponent();
+    setInViewOnly(comp, false);
+    fixture.detectChanges();
+    filterRuns = 0;
+
+    mapExtent.set([1, 1, 2, 2]);
+    fixture.detectChanges();
+
+    expect(filterRuns).toBe(0);
+  });
+});

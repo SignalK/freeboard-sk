@@ -6,6 +6,7 @@ import {
   input,
   inject,
   output,
+  untracked,
   DestroyRef
 } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -82,9 +83,16 @@ export class ChartListComponent extends ResourceListBase {
   constructor(protected override skres: SKResourceService) {
     super('charts', skres);
     // selection.charts changed
+    //
+    // Both this effect and the map-view one below end in doFilter(), which
+    // writes the filteredList signal and then reads it back (alignSelections).
+    // Tracked, that read makes each effect a dependent of the other's write, so
+    // with the in-view filter on, one map move ping-pongs them forever (#617).
+    // Their triggers are the signals read outside untracked(); the rest is
+    // side effect.
     effect(() => {
       if (this.selectedCharts()) {
-        this.externalSelection();
+        untracked(() => this.externalSelection());
       }
     });
     // resources delta handler
@@ -97,7 +105,7 @@ export class ChartListComponent extends ResourceListBase {
     effect(() => {
       this.app.mapExtent();
       if (this.inViewOnly) {
-        this.doFilter();
+        untracked(() => this.doFilter());
       }
     });
   }
