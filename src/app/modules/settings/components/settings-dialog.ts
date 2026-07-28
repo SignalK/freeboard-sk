@@ -284,6 +284,11 @@ export class SettingsDialog implements OnInit {
     ) {
       return dconfig.display.statusBar.referenceSpeed;
     }
+    if (
+      typeof this.facade.settings.display.statusBar.tapFadeSpeed !== 'number'
+    ) {
+      return dconfig.display.statusBar.tapFadeSpeed;
+    }
     if (typeof this.facade.settings.map.s57Options.shallowDepth !== 'number') {
       return dconfig.map.s57Options.shallowDepth;
     }

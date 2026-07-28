@@ -7,6 +7,7 @@ import {
 } from './lib/follow-offset';
 import { SKVessel } from './modules';
 import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
+import { DEFAULT_TAP_FADE_SPEED } from './modules/map/cursor-marker';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -75,7 +76,8 @@ export function cleanConfig(
       windIndicator: 'barb',
       statusBar: {
         liveEta: false,
-        referenceSpeed: 6
+        referenceSpeed: 6,
+        tapFadeSpeed: DEFAULT_TAP_FADE_SPEED
       }
     };
   } else {
@@ -91,8 +93,11 @@ export function cleanConfig(
     if (typeof settings.display.statusBar === 'undefined') {
       settings.display.statusBar = {
         liveEta: false,
-        referenceSpeed: 6
+        referenceSpeed: 6,
+        tapFadeSpeed: DEFAULT_TAP_FADE_SPEED
       };
+    } else if (typeof settings.display.statusBar.tapFadeSpeed === 'undefined') {
+      settings.display.statusBar.tapFadeSpeed = DEFAULT_TAP_FADE_SPEED;
     }
   }
 
@@ -504,7 +509,8 @@ export function defaultConfig(): IAppConfig {
       windIndicator: 'barb',
       statusBar: {
         liveEta: false,
-        referenceSpeed: 6
+        referenceSpeed: 6,
+        tapFadeSpeed: DEFAULT_TAP_FADE_SPEED
       }
     },
     units: {

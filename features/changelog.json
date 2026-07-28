@@ -11,6 +11,7 @@
   { "feature": null, "pr": 432, "kind": "skip", "reason": "adds the routes capability to the Plotter Extensions API for extension plugins (e.g. auto-routing); no direct end-user surface in Freeboard itself" },
   { "feature": "vessel-tracks", "pr": 448, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-02", "title": "feat(map): add per-vessel AIS track display" },
   { "feature": "cursor-eta", "pr": 455, "kind": "new", "since": "v3.0.0", "date": "2026-07-03", "title": "feat(map): show live bearing, distance and ETA at cursor" },
+  { "feature": "cursor-eta", "kind": "enhanced", "date": "2026-07-27", "title": "feat(map): support the cursor bearing/distance/ETA readout on touch devices" },
   { "feature": "buddy-list", "pr": 484, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-07", "title": "feat(ais): add \"Buddies only\" option to the vessel filter" },
   { "feature": "chart-image-adjustment", "pr": 489, "kind": "new", "since": "v3.0.0", "date": "2026-07-07", "title": "feat(charts): add brightness/contrast adjustment for raster image layers" },
   { "feature": "chart-image-adjustment", "pr": 497, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-10", "title": "feat(charts): make image adjustment a modeless draggable palette" },

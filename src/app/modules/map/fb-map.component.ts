@@ -50,6 +50,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
+import { CursorPin, tapFadeMs, TAP_MAX_DURATION } from './cursor-marker';
 import {
   FBRoute,
   FBRoutes,
@@ -342,6 +343,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
   // when the "Live ETA at cursor" option is enabled (null = hidden).
   protected cursorInfo = signal<CursorEtaInfo | null>(null);
+  /**
+   * Holds that readout on a tapped point for a few seconds, marked on the chart
+   * (#546). Expiring drops the readout with the marker so a bearing is never
+   * left on screen with nothing identifying the point it refers to.
+   */
+  private cursorPin = new CursorPin(() => this.cursorInfo.set(null));
+  /**
+   * The pin's marker as a 0-or-1 element list: the fade is a CSS animation, so
+   * the template tracks by id to get a *new* element per tap rather than
+   * repositioning one whose animation has already run.
+   */
+  protected cursorMarkers = computed(() => {
+    const m = this.cursorPin.marker();
+    return m ? [m] : [];
+  });
+  /** When the gesture in flight pressed down — a tap is a short press. */
+  private pointerDownAt = 0;
   contextMenuPosition = { x: '0px', y: '0px' };
   // Empty widget-anchor cell at the last right-click (or null) — gates and
   // drives the "Add widget here" context-menu item (desktop).
@@ -409,6 +427,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.stopSaveTimer();
     this.stopOffsetGrace();
+    this.cursorPin.release();
     this.obsList.forEach((i) => i.unsubscribe());
   }
 
@@ -769,7 +788,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // Update the status-bar cursor bearing/distance/ETA readout. Off unless the
   // "Live ETA at cursor" option is enabled and the vessel position is known.
-  private updateCursorInfo(cursor: Position) {
+  // `fromTap` marks the one caller allowed to write while the readout is pinned
+  // to a tapped point — the tap that is doing the pinning.
+  private updateCursorInfo(cursor: Position, fromTap = false) {
+    if (this.cursorPin.active && !fromTap) {
+      return;
+    }
     const vessel = this.app.data.vessels.self;
     if (
       !this.app.config.display.statusBar?.liveEta ||
@@ -791,7 +815,27 @@ export class FBMapComponent implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Hold the readout on a tapped point and mark it on the chart. Skipped for a
+   * hold (the context-menu gesture) so only a deliberate tap measures.
+   */
+  private pinCursorAtTap(position: Position, worldOffset: number) {
+    if (
+      !this.app.config.display.statusBar?.liveEta ||
+      Date.now() - this.pointerDownAt > TAP_MAX_DURATION
+    ) {
+      return;
+    }
+    this.cursorPin.pin(
+      position,
+      worldOffset,
+      tapFadeMs(this.app.config.display.statusBar.tapFadeSpeed)
+    );
+    this.updateCursorInfo(position, true);
+  }
+
   protected onMapPointerDown(e: FBPointerEvent) {
+    this.pointerDownAt = Date.now();
     this.mouse.update((m) => ({
       ...m,
       coords: GeoUtils.normaliseCoords(e.lonlat as Position)
@@ -837,6 +881,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
       }
       this.processMapClick(e);
+      this.pinCursorAtTap(e.lonlat as Position, e.worldOffset ?? 0);
     }
   }
 
