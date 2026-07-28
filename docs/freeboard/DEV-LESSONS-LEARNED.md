@@ -329,36 +329,47 @@ runs**, not two full-suite runs — once with the fix reverted (new test fails),
 restored (it passes). Don't reach for `npx vitest` to shortcut it; that's the path
 that fails on the alias.
 
-### After backgrounding a non-exiting `ng` command, don't trust the shell's cwd
+### Never let a destructive command inherit the shell's cwd
 
-**The trap.** The two entries above leave you backgrounding `ng test` / `ng build`
-routinely — they never self-exit, so that's the normal way to run them. But a
-backgrounded command that outlives the call that started it can leave a *later*
-command in the session running from a different working directory than you expect
-— typically the repo/workspace root rather than the worktree you were in. The
-commands themselves still look right in the transcript, so nothing signals the
-drift until something resolves a relative path.
+**The trap.** `public/` and `plugin/` resolve in *every* checkout of this repo, and
+the worktree workflow means several sit side by side. So `rm -rf public plugin` —
+the documented way to clear a stale build before `build:all` — is equally valid,
+and equally wrong, from any other checkout or from the workspace root. `rm -rf` on
+a path that doesn't exist is a **silent no-op**, so the mistake reports nothing
+either way: no warning when it misfires, and none when it destroys the wrong tree.
 
-It is harmless for a read (`ls`, `grep` — you just get confusing output) and
-dangerous for anything destructive. Real occurrence: `rm -rf public plugin`,
-intended to clean a worktree's build outputs before a `build:all`, executed from
-the workspace root instead. Nothing was lost only because no `public/` or
-`plugin/` exists there — `rm -rf` on a non-existent path is a silent no-op, so
-there was no error either way. The same slip one directory over is unrecoverable.
+Working directory drifts for several unrelated reasons, none of them visible:
 
-**What to do instead.** Once you have backgrounded a long-running command, stop
-relying on inherited cwd — make every subsequent destructive or build command
-carry its own absolute `cd`:
+- an earlier command in the session `cd`'d elsewhere — running a setup script from
+  the workspace root is enough, and it persists;
+- a backgrounded long-running command (`ng test` / `ng build` never self-exit, so
+  backgrounding them is routine) outlives the call that started it;
+- the tooling resolves a later command from the project root rather than wherever
+  you believe you are.
+
+The commands look correct throughout — nothing signals the drift until something
+resolves a relative path. That is merely confusing for a read (`ls`, `grep` return
+nothing) and unrecoverable for a write. Real occurrence: `rm -rf public plugin`
+intended for a worktree, executed from the workspace root; nothing was lost only
+because no `public/` or `plugin/` exists there. One directory over, it would not
+have been recoverable.
+
+The same reasoning covers relative paths given to a tool that resolves them against
+*its* directory rather than yours — `git -C <repo> worktree add worktrees/x` creates
+the worktree under `<repo>`, not where you meant.
+
+**What to do instead.** Treat inherited cwd as unreliable **always**, not only
+after backgrounding something. Give every destructive or build command its own
+absolute `cd`, in the *same* command:
 
 ```bash
-cd /abs/path/to/worktrees/<feature>/freeboard-sk && rm -rf public plugin && npm run build:all
+cd /abs/path/to/worktrees/<feature>/freeboard-sk && rm -rf "$PWD/public" "$PWD/plugin" && npm run build:all
 ```
 
-Cheap habits that make the drift visible: chain `pwd &&` in front of a destructive
-command, and prefer explicit paths (`rm -rf "$PWD/public"`) over bare relative
-ones. This matters most in the worktree workflow, where several checkouts of the
-same repo exist side by side and a relative path is valid — but wrong — in all of
-them.
+Two habits that make drift visible instead of silent: chain `pwd &&` ahead of a
+destructive command, and anchor the path itself (`rm -rf "$PWD/public"`) rather
+than writing it bare. Scripts should resolve a repo root into a variable once and
+use `"$REPO/public"` throughout.
 
 ### Don't remove `isolate: true` from the vitest config
 
