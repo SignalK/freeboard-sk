@@ -239,7 +239,7 @@
                       [(ngModel)]="facade.settings.display.statusBar.liveEta"
                       (change)="persistModel()"
                       label="after"
-                      matTooltip="Show the bearing, distance and ETA from the vessel to the cursor in the status bar (mouse only)."
+                      matTooltip="Show the bearing, distance and ETA from the vessel to the cursor in the status bar. Click or tap the chart to hold the readout on that point."
                     >
                       Live ETA at cursor
                     </mat-checkbox>
@@ -262,6 +262,26 @@
                       @if ( refspeed.invalid && (refspeed.dirty ||
                       refspeed.touched) ) {
                       <mat-error>Please enter a number &gt;= 0</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%" floatLabel="always">
+                      <mat-label>Tap Fade Speed (s)</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        #tapfade="ngModel"
+                        min="1"
+                        step="0.5"
+                        [disabled]="!facade.settings.display.statusBar.liveEta"
+                        [(ngModel)]="facade.settings.display.statusBar.tapFadeSpeed"
+                        (change)="parseNumber(tapfade)"
+                        matTooltip="How long the marker left by a click or tap takes to fade. The readout stays held on that point until it does."
+                      />
+                      @if ( tapfade.invalid && (tapfade.dirty ||
+                      tapfade.touched) ) {
+                      <mat-error>Please enter a number &gt;= 1</mat-error>
                       }
                     </mat-form-field>
                   </div>

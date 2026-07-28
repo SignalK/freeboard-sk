@@ -39,6 +39,27 @@
   border-width: 1px;
 }
 
+/* Marks the point the cursor bearing/distance/ETA readout is pinned to. Fades
+   from the moment it appears, over the user's "Tap fade speed" — the template
+   binds animation-duration per marker, so the duration here is only a fallback.
+   The pin lasts exactly as long, so the readout never outlives the mark.
+   The ring and shadow keep it legible over both light and dark chart tiles. */
+.cursor-marker {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: rgba(255,87,34,0.9);
+    border: 2px solid rgba(255,255,255,0.95);
+    box-shadow: 0 0 3px rgba(0,0,0,0.6);
+    pointer-events: none;
+    animation: cursor-marker-fade 1.5s linear forwards;
+}
+
+@keyframes cursor-marker-fade {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
 .nosmall {
     display: block;
 } 

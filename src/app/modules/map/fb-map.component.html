@@ -898,6 +898,21 @@
   >
   </fb-tidal-currents>
 
+  <!-- Point the cursor bearing/distance/ETA readout is pinned to -->
+  @for (m of cursorMarkers(); track m.id) {
+    <ol-overlay
+      [position]="m.position"
+      [worldOffset]="m.worldOffset"
+      [positioning]="'center-center'"
+      [stopEvent]="false"
+    >
+      <div
+        class="cursor-marker"
+        [style.animationDuration]="m.fadeMs + 'ms'"
+      ></div>
+    </ol-overlay>
+  }
+
   <!-- chart boundaries-->
   @if (app.data.chartBounds.show) {
     <fb-chart-bounds
