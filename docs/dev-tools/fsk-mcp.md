@@ -70,6 +70,13 @@ Restart the server so it re-scans `node_modules` and discovers the plugin.
 address **127.0.0.1**. Save. The plugin status should read something like
 `MCP on http://127.0.0.1:3013/mcp, bridge on ws://127.0.0.1:3013/bridge`.
 
+**Then restart the server once more.** The plugin tells Freeboard it exists by
+registering a `plotterExtensions` resource provider as it starts, and a provider
+registered part-way through a server session doesn't make it into the collection
+Freeboard reads. Until you restart, every signal looks healthy — plugin enabled,
+port listening, `runtime.html` served, MCP handshake answering — while Freeboard
+is never told the extension is there and `fsk_list_sessions` stays empty.
+
 ### 4. Open Freeboard-SK
 
 Open your Freeboard-SK dev build against that server in a browser. Because the
@@ -143,6 +150,20 @@ recently connected tab.
 - **`fsk_list_sessions` is empty.** Freeboard isn't open, isn't pointed at the
   server running the plugin, or the plugin isn't enabled (the classic disabled
   plugin — step 3). Reload the Freeboard tab after enabling.
+- **`fsk_list_sessions` stays empty and the plugin looks fine.** Check whether the
+  server is actually advertising the extension — from the Freeboard tab's console:
+
+  ```js
+  fetch('/signalk/v2/api/resources/plotterExtensions', { credentials: 'include' })
+    .then((r) => r.json())
+    .then((j) => console.log(Object.keys(j)));
+  ```
+
+  If `fsk-mcp` isn't among the keys, Freeboard has no way to know the extension
+  exists and reloading the tab will never help — restart the server (step 3).
+  Plugin health is not a useful signal here: `enabled: true`, a listening port, a
+  served `runtime.html` and a working MCP handshake are all equally true of an
+  unregistered extension.
 - **`fsk_list_sessions` stays empty and Freeboard is served over `https`.** The
   bridge is a plain (non-TLS) WebSocket, so a browser blocks the connection from
   an `https` page (mixed content) and no session ever registers. Run Freeboard
