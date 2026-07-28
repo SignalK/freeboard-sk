@@ -42,6 +42,7 @@
   { "feature": "follow-vessel", "kind": "enhanced", "since": "v2.17.0", "date": "2025-08-18", "title": "Look ahead" },
   { "feature": "follow-vessel", "pr": 601, "kind": "enhanced", "since": "v3.1.0-beta.0", "date": "2026-07-26", "title": "feat(map): single center/follow button and pan to set follow offset" },
   { "feature": "follow-vessel", "pr": 616, "kind": "enhanced", "since": "v3.1.0-beta.0", "date": "2026-07-27", "title": "feat(map): offset the vessel abeam as well as ahead when following" },
+  { "feature": "follow-vessel", "pr": 638, "kind": "enhanced", "date": "2026-07-28", "title": "fix(map): hold the follow-vessel offset fixed to the screen, not the boat" },
   { "feature": "radar-overlay", "kind": "new", "since": "v2.19.7", "date": "2026-01-18", "title": "Initial RADAR API support" },
   { "feature": "radar-overlay", "kind": "enhanced", "since": "v2.24.0", "date": "2026-06-19", "title": "Radar control panel with overlay toggle, opacity and radar controls" },
   { "feature": "radar-overlay", "pr": 573, "kind": "enhanced", "since": "v3.1.0-beta.0", "date": "2026-07-25", "title": "feat(radar): Support Radar API 3.4.0 in the radar overlay (with pre-3.4.0 fallback)" },

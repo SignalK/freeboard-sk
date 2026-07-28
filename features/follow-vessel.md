@@ -4,7 +4,7 @@ title: Center & Follow Vessel
 category: Map
 ---
 
-![Fig 1. Following with an Ahead offset — the boat sits low on screen and the chart in front of it gets the room](follow-vessel-1.jpg)
+![Fig 1. Following with a positive Vertical offset — the boat sits low on screen and the chart in front of it gets the room](follow-vessel-1.jpg)
 
 Keep your boat on screen without touching the chart. Follow Vessel mode centers the
 vessel and holds it there as you move, so the chart scrolls under you instead of you
@@ -30,28 +30,30 @@ Sitting dead center spends half your screen on water you have already covered.
 matters gets the room. Two values, each a whole percentage up to ±90 of the distance from
 the middle of the screen to its edge:
 
-- **Ahead** — moves the vessel back so there is more chart in front of it. `50` puts the
-  boat halfway between the center and the trailing edge. A negative value looks behind the
-  boat instead.
-- **Abeam** — moves the vessel to one side. A positive value shows more to starboard, a
-  negative value more to port.
+- **Vertical** — moves the vessel up or down the screen. A positive value looks ahead,
+  putting more chart in front of the boat; `50` puts the boat halfway between the center
+  and the bottom edge. A negative value looks behind instead.
+- **Horizontal** — moves the vessel left or right. A positive value shifts the map to the
+  right, putting the boat toward the left of the screen with more chart visible to the
+  right; a negative value does the opposite.
 
-Both are measured against your **course** rather than the screen, so the offset turns with
-the boat. That is what keeps it honest in north-up: an offset fixed to the screen would
-show a vessel heading south the water it had already passed.
-
-Large values on both axes together would put the boat diagonally outside the corner of the
-screen, so Freeboard scales the pair back as a unit when that would happen — the vessel
-stays visible, and the offset you are shown is the offset that gets stored. A value on one
-axis alone is never affected.
+Both are measured against the **screen**, not your course — the offset holds the exact spot
+you set it to whether you're underway, drifting, or sitting still, instead of swinging
+around as your heading jitters at low speed or with no course at all. In heading-up mode
+this comes to the same thing as ahead/abeam, since "up the screen" already tracks your
+course; the difference only shows in north-up.
 
 ## Setting the offset by panning
 
 You don't have to work the numbers out at all. With **Map Pan When Following** set to
 **Set Follow Offset**, simply pan the chart until the boat sits where you want it.
-Freeboard works out the Ahead and Abeam values from where you dropped it and saves them,
-staying in follow mode the whole time — so the boat holds that spot from then on. For most
-people this is the only way they will ever set the offset.
+Freeboard works out the Vertical and Horizontal values from where you dropped it and saves
+them, staying in follow mode the whole time — so the boat holds that spot from then on. For
+most people this is the only way they will ever set the offset.
+
+Pan the boat clean off the screen and Freeboard takes it as "stop following" instead —
+follow mode turns off and the chart stays exactly where you left it, rather than snapping
+the boat back into view.
 
 ## Map Pan When Following
 

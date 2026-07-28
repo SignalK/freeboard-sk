@@ -2409,23 +2409,26 @@
               while in "Follow Vessel" mode, so you can give yourself more
               visible chart in the direction you care about. Each value is a
               percentage of the distance from the center of the screen to its
-              edge, and both are measured relative to your course, so the view
-              keeps its bearings as the vessel turns.
+              edge, and both are measured relative to the screen, so the offset
+              holds its spot whether the vessel is underway, drifting, or at
+              rest.
               <ul>
                 <li>
-                  <b>Ahead</b>: moves the vessel back from the center to show
-                  more chart in front of it, so <b>50</b> places the vessel half
-                  way between the center and the trailing edge. A negative value
+                  <b>Vertical</b>: moves the vessel up or down the screen, so
+                  <b>50</b> places the vessel half way between the center and
+                  the bottom edge, showing more chart ahead. A negative value
                   looks behind the vessel instead.
                 </li>
                 <li>
-                  <b>Abeam</b>: moves the vessel to one side. A positive value
-                  shows more chart to starboard, a negative value more to port.
+                  <b>Horizontal</b>: moves the vessel left or right. A positive
+                  value shifts the map to the right, showing more chart to the
+                  right of the vessel; a negative value does the opposite.
                 </li>
               </ul>
               You can also set both by eye: with
               <b>Map Pan When Following</b> set to <b>Set Follow Offset</b>,
-              simply pan the chart to put the vessel where you want it.<br />
+              simply pan the chart to put the vessel where you want it. Panning
+              the vessel off screen instead turns follow mode off.<br />
             </li>
             <li>
               <b>Popover close with button</b>: Select this option in order to a
