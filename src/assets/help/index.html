@@ -755,7 +755,7 @@
               Selecting a Group will display all of the resources within the
               group on the map and hide all other resources.
               <br />
-              Resources can be added to groups directly from the specfic
+              Resources can be added to groups directly from the specific
               resource list <i>(e.g. Routes, Waypoints, Regions, Charts)</i> or
               when editing a Group's properties.
               <br />
@@ -1177,7 +1177,8 @@
           <br />&nbsp;
           <div>
             <b>Note Properties:</b><br />
-            Freeboard uses specfic key / value pairs that are defined within the
+            Freeboard uses specific key / value pairs that are defined within
+            the
             <code>properties: {}</code> block of a note: <br />&nbsp;
             <ul>
               <li>
@@ -2354,20 +2355,21 @@
             other available path values!
           </i>
           <br />
-          <b id="settings-paths">Preferred Paths</b>: Click this button to
-          display show a list of available source paths for specific values i.e.
-          Heading, Wind Speed, etc.<br />
+          <b id="settings-paths">Preferred Paths</b>: Some values are published
+          on more than one Signal K path. This panel is where you choose which
+          one Freeboard uses for <i>True Wind Speed</i>,
+          <i>True Wind Direction</i> and <i>Heading / COG</i>.<br />
           <img
             src="./img/settings_paths.png"
             style="height: 200px"
             alt=""
           /><br />
-          Select the path from which you want the value used for the specfic
-          vessel attribute.<br />
-          Click <i>Save</i> to ensure your selections are applied.<br />
+          Select the path you want used for each value. Your selection applies
+          immediately.<br />
           <i
-            >Note: The paths available will depend on the data stream received
-            from the Signal K server.
+            >Note: Only paths present in the data stream received from the
+            Signal K server are offered. If none are, Freeboard still lists its
+            default path for that value.
           </i>
           <hr />
 
