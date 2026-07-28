@@ -48,13 +48,15 @@ choice and won't swap your custom icon back in later.
 | AIS vessels | Yes |
 | Aids to navigation | Yes |
 | Route start / turn / end points | Yes |
+| Wind, ocean current and tidal current arrows | Yes |
 | Special waypoint markers (start pin, start boat, sightings, alarms) | No |
 | Shaded chart areas | No |
 | Dots for moored vessels | No |
 
 Icons that normally rotate to a heading or bearing — your vessel, AIS
-targets, aids to navigation, route turn points — keep rotating correctly even
-when you've replaced them with your own artwork.
+targets, aids to navigation, route turn points, and the wind and current
+direction arrows — keep rotating correctly even when you've replaced them with
+your own artwork.
 
 ## Built-in icon names you can replace
 
@@ -99,9 +101,21 @@ real-aton / virtual-aton
 
 **Route points:** `route-start`, `route-waypoint`, `route-end`
 
-Your own vessel, AIS, aids-to-navigation, and route icons apply everywhere at
-once — Freeboard picks these automatically rather than letting you choose
-them per marker, so one custom icon covers every marker of that kind.
+**Weather indicators** — the direction arrows on the wind, ocean current and
+tidal current overlays:
+
+```
+windIndicator-arrow    oceanCurrentIndicator-arrow    tidalCurrentIndicator-arrow
+```
+
+The two current arrows are tinted by Freeboard to show speed, so draw
+replacements for those with a plain white fill — a pre-coloured glyph comes out
+muddy. The wind arrow isn't tinted and renders in your own colours.
+
+Your own vessel, AIS, aids-to-navigation, route and weather-indicator icons
+apply everywhere at once — Freeboard picks these automatically rather than
+letting you choose them per marker, so one custom icon covers every marker of
+that kind.
 
 ## Keeping icons through GPX import and export
 
