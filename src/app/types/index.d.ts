@@ -34,6 +34,15 @@ export type WindIndicator = 'arrow' | 'barb';
 // returns to it on the next position update).
 export type MapPanBehavior = 'offset' | 'exit' | 'none';
 
+// Screen-fixed offset of the map centre from the vessel: each axis is a whole
+// percentage of the distance from the viewport centre to that edge. `x` is
+// across the screen (positive = right), `y` up it (positive = above the vessel,
+// i.e. look ahead). Fixed to the screen, so it does not rotate with the course.
+export interface MapCenterOffset {
+  x: number;
+  y: number;
+}
+
 export interface SKApiResponse {
   state: 'FAILED' | 'COMPLETED' | 'PENDING';
   statusCode: number;
@@ -136,8 +145,7 @@ export interface IAppConfig {
     labelsMinZoom: number;
     doubleClickZoom: boolean; // true=zoom
     overZoomTiles: boolean; // keep tiles visible beyond chart max zoom
-    centerOffset: number; // whole % of the distance to the screen edge that the map centre sits ahead of the vessel (negative = astern)
-    centerOffsetAbeam: number; // as above, to starboard of the vessel's course (negative = to port)
+    centerOffset: MapCenterOffset; // screen-fixed map-centre offset from the vessel
     s57Options: Options; // S57 chart Options
     popoverMulti: boolean; // close popovers using cose button
   };

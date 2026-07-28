@@ -701,7 +701,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // The pan IS the offset gesture, so it also ends the post-tap grace.
       this.userPanned = false;
       this.stopOffsetGrace();
-      if (this.app.setCenterOffsetFromPan(e.lonlat as Position)) {
+      const outcome = this.app.applyPanGesture(e.lonlat as Position);
+      if (outcome === 'release') {
+        // Panned the vessel clean off screen: stop following and leave the
+        // chart where it is, rather than clamping the vessel back on screen.
+        this.exitMovingMap.emit(true);
+      } else if (outcome === 'adopted') {
         this.app.saveConfigDebounced();
       }
     }
