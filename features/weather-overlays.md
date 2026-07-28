@@ -40,5 +40,11 @@ resources list):
   to see how currents shift through the day, with **Play** to animate
   through time and **Now** to jump back to the current moment.
 
+Both current arrows can also be replaced with custom artwork through a symbol
+provider plugin, each under its own well-known id — `oceanCurrentIndicator-arrow`
+and `tidalCurrentIndicator-arrow` — so the two overlays stay distinguishable
+when shown together. Because Freeboard tints these arrows to encode speed, draw
+a replacement with a plain white fill; a pre-coloured glyph comes out muddy.
+
 All three overlays refresh automatically as you pan or zoom, and can be
 shown together or independently.
