@@ -478,6 +478,34 @@ it('...', async () => {
 Adding an `export` for a worker-internal helper doesn't change its runtime
 behaviour (the worker still calls it directly), so it's a cheap, honest seam.
 
+### Verifying a host-vs-extension bug through the extension API is circular
+
+**The trap.** `dev-tools/fsk-mcp` makes it easy to verify a Plotter Extensions fix
+by driving the host and reading the result back over the same API — and for a
+whole class of bug that proves nothing. #592 was a `route.hide` that deleted the
+route's registry mirror and emitted `route.hidden` while leaving the route drawn
+on the chart. Calling `route.hide` and then `route.list` reports the route gone on
+the **broken** build too, because `route.list` reads the `RouteBufferRegistry` —
+the extension-facing mirror, which was the half that always worked. The defect
+*was* the disagreement between that mirror and what the host displays, so an
+assertion read back through the extension API can only ever confirm the mirror.
+
+**What to do instead.** Assert against **host** state, not the capability you are
+testing. For route visibility that means `selections.routes` in the app config
+(readable from the Freeboard tab as
+`JSON.parse(localStorage.freeboard_config).selections.routes`): `null` is the
+unfiltered "show all" default, and a durable hide must materialise it into an
+explicit array that excludes the hidden id. That transition is the real evidence.
+Where the only oracle is pixels, get a human to look at the chart — an agent
+driving the bridge cannot see it.
+
+**A precondition worth checking first.** Bugs in this area often only reproduce
+while the collection is *unfiltered* (`selections.routes === null`). You reach
+that state through the resource list's **select-all** toggle, which calls
+`selectionUnfilter`. Ticking every row individually is not equivalent — it leaves
+an all-inclusive array behind, which still counts as filtered and silently masks
+the bug. Confirm the config value before concluding anything from a manual repro.
+
 ---
 
 ## When building & running locally
