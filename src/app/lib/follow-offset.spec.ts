@@ -1,50 +1,41 @@
 import { describe, it, expect } from 'vitest';
-import { getGreatCircleBearing } from 'geolib';
 import {
   CENTER_OFFSET_LIMIT,
-  centerOffsetFromPan,
   clampCenterOffset,
-  edgeDistanceInDirection,
   legacyCenterOffset,
   legacyPanBehavior,
   mapCenterForOffset,
-  MapViewport
+  MapViewport,
+  normaliseCenterOffset,
+  resolvePan
 } from './follow-offset';
-import { Convert } from './convert';
 import { GeoUtils } from './geoutils';
 import { Position } from '../types';
 
 const VESSEL: Position = [-80.5, 25.0];
-const NORTH = 0;
+const HALF = 2000; // metres from the viewport centre to the edge, both axes
 const EAST = Math.PI / 2;
-const SOUTH = Math.PI;
-const WEST = Math.PI * 1.5;
 
-/** A square north-up viewport 2km to every edge, so a percentage of the edge
- *  distance means the same thing in any direction. */
-const SQUARE: MapViewport = {
-  halfWidth: 2000,
-  halfHeight: 2000,
-  rotation: 0
-};
-
-/** Distance (m) and bearing (radians) from the vessel to a resolved map centre. */
-const fromVessel = (centre: Position) => ({
-  distance: GeoUtils.distanceTo(VESSEL, centre),
-  bearing: Convert.degreesToRadians(getGreatCircleBearing(VESSEL, centre) ?? 0)
+/** A viewport of the given rotation and half-extents. */
+const vp = (
+  rotation = 0,
+  halfWidth = HALF,
+  halfHeight = HALF
+): MapViewport => ({
+  halfWidth,
+  halfHeight,
+  rotation
 });
 
-/** A heading-up viewport on an easterly course, taller than it is wide: the
- *  course points up the screen, and the two axes have different edge distances. */
-const ROTATED: MapViewport = {
-  halfWidth: 800,
-  halfHeight: 2000,
-  rotation: -EAST
-};
+/** A point `metres` from the vessel on `bearing`, via the same geodesy the
+ *  production code uses, so fixtures are exact rather than flat-earth. */
+const dest = (bearing: number, metres: number): Position =>
+  GeoUtils.destCoordinate(VESSEL, bearing, metres);
 
-/** A map centre panned `distance` metres from the vessel on `bearing`. */
-const panTo = (bearing: number, distance: number) =>
-  GeoUtils.destCoordinate(VESSEL, bearing, distance);
+const expectPos = (actual: Position, expected: Position, precision = 6) => {
+  expect(actual[0]).toBeCloseTo(expected[0], precision);
+  expect(actual[1]).toBeCloseTo(expected[1], precision);
+};
 
 describe('clampCenterOffset', () => {
   it('keeps the vessel on screen by clamping to the limit', () => {
@@ -57,12 +48,13 @@ describe('clampCenterOffset', () => {
     expect(clampCenterOffset(-12.6)).toBe(-13);
   });
 
-  it('falls back to no offset for a non-numeric entry', () => {
-    expect(clampCenterOffset(NaN)).toBe(0);
+  it('normalises a negative rounding residue to 0, not -0', () => {
+    // The residue a pan leaves on the axis the user did not move along.
+    expect(Object.is(clampCenterOffset(-0.2), 0)).toBe(true);
   });
 
-  it('normalises the -0 that rounding a hair of negative produces', () => {
-    expect(clampCenterOffset(-0.4)).toBe(0);
+  it('falls back to no offset for a non-numeric entry', () => {
+    expect(clampCenterOffset(NaN)).toBe(0);
   });
 });
 
@@ -88,186 +80,132 @@ describe('legacyPanBehavior', () => {
   });
 });
 
-describe('edgeDistanceInDirection', () => {
-  it('reaches the top edge on a northerly course in north-up', () => {
-    expect(edgeDistanceInDirection(1000, 500, NORTH, 0)).toBe(500);
+describe('normaliseCenterOffset', () => {
+  it('defaults an unset offset to centred', () => {
+    expect(normaliseCenterOffset(undefined)).toEqual({ x: 0, y: 0 });
   });
 
-  it('reaches the side edge on an easterly course in north-up', () => {
-    expect(edgeDistanceInDirection(1000, 500, EAST, 0)).toBe(1000);
+  it('maps the vessel-frame {ahead, abeam} pair onto the screen axes', () => {
+    // ahead → y (up the screen), abeam → x (across it).
+    expect(normaliseCenterOffset(50, 30)).toEqual({ x: 30, y: 50 });
   });
 
-  it('follows the rotation in heading-up, where the course is always up', () => {
-    // Heading-up rotates the view by -course, so the course direction is the
-    // top of the screen whatever the compass bearing.
-    expect(edgeDistanceInDirection(1000, 500, EAST, -EAST)).toBe(500);
+  it('lifts an even older single along-course percentage onto the y axis', () => {
+    expect(normaliseCenterOffset(50)).toEqual({ x: 0, y: 50 });
+  });
+
+  it('converts the superseded fractional preset before lifting it', () => {
+    expect(normaliseCenterOffset(0.5)).toEqual({ x: 0, y: 50 });
+  });
+
+  it('clamps and rounds an {x, y} offset', () => {
+    expect(normaliseCenterOffset({ x: 200, y: -12.6 })).toEqual({
+      x: 90,
+      y: -13
+    });
   });
 });
 
 describe('mapCenterForOffset', () => {
-  it('places the map centre ahead of the vessel for a positive ahead offset', () => {
-    const { distance, bearing } = fromVessel(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, { ahead: 50, abeam: 0 })
-    );
-    expect(distance).toBeCloseTo(1000, -1);
-    expect(bearing).toBeCloseTo(NORTH, 2);
-  });
-
-  it('places the map centre astern for a negative ahead offset', () => {
-    const { distance, bearing } = fromVessel(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, { ahead: -50, abeam: 0 })
-    );
-    expect(distance).toBeCloseTo(1000, -1);
-    expect(bearing).toBeCloseTo(SOUTH, 2);
-  });
-
-  it('places the map centre to starboard for a positive abeam offset', () => {
-    const { distance, bearing } = fromVessel(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, { ahead: 0, abeam: 50 })
-    );
-    expect(distance).toBeCloseTo(1000, -1);
-    expect(bearing).toBeCloseTo(EAST, 2);
-  });
-
-  it('places the map centre to port for a negative abeam offset', () => {
-    const { bearing } = fromVessel(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, { ahead: 0, abeam: -50 })
-    );
-    expect(bearing).toBeCloseTo(WEST, 2);
-  });
-
-  it('combines both axes into a diagonal offset', () => {
-    const { bearing } = fromVessel(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, { ahead: 50, abeam: 50 })
-    );
-    // Equal parts ahead and to starboard puts the centre on the bow quarter.
-    expect(bearing).toBeCloseTo(Math.PI / 4, 2);
-  });
-
-  it('holds the offset in the vessel frame as the vessel turns', () => {
-    // The same "ahead" offset must point east once the vessel heads east, or a
-    // look-ahead would show the water already passed.
-    const { bearing } = fromVessel(
-      mapCenterForOffset(VESSEL, EAST, SQUARE, { ahead: 50, abeam: 0 })
-    );
-    expect(bearing).toBeCloseTo(EAST, 2);
-  });
-
   it('centres the vessel exactly when there is no offset', () => {
-    expect(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, { ahead: 0, abeam: 0 })
-    ).toEqual(VESSEL);
+    expect(mapCenterForOffset(VESSEL, vp(), { x: 0, y: 0 })).toEqual(VESSEL);
   });
 
-  it('holds a single-axis offset at the full limit without shrinking it', () => {
-    const { distance } = fromVessel(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, {
-        ahead: CENTER_OFFSET_LIMIT,
-        abeam: 0
-      })
-    );
-    expect(distance).toBeCloseTo(1800, -1);
+  it('places the centre up the screen for a positive y, north-up', () => {
+    // 50% of a 2000m half-viewport = 1000m up; north-up so up = north.
+    expectPos(mapCenterForOffset(VESSEL, vp(), { x: 0, y: 50 }), dest(0, 1000));
   });
 
-  it('shrinks a corner offset that would push the vessel off screen', () => {
-    // 90% ahead with 90% abeam lands diagonally outside the viewport corner,
-    // which neither per-axis clamp catches on its own.
-    const { distance, bearing } = fromVessel(
-      mapCenterForOffset(VESSEL, NORTH, SQUARE, {
-        ahead: CENTER_OFFSET_LIMIT,
-        abeam: CENTER_OFFSET_LIMIT
-      })
+  it('places the centre down the screen for a negative y', () => {
+    expectPos(
+      mapCenterForOffset(VESSEL, vp(), { x: 0, y: -50 }),
+      dest(Math.PI, 1000)
     );
-    const limit = (CENTER_OFFSET_LIMIT / 100) * 1.01;
-    expect(Math.abs(distance * Math.cos(bearing))).toBeLessThanOrEqual(
-      SQUARE.halfHeight * limit
+  });
+
+  it('places the centre to screen-right for a positive x, north-up', () => {
+    expectPos(
+      mapCenterForOffset(VESSEL, vp(), { x: 50, y: 0 }),
+      dest(EAST, 1000)
     );
-    expect(Math.abs(distance * Math.sin(bearing))).toBeLessThanOrEqual(
-      SQUARE.halfWidth * limit
+  });
+
+  it('follows the view rotation, not the course: up-screen is along-course in heading-up', () => {
+    // There is no course parameter: direction is fixed by the view rotation
+    // alone, so the offset can never rotate with COG. Heading-up rotates the
+    // view by -course, so a positive y points along the course (here east).
+    expectPos(
+      mapCenterForOffset(VESSEL, vp(-EAST), { x: 0, y: 50 }),
+      dest(EAST, 1000)
     );
-    // Still on the bow quarter — the shrink is uniform, not per axis.
-    expect(bearing).toBeCloseTo(Math.PI / 4, 2);
   });
 });
 
-describe('centerOffsetFromPan', () => {
-  it('reads a pan ahead of the vessel as a positive ahead offset', () => {
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(NORTH, 1000), NORTH, SQUARE)
-    ).toEqual({ ahead: 50, abeam: 0 });
+describe('resolvePan', () => {
+  it('adopts an up-screen pan as a positive y offset, north-up', () => {
+    expect(resolvePan(VESSEL, dest(0, 1000), vp())).toEqual({
+      action: 'offset',
+      offset: { x: 0, y: 50 }
+    });
   });
 
-  it('reads a pan astern as a negative ahead offset', () => {
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(SOUTH, 1000), NORTH, SQUARE)
-    ).toEqual({ ahead: -50, abeam: 0 });
+  it('adopts a down-screen pan as a negative y offset', () => {
+    expect(resolvePan(VESSEL, dest(Math.PI, 1000), vp())).toEqual({
+      action: 'offset',
+      offset: { x: 0, y: -50 }
+    });
   });
 
-  it('keeps the sideways part of a pan instead of discarding it', () => {
-    // The single-axis behaviour this replaces projected the pan onto the course
-    // and sprang the vessel back onto the course line (#615).
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(EAST, 1000), NORTH, SQUARE)
-    ).toEqual({ ahead: 0, abeam: 50 });
+  it('keeps a sideways pan on the x axis instead of discarding it', () => {
+    expect(resolvePan(VESSEL, dest(EAST, 1000), vp())).toEqual({
+      action: 'offset',
+      offset: { x: 50, y: 0 }
+    });
   });
 
-  it('reads a pan to port as a negative abeam offset', () => {
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(WEST, 1000), NORTH, SQUARE)
-    ).toEqual({ ahead: 0, abeam: -50 });
+  it('measures against the view rotation: an along-course pan is vertical in heading-up', () => {
+    expect(resolvePan(VESSEL, dest(EAST, 1000), vp(-EAST))).toEqual({
+      action: 'offset',
+      offset: { x: 0, y: 50 }
+    });
   });
 
-  it('resolves a diagonal pan into both axes', () => {
-    // 1000m on the bow quarter is ~707m on each axis, ~35% of a 2000m edge.
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(Math.PI / 4, 1000), NORTH, SQUARE)
-    ).toEqual({ ahead: 35, abeam: 35 });
+  it('clamps an adopted offset that nears the edge but stays on screen', () => {
+    // 95% up the screen is still on screen; it sticks at the limit.
+    expect(resolvePan(VESSEL, dest(0, 1900), vp())).toEqual({
+      action: 'offset',
+      offset: { x: 0, y: CENTER_OFFSET_LIMIT }
+    });
   });
 
-  it('measures against the course, not the compass', () => {
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(EAST, 1000), EAST, SQUARE)
-    ).toEqual({ ahead: 50, abeam: 0 });
+  it('releases follow mode when the pan drags the vessel past the top edge', () => {
+    // 105% up = off screen: drop follow rather than clamp the vessel back on.
+    expect(resolvePan(VESSEL, dest(0, 2100), vp())).toEqual({
+      action: 'release'
+    });
   });
 
-  it('clamps a pan that would push the vessel off screen', () => {
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(NORTH, 4000), NORTH, SQUARE)?.ahead
-    ).toBe(CENTER_OFFSET_LIMIT);
+  it('releases follow mode when the pan drags the vessel past a side edge', () => {
+    expect(resolvePan(VESSEL, dest(EAST, 2100), vp())).toEqual({
+      action: 'release'
+    });
   });
 
-  it('leaves the setting alone when the vessel has no course', () => {
-    expect(
-      centerOffsetFromPan(VESSEL, panTo(NORTH, 1000), null, SQUARE)
-    ).toBeNull();
+  it('ignores a pan when the viewport edge distances are unusable', () => {
+    expect(resolvePan(VESSEL, dest(0, 1000), vp(0, 0, HALF))).toEqual({
+      action: 'ignore'
+    });
+    expect(resolvePan(VESSEL, dest(0, 1000), vp(0, HALF, NaN))).toEqual({
+      action: 'ignore'
+    });
   });
 
-  it('round-trips: applying a captured offset restores the panned-to centre', () => {
-    const panned = panTo(Math.PI / 4, 1000);
-    const offset = centerOffsetFromPan(VESSEL, panned, NORTH, SQUARE);
-    const centre = mapCenterForOffset(VESSEL, NORTH, SQUARE, offset!);
-    expect(centre[0]).toBeCloseTo(panned[0], 3);
-    expect(centre[1]).toBeCloseTo(panned[1], 3);
-  });
-
-  it('round-trips through a rotated, non-square viewport', () => {
-    // Heading-up on an easterly course, narrow screen: the two axes have
-    // different edge distances and neither aligns with north.
-    const panned = panTo(EAST + Math.PI / 5, 600);
-    const offset = centerOffsetFromPan(VESSEL, panned, EAST, ROTATED);
-    const centre = mapCenterForOffset(VESSEL, EAST, ROTATED, offset!);
-    expect(centre[0]).toBeCloseTo(panned[0], 3);
-    expect(centre[1]).toBeCloseTo(panned[1], 3);
-  });
-
-  it('constrains a pan that drags the vessel off a rotated viewport', () => {
-    // Dragged well beyond the narrow edge: the stored pair must be the one the
-    // renderer actually uses, or the vessel springs back from the drop point.
-    const panned = panTo(EAST + Math.PI / 4, 4000);
-    const offset = centerOffsetFromPan(VESSEL, panned, EAST, ROTATED)!;
-    const centre = mapCenterForOffset(VESSEL, EAST, ROTATED, offset);
-    const rendered = centerOffsetFromPan(VESSEL, centre, EAST, ROTATED)!;
-    expect(rendered.ahead).toBeCloseTo(offset.ahead, 0);
-    expect(rendered.abeam).toBeCloseTo(offset.abeam, 0);
+  it('round-trips an adopted offset through mapCenterForOffset', () => {
+    const offset = { x: 40, y: -25 };
+    const centre = mapCenterForOffset(VESSEL, vp(), offset);
+    expect(resolvePan(VESSEL, centre, vp())).toEqual({
+      action: 'offset',
+      offset
+    });
   });
 });

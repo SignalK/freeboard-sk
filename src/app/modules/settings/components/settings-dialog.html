@@ -486,29 +486,29 @@
                     </div>
                     <div class="setting-field-group">
                       <mat-form-field floatLabel="always">
-                        <mat-label>Ahead</mat-label>
+                        <mat-label>Vertical</mat-label>
                         <input
                           matInput
                           type="number"
-                          #centerOffset="ngModel"
+                          #centerOffsetY="ngModel"
                           [min]="-centerOffsetLimit"
                           [max]="centerOffsetLimit"
-                          [(ngModel)]="facade.settings.map.centerOffset"
-                          (change)="parseCenterOffset(centerOffset)"
-                          matTooltip="How far ahead of the vessel to centre the map, as a percentage of the distance to the screen edge. Use a negative value to look behind."
+                          [(ngModel)]="facade.settings.map.centerOffset.y"
+                          (change)="parseCenterOffset(centerOffsetY)"
+                          matTooltip="Where the vessel sits up or down the screen, as a percentage of the distance to the edge. Positive looks ahead (vessel lower); negative looks behind."
                         />
                       </mat-form-field>
                       <mat-form-field floatLabel="always">
-                        <mat-label>Abeam</mat-label>
+                        <mat-label>Horizontal</mat-label>
                         <input
                           matInput
                           type="number"
-                          #centerOffsetAbeam="ngModel"
+                          #centerOffsetX="ngModel"
                           [min]="-centerOffsetLimit"
                           [max]="centerOffsetLimit"
-                          [(ngModel)]="facade.settings.map.centerOffsetAbeam"
-                          (change)="parseCenterOffset(centerOffsetAbeam)"
-                          matTooltip="How far to one side of the vessel to centre the map, as a percentage of the distance to the screen edge. Positive is to starboard, negative to port."
+                          [(ngModel)]="facade.settings.map.centerOffset.x"
+                          (change)="parseCenterOffset(centerOffsetX)"
+                          matTooltip="Where the vessel sits left or right of centre, as a percentage of the distance to the edge. Positive shifts the map right (vessel left)."
                         />
                       </mat-form-field>
                     </div>

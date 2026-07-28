@@ -1,21 +1,20 @@
 import { getGreatCircleBearing } from 'geolib';
 import { Convert } from './convert';
 import { GeoUtils } from './geoutils';
-import { MapPanBehavior, Position } from '../types';
+import { MapCenterOffset, MapPanBehavior, Position } from '../types';
 
 /**
- * Where the map centre sits relative to the vessel, as whole percentages of the
- * distance from the viewport centre to the screen edge. The offset is held in
- * the vessel's frame rather than the screen's, so it rotates with the boat —
- * a look-ahead has to stay ahead in north-up too, or a vessel heading south
- * would be shown the water it has already passed.
+ * The vessel centre offset is fixed in the *screen's* frame — `x` across the
+ * screen, `y` up it — each a whole percentage of the distance from the viewport
+ * centre to that edge. Because it is held in screen space the vessel keeps the
+ * on-screen spot it was panned to whatever its course does. Anchoring it to the
+ * boat's heading instead swings the chart about whenever the course is unknown
+ * or noisy (at rest, or barely moving) — which is exactly when you pan to look
+ * around. Positive `y` puts the map centre above the vessel (look ahead),
+ * positive `x` to its right.
  */
-export interface CenterOffset {
-  ahead: number; // along the course; negative places the centre astern
-  abeam: number; // to starboard of the course; negative places it to port
-}
 
-/** The viewport the offset is measured against. */
+/** The viewport an offset is measured against. */
 export interface MapViewport {
   halfWidth: number; // metres from the centre to the side edge
   halfHeight: number; // metres from the centre to the top edge
@@ -25,7 +24,7 @@ export interface MapViewport {
 /** Neither axis may exceed this share of the distance to the screen edge. */
 export const CENTER_OFFSET_LIMIT = 90;
 
-/** Round and clamp an entered or panned-to offset to a usable percentage. */
+/** Round and clamp an entered or panned-to offset axis to a usable percentage. */
 export function clampCenterOffset(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
@@ -57,188 +56,99 @@ export function legacyPanBehavior(lockMoveMap?: boolean): MapPanBehavior {
   return lockMoveMap ? 'offset' : 'exit';
 }
 
+/**
+ * Coerce any stored offset shape to the current screen-fixed `{x, y}` form:
+ * - unset → centred;
+ * - the `{ahead, abeam}` pair from the vessel-frame offset maps ahead→y, abeam→x;
+ * - a bare number is the oldest single along-course value (a 0–0.7 fractional
+ *   preset, otherwise a whole percentage) and lands on `y`, where it pointed in
+ *   heading-up;
+ * - an `{x, y}` offset is clamped.
+ * @param value the stored `centerOffset`
+ * @param abeam the stored `centerOffsetAbeam`, if the vessel-frame pair was used
+ */
+export function normaliseCenterOffset(
+  value: unknown,
+  abeam?: unknown
+): MapCenterOffset {
+  if (typeof value === 'number') {
+    return {
+      x: typeof abeam === 'number' ? clampCenterOffset(abeam) : 0,
+      y: Number.isInteger(value)
+        ? clampCenterOffset(value)
+        : legacyCenterOffset(value)
+    };
+  }
+  if (value && typeof value === 'object') {
+    const offset = value as Partial<MapCenterOffset>;
+    return {
+      x: clampCenterOffset(offset.x ?? 0),
+      y: clampCenterOffset(offset.y ?? 0)
+    };
+  }
+  return { x: 0, y: 0 };
+}
+
 const TWO_PI = Math.PI * 2;
-const QUARTER_TURN = Math.PI / 2;
 
 /** Normalise an angle to `[0, 2π)`. */
 const normalise = (radians: number): number =>
   ((radians % TWO_PI) + TWO_PI) % TWO_PI;
 
 /**
- * Geodetic distance from the viewport centre to the screen edge in the given
- * direction. This correctly handles any map rotation mode (north-up or
- * heading-up) and any screen aspect ratio.
- *
- * In OL, a CW bearing β has projected-space direction (sin β, cos β). With OL
- * view rotation rot (CCW), the screen-space components are:
- *   sx = sin(β + rot)  (rightward)   sy = cos(β + rot)  (upward)
- * The edge of the viewport rectangle lies at min(hw/|sx|, hh/|sy|).
- * @param halfWidth geodetic distance from the centre to the side edge
- * @param halfHeight geodetic distance from the centre to the top edge
- * @param bearing direction of interest in radians
- * @param rotation OL view rotation in radians
+ * Screen axes map to world bearings through the OL view rotation alone: a world
+ * bearing β projects to screen `(sin(β + rot), cos(β + rot))` = (right, up), so
+ * screen-up is world bearing `-rot` and screen-right is `π/2 - rot`. Both
+ * functions below share this — and neither takes the vessel's course, which is
+ * what keeps the offset fixed to the screen rather than the boat.
  */
-export function edgeDistanceInDirection(
-  halfWidth: number,
-  halfHeight: number,
-  bearing: number,
-  rotation: number
-): number {
-  const sx = Math.abs(Math.sin(bearing + rotation));
-  const sy = Math.abs(Math.cos(bearing + rotation));
-  return Math.min(
-    sx > 1e-10 ? halfWidth / sx : Infinity,
-    sy > 1e-10 ? halfHeight / sy : Infinity
-  );
-}
-
-/** The two axis offsets in metres, measured in the vessel's frame. */
-function offsetComponents(
-  course: number,
-  viewport: MapViewport,
-  offset: CenterOffset
-): { ahead: number; abeam: number } {
-  const { halfWidth, halfHeight, rotation } = viewport;
-  return {
-    ahead:
-      edgeDistanceInDirection(halfWidth, halfHeight, course, rotation) *
-      (offset.ahead / 100),
-    abeam:
-      edgeDistanceInDirection(
-        halfWidth,
-        halfHeight,
-        course + QUARTER_TURN,
-        rotation
-      ) *
-      (offset.abeam / 100)
-  };
-}
 
 /**
- * Shrink factor keeping the vessel on screen. Each axis is clamped against the
- * edge distance in its *own* direction, which is not enough once both are in
- * play: 90% ahead combined with 90% abeam lands diagonally outside the corner.
- * Offsets on a single axis are always within bounds, so this returns 1 for them
- * and only bites on a genuine corner offset.
- */
-function onScreenScale(
-  bearing: number,
-  distance: number,
-  viewport: MapViewport
-): number {
-  const { halfWidth, halfHeight, rotation } = viewport;
-  const fx =
-    halfWidth > 0
-      ? Math.abs(distance * Math.sin(bearing + rotation)) / halfWidth
-      : 0;
-  const fy =
-    halfHeight > 0
-      ? Math.abs(distance * Math.cos(bearing + rotation)) / halfHeight
-      : 0;
-  const excess = Math.max(fx, fy) / (CENTER_OFFSET_LIMIT / 100);
-  return excess > 1 ? 1 / excess : 1;
-}
-
-/**
- * Scale an offset pair back until the vessel is inside the viewport, so that a
- * stored offset is the one actually rendered. Panning the vessel clean off the
- * screen otherwise stores a pair the renderer then shrinks, and the vessel
- * springs back from where it was dropped.
- * @param offset the offset percentages to constrain
- * @param course vessel COG (or heading) in radians
- * @param viewport the current map viewport
- */
-export function constrainCenterOffset(
-  offset: CenterOffset,
-  course: number,
-  viewport: MapViewport
-): CenterOffset {
-  const { ahead, abeam } = offsetComponents(course, viewport, offset);
-  const distance = Math.hypot(ahead, abeam);
-  if (!distance || !Number.isFinite(distance)) {
-    return offset;
-  }
-  const scale = onScreenScale(
-    normalise(course + Math.atan2(abeam, ahead)),
-    distance,
-    viewport
-  );
-  return scale >= 1
-    ? offset
-    : {
-        ahead: clampCenterOffset(offset.ahead * scale),
-        abeam: clampCenterOffset(offset.abeam * scale)
-      };
-}
-
-/**
- * Resolve the configured offset to a map centre for the vessel's current
- * position and course.
+ * Resolve the configured offset to a map centre. `x`/`y` are shares of the
+ * viewport half-width / half-height, i.e. on-screen metres right and up; these
+ * combine into a world bearing through the view rotation, so the result never
+ * depends on the vessel's course.
  * @param vessel vessel position `[lon, lat]`
- * @param course vessel COG (or heading) in radians
  * @param viewport the current map viewport
  * @param offset the configured offset percentages
  */
 export function mapCenterForOffset(
   vessel: Position,
-  course: number,
   viewport: MapViewport,
-  offset: CenterOffset
+  offset: MapCenterOffset
 ): Position {
-  const { ahead, abeam } = offsetComponents(course, viewport, offset);
-  const distance = Math.hypot(ahead, abeam);
+  const right = (offset.x / 100) * viewport.halfWidth;
+  const up = (offset.y / 100) * viewport.halfHeight;
+  const distance = Math.hypot(right, up);
   if (!distance || !Number.isFinite(distance)) {
     return vessel;
   }
-  // atan2 carries the sign of both axes, so an astern or to-port offset needs
-  // no special case — it simply points the other way.
-  const bearing = normalise(course + Math.atan2(abeam, ahead));
+  // atan2 carries the sign of both axes, so a below-screen or to-the-left offset
+  // needs no special case — it simply points the other way.
   return GeoUtils.destCoordinate(
     vessel,
-    bearing,
-    distance * onScreenScale(bearing, distance, viewport)
+    normalise(-viewport.rotation + Math.atan2(right, up)),
+    distance
   );
 }
 
 /**
- * Derive the offset from a chart pan, by resolving the vessel → map-centre
- * displacement into its along-course and abeam components so the vessel stays
- * where the user dragged it.
- *
- * Returns null when the vessel has no course to measure against, in which case
- * the pan leaves the configured offset alone.
- * @param vessel vessel position `[lon, lat]`
- * @param mapCenter map centre the user panned to `[lon, lat]`
- * @param course vessel COG (or heading) in radians; null when not under way
- * @param viewport the current map viewport
+ * Raw pan offset in screen-edge percentages (`x` right, `y` up), before
+ * clamping — the inverse projection of {@link mapCenterForOffset}. `|value| > 100`
+ * on an axis means the pan dragged the vessel past that edge, i.e. off screen.
+ * Null when the viewport edge distances are unusable.
  */
-export function centerOffsetFromPan(
+function panScreenFraction(
   vessel: Position,
   mapCenter: Position,
-  course: number | null,
   viewport: MapViewport
-): CenterOffset | null {
-  if (course === null) {
-    return null;
-  }
+): MapCenterOffset | null {
   const { halfWidth, halfHeight, rotation } = viewport;
-  const aheadEdge = edgeDistanceInDirection(
-    halfWidth,
-    halfHeight,
-    course,
-    rotation
-  );
-  const abeamEdge = edgeDistanceInDirection(
-    halfWidth,
-    halfHeight,
-    course + QUARTER_TURN,
-    rotation
-  );
   if (
-    !aheadEdge ||
-    !abeamEdge ||
-    !Number.isFinite(aheadEdge) ||
-    !Number.isFinite(abeamEdge)
+    !halfWidth ||
+    !halfHeight ||
+    !Number.isFinite(halfWidth) ||
+    !Number.isFinite(halfHeight)
   ) {
     return null;
   }
@@ -247,15 +157,42 @@ export function centerOffsetFromPan(
   const bearing = Convert.degreesToRadians(
     getGreatCircleBearing(vessel, mapCenter) ?? 0
   );
-  const delta = bearing - course;
-  return constrainCenterOffset(
-    {
-      ahead: clampCenterOffset(
-        ((distance * Math.cos(delta)) / aheadEdge) * 100
-      ),
-      abeam: clampCenterOffset(((distance * Math.sin(delta)) / abeamEdge) * 100)
-    },
-    course,
-    viewport
-  );
+  const screenAngle = bearing + rotation;
+  return {
+    x: ((distance * Math.sin(screenAngle)) / halfWidth) * 100,
+    y: ((distance * Math.cos(screenAngle)) / halfHeight) * 100
+  };
+}
+
+/** How a settled follow-mode pan is interpreted. */
+export type PanResolution =
+  | { action: 'offset'; offset: MapCenterOffset }
+  | { action: 'release' }
+  | { action: 'ignore' };
+
+/**
+ * Resolve a settled follow-mode pan. A pan that leaves the vessel on screen is
+ * adopted as the screen-fixed centre offset (both axes kept, so a diagonal pan
+ * sticks); a pan that drags the vessel past a viewport edge releases follow mode
+ * rather than clamping the vessel back on; an unmeasurable view is ignored.
+ * @param vessel vessel position `[lon, lat]`
+ * @param mapCenter map centre the user panned to `[lon, lat]`
+ * @param viewport the current map viewport
+ */
+export function resolvePan(
+  vessel: Position,
+  mapCenter: Position,
+  viewport: MapViewport
+): PanResolution {
+  const raw = panScreenFraction(vessel, mapCenter, viewport);
+  if (raw === null) {
+    return { action: 'ignore' };
+  }
+  if (Math.abs(raw.x) > 100 || Math.abs(raw.y) > 100) {
+    return { action: 'release' };
+  }
+  return {
+    action: 'offset',
+    offset: { x: clampCenterOffset(raw.x), y: clampCenterOffset(raw.y) }
+  };
 }

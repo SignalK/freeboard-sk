@@ -11,10 +11,9 @@ import { Subject } from 'rxjs';
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 import {
-  CenterOffset,
-  centerOffsetFromPan,
   MapViewport,
-  mapCenterForOffset
+  mapCenterForOffset,
+  resolvePan
 } from './lib/follow-offset';
 
 import {
@@ -902,12 +901,6 @@ export class AppFacade extends InfoService {
     );
   }
 
-  private activeVesselCourse(): number | null {
-    return (
-      this.data.vessels.active.cogTrue ?? this.data.vessels.active.headingTrue
-    );
-  }
-
   /**
    * The viewport an offset is measured against, or null until the map has
    * reported an extent — the viewport signals hold [0, 0] until then, which
@@ -930,55 +923,49 @@ export class AppFacade extends InfoService {
     };
   }
 
-  private get centerOffset(): CenterOffset {
-    return {
-      ahead: this.config.map.centerOffset ?? 0,
-      abeam: this.config.map.centerOffsetAbeam ?? 0
-    };
-  }
-
   /** Calculate the position to center the map.
    * @param applyOffset false to centre the vessel exactly, ignoring the
    * configured vessel centre offset.
    */
   calcMapCenter(applyOffset = true): Position {
     const position = this.data.vessels.active.position;
-    const cog = this.activeVesselCourse();
-    const offset = this.centerOffset;
+    const offset = this.config.map.centerOffset;
     const viewport =
-      applyOffset && (offset.ahead || offset.abeam) ? this.mapViewport() : null;
-    if (cog === null || !viewport) {
+      applyOffset && (offset.x || offset.y) ? this.mapViewport() : null;
+    if (!viewport) {
       return position;
     }
-    return mapCenterForOffset(position, cog, viewport, offset);
+    return mapCenterForOffset(position, viewport, offset);
   }
 
   /**
-   * Adopt a chart pan as the vessel centre offset.
-   * @returns true when the setting changed and needs persisting.
+   * Resolve a settled follow-mode pan.
+   * @returns 'release' when the vessel was dragged off screen (the caller drops
+   * follow mode), 'adopted' when a new screen-fixed offset was stored, or
+   * 'unchanged' when nothing needs persisting.
    */
-  setCenterOffsetFromPan(mapCenter: Position): boolean {
-    const cog = this.activeVesselCourse();
+  applyPanGesture(mapCenter: Position): 'release' | 'adopted' | 'unchanged' {
     const viewport = this.mapViewport();
-    if (cog === null || !viewport) {
-      return false;
+    if (!viewport) {
+      return 'unchanged';
     }
-    const offset = centerOffsetFromPan(
+    const outcome = resolvePan(
       this.data.vessels.active.position,
       mapCenter,
-      cog,
       viewport
     );
-    const current = this.centerOffset;
-    if (
-      offset === null ||
-      (offset.ahead === current.ahead && offset.abeam === current.abeam)
-    ) {
-      return false;
+    if (outcome.action === 'release') {
+      return 'release';
     }
-    this.config.map.centerOffset = offset.ahead;
-    this.config.map.centerOffsetAbeam = offset.abeam;
-    return true;
+    if (outcome.action === 'ignore') {
+      return 'unchanged';
+    }
+    const current = this.config.map.centerOffset;
+    if (outcome.offset.x === current.x && outcome.offset.y === current.y) {
+      return 'unchanged';
+    }
+    this.config.map.centerOffset = outcome.offset;
+    return 'adopted';
   }
 
   /**

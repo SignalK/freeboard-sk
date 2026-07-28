@@ -1,10 +1,6 @@
 import { FBAppData, IAppConfig, TemperatureUnitDef } from './types';
 import { Convert } from './lib/convert';
-import {
-  clampCenterOffset,
-  legacyCenterOffset,
-  legacyPanBehavior
-} from './lib/follow-offset';
+import { legacyPanBehavior, normaliseCenterOffset } from './lib/follow-offset';
 import { SKVessel } from './modules';
 import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
 
@@ -151,18 +147,18 @@ export function cleanConfig(
   if (typeof settings.map.popoverMulti === 'undefined') {
     settings.map.popoverMulti = false;
   }
-  if (typeof settings.map.centerOffset === 'undefined') {
-    settings.map.centerOffset = 0;
-  } else if (!Number.isInteger(settings.map.centerOffset)) {
-    // A fractional value is the superseded 0-0.7 preset; the setting now holds
-    // a whole percentage.
-    settings.map.centerOffset = legacyCenterOffset(settings.map.centerOffset);
-  } else {
-    settings.map.centerOffset = clampCenterOffset(settings.map.centerOffset);
-  }
-  settings.map.centerOffsetAbeam = clampCenterOffset(
-    settings.map.centerOffsetAbeam ?? 0
+  // Coerce every superseded shape — the vessel-frame {ahead, abeam} pair, an
+  // even older single along-course percentage, or the 0-0.7 fractional preset —
+  // to the screen-fixed {x, y} offset.
+  const legacyAbeam = (
+    settings.map as unknown as { centerOffsetAbeam?: number }
+  ).centerOffsetAbeam;
+  settings.map.centerOffset = normaliseCenterOffset(
+    settings.map.centerOffset,
+    legacyAbeam
   );
+  delete (settings.map as unknown as { centerOffsetAbeam?: number })
+    .centerOffsetAbeam;
   if (typeof settings.map.doubleClickZoom === 'undefined') {
     settings.map.doubleClickZoom = false;
   }
@@ -532,8 +528,7 @@ export function defaultConfig(): IAppConfig {
       labelsMinZoom: 8,
       doubleClickZoom: false, // true=zoom
       overZoomTiles: true, // keep tiles visible beyond chart max zoom
-      centerOffset: 0,
-      centerOffsetAbeam: 0,
+      centerOffset: { x: 0, y: 0 },
       s57Options: {
         graphicsStyle: 'Paper',
         boundaries: 'Plain',
