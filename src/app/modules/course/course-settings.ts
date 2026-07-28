@@ -221,7 +221,11 @@ export class CourseSettingsModal implements OnInit {
         : this.course.courseData().arrivalCircle;
     this.frmArrivalCircle =
       this.app.config.units.distance === 'kilometer'
-        ? this.frmArrivalCircle
+        ? Number(
+            Convert.transform(this.frmArrivalCircle, 'm', 'kilometer').toFixed(
+              1
+            )
+          )
         : Number(
             Convert.transform(this.frmArrivalCircle, 'm', 'naut-mile').toFixed(
               1
@@ -282,12 +286,16 @@ export class CourseSettingsModal implements OnInit {
     }
     if (e.target && e.target.id === 'arrivalCircle') {
       if (e.target.value !== '' && e.target.value !== null) {
+        const value = Number(e.target.value);
+        if (!Number.isFinite(value)) {
+          return;
+        }
         let d =
           this.app.config.units.distance === 'kilometer'
-            ? Number(e.target.value)
-            : Convert.nauticalMilesToKm(Number(e.target.value)) * 1000;
+            ? value * 1000
+            : Convert.nauticalMilesToKm(value) * 1000;
         d = d <= 0 ? null : d;
-        this.app.config.course.arrivalCircle = Number(e.target.value);
+        this.app.config.course.arrivalCircle = d;
 
         this.signalk.api
           .putWithContext(
