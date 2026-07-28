@@ -21,6 +21,7 @@
   { "feature": "notes", "pr": 512, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-12", "title": "feat(notes): add option to open note details on single click" },
   { "feature": "feature-browser", "pr": 528, "kind": "new", "since": "v3.0.0", "date": "2026-07-16", "title": "feat(features): add a searchable \"What's New\" feature browser" },
   { "feature": "feature-browser", "pr": 530, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-17", "title": "feat(features): replace forced onboarding modals with a passive What's New indicator" },
+  { "feature": "feature-browser", "pr": 604, "kind": "enhanced", "date": "2026-07-27", "title": "feat(features): show a feature's newest changes above its instructions" },
   { "feature": "chart-zoom-limits", "kind": "new", "since": "v2.1.0", "date": "2023-07-06", "title": "limit zoom to selected maps" },
   { "feature": "route-planning", "pr": 580, "kind": "enhanced", "date": "2026-07-25", "title": "feat(map): delete a route vertex with a long left-click, matching touch" },
   { "feature": "route-planning", "pr": 582, "kind": "enhanced", "date": "2026-07-25", "title": "feat(routes): unify the route draw and modify helper panels" },

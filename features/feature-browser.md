@@ -12,8 +12,11 @@ chart.
 
 Each entry shows a screenshot, a plain description of what the feature does
 and how to use it, and the release it last changed in — click a screenshot
-to view it larger. Search narrows the list by name, and you can sort the
-table by category, feature, status, or release.
+to view it larger. When a feature has changed in the current release, its
+newest changes are listed at the top of the entry so you don't have to hunt
+for them; the complete history sits in a table at the bottom. Search narrows
+the list by name, and you can sort the table by category, feature, status,
+or release.
 
 A small lightbulb button also appears on the left toolbar whenever there's
 something new or changed you haven't seen yet — click it to jump straight
