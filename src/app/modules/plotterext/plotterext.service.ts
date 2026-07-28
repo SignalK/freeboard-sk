@@ -901,8 +901,10 @@ export class PlotterExtensionService {
       return;
     }
     if (buf.saved && buf.href) {
-      this.skres.selectionRemove('routes', buf.href);
-      this.skres.refreshRoutes();
+      // routeHide (not a bare selectionRemove) — while the routes collection is
+      // unfiltered ("show all", the default) selectionRemove is a no-op, so the
+      // route would stay on the chart while the registry reported it hidden.
+      this.skres.routeHide(buf.href);
       this.routeRegistry.delete(routeId, true);
     } else {
       this.routeRegistry.delete(routeId, false);
