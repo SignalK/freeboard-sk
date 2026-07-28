@@ -30,9 +30,12 @@ chart — it won't disappear on you.
 
 **Modifying a route** uses the same editing card as drawing, showing the
 running distance and the leg you're working on. Drag a point to move it,
-drag a leg to add a point, or Ctrl-Click (press-and-hold) a point to remove
-it. To **extend the route**, click open water past its end: the route grows
-by a new end point, the same way you drew it, without leaving Modify.
+drag a leg to add a point, or remove a point with Ctrl-Click or a
+press-and-hold. Both delete gestures work the same with a mouse, a
+touchscreen or a pen; a press that turns into a drag moves the point instead
+of deleting it. To **extend the route**, click open water past its end: the
+route grows by a new end point, the same way you drew it, without leaving
+Modify.
 **Undo** steps back through your edits one at a time. The card's commit
 action saves your changes — labelled **Save** for a route that isn't stored
 yet, **Finish** for one that is — and **Cancel** (or the ✕) discards them,
