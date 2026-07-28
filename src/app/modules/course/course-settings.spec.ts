@@ -82,4 +82,11 @@ describe('CourseSettingsModal Arrival Circle unit conversion (#639)', () => {
     modal.onFormChange({ target: { id: 'arrivalCircle', value: '1' } });
     expect(modal.app.config.course.arrivalCircle).toBeCloseTo(1852, 6); // 1 nm -> 1852 m
   });
+
+  it('leaves the stored value untouched for non-finite input', () => {
+    const modal = setup('kilometer', 100);
+    modal.ngOnInit();
+    modal.onFormChange({ target: { id: 'arrivalCircle', value: '1e999' } }); // -> Infinity
+    expect(modal.app.config.course.arrivalCircle).toBe(100);
+  });
 });

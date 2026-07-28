@@ -286,10 +286,14 @@ export class CourseSettingsModal implements OnInit {
     }
     if (e.target && e.target.id === 'arrivalCircle') {
       if (e.target.value !== '' && e.target.value !== null) {
+        const value = Number(e.target.value);
+        if (!Number.isFinite(value)) {
+          return;
+        }
         let d =
           this.app.config.units.distance === 'kilometer'
-            ? Number(e.target.value) * 1000
-            : Convert.nauticalMilesToKm(Number(e.target.value)) * 1000;
+            ? value * 1000
+            : Convert.nauticalMilesToKm(value) * 1000;
         d = d <= 0 ? null : d;
         this.app.config.course.arrivalCircle = d;
 
