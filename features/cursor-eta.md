@@ -25,9 +25,8 @@ user gets — dragging the chart still just pans it, and a press-and-hold still
 opens the chart menu.
 
 **Tap Fade Speed** sets how long the marker takes to fade, in seconds (minimum
-1, default 1.5, with no maximum). Raise it to give yourself longer to read the
-numbers; lower it if the marker sits over something on the chart you want to
-see or grab.
+1, default 1.5). Raise it to give yourself longer to read the numbers; lower it
+if the marker sits over something on the chart you want to see or grab.
 
 The ETA uses your boat's current speed over ground. If you're stopped — at
 anchor, hove to — there's no speed to estimate from, so Freeboard falls back to
