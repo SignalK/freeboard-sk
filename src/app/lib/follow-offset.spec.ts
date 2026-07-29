@@ -5,6 +5,7 @@ import {
   legacyCenterOffset,
   legacyPanBehavior,
   mapCenterForOffset,
+  mapCenterForZoomShift,
   MapViewport,
   normaliseCenterOffset,
   resolvePan
@@ -138,6 +139,60 @@ describe('mapCenterForOffset', () => {
       mapCenterForOffset(VESSEL, vp(-EAST), { x: 0, y: 50 }),
       dest(EAST, 1000)
     );
+  });
+});
+
+describe('mapCenterForZoomShift', () => {
+  it('is the plain offset centre when the zoom does not change', () => {
+    const offset = { x: 40, y: -25 };
+    expect(mapCenterForZoomShift(VESSEL, vp(), offset, 0)).toEqual(
+      mapCenterForOffset(VESSEL, vp(), offset)
+    );
+  });
+
+  it('halves the offset ground distance when zooming in one level', () => {
+    // 50% of a 2000m half-viewport is 1000m up; one level in halves the
+    // resolution, so the same screen offset now spans 500m.
+    expectPos(
+      mapCenterForZoomShift(VESSEL, vp(), { x: 0, y: 50 }, 1),
+      dest(0, 500)
+    );
+  });
+
+  it('doubles the offset ground distance when zooming out one level', () => {
+    expectPos(
+      mapCenterForZoomShift(VESSEL, vp(), { x: 0, y: 50 }, -1),
+      dest(0, 2000)
+    );
+  });
+
+  it('holds the vessel on the same on-screen spot through a zoom in', () => {
+    const offset = { x: 40, y: -25 };
+    const centre = mapCenterForZoomShift(VESSEL, vp(), offset, 1);
+    // The post-zoom viewport is half the size; the vessel must still sit at the
+    // configured offset within it.
+    expect(resolvePan(VESSEL, centre, vp(0, HALF / 2, HALF / 2))).toEqual({
+      action: 'offset',
+      offset
+    });
+  });
+
+  it('holds the vessel on the same on-screen spot through a zoom out', () => {
+    const offset = { x: 40, y: -25 };
+    const centre = mapCenterForZoomShift(VESSEL, vp(), offset, -1);
+    expect(resolvePan(VESSEL, centre, vp(0, HALF * 2, HALF * 2))).toEqual({
+      action: 'offset',
+      offset
+    });
+  });
+
+  it('preserves the offset through a zoom in a rotated (heading-up) view', () => {
+    const offset = { x: 40, y: -25 };
+    const centre = mapCenterForZoomShift(VESSEL, vp(-EAST), offset, 1);
+    expect(resolvePan(VESSEL, centre, vp(-EAST, HALF / 2, HALF / 2))).toEqual({
+      action: 'offset',
+      offset
+    });
   });
 });
 

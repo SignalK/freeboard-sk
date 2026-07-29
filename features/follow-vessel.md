@@ -41,7 +41,8 @@ Both are measured against the **screen**, not your course — the offset holds t
 you set it to whether you're underway, drifting, or sitting still, instead of swinging
 around as your heading jitters at low speed or with no course at all. In heading-up mode
 this comes to the same thing as ahead/abeam, since "up the screen" already tracks your
-course; the difference only shows in north-up.
+course; the difference only shows in north-up. Zooming keeps the boat on that same spot
+too, scaling the chart around it rather than nudging the boat back toward center.
 
 ## Setting the offset by panning
 
