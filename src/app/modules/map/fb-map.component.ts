@@ -49,6 +49,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
+import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
 import { CursorPin, tapFadeMs, TAP_MAX_DURATION } from './cursor-marker';
 import {
@@ -622,7 +623,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       { name: 'dragpan' },
       { name: 'dragzoom' },
       { name: 'keyboardpan' },
-      { name: 'keyboardzoom' },
+      // keyboardzoom is handled by onZoomKeydown so +/- preserves the follow
+      // offset, the same as the on-screen zoom buttons.
       { name: 'mousewheelzoom' },
       { name: 'pinchzoom' }
     ];
@@ -2056,6 +2058,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ****** MAP control functions *******
+
+  // Bound to the map element's keydown (so it only fires when the map has focus,
+  // as OL's keyboardzoom did): route +/- through the same offset-preserving zoom
+  // as the on-screen buttons instead of OL zooming about the chart centre.
+  protected onZoomKeydown(e: KeyboardEvent) {
+    const direction = zoomKeyDirection(e);
+    if (!direction) {
+      return;
+    }
+    e.preventDefault();
+    this.zoomMap(direction === 'in');
+  }
 
   // handle map zoom controls
   protected zoomMap(zoomIn: boolean) {
