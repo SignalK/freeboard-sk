@@ -30,6 +30,7 @@ import {
   clearHeldVertexOnRelease,
   clearVertexDeleted,
   clearVertexDeletedOnDrag,
+  isTouchContextMenuWhileEditing,
   startPointerGesture,
   tryDeleteHeldVertexOnHold
 } from './vertex-delete';
@@ -264,10 +265,17 @@ export class MapComponent implements OnInit, OnDestroy {
   private touchTimer: any;
   private evCache: { [id: number]: MouseEvent } = {};
   private touchStartXY: { x: number; y: number } | null = null;
+  // The pointer type that opened the current gesture. A native `contextmenu`
+  // event carries no pointer type of its own, so it is read from here to tell a
+  // touch long-press apart from a mouse right-click.
+  private lastPointerType: string | undefined;
   private clearTouchTimer = () => {
     clearTimeout(this.touchTimer);
     this.evCache = {};
     this.touchStartXY = null;
+    // Reset with the rest of the gesture state so a later pointer-less
+    // `contextmenu` (the keyboard menu key) can't read a stale touch value.
+    this.lastPointerType = undefined;
   };
   /** Cancel the long-press only once the pointer has moved beyond a small
    *  tolerance. A press inevitably jitters a few pixels (and a press on a
@@ -313,6 +321,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // the setTimeout that patches into the zone) would run outside it.
     this.ngZone.run(() => {
       this.evCache[event.pointerId] = event;
+      this.lastPointerType = event.pointerType;
       this.map.set('vertexDeleteOnRelease', false);
       startPointerGesture(this.map);
       this.touchStartXY = { x: event.clientX, y: event.clientY };
@@ -340,6 +349,16 @@ export class MapComponent implements OnInit, OnDestroy {
     clearHeldVertexOnRelease(this.map, event);
   };
   private rightClickHandler = (event: MouseEvent) => {
+    // A finger long-press makes the WebView fire a native `contextmenu` at the OS
+    // long-press timeout, well before the vertex-delete hold completes. Clearing
+    // the hold timer here would cancel the delete, so ignore that event while
+    // editing and let the hold run its course.
+    if (
+      isTouchContextMenuWhileEditing(this.map, event.type, this.lastPointerType)
+    ) {
+      event.preventDefault();
+      return;
+    }
     this.clearTouchTimer();
     this.emitRightClickEvent(event);
   };

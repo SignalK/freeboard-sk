@@ -6,6 +6,7 @@ import {
   clearHeldVertexOnRelease,
   clearVertexDeleted,
   clearVertexDeletedOnDrag,
+  isTouchContextMenuWhileEditing,
   markVertexDeleted,
   startPointerGesture,
   tryDeleteHeldVertexOnHold,
@@ -76,6 +77,48 @@ describe('tryDeleteHeldVertexOnHold', () => {
     const map = fakeMap([]);
     expect(tryDeleteHeldVertexOnHold(map as Map, src('mouse'))).toBe(false);
     expect(map.get('vertexDeleteOnRelease')).toBeUndefined();
+  });
+});
+
+// A touch long-press makes the Android WebView emit a *native* `contextmenu` at
+// ~500ms (the OS long-press timeout), a full second before the 1500ms
+// vertex-delete hold timer. Left to run, its handler clears that timer and the
+// delete never fires. While editing, that native touch contextmenu must be
+// ignored so the hold timer survives; every other case keeps working.
+describe('isTouchContextMenuWhileEditing', () => {
+  it('is true for a native touch contextmenu while a Modify is active', () => {
+    const map = fakeMap([activeModify()]);
+    expect(
+      isTouchContextMenuWhileEditing(map as Map, 'contextmenu', 'touch')
+    ).toBe(true);
+  });
+
+  it('is false when no Modify is active — the not-editing menu is unchanged', () => {
+    const map = fakeMap([]);
+    expect(
+      isTouchContextMenuWhileEditing(map as Map, 'contextmenu', 'touch')
+    ).toBe(false);
+  });
+
+  it('is false for a mouse contextmenu — a real right-click still opens the menu', () => {
+    const map = fakeMap([activeModify()]);
+    expect(
+      isTouchContextMenuWhileEditing(map as Map, 'contextmenu', 'mouse')
+    ).toBe(false);
+  });
+
+  it("is false for touchHold's own pointerdown source, not a native contextmenu", () => {
+    const map = fakeMap([activeModify()]);
+    expect(
+      isTouchContextMenuWhileEditing(map as Map, 'pointerdown', 'touch')
+    ).toBe(false);
+  });
+
+  it('is false for a contextmenu with no pointer type — the keyboard menu key', () => {
+    const map = fakeMap([activeModify()]);
+    expect(
+      isTouchContextMenuWhileEditing(map as Map, 'contextmenu', undefined)
+    ).toBe(false);
   });
 });
 

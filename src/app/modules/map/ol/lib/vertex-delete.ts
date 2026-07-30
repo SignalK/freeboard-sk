@@ -87,6 +87,33 @@ function activeModify(map: Map): Modify | undefined {
 }
 
 /**
+ * Whether a `contextmenu` is the touch long-press artifact that must be ignored
+ * for the vertex-delete hold to survive.
+ *
+ * A finger long-press on the map makes the browser/WebView emit a **native**
+ * `contextmenu` at the OS long-press timeout (~500 ms) — a full second before the
+ * 1500 ms vertex-delete hold timer. Handled normally it clears that timer, so the
+ * delete never fires and the grabbed vertex is only ever dragged. While a route is
+ * being edited that native touch event is redundant with the hold timer and must
+ * be dropped. A mouse right-click (a deliberate action) and a touch long-press
+ * when not editing (opens the chart menu) both stay as they were.
+ *
+ * `eventType` separates the native DOM `contextmenu` from the synthetic
+ * pointer-down source that `touchHold` replays into this same handler.
+ */
+export function isTouchContextMenuWhileEditing(
+  map: Map,
+  eventType: string,
+  pointerType: string | undefined
+): boolean {
+  return (
+    eventType === 'contextmenu' &&
+    pointerType === 'touch' &&
+    !!activeModify(map)
+  );
+}
+
+/**
  * Drop the "grabbed vertex" dot when a touch gesture ends (#643).
  *
  * OpenLayers retires that dot only from a `pointermove` landing clear of the
