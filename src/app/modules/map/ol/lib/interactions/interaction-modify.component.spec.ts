@@ -6,10 +6,9 @@ import {
 } from './interaction-modify.component';
 import { vertexDeleted } from '../vertex-delete';
 
-// Minimal stand-in for the OL map: only get/set of the delete-on-release flag
-// are read by the condition.
-function fakeMap(vertexDeleteOnRelease = false) {
-  const store: Record<string, unknown> = { vertexDeleteOnRelease };
+// Minimal stand-in for the OL map: get/set back the vertexDeletedInGesture flag.
+function fakeMap() {
+  const store: Record<string, unknown> = {};
   return {
     get: (k: string) => store[k],
     set: (k: string, v: unknown) => {
@@ -46,26 +45,12 @@ describe('vertexDeleteCondition', () => {
     expect(vertexDeleteCondition(ev('click', { ctrlKey: false }))).toBe(false);
   });
 
-  it('deletes on release when tap-hold flagged vertexDeleteOnRelease, and clears the flag', () => {
-    const map = fakeMap(true);
-    expect(vertexDeleteCondition(ev('pointerup', { map }))).toBe(true);
-    expect(map.get('vertexDeleteOnRelease')).toBe(false);
+  it('does not delete on a plain release — touch tap-hold deletes mid-hold, not here', () => {
+    expect(vertexDeleteCondition(ev('pointerup'))).toBe(false);
   });
 
-  it('does not delete on release when the tap-hold flag is not set', () => {
-    expect(
-      vertexDeleteCondition(ev('pointerup', { map: fakeMap(false) }))
-    ).toBe(false);
-  });
-
-  // #608: the release that deletes also produces a click, which the route
-  // extend handler would read as open water once the line has snapped away.
-  it('flags vertexDeletedInGesture when a tap-hold release deletes', () => {
-    const map = fakeMap(true);
-    vertexDeleteCondition(ev('pointerup', { map }));
-    expect(vertexDeleted(map)).toBe(true);
-  });
-
+  // #608: the click a Ctrl-Click delete produces would be read as open water
+  // once the line has snapped away, so the gesture is flagged to suppress it.
   it('flags vertexDeletedInGesture when Ctrl-Click deletes', () => {
     const map = fakeMap();
     vertexDeleteCondition(ev('click', { ctrlKey: true, map }));
@@ -73,7 +58,7 @@ describe('vertexDeleteCondition', () => {
   });
 
   it('leaves vertexDeletedInGesture unset when nothing is deleted', () => {
-    const map = fakeMap(false);
+    const map = fakeMap();
     vertexDeleteCondition(ev('click', { map }));
     expect(vertexDeleted(map)).toBe(false);
   });

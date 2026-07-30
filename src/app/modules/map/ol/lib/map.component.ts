@@ -293,7 +293,6 @@ export class MapComponent implements OnInit, OnDestroy {
       ) > 15
     ) {
       this.clearTouchTimer();
-      this.map.set('vertexDeleteOnRelease', false);
     }
   };
   private touchHold = () => {
@@ -307,7 +306,7 @@ export class MapComponent implements OnInit, OnDestroy {
     const src = Object.values(this.evCache)[0];
     // During route editing a long hold removes the grabbed vertex; otherwise it
     // opens the chart context menu.
-    if (tryDeleteHeldVertexOnHold(this.map, src)) {
+    if (tryDeleteHeldVertexOnHold(this.map)) {
       return;
     }
     this.mapContextMenu.emit(src as any);
@@ -322,7 +321,6 @@ export class MapComponent implements OnInit, OnDestroy {
     this.ngZone.run(() => {
       this.evCache[event.pointerId] = event;
       this.lastPointerType = event.pointerType;
-      this.map.set('vertexDeleteOnRelease', false);
       startPointerGesture(this.map);
       this.touchStartXY = { x: event.clientX, y: event.clientY };
       // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a

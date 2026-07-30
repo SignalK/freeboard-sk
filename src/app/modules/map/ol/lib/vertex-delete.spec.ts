@@ -34,49 +34,43 @@ function activeModify(removePointResult = true): Modify {
   return modify;
 }
 
-function src(pointerType: string): MouseEvent {
-  return {
-    clientX: 10,
-    clientY: 20,
-    pointerType,
-    pointerId: 1
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
-}
-
 describe('tryDeleteHeldVertexOnHold', () => {
-  it('deletes the grabbed vertex on a long MOUSE hold — #578 parity with touch', () => {
+  it('removes the grabbed vertex mid-hold when a Modify is active', () => {
     const modify = activeModify();
     const map = fakeMap([modify]);
 
-    expect(tryDeleteHeldVertexOnHold(map as Map, src('mouse'))).toBe(true);
+    expect(tryDeleteHeldVertexOnHold(map as Map)).toBe(true);
     expect(modify.removePoint).toHaveBeenCalled();
   });
 
-  it('still deletes on a long touch hold', () => {
+  it("nulls the interaction's latched drag event so removePoint() is not refused", () => {
+    // A finger jitter past OL's 1px tolerance leaves lastPointerEvent_ a
+    // POINTERDRAG, which removePoint() refuses; the helper clears it first.
     const modify = activeModify();
-    const map = fakeMap([modify]);
-
-    expect(tryDeleteHeldVertexOnHold(map as Map, src('touch'))).toBe(true);
-    expect(modify.removePoint).toHaveBeenCalled();
+    (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_ = {
+      type: 'pointerdrag'
+    };
+    tryDeleteHeldVertexOnHold(fakeMap([modify]) as Map);
+    expect(
+      (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_
+    ).toBeNull();
   });
 
-  it('clears vertexDeleteOnRelease once the vertex is removed', () => {
-    const map = fakeMap([activeModify(true)]);
-    tryDeleteHeldVertexOnHold(map as Map, src('mouse'));
-    expect(map.get('vertexDeleteOnRelease')).toBe(false);
-  });
-
-  it('leaves vertexDeleteOnRelease set as a fallback when the immediate remove is refused', () => {
+  it('does not mark a delete when removePoint refuses (nothing grabbed)', () => {
     const map = fakeMap([activeModify(false)]);
-    tryDeleteHeldVertexOnHold(map as Map, src('mouse'));
-    expect(map.get('vertexDeleteOnRelease')).toBe(true);
+    tryDeleteHeldVertexOnHold(map as Map);
+    expect(vertexDeleted(map)).toBe(false);
   });
 
   it('does nothing (opens context menu instead) when no Modify is active', () => {
     const map = fakeMap([]);
-    expect(tryDeleteHeldVertexOnHold(map as Map, src('mouse'))).toBe(false);
-    expect(map.get('vertexDeleteOnRelease')).toBeUndefined();
+    expect(tryDeleteHeldVertexOnHold(map as Map)).toBe(false);
+  });
+
+  it('relies on an OpenLayers field name that still exists (rename guard)', () => {
+    expect(
+      'lastPointerEvent_' in new Modify({ features: new Collection() })
+    ).toBe(true);
   });
 });
 
@@ -149,18 +143,6 @@ describe('clearHeldVertexOnRelease', () => {
     expect(setActive).not.toHaveBeenCalled();
   });
 
-  it('leaves the dot when this release still has a vertex to delete', () => {
-    // A tap-hold whose immediate remove was refused deletes via deleteCondition
-    // on this release, which needs the dot — and this runs first.
-    const modify = activeModify();
-    const setActive = vi.spyOn(modify, 'setActive');
-    const map = fakeMap([modify]);
-    map.set('vertexDeleteOnRelease', true);
-
-    releaseOn(map as Map, 'touch');
-    expect(setActive).not.toHaveBeenCalled();
-  });
-
   it('does nothing when no Modify is active', () => {
     expect(() => releaseOn(fakeMap([]) as Map, 'touch')).not.toThrow();
   });
@@ -195,7 +177,7 @@ describe('vertexDeleted marker', () => {
     // marker must survive the whole gesture for that click to be suppressed.
     const map = fakeMap([activeModify(true)]);
     startPointerGesture(map);
-    tryDeleteHeldVertexOnHold(map as Map, src('mouse'));
+    tryDeleteHeldVertexOnHold(map as Map);
     expect(vertexDeleted(map)).toBe(true);
   });
 
