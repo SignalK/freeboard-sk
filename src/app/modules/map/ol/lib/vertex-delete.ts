@@ -78,6 +78,43 @@ export function clearVertexDeletedOnDrag(map: Pick<Map, 'get' | 'set'>): void {
   }
 }
 
+/** The Modify interaction currently editing, if any. */
+function activeModify(map: Map): Modify | undefined {
+  return map
+    .getInteractions()
+    .getArray()
+    .find((i) => i instanceof Modify && i.getActive()) as Modify | undefined;
+}
+
+/**
+ * Drop the "grabbed vertex" dot when a touch gesture ends (#643).
+ *
+ * OpenLayers retires that dot only from a `pointermove` landing clear of the
+ * line, so a mouse drops it the moment the cursor moves away. Touch emits no
+ * move after the finger lifts, leaving the dot lit on a vertex nothing is
+ * holding — and it reads as a selection the user cannot dismiss, because the tap
+ * that would clear it on a desktop instead extends the route (#549).
+ *
+ * A release with a delete still outstanding is left alone: `deleteCondition`
+ * needs the dot to remove the vertex on this very release, and this runs first
+ * (a viewport listener precedes OL's document-level `pointerup`).
+ *
+ * `setActive(false)` is OL's own documented way to drop the dot; re-arming
+ * immediately keeps the interaction ready for the next gesture, and the release
+ * still reaches `handleUpEvent`, so an edit this gesture made is unaffected.
+ */
+export function clearHeldVertexOnRelease(map: Map, src: PointerEvent): void {
+  if (src.pointerType !== 'touch' || map.get('vertexDeleteOnRelease')) {
+    return;
+  }
+  const modify = activeModify(map);
+  if (!modify) {
+    return;
+  }
+  modify.setActive(false);
+  modify.setActive(true);
+}
+
 /**
  * On a long press during route editing, remove the grabbed vertex.
  *
@@ -90,10 +127,7 @@ export function clearVertexDeletedOnDrag(map: Pick<Map, 'get' | 'set'>): void {
  * caller should not also open the context menu), `false` when there was none.
  */
 export function tryDeleteHeldVertexOnHold(map: Map, src: MouseEvent): boolean {
-  const modify = map
-    .getInteractions()
-    .getArray()
-    .find((i) => i instanceof Modify && i.getActive()) as Modify | undefined;
+  const modify = activeModify(map);
   if (!modify) {
     return false;
   }

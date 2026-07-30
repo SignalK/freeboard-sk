@@ -11,6 +11,7 @@ import { Geometry } from 'ol/geom';
 import { Modify } from 'ol/interaction';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { MapComponent } from '../map.component';
+import { hitToleranceForPointer } from '../util';
 import { markVertexDeleted } from '../vertex-delete';
 
 /**
@@ -52,6 +53,48 @@ export const vertexDeleteCondition = (e: MapBrowserEvent<any>): boolean => {
   return false;
 };
 
+/** OpenLayers' own default `pixelTolerance`, kept for mouse pointers. */
+const MOUSE_VERTEX_TOLERANCE = 10;
+/** Touch radius, matching the tolerance the rest of the map uses for a finger. */
+const TOUCH_VERTEX_TOLERANCE = 15;
+
+/**
+ * `Modify` whose vertex tolerance follows the pointer in use (#643).
+ *
+ * One `pixelTolerance` for every pointer type is too tight for a finger: a press
+ * landing more than 10px from the vertex it aims at grabs the *segment* instead,
+ * which inserts a point. So a tap leaves a stray vertex behind, and a tap-hold
+ * removes that freshly inserted point rather than the vertex under the finger —
+ * the delete appears to do nothing.
+ *
+ * Both radii match `hitToleranceForPointer`, which keeps this aligned with the
+ * route-extend hit test — that guard must stay >= this tolerance or a single
+ * click can both insert a vertex and append an end point (#598).
+ *
+ * OL takes `pixelTolerance` only as a constructor option, so switching it per
+ * gesture means writing the field it is stored in. `interaction-modify.component.spec`
+ * asserts that field exists, so an OL upgrade that renames it fails the suite
+ * rather than silently reverting every pointer to the mouse radius.
+ */
+export class PointerAwareModify extends Modify {
+  override handleEvent(
+    event: MapBrowserEvent<KeyboardEvent | PointerEvent | WheelEvent>
+  ): boolean {
+    const pointerType = (event.originalEvent as PointerEvent)?.pointerType;
+    // Events carrying no pointer type (wheel, keyboard) must leave the tolerance
+    // as the gesture in progress set it.
+    if (pointerType) {
+      (this as unknown as { pixelTolerance_: number }).pixelTolerance_ =
+        hitToleranceForPointer(
+          pointerType,
+          MOUSE_VERTEX_TOLERANCE,
+          TOUCH_VERTEX_TOLERANCE
+        );
+    }
+    return super.handleEvent(event);
+  }
+}
+
 @Component({
   selector: 'ol-map > ol-modify',
   template: '<ng-content></ng-content>',
@@ -90,9 +133,10 @@ export class InteractionModifyComponent {
 
   addModifyInteraction() {
     if (undefined !== this.map) {
-      this.interaction = new Modify({
+      this.interaction = new PointerAwareModify({
         features: this.features,
-        deleteCondition: vertexDeleteCondition
+        deleteCondition: vertexDeleteCondition,
+        pixelTolerance: MOUSE_VERTEX_TOLERANCE
       });
       this.interaction.on('change', this.emitChangeEvent);
       this.interaction.on('modifystart', this.emitModifyStartEvent);

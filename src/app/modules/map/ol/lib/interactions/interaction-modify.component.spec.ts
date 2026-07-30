@@ -1,5 +1,9 @@
 import { expect, describe, it } from 'vitest';
-import { vertexDeleteCondition } from './interaction-modify.component';
+import { Collection } from 'ol';
+import {
+  PointerAwareModify,
+  vertexDeleteCondition
+} from './interaction-modify.component';
 import { vertexDeleted } from '../vertex-delete';
 
 // Minimal stand-in for the OL map: only get/set of the delete-on-release flag
@@ -72,5 +76,58 @@ describe('vertexDeleteCondition', () => {
     const map = fakeMap(false);
     vertexDeleteCondition(ev('click', { map }));
     expect(vertexDeleted(map)).toBe(false);
+  });
+});
+
+// #643: a fingertip lands further from a vertex than OL's 10px default allows,
+// so the press grabbed the segment and inserted a point instead of the vertex.
+// Whether a given press *snaps* can only be observed against a rendered map, so
+// these assert the tolerance the interaction will apply — including that the
+// field OL keeps it in still exists, which is what makes the switch work at all.
+describe('PointerAwareModify vertex tolerance', () => {
+  const toleranceOf = (m: PointerAwareModify) =>
+    (m as unknown as { pixelTolerance_: number }).pixelTolerance_;
+
+  function modify() {
+    return new PointerAwareModify({
+      features: new Collection(),
+      pixelTolerance: 10
+    });
+  }
+
+  // Interacting view => OL skips the hover re-snap, keeping the event harmless.
+  function pointerEv(pointerType?: string) {
+    return {
+      type: 'pointerdown',
+      originalEvent: pointerType ? { pointerType } : {},
+      map: { getView: () => ({ getInteracting: () => true }) }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+  }
+
+  it('stores the constructed tolerance where OL can read it', () => {
+    // Canary: an OL upgrade that renames the field would otherwise leave every
+    // pointer silently stuck on the mouse radius.
+    expect(toleranceOf(modify())).toBe(10);
+  });
+
+  it('widens the tolerance to the touch radius for a touch pointer', () => {
+    const m = modify();
+    m.handleEvent(pointerEv('touch'));
+    expect(toleranceOf(m)).toBe(15);
+  });
+
+  it('keeps the mouse radius for a mouse pointer', () => {
+    const m = modify();
+    m.handleEvent(pointerEv('mouse'));
+    expect(toleranceOf(m)).toBe(10);
+  });
+
+  it('leaves the tolerance alone for an event carrying no pointer type', () => {
+    // A wheel or key event mid-gesture must not reset a touch gesture's radius.
+    const m = modify();
+    m.handleEvent(pointerEv('touch'));
+    m.handleEvent(pointerEv());
+    expect(toleranceOf(m)).toBe(15);
   });
 });

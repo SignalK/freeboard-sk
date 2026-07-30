@@ -27,6 +27,7 @@ import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
 import { hitToleranceForPointer, worldCopyOffset } from './util';
 import {
+  clearHeldVertexOnRelease,
   clearVertexDeleted,
   clearVertexDeletedOnDrag,
   startPointerGesture,
@@ -334,8 +335,9 @@ export class MapComponent implements OnInit, OnDestroy {
       this._pointerDown.update(() => e);
     });
   };
-  private pointerUpHandler = (event) => {
+  private pointerUpHandler = (event: PointerEvent) => {
     this.clearTouchTimer();
+    clearHeldVertexOnRelease(this.map, event);
   };
   private rightClickHandler = (event: MouseEvent) => {
     this.clearTouchTimer();

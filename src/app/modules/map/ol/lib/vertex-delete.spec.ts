@@ -3,6 +3,7 @@ import { Map } from 'ol';
 import { Collection } from 'ol';
 import { Modify } from 'ol/interaction';
 import {
+  clearHeldVertexOnRelease,
   clearVertexDeleted,
   clearVertexDeletedOnDrag,
   markVertexDeleted,
@@ -75,6 +76,50 @@ describe('tryDeleteHeldVertexOnHold', () => {
     const map = fakeMap([]);
     expect(tryDeleteHeldVertexOnHold(map as Map, src('mouse'))).toBe(false);
     expect(map.get('vertexDeleteOnRelease')).toBeUndefined();
+  });
+});
+
+// #643: OL retires the grabbed-vertex dot only from a pointermove that lands
+// clear of the line. Touch emits none once the finger lifts, so the dot stayed
+// lit on a vertex nothing was holding, reading as a selection that could not be
+// dismissed. Re-arming the interaction is what drops it (OL clears the dot in
+// `setActive(false)`), so that toggle is the observable contract here.
+describe('clearHeldVertexOnRelease', () => {
+  function releaseOn(map: Map, pointerType: string) {
+    clearHeldVertexOnRelease(map, { pointerType } as PointerEvent);
+  }
+
+  it('drops the dot when a touch gesture ends', () => {
+    const modify = activeModify();
+    const setActive = vi.spyOn(modify, 'setActive');
+    const map = fakeMap([modify]);
+
+    releaseOn(map as Map, 'touch');
+    expect(setActive.mock.calls.map(([a]) => a)).toEqual([false, true]);
+  });
+
+  it('leaves a mouse release alone — moving the cursor away clears it', () => {
+    const modify = activeModify();
+    const setActive = vi.spyOn(modify, 'setActive');
+
+    releaseOn(fakeMap([modify]) as Map, 'mouse');
+    expect(setActive).not.toHaveBeenCalled();
+  });
+
+  it('leaves the dot when this release still has a vertex to delete', () => {
+    // A tap-hold whose immediate remove was refused deletes via deleteCondition
+    // on this release, which needs the dot — and this runs first.
+    const modify = activeModify();
+    const setActive = vi.spyOn(modify, 'setActive');
+    const map = fakeMap([modify]);
+    map.set('vertexDeleteOnRelease', true);
+
+    releaseOn(map as Map, 'touch');
+    expect(setActive).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when no Modify is active', () => {
+    expect(() => releaseOn(fakeMap([]) as Map, 'touch')).not.toThrow();
   });
 });
 
