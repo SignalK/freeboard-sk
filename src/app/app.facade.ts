@@ -13,6 +13,7 @@ import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 import {
   MapViewport,
   mapCenterForOffset,
+  mapCenterForZoomShift,
   resolvePan
 } from './lib/follow-offset';
 
@@ -926,8 +927,11 @@ export class AppFacade extends InfoService {
   /** Calculate the position to center the map.
    * @param applyOffset false to centre the vessel exactly, ignoring the
    * configured vessel centre offset.
+   * @param zoomShift zoom levels about to be applied; when non-zero the centre is
+   * computed for the post-zoom viewport so the offset stays fixed on screen
+   * through the zoom rather than snapping back after it.
    */
-  calcMapCenter(applyOffset = true): Position {
+  calcMapCenter(applyOffset = true, zoomShift = 0): Position {
     const position = this.data.vessels.active.position;
     const offset = this.config.map.centerOffset;
     const viewport =
@@ -935,7 +939,9 @@ export class AppFacade extends InfoService {
     if (!viewport) {
       return position;
     }
-    return mapCenterForOffset(position, viewport, offset);
+    return zoomShift
+      ? mapCenterForZoomShift(position, viewport, offset, zoomShift)
+      : mapCenterForOffset(position, viewport, offset);
   }
 
   /**

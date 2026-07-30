@@ -19,6 +19,7 @@
   (mapPointerDrag)="onMapPointerDrag()"
   (mapContextMenu)="onMapContextMenu($event)"
   (contextmenu)="onContextMenu($event)"
+  (keydown)="onZoomKeydown($event)"
   olView
   [zoom]="mapZoomLevel()"
   [center]="mapCenterPositon()"

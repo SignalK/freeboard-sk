@@ -133,6 +133,35 @@ export function mapCenterForOffset(
 }
 
 /**
+ * The map centre that keeps a screen-fixed offset constant across a zoom of
+ * `zoomShift` levels (positive in, negative out). The view resolution changes by
+ * a factor of two per level, so the offset spans half the ground distance one
+ * level in and twice one level out; scaling the viewport by that factor before
+ * projecting the offset lands the vessel back on the same on-screen spot.
+ * @param vessel vessel position `[lon, lat]`
+ * @param viewport the current (pre-zoom) map viewport
+ * @param offset the configured offset percentages
+ * @param zoomShift zoom levels applied, e.g. `+1` for a single zoom-in step
+ */
+export function mapCenterForZoomShift(
+  vessel: Position,
+  viewport: MapViewport,
+  offset: MapCenterOffset,
+  zoomShift: number
+): Position {
+  const scale = 2 ** -zoomShift;
+  return mapCenterForOffset(
+    vessel,
+    {
+      ...viewport,
+      halfWidth: viewport.halfWidth * scale,
+      halfHeight: viewport.halfHeight * scale
+    },
+    offset
+  );
+}
+
+/**
  * Raw pan offset in screen-edge percentages (`x` right, `y` up), before
  * clamping — the inverse projection of {@link mapCenterForOffset}. `|value| > 100`
  * on an axis means the pan dragged the vessel past that edge, i.e. off screen.
