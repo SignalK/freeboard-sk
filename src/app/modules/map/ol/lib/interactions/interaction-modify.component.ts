@@ -19,7 +19,7 @@ import { markVertexDeleted } from '../vertex-delete';
  *
  * This is the **Ctrl-Click** (mouse) path — a primary-button click, so OpenLayers
  * re-snaps the grabbed vertex to the point under the cursor before this runs. The
- * **Tap-hold** (touch/pen) path no longer goes through `deleteCondition`: it
+ * **Tap-hold** (touch/pen) path does not go through `deleteCondition`: it
  * removes the vertex directly, mid-hold, from the hold timer (see
  * `tryDeleteHeldVertexOnHold`).
  *

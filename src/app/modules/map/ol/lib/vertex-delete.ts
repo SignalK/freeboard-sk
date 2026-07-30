@@ -87,6 +87,23 @@ function activeModify(map: Map): Modify | undefined {
 }
 
 /**
+ * Whether the active edit has a vertex grabbed under the pointer — the point a
+ * long hold would delete. OpenLayers sets `vertexFeature_` (the grabbed dot) on
+ * pointerdown when the press lands on a vertex, and a stationary tap-hold never
+ * clears it, so it reads true for the whole hold. Used to show the delete
+ * indicator and fire its haptic only for a real delete, not an open-water hold.
+ * `vertex-delete.spec` asserts the field still exists so an OpenLayers rename is
+ * caught by the suite.
+ */
+export function hasGrabbedVertex(map: Map): boolean {
+  const modify = activeModify(map);
+  if (!modify) {
+    return false;
+  }
+  return !!(modify as unknown as { vertexFeature_?: unknown }).vertexFeature_;
+}
+
+/**
  * Whether a `contextmenu` is the touch long-press artifact that must be ignored
  * for the vertex-delete hold to survive.
  *
@@ -156,18 +173,23 @@ export function clearHeldVertexOnRelease(map: Map, src: PointerEvent): void {
  * which no consumer reads. `vertex-delete.spec` asserts the field still exists so
  * an OpenLayers rename fails the suite rather than silently disabling the delete.
  *
- * Returns `true` when a Modify interaction was active (delete attempted, so the
- * caller should not also open the context menu), `false` when there was none.
+ * Returns `null` when no Modify interaction was active (so the caller opens the
+ * context menu instead); otherwise whether a vertex was actually **removed** —
+ * `true` only when `removePoint()` succeeded. `removePoint()` can refuse while a
+ * vertex is grabbed (OpenLayers keeps the endpoints of a two-point line), so the
+ * caller must confirm the delete (haptic, red indicator) on this result, not on
+ * merely having grabbed a vertex.
  */
-export function tryDeleteHeldVertexOnHold(map: Map): boolean {
+export function tryDeleteHeldVertexOnHold(map: Map): boolean | null {
   const modify = activeModify(map);
   if (!modify) {
-    return false;
+    return null;
   }
   (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_ =
     null;
-  if (modify.removePoint()) {
+  const removed = modify.removePoint();
+  if (removed) {
     markVertexDeleted(map);
   }
-  return true;
+  return removed;
 }

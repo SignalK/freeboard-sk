@@ -2,10 +2,12 @@ import { expect, describe, it, vi } from 'vitest';
 import { Map } from 'ol';
 import { Collection } from 'ol';
 import { Modify } from 'ol/interaction';
+import MapBrowserEventType from 'ol/MapBrowserEventType';
 import {
   clearHeldVertexOnRelease,
   clearVertexDeleted,
   clearVertexDeletedOnDrag,
+  hasGrabbedVertex,
   isTouchContextMenuWhileEditing,
   markVertexDeleted,
   startPointerGesture,
@@ -35,7 +37,7 @@ function activeModify(removePointResult = true): Modify {
 }
 
 describe('tryDeleteHeldVertexOnHold', () => {
-  it('removes the grabbed vertex mid-hold when a Modify is active', () => {
+  it('removes the grabbed vertex mid-hold and reports the removal when a Modify is active', () => {
     const modify = activeModify();
     const map = fakeMap([modify]);
 
@@ -43,34 +45,90 @@ describe('tryDeleteHeldVertexOnHold', () => {
     expect(modify.removePoint).toHaveBeenCalled();
   });
 
-  it("nulls the interaction's latched drag event so removePoint() is not refused", () => {
+  it('nulls the latched drag event BEFORE removePoint runs, so it is not refused', () => {
     // A finger jitter past OL's 1px tolerance leaves lastPointerEvent_ a
-    // POINTERDRAG, which removePoint() refuses; the helper clears it first.
-    const modify = activeModify();
+    // POINTERDRAG, which removePoint() refuses. The nulling must happen *before*
+    // the call — assert the state removePoint actually observes, not the state
+    // afterward (which a no-op mock leaves identical either way).
+    const modify = new Modify({ features: new Collection() });
+    vi.spyOn(modify, 'getActive').mockReturnValue(true);
+    let seenAtRemove: unknown = 'unset';
+    vi.spyOn(modify, 'removePoint').mockImplementation(() => {
+      seenAtRemove = (modify as unknown as { lastPointerEvent_: unknown })
+        .lastPointerEvent_;
+      return true;
+    });
     (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_ = {
       type: 'pointerdrag'
     };
     tryDeleteHeldVertexOnHold(fakeMap([modify]) as Map);
-    expect(
-      (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_
-    ).toBeNull();
+    expect(seenAtRemove).toBeNull();
   });
 
-  it('does not mark a delete when removePoint refuses (nothing grabbed)', () => {
+  it('reports false (nothing removed) when removePoint refuses, and marks no delete', () => {
     const map = fakeMap([activeModify(false)]);
-    tryDeleteHeldVertexOnHold(map as Map);
+    expect(tryDeleteHeldVertexOnHold(map as Map)).toBe(false);
     expect(vertexDeleted(map)).toBe(false);
   });
 
-  it('does nothing (opens context menu instead) when no Modify is active', () => {
+  it('returns null (caller opens the context menu) when no Modify is active', () => {
     const map = fakeMap([]);
-    expect(tryDeleteHeldVertexOnHold(map as Map)).toBe(false);
+    expect(tryDeleteHeldVertexOnHold(map as Map)).toBeNull();
   });
 
   it('relies on an OpenLayers field name that still exists (rename guard)', () => {
     expect(
       'lastPointerEvent_' in new Modify({ features: new Collection() })
     ).toBe(true);
+  });
+
+  it('removePoint removes only when the last event is not a drag — the OL guard the nudge defeats', () => {
+    // Behavioral canary beyond a rename: since the delete has no fallback, if a
+    // future OpenLayers changes *when* removePoint refuses, fail here rather than
+    // let the touch delete silently die. `removeVertex_` runs only past the guard.
+    const modify = new Modify({ features: new Collection() });
+    const removeVertex = vi
+      .spyOn(
+        modify as unknown as { removeVertex_: () => boolean },
+        'removeVertex_'
+      )
+      .mockReturnValue(false);
+
+    (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_ = {
+      type: MapBrowserEventType.POINTERDRAG
+    };
+    modify.removePoint();
+    expect(removeVertex).not.toHaveBeenCalled();
+
+    removeVertex.mockClear();
+    (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_ =
+      null;
+    modify.removePoint();
+    expect(removeVertex).toHaveBeenCalled();
+  });
+});
+
+describe('hasGrabbedVertex', () => {
+  it('is true when the active edit has a vertex grabbed under the pointer', () => {
+    const modify = activeModify();
+    (modify as unknown as { vertexFeature_: unknown }).vertexFeature_ = {};
+    expect(hasGrabbedVertex(fakeMap([modify]) as Map)).toBe(true);
+  });
+
+  it('is false when nothing is grabbed', () => {
+    const modify = activeModify();
+    (modify as unknown as { vertexFeature_: unknown }).vertexFeature_ = null;
+    expect(hasGrabbedVertex(fakeMap([modify]) as Map)).toBe(false);
+  });
+
+  it('is false when no Modify is active', () => {
+    expect(hasGrabbedVertex(fakeMap([]) as Map)).toBe(false);
+  });
+
+  it('relies on an OpenLayers field name that still exists (rename guard)', () => {
+    expect('vertexFeature_' in new Modify({ features: new Collection() })).toBe(
+      true
+    );
   });
 });
 

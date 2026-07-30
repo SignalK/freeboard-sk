@@ -30,10 +30,16 @@ import {
   clearHeldVertexOnRelease,
   clearVertexDeleted,
   clearVertexDeletedOnDrag,
+  hasGrabbedVertex,
   isTouchContextMenuWhileEditing,
   startPointerGesture,
   tryDeleteHeldVertexOnHold
 } from './vertex-delete';
+import {
+  completeVertexDeleteIndicator,
+  hideVertexDeleteIndicator,
+  showVertexDeleteIndicator
+} from './vertex-delete-indicator';
 
 export interface FBMapEvent extends MapEvent {
   lonlat: Coordinate;
@@ -262,7 +268,24 @@ export class MapComponent implements OnInit, OnDestroy {
   // Only arrow function works with addEventListener
 
   // Long Press Detection (iOS & Android)
-  private touchTimer: any;
+  // A deliberate hold deletes a grabbed vertex; a shorter hold in open water
+  // opens the chart context menu.
+  private readonly MODIFY_HOLD_MS = 1500;
+  private readonly MENU_HOLD_MS = 500;
+  // The delete-progress indicator is shown from the native long-press
+  // `contextmenu` (which fires with the OS long-press buzz), so the bar starts
+  // with that buzz. This fallback covers devices that emit no such event; it is
+  // long enough that a quick tap or the start of a vertex drag never flashes it.
+  private readonly INDICATOR_FALLBACK_MS = 650;
+  // A short double pulse confirming the vertex delete completed — distinct from
+  // the single OS long-press buzz. A no-op where web-page vibration is
+  // unsupported or suppressed (iOS Safari; some WebView-based browsers), which
+  // is harmless: the indicator turning red is the primary completion cue.
+  private readonly VERTEX_DELETE_HAPTIC = [45, 40, 60];
+  private touchTimer: ReturnType<typeof setTimeout>;
+  private indicatorTimer: ReturnType<typeof setTimeout>;
+  private indicatorShown = false;
+  private pointerDownTime = 0;
   private evCache: { [id: number]: MouseEvent } = {};
   private touchStartXY: { x: number; y: number } | null = null;
   // The pointer type that opened the current gesture. A native `contextmenu`
@@ -271,6 +294,13 @@ export class MapComponent implements OnInit, OnDestroy {
   private lastPointerType: string | undefined;
   private clearTouchTimer = () => {
     clearTimeout(this.touchTimer);
+    clearTimeout(this.indicatorTimer);
+    if (this.indicatorShown) {
+      // Hold cancelled (finger lifted early or moved off) — a completed delete
+      // clears this flag first, so this only fires when nothing was deleted.
+      hideVertexDeleteIndicator();
+      this.indicatorShown = false;
+    }
     this.evCache = {};
     this.touchStartXY = null;
     // Reset with the rest of the gesture state so a later pointer-less
@@ -305,12 +335,44 @@ export class MapComponent implements OnInit, OnDestroy {
     }
     const src = Object.values(this.evCache)[0];
     // During route editing a long hold removes the grabbed vertex; otherwise it
-    // opens the chart context menu.
-    if (tryDeleteHeldVertexOnHold(this.map)) {
+    // opens the chart context menu (null result = no active edit).
+    const removed = tryDeleteHeldVertexOnHold(this.map);
+    if (removed !== null) {
+      // Confirm only a real removal — OpenLayers can refuse (e.g. a two-point
+      // line), and a buzz + red trash on nothing deleted would be a lie.
+      if (removed) {
+        navigator.vibrate?.(this.VERTEX_DELETE_HAPTIC);
+        completeVertexDeleteIndicator();
+      } else {
+        hideVertexDeleteIndicator();
+      }
+      this.indicatorShown = false;
       return;
     }
     this.mapContextMenu.emit(src as any);
     this.rightClickHandler(src);
+  };
+  // Show the delete-progress indicator over a grabbed vertex, its bar timed to
+  // fill for the remainder of the hold. Triggered by the native long-press
+  // `contextmenu` (in step with the OS buzz), with a fallback timer; the guard
+  // keeps those two triggers from showing it twice.
+  private showDeleteIndicator = () => {
+    if (
+      this.indicatorShown ||
+      !this.map ||
+      !this.touchStartXY ||
+      !hasGrabbedVertex(this.map)
+    ) {
+      return;
+    }
+    const remaining =
+      this.MODIFY_HOLD_MS - (performance.now() - this.pointerDownTime);
+    showVertexDeleteIndicator(
+      this.touchStartXY.x,
+      this.touchStartXY.y,
+      Math.max(0, remaining)
+    );
+    this.indicatorShown = true;
   };
   private pointerDownHandler = (event) => {
     // Re-enter the Angular zone: schedules the long-press timer in-zone (so the
@@ -321,6 +383,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.ngZone.run(() => {
       this.evCache[event.pointerId] = event;
       this.lastPointerType = event.pointerType;
+      this.pointerDownTime = performance.now();
       startPointerGesture(this.map);
       this.touchStartXY = { x: event.clientX, y: event.clientY };
       // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
@@ -330,7 +393,16 @@ export class MapComponent implements OnInit, OnDestroy {
         .getInteractions()
         .getArray()
         .some((i) => i instanceof Modify && i.getActive());
-      this.touchTimer = setTimeout(this.touchHold, modifying ? 1500 : 500);
+      this.touchTimer = setTimeout(
+        this.touchHold,
+        modifying ? this.MODIFY_HOLD_MS : this.MENU_HOLD_MS
+      );
+      if (modifying) {
+        this.indicatorTimer = setTimeout(
+          this.showDeleteIndicator,
+          this.INDICATOR_FALLBACK_MS
+        );
+      }
       const rawCoord = this.map.getEventCoordinate(event);
       const c = toLonLat(rawCoord);
       const e = Object.assign(event, {
@@ -350,10 +422,12 @@ export class MapComponent implements OnInit, OnDestroy {
     // A finger long-press makes the WebView fire a native `contextmenu` at the OS
     // long-press timeout, well before the vertex-delete hold completes. Clearing
     // the hold timer here would cancel the delete, so ignore that event while
-    // editing and let the hold run its course.
+    // editing and let the hold run its course. This fires with the OS long-press
+    // buzz, so it is also where the delete-progress indicator starts.
     if (
       isTouchContextMenuWhileEditing(this.map, event.type, this.lastPointerType)
     ) {
+      this.showDeleteIndicator();
       event.preventDefault();
       return;
     }
