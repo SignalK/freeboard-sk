@@ -87,6 +87,50 @@ function activeModify(map: Map): Modify | undefined {
 }
 
 /**
+ * Whether the active edit has a vertex grabbed under the pointer — the point a
+ * long hold would delete. OpenLayers sets `vertexFeature_` (the grabbed dot) on
+ * pointerdown when the press lands on a vertex, and a stationary tap-hold never
+ * clears it, so it reads true for the whole hold. Used to show the delete
+ * indicator and fire its haptic only for a real delete, not an open-water hold.
+ * `vertex-delete.spec` asserts the field still exists so an OpenLayers rename is
+ * caught by the suite.
+ */
+export function hasGrabbedVertex(map: Map): boolean {
+  const modify = activeModify(map);
+  if (!modify) {
+    return false;
+  }
+  return !!(modify as unknown as { vertexFeature_?: unknown }).vertexFeature_;
+}
+
+/**
+ * Whether a `contextmenu` is the touch long-press artifact that must be ignored
+ * for the vertex-delete hold to survive.
+ *
+ * A finger long-press on the map makes the browser/WebView emit a **native**
+ * `contextmenu` at the OS long-press timeout (~500 ms) — a full second before the
+ * 1500 ms vertex-delete hold timer. Handled normally it clears that timer, so the
+ * delete never fires and the grabbed vertex is only ever dragged. While a route is
+ * being edited that native touch event is redundant with the hold timer and must
+ * be dropped. A mouse right-click (a deliberate action) and a touch long-press
+ * when not editing (opens the chart menu) both stay as they were.
+ *
+ * `eventType` separates the native DOM `contextmenu` from the synthetic
+ * pointer-down source that `touchHold` replays into this same handler.
+ */
+export function isTouchContextMenuWhileEditing(
+  map: Map,
+  eventType: string,
+  pointerType: string | undefined
+): boolean {
+  return (
+    eventType === 'contextmenu' &&
+    pointerType === 'touch' &&
+    !!activeModify(map)
+  );
+}
+
+/**
  * Drop the "grabbed vertex" dot when a touch gesture ends (#643).
  *
  * OpenLayers retires that dot only from a `pointermove` landing clear of the
@@ -95,16 +139,12 @@ function activeModify(map: Map): Modify | undefined {
  * holding — and it reads as a selection the user cannot dismiss, because the tap
  * that would clear it on a desktop instead extends the route (#549).
  *
- * A release with a delete still outstanding is left alone: `deleteCondition`
- * needs the dot to remove the vertex on this very release, and this runs first
- * (a viewport listener precedes OL's document-level `pointerup`).
- *
  * `setActive(false)` is OL's own documented way to drop the dot; re-arming
  * immediately keeps the interaction ready for the next gesture, and the release
  * still reaches `handleUpEvent`, so an edit this gesture made is unaffected.
  */
 export function clearHeldVertexOnRelease(map: Map, src: PointerEvent): void {
-  if (src.pointerType !== 'touch' || map.get('vertexDeleteOnRelease')) {
+  if (src.pointerType !== 'touch') {
     return;
   }
   const modify = activeModify(map);
@@ -116,43 +156,40 @@ export function clearHeldVertexOnRelease(map: Map, src: PointerEvent): void {
 }
 
 /**
- * On a long press during route editing, remove the grabbed vertex.
+ * On a long press during route editing, remove the grabbed vertex immediately —
+ * mid-hold, while the pointer is still down, the way touch plotters work.
  *
  * Runs for **any** pointer — a long left-click gives mouse users parity with the
  * touch/pen tap-hold (alongside Ctrl-Click). A press that is really the start of a
  * drag cannot reach here: the Modify hold timer is 1500 ms and `clearTimerIfMoved`
  * disarms it once the pointer moves past its tolerance.
  *
- * Returns `true` when a Modify interaction was active (delete attempted, so the
- * caller should not also open the context menu), `false` when there was none.
+ * `removePoint()` refuses when the interaction's last event was a POINTERDRAG, and
+ * a finger always jitters past OpenLayers' 1 px move tolerance during the hold,
+ * latching `MapBrowserEventHandler.dragging_` (which `isMoving_` short-circuits
+ * on) for the rest of the gesture. Clearing the interaction's `lastPointerEvent_`
+ * lets `removePoint()` run — it removes the grabbed vertex from `dragSegments_`
+ * and carries the (now null) event only into its MODIFYSTART/MODIFYEND events,
+ * which no consumer reads. `vertex-delete.spec` asserts the field still exists so
+ * an OpenLayers rename fails the suite rather than silently disabling the delete.
+ *
+ * Returns `null` when no Modify interaction was active (so the caller opens the
+ * context menu instead); otherwise whether a vertex was actually **removed** —
+ * `true` only when `removePoint()` succeeded. `removePoint()` can refuse while a
+ * vertex is grabbed (OpenLayers keeps the endpoints of a two-point line), so the
+ * caller must confirm the delete (haptic, red indicator) on this result, not on
+ * merely having grabbed a vertex.
  */
-export function tryDeleteHeldVertexOnHold(map: Map, src: MouseEvent): boolean {
+export function tryDeleteHeldVertexOnHold(map: Map): boolean | null {
   const modify = activeModify(map);
   if (!modify) {
-    return false;
+    return null;
   }
-  // Flag a delete-on-release as the reliable fallback, then try to remove the
-  // grabbed vertex immediately (mid-hold, the way touch plotters work).
-  // removePoint() refuses if the last event was a drag, so replay a pointermove at
-  // the press point to clear that state first.
-  map.set('vertexDeleteOnRelease', true);
-  try {
-    map.getViewport().dispatchEvent(
-      new PointerEvent('pointermove', {
-        clientX: src.clientX,
-        clientY: src.clientY,
-        bubbles: true,
-        cancelable: true,
-        pointerId: (src as PointerEvent).pointerId ?? 1,
-        pointerType: (src as PointerEvent).pointerType ?? 'touch'
-      })
-    );
-    if (modify.removePoint()) {
-      map.set('vertexDeleteOnRelease', false);
-      markVertexDeleted(map);
-    }
-  } catch {
-    // Fall back to delete-on-release via the deleteCondition flag.
+  (modify as unknown as { lastPointerEvent_: unknown }).lastPointerEvent_ =
+    null;
+  const removed = modify.removePoint();
+  if (removed) {
+    markVertexDeleted(map);
   }
-  return true;
+  return removed;
 }

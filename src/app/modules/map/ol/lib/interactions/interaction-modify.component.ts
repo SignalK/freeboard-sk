@@ -17,34 +17,22 @@ import { markVertexDeleted } from '../vertex-delete';
 /**
  * Decides whether a map event should delete the grabbed route vertex.
  *
- * Two delete gestures are supported, matching the on-screen instructions
- * ("Ctrl-Click or Tap-hold to remove point from a line"):
- * - **Ctrl-Click** (mouse) — a primary-button click, so OpenLayers re-snaps the
- *   grabbed vertex to the point under the cursor before this runs.
- * - **Tap-hold** (touch/pen) — map.component flags `vertexDeleteOnRelease`, which
- *   we consume on the following release. OL 10 emits no `contextmenu` for touch,
- *   so this is the only touch delete path.
+ * This is the **Ctrl-Click** (mouse) path — a primary-button click, so OpenLayers
+ * re-snaps the grabbed vertex to the point under the cursor before this runs. The
+ * **Tap-hold** (touch/pen) path does not go through `deleteCondition`: it
+ * removes the vertex directly, mid-hold, from the hold timer (see
+ * `tryDeleteHeldVertexOnHold`).
  *
  * A mouse right-click (`contextmenu`) is deliberately **not** a delete gesture: it
  * never re-snaps the grabbed vertex (its pointerdown is not a primary action), so
  * it would delete whatever vertex was last touched rather than the one clicked
  * (#575); and Freeboard already uses right-click for the map context menu.
  *
- * Either gesture flags `VERTEX_DELETED_IN_GESTURE` so the click the same release
+ * A delete flags `VERTEX_DELETED_IN_GESTURE` so the click the same release
  * produces is not also read as a route extension (#608).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const vertexDeleteCondition = (e: MapBrowserEvent<any>): boolean => {
-  if (
-    (e.type === 'pointerup' ||
-      e.type === 'singleclick' ||
-      e.type === 'click') &&
-    e.map.get('vertexDeleteOnRelease')
-  ) {
-    e.map.set('vertexDeleteOnRelease', false);
-    markVertexDeleted(e.map);
-    return true;
-  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (e.type === 'click' && (e.originalEvent as any).ctrlKey) {
     markVertexDeleted(e.map);
