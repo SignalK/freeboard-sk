@@ -35,7 +35,7 @@ Node `>=18`. Install with `npm i`. Angular `21`.
 | `npm run build:web` | build the **webapp** → `public/` (use this, not raw `ng build` — see below) |
 | `npm run build:helper` | build the **helper plugin** → `plugin/` |
 | `npm run build:all` / `build:prod` | both (what CI builds, what `npm pack` runs) |
-| `npm run test:ci` | run unit tests once and **exit** (what CI runs — see below) |
+| `npm run test:ci` | run unit tests once and **exit** (what CI runs — see below); add `-- --include "<spec>"` to run a single file |
 | `npm test` | `ng test` in watch mode (local dev only — does not exit) |
 | `npm run format` | Prettier over `src/` (and `format:all` for `helper/` too) |
 
