@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { signal, untracked } from '@angular/core';
 import { FBResource } from 'src/app/types';
 import { SKResourceService, SKSelection } from '../resources.service';
 
@@ -53,11 +53,17 @@ export class ResourceListBase {
 
   /**
    * Align select all / some / none checkbox with entry selections
+   *
+   * The list is read non-reactively. Callers invoke this immediately after
+   * writing filteredList, so the value is already in hand — and a tracked read
+   * would make any effect on the call stack a dependent of that write. Two such
+   * effects then re-trigger each other until the heap is exhausted, so
+   * untracked() is load bearing here (#617).
    */
   protected alignSelections() {
     let c = false;
     let u = false;
-    this.filteredList().forEach((i: FBResource) => {
+    untracked(() => this.filteredList()).forEach((i: FBResource) => {
       c = i[2] ? true : c;
       u = !i[2] ? true : u;
     });
