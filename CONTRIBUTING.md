@@ -63,8 +63,15 @@ Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
    npm run build:all
    npm run test:ci      # runs tests once and exits (not `npm test`, which watches)
    ```
-5. Commit with `type(scope): subject` messages (imperative, present tense). Keep
-   history clean — amend fixups rather than chaining "oops" commits.
+5. Commit with `type(scope): subject` messages (imperative, present tense).
+   **Keep your individual commits — don't squash the branch into one before you
+   open the PR.** Each commit should be a meaningful step, and its message should
+   say *why*, not just *what*: that sequence is how a reviewer follows your
+   reasoning, and on a contributor PR it is often the only place the reasoning is
+   written down at all. Maintainers squash when they merge, so flattening the
+   branch yourself gains nothing — and it costs a maintainer the ability to
+   reconcile what changed against what was reviewed. Keep every commit, including
+   the small ones; don't tidy them away.
 6. Push and open the PR.
    - **The title becomes a line in the release notes / App Store Changelog** — make
      it descriptive and user-facing.
@@ -78,7 +85,16 @@ Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
    unanswered thread doesn't tell a maintainer whether you disagreed or never saw
    it. Rebutting is fine — being silent isn't. A PR is ready for maintainer review
    once a CodeRabbit review has completed and every finding is disposed of.
-   If changes are requested, rebase and force-push to update the PR:
+   Push your fixes as **new commits** with a plain `git push` — **don't
+   force-push.** New commits keep CodeRabbit's re-review incremental and leave
+   reviewers a working "changes since last review" view; a force-push destroys
+   both, and re-reviews are rate-limited.
+   ```sh
+   git commit -m "fix(map): guard against a null layer on teardown"
+   git push
+   ```
+   The one routine reason to force-push is rebasing onto a moved `master` — that
+   preserves your commits rather than collapsing them:
    ```sh
    git fetch origin && git rebase origin/master
    git push -f
