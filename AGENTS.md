@@ -151,8 +151,23 @@ continue that. The bar below is what "done correctly" means here.
 - **Branch from latest `master`; rebase, never merge.** Clean up commit history
   before opening (no "fix typo"/"oops" commits — amend into the relevant commit).
   When updating with upstream: `git fetch && git rebase origin/master`, force-push.
-- **CodeRabbit** reviews PRs automatically — address its comments, then it's ready
-  for maintainer review.
+- **CodeRabbit reviews PRs automatically — give every finding an explicit
+  disposition.** Either fix it, or reply on that thread saying why it doesn't apply.
+  **Don't leave a finding silently unanswered**, and don't treat a PR as ready for
+  maintainer review while any thread is still open. Two reasons this matters:
+  - **CodeRabbit learns from rebuttals.** A reply explaining why a finding is wrong
+    becomes a project-level note, and it stops raising that class of objection on
+    later PRs. A good rebuttal permanently improves review quality for everyone;
+    silence teaches it nothing, and the same false positive comes back next time.
+  - **Silence is unreadable to a maintainer.** On your own PR you know which findings
+    you fixed and which you judged not to apply. From the outside those are
+    indistinguishable from findings you never opened — so the reasoning has to be
+    written on the thread, not held in your head.
+
+  Rebutting is a perfectly good outcome — CodeRabbit is not always right, and a
+  clear "this can't happen because X" is more useful than a defensive change. What
+  isn't acceptable is leaving it unanswered. A PR needs at least one completed
+  CodeRabbit review, with every finding disposed of, before it can be merged.
 - **Share what you learned — keep the lessons log alive.** If working on your PR
   surfaced something non-obvious about developing FSK locally (a toolchain trap, a
   test-setup gotcha, a platform or hardware quirk), add it to
