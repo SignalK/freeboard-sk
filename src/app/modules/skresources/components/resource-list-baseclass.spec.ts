@@ -7,19 +7,15 @@ import type { SKResourceService } from '../resources.service';
 
 /**
  * `doFilter()` writes the `filteredList` signal and then recomputes the select
- * all/some/none flags from it via `alignSelections()`. When that read back was
- * tracked, any effect ending in `doFilter()` became a dependent of its own
- * write. One such effect is harmless — it records the version it just produced
- * — but two are not: each one's write invalidates the version the other
- * recorded, so they re-trigger each other until the heap is exhausted. That was
- * #617, where the chart list's "In view" filter locked Freeboard up on any pan
- * or zoom.
+ * all/some/none flags from it via `alignSelections()`. A tracked read there
+ * would make any effect ending in `doFilter()` a dependent of its own write:
+ * one such effect is harmless, but two re-trigger each other until the heap is
+ * exhausted (#617).
  *
- * Seven components extend this base class, so the guard belongs here rather
- * than in each subclass's effects (#623). These tests stand up a minimal
- * subclass with two effects that both call `doFilter()` *without* an
- * `untracked()` wrapper — the mistake the base class has to survive — and
- * assert the filter settles.
+ * These tests stand up a minimal subclass with two effects that both call
+ * `doFilter()` *without* an `untracked()` wrapper — the mistake the base class
+ * has to survive — and assert that filtering settles and the selection flags
+ * stay correct.
  *
  * `doFilter()` trips after a small number of calls so a regression fails as an
  * assertion rather than taking the vitest worker down with an out-of-memory

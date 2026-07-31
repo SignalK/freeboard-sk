@@ -55,11 +55,10 @@ export class ResourceListBase {
    * Align select all / some / none checkbox with entry selections
    *
    * The list is read non-reactively. Callers invoke this immediately after
-   * writing filteredList, so the value is already in hand — but a tracked read
-   * would also make whatever effect is on the stack a dependent of that write.
-   * Two such effects then re-trigger each other until the heap is exhausted —
-   * the chart list lockup of #617. Reading here with untracked() keeps that
-   * trap out of every subclass (#623).
+   * writing filteredList, so the value is already in hand — and a tracked read
+   * would make any effect on the call stack a dependent of that write. Two such
+   * effects then re-trigger each other until the heap is exhausted, so
+   * untracked() is load bearing here (#617).
    */
   protected alignSelections() {
     let c = false;
