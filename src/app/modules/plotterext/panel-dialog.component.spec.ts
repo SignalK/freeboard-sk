@@ -47,12 +47,10 @@ describe('PlotterPanelDialog with no configuration panel', () => {
     expect(message()?.textContent?.trim()).toBe('This widget has no settings.');
   });
 
-  // Issue #653: the message hard-coded `color: rgba(0, 0, 0, 0.6)`, so in dark
-  // mode it rendered near-black on a dark dialog and was invisible. Declaring no
-  // colour lets mat-dialog-content's themed supporting-text colour apply, which
-  // does switch with the theme. The dialog's foreground is stood in for here by
-  // an ancestor colour: if the component pins one of its own, it wins over the
-  // ambient value and this fails — exactly as it did before the fix.
+  // Regression guard for #653. The message carries no colour of its own, so it
+  // takes mat-dialog-content's themed supporting-text colour, which follows the
+  // dark theme. The ancestor colour set below stands in for that themed
+  // foreground: a colour pinned on the element would win over it and fail here.
   it('takes its colour from the dialog rather than a hard-coded one', () => {
     (fixture.nativeElement as HTMLElement).style.color = 'rgb(1, 2, 3)';
     expect(getComputedStyle(message()).color).toBe('rgb(1, 2, 3)');

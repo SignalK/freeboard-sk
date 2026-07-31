@@ -75,9 +75,9 @@ export interface PlotterPanelDialogData {
         padding: 0;
         height: 60vh;
       }
-      /* No colour of its own: mat-dialog-content already carries the themed
-         supporting-text colour, which switches with the dark theme. Pinning a
-         light-theme value here made the message invisible in dark mode (#653). */
+      /* Declares no colour: mat-dialog-content already carries the themed
+         supporting-text colour, which follows the dark theme. A colour pinned
+         here overrides it and goes invisible against the dark surface. */
       .pe-panel-noconfig {
         padding: 16px 24px;
       }
