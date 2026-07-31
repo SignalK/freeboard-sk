@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { EMPTY } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CompiledFeature } from './feature-corpus';
 import { FeatureCorpusService } from './feature-corpus.service';
@@ -141,5 +141,60 @@ describe('FeatureBrowserDialog what’s-new strip', () => {
 
     more.click();
     expect(scrollIntoView).toHaveBeenCalled();
+  });
+});
+
+describe('FeatureBrowserDialog history table', () => {
+  let fixture: ComponentFixture<FeatureBrowserDialog>;
+  let warn: ReturnType<typeof vi.spyOn>;
+
+  // A catch-up doc for an older feature: more than one change predating the PR
+  // workflow, so every such row carries `pr: null`.
+  const prePrWorkflow: CompiledFeature = {
+    ...feature('anchor-watch', 'Anchor Watch'),
+    events: [
+      { pr: null, date: '2024-03-02', title: 'raise the alarm on drag' },
+      { pr: null, date: '2024-03-01', title: 'set an anchor' }
+    ]
+  };
+
+  beforeEach(async () => {
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    TestBed.configureTestingModule({
+      imports: [FeatureBrowserDialog],
+      providers: [
+        provideNoopAnimations(),
+        {
+          provide: FeatureCorpusService,
+          useValue: { load: async () => [prePrWorkflow], hueFor: () => 0 }
+        },
+        {
+          provide: MatDialogRef,
+          useValue: { keydownEvents: () => EMPTY, close: () => undefined }
+        }
+      ]
+    });
+
+    fixture = TestBed.createComponent(FeatureBrowserDialog);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  afterEach(() => warn.mockRestore());
+
+  it('renders every pre-PR-workflow change with unique track keys', () => {
+    const rows = Array.from(
+      fixture.nativeElement.querySelectorAll('.pr-table tr')
+    ) as HTMLElement[];
+    expect(
+      rows.map((r) => r.querySelector('.pr-title')?.textContent?.trim())
+    ).toEqual(['raise the alarm on drag', 'set an anchor']);
+
+    // NG0955 — duplicate track keys. Angular only warns, so the rows above still
+    // render; the exposure is mis-keyed DOM reuse when the collection changes.
+    const warnings = warn.mock.calls.map((c) => String(c[0]));
+    expect(warnings.filter((m) => m.includes('NG0955'))).toEqual([]);
   });
 });

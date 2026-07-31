@@ -106,7 +106,7 @@
       <div class="pr-history">
         <div class="pr-history-title">History</div>
         <table class="pr-table">
-          @for (e of f.events; track e.pr) {
+          @for (e of f.events; track $index) {
           <tr>
             <td class="pr-date">
               {{ e.date ? (e.date | date: 'mediumDate') : '' }}
