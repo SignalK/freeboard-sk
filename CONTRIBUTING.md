@@ -71,7 +71,13 @@ Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
    - Keep the description succinct: the motivation (why) and the approach (how), not
      the mechanics (what). Include before/after screenshots for UI changes. If you
      use AI, **trim the fluff** — maintainers will ask if they need more.
-7. [CodeRabbit](https://coderabbit.ai/) reviews automatically; address its comments.
+7. [CodeRabbit](https://coderabbit.ai/) reviews automatically. **Give every finding
+   an explicit disposition — fix it, or reply on the thread explaining why it
+   doesn't apply.** Don't leave findings silently unanswered: CodeRabbit learns from
+   rebuttals and will stop raising that class of objection on later PRs, and an
+   unanswered thread doesn't tell a maintainer whether you disagreed or never saw
+   it. Rebutting is fine — being silent isn't. A PR is ready for maintainer review
+   once a CodeRabbit review has completed and every finding is disposed of.
    If changes are requested, rebase and force-push to update the PR:
    ```sh
    git fetch origin && git rebase origin/master
