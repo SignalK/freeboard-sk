@@ -148,9 +148,17 @@ continue that. The bar below is what "done correctly" means here.
   shared Signal K `plugin-ci` workflow (`build:all` + `test:ci`) across a
   Linux/macOS/Windows + arm matrix; it must be green.
 - **Never change version numbers.** Maintainers own versioning and publish releases.
-- **Branch from latest `master`; rebase, never merge.** Clean up commit history
-  before opening (no "fix typo"/"oops" commits — amend into the relevant commit).
-  When updating with upstream: `git fetch && git rebase origin/master`, force-push.
+- **Branch from latest `master`; rebase, never merge.** When updating with upstream:
+  `git fetch && git rebase origin/master`, force-push. That rebase is the *only*
+  routine reason to force-push a PR branch.
+- **Keep the individual commits — never squash the branch.** Don't flatten the work
+  into a single commit before opening, and don't amend review fixes into earlier
+  commits afterwards — push those as new commits with a plain `git push`. Maintainers
+  squash when they merge, so pre-squashing gains nothing, and it costs the two things
+  the history is there for: CodeRabbit re-reviewing incrementally instead of in full
+  (re-reviews are rate-limited), and a reviewer's "changes since last review" view.
+  Write each commit message to explain *why*; on a contributor PR that sequence is
+  frequently the only record of how the design moved.
 - **CodeRabbit reviews PRs automatically — give every finding an explicit
   disposition.** Either fix it, or reply on that thread saying why it doesn't apply.
   **Don't leave a finding silently unanswered**, and don't treat a PR as ready for

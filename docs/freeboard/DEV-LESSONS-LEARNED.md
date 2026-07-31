@@ -567,7 +567,10 @@ head branch — so if `master` moved after you branched, CR (and CI) reason abou
 stale tree and may flag issues already fixed elsewhere.
 
 **What to do instead.** Rebase onto current `master` before relying on a re-review
-(`git fetch && git rebase origin/master`, force-push).
+(`git fetch && git rebase origin/master`, force-push). This rebase is the one
+routine exception to the no-force-push rule in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md) — it preserves your individual commits.
+The review fixes themselves go in as new commits and a plain `git push`.
 
 ### Waiting on a CodeRabbit review — poll the review endpoints, not its prose
 
