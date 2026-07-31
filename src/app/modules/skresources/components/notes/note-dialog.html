@@ -253,7 +253,14 @@
                   }
                 </mat-select-trigger>
                 @for(i of poiIcons; track i.id) {
-                <mat-option [value]="i.id" [matTooltip]="i.name"
+                <!-- Touch gestures off: on a touch platform MatTooltip sets
+                inline touch-action:none on its trigger to reserve the long
+                press, and every row of this panel is a trigger — so a finger
+                has nowhere to land that scrolls the list (#651). -->
+                <mat-option
+                  [value]="i.id"
+                  [matTooltip]="i.name"
+                  matTooltipTouchGestures="off"
                   ><mat-icon [svgIcon]="i.id">{{i.name}}</mat-icon>
                 </mat-option>
                 }

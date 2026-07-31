@@ -211,9 +211,15 @@ interface DialogData {
                         }"
                         (click)="handleIconSelected($index)"
                       >
+                        <!-- Touch gestures off: on a touch platform MatTooltip
+                        sets inline touch-action:none on its trigger to reserve
+                        the long press, and every tile of this scrolling grid is
+                        a trigger — so a finger has nowhere to land that scrolls
+                        it (#651). -->
                         <mat-icon
                           [svgIcon]="i.svgIcon"
                           [matTooltip]="i.svgIcon"
+                          matTooltipTouchGestures="off"
                         ></mat-icon>
                       </div>
                     }
