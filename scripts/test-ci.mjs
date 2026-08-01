@@ -19,13 +19,18 @@
 // still fails (via the build-error detection, or the hard timeout). Used by
 // `npm run test:ci`; plain `npm test` is left as the normal (watch) command for
 // local development.
+//
+// Extra arguments are passed straight through to `ng test`, so the exit-safe
+// behaviour is also available when filtering to one spec — which is what
+// red->green verifying a regression test needs:
+//   npm run test:ci -- --include "src/app/.../foo.spec.ts"
 
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const ngBin = require.resolve('@angular/cli/bin/ng.js');
-const NG_ARGS = ['test'];
+const NG_ARGS = ['test', ...process.argv.slice(2)];
 
 // Matches vitest's final summary line, e.g. "Test Files  3 passed (3)" or
 // "Test Files  1 failed | 2 passed (3)".

@@ -314,20 +314,25 @@ suite, the exit-safe wrapper:
 npm run test:ci      # = ng test, with the force-exit wrapper
 ```
 
-To iterate on **one** spec, you *can* filter — pass the file to `ng test`:
+To iterate on **one** spec, pass the file through the same wrapper — anything after
+`--` is forwarded to `ng test`:
 
 ```bash
-npx ng test --include "src/app/.../foo.spec.ts"
+npm run test:ci -- --include "src/app/.../foo.spec.ts"
 ```
 
-This goes through the Angular pipeline (alias resolves) and runs only that file.
-The one catch: like all `ng test`/`ng build` invocations it **won't self-exit**
-(see *`ng test` / `ng build` don't exit* above) — `test:ci` is wrapped, this raw
-form is not. Background it, wait for the vitest `Test Files` summary, then kill it
-(or just Ctrl-C). So **red→green-verifying a regression test is two single-file
-runs**, not two full-suite runs — once with the fix reverted (new test fails), once
-restored (it passes). Don't reach for `npx vitest` to shortcut it; that's the path
-that fails on the alias.
+This goes through the Angular pipeline (so the alias resolves), runs only that file,
+and still force-exits with a real exit code. **Don't** use the raw
+`npx ng test --include …` form: like every bare `ng test`/`ng build` it won't
+self-exit (see *`ng test` / `ng build` don't exit* above), so it has to be killed by
+hand — unreliable from a script, where a run that died early leaves only
+`Building...` in the log and looks identical to one still compiling.
+
+The exit code is what makes this usable for regression work: **red→green-verifying a
+regression test is two single-file runs**, not two full-suite runs — once with the
+fix reverted (new test fails), once restored (it passes) — and the red run has to
+*report* failure rather than hang. Don't reach for `npx vitest` to shortcut it;
+that's the path that fails on the alias.
 
 ### Never let a destructive command inherit the shell's cwd
 
