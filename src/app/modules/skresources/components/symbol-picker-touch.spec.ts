@@ -19,12 +19,13 @@ import { WaypointDialog } from './waypoints/waypoint-dialog';
  * On a touch platform `MatTooltip` reserves the long press for itself by
  * writing an inline `touch-action: none` onto its trigger element
  * (`_disableNativeGesturesIfNecessary`). `touch-action` is read from wherever a
- * touch *starts*, so a trigger that fills every row of a scrolling list leaves
- * the finger nowhere to land that pans it: the note dialog's symbol dropdown
- * and the waypoint dialog's symbol grid both became unscrollable, stranding
- * every symbol below the fold. The desktop path takes the `mouseenter` branch
- * and never writes the style, which is why this only shows up on a tablet or a
- * chartplotter — for many Freeboard users, their only input device.
+ * touch *starts*, so a trigger filling every row of a scrolling list leaves the
+ * finger nowhere to land that pans it. Both pickers are built that way — every
+ * option of the note dialog's dropdown and every tile of the waypoint dialog's
+ * grid carries a tooltip — so each turns the tooltip's touch gestures off. The
+ * desktop path takes the `mouseenter` branch and never writes the style, so
+ * only a tablet or a chartplotter depends on this — for many Freeboard users,
+ * their only input device.
  *
  * These render each picker with the platform reported as iOS, since that is
  * what selects the touch branch inside the directive.
