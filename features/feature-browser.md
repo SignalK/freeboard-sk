@@ -7,6 +7,7 @@ category: Display
 This very window you're looking at right now is the **Feature Browser** — a
 searchable "What's New" window covering everything Freeboard can do. Curious
 what a feature does, how to use it, or when it was added? Open it any time
+from the main menu — **What's New**, between **About** and **Help** — or
 from the **⋯ (More actions)** menu, no matter what you're doing on the
 chart.
 
