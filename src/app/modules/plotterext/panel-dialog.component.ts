@@ -75,9 +75,11 @@ export interface PlotterPanelDialogData {
         padding: 0;
         height: 60vh;
       }
+      /* Declares no colour: mat-dialog-content already carries the themed
+         supporting-text colour, which follows the dark theme. A colour pinned
+         here overrides it and goes invisible against the dark surface. */
       .pe-panel-noconfig {
         padding: 16px 24px;
-        color: rgba(0, 0, 0, 0.6);
       }
       iframe {
         display: block;
