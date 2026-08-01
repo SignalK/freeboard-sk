@@ -50,6 +50,15 @@ updates:
         update-types:
           - 'version-update:semver-major'
           - 'version-update:semver-minor'
+      # jsdom 30 requires Node '^22.22.2 || ^24.15.0 || >=26', dropping Node 20.
+      # The advisory armv7 (Cerbo GX / Venus OS) leg runs Node 20, where jsdom 30
+      # installs (EBADENGINE is only a warning) but then throws on require, so
+      # every spec errors and the leg fails permanently. jsdom is dev-only, so
+      # this costs no runtime support — but a leg that is always red reports
+      # nothing about the change under test. Revisit if that leg moves off
+      # Node 20; in-range minor/patch still flow through the groups.
+      - dependency-name: 'jsdom'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: '/'
