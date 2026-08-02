@@ -40,7 +40,19 @@ const SUMMARY = /Test Files\s+\d+\s+(?:failed|passed)/;
 // so no vitest summary is coming — fail fast instead of riding the hard timeout.
 const BUILD_ERROR = /✘ \[ERROR\]/;
 const GRACE_MS = 10_000; // let ng exit on its own before we force it
-const HARD_TIMEOUT_MS = 15 * 60 * 1000; // backstop if no summary ever prints
+// Backstop if no summary ever prints. The armv7 (Cerbo GX) CI leg runs the whole
+// suite under QEMU emulation, where the test phase costs ~800s against ~60s
+// native and grows with every spec file added, so it needs a budget the other
+// platforms don't. Only 32-bit ARM gets it (same detection as
+// vitest-base.config.ts) — native keeps the tighter one so real hangs surface
+// quickly.
+//
+// 18min is derived, not a round number. The shared plugin-ci armv7 job is capped
+// at 30min and spends ~600s reaching the test step (npm ci, npm rebuild,
+// build:all, plus checkout and QEMU setup), leaving ~1200s. A budget at that
+// ceiling could never fire — GitHub would kill the job first, with none of this
+// wrapper's diagnostics — so it sits below it, with room for a cold npm cache.
+const HARD_TIMEOUT_MS = (process.arch === 'arm' ? 18 : 15) * 60 * 1000;
 
 const stripAnsi = (s) => s.replace(/\x1b\[[0-9;]*m/g, '');
 
