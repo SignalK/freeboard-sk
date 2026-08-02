@@ -461,6 +461,46 @@ a private method to exercise the genuine code path rather than faking its output
 
 ---
 
+### Rendering a `mat-tab-group`: only the active tab's body is in the DOM
+
+**The trap.** Angular Material attaches the body of the **selected** tab only, so a
+rendered `SettingsDialog` contains the markup of exactly one tab. Two consequences,
+and the second is the dangerous one:
+
+- A query for a control on another tab returns `null` — `#sectNotes` is simply absent
+  until the Resources tab is selected.
+- A **whole-dialog** assertion silently passes for the wrong reason. "This control
+  appears exactly once in the dialog" is trivially true when eight of the nine tabs
+  aren't rendered — it would pass just as happily if the control were duplicated on
+  another tab, or absent from every tab.
+
+**What to do instead.** Select the tab before asserting on it, and make a claim about
+*one tab at a time*. Click the label and let the body attach:
+
+```ts
+const tab = Array.from(el.querySelectorAll<HTMLElement>('.mat-mdc-tab'))
+  .find((t) => (t.textContent ?? '').trim() === label);
+tab?.click();
+fixture.detectChanges();
+await fixture.whenStable();
+fixture.detectChanges();      // the body attaches on this second pass
+```
+
+So "the option moved from Display to Resources" is naturally **two** tests — present
+on Resources, absent on Display — not one uniqueness check.
+
+**Worth knowing before you conclude the dialog is untestable:** `SettingsDialog` does
+render in a spec. It needs `SettingsFacade`, `AppFacade`, `WakeLockService`,
+`S57Service`, `RadarAPIService` and `MatDialogRef` stubbed, and the two big objects
+come free from the app's own exports — `defaultConfig()` for `facade.settings` /
+`app.config`, `initData()` for `app.data` (a child component reads
+`app.data.vessels.prefAvailablePaths` during init). Give `facade` an `applySettings`
+too: `persistModel()` calls it on every change, and without it a `change` handler
+throws an *unhandled* error while the test still reports **passed**. Stubbing it as a
+counter also makes "the control still persists" directly assertable.
+
+---
+
 ### Unit-testing a function that lives *inside* the stream worker
 
 **The trap.** The logic you want to test (e.g. `apiGet`, `getVesselTrail`) is a
