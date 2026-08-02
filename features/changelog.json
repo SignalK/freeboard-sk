@@ -1,4 +1,5 @@
 [
+  { "feature": "notes", "pr": 667, "kind": "enhanced", "date": "2026-08-01", "title": "feat(notes): move note details option to the Notes settings group" },
   { "feature": "weather-station-wind-barbs", "pr": 495, "kind": "new", "since": "v3.0.0", "date": "2026-07-10", "title": "feat(map): render meteo targets as wind barbs" },
   { "feature": "weather-overlays", "pr": 413, "kind": "new", "since": "v3.0.0", "date": "2026-07-03", "title": "feat(weather): add wind and ocean current overlays" },
   { "feature": "weather-overlays", "pr": 520, "kind": "enhanced", "since": "v3.0.0", "date": "2026-07-14", "title": "feat(weather): unify wind indicator rendering across overlays" },
