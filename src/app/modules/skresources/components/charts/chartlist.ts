@@ -349,10 +349,11 @@ export class ChartListComponent extends ResourceListBase {
 
   /**
    * @description True when a selected chart is not drawn at the current map
-   * zoom because of its display minimum. Resolved the same way the map layer
+   * zoom. Only charts carrying a display minimum are marked, since the notice
+   * hangs off that label -- but the test is the layer's whole resolved range,
+   * so a chart held back by its own declared bounds still reports itself
+   * hidden rather than appearing to be on. Resolved the way the map layer
    * resolves it, so the list cannot claim a chart is showing when it is not.
-   * Charts with no display minimum are never marked -- other reasons a chart
-   * may not be visible are out of scope.
    * @param chart Chart entry
    */
   protected isBoundedOut(chart: FBChart): boolean {

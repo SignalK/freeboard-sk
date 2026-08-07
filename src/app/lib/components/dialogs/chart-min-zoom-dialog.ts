@@ -118,6 +118,7 @@ export function zoomToBoundText(zoom: number): string {
         <input
           type="number"
           inputmode="decimal"
+          step="0.1"
           aria-label="Lowest zoom level to show this chart at"
           [min]="ZOOM_ENTRY_MIN"
           [max]="ZOOM_ENTRY_MAX"
