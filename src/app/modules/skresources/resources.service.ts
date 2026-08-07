@@ -72,6 +72,8 @@ import { groupBy } from 'rxjs/operators';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ChartSeedJobDialog } from './components/charts/chart-seedjob-dialog';
 import {
+  ChartMinZoomDialog,
+  ChartMinZoomDialogResult,
   ImageAdjustmentDialog,
   ImageAdjustmentDialogResult
 } from 'src/app/lib/components';
@@ -962,6 +964,57 @@ export class SKResourceService {
     });
   }
 
+  /**
+   * @description Open the modeless Display Zoom dialog for a chart. The bound
+   * takes effect live so the map can be zoomed to judge it; APPLY persists
+   * per-chart, closing reverts to the pre-edit value. Owned here (not the chart
+   * list) so the list can stay open alongside it while a set is balanced.
+   * Opening one for another chart closes the current one, discarding its
+   * preview.
+   * @param chart Chart to bound
+   * @param onApplied Called with the persisted value so the caller can mirror
+   * it onto its own copy of the chart
+   */
+  public openDisplayMinZoom(
+    chart: FBChart,
+    onApplied?: (value?: number) => void
+  ) {
+    const id = chart[0];
+    const original =
+      this.app.config.selections.chartDisplayMinZoom[id] ??
+      chart[1]?.displayMinZoom;
+
+    const ref = this.openChartPalette(ChartMinZoomDialog, {
+      width: '300px',
+      data: {
+        text: chart[1]?.name ?? '',
+        value: original,
+        declaredMin: chart[1]?.minZoom,
+        declaredMax: chart[1]?.maxZoom,
+        currentZoom: () => this.app.mapZoom(),
+        onChange: (value?: number) => {
+          this.chartSetDisplayMinZoom(id, value);
+        }
+      }
+    });
+
+    ref.afterClosed().subscribe((result: ChartMinZoomDialogResult) => {
+      this.releaseChartPalette(ref);
+      if (result?.apply) {
+        if (typeof result.value === 'number') {
+          this.app.config.selections.chartDisplayMinZoom[id] = result.value;
+        } else {
+          delete this.app.config.selections.chartDisplayMinZoom[id];
+        }
+        this.chartSetDisplayMinZoom(id, result.value);
+        this.app.saveConfig();
+        onApplied?.(result.value);
+      } else {
+        // closed without applying - restore the pre-edit value
+        this.chartSetDisplayMinZoom(id, original);
+      }
+    });
+  }
 
   /**
    * @description Open a modeless per-chart palette, replacing any already open.

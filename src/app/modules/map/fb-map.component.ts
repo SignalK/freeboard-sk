@@ -690,6 +690,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // handle map move / zoom
   protected onMapMoveEnd(e: FBMapEvent) {
     this.app.config.map.zoomLevel = e.zoom;
+    this.app.mapZoom.set(e.zoom);
 
     this.app.mapExtent.update(() => e.extent);
     this.app.mapViewTopCenter.update(() => e.topCenter as Position);

@@ -33,14 +33,19 @@ import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
 import {
+  displayMinZoomLabel,
   SingleSelectListDialog,
   SliderInputDialog,
   SliderInputDialogResult
 } from 'src/app/lib/components';
+import {
+  isChartInView,
+  isZoomWithinLayerRange,
+  resolveLayerZoomRange
+} from 'src/app/modules/map/ol/lib/charts/chart-utils';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { isChartInView } from 'src/app/modules/map/ol/lib/charts/chart-utils';
 
 @Component({
   selector: 'chart-list',
@@ -144,6 +149,7 @@ export class ChartListComponent extends ResourceListBase {
       this.doFilter();
       this.cleanOpacityConfig();
       this.cleanImageAdjustmentConfig();
+      this.cleanDisplayMinZoomConfig();
       this.skres.selectionClean(
         this.collection,
         this.fullList.map((i) => i[0])
@@ -177,6 +183,19 @@ export class ChartListComponent extends ResourceListBase {
     keys.forEach((key) => {
       if (!listIds.includes(key)) {
         delete this.app.config.selections.chartImageAdjustment[key];
+      }
+    });
+  }
+
+  /**
+   * Clean orphaned chartDisplayMinZoom keys from config
+   */
+  cleanDisplayMinZoomConfig() {
+    const keys = Object.keys(this.app.config.selections.chartDisplayMinZoom);
+    const listIds = this.fullList.map((i) => i[0]);
+    keys.forEach((key) => {
+      if (!listIds.includes(key)) {
+        delete this.app.config.selections.chartDisplayMinZoom[key];
       }
     });
   }
@@ -314,6 +333,55 @@ export class ChartListComponent extends ResourceListBase {
           return;
         }
       });
+  }
+
+  /**
+   * @description Compact label for a chart's configured display minimum zoom.
+   * @param chart Chart entry
+   */
+  protected minZoomLabelFor(chart: FBChart): string {
+    // Only the raster layers honour a display minimum, so only they may claim
+    // one -- the control is likewise offered on `isImageLayer` charts alone.
+    return this.isImageLayer(chart)
+      ? displayMinZoomLabel(chart[1]?.displayMinZoom)
+      : '';
+  }
+
+  /**
+   * @description True when a selected chart is not drawn at the current map
+   * zoom because of its display minimum. Resolved the same way the map layer
+   * resolves it, so the list cannot claim a chart is showing when it is not.
+   * Charts with no display minimum are never marked -- other reasons a chart
+   * may not be visible are out of scope.
+   * @param chart Chart entry
+   */
+  protected isBoundedOut(chart: FBChart): boolean {
+    if (
+      !chart[2] ||
+      !this.isImageLayer(chart) ||
+      typeof chart[1]?.displayMinZoom !== 'number'
+    ) {
+      return false;
+    }
+    return !isZoomWithinLayerRange(
+      resolveLayerZoomRange(
+        chart[1],
+        this.app.MAP_ZOOM_EXTENT.max,
+        this.app.config.map.overZoomTiles
+      ),
+      this.app.mapZoom()
+    );
+  }
+
+  protected itemDisplayMinZoom(chart: FBChart) {
+    // The list stays open: balancing an overlapping set means moving between
+    // charts, and the list is where their levels and hidden state are shown --
+    // so the applied value has to land on the list's own copy of the chart, or
+    // the row keeps reporting the state from before the edit.
+    this.skres.openDisplayMinZoom(chart, (value?: number) => {
+      chart[1].displayMinZoom = value;
+      this.updateFullList(chart);
+    });
   }
 
   protected itemImageAdjustment(chart: FBChart) {
