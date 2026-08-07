@@ -270,6 +270,10 @@ export class AppFacade extends InfoService {
   mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
   mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)
   mapViewRotation = signal<number>(0); // OL view rotation in radians (CCW positive)
+  // Current map zoom, mirroring config.map.zoomLevel for consumers that need to
+  // react to it (chart display zoom ranges). Seeded from the restored config so
+  // it is correct before the first map move.
+  mapZoom = signal<number>(0);
   // programmatic map move request (e.g. from a plotter extension). A new
   // object reference each time so the consuming effect always reacts.
   mapMoveRequest = signal<{ center: Position; zoom?: number } | null>(null);
@@ -544,6 +548,7 @@ export class AppFacade extends InfoService {
 
     this.sTrueMagChoice.set(this.config.units.headingAttribute);
     this.s57.setOptions(this.config.map.s57Options);
+    this.mapZoom.set(this.config.map.zoomLevel);
 
     // emit settings$.ready
     this.debug(`doPostConfigLoad(): emit config$.ready`);
