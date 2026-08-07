@@ -119,6 +119,65 @@ describe('openImageAdjustment (#457)', () => {
     expect(getData().position).toEqual({ x: 120, y: 40 });
   });
 
+  describe('keeping a remembered position on screen', () => {
+    // The palette now opens clear of the chart list, so an offset saved against
+    // the old origin can put the drag handle -- the only way to move it back --
+    // past the viewport edge.
+    const withViewport = (width: number, fn: () => void) => {
+      const original = window.innerWidth;
+      Object.defineProperty(window, 'innerWidth', {
+        value: width,
+        configurable: true
+      });
+      try {
+        fn();
+      } finally {
+        Object.defineProperty(window, 'innerWidth', {
+          value: original,
+          configurable: true
+        });
+      }
+    };
+
+    const openWith = (
+      pos: { x: number; y: number } | null,
+      viewportWidth: number
+    ) => {
+      const { svc, config, getData } = svcWithResult({
+        apply: false,
+        value: { brightness: 1, contrast: 1 }
+      });
+      config.imageAdjustPalettePos = pos;
+      withViewport(viewportWidth, () => svc.openImageAdjustment(chart()));
+      return getData().position;
+    };
+
+    it('pulls a position past the right edge back into view', () => {
+      const position = openWith({ x: 4000, y: 40 }, 1024);
+      expect(position.x).toBeLessThan(4000);
+      // Still far enough left that the whole 290px palette fits.
+      expect(position.x).toBeLessThanOrEqual(1024 - 290);
+    });
+
+    it('pulls a negative vertical offset back to the top', () => {
+      expect(openWith({ x: 0, y: -500 }, 1024).y).toBe(0);
+    });
+
+    it('leaves a position that already fits alone', () => {
+      expect(openWith({ x: 40, y: 40 }, 1600)).toEqual({ x: 40, y: 40 });
+    });
+
+    it('passes through when no position was ever saved', () => {
+      expect(openWith(null, 1024)).toBeNull();
+    });
+
+    it('keeps the palette on screen on a viewport too narrow for both', () => {
+      // Clamped to the gap rather than pushed off to the right of the list.
+      const position = openWith({ x: 0, y: 0 }, 420);
+      expect(position.x).toBeLessThanOrEqual(420 - 290);
+    });
+  });
+
   it('persists the palette position when dragged', () => {
     const { svc, config, saveConfig, getData } = svcWithResult({
       apply: false,

@@ -1,7 +1,11 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
-import { MatDialog } from '@angular/material/dialog';
+import {
+  MatDialog,
+  MatDialogConfig,
+  MatDialogRef
+} from '@angular/material/dialog';
 import ngeohash from 'ngeohash';
 import { Collection, Feature } from 'ol';
 
@@ -83,6 +87,11 @@ export class SKResourceService {
 
   private app = inject(AppFacade);
   private dialog = inject(MatDialog);
+  // The open modeless per-chart palette (image adjustment or minimum zoom).
+  // They are backdrop-less and share a position, so a second one would cover the
+  // first completely — and the covered one still reverts its chart when closed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private chartPaletteRef?: MatDialogRef<any, any>;
   private signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
   private mapInteract = inject(FBMapInteractService);
@@ -859,8 +868,8 @@ export class SKResourceService {
   /**
    * @description Open the modeless, draggable Image Adjustment palette for a
    * chart. Sliders take effect live; SAVE persists per-chart, closing (cancel)
-   * reverts to the pre-edit values. Owned here (not the chart list) so it
-   * survives the chart list closing to free the map.
+   * reverts to the pre-edit values. Owned here (not the chart list) so the list
+   * can stay open beside it while several charts are adjusted.
    * @param chart Chart to adjust
    */
   public openImageAdjustment(chart: FBChart) {
@@ -872,38 +881,117 @@ export class SKResourceService {
         chart[1]?.imageAdjustment)
     };
 
-    this.dialog
-      .open(ImageAdjustmentDialog, {
-        hasBackdrop: false,
-        disableClose: true,
-        autoFocus: false,
-        restoreFocus: false,
-        position: { top: '70px', left: '8px' },
-        width: '290px',
-        data: {
-          text: chart[1]?.name ?? '',
-          value: { ...original },
-          position: this.app.config.imageAdjustPalettePos,
-          onChange: (value: ChartImageAdjustment) => {
-            this.chartSetImageAdjustment(id, value);
-          },
-          onMoved: (position: PalettePosition) => {
-            this.app.config.imageAdjustPalettePos = position;
-            this.app.saveConfig();
-          }
-        }
-      })
-      .afterClosed()
-      .subscribe((result: ImageAdjustmentDialogResult) => {
-        if (result?.apply) {
-          this.app.config.selections.chartImageAdjustment[id] = result.value;
-          this.chartSetImageAdjustment(id, result.value);
+    const ref = this.openChartPalette(ImageAdjustmentDialog, {
+      width: '290px',
+      data: {
+        text: chart[1]?.name ?? '',
+        value: { ...original },
+        position: this.onScreenPalettePosition(
+          this.app.config.imageAdjustPalettePos,
+          290
+        ),
+        onChange: (value: ChartImageAdjustment) => {
+          this.chartSetImageAdjustment(id, value);
+        },
+        onMoved: (position: PalettePosition) => {
+          this.app.config.imageAdjustPalettePos = position;
           this.app.saveConfig();
-        } else {
-          // cancelled - restore the pre-edit adjustment
-          this.chartSetImageAdjustment(id, original);
         }
-      });
+      }
+    });
+
+    ref.afterClosed().subscribe((result: ImageAdjustmentDialogResult) => {
+      this.releaseChartPalette(ref);
+      if (result?.apply) {
+        this.app.config.selections.chartImageAdjustment[id] = result.value;
+        this.chartSetImageAdjustment(id, result.value);
+        this.app.saveConfig();
+      } else {
+        // cancelled - restore the pre-edit adjustment
+        this.chartSetImageAdjustment(id, original);
+      }
+    });
+  }
+
+  /**
+   * @description Open a modeless per-chart palette, replacing any already open.
+   * They are backdrop-less and share a position, so only one may be on screen.
+   * @param component Palette component
+   * @param config Component-specific dialog config
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private openChartPalette<T>(
+    component: any,
+    config: MatDialogConfig
+  ): MatDialogRef<T> {
+    this.chartPaletteRef?.close();
+    this.chartPaletteRef = this.dialog.open(component, {
+      hasBackdrop: false,
+      disableClose: true,
+      autoFocus: false,
+      restoreFocus: false,
+      // Clear of the chart list, which stays open beside it, unless the
+      // viewport is too narrow for both.
+      position: { top: '70px', left: `${this.chartDialogLeft()}px` },
+      ...config
+    });
+    return this.chartPaletteRef;
+  }
+
+  /**
+   * @description Forget a closed palette. `afterClosed` fires after the next
+   * `open()` has already stored its ref, so only clear the field when it still
+   * points at the palette that closed.
+   * @param ref Palette that closed
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private releaseChartPalette(ref: MatDialogRef<any, any>) {
+    if (this.chartPaletteRef === ref) {
+      this.chartPaletteRef = undefined;
+    }
+  }
+
+  /**
+   * @description A saved palette drag offset brought back on screen. The offset
+   * is relative to where the palette opens, which moved to clear the chart list,
+   * so an offset saved against the old origin could put the drag handle -- the
+   * only way to move it back -- past the viewport edge.
+   */
+  private onScreenPalettePosition(
+    position: PalettePosition | null,
+    width: number
+  ): PalettePosition | null {
+    if (!position) {
+      return position;
+    }
+    // The saved offset is relative to where the palette opens, which moved to
+    // clear the chart list. Left as-is, a palette dragged right under the old
+    // origin could land past the viewport edge, taking its drag handle with it.
+    const left = this.chartDialogLeft();
+    const maxX = window.innerWidth - left - width - 8;
+    const minX = -(left - 8);
+    return {
+      x: Math.max(minX, Math.min(position.x, maxX)),
+      y: Math.max(0, position.y)
+    };
+  }
+
+  /**
+   * @description Left offset that clears the chart list when both are open,
+   * clamped so the palette stays on screen on a narrow display.
+   */
+  private chartDialogLeft(): number {
+    // Matches .leftMenuPanel in app.component.css.
+    const CHART_LIST_WIDTH = 315;
+    const DIALOG_WIDTH = 300;
+    const GAP = 8;
+    return Math.max(
+      GAP,
+      Math.min(
+        CHART_LIST_WIDTH + GAP,
+        window.innerWidth - DIALOG_WIDTH - GAP * 2
+      )
+    );
   }
 
   /**
