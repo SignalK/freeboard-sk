@@ -137,17 +137,19 @@ export class SKChart {
   imageAdjustment?: ChartImageAdjustment;
   proxy: boolean;
 
-  constructor(chart?: ChartResource) {
+  // Accepts a server chart resource or an existing SKChart: the chart cache
+  // re-constructs an entry from an instance to trigger a re-render, and the
+  // instance spells these three fields differently to the resource.
+  constructor(chart?: ChartResource | SKChart) {
+    const src = chart as (ChartResource & SKChart) | undefined;
     this.identifier = chart?.identifier ? chart.identifier : undefined;
     this.name = chart?.name ? chart.name : undefined;
     this.description = chart?.description ? chart.description : undefined;
     this.layers = chart?.layers ? chart.layers : [];
     this.bounds = chart?.bounds ? chart.bounds : undefined;
     this.format = chart?.format ? chart.format : undefined;
-    this.minZoom =
-      typeof chart?.minzoom !== 'undefined' ? chart.minzoom : this.minZoom;
-    this.maxZoom =
-      typeof chart?.maxzoom !== 'undefined' ? chart.maxzoom : this.maxZoom;
+    this.minZoom = src?.minzoom ?? src?.minZoom ?? this.minZoom;
+    this.maxZoom = src?.maxzoom ?? src?.maxZoom ?? this.maxZoom;
     this.tileSize =
       typeof chart?.tileSize !== 'undefined' ? chart.tileSize : this.tileSize;
     this.type = chart?.type ? chart.type : undefined;
@@ -157,7 +159,7 @@ export class SKChart {
         ? chart.scale
         : this.scale;
     this.style = chart?.style ?? undefined;
-    this.source = chart?.$source ?? undefined;
+    this.source = src?.$source ?? src?.source ?? undefined;
     this.defaultOpacity = chart?.defaultOpacity ?? 1;
     this.imageAdjustment = chart?.imageAdjustment;
     this.proxy = chart?.proxy ?? false;
