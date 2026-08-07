@@ -115,10 +115,16 @@ export function zoomToBoundText(zoom: number): string {
         style="display: flex; align-items: center; gap: 4px; padding: 10px 8px 0 16px;"
       >
         <div style="font-size: 13px;">Show from</div>
+        <!--
+          step="any" rather than a tenth: the spinner and arrow keys still move
+          by 1, which is the useful increment here, while a fractional bound --
+          which the target button produces from the map zoom -- stays valid.
+          A numeric step would tie the two together and make one of them wrong.
+        -->
         <input
           type="number"
           inputmode="decimal"
-          step="0.1"
+          step="any"
           aria-label="Lowest zoom level to show this chart at"
           [min]="ZOOM_ENTRY_MIN"
           [max]="ZOOM_ENTRY_MAX"
