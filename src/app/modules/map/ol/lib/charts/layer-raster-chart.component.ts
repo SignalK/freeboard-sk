@@ -19,7 +19,7 @@ import {
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
-  resolveLayerMaxZoom
+  resolveLayerZoomRange
 } from './chart-utils';
 
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
@@ -68,9 +68,8 @@ export class RasterChartLayerComponent implements OnDestroy {
     }
 
     if (!this.layer) {
-      const maxZ = chart[1].maxZoom;
-      const layerMaxZ = resolveLayerMaxZoom(
-        maxZ,
+      const zoom = resolveLayerZoomRange(
+        chart[1],
         this.mapMaxZoom(),
         this.overZoomTiles()
       );
@@ -78,15 +77,10 @@ export class RasterChartLayerComponent implements OnDestroy {
       if (chart[0] === 'openstreetmap') {
         this.layer = osmLayer(chartLayerClassName(chart[0]));
         this.layer.setZIndex(this.zIndex());
-        this.layer.setMinZoom(chart[1].minZoom);
-        this.layer.setMaxZoom(layerMaxZ);
+        this.layer.setMinZoom(zoom.min);
+        this.layer.setMaxZoom(zoom.max);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       } else {
-        const minZ =
-          chart[1].minZoom && chart[1].minZoom >= 0.1
-            ? chart[1].minZoom - 0.1
-            : chart[1].minZoom;
-
         if (chart[1].url.indexOf('.pmtiles') !== -1) {
           this.layer = initPMTilesXYZLayer(
             chart[1],
@@ -97,20 +91,22 @@ export class RasterChartLayerComponent implements OnDestroy {
           this.layer = new TileLayer({
             source: new XYZ({
               url: chart[1].url,
-              maxZoom: maxZ,
+              // Tile source keeps the declared maximum: the display range gates
+              // rendering, it never changes which tiles exist.
+              maxZoom: chart[1].maxZoom,
               tileSize: chart[1].tileSize ?? 256
             }),
             preload: 0,
             zIndex: this.zIndex(),
-            minZoom: minZ,
-            maxZoom: layerMaxZ,
+            minZoom: zoom.min,
+            maxZoom: zoom.max,
             opacity: chart[1].defaultOpacity ?? 1,
             className: chartLayerClassName(chart[0])
           });
         }
         if (this.layer) {
-          this.layer.setMinZoom(minZ);
-          this.layer.setMaxZoom(layerMaxZ);
+          this.layer.setMinZoom(zoom.min);
+          this.layer.setMaxZoom(zoom.max);
         }
       }
       if (this.layer) {
@@ -127,19 +123,14 @@ export class RasterChartLayerComponent implements OnDestroy {
         map.addLayer(this.layer);
       }
     } else {
-      const minZ =
-        chart[1].minZoom && chart[1].minZoom >= 0.1
-          ? chart[1].minZoom - 0.1
-          : chart[1].minZoom;
-      const maxZ = chart[1].maxZoom;
-      const layerMaxZ = resolveLayerMaxZoom(
-        maxZ,
+      const zoom = resolveLayerZoomRange(
+        chart[1],
         this.mapMaxZoom(),
         this.overZoomTiles()
       );
       this.layer.setZIndex(this.zIndex());
-      this.layer.setMinZoom(minZ);
-      this.layer.setMaxZoom(layerMaxZ);
+      this.layer.setMinZoom(zoom.min);
+      this.layer.setMaxZoom(zoom.max);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }

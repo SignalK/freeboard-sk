@@ -68,6 +68,69 @@ export function chartLayerClassName(id: string): string {
   return 'ol-layer chart-' + String(id).replace(/[^\w-]/g, '-');
 }
 
+/**
+ * Compensates for OpenLayers' exclusive layer minimum-zoom bound so a display
+ * minimum of z12 shows the chart at exactly z12. Small enough that the bound
+ * stays sharp between adjacent chart bands, unlike the historic 0.1 applied to
+ * a chart's declared minimum.
+ */
+const MIN_ZOOM_EPSILON = 1e-6;
+
+/**
+ * Layer min/max zoom for a chart, combining its declared range (what tiles
+ * exist), the user's display minimum (the lowest zoom they want it drawn at)
+ * and the global over-zoom setting.
+ *
+ * The display minimum only ever restricts: a chart is never drawn below the
+ * zoom its own tiles start at. The maximum is untouched by it, so which chart
+ * wins where several overlap stays a question of layer order. With no display
+ * minimum the result is what the layers used before it existed.
+ */
+export function resolveLayerZoomRange(
+  chart: {
+    minZoom?: number;
+    maxZoom?: number;
+    displayMinZoom?: number;
+  },
+  mapMaxZoom?: number,
+  overZoomTiles = false
+): { min: number | undefined; max: number | undefined } {
+  const declaredMin = chart.minZoom;
+  const displayMin = chart.displayMinZoom;
+
+  // A display minimum below the chart's own is meaningless — there are no tiles
+  // down there — so the declared one wins. At or above it, the user's bound
+  // applies with the sharp offset.
+  const displayMinApplies =
+    typeof displayMin === 'number' &&
+    (typeof declaredMin !== 'number' || displayMin >= declaredMin);
+
+  // Historic offset, kept so charts without a display minimum render exactly as
+  // they did before.
+  const declaredLayerMin = declaredMin >= 0.1 ? declaredMin - 0.1 : declaredMin;
+
+  return {
+    min: displayMinApplies ? displayMin - MIN_ZOOM_EPSILON : declaredLayerMin,
+    max: resolveLayerMaxZoom(chart.maxZoom, mapMaxZoom, overZoomTiles)
+  };
+}
+
+/**
+ * Whether a layer resolved to this zoom range is drawn at the given zoom,
+ * following OpenLayers' bounds: the minimum is exclusive, the maximum
+ * inclusive. Lets the chart list report visibility the same way the map
+ * decides it.
+ */
+export function isZoomWithinLayerRange(
+  range: { min?: number; max?: number },
+  zoom: number
+): boolean {
+  return (
+    (typeof range.min !== 'number' || zoom > range.min) &&
+    (typeof range.max !== 'number' || zoom <= range.max)
+  );
+}
+
 export function resolveLayerMaxZoom(
   chartMax?: number,
   mapMax?: number,
