@@ -80,6 +80,11 @@ export type SKResourceType =
 
 export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
+/** Where a per-chart palette opens, below the map's top controls. */
+const PALETTE_TOP = 70;
+/** Header depth kept on screen, so the palette's drag handle stays reachable. */
+const PALETTE_HEADER = 40;
+
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
 export class SKResourceService {
@@ -932,7 +937,10 @@ export class SKResourceService {
       restoreFocus: false,
       // Clear of the chart list, which stays open beside it, unless the
       // viewport is too narrow for both.
-      position: { top: '70px', left: `${this.chartDialogLeft()}px` },
+      position: {
+        top: `${PALETTE_TOP}px`,
+        left: `${this.chartDialogLeft()}px`
+      },
       ...config
     });
     return this.chartPaletteRef;
@@ -970,9 +978,12 @@ export class SKResourceService {
     const left = this.chartDialogLeft();
     const maxX = window.innerWidth - left - width - 8;
     const minX = -(left - 8);
+    // Downward too: an offset saved on a tall window drops the palette off the
+    // bottom of a short one, which hides the same drag handle.
+    const maxY = Math.max(0, window.innerHeight - PALETTE_TOP - PALETTE_HEADER);
     return {
       x: Math.max(minX, Math.min(position.x, maxX)),
-      y: Math.max(0, position.y)
+      y: Math.max(0, Math.min(position.y, maxY))
     };
   }
 

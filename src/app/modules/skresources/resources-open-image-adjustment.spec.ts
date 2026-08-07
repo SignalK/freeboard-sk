@@ -123,32 +123,46 @@ describe('openImageAdjustment (#457)', () => {
     // The palette now opens clear of the chart list, so an offset saved against
     // the old origin can put the drag handle -- the only way to move it back --
     // past the viewport edge.
-    const withViewport = (width: number, fn: () => void) => {
-      const original = window.innerWidth;
-      Object.defineProperty(window, 'innerWidth', {
-        value: width,
-        configurable: true
-      });
+    const withViewport = (
+      width: number,
+      height: number | undefined,
+      fn: () => void
+    ) => {
+      const original = {
+        width: window.innerWidth,
+        height: window.innerHeight
+      };
+      const set = (w: number, h: number) => {
+        Object.defineProperty(window, 'innerWidth', {
+          value: w,
+          configurable: true
+        });
+        Object.defineProperty(window, 'innerHeight', {
+          value: h,
+          configurable: true
+        });
+      };
+      set(width, height ?? original.height);
       try {
         fn();
       } finally {
-        Object.defineProperty(window, 'innerWidth', {
-          value: original,
-          configurable: true
-        });
+        set(original.width, original.height);
       }
     };
 
     const openWith = (
       pos: { x: number; y: number } | null,
-      viewportWidth: number
+      viewportWidth: number,
+      viewportHeight?: number
     ) => {
       const { svc, config, getData } = svcWithResult({
         apply: false,
         value: { brightness: 1, contrast: 1 }
       });
       config.imageAdjustPalettePos = pos;
-      withViewport(viewportWidth, () => svc.openImageAdjustment(chart()));
+      withViewport(viewportWidth, viewportHeight, () =>
+        svc.openImageAdjustment(chart())
+      );
       return getData().position;
     };
 
@@ -161,6 +175,19 @@ describe('openImageAdjustment (#457)', () => {
 
     it('pulls a negative vertical offset back to the top', () => {
       expect(openWith({ x: 0, y: -500 }, 1024).y).toBe(0);
+    });
+
+    it('pulls an offset below the bottom edge back into view', () => {
+      // Saved on a tall window, restored on a short one: without a downward
+      // clamp the palette opens past the fold, taking its drag handle with it.
+      const y = openWith({ x: 0, y: 900 }, 1024, 600).y;
+      expect(y).toBeLessThan(900);
+      // Its header still sits above the bottom of the 600px viewport.
+      expect(70 + y).toBeLessThanOrEqual(600 - 40);
+    });
+
+    it('does not push the palette above the top on a very short viewport', () => {
+      expect(openWith({ x: 0, y: 300 }, 1024, 60).y).toBe(0);
     });
 
     it('leaves a position that already fits alone', () => {
