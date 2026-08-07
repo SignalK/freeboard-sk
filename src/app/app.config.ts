@@ -392,6 +392,7 @@ export function cleanConfig(
       chartOrder: ['openstreetmap', 'openseamap'],
       chartOpacity: {},
       chartImageAdjustment: {},
+      chartDisplayMinZoom: {},
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,
@@ -422,6 +423,9 @@ export function cleanConfig(
   }
   if (typeof settings.selections.chartImageAdjustment === 'undefined') {
     settings.selections.chartImageAdjustment = {};
+  }
+  if (typeof settings.selections.chartDisplayMinZoom === 'undefined') {
+    settings.selections.chartDisplayMinZoom = {};
   }
 
   if (typeof settings.selections.tracks === 'undefined') {
@@ -647,6 +651,7 @@ export function defaultConfig(): IAppConfig {
       chartOrder: ['openstreetmap', 'openseamap'], // chart layer ordering
       chartOpacity: {},
       chartImageAdjustment: {},
+      chartDisplayMinZoom: {},
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,

@@ -594,6 +594,10 @@ export class SKResourceService {
         if (typeof adj !== 'undefined') {
           c[1].imageAdjustment = adj;
         }
+        const dmz = this.app.config.selections.chartDisplayMinZoom?.[c[0]];
+        if (typeof dmz !== 'undefined') {
+          c[1].displayMinZoom = dmz;
+        }
       });
     }
     chtList.push(OSM[1]);
@@ -658,6 +662,10 @@ export class SKResourceService {
     const adj = this.app.config.selections.chartImageAdjustment?.[id];
     if (typeof adj !== 'undefined') {
       chart.imageAdjustment = adj;
+    }
+    const dmz = this.app.config.selections.chartDisplayMinZoom?.[id];
+    if (typeof dmz !== 'undefined') {
+      chart.displayMinZoom = dmz;
     }
     return new SKChart(chart);
   }
@@ -874,6 +882,31 @@ export class SKResourceService {
   }
 
   /**
+   * @description Update the display minimum zoom of a Chart object in the
+   * Chart Cache so a currently-visible layer re-renders.
+   * @param id Chart identifier
+   * @param value Zoom level to set. Omit to clear it.
+   */
+  public chartSetDisplayMinZoom(id: string, value?: number) {
+    if (!id) {
+      return;
+    }
+    const idx = this.chartCacheSignal().findIndex((c: FBChart) => c[0] === id);
+    if (idx !== -1) {
+      this.chartCacheSignal.update((current: FBCharts) => {
+        return current.map((c: FBChart) => {
+          if (c[0] !== id) {
+            return c;
+          }
+          const updated = new SKChart(c[1]);
+          updated.displayMinZoom = value;
+          return [c[0], updated, c[2]];
+        });
+      });
+    }
+  }
+
+  /**
    * @description Open the modeless, draggable Image Adjustment palette for a
    * chart. Sliders take effect live; SAVE persists per-chart, closing (cancel)
    * reverts to the pre-edit values. Owned here (not the chart list) so the list
@@ -928,6 +961,7 @@ export class SKResourceService {
       }
     });
   }
+
 
   /**
    * @description Open a modeless per-chart palette, replacing any already open.
@@ -1243,11 +1277,26 @@ export class SKResourceService {
       .afterClosed()
       .subscribe((r: { save: boolean; chart: SKChart }) => {
         if (r.save) {
-          this.putToServer('charts', id, r.chart).catch((err) =>
-            this.app.parseHttpErrorResponse(err)
-          );
+          this.putToServer(
+            'charts',
+            id,
+            this.withoutDisplayMinZoom(r.chart)
+          ).catch((err) => this.app.parseHttpErrorResponse(err));
         }
       });
+  }
+
+  /**
+   * @description Copy of a chart without its display minimum zoom, which is a
+   * local preference rather than part of the server's chart resource. Charts
+   * fetched for editing come through `transformChart()`, so the range is
+   * present on the object the properties dialog hands back.
+   * @param chart Chart to strip
+   */
+  private withoutDisplayMinZoom(chart: SKChart): SKChart {
+    const outbound = { ...chart };
+    delete outbound.displayMinZoom;
+    return outbound;
   }
 
   /**
