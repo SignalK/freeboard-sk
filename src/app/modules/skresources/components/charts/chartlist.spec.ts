@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
+import { By } from '@angular/platform-browser';
+import { CdkDrag, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MatDialog } from '@angular/material/dialog';
 
@@ -225,6 +227,94 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
 
     dropOf(comp, 0, 1);
     expect(setChartsOrder).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The drag tests above call `drop()` directly, which proves the handler and
+ * nothing about the template that has to reach it. These render the real view and
+ * assert the CDK directives are instantiated on it, so removing `cdkDropList`,
+ * `cdkDrag` or `cdkDragHandle` from the markup fails here rather than shipping a
+ * list whose rows cannot be dragged at all.
+ */
+describe('ChartListComponent — drag wiring in the rendered list', () => {
+  const CHARTS = ['osm', 'a', 'b'];
+
+  const makeFixture = () => {
+    const fixture = TestBed.createComponent(ChartListComponent);
+    const comp = fixture.componentInstance;
+    fullListOf(comp).push(...CHARTS.map((id) => chart(id, id.toUpperCase())));
+    doFilterOf(comp);
+    fixture.detectChanges();
+    return { fixture, comp };
+  };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SKResourceService,
+          useValue: {
+            arrangeChartLayers: (list: FBCharts) => [...list],
+            setChartsOrder: vi.fn()
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: {
+            mapExtent: signal(null),
+            // true → initItems() bails out, leaving the seeded fullList alone
+            sIsFetching: signal(true),
+            featureFlags: signal({ resourceGroups: false }),
+            debug: vi.fn(),
+            hostDef: { name: 'localhost' },
+            data: { chartBounds: { show: false, charts: [] } }
+          }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+  });
+
+  it('renders a drop list holding one draggable row per chart', () => {
+    const { fixture } = makeFixture();
+
+    expect(
+      fixture.debugElement.queryAll(By.directive(CdkDropList))
+    ).toHaveLength(1);
+    expect(fixture.debugElement.queryAll(By.directive(CdkDrag))).toHaveLength(
+      CHARTS.length
+    );
+  });
+
+  it('gives every row a drag handle', () => {
+    const { fixture } = makeFixture();
+
+    expect(
+      fixture.debugElement.queryAll(By.directive(CdkDragHandle))
+    ).toHaveLength(CHARTS.length);
+  });
+
+  it('withdraws the handles and disables the drop list while filtered', () => {
+    const { fixture, comp } = makeFixture();
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.queryAll(By.directive(CdkDragHandle))
+    ).toHaveLength(0);
+    expect(
+      fixture.debugElement
+        .query(By.directive(CdkDropList))
+        .injector.get(CdkDropList).disabled
+    ).toBe(true);
   });
 });
 
