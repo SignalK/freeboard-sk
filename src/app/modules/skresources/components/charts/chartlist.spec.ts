@@ -108,12 +108,18 @@ describe('ChartListComponent — list ordered by chart layer order (#550)', () =
   });
 });
 
+/**
+ * Dragging a row hands the whole visible order to `skres.setChartsOrder()`, which
+ * owns persistence. The stub here stands in for that method with its documented
+ * behaviour (takes topmost-first, stores bottom-first), and `arrangeChartLayers`
+ * derives the layer order from what was stored — so a test that asserts the
+ * re-rendered list is reading back the drop's own effect rather than an order the
+ * test seeded. `resources-charts-order.spec.ts` covers the real method.
+ */
 describe('ChartListComponent — re-ordering by dragging a row', () => {
   let comp: ChartListComponent;
   let config: { selections: { chartOrder: string[] } };
-  let saveConfig: ReturnType<typeof vi.fn>;
-  let chartReorder: ReturnType<typeof vi.fn>;
-  let layerBottomFirst: string[];
+  let setChartsOrder: ReturnType<typeof vi.fn>;
 
   const seed = (ids: string[]) => {
     fullListOf(comp).length = 0;
@@ -129,10 +135,10 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
     (c as unknown as { canReorder: () => boolean }).canReorder();
 
   beforeEach(() => {
-    layerBottomFirst = ['osm', 'c', 'b', 'a'];
-    config = { selections: { chartOrder: [...layerBottomFirst] } };
-    saveConfig = vi.fn();
-    chartReorder = vi.fn();
+    config = { selections: { chartOrder: ['osm', 'c', 'b', 'a'] } };
+    setChartsOrder = vi.fn((topmostFirst: string[]) => {
+      config.selections.chartOrder = topmostFirst.slice().reverse();
+    });
     TestBed.configureTestingModule({
       providers: [
         ChartListComponent,
@@ -142,11 +148,11 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
             arrangeChartLayers: vi.fn((list: FBCharts) =>
               [...list].sort(
                 (x, y) =>
-                  layerBottomFirst.indexOf(x[0]) -
-                  layerBottomFirst.indexOf(y[0])
+                  config.selections.chartOrder.indexOf(x[0]) -
+                  config.selections.chartOrder.indexOf(y[0])
               )
             ),
-            chartReorder
+            setChartsOrder
           }
         },
         {
@@ -155,7 +161,7 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
         },
         {
           provide: AppFacade,
-          useValue: { mapExtent: signal(null), config, saveConfig }
+          useValue: { mapExtent: signal(null), config }
         },
         { provide: MatDialog, useValue: {} },
         { provide: SKResourceGroupService, useValue: {} },
@@ -171,17 +177,27 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['a', 'b', 'c', 'osm']);
   });
 
-  it('stores the new order base layer first when a row is dragged', () => {
+  it('hands the whole visible order over, topmost first', () => {
     // Drag the top chart (a) down one place.
     dropOf(comp, 0, 1);
 
+    // Every listed chart is named, not just the moved one — that is what lets
+    // setChartsOrder() tell a chart the user left alone from one it cannot see.
+    expect(setChartsOrder).toHaveBeenCalledExactlyOnceWith([
+      'b',
+      'a',
+      'c',
+      'osm'
+    ]);
+  });
+
+  it('stores the new order base layer first when a row is dragged', () => {
+    dropOf(comp, 0, 1);
+
     expect(config.selections.chartOrder).toEqual(['osm', 'c', 'a', 'b']);
-    expect(saveConfig).toHaveBeenCalledOnce();
-    expect(chartReorder).toHaveBeenCalledOnce();
   });
 
   it('re-renders the list in the new order', () => {
-    layerBottomFirst = ['osm', 'c', 'a', 'b'];
     dropOf(comp, 0, 1);
 
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['b', 'a', 'c', 'osm']);
@@ -190,8 +206,7 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
   it('does nothing when a row is dropped where it started', () => {
     dropOf(comp, 2, 2);
 
-    expect(saveConfig).not.toHaveBeenCalled();
-    expect(chartReorder).not.toHaveBeenCalled();
+    expect(setChartsOrder).not.toHaveBeenCalled();
   });
 
   it('refuses to re-order while the list is filtered', () => {
@@ -201,7 +216,7 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
     expect(canReorderOf(comp)).toBe(false);
 
     dropOf(comp, 0, 1);
-    expect(saveConfig).not.toHaveBeenCalled();
+    expect(setChartsOrder).not.toHaveBeenCalled();
   });
 
   it('refuses to re-order while the in-view filter is on', () => {
@@ -209,7 +224,7 @@ describe('ChartListComponent — re-ordering by dragging a row', () => {
     expect(canReorderOf(comp)).toBe(false);
 
     dropOf(comp, 0, 1);
-    expect(saveConfig).not.toHaveBeenCalled();
+    expect(setChartsOrder).not.toHaveBeenCalled();
   });
 });
 

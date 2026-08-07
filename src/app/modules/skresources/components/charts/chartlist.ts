@@ -144,10 +144,10 @@ export class ChartListComponent extends ResourceListBase {
     }
     const ordered = this.filteredList().slice();
     moveItemInArray(ordered, e.previousIndex, e.currentIndex);
-    // The list reads top layer first; chartOrder is stored base layer first.
-    this.app.config.selections.chartOrder = ordered.map((c) => c[0]).reverse();
-    this.app.saveConfig();
-    this.skres.chartReorder();
+    // The list reads top layer first, which is what setChartsOrder() takes. It
+    // keeps ids the list does not carry -- charts from a provider that is down
+    // this session still hold their place in the stack.
+    this.skres.setChartsOrder(ordered.map((c) => c[0]));
     this.doFilter();
   }
 
