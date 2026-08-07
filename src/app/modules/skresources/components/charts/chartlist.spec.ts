@@ -106,19 +106,110 @@ describe('ChartListComponent — list ordered by chart layer order (#550)', () =
     // 'a' matches Bravo (b) and Alpha (c); layer order keeps b before c.
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['b', 'c']);
   });
+});
 
-  it('re-applies the new order when the Re-order screen is closed', () => {
+describe('ChartListComponent — re-ordering by dragging a row', () => {
+  let comp: ChartListComponent;
+  let config: { selections: { chartOrder: string[] } };
+  let saveConfig: ReturnType<typeof vi.fn>;
+  let chartReorder: ReturnType<typeof vi.fn>;
+  let layerBottomFirst: string[];
+
+  const seed = (ids: string[]) => {
+    fullListOf(comp).length = 0;
+    fullListOf(comp).push(...ids.map((id) => chart(id, id.toUpperCase())));
+  };
+  const dropOf = (c: ChartListComponent, from: number, to: number) =>
+    (
+      c as unknown as {
+        drop: (e: { previousIndex: number; currentIndex: number }) => void;
+      }
+    ).drop({ previousIndex: from, currentIndex: to });
+  const canReorderOf = (c: ChartListComponent) =>
+    (c as unknown as { canReorder: () => boolean }).canReorder();
+
+  beforeEach(() => {
+    layerBottomFirst = ['osm', 'c', 'b', 'a'];
+    config = { selections: { chartOrder: [...layerBottomFirst] } };
+    saveConfig = vi.fn();
+    chartReorder = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        ChartListComponent,
+        {
+          provide: SKResourceService,
+          useValue: {
+            arrangeChartLayers: vi.fn((list: FBCharts) =>
+              [...list].sort(
+                (x, y) =>
+                  layerBottomFirst.indexOf(x[0]) -
+                  layerBottomFirst.indexOf(y[0])
+              )
+            ),
+            chartReorder
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: { mapExtent: signal(null), config, saveConfig }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+    comp = TestBed.inject(ChartListComponent);
     seed(['osm', 'a', 'b', 'c']);
     doFilterOf(comp);
+  });
+
+  it('lists the charts top layer first', () => {
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['a', 'b', 'c', 'osm']);
+  });
 
-    // User re-orders on the Re-order screen (chartOrder changes) then closes it.
-    layerBottomFirst = ['osm', 'a', 'b', 'c'];
-    (
-      comp as unknown as { showChartLayers: (s?: boolean) => void }
-    ).showChartLayers(false);
+  it('stores the new order base layer first when a row is dragged', () => {
+    // Drag the top chart (a) down one place.
+    dropOf(comp, 0, 1);
 
-    expect(idsOf(filteredSignalOf(comp)())).toEqual(['c', 'b', 'a', 'osm']);
+    expect(config.selections.chartOrder).toEqual(['osm', 'c', 'a', 'b']);
+    expect(saveConfig).toHaveBeenCalledOnce();
+    expect(chartReorder).toHaveBeenCalledOnce();
+  });
+
+  it('re-renders the list in the new order', () => {
+    layerBottomFirst = ['osm', 'c', 'a', 'b'];
+    dropOf(comp, 0, 1);
+
+    expect(idsOf(filteredSignalOf(comp)())).toEqual(['b', 'a', 'c', 'osm']);
+  });
+
+  it('does nothing when a row is dropped where it started', () => {
+    dropOf(comp, 2, 2);
+
+    expect(saveConfig).not.toHaveBeenCalled();
+    expect(chartReorder).not.toHaveBeenCalled();
+  });
+
+  it('refuses to re-order while the list is filtered', () => {
+    // A filtered list is a subset, so a drop within it says nothing about
+    // where the hidden charts belong.
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    expect(canReorderOf(comp)).toBe(false);
+
+    dropOf(comp, 0, 1);
+    expect(saveConfig).not.toHaveBeenCalled();
+  });
+
+  it('refuses to re-order while the in-view filter is on', () => {
+    (comp as unknown as { inViewOnly: boolean }).inViewOnly = true;
+    expect(canReorderOf(comp)).toBe(false);
+
+    dropOf(comp, 0, 1);
+    expect(saveConfig).not.toHaveBeenCalled();
   });
 });
 

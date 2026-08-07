@@ -21,10 +21,14 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import {
+  CdkDragDrop,
+  DragDropModule,
+  moveItemInArray
+} from '@angular/cdk/drag-drop';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKResourceType } from '../../resources.service';
-import { ChartLayers } from './chart-layers.component';
 import { FBCharts, FBChart } from 'src/app/types';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
@@ -64,7 +68,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     MatSlideToggle,
     MatMenuModule,
     MatProgressBarModule,
-    ChartLayers
+    DragDropModule
   ]
 })
 export class ChartListComponent extends ResourceListBase {
@@ -75,7 +79,6 @@ export class ChartListComponent extends ResourceListBase {
   protected override fullList: FBCharts = [];
   protected override filteredList = signal<FBCharts>([]);
 
-  displayChartLayers = false;
   protected inViewOnly = false;
 
   protected app = inject(AppFacade);
@@ -119,6 +122,33 @@ export class ChartListComponent extends ResourceListBase {
     this.app.data.chartBounds.show = false;
     this.app.data.chartBounds.charts = [];
     this.initItems();
+  }
+
+  /**
+   * @description True when rows may be dragged to re-order the chart layers.
+   * A filtered list shows a subset, and dropping a row within a subset has no
+   * unambiguous meaning in the full order -- charts hidden between the drag
+   * source and its target would move unpredictably.
+   */
+  protected canReorder(): boolean {
+    return !this.filterText && !this.inViewOnly;
+  }
+
+  /**
+   * @description Re-order the chart layers from a dropped row.
+   * @param e Drop event
+   */
+  protected drop(e: CdkDragDrop<FBCharts>) {
+    if (!this.canReorder() || e.previousIndex === e.currentIndex) {
+      return;
+    }
+    const ordered = this.filteredList().slice();
+    moveItemInArray(ordered, e.previousIndex, e.currentIndex);
+    // The list reads top layer first; chartOrder is stored base layer first.
+    this.app.config.selections.chartOrder = ordered.map((c) => c[0]).reverse();
+    this.app.saveConfig();
+    this.skres.chartReorder();
+    this.doFilter();
   }
 
   /**
@@ -451,19 +481,6 @@ export class ChartListComponent extends ResourceListBase {
           }
         }
       });
-  }
-
-  /**
-   * @description Control the display of the re-order chart screen
-   * @param show Display Chart Order component when true
-   */
-  showChartLayers(show = false) {
-    this.displayChartLayers = show;
-    if (!show) {
-      // Returning from the Re-order screen: re-apply the (possibly changed)
-      // layer order to the list.
-      this.doFilter();
-    }
   }
 
   /**
