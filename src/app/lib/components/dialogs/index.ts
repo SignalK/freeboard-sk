@@ -14,3 +14,4 @@ export * from './multiselectlist-dialog';
 export * from './singleselectlist-dialog';
 export * from './slider-dialog';
 export * from './image-adjustment-dialog';
+export * from './chart-min-zoom-dialog';

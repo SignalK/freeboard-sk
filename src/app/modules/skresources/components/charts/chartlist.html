@@ -166,6 +166,30 @@
               >
                 {{r[1].description}}
               </div>
+              @let minZoomLabel = minZoomLabelFor(r); @if(minZoomLabel) {
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  font-size: 11px;
+                  opacity: 0.75;
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                <mat-icon style="font-size: 14px; width: 14px; height: 14px"
+                  >vertical_align_bottom</mat-icon
+                >
+                <span>{{minZoomLabel}}</span>
+                @if(isBoundedOut(r)) {
+                <span style="font-style: italic"
+                  >&mdash; hidden at this zoom</span
+                >
+                }
+              </div>
+              }
             </div>
             <div style="text-align: right">
               <mat-checkbox
@@ -223,6 +247,17 @@
                 matTooltipPosition="above"
               >
                 <mat-icon>tune</mat-icon>
+              </button>
+            </div>
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                [disabled]="!r[2]"
+                (click)="itemDisplayMinZoom(r)"
+                matTooltip="Minimum Zoom Level"
+                matTooltipPosition="above"
+              >
+                <mat-icon>vertical_align_bottom</mat-icon>
               </button>
             </div>
             } @if(r[1].proxy) {

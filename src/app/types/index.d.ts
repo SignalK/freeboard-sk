@@ -257,6 +257,7 @@ export interface IAppConfig {
     chartOrder: string[]; // chart layer ordering
     chartOpacity: Record<string, number>;
     chartImageAdjustment: Record<string, ChartImageAdjustment>;
+    chartDisplayMinZoom: Record<string, number>;
     aisTargets: string[];
     aisTargetTypes: number[];
     aisFilterByShipType: boolean;

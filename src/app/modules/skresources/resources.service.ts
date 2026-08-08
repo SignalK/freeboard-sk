@@ -1,7 +1,12 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
+import { ComponentType } from '@angular/cdk/portal';
 import { HttpErrorResponse } from '@angular/common/http';
-import { MatDialog } from '@angular/material/dialog';
+import {
+  MatDialog,
+  MatDialogConfig,
+  MatDialogRef
+} from '@angular/material/dialog';
 import ngeohash from 'ngeohash';
 import { Collection, Feature } from 'ol';
 
@@ -67,6 +72,8 @@ import { groupBy } from 'rxjs/operators';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ChartSeedJobDialog } from './components/charts/chart-seedjob-dialog';
 import {
+  ChartMinZoomDialog,
+  ChartMinZoomDialogResult,
   ImageAdjustmentDialog,
   ImageAdjustmentDialogResult
 } from 'src/app/lib/components';
@@ -76,6 +83,11 @@ export type SKResourceType =
 
 export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
+/** Where a per-chart palette opens, below the map's top controls. */
+const PALETTE_TOP = 70;
+/** Header depth kept on screen, so the palette's drag handle stays reachable. */
+const PALETTE_HEADER = 40;
+
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
 export class SKResourceService {
@@ -83,6 +95,10 @@ export class SKResourceService {
 
   private app = inject(AppFacade);
   private dialog = inject(MatDialog);
+  // The open modeless per-chart palette (image adjustment or minimum zoom).
+  // They are backdrop-less and share a position, so a second one would cover the
+  // first completely — and the covered one still reverts its chart when closed.
+  private chartPaletteRef?: MatDialogRef<unknown, unknown>;
   private signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
   private mapInteract = inject(FBMapInteractService);
@@ -577,6 +593,10 @@ export class SKResourceService {
         if (typeof adj !== 'undefined') {
           c[1].imageAdjustment = adj;
         }
+        const dmz = this.app.config.selections.chartDisplayMinZoom?.[c[0]];
+        if (typeof dmz !== 'undefined') {
+          c[1].displayMinZoom = dmz;
+        }
       });
     }
     chtList.push(OSM[1]);
@@ -642,6 +662,10 @@ export class SKResourceService {
     if (typeof adj !== 'undefined') {
       chart.imageAdjustment = adj;
     }
+    const dmz = this.app.config.selections.chartDisplayMinZoom?.[id];
+    if (typeof dmz !== 'undefined') {
+      chart.displayMinZoom = dmz;
+    }
     return new SKChart(chart);
   }
 
@@ -699,11 +723,37 @@ export class SKResourceService {
       )
       .subscribe((result: { ok: boolean }) => {
         if (result && result.ok) {
-          this.deleteFromServer('charts', id, 'resources-provider').catch(
-            (err: HttpErrorResponse) => this.app.parseHttpErrorResponse(err)
-          );
+          this.deleteFromServer('charts', id, 'resources-provider')
+            .then(() => this.forgetChartSettings(id))
+            .catch((err: HttpErrorResponse) =>
+              this.app.parseHttpErrorResponse(err)
+            );
         }
       });
+  }
+
+  /**
+   * @description Drop the per-chart settings held for a chart that is gone.
+   * Called on a confirmed delete rather than when a chart is missing from a
+   * listing: a provider that is down this session takes its charts out of the
+   * list without them having been deleted, and the settings are the user's
+   * work -- an opacity, an image adjustment, a minimum zoom tuned against a
+   * chart set. They cost a few config keys if a chart is deleted elsewhere,
+   * and cannot be recovered if dropped while the chart is only away.
+   * @param id Chart identifier
+   */
+  private forgetChartSettings(id: string) {
+    const selections = this.app.config.selections;
+    const held = [
+      selections.chartOpacity,
+      selections.chartImageAdjustment,
+      selections.chartDisplayMinZoom
+    ].filter((settings) => id in settings);
+    if (held.length === 0) {
+      return;
+    }
+    held.forEach((settings) => delete settings[id]);
+    this.app.saveConfig();
   }
 
   /**
@@ -857,10 +907,35 @@ export class SKResourceService {
   }
 
   /**
+   * @description Update the display minimum zoom of a Chart object in the
+   * Chart Cache so a currently-visible layer re-renders.
+   * @param id Chart identifier
+   * @param value Zoom level to set. Omit to clear it.
+   */
+  public chartSetDisplayMinZoom(id: string, value?: number) {
+    if (!id) {
+      return;
+    }
+    const idx = this.chartCacheSignal().findIndex((c: FBChart) => c[0] === id);
+    if (idx !== -1) {
+      this.chartCacheSignal.update((current: FBCharts) => {
+        return current.map((c: FBChart) => {
+          if (c[0] !== id) {
+            return c;
+          }
+          const updated = new SKChart(c[1]);
+          updated.displayMinZoom = value;
+          return [c[0], updated, c[2]];
+        });
+      });
+    }
+  }
+
+  /**
    * @description Open the modeless, draggable Image Adjustment palette for a
    * chart. Sliders take effect live; SAVE persists per-chart, closing (cancel)
-   * reverts to the pre-edit values. Owned here (not the chart list) so it
-   * survives the chart list closing to free the map.
+   * reverts to the pre-edit values. Owned here (not the chart list) so the list
+   * can stay open beside it while several charts are adjusted.
    * @param chart Chart to adjust
    */
   public openImageAdjustment(chart: FBChart) {
@@ -872,38 +947,180 @@ export class SKResourceService {
         chart[1]?.imageAdjustment)
     };
 
-    this.dialog
-      .open(ImageAdjustmentDialog, {
-        hasBackdrop: false,
-        disableClose: true,
-        autoFocus: false,
-        restoreFocus: false,
-        position: { top: '70px', left: '8px' },
-        width: '290px',
-        data: {
-          text: chart[1]?.name ?? '',
-          value: { ...original },
-          position: this.app.config.imageAdjustPalettePos,
-          onChange: (value: ChartImageAdjustment) => {
-            this.chartSetImageAdjustment(id, value);
-          },
-          onMoved: (position: PalettePosition) => {
-            this.app.config.imageAdjustPalettePos = position;
-            this.app.saveConfig();
-          }
-        }
-      })
-      .afterClosed()
-      .subscribe((result: ImageAdjustmentDialogResult) => {
-        if (result?.apply) {
-          this.app.config.selections.chartImageAdjustment[id] = result.value;
-          this.chartSetImageAdjustment(id, result.value);
+    const ref = this.openChartPalette<
+      ImageAdjustmentDialog,
+      ImageAdjustmentDialogResult
+    >(ImageAdjustmentDialog, {
+      width: '290px',
+      data: {
+        text: chart[1]?.name ?? '',
+        value: { ...original },
+        position: this.onScreenPalettePosition(
+          this.app.config.imageAdjustPalettePos,
+          290
+        ),
+        onChange: (value: ChartImageAdjustment) => {
+          this.chartSetImageAdjustment(id, value);
+        },
+        onMoved: (position: PalettePosition) => {
+          this.app.config.imageAdjustPalettePos = position;
           this.app.saveConfig();
-        } else {
-          // cancelled - restore the pre-edit adjustment
-          this.chartSetImageAdjustment(id, original);
         }
-      });
+      }
+    });
+
+    ref.afterClosed().subscribe((result?: ImageAdjustmentDialogResult) => {
+      this.releaseChartPalette(ref);
+      if (result?.apply) {
+        this.app.config.selections.chartImageAdjustment[id] = result.value;
+        this.chartSetImageAdjustment(id, result.value);
+        this.app.saveConfig();
+      } else {
+        // cancelled - restore the pre-edit adjustment
+        this.chartSetImageAdjustment(id, original);
+      }
+    });
+  }
+
+  /**
+   * @description Open the modeless Display Zoom dialog for a chart. The bound
+   * takes effect live so the map can be zoomed to judge it; APPLY persists
+   * per-chart, closing reverts to the pre-edit value. Owned here (not the chart
+   * list) so the list can stay open alongside it while a set is balanced.
+   * Opening one for another chart closes the current one, discarding its
+   * preview.
+   * @param chart Chart to bound
+   * @param onApplied Called with the persisted value so the caller can mirror
+   * it onto its own copy of the chart
+   */
+  public openDisplayMinZoom(
+    chart: FBChart,
+    onApplied?: (value?: number) => void
+  ) {
+    const id = chart[0];
+    const original =
+      this.app.config.selections.chartDisplayMinZoom[id] ??
+      chart[1]?.displayMinZoom;
+
+    const ref = this.openChartPalette<
+      ChartMinZoomDialog,
+      ChartMinZoomDialogResult
+    >(ChartMinZoomDialog, {
+      width: '300px',
+      data: {
+        text: chart[1]?.name ?? '',
+        value: original,
+        declaredMin: chart[1]?.minZoom,
+        declaredMax: chart[1]?.maxZoom,
+        currentZoom: () => this.app.mapZoom(),
+        onChange: (value?: number) => {
+          this.chartSetDisplayMinZoom(id, value);
+        }
+      }
+    });
+
+    ref.afterClosed().subscribe((result?: ChartMinZoomDialogResult) => {
+      this.releaseChartPalette(ref);
+      if (result?.apply) {
+        if (typeof result.value === 'number') {
+          this.app.config.selections.chartDisplayMinZoom[id] = result.value;
+        } else {
+          delete this.app.config.selections.chartDisplayMinZoom[id];
+        }
+        this.chartSetDisplayMinZoom(id, result.value);
+        this.app.saveConfig();
+        onApplied?.(result.value);
+      } else {
+        // closed without applying - restore the pre-edit value
+        this.chartSetDisplayMinZoom(id, original);
+      }
+    });
+  }
+
+  /**
+   * @description Open a modeless per-chart palette, replacing any already open.
+   * They are backdrop-less and share a position, so only one may be on screen.
+   * @param component Palette component
+   * @param config Component-specific dialog config
+   */
+  private openChartPalette<T, R>(
+    component: ComponentType<T>,
+    config: MatDialogConfig<unknown>
+  ): MatDialogRef<T, R> {
+    this.chartPaletteRef?.close();
+    const ref = this.dialog.open<T, unknown, R>(component, {
+      hasBackdrop: false,
+      disableClose: true,
+      autoFocus: false,
+      restoreFocus: false,
+      // Clear of the chart list, which stays open beside it, unless the
+      // viewport is too narrow for both.
+      position: {
+        top: `${PALETTE_TOP}px`,
+        left: `${this.chartDialogLeft()}px`
+      },
+      ...config
+    });
+    this.chartPaletteRef = ref;
+    return ref;
+  }
+
+  /**
+   * @description Forget a closed palette. `afterClosed` fires after the next
+   * `open()` has already stored its ref, so only clear the field when it still
+   * points at the palette that closed.
+   * @param ref Palette that closed
+   */
+  private releaseChartPalette(ref: MatDialogRef<unknown, unknown>) {
+    if (this.chartPaletteRef === ref) {
+      this.chartPaletteRef = undefined;
+    }
+  }
+
+  /**
+   * @description A saved palette drag offset brought back on screen. The offset
+   * is relative to where the palette opens, which moved to clear the chart list,
+   * so an offset saved against the old origin could put the drag handle -- the
+   * only way to move it back -- past the viewport edge.
+   */
+  private onScreenPalettePosition(
+    position: PalettePosition | null,
+    width: number
+  ): PalettePosition | null {
+    if (!position) {
+      return position;
+    }
+    // The saved offset is relative to where the palette opens, which moved to
+    // clear the chart list. Left as-is, a palette dragged right under the old
+    // origin could land past the viewport edge, taking its drag handle with it.
+    const left = this.chartDialogLeft();
+    const maxX = window.innerWidth - left - width - 8;
+    const minX = -(left - 8);
+    // Downward too: an offset saved on a tall window drops the palette off the
+    // bottom of a short one, which hides the same drag handle.
+    const maxY = Math.max(0, window.innerHeight - PALETTE_TOP - PALETTE_HEADER);
+    return {
+      x: Math.max(minX, Math.min(position.x, maxX)),
+      y: Math.max(0, Math.min(position.y, maxY))
+    };
+  }
+
+  /**
+   * @description Left offset that clears the chart list when both are open,
+   * clamped so the palette stays on screen on a narrow display.
+   */
+  private chartDialogLeft(): number {
+    // Matches .leftMenuPanel in app.component.css.
+    const CHART_LIST_WIDTH = 315;
+    const DIALOG_WIDTH = 300;
+    const GAP = 8;
+    return Math.max(
+      GAP,
+      Math.min(
+        CHART_LIST_WIDTH + GAP,
+        window.innerWidth - DIALOG_WIDTH - GAP * 2
+      )
+    );
   }
 
   /**
@@ -1112,11 +1329,26 @@ export class SKResourceService {
       .afterClosed()
       .subscribe((r: { save: boolean; chart: SKChart }) => {
         if (r.save) {
-          this.putToServer('charts', id, r.chart).catch((err) =>
-            this.app.parseHttpErrorResponse(err)
-          );
+          this.putToServer(
+            'charts',
+            id,
+            this.withoutDisplayMinZoom(r.chart)
+          ).catch((err) => this.app.parseHttpErrorResponse(err));
         }
       });
+  }
+
+  /**
+   * @description Copy of a chart without its display minimum zoom, which is a
+   * local preference rather than part of the server's chart resource. Charts
+   * fetched for editing come through `transformChart()`, so the range is
+   * present on the object the properties dialog hands back.
+   * @param chart Chart to strip
+   */
+  private withoutDisplayMinZoom(chart: SKChart): SKChart {
+    const outbound = { ...chart };
+    delete outbound.displayMinZoom;
+    return outbound;
   }
 
   /**

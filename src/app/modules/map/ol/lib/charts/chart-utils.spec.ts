@@ -2,8 +2,127 @@ import { expect, describe, it } from 'vitest';
 import {
   extentFromBounds,
   isChartInView,
-  resolveLayerMaxZoom
+  isZoomWithinLayerRange,
+  resolveLayerMaxZoom,
+  resolveLayerZoomRange
 } from './chart-utils';
+
+describe('resolveLayerZoomRange', () => {
+  // A chart declaring tiles for z5-z15, the shape the Traficom raster sets have.
+  const chart = (displayMinZoom?: number) => ({
+    minZoom: 5,
+    maxZoom: 15,
+    displayMinZoom
+  });
+
+  describe('without a display minimum (existing behaviour)', () => {
+    it('matches the current max resolution with over-zoom on and off', () => {
+      expect(resolveLayerZoomRange(chart(), 20, true).max).toBe(
+        resolveLayerMaxZoom(15, 20, true)
+      );
+      expect(resolveLayerZoomRange(chart(), 20, false).max).toBe(
+        resolveLayerMaxZoom(15, 20, false)
+      );
+    });
+
+    it('keeps the legacy 0.1 offset on the declared minimum', () => {
+      expect(resolveLayerZoomRange(chart(), 20, true).min).toBeCloseTo(4.9);
+    });
+
+    it('leaves a declared minimum below the offset untouched', () => {
+      expect(
+        resolveLayerZoomRange({ minZoom: 0, maxZoom: 24 }, 20, true).min
+      ).toBe(0);
+    });
+  });
+
+  describe('display minimum', () => {
+    it('shows the chart at exactly the configured level', () => {
+      const { min } = resolveLayerZoomRange(chart(12), 20, true);
+      // OpenLayers' layer minimum is exclusive: visible while zoom > min.
+      expect(12).toBeGreaterThan(min);
+      expect(11.99).toBeLessThan(min);
+    });
+
+    it('does not inherit the legacy 0.1 offset', () => {
+      expect(resolveLayerZoomRange(chart(12), 20, true).min).toBeGreaterThan(
+        11.9
+      );
+    });
+
+    it('yields to a higher declared minimum', () => {
+      expect(resolveLayerZoomRange(chart(3), 20, true).min).toBeCloseTo(4.9);
+    });
+
+    it('honours a bound set at the chart’s own declared minimum', () => {
+      // The common case: the user picks the level the chart's data starts at.
+      // The legacy 0.1 offset would draw it from 4.9, ignoring the bound.
+      const { min } = resolveLayerZoomRange(chart(5), 20, true);
+      expect(5).toBeGreaterThan(min);
+      expect(4.99).toBeLessThan(min);
+    });
+
+    it('applies to a chart that declares no minimum', () => {
+      const { min } = resolveLayerZoomRange(
+        { maxZoom: 15, displayMinZoom: 12 },
+        20,
+        true
+      );
+      expect(12).toBeGreaterThan(min);
+      expect(11.99).toBeLessThan(min);
+    });
+
+    it('leaves the maximum entirely alone', () => {
+      expect(resolveLayerZoomRange(chart(12), 20, true).max).toBe(
+        resolveLayerMaxZoom(15, 20, true)
+      );
+      expect(resolveLayerZoomRange(chart(12), 20, false).max).toBe(15);
+    });
+
+    it('never draws a chart below the zoom its tiles start at', () => {
+      // Asking for z3 on a chart whose data starts at z5 must not invent tiles.
+      const { min } = resolveLayerZoomRange(chart(3), 20, true);
+      expect(min).toBeGreaterThanOrEqual(4.9);
+    });
+  });
+
+  it('hands over between charts at the level the next one starts', () => {
+    // Coastal charts from z9, boating charts from z12: at z12 the boating
+    // chart is drawn, and the coastal one is still there underneath it.
+    const coastal = resolveLayerZoomRange(chart(9), 20, true);
+    const boating = resolveLayerZoomRange(chart(12), 20, true);
+    expect(isZoomWithinLayerRange(coastal, 11.99)).toBe(true);
+    expect(isZoomWithinLayerRange(boating, 11.99)).toBe(false);
+    expect(isZoomWithinLayerRange(coastal, 12)).toBe(true);
+    expect(isZoomWithinLayerRange(boating, 12)).toBe(true);
+  });
+});
+
+describe('isZoomWithinLayerRange', () => {
+  it('follows OpenLayers bounds: minimum exclusive, maximum inclusive', () => {
+    const range = { min: 9, max: 13 };
+    expect(isZoomWithinLayerRange(range, 9)).toBe(false);
+    expect(isZoomWithinLayerRange(range, 9.0001)).toBe(true);
+    expect(isZoomWithinLayerRange(range, 13)).toBe(true);
+    expect(isZoomWithinLayerRange(range, 13.0001)).toBe(false);
+  });
+
+  it('treats an absent bound as unbounded at that end', () => {
+    expect(isZoomWithinLayerRange({ max: 13 }, 2)).toBe(true);
+    expect(isZoomWithinLayerRange({ min: 9 }, 28)).toBe(true);
+    expect(isZoomWithinLayerRange({}, 11)).toBe(true);
+  });
+
+  it('reports a chart hidden by its declared minimum as not visible', () => {
+    // Display minimum asks for z8 up, but the chart has no tiles below z10.
+    const resolved = resolveLayerZoomRange(
+      { minZoom: 10, maxZoom: 15, displayMinZoom: 8 },
+      20,
+      true
+    );
+    expect(isZoomWithinLayerRange(resolved, 9)).toBe(false);
+  });
+});
 
 describe('resolveLayerMaxZoom', () => {
   it('returns chart max when over-zoom disabled', () => {
