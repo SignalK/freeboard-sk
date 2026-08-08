@@ -1,5 +1,6 @@
 import { expect, describe, it, vi, afterEach } from 'vitest';
-import { apiGet } from './skstream.worker';
+import { apiGet, processVessel } from './skstream.worker';
+import { SKVessel } from '../skresources/resource-classes';
 
 // getVesselTrail() fetches the server-side "self" track with several apiGet()
 // calls fired in the same tick and awaited via Promise.all. A shared in-flight
@@ -29,5 +30,54 @@ describe('skstream.worker apiGet — concurrent requests', () => {
     const results = await Promise.all(urls.map((u) => apiGet(u)));
 
     expect(results).toEqual(urls.map((url) => ({ url })));
+  });
+});
+
+// The stale-position indication (#672) is driven by a receipt time stamped
+// here, in the worker, because only the worker sees per-path deltas. Stamping
+// on the delta rather than on a changed value is what makes a boat at anchor —
+// which reports the same position indefinitely — read as live rather than
+// stale, so the stamp must advance on every position delta.
+describe('skstream.worker processVessel — position receipt time (#672)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const positionDelta = {
+    path: 'navigation.position',
+    value: { latitude: 25.7, longitude: -80.2 }
+  };
+
+  it('stamps the local receipt time when a position delta arrives', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const vessel = new SKVessel();
+
+    processVessel(vessel, positionDelta, true);
+
+    expect(vessel.positionUpdatedAt).toBe(1_700_000_000_000);
+  });
+
+  it('advances the stamp when the reported position is unchanged', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const vessel = new SKVessel();
+    processVessel(vessel, positionDelta, true);
+
+    now.mockReturnValue(1_700_000_030_000);
+    processVessel(vessel, positionDelta, true);
+
+    expect(vessel.positionUpdatedAt).toBe(1_700_000_030_000);
+  });
+
+  it('leaves the stamp untouched for a non-position delta', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const vessel = new SKVessel();
+
+    processVessel(
+      vessel,
+      { path: 'navigation.speedOverGround', value: 3 },
+      true
+    );
+
+    expect(vessel.positionUpdatedAt).toBe(0);
   });
 });
