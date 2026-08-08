@@ -8,6 +8,7 @@ import {
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
+import { truncateZoomToDisplay } from 'src/app/lib/zoom-display';
 
 export interface ChartMinZoomDialogResult {
   apply: boolean;
@@ -56,12 +57,12 @@ export function displayMinZoomLabel(value?: number): string {
 }
 
 /**
- * Zoom level as taken from the map, at the precision the map reports. Rounds
- * down: rounding to nearest could land above the zoom the user captured it at,
- * which would hide the chart the moment they pressed the button.
+ * Zoom level as taken from the map, at the precision the zoom readout shows it
+ * — the same truncation, so the captured bound is the number the user can see
+ * on screen and is never above the zoom they took it from.
  */
 export function zoomToBoundText(zoom: number): string {
-  return Number.isFinite(zoom) ? String(Math.floor(zoom * 10) / 10) : '';
+  return Number.isFinite(zoom) ? String(truncateZoomToDisplay(zoom)) : '';
 }
 
 @Component({
