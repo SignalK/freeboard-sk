@@ -818,26 +818,34 @@
                 [style.top.px]="60 + plotterExt.toolbarTopOffset()"
               >
                 <!-- instrument sidebar open button -->
-                <div class="instrumentPanelToggle buttonPanelItem">
-                  @if (
-                    app.instrumentPanelAvailable() &&
-                    !app.instrumentPanel().open &&
-                    !infoPanel.opened() &&
-                    !isInteracting() &&
-                    !app.data.vessels.activeId
-                  ) {
-                    <button
-                      class="button-toolbar"
-                      mat-mini-fab
-                      (click)="openInstrumentPanel()"
-                      matTooltip="Instruments"
-                      matTooltipPosition="before"
-                    >
-                      <mat-icon>av_timer</mat-icon>
-                    </button>
-                  }
-                  <br />&nbsp;<br />&nbsp;
-                </div>
+                @if (
+                  app.instrumentPanelAvailable() &&
+                  app.config.display.plugins.instruments
+                ) {
+                  <!-- The slot is only dropped when instruments are
+                       unavailable; the transient conditions below hide the
+                       button but keep its space so the buttons under it do
+                       not shift as the user works. -->
+                  <div class="instrumentPanelToggle buttonPanelItem">
+                    @if (
+                      !app.instrumentPanel().open &&
+                      !infoPanel.opened() &&
+                      !isInteracting() &&
+                      !app.data.vessels.activeId
+                    ) {
+                      <button
+                        class="button-toolbar"
+                        mat-mini-fab
+                        (click)="openInstrumentPanel()"
+                        matTooltip="Instruments"
+                        matTooltipPosition="before"
+                      >
+                        <mat-icon>av_timer</mat-icon>
+                      </button>
+                    }
+                    <br />&nbsp;<br />&nbsp;
+                  </div>
+                }
 
                 <!-- Web audio enable -->
                 @if (audioStatus() !== 'running') {

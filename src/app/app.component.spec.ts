@@ -48,6 +48,47 @@ describe('AppComponent', () => {
     expect(openFeatureBrowser).toHaveBeenCalled();
   });
 
+  it('drops the Instruments toolbar slot when no instruments app is selected', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = TestBed.inject(AppFacade);
+    app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
+
+    app.config.display.plugins.instruments = '/@signalk/instrumentpanel';
+    fixture.detectChanges();
+    expect(
+      fixture.debugElement.query(By.css('.instrumentPanelToggle button'))
+    ).not.toBeNull();
+
+    // Settings -> Display -> Select Instruments App: "None" stores a null url.
+    app.config.display.plugins.instruments = null;
+    fixture.detectChanges();
+    // The whole slot goes, not just the button: .buttonPanelItem is a fixed
+    // 48px, so leaving it behind would hold an empty gap in the toolbar.
+    expect(
+      fixture.debugElement.query(By.css('.instrumentPanelToggle'))
+    ).toBeNull();
+  });
+
+  it('keeps the Instruments toolbar slot while the panel is open', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = TestBed.inject(AppFacade);
+    app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
+    app.config.display.plugins.instruments = '/@signalk/instrumentpanel';
+    fixture.detectChanges();
+
+    app.instrumentPanel.set({ open: true, activate: true });
+    fixture.detectChanges();
+
+    // Transient conditions hide the button but hold its place, so the buttons
+    // below it do not shift up and down as the user works.
+    expect(
+      fixture.debugElement.query(By.css('.instrumentPanelToggle'))
+    ).not.toBeNull();
+    expect(
+      fixture.debugElement.query(By.css('.instrumentPanelToggle button'))
+    ).toBeNull();
+  });
+
   it('sandboxes the instrument panel iframe with form submission allowed', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
