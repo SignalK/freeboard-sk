@@ -104,6 +104,14 @@ describe('skstream.worker handleStreamEvent — watchdog on disconnect (#695)', 
       'postMessage',
       vi.fn((msg: Record<string, unknown>) => posted.push(msg))
     );
+    // The watchdog is module state that initVessels() does not touch, so an
+    // alarm raised by one test would leak into the next. Start every test from
+    // a live connection, via the same event that arms the watchdog for real.
+    handleStreamEvent({
+      action: 'onConnect',
+      msg: { target: { readyState: 1 } }
+    });
+    posted = [];
   });
 
   afterEach(() => {
