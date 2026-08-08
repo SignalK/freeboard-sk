@@ -409,10 +409,13 @@
                 "
               >
                 @if (app.instrumentPanel().activate) {
+                  <!-- allow-forms: embedded webapps submit forms (e.g. KIP's
+                       Signal K sign-in). Matches the plotter extension iframe
+                       baseline — fault containment, not a security boundary. -->
                   <iframe
                     [src]="instUrl()"
                     style="width: 345px; height: 100%"
-                    sandbox="allow-scripts allow-same-origin"
+                    sandbox="allow-scripts allow-same-origin allow-forms"
                   >
                   </iframe>
                 }
