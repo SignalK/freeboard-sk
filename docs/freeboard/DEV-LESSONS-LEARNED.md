@@ -574,6 +574,30 @@ counter also makes "the control still persists" directly assertable.
 
 ---
 
+### Sharing one component fixture across tests: it goes inert, and looks fine
+
+**The trap.** Mounting an expensive component once in `beforeAll` instead of per test
+is the obvious way to speed up a slow spec — `SettingsDialog` costs ~285ms a mount
+(`TestBed.createComponent` 168ms, first `detectChanges` 99ms), so three tests pay it
+three times. Hoisting it appears to work: the fixture object survives the test
+boundary, `fixture.nativeElement` still resolves, and DOM queries still return nodes.
+
+It is **not** alive. Change detection no longer drives it, so anything that must
+*re-render* silently stops happening. With `SettingsDialog` the tab labels keep
+querying (all 8 of them) while tab bodies never attach again — a probe in a later test
+reported `bodies=8 nonEmpty=0 sectNotes=false` after every switch, including one that
+works fine in the first test. Assertions then run against markup that will never
+appear, which is the same silently-passing-for-the-wrong-reason hazard described in
+*Rendering a `mat-tab-group`* above.
+
+**What to do instead.** Mount per test, in `beforeEach`. If a spec is genuinely too
+slow, cut the number of *tests* that need a mount rather than sharing one between them
+— merging two assertions that use the same tab is safe; sharing a fixture is not.
+
+**Worth knowing before you optimise at all:** for this dialog the mount is the
+component graph, not the rendering. Selecting a tab costs ~14ms against
+`createComponent`'s 168ms, so "render fewer tabs" saves nothing measurable.
+
 ### Unit-testing a function that lives *inside* the stream worker
 
 **The trap.** The logic you want to test (e.g. `apiGet`, `getVesselTrail`) is a
@@ -747,4 +771,33 @@ Lessons that apply to a class of setups rather than everyone. Scope each by the
 condition that makes it relevant (e.g. *"If you're developing on Windows, …"*, *"If
 your charts live on a Raspberry Pi microSD, …"*).
 
-_No entries yet — add one when a platform or hardware quirk bites you._
+### If you need to debug the armv7 (Cerbo GX) CI leg, reproduce it in Docker
+
+**The condition.** The `test / armv7 (Cerbo GX) / Node 20` job runs the suite under
+QEMU emulation and is the only leg that ever shows emulation-timing failures (#689).
+You cannot reason about it from a native run — natively the whole suite finishes in
+~12s, emulated it takes ~15 minutes.
+
+**The recipe.** Any machine with Docker can run the real thing; `process.arch` comes
+back as `arm`, so the `EMULATED_ARM` branches in `vitest-base.config.ts` are exercised
+exactly as they are on CI:
+
+```sh
+docker volume create fsk_arm_nm && docker volume create fsk_arm_cache
+docker run --rm --platform linux/arm/v7 --cpuset-cpus="0,1" \
+  -v "$PWD":/app -v fsk_arm_nm:/app/node_modules -v fsk_arm_cache:/app/.angular \
+  -w /app node:20-bullseye-slim \
+  bash -lc "npm ci --no-audit --no-fund && npm run test:ci"
+```
+
+The volumes matter: they keep the emulated `node_modules` and Angular cache off your
+host checkout, which holds darwin/arm64 binaries you don't want overwritten. `npm ci`
+takes ~45s (prebuilt packages, I/O-bound); the suite takes ~15 min.
+
+**Use `--cpuset-cpus`, never `--cpus`.** `--cpus` caps the CPU *quota* without reducing
+the visible core count, and **`os.cpus().length` ignores cgroup limits** — inside a
+container pinned to 2 CPUs, `nproc` reports 2 while Node reports the host's count. So
+vitest sizes its fork pool from the host, oversubscribes ~8×, and you get 60 workers
+failing to start with *"Timeout waiting for worker to respond"* — a dramatic failure
+that has nothing to do with whatever you were investigating.
+
