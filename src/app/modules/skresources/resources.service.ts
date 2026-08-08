@@ -1013,21 +1013,26 @@ export class SKResourceService {
     const ref = this.openChartPalette<
       ChartMinZoomDialog,
       ChartMinZoomDialogResult
-    >(ChartMinZoomDialog, {
-      width: '300px',
-      data: {
-        text: chart[1]?.name ?? '',
-        value: original,
-        declaredMin: chart[1]?.minZoom,
-        declaredMax: chart[1]?.maxZoom,
-        currentZoom: () => this.app.mapZoom(),
-        onChange: (value?: number) => {
-          this.chartSetDisplayMinZoom(id, value);
+    >(
+      ChartMinZoomDialog,
+      {
+        width: '300px',
+        data: {
+          text: chart[1]?.name ?? '',
+          value: original,
+          declaredMin: chart[1]?.minZoom,
+          declaredMax: chart[1]?.maxZoom,
+          currentZoom: () => this.app.mapZoom(),
+          onChange: (value?: number) => {
+            this.chartSetDisplayMinZoom(id, value);
+          }
         }
-      }
-    });
+      },
+      `displayMinZoom:${id}`
+    );
 
     ref.afterClosed().subscribe((result?: ChartMinZoomDialogResult) => {
+      const handedOver = this.paletteHandedOver(`displayMinZoom:${id}`, ref);
       this.releaseChartPalette(ref);
       if (result?.apply) {
         if (typeof result.value === 'number') {
@@ -1038,7 +1043,7 @@ export class SKResourceService {
         this.chartSetDisplayMinZoom(id, result.value);
         this.app.saveConfig();
         onApplied?.(result.value);
-      } else {
+      } else if (!handedOver) {
         // closed without applying - restore the pre-edit value
         this.chartSetDisplayMinZoom(id, original);
       }

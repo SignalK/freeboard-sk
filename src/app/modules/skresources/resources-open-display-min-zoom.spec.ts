@@ -139,7 +139,10 @@ describe('openDisplayMinZoom', () => {
         SKResourceService.prototype
       ) as SKResourceService;
       (svc as unknown as { app: unknown }).app = {
-        config: { selections: { chartDisplayMinZoom: {} } },
+        config: {
+          selections: { chartDisplayMinZoom: {}, chartImageAdjustment: {} },
+          imageAdjustPalettePos: null
+        },
         saveConfig: vi.fn(),
         mapZoom: () => 11
       };
@@ -162,8 +165,10 @@ describe('openDisplayMinZoom', () => {
           return ref;
         }
       };
-      svc.chartSetDisplayMinZoom = vi.fn();
-      return { svc, opened };
+      const setMinZoom = vi.fn();
+      svc.chartSetDisplayMinZoom = setMinZoom;
+      svc.chartSetImageAdjustment = vi.fn();
+      return { svc, opened, setMinZoom };
     }
 
     it('closes the open palette before opening another', () => {
@@ -189,6 +194,32 @@ describe('openDisplayMinZoom', () => {
 
       expect(opened).toHaveLength(3);
       expect(opened[1].close).toHaveBeenCalled();
+    });
+
+    it('leaves the bound to a replacement over the same chart', () => {
+      // The late cancel would otherwise put the pre-edit bound back over the
+      // value the replacement is previewing.
+      const { svc, opened, setMinZoom } = svcWithOpenPalettes();
+
+      svc.openDisplayMinZoom(chart(12));
+      svc.openDisplayMinZoom(chart(12));
+      setMinZoom.mockClear();
+      opened[0].emit();
+
+      expect(setMinZoom).not.toHaveBeenCalled();
+    });
+
+    it('still reverts when the palette taking over edits something else', () => {
+      // An image adjustment palette for the same chart is not a continuation of
+      // this edit: it leaves the bound alone, so the bound has to revert.
+      const { svc, opened, setMinZoom } = svcWithOpenPalettes();
+
+      svc.openDisplayMinZoom(chart(12));
+      svc.openImageAdjustment(chart(12));
+      setMinZoom.mockClear();
+      opened[0].emit();
+
+      expect(setMinZoom).toHaveBeenCalledWith('c1', 12);
     });
   });
 });
