@@ -164,7 +164,55 @@ These are the judgement calls the model is built around — read them before aut
   *Symbols* feature (whose code didn't change — wind-barbs just opted in) → **no** symbols
   row. This keeps each feature's history to PRs that actually changed it.
 
-## Contract for adding an entry (no tooling required)
+## Who maintains the corpus
+
+**Maintainers own `features/`. Contributors should not edit it — and in particular
+should never append to `features/changelog.json`.**
+
+This isn't gatekeeping. The corpus is a **model of the whole app**, and almost every
+decision it requires depends on what is already in it:
+
+- **Where does this change belong?** A new capability is usually a *section of an
+  existing feature*, not a new feature. Deciding that means reading every existing doc
+  and knowing which one owns the area — and the areas overlap. A new per-chart control
+  in the chart list could plausibly extend *Chart List* (which has a "Per-chart actions"
+  section), or *Chart Zoom Limits* (if it concerns zoom boundaries), or stand alone as
+  its own feature the way *Chart Image Adjustment* does. All three are arguable; picking
+  right needs the whole picture. A contributor who hasn't read the corpus will
+  reasonably create a new doc every time, because that is the only option visible from
+  inside a single PR.
+- **`kind` is derived, not declared** — `new` versus `enhanced` follows directly from the
+  answer above, not from the PR's `feat`/`fix` prefix.
+- **`pr` is the number of the PR that actually merged.** A PR that gets renumbered,
+  split, superseded, or closed in favour of another leaves a row pointing at something
+  that never landed.
+- **`since` is the release the change shipped in**, which is unknowable at PR time.
+- **`changelog.json` is append-at-the-tail**, so concurrent PRs collide on the same
+  lines, and stacked branches make review tooling report phantom duplicate records.
+
+So the division of labour is:
+
+| what | who | when |
+|---|---|---|
+| the code | contributor | in the PR |
+| **a description of what changes for the user** | **contributor** | **in the PR description** |
+| `features/<id>.md` | maintainer | after merge |
+| the `changelog.json` row | maintainer | after merge |
+| `since` | maintainer | at release |
+
+**What to do instead, as a contributor: write the documentation in the PR description.**
+Not a summary of the diff — an explanation aimed at the person using the app. What can
+they now do that they couldn't? Where is the control and what is it called? What do they
+see when they use it? Why would they want to? If there's a non-obvious interaction with
+an existing behaviour, say so.
+
+That prose is the deliverable. It is the raw material the feature doc is written from,
+and a good one makes the corpus work mechanical — a thin one means the maintainer has to
+come back and ask. Screenshots earn their place for the same reason. What is *not* asked
+of you is deciding where it lands in the corpus, and that is the part you'd have to
+guess at.
+
+## Maintainer contract for adding an entry (no tooling required)
 
 1. **New user-facing feature** → add `features/<id>.md` (with a valid `category`), and
    append a `{ "kind": "new", "date": "…", "title": "…" }` row.
@@ -172,4 +220,7 @@ These are the judgement calls the model is built around — read them before aut
    `{ "kind": "enhanced", "date": "…", "title": "…" }` row. Do not create a second doc.
 3. **A PR with no user-facing change** → append a `{ "feature": null, "kind": "skip",
    "reason": "…" }` row.
-</content>
+
+In all three cases the row is added **after the PR merges**, when its number and final
+title are known. Take `title` from the merged PR verbatim — it is what the release-notes
+generator emits.

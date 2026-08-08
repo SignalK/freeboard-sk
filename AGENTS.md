@@ -222,8 +222,11 @@ the code. Use the DeepWiki MCP (or the web URLs) before guessing at architecture
 
 **Freeboard-specific** (`docs/freeboard/`):
 - [`feature-browser.md`](docs/freeboard/feature-browser.md) — the Feature Browser and
-  its `features/` corpus + change ledger: how to author a feature doc and record a
-  change (the hand-authoring contract).
+  its `features/` corpus + change ledger. **`features/` is maintainer-owned: do not
+  add or edit feature docs or `changelog.json` in a contributor PR** — describe the
+  user-facing change in the PR description instead, and the corpus is compiled after
+  merge. The doc covers the model, the category list, and the maintainer contract for
+  recording a change.
 - [`freeboard-plotter-ext-support.md`](docs/freeboard/freeboard-plotter-ext-support.md)
   — Freeboard's host implementation of the Plotter Extensions API (incl. the
   `routes` capability).
