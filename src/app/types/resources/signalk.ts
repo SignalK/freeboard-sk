@@ -78,6 +78,9 @@ export interface ChartResource {
   tileSize?: number;
   defaultOpacity?: number;
   imageAdjustment?: ChartImageAdjustment;
+  // Lowest zoom level the chart is drawn at, as a local display preference.
+  // Distinct from the declared `minzoom`, which describes the tiles that exist.
+  displayMinZoom?: number;
   proxy?: boolean;
   $source?: string;
   style?: string;

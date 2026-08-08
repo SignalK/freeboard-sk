@@ -23,7 +23,6 @@
       </div>
     </mat-card-title>
     <mat-card-content>
-      @if(!displayChartLayers) {
       <div style="display: flex">
         <div style="flex: 1 1 auto; padding-left: 3px">
           <mat-form-field floatLabel="always" style="width: 180px">
@@ -70,21 +69,8 @@
           </mat-checkbox>
         </div>
       </div>
-      } @else {
-      <div style="display: flex; border-top: 1px solid">
-        <div style="flex: 1 1 auto; text-align: center; line-height: 2.5em">
-          Chart Order
-        </div>
-        <div>
-          <button mat-icon-button (click)="showChartLayers(false)">
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
-      </div>
-      }
     </mat-card-content>
     <mat-card-actions>
-      @if(!displayChartLayers) {
       <mat-slide-toggle
         [hideIcon]="true"
         [checked]="app.data.chartBounds.show"
@@ -106,16 +92,6 @@
       </mat-slide-toggle>
       <button
         mat-icon-button
-        aria-label="Re-order Charts"
-        (click)="showChartLayers(true)"
-        matTooltip="Re-order Charts"
-        matTooltipPosition="above"
-      >
-        <mat-icon>import_export</mat-icon>
-      </button>
-
-      <button
-        mat-icon-button
         aria-label="Add Chart"
         matTooltip="Add Chart"
         matTooltipPosition="above"
@@ -123,27 +99,31 @@
       >
         <mat-icon>add</mat-icon>
       </button>
-      } @else {
-      <div style="display: flex; width: 100%; font-style: italic">
-        <div style="flex: 1 1 auto">Top Layer</div>
-        <div style="text-align: center; font-size: 10pt; font-style: italic">
-          (drag to re-order)
-        </div>
-      </div>
-      }
     </mat-card-actions>
   </mat-card>
 
-  @if(!displayChartLayers) {
   <div class="resources charts">
     @if(this.app.sIsFetching()) {
     <mat-progress-bar mode="query"></mat-progress-bar>
     }
-    <cdk-virtual-scroll-viewport class="vscroller" itemSize="80">
+    <div class="stack-caption stack-caption-top">
+      <span>Top Layer</span>
+      <span class="stack-caption-hint">{{reorderHint()}}</span>
+    </div>
+    <div
+      class="vscroller"
+      style="overflow: auto"
+      cdkDropList
+      [cdkDropListDisabled]="!canReorder()"
+      (cdkDropListDropped)="drop($event)"
+    >
+      @for (r of filteredList(); track r[0]; let i = $index) {
       <mat-card
-        *cdkVirtualFor="let r of filteredList(); let i= index;"
+        cdkDrag
+        [cdkDragDisabled]="!canReorder()"
         style="border-bottom: silver 1px outset; border-radius: unset"
       >
+        <div class="chart-drop-placeholder" *cdkDragPlaceholder></div>
         <mat-card-content>
           <div style="display: flex">
             <div style="flex: 1 1 auto; width: 215px">
@@ -166,8 +146,32 @@
               >
                 {{r[1].description}}
               </div>
+              @let minZoomLabel = minZoomLabelFor(r); @if(minZoomLabel) {
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  font-size: 11px;
+                  opacity: 0.75;
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                <mat-icon style="font-size: 14px; width: 14px; height: 14px"
+                  >vertical_align_bottom</mat-icon
+                >
+                <span>{{minZoomLabel}}</span>
+                @if(isBoundedOut(r)) {
+                <span style="font-style: italic"
+                  >&mdash; hidden at this zoom</span
+                >
+                }
+              </div>
+              }
             </div>
-            <div style="text-align: right">
+            <div style="display: flex; align-items: center">
               <mat-checkbox
                 [checked]="r[2]"
                 (change)="itemSelect($event.checked, r[0])"
@@ -175,6 +179,22 @@
                 matTooltipPosition="left"
               >
               </mat-checkbox>
+              @if(canReorder()) {
+              <div
+                cdkDragHandle
+                style="
+                  display: flex;
+                  align-items: center;
+                  cursor: move;
+                  opacity: 0.45;
+                  padding: 6px 0 6px 14px;
+                "
+                matTooltip="Drag to re-order"
+                matTooltipPosition="left"
+              >
+                <mat-icon>drag_indicator</mat-icon>
+              </div>
+              }
             </div>
           </div>
         </mat-card-content>
@@ -225,6 +245,17 @@
                 <mat-icon>tune</mat-icon>
               </button>
             </div>
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                [disabled]="!r[2]"
+                (click)="itemDisplayMinZoom(r)"
+                matTooltip="Minimum Zoom Level"
+                matTooltipPosition="above"
+              >
+                <mat-icon>vertical_align_bottom</mat-icon>
+              </button>
+            </div>
             } @if(r[1].proxy) {
             <div style="width: 100%; text-align: right">
               <button
@@ -251,16 +282,11 @@
           </div>
         </mat-card-actions>
       </mat-card>
-    </cdk-virtual-scroll-viewport>
+      }
+    </div>
+    <div class="stack-caption stack-caption-bottom">
+      <span>Base Layer</span>
+      <span class="stack-caption-hint">(e.g. World Map)</span>
+    </div>
   </div>
-  } @else {
-  <div class="resources">
-    <ap-chartlayers
-      class="vscroller"
-      [charts]="fullList"
-      (closed)="showChartLayers(false)"
-    >
-    </ap-chartlayers>
-  </div>
-  }
 </div>

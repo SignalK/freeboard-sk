@@ -17,14 +17,17 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
-import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import {
+  CdkDragDrop,
+  DragDropModule,
+  moveItemInArray
+} from '@angular/cdk/drag-drop';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKResourceType } from '../../resources.service';
-import { ChartLayers } from './chart-layers.component';
 import { FBCharts, FBChart } from 'src/app/types';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
@@ -33,14 +36,19 @@ import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
 import {
+  displayMinZoomLabel,
   SingleSelectListDialog,
   SliderInputDialog,
   SliderInputDialogResult
 } from 'src/app/lib/components';
+import {
+  isChartInView,
+  isZoomWithinLayerRange,
+  resolveLayerZoomRange
+} from 'src/app/modules/map/ol/lib/charts/chart-utils';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { isChartInView } from 'src/app/modules/map/ol/lib/charts/chart-utils';
 
 @Component({
   selector: 'chart-list',
@@ -55,11 +63,10 @@ import { isChartInView } from 'src/app/modules/map/ol/lib/charts/chart-utils';
     MatButtonModule,
     FormsModule,
     MatInputModule,
-    ScrollingModule,
     MatSlideToggle,
     MatMenuModule,
     MatProgressBarModule,
-    ChartLayers
+    DragDropModule
   ]
 })
 export class ChartListComponent extends ResourceListBase {
@@ -70,7 +77,6 @@ export class ChartListComponent extends ResourceListBase {
   protected override fullList: FBCharts = [];
   protected override filteredList = signal<FBCharts>([]);
 
-  displayChartLayers = false;
   protected inViewOnly = false;
 
   protected app = inject(AppFacade);
@@ -117,6 +123,43 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   /**
+   * @description True when rows may be dragged to re-order the chart layers.
+   * A filtered list shows a subset, and dropping a row within a subset has no
+   * unambiguous meaning in the full order -- charts hidden between the drag
+   * source and its target would move unpredictably.
+   */
+  protected canReorder(): boolean {
+    return !this.filterText && !this.inViewOnly;
+  }
+
+  /**
+   * @description Caption beside "Top Layer": how to re-order, or why the drag
+   * handles are absent. Without it a filtered list just loses its handles.
+   */
+  protected reorderHint(): string {
+    return this.canReorder()
+      ? '(drag to re-order)'
+      : '(clear the filter to re-order)';
+  }
+
+  /**
+   * @description Re-order the chart layers from a dropped row.
+   * @param e Drop event
+   */
+  protected drop(e: CdkDragDrop<FBCharts>) {
+    if (!this.canReorder() || e.previousIndex === e.currentIndex) {
+      return;
+    }
+    const ordered = this.filteredList().slice();
+    moveItemInArray(ordered, e.previousIndex, e.currentIndex);
+    // The list reads top layer first, which is what setChartsOrder() takes. It
+    // keeps ids the list does not carry -- charts from a provider that is down
+    // this session still hold their place in the stack.
+    this.skres.setChartsOrder(ordered.map((c) => c[0]));
+    this.doFilter();
+  }
+
+  /**
    * @description Close chart list
    */
   protected close() {
@@ -142,8 +185,6 @@ export class ChartListComponent extends ResourceListBase {
       this.fullList = this.skres.appendOSM(this.fullList);
       this.app.sIsFetching.set(false);
       this.doFilter();
-      this.cleanOpacityConfig();
-      this.cleanImageAdjustmentConfig();
       this.skres.selectionClean(
         this.collection,
         this.fullList.map((i) => i[0])
@@ -153,32 +194,6 @@ export class ChartListComponent extends ResourceListBase {
       this.app.parseHttpErrorResponse(err);
       this.fullList = [];
     }
-  }
-
-  /**
-   * Clean orphaned chartOpacity keys from config
-   */
-  cleanOpacityConfig() {
-    const keys = Object.keys(this.app.config.selections.chartOpacity);
-    const listIds = this.fullList.map((i) => i[0]);
-    keys.forEach((key) => {
-      if (!listIds.includes(key)) {
-        delete this.app.config.selections.chartOpacity[key];
-      }
-    });
-  }
-
-  /**
-   * Clean orphaned chartImageAdjustment keys from config
-   */
-  cleanImageAdjustmentConfig() {
-    const keys = Object.keys(this.app.config.selections.chartImageAdjustment);
-    const listIds = this.fullList.map((i) => i[0]);
-    keys.forEach((key) => {
-      if (!listIds.includes(key)) {
-        delete this.app.config.selections.chartImageAdjustment[key];
-      }
-    });
   }
 
   /**
@@ -316,11 +331,60 @@ export class ChartListComponent extends ResourceListBase {
       });
   }
 
+  /**
+   * @description Compact label for a chart's configured display minimum zoom.
+   * @param chart Chart entry
+   */
+  protected minZoomLabelFor(chart: FBChart): string {
+    // Only the raster layers honour a display minimum, so only they may claim
+    // one -- the control is likewise offered on `isImageLayer` charts alone.
+    return this.isImageLayer(chart)
+      ? displayMinZoomLabel(chart[1]?.displayMinZoom)
+      : '';
+  }
+
+  /**
+   * @description True when a selected chart is not drawn at the current map
+   * zoom. Only charts carrying a display minimum are marked, since the notice
+   * hangs off that label -- but the test is the layer's whole resolved range,
+   * so a chart held back by its own declared bounds still reports itself
+   * hidden rather than appearing to be on. Resolved the way the map layer
+   * resolves it, so the list cannot claim a chart is showing when it is not.
+   * @param chart Chart entry
+   */
+  protected isBoundedOut(chart: FBChart): boolean {
+    if (
+      !chart[2] ||
+      !this.isImageLayer(chart) ||
+      typeof chart[1]?.displayMinZoom !== 'number'
+    ) {
+      return false;
+    }
+    return !isZoomWithinLayerRange(
+      resolveLayerZoomRange(
+        chart[1],
+        this.app.MAP_ZOOM_EXTENT.max,
+        this.app.config.map.overZoomTiles
+      ),
+      this.app.mapZoom()
+    );
+  }
+
+  protected itemDisplayMinZoom(chart: FBChart) {
+    // The list stays open: balancing an overlapping set means moving between
+    // charts, and the list is where their levels and hidden state are shown --
+    // so the applied value has to land on the list's own copy of the chart, or
+    // the row keeps reporting the state from before the edit.
+    this.skres.openDisplayMinZoom(chart, (value?: number) => {
+      chart[1].displayMinZoom = value;
+      this.updateFullList(chart);
+    });
+  }
+
   protected itemImageAdjustment(chart: FBChart) {
-    // The palette is modeless and owned by the service so it survives the chart
-    // list closing, which frees the map for the live adjustment preview.
+    // The palette is modeless and owned by the service, and the list stays open
+    // beside it: adjusting one chart of a stack usually means adjusting more.
     this.skres.openImageAdjustment(chart);
-    this.close();
   }
 
   updateFullList(chart: FBChart) {
@@ -425,19 +489,6 @@ export class ChartListComponent extends ResourceListBase {
           }
         }
       });
-  }
-
-  /**
-   * @description Control the display of the re-order chart screen
-   * @param show Display Chart Order component when true
-   */
-  showChartLayers(show = false) {
-    this.displayChartLayers = show;
-    if (!show) {
-      // Returning from the Re-order screen: re-apply the (possibly changed)
-      // layer order to the list.
-      this.doFilter();
-    }
   }
 
   /**

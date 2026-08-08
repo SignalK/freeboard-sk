@@ -40,7 +40,7 @@ const toRatio = (percent: number) => percent / 100;
   template: `
     <div
       class="_ap-image-adjustment"
-      style="overflow: hidden;"
+      style="overflow: hidden; color: var(--mat-app-text-color);"
       cdkDrag
       cdkDragRootElement=".cdk-overlay-pane"
       [cdkDragFreeDragPosition]="initialPosition"
@@ -51,7 +51,18 @@ const toRatio = (percent: number) => percent / 100;
         style="display:flex; align-items:center; cursor:move; padding: 4px 4px 0 12px;"
       >
         <mat-icon style="opacity:0.6;">tune</mat-icon>
-        <div style="flex: 1 1 auto; padding-left: 8px; font-weight: 500;">
+        <div
+          style="
+            flex: 1 1 auto;
+            min-width: 0;
+            padding-left: 8px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          "
+          [title]="data.text"
+        >
           {{ data.text }}
         </div>
         <button mat-icon-button aria-label="Close" (click)="handleClose(false)">

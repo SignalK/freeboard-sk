@@ -70,3 +70,65 @@
     right: 0;
     border-top: silver 1px outset;
 }
+
+/* Chart list stacking captions: the list runs top layer first, which nothing
+   else on the row says, so each end is labelled and the scroller is inset to
+   leave room for them. */
+.resourcelist .resources.charts .vscroller {
+    top: 22px;
+    bottom: 22px;
+}
+
+.resourcelist .resources.charts .stack-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    /* The list sits over the map, so a caption needs the panel surface under
+       it or the chart shows through the gutter. */
+    background: var(--mat-app-background-color);
+    color: var(--mat-app-text-color);
+    font-size: 10pt;
+    font-style: italic;
+}
+
+.resourcelist .resources.charts .stack-caption-top {
+    top: 0;
+    border-bottom: silver 1px outset;
+}
+
+.resourcelist .resources.charts .stack-caption-bottom {
+    bottom: 0;
+    border-top: silver 1px outset;
+}
+
+.resourcelist .resources.charts .stack-caption-hint {
+    flex: 1 1 auto;
+    text-align: right;
+    opacity: 0.7;
+}
+
+/* Chart list re-ordering: the gap a dragged row will land in, and the row
+   floating under the pointer. */
+.chart-drop-placeholder {
+    background: #ccc;
+    border: dotted 3px #999;
+    min-height: 60px;
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-preview {
+    box-sizing: border-box;
+    border-radius: 4px;
+    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+        0 8px 10px 1px rgba(0, 0, 0, 0.14),
+        0 3px 14px 2px rgba(0, 0, 0, 0.12);
+}
+
+.cdk-drag-animating,
+.cdk-drop-list-dragging .mat-mdc-card:not(.cdk-drag-placeholder) {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
