@@ -20,6 +20,25 @@ export enum SKSTREAM_MODE {
   PLAYBACK
 }
 
+/** Age (ms) beyond which the last received self position is considered stale.
+ * Comfortably longer than any realistic position update period, so it only
+ * trips when position data has genuinely stopped arriving. */
+export const SELF_POSITION_STALE_AGE = 30000;
+
+/** How often self position age is re-evaluated (ms). Staleness advances with
+ * wall time, so it cannot be derived from incoming messages alone — when the
+ * connection drops there are no messages left to derive it from. */
+const SELF_POSITION_STALE_CHECK_INTERVAL = 2000;
+
+/** Determine whether a position stamped at `positionUpdatedAt` is stale.
+ * A vessel that has never reported a position is not stale — there is no
+ * position to have gone out of date. */
+export const isPositionStale = (
+  positionUpdatedAt: number,
+  now: number,
+  maxAge: number = SELF_POSITION_STALE_AGE
+): boolean => !!positionUpdatedAt && now - positionUpdatedAt > maxAge;
+
 export interface StreamOptions {
   playbackRate: number;
   startTime: string;
@@ -77,6 +96,23 @@ export class SKStreamFacade {
   private watchDogAlarmSignal = signal<boolean>(false);
   readonly watchDogAlarm = this.watchDogAlarmSignal.asReadonly();
 
+  private positionStaleSignal = signal<boolean>(false);
+  /** True when self position has not been updated for
+   * SELF_POSITION_STALE_AGE — the vessel shown on the chart is no longer
+   * where the boat is. Covers both a dropped connection and a server that is
+   * still talking but has lost its position source. */
+  readonly selfPositionStale = this.positionStaleSignal.asReadonly();
+
+  /** Re-evaluate self position age against the current time. */
+  refreshSelfPositionStale(): void {
+    this.positionStaleSignal.set(
+      isPositionStale(
+        this.app.data.vessels.self?.positionUpdatedAt ?? 0,
+        Date.now()
+      )
+    );
+  }
+
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
@@ -106,6 +142,11 @@ export class SKStreamFacade {
         this.onMessage.next(msg as UpdateMessage);
       }
     });
+
+    setInterval(
+      () => this.refreshSelfPositionStale(),
+      SELF_POSITION_STALE_CHECK_INTERVAL
+    );
 
     // ** Handle app.config$ / settings.change$ events
     this.settings.change$.subscribe(() => this.sendConfig());
@@ -380,6 +421,9 @@ export class SKStreamFacade {
     });
 
     this.refreshSelfNightMode();
+    // clear the indication as soon as position resumes, rather than on the
+    // next tick
+    this.refreshSelfPositionStale();
   }
 
   private parseSelfRacing(v: SKVessel) {

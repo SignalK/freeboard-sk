@@ -197,6 +197,10 @@ class SKTargetBase {
   position: Position = [0, 0];
   positionReceived = false;
   positionTimestamp: string = '';
+  /** Client-clock epoch ms at which the last position delta was received
+   * (0 = none yet). Stamped locally rather than derived from
+   * `positionTimestamp` so position age is immune to server clock skew. */
+  positionUpdatedAt = 0;
   state: string;
   type: { id: number; name: string } = { id: -1, name: '' };
   properties: { [key: string]: any } = {};

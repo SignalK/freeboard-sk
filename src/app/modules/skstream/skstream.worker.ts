@@ -890,6 +890,7 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     ]);
     d.positionReceived = true;
     d.positionTimestamp = $timestamp ?? '';
+    d.positionUpdatedAt = Date.now();
     d.lastUpdated = new Date();
     if (!isSelf) {
       appendTrack(d);

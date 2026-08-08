@@ -13,7 +13,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke, Icon } from 'ol/style';
+import { Style, Stroke, Icon, Fill, Text } from 'ol/style';
 import { Geometry, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
@@ -59,6 +59,23 @@ const fixedVesselStyle = new Style({
   })
 });
 
+/** Opacity applied to the vessel icon while its position is stale. */
+export const STALE_VESSEL_OPACITY = 0.4;
+
+/** Drawn over the vessel when its position is no longer being updated.
+ * Deliberately unmissable: the whole point of #672 is that a transient
+ * message at the bottom of the screen is not. Centred on the vessel position
+ * so it reads as "this fix is unknown" rather than as a separate marker. */
+const staleVesselStyle = new Style({
+  text: new Text({
+    text: '?',
+    font: 'bold 44px Roboto, "Helvetica Neue", sans-serif',
+    fill: new Fill({ color: 'red' }),
+    // outlines the glyph itself, keeping it legible over a dark chart
+    stroke: new Stroke({ color: '#ffffff', width: 1 })
+  })
+});
+
 // ** Freeboard Vessel component **
 @Component({
   selector: 'ol-map > fb-vessel',
@@ -83,6 +100,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() heading = 0;
   @Input() vesselStyles: { [key: string]: Style };
   @Input() fixedLocation: boolean;
+  /** Position is no longer being updated — dim the icon and flag it. */
+  @Input() stale = false;
   @Input() iconScale = 1;
   @Input() opacity: number;
   @Input() visible: boolean;
@@ -135,7 +154,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           key === 'id' ||
           key === 'activeId' ||
           key === 'position' ||
-          key === 'heading'
+          key === 'heading' ||
+          key === 'stale'
         ) {
           if (this.source) {
             this.parseVessel();
@@ -192,8 +212,11 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         } else {
           im.setRotation(this.heading);
         }
+        // set both ways: the styles are shared module-level instances, so a
+        // dimmed icon would otherwise stay dimmed after position resumes
+        im.setOpacity(this.stale ? STALE_VESSEL_OPACITY : 1);
       }
-      this.vessel.setStyle(s);
+      this.vessel.setStyle(this.stale ? [s, staleVesselStyle] : s);
     }
   }
 
