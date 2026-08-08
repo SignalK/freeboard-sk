@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
+import { ComponentType } from '@angular/cdk/portal';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   MatDialog,
@@ -95,8 +96,7 @@ export class SKResourceService {
   // The open modeless per-chart palette (image adjustment or minimum zoom).
   // They are backdrop-less and share a position, so a second one would cover the
   // first completely — and the covered one still reverts its chart when closed.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private chartPaletteRef?: MatDialogRef<any, any>;
+  private chartPaletteRef?: MatDialogRef<unknown, unknown>;
   private signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
   private mapInteract = inject(FBMapInteractService);
@@ -886,7 +886,10 @@ export class SKResourceService {
         chart[1]?.imageAdjustment)
     };
 
-    const ref = this.openChartPalette(ImageAdjustmentDialog, {
+    const ref = this.openChartPalette<
+      ImageAdjustmentDialog,
+      ImageAdjustmentDialogResult
+    >(ImageAdjustmentDialog, {
       width: '290px',
       data: {
         text: chart[1]?.name ?? '',
@@ -905,7 +908,7 @@ export class SKResourceService {
       }
     });
 
-    ref.afterClosed().subscribe((result: ImageAdjustmentDialogResult) => {
+    ref.afterClosed().subscribe((result?: ImageAdjustmentDialogResult) => {
       this.releaseChartPalette(ref);
       if (result?.apply) {
         this.app.config.selections.chartImageAdjustment[id] = result.value;
@@ -924,13 +927,12 @@ export class SKResourceService {
    * @param component Palette component
    * @param config Component-specific dialog config
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private openChartPalette<T>(
-    component: any,
-    config: MatDialogConfig
-  ): MatDialogRef<T> {
+  private openChartPalette<T, R>(
+    component: ComponentType<T>,
+    config: MatDialogConfig<unknown>
+  ): MatDialogRef<T, R> {
     this.chartPaletteRef?.close();
-    this.chartPaletteRef = this.dialog.open(component, {
+    const ref = this.dialog.open<T, unknown, R>(component, {
       hasBackdrop: false,
       disableClose: true,
       autoFocus: false,
@@ -943,7 +945,8 @@ export class SKResourceService {
       },
       ...config
     });
-    return this.chartPaletteRef;
+    this.chartPaletteRef = ref;
+    return ref;
   }
 
   /**
@@ -952,8 +955,7 @@ export class SKResourceService {
    * points at the palette that closed.
    * @param ref Palette that closed
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private releaseChartPalette(ref: MatDialogRef<any, any>) {
+  private releaseChartPalette(ref: MatDialogRef<unknown, unknown>) {
     if (this.chartPaletteRef === ref) {
       this.chartPaletteRef = undefined;
     }
