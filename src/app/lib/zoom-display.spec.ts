@@ -18,6 +18,13 @@ describe('truncateZoomToDisplay', () => {
     expect(truncateZoomToDisplay(14)).toBe(14);
   });
 
+  it('does not lift a level that has not reached the next tenth', () => {
+    // A view sitting a hair below 14 is below 14, however close: naming it
+    // 14.0 is the readout claiming a level the map is not at.
+    expect(truncateZoomToDisplay(13.99999995)).toBe(13.9);
+    expect(truncateZoomToDisplay(27.999999999)).toBe(27.9);
+  });
+
   it('yields a value that prints without floating-point noise', () => {
     for (let tenths = 0; tenths <= 280; tenths++) {
       const text = String(truncateZoomToDisplay(tenths / 10 + 0.03));

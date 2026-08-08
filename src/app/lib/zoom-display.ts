@@ -9,11 +9,15 @@ const ZOOM_DISPLAY_STEPS = 10;
  * map is not at yet.
  *
  * Truncating in floating point needs the product settled first: 12.3 * 10 is
- * 122.99999999999999, which floors to 12.2.
+ * 122.99999999999999, which floors to 12.2. The allowance is one ulp of the
+ * product, so it covers that error and nothing a view can be at: rounding to a
+ * fixed number of decimals instead would lift a zoom genuinely below a tenth
+ * over it, which is the reporting this function exists to stop.
  */
 export function truncateZoomToDisplay(zoom: number): number {
-  const steps = Number((zoom * ZOOM_DISPLAY_STEPS).toFixed(6));
-  return Math.floor(steps) / ZOOM_DISPLAY_STEPS;
+  const steps = zoom * ZOOM_DISPLAY_STEPS;
+  const settled = steps + Number.EPSILON * Math.max(1, Math.abs(steps));
+  return Math.floor(settled) / ZOOM_DISPLAY_STEPS;
 }
 
 /** Zoom level for the map readout, always carrying its one decimal. */
