@@ -984,7 +984,10 @@ export class SKResourceService {
       this.app.config.selections.chartDisplayMinZoom[id] ??
       chart[1]?.displayMinZoom;
 
-    const ref = this.openChartPalette(ChartMinZoomDialog, {
+    const ref = this.openChartPalette<
+      ChartMinZoomDialog,
+      ChartMinZoomDialogResult
+    >(ChartMinZoomDialog, {
       width: '300px',
       data: {
         text: chart[1]?.name ?? '',
@@ -998,7 +1001,7 @@ export class SKResourceService {
       }
     });
 
-    ref.afterClosed().subscribe((result: ChartMinZoomDialogResult) => {
+    ref.afterClosed().subscribe((result?: ChartMinZoomDialogResult) => {
       this.releaseChartPalette(ref);
       if (result?.apply) {
         if (typeof result.value === 'number') {

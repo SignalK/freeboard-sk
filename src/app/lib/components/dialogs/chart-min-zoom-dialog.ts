@@ -10,6 +10,15 @@ import {
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { truncateZoomToDisplay } from 'src/app/lib/zoom-display';
 
+export interface ChartMinZoomDialogData {
+  text: string;
+  value?: number;
+  declaredMin?: number;
+  declaredMax?: number;
+  currentZoom: () => number;
+  onChange: (value?: number) => void;
+}
+
 export interface ChartMinZoomDialogResult {
   apply: boolean;
   value?: number;
@@ -195,14 +204,7 @@ export class ChartMinZoomDialog implements OnInit {
   protected dialogRef = inject(
     MatDialogRef<ChartMinZoomDialog, ChartMinZoomDialogResult>
   );
-  protected data = inject<{
-    text: string;
-    value?: number;
-    declaredMin?: number;
-    declaredMax?: number;
-    currentZoom: () => number;
-    onChange: (value?: number) => void;
-  }>(MAT_DIALOG_DATA);
+  protected data = inject<ChartMinZoomDialogData>(MAT_DIALOG_DATA);
 
   protected error = computed(() =>
     displayMinZoomError(parseZoomBound(this.text()))
