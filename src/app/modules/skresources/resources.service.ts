@@ -97,6 +97,9 @@ export class SKResourceService {
   // They are backdrop-less and share a position, so a second one would cover the
   // first completely — and the covered one still reverts its chart when closed.
   private chartPaletteRef?: MatDialogRef<unknown, unknown>;
+  // What the open palette edits, so a palette closing after its replacement
+  // has opened can tell a hand-over from an unrelated palette taking the slot.
+  private chartPaletteEdit?: string;
   private signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
   private mapInteract = inject(FBMapInteractService);
@@ -889,32 +892,37 @@ export class SKResourceService {
     const ref = this.openChartPalette<
       ImageAdjustmentDialog,
       ImageAdjustmentDialogResult
-    >(ImageAdjustmentDialog, {
-      width: '290px',
-      data: {
-        text: chart[1]?.name ?? '',
-        value: { ...original },
-        position: this.onScreenPalettePosition(
-          this.app.config.imageAdjustPalettePos,
-          290
-        ),
-        onChange: (value: ChartImageAdjustment) => {
-          this.chartSetImageAdjustment(id, value);
-        },
-        onMoved: (position: PalettePosition) => {
-          this.app.config.imageAdjustPalettePos = position;
-          this.app.saveConfig();
+    >(
+      ImageAdjustmentDialog,
+      {
+        width: '290px',
+        data: {
+          text: chart[1]?.name ?? '',
+          value: { ...original },
+          position: this.onScreenPalettePosition(
+            this.app.config.imageAdjustPalettePos,
+            290
+          ),
+          onChange: (value: ChartImageAdjustment) => {
+            this.chartSetImageAdjustment(id, value);
+          },
+          onMoved: (position: PalettePosition) => {
+            this.app.config.imageAdjustPalettePos = position;
+            this.app.saveConfig();
+          }
         }
-      }
-    });
+      },
+      `imageAdjustment:${id}`
+    );
 
     ref.afterClosed().subscribe((result?: ImageAdjustmentDialogResult) => {
+      const handedOver = this.paletteHandedOver(`imageAdjustment:${id}`, ref);
       this.releaseChartPalette(ref);
       if (result?.apply) {
         this.app.config.selections.chartImageAdjustment[id] = result.value;
         this.chartSetImageAdjustment(id, result.value);
         this.app.saveConfig();
-      } else {
+      } else if (!handedOver) {
         // cancelled - restore the pre-edit adjustment
         this.chartSetImageAdjustment(id, original);
       }
@@ -926,10 +934,14 @@ export class SKResourceService {
    * They are backdrop-less and share a position, so only one may be on screen.
    * @param component Palette component
    * @param config Component-specific dialog config
+   * @param edit What the palette edits, as `<setting>:<chart id>` -- the same
+   * string identifies a later palette as a continuation of this edit rather
+   * than a different one
    */
   private openChartPalette<T, R>(
     component: ComponentType<T>,
-    config: MatDialogConfig<unknown>
+    config: MatDialogConfig<unknown>,
+    edit: string
   ): MatDialogRef<T, R> {
     this.chartPaletteRef?.close();
     const ref = this.dialog.open<T, unknown, R>(component, {
@@ -946,6 +958,7 @@ export class SKResourceService {
       ...config
     });
     this.chartPaletteRef = ref;
+    this.chartPaletteEdit = edit;
     return ref;
   }
 
@@ -958,7 +971,24 @@ export class SKResourceService {
   private releaseChartPalette(ref: MatDialogRef<unknown, unknown>) {
     if (this.chartPaletteRef === ref) {
       this.chartPaletteRef = undefined;
+      this.chartPaletteEdit = undefined;
     }
+  }
+
+  /**
+   * @description True when the palette that closed was replaced by a newer one
+   * over the same edit. Its preview belongs to the replacement by then, so the
+   * cancel path must leave it alone -- `afterClosed` arrives an exit animation
+   * late, and on a slow client that is long enough for a queued click to have
+   * opened the replacement and moved the value.
+   * @param edit Edit the closing palette was opened for
+   * @param ref Palette that closed
+   */
+  private paletteHandedOver(
+    edit: string,
+    ref: MatDialogRef<unknown, unknown>
+  ): boolean {
+    return this.chartPaletteRef !== ref && this.chartPaletteEdit === edit;
   }
 
   /**

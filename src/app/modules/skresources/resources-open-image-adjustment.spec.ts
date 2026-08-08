@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { SKResourceService } from './resources.service';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import { ImageAdjustmentDialogResult } from 'src/app/lib/components';
@@ -216,5 +216,67 @@ describe('openImageAdjustment (#457)', () => {
 
     expect(config.imageAdjustPalettePos).toEqual({ x: 200, y: 90 });
     expect(saveConfig).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * A replaced palette closes an exit animation after its replacement is already
+ * on screen, so its cancel path runs late. On a slow client that is long enough
+ * for a queued click to have opened the replacement and moved the value, and a
+ * revert landing then would put the pre-edit adjustment back over it.
+ */
+describe('openImageAdjustment — a palette closing after it was replaced', () => {
+  const svcWithLateClose = () => {
+    const svc = Object.create(SKResourceService.prototype) as SKResourceService;
+    const closes: Subject<ImageAdjustmentDialogResult | undefined>[] = [];
+    const chartImageAdjustment: Record<string, ChartImageAdjustment> = {
+      c1: { brightness: 1.1, contrast: 1.2 },
+      c2: { brightness: 0.9, contrast: 1 }
+    };
+    (svc as unknown as { app: unknown }).app = {
+      config: {
+        selections: { chartImageAdjustment },
+        imageAdjustPalettePos: null
+      },
+      saveConfig: vi.fn()
+    };
+    (svc as unknown as { dialog: unknown }).dialog = {
+      open: () => {
+        const closed = new Subject<ImageAdjustmentDialogResult | undefined>();
+        closes.push(closed);
+        return { afterClosed: () => closed, close: vi.fn() };
+      }
+    };
+    const setSpy = vi.fn();
+    svc.chartSetImageAdjustment = setSpy;
+    return { svc, closes, setSpy };
+  };
+
+  const chartNamed = (id: string): FBChart =>
+    [id, { name: id }, true] as unknown as FBChart;
+
+  it('leaves the preview to a replacement over the same chart', () => {
+    const { svc, closes, setSpy } = svcWithLateClose();
+
+    svc.openImageAdjustment(chartNamed('c1'));
+    svc.openImageAdjustment(chartNamed('c1'));
+    setSpy.mockClear();
+    closes[0].next(undefined);
+
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it('still reverts its own chart when the replacement is for another', () => {
+    const { svc, closes, setSpy } = svcWithLateClose();
+
+    svc.openImageAdjustment(chartNamed('c1'));
+    svc.openImageAdjustment(chartNamed('c2'));
+    setSpy.mockClear();
+    closes[0].next(undefined);
+
+    expect(setSpy).toHaveBeenCalledWith('c1', {
+      brightness: 1.1,
+      contrast: 1.2
+    });
   });
 });
