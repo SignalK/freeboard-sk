@@ -78,6 +78,16 @@ Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
    - Keep the description succinct: the motivation (why) and the approach (how), not
      the mechanics (what). Include before/after screenshots for UI changes. If you
      use AI, **trim the fluff** — maintainers will ask if they need more.
+   - **Document the change in the description — but don't edit `features/`.** Fill in
+     *What changes for the user?* properly: what they can now do, where the control is,
+     what they see. That prose is what the in-app Feature Browser documentation gets
+     written from after merge, so it's worth real sentences rather than a restatement of
+     the diff.
+     The `features/` corpus itself is maintainer-owned. Deciding whether your change
+     extends an existing feature or is a new one requires the whole corpus in view — the
+     areas overlap, and from inside one PR the only visible option is "new", which is
+     usually the wrong answer. Rationale in
+     [`docs/freeboard/feature-browser.md`](docs/freeboard/feature-browser.md).
 7. [CodeRabbit](https://coderabbit.ai/) reviews automatically. **Give every finding
    an explicit disposition — fix it, or reply on the thread explaining why it
    doesn't apply.** Don't leave findings silently unanswered: CodeRabbit learns from
