@@ -293,6 +293,33 @@ terminate (CI, scripts, an agent verifying a change). Plain `npm test` stays as 
 local watch command. (This is why those wrappers exist; see *Build, test, run* in
 `AGENTS.md`.)
 
+### Adding a spec: check whether one already exists — a rising pass count hides a clobbered file
+
+**The trap.** Specs here are co-located and named after the file under test
+(`skstream.facade.spec.ts` next to `skstream.facade.ts`), so the name you would
+naturally choose for a *new* spec is frequently the name of an existing one. Writing
+the file wholesale — rather than appending a `describe` to it — silently deletes
+every test already in it.
+
+What makes this expensive is that the obvious safety check doesn't catch it. Running
+the full suite afterwards reports **more** passing tests than before, because the
+tests you added outnumber the ones you destroyed (real occurrence: 589 → 591, while
+two tests guarding #415's AIS orientation precedence had just been deleted). A green
+run with a rising total reads as proof that nothing was lost, and it is not — the
+count is a sum, not a set. Coverage of the deleted behaviour is simply gone, and the
+next regression in it ships unnoticed.
+
+**What to do instead.** Before creating a spec, check whether the path already
+exists, and if it does, add a new `describe` block rather than replacing the file.
+Afterwards confirm what actually happened with `git status`: a spec you *added* is
+`??` (untracked), one you *replaced* is ` M` (modified). If a file you believed was
+new shows as modified, `git diff` it before committing — and recover the original
+with `git checkout -- <path>`, then merge both sets of tests into the one file.
+
+This bites AI agents hardest, since writing a whole file is a single cheap operation
+and the pass count looks like verification. Treat "did I add or replace?" as a
+distinct question from "do the tests pass?".
+
 ### Running a single spec file: not with bare vitest — use `ng test --include`
 
 **The trap.** To iterate quickly on one test, the obvious move is
