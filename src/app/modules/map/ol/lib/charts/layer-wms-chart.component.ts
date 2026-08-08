@@ -20,7 +20,7 @@ import {
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
-  resolveLayerMaxZoom
+  resolveLayerZoomRange
 } from './chart-utils';
 
 // ** Freeboard WMS Chart **
@@ -102,13 +102,8 @@ export class WmsChartLayerComponent implements OnDestroy {
     }
 
     if (!this.layer) {
-      const minZ =
-        chart[1].minZoom && chart[1].minZoom >= 0.1
-          ? chart[1].minZoom - 0.1
-          : chart[1].minZoom;
-      const maxZ = chart[1].maxZoom;
-      const layerMaxZ = resolveLayerMaxZoom(
-        maxZ,
+      const zoom = resolveLayerZoomRange(
+        chart[1],
         this.mapMaxZoom(),
         this.overZoomTiles()
       );
@@ -122,8 +117,8 @@ export class WmsChartLayerComponent implements OnDestroy {
         }),
         preload: 0,
         zIndex: this.zIndex(),
-        minZoom: minZ,
-        maxZoom: layerMaxZ,
+        minZoom: zoom.min,
+        maxZoom: zoom.max,
         opacity: chart[1].defaultOpacity ?? 1,
         extent: extentFromBounds(chart[1].bounds),
         className: chartLayerClassName(chart[0])
@@ -138,19 +133,14 @@ export class WmsChartLayerComponent implements OnDestroy {
         this.map.addLayer(this.layer);
       }
     } else {
-      const minZ =
-        chart[1].minZoom && chart[1].minZoom >= 0.1
-          ? chart[1].minZoom - 0.1
-          : chart[1].minZoom;
-      const maxZ = chart[1].maxZoom;
-      const layerMaxZ = resolveLayerMaxZoom(
-        maxZ,
+      const zoom = resolveLayerZoomRange(
+        chart[1],
         this.mapMaxZoom(),
         this.overZoomTiles()
       );
       this.layer.setZIndex(this.zIndex());
-      this.layer.setMinZoom(minZ);
-      this.layer.setMaxZoom(layerMaxZ);
+      this.layer.setMinZoom(zoom.min);
+      this.layer.setMaxZoom(zoom.max);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
       const src = this.layer.getSource() as TileWMS;

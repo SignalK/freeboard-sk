@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
+import { By } from '@angular/platform-browser';
+import { CdkDrag, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MatDialog } from '@angular/material/dialog';
 
@@ -106,19 +108,237 @@ describe('ChartListComponent — list ordered by chart layer order (#550)', () =
     // 'a' matches Bravo (b) and Alpha (c); layer order keeps b before c.
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['b', 'c']);
   });
+});
 
-  it('re-applies the new order when the Re-order screen is closed', () => {
+/**
+ * Dragging a row hands the whole visible order to `skres.setChartsOrder()`, which
+ * owns persistence. The stub here stands in for that method with its documented
+ * behaviour (takes topmost-first, stores bottom-first), and `arrangeChartLayers`
+ * derives the layer order from what was stored — so a test that asserts the
+ * re-rendered list is reading back the drop's own effect rather than an order the
+ * test seeded. `resources-charts-order.spec.ts` covers the real method.
+ */
+describe('ChartListComponent — re-ordering by dragging a row', () => {
+  let comp: ChartListComponent;
+  let config: { selections: { chartOrder: string[] } };
+  let setChartsOrder: ReturnType<typeof vi.fn>;
+
+  const seed = (ids: string[]) => {
+    fullListOf(comp).length = 0;
+    fullListOf(comp).push(...ids.map((id) => chart(id, id.toUpperCase())));
+  };
+  const dropOf = (c: ChartListComponent, from: number, to: number) =>
+    (
+      c as unknown as {
+        drop: (e: { previousIndex: number; currentIndex: number }) => void;
+      }
+    ).drop({ previousIndex: from, currentIndex: to });
+  const canReorderOf = (c: ChartListComponent) =>
+    (c as unknown as { canReorder: () => boolean }).canReorder();
+
+  beforeEach(() => {
+    config = { selections: { chartOrder: ['osm', 'c', 'b', 'a'] } };
+    setChartsOrder = vi.fn((topmostFirst: string[]) => {
+      config.selections.chartOrder = topmostFirst.slice().reverse();
+    });
+    TestBed.configureTestingModule({
+      providers: [
+        ChartListComponent,
+        {
+          provide: SKResourceService,
+          useValue: {
+            arrangeChartLayers: vi.fn((list: FBCharts) =>
+              [...list].sort(
+                (x, y) =>
+                  config.selections.chartOrder.indexOf(x[0]) -
+                  config.selections.chartOrder.indexOf(y[0])
+              )
+            ),
+            setChartsOrder
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: { mapExtent: signal(null), config }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+    comp = TestBed.inject(ChartListComponent);
     seed(['osm', 'a', 'b', 'c']);
     doFilterOf(comp);
+  });
+
+  it('lists the charts top layer first', () => {
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['a', 'b', 'c', 'osm']);
+  });
 
-    // User re-orders on the Re-order screen (chartOrder changes) then closes it.
-    layerBottomFirst = ['osm', 'a', 'b', 'c'];
-    (
-      comp as unknown as { showChartLayers: (s?: boolean) => void }
-    ).showChartLayers(false);
+  it('hands the whole visible order over, topmost first', () => {
+    // Drag the top chart (a) down one place.
+    dropOf(comp, 0, 1);
 
-    expect(idsOf(filteredSignalOf(comp)())).toEqual(['c', 'b', 'a', 'osm']);
+    // Every listed chart is named, not just the moved one — that is what lets
+    // setChartsOrder() tell a chart the user left alone from one it cannot see.
+    expect(setChartsOrder).toHaveBeenCalledExactlyOnceWith([
+      'b',
+      'a',
+      'c',
+      'osm'
+    ]);
+  });
+
+  it('stores the new order base layer first when a row is dragged', () => {
+    dropOf(comp, 0, 1);
+
+    expect(config.selections.chartOrder).toEqual(['osm', 'c', 'a', 'b']);
+  });
+
+  it('re-renders the list in the new order', () => {
+    dropOf(comp, 0, 1);
+
+    expect(idsOf(filteredSignalOf(comp)())).toEqual(['b', 'a', 'c', 'osm']);
+  });
+
+  it('does nothing when a row is dropped where it started', () => {
+    dropOf(comp, 2, 2);
+
+    expect(setChartsOrder).not.toHaveBeenCalled();
+  });
+
+  it('refuses to re-order while the list is filtered', () => {
+    // A filtered list is a subset, so a drop within it says nothing about
+    // where the hidden charts belong.
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    expect(canReorderOf(comp)).toBe(false);
+
+    dropOf(comp, 0, 1);
+    expect(setChartsOrder).not.toHaveBeenCalled();
+  });
+
+  it('refuses to re-order while the in-view filter is on', () => {
+    (comp as unknown as { inViewOnly: boolean }).inViewOnly = true;
+    expect(canReorderOf(comp)).toBe(false);
+
+    dropOf(comp, 0, 1);
+    expect(setChartsOrder).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The drag tests above call `drop()` directly, which proves the handler and
+ * nothing about the template that has to reach it. These render the real view and
+ * assert the CDK directives are instantiated on it, so removing `cdkDropList`,
+ * `cdkDrag` or `cdkDragHandle` from the markup fails here rather than shipping a
+ * list whose rows cannot be dragged at all.
+ */
+describe('ChartListComponent — drag wiring in the rendered list', () => {
+  const CHARTS = ['osm', 'a', 'b'];
+
+  const makeFixture = () => {
+    const fixture = TestBed.createComponent(ChartListComponent);
+    const comp = fixture.componentInstance;
+    fullListOf(comp).push(...CHARTS.map((id) => chart(id, id.toUpperCase())));
+    doFilterOf(comp);
+    fixture.detectChanges();
+    return { fixture, comp };
+  };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SKResourceService,
+          useValue: {
+            arrangeChartLayers: (list: FBCharts) => [...list],
+            setChartsOrder: vi.fn()
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: {
+            mapExtent: signal(null),
+            // true → initItems() bails out, leaving the seeded fullList alone
+            sIsFetching: signal(true),
+            featureFlags: signal({ resourceGroups: false }),
+            debug: vi.fn(),
+            hostDef: { name: 'localhost' },
+            data: { chartBounds: { show: false, charts: [] } }
+          }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+  });
+
+  it('renders a drop list holding one draggable row per chart', () => {
+    const { fixture } = makeFixture();
+
+    expect(
+      fixture.debugElement.queryAll(By.directive(CdkDropList))
+    ).toHaveLength(1);
+    expect(fixture.debugElement.queryAll(By.directive(CdkDrag))).toHaveLength(
+      CHARTS.length
+    );
+  });
+
+  it('gives every row a drag handle', () => {
+    const { fixture } = makeFixture();
+
+    expect(
+      fixture.debugElement.queryAll(By.directive(CdkDragHandle))
+    ).toHaveLength(CHARTS.length);
+  });
+
+  it('withdraws the handles and disables the drop list while filtered', () => {
+    const { fixture, comp } = makeFixture();
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.queryAll(By.directive(CdkDragHandle))
+    ).toHaveLength(0);
+    expect(
+      fixture.debugElement
+        .query(By.directive(CdkDropList))
+        .injector.get(CdkDropList).disabled
+    ).toBe(true);
+  });
+
+  it('labels which end of the list draws on top', () => {
+    const { fixture } = makeFixture();
+    const captions = fixture.nativeElement.querySelectorAll('.stack-caption');
+
+    expect(captions).toHaveLength(2);
+    expect(captions[0].textContent).toContain('Top Layer');
+    expect(captions[1].textContent).toContain('Base Layer');
+  });
+
+  it('says why the handles are gone rather than dropping them silently', () => {
+    const { fixture, comp } = makeFixture();
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('drag to re-order');
+
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('clear the filter');
   });
 });
 

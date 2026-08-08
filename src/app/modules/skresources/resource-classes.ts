@@ -135,6 +135,7 @@ export class SKChart {
   style: string;
   defaultOpacity: number;
   imageAdjustment?: ChartImageAdjustment;
+  displayMinZoom?: number;
   proxy: boolean;
 
   // Accepts a server chart resource or an existing SKChart: the chart cache
@@ -162,6 +163,7 @@ export class SKChart {
     this.source = src?.$source ?? src?.source ?? undefined;
     this.defaultOpacity = chart?.defaultOpacity ?? 1;
     this.imageAdjustment = chart?.imageAdjustment;
+    this.displayMinZoom = chart?.displayMinZoom;
     this.proxy = chart?.proxy ?? false;
   }
 }

@@ -23,6 +23,18 @@ describe('SKChart', () => {
     expect(clone.maxZoom).toBe(13);
   });
 
+  it('keeps a local display minimum zoom when cloning an instance', () => {
+    // The chart list clones through SKChart after the minimum is applied, so
+    // losing it here takes the row's own label and hidden state with it.
+    const original = new SKChart({
+      name: 'Local chart',
+      url: 'http://x/{z}/{x}/{y}.png'
+    });
+    original.displayMinZoom = 10;
+
+    expect(new SKChart(original).displayMinZoom).toBe(10);
+  });
+
   it('keeps the source when cloning an instance', () => {
     const original = new SKChart({
       name: 'Local chart',
