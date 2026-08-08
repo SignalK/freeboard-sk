@@ -106,6 +106,10 @@
     @if(this.app.sIsFetching()) {
     <mat-progress-bar mode="query"></mat-progress-bar>
     }
+    <div class="stack-caption stack-caption-top">
+      <span>Top Layer</span>
+      <span class="stack-caption-hint">{{reorderHint()}}</span>
+    </div>
     <div
       class="vscroller"
       style="overflow: auto"
@@ -279,6 +283,10 @@
         </mat-card-actions>
       </mat-card>
       }
+    </div>
+    <div class="stack-caption stack-caption-bottom">
+      <span>Base Layer</span>
+      <span class="stack-caption-hint">(e.g. World Map)</span>
     </div>
   </div>
 </div>

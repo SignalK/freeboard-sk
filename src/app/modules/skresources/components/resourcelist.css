@@ -71,6 +71,46 @@
     border-top: silver 1px outset;
 }
 
+/* Chart list stacking captions: the list runs top layer first, which nothing
+   else on the row says, so each end is labelled and the scroller is inset to
+   leave room for them. */
+.resourcelist .resources.charts .vscroller {
+    top: 22px;
+    bottom: 22px;
+}
+
+.resourcelist .resources.charts .stack-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    /* The list sits over the map, so a caption needs the panel surface under
+       it or the chart shows through the gutter. */
+    background: var(--mat-app-background-color);
+    color: var(--mat-app-text-color);
+    font-size: 10pt;
+    font-style: italic;
+}
+
+.resourcelist .resources.charts .stack-caption-top {
+    top: 0;
+    border-bottom: silver 1px outset;
+}
+
+.resourcelist .resources.charts .stack-caption-bottom {
+    bottom: 0;
+    border-top: silver 1px outset;
+}
+
+.resourcelist .resources.charts .stack-caption-hint {
+    flex: 1 1 auto;
+    text-align: right;
+    opacity: 0.7;
+}
+
 /* Chart list re-ordering: the gap a dragged row will land in, and the row
    floating under the pointer. */
 .chart-drop-placeholder {

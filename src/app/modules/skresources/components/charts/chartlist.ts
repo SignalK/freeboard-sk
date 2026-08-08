@@ -133,6 +133,16 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   /**
+   * @description Caption beside "Top Layer": how to re-order, or why the drag
+   * handles are absent. Without it a filtered list just loses its handles.
+   */
+  protected reorderHint(): string {
+    return this.canReorder()
+      ? '(drag to re-order)'
+      : '(clear the filter to re-order)';
+  }
+
+  /**
    * @description Re-order the chart layers from a dropped row.
    * @param e Drop event
    */
