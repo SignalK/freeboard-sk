@@ -147,9 +147,14 @@ export class ChartListComponent extends ResourceListBase {
       this.fullList = this.skres.appendOSM(this.fullList);
       this.app.sIsFetching.set(false);
       this.doFilter();
-      this.cleanOpacityConfig();
-      this.cleanImageAdjustmentConfig();
-      this.cleanDisplayMinZoomConfig();
+      const cleaned = [
+        this.cleanOpacityConfig(),
+        this.cleanImageAdjustmentConfig(),
+        this.cleanDisplayMinZoomConfig()
+      ].some(Boolean);
+      if (cleaned) {
+        this.app.saveConfig();
+      }
       this.skres.selectionClean(
         this.collection,
         this.fullList.map((i) => i[0])
@@ -163,41 +168,42 @@ export class ChartListComponent extends ResourceListBase {
 
   /**
    * Clean orphaned chartOpacity keys from config
+   * @returns true when a key was removed, so the caller can persist.
    */
-  cleanOpacityConfig() {
-    const keys = Object.keys(this.app.config.selections.chartOpacity);
-    const listIds = this.fullList.map((i) => i[0]);
-    keys.forEach((key) => {
-      if (!listIds.includes(key)) {
-        delete this.app.config.selections.chartOpacity[key];
-      }
-    });
+  cleanOpacityConfig(): boolean {
+    return this.cleanOrphanedKeys(this.app.config.selections.chartOpacity);
   }
 
   /**
    * Clean orphaned chartImageAdjustment keys from config
+   * @returns true when a key was removed, so the caller can persist.
    */
-  cleanImageAdjustmentConfig() {
-    const keys = Object.keys(this.app.config.selections.chartImageAdjustment);
-    const listIds = this.fullList.map((i) => i[0]);
-    keys.forEach((key) => {
-      if (!listIds.includes(key)) {
-        delete this.app.config.selections.chartImageAdjustment[key];
-      }
-    });
+  cleanImageAdjustmentConfig(): boolean {
+    return this.cleanOrphanedKeys(
+      this.app.config.selections.chartImageAdjustment
+    );
   }
 
   /**
    * Clean orphaned chartDisplayMinZoom keys from config
+   * @returns true when a key was removed, so the caller can persist.
    */
-  cleanDisplayMinZoomConfig() {
-    const keys = Object.keys(this.app.config.selections.chartDisplayMinZoom);
+  cleanDisplayMinZoomConfig(): boolean {
+    return this.cleanOrphanedKeys(
+      this.app.config.selections.chartDisplayMinZoom
+    );
+  }
+
+  /**
+   * Drop per-chart settings for charts the server no longer lists.
+   */
+  private cleanOrphanedKeys(settings: Record<string, unknown>): boolean {
     const listIds = this.fullList.map((i) => i[0]);
-    keys.forEach((key) => {
-      if (!listIds.includes(key)) {
-        delete this.app.config.selections.chartDisplayMinZoom[key];
-      }
-    });
+    const orphaned = Object.keys(settings).filter(
+      (key) => !listIds.includes(key)
+    );
+    orphaned.forEach((key) => delete settings[key]);
+    return orphaned.length > 0;
   }
 
   /**
