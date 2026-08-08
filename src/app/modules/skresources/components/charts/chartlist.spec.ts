@@ -316,6 +316,30 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
         .injector.get(CdkDropList).disabled
     ).toBe(true);
   });
+
+  it('labels which end of the list draws on top', () => {
+    const { fixture } = makeFixture();
+    const captions = fixture.nativeElement.querySelectorAll('.stack-caption');
+
+    expect(captions).toHaveLength(2);
+    expect(captions[0].textContent).toContain('Top Layer');
+    expect(captions[1].textContent).toContain('Base Layer');
+  });
+
+  it('says why the handles are gone rather than dropping them silently', () => {
+    const { fixture, comp } = makeFixture();
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('drag to re-order');
+
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('clear the filter');
+  });
 });
 
 /**
