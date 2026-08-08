@@ -86,7 +86,7 @@ export function zoomToBoundText(zoom: number): string {
         cdkDragHandle
         style="display:flex; align-items:center; cursor:move; padding: 4px 4px 0 12px;"
       >
-        <mat-icon style="opacity:0.6;">open_in_full</mat-icon>
+        <mat-icon style="opacity:0.6;">vertical_align_bottom</mat-icon>
         <div
           style="
             flex: 1 1 auto;
