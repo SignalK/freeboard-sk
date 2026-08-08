@@ -317,10 +317,9 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   protected itemImageAdjustment(chart: FBChart) {
-    // The palette is modeless and owned by the service so it survives the chart
-    // list closing, which frees the map for the live adjustment preview.
+    // The palette is modeless and owned by the service, and the list stays open
+    // beside it: adjusting one chart of a stack usually means adjusting more.
     this.skres.openImageAdjustment(chart);
-    this.close();
   }
 
   updateFullList(chart: FBChart) {
