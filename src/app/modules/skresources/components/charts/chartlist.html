@@ -166,7 +166,7 @@
               >
                 {{r[1].description}}
               </div>
-              @if(minZoomLabelFor(r)) {
+              @let minZoomLabel = minZoomLabelFor(r); @if(minZoomLabel) {
               <div
                 style="
                   display: flex;
@@ -182,7 +182,7 @@
                 <mat-icon style="font-size: 14px; width: 14px; height: 14px"
                   >open_in_full</mat-icon
                 >
-                <span>{{minZoomLabelFor(r)}}</span>
+                <span>{{minZoomLabel}}</span>
                 @if(isBoundedOut(r)) {
                 <span style="font-style: italic"
                   >&mdash; hidden at this zoom</span
