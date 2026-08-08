@@ -334,6 +334,52 @@ fix reverted (new test fails), once restored (it passes) — and the red run has
 *report* failure rather than hang. Don't reach for `npx vitest` to shortcut it;
 that's the path that fails on the alias.
 
+### `test:ci` fails on `localStorage` while CI is green — check your Node version
+
+**The trap.** A clean `master` checkout runs `npm run test:ci` and reports 8 failures,
+all in `whats-new.spec.ts` and `plotterext.embedding-host.spec.ts`, all at
+`localStorage.clear()`:
+
+```
+TypeError: Cannot read properties of undefined (reading 'clear')
+```
+
+CI is green on the same commit, and someone else running the same command on another
+machine sees the whole suite pass. Nothing is wrong with the code, and nothing you
+changed caused it.
+
+**Why.** Node ≥22 ships an experimental `localStorage` global. It exists, but it is
+**`undefined`** unless the process was started with `--localstorage-file`:
+
+```
+$ node -e "console.log(typeof localStorage, localStorage)"
+undefined undefined
+(node:5320) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided
+```
+
+That global **shadows the jsdom one** the test environment provides, so a spec touching
+`localStorage` directly gets `undefined` rather than jsdom's implementation. Those two
+specs are the only ones under `src/` that touch it directly, which is why the failure
+looks arbitrary and unconnected to whatever you were working on. The CI matrix pins Node
+22 and 24 and never hits it; the failure shows up on newer runtimes — first reported on
+**26.3.1**, which is what `nvm install node` gives you today.
+
+**What to do.** Run on a Node version the CI matrix covers (22 or 24). That is the real
+fix, and it keeps your results comparable to CI. If you need to stay on a newer Node,
+supply the flag:
+
+```bash
+NODE_OPTIONS=--localstorage-file=/tmp/fsk-test-localstorage npm run test:ci
+```
+
+**The tell, when diagnosing this from someone else's report.** The error is
+`Cannot read properties of undefined (reading 'clear')` — *not* `localStorage is not
+defined`. The second one means there is no `localStorage` at all, which is what a bare
+`npx vitest` run produces (see *Running a single spec file* above): a different problem
+with a different fix. The two are easy to conflate, and a genuine `test:ci` failure has
+already been misdiagnosed once as an invocation error on exactly that basis. Match the
+error text before concluding which one you are looking at.
+
 ### Never let a destructive command inherit the shell's cwd
 
 **The trap.** `public/` and `plugin/` resolve in *every* checkout of this repo, and
