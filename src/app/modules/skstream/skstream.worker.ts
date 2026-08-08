@@ -133,7 +133,8 @@ let apDeviceId = 'freeboard-sk';
 // *******************************************************************
 
 // ** Initialise message data structures **
-function initVessels() {
+// exported as a test seam: establishes the payload openStream() sets up
+export function initVessels() {
   vessels = {
     self: new SKVessel(),
     aisTargets: new Map(),
@@ -173,7 +174,7 @@ function initAisTargetStatus() {
     result: 'result / message'
 } 
 */
-function handleStreamEvent({ action, msg }) {
+export function handleStreamEvent({ action, msg }) {
   switch (action) {
     case 'onConnect':
       postMessage({
@@ -189,7 +190,7 @@ function handleStreamEvent({ action, msg }) {
     case 'onClose':
       //console.warn('streamEvent: ', msg);
       closeStream(false);
-      watchDog.active = false;
+      raiseWatchDogAlarm();
       break;
     case 'onError':
       //console.warn('streamEvent: ', msg);
@@ -198,15 +199,30 @@ function handleStreamEvent({ action, msg }) {
         playback: playbackMode,
         result: 'Connection error!'
       });
-      watchDog.msgCount = 0;
-      watchDog.intervalCount = 0;
-      watchDog.active = false;
+      raiseWatchDogAlarm();
       break;
     case 'onMessage':
       watchDog.msgCount++;
       parseStreamMessage(msg);
       break;
   }
+}
+
+/** Raise the watchdog alarm for a detected loss of connection.
+ *
+ * A close or error IS the "no server messages" condition the watchdog reports, so
+ * it must set the alarm rather than disarm the watchdog. Disarming made the alarm
+ * unreachable in exactly the case where the server is known to be gone: `onClose`
+ * runs `closeStream()`, which clears the interval that measures the silence, so
+ * the ~9s needed to trip the alarm could never elapse. The watchdog stays active
+ * so that on the error path — where the timers keep running — the next interval
+ * does not immediately clear the alarm again. `onConnect` re-arms and clears it. */
+function raiseWatchDogAlarm() {
+  watchDog.msgCount = 0;
+  watchDog.intervalCount = 0;
+  watchDog.active = true;
+  watchDog.alarm = true;
+  postUpdate(true);
 }
 
 // ******** MESSAGE FROM APP ************

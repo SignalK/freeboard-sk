@@ -1,5 +1,10 @@
-import { expect, describe, it, vi, afterEach } from 'vitest';
-import { apiGet, processVessel } from './skstream.worker';
+import { expect, describe, it, vi, afterEach, beforeEach } from 'vitest';
+import {
+  apiGet,
+  handleStreamEvent,
+  initVessels,
+  processVessel
+} from './skstream.worker';
 import { SKVessel } from '../skresources/resource-classes';
 
 // getVesselTrail() fetches the server-side "self" track with several apiGet()
@@ -79,5 +84,51 @@ describe('skstream.worker processVessel — position receipt time (#672)', () =>
     );
 
     expect(vessel.positionUpdatedAt).toBe(0);
+  });
+});
+
+// The status bar's "No server messages!" indicator is driven by the watchdog
+// alarm, which the interval timer raises after ~9s of silence. A detected close
+// used to *disarm* the watchdog instead of alarming — and since closeStream()
+// also stops that interval, the alarm became unreachable in exactly the case
+// where the server is known to be gone: a clean server shutdown or restart
+// (#695). The indicator only appeared for a silently-dead socket, the harder
+// case. Guard that a detected loss of connection reports itself immediately.
+describe('skstream.worker handleStreamEvent — watchdog on disconnect (#695)', () => {
+  let posted: Array<Record<string, unknown>>;
+
+  beforeEach(() => {
+    initVessels(); // openStream() does this before any stream event arrives
+    posted = [];
+    vi.stubGlobal(
+      'postMessage',
+      vi.fn((msg: Record<string, unknown>) => posted.push(msg))
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const alarmUpdates = () =>
+    posted.filter((m) => m.action === 'update' && m.watchDogAlarm === true);
+
+  it('raises the alarm on a detected close', () => {
+    handleStreamEvent({ action: 'onClose', msg: {} });
+
+    expect(alarmUpdates()).toHaveLength(1);
+  });
+
+  it('still posts the close message the app reconnects on', () => {
+    handleStreamEvent({ action: 'onClose', msg: {} });
+
+    expect(posted.some((m) => m.action === 'close')).toBe(true);
+  });
+
+  it('raises the alarm on a connection error', () => {
+    handleStreamEvent({ action: 'onError', msg: {} });
+
+    expect(alarmUpdates()).toHaveLength(1);
   });
 });
