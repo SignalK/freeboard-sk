@@ -67,9 +67,15 @@ describe('AppComponent', () => {
     // jsdom neither enforces sandbox nor reflects it onto the `sandbox`
     // DOMTokenList, so read the attribute. Without allow-forms, Chrome blocks
     // form submission from the embedded webapp, making it impossible to sign in.
-    const sandbox = (iframe?.getAttribute('sandbox') ?? '').split(/\s+/);
-    expect(sandbox).toContain('allow-forms');
-    expect(sandbox).toContain('allow-scripts');
-    expect(sandbox).toContain('allow-same-origin');
+    // Asserting the exact set also catches a relaxation, such as a later change
+    // granting allow-top-navigation.
+    const sandbox = (iframe?.getAttribute('sandbox') ?? '')
+      .split(/\s+/)
+      .filter(Boolean);
+    expect(sandbox.sort()).toEqual([
+      'allow-forms',
+      'allow-same-origin',
+      'allow-scripts'
+    ]);
   });
 });
