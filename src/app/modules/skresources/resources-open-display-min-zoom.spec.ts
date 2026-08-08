@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { of, Subject } from 'rxjs';
 import { SKResourceService } from './resources.service';
 import { FBChart } from 'src/app/types';
-import { ChartMinZoomDialogResult } from 'src/app/lib/components';
+import {
+  ChartMinZoomDialogData,
+  ChartMinZoomDialogResult
+} from 'src/app/lib/components';
 
 /**
  * Behaviour tests for the modeless minimum-zoom palette owned by the service.
@@ -26,12 +29,10 @@ function svcWithResult(
     saveConfig,
     mapZoom: () => 11
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let openedData: any;
+  let openedData: ChartMinZoomDialogData;
   const closeSpy = vi.fn();
   (svc as unknown as { dialog: unknown }).dialog = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    open: (_cmp: unknown, cfg: any) => {
+    open: (_cmp: unknown, cfg: { data: ChartMinZoomDialogData }) => {
       openedData = cfg.data;
       return { afterClosed: () => of(result), close: closeSpy };
     }
