@@ -1,5 +1,9 @@
 import { expect, describe, it } from 'vitest';
-import { SKStreamFacade } from './skstream.facade';
+import {
+  SKStreamFacade,
+  isPositionStale,
+  SELF_POSITION_STALE_AGE
+} from './skstream.facade';
 import { SKVessel } from '../skresources/resource-classes';
 
 // AIS icons rotate by `orientation`. A crabbing target's heading and COG differ,
@@ -33,5 +37,30 @@ describe('SKStreamFacade.parseVesselOther — AIS target orientation', () => {
         vessel({ headingTrue: null, headingMagnetic: null, cogTrue: 1.658 })
       )
     ).toBe(1.658);
+  });
+});
+
+/**
+ * Position age is measured against the client clock stamp applied when the
+ * position delta arrived (#672), so it reports "no data" whether the
+ * connection dropped or the server is still talking with no position source.
+ */
+describe('isPositionStale (#672)', () => {
+  const now = 1_000_000;
+
+  it('is not stale while updates are arriving', () => {
+    expect(isPositionStale(now - 1000, now)).toBe(false);
+  });
+
+  it('is not stale exactly at the threshold', () => {
+    expect(isPositionStale(now - SELF_POSITION_STALE_AGE, now)).toBe(false);
+  });
+
+  it('is stale once the threshold is passed', () => {
+    expect(isPositionStale(now - SELF_POSITION_STALE_AGE - 1, now)).toBe(true);
+  });
+
+  it('is not stale when no position has ever been received', () => {
+    expect(isPositionStale(0, now)).toBe(false);
   });
 });

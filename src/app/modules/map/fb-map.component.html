@@ -865,6 +865,9 @@
     [activeId]="app.data.vessels.activeId"
     [iconScale]="app.config.vessels.iconScale"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
+    [stale]="
+      skstream.selfPositionStale() && !app.config.vessels.fixedLocationMode
+    "
     [zIndex]="999"
   >
   </fb-vessel>

@@ -791,7 +791,7 @@ function selectVessel(id: string): SKVessel {
 }
 
 // ** process common vessel data and true / magnetic preference **
-function processVessel(d: SKVessel, v: any, isSelf = false) {
+export function processVessel(d: SKVessel, v: any, isSelf = false) {
   if (isSelf) {
     d.lastUpdated = new Date();
     if (v.path.startsWith('resources.')) {
@@ -890,6 +890,7 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     ]);
     d.positionReceived = true;
     d.positionTimestamp = $timestamp ?? '';
+    d.positionUpdatedAt = Date.now();
     d.lastUpdated = new Date();
     if (!isSelf) {
       appendTrack(d);
