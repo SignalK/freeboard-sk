@@ -1,7 +1,12 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
+import { ComponentType } from '@angular/cdk/portal';
 import { HttpErrorResponse } from '@angular/common/http';
-import { MatDialog } from '@angular/material/dialog';
+import {
+  MatDialog,
+  MatDialogConfig,
+  MatDialogRef
+} from '@angular/material/dialog';
 import ngeohash from 'ngeohash';
 import { Collection, Feature } from 'ol';
 
@@ -76,6 +81,11 @@ export type SKResourceType =
 
 export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
+/** Where a per-chart palette opens, below the map's top controls. */
+const PALETTE_TOP = 70;
+/** Header depth kept on screen, so the palette's drag handle stays reachable. */
+const PALETTE_HEADER = 40;
+
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
 export class SKResourceService {
@@ -83,6 +93,13 @@ export class SKResourceService {
 
   private app = inject(AppFacade);
   private dialog = inject(MatDialog);
+  // The open modeless per-chart palette (image adjustment or minimum zoom).
+  // They are backdrop-less and share a position, so a second one would cover the
+  // first completely — and the covered one still reverts its chart when closed.
+  private chartPaletteRef?: MatDialogRef<unknown, unknown>;
+  // What the open palette edits, so a palette closing after its replacement
+  // has opened can tell a hand-over from an unrelated palette taking the slot.
+  private chartPaletteEdit?: string;
   private signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
   private mapInteract = inject(FBMapInteractService);
@@ -859,8 +876,8 @@ export class SKResourceService {
   /**
    * @description Open the modeless, draggable Image Adjustment palette for a
    * chart. Sliders take effect live; SAVE persists per-chart, closing (cancel)
-   * reverts to the pre-edit values. Owned here (not the chart list) so it
-   * survives the chart list closing to free the map.
+   * reverts to the pre-edit values. Owned here (not the chart list) so the list
+   * can stay open beside it while several charts are adjusted.
    * @param chart Chart to adjust
    */
   public openImageAdjustment(chart: FBChart) {
@@ -872,18 +889,20 @@ export class SKResourceService {
         chart[1]?.imageAdjustment)
     };
 
-    this.dialog
-      .open(ImageAdjustmentDialog, {
-        hasBackdrop: false,
-        disableClose: true,
-        autoFocus: false,
-        restoreFocus: false,
-        position: { top: '70px', left: '8px' },
+    const ref = this.openChartPalette<
+      ImageAdjustmentDialog,
+      ImageAdjustmentDialogResult
+    >(
+      ImageAdjustmentDialog,
+      {
         width: '290px',
         data: {
           text: chart[1]?.name ?? '',
           value: { ...original },
-          position: this.app.config.imageAdjustPalettePos,
+          position: this.onScreenPalettePosition(
+            this.app.config.imageAdjustPalettePos,
+            290
+          ),
           onChange: (value: ChartImageAdjustment) => {
             this.chartSetImageAdjustment(id, value);
           },
@@ -892,18 +911,130 @@ export class SKResourceService {
             this.app.saveConfig();
           }
         }
-      })
-      .afterClosed()
-      .subscribe((result: ImageAdjustmentDialogResult) => {
-        if (result?.apply) {
-          this.app.config.selections.chartImageAdjustment[id] = result.value;
-          this.chartSetImageAdjustment(id, result.value);
-          this.app.saveConfig();
-        } else {
-          // cancelled - restore the pre-edit adjustment
-          this.chartSetImageAdjustment(id, original);
-        }
-      });
+      },
+      `imageAdjustment:${id}`
+    );
+
+    ref.afterClosed().subscribe((result?: ImageAdjustmentDialogResult) => {
+      const handedOver = this.paletteHandedOver(`imageAdjustment:${id}`, ref);
+      this.releaseChartPalette(ref);
+      if (result?.apply) {
+        this.app.config.selections.chartImageAdjustment[id] = result.value;
+        this.chartSetImageAdjustment(id, result.value);
+        this.app.saveConfig();
+      } else if (!handedOver) {
+        // cancelled - restore the pre-edit adjustment
+        this.chartSetImageAdjustment(id, original);
+      }
+    });
+  }
+
+  /**
+   * @description Open a modeless per-chart palette, replacing any already open.
+   * They are backdrop-less and share a position, so only one may be on screen.
+   * @param component Palette component
+   * @param config Component-specific dialog config
+   * @param edit What the palette edits, as `<setting>:<chart id>` -- the same
+   * string identifies a later palette as a continuation of this edit rather
+   * than a different one
+   */
+  private openChartPalette<T, R>(
+    component: ComponentType<T>,
+    config: MatDialogConfig<unknown>,
+    edit: string
+  ): MatDialogRef<T, R> {
+    this.chartPaletteRef?.close();
+    const ref = this.dialog.open<T, unknown, R>(component, {
+      hasBackdrop: false,
+      disableClose: true,
+      autoFocus: false,
+      restoreFocus: false,
+      // Clear of the chart list, which stays open beside it, unless the
+      // viewport is too narrow for both.
+      position: {
+        top: `${PALETTE_TOP}px`,
+        left: `${this.chartDialogLeft()}px`
+      },
+      ...config
+    });
+    this.chartPaletteRef = ref;
+    this.chartPaletteEdit = edit;
+    return ref;
+  }
+
+  /**
+   * @description Forget a closed palette. `afterClosed` fires after the next
+   * `open()` has already stored its ref, so only clear the field when it still
+   * points at the palette that closed.
+   * @param ref Palette that closed
+   */
+  private releaseChartPalette(ref: MatDialogRef<unknown, unknown>) {
+    if (this.chartPaletteRef === ref) {
+      this.chartPaletteRef = undefined;
+      this.chartPaletteEdit = undefined;
+    }
+  }
+
+  /**
+   * @description True when the palette that closed was replaced by a newer one
+   * over the same edit. Its preview belongs to the replacement by then, so the
+   * cancel path must leave it alone -- `afterClosed` arrives an exit animation
+   * late, and on a slow client that is long enough for a queued click to have
+   * opened the replacement and moved the value.
+   * @param edit Edit the closing palette was opened for
+   * @param ref Palette that closed
+   */
+  private paletteHandedOver(
+    edit: string,
+    ref: MatDialogRef<unknown, unknown>
+  ): boolean {
+    return this.chartPaletteRef !== ref && this.chartPaletteEdit === edit;
+  }
+
+  /**
+   * @description A saved palette drag offset brought back on screen. The offset
+   * is relative to where the palette opens, which moved to clear the chart list,
+   * so an offset saved against the old origin could put the drag handle -- the
+   * only way to move it back -- past the viewport edge.
+   */
+  private onScreenPalettePosition(
+    position: PalettePosition | null,
+    width: number
+  ): PalettePosition | null {
+    if (!position) {
+      return position;
+    }
+    // The saved offset is relative to where the palette opens, which moved to
+    // clear the chart list. Left as-is, a palette dragged right under the old
+    // origin could land past the viewport edge, taking its drag handle with it.
+    const left = this.chartDialogLeft();
+    const maxX = window.innerWidth - left - width - 8;
+    const minX = -(left - 8);
+    // Downward too: an offset saved on a tall window drops the palette off the
+    // bottom of a short one, which hides the same drag handle.
+    const maxY = Math.max(0, window.innerHeight - PALETTE_TOP - PALETTE_HEADER);
+    return {
+      x: Math.max(minX, Math.min(position.x, maxX)),
+      y: Math.max(0, Math.min(position.y, maxY))
+    };
+  }
+
+  /**
+   * @description Left offset that clears the chart list when both are open,
+   * clamped so the palette stays on screen on a narrow display.
+   */
+  private chartDialogLeft(): number {
+    // Matches .leftMenuPanel in app.component.css.
+    const CHART_LIST_WIDTH = 315;
+    const DIALOG_WIDTH = 300;
+    const GAP = 8;
+    return Math.max(
+      GAP,
+      Math.min(
+        CHART_LIST_WIDTH + GAP,
+        window.innerWidth - DIALOG_WIDTH - GAP * 2
+      )
+    );
   }
 
   /**
