@@ -723,11 +723,37 @@ export class SKResourceService {
       )
       .subscribe((result: { ok: boolean }) => {
         if (result && result.ok) {
-          this.deleteFromServer('charts', id, 'resources-provider').catch(
-            (err: HttpErrorResponse) => this.app.parseHttpErrorResponse(err)
-          );
+          this.deleteFromServer('charts', id, 'resources-provider')
+            .then(() => this.forgetChartSettings(id))
+            .catch((err: HttpErrorResponse) =>
+              this.app.parseHttpErrorResponse(err)
+            );
         }
       });
+  }
+
+  /**
+   * @description Drop the per-chart settings held for a chart that is gone.
+   * Called on a confirmed delete rather than when a chart is missing from a
+   * listing: a provider that is down this session takes its charts out of the
+   * list without them having been deleted, and the settings are the user's
+   * work -- an opacity, an image adjustment, a minimum zoom tuned against a
+   * chart set. They cost a few config keys if a chart is deleted elsewhere,
+   * and cannot be recovered if dropped while the chart is only away.
+   * @param id Chart identifier
+   */
+  private forgetChartSettings(id: string) {
+    const selections = this.app.config.selections;
+    const held = [
+      selections.chartOpacity,
+      selections.chartImageAdjustment,
+      selections.chartDisplayMinZoom
+    ].filter((settings) => id in settings);
+    if (held.length === 0) {
+      return;
+    }
+    held.forEach((settings) => delete settings[id]);
+    this.app.saveConfig();
   }
 
   /**
