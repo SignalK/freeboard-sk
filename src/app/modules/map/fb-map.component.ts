@@ -50,6 +50,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
+import { zoomDisplayText } from 'src/app/lib/zoom-display';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
 import { CursorPin, tapFadeMs, TAP_MAX_DURATION } from './cursor-marker';
 import {
@@ -261,6 +262,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected olMapControls = mapControls;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
+  protected mapZoomText = computed(() => zoomDisplayText(this.mapZoomLevel()));
   protected mapCenterPositon = signal<Position>([0, 0]);
   protected mapRotation = signal<number>(0);
 
