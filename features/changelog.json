@@ -1,4 +1,10 @@
 [
+  { "feature": "own-vessel-display", "pr": 693, "kind": "enhanced", "date": "2026-08-08", "title": "feat(vessels): flag own vessel when its position goes stale" },
+  { "feature": "own-vessel-display", "pr": 394, "kind": "enhanced", "since": "v3.0.0", "date": "2026-06-25", "title": "Vessel icon can be replaced with a custom symbol" },
+  { "feature": "own-vessel-display", "kind": "enhanced", "since": "v2.17.0", "date": "2025-08-18", "title": "Range circles around the vessel" },
+  { "feature": "own-vessel-display", "kind": "enhanced", "since": "v2.8.0", "date": "2024-05-20", "title": "Laylines when navigating to a destination" },
+  { "feature": "own-vessel-display", "kind": "enhanced", "since": "v2.2.0", "date": "2023-08-05", "title": "Fixed Location Mode for shore-based installations" },
+  { "feature": "own-vessel-display", "kind": "new", "since": "v0.0.2", "date": "2015-05-01", "title": "Vessel shown on the chart at its reported position" },
   { "feature": "notes", "pr": 667, "kind": "enhanced", "since": "v3.1.0-beta.3", "date": "2026-08-01", "title": "feat(notes): move note details option to the Notes settings group" },
   { "feature": "weather-station-wind-barbs", "pr": 495, "kind": "new", "since": "v3.0.0", "date": "2026-07-10", "title": "feat(map): render meteo targets as wind barbs" },
   { "feature": "weather-overlays", "pr": 413, "kind": "new", "since": "v3.0.0", "date": "2026-07-03", "title": "feat(weather): add wind and ocean current overlays" },
