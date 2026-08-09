@@ -36,20 +36,23 @@ search, not a setting to leave set.
 
 ## Chart order
 
-Charts are drawn stacked, and the one on top is the one you read. **Re-order** (the
-`import_export` icon) opens the **Chart Order** screen: drag charts to arrange them, with
-the top layer at the top of the list and the base layer — a world map, typically — at the
-bottom. Your order is saved and reused next time.
+Charts are drawn stacked, and the one on top is the one you read. The list *is* that stack:
+**Top Layer** is labelled at the top, **Base Layer** — a world map, typically — at the
+bottom.
 
-![Fig 2. The Chart Order screen — drag a chart to move it up or down the stack](chart-list-2.jpg)
+![Fig 2. The list as the chart stack — Top Layer at the top, drag grips on the right of each row](chart-list-2.jpg)
 
-The chart list itself is shown in that same top-layer-first order, so what you see in the
-list is the stack you arranged. Change the order and return, and the list follows
-immediately.
+To move a chart up or down, drag it by the handle on the right of its row (the six-dot
+grip). The map re-stacks as soon as you drop it, and the order is saved for next time.
 
 Charts you have never re-ordered start out stacked by scale — the largest-area chart at
 the bottom, so the most detailed one ends up on top. That is only the starting point:
 once you drag anything, your order wins.
+
+Filtering the list withdraws the handles, whether you filter by typing or with **In view**.
+A filtered list is only part of the stack, so dropping a row inside it says nothing about
+where the charts hidden between belong. The caption beside **Top Layer** says so — it
+changes from *(drag to re-order)* to *(clear the filter to re-order)*.
 
 ## Per-chart actions
 
@@ -64,6 +67,9 @@ row above, left to right:
   for laying a harbour chart over an aerial image.
 - **Image adjustment** (the sliders) — brightness and contrast; image-based charts only.
   See the **Chart Image Adjustment** feature.
+- **Minimum Zoom Level** (the downward arrow onto a line) — the lowest zoom to draw this
+  chart at, so overlapping charts reveal in turn as you zoom in; image-based charts only.
+  See the **Chart Zoom Limits** feature.
 - **Add to Group** (the shapes) — file the chart into a resource group. Only shown when
   your server supports resource groups.
 
@@ -74,8 +80,8 @@ Two more appear where they apply:
 - **Remove** (the waste bin) — delete a chart you added yourself. Charts that come from
   the server's chart plugin can't be deleted from here.
 
-Opacity and image adjustment are saved per chart and persist between sessions. The
-checkbox on the right of the entry is what shows or hides the chart.
+Opacity, image adjustment and minimum zoom are saved per chart and persist between
+sessions. The checkbox on the right of the entry is what shows or hides the chart.
 
 ## Adding your own chart source
 

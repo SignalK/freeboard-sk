@@ -71,5 +71,7 @@
   { "feature": null, "kind": "skip", "date": "2026-06-05", "title": "feat(charts): honor chart tileSize for raster tile sources", "reason": "corrects the rendering scale of raster charts whose tiles are not 256px; a correctness fix despite the feat prefix, with nothing new for the user to do" },
   { "feature": null, "kind": "skip", "date": "2026-05-23", "title": "perf(app): lazy-load dialog components on demand", "reason": "performance work — no change to what the user can do" },
   { "feature": null, "kind": "skip", "date": "2026-05-23", "title": "perf(s57): cache derived text-style config across features", "reason": "performance work — no change to what the user can do" },
-  { "feature": null, "kind": "skip", "date": "2026-04-04", "title": "perf: defer S57 chart symbols loading until first use", "reason": "performance work — no change to what the user can do" }
+  { "feature": null, "kind": "skip", "date": "2026-04-04", "title": "perf: defer S57 chart symbols loading until first use", "reason": "performance work — no change to what the user can do" },
+  { "feature": "chart-list", "pr": 680, "kind": "enhanced", "date": "2026-08-08", "title": "feat(charts): re-order charts from the chart list itself" },
+  { "feature": "chart-zoom-limits", "pr": 679, "kind": "enhanced", "date": "2026-08-08", "title": "feat(charts): add a per-chart minimum zoom level" }
 ]
