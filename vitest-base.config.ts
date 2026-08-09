@@ -11,7 +11,23 @@ const TEST_TIMEOUT_MS = EMULATED_ARM ? 20_000 : 5_000;
 // Hooks need the same emulation allowance: a `beforeEach` that mounts a
 // component is as slow under QEMU as the test body it sets up. Native keeps
 // vitest's 10s default rather than inheriting the stricter 5s test budget.
-const HOOK_TIMEOUT_MS = EMULATED_ARM ? 20_000 : 10_000;
+//
+// The emulated budget is deliberately much wider than the emulated *test*
+// budget above, because a mount-heavy hook is the slowest thing in the suite
+// and 20s left too little margin (#689). Measured: `settings-dialog.spec.ts`'s
+// `beforeEach` costs ~285ms natively (`TestBed.createComponent` 168ms, first
+// `detectChanges` 99ms), so ~5.7s in a local armv7 container — and that
+// container completes the suite in ~15 min where the CI job takes ~25, putting
+// the same hook near 10s there. Against a 20s ceiling that is only 2x headroom
+// on a shared runner, and it was intermittently lost. 60s restores 4-6x.
+//
+// This is a wall-clock budget for a high-variance environment, not a hang
+// detector — real hangs still surface on the native legs, which keep the
+// strict defaults. Two things that look like fixes and are not, both measured
+// on #689: trimming the hook (tab rendering is 5% of the cost, and sharing one
+// fixture across tests breaks the spec), and capping vitest's worker pool
+// (~2%, inside noise).
+const HOOK_TIMEOUT_MS = EMULATED_ARM ? 60_000 : 10_000;
 
 export default defineConfig({
   test: {
