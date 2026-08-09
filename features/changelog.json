@@ -1,5 +1,5 @@
 [
-  { "feature": "own-vessel-display", "pr": 693, "kind": "enhanced", "date": "2026-08-08", "title": "feat(vessels): flag own vessel when its position goes stale" },
+  { "feature": "own-vessel-display", "pr": 693, "kind": "enhanced", "since": "v3.1.0-beta.4", "date": "2026-08-08", "title": "feat(vessels): flag own vessel when its position goes stale" },
   { "feature": "own-vessel-display", "pr": 394, "kind": "enhanced", "since": "v3.0.0", "date": "2026-06-25", "title": "Vessel icon can be replaced with a custom symbol" },
   { "feature": "own-vessel-display", "kind": "enhanced", "since": "v2.17.0", "date": "2025-08-18", "title": "Range circles around the vessel" },
   { "feature": "own-vessel-display", "kind": "enhanced", "since": "v2.8.0", "date": "2024-05-20", "title": "Laylines when navigating to a destination" },
@@ -72,6 +72,6 @@
   { "feature": null, "kind": "skip", "date": "2026-05-23", "title": "perf(app): lazy-load dialog components on demand", "reason": "performance work — no change to what the user can do" },
   { "feature": null, "kind": "skip", "date": "2026-05-23", "title": "perf(s57): cache derived text-style config across features", "reason": "performance work — no change to what the user can do" },
   { "feature": null, "kind": "skip", "date": "2026-04-04", "title": "perf: defer S57 chart symbols loading until first use", "reason": "performance work — no change to what the user can do" },
-  { "feature": "chart-list", "pr": 680, "kind": "enhanced", "date": "2026-08-08", "title": "feat(charts): re-order charts from the chart list itself" },
-  { "feature": "chart-zoom-limits", "pr": 679, "kind": "enhanced", "date": "2026-08-08", "title": "feat(charts): add a per-chart minimum zoom level" }
+  { "feature": "chart-list", "pr": 680, "kind": "enhanced", "since": "v3.1.0-beta.4", "date": "2026-08-08", "title": "feat(charts): re-order charts from the chart list itself" },
+  { "feature": "chart-zoom-limits", "pr": 679, "kind": "enhanced", "since": "v3.1.0-beta.4", "date": "2026-08-08", "title": "feat(charts): add a per-chart minimum zoom level" }
 ]
