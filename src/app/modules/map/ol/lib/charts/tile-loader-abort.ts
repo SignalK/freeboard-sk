@@ -39,6 +39,7 @@ function bucketForZoom(
   return set;
 }
 
+/** Release a completed controller and remove its empty zoom bucket. */
 function releaseController(
   pending: PendingByZoom,
   z: number,
@@ -51,6 +52,7 @@ function releaseController(
   }
 }
 
+/** Abort every outstanding request and clear the loader's bookkeeping. */
 function abortPendingControllers(pending: PendingByZoom): void {
   for (const controllers of pending.values()) {
     for (const controller of controllers) controller.abort();
