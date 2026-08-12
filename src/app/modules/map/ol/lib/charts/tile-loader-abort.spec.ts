@@ -61,12 +61,11 @@ afterEach(() => {
 
 describe('createAbortableVectorTileLoader', () => {
   it('loads, decodes, and releases a successful request', async () => {
-    const fetchMock = vi.fn(
-      (_src: string, _init?: RequestInit): Promise<Response> =>
-        Promise.resolve(
-          new Response(new Uint8Array([1, 2, 3]), { status: 200 })
-        )
-    );
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(new Uint8Array([1, 2, 3]), { status: 200 })
+      );
     vi.stubGlobal('fetch', fetchMock);
     const { tileLoadFunction, abortPending } =
       createAbortableVectorTileLoader();
