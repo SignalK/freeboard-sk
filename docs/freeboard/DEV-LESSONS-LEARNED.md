@@ -876,7 +876,9 @@ passed. You can also read the budget **without** hitting the limit: every
 *successful* review's summary ends with *"Included review availability: Your plan
 provides up to N included reviews per hour; M remain after this review."* Reading
 `M` after a review tells you whether the next one is free or will be refused, which
-is the cheapest way to plan a follow-up push. Compute the deadline from the notice comment's `updated_at`, not from
+is the cheapest way to plan a follow-up push.
+
+Compute the deadline from the notice comment's `updated_at`, not from
 when you read it, and allow a small buffer; if it is refused again, a fresh
 notice with a fresh figure appears, so repeat against that. And remember the
 green **CodeRabbit** status check means "the integration ran", not "a review
