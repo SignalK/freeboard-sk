@@ -328,8 +328,8 @@ two different ways, and the first one is silent:
 - With the **`src/` alias** the module uses (`vi.mock('src/app/lib/file-xml2json')`)
   the mock **never applies** and nothing warns you. The real module runs. A spec
   written this way can still go green on the assertions that don't depend on the
-  mock, which reads as proof it worked — a GPX spec passed 4 of 5 tests against
-  completely unmocked code before the discrepancy showed up.
+  mock, which reads as proof it worked — a GPX spec passed 5 of its 7 tests
+  against completely unmocked code before the discrepancy showed up.
 - With a **relative path** it fails loudly: *"The `vi.mock` and related methods are
   not supported for relative imports with the Angular unit-test system. Please use
   Angular TestBed for mocking dependencies."*
@@ -359,7 +359,7 @@ loading the worker *module*, so `onerror` fires, the promise rejects, and
 `parse()` — which wraps the whole body in `try`/`catch` — quietly returns
 `false`. Nothing throws. **A test that awaits `parse()` without asserting its
 return value therefore passes while parsing nothing at all.** Assert the return
-value, or you are testing an empty object.
+value, or your expectations run against an object the parse never touched.
 
 Stub the global with a worker that answers directly:
 
@@ -814,12 +814,13 @@ of anything; there its only trace is CodeRabbit's summary comment updating to
 the summary for completion.
 
 After a rate-limited review you must **ask again by hand** — post
-`@coderabbitai review` as a PR comment once the window has passed. Since the
-notice gives no figure, there is no way to know when that is except to try; if it
-is refused again, wait longer and repeat. And remember the green **CodeRabbit**
-status check means "the integration ran", not "a review happened" — it is green
-for a rate-limited non-review too, with the description reading *Review rate
-limited*.
+`@coderabbitai review` as a PR comment once the window the notice states has
+passed. Compute the deadline from the notice comment's `updated_at`, not from
+when you read it, and allow a small buffer; if it is refused again, a fresh
+notice with a fresh figure appears, so repeat against that. And remember the
+green **CodeRabbit** status check means "the integration ran", not "a review
+happened" — it is green for a rate-limited non-review too, with the description
+reading *Review rate limited*.
 
 ### If you stage PRs on your own fork first, CodeRabbit will not review them
 
