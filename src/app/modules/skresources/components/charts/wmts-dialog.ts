@@ -137,9 +137,8 @@ export class WMTSDialog {
   }
 
   handleSave() {
-    let l: SKInfoLayer;
     const layer = this.wmtsLayers[this.selections[0]];
-    l = new SKInfoLayer();
+    const l = new SKInfoLayer();
     l.name = layer.name ?? 'Untitled layer';
     l.description = layer.description ?? '';
     l.values.layers = [layer.id];
