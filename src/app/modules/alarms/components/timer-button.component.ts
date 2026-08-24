@@ -56,7 +56,7 @@ export class TimerButtonComponent {
     this.label = this.label ?? 'Action in ';
     this.cancelledLabel = this.cancelledLabel ?? 'OK';
     this.timer = setInterval(() => {
-      this.timeLeft.update((current) => --current);
+      this.timeLeft.update((current) => current - 1);
       if (this.timeLeft() === 0) {
         this.disabled = true;
         this.action();

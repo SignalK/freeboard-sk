@@ -451,9 +451,7 @@ export function cleanConfig(
   }
 
   // ensure legacy notes selections section is removed
-  if (typeof (settings as any).selections.notes) {
-    delete (settings as any).selections.notes;
-  }
+  delete (settings as any).selections.notes;
 
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {

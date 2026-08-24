@@ -132,11 +132,10 @@ export class Trail2RouteDialog implements OnInit {
   // get server trail event handler
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onServerResource(value: any) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let serverTrail: Array<any> = [];
     if (this.fetching && value.action === 'get' && value.mode === 'trail') {
       this.fetching = false;
-      serverTrail = value.data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const serverTrail: Array<any> = value.data;
       this.serverCoords = [];
       serverTrail.forEach((line) => {
         this.serverCoords = this.serverCoords.concat(line);

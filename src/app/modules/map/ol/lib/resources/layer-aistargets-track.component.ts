@@ -150,9 +150,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   // build track style
   buildStyle(id: string): Style {
     const rgb = id.indexOf('aircraft') !== -1 ? '0, 0, 255' : '255, 0, 255';
-    let color =
-      this.mapZoom < this.tracksMinZoom ? `rgba(${rgb},0)` : `rgba(${rgb},1)`;
-    color = this.showTracks ? `rgba(${rgb},1)` : `rgba(${rgb},0)`;
+    const color = this.showTracks ? `rgba(${rgb},1)` : `rgba(${rgb},0)`;
     if (this.layerProperties && this.layerProperties.style) {
       const cs = this.layerProperties.style.clone();
       const ls = cs.getStroke();

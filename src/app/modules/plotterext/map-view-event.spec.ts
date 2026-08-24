@@ -41,17 +41,17 @@ describe('PlotterExtensionService map.view event', () => {
     TestBed.tick();
   };
 
-  const getView = () =>
-    (
+  const getView = () => {
+    const methods = (
       service as unknown as {
         mapMethods: () => Record<
           string,
           (p: unknown, c: unknown) => Promise<unknown>
         >;
       }
-    )
-      .mapMethods()
-      ['map.getView']({}, {});
+    ).mapMethods();
+    return methods['map.getView']({}, {});
+  };
 
   beforeEach(() => {
     published = [];
