@@ -11,7 +11,7 @@ import { ImageAdjustmentDialogResult } from 'src/app/lib/components';
  * touches `app`, `dialog` and `chartSetImageAdjustment`, so exercise it on a bare
  * prototype instance with those three stubbed — no Angular DI needed.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 function svcWithResult(result: ImageAdjustmentDialogResult | undefined) {
   const svc = Object.create(SKResourceService.prototype) as SKResourceService;
   const saveConfig = vi.fn();

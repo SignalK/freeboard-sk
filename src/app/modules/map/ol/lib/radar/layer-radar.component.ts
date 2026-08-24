@@ -98,7 +98,7 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
       }
       if (changes['position'] || changes['heading']) {
         if (changes['position']) {
-          let position = changes['position'].currentValue;
+          const position = changes['position'].currentValue;
           this.state.location = position;
         }
         if (changes['heading']) {

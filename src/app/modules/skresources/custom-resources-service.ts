@@ -330,7 +330,7 @@ export class FBCustomResourceService {
         query,
         true
       );
-      let flist = layers.filter((layer: FBInfoLayer) => layer[2]);
+      const flist = layers.filter((layer: FBInfoLayer) => layer[2]);
       //flist = this.arrangeLayers(flist);
       this.infoLayerCacheSignal.set(flist);
     } catch (err) {

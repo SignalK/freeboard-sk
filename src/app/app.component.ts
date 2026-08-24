@@ -1883,13 +1883,14 @@ export class AppComponent {
     // visibility checkboxes don't stay disabled.
     this.app.data.editingId = '';
     switch (this.mapInteract.draw.resourceType) {
-      case 'note':
+      case 'note': {
         const params = { position: e.coordinates };
         if (this.mapInteract.draw.properties['group']) {
           params['group'] = this.mapInteract.draw.properties['group'];
         }
         this.skres.showNoteEditor(params);
         break;
+      }
       case 'waypoint':
         this.skres.newWaypointAt(e.coordinates as Position);
         break;
@@ -1905,13 +1906,14 @@ export class AppComponent {
           }))
         });
         break;
-      case 'region':
+      case 'region': {
         const region = new SKRegion();
         region.feature.geometry.coordinates = [
           GeoUtils.normaliseCoords(e.coordinates as Polygon)
         ];
         this.skres.newRegion(region);
         break;
+      }
     }
   }
 

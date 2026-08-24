@@ -135,7 +135,7 @@ export const getResourceIcon = (
     return { class: 'icon-route', svgIcon: 'route', name: undefined };
   }
   if (resourceType === 'regions') {
-    let iconDef = {
+    const iconDef = {
       class: 'icon-region',
       svgIcon: undefined,
       name: 'tab_unselected'
@@ -158,7 +158,7 @@ export const getResourceIcon = (
     return { class: undefined, svgIcon: `${icon}`, name: undefined };
   }
   if (resourceType === 'notes') {
-    let iconDef = {
+    const iconDef = {
       class: 'icon-accent',
       svgIcon: undefined,
       name: 'local_offer'

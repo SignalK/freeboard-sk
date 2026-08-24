@@ -97,7 +97,7 @@ const parseWMSCapabilities = async (
    * @param parent Parent LayerNode
    * @param depth Index of the depth of the layer in the tree
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const processWMSLayer = (
     layer: any,
     cList: LayerNode[],
@@ -119,7 +119,7 @@ const parseWMSCapabilities = async (
       node.title = getValue(layer.Title[0]);
     }
     if (Array.isArray(layer.Dimension)) {
-      for (let d of layer.Dimension) {
+      for (const d of layer.Dimension) {
         if (d.$?.name.toLowerCase() === 'time' && d.$?.units === 'ISO8601') {
           node.time = Object.assign(
             { current: d.$?.default ?? null },
@@ -141,7 +141,7 @@ const parseWMSCapabilities = async (
   if (xml.indexOf('<Capability') === -1) {
     throw new Error('Error: Invalid response received!');
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const json = await parseStringPromise(xml);
   if (!json.WMS_Capabilities && !json.WMT_MS_Capabilities) {
     throw new Error('Error: No Capabilities found!');

@@ -68,7 +68,7 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
   }
 
   // process a resource set
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   parseResources(rSet: SKResourceSet) {
     const fa: Feature[] = [];
     let count = 0;

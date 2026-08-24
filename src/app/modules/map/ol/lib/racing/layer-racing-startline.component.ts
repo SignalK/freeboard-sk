@@ -49,7 +49,6 @@ export class RacingStartLineLayerComponent
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCourse() {
     if (!this.source) {
       return;
@@ -75,8 +74,6 @@ export class RacingStartLineLayerComponent
   buildStyle(feature: Feature) {
     const geometry = feature.getGeometry() as LineString;
     const styles = [];
-    let ptFill: Fill;
-    let bgWidth: number;
 
     if (typeof this.racecourseStyles === 'undefined') {
       if (this.layerProperties && this.layerProperties.style) {
@@ -92,9 +89,9 @@ export class RacingStartLineLayerComponent
           this.racecourseStyles.startLine.length - 1
         ]
       : this.racecourseStyles.startLine;
-    bgWidth = s.getStroke().getWidth() + 1;
+    const bgWidth = s.getStroke().getWidth() + 1;
     const bgColor = 'white';
-    ptFill = new Fill({
+    const ptFill = new Fill({
       color: s?.getStroke().getColor()
     });
 

@@ -183,7 +183,6 @@ export class BuildRouteComponent {
     this.rtepts.splice(index, 1);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dropEventHandler(event: CdkDragDrop<string[]>) {
     if (event.previousContainer === event.container) {
       moveItemInArray(

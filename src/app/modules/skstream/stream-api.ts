@@ -100,7 +100,7 @@ export class SKStreamAPI {
     if (!url) {
       return;
     }
-    let q = url.indexOf('?') == -1 ? '?' : '&';
+    const q = url.indexOf('?') == -1 ? '?' : '&';
     if (subscribe) {
       url += `${q}subscribe=${subscribe}`;
     }
@@ -171,11 +171,11 @@ export class SKStreamAPI {
     if (typeof value !== 'object') {
       return '';
     }
-    let msg: any = Message.request();
+    const msg = Message.request();
     if (typeof value.login === 'undefined' && this._token) {
       msg['token'] = this._token;
     }
-    let keys = Object.keys(value);
+    const keys = Object.keys(value);
     keys.forEach((k) => {
       msg[k] = value[k];
     });
@@ -185,7 +185,7 @@ export class SKStreamAPI {
 
   /** send put request via Delta stream */
   put(context: string, path: string, value: any): string {
-    let msg = {
+    const msg = {
       context: context == 'self' ? 'vessels.self' : context,
       put: { path: path, value: value }
     };
@@ -194,7 +194,7 @@ export class SKStreamAPI {
 
   /** get auth token for supplied user details */
   login(username: string, password: string) {
-    let msg = {
+    const msg = {
       login: { username: username, password: password }
     };
     return this.sendRequest(msg);
@@ -218,7 +218,7 @@ export class SKStreamAPI {
     path: string | Array<any>,
     value?: any
   ): void {
-    let val: any = Message.updates();
+    const val = Message.updates();
     if (this._token) {
       val['token'] = this._token;
     }
@@ -234,7 +234,7 @@ export class SKStreamAPI {
     if (typeof path === 'object' && Array.isArray(path)) {
       uValues = path;
     }
-    let u: any = {
+    const u: any = {
       timestamp: new Date().toISOString(),
       values: uValues
     };
@@ -253,7 +253,7 @@ export class SKStreamAPI {
     path: string | Array<any> = '*',
     options?: any
   ): void {
-    let val: any = Message.subscribe();
+    const val = Message.subscribe();
     if (this._token) {
       val['token'] = this._token;
     }
@@ -266,7 +266,7 @@ export class SKStreamAPI {
       val.subscribe = path;
     }
     if (typeof path === 'string') {
-      let sValue: any = {};
+      const sValue: any = {};
       sValue['path'] = path;
       if (options && typeof options === 'object') {
         if (options['period']) {
@@ -297,7 +297,7 @@ export class SKStreamAPI {
 
   // ** Unsubscribe from Delta stream messages **
   unsubscribe(context: string = '*', path: any = '*') {
-    let val: any = Message.unsubscribe();
+    const val = Message.unsubscribe();
     if (this._token) {
       val['token'] = this._token;
     }
@@ -333,7 +333,7 @@ export class SKStreamAPI {
 
   /** raise alarm for path */
   clearAlarm(context: string = '*', name: string) {
-    let path =
+    const path =
       name.indexOf('notifications.') == -1 ? `notifications.${name}` : name;
     this.put(context, path, null);
   }

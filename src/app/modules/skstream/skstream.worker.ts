@@ -318,7 +318,6 @@ function handleCommand(data: MsgFromApp) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applySettings(
   opt: {
     config: { [key: string]: any };

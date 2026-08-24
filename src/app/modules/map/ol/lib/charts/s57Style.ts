@@ -701,8 +701,6 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4247
   private getCSDEPARE01(feature: Feature): string[] {
-    let retval: string[];
-
     const featureProperties = feature.getProperties();
 
     let drval1 = -1;
@@ -718,7 +716,7 @@ export class S57Style {
       drval2 = dv2;
     }
 
-    retval = this.GetSeabed01(drval1, drval2);
+    const retval = this.GetSeabed01(drval1, drval2);
 
     const objl = featureProperties['OBJL'];
     if (parseInt(objl) === DRGARE) {
@@ -1057,7 +1055,7 @@ export class S57Style {
     switch (layer) {
       case 'SEAARE':
         return 2;
-      case 'DEPARE':
+      case 'DEPARE': {
         // S-52 assigns DEPARE and LNDARE the same display priority ('Area 1' = 2),
         // so the spec doesn't mandate which paints on top. We split DEPARE into
         // two cases:
@@ -1071,6 +1069,7 @@ export class S57Style {
         //     is correct per S-52 convention for such areas.
         const drval2 = properties['DRVAL2'];
         return typeof drval2 === 'number' && drval2 > 0 ? 5.5 : 3;
+      }
       case 'DEPCNT':
         return 4;
       case 'LNDARE':
