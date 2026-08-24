@@ -659,6 +659,57 @@ that state through the resource list's **select-all** toggle, which calls
 an all-inclusive array behind, which still counts as filtered and silently masks
 the bug. Confirm the config value before concluding anything from a manual repro.
 
+### Asserting on `toLocaleString` output — pin the locale, and reproduce its default
+
+**The trap.** The CI matrix runs on Linux, macOS, Windows and armv7, and each leg
+brings its own default locale and time zone. Any spec that asserts on the output of
+`toLocaleTimeString()` / `toLocaleDateString()` therefore passes locally and is a
+coin flip in CI.
+
+The obvious fix — pass an explicit locale into the code under test — is usually
+wrong here, because the behaviour you want to keep is precisely that the app calls
+these with **no** locale so it follows the user's. Pinning the locale in the
+*source* would delete the thing the test exists to protect.
+
+**What to do instead.** Pin the environment rather than the call. Delegate
+`Date.prototype.toLocaleTimeString` to a fixed `Intl.DateTimeFormat` for the
+duration of the spec, and restore it afterwards:
+
+```ts
+const real = Date.prototype.toLocaleTimeString;
+afterEach(() => { Date.prototype.toLocaleTimeString = real; });
+
+Date.prototype.toLocaleTimeString = function (locales?, options?) {
+  const opts =
+    options && Object.keys(options).length !== 0
+      ? options
+      : { hour: 'numeric', minute: '2-digit', second: '2-digit' }; // the real default
+  return new Intl.DateTimeFormat(locales ?? locale, {
+    timeZone: 'UTC',
+    ...opts
+  }).format(this);
+};
+```
+
+Fixing `timeZone` matters as much as the locale — without it the assertion still
+depends on the CI host.
+
+**The half that is easy to get wrong: reproduce the no-options default.**
+`toLocaleTimeString()` called with no options means hour + minute + second, but
+`new Intl.DateTimeFormat(locale, { timeZone: 'UTC' })` with no component options
+formats a **date** and no time at all. A stub that forwards `undefined` straight
+through therefore feeds the pre-fix code a string it never would have seen, and the
+red run either fails for the wrong reason or — worse — passes, leaving a test that
+looks like a regression guard and is not. Always confirm the red run fails with the
+*reported* symptom (for #443: `expected '6:16' to match /^6:16\s?PM$/`).
+
+**Match the day-period separator loosely.** ICU versions disagree on whether the
+space before `AM`/`PM` is a plain space or U+202F (narrow no-break space), and the
+matrix spans several Node versions. Asserting `'6:16 PM'` with a hard-coded space is
+a latent cross-version failure; `/^6:16\s?PM$/` matches both, since JS `\s`
+includes U+202F.
+
+
 ---
 
 ## When building & running locally
