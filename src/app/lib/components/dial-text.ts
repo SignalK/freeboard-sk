@@ -108,13 +108,16 @@ export class ETADialComponent {
 
   constructor() {
     effect(() => {
-      if (this.value()) {
-        this.etaTime = this.value()
-          .toLocaleTimeString()
-          .split(':')
-          .slice(0, 2)
-          .join(':');
-        this.etaDate = this.value().toLocaleDateString();
+      const v = this.value();
+      if (v) {
+        // Let Intl drop the seconds. Slicing the ':'-separated parts of a full
+        // toLocaleTimeString() also discarded the locale's day period, showing
+        // an ambiguous '6:16' instead of '6:16 PM' in 12-hour locales.
+        this.etaTime = v.toLocaleTimeString(undefined, {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+        this.etaDate = v.toLocaleDateString();
       }
     });
   }
