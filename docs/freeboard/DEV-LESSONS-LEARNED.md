@@ -802,7 +802,7 @@ status check means "the integration ran", not "a review happened" — it is gree
 for a rate-limited non-review too, with the description reading *Review rate
 limited*.
 
-### The Prettier CI gate covers only `ts|html` — don't `prettier --write` the CSS
+### The Prettier CI gate covers only `ts|html` — don't `prettier --write` the CSS or the docs
 
 **The trap.** CI's format check runs `format:check` =
 `prettier --check "src/**/*.+(ts|html)"`, so **CSS/SCSS are out of scope**, and the
@@ -811,8 +811,16 @@ repo's `.css` files use **4-space** indent (not Prettier's 2). Run a bare
 Prettier reformats the *entire* file to 2-space, burying your one-line change in a
 whole-file diff CI never asked for.
 
-**What to do instead.** Edit `.css` by hand in the file's existing 4-space style;
-don't run Prettier on it. Only `ts`/`html` go through Prettier (`npm run format`).
+**Markdown is out of scope too, and bites harder.** The docs here are hand-wrapped
+and use `*emphasis*` and compact tables. Running Prettier over one — say to tidy an
+entry you just added to this file — rewrites the **whole** document: every `*` becomes
+`_` and every table is re-padded, turning a 50-line addition into a many-hundred-line
+diff. `prettier --check` *will* flag these files; that is not a CI failure, it is
+Prettier being run somewhere CI never looks.
+
+**What to do instead.** Edit `.css` and `.md` by hand in each file's existing style;
+don't run Prettier on them, and don't treat a `--check` warning on one as something to
+fix. Only `ts`/`html` go through Prettier (`npm run format`).
 
 ---
 
