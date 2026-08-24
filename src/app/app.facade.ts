@@ -837,16 +837,10 @@ export class AppFacade extends InfoService {
   /** Start watching for change in skLoginInfo cookie */
   watchSKLogin() {
     if (this.watchingSKLogin) return;
-    this.watchingSKLogin = window.setInterval(
-      (() => {
-        const lastCookie = this.getCookie(document.cookie, 'skLoginInfo');
-        return () => {
-          const currentCookie = this.getCookie(document.cookie, 'skLoginInfo');
-          this.skAuthChange.set(currentCookie);
-        };
-      })(),
-      2000
-    );
+    this.watchingSKLogin = window.setInterval(() => {
+      const currentCookie = this.getCookie(document.cookie, 'skLoginInfo');
+      this.skAuthChange.set(currentCookie);
+    }, 2000);
   }
 
   /** return FB auth token for session */

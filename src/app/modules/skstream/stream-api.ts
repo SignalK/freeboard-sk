@@ -171,7 +171,7 @@ export class SKStreamAPI {
     if (typeof value !== 'object') {
       return '';
     }
-    const msg: any = Message.request();
+    const msg = Message.request();
     if (typeof value.login === 'undefined' && this._token) {
       msg['token'] = this._token;
     }
@@ -218,7 +218,7 @@ export class SKStreamAPI {
     path: string | Array<any>,
     value?: any
   ): void {
-    const val: any = Message.updates();
+    const val = Message.updates();
     if (this._token) {
       val['token'] = this._token;
     }
@@ -253,7 +253,7 @@ export class SKStreamAPI {
     path: string | Array<any> = '*',
     options?: any
   ): void {
-    const val: any = Message.subscribe();
+    const val = Message.subscribe();
     if (this._token) {
       val['token'] = this._token;
     }
@@ -297,7 +297,7 @@ export class SKStreamAPI {
 
   // ** Unsubscribe from Delta stream messages **
   unsubscribe(context: string = '*', path: any = '*') {
-    const val: any = Message.unsubscribe();
+    const val = Message.unsubscribe();
     if (this._token) {
       val['token'] = this._token;
     }
