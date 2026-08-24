@@ -1539,7 +1539,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             };
             text = 'Destination';
             break;
-          case 'note':
+          case 'note': {
             icon = {
               svgIcon: feature.get('icon'),
               name: undefined
@@ -1548,7 +1548,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
             const n = this.skres.fromCache('notes', t[1]);
             text = n[1].name ?? '';
             break;
-          case 'route':
+          }
+          case 'route': {
             icon = {
               svgIcon: 'route',
               name: undefined,
@@ -1563,7 +1564,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
               text = r[1].name;
             }
             break;
-          case 'waypoint':
+          }
+          case 'waypoint': {
             icon = {
               name: 'location_on',
               svgIcon: undefined,
@@ -1573,6 +1575,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             const w = this.skres.fromCache('waypoints', t[1]);
             text = w[1].name ?? '';
             break;
+          }
           case 'atons':
           case 'aton':
           case 'shore':
@@ -1756,7 +1759,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'anchor':
         this.modifyFeature('anchor');
         return;
-      case 'bearing_dist':
+      case 'bearing_dist': {
         const d =
           GeoUtils.distanceTo(this.app.data.vessels.self.position, coord) ?? 0;
         const b =
@@ -1767,6 +1770,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.position = coord;
         poData.show = true;
         break;
+      }
       case 'list':
         poData.type = t[0];
         poData.title = 'Features';
@@ -1780,7 +1784,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         featureList.forEach((f) => poData.content.push(f));
         poData.show = true;
         break;
-      case 'alarm':
+      case 'alarm': {
         aid = id.split('.').slice(1).join('.');
         const alm = this.notiMgr.getAlert(aid) as any;
         if (!alm) {
@@ -1791,6 +1795,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.id = aid;
         poData.show = true;
         break;
+      }
       case 'vessels':
         poData.type = 'ais';
         poData.isSelf = true;

@@ -298,13 +298,16 @@ export class FBMapInteractService {
             (feature.getGeometry() as any).getCoordinates()
           );
           break;
-        case 'LineString': // route
+        case 'LineString': {
+          // route
           const rc = (feature.getGeometry() as any).getCoordinates();
           this.draw.coordinates = rc.map((i: Coordinate) => {
             return toLonLat(i);
           });
           break;
-        case 'Polygon': // region
+        }
+        case 'Polygon': {
+          // region
           const p = (feature.getGeometry() as any).getCoordinates();
           if (p.length === 0) {
             this.draw.coordinates = [];
@@ -313,6 +316,7 @@ export class FBMapInteractService {
             return toLonLat(i);
           });
           break;
+        }
       }
     }
     this.interactionEnded();
