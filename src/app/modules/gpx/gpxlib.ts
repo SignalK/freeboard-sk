@@ -15,6 +15,9 @@ import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
  * `minlat="NaN"`. Falling back to the caller's current value keeps the
  * accumulate-from-points sentinels intact instead.
  */
+/** A parsed GPX `<bounds>` element as xml2js emits it: attributes under `$`. */
+export type GPXBoundsElement = { $?: Record<string, unknown> } | undefined;
+
 export function finiteOr(value: unknown, fallback: number): number {
   if (typeof value !== 'string' || value.trim() === '') {
     return fallback;
@@ -287,8 +290,7 @@ export class GPX {
    * Attributes that are absent or unparseable leave the corresponding
    * GPXBoundsType sentinel in place, so updateBounds() can still derive the
    * bounds from the file's own points. **/
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private applyBounds(bounds: any) {
+  private applyBounds(bounds: GPXBoundsElement) {
     const attr = bounds?.['$'] ?? {};
     const b = this.metadata.bounds;
     b.minLat = finiteOr(attr.minlat, b.minLat);
