@@ -851,8 +851,14 @@ watching the page sees the comments appear and none of this bites.
   in-progress notice contains the word *Walkthrough*, so a poller grepping for
   completion wording matches it immediately. Both mistakes produced false "review
   landed" reports in a single session. The reliable completion signal is the
-  disappearance of the `review in progress by coderabbit.ai` marker, combined with
-  a finding count above your pre-push baseline.
+  disappearance of the `review in progress by coderabbit.ai` marker.
+
+  **Do not additionally require the finding count to rise.** A clean review posts
+  no `/reviews` entry, no inline comments and no findings at all — its summary
+  simply reads *"No actionable comments were generated in the recent review. 🎉"*.
+  Waiting for a count above the pre-push baseline therefore hangs forever on the
+  most common good outcome. Take the marker's disappearance as completion, then
+  read the finding count to decide *what kind* of completion it was.
 
 **What to do instead.** Watch both signals, because each catches a different
 outcome. A count higher than before your push on
@@ -866,7 +872,13 @@ the summary for completion.
 
 After a rate-limited review you must **ask again by hand** — post
 `@coderabbitai review` as a PR comment once the window the notice states has
-passed. Compute the deadline from the notice comment's `updated_at`, not from
+passed. You can also read the budget **without** hitting the limit: every
+*successful* review's summary ends with *"Included review availability: Your plan
+provides up to N included reviews per hour; M remain after this review."* Reading
+`M` after a review tells you whether the next one is free or will be refused, which
+is the cheapest way to plan a follow-up push.
+
+Compute the deadline from the notice comment's `updated_at`, not from
 when you read it, and allow a small buffer; if it is refused again, a fresh
 notice with a fresh figure appears, so repeat against that. And remember the
 green **CodeRabbit** status check means "the integration ran", not "a review
