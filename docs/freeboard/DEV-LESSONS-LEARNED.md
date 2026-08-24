@@ -320,6 +320,66 @@ This bites AI agents hardest, since writing a whole file is a single cheap opera
 and the pass count looks like verification. Treat "did I add or replace?" as a
 distinct question from "do the tests pass?".
 
+### `vi.mock` does not work here — stub the global instead
+
+**The trap.** Reaching for `vi.mock` to substitute a collaborator module fails in
+two different ways, and the first one is silent:
+
+- With the **`src/` alias** the module uses (`vi.mock('src/app/lib/file-xml2json')`)
+  the mock **never applies** and nothing warns you. The real module runs. A spec
+  written this way can still go green on the assertions that don't depend on the
+  mock, which reads as proof it worked — a GPX spec passed 5 of its 7 tests
+  against completely unmocked code before the discrepancy showed up.
+- With a **relative path** it fails loudly: *"The `vi.mock` and related methods are
+  not supported for relative imports with the Angular unit-test system. Please use
+  Angular TestBed for mocking dependencies."*
+
+So there is no spelling that works — the Angular unit-test runner does not support
+module mocking at all.
+
+**What to do instead.** Don't conclude the code path is untestable; that
+conclusion is usually wrong, and it pushes you into extracting private seams you
+don't need. Look at *how* the module reaches the collaborator. Most browser
+collaborators here are used through a **global**, and a global is replaceable with
+`vi.stubGlobal` — the same tool the stream-worker entry below uses for `fetch`.
+
+`GPX.parse()` is the worked example. It delegates to `xml2JsonInWorker`, which
+feature-detects `Worker` and then loads a worker module:
+
+```ts
+if (typeof Worker === 'undefined') { return Promise.reject(...); }
+const worker = new Worker(new URL('./file-xml2json.worker', import.meta.url), …);
+worker.onmessage = (event) => finalise(event.data);
+worker.onerror = () => finalise(null);
+```
+
+**Note what does *not* happen: the feature check passes.** `@vitest/web-worker` is
+in `setupFiles`, so `Worker` is a real constructor under test. What fails is
+loading the worker *module*, so `onerror` fires, the promise rejects, and
+`parse()` — which wraps the whole body in `try`/`catch` — quietly returns
+`false`. Nothing throws. **A test that awaits `parse()` without asserting its
+return value therefore passes while parsing nothing at all.** Assert the return
+value, or your expectations run against an object the parse never touched.
+
+Stub the global with a worker that answers directly:
+
+```ts
+class StubWorker {
+  static reply: unknown = null;
+  onmessage: ((e: { data: unknown }) => void) | null = null;
+  postMessage() { queueMicrotask(() => this.onmessage?.({ data: StubWorker.reply })); }
+  terminate() {}
+}
+beforeEach(() => vi.stubGlobal('Worker', StubWorker));
+afterEach(() => vi.unstubAllGlobals());
+```
+
+`vi.unstubAllGlobals()` is the correct counterpart — `vi.restoreAllMocks()` does
+not undo `stubGlobal`.
+
+The same reasoning applies to any global the code reaches for
+(`OffscreenCanvas`, `navigator.*`): replace the global, not the module.
+
 ### Running a single spec file: not with bare vitest — use `ng test --include`
 
 **The trap.** To iterate quickly on one test, the obvious move is
@@ -729,9 +789,19 @@ watching the page sees the comments appear and none of this bites.
 - **Waiting for a rate-limited review to resume by itself.** It never does. When
   CodeRabbit declines to start, that push has spent its trigger: once the window
   passes it does **not** come back to the PR, so a poller waiting for it to
-  restart waits forever. The notice also carries **no number** — "wait until the
-  next included review is available" — so there is nothing to parse into a
-  deadline either.
+  restart waits forever. The notice *does* now carry a figure — **"Next included
+  review available in N minutes"** (38 minutes, observed on an upstream PR in
+  August 2026) — so you can schedule a single nudge instead of retrying blind.
+  Compute the deadline from the notice comment's `updated_at`, not from when you
+  happened to read it.
+- **Treating any new CodeRabbit comment as the review.** It posts an
+  **acknowledgement** ("Action performed: Review triggered") and then a
+  **"currently processing"** notice, both before a review exists. Worse, the
+  in-progress notice contains the word *Walkthrough*, so a poller grepping for
+  completion wording matches it immediately. Both mistakes produced false "review
+  landed" reports in a single session. The reliable completion signal is the
+  disappearance of the `review in progress by coderabbit.ai` marker, combined with
+  a finding count above your pre-push baseline.
 
 **What to do instead.** Watch both signals, because each catches a different
 outcome. A count higher than before your push on
@@ -744,12 +814,45 @@ of anything; there its only trace is CodeRabbit's summary comment updating to
 the summary for completion.
 
 After a rate-limited review you must **ask again by hand** — post
-`@coderabbitai review` as a PR comment once the window has passed. Since the
-notice gives no figure, there is no way to know when that is except to try; if it
-is refused again, wait longer and repeat. And remember the green **CodeRabbit**
-status check means "the integration ran", not "a review happened" — it is green
-for a rate-limited non-review too, with the description reading *Review rate
-limited*.
+`@coderabbitai review` as a PR comment once the window the notice states has
+passed. Compute the deadline from the notice comment's `updated_at`, not from
+when you read it, and allow a small buffer; if it is refused again, a fresh
+notice with a fresh figure appears, so repeat against that. And remember the
+green **CodeRabbit** status check means "the integration ran", not "a review
+happened" — it is green for a rate-limited non-review too, with the description
+reading *Review rate limited*.
+
+### If you stage PRs on your own fork first, CodeRabbit will not review them
+
+**The trap.** Opening a PR on your own fork before sending it upstream is a
+reasonable way to get a review privately first — but CodeRabbit skips repositories
+with **fewer than 10 stars**, which nearly every personal fork is. It reports the
+skip as *"this repository does not receive automatic reviews"*, and its status
+check still goes **pass**, so a fork PR looks reviewed and clean when nothing
+looked at it at all.
+
+**What to do instead.** Trigger it by hand, as a PR **comment**:
+
+```
+@coderabbitai review
+```
+
+It is not a body directive — `@coderabbitai ignore` is the only one CodeRabbit
+documents as working in a pull request description. The acknowledgement claims the
+command is "applicable only when automatic reviews are paused"; that is wrong for
+this case and the trigger works regardless.
+
+Two consequences worth planning for, because both cost a rate-limited review:
+
+- **Every push to the fork PR needs the nudge again**, since the skip is a property
+  of the repository, not of the PR.
+- **Rebuttals do not carry across repos.** CodeRabbit's project learnings are
+  per-repo, so every finding you argued down on the fork gets raised again on the
+  upstream PR, and only the upstream rebuttal teaches it anything. Keep your
+  rebuttal text and expect to post it twice.
+
+Upstream `SignalK/freeboard-sk` is well past the star threshold and reviews
+automatically, so none of this applies there.
 
 ### The Prettier CI gate covers only `ts|html` — don't `prettier --write` the CSS
 
