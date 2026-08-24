@@ -1,11 +1,15 @@
-import { expect, describe, it, beforeEach, afterEach } from 'vitest';
+import { expect, describe, it, beforeEach, afterEach, vi } from 'vitest';
 import { GPX, finiteOr } from './gpxlib';
 
 /**
- * GPX.parse() delegates the XML to a web worker. jsdom provides no Worker, and
- * vi.mock cannot substitute the module under the Angular unit-test system, so
- * stand in a Worker that answers with the JSON the real worker would produce.
- * That keeps these tests on the public API instead of a private seam.
+ * GPX.parse() delegates the XML to a web worker. `@vitest/web-worker` (in the
+ * vitest setupFiles) does supply a `Worker` global, so the feature check in
+ * xml2JsonInWorker passes — but the worker module itself does not load here, so
+ * the promise rejects and parse() reports failure by returning false. Stub the
+ * global with a Worker that answers directly, which keeps these tests on the
+ * public API rather than a private seam. Every case asserts parse() did not
+ * return false, so a broken stub fails loudly instead of silently testing
+ * nothing.
  */
 class StubWorker {
   static reply: unknown = null;
@@ -49,15 +53,14 @@ describe('finiteOr', () => {
 
 describe('GPX.parse — metadata bounds', () => {
   let gpx: GPX;
-  const originalWorker = globalThis.Worker;
 
   beforeEach(() => {
     gpx = new GPX();
-    (globalThis as { Worker?: unknown }).Worker = StubWorker;
+    vi.stubGlobal('Worker', StubWorker);
   });
 
   afterEach(() => {
-    (globalThis as { Worker?: unknown }).Worker = originalWorker;
+    vi.unstubAllGlobals();
   });
 
   const parse = async (attr: Record<string, string> | null) => {
