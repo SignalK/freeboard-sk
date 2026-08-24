@@ -839,7 +839,7 @@ export class AppFacade extends InfoService {
     if (this.watchingSKLogin) return;
     this.watchingSKLogin = window.setInterval(
       (() => {
-        let lastCookie = this.getCookie(document.cookie, 'skLoginInfo');
+        const lastCookie = this.getCookie(document.cookie, 'skLoginInfo');
         return () => {
           const currentCookie = this.getCookie(document.cookie, 'skLoginInfo');
           this.skAuthChange.set(currentCookie);

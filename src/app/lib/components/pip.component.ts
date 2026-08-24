@@ -88,7 +88,6 @@ export class PiPVideoComponent implements OnInit {
       this.change.emit(this.pipMode);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.pipVideo.addEventListener('leavepictureinpicture', () => {
       this.pipMode = false;
       this.pipVideo.pause();

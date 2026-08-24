@@ -49,7 +49,6 @@ export class RacingStartLineLayerComponent
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCourse() {
     if (!this.source) {
       return;

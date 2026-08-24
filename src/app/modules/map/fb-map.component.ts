@@ -968,13 +968,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle OL interaction start event */
   protected onDragBoxStart(e: DragBoxEvent) {
-    let c = toLonLat(e.coordinate);
+    const c = toLonLat(e.coordinate);
     this.mapInteract.initBoxCoord(c as Position);
   }
 
   /** Handle OL interaction end event */
   protected onDragBoxEnd(e: DragBoxEvent) {
-    let c = toLonLat(e.coordinate);
+    const c = toLonLat(e.coordinate);
     this.mapInteract.stopBoxSelection(c as Position);
   }
 
@@ -1711,7 +1711,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @param coord Position to display the popover
    * @param featureList list of map features at the supplied position
    * */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   protected formatPopover(
     id: string,
     coord: Position,

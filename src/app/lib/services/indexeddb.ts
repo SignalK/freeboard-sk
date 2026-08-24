@@ -9,7 +9,6 @@ export class IndexedDB {
     this.dbWrapper = new DbWrapper(dbName, version);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   openDatabase(
     version: number,
     upgradeCallback?: (evt: any, db: IDBDatabase) => void

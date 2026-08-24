@@ -91,11 +91,11 @@ export class RadarRenderService {
   ): ImageSource {
     let range = 0;
     let location: Coordinate = [0, 0];
-    let rangeExtent = createEmpty();
+    const rangeExtent = createEmpty();
 
     const updateExtent = (location: Coordinate, range: number) => {
       const radius = range > 0 ? range : 25465; // fallback for initial render
-      let extent = circular(location, radius)
+      const extent = circular(location, radius)
         .transform('EPSG:4326', 'EPSG:3857')
         .getExtent();
       rangeExtent[0] = extent[0];
@@ -117,7 +117,7 @@ export class RadarRenderService {
 
     const offscreenRadarCanvas = radarCanvas.transferControlToOffscreen();
 
-    let radarSource = new ImageSource({
+    const radarSource = new ImageSource({
       projection: projection,
       loader: createLoader({
         imageExtent: rangeExtent,

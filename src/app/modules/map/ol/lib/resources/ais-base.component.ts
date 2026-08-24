@@ -157,7 +157,7 @@ export class AISBaseLayerComponent
       return false;
     }
     const now = new Date().valueOf();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     return target.lastUpdated.valueOf() < now - this.inactiveTime;
   }
 

@@ -360,7 +360,7 @@ export class CourseService {
    * @param v self vessel
    */
   private processCourseCalcs(v: SKVessel) {
-    let c = Object.assign({}, this._courseData());
+    const c = Object.assign({}, this._courseData());
 
     // ** process preferred course data **
     if (typeof v.courseCalcs.crossTrackError !== 'undefined') {
@@ -424,7 +424,7 @@ export class CourseService {
 
     if (typeof v.courseCalcs.estimatedTimeOfArrival !== 'undefined') {
       if (v.courseCalcs.estimatedTimeOfArrival !== null) {
-        let d: Date | null = new Date(v.courseCalcs.estimatedTimeOfArrival);
+        const d: Date | null = new Date(v.courseCalcs.estimatedTimeOfArrival);
         c.eta = d instanceof Date && !isNaN(d as any) ? d : null;
       } else {
         c.eta = null;
@@ -433,7 +433,7 @@ export class CourseService {
 
     if (typeof v.courseCalcs['route.estimatedTimeOfArrival'] !== 'undefined') {
       if (v.courseCalcs['route.estimatedTimeOfArrival'] !== null) {
-        let d: Date | null = new Date(
+        const d: Date | null = new Date(
           v.courseCalcs['route.estimatedTimeOfArrival']
         );
         c.route.eta = d instanceof Date && !isNaN(d as any) ? d : null;

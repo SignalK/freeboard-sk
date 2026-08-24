@@ -41,7 +41,7 @@ export class TargetAngleComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() line: Coordinate[];
   @Input() mapZoom = 10;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   @Input() lineStyle: Style;
   @Input() position: Position; // (change trigger)
   @Input() twd: number; //(change trigger)

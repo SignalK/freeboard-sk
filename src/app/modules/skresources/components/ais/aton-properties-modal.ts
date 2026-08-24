@@ -137,7 +137,7 @@ export class AtoNPropertiesModal implements OnInit {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseMeteo(data: any) {
-    let res = {};
+    const res = {};
 
     if (data.navigation && data.navigation.position) {
       res['navigation.position'] = data.navigation.position.value;

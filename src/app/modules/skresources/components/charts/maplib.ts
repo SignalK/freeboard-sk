@@ -70,7 +70,7 @@ export const getLayerNodeByName = (
     }
   };
 
-  for (let node of data) {
+  for (const node of data) {
     parseNode(node);
     if (result) {
       break;

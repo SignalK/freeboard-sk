@@ -791,7 +791,7 @@ export class SKResourceService {
     const refList = chartOrder.filter((i: string) => chtIds.includes(i));
 
     for (let destidx = 0; destidx < refList.length; destidx++) {
-      let srcidx = chartList.findIndex(
+      const srcidx = chartList.findIndex(
         (c: FBChart) => c[0] === refList[destidx]
       );
       if (srcidx !== -1) {
@@ -1459,7 +1459,7 @@ export class SKResourceService {
         this.selectionAdd('routes', this.app.data.activeRoute);
       }
       const rtes = await this.listFromServer<FBRoute>('routes', query);
-      let flist = rtes.filter((route: FBRoute) => route[2]);
+      const flist = rtes.filter((route: FBRoute) => route[2]);
       this.routeCacheSignal.set(flist);
     } catch (err) {
       this.app.debug('** refreshRoutes:', err);
@@ -1829,7 +1829,7 @@ export class SKResourceService {
         this.selectionAdd('waypoints', this.app.data.activeWaypoint);
       }
       const wpts = await this.listFromServer<FBWaypoint>('waypoints', query);
-      let flist = wpts.filter((waypoint: FBWaypoint) => waypoint[2]);
+      const flist = wpts.filter((waypoint: FBWaypoint) => waypoint[2]);
       this.waypointCacheSignal.set(flist);
     } catch (err) {
       this.app.debug('** refreshWaypoints:', err);
@@ -2807,7 +2807,7 @@ export class SKResourceService {
     this.app.debug(`** refreshTracks(): ${query}`);
     try {
       const trks = await this.listFromServer<FBTrack>('tracks', query);
-      let flist = trks.filter((track: FBTrack) => track[2]);
+      const flist = trks.filter((track: FBTrack) => track[2]);
       this.trackCacheSignal.set(flist);
     } catch (err) {
       this.app.debug('** refreshTracks:', err);

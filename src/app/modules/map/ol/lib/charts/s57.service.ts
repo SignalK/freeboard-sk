@@ -203,8 +203,6 @@ export class S57Service {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processColors(symbolsJson: any) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (
       symbolsJson['CHARTSYMBOLS']['COLOR-TABLES'][0]['COLOR-TABLE'] as any[]
     ).forEach((colortable) => {

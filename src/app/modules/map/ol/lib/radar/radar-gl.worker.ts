@@ -215,12 +215,12 @@ addEventListener('message', (event) => {
       socket.binaryType = 'arraybuffer';
 
       socket.onmessage = (event) => {
-        let message = RadarMessage.deserialize(event.data);
+        const message = RadarMessage.deserialize(event.data);
         let vertexCount = 0;
         let colorCount = 0;
 
         for (let si = 0; si < message.spokes.length; si++) {
-          let spoke = message.spokes[si];
+          const spoke = message.spokes[si];
 
           if (lastRange !== spoke.range) {
             radarContext.clear(radarContext.COLOR_BUFFER_BIT);
