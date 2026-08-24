@@ -1739,7 +1739,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       isSelf: false
     };
 
-    let item = null;
+    let item;
     const t = id.split('.');
     let aid: string;
 
@@ -2159,15 +2159,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       const cog = this.dfeat.active.vectors.cog ?? [];
 
       const sog = this.dfeat.active.sog || 0;
-      let hl = 0;
-      if (this.app.config.vessels.selfLines.heading.length === -1) {
-        hl = (sog > wMax ? wMax : sog) * offset;
-      } else {
-        hl =
-          Convert.nauticalMilesToKm(
-            this.app.config.vessels.selfLines.heading.length
-          ) * 1000;
-      }
+      const hl =
+        this.app.config.vessels.selfLines.heading.length === -1
+          ? (sog > wMax ? wMax : sog) * offset
+          : Convert.nauticalMilesToKm(
+              this.app.config.vessels.selfLines.heading.length
+            ) * 1000;
       const heading = [
         this.dfeat.active.position,
         GeoUtils.rhumbDestination(

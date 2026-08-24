@@ -224,11 +224,11 @@ export class Measurements {
           this._index.set(this.coords().length - 3);
         }
       } else if (this._index() > 0) {
-        this._index.update((current) => --current);
+        this._index.update((current) => current - 1);
       }
     } else {
       if (this._index() !== -1 || this._index() < this.coords().length - 2) {
-        this._index.update((current) => ++current);
+        this._index.update((current) => current + 1);
       }
     }
     this.setButtonState();

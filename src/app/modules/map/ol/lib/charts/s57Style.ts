@@ -202,8 +202,8 @@ export class S57Style {
         let conrad = 0;
         let bconrad = false;
         if (featureProperties['CONRAD']) {
-          quapos = parseFloat(featureProperties['CONRAD']);
-          bquapos = true;
+          conrad = parseFloat(featureProperties['CONRAD']);
+          bconrad = true;
         }
         if (bconrad) {
           if (conrad === 1) {
@@ -340,7 +340,7 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L5809
   private GetCSTOPMAR01(feature: Feature): string[] {
-    let rulestring: string = null;
+    let rulestring: string;
     const featureProperties = feature.getProperties();
     if (!featureProperties['TOPSHP']) {
       rulestring = 'SY(QUESMRK1)';
@@ -655,8 +655,8 @@ export class S57Style {
     //const safe = false;
     let drval1 = 0;
     let depth_value = -1;
-    let valdco = 0;
-    let quapos = 0;
+    let valdco: number;
+    let quapos: number;
     let objl = 0;
 
     if (featureProperties['OBJL']) {
@@ -701,7 +701,7 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4247
   private getCSDEPARE01(feature: Feature): string[] {
-    let retval: string[] = [];
+    let retval: string[];
 
     const featureProperties = feature.getProperties();
 

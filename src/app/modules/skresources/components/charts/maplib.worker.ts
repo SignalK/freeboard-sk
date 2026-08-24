@@ -450,7 +450,7 @@ const parseIsoTimeValue = (value: string): string => {
     }
     return new Date(value).toISOString();
   } catch (err) {
-    throw new Error(`Unhandled Date format (${value})`);
+    throw new Error(`Unhandled Date format (${value})`, { cause: err });
   }
 };
 

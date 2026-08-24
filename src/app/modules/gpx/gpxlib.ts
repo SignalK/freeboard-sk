@@ -4,6 +4,28 @@
 
 import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
 
+/**
+ * Parse a GPX XML attribute as a finite number, falling back when it is
+ * absent, empty or malformed.
+ *
+ * `Number()` returns `NaN` — never `null` or `undefined` — for such input, so a
+ * `?? null` guard on it never fires. A `NaN` reaching `GPXBoundsType` is worse
+ * than a missing value: every comparison in `updateBounds()` against `NaN` is
+ * false, so the bounds can never recover and the file exports as
+ * `minlat="NaN"`. Falling back to the caller's current value keeps the
+ * accumulate-from-points sentinels intact instead.
+ */
+/** A parsed GPX `<bounds>` element as xml2js emits it: attributes under `$`. */
+export type GPXBoundsElement = { $?: Record<string, unknown> } | undefined;
+
+export function finiteOr(value: unknown, fallback: number): number {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return fallback;
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 /************************
  ** GPX File Class **
  ************************/
@@ -264,6 +286,19 @@ export class GPX {
     }
   }
 
+  /** apply a parsed GPX `<bounds>` element to the metadata accumulator.
+   * Attributes that are absent or unparseable leave the corresponding
+   * GPXBoundsType sentinel in place, so updateBounds() can still derive the
+   * bounds from the file's own points. **/
+  private applyBounds(bounds: GPXBoundsElement) {
+    const attr = bounds?.['$'] ?? {};
+    const b = this.metadata.bounds;
+    b.minLat = finiteOr(attr.minlat, b.minLat);
+    b.minLon = finiteOr(attr.minlon, b.minLon);
+    b.maxLat = finiteOr(attr.maxlat, b.maxLat);
+    b.maxLon = finiteOr(attr.maxlon, b.maxLon);
+  }
+
   /** parse GPX string contents and fill this.data  **/
   public async parse(gpxstr: string): Promise<boolean> {
     // ** check for valid file contents **
@@ -284,11 +319,7 @@ export class GPX {
         this.metadata.keywords = meta.keywords ? meta.keywords : null;
 
         if (meta.bounds) {
-          const bounds = this.xValue(meta.bounds);
-          this.metadata.bounds.minLat = Number(bounds['$'].minlat) ?? null;
-          this.metadata.bounds.minLon = Number(bounds['$'].minlon) ?? null;
-          this.metadata.bounds.maxLat = Number(bounds['$'].maxlat) ?? null;
-          this.metadata.bounds.maxLon = Number(bounds['$'].maxlon) ?? null;
+          this.applyBounds(this.xValue(meta.bounds));
         }
         this.metadata.extensions = meta.extensions
           ? this.parseExtensions(meta.extensions)

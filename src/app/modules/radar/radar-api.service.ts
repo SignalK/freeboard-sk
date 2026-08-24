@@ -131,12 +131,11 @@ export class RadarAPIService {
       );
       return false;
     }
-    let gl = new OffscreenCanvas(10, 10).getContext('webgl2');
+    const gl = new OffscreenCanvas(10, 10).getContext('webgl2');
     const result = gl ? true : false;
     if (gl) {
       const ext = gl.getExtension('WEBGL_lose_context');
       if (ext) ext.loseContext();
-      gl = null;
     }
     return result;
   }

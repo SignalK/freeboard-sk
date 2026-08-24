@@ -217,7 +217,7 @@ export class GeoUtils {
       }
       return coords;
     } else if (Array.isArray(coords[0])) {
-      coords.forEach((c) => (c = this.normaliseCoords(c)));
+      coords.forEach((c) => this.normaliseCoords(c));
       return coords;
     }
   }

@@ -368,11 +368,10 @@ export class CourseSettingsModal implements OnInit {
   }
 
   formatArrivalTime(): string {
-    let ts = '';
     this.arrivalData.datetime.setHours(parseInt(this.arrivalData.hour));
     this.arrivalData.datetime.setMinutes(parseInt(this.arrivalData.minutes));
     this.arrivalData.datetime.setSeconds(parseInt(this.arrivalData.seconds));
-    ts = this.arrivalData.datetime.toISOString();
+    const ts = this.arrivalData.datetime.toISOString();
     return ts.slice(0, ts.indexOf('.')) + 'Z';
   }
 

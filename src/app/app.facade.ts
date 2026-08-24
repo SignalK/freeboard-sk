@@ -1096,14 +1096,11 @@ export class AppFacade extends InfoService {
    * @param err Error response
    */
   parseHttpErrorResponse(err: HttpErrorResponse) {
-    let msg: string = '';
-    if (err.status && [401, 403].includes(err.status)) {
-      // unauthorised / forbidden
-      msg =
-        'Signal K server requires authentication to update resources.\nPlease login and try again.\n';
-    } else {
-      msg = 'Operation could not be completed!\n';
-    }
+    const msg =
+      err.status && [401, 403].includes(err.status)
+        ? // unauthorised / forbidden
+          'Signal K server requires authentication to update resources.\nPlease login and try again.\n'
+        : 'Operation could not be completed!\n';
     this.showAlert(
       `${err.status ?? 'Error'}`,
       msg + `${err.error?.message ?? ''}`
@@ -1330,9 +1327,8 @@ export class AppFacade extends InfoService {
       );
     } catch {
       value = null;
-    } finally {
-      return asString ? this.formatNumericDisplay(value) : value;
     }
+    return asString ? this.formatNumericDisplay(value) : value;
   }
 
   formattedSpeedUnits = Convert.getSymbol('kn');
