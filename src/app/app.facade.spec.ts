@@ -258,3 +258,54 @@ describe('AppFacade nautical-mile short-distance formatting (#474)', () => {
     expect(app.formatValueForDisplay(2000, 'm')).toBe('1.1nmi');
   });
 });
+
+describe('AppFacade.calcMapCenter pending rotation (#715)', () => {
+  // A viewport one "unit" square about [0, 0]; the exact ground distances do
+  // not matter, only that the offset resolves to a direction on the ground.
+  const setup = () => {
+    TestBed.configureTestingModule({});
+    const app = TestBed.inject(AppFacade);
+    app.config.map.center = [0, 0];
+    app.mapExtent.set([-0.01, -0.01, 0.01, 0.01]);
+    app.mapViewTopCenter.set([0, 0.01]);
+    app.mapViewRightCenter.set([0.01, 0]);
+    // What move-end last reported — the map has not rotated yet as far as the
+    // app-level signal is concerned.
+    app.mapViewRotation.set(0);
+    // Pure "look ahead" offset: map centre half a screen up from the vessel.
+    app.config.map.centerOffset = { x: 0, y: 50 };
+    // `active` is null until a vessel is selected; follow mode tracks self.
+    app.data.vessels.active = app.data.vessels.self;
+    app.data.vessels.active.position = [0, 0];
+    return app;
+  };
+
+  it('resolves a screen-up offset to due north when the view is unrotated', () => {
+    const [lon, lat] = setup().calcMapCenter();
+    expect(lat).toBeGreaterThan(0);
+    expect(Math.abs(lon)).toBeLessThan(1e-6);
+  });
+
+  // The regression. rotateMap() sets the map's rotation and centerVessel() runs
+  // in the SAME render, but app.mapViewRotation is not refreshed until OL fires
+  // move-end. Resolving against the stale signal puts the centre due north while
+  // the view renders rotated a quarter turn, so the vessel lands rotated off its
+  // screen-fixed spot. Passing the pending rotation must win over the signal.
+  it('resolves against the pending rotation, not the stale move-end rotation', () => {
+    const app = setup();
+    const stale = app.calcMapCenter();
+    // Screen-up is world-west once the view is rotated a quarter turn.
+    const [lon, lat] = app.calcMapCenter(true, 0, Math.PI / 2);
+    expect(lon).toBeLessThan(0);
+    expect(Math.abs(lat)).toBeLessThan(1e-6);
+    expect([lon, lat]).not.toEqual(stale);
+  });
+
+  it('still falls back to the move-end rotation when none is supplied', () => {
+    const app = setup();
+    app.mapViewRotation.set(Math.PI / 2);
+    const [lon, lat] = app.calcMapCenter();
+    expect(lon).toBeLessThan(0);
+    expect(Math.abs(lat)).toBeLessThan(1e-6);
+  });
+});
