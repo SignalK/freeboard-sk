@@ -2400,6 +2400,21 @@
           on more than one Signal K path. This panel is where you choose which
           one Freeboard uses for <i>True Wind Speed</i>,
           <i>True Wind Direction</i> and <i>Heading / COG</i>.<br />
+          <i>Heading / COG</i> sets the direction your vessel is pointed on the
+          chart &mdash; the vessel icon, the heading line, the chart rotation in
+          <i>Heading Up</i> mode, and the reference used when wind is published
+          as an angle rather than a direction.<br />
+          It defaults to <b>Automatic</b>, which uses the best source available
+          at the time: true heading, then magnetic heading, then COG. Heading is
+          preferred because it is where the bow is pointing &mdash; the
+          difference between it and the course vector is your leeway and set.
+          COG is only used when no heading has been received for 10 seconds
+          <i>and</i> you are making more than about 0.5 knots, since a
+          stationary vessel's COG is GPS noise and would make the icon spin. If
+          neither is available the last known direction is held rather than
+          reset.<br />
+          Select a specific path instead if you want the direction locked to
+          that one value.<br />
           <img
             src="./img/settings_paths.png"
             style="height: 200px"

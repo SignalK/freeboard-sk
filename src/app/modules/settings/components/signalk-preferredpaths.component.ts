@@ -14,6 +14,7 @@ import {
 import { MatRadioModule } from '@angular/material/radio';
 
 import { AppFacade } from 'src/app/app.facade';
+import { AUTO_ORIENTATION } from 'src/app/modules/skstream/orientation';
 
 @Component({
   selector: 'signalk-preferred-paths',
@@ -39,7 +40,7 @@ import { AppFacade } from 'src/app/app.facade';
                     [checked]="path === item[1].current"
                     (change)="item[1].current = pathopt.value; save(true)"
                   >
-                    {{ path.split('.').slice(-1) }}
+                    {{ pathLabel(path) }}
                   </mat-radio-button>
                 </div>
               }
@@ -79,6 +80,7 @@ export class SignalKPreferredPathsComponent {
     heading: {
       name: 'Heading / COG',
       choices: [
+        AUTO_ORIENTATION,
         'navigation.courseOverGroundTrue',
         'navigation.courseOverGroundMagnetic',
         'navigation.headingTrue',
@@ -97,6 +99,13 @@ export class SignalKPreferredPathsComponent {
   private app = inject(AppFacade);
 
   constructor() {}
+
+  /** Radio label: 'Automatic' for the auto option, else the path's last segment. */
+  protected pathLabel(path: string): string {
+    return path === AUTO_ORIENTATION
+      ? 'Automatic'
+      : path.split('.').slice(-1)[0];
+  }
 
   ngOnInit() {
     this.initEntries();
@@ -117,7 +126,9 @@ export class SignalKPreferredPathsComponent {
       const i = x[1];
       // ** fill available paths from received path data **
       i['choices'].forEach((c) => {
-        if (this.availPaths.has(c)) {
+        // 'auto' is not a Signal K path, so it never appears in the received
+        // path data — offer it regardless of what the server publishes.
+        if (c === AUTO_ORIENTATION || this.availPaths.has(c)) {
           i['available'].push(c);
         }
       });
