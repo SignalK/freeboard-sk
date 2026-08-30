@@ -906,7 +906,7 @@ export class AppFacade extends InfoService {
    * reported an extent — the viewport signals hold [0, 0] until then, which
    * would size the offset against the distance to null island.
    */
-  private mapViewport(): MapViewport | null {
+  private mapViewport(rotation?: number): MapViewport | null {
     if (!this.mapExtent().length) {
       return null;
     }
@@ -919,7 +919,10 @@ export class AppFacade extends InfoService {
         this.config.map.center as Position,
         this.mapViewTopCenter()
       ),
-      rotation: this.mapViewRotation()
+      // mapViewRotation() is only written on move-end, so it lags a rotation the
+      // caller is applying in this same render; `rotation` lets it pass that
+      // pending value in. See calcMapCenter().
+      rotation: rotation ?? this.mapViewRotation()
     };
   }
 
@@ -929,12 +932,21 @@ export class AppFacade extends InfoService {
    * @param zoomShift zoom levels about to be applied; when non-zero the centre is
    * computed for the post-zoom viewport so the offset stays fixed on screen
    * through the zoom rather than snapping back after it.
+   * @param rotation the view rotation the centre should be resolved against,
+   * for a caller that is applying a new rotation in the same render as this
+   * centre. Omitted, the last rotation move-end reported is used — which is a
+   * frame behind in heading-up, leaving the vessel rotated off its screen-fixed
+   * spot by the per-update heading change (#715).
    */
-  calcMapCenter(applyOffset = true, zoomShift = 0): Position {
+  calcMapCenter(
+    applyOffset = true,
+    zoomShift = 0,
+    rotation?: number
+  ): Position {
     const position = this.data.vessels.active.position;
     const offset = this.config.map.centerOffset;
     const viewport =
-      applyOffset && (offset.x || offset.y) ? this.mapViewport() : null;
+      applyOffset && (offset.x || offset.y) ? this.mapViewport(rotation) : null;
     if (!viewport) {
       return position;
     }

@@ -2096,7 +2096,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.movingMap && !this.offsetSuppressed && !this.userPanned) {
       const offset = this.app.config.map.centerOffset;
       if (offset.x || offset.y) {
-        this.mapCenterPositon.set(this.app.calcMapCenter(true, next - current));
+        this.mapCenterPositon.set(
+          this.app.calcMapCenter(true, next - current, this.mapRotation())
+        );
       }
     }
     this.mapZoomLevel.set(next);
@@ -2119,7 +2121,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // arriving mid-drag would snatch the chart back from the user.
       return;
     }
-    const pos = this.app.calcMapCenter(!this.offsetSuppressed);
+    // Resolve the offset against the rotation being applied in THIS render, not
+    // the one move-end last reported. rotateMap() runs immediately before this
+    // and only sets the local mapRotation signal; app.mapViewRotation is not
+    // refreshed until OpenLayers renders and fires move-end. Using the stale
+    // value leaves the vessel rotated about the screen centre by the per-update
+    // heading change — invisible in north-up, where the rotation is always 0,
+    // and a constant jitter in heading-up (#715).
+    const pos = this.app.calcMapCenter(
+      !this.offsetSuppressed,
+      0,
+      this.mapRotation()
+    );
     this.mapCenterPositon.update(() => pos);
   }
 
