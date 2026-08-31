@@ -880,10 +880,14 @@ is the cheapest way to plan a follow-up push.
 
 Compute the deadline from the notice comment's `updated_at`, not from
 when you read it, and allow a small buffer; if it is refused again, a fresh
-notice with a fresh figure appears, so repeat against that. And remember the
-green **CodeRabbit** status check means "the integration ran", not "a review
-happened" — it is green for a rate-limited non-review too, with the description
-reading *Review rate limited*.
+notice with a fresh figure appears, so repeat against that. For the same reason
+a rate-limit report can be **stale**: `cr-status.sh` reads whichever notice is on
+the PR, so a `CR-STATUS: RATE-LIMITED` left from an earlier round still shows long
+after its window closed. Treat it as current only when the `WINDOW-OPENS` line is
+in the future — printed in the past (`-1 min from now`) it is history, and the
+real state is "not triggered yet". And remember the green **CodeRabbit** status
+check means "the integration ran", not "a review happened" — it is green for a
+rate-limited non-review too, with the description reading *Review rate limited*.
 
 ### If you stage PRs on your own fork first, CodeRabbit will not review them
 
