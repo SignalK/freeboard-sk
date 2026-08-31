@@ -803,7 +803,7 @@ export class AppFacade extends InfoService {
   public isTopWindow(): boolean {
     try {
       return window.self === window.top;
-    } catch (e) {
+    } catch {
       return false;
     }
   }

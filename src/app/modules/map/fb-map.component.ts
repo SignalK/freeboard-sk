@@ -495,7 +495,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         : 'nautical';
       const c = this.olMap.getMap().getControls().getArray();
       (c[0] as ScaleLine).setUnits(u);
-    } catch (err) {
+    } catch {
       // no map or scale control
     }
   }

@@ -43,7 +43,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       result = null;
     }
     self.postMessage(result);
-  } catch (err) {
+  } catch {
     self.postMessage(null);
   }
 };

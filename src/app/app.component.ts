@@ -1339,7 +1339,7 @@ export class AppComponent {
         try {
           const d = JSON.parse(res.data);
           this.skres.postToServer(res.path as any, d);
-        } catch (err) {
+        } catch {
           this.app.showAlert(
             'Load Resource',
             'Resources were not loaded!\nInvalid JSON.'

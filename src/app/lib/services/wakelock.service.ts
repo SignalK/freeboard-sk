@@ -44,7 +44,7 @@ export class WakeLockService {
       document.addEventListener('visibilitychange', () =>
         this.onVisibilityChange()
       );
-    } catch (err) {
+    } catch {
       this.wakeLockRef = null;
       this._enabled.set(false);
     }

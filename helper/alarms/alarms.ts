@@ -1,5 +1,5 @@
 // **** Signal K Standard ALARMS notifier ****
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import {
   ALARM_METHOD,
   ALARM_STATE,
@@ -245,50 +245,44 @@ const initAlarmEndpoints = async () => {
   server.debug(`** Registering Alarm Action API endpoint(s) **`);
 
   // list area alarms
-  server.get(
-    `${ALARM_API_PATH}/area`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      server.debug(`** ${req.method} ${req.path}`);
-      const ar = Array.from(alarmAreas);
-      res.status(200).json(ar);
-    }
-  );
+  server.get(`${ALARM_API_PATH}/area`, async (req: Request, res: Response) => {
+    server.debug(`** ${req.method} ${req.path}`);
+    const ar = Array.from(alarmAreas);
+    res.status(200).json(ar);
+  });
   // new area alarm
-  server.post(
-    `${ALARM_API_PATH}/area`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        validateAreaBody(req.body);
-      } catch (err) {
-        res.status(400).json({
-          state: 'FAILED',
-          statusCode: 400,
-          message: (err as Error).message
-        });
-        return;
-      }
-
-      if (req.body.geometry === 'region') {
-        res.status(400).json({
-          state: 'FAILED',
-          statusCode: 400,
-          message: `Invalid geometry value 'region'. Use PUT request specifying a region identifier.`
-        });
-        return;
-      }
-
-      const id = uuid.v4();
-      alarmAreas.set(id, req.body);
-      res.status(200).json({
-        state: 'COMPLETE',
-        statusCode: 200,
-        message: `Alarm Area created: ${id}`
+  server.post(`${ALARM_API_PATH}/area`, async (req: Request, res: Response) => {
+    try {
+      validateAreaBody(req.body);
+    } catch (err) {
+      res.status(400).json({
+        state: 'FAILED',
+        statusCode: 400,
+        message: (err as Error).message
       });
+      return;
     }
-  );
+
+    if (req.body.geometry === 'region') {
+      res.status(400).json({
+        state: 'FAILED',
+        statusCode: 400,
+        message: `Invalid geometry value 'region'. Use PUT request specifying a region identifier.`
+      });
+      return;
+    }
+
+    const id = uuid.v4();
+    alarmAreas.set(id, req.body);
+    res.status(200).json({
+      state: 'COMPLETE',
+      statusCode: 200,
+      message: `Alarm Area created: ${id}`
+    });
+  });
   server.put(
     `${ALARM_API_PATH}/area/:id`,
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response) => {
       server.debug(`** ${req.method} ${req.path}`);
 
       try {
@@ -348,34 +342,31 @@ const initAlarmEndpoints = async () => {
       }
     }
   );
-  server.delete(
-    `${ALARM_API_PATH}/area/:id`,
-    (req: Request, res: Response, next: NextFunction) => {
-      server.debug(`** ${req.method} ${req.path}`);
-      try {
-        if (alarmAreas.has(req.params.id)) {
-          deleteArea(req.params.id);
-          res.status(200).json({
-            state: 'COMPLETE',
-            statusCode: 200,
-            message: `Alarm Area Cleared: ${req.params.id}`
-          });
-        } else {
-          res.status(400).json({
-            state: 'FAILED',
-            statusCode: 400,
-            message: `Area not found!`
-          });
-        }
-      } catch (e) {
+  server.delete(`${ALARM_API_PATH}/area/:id`, (req: Request, res: Response) => {
+    server.debug(`** ${req.method} ${req.path}`);
+    try {
+      if (alarmAreas.has(req.params.id)) {
+        deleteArea(req.params.id);
+        res.status(200).json({
+          state: 'COMPLETE',
+          statusCode: 200,
+          message: `Alarm Area Cleared: ${req.params.id}`
+        });
+      } else {
         res.status(400).json({
           state: 'FAILED',
           statusCode: 400,
-          message: (e as Error).message
+          message: `Area not found!`
         });
       }
+    } catch (e) {
+      res.status(400).json({
+        state: 'FAILED',
+        statusCode: 400,
+        message: (e as Error).message
+      });
     }
-  );
+  });
 
   server.post(
     `${ALARM_API_PATH}/area/:id/silence`,

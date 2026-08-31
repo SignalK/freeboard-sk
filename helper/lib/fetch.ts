@@ -23,7 +23,7 @@ export const fetch = (href: string): Promise<any> => {
           try {
             const json = JSON.parse(data.toString());
             resolve(json);
-          } catch (error) {
+          } catch {
             reject(new Error(data));
           }
         });

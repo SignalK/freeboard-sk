@@ -65,7 +65,7 @@ export class GeoJSONLoadFacade {
         }
       });
       return data;
-    } catch (err) {
+    } catch {
       return null;
     }
   }

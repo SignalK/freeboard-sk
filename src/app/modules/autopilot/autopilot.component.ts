@@ -356,7 +356,7 @@ export class AutopilotComponent {
       if (options.states && Array.isArray(options.states)) {
         this.stateOptions.set(options.states);
       }
-    } catch (err) {
+    } catch {
       this.modeOptions.set([]);
       this.stateOptions.set([]);
       this.app.showMessage('No autopilot providers found!');

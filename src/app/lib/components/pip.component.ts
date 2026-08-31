@@ -113,7 +113,7 @@ export class PiPVideoComponent implements OnInit {
       this.pipMode = true;
       this.vid.nativeElement.play();
       this.click.emit(true);
-    } catch (e) {
+    } catch {
       this.pipMode = false;
     }
   }

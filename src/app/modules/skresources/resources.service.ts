@@ -225,7 +225,7 @@ export class SKResourceService {
         'notes',
         `href=/resources/${collection}/${id}`
       );
-    } catch (err) {
+    } catch {
       return [];
     }
   }
@@ -2524,7 +2524,7 @@ export class SKResourceService {
         'notes',
         `href=/resources/${collection}/${id}`
       );
-    } catch (err) {
+    } catch {
       return [];
     }
   }
@@ -2592,7 +2592,7 @@ export class SKResourceService {
             }
           }
         });
-    } catch (err) {
+    } catch {
       this.app.sIsFetching.set(false);
       this.app.showAlert(
         'ERROR',
@@ -2682,7 +2682,7 @@ export class SKResourceService {
         data.note = res;
         data.addNote = false;
         this.openNoteForEdit(data);
-      } catch (err) {
+      } catch {
         this.app.sIsFetching.set(false);
         this.app.showAlert('ERROR', 'Unable to retrieve Note!');
       }
@@ -2702,7 +2702,7 @@ export class SKResourceService {
       this.app.sIsFetching.set(true);
       note = await this.fromServer('notes', id);
       this.app.sIsFetching.set(false);
-    } catch (err) {
+    } catch {
       this.app.sIsFetching.set(false);
       this.app.showAlert('ERROR', 'Unable to retrieve Note!');
       return;

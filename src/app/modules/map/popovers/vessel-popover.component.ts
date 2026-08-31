@@ -21,7 +21,6 @@ import { Buddies, SKVessel } from 'src/app/modules';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { Position } from 'src/app/types';
-import { HttpErrorResponse } from '@angular/common/http';
 import { AppIconDef, getAisIcon } from '../../icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -371,7 +370,7 @@ export class VesselPopoverComponent {
             //console.log('buddy revedmo:', urn);
             this.app.showMessage(`Buddy successfully removed.`, false, 3000);
           },
-          (err: HttpErrorResponse) => {
+          () => {
             this.app.showMessage(`Error removing buddy!`, false, 3000);
           }
         );
@@ -388,7 +387,7 @@ export class VesselPopoverComponent {
           () => {
             this.app.showMessage(`Buddy added (${name})`, false, 3000);
           },
-          (err: HttpErrorResponse) => {
+          () => {
             this.app.showMessage(`Error adding buddy!(${name})`, false, 5000);
           }
         );

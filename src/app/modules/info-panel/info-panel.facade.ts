@@ -85,7 +85,7 @@ export class InfoPanelFacade {
         ]);
         return;
       }
-    } catch (err) {
+    } catch {
       return;
     }
   }

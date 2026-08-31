@@ -20,7 +20,7 @@ export class LocalStorage {
       if ('localStorage' in window && window['localStorage'] !== null) {
         this._ls = window.localStorage;
       }
-    } catch (e) {
+    } catch {
       console.warn('window.localStorage is not supported by this browser!');
     }
   }
@@ -37,7 +37,7 @@ export class LocalStorage {
     if (this._ls && key) {
       try {
         return JSON.parse(this._ls.getItem(this._namespace + key));
-      } catch (e) {
+      } catch {
         return this._ls.getItem(this._namespace + key);
       }
     }

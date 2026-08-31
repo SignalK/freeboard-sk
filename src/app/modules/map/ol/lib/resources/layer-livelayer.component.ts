@@ -244,7 +244,7 @@ export class FreeboardLiveLayerComponent
         const parser = new WMTSCapabilities();
         result = parser.read(capabilitiesXml);
         this.wmtsCapabilitesMap.set(ldef[1].values?.url, result);
-      } catch (err) {
+      } catch {
         clearTimeout(abortTimer);
         return;
       }
