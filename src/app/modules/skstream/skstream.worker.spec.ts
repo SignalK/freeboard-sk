@@ -140,3 +140,57 @@ describe('skstream.worker handleStreamEvent — watchdog on disconnect (#695)', 
     expect(alarmUpdates()).toHaveLength(1);
   });
 });
+
+// Orientation is resolved in the worker because only it sees per-path deltas.
+// With the shipped default the self icon followed COG, so a boat at anchor
+// pointed at GPS noise while a valid heading sat unused on the bus (#704).
+// Guard the delta-level contract: heading deltas stamp a receipt time, and an
+// unset/auto preference orients by heading rather than COG.
+describe('skstream.worker processVessel — orientation source (#704)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('stamps the receipt time when a true heading delta arrives', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const vessel = new SKVessel();
+
+    processVessel(vessel, { path: 'navigation.headingTrue', value: 1.5 }, true);
+
+    expect(vessel.headingTrueUpdatedAt).toBe(1_700_000_000_000);
+  });
+
+  it('stamps the magnetic receipt time separately', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const vessel = new SKVessel();
+
+    processVessel(
+      vessel,
+      { path: 'navigation.headingMagnetic', value: 2.2 },
+      true
+    );
+
+    expect(vessel.headingMagneticUpdatedAt).toBe(1_700_000_000_000);
+    expect(vessel.headingTrueUpdatedAt).toBe(0);
+  });
+
+  it('orients by heading, not COG, when stationary', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const vessel = new SKVessel();
+
+    processVessel(
+      vessel,
+      { path: 'navigation.speedOverGround', value: 0 },
+      true
+    );
+    processVessel(vessel, { path: 'navigation.headingTrue', value: 1.5 }, true);
+    // COG noise at anchor must not steal the icon.
+    processVessel(
+      vessel,
+      { path: 'navigation.courseOverGroundTrue', value: 3 },
+      true
+    );
+
+    expect(vessel.orientation).toBe(1.5);
+  });
+});

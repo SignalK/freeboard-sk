@@ -246,6 +246,13 @@ export class SKVessel extends SKTargetBase {
   heading: number;
   headingTrue: number = null;
   headingMagnetic: number = null;
+  // Local receipt times for the heading sources, stamped in the stream worker
+  // (only it sees per-path deltas). Automatic orientation needs to know a
+  // heading is still arriving, not merely that a value was received once —
+  // headingTrue can stop while headingMagnetic continues (e.g. variation goes
+  // away), so the two are stamped separately.
+  headingTrueUpdatedAt = 0;
+  headingMagneticUpdatedAt = 0;
   performance = {
     beatAngle: null,
     gybeAngle: null

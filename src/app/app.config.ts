@@ -181,9 +181,24 @@ export function cleanConfig(
     settings.units.preferredPaths = {
       tws: 'environment.wind.speedTrue',
       twd: 'environment.wind.directionTrue',
-      heading: 'navigation.courseOverGroundTrue',
+      heading: 'auto',
       course: 'navigation.courseGreatCircle'
     };
+  }
+  // Orientation defaulted to COG, which points the boat at GPS noise when it is
+  // stationary (#704, #338). Move existing installs onto 'auto' once: a stored
+  // value equal to the old default was almost never a deliberate choice, but
+  // after this runs a genuine choice of COG must stick, hence the one-time
+  // flag rather than an unconditional coercion.
+  // @todo remove (implemented) v2.32.0
+  if (!settings.units.autoHeadingApplied) {
+    if (
+      settings.units.preferredPaths.heading ===
+      'navigation.courseOverGroundTrue'
+    ) {
+      settings.units.preferredPaths.heading = 'auto';
+    }
+    settings.units.autoHeadingApplied = true;
   }
   if (typeof settings.units.useServerPrefs === 'undefined') {
     settings.units.useServerPrefs = false;
@@ -524,9 +539,10 @@ export function defaultConfig(): IAppConfig {
       preferredPaths: {
         tws: 'environment.wind.speedTrue',
         twd: 'environment.wind.directionTrue',
-        heading: 'navigation.courseOverGroundTrue',
+        heading: 'auto',
         course: 'navigation.courseGreatCircle'
       },
+      autoHeadingApplied: true,
       useServerPrefs: false
     },
     map: {

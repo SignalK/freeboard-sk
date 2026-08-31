@@ -130,9 +130,13 @@ export interface IAppConfig {
     preferredPaths: {
       tws: string;
       twd: string;
+      /** A Signal K path, or 'auto' to resolve the best available source. */
       heading: string;
       course: string;
     };
+    /** One-time marker for the COG -> 'auto' orientation migration (#704). */
+    // @todo remove (implemented) v2.32.0
+    autoHeadingApplied: boolean;
     useServerPrefs: boolean;
   };
   map: {

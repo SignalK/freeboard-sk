@@ -20,6 +20,11 @@ import {
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
 import { PathValue } from 'src/app/types';
+import {
+  AUTO_ORIENTATION,
+  ORIENTATION_SOURCE_PATHS,
+  resolveOrientation
+} from './orientation';
 
 interface AisStatus {
   updated: { [key: string]: boolean };
@@ -983,15 +988,23 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
   // ** heading **
   else if (v.path === 'navigation.headingTrue') {
     d.headingTrue = v.value;
+    d.headingTrueUpdatedAt = Date.now();
   } else if (v.path === 'navigation.headingMagnetic') {
     d.headingMagnetic = v.value;
+    d.headingMagneticUpdatedAt = Date.now();
   }
 
-  // use preferred heading value for orientation **
-  if (
-    typeof preferredPaths['heading'] !== 'undefined' &&
-    v.path === preferredPaths['heading']
-  ) {
+  // ** orientation **
+  // 'auto' (the default) resolves the best available source; an explicit path
+  // selection is honoured verbatim so a user can still lock orientation to one
+  // path. preferredPaths is empty until the config message arrives, so an
+  // unset preference resolves automatically too.
+  const headingPref = preferredPaths['heading'];
+  if (typeof headingPref === 'undefined' || headingPref === AUTO_ORIENTATION) {
+    if (ORIENTATION_SOURCE_PATHS.has(v.path)) {
+      resolveOrientation(d);
+    }
+  } else if (v.path === headingPref) {
     d.orientation = v.value;
   }
 
