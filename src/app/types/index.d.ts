@@ -1,7 +1,7 @@
 // ** Resource Types **
 
 import { Position, LineString, MultiLineString } from './resources/geojson';
-import { FBCharts, FBRoute } from './resources/freeboard';
+import { FBCharts } from './resources/freeboard';
 import {
   SKMeteo,
   SKSaR,
@@ -9,7 +9,6 @@ import {
   SKAircraft,
   SKVessel
 } from '../modules/skresources/resource-classes';
-import { DEPTH_UNIT } from '../lib/convert';
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
 import { ChartImageAdjustment } from './resources/signalk';
 

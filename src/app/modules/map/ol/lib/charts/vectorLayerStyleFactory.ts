@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { SKChart } from 'src/app/modules';
 import { S57Service } from './s57.service';
 import { S57Style } from './s57Style';

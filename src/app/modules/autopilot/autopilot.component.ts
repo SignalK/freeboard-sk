@@ -22,7 +22,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppFacade } from 'src/app/app.facade';
-import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { AutopilotService } from './autopilot.service';
 

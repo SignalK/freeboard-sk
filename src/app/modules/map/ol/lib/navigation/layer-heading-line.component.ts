@@ -16,7 +16,7 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
+import { LineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { fromLonLatArray } from '../util';

@@ -13,7 +13,6 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Fill, Stroke, Style, Text } from 'ol/style';
 import {
-  Observable,
   Subject,
   Subscription,
   catchError,

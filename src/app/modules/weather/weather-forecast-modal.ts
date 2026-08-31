@@ -1,7 +1,7 @@
 /** Weather Forecast Component **
  ********************************/
 
-import { Component, OnInit, Inject, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';

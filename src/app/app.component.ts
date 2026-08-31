@@ -99,7 +99,6 @@ import {
   Position,
   ErrorList
 } from './types';
-import { Feature } from 'ol';
 import {
   DrawFeatureType,
   FBMapInteractService,
@@ -119,17 +118,6 @@ import {
   WaypointPanel
 } from './modules/skresources';
 import { SymbolService, setSymbolRegistry } from './modules/icons';
-
-interface DrawEndEvent {
-  coordinates: LineString | Position | Polygon;
-  enabled: boolean;
-  features: Feature[];
-  forSave: boolean;
-  mode: string;
-  modify: false;
-  properties: { [key: string]: unknown };
-  type: string;
-}
 
 @Component({
   selector: 'app-root',

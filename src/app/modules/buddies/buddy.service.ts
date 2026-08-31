@@ -2,11 +2,6 @@ import { Injectable } from '@angular/core';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 
-interface BuddyProperties {
-  urn: string;
-  name: string;
-}
-
 const BUDDIES_URI = '/resources/buddies';
 
 // ** Signal K Buddies operations

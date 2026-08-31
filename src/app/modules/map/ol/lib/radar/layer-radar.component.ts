@@ -9,9 +9,7 @@ import {
   ChangeDetectorRef,
   OnDestroy,
   inject,
-  output,
-  input,
-  effect
+  output
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Coordinate } from '../models';

@@ -9,9 +9,8 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, Stroke, Text, Fill, Circle, RegularShape } from 'ol/style';
+import { Style, Stroke, Fill, Circle, RegularShape } from 'ol/style';
 import { LineString, Point } from 'ol/geom';
-import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { FBFeatureLayerComponent } from '../sk-feature.component';

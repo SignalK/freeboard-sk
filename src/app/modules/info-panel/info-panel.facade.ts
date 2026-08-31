@@ -9,13 +9,7 @@ import {
   SKTrack,
   SKWaypoint
 } from '../skresources';
-import {
-  ChartResource,
-  FBNote,
-  FBRegion,
-  FBRoute,
-  FBWaypoint
-} from 'src/app/types';
+import { FBNote, FBRegion, FBRoute, FBWaypoint } from 'src/app/types';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ActiveRadar } from '../radar/radar-api.service';
 
