@@ -2972,6 +2972,7 @@ export class SKResourceService {
    */
   private transformVessel(vessel: any, id: string): SKVessel {
     const v = new SKVessel();
+    v.id = id;
     v.mmsi = vessel.mmsi ?? '';
     v.name = vessel.name ?? '';
     v.position = vessel.navigation?.position?.value
