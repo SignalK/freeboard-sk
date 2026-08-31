@@ -426,7 +426,7 @@ export class AppComponent {
         })
       );
     });
-    document.addEventListener('fullscreenerror', (e) => {
+    document.addEventListener('fullscreenerror', () => {
       this.displayFullscreen.update((current) =>
         Object.assign({}, current, { active: false })
       );
@@ -2247,7 +2247,7 @@ export class AppComponent {
 
   // ** Update NavData Panel display **
   private updateNavPanel() {
-    this.navDataPanel.update((current) => {
+    this.navDataPanel.update(() => {
       return {
         show:
           this.app.data.activeRoute ||

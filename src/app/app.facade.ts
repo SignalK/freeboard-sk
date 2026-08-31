@@ -520,7 +520,7 @@ export class AppFacade extends InfoService {
       this.config.map.center = [...this.config.vessels.fixedPosition];
     }
 
-    this.selfLines.update((current) => {
+    this.selfLines.update(() => {
       const c = {
         cog: {
           fill: { color: this.config.vessels.selfLines.cog.color },

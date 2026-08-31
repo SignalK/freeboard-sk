@@ -107,7 +107,6 @@ export class RacingStartLineLayerComponent
     styles.push(this.racecourseStyles.startLine);
 
     // point styles
-    const l = geometry.getCoordinates().length;
     geometry.forEachSegment((start, end) => {
       styles.push(
         new Style({

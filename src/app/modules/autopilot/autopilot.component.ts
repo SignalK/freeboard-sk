@@ -365,10 +365,6 @@ export class AutopilotComponent {
 
   /** engage / disengage the pilot */
   protected async toggleEngaged() {
-    const uri = this.apData().enabled
-      ? `${this.autopilotApiPath}/disengage`
-      : `${this.autopilotApiPath}/engage`;
-
     try {
       if (this.apData().enabled) {
         await this.autopilot.disengage();

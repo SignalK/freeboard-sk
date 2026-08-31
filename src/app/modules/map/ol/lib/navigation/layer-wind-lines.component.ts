@@ -90,7 +90,7 @@ export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  ngOnChanges() {
     if (this.layer) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};

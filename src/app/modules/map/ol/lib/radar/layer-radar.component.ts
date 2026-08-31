@@ -75,7 +75,7 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
       this.layerReady.complete();
     }
 
-    const radar = this.radarRenderService
+    this.radarRenderService
       .connect()
       .then((radar) => {
         if (radar) {

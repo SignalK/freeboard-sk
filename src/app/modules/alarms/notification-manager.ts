@@ -263,7 +263,7 @@ export class NotificationManager {
         data: { alert: this.getAlert(path) }
       })
       .afterDismissed()
-      .subscribe((action) => {
+      .subscribe(() => {
         // some action
       });
   }
