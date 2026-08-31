@@ -1426,7 +1426,7 @@ export class SKResourceService {
           this.signalk
             .post(`/signalk/chart-tiles/cache/${chart[0]}`, req)
             .subscribe({
-              next: (res) => {
+              next: () => {
                 this.app.showAlert(
                   'Chart Cache',
                   `Tile cache seed job created successfully.`

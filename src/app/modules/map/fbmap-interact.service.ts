@@ -254,11 +254,8 @@ export class FBMapInteractService {
     return GeoUtils.distanceTo(this.measurement().center, pt);
   }
 
-  /**
-   * Start measuring mode
-   * @param fromVessel true = distance is measured from vessel to cursor, false = line measure
-   */
-  startMeasuring(geometryType?: 'LineString' | 'Circle', fromVessel?: boolean) {
+  /** Start measuring mode */
+  startMeasuring(geometryType?: 'LineString' | 'Circle') {
     this.measureGeometryType = geometryType ?? 'LineString';
     this.app.debug(`startMeasuring()...`);
     this.isMeasuring.set(true);

@@ -7,7 +7,6 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
   input,
   effect
 } from '@angular/core';

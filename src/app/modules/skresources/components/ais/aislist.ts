@@ -225,7 +225,7 @@ export class AISListComponent extends ResourceListBase {
    * @param id Vessel identifier
    */
   protected itemSelect(checked: boolean, id: string) {
-    const idx = this.toggleItem(checked, id);
+    this.toggleItem(checked, id);
     // update selections
     if (checked) {
       this.skres.selectionAdd(this.collection, id);

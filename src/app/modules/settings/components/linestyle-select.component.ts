@@ -43,19 +43,12 @@ export type LineStyleDash = 'none' | 'short' | 'medium' | 'long' | 'alt';
           matNativeControl
           type="color"
           [(ngModel)]="_color"
-          (change)="
-            onSelectChange({ key: 'color', value: $event.srcElement.value })
-          "
+          (change)="onSelectChange()"
         />
       </mat-form-field>
       <mat-form-field style="width: 110px">
         <mat-label>Weight</mat-label>
-        <mat-select
-          [(ngModel)]="_weight"
-          (selectionChange)="
-            onSelectChange({ key: 'weight', value: $event.value })
-          "
-        >
+        <mat-select [(ngModel)]="_weight" (selectionChange)="onSelectChange()">
           <mat-select-trigger>
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg
@@ -98,12 +91,7 @@ export type LineStyleDash = 'none' | 'short' | 'medium' | 'long' | 'alt';
       </mat-form-field>
       <mat-form-field style="width: 110px">
         <mat-label>Style</mat-label>
-        <mat-select
-          [(ngModel)]="_dash"
-          (selectionChange)="
-            onSelectChange({ key: 'dash', value: $event.value })
-          "
-        >
+        <mat-select [(ngModel)]="_dash" (selectionChange)="onSelectChange()">
           <mat-select-trigger>
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg
@@ -173,7 +161,7 @@ export class LineStyleSelectComponent {
 
   ngOnInit() {}
 
-  onSelectChange(opt: { key: string; value: any }) {
+  onSelectChange() {
     const d = this.app.formatLineDashArray(this._dash());
 
     this.selectionChange.emit({

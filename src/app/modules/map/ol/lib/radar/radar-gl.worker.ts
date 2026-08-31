@@ -269,11 +269,11 @@ addEventListener('message', (event) => {
         postMessage({ redraw: true });
       };
 
-      socket.onopen = (event) => {
+      socket.onopen = () => {
         postMessage({ msg: `Radar ${radar.name} connected` });
       };
 
-      socket.onclose = (event) => {
+      socket.onclose = () => {
         postMessage({
           msg: `Radar ${radar.name} disconnected retry in 3 seconds`
         });
@@ -283,7 +283,7 @@ addEventListener('message', (event) => {
         }, 3000);
       };
 
-      socket.onerror = (event) => {
+      socket.onerror = () => {
         radarContext.clear(radarContext.COLOR_BUFFER_BIT);
         postMessage({
           redraw: true,

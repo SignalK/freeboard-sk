@@ -208,7 +208,7 @@ export class InfoLayerListComponent extends ResourceListBase {
    * @param id layer identifier
    */
   protected itemSelect(checked: boolean, id: string) {
-    const idx = this.toggleItem(checked, id);
+    this.toggleItem(checked, id);
     // update selections
     if (checked) {
       this.skres.selectionAdd(this.collection, id);
@@ -293,7 +293,6 @@ export class InfoLayerListComponent extends ResourceListBase {
       const p =
         new Date(layer[1].values.time?.from).valueOf() +
         index * layer[1].values.time?.interval;
-      const pd = new Date(p).toISOString();
       this.paramChanged.emit({
         id: layer[0],
         param: { TIME: new Date(p).toISOString() }

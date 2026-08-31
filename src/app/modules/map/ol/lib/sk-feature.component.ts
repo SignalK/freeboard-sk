@@ -140,7 +140,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
    * @override
    * @param isSet true when dark mode is set
    */
-  onDarkMode(isSet: boolean) {
+  onDarkMode(_isSet: boolean) {
     this.updateLabels();
   }
 
@@ -148,7 +148,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
    * @override
    * @param value new threshold value
    */
-  onLabelMinZoomSet(value: number) {
+  onLabelMinZoomSet(_value: number) {
     this.updateLabels();
   }
 
@@ -156,7 +156,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
    * @override
    * @param entered true when transition is from below to above threshold
    */
-  onLabelZoomThreshold(entered: boolean) {
+  onLabelZoomThreshold(_entered: boolean) {
     this.updateLabels();
   }
 
