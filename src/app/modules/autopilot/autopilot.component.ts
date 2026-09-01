@@ -299,7 +299,6 @@ export class AutopilotComponent {
   protected stateOptions = signal<Array<{ name: string; engaged: boolean }>>(
     []
   );
-  private autopilotApiPath: string;
   private currentPilot: string;
 
   apData = input<{
@@ -328,7 +327,6 @@ export class AutopilotComponent {
     protected app: AppFacade,
     protected autopilot: AutopilotService
   ) {
-    this.autopilotApiPath = 'vessels/self/autopilots/_default';
     effect(() => {
       if (this.apData().default !== this.currentPilot) {
         this.app.debug(
