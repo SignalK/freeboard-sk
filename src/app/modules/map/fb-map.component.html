@@ -508,7 +508,13 @@
 
   <!-- Notes (display-filtered by plotter extensions) -->
   @if (showNoteslayer()) {
-    <fb-notes [notes]="plotterExt.visibleNotes()" [zIndex]="450"> </fb-notes>
+    <fb-notes
+      [notes]="plotterExt.visibleNotes()"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="450"
+    >
+    </fb-notes>
   }
 
   <!-- Distance & Bearing to -->
