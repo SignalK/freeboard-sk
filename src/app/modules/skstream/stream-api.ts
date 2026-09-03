@@ -142,7 +142,7 @@ export class SKStreamAPI {
     if (typeof e.data === 'string') {
       try {
         data = JSON.parse(e.data);
-      } catch (e) {
+      } catch {
         return;
       }
     }

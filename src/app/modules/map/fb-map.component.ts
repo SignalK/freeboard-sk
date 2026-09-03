@@ -495,7 +495,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         : 'nautical';
       const c = this.olMap.getMap().getControls().getArray();
       (c[0] as ScaleLine).setUnits(u);
-    } catch (err) {
+    } catch {
       // no map or scale control
     }
   }
@@ -979,7 +979,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Handle OL interaction end event */
-  protected onDragBoxCancel(e: DragBoxEvent) {
+  protected onDragBoxCancel() {
     this.app.debug(`onDragBoxCancel()...`);
     this.mapInteract.stopBoxSelection();
   }
@@ -2594,7 +2594,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @todo Experiment
    */
   private getFeatureInfo() {
-    const f = [].concat(this.mapService.featureUrls());
     /*fetch(this.featureUrl)
     .then((response) => response.json())
     .then((json) => {

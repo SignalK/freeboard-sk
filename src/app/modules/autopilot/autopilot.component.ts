@@ -22,7 +22,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppFacade } from 'src/app/app.facade';
-import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { AutopilotService } from './autopilot.service';
 
@@ -300,7 +299,6 @@ export class AutopilotComponent {
   protected stateOptions = signal<Array<{ name: string; engaged: boolean }>>(
     []
   );
-  private autopilotApiPath: string;
   private currentPilot: string;
 
   apData = input<{
@@ -329,7 +327,6 @@ export class AutopilotComponent {
     protected app: AppFacade,
     protected autopilot: AutopilotService
   ) {
-    this.autopilotApiPath = 'vessels/self/autopilots/_default';
     effect(() => {
       if (this.apData().default !== this.currentPilot) {
         this.app.debug(
@@ -357,7 +354,7 @@ export class AutopilotComponent {
       if (options.states && Array.isArray(options.states)) {
         this.stateOptions.set(options.states);
       }
-    } catch (err) {
+    } catch {
       this.modeOptions.set([]);
       this.stateOptions.set([]);
       this.app.showMessage('No autopilot providers found!');
@@ -366,10 +363,6 @@ export class AutopilotComponent {
 
   /** engage / disengage the pilot */
   protected async toggleEngaged() {
-    const uri = this.apData().enabled
-      ? `${this.autopilotApiPath}/disengage`
-      : `${this.autopilotApiPath}/engage`;
-
     try {
       if (this.apData().enabled) {
         await this.autopilot.disengage();

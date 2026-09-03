@@ -343,7 +343,7 @@ export class GPX {
         ? this.parseExtensions(xjs['gpx']['extensions'])
         : {};
       return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   }

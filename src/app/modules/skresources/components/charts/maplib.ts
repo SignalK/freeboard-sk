@@ -1,7 +1,3 @@
-import { WMSCapabilities, WMTSCapabilities } from 'ol/format';
-import { SKInfoLayer } from '../../custom-resource-classes';
-import { ChartProvider } from 'src/app/types';
-
 type CapabilitiesBaseDef = {
   name: string;
   description: string;

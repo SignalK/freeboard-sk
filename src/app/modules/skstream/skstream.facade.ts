@@ -444,7 +444,7 @@ export class SKStreamFacade {
 
   private parseVesselOther(otherVessels: Map<string, SKVessel>) {
     this.app.data.vessels.aisTargets = otherVessels;
-    this.app.data.vessels.aisTargets.forEach((value, key) => {
+    this.app.data.vessels.aisTargets.forEach((value) => {
       this.processVessel(value);
 
       value.wind.direction = this.app.useMagnetic

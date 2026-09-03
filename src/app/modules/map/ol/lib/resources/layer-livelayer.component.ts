@@ -96,7 +96,7 @@ export class FreeboardLiveLayerComponent
   private onTimerTick() {
     const n = Date.now();
     //console.log('InfoLayer timer tick...', n);
-    this.layerMap.forEach((v, k) => {
+    this.layerMap.forEach((v) => {
       //console.log(k, v.infoLayer.values.refreshInterval, v.lastRefresh, n - v.lastRefresh)
       if (
         v.infoLayer.values?.refreshInterval > 0 &&
@@ -244,7 +244,7 @@ export class FreeboardLiveLayerComponent
         const parser = new WMTSCapabilities();
         result = parser.read(capabilitiesXml);
         this.wmtsCapabilitesMap.set(ldef[1].values?.url, result);
-      } catch (err) {
+      } catch {
         clearTimeout(abortTimer);
         return;
       }

@@ -335,7 +335,7 @@ export class ChartPropertiesDialog {
         this.capabilities = await wmtsCapabilitiesInWorker(url);
         this.wmtsLayers.update(() => this.capabilities.layers);
       }
-    } catch (err) {
+    } catch {
       this.layerErrorText = 'Error retrieving layers.';
     }
   }

@@ -226,8 +226,10 @@ export class AlertComponent {
 
   constructor() {
     effect(() => {
-      const ack = this.acknowledged();
-      const mute = this.silenced();
+      // Read (not just stored) so the effect re-runs when these inputs
+      // change, even though only al.type/priority below is consulted.
+      this.acknowledged();
+      this.silenced();
       const al = this.alert();
       this.showStaticNextPoint = [
         'perpendicularPassed',

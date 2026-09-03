@@ -99,7 +99,6 @@ import {
   Position,
   ErrorList
 } from './types';
-import { Feature } from 'ol';
 import {
   DrawFeatureType,
   FBMapInteractService,
@@ -119,17 +118,6 @@ import {
   WaypointPanel
 } from './modules/skresources';
 import { SymbolService, setSymbolRegistry } from './modules/icons';
-
-interface DrawEndEvent {
-  coordinates: LineString | Position | Polygon;
-  enabled: boolean;
-  features: Feature[];
-  forSave: boolean;
-  mode: string;
-  modify: false;
-  properties: { [key: string]: unknown };
-  type: string;
-}
 
 @Component({
   selector: 'app-root',
@@ -438,7 +426,7 @@ export class AppComponent {
         })
       );
     });
-    document.addEventListener('fullscreenerror', (e) => {
+    document.addEventListener('fullscreenerror', () => {
       this.displayFullscreen.update((current) =>
         Object.assign({}, current, { active: false })
       );
@@ -1351,7 +1339,7 @@ export class AppComponent {
         try {
           const d = JSON.parse(res.data);
           this.skres.postToServer(res.path as any, d);
-        } catch (err) {
+        } catch {
           this.app.showAlert(
             'Load Resource',
             'Resources were not loaded!\nInvalid JSON.'
@@ -2259,7 +2247,7 @@ export class AppComponent {
 
   // ** Update NavData Panel display **
   private updateNavPanel() {
-    this.navDataPanel.update((current) => {
+    this.navDataPanel.update(() => {
       return {
         show:
           this.app.data.activeRoute ||

@@ -29,7 +29,11 @@ module.exports = [
       ...tsPlugin.configs['flat/recommended']
         .map((c) => c.rules)
         .reduce((all, rules) => Object.assign(all, rules), {}),
-      eqeqeq: 'warn'
+      eqeqeq: 'warn',
+      // A `_`-prefixed parameter is required by an override/interface
+      // contract that some other implementation genuinely reads, even
+      // though the base or this particular implementation does not.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
     }
   }
 ];

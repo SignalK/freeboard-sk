@@ -17,7 +17,7 @@ import { Style, Stroke, Fill, RegularShape } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { Extent, Coordinate } from '../models';
+import { Extent } from '../models';
 import { AsyncSubject } from 'rxjs';
 import { AlertData } from 'src/app/modules/alarms';
 

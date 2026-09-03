@@ -193,7 +193,7 @@ export class AISBaseLayerComponent
     this.onUpdateTargets(ids, areStale);
   }
 
-  protected onUpdateTargets(ids: Array<string>, areStale: boolean) {
+  protected onUpdateTargets(_ids: Array<string>, _areStale: boolean) {
     // overloadable
   }
 
@@ -205,7 +205,7 @@ export class AISBaseLayerComponent
     this.onRemoveTargets(ids);
   }
 
-  protected onRemoveTargets(ids: Array<string>) {
+  protected onRemoveTargets(_ids: Array<string>) {
     // overloadable
   }
 }

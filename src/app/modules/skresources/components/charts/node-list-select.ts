@@ -1,11 +1,4 @@
-import {
-  Component,
-  effect,
-  EventEmitter,
-  inject,
-  input,
-  Output
-} from '@angular/core';
+import { Component, EventEmitter, inject, input, Output } from '@angular/core';
 
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';

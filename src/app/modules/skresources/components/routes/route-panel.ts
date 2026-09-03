@@ -36,7 +36,6 @@ import { SingleSelectListDialog } from 'src/app/lib/components';
 import { CourseService } from 'src/app/modules/course';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { MatStepperModule } from '@angular/material/stepper';
-import { Convert } from 'src/app/lib/convert';
 import { ActiveResourcePropertiesModal } from '../active-resource-dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

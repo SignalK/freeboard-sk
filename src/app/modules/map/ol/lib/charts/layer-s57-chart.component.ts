@@ -57,12 +57,6 @@ export class S57ChartLayerComponent implements OnDestroy {
     }
 
     if (!this.layer) {
-      const minZ =
-        chart[1].minZoom && chart[1].minZoom >= 0.1
-          ? chart[1].minZoom - 0.1
-          : chart[1].minZoom;
-      const maxZ = chart[1].maxZoom;
-
       const styleFactory = this.vectorLayerStyleFactory.CreateVectorLayerStyler(
         chart[1]
       );

@@ -6,7 +6,7 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, RegularShape, Fill, Stroke, Text, Icon } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Text } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';

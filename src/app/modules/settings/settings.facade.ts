@@ -371,9 +371,6 @@ export class SettingsFacade {
   /** Favourited plugins / apps */
   buildFavouritesList() {
     this.favouritesList = this.applicationList.slice(1);
-    const i = this.app.config.display.plugins.favourites.indexOf(
-      this.app.config.display.plugins.instruments
-    );
   }
 
   /** Apply / persist settings */

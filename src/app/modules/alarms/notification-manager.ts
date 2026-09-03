@@ -3,7 +3,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
   ALARM_METHOD,
-  ALARM_STATE,
   NotificationMessage,
   PathValue,
   SKNotification
@@ -264,7 +263,7 @@ export class NotificationManager {
         data: { alert: this.getAlert(path) }
       })
       .afterDismissed()
-      .subscribe((action) => {
+      .subscribe(() => {
         // some action
       });
   }

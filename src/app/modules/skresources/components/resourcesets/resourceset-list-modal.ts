@@ -153,7 +153,7 @@ export class ResourceSetModal implements OnInit {
       );
       this.app.sIsFetching.set(false);
       this.resList.set(list);
-    } catch (err) {
+    } catch {
       this.app.sIsFetching.set(false);
       this.resList.set([]);
     }

@@ -483,7 +483,7 @@ export function cleanConfig(
       if (!isNaN(z)) {
         settings.map.zoomLevel = z > 28 ? 28 : z < 1 ? 1 : z;
       }
-    } catch (error) {
+    } catch {
       console.warn(
         `Invalid zoom level parameter (${hostParams.zoom} supplied!`
       );

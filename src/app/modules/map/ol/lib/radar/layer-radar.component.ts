@@ -9,9 +9,7 @@ import {
   ChangeDetectorRef,
   OnDestroy,
   inject,
-  output,
-  input,
-  effect
+  output
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Coordinate } from '../models';
@@ -77,7 +75,7 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
       this.layerReady.complete();
     }
 
-    const radar = this.radarRenderService
+    this.radarRenderService
       .connect()
       .then((radar) => {
         if (radar) {

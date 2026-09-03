@@ -107,7 +107,7 @@ export class GPXExportDialog implements OnInit {
       );
       this.data.waypoints = w;
       this.app.sIsFetching.set(false);
-    } catch (err) {
+    } catch {
       this.app.sIsFetching.set(false);
       this.resData.waypoints = [];
     }
