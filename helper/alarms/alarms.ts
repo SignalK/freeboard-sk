@@ -241,7 +241,11 @@ const handleDeltaMessage = (delta: Delta) => {
   });
 };
 
-const initAlarmEndpoints = async () => {
+// Not async: the body registers routes synchronously (the only `await` below
+// is inside a route handler, which runs per-request). Marking it async made
+// the call in initAlarms() a floating promise, so anything thrown here became
+// an unhandled rejection that bypassed doStartup()'s try/catch entirely.
+const initAlarmEndpoints = () => {
   server.debug(`** Registering Alarm Action API endpoint(s) **`);
 
   // list area alarms
