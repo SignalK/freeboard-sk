@@ -74,5 +74,5 @@
   { "feature": null, "kind": "skip", "date": "2026-04-04", "title": "perf: defer S57 chart symbols loading until first use", "reason": "performance work — no change to what the user can do" },
   { "feature": "chart-list", "pr": 680, "kind": "enhanced", "since": "v3.1.0", "date": "2026-08-08", "title": "feat(charts): re-order charts from the chart list itself" },
   { "feature": "chart-zoom-limits", "pr": 679, "kind": "enhanced", "since": "v3.1.0", "date": "2026-08-08", "title": "feat(charts): add a per-chart minimum zoom level" },
-  { "feature": "follow-vessel", "pr": 726, "kind": "enhanced", "date": "2026-09-02", "title": "feat(map): resume follow mode after a configurable idle period" }
+  { "feature": "follow-vessel", "pr": 726, "kind": "enhanced", "since": "v3.2.0-beta.0", "date": "2026-09-02", "title": "feat(map): resume follow mode after a configurable idle period" }
 ]
