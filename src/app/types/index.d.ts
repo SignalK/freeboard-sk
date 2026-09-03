@@ -144,6 +144,7 @@ export interface IAppConfig {
     center: Position;
     rotation: number;
     panBehavior: MapPanBehavior; // what panning the chart does while following the vessel
+    refollowDelay: number; // secs of idle before a pan-released follow mode resumes; 0 = never
     animate: boolean;
     labelsMinZoom: number;
     doubleClickZoom: boolean; // true=zoom

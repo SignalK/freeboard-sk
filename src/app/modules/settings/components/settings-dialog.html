@@ -553,7 +553,11 @@
                       Keep tiles visible on max zoom
                     </mat-checkbox>
                   </div>
-                  <div class="setting-card-row-item">
+                  <!-- One stacked item, not two row items: a `setting-card-row-item`
+                       that wraps gets a line to itself and is stretched across the
+                       whole card. Stacking keeps the dependent control directly
+                       beneath its parent, in the same column. -->
+                  <div class="setting-card-row-item setting-card-row-stack">
                     <mat-form-field style="width: 100%">
                       <mat-label>Map Pan When Following</mat-label>
                       <mat-select
@@ -566,6 +570,20 @@
                         }
                       </mat-select>
                     </mat-form-field>
+                    @if(facade.settings.map.panBehavior === 'exit') {
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Resume Following After</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.map.refollowDelay"
+                        (selectionChange)="persistModel()"
+                        matTooltip="Resume following the vessel once the chart has been left idle for this long."
+                      >
+                        @for(i of options.map.refollowDelay; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    }
                   </div>
                 </div>
               </mat-card-content>
