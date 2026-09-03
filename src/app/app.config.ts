@@ -149,6 +149,9 @@ export function cleanConfig(
     settings.map.panBehavior = legacyPanBehavior(legacy.lockMoveMap);
     delete legacy.lockMoveMap;
   }
+  if (typeof settings.map.refollowDelay !== 'number') {
+    settings.map.refollowDelay = 0;
+  }
   if (typeof settings.map.popoverMulti === 'undefined') {
     settings.map.popoverMulti = false;
   }
@@ -550,6 +553,7 @@ export function defaultConfig(): IAppConfig {
       center: [0, 0],
       rotation: 0,
       panBehavior: 'offset',
+      refollowDelay: 0,
       animate: false,
       labelsMinZoom: 8,
       doubleClickZoom: false, // true=zoom

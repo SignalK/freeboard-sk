@@ -35,6 +35,14 @@
   padding-right: 15px;
   flex: 1 1 auto;
 }
+/* A row item stacking a control with its dependent sub-control. The stack is
+   wider at max-content than a single control, so under the default
+   `flex-basis: auto` it wraps onto a line of its own — where `flex-grow: 1`
+   then stretches it across the whole card. An explicit basis keeps the pair in
+   its column, directly beneath the control it depends on. */
+.settings .setting-card-row-item.setting-card-row-stack {
+  flex-basis: 220px;
+}
 /* A label shared by several related inputs, standing in for the mat-label a
    single control would carry. An empty one is a spacer keeping a neighbouring
    single control's box level with the group's boxes. */

@@ -94,6 +94,15 @@ export class SettingsOptions {
       ['exit', 'Exit Follow Mode'],
       ['none', 'Do nothing']
     ]),
+    refollowDelay: new Map<number, string>([
+      [0, 'Never'],
+      [5, '5 secs'],
+      [10, '10 secs'],
+      [15, '15 secs'],
+      [20, '20 secs'],
+      [30, '30 secs'],
+      [60, '60 secs']
+    ]),
     s57: {
       graphicsStyle: new Map([
         ['Simplified', 'Simplified'],

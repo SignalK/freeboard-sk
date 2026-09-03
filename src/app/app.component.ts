@@ -489,6 +489,14 @@ export class AppComponent {
     this.focusMap();
   }
 
+  /** Follow mode resumed by the idle timer after a pan released it (#714). */
+  protected resumeMoveMap() {
+    this.app.uiConfig.update((current) => {
+      return Object.assign({}, current, { mapMove: true });
+    });
+    this.focusMap();
+  }
+
   protected toggleNorthUp() {
     this.app.uiConfig.update((current) => {
       return Object.assign({}, current, { mapNorthUp: !current.mapNorthUp });

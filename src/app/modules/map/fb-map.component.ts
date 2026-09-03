@@ -51,6 +51,7 @@ import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
+import { isRefollowActivity, RefollowTimer } from 'src/app/lib/refollow-timer';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
 import { CursorPin, tapFadeMs, TAP_MAX_DURATION } from './cursor-marker';
 import {
@@ -223,6 +224,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Output() deactivate: EventEmitter<string> = new EventEmitter();
   @Output() info: EventEmitter<IResource> = new EventEmitter();
   @Output() exitMovingMap: EventEmitter<boolean> = new EventEmitter();
+  @Output() resumeMovingMap: EventEmitter<void> = new EventEmitter();
   @Output() focusVessel: EventEmitter<string> = new EventEmitter();
   @Output() menuItemSelected: EventEmitter<string> = new EventEmitter();
 
@@ -314,6 +316,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * map centre becomes the new vessel centre offset. */
   private userPanned = false;
   private offsetGraceTimer;
+  /** Brings follow mode back once the display has been idle for the configured
+   * delay after a pan released it (#714). Never armed unless that delay is set. */
+  private refollow = new RefollowTimer(() =>
+    // Armed from a pointer drag, so the expiry fires outside the Angular zone;
+    // re-enter it so resuming follow mode propagates to the UI.
+    this.ngZone.run(() => this.resumeMovingMap.emit())
+  );
   /** True while the vessel is held dead centre just after follow mode is
    * turned on (see startOffsetGrace). */
   private offsetSuppressed = false;
@@ -430,6 +439,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.stopSaveTimer();
     this.stopOffsetGrace();
+    this.refollow.cancel();
     this.cursorPin.release();
     this.obsList.forEach((i) => i.unsubscribe());
   }
@@ -451,6 +461,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     if (changes && changes.movingMap && !changes.movingMap.firstChange) {
       if (changes.movingMap.currentValue) {
+        // Following again — by the Follow button or by the timer below — so the
+        // countdown has nothing left to do. Only the `false` branch may leave it
+        // armed: that is the pan-triggered exit that armed it in the first place.
+        this.refollow.cancel();
         this.startSaveTimer();
         this.startOffsetGrace();
       } else {
@@ -716,6 +730,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     }
 
+    // A zoom restarts the idle countdown; a rotation-only move-end must not
+    // (#714) — see isRefollowActivity. Panning is signalled by
+    // onMapPointerDrag() instead, where it is unambiguously the user.
+    if (isRefollowActivity(e)) {
+      this.refollow.reset();
+    }
+
     this.drawVesselLines();
     if (!this.movingMap) {
       // debounce: a flurry of pans/zooms collapses into one save
@@ -782,6 +803,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   protected onMapPointerDrag() {
+    // A drag is the user, so it restarts the idle countdown — before the
+    // follow-mode guard below, because every pan AFTER the one that released
+    // follow mode arrives with follow already off and must still count (#714).
+    this.refollow.reset();
     if (!this.app.uiConfig().mapMove) {
       return;
     }
@@ -789,6 +814,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // pointer-drag runs outside the Angular zone (see MapComponent); re-enter
       // so exiting "move map" mode propagates to the UI. Rare one-off transition.
       this.ngZone.run(() => this.exitMovingMap.emit(true));
+      // The pan that releases follow mode also starts the idle countdown that
+      // brings it back (#714). Further drags and zooms restart it above.
+      this.refollow.arm(this.app.config.map.refollowDelay);
     } else if (this.app.config.map.panBehavior === 'offset') {
       // Follow mode stays on; onMapMoveEnd() captures the new look-ahead once
       // the drag settles.
