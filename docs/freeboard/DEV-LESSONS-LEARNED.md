@@ -277,6 +277,60 @@ cleared by a *later* input event, because on this map "later input" can precede
 "earlier event". When in doubt, read OL's `MapBrowserEventHandler` for the event
 you depend on: whether it is timer-delayed, and what actually cancels it.
 
+### `moveend` means "the view changed", never "the user did something"
+
+**The trap.** A feature that should respond to the user panning or zooming reads
+naturally as "act on `moveend`" — that is when a gesture settles, so it looks like
+the gesture's event. It is not. `moveend` fires for *any* view change, including
+ones the app makes itself, and on this map one of those fires continuously:
+`rotateMap()` runs on every vessel update and is **not** gated on follow mode, so
+a **heading-up** chart re-rotates on each heading change and every rotation ends
+in its own `moveend`.
+
+Anything that treats each `moveend` as fresh user activity therefore never settles
+while the boat is under way. In #714 that was an idle countdown restarted on every
+`moveend`: it was pushed out roughly once a second and the feature simply never
+fired.
+
+**Why it survives testing.** A bench vessel has a steady heading, so no rotations
+occur, no spurious `moveend`s fire, and the feature works perfectly. The bug is
+visible *only* on a moving vessel in heading-up — a combination no local test
+reproduces by default.
+
+**What to do instead.** Decide from *what changed*, not from the event arriving.
+Centre or zoom changed → the user; rotation alone → not the user, since rotating
+moves neither. Compare against the previous `moveend`'s values:
+
+```ts
+export function isRefollowActivity(
+  move: { lonlat?: number[]; zoomChanged?: boolean },
+  previousCenter?: number[] | null
+): boolean {
+  if (move.zoomChanged === true) return true;          // user zoomed
+  if (!previousCenter || !move.lonlat) return false;
+  return (
+    move.lonlat[0] !== previousCenter[0] || move.lonlat[1] !== previousCenter[1]
+  );
+}
+```
+
+**Testing the centre also beats listening for the gesture.** The obvious
+alternative — take the pan from `pointerdrag` instead — silently misses
+OpenLayers' `keyboardpan`: the arrow keys move the view and fire `moveend`, but
+emit no `pointerdrag` and change no zoom. That is reachable here, not dead code
+(the map div carries `tabindex="-1"` and `focusMap()` runs after most toolbar
+actions). Reading the *result* covers every pan mechanism at once; subscribing to
+one input device covers only that device. Keep a `pointerdrag` hook alongside it
+only for what the result cannot tell you — it fires *mid*-gesture, before any
+`moveend`, so a slow drag cannot time out under the user's finger.
+
+**When you cannot reproduce a map bug locally, check your vessel is moving before
+concluding the theory is wrong.** Diagnosing #714 cost an extra round because a
+poll of centre and zoom showed a perfectly static map, which read as "the map is
+not moving, so spurious `moveend`s are not the cause" — but centre and zoom are
+exactly the two quantities a rotation does *not* change. The measurement excluded
+the thing being measured.
+
 ---
 
 ## When testing
