@@ -113,18 +113,39 @@ describe('RefollowTimer', () => {
 });
 
 describe('isRefollowActivity', () => {
+  const HERE: [number, number] = [24.7, 59.7];
+
   it('counts a zoom as activity', () => {
-    expect(isRefollowActivity({ zoomChanged: true })).toBe(true);
+    expect(isRefollowActivity({ lonlat: HERE, zoomChanged: true }, HERE)).toBe(
+      true
+    );
+  });
+
+  it('counts a move of the centre as activity even with no zoom change', () => {
+    // OpenLayers' keyboardpan moves the view with the arrow keys: it fires a
+    // move-end but emits no pointerdrag and changes no zoom, so the centre is
+    // the only evidence that the user panned.
+    expect(
+      isRefollowActivity({ lonlat: [24.8, 59.7], zoomChanged: false }, HERE)
+    ).toBe(true);
+    expect(
+      isRefollowActivity({ lonlat: [24.7, 59.8], zoomChanged: false }, HERE)
+    ).toBe(true);
   });
 
   it('does NOT count a rotation-only move-end as activity', () => {
     // Heading-up re-rotates the chart on every heading update, follow mode on or
-    // off, and each rotation ends in its own move-end carrying zoomChanged
-    // false. Counting those held the countdown open forever (#714).
-    expect(isRefollowActivity({ zoomChanged: false })).toBe(false);
+    // off, and each rotation ends in its own move-end — same centre, same zoom.
+    // Counting those held the countdown open forever (#714).
+    expect(isRefollowActivity({ lonlat: HERE, zoomChanged: false }, HERE)).toBe(
+      false
+    );
   });
 
-  it('does NOT count a move-end that reports no zoom state', () => {
+  it('does NOT count the first move-end, which has no previous centre', () => {
+    expect(isRefollowActivity({ lonlat: HERE, zoomChanged: false }, null)).toBe(
+      false
+    );
     expect(isRefollowActivity({})).toBe(false);
   });
 });
@@ -142,14 +163,39 @@ describe('RefollowTimer under a heading-up chart (#714 regression)', () => {
     const timer = new RefollowTimer(onExpire);
     timer.arm(5);
 
+    const helm: [number, number] = [24.7, 59.7];
     for (let second = 0; second < 10; second++) {
-      const rotationOnlyMoveEnd = { zoomChanged: false };
-      if (isRefollowActivity(rotationOnlyMoveEnd)) {
+      const rotationOnlyMoveEnd = { lonlat: helm, zoomChanged: false };
+      if (isRefollowActivity(rotationOnlyMoveEnd, helm)) {
         timer.reset();
       }
       vi.advanceTimersByTime(1000);
     }
 
+    expect(onExpire).toHaveBeenCalledTimes(1);
+  });
+
+  it('an arrow-key pan during the countdown still defers the resume', () => {
+    // keyboardpan produces no pointerdrag, so the move-end's centre is the only
+    // signal that the user panned. Without it the chart could snatch itself back
+    // mid-pan.
+    const onExpire = vi.fn();
+    const timer = new RefollowTimer(onExpire);
+    timer.arm(5);
+
+    vi.advanceTimersByTime(4000);
+    if (
+      isRefollowActivity(
+        { lonlat: [24.8, 59.7], zoomChanged: false },
+        [24.7, 59.7]
+      )
+    ) {
+      timer.reset();
+    }
+    vi.advanceTimersByTime(4000);
+    expect(onExpire).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1000);
     expect(onExpire).toHaveBeenCalledTimes(1);
   });
 

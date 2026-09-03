@@ -316,6 +316,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * map centre becomes the new vessel centre offset. */
   private userPanned = false;
   private offsetGraceTimer;
+  /** Map centre as of the last move-end, so the next one can tell a pan (the
+   * user) from a rotation (heading-up turning the chart on its own). */
+  private lastMoveCenter: Position | null = null;
   /** Brings follow mode back once the display has been idle for the configured
    * delay after a pan released it (#714). Never armed unless that delay is set. */
   private refollow = new RefollowTimer(() =>
@@ -730,12 +733,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     }
 
-    // A zoom restarts the idle countdown; a rotation-only move-end must not
-    // (#714) — see isRefollowActivity. Panning is signalled by
-    // onMapPointerDrag() instead, where it is unambiguously the user.
-    if (isRefollowActivity(e)) {
+    // A pan or zoom restarts the idle countdown; a rotation-only move-end must
+    // not (#714) — see isRefollowActivity. Testing the centre here is what
+    // catches a pan that emits no pointer drag, such as the arrow keys.
+    if (isRefollowActivity(e, this.lastMoveCenter)) {
       this.refollow.reset();
     }
+    this.lastMoveCenter = e.lonlat as Position;
 
     this.drawVesselLines();
     if (!this.movingMap) {

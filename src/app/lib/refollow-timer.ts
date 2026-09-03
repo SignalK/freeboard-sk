@@ -63,15 +63,35 @@ export class RefollowTimer {
 }
 
 /**
- * Whether a settled map move restarts the idle countdown.
+ * Whether a settled map move restarts the idle countdown — i.e. whether the
+ * user moved the chart, as opposed to the chart moving by itself.
  *
- * Only a zoom does. A heading-up chart re-rotates on every heading update — and
- * it does so whether or not follow mode is on, because `rotateMap()` is not
- * gated on it — so each heading change ends in its own move-end. Treating every
- * move-end as activity therefore holds the countdown open indefinitely on a
- * vessel under way, and follow mode never comes back (#714). A pan is reported
- * separately by the pointer-drag handler, where it is unambiguously the user.
+ * A change of zoom or of centre is the user; a change of *rotation alone* is
+ * not. A heading-up chart re-rotates on every heading update whether or not
+ * follow mode is on, because `rotateMap()` is not gated on it, so each heading
+ * change ends in its own move-end. Counting those holds the countdown open
+ * indefinitely on a vessel under way and follow mode never comes back (#714).
+ * Rotation moves neither centre nor zoom, so testing those two excludes it.
+ *
+ * Testing the centre — rather than trusting the pointer-drag handler to report
+ * every pan — is what covers panning that never produces a pointer drag, above
+ * all OpenLayers' `keyboardpan`: the arrow keys move the view and fire a
+ * move-end, but emit no `pointerdrag` and change no zoom.
+ *
+ * @param move the settled move
+ * @param previousCenter centre before it; null/absent on the first move-end
  */
-export function isRefollowActivity(move: { zoomChanged?: boolean }): boolean {
-  return move.zoomChanged === true;
+export function isRefollowActivity(
+  move: { lonlat?: number[]; zoomChanged?: boolean },
+  previousCenter?: number[] | null
+): boolean {
+  if (move.zoomChanged === true) {
+    return true;
+  }
+  if (!previousCenter || !move.lonlat) {
+    return false;
+  }
+  return (
+    move.lonlat[0] !== previousCenter[0] || move.lonlat[1] !== previousCenter[1]
+  );
 }
