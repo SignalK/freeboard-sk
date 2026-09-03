@@ -67,3 +67,20 @@ follow mode is on:
 - **Do nothing** — follow mode stays on and the vessel returns to its usual position on
   the next position update. Worth choosing at the helm, where a stray touch shouldn't
   disturb the view.
+
+### Getting follow mode back on its own
+
+Choosing **Exit Follow Mode** reveals a companion setting, **Resume Following After**.
+Leave it at **Never** and nothing changes — follow mode stays off until you press the
+button. Pick a delay instead and the chart hands itself back: pan across to look at what
+is ahead, and once you have left it alone that long the boat returns to the screen on its
+own.
+
+The wait measures idle time, not time since the pan. Every pan and every zoom starts it
+over, so you can take as long as you like looking around and the chart only comes back
+once you have actually stopped. Turning follow mode off with the button is left alone —
+that stays off, so you can still park the chart somewhere deliberately.
+
+Worth setting when the display is out of easy reach, or when whoever is watching it would
+rather not hunt for the Follow button: a quick pan to check the water ahead, then back to
+the boat without touching anything.
