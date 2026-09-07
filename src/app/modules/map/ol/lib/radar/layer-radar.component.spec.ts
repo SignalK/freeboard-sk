@@ -35,6 +35,9 @@ describe('RadarComponent spoke stream', () => {
       .mockReset()
       .mockImplementation(() => new ImageSource({}));
     render.disconnect.mockReset();
+    map.addLayer.mockReset();
+    map.removeLayer.mockReset();
+    map.render.mockReset();
 
     await TestBed.configureTestingModule({
       declarations: [RadarComponent],
@@ -46,8 +49,7 @@ describe('RadarComponent spoke stream', () => {
   });
 
   afterEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (document as any).hidden;
+    Reflect.deleteProperty(document, 'hidden');
   });
 
   it('opens the stream when the overlay comes up on a visible page', async () => {
@@ -89,6 +91,6 @@ describe('RadarComponent spoke stream', () => {
 
     fixture.destroy();
     expect(render.disconnect).toHaveBeenCalledTimes(1);
-    expect(map.removeLayer).toHaveBeenCalled();
+    expect(map.removeLayer).toHaveBeenCalledTimes(1);
   });
 });
