@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   Input,
   Output,
   OnChanges,
@@ -75,16 +76,43 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
       this.layerReady.complete();
     }
 
+    if (!document.hidden) {
+      this.startStream();
+    }
+  }
+
+  // The spoke stream tells the radar provider that someone is watching the
+  // radar, and it may let an unwatched radar stand down. So the stream is
+  // held only while this page is actually on screen: a backgrounded tab or
+  // a phone in a pocket must not keep the radar transmitting.
+  @HostListener('document:visibilitychange')
+  onVisibilityChange() {
+    if (!this.layer) {
+      return;
+    }
+    if (document.hidden) {
+      this.stopStream();
+    } else {
+      this.startStream();
+    }
+  }
+
+  private startStream() {
     this.radarRenderService
       .connect()
       .then((radar) => {
-        if (radar) {
+        if (radar && this.layer) {
           this.layer.setSource(
             this.radarRenderService.createRadarSource(radar, this.subject)
           );
         }
       })
       .catch((error) => this.onError.emit(error));
+  }
+
+  private stopStream() {
+    this.radarRenderService.disconnect();
+    this.layer?.setSource(null);
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -109,12 +137,12 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.stopStream();
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
       this.layer = null;
     }
-    this.radarRenderService.disconnect();
   }
 }
