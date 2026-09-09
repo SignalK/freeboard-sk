@@ -93,8 +93,15 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
   ]);
 
   // ol-mapbox-style has no `image` expression operator; a style using
-  // `["image", name]` (an icon fallback chain) fails to parse and the layer
-  // styles to nothing. Rewrite it to its inner name expression.
+  // `["image", name]` fails to parse and the whole layer styles to nothing.
+  // Rewrite it to its inner name expression.
+  //
+  // Trade-off: in a `["coalesce", ["image", a], ["image", b]]` fallback chain
+  // the fallback is lost — a name the sprite lacks is skipped rather than
+  // falling through to the next branch (ol-mapbox-style draws nothing for an
+  // unknown name). In practice the first branch's sprite covers it; a
+  // `getImage` callback on apply() would restore full fallback if a style ever
+  // needs it. This keeps the icon layers visible instead of blank.
   private unwrapImageExpressions(value: unknown): unknown {
     if (!Array.isArray(value)) {
       return value;
