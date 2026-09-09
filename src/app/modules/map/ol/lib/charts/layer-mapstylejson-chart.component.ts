@@ -66,7 +66,7 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
         this.layer.set('chartFormat', chart[1].format);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
-        apply(this.layer, `${chart[1].url}`);
+        this.applyStyle(this.layer, `${chart[1].url}`);
         map.addLayer(this.layer);
       }
     } else {
@@ -75,5 +75,67 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
     map.render();
+  }
+
+  // Layer types the ol-mapbox-style renderer can draw. A MapLibre style may
+  // contain layers it cannot (e.g. `color-relief`, `heatmap`); when such a
+  // layer is the first of its source, apply() dereferences an undefined layer
+  // and rejects — blanking the whole chart instead of skipping the one layer.
+  private static readonly OL_RENDERABLE_LAYER_TYPES = new Set([
+    'background',
+    'fill',
+    'fill-extrusion',
+    'line',
+    'symbol',
+    'circle',
+    'raster',
+    'hillshade'
+  ]);
+
+  // ol-mapbox-style has no `image` expression operator; a style using
+  // `["image", name]` (an icon fallback chain) fails to parse and the layer
+  // styles to nothing. Rewrite it to its inner name expression.
+  private unwrapImageExpressions(value: unknown): unknown {
+    if (!Array.isArray(value)) {
+      return value;
+    }
+    if (value[0] === 'image' && value.length === 2) {
+      return this.unwrapImageExpressions(value[1]);
+    }
+    return value.map((v) => this.unwrapImageExpressions(v));
+  }
+
+  // Fetch the style, normalise it for the ol-mapbox-style renderer (drop the
+  // layer types it cannot draw, unwrap `image` expressions) and apply it.
+  // Falls back to applying the URL directly if the style can't be fetched or
+  // parsed, preserving the previous behaviour for simple styles.
+  private async applyStyle(layer: LayerGroup, url: string) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const style = await response.json();
+      if (Array.isArray(style?.layers)) {
+        style.layers = style.layers.filter((l: { type: string }) =>
+          MapStyleJsonChartLayerComponent.OL_RENDERABLE_LAYER_TYPES.has(l.type)
+        );
+        for (const l of style.layers) {
+          if (l.layout) {
+            l.layout = this.unwrapImageExpressions(l.layout);
+          }
+          if (l.paint) {
+            l.paint = this.unwrapImageExpressions(l.paint);
+          }
+        }
+      }
+      await apply(layer, style, { styleUrl: url });
+    } catch (err) {
+      console.warn(
+        `MapStyleJsonChart: could not normalise style ${url}, applying as-is`,
+        err
+      );
+      apply(layer, url);
+    }
   }
 }
