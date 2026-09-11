@@ -542,6 +542,9 @@ const parseRegionList = async (attempt: number) => {
   try {
     regList = await server.resourcesApi.listResources('regions', undefined);
   } catch (err) {
+    if (!regionLoadActive) {
+      return; // plugin stopped while the request was in flight
+    }
     const reason = err instanceof Error ? err.message : String(err);
     if (attempt + 1 < REGION_LOAD_DELAYS_MS.length) {
       server.debug(
@@ -558,6 +561,9 @@ const parseRegionList = async (attempt: number) => {
       );
     }
     return;
+  }
+  if (!regionLoadActive) {
+    return; // plugin stopped while the request was in flight
   }
   Object.entries(regList).forEach((r) => processRegionUpdate(r[0], r[1]));
 };

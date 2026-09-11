@@ -240,4 +240,54 @@ describe('initAlarms() — regions provider missing (#732)', () => {
     expect(warn).not.toHaveBeenCalled();
     expect(unhandled).not.toHaveBeenCalled();
   });
+
+  it('does not warn when the final attempt in flight fails after shutdown', async () => {
+    let rejectInFlight: (err: Error) => void;
+    const listResources = vi.fn(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectInFlight = reject;
+        })
+    );
+    const { server } = makeServer(listResources);
+
+    initAlarms(server, 'freeboard-sk');
+    // reject every attempt but the last, which is left pending
+    for (let i = 0; i < RETRY_DELAYS_MS.length; i++) {
+      await vi.advanceTimersByTimeAsync(RETRY_DELAYS_MS[i]);
+      if (i < RETRY_DELAYS_MS.length - 1) {
+        rejectInFlight(new Error('No provider for regions'));
+      }
+    }
+    expect(listResources).toHaveBeenCalledTimes(RETRY_DELAYS_MS.length);
+
+    shutdownAlarms();
+    rejectInFlight(new Error('No provider for regions'));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+
+  it('does not load areas when an attempt in flight succeeds after shutdown', async () => {
+    let resolveInFlight: (list: unknown) => void;
+    const listResources = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveInFlight = resolve;
+        })
+    );
+    const { server, getRoutes } = makeServer(listResources);
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(RETRY_DELAYS_MS[0]);
+    expect(listResources).toHaveBeenCalledTimes(1);
+
+    shutdownAlarms();
+    resolveInFlight({ 'stale-region': { ...hazardRegion, name: 'Stale' } });
+    await vi.advanceTimersByTimeAsync(0);
+
+    const areas = await invokeGet(getRoutes.get(AREA_PATH), AREA_PATH);
+    expect(areas).not.toContainEqual(['stale-region', expect.anything()]);
+  });
 });
