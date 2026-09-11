@@ -16,6 +16,17 @@ updates:
         update-types:
           - minor
           - patch
+      # Security updates bypass the @angular/* ignore below, and Dependabot
+      # opens one PR per advisory-affected package (core, compiler, common,
+      # ...). None can merge alone: every other @angular/* package peer-pins
+      # the exact old version, so `npm ci` rejects the lockfile. Bundling them
+      # here turns N unmergeable PRs into one — still not mergeable as-is, but
+      # a single signal to do the real fix: `ng update @angular/core@<patch>
+      # @angular/cli@<patch>` so the whole family moves together.
+      angular-security:
+        applies-to: security-updates
+        patterns:
+          - '@angular/*'
     ignore:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
