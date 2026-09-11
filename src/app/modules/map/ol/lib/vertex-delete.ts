@@ -50,7 +50,10 @@ export function markVertexDeleted(map: Pick<Map, 'get' | 'set'>): void {
  * not also extend the route.
  */
 export function vertexDeleted(map: Pick<Map, 'get'>): boolean {
-  return map.get(VERTEX_DELETED_IN_GESTURE) != null;
+  // Nullish, not just null: the key is cleared to null by clearVertexDeleted()
+  // but is undefined until the first delete ever sets it.
+  const seq = map.get(VERTEX_DELETED_IN_GESTURE);
+  return seq !== null && seq !== undefined;
 }
 
 /**
