@@ -177,6 +177,16 @@ let unsubscribes = [];
 const alarmAreas: Map<string, AreaAlarmDef> = new Map();
 const alarmManager: AreaAlarmManager = new AreaAlarmManager();
 
+// Initial region load: the resources provider may register after this plugin
+// starts (slow hardware, many plugins, startup order), so a single fixed
+// delay can miss it and leave on-disk hazard regions unloaded until one is
+// edited (#746). Retry with a doubling delay, giving up after the last one.
+const REGION_LOAD_DELAYS_MS = [5_000, 10_000, 20_000, 40_000, 60_000, 60_000];
+let regionLoadTimer: ReturnType<typeof setTimeout> | undefined;
+// Cleared by shutdownAlarms() so an attempt already in flight at shutdown
+// cannot reschedule itself from its catch block.
+let regionLoadActive = false;
+
 const getSelfPathValue = <T>(path: string): { value?: T } | undefined => {
   return server.getSelfPath(path) as { value?: T } | undefined;
 };
@@ -189,7 +199,8 @@ export const initAlarms = (app: FreeboardHelperApp, id: string) => {
 
   initAlarmEndpoints();
 
-  setTimeout(() => parseRegionList(), 5000);
+  regionLoadActive = true;
+  scheduleRegionLoad(0);
 
   // subscribe to deltas
   const subCommand: SubscribeMessage = {
@@ -217,6 +228,11 @@ export const initAlarms = (app: FreeboardHelperApp, id: string) => {
 };
 
 export const shutdownAlarms = () => {
+  regionLoadActive = false;
+  if (regionLoadTimer) {
+    clearTimeout(regionLoadTimer);
+    regionLoadTimer = undefined;
+  }
   unsubscribes.forEach((s) => s());
   unsubscribes = [];
 };
@@ -497,24 +513,50 @@ const fetchRegion = async (id: string) => {
 };
 
 /**
- * Fetch list of region resources and parse them to assign alarm area
+ * Schedule attempt `attempt` of the initial region load.
+ * @param attempt Index into REGION_LOAD_DELAYS_MS
+ */
+const scheduleRegionLoad = (attempt: number) => {
+  if (!regionLoadActive) {
+    return;
+  }
+  regionLoadTimer = setTimeout(() => {
+    regionLoadTimer = undefined;
+    parseRegionList(attempt);
+  }, REGION_LOAD_DELAYS_MS[attempt]);
+};
+
+/**
+ * Fetch list of region resources and parse them to assign alarm area,
+ * rescheduling on failure until the retry delays are exhausted.
+ * @param attempt Which attempt this is (0-based)
  * @returns void
  */
-const parseRegionList = async () => {
-  // The call in initAlarms() is a fire-and-forget timer callback, so a
-  // rejection here has nothing to catch it and escapes as an unhandled
-  // rejection (#732). The usual cause is no provider registered for
-  // `regions` (resources-provider disabled, or `regions` unticked in its
-  // config) — recoverable: there are simply no region alarm areas to load.
+const parseRegionList = async (attempt: number) => {
+  // Called from a fire-and-forget timer, so a rejection here has nothing to
+  // catch it and would escape as an unhandled rejection (#732). The usual
+  // cause is no provider registered for `regions` — either not yet (retry)
+  // or not at all (resources-provider disabled, or `regions` unticked in
+  // its config): recoverable, there are simply no region alarm areas to load.
   let regList: Record<string, unknown>;
   try {
     regList = await server.resourcesApi.listResources('regions', undefined);
   } catch (err) {
-    console.warn(
-      `Freeboard-SK: unable to load region alarm areas: ${
-        err instanceof Error ? err.message : String(err)
-      }`
-    );
+    const reason = err instanceof Error ? err.message : String(err);
+    if (attempt + 1 < REGION_LOAD_DELAYS_MS.length) {
+      server.debug(
+        `** region alarm areas not loaded (${reason}), retry ${attempt + 2}/${
+          REGION_LOAD_DELAYS_MS.length
+        } in ${REGION_LOAD_DELAYS_MS[attempt + 1] / 1000}s`
+      );
+      scheduleRegionLoad(attempt + 1);
+    } else {
+      console.warn(
+        `Freeboard-SK: unable to load region alarm areas after ${
+          REGION_LOAD_DELAYS_MS.length
+        } attempts: ${reason}`
+      );
+    }
     return;
   }
   Object.entries(regList).forEach((r) => processRegionUpdate(r[0], r[1]));
