@@ -1,13 +1,14 @@
 name: Dev Tools
 
-# The dev-tools/ Node utilities aren't part of the Angular app, so the shared
-# plugin-ci workflow (build:all + test:ci) doesn't cover them. This runs their
-# unit tests when they change.
+# The dev-tools/ Node utilities and the helper/ server plugin aren't part of
+# the Angular app, so the shared plugin-ci workflow (build:all + test:ci)
+# doesn't cover their unit tests. This runs them when they change.
 
 on:
   pull_request:
     paths:
       - 'dev-tools/**'
+      - 'helper/**'
       - '.github/workflows/tools.yml'
       - 'package.json'
       - 'package-lock.json'
@@ -15,6 +16,7 @@ on:
     branches: [master]
     paths:
       - 'dev-tools/**'
+      - 'helper/**'
       - '.github/workflows/tools.yml'
       - 'package.json'
       - 'package-lock.json'
@@ -32,3 +34,4 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run test:tools
+      - run: npm run test:helper

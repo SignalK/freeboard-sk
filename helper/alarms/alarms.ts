@@ -501,7 +501,22 @@ const fetchRegion = async (id: string) => {
  * @returns void
  */
 const parseRegionList = async () => {
-  const regList = await server.resourcesApi.listResources('regions', undefined);
+  // The call in initAlarms() is a fire-and-forget timer callback, so a
+  // rejection here has nothing to catch it and escapes as an unhandled
+  // rejection (#732). The usual cause is no provider registered for
+  // `regions` (resources-provider disabled, or `regions` unticked in its
+  // config) — recoverable: there are simply no region alarm areas to load.
+  let regList: Record<string, unknown>;
+  try {
+    regList = await server.resourcesApi.listResources('regions', undefined);
+  } catch (err) {
+    console.warn(
+      `Freeboard-SK: unable to load region alarm areas: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+    return;
+  }
   Object.entries(regList).forEach((r) => processRegionUpdate(r[0], r[1]));
 };
 
