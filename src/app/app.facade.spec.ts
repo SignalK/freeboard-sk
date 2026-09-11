@@ -258,3 +258,80 @@ describe('AppFacade nautical-mile short-distance formatting (#474)', () => {
     expect(app.formatValueForDisplay(2000, 'm')).toBe('1.1nmi');
   });
 });
+
+describe('AppFacade auth token scoping (GHSA-p766-mg92-xc8g)', () => {
+  // jsdom serves the spec from http://localhost:3000, which is also the
+  // DEV_SERVER the facade resolves to under isDevMode(): a launch with no url
+  // params is the everyday same-origin case, and a `host` param is a crafted
+  // link pointing the app at some other server.
+  const SERVED_FROM = {
+    hostname: 'localhost',
+    protocol: 'http:',
+    port: '3000'
+  };
+  type Launchable = {
+    parseLaunchUrl: (loc: typeof SERVED_FROM & { search: string }) => void;
+  };
+  const launch = (app: AppFacade, search = '') =>
+    (app as unknown as Launchable).parseLaunchUrl({ search, ...SERVED_FROM });
+
+  let app: AppFacade;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    app = TestBed.inject(AppFacade);
+    document.cookie = 'sktoken=; max-age=0';
+    document.cookie = 'sktokenhost=; max-age=0';
+  });
+
+  it('presents a persisted token to the server that issued it', () => {
+    app.persistToken('issued-by-localhost');
+    expect(app.getFBToken()).toBe('issued-by-localhost');
+  });
+
+  it('does not present the persisted token to a host named in the url', () => {
+    app.persistToken('issued-by-localhost');
+    launch(app, '?host=evil.example');
+    expect(app.hostDef.url).toBe('http://evil.example:3000');
+    expect(app.getFBToken()).toBeUndefined();
+  });
+
+  it('binds a legacy (unbound) token cookie to the serving origin', () => {
+    document.cookie = 'sktoken=legacy';
+    expect(app.getFBToken()).toBe('legacy');
+    launch(app, '?host=evil.example&port=3000');
+    expect(app.getFBToken()).toBeUndefined();
+  });
+
+  it('holds a url-supplied token for the session without persisting it', () => {
+    launch(app, '?token=from-url');
+    expect(app.getFBToken()).toBe('from-url');
+    expect(app.hasAuthToken()).toBe(true);
+    expect(document.cookie).not.toContain('from-url');
+  });
+
+  it('does not let a url-supplied token overwrite the persisted one', () => {
+    app.persistToken('issued-by-localhost');
+    launch(app, '?token=planted');
+    expect(document.cookie).toContain('sktoken=issued-by-localhost');
+  });
+
+  it('logging in replaces a session token with a persisted one', () => {
+    launch(app, '?token=from-url');
+    app.persistToken('from-login');
+    expect(app.getFBToken()).toBe('from-login');
+    expect(document.cookie).toContain('sktoken=from-login');
+    expect(document.cookie).toContain('sktokenhost=http://localhost:3000');
+  });
+
+  it('clearing the token removes both the session and persisted tokens', () => {
+    launch(app, '?token=from-url');
+    app.persistToken(null);
+    expect(app.getFBToken()).toBeUndefined();
+    expect(app.hasAuthToken()).toBe(false);
+    app.persistToken('issued-by-localhost');
+    app.persistToken(null);
+    expect(document.cookie).not.toContain('sktoken=');
+    expect(app.getFBToken()).toBeUndefined();
+  });
+});
