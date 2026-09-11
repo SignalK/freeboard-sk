@@ -9,5 +9,5 @@
     "moduleResolution": "node"
   },
   "include": ["helper/**/*", "helper/openApi.json"],
-  "exclude": ["src","projects"]
+  "exclude": ["src","projects","helper/**/*.spec.ts"]
 }
