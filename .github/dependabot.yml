@@ -53,6 +53,15 @@ updates:
       # `ng update`.
       - dependency-name: 'ng-packagr'
         update-types: ['version-update:semver-major']
+      # vitest is peer-pinned by @angular/build (`vitest@^4.0.8` at 21.2.x),
+      # which is what `ng test` runs it through, so a vitest major can't
+      # install until the Angular major that supports it lands. It must also
+      # move together with @vitest/web-worker. In-range minor/patch still flow
+      # through the groups; bump the major alongside `ng update`.
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/*'
+        update-types: ['version-update:semver-major']
       # zone.js is peer-pinned by @angular/core (`~0.15.0 || ~0.16.0`). Because
       # zone.js is 0.x, a semver-minor bump (0.16 -> 0.17) is breaking and falls
       # outside that range, failing `npm ci`; patch releases stay in range. Bump
