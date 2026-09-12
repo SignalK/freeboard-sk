@@ -242,7 +242,9 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
       s = Array.isArray(s) ? s[1] : s;
       (s as Style).setText(this.buildLabelStyle());
       f.setStyle(s);
-    } catch {}
+    } catch {
+      // StyleLike may be a style function rather than a Style; nothing to relabel.
+    }
   }
 
   buildLabelStyle() {

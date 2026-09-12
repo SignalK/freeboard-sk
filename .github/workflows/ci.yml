@@ -13,3 +13,24 @@ jobs:
       build-command: 'npm run build:all'
       test-command: 'npm run test:ci'
       format-check-command: 'npm run format:check'
+
+  # The shared workflow has no lint input, so lint runs as its own job. This is
+  # the consumer that keeps the ESLint config honest: without it the config
+  # silently broke through two major ESLint releases before #684 noticed (#686).
+  lint:
+    name: Lint
+    # Read-only token, matching what the shared workflow above already declares;
+    # npm ci runs repository-controlled scripts on PR code.
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
