@@ -3,6 +3,7 @@ import {
   extentFromBounds,
   isChartInView,
   isZoomWithinLayerRange,
+  normaliseStyleForOl,
   resolveLayerMaxZoom,
   resolveLayerZoomRange
 } from './chart-utils';
@@ -232,5 +233,72 @@ describe('isChartInView', () => {
       expect(isChartInView([0, 42, 10, 58], worldView)).toBe(true);
       expect(isChartInView([172, 42, 178, 58], worldView)).toBe(true);
     });
+  });
+});
+
+describe('normaliseStyleForOl', () => {
+  // The Open Waters Seamap shape that motivated the fix: a `color-relief` layer
+  // (unsupported by ol-mapbox-style) sitting first for its raster-dem source,
+  // ahead of the layers the renderer can draw.
+  it('drops a first-of-source color-relief layer and keeps the renderable layers in order', () => {
+    const style = {
+      version: 8,
+      sources: { dem: {}, seamap: {} },
+      sprite: 'https://example/sprite',
+      layers: [
+        { id: 'depth-shading', type: 'color-relief', source: 'dem' },
+        { id: 'bg', type: 'background' },
+        { id: 'depths', type: 'fill', source: 'seamap' },
+        { id: 'contours', type: 'line', source: 'seamap' },
+        { id: 'seamarks', type: 'symbol', source: 'seamap' }
+      ]
+    };
+
+    const out = normaliseStyleForOl(style);
+
+    expect(out.layers?.map((l) => l.id)).toEqual([
+      'bg',
+      'depths',
+      'contours',
+      'seamarks'
+    ]);
+    // untouched everything that is not `layers`
+    expect(out.sources).toBe(style.sources);
+    expect(out.sprite).toBe('https://example/sprite');
+    expect(out.version).toBe(8);
+  });
+
+  it('keeps every renderable layer type', () => {
+    const types = [
+      'background',
+      'fill',
+      'fill-extrusion',
+      'line',
+      'symbol',
+      'circle',
+      'raster',
+      'hillshade'
+    ];
+    const style = { layers: types.map((type, i) => ({ id: `l${i}`, type })) };
+    expect(normaliseStyleForOl(style).layers?.map((l) => l.type)).toEqual(types);
+  });
+
+  it('drops other unsupported layer types and layers with no type', () => {
+    const style = {
+      layers: [
+        { id: 'heat', type: 'heatmap' },
+        { id: 'ok', type: 'line' },
+        { id: 'sky', type: 'sky' },
+        { id: 'notype' } as { id: string; type?: string }
+      ]
+    };
+    expect(normaliseStyleForOl(style).layers?.map((l) => l.id)).toEqual(['ok']);
+  });
+
+  it('is a no-op on a style with no layers array', () => {
+    const noLayers = { version: 8, sources: {} };
+    expect(normaliseStyleForOl(noLayers)).toBe(noLayers);
+    const emptyLayers = { layers: [] as Array<{ type?: string }> };
+    expect(normaliseStyleForOl(emptyLayers).layers).toEqual([]);
   });
 });

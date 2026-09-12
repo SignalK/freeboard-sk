@@ -228,3 +228,47 @@ function splitExtentAtAntimeridian(extent: Extent): Extent[] {
   }
   return [[west, minLat, east, maxLat]];
 }
+
+/**
+ * Layer types the ol-mapbox-style (OpenLayers) renderer can draw. A MapLibre
+ * style may declare layer types it cannot — the one that matters in practice is
+ * `color-relief`: when such a layer is the *first* layer of its source,
+ * ol-mapbox-style's `setupLayer()` leaves `layer` undefined and the whole
+ * `apply()` call rejects, blanking the entire chart instead of skipping the one
+ * layer. (Other unsupported types such as `heatmap` are already skipped by
+ * ol-mapbox-style itself and do not reject; dropping them here is harmless.)
+ */
+export const OL_RENDERABLE_LAYER_TYPES: ReadonlySet<string> = new Set([
+  'background',
+  'fill',
+  'fill-extrusion',
+  'line',
+  'symbol',
+  'circle',
+  'raster',
+  'hillshade'
+]);
+
+/** Minimal shape of a MapLibre/Mapbox GL style document we touch here. */
+export interface MapStyleDocument {
+  layers?: Array<{ type?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+/**
+ * Normalise a MapLibre/Mapbox GL style so it renders through the
+ * ol-mapbox-style (OpenLayers) renderer instead of rejecting: drop the layer
+ * types the renderer cannot draw (see `OL_RENDERABLE_LAYER_TYPES`), preserving
+ * the order of the layers that remain. Mutates and returns the passed object.
+ *
+ * This is a pure transform on the parsed style, kept separate from the
+ * component so it can be unit-tested without instantiating it.
+ */
+export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
+  if (style && Array.isArray(style.layers)) {
+    style.layers = style.layers.filter(
+      (layer) => typeof layer?.type === 'string' && OL_RENDERABLE_LAYER_TYPES.has(layer.type)
+    );
+  }
+  return style;
+}
