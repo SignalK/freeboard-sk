@@ -238,8 +238,10 @@ export class AlertComponent {
       this.showAutoNextPoint =
         this.showStaticNextPoint &&
         this.app.config.course.autoNextPointTrigger === al.type;
-      if (typeof this.doNotPlaySound() !== 'undefined') {
-      }
+      // Read here, unconditionally, so the effect re-runs when the input
+      // changes. processAudio() also reads it, but only behind guards that
+      // can short-circuit, so this is the one registration that always runs.
+      this.doNotPlaySound();
       this.processAudio();
       if (
         !this.timerRef &&

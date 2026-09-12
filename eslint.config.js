@@ -33,6 +33,9 @@ module.exports = [
         .map((c) => c.rules)
         .reduce((all, rules) => Object.assign(all, rules), {}),
       eqeqeq: 'warn',
+      // 152 sites remain (#686). Cleared area by area; a warning until then so
+      // the lint gate can land without blocking on the typing work.
+      '@typescript-eslint/no-explicit-any': 'warn',
       // A `_`-prefixed parameter is required by an override/interface
       // contract that some other implementation genuinely reads, even
       // though the base or this particular implementation does not.

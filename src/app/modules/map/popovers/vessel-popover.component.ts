@@ -294,8 +294,8 @@ export class VesselPopoverComponent {
         this.vessel().name ??
         this.vessel().mmsi ??
         this.vessel().callsignVhf ??
-        this.vessel().callsignHf;
-      ('Vessel:');
+        this.vessel().callsignHf ??
+        'Vessel:';
       this._icon = this.vessel().type?.id
         ? getAisIcon(this.vessel().type?.id)
         : {

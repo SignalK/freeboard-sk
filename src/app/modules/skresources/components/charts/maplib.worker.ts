@@ -64,7 +64,6 @@ const wmsGetInfo = async (
     const res = await fetch(url, {
       signal: abortCtrl.signal
     });
-    clearTimeout(abortTimer);
     if (!res.ok) {
       throw new Error(
         `(${res.status}) Error fetching capabilities.. ${res.statusText}`
@@ -73,8 +72,8 @@ const wmsGetInfo = async (
     const xml = await res.text();
     const wmsInfo = await parseWMSCapabilities(xml, url, options);
     return wmsInfo;
-  } catch (err) {
-    throw err;
+  } finally {
+    clearTimeout(abortTimer);
   }
 };
 
@@ -198,7 +197,6 @@ const wmtsGetInfo = async (
     const res = await fetch(url, {
       signal: abortCtrl.signal
     });
-    clearTimeout(abortTimer);
     if (!res.ok) {
       throw new Error(
         `(${res.status}) Error fetching capabilities.. ${res.statusText}`
@@ -207,8 +205,8 @@ const wmtsGetInfo = async (
     const xml = await res.text();
     const wmtsInfo = await parseWMTSCapabilities(xml, url, options);
     return wmtsInfo;
-  } catch (err) {
-    throw err;
+  } finally {
+    clearTimeout(abortTimer);
   }
 };
 

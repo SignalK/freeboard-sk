@@ -248,6 +248,8 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       );
       (s as Style).setText(ts);
       f.setStyle(s);
-    } catch {}
+    } catch {
+      // StyleLike may be a style function rather than a Style; nothing to relabel.
+    }
   }
 }
