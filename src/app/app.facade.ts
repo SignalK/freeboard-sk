@@ -109,6 +109,13 @@ export class AppFacade extends InfoService {
     params: {}
   };
 
+  /**
+   * Auth token supplied for this session only (via the `token` url param).
+   * Held in memory, never written to the cookie, so a link cannot overwrite
+   * the persisted session token.
+   */
+  private sessionToken: string;
+
   public readonly STANDARD_RESOURCES = [
     'routes',
     'waypoints',
@@ -448,7 +455,9 @@ export class AppFacade extends InfoService {
    * @param data MessageEvent data from parent
    */
   parseMessageFromParent(event: MessageEvent<ParentMessage>) {
-    if (isDevMode() || event.origin === this.hostDef.url) {
+    // trust only the origin that served the app, never the (url-supplied)
+    // hostDef, which a crafted link controls
+    if (isDevMode() || event.origin === window.location.origin) {
       this.debug('parseMessageFromParent()', event.origin, event.data);
       const { settings, commands } = event.data;
       if (!settings && !commands) {
@@ -720,11 +729,19 @@ export class AppFacade extends InfoService {
     });
   }
 
-  /** Parse window.location  and set hostDef & kiosk flag*/
-  private parseLaunchUrl() {
+  /**
+   * Parse the launch url and set hostDef & kiosk flag
+   * @param loc location to parse (defaults to window.location)
+   */
+  private parseLaunchUrl(
+    loc: Pick<
+      Location,
+      'search' | 'hostname' | 'protocol' | 'port'
+    > = window.location
+  ) {
     // process url params
-    if (window.location.search) {
-      const p = window.location.search.slice(1).split('&');
+    if (loc.search) {
+      const p = loc.search.slice(1).split('&');
       p.forEach((i: string) => {
         const a = i.split('=');
         this.hostDef.params[a[0]] = a.length > 1 ? a[1] : null;
@@ -737,10 +754,10 @@ export class AppFacade extends InfoService {
         ? this.hostDef.params.host
         : this.devMode && DEV_SERVER.host
           ? DEV_SERVER.host
-          : window.location.hostname;
+          : loc.hostname;
 
     this.hostDef.ssl =
-      window.location.protocol === 'https:' || (this.devMode && DEV_SERVER.ssl)
+      loc.protocol === 'https:' || (this.devMode && DEV_SERVER.ssl)
         ? true
         : false;
 
@@ -749,7 +766,7 @@ export class AppFacade extends InfoService {
         ? parseInt(this.hostDef.params.port)
         : this.devMode && DEV_SERVER.port
           ? DEV_SERVER.port
-          : parseInt(window.location.port);
+          : parseInt(loc.port);
 
     // if no port specified then set to 80 | 443
     this.hostDef.port = isNaN(this.hostDef.port)
@@ -768,9 +785,9 @@ export class AppFacade extends InfoService {
       return k;
     });
 
-    //** persist token from url params
+    //** token from url params applies to this session only (never persisted)
     if (typeof this.hostDef.params.token !== 'undefined') {
-      this.persistToken(this.hostDef.params.token);
+      this.setAuthToken(this.hostDef.params.token, false);
     }
 
     this.debug('host:', this.hostDef);
@@ -808,8 +825,13 @@ export class AppFacade extends InfoService {
     }
   }
 
-  /** persist auth token for session */
-  persistToken(value: string) {
+  /**
+   * Apply auth token for the session.
+   * @param value token issued by the server at hostDef.url (null = clear)
+   * @param persist true = also persist token in a cookie bound to hostDef.url
+   *  (the server that issued it), false = hold for this session only.
+   */
+  setAuthToken(value: string, persist = true) {
     if (value) {
       this.signalk.authToken = value;
       this.worker.postMessage({
@@ -818,13 +840,21 @@ export class AppFacade extends InfoService {
           token: value
         }
       });
-      document.cookie = `sktoken=${value}; SameSite=Strict`;
+      if (persist) {
+        this.sessionToken = undefined;
+        document.cookie = `sktoken=${value}; SameSite=Strict`;
+        document.cookie = `sktokenhost=${this.hostDef.url}; SameSite=Strict`;
+      } else {
+        this.sessionToken = value;
+      }
       this.hasAuthToken.set(true); // hide login menu item
     } else {
       this.hasAuthToken.set(false); // show login menu item
+      this.sessionToken = undefined;
       this.signalk.authToken = null;
       this.isLoggedIn.set(false);
       document.cookie = `sktoken=${null}; SameSite=Strict; max-age=0;`;
+      document.cookie = `sktokenhost=${null}; SameSite=Strict; max-age=0;`;
       this.worker.postMessage({
         cmd: 'auth',
         options: {
@@ -843,13 +873,40 @@ export class AppFacade extends InfoService {
     }, 2000);
   }
 
-  /** return FB auth token for session */
+  /**
+   * Return the auth token to present to the server at hostDef.url:
+   * the session token (url param) if supplied, else the persisted token
+   * provided it was issued by that same server. A token is never presented
+   * to a server other than the one it was issued for.
+   */
   getFBToken(): string {
-    return this.getCookie(document.cookie, 'sktoken');
+    if (this.sessionToken) {
+      return this.sessionToken;
+    }
+    const token = this.getCookie(document.cookie, 'sktoken');
+    if (!token) {
+      return undefined;
+    }
+    // a token persisted before host binding was introduced belongs to the
+    // origin that served the app
+    const issuer =
+      this.getCookie(document.cookie, 'sktokenhost') ?? this.servingOrigin();
+    return issuer === this.hostDef.url ? token : undefined;
+  }
+
+  /** origin the app was served from, in hostDef.url form (explicit port) */
+  private servingOrigin(): string {
+    const loc = window.location;
+    const ssl = loc.protocol === 'https:';
+    const port = loc.port ? parseInt(loc.port) : ssl ? 443 : 80;
+    return `${ssl ? 'https:' : 'http:'}//${loc.hostname}:${port}`;
   }
 
   /** return the requested cookie */
-  private getCookie(cookies: string, sel: 'sktoken' | 'skLoginInfo') {
+  private getCookie(
+    cookies: string,
+    sel: 'sktoken' | 'sktokenhost' | 'skLoginInfo'
+  ) {
     if (!cookies) {
       return undefined;
     }

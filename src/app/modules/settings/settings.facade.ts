@@ -294,7 +294,7 @@ export class SettingsFacade {
 
   /** Delete auth token */
   clearToken() {
-    this.app.persistToken(null);
+    this.app.setAuthToken(null);
   }
 
   /** Refresh dynamic data from sources */
