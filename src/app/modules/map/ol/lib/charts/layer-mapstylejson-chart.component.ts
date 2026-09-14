@@ -14,7 +14,7 @@ import apply from 'ol-mapbox-style';
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
-import { extentFromBounds } from './chart-utils';
+import { extentFromBounds, makeChartTilesResilient } from './chart-utils';
 
 // ** Freeboard MapStyleJSON Chart **
 @Component({
@@ -66,7 +66,11 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
         this.layer.set('chartFormat', chart[1].format);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
-        apply(this.layer, `${chart[1].url}`);
+        // Harden the style's vector tile sources against stalled/failed tile
+        // requests once `apply()` has created them (see makeChartTilesResilient).
+        apply(this.layer, `${chart[1].url}`)
+          .then(() => makeChartTilesResilient(this.layer))
+          .catch(() => undefined);
         map.addLayer(this.layer);
       }
     } else {

@@ -2,6 +2,15 @@ import { Extent, intersects } from 'ol/extent';
 import { transformExtent } from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import RenderEvent from 'ol/render/Event';
+import LayerGroup from 'ol/layer/Group';
+import BaseLayer from 'ol/layer/Base';
+import Layer from 'ol/layer/Layer';
+import Tile from 'ol/Tile';
+import VectorTile from 'ol/VectorTile';
+import { FeatureLike } from 'ol/Feature';
+import VectorTileSource from 'ol/source/VectorTile';
+import TileState from 'ol/TileState';
+import Projection from 'ol/proj/Projection';
 import { ChartImageAdjustment } from 'src/app/types';
 
 /**
@@ -227,4 +236,145 @@ function splitExtentAtAntimeridian(extent: Extent): Extent[] {
     ];
   }
   return [[west, minLat, east, maxLat]];
+}
+
+/**
+ * Options controlling how {@link makeChartTilesResilient} retries a stalled or
+ * failed vector tile request.
+ */
+export interface ResilientTileLoadingOptions {
+  /**
+   * Abort a single attempt after this many milliseconds and count it as a
+   * failure. Generous by design: it exists to break an indefinite stall, not to
+   * cut off a slow-but-progressing download, so on a healthy connection it
+   * never fires.
+   */
+  timeoutMs?: number;
+  /** Extra attempts after the first before the tile is marked as errored. */
+  retries?: number;
+  /** Base back-off between attempts, multiplied by the (1-based) attempt number. */
+  backoffMs?: number;
+}
+
+const DEFAULT_RESILIENT_TILE_OPTIONS: Required<ResilientTileLoadingOptions> = {
+  timeoutMs: 30000,
+  retries: 2,
+  backoffMs: 1000
+};
+
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Fetch a vector tile as an `ArrayBuffer`, retrying on failure with a
+ * per-attempt timeout and linear back-off.
+ *
+ * The default OpenLayers vector tile loader issues a single request with no
+ * application-level timeout and never retries: a request that stalls (a flaky
+ * or high-latency link that accepts the connection but never delivers the body)
+ * leaves the tile in the `LOADING` state indefinitely. OpenLayers treats such a
+ * tile as still in flight, so it is never re-requested — panning or zooming
+ * away and back reuses the stuck tile rather than reloading it, and the map
+ * keeps showing the over-zoomed parent tile from the previous level (see
+ * https://github.com/openlayers/openlayers/issues/4338). This retries the
+ * request instead of stalling forever.
+ *
+ * `fetchImpl` is injectable purely so the retry logic can be unit-tested; it
+ * defaults to the global `fetch`.
+ */
+export async function fetchArrayBufferWithRetry(
+  url: string,
+  options?: ResilientTileLoadingOptions,
+  fetchImpl: typeof fetch = fetch
+): Promise<ArrayBuffer> {
+  const opts = { ...DEFAULT_RESILIENT_TILE_OPTIONS, ...(options ?? {}) };
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= opts.retries; attempt++) {
+    if (attempt > 0) {
+      await delay(opts.backoffMs * attempt);
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), opts.timeoutMs);
+    try {
+      const response = await fetchImpl(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.arrayBuffer();
+    } catch (err) {
+      lastError = err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+/**
+ * Build a vector tile load function that fetches via
+ * {@link fetchArrayBufferWithRetry} and parses the result with the tile's own
+ * format, only marking the tile as errored once every attempt has failed.
+ *
+ * Retrying happens inside the loader, before the tile ever reaches the `ERROR`
+ * state, so it does not rely on `tileloaderror` handling or on calling
+ * `source.refresh()` — both of which are documented to cause render loops with
+ * vector tile sources (https://github.com/openlayers/openlayers/issues/17389).
+ */
+function resilientVectorTileLoader(
+  options?: ResilientTileLoadingOptions
+): (tile: Tile, url: string) => void {
+  return (tile: Tile, url: string): void => {
+    const vectorTile = tile as VectorTile<FeatureLike>;
+    vectorTile.setLoader(
+      (extent: Extent, resolution: number, projection: Projection) => {
+        fetchArrayBufferWithRetry(url, options)
+          .then((data) => {
+            const format = vectorTile.getFormat();
+            const features = format.readFeatures(data, {
+              extent,
+              featureProjection: projection
+            });
+            vectorTile.setFeatures(features);
+          })
+          .catch(() => {
+            vectorTile.setState(TileState.ERROR);
+          });
+      }
+    );
+  };
+}
+
+/**
+ * Install a resilient tile loader on every {@link VectorTileSource} within a
+ * chart's layer group (recursing into nested groups), so a stalled or failed
+ * vector tile is retried instead of leaving the chart stuck on the previous
+ * zoom level.
+ *
+ * Only vector tile sources are touched. Raster (image) tile sources are left on
+ * the OpenLayers default loader: the browser already surfaces image load
+ * errors, and fetching image tiles through `fetch` rather than an `<img>`
+ * element would impose CORS requirements that many public raster tile servers
+ * do not satisfy.
+ *
+ * Call after `apply()` has resolved, when the sources described by the style
+ * have been created.
+ */
+export function makeChartTilesResilient(
+  group: LayerGroup,
+  options?: ResilientTileLoadingOptions
+): void {
+  const loader = resilientVectorTileLoader(options);
+  const walk = (layers: BaseLayer[]): void => {
+    for (const child of layers) {
+      if (child instanceof LayerGroup) {
+        walk(child.getLayers().getArray());
+      } else if (child instanceof Layer) {
+        const source = child.getSource();
+        if (source instanceof VectorTileSource) {
+          source.setTileLoadFunction(loader);
+        }
+      }
+    }
+  };
+  walk(group.getLayers().getArray());
 }

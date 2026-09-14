@@ -1,11 +1,20 @@
 import { expect, describe, it } from 'vitest';
 import {
   extentFromBounds,
+  fetchArrayBufferWithRetry,
   isChartInView,
   isZoomWithinLayerRange,
+  makeChartTilesResilient,
   resolveLayerMaxZoom,
   resolveLayerZoomRange
 } from './chart-utils';
+
+import LayerGroup from 'ol/layer/Group';
+import TileLayer from 'ol/layer/Tile';
+import VectorTileLayer from 'ol/layer/VectorTile';
+import VectorTileSource from 'ol/source/VectorTile';
+import XYZ from 'ol/source/XYZ';
+import MVT from 'ol/format/MVT';
 
 describe('resolveLayerZoomRange', () => {
   // A chart declaring tiles for z5-z15, the shape the Traficom raster sets have.
@@ -232,5 +241,146 @@ describe('isChartInView', () => {
       expect(isChartInView([0, 42, 10, 58], worldView)).toBe(true);
       expect(isChartInView([172, 42, 178, 58], worldView)).toBe(true);
     });
+  });
+});
+
+/** Minimal `Response`-like stub for the injected fetch. */
+function okResponse(bytes = 4): Response {
+  return {
+    ok: true,
+    status: 200,
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(bytes))
+  } as unknown as Response;
+}
+
+function errorResponse(status = 500): Response {
+  return {
+    ok: false,
+    status,
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
+  } as unknown as Response;
+}
+
+/** A fetch that never settles until its abort signal fires (a stalled request). */
+function stalledFetch(): typeof fetch {
+  return ((_url: string, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () =>
+        reject(new DOMException('Aborted', 'AbortError'))
+      );
+    })) as unknown as typeof fetch;
+}
+
+describe('fetchArrayBufferWithRetry', () => {
+  const fast = { timeoutMs: 50, retries: 2, backoffMs: 1 };
+
+  it('resolves the body on the first successful attempt', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.resolve(okResponse(8));
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(buf.byteLength).toBe(8);
+    expect(calls).toBe(1);
+  });
+
+  it('retries after a rejected attempt and then succeeds', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return calls === 1
+        ? Promise.reject(new Error('network'))
+        : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(buf).toBeTruthy();
+    expect(calls).toBe(2);
+  });
+
+  it('treats a non-ok HTTP response as a failure and retries', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return calls === 1
+        ? Promise.resolve(errorResponse(503))
+        : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(buf).toBeTruthy();
+    expect(calls).toBe(2);
+  });
+
+  it('aborts a stalled attempt via the timeout and recovers on retry', async () => {
+    let calls = 0;
+    const stalled = stalledFetch();
+    const fetchImpl = ((url: string, init?: RequestInit) => {
+      calls++;
+      return calls === 1 ? stalled(url, init) : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(buf).toBeTruthy();
+    expect(calls).toBe(2);
+  });
+
+  it('rejects once every attempt has failed', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.reject(new Error('down'));
+    }) as unknown as typeof fetch;
+
+    await expect(
+      fetchArrayBufferWithRetry('u', fast, fetchImpl)
+    ).rejects.toThrow('down');
+    expect(calls).toBe(fast.retries + 1);
+  });
+});
+
+describe('makeChartTilesResilient', () => {
+  const vectorSource = (): VectorTileSource =>
+    new VectorTileSource({
+      format: new MVT(),
+      url: 'https://example.test/{z}/{x}/{y}.pbf'
+    });
+
+  it('replaces the tile load function on vector tile sources', () => {
+    const source = vectorSource();
+    const before = source.getTileLoadFunction();
+    const group = new LayerGroup({
+      layers: [new VectorTileLayer({ source })]
+    });
+
+    makeChartTilesResilient(group);
+
+    expect(source.getTileLoadFunction()).not.toBe(before);
+  });
+
+  it('leaves raster (image) tile sources untouched', () => {
+    const source = new XYZ({ url: 'https://example.test/{z}/{x}/{y}.png' });
+    const before = source.getTileLoadFunction();
+    const group = new LayerGroup({
+      layers: [new TileLayer({ source })]
+    });
+
+    makeChartTilesResilient(group);
+
+    expect(source.getTileLoadFunction()).toBe(before);
+  });
+
+  it('recurses into nested layer groups', () => {
+    const source = vectorSource();
+    const before = source.getTileLoadFunction();
+    const group = new LayerGroup({
+      layers: [new LayerGroup({ layers: [new VectorTileLayer({ source })] })]
+    });
+
+    makeChartTilesResilient(group);
+
+    expect(source.getTileLoadFunction()).not.toBe(before);
   });
 });
