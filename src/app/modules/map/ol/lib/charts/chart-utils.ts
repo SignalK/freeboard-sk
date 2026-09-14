@@ -267,7 +267,9 @@ export interface MapStyleDocument {
 export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
   if (style && Array.isArray(style.layers)) {
     style.layers = style.layers.filter(
-      (layer) => typeof layer?.type === 'string' && OL_RENDERABLE_LAYER_TYPES.has(layer.type)
+      (layer) =>
+        typeof layer?.type === 'string' &&
+        OL_RENDERABLE_LAYER_TYPES.has(layer.type)
     );
   }
   return style;

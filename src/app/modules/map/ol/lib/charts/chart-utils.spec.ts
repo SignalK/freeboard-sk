@@ -280,7 +280,9 @@ describe('normaliseStyleForOl', () => {
       'hillshade'
     ];
     const style = { layers: types.map((type, i) => ({ id: `l${i}`, type })) };
-    expect(normaliseStyleForOl(style).layers?.map((l) => l.type)).toEqual(types);
+    expect(normaliseStyleForOl(style).layers?.map((l) => l.type)).toEqual(
+      types
+    );
   });
 
   it('drops other unsupported layer types and layers with no type', () => {
