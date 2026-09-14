@@ -2,6 +2,7 @@ import { expect, describe, it } from 'vitest';
 import {
   extentFromBounds,
   isChartInView,
+  isDataExpression,
   isZoomWithinLayerRange,
   normaliseStyleForOl,
   resolveLayerMaxZoom,
@@ -302,5 +303,104 @@ describe('normaliseStyleForOl', () => {
     expect(normaliseStyleForOl(noLayers)).toBe(noLayers);
     const emptyLayers = { layers: [] as Array<{ type?: string }> };
     expect(normaliseStyleForOl(emptyLayers).layers).toEqual([]);
+  });
+});
+
+describe('isDataExpression', () => {
+  it('detects per-feature data expressions', () => {
+    expect(isDataExpression(['get', 'name'])).toBe(true);
+    expect(
+      isDataExpression(['coalesce', ['get', 'name_en'], ['get', 'name']])
+    ).toBe(true);
+    expect(
+      isDataExpression(['-', ['to-number', ['get', 'population'], 0]])
+    ).toBe(true);
+  });
+
+  it('does not flag constants or zoom expressions', () => {
+    expect(isDataExpression([2, 4])).toBe(false); // a constant dasharray
+    expect(isDataExpression('#fff')).toBe(false);
+    expect(
+      isDataExpression(['interpolate', ['linear'], ['zoom'], 5, 1, 15, 4])
+    ).toBe(false);
+  });
+});
+
+describe('normaliseStyleForOl — unsupported data-driven properties', () => {
+  it('drops data-driven line-dasharray / line-pattern / fill-pattern and *-sort-key', () => {
+    const style = {
+      layers: [
+        {
+          id: 'l1',
+          type: 'line',
+          paint: {
+            'line-color': '#000',
+            'line-dasharray': [
+              'step',
+              ['zoom'],
+              ['literal', [2, 2]],
+              14,
+              ['get', 'd']
+            ]
+          }
+        },
+        {
+          id: 'l2',
+          type: 'fill',
+          paint: { 'fill-pattern': ['get', 'pattern'], 'fill-color': '#eee' }
+        },
+        {
+          id: 'l3',
+          type: 'symbol',
+          layout: {
+            'symbol-sort-key': ['-', ['to-number', ['get', 'population'], 0]],
+            'text-field': ['get', 'name']
+          }
+        }
+      ]
+    };
+    const out = normaliseStyleForOl(style);
+    expect('line-dasharray' in (out.layers![0].paint as object)).toBe(false);
+    expect(
+      (out.layers![0].paint as { 'line-color': string })['line-color']
+    ).toBe('#000');
+    expect('fill-pattern' in (out.layers![1].paint as object)).toBe(false);
+    expect('symbol-sort-key' in (out.layers![2].layout as object)).toBe(false);
+    // supported data-driven properties are untouched
+    expect(
+      (out.layers![2].layout as { 'text-field': unknown })['text-field']
+    ).toEqual(['get', 'name']);
+  });
+
+  it('keeps a CONSTANT value for the same properties (only data expressions are dropped)', () => {
+    const style = {
+      layers: [
+        { id: 'l1', type: 'line', paint: { 'line-dasharray': [2, 4] } },
+        { id: 'l2', type: 'line', layout: { 'line-sort-key': 3 } }
+      ]
+    };
+    const out = normaliseStyleForOl(style);
+    expect(
+      (out.layers![0].paint as { 'line-dasharray': number[] })['line-dasharray']
+    ).toEqual([2, 4]);
+    expect(
+      (out.layers![1].layout as { 'line-sort-key': number })['line-sort-key']
+    ).toBe(3);
+  });
+
+  it('leaves data-driven properties that OL does support (e.g. line-color)', () => {
+    const style = {
+      layers: [
+        {
+          id: 'l1',
+          type: 'line',
+          paint: {
+            'line-color': ['match', ['get', 'cls'], 'a', '#f00', '#00f']
+          }
+        }
+      ]
+    };
+    const out = normaliseStyleForOl(style);
+    expect('line-color' in (out.layers![0].paint as object)).toBe(true);
   });
 });

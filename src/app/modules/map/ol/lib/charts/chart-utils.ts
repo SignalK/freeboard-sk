@@ -256,13 +256,68 @@ export interface MapStyleDocument {
 }
 
 /**
+ * Layout/paint properties ol-mapbox-style can only evaluate per-zoom or as a
+ * constant. Handed a *data* expression (one that reads per-feature state) for
+ * one of these, olms throws an uncaught `"data expressions not supported"` from
+ * inside the render loop, which freezes the whole OpenLayers map — pan and zoom
+ * stop responding and only the background paints. MapLibre-native styles such
+ * as Open Waters use data-driven values for some of these on layers that only
+ * appear at higher zoom, so the chart renders until it is zoomed in and then
+ * locks up. A constant value for the same property is fine and is kept.
+ */
+export const OL_DATA_EXPRESSION_UNSUPPORTED: ReadonlySet<string> = new Set([
+  'line-dasharray',
+  'line-pattern',
+  'fill-pattern',
+  'symbol-sort-key',
+  'icon-sort-key',
+  'text-sort-key',
+  'fill-sort-key',
+  'line-sort-key',
+  'circle-sort-key'
+]);
+
+/**
+ * Whether a style property value is a MapLibre *data* expression — one that
+ * reads per-feature state (`get`/`has`/`feature-state`/…) rather than only the
+ * zoom level. Zoom expressions and plain constants are not data expressions.
+ */
+export function isDataExpression(value: unknown): boolean {
+  if (!Array.isArray(value)) {
+    return false;
+  }
+  const op = value[0];
+  if (
+    typeof op === 'string' &&
+    [
+      'get',
+      'has',
+      '!has',
+      'feature-state',
+      'geometry-type',
+      'id',
+      'properties'
+    ].includes(op)
+  ) {
+    return true;
+  }
+  return value.some(isDataExpression);
+}
+
+/**
  * Normalise a MapLibre/Mapbox GL style so it renders through the
- * ol-mapbox-style (OpenLayers) renderer instead of rejecting: drop the layer
- * types the renderer cannot draw (see `OL_RENDERABLE_LAYER_TYPES`), preserving
- * the order of the layers that remain. Mutates and returns the passed object.
+ * ol-mapbox-style (OpenLayers) renderer instead of rejecting or later crashing:
+ *  - drop the layer types the renderer cannot draw (see
+ *    `OL_RENDERABLE_LAYER_TYPES`), preserving the order of the layers that
+ *    remain; and
+ *  - drop the properties it cannot evaluate as data expressions (see
+ *    `OL_DATA_EXPRESSION_UNSUPPORTED`) when they are data-driven, so a
+ *    higher-zoom layer cannot freeze the map. The layer still renders (a solid
+ *    line / no pattern); only the data-driven variation of that one property is
+ *    lost.
  *
- * This is a pure transform on the parsed style, kept separate from the
- * component so it can be unit-tested without instantiating it.
+ * Mutates and returns the passed object. A pure transform on the parsed style,
+ * kept separate from the component so it can be unit-tested without it.
  */
 export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
   if (style && Array.isArray(style.layers)) {
@@ -271,6 +326,22 @@ export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
         typeof layer?.type === 'string' &&
         OL_RENDERABLE_LAYER_TYPES.has(layer.type)
     );
+    for (const layer of style.layers) {
+      for (const group of ['layout', 'paint'] as const) {
+        const props = (layer as Record<string, unknown>)[group];
+        if (props && typeof props === 'object') {
+          const bag = props as Record<string, unknown>;
+          for (const key of Object.keys(bag)) {
+            if (
+              OL_DATA_EXPRESSION_UNSUPPORTED.has(key) &&
+              isDataExpression(bag[key])
+            ) {
+              delete bag[key];
+            }
+          }
+        }
+      }
+    }
   }
   return style;
 }
