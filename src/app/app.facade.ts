@@ -787,7 +787,7 @@ export class AppFacade extends InfoService {
 
     //** token from url params applies to this session only (never persisted)
     if (typeof this.hostDef.params.token !== 'undefined') {
-      this.persistToken(this.hostDef.params.token, false);
+      this.setAuthToken(this.hostDef.params.token, false);
     }
 
     this.debug('host:', this.hostDef);
@@ -831,7 +831,7 @@ export class AppFacade extends InfoService {
    * @param persist true = also persist token in a cookie bound to hostDef.url
    *  (the server that issued it), false = hold for this session only.
    */
-  persistToken(value: string, persist = true) {
+  setAuthToken(value: string, persist = true) {
     if (value) {
       this.signalk.authToken = value;
       this.worker.postMessage({

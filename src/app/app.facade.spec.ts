@@ -285,12 +285,12 @@ describe('AppFacade auth token scoping (GHSA-p766-mg92-xc8g)', () => {
   });
 
   it('presents a persisted token to the server that issued it', () => {
-    app.persistToken('issued-by-localhost');
+    app.setAuthToken('issued-by-localhost');
     expect(app.getFBToken()).toBe('issued-by-localhost');
   });
 
   it('does not present the persisted token to a host named in the url', () => {
-    app.persistToken('issued-by-localhost');
+    app.setAuthToken('issued-by-localhost');
     launch(app, '?host=evil.example');
     expect(app.hostDef.url).toBe('http://evil.example:3000');
     expect(app.getFBToken()).toBeUndefined();
@@ -311,14 +311,14 @@ describe('AppFacade auth token scoping (GHSA-p766-mg92-xc8g)', () => {
   });
 
   it('does not let a url-supplied token overwrite the persisted one', () => {
-    app.persistToken('issued-by-localhost');
+    app.setAuthToken('issued-by-localhost');
     launch(app, '?token=planted');
     expect(document.cookie).toContain('sktoken=issued-by-localhost');
   });
 
   it('logging in replaces a session token with a persisted one', () => {
     launch(app, '?token=from-url');
-    app.persistToken('from-login');
+    app.setAuthToken('from-login');
     expect(app.getFBToken()).toBe('from-login');
     expect(document.cookie).toContain('sktoken=from-login');
     expect(document.cookie).toContain('sktokenhost=http://localhost:3000');
@@ -326,11 +326,11 @@ describe('AppFacade auth token scoping (GHSA-p766-mg92-xc8g)', () => {
 
   it('clearing the token removes both the session and persisted tokens', () => {
     launch(app, '?token=from-url');
-    app.persistToken(null);
+    app.setAuthToken(null);
     expect(app.getFBToken()).toBeUndefined();
     expect(app.hasAuthToken()).toBe(false);
-    app.persistToken('issued-by-localhost');
-    app.persistToken(null);
+    app.setAuthToken('issued-by-localhost');
+    app.setAuthToken(null);
     expect(document.cookie).not.toContain('sktoken=');
     expect(app.getFBToken()).toBeUndefined();
   });

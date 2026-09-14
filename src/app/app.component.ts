@@ -1380,7 +1380,7 @@ export class AppComponent {
           this.signalk.login(res.user, res.pwd).subscribe({
             next: (r) => {
               // ** authenticated
-              this.app.persistToken(r['token']);
+              this.app.setAuthToken(r['token']);
               this.app.loadUserConfigfromServer().then((loaded: boolean) => {
                 if (loaded) {
                   this.loadSymbolsThenFetchResources();
@@ -1397,7 +1397,7 @@ export class AppComponent {
             },
             error: () => {
               // ** auth failed
-              this.app.persistToken(null);
+              this.app.setAuthToken(null);
               this.signalk.isLoggedIn().subscribe((r) => {
                 this.app.isLoggedIn.set(r);
               });
