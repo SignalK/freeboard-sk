@@ -48,3 +48,6 @@ See CONTRIBUTING.md / AGENTS.md for the full guidelines.
 - [ ] `features/` untouched — the user-facing change is described above instead.
 - [ ] Skimmed [`DEV-LESSONS-LEARNED.md`](../docs/freeboard/DEV-LESSONS-LEARNED.md) for traps relevant to this change.
 - [ ] Tests added/updated for new behaviour and `npm run test:ci` passes.
+- [ ] CodeRabbit review completed (re-requested with `@coderabbitai review` after
+      the stated wait if it was rate-limited) and every finding acknowledged — fixed,
+      or rebutted on its thread.

@@ -88,12 +88,17 @@ Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
      areas overlap, and from inside one PR the only visible option is "new", which is
      usually the wrong answer. Rationale in
      [`docs/freeboard/feature-browser.md`](docs/freeboard/feature-browser.md).
-7. [CodeRabbit](https://coderabbit.ai/) reviews automatically. **Give every finding
-   an explicit disposition — fix it, or reply on the thread explaining why it
-   doesn't apply.** Don't leave findings silently unanswered: CodeRabbit learns from
-   rebuttals and will stop raising that class of objection on later PRs, and an
-   unanswered thread doesn't tell a maintainer whether you disagreed or never saw
-   it. Rebutting is fine — being silent isn't. A PR is ready for maintainer review
+7. [CodeRabbit](https://coderabbit.ai/) reviews automatically — but reviews are
+   rate-limited per repository. If it posts a *"Review rate limited … next review
+   available in N minutes"* notice instead of a review, it will **not** come back by
+   itself: set a timer, and after `N` minutes comment `@coderabbitai review` on the
+   PR (repeat if refused again). No PR is merged without a completed review, so
+   the PR is not finished until one has run. **Then give every finding an explicit
+   disposition — fix it, or reply on the thread explaining why it doesn't apply.**
+   Don't leave findings silently unanswered: CodeRabbit learns from rebuttals and
+   will stop raising that class of objection on later PRs, and an unanswered thread
+   doesn't tell a maintainer whether you disagreed or never saw it. Rebutting is
+   fine — being silent isn't. A PR is ready for maintainer review
    once a CodeRabbit review has completed and every finding is disposed of.
    Push your fixes as **new commits** with a plain `git push` — **don't
    force-push.** New commits keep CodeRabbit's re-review incremental and leave
