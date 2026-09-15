@@ -70,7 +70,12 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
         // requests once `apply()` has created them (see makeChartTilesResilient).
         apply(this.layer, `${chart[1].url}`)
           .then(() => makeChartTilesResilient(this.layer))
-          .catch(() => undefined);
+          .catch((err) =>
+            console.warn(
+              `MapStyleJsonChart: could not apply or harden style ${chart[1].url}`,
+              err
+            )
+          );
         map.addLayer(this.layer);
       }
     } else {

@@ -287,7 +287,14 @@ export async function fetchArrayBufferWithRetry(
   options?: ResilientTileLoadingOptions,
   fetchImpl: typeof fetch = fetch
 ): Promise<ArrayBuffer> {
-  const opts = { ...DEFAULT_RESILIENT_TILE_OPTIONS, ...(options ?? {}) };
+  // Nullish fallback per field so an explicit `undefined` in `options` (e.g.
+  // `{ retries: undefined }`) keeps the default rather than disabling retries,
+  // zeroing the timeout, or producing a NaN back-off.
+  const opts: Required<ResilientTileLoadingOptions> = {
+    timeoutMs: options?.timeoutMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.timeoutMs,
+    retries: options?.retries ?? DEFAULT_RESILIENT_TILE_OPTIONS.retries,
+    backoffMs: options?.backoffMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.backoffMs
+  };
   let lastError: unknown;
   for (let attempt = 0; attempt <= opts.retries; attempt++) {
     if (attempt > 0) {
