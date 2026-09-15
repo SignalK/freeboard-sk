@@ -14,7 +14,11 @@ import apply from 'ol-mapbox-style';
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
-import { extentFromBounds } from './chart-utils';
+import {
+  extentFromBounds,
+  normaliseStyleForOl,
+  type MapStyleDocument
+} from './chart-utils';
 
 // ** Freeboard MapStyleJSON Chart **
 @Component({
@@ -66,7 +70,7 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
         this.layer.set('chartFormat', chart[1].format);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
-        apply(this.layer, `${chart[1].url}`);
+        this.applyStyle(this.layer, `${chart[1].url}`);
         map.addLayer(this.layer);
       }
     } else {
@@ -75,5 +79,30 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
     map.render();
+  }
+
+  // Fetch the style, normalise it for the ol-mapbox-style (OpenLayers) renderer
+  // (see `normaliseStyleForOl`) and apply it. Falls back to applying the URL
+  // directly if the style can't be fetched or parsed, so styles that don't need
+  // normalisation behave exactly as before.
+  private async applyStyle(layer: LayerGroup, url: string) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const style: MapStyleDocument = await response.json();
+      // Resolve relative sprite/glyph/tile URLs against the style's final URL
+      // (after any redirect), falling back to the requested URL.
+      await apply(layer, normaliseStyleForOl(style), {
+        styleUrl: response.url || url
+      });
+    } catch (err) {
+      console.warn(
+        `MapStyleJsonChart: could not normalise style ${url}, applying as-is`,
+        err
+      );
+      apply(layer, url);
+    }
   }
 }
