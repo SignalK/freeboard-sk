@@ -9,6 +9,12 @@ These guidelines are written for AI coding assistants, but they apply equally to
 human contributors. Where something is "overly specific," it's an explicit guardrail
 for AI tools — humans should use judgment and follow the spirit.
 
+This file is the complete contributor contract: everything a PR is expected to do
+is stated here, on the assumption that a contributor's agent may be the only thing
+that reads it. [`CONTRIBUTING.md`](CONTRIBUTING.md) is the shorter, human-readable
+walk-through of the same steps — nothing there is a requirement that isn't also
+here.
+
 This project is an **upstream Signal K project** (`SignalK/freeboard-sk`). It has a
 large, often non-technical user base, so changes warrant extra care.
 
@@ -129,6 +135,51 @@ live.)
 History note: many older PRs lack descriptions, tests, or a clean title. Don't
 continue that. The bar below is what "done correctly" means here.
 
+### The PR lifecycle, in order
+
+The bullets after this list say *what* a good PR looks like; this is the sequence.
+**A PR is not finished when it is opened** — steps 7 and 8 happen afterwards, and a
+PR that stops at step 6 will not be merged.
+
+1. **Fork** `SignalK/freeboard-sk` (contributors cannot push to it directly) and
+   branch from the latest `master`.
+2. As you enter each phase — reading, coding, testing, building — skim the matching
+   section of the lessons log (see *Hard-won knowledge* below).
+3. Do the work: one logical change, tests for new behaviour, no version bump.
+4. Before every push run, in this order: `npm run format` → `npm run build:all` →
+   `npm run test:ci`. CI runs `format:check` as a gate, so unformatted code fails on
+   the very first push.
+5. Commit as `type(scope): subject` (same convention as PR titles, below), one
+   meaningful step per commit, with a message that says *why*. Keep every commit.
+6. Open the PR against `SignalK/freeboard-sk:master` with the template filled in:
+   the title (it becomes a release-notes line), *What changes for the user?* in
+   real sentences, before/after screenshots for UI changes. **Do not edit
+   `features/`** — that corpus is maintainer-owned and compiled after merge.
+7. **Wait for CodeRabbit, and confirm it actually reviewed.** CodeRabbit normally
+   starts within minutes of the push, but reviews are **rate-limited per repository**
+   — a small number of included reviews per hour, shared across every open PR. When
+   the budget is spent it posts a notice *instead of* a review — *"Review rate
+   limited … Next included review available in N minutes"* — and **the CodeRabbit
+   status check still shows green** (it means the integration ran, not that a review
+   happened). **A rate-limited review never resumes on its own**: the push that hit
+   the limit has spent its trigger. Since no PR is merged without a completed
+   CodeRabbit review, re-requesting is the contributor's job: read `N` from the
+   notice, set a timer, and once it has passed post `@coderabbitai review` as a PR
+   comment. If it is refused again, a fresh notice with a fresh figure appears —
+   repeat against that. Don't push further commits while a review is running or
+   while you are waiting out a window; every push draws on the same budget. Take
+   "review complete" from CodeRabbit's summary comment (edited in place as it works),
+   never from the status check. Mechanics for scripting the wait are in the lessons
+   log under *Waiting on a CodeRabbit review*.
+8. **Give every finding an explicit disposition** — fix it, or rebut it on its
+   thread (details below). Push fixes as new commits with a plain `git push`. Only
+   then is the PR ready for maintainer review.
+
+> **If you are a human delegating this to an agent:** an agent's session usually
+> ends when the PR is opened, so the CodeRabbit review (or the rate-limit notice)
+> lands after it has stopped and it will not see it by itself. Steps 7–8 are yours
+> to trigger — come back to the PR, and hand the review or the notice to the agent.
+
 - **One logical change per PR.** Refactors and behaviour changes go in separate
   PRs. If the change would be two lines in a changelog, it's two PRs — split them
   *before* opening, even if you did them together. **Proactively enforce this:** if
@@ -175,7 +226,9 @@ continue that. The bar below is what "done correctly" means here.
   Rebutting is a perfectly good outcome — CodeRabbit is not always right, and a
   clear "this can't happen because X" is more useful than a defensive change. What
   isn't acceptable is leaving it unanswered. A PR needs at least one completed
-  CodeRabbit review, with every finding disposed of, before it can be merged.
+  CodeRabbit review, with every finding disposed of, before it can be merged — and
+  if the review was rate-limited at open time, that includes re-requesting it (step
+  7 of *The PR lifecycle* above); a rate-limited notice is not a review.
 - **Share what you learned — keep the lessons log alive.** If working on your PR
   surfaced something non-obvious about developing FSK locally (a toolchain trap, a
   test-setup gotcha, a platform or hardware quirk), add it to
