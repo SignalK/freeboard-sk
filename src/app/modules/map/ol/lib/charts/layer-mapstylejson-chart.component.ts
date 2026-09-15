@@ -92,7 +92,11 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
         throw new Error(`HTTP ${response.status}`);
       }
       const style: MapStyleDocument = await response.json();
-      await apply(layer, normaliseStyleForOl(style), { styleUrl: url });
+      // Resolve relative sprite/glyph/tile URLs against the style's final URL
+      // (after any redirect), falling back to the requested URL.
+      await apply(layer, normaliseStyleForOl(style), {
+        styleUrl: response.url || url
+      });
     } catch (err) {
       console.warn(
         `MapStyleJsonChart: could not normalise style ${url}, applying as-is`,

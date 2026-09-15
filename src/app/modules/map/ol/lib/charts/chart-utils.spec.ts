@@ -2,7 +2,7 @@ import { expect, describe, it } from 'vitest';
 import {
   extentFromBounds,
   isChartInView,
-  isDataExpression,
+  isUnevaluableByOl,
   isZoomWithinLayerRange,
   normaliseStyleForOl,
   resolveLayerMaxZoom,
@@ -306,28 +306,69 @@ describe('normaliseStyleForOl', () => {
   });
 });
 
-describe('isDataExpression', () => {
-  it('detects per-feature data expressions', () => {
-    expect(isDataExpression(['get', 'name'])).toBe(true);
+describe('isUnevaluableByOl', () => {
+  // line-dasharray is the property that actually freezes the OL renderer: the
+  // MapLibre spec marks it `cross-faded`, so a data expression is not evaluable.
+  it('flags a data expression on the cross-faded line-dasharray', () => {
     expect(
-      isDataExpression(['coalesce', ['get', 'name_en'], ['get', 'name']])
-    ).toBe(true);
-    expect(
-      isDataExpression(['-', ['to-number', ['get', 'population'], 0]])
+      isUnevaluableByOl('paint', 'line', 'line-dasharray', [
+        'case',
+        ['has', 'dashed'],
+        ['literal', [4, 2]],
+        ['literal', [1, 0]]
+      ])
     ).toBe(true);
   });
 
-  it('does not flag constants or zoom expressions', () => {
-    expect(isDataExpression([2, 4])).toBe(false); // a constant dasharray
-    expect(isDataExpression('#fff')).toBe(false);
+  it('does not flag data-driven properties the renderer supports', () => {
+    // fill-pattern / *-sort-key are data-driven in the spec and evaluate fine;
+    // a hand-list dropped them and lost real chart information.
     expect(
-      isDataExpression(['interpolate', ['linear'], ['zoom'], 5, 1, 15, 4])
+      isUnevaluableByOl('paint', 'fill', 'fill-pattern', ['get', 'pat'])
+    ).toBe(false);
+    expect(
+      isUnevaluableByOl('layout', 'symbol', 'symbol-sort-key', [
+        'to-number',
+        ['get', 'prio']
+      ])
+    ).toBe(false);
+    expect(
+      isUnevaluableByOl('paint', 'line', 'line-color', [
+        'match',
+        ['get', 'cls'],
+        'a',
+        '#f00',
+        '#00f'
+      ])
+    ).toBe(false);
+  });
+
+  it('catches other cross-faded / non-data-driven properties, not just line-dasharray', () => {
+    // A hand-list of names would miss these; deriving from the spec does not.
+    expect(
+      isUnevaluableByOl('layout', 'line', 'line-cap', [
+        'match',
+        ['get', 'k'],
+        'a',
+        'round',
+        'butt'
+      ])
+    ).toBe(true);
+  });
+
+  it('keeps constants and leaves non-spec properties alone', () => {
+    expect(isUnevaluableByOl('paint', 'line', 'line-dasharray', [2, 4])).toBe(
+      false
+    ); // constant, not an expression
+    // icon-sort-key is not a MapLibre spec property: no spec, nothing to drop.
+    expect(
+      isUnevaluableByOl('layout', 'symbol', 'icon-sort-key', ['get', 'p'])
     ).toBe(false);
   });
 });
 
-describe('normaliseStyleForOl — unsupported data-driven properties', () => {
-  it('drops data-driven line-dasharray / line-pattern / fill-pattern and *-sort-key', () => {
+describe('normaliseStyleForOl — properties the renderer cannot evaluate', () => {
+  it('drops a data-driven line-dasharray but keeps supported data-driven properties', () => {
     const style = {
       layers: [
         {
@@ -336,11 +377,10 @@ describe('normaliseStyleForOl — unsupported data-driven properties', () => {
           paint: {
             'line-color': '#000',
             'line-dasharray': [
-              'step',
-              ['zoom'],
-              ['literal', [2, 2]],
-              14,
-              ['get', 'd']
+              'case',
+              ['has', 'dashed'],
+              ['literal', [4, 2]],
+              ['literal', [1, 0]]
             ]
           }
         },
@@ -353,54 +393,39 @@ describe('normaliseStyleForOl — unsupported data-driven properties', () => {
           id: 'l3',
           type: 'symbol',
           layout: {
-            'symbol-sort-key': ['-', ['to-number', ['get', 'population'], 0]],
+            'symbol-sort-key': ['to-number', ['get', 'population']],
             'text-field': ['get', 'name']
           }
         }
       ]
     };
     const out = normaliseStyleForOl(style);
+    // the freeze cause is removed…
     expect('line-dasharray' in (out.layers![0].paint as object)).toBe(false);
     expect(
       (out.layers![0].paint as { 'line-color': string })['line-color']
     ).toBe('#000');
-    expect('fill-pattern' in (out.layers![1].paint as object)).toBe(false);
-    expect('symbol-sort-key' in (out.layers![2].layout as object)).toBe(false);
-    // supported data-driven properties are untouched
+    // …but data-driven pattern / sort-key / text-field survive (they render)
+    expect(
+      (out.layers![1].paint as { 'fill-pattern': unknown })['fill-pattern']
+    ).toEqual(['get', 'pattern']);
+    expect(
+      (out.layers![2].layout as { 'symbol-sort-key': unknown })[
+        'symbol-sort-key'
+      ]
+    ).toEqual(['to-number', ['get', 'population']]);
     expect(
       (out.layers![2].layout as { 'text-field': unknown })['text-field']
     ).toEqual(['get', 'name']);
   });
 
-  it('keeps a CONSTANT value for the same properties (only data expressions are dropped)', () => {
+  it('keeps a CONSTANT value for a cross-faded property', () => {
     const style = {
-      layers: [
-        { id: 'l1', type: 'line', paint: { 'line-dasharray': [2, 4] } },
-        { id: 'l2', type: 'line', layout: { 'line-sort-key': 3 } }
-      ]
+      layers: [{ id: 'l1', type: 'line', paint: { 'line-dasharray': [2, 4] } }]
     };
     const out = normaliseStyleForOl(style);
     expect(
       (out.layers![0].paint as { 'line-dasharray': number[] })['line-dasharray']
     ).toEqual([2, 4]);
-    expect(
-      (out.layers![1].layout as { 'line-sort-key': number })['line-sort-key']
-    ).toBe(3);
-  });
-
-  it('leaves data-driven properties that OL does support (e.g. line-color)', () => {
-    const style = {
-      layers: [
-        {
-          id: 'l1',
-          type: 'line',
-          paint: {
-            'line-color': ['match', ['get', 'cls'], 'a', '#f00', '#00f']
-          }
-        }
-      ]
-    };
-    const out = normaliseStyleForOl(style);
-    expect('line-color' in (out.layers![0].paint as object)).toBe(true);
   });
 });

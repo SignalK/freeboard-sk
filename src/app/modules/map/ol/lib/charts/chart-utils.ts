@@ -2,6 +2,12 @@ import { Extent, intersects } from 'ol/extent';
 import { transformExtent } from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import RenderEvent from 'ol/render/Event';
+import {
+  isExpression,
+  createPropertyExpression,
+  v8,
+  type StylePropertySpecification
+} from '@maplibre/maplibre-gl-style-spec';
 import { ChartImageAdjustment } from 'src/app/types';
 
 /**
@@ -256,52 +262,54 @@ export interface MapStyleDocument {
 }
 
 /**
- * Layout/paint properties ol-mapbox-style can only evaluate per-zoom or as a
- * constant. Handed a *data* expression (one that reads per-feature state) for
- * one of these, olms throws an uncaught `"data expressions not supported"` from
- * inside the render loop, which freezes the whole OpenLayers map — pan and zoom
- * stop responding and only the background paints. MapLibre-native styles such
- * as Open Waters use data-driven values for some of these on layers that only
- * appear at higher zoom, so the chart renders until it is zoomed in and then
- * locks up. A constant value for the same property is fine and is kept.
+ * The MapLibre style spec keyed by `<group>_<layerType>` (e.g. `paint_line`,
+ * `layout_symbol`) → property name → property spec, exactly as
+ * `ol-mapbox-style` sees it (both depend on `@maplibre/maplibre-gl-style-spec`).
  */
-export const OL_DATA_EXPRESSION_UNSUPPORTED: ReadonlySet<string> = new Set([
-  'line-dasharray',
-  'line-pattern',
-  'fill-pattern',
-  'symbol-sort-key',
-  'icon-sort-key',
-  'text-sort-key',
-  'fill-sort-key',
-  'line-sort-key',
-  'circle-sort-key'
-]);
+const STYLE_SPEC = v8 as unknown as Record<
+  string,
+  Record<string, StylePropertySpecification>
+>;
 
 /**
- * Whether a style property value is a MapLibre *data* expression — one that
- * reads per-feature state (`get`/`has`/`feature-state`/…) rather than only the
- * zoom level. Zoom expressions and plain constants are not data expressions.
+ * Whether ol-mapbox-style would fail to evaluate `value` as the given
+ * layout/paint property. The renderer runs the MapLibre spec's
+ * `createPropertyExpression` at render time; for a *data* expression on a
+ * property that only accepts constants or zoom (camera) expressions — the
+ * cross-faded `line-dasharray` is the one Open Waters trips over — it throws an
+ * uncaught `"data expressions not supported"` from inside the render loop and
+ * freezes the whole OpenLayers map (pan and zoom stop, only the background
+ * paints). Because higher-zoom layers carry these, the chart renders until it
+ * is zoomed in and then locks up.
+ *
+ * Asking the spec's own parser here drops precisely what the renderer would
+ * throw on — any property, any reason — and nothing that renders fine. Deriving
+ * it from the spec rather than a hand-list matters: 72 properties reject data
+ * expressions, so a fixed list is both too broad (it would drop
+ * `line-pattern`, `fill-pattern` and the `*-sort-key`s, which are data-driven
+ * and evaluate cleanly) and too narrow (the next style freezes on a different
+ * one). Constants and zoom-only expressions pass; properties with no spec entry
+ * (e.g. non-standard `icon-sort-key`) are left untouched.
  */
-export function isDataExpression(value: unknown): boolean {
-  if (!Array.isArray(value)) {
+export function isUnevaluableByOl(
+  group: 'layout' | 'paint',
+  layerType: string,
+  key: string,
+  value: unknown
+): boolean {
+  if (!isExpression(value)) {
     return false;
   }
-  const op = value[0];
-  if (
-    typeof op === 'string' &&
-    [
-      'get',
-      'has',
-      '!has',
-      'feature-state',
-      'geometry-type',
-      'id',
-      'properties'
-    ].includes(op)
-  ) {
+  const propertySpec = STYLE_SPEC[`${group}_${layerType}`]?.[key];
+  if (!propertySpec) {
+    return false;
+  }
+  try {
+    return createPropertyExpression(value, propertySpec).result === 'error';
+  } catch {
+    // If the spec parser throws here, it would throw in the renderer too — drop.
     return true;
   }
-  return value.some(isDataExpression);
 }
 
 /**
@@ -310,11 +318,10 @@ export function isDataExpression(value: unknown): boolean {
  *  - drop the layer types the renderer cannot draw (see
  *    `OL_RENDERABLE_LAYER_TYPES`), preserving the order of the layers that
  *    remain; and
- *  - drop the properties it cannot evaluate as data expressions (see
- *    `OL_DATA_EXPRESSION_UNSUPPORTED`) when they are data-driven, so a
- *    higher-zoom layer cannot freeze the map. The layer still renders (a solid
- *    line / no pattern); only the data-driven variation of that one property is
- *    lost.
+ *  - drop any layout/paint property whose value the renderer cannot evaluate
+ *    (see `isUnevaluableByOl`), so a higher-zoom layer cannot freeze the map.
+ *    The layer still renders (e.g. a solid line); only that one unusable
+ *    property is lost.
  *
  * Mutates and returns the passed object. A pure transform on the parsed style,
  * kept separate from the component so it can be unit-tested without it.
@@ -327,15 +334,13 @@ export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
         OL_RENDERABLE_LAYER_TYPES.has(layer.type)
     );
     for (const layer of style.layers) {
+      const layerType = layer.type as string;
       for (const group of ['layout', 'paint'] as const) {
         const props = (layer as Record<string, unknown>)[group];
         if (props && typeof props === 'object') {
           const bag = props as Record<string, unknown>;
           for (const key of Object.keys(bag)) {
-            if (
-              OL_DATA_EXPRESSION_UNSUPPORTED.has(key) &&
-              isDataExpression(bag[key])
-            ) {
+            if (isUnevaluableByOl(group, layerType, key, bag[key])) {
               delete bag[key];
             }
           }
