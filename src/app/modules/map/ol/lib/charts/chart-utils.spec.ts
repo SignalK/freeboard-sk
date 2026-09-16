@@ -1,13 +1,23 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it, vi, afterEach } from 'vitest';
 import {
   extentFromBounds,
+  fetchArrayBufferWithRetry,
   isChartInView,
   isUnevaluableByOl,
   isZoomWithinLayerRange,
+  makeChartTilesResilient,
   normaliseStyleForOl,
   resolveLayerMaxZoom,
   resolveLayerZoomRange
 } from './chart-utils';
+
+import LayerGroup from 'ol/layer/Group';
+import TileLayer from 'ol/layer/Tile';
+import VectorTileLayer from 'ol/layer/VectorTile';
+import VectorTileSource from 'ol/source/VectorTile';
+import XYZ from 'ol/source/XYZ';
+import MVT from 'ol/format/MVT';
+import TileState from 'ol/TileState';
 
 describe('resolveLayerZoomRange', () => {
   // A chart declaring tiles for z5-z15, the shape the Traficom raster sets have.
@@ -427,5 +437,220 @@ describe('normaliseStyleForOl — properties the renderer cannot evaluate', () =
     expect(
       (out.layers![0].paint as { 'line-dasharray': number[] })['line-dasharray']
     ).toEqual([2, 4]);
+  });
+});
+
+/** Minimal `Response`-like stub for the injected fetch. */
+function okResponse(bytes = 4): Response {
+  return {
+    ok: true,
+    status: 200,
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(bytes))
+  } as unknown as Response;
+}
+
+function errorResponse(status: number): Response {
+  return {
+    ok: false,
+    status,
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
+  } as unknown as Response;
+}
+
+/** A fetch that never settles until its abort signal fires (a stalled request). */
+function stalledFetch(): typeof fetch {
+  return ((_url: string, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () =>
+        reject(new DOMException('Aborted', 'AbortError'))
+      );
+    })) as unknown as typeof fetch;
+}
+
+describe('fetchArrayBufferWithRetry', () => {
+  const fast = { timeoutMs: 50, retries: 2, backoffMs: 1 };
+
+  it('resolves the body on the first successful attempt', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.resolve(okResponse(8));
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(buf.byteLength).toBe(8);
+    expect(calls).toBe(1);
+  });
+
+  it('retries after a network failure and then succeeds', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return calls === 1
+        ? Promise.reject(new Error('network'))
+        : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(calls).toBe(2);
+  });
+
+  it('retries a 5xx and a 429, but not a 404', async () => {
+    for (const status of [503, 429]) {
+      let calls = 0;
+      const fetchImpl = (() => {
+        calls++;
+        return calls === 1
+          ? Promise.resolve(errorResponse(status))
+          : Promise.resolve(okResponse());
+      }) as unknown as typeof fetch;
+      await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+      expect(calls).toBe(2); // retried once
+    }
+
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.resolve(errorResponse(404));
+    }) as unknown as typeof fetch;
+    await expect(
+      fetchArrayBufferWithRetry('u', fast, fetchImpl)
+    ).rejects.toThrow('404');
+    expect(calls).toBe(1); // 4xx is definitive — not retried
+  });
+
+  it('aborts a stalled attempt via the timeout and recovers on retry', async () => {
+    let calls = 0;
+    const stalled = stalledFetch();
+    const fetchImpl = ((url: string, init?: RequestInit) => {
+      calls++;
+      return calls === 1 ? stalled(url, init) : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(calls).toBe(2);
+  });
+
+  it('rejects once every attempt has failed', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.reject(new Error('down'));
+    }) as unknown as typeof fetch;
+
+    await expect(
+      fetchArrayBufferWithRetry('u', fast, fetchImpl)
+    ).rejects.toThrow('down');
+    expect(calls).toBe(fast.retries + 1);
+  });
+});
+
+describe('makeChartTilesResilient', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const vectorSource = (): VectorTileSource =>
+    new VectorTileSource({
+      format: new MVT(),
+      url: 'https://example.test/{z}/{x}/{y}.pbf'
+    });
+
+  /** Fake VectorTile capturing the loader the resilient loader installs. */
+  function fakeTile(features: unknown[]) {
+    const setFeatures = vi.fn();
+    const setState = vi.fn();
+    let loader:
+      | ((extent: number[], resolution: number, projection: unknown) => void)
+      | undefined;
+    const tile = {
+      setLoader: (cb: typeof loader) => {
+        loader = cb;
+      },
+      getFormat: () => ({ readFeatures: () => features }),
+      setFeatures,
+      setState
+    };
+    return {
+      tile,
+      setFeatures,
+      setState,
+      run: () => loader!([0, 0, 1, 1], 1, null)
+    };
+  }
+
+  it('replaces the tile load function on vector tile sources', () => {
+    const source = vectorSource();
+    const before = source.getTileLoadFunction();
+    const group = new LayerGroup({ layers: [new VectorTileLayer({ source })] });
+
+    makeChartTilesResilient(group);
+
+    expect(source.getTileLoadFunction()).not.toBe(before);
+  });
+
+  it('leaves raster (image) tile sources untouched', () => {
+    const source = new XYZ({ url: 'https://example.test/{z}/{x}/{y}.png' });
+    const before = source.getTileLoadFunction();
+    const group = new LayerGroup({ layers: [new TileLayer({ source })] });
+
+    makeChartTilesResilient(group);
+
+    expect(source.getTileLoadFunction()).toBe(before);
+  });
+
+  it('recurses into nested layer groups', () => {
+    const source = vectorSource();
+    const before = source.getTileLoadFunction();
+    const group = new LayerGroup({
+      layers: [new LayerGroup({ layers: [new VectorTileLayer({ source })] })]
+    });
+
+    makeChartTilesResilient(group);
+
+    expect(source.getTileLoadFunction()).not.toBe(before);
+  });
+
+  it('installs a loader that fetches, parses and sets features on success', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+    } as unknown as Response);
+
+    const source = vectorSource();
+    const group = new LayerGroup({ layers: [new VectorTileLayer({ source })] });
+    makeChartTilesResilient(group, { timeoutMs: 50, retries: 1, backoffMs: 1 });
+
+    const features = [{}, {}];
+    const t = fakeTile(features);
+    (source.getTileLoadFunction() as (tile: unknown, url: string) => void)(
+      t.tile,
+      'https://example.test/0/0/0.pbf'
+    );
+    t.run();
+
+    await vi.waitFor(() =>
+      expect(t.setFeatures).toHaveBeenCalledWith(features)
+    );
+    expect(t.setState).not.toHaveBeenCalled();
+  });
+
+  it('installs a loader that errors the tile after retries are exhausted', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+
+    const source = vectorSource();
+    const group = new LayerGroup({ layers: [new VectorTileLayer({ source })] });
+    makeChartTilesResilient(group, { timeoutMs: 50, retries: 1, backoffMs: 1 });
+
+    const t = fakeTile([]);
+    (source.getTileLoadFunction() as (tile: unknown, url: string) => void)(
+      t.tile,
+      'u'
+    );
+    t.run();
+
+    await vi.waitFor(() =>
+      expect(t.setState).toHaveBeenCalledWith(TileState.ERROR)
+    );
+    expect(t.setFeatures).not.toHaveBeenCalled();
   });
 });
