@@ -10,14 +10,7 @@ export function zoomKeyDirection(e: KeyboardEvent): 'in' | 'out' | null {
   if (e.ctrlKey || e.metaKey || e.altKey) {
     return null;
   }
-  const el = e.target as HTMLElement | null;
-  const tag = el?.tagName;
-  if (
-    tag === 'INPUT' ||
-    tag === 'TEXTAREA' ||
-    tag === 'SELECT' ||
-    !!el?.isContentEditable
-  ) {
+  if (isTextEditingTarget(e)) {
     return null;
   }
   if (e.key === '+') {
@@ -27,4 +20,19 @@ export function zoomKeyDirection(e: KeyboardEvent): 'in' | 'out' | null {
     return 'out';
   }
   return null;
+}
+
+/**
+ * Whether the key event's target is a text-editing element (mirrors OpenLayers'
+ * `targetNotEditable` condition), so map key bindings leave typing alone.
+ */
+export function isTextEditingTarget(e: KeyboardEvent): boolean {
+  const el = e.target as HTMLElement | null;
+  const tag = el?.tagName;
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    !!el?.isContentEditable
+  );
 }

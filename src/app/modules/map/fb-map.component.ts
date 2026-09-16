@@ -50,6 +50,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
+import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
 import { isRefollowActivity, RefollowTimer } from 'src/app/lib/refollow-timer';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
@@ -642,7 +643,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       { name: 'dragpan' },
       { name: 'dragzoom' },
       { name: 'keyboardpan' },
-      // keyboardzoom is handled by onZoomKeydown so +/- preserves the follow
+      // keyboardzoom is handled by onMapKeydown so +/- preserves the follow
       // offset, the same as the on-screen zoom buttons.
       { name: 'mousewheelzoom' },
       { name: 'pinchzoom' }
@@ -807,7 +808,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   protected onMapPointerDrag() {
-    // A drag is the user, so it restarts the idle countdown — before the
+    this.onUserPan();
+  }
+
+  // The user is panning the chart — by pointer drag or by the arrow keys (#725).
+  // Applies the "Map Pan When Following" setting; the only place its two flags
+  // are written, so a new pan trigger cannot miss one of them.
+  private onUserPan() {
+    // A pan is the user, so it restarts the idle countdown — before the
     // follow-mode guard below, because every pan AFTER the one that released
     // follow mode arrives with follow already off and must still count (#714).
     this.refollow.reset();
@@ -819,11 +827,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // so exiting "move map" mode propagates to the UI. Rare one-off transition.
       this.ngZone.run(() => this.exitMovingMap.emit(true));
       // The pan that releases follow mode also starts the idle countdown that
-      // brings it back (#714). Further drags and zooms restart it above.
+      // brings it back (#714). Further pans and zooms restart it above.
       this.refollow.arm(this.app.config.map.refollowDelay);
     } else if (this.app.config.map.panBehavior === 'offset') {
       // Follow mode stays on; onMapMoveEnd() captures the new look-ahead once
-      // the drag settles.
+      // the pan settles.
       this.userPanned = true;
     }
   }
@@ -2099,16 +2107,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ****** MAP control functions *******
 
-  // Bound to the map element's keydown (so it only fires when the map has focus,
-  // as OL's keyboardzoom did): route +/- through the same offset-preserving zoom
-  // as the on-screen buttons instead of OL zooming about the chart centre.
-  protected onZoomKeydown(e: KeyboardEvent) {
+  // Bound to the map element's keydown, so it only fires when the map has focus
+  // (as OL's keyboard interactions do).
+  // - +/-: routed through the same offset-preserving zoom as the on-screen
+  //   buttons instead of OL zooming about the chart centre.
+  // - Arrow keys: OL's keyboardpan interaction moves the view; it fires no
+  //   pointerdrag, so apply the pan behaviour here or the "Map Pan When
+  //   Following" setting is bypassed (#725).
+  protected onMapKeydown(e: KeyboardEvent) {
     const direction = zoomKeyDirection(e);
-    if (!direction) {
+    if (direction) {
+      e.preventDefault();
+      this.zoomMap(direction === 'in');
       return;
     }
-    e.preventDefault();
-    this.zoomMap(direction === 'in');
+    if (isPanKey(e)) {
+      this.onUserPan();
+    }
   }
 
   // handle map zoom controls
