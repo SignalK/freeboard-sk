@@ -19,7 +19,7 @@ import {
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
-import { PathValue } from 'src/app/types';
+import { IAppConfig, PathValue } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
   ORIENTATION_SOURCE_PATHS,
@@ -33,9 +33,15 @@ interface AisStatus {
 }
 
 interface AisFilter {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  signalk: { [key: string]: any };
-  aisState: [];
+  signalk: Partial<IAppConfig['signalk']>;
+  aisState: string[];
+}
+
+/** Payload of the `settings` (and `open`) command from the app */
+interface WorkerSettings {
+  config?: IAppConfig;
+  interval?: number;
+  playback?: boolean;
 }
 
 interface VesselTrailConfig {
@@ -250,7 +256,7 @@ function handleCommand(data: MsgFromApp) {
     // { cmd: 'open', options: { url: string, subscribe: string, token: string} }
     case 'open':
       //console.log('Worker control: opening stream...');
-      applySettings(data.options as { config: { [key: string]: any } });
+      applySettings(data.options as WorkerSettings);
       openStream(data.options);
       break;
     //** { cmd: 'close', options: {terminate: boolean} }
@@ -266,7 +272,7 @@ function handleCommand(data: MsgFromApp) {
     //** { cmd: 'settings' , options: {..}
     case 'settings':
       //console.log('Worker control: settings...');
-      applySettings(data.options as { config: { [key: string]: any } });
+      applySettings(data.options as WorkerSettings);
       break;
     //** { cmd: 'alarm', options: {raise: boolean, type: string, msg: string, state: string} }
     case 'alarm':
@@ -323,13 +329,7 @@ function handleCommand(data: MsgFromApp) {
   }
 }
 
-function applySettings(
-  opt: {
-    config: { [key: string]: any };
-    interval?: number;
-    playback?: boolean;
-  } = { config: {} }
-) {
+function applySettings(opt: WorkerSettings = {}) {
   if (opt.interval && typeof opt.interval === 'number') {
     msgInterval = opt.interval;
     clearTimers();
@@ -596,7 +596,7 @@ function parseStreamMessage(data) {
     // update
     updateReceived = true;
     data.updates.forEach((u) => {
-      if (!u.values) {
+      if (!('values' in u) || !u.values) {
         return;
       }
       $source = u.$source;
@@ -813,7 +813,12 @@ function selectVessel(id: string): SKVessel {
 }
 
 // ** process common vessel data and true / magnetic preference **
-export function processVessel(d: SKVessel, v: any, isSelf = false) {
+export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
+  // The value's shape is selected by `path` (a number for speeds, an object
+  // for position, ...), so it is read untyped here rather than cast on each
+  // of the branches below.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const value: any = v.value;
   if (isSelf) {
     d.lastUpdated = new Date();
     if (v.path.startsWith('resources.')) {
@@ -825,26 +830,26 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
       // emit immediate radar update for single path
       processRadarUpdate(v);
     } else if (v.path.startsWith('navigation.racing')) {
-      d.properties[v.path] = v.value;
+      d.properties[v.path] = value;
     } else if (v.path === 'performance.beatAngle') {
-      d.performance.beatAngle = v.value;
+      d.performance.beatAngle = value;
     } else if (v.path === 'performance.gybeAngle') {
-      d.performance.gybeAngle = v.value;
+      d.performance.gybeAngle = value;
     }
     // ** course API data
     else if (v.path.startsWith('navigation.course.')) {
       // ** course calcValues
       if (v.path.startsWith('navigation.course.calcValues.')) {
         const p = v.path.split('.').slice(3).join('.');
-        d.courseCalcs[p] = v.value;
+        d.courseCalcs[p] = value;
       } else if (v.path.includes('activeRoute')) {
-        d.courseApi.activeRoute = v.value;
+        d.courseApi.activeRoute = value;
       } else if (v.path.includes('nextPoint')) {
-        d.courseApi.nextPoint = v.value;
+        d.courseApi.nextPoint = value;
       } else if (v.path.includes('previousPoint')) {
-        d.courseApi.previousPoint = v.value;
+        d.courseApi.previousPoint = value;
       } else if (v.path.includes('arrivalCircle')) {
-        d.courseApi.arrivalCircle = v.value;
+        d.courseApi.arrivalCircle = value;
       }
     }
     // ** radar data
@@ -854,7 +859,7 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
       if (!d.radars[pk[1]]) {
         d.radars[pk[1]] = {};
       }
-      d.radars[pk[1]][p] = v.value;
+      d.radars[pk[1]][p] = value;
     }
     // ** record received preferred path names for selection
     const cp =
@@ -867,49 +872,46 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
   } else {
     // not self
     if (v.path === 'navigation.distanceToSelf') {
-      d.distanceToSelf = v.value;
+      d.distanceToSelf = value;
     }
     if (v.path === 'navigation.closestApproach') {
-      d.closestApproach = v.value;
+      d.closestApproach = value;
     }
   }
   // ** all vessels
   if (v.path === '') {
-    if (typeof v.value.name !== 'undefined') {
-      d.name = v.value.name;
+    if (typeof value.name !== 'undefined') {
+      d.name = value.name;
     }
-    if (typeof v.value.mmsi !== 'undefined') {
-      d.mmsi = v.value.mmsi;
+    if (typeof value.mmsi !== 'undefined') {
+      d.mmsi = value.mmsi;
       d.lastUpdated = new Date();
     }
-    if (typeof v.value.registrations !== 'undefined') {
-      d.registrations = v.value.registrations;
+    if (typeof value.registrations !== 'undefined') {
+      d.registrations = value.registrations;
     }
-    if (typeof v.value.buddy !== 'undefined') {
-      d.buddy = v.value.buddy;
+    if (typeof value.buddy !== 'undefined') {
+      d.buddy = value.buddy;
     }
-    if (typeof v.value.communication !== 'undefined') {
-      d.callsignVhf = v.value.communication.callsignVhf ?? '';
-      d.callsignHf = v.value.communication.callsignHf ?? '';
+    if (typeof value.communication !== 'undefined') {
+      d.callsignVhf = value.communication.callsignVhf ?? '';
+      d.callsignHf = value.communication.callsignHf ?? '';
     }
   } else if (v.path === 'communication.callsignVhf') {
-    d.callsignVhf = v.value;
+    d.callsignVhf = value;
   } else if (v.path === 'communication.callsignHf') {
-    d.callsignHf = v.value;
+    d.callsignHf = value;
   } else if (v.path === 'design.aisShipType') {
-    d.type = v.value;
-  } else if (v.path === 'navigation.position' && v.value) {
+    d.type = value;
+  } else if (v.path === 'navigation.position' && value) {
     // position is not null
     if (
-      typeof v.value.latitude === 'undefined' ||
-      typeof v.value.longitude === 'undefined'
+      typeof value.latitude === 'undefined' ||
+      typeof value.longitude === 'undefined'
     ) {
       return;
     } // invalid
-    d.position = GeoUtils.normaliseCoords([
-      v.value.longitude,
-      v.value.latitude
-    ]);
+    d.position = GeoUtils.normaliseCoords([value.longitude, value.latitude]);
     d.positionReceived = true;
     d.positionTimestamp = $timestamp ?? '';
     d.positionUpdatedAt = Date.now();
@@ -918,81 +920,81 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
       appendTrack(d);
     }
   } else if (v.path === 'navigation.state') {
-    d.state = v.value;
+    d.state = value;
   } else if (v.path === 'navigation.speedOverGround') {
-    d.sog = v.value;
+    d.sog = value;
   }
   // ** environment sun / mode
   else if (v.path === 'environment.mode') {
-    d.environment.mode = v.value;
+    d.environment.mode = value;
   } else if (v.path === 'environment.sun') {
-    d.environment.sun = v.value;
+    d.environment.sun = value;
   }
   // ** environment.wind **
   else if (v.path === 'environment.wind.angleApparent') {
-    d.wind.awa = v.value;
+    d.wind.awa = value;
   } else if (v.path === 'environment.wind.speedApparent') {
-    d.wind.aws = v.value;
+    d.wind.aws = value;
   }
 
   // ** tws **
   else if (v.path === 'environment.wind.speedTrue') {
-    d.wind.speedTrue = v.value;
+    d.wind.speedTrue = value;
   } else if (v.path === 'environment.wind.speedOverGround') {
-    d.wind.sog = v.value;
+    d.wind.sog = value;
   }
 
   // ** wind direction **
   else if (v.path === 'environment.wind.directionTrue') {
-    d.wind.twd = v.value;
+    d.wind.twd = value;
   } else if (v.path === 'environment.wind.directionMagnetic') {
-    d.wind.mwd = v.value;
+    d.wind.mwd = value;
   }
 
   // anchor radius / position
   else if (v.path === 'navigation.anchor.position') {
-    d.anchor.position = v.value;
+    d.anchor.position = value;
   } else if (v.path === 'navigation.anchor.maxRadius') {
-    d.anchor.maxRadius = v.value;
+    d.anchor.maxRadius = value;
   } else if (v.path === 'navigation.anchor.currentRadius') {
-    d.anchor.radius = v.value;
+    d.anchor.radius = value;
   }
 
   // steering.autopilot
   else if (v.path === 'steering.autopilot.state' && $source === apDeviceId) {
-    d.autopilot.state = v.value;
+    d.autopilot.state = value;
   } else if (v.path === 'steering.autopilot.mode' && $source === apDeviceId) {
-    d.autopilot.mode = v.value;
+    d.autopilot.mode = value;
   } else if (v.path === 'steering.autopilot.target' && $source === apDeviceId) {
-    d.autopilot.target = v.value;
+    d.autopilot.target = value;
   } else if (
     v.path === 'steering.autopilot.engaged' &&
     $source === apDeviceId
   ) {
-    d.autopilot.enabled = v.value;
+    d.autopilot.enabled = value;
   } else if (v.path === 'steering.autopilot.defaultPilot') {
-    d.autopilot.default = v.value;
-    apDeviceId = v.value;
+    d.autopilot.default = value;
+    apDeviceId = value;
   } else if (
     v.path === 'steering.autopilot.availableActions' &&
     $source === apDeviceId
   ) {
-    d.autopilot.availableActions = v.value ?? [];
+    d.autopilot.availableActions = value ?? [];
   }
 
   // ** cog **
   else if (v.path === 'navigation.courseOverGroundTrue') {
-    d.cogTrue = v.value;
+    d.cogTrue = value;
   } else if (v.path === 'navigation.courseOverGroundMagnetic') {
-    d.cogMagnetic = v.value;
+    d.cogMagnetic = value;
   }
 
   // ** heading **
   else if (v.path === 'navigation.headingTrue') {
-    d.headingTrue = v.value;
+    d.headingTrue = value;
     d.headingTrueUpdatedAt = Date.now();
   } else if (v.path === 'navigation.headingMagnetic') {
-    d.headingMagnetic = v.value;
+    d.headingMagnetic = value;
     d.headingMagneticUpdatedAt = Date.now();
   }
 
@@ -1007,7 +1009,7 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
       resolveOrientation(d);
     }
   } else if (v.path === headingPref) {
-    d.orientation = v.value;
+    d.orientation = value;
   }
 
   // use preferred path value for tws **
@@ -1015,7 +1017,7 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
     typeof preferredPaths['tws'] !== 'undefined' &&
     v.path === preferredPaths['tws']
   ) {
-    d.wind.tws = v.value;
+    d.wind.tws = value;
   }
   // use preferred path value for twd **
   if (
@@ -1025,8 +1027,8 @@ export function processVessel(d: SKVessel, v: any, isSelf = false) {
     d.wind.direction =
       v.path === 'environment.wind.angleTrueGround' ||
       v.path === 'environment.wind.angleTrueWater'
-        ? Convert.angleToDirection(v.value, d.orientation ?? 0)
-        : v.value;
+        ? Convert.angleToDirection(value, d.orientation ?? 0)
+        : value;
   }
 
   // ** cog vector **

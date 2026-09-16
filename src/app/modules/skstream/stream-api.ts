@@ -1,13 +1,37 @@
 import { Subject, Observable } from 'rxjs';
 import * as uuid from 'uuid';
+import type {
+  Context,
+  Delta,
+  Path,
+  PathValue,
+  Timestamp,
+  Update,
+  Value
+} from '@signalk/server-api';
+import type {
+  SKHelloMessage,
+  SKRequestResponse,
+  SKStreamMessage,
+  SKStreamRequest,
+  SKStreamSubscribe,
+  SKStreamUnsubscribe,
+  SKStreamUpdates,
+  SKSubscriptionOptions
+} from 'src/app/types/stream';
+
+/** Source label attached to updates sent via the stream */
+interface UpdateSource {
+  label: string;
+}
 
 export class SKStreamAPI {
-  private _connect: Subject<any>;
-  private _close: Subject<any>;
-  private _error: Subject<any>;
-  private _message: Subject<any>;
+  private _connect: Subject<Event>;
+  private _close: Subject<CloseEvent>;
+  private _error: Subject<Event>;
+  private _message: Subject<SKStreamMessage>;
 
-  private ws: any;
+  private ws: WebSocket | null;
   private _filter: string = ''; // id of vessel to filter delta messages
   private _wsTimeout = 20000; // websocket connection timeout
   private _token: string = '';
@@ -15,22 +39,23 @@ export class SKStreamAPI {
 
   // **************** ATTRIBUTES ***************************
 
-  public onConnect: Observable<any>;
-  public onClose: Observable<any>;
-  public onError: Observable<any>;
-  public onMessage: Observable<any>;
+  public onConnect: Observable<Event>;
+  public onClose: Observable<CloseEvent>;
+  public onError: Observable<Event>;
+  public onMessage: Observable<SKStreamMessage>;
 
   public version: number = 1;
   public endpoint: string = '';
   public selfId: string = '';
-  public _source: any = null;
+  public _source: UpdateSource | null = null;
 
   /** set source label for use in messages */
   set source(val: string) {
     if (!this._source) {
-      this._source = {};
+      this._source = { label: val };
+    } else {
+      this._source.label = val;
     }
-    this._source['label'] = val;
   }
 
   /** set auth token value */
@@ -72,13 +97,13 @@ export class SKStreamAPI {
   // ******************************************************
 
   constructor() {
-    this._connect = new Subject<any>();
+    this._connect = new Subject<Event>();
     this.onConnect = this._connect.asObservable();
-    this._close = new Subject<any>();
+    this._close = new Subject<CloseEvent>();
     this.onClose = this._close.asObservable();
-    this._error = new Subject<any>();
+    this._error = new Subject<Event>();
     this.onError = this._error.asObservable();
-    this._message = new Subject<any>();
+    this._message = new Subject<SKStreamMessage>();
     this.onMessage = this._message.asObservable();
   }
 
@@ -122,23 +147,23 @@ export class SKStreamAPI {
       }
     }, this._wsTimeout);
 
-    this.ws.onopen = (e: any) => {
+    this.ws.onopen = (e: Event) => {
       this._connect.next(e);
     };
-    this.ws.onclose = (e: any) => {
+    this.ws.onclose = (e: CloseEvent) => {
       this._close.next(e);
     };
-    this.ws.onerror = (e: any) => {
+    this.ws.onerror = (e: Event) => {
       this._error.next(e);
     };
-    this.ws.onmessage = (e: any) => {
+    this.ws.onmessage = (e: MessageEvent) => {
       this.parseOnMessage(e);
     };
   }
 
   /** parse received message */
-  private parseOnMessage(e: any) {
-    let data: any;
+  private parseOnMessage(e: MessageEvent) {
+    let data: SKStreamMessage;
     if (typeof e.data === 'string') {
       try {
         data = JSON.parse(e.data);
@@ -167,7 +192,7 @@ export class SKStreamAPI {
   }
 
   /** send request via Delta stream */
-  sendRequest(value: any): string {
+  sendRequest(value: Record<string, unknown>): string {
     if (typeof value !== 'object') {
       return '';
     }
@@ -184,7 +209,7 @@ export class SKStreamAPI {
   }
 
   /** send put request via Delta stream */
-  put(context: string, path: string, value: any): string {
+  put(context: string, path: string, value: Value): string {
     const msg = {
       context: context === 'self' ? 'vessels.self' : context,
       put: { path: path, value: value }
@@ -201,63 +226,64 @@ export class SKStreamAPI {
   }
 
   /** send data to Signal K stream */
-  send(data: any) {
+  send(data: string | object) {
     if (this.ws) {
-      if (typeof data === 'object') {
-        data = JSON.stringify(data);
-      }
-      this.ws.send(data);
+      this.ws.send(typeof data === 'object' ? JSON.stringify(data) : data);
     }
   }
 
   /** send value(s) via delta stream update */
-  sendUpdate(context: string, path: Array<any>): void;
-  sendUpdate(context: string, path: string, value: any): void;
+  sendUpdate(context: string, path: Array<PathValue>): void;
+  sendUpdate(context: string, path: string, value: Value): void;
   sendUpdate(
     context: string = 'self',
-    path: string | Array<any>,
-    value?: any
+    path: string | Array<PathValue>,
+    value?: Value
   ): void {
     const val = Message.updates();
     if (this._token) {
       val['token'] = this._token;
     }
-    val.context = context === 'self' ? 'vessels.self' : context;
+    val.context = (context === 'self' ? 'vessels.self' : context) as Context;
     if (this._token) {
       val['token'] = this._token;
     }
 
-    let uValues = [];
+    let uValues: PathValue[] = [];
     if (typeof path === 'string') {
-      uValues.push({ path: path, value: value });
+      uValues.push({ path: path as Path, value: value });
     }
     if (typeof path === 'object' && Array.isArray(path)) {
       uValues = path;
     }
-    const u: any = {
-      timestamp: new Date().toISOString(),
+    const u: Update = {
+      timestamp: new Date().toISOString() as Timestamp,
       values: uValues
     };
     if (this._source) {
-      u['source'] = this._source;
+      u.source = this._source;
     }
     val.updates.push(u);
     this.send(val);
   }
 
   /** Subscribe to Delta stream messages options: {..} */
-  subscribe(context: string, path: Array<any>): void;
-  subscribe(context: string, path: string, options?: any): void;
+  subscribe(context: string, path: Array<SKSubscriptionOptions>): void;
+  subscribe(
+    context: string,
+    path: string,
+    options?: Omit<SKSubscriptionOptions, 'path'>
+  ): void;
   subscribe(
     context: string = '*',
-    path: string | Array<any> = '*',
-    options?: any
+    path: string | Array<SKSubscriptionOptions> = '*',
+    options?: Omit<SKSubscriptionOptions, 'path'>
   ): void {
     const val = Message.subscribe();
     if (this._token) {
       val['token'] = this._token;
     }
-    val.context = context === 'self' ? 'vessels.self' : context;
+    val.context = (context === 'self' ? 'vessels.self' : context) as Context;
     if (this._token) {
       val['token'] = this._token;
     }
@@ -266,8 +292,7 @@ export class SKStreamAPI {
       val.subscribe = path;
     }
     if (typeof path === 'string') {
-      const sValue: any = {};
-      sValue['path'] = path;
+      const sValue: SKSubscriptionOptions = { path: path };
       if (options && typeof options === 'object') {
         if (options['period']) {
           sValue['period'] = options['period'];
@@ -296,12 +321,15 @@ export class SKStreamAPI {
   }
 
   // ** Unsubscribe from Delta stream messages **
-  unsubscribe(context: string = '*', path: any = '*') {
+  unsubscribe(
+    context: string = '*',
+    path: string | Array<{ path: string }> = '*'
+  ) {
     const val = Message.unsubscribe();
     if (this._token) {
       val['token'] = this._token;
     }
-    val.context = context === 'self' ? 'vessels.self' : context;
+    val.context = (context === 'self' ? 'vessels.self' : context) as Context;
     if (this._token) {
       val['token'] = this._token;
     }
@@ -318,7 +346,11 @@ export class SKStreamAPI {
   /** raise alarm for path */
   raiseAlarm(context: string, name: string, alarm: Alarm): void;
   raiseAlarm(context: string, type: AlarmType, alarm: Alarm): void;
-  raiseAlarm(context: string = '*', alarmId: any, alarm: Alarm): void {
+  raiseAlarm(
+    context: string = '*',
+    alarmId: string | AlarmType,
+    alarm: Alarm
+  ): void {
     let path: string;
     if (typeof alarmId === 'string') {
       path =
@@ -340,22 +372,23 @@ export class SKStreamAPI {
 
   // *************** MESSAGE PARSING ******************************
   /** returns true if message context is 'self' */
-  isSelf(msg: any): boolean {
+  isSelf(msg: Delta): boolean {
     return msg.context === this.selfId;
   }
   /** returns true if message is a Delta message */
-  isDelta(msg: any): boolean {
-    return typeof msg.context !== 'undefined';
+  isDelta(msg: SKStreamMessage): msg is Delta {
+    return typeof (msg as Delta).context !== 'undefined';
   }
   /** returns true if message is a Hello message */
-  isHello(msg: any): boolean {
+  isHello(msg: SKStreamMessage): msg is SKHelloMessage {
     return (
-      typeof msg.version !== 'undefined' && typeof msg.self !== 'undefined'
+      typeof (msg as SKHelloMessage).version !== 'undefined' &&
+      typeof (msg as SKHelloMessage).self !== 'undefined'
     );
   }
   /** returns true if message is a request Response message */
-  isResponse(msg: any): boolean {
-    return typeof msg.requestId !== 'undefined';
+  isResponse(msg: SKStreamMessage): msg is SKRequestResponse {
+    return typeof (msg as SKRequestResponse).requestId !== 'undefined';
   }
 }
 
@@ -364,7 +397,7 @@ export class Message {
   /** return UPDATES message object
    * @returns  array of { values: [ {path: xx, value: xx } ] }
    */
-  static updates() {
+  static updates(): SKStreamUpdates {
     return {
       context: null,
       updates: []
@@ -380,7 +413,7 @@ export class Message {
         "minPeriod": 200
     } 
     */
-  static subscribe() {
+  static subscribe(): SKStreamSubscribe {
     return {
       context: null,
       subscribe: []
@@ -390,7 +423,7 @@ export class Message {
    * @description return UNSUBSCRIBE message object
    * @returns array of { "path": "path.to.key" }
    */
-  static unsubscribe() {
+  static unsubscribe(): SKStreamUnsubscribe {
     return {
       context: null,
       unsubscribe: []
@@ -400,7 +433,7 @@ export class Message {
    * @description return REQUEST message object
    * @returns value { "requestId": <uuid v4> }
    */
-  static request() {
+  static request(): SKStreamRequest {
     return {
       requestId: uuid.v4()
     };
