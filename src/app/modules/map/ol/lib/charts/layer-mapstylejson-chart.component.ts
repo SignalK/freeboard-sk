@@ -16,6 +16,7 @@ import { MapComponent } from '../map.component';
 import { FBChart } from 'src/app/types';
 import {
   extentFromBounds,
+  makeChartTilesResilient,
   normaliseStyleForOl,
   type MapStyleDocument
 } from './chart-utils';
@@ -97,12 +98,21 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
       await apply(layer, normaliseStyleForOl(style), {
         styleUrl: response.url || url
       });
+      makeChartTilesResilient(layer);
     } catch (err) {
       console.warn(
         `MapStyleJsonChart: could not normalise style ${url}, applying as-is`,
         err
       );
-      apply(layer, url);
+      try {
+        await apply(layer, url);
+        makeChartTilesResilient(layer);
+      } catch (fallbackErr) {
+        console.warn(
+          `MapStyleJsonChart: could not apply style ${url}`,
+          fallbackErr
+        );
+      }
     }
   }
 }
