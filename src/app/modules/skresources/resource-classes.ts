@@ -141,6 +141,7 @@ export class SKChart {
   imageAdjustment?: ChartImageAdjustment;
   displayMinZoom?: number;
   proxy: boolean;
+  refreshInterval?: number;
 
   // Accepts a server chart resource or an existing SKChart: the chart cache
   // re-constructs an entry from an instance to trigger a re-render, and the
@@ -169,6 +170,7 @@ export class SKChart {
     this.imageAdjustment = chart?.imageAdjustment;
     this.displayMinZoom = chart?.displayMinZoom;
     this.proxy = chart?.proxy ?? false;
+    this.refreshInterval = chart?.refreshInterval;
   }
 }
 

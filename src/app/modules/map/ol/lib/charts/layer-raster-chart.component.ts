@@ -19,7 +19,8 @@ import {
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
-  resolveLayerZoomRange
+  resolveLayerZoomRange,
+  startChartTileRefresh
 } from './chart-utils';
 
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
@@ -39,6 +40,7 @@ export class RasterChartLayerComponent implements OnDestroy {
 
   private layer: TileLayer | WebGLTileLayer;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
+  private stopRefresh?: () => void;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -54,6 +56,7 @@ export class RasterChartLayerComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.stopRefresh?.();
     const map = this.mapComponent.getMap();
     if (this.layer) {
       map.removeLayer(this.layer);
@@ -133,6 +136,15 @@ export class RasterChartLayerComponent implements OnDestroy {
       this.layer.setMaxZoom(zoom.max);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
+    }
+    // Auto-refresh time-varying charts (radar/satellite) non-destructively.
+    // pmtiles (WebGL) layers are static local files, so skip them.
+    if (this.layer instanceof TileLayer) {
+      this.stopRefresh?.();
+      this.stopRefresh = startChartTileRefresh(
+        this.layer.getSource(),
+        chart[1].refreshInterval
+      );
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();

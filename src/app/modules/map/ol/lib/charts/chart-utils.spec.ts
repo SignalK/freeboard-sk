@@ -6,9 +6,11 @@ import {
   isUnevaluableByOl,
   isZoomWithinLayerRange,
   makeChartTilesResilient,
+  MIN_CHART_REFRESH_INTERVAL_MS,
   normaliseStyleForOl,
   resolveLayerMaxZoom,
-  resolveLayerZoomRange
+  resolveLayerZoomRange,
+  startChartTileRefresh
 } from './chart-utils';
 
 import LayerGroup from 'ol/layer/Group';
@@ -652,5 +654,57 @@ describe('makeChartTilesResilient', () => {
       expect(t.setState).toHaveBeenCalledWith(TileState.ERROR)
     );
     expect(t.setFeatures).not.toHaveBeenCalled();
+  });
+});
+
+describe('startChartTileRefresh', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const source = () => new XYZ({ url: 'https://example.test/{z}/{x}/{y}.png' });
+
+  it('rotates the source key on each tick, and stops when told', () => {
+    vi.useFakeTimers();
+    const src = source();
+    // The key is rotated via setTileUrlFunction (the public path to setKey).
+    const rotate = vi.spyOn(src, 'setTileUrlFunction');
+    const interval = 2 * MIN_CHART_REFRESH_INTERVAL_MS;
+
+    const stop = startChartTileRefresh(src, interval);
+    expect(rotate).not.toHaveBeenCalled(); // nothing on install
+    vi.advanceTimersByTime(interval);
+    expect(rotate).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(interval);
+    expect(rotate).toHaveBeenCalledTimes(2);
+    // each rotation passes a distinct key (2nd argument)
+    expect(rotate.mock.calls[0][1]).not.toBe(rotate.mock.calls[1][1]);
+
+    stop();
+    vi.advanceTimersByTime(interval * 3);
+    expect(rotate).toHaveBeenCalledTimes(2); // no ticks after stop
+  });
+
+  it('installs no timer when refreshInterval is absent or 0', () => {
+    vi.useFakeTimers();
+    const src = source();
+    const rotate = vi.spyOn(src, 'setTileUrlFunction');
+
+    startChartTileRefresh(src, 0);
+    startChartTileRefresh(src, undefined);
+    startChartTileRefresh(src); // no interval at all
+    vi.advanceTimersByTime(10 * MIN_CHART_REFRESH_INTERVAL_MS);
+
+    expect(rotate).not.toHaveBeenCalled();
+  });
+
+  it('clamps an interval below the minimum up to the floor', () => {
+    vi.useFakeTimers();
+    const src = source();
+    const rotate = vi.spyOn(src, 'setTileUrlFunction');
+
+    startChartTileRefresh(src, 1000); // 1 s requested
+    vi.advanceTimersByTime(1000);
+    expect(rotate).not.toHaveBeenCalled(); // did not fire at the requested 1 s
+    vi.advanceTimersByTime(MIN_CHART_REFRESH_INTERVAL_MS - 1000);
+    expect(rotate).toHaveBeenCalledTimes(1); // fired at the 60 s floor
   });
 });

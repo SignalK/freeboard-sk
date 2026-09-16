@@ -20,7 +20,8 @@ import {
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
-  resolveLayerZoomRange
+  resolveLayerZoomRange,
+  startChartTileRefresh
 } from './chart-utils';
 
 // ** Freeboard WMTS Chart **
@@ -39,6 +40,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
   private layer: TileLayer;
   private capabilities: string;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
+  private stopRefresh?: () => void;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -54,6 +56,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.stopRefresh?.();
     this.capabilities = undefined;
     const map = this.mapComponent.getMap();
     if (this.layer) {
@@ -119,6 +122,14 @@ export class WmtsChartLayerComponent implements OnDestroy {
       this.layer.setMaxZoom(zoom.max);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
+    }
+    // Auto-refresh time-varying charts (radar/satellite) non-destructively.
+    if (this.layer) {
+      this.stopRefresh?.();
+      this.stopRefresh = startChartTileRefresh(
+        this.layer.getSource(),
+        chart[1].refreshInterval
+      );
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
