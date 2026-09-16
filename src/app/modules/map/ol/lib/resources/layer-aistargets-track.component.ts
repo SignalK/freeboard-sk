@@ -8,6 +8,7 @@ import {
 import { Feature } from 'ol';
 import { Style, Stroke } from 'ol/style';
 import { MultiLineString } from 'ol/geom';
+import { Coordinate } from '../models';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AISBaseLayerComponent } from './ais-base.component';
@@ -92,14 +93,14 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
       return;
     }
     this.source.clear();
-    if (this.okToRenderTracks) {
+    if (this.okToRenderTracks()) {
       this.onUpdateTargets(this.extractKeys(this.tracks));
     }
   }
 
   // update track features
   override onUpdateTargets(ids: Array<string>) {
-    if (this.okToRenderTracks) {
+    if (this.okToRenderTracks()) {
       ids.forEach((id: string) => {
         if (id.includes(this.targetContext)) {
           const f = this.source.getFeatureById('track-' + id) as Feature;
@@ -169,15 +170,11 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   }
 
   // ** mapify and transform MultiLineString coordinates
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseCoordinates(trk: Array<any>) {
+  // A track is a MultiLineString's coordinates (Array<Position[]>), so each
+  // element is a line — not a MultiLineString — and is unwrapped as a whole.
+  parseCoordinates(trk: Array<Array<Coordinate>>) {
     // ** handle dateline crossing **
-    const tc = trk.map((mls) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lines: Array<any> = [];
-      mls.forEach((line) => lines.push(mapifyCoords(line)));
-      return lines;
-    });
-    return fromLonLatArray(tc);
+    const lines = trk.map((line) => mapifyCoords(line));
+    return fromLonLatArray(lines);
   }
 }
