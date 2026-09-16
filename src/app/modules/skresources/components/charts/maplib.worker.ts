@@ -345,10 +345,10 @@ const hasValue = (val: unknown) => Array.isArray(val) && val.length !== 0;
 /**
  * Return the text of an xml2json element
  * @param val element: its text, or `{ _: text, $: attributes }`
- * @returns element text (the element itself when it carries no text)
+ * @returns element text ('' for an attribute-only element)
  */
 const getValue = (val: XmlText): string =>
-  typeof val === 'string' ? val : ((val._ ?? val) as string);
+  typeof val === 'string' ? val : (val._ ?? '');
 
 interface DurationDef {
   years?: number;

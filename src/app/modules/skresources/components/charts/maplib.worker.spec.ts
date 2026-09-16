@@ -56,6 +56,11 @@ const WMTS_XML = `<?xml version="1.0" encoding="UTF-8"?>
     <Layer>
       <ows:Title>Untiled</ows:Title>
     </Layer>
+    <Layer>
+      <ows:Title>Attribute only</ows:Title>
+      <ows:Identifier>attrs</ows:Identifier>
+      <Format encoding="x"/>
+    </Layer>
   </Contents>
 </Capabilities>`;
 
@@ -109,9 +114,7 @@ describe('parseWMTSCapabilities', () => {
       OPTIONS
     );
     expect(wmts.type).toBe('WMTS');
-    expect(wmts.layers).toHaveLength(1);
-    const l = wmts.layers[0];
-    expect(l.id).toBe('charts');
+    const l = wmts.layers.find((l) => l.id === 'charts');
     expect(l.name).toBe('Nautical chart');
     expect(l.description).toBe('Raster chart tiles');
     expect(l.bounds).toEqual([-81, 24.5, -80, 26]);
@@ -124,7 +127,7 @@ describe('parseWMTSCapabilities', () => {
       'http://x/wmts',
       OPTIONS
     );
-    expect(wmts.layers[0].time).toEqual({
+    expect(wmts.layers.find((l) => l.id === 'charts').time).toEqual({
       current: '2026-09-16T00:00:00.000Z',
       from: '2026-09-15T00:00:00.000Z',
       to: '2026-09-16T00:00:00.000Z',
@@ -138,6 +141,17 @@ describe('parseWMTSCapabilities', () => {
       'http://x/wmts',
       OPTIONS
     );
-    expect(wmts.layers.map((l) => l.id)).toEqual(['charts']);
+    expect(wmts.layers.map((l) => l.id)).toEqual(['attrs', 'charts']);
+  });
+
+  it('treats an attribute-only element as empty text', async () => {
+    // xml2js gives `{ $: attrs }` with no `_` for <Format encoding="x"/>;
+    // that must read as '' rather than an object reaching indexOf().
+    const wmts = await parseWMTSCapabilities(
+      WMTS_XML,
+      'http://x/wmts',
+      OPTIONS
+    );
+    expect(wmts.layers.find((l) => l.id === 'attrs').format).toBe('png');
   });
 });
