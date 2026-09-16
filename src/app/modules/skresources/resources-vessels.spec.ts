@@ -94,7 +94,7 @@ describe('SKResourceService.vesselFromServer', () => {
     expect(v.type).toBe(null);
     expect(v.destination).toEqual({ name: null, eta: null });
     expect(v.state).toBe('');
-    expect(v.registrations).toBe(null);
+    expect(v.registrations).toEqual({});
   });
 });
 

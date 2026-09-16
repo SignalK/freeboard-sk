@@ -3029,7 +3029,7 @@ export class SKResourceService {
       v.destination.eta = d.toUTCString();
     }
     v.state = vessel.navigation?.state?.value ?? '';
-    v.registrations = vessel.registrations ?? null;
+    v.registrations = vessel.registrations ?? {};
 
     return v;
   }
