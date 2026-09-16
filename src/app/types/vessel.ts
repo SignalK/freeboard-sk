@@ -43,8 +43,8 @@ export interface SKVesselDesign {
   airHeight: number | null;
   beam: number | null;
   draft: {
-    current?: number;
-    maximum?: number;
+    current?: number | null;
+    maximum?: number | null;
     minimum?: number;
     canoe?: number;
   } | null;
