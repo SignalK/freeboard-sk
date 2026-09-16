@@ -141,6 +141,20 @@ describe('SKStreamAPI sent messages', () => {
     });
   });
 
+  it('passes minPeriod through unchanged', () => {
+    api.subscribe('self', 'navigation.*', {
+      period: 1000,
+      minPeriod: 200,
+      policy: 'instant'
+    });
+    expect(lastSent().subscribe[0]).toEqual({
+      path: 'navigation.*',
+      period: 1000,
+      minPeriod: 200,
+      policy: 'instant'
+    });
+  });
+
   it('sends a subscription list as-is', () => {
     const subs = [{ path: 'name' }, { path: 'mmsi', period: 5000 }];
     api.subscribe('vessels.*', subs);

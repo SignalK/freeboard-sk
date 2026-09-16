@@ -298,7 +298,7 @@ export class SKStreamAPI {
           sValue['period'] = options['period'];
         }
         if (options['minPeriod']) {
-          sValue['minPeriod'] = options['period'];
+          sValue['minPeriod'] = options['minPeriod'];
         }
         if (
           options['format'] &&
