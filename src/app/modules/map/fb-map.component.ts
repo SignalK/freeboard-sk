@@ -890,8 +890,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
       ...m,
       coords: GeoUtils.normaliseCoords(e.lonlat as Position)
     }));
-    this.contextMenuPosition.x = (e as any).clientX + 'px';
-    this.contextMenuPosition.y = (e as any).clientY + 'px';
+    // The pointer position lives on the DOM event OL wraps, not on the
+    // MapBrowserEvent itself.
+    this.contextMenuPosition.x = e.originalEvent.clientX + 'px';
+    this.contextMenuPosition.y = e.originalEvent.clientY + 'px';
   }
 
   protected onMapSingleClick(e) {
