@@ -1,6 +1,11 @@
 import { signal, untracked } from '@angular/core';
-import { FBResource } from 'src/app/types';
 import { SKResourceService, SKSelection } from '../resources.service';
+
+/**
+ * A list entry: `[id, resource, selected?]`. Subclasses narrow the resource;
+ * the base only needs its name to filter and sort on.
+ */
+export type ResourceListEntry = [string, { name: string }, boolean?];
 
 /**
  * Base class for Resource Lists
@@ -10,8 +15,8 @@ export class ResourceListBase {
   protected filterText = '';
   protected someSel = false;
   protected allSel = false;
-  protected fullList: Array<any> = [];
-  protected filteredList = signal<any>([]);
+  protected fullList: Array<ResourceListEntry> = [];
+  protected filteredList = signal<ResourceListEntry[]>([]);
 
   constructor(
     collection: SKSelection,
@@ -36,7 +41,7 @@ export class ResourceListBase {
     const sortList = () => {
       fl.sort((a, b) => a[1].name.localeCompare(b[1].name));
     };
-    let fl: Array<FBResource>;
+    let fl: Array<ResourceListEntry>;
     if (this.filterText.length === 0) {
       fl = this.fullList.slice(0);
     } else {
@@ -63,7 +68,7 @@ export class ResourceListBase {
   protected alignSelections() {
     let c = false;
     let u = false;
-    untracked(() => this.filteredList()).forEach((i: FBResource) => {
+    untracked(() => this.filteredList()).forEach((i) => {
       c = i[2] ? true : c;
       u = !i[2] ? true : u;
     });
@@ -79,7 +84,7 @@ export class ResourceListBase {
     // fullList update
     this.fullList.forEach((item) => (item[2] = checked));
     // filteredList update
-    this.filteredList.update((fl: FBResource[]) => {
+    this.filteredList.update((fl) => {
       fl.forEach((item) => (item[2] = checked));
       return fl;
     });

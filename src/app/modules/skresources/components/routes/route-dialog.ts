@@ -109,8 +109,7 @@ export class RouteDialog implements OnInit {
   ngOnInit() {
     this.name = this.data.route.name ?? '';
     this.description = this.data.route.description ?? '';
-    this.readOnly =
-      (this.data.route.feature as any)?.properties?.readOnly ?? false;
+    this.readOnly = this.data.route.feature?.properties?.readOnly ?? false;
   }
 
   handleClose(save: boolean) {

@@ -119,10 +119,8 @@ export class RegionDialog implements OnInit {
   ngOnInit() {
     this.name = this.data.region.name ?? '';
     this.description = this.data.region.description ?? '';
-    this.isHazard =
-      (this.data.region.feature as any).properties?.skIcon === 'hazard';
-    this.readOnly =
-      (this.data.region.feature as any)?.properties?.readOnly ?? false;
+    this.isHazard = this.data.region.feature.properties?.skIcon === 'hazard';
+    this.readOnly = this.data.region.feature?.properties?.readOnly ?? false;
   }
 
   protected doHazard(checked: boolean) {
@@ -134,9 +132,9 @@ export class RegionDialog implements OnInit {
       this.data.region.name = this.name;
       this.data.region.description = this.description;
       if (this.isHazard) {
-        (this.data.region.feature as any).properties.skIcon = 'hazard';
+        this.data.region.feature.properties.skIcon = 'hazard';
       } else {
-        delete (this.data.region.feature as any).properties.skIcon;
+        delete this.data.region.feature.properties.skIcon;
       }
     }
     this.dialogRef.close({ save: save, region: this.data.region });

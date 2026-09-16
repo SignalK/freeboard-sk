@@ -110,8 +110,7 @@ export class TrackDialog implements OnInit {
   ngOnInit() {
     this.name = this.data.track.feature?.properties?.name ?? '';
     this.description = this.data.track.feature?.properties?.description ?? '';
-    this.readOnly =
-      (this.data.track.feature as any)?.properties?.readOnly ?? false;
+    this.readOnly = this.data.track.feature?.properties?.readOnly ?? false;
   }
 
   handleClose(save: boolean) {

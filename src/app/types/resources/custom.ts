@@ -5,6 +5,7 @@ import {
   PolygonFeature,
   MultiPolygonFeature
 } from './geojson';
+import type { TimeDef } from 'src/app/modules/skresources/components/charts/maplib';
 
 // *** Freeboard defined RESOURCE types
 
@@ -45,7 +46,18 @@ export interface InfoLayerResource extends CustomResource {
     minZoom: number;
     maxZoom: number;
     refreshInterval?: number;
+    // time dimension parsed from the source's capabilities
+    time?: TimeDef;
   };
+}
+
+/**
+ * A source parameter change for an info layer, applied to its WMS / WMTS
+ * source (e.g. `{ TIME: '2026-09-16T00:00:00.000Z' }`).
+ */
+export interface InfoLayerParam {
+  id: string;
+  param: Record<string, string>;
 }
 
 export type CustomResources = { [id: string]: CustomResource };

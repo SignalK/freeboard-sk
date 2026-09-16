@@ -12,7 +12,8 @@ import {
   TrailMessage,
   MultiLineString,
   Position,
-  IAppConfig
+  IAppConfig,
+  SKPosition
 } from 'src/app/types';
 
 export enum SKSTREAM_MODE {
@@ -431,8 +432,8 @@ export class SKStreamFacade {
       v.properties['navigation.racing.startLineStb'] &&
       v.properties['navigation.racing.startLinePort']
     ) {
-      const sls = v.properties['navigation.racing.startLineStb'];
-      const slp = v.properties['navigation.racing.startLinePort'];
+      const sls = v.properties['navigation.racing.startLineStb'] as SKPosition;
+      const slp = v.properties['navigation.racing.startLinePort'] as SKPosition;
       this.app.data.racing.startLine = [
         [slp.longitude, slp.latitude],
         [sls.longitude, sls.latitude]

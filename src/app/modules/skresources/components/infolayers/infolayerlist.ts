@@ -27,7 +27,7 @@ import {
   WMSDialog,
   WMTSDialog
 } from 'src/app/modules';
-import { FBInfoLayer, FBInfoLayers } from 'src/app/types';
+import { FBInfoLayer, FBInfoLayers, InfoLayerParam } from 'src/app/types';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { forkJoin, of } from 'rxjs';
@@ -66,10 +66,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class InfoLayerListComponent extends ResourceListBase {
   closed = output<void>();
-  paramChanged = output<{
-    id: string;
-    param: { [key: string]: any };
-  }>();
+  paramChanged = output<InfoLayerParam>();
 
   filterList = [];
   override filterText = '';

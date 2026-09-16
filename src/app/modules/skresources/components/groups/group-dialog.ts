@@ -27,6 +27,16 @@ interface RListEntry {
   name: string;
 }
 
+/** The group being edited: its members resolved to `{ id, name }` entries */
+interface GroupItem {
+  name: string;
+  description: string;
+  routes: RListEntry[];
+  waypoints: RListEntry[];
+  regions: RListEntry[];
+  charts: RListEntry[];
+}
+
 @Component({
   selector: 'ap-resourcegroupdialog',
   imports: [
@@ -249,7 +259,7 @@ interface RListEntry {
   ]
 })
 export class ResourceGroupDialog implements OnInit {
-  protected gItem: any;
+  protected gItem: GroupItem;
   protected selTab = 0;
   protected wpts: RListEntry[] = [];
   protected rtes: RListEntry[] = [];

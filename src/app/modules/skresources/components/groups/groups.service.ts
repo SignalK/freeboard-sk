@@ -7,7 +7,7 @@ import { AppFacade } from 'src/app/app.facade';
 
 import { ResourceGroupDialog } from './group-dialog';
 
-import { ActionResult } from 'src/app/types';
+import { ActionResult, ResourceActionResult } from 'src/app/types';
 import { SKResourceType } from '../../resources.service';
 
 export interface SKResourceGroup {
@@ -47,7 +47,7 @@ export class SKResourceGroupService {
       );
       skf?.subscribe(
         (res: GroupResponse) => {
-          const list: any = [];
+          const list: FBResourceGroups = [];
           Object.entries(res).forEach((item) => {
             list.push([item[0], item[1], false]);
           });
@@ -101,7 +101,7 @@ export class SKResourceGroupService {
    * @param data Resource data
    * @returns Promise<ActionResult> (rejects with HTTPErrorResponse)
    */
-  public putToServer(id: string, data: SKResourceGroup): Promise<any> {
+  public putToServer(id: string, data: SKResourceGroup): Promise<ActionResult> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .put(this.app.skApiVersion, `/resources/groups/${id}`, data)
@@ -115,14 +115,14 @@ export class SKResourceGroupService {
   /**
    * @description Post resource to server
    * @param data Resource data
-   * @returns Promise<ActionResult> (rejects with HTTPErrorResponse)
+   * @returns Promise<ResourceActionResult> (rejects with HTTPErrorResponse)
    */
-  public postToServer(data: SKResourceGroup): Promise<any> {
+  public postToServer(data: SKResourceGroup): Promise<ResourceActionResult> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .post(this.app.skApiVersion, `/resources/groups`, data)
         .subscribe(
-          (res: ActionResult) => resolve(res),
+          (res: ResourceActionResult) => resolve(res),
           (err: HttpErrorResponse) => reject(err)
         );
     });

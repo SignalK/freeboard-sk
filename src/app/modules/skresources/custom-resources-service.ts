@@ -7,6 +7,9 @@ import { SKResourceService, SKSelection } from './resources.service';
 import {
   FBInfoLayer,
   FBInfoLayers,
+  FBResourceSet,
+  FBResourceSets,
+  InfoLayerParam,
   InfoLayerResource,
   InfoLayers,
   ResourceSet,
@@ -15,21 +18,20 @@ import {
 import { processUrlTokens } from 'src/app/app.config';
 import { HttpErrorResponse } from '@angular/common/http';
 
-type FBResourceSets = Map<string, SKResourceSet[]>;
+/** ResourceSet entries cached per collection */
+type ResourceSetCache = Map<string, FBResourceSets>;
 type CustomResourceType = 'InfoLayer' | 'ResourceSet';
 
 // ** Signal K custom / other resource(s) operations
 @Injectable({ providedIn: 'root' })
 export class FBCustomResourceService {
-  private resSetCacheSignal = signal<FBResourceSets>(new Map());
+  private resSetCacheSignal = signal<ResourceSetCache>(new Map());
   readonly resourceSets = this.resSetCacheSignal.asReadonly();
 
   private infoLayerCacheSignal = signal<FBInfoLayers>([]);
   readonly infoLayers = this.infoLayerCacheSignal.asReadonly();
 
-  public infoLayerParams = signal<
-    Array<{ id: string; param: { [key: string]: any } }>
-  >([]);
+  public infoLayerParams = signal<InfoLayerParam[]>([]);
 
   constructor(
     public dialog: MatDialog,
@@ -95,7 +97,7 @@ export class FBCustomResourceService {
    * @param query  Filter criteria for resources to return
    * @returns Promise<T[]> (rejects with HTTPErrorResponse)
    */
-  public customListFromServer<T>(
+  public customListFromServer<T extends FBInfoLayer | FBResourceSet>(
     collection: string,
     type: CustomResourceType,
     query?: string,
@@ -118,11 +120,11 @@ export class FBCustomResourceService {
             resolve([]);
           }
           list.forEach((i) => (i[1].id = i[0]));
-          let flist: any[];
+          let flist: Array<FBInfoLayer | FBResourceSet>;
           if (type === 'InfoLayer') {
             flist = list
               .filter((i) => this.isInfoLayer(i[1]))
-              .map((i) => [
+              .map((i): FBInfoLayer => [
                 i[0],
                 new SKInfoLayer(i[1]),
                 this.isSelected(collection as SKSelection, i[1].type, i[0])
@@ -130,14 +132,14 @@ export class FBCustomResourceService {
           } else if (type === 'ResourceSet') {
             flist = list
               .filter((i) => this.isResourceSet(i[1]))
-              .map((i) => [
+              .map((i): FBResourceSet => [
                 i[0],
                 new SKResourceSet(i[1]),
                 this.isSelected(collection as SKSelection, i[1].type, i[0])
               ]);
           }
           flist = onlySelected ? flist.filter((i) => i[2]) : flist;
-          resolve(flist);
+          resolve(flist as T[]);
         },
         (err: HttpErrorResponse) => reject(err)
       );
@@ -204,7 +206,7 @@ export class FBCustomResourceService {
     }
     const item = this.resSetCacheSignal()
       .get(collection)
-      .filter((i: SKResourceSet) => i[0] === rSetId)[0];
+      .filter((i) => i[0] === rSetId)[0];
     return getFeature ? item[1].values.features[index] : item[1];
   }
 
@@ -219,19 +221,19 @@ export class FBCustomResourceService {
     }
     this.app.debug(`** refreshResourceSets() query: ${query}`);
     try {
-      const items = await this.customListFromServer<SKResourceSet>(
+      const items = await this.customListFromServer<FBResourceSet>(
         collection,
         'ResourceSet',
         query,
         true
       );
-      this.resSetCacheSignal.update((current: FBResourceSets) => {
+      this.resSetCacheSignal.update((current) => {
         current.set(collection, items);
         return current;
       });
     } catch (err) {
       this.app.debug('** refreshResourceSets()', err);
-      this.resSetCacheSignal.update((current: FBResourceSets) => {
+      this.resSetCacheSignal.update((current) => {
         current.set(collection, []);
         return current;
       });

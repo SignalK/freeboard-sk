@@ -23,6 +23,40 @@ type WorkerResult =
   | WMSCapabilitiesDef
   | WMTSCapabilitiesDef;
 
+// ** xml2js output shapes (child elements are arrays; an element with
+// attributes is `{ _: text, $: attributes }`, otherwise its text) **
+
+type XmlText = string | { _?: string; $?: Record<string, string> };
+
+/** A WMS `<Layer>` element */
+interface WMSLayerElement {
+  Name?: XmlText[];
+  Title?: XmlText[];
+  Abstract?: XmlText[];
+  Dimension?: Array<{
+    _: string;
+    $?: { name?: string; units?: string; default?: string };
+  }>;
+  Layer?: WMSLayerElement[];
+}
+
+/** A WMTS `<Layer>` element */
+interface WMTSLayerElement {
+  'ows:Identifier'?: XmlText[];
+  'ows:Title'?: XmlText[];
+  'ows:Abstract'?: XmlText[];
+  'ows:WGS84BoundingBox'?: Array<{
+    'ows:LowerCorner': string[];
+    'ows:UpperCorner': string[];
+  }>;
+  Format?: XmlText[];
+  Dimension?: Array<{
+    'ows:Identifier': XmlText[];
+    Default: XmlText[];
+    Value: string[];
+  }>;
+}
+
 const FETCH_ABORT_TIMEOUT = 8000;
 
 /**
@@ -82,7 +116,7 @@ const wmsGetInfo = async (
  * @param xml
  * @param urlBase
  */
-const parseWMSCapabilities = async (
+export const parseWMSCapabilities = async (
   xml: string,
   urlBase: string,
   options: WorkerMessageOptions
@@ -98,7 +132,7 @@ const parseWMSCapabilities = async (
    */
 
   const processWMSLayer = (
-    layer: any,
+    layer: WMSLayerElement,
     cList: LayerNode[],
     parent: LayerNode = null,
     depth = 0
@@ -172,8 +206,7 @@ const parseWMSCapabilities = async (
   }
 
   const layerNodes: LayerNode[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rootNode.Capability[0].Layer.forEach((layer: any) => {
+  rootNode.Capability[0].Layer.forEach((layer: WMSLayerElement) => {
     processWMSLayer(layer, layerNodes);
   });
   layerNodes.sort((a, b) => (a.name < b.name ? -1 : 1));
@@ -216,7 +249,7 @@ const wmtsGetInfo = async (
  * @param urlBase
  * @param options: WorkerMessageOptions
  */
-const parseWMTSCapabilities = async (
+export const parseWMTSCapabilities = async (
   xml: string,
   urlBase: string,
   options: WorkerMessageOptions
@@ -225,17 +258,17 @@ const parseWMTSCapabilities = async (
    * Process WMTS layer into WMTSLayerDef
    * @param layer WMTS layer to parse
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseWMTSLayer = (layer: any): WMTSLayerDef => {
+  const parseWMTSLayer = (layer: WMTSLayerElement): WMTSLayerDef => {
     if (!hasValue(layer['ows:Identifier'])) {
       return null;
     }
-    const l: any = {
+    const l: WMTSLayerDef = {
       name: hasValue(layer['ows:Title']) ? getValue(layer['ows:Title'][0]) : '',
       description: hasValue(layer['ows:Abstract'])
         ? getValue(layer['ows:Abstract'][0])
         : '',
-      id: getValue(layer['ows:Identifier'][0])
+      id: getValue(layer['ows:Identifier'][0]),
+      format: 'png'
     };
     if (hasValue(layer['ows:WGS84BoundingBox'])) {
       l.bounds = [
@@ -256,15 +289,13 @@ const parseWMTSCapabilities = async (
     if (hasValue(layer.Format)) {
       const f = getValue(layer.Format[0]);
       l.format = f.indexOf('jpg') !== -1 ? 'jpg' : 'png';
-    } else {
-      l.format = 'png';
     }
     if (hasValue(layer.Dimension)) {
       layer.Dimension.forEach((d) => {
         if (getValue(d['ows:Identifier'][0]).toLowerCase() === 'time') {
           l.time = Object.assign(
             { current: parseIsoTimeValue(getValue(d.Default[0])) ?? null },
-            parseTimeDimension(getValue(d.Value), getValue(d.Default[0]))
+            parseTimeDimension(d.Value, getValue(d.Default[0]))
           );
         }
       });
@@ -310,13 +341,14 @@ const parseWMTSCapabilities = async (
  * @param val Value to test
  * @returns true if value is an Array with length > 0
  */
-const hasValue = (val: any) => Array.isArray(val) && val.length !== 0;
+const hasValue = (val: unknown) => Array.isArray(val) && val.length !== 0;
 /**
- * Check xml2json attribute has a value
- * @param val Value to test
- * @returns true if value is an Array with length > 0
+ * Return the text of an xml2json element
+ * @param val element: its text, or `{ _: text, $: attributes }`
+ * @returns element text ('' for an attribute-only element)
  */
-const getValue = (val: any) => val._ ?? val;
+const getValue = (val: XmlText): string =>
+  typeof val === 'string' ? val : (val._ ?? '');
 
 interface DurationDef {
   years?: number;
@@ -459,7 +491,7 @@ const parseIsoTimeValue = (value: string): string => {
  * @returns TimeDimension object
  */
 const parseTimeDimension = (
-  value: string,
+  value: string | string[],
   defaultValue: string
 ): TimeDimension => {
   const parseRangeEnd = (value: string): string => {

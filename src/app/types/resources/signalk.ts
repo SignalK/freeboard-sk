@@ -4,6 +4,7 @@ import {
   PolygonFeature,
   MultiPolygonFeature
 } from './geojson';
+import { ActionResult } from '../stream';
 
 export type SKPosition = {
   latitude: number;
@@ -21,6 +22,9 @@ export interface RouteResource {
   name?: string | null;
   description?: string | null;
   distance?: number | null;
+  // v2 start / end hrefs; dropped on transform (the points carry them)
+  start?: string;
+  end?: string;
   feature: LineStringFeature;
 }
 
@@ -50,8 +54,16 @@ export interface NoteResource {
   authors?: Array<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: { [key: string]: any };
-  timestamp: string;
-  source: string;
+  timestamp?: string;
+  source?: string;
+}
+
+/**
+ * Response to a resource PUT / POST. A POST also carries the id the server
+ * assigned to the new resource.
+ */
+export interface ResourceActionResult extends ActionResult {
+  id?: string;
 }
 
 /**

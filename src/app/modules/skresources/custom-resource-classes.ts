@@ -29,14 +29,14 @@ export class SKInfoLayer {
   id: string;
   name: string;
   description: string;
-  values: any = {
+  values: InfoLayerResource['values'] = {
     url: null,
     sourceType: null,
     layers: [],
     time: {
       current: null,
-      min: null,
-      max: null,
+      from: null,
+      to: null,
       values: []
     },
     opacity: 1,
