@@ -65,7 +65,11 @@ import {
   FBWaypoint,
   FBTracks,
   FBTrack,
-  FBVessels
+  FBVessels,
+  FBVessel,
+  FBResource,
+  ResourceActionResult,
+  SKVesselResponse
 } from 'src/app/types';
 import { ActionResult, PathValue } from 'src/app/types';
 import { groupBy } from 'rxjs/operators';
@@ -80,6 +84,32 @@ import {
 
 export type SKResourceType =
   'routes' | 'waypoints' | 'regions' | 'notes' | 'charts' | 'tracks';
+
+/** The resource class `transform()` produces for a collection. */
+export type SKResourceClass<C extends SKResourceType> = C extends 'routes'
+  ? SKRoute
+  : C extends 'waypoints'
+    ? SKWaypoint
+    : C extends 'regions'
+      ? SKRegion
+      : C extends 'notes'
+        ? SKNote
+        : C extends 'charts'
+          ? SKChart
+          : C extends 'tracks'
+            ? SKTrack
+            : never;
+
+/** Data for the Note editor dialog (see `showNoteEditor`). */
+interface NoteEditorData {
+  noteId: string | null;
+  note: SKNote | null;
+  editable: boolean;
+  addNote: boolean;
+  title: string | null;
+  region: { id: string; exists: boolean } | null;
+  createRegion: boolean | null;
+}
 
 export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
@@ -290,7 +320,7 @@ export class SKResourceService {
    * @param query  Filter criteria for resources to return
    * @returns Promise<T[]> (rejects with HTTPErrorResponse)
    */
-  public listFromServer<T>(
+  public listFromServer<T extends FBResource = FBResource>(
     collection: SKResourceType,
     query?: string
   ): Promise<T[]> {
@@ -307,7 +337,7 @@ export class SKResourceService {
       );
       skf?.subscribe(
         (res: Routes | Waypoints | Regions | Notes | Charts | Tracks) => {
-          const list: any = [];
+          const list: FBResource[] = [];
           Object.keys(res).forEach((id: string) => {
             list.push([
               id,
@@ -315,9 +345,9 @@ export class SKResourceService {
               !this.selectionIsFiltered(collection)
                 ? true
                 : this.selectionHas(collection, id)
-            ]);
+            ] as FBResource);
           });
-          resolve(list);
+          resolve(list as T[]);
         },
         (err: HttpErrorResponse) => reject(err)
       );
@@ -328,9 +358,12 @@ export class SKResourceService {
    * @description Fetch resource with specified identifier from Signal K server.
    * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
    * @param id  Resource identifier
-   * @returns Promise<any> (rejects with HTTPErrorResponse)
+   * @returns Promise<SKResourceClass<C>> (rejects with HTTPErrorResponse)
    */
-  public fromServer(collection: SKResourceType, id: string): Promise<any> {
+  public fromServer<C extends SKResourceType>(
+    collection: C,
+    id: string
+  ): Promise<SKResourceClass<C>> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .get(this.app.skApiVersion, `/resources/${collection}/${id}`)
@@ -342,7 +375,8 @@ export class SKResourceService {
               | RegionResource
               | NoteResource
               | ChartResource
-          ) => resolve(this.transform(collection, res, id)),
+          ) =>
+            resolve(this.transform(collection, res, id) as SKResourceClass<C>),
           (err: HttpErrorResponse) => reject(err)
         );
     });
@@ -424,7 +458,7 @@ export class SKResourceService {
       | SKTrack
       | SKInfoLayer,
     provider?: string
-  ): Promise<any> {
+  ): Promise<ActionResult> {
     const p = provider ? `?provider=${provider}` : '';
     return new Promise((resolve, reject) => {
       this.signalk.api
@@ -444,18 +478,18 @@ export class SKResourceService {
    * @description Post resource to server
    * @param collection
    * @param data Resource data
-   * @returns Promise<ActionResult> (rejects with HTTPErrorResponse)
+   * @returns Promise<ResourceActionResult> (rejects with HTTPErrorResponse)
    */
   public postToServer(
     collection: SKResourceType | 'tracks' | 'infolayers',
     data:
       SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack | SKInfoLayer
-  ): Promise<any> {
+  ): Promise<ResourceActionResult> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .post(this.app.skApiVersion, `/resources/${collection}`, data)
         .subscribe(
-          (res: ActionResult) => resolve(res),
+          (res: ResourceActionResult) => resolve(res),
           (err: HttpErrorResponse) => reject(err)
         );
     });
@@ -1475,15 +1509,11 @@ export class SKResourceService {
    */
   private transformRoute(rte: RouteResource, id: string): SKRoute {
     // parse as v2
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof (rte as any).start !== 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (rte as any).start;
+    if (typeof rte.start !== 'undefined') {
+      delete rte.start;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof (rte as any).end !== 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (rte as any).end;
+    if (typeof rte.end !== 'undefined') {
+      delete rte.end;
     }
     if (typeof rte.name === 'undefined') {
       rte.name = 'Rte-' + id.slice(-6);
@@ -2451,7 +2481,7 @@ export class SKResourceService {
       createRegion: boolean
     }
   */
-  private openNoteForEdit(e: any) {
+  private openNoteForEdit(e: NoteEditorData) {
     this.dialog
       .open(NoteDialog, {
         disableClose: true,
@@ -2615,7 +2645,7 @@ export class SKResourceService {
    */
   public async showNoteEditor(e = null) {
     let note: SKNote;
-    const data = {
+    const data: NoteEditorData = {
       noteId: null,
       note: null,
       editable: true,
@@ -2947,16 +2977,17 @@ export class SKResourceService {
     return new Promise((resolve, reject) => {
       const skf = this.signalk.api.get(`/vessels${query}`);
       skf?.subscribe(
-        (res) => {
-          const list: any = [];
+        (res: Record<string, SKVesselResponse>) => {
+          const list: FBVessels = [];
           Object.keys(res).forEach((id: string) => {
-            list.push([
+            const v: FBVessel = [
               id,
               this.transformVessel(res[id], id),
               !this.selectionIsFiltered('aisTargets')
                 ? true
                 : this.selectionHas('aisTargets', id)
-            ]);
+            ];
+            list.push(v);
           });
           resolve(list);
         },
@@ -2970,7 +3001,7 @@ export class SKResourceService {
    * @param id Vessel identifier
    * @returns SKVessel object
    */
-  private transformVessel(vessel: any, id: string): SKVessel {
+  private transformVessel(vessel: SKVesselResponse, id: string): SKVessel {
     const v = new SKVessel();
     v.id = id;
     v.mmsi = vessel.mmsi ?? '';
@@ -3010,7 +3041,7 @@ export class SKResourceService {
   public vesselFromServer(id: string): Promise<SKVessel> {
     return new Promise((resolve, reject) => {
       this.signalk.api.get(`/vessels/${id}`).subscribe(
-        (res) => resolve(this.transformVessel(res, id)),
+        (res: SKVesselResponse) => resolve(this.transformVessel(res, id)),
         (err: HttpErrorResponse) => reject(err)
       );
     });

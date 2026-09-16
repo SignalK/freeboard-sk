@@ -18,7 +18,7 @@ export type WMTSLayerDef = {
   name: string;
   description: string;
   id: string;
-  bounds: [number, number, number, number];
+  bounds?: [number, number, number, number];
   format: 'jpg' | 'png';
   time?: TimeDef;
 };
@@ -136,7 +136,9 @@ const capabilitiesInWorker = (
       type: 'module'
     });
 
-    const finalise = (result: any) => {
+    const finalise = (
+      result: WMTSCapabilitiesDef | WMSCapabilitiesDef | null
+    ) => {
       worker.terminate();
       if (result) {
         resolve(result);

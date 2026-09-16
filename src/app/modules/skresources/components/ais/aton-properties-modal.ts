@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import type { Value } from '@signalk/server-api';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -92,7 +93,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class AtoNPropertiesModal implements OnInit {
   protected showProperties = true;
-  protected properties: { [key: string]: string | number | null };
+  // formatted meteo values, or the target's raw delta values keyed by path
+  protected properties: Record<string, Value>;
 
   private app = inject(AppFacade);
   private sk = inject(SignalKClient);

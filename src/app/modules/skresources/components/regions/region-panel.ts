@@ -121,13 +121,13 @@ export class RegionPanel {
         ? this.app.config.resources.notes.minZoom
         : null;
 
-    let position: any;
-    const coords = this._region().feature.geometry.coordinates;
-    if (Array.isArray(coords) && coords.length) {
+    let position: Position;
+    const geometry = this._region().feature.geometry;
+    if (Array.isArray(geometry.coordinates) && geometry.coordinates.length) {
       position =
-        this._region().feature.geometry.type === 'MultiPolygon'
-          ? coords[0][0][0]
-          : coords[0][0];
+        geometry.type === 'MultiPolygon'
+          ? geometry.coordinates[0][0][0]
+          : geometry.coordinates[0][0];
     }
     this.panTo.emit({
       center: position,

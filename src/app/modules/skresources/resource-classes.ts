@@ -1,5 +1,6 @@
 // **** RESOURCE CLASSES **********
 
+import type { Value } from '@signalk/server-api';
 import {
   LineStringFeature,
   PointFeature,
@@ -14,7 +15,10 @@ import {
   RegionResource,
   NoteResource,
   ChartResource,
-  ChartImageAdjustment
+  ChartImageAdjustment,
+  SKCourseCalcs,
+  SKRegistrations,
+  SKVesselDesign
 } from 'src/app/types';
 
 // ** Signal K route class
@@ -203,7 +207,8 @@ class SKTargetBase {
   positionUpdatedAt = 0;
   state: string;
   type: { id: number; name: string } = { id: -1, name: '' };
-  properties: { [key: string]: any } = {};
+  // delta values not mapped to a field above, keyed by path
+  properties: Record<string, Value> = {};
   lastUpdated = new Date();
   callsignVhf: string;
   callsignHf: string;
@@ -237,7 +242,7 @@ export class SKVessel extends SKTargetBase {
     nextPoint: {},
     previousPoint: {}
   };
-  courseCalcs: Record<string, any> = {};
+  courseCalcs: SKCourseCalcs = {};
   distanceToSelf: number;
   environment = {
     mode: null, // day | night
@@ -257,9 +262,9 @@ export class SKVessel extends SKTargetBase {
     beatAngle: null,
     gybeAngle: null
   };
-  racing: Record<string, any>;
-  radars: Record<string, any> = {};
-  registrations: Record<string, any> = {};
+  // radars.<id>.* delta values, keyed by radar id then path remainder
+  radars: Record<string, Record<string, Value>> = {};
+  registrations: SKRegistrations = {};
   resourceUpdates = []; // resource deltas
   sog: number;
   track: Array<Position[]> = [];
@@ -278,7 +283,7 @@ export class SKVessel extends SKTargetBase {
   };
 
   // http api sourced attributes
-  design = {
+  design: SKVesselDesign = {
     airHeight: null,
     beam: null,
     draft: {

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { effect, signal } from '@angular/core';
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { ResourceListBase } from './resource-list-baseclass';
+import { ResourceListBase, ResourceListEntry } from './resource-list-baseclass';
 import type { SKResourceService } from '../resources.service';
 
 /**
@@ -23,7 +23,7 @@ import type { SKResourceService } from '../resources.service';
  */
 const RUNAWAY = 25;
 
-type Entry = [string, { name: string }, boolean];
+type Entry = ResourceListEntry;
 
 const entry = (id: string, checked: boolean): Entry => [
   id,

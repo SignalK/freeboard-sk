@@ -185,7 +185,10 @@ import { getAisIcon } from 'src/app/modules/icons';
 export class AISPropertiesModal {
   protected flagIcon: string;
   protected showFlag = signal<boolean>(true);
-  protected display: any = {
+  protected display: Record<
+    'length' | 'beam' | 'airHeight' | 'draftMax' | 'draftCurrent',
+    string
+  > = {
     length: null,
     beam: null,
     airHeight: null,
