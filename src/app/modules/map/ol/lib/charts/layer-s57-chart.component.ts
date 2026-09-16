@@ -66,7 +66,7 @@ export class S57ChartLayerComponent implements OnDestroy {
         this.layer.setZIndex(this.zIndex());
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
         if (chart[1].style) {
-          applyStyle(this.layer as any, chart[1].style);
+          applyStyle(this.layer, chart[1].style);
         }
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
 

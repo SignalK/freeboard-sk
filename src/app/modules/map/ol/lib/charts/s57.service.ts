@@ -203,9 +203,9 @@ export class S57Service {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processColors(symbolsJson: any) {
-    (
-      symbolsJson['CHARTSYMBOLS']['COLOR-TABLES'][0]['COLOR-TABLE'] as any[]
-    ).forEach((colortable) => {
+    const colorTables =
+      symbolsJson['CHARTSYMBOLS']['COLOR-TABLES'][0]['COLOR-TABLE'];
+    colorTables.forEach((colortable) => {
       const colorTable: ColorTable = {
         symbolfile: colortable['GRAPHICS-FILE'][0]['$']['NAME'],
         colors: new Map<string, string>()

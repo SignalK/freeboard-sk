@@ -1422,10 +1422,10 @@ export class SKResourceService {
 
   /**
    * @description Seed chart cache for the selected area (charts-plugin)
-   * @param chart SKChart object
+   * @param chart FBChart entry ([id, SKChart])
    * @param bbox Bounding box
    */
-  public async seedChartCache(chart: SKChart, bbox: Position[]) {
+  public async seedChartCache(chart: FBChart, bbox: Position[]) {
     if (!chart || !Array.isArray(bbox)) {
       this.app.showAlert('Selection Error', 'Invalid selection data!');
       return;

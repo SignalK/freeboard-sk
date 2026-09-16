@@ -2005,6 +2005,8 @@ export class AppComponent {
    */
   private applyModifyResult(save: boolean) {
     const r = this.mapInteract.draw.forSave.id.split('.');
+    // The edited geometry's nesting follows the resource type (r[0]).
+    const coords = this.mapInteract.draw.forSave.coords;
     if (save) {
       if (r[0] === 'route') {
         const buf = this.routeBuffers.get(r[1]);
@@ -2017,7 +2019,7 @@ export class AppComponent {
             Array<{ name?: string; description?: string }> | undefined;
           this.routeBuffers.replace(
             r[1],
-            this.mapInteract.draw.forSave.coords.map((position, i) => ({
+            (coords as Position[]).map((position, i) => ({
               position,
               ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
               ...(meta?.[i]?.description
@@ -2031,35 +2033,26 @@ export class AppComponent {
           // (route.visible/dirty → route.saved).
           this.plotterExt.saveNativeRouteEdit(
             r[1],
-            this.mapInteract.draw.forSave.coords,
+            coords as Position[],
             this.mapInteract.draw.forSave.coordsMetadata
           );
         }
       }
       if (r[0] === 'waypoint') {
-        this.skres.updateWaypointPosition(
-          r[1],
-          this.mapInteract.draw.forSave.coords
-        );
+        this.skres.updateWaypointPosition(r[1], coords as Position);
         // if waypoint the target destination update nextPoint
         if (r[1] === this.app.data.activeWaypoint) {
           this.course.setDestination({
-            latitude: this.mapInteract.draw.forSave.coords[1],
-            longitude: this.mapInteract.draw.forSave.coords[0]
+            latitude: (coords as Position)[1],
+            longitude: (coords as Position)[0]
           });
         }
       }
       if (r[0] === 'note') {
-        this.skres.updateNotePosition(
-          r[1],
-          this.mapInteract.draw.forSave.coords
-        );
+        this.skres.updateNotePosition(r[1], coords as Position);
       }
       if (r[0] === 'region') {
-        this.skres.updateRegionCoords(
-          r[1],
-          this.mapInteract.draw.forSave.coords
-        );
+        this.skres.updateRegionCoords(r[1], coords as Position[][]);
       }
     } else {
       if (r[0] === 'route') {

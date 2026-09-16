@@ -10,7 +10,8 @@ import {
 } from '@angular/core';
 import { Feature } from 'ol';
 import { Style, Stroke, Fill, Circle, RegularShape } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
+import { LineString as OLLineString, Point } from 'ol/geom';
+import { LineString } from 'src/app/types';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
@@ -56,8 +57,8 @@ export class RacingStartLineLayerComponent
     const fa: Feature[] = [];
     if (Array.isArray(this.startLine) && this.startLine.length === 2) {
       const sl = new Feature({
-        geometry: new LineString(
-          fromLonLatArray(mapifyCoords(this.startLine as any))
+        geometry: new OLLineString(
+          fromLonLatArray(mapifyCoords(this.startLine))
         ),
         name: 'start'
       });
@@ -71,7 +72,7 @@ export class RacingStartLineLayerComponent
 
   // Style function
   buildStyle(feature: Feature) {
-    const geometry = feature.getGeometry() as LineString;
+    const geometry = feature.getGeometry() as OLLineString;
     const styles = [];
 
     if (typeof this.racecourseStyles === 'undefined') {

@@ -13,7 +13,7 @@ import { TileWMS } from 'ol/source';
 
 import { MapComponent } from '../map.component';
 
-import { ChartImageAdjustment, FBChart } from 'src/app/types';
+import { ChartImageAdjustment, FBChart, InfoLayerParam } from 'src/app/types';
 import { Map } from 'ol';
 import { MapService } from '../map.service';
 import {
@@ -33,8 +33,7 @@ import {
 export class WmsChartLayerComponent implements OnDestroy {
   protected chart = input<FBChart>();
   protected zIndex = input<number>();
-  protected params =
-    input<Array<{ id: string; param: { [key: string]: any } }>>();
+  protected params = input<InfoLayerParam[]>();
   protected overZoomTiles = input<boolean>(true);
   protected mapMaxZoom = input<number>();
 

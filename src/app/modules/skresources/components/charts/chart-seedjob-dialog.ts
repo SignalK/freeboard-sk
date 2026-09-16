@@ -12,12 +12,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { AppFacade } from 'src/app/app.facade';
-import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { CoordsPipe } from 'src/app/lib/pipes';
-import { Position } from 'src/app/types';
+import { FBChart, Position } from 'src/app/types';
 
 interface DialogData {
-  chart: SKChart;
+  chart: FBChart;
   bbox: [Position, Position];
 }
 

@@ -1,13 +1,15 @@
 /** Map interactions Service
  * ************************************/
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { Feature } from 'ol';
+import { Collection, Feature } from 'ol';
 import { Coordinate } from 'ol/coordinate';
+import { LineString as OLLineString, Point, Polygon } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
+import { StyleLike } from 'ol/style/Style';
 import { AppFacade } from 'src/app/app.facade';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
-import { LineString, Position } from 'src/app/types';
+import { FBChart, LineString, Position } from 'src/app/types';
 import {
   SKAircraft,
   SKAtoN,
@@ -62,19 +64,42 @@ export type SelectionModeDef = 'seedChart';
 export interface SelectionResultDef {
   mode: SelectionModeDef;
   bbox?: [Position?, Position?];
-  data?: any;
+  /** The chart whose tile cache the selected area seeds (`seedChart`). */
+  data?: FBChart;
 }
 
 export type DrawFeatureType = 'waypoint' | 'route' | 'region' | 'note'; // feature type to draw
 
+/**
+ * The pending result of a Modify session, consumed when the edit is saved.
+ */
+export interface DrawFeatureSaveInfo {
+  /** Resource id being modified (`<type>.<id>`), or `anchor`. */
+  id: string | null;
+  /**
+   * The edited geometry in lon/lat. Its nesting follows the resource type:
+   * a `Position` for a waypoint / note, `Position[]` for a route and
+   * `Position[][]` (rings) for a region.
+   */
+  coords: Position | Position[] | Position[][] | null;
+  /** Per-point route metadata, kept aligned with `coords`. */
+  coordsMetadata?: Array<{ name?: string; description?: string }>;
+}
+
 export interface DrawFeatureInfo {
   resourceType: DrawFeatureType;
   featureType: 'Point' | 'LineString' | 'Polygon';
-  coordinates: any[];
-  features: any;
-  forSave: any;
-  properties: { [key: string]: any };
-  style?: any; // feature draw style
+  /**
+   * The feature's geometry coordinates — lon/lat once a draw completes, raw
+   * render-space geometry during a modify. Nesting follows `featureType`.
+   */
+  coordinates: Coordinate | Coordinate[] | Coordinate[][];
+  /** Features under the last map click; the set a Modify session edits. */
+  features: Collection<Feature> | null;
+  forSave: DrawFeatureSaveInfo | null;
+  /** Properties carried onto the new resource (e.g. the note group). */
+  properties: { group?: string };
+  style?: StyleLike; // feature draw style
   name?: string; // display name of the feature being modified (helper title)
 }
 
@@ -292,25 +317,25 @@ export class FBMapInteractService {
       switch (this.draw.featureType) {
         case 'Point': // waypoint, note
           this.draw.coordinates = toLonLat(
-            (feature.getGeometry() as any).getCoordinates()
+            (feature.getGeometry() as Point).getCoordinates()
           );
           break;
         case 'LineString': {
           // route
-          const rc = (feature.getGeometry() as any).getCoordinates();
-          this.draw.coordinates = rc.map((i: Coordinate) => {
+          const rc = (feature.getGeometry() as OLLineString).getCoordinates();
+          this.draw.coordinates = rc.map((i) => {
             return toLonLat(i);
           });
           break;
         }
         case 'Polygon': {
           // region
-          const p = (feature.getGeometry() as any).getCoordinates();
+          const p = (feature.getGeometry() as Polygon).getCoordinates();
           if (p.length === 0) {
             this.draw.coordinates = [];
             break;
           }
-          this.draw.coordinates = p[0].map((i: Coordinate) => {
+          this.draw.coordinates = p[0].map((i) => {
             return toLonLat(i);
           });
           break;
@@ -347,7 +372,7 @@ export class FBMapInteractService {
   /**
    * Start box selection mode
    */
-  startBoxSelection(mode: SelectionModeDef, data: any) {
+  startBoxSelection(mode: SelectionModeDef, data: FBChart) {
     this.app.debug(`startBoxSelection()...`);
     this.selectionResult = {
       mode: mode,

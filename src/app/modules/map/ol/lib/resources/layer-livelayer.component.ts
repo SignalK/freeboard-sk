@@ -17,7 +17,7 @@ import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 
 import { MapComponent } from '../map.component';
-import { FBInfoLayer, FBInfoLayers } from 'src/app/types';
+import { FBInfoLayer, FBInfoLayers, InfoLayerParam } from 'src/app/types';
 import { SKInfoLayer } from 'src/app/modules/skresources';
 
 import LayerGroup from 'ol/layer/Group';
@@ -43,12 +43,12 @@ export class FreeboardLiveLayerComponent
   @Input() layerDefs: FBInfoLayers;
   @Input() zIndex = 100; // start number for layer zIndex
 
-  public params = input<Array<{ id: string; param: { [key: string]: any } }>>();
+  public params = input<InfoLayerParam[]>();
 
   protected layerGroup: LayerGroup;
   private wmtsCapabilitesMap = new Map();
   private layerMap: Map<string, LiveLayer> = new Map();
-  private refreshTimer: any;
+  private refreshTimer: ReturnType<typeof setInterval>;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -214,7 +214,7 @@ export class FreeboardLiveLayerComponent
   }
 
   /** @returns WMS tile source */
-  private setWMSSource(ldef: any): TileWMS {
+  private setWMSSource(ldef: FBInfoLayer): TileWMS {
     return new TileWMS({
       url: ldef[1].values?.url,
       params: {
@@ -224,7 +224,7 @@ export class FreeboardLiveLayerComponent
   }
 
   /** @returns WMTS source */
-  private async setWMTSSource(ldef: any): Promise<WMTS> {
+  private async setWMTSSource(ldef: FBInfoLayer): Promise<WMTS> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
     if (!this.wmtsCapabilitesMap.has(ldef[1].values?.url)) {

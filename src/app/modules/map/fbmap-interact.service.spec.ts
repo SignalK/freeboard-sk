@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signal } from '@angular/core';
 import { Feature } from 'ol';
-import { Polygon } from 'ol/geom';
+import { LineString, Point, Polygon } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 
 import { FBMapInteractService } from './fbmap-interact.service';
@@ -52,11 +52,43 @@ describe('FBMapInteractService.stopDrawing', () => {
 
     service.stopDrawing(feature);
 
-    expect(service.draw.coordinates).toHaveLength(ring.length);
-    service.draw.coordinates.forEach((c: number[], i: number) => {
+    const coords = service.draw.coordinates as number[][];
+    expect(coords).toHaveLength(ring.length);
+    coords.forEach((c, i) => {
       expect(c[0]).toBeCloseTo(ring[i][0], 6);
       expect(c[1]).toBeCloseTo(ring[i][1], 6);
     });
     expect(uiCtrl().suppressContextMenu).toBe(false);
+  });
+
+  it('converts a Point feature to a single lon/lat position', () => {
+    service.startDrawing('waypoint');
+    const feature = new Feature(new Point(fromLonLat([-80.1, 25.7])));
+
+    service.stopDrawing(feature);
+
+    const c = service.draw.coordinates as number[];
+    expect(c).toHaveLength(2);
+    expect(c[0]).toBeCloseTo(-80.1, 6);
+    expect(c[1]).toBeCloseTo(25.7, 6);
+  });
+
+  it('converts a LineString feature to a lon/lat position list', () => {
+    service.startDrawing('route');
+    const line = [
+      [-80.1, 25.7],
+      [-80.0, 25.7],
+      [-80.0, 25.8]
+    ];
+    const feature = new Feature(new LineString(line.map((c) => fromLonLat(c))));
+
+    service.stopDrawing(feature);
+
+    const coords = service.draw.coordinates as number[][];
+    expect(coords).toHaveLength(line.length);
+    coords.forEach((c, i) => {
+      expect(c[0]).toBeCloseTo(line[i][0], 6);
+      expect(c[1]).toBeCloseTo(line[i][1], 6);
+    });
   });
 });
