@@ -308,6 +308,7 @@ export class FBMapInteractService {
           const p = (feature.getGeometry() as any).getCoordinates();
           if (p.length === 0) {
             this.draw.coordinates = [];
+            break;
           }
           this.draw.coordinates = p[0].map((i: Coordinate) => {
             return toLonLat(i);
