@@ -89,6 +89,12 @@ export interface ChartResource {
   layers?: string[];
   tileSize?: number;
   defaultOpacity?: number;
+  // Auto-refresh cadence in milliseconds for a time-varying raster chart
+  // (weather radar, satellite). When set, the chart's tile source is refreshed
+  // non-destructively on this interval (clamped to a 60 s minimum). Absent or 0
+  // means the chart never auto-refreshes. Raster types only (tilelayer / XYZ,
+  // tileJSON, WMS, WMTS); ignored for mapstyleJSON.
+  refreshInterval?: number;
   imageAdjustment?: ChartImageAdjustment;
   // Lowest zoom level the chart is drawn at, as a local display preference.
   // Distinct from the declared `minzoom`, which describes the tiles that exist.

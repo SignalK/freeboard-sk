@@ -9,6 +9,8 @@ import Tile from 'ol/Tile';
 import VectorTile from 'ol/VectorTile';
 import { FeatureLike } from 'ol/Feature';
 import VectorTileSource from 'ol/source/VectorTile';
+import TileSource from 'ol/source/Tile';
+import UrlTile from 'ol/source/UrlTile';
 import TileState from 'ol/TileState';
 import Projection from 'ol/proj/Projection';
 import {
@@ -517,4 +519,70 @@ export function makeChartTilesResilient(
     }
   };
   walk(group.getLayers().getArray());
+}
+
+/**
+ * Minimum auto-refresh cadence for a chart, in milliseconds. Time-varying
+ * raster products (weather radar, satellite) update every few minutes, and the
+ * InfoLayer refresh timer already works at 60 s granularity, so a shorter
+ * interval would only re-request tiles the server has not changed.
+ */
+export const MIN_CHART_REFRESH_INTERVAL_MS = 60000;
+
+/**
+ * Maximum auto-refresh cadence, in milliseconds: the largest delay `setInterval`
+ * accepts before its signed 32-bit timeout overflows and the timer fires almost
+ * continuously. Clamping here stops a misconfigured provider from hammering its
+ * own tile endpoint.
+ */
+export const MAX_CHART_REFRESH_INTERVAL_MS = 2147483647;
+
+/**
+ * Start a periodic, non-destructive refresh of a chart's raster tile source and
+ * return a function that stops it. Used for time-varying charts (weather radar,
+ * satellite) that declare a `refreshInterval`.
+ *
+ * It rotates the source key rather than calling `source.refresh()`. `refresh()`
+ * clears the tile cache, so the layer goes blank whenever the re-fetch fails —
+ * being offline is the normal case on a boat, and a blank radar is worse than a
+ * slightly stale one. Rotating the key (via `setTileUrlFunction`, the public
+ * path to the source's protected `setKey`) creates fresh tile objects while the
+ * previous key lands on the renderer's stale-tile list, so OpenLayers keeps
+ * drawing the last successfully-loaded tile until its replacement reaches
+ * `LOADED`. A failed or offline refresh therefore just leaves the current frame
+ * in place, silently, and the next tick tries again.
+ *
+ * The interval is clamped to [{@link MIN_CHART_REFRESH_INTERVAL_MS},
+ * {@link MAX_CHART_REFRESH_INTERVAL_MS}]. An absent, non-finite or non-positive
+ * interval, or a source that is not URL-based, installs no timer (returns a
+ * no-op), so static charts are unaffected. Because the tile URL itself does not
+ * change, the tile server must send `Cache-Control: no-cache` (or a `max-age`
+ * below the interval) or the browser will serve the cached image back.
+ */
+export function startChartTileRefresh(
+  source: TileSource | null | undefined,
+  refreshInterval?: number
+): () => void {
+  if (
+    !(source instanceof UrlTile) ||
+    typeof refreshInterval !== 'number' ||
+    !Number.isFinite(refreshInterval) ||
+    refreshInterval <= 0
+  ) {
+    return () => undefined;
+  }
+  const interval = Math.min(
+    Math.max(refreshInterval, MIN_CHART_REFRESH_INTERVAL_MS),
+    MAX_CHART_REFRESH_INTERVAL_MS
+  );
+  if (interval !== refreshInterval) {
+    console.debug(
+      `startChartTileRefresh: refreshInterval ${refreshInterval}ms clamped to ${interval}ms`
+    );
+  }
+  const timer = setInterval(() => {
+    // Same URL function, new key — rotates the tile cache key non-destructively.
+    source.setTileUrlFunction(source.getTileUrlFunction(), String(Date.now()));
+  }, interval);
+  return () => clearInterval(timer);
 }
