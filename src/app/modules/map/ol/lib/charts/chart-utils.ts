@@ -530,6 +530,14 @@ export function makeChartTilesResilient(
 export const MIN_CHART_REFRESH_INTERVAL_MS = 60000;
 
 /**
+ * Maximum auto-refresh cadence, in milliseconds: the largest delay `setInterval`
+ * accepts before its signed 32-bit timeout overflows and the timer fires almost
+ * continuously. Clamping here stops a misconfigured provider from hammering its
+ * own tile endpoint.
+ */
+export const MAX_CHART_REFRESH_INTERVAL_MS = 2147483647;
+
+/**
  * Start a periodic, non-destructive refresh of a chart's raster tile source and
  * return a function that stops it. Used for time-varying charts (weather radar,
  * satellite) that declare a `refreshInterval`.
@@ -544,12 +552,12 @@ export const MIN_CHART_REFRESH_INTERVAL_MS = 60000;
  * `LOADED`. A failed or offline refresh therefore just leaves the current frame
  * in place, silently, and the next tick tries again.
  *
- * The interval is clamped up to {@link MIN_CHART_REFRESH_INTERVAL_MS}. An absent
- * or non-positive interval, or a source that is not URL-based, installs no
- * timer (returns a no-op), so static charts are unaffected. Because the tile
- * URL itself does not change, the tile server must send `Cache-Control:
- * no-cache` (or a `max-age` below the interval) or the browser will serve the
- * cached image back.
+ * The interval is clamped to [{@link MIN_CHART_REFRESH_INTERVAL_MS},
+ * {@link MAX_CHART_REFRESH_INTERVAL_MS}]. An absent, non-finite or non-positive
+ * interval, or a source that is not URL-based, installs no timer (returns a
+ * no-op), so static charts are unaffected. Because the tile URL itself does not
+ * change, the tile server must send `Cache-Control: no-cache` (or a `max-age`
+ * below the interval) or the browser will serve the cached image back.
  */
 export function startChartTileRefresh(
   source: TileSource | null | undefined,
@@ -558,11 +566,15 @@ export function startChartTileRefresh(
   if (
     !(source instanceof UrlTile) ||
     typeof refreshInterval !== 'number' ||
+    !Number.isFinite(refreshInterval) ||
     refreshInterval <= 0
   ) {
     return () => undefined;
   }
-  const interval = Math.max(refreshInterval, MIN_CHART_REFRESH_INTERVAL_MS);
+  const interval = Math.min(
+    Math.max(refreshInterval, MIN_CHART_REFRESH_INTERVAL_MS),
+    MAX_CHART_REFRESH_INTERVAL_MS
+  );
   if (interval !== refreshInterval) {
     console.debug(
       `startChartTileRefresh: refreshInterval ${refreshInterval}ms clamped to ${interval}ms`

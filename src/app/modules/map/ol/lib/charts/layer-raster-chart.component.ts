@@ -41,6 +41,7 @@ export class RasterChartLayerComponent implements OnDestroy {
   private layer: TileLayer | WebGLTileLayer;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
+  private refreshIntervalMs?: number;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -140,11 +141,12 @@ export class RasterChartLayerComponent implements OnDestroy {
     // Auto-refresh time-varying charts (radar/satellite) non-destructively.
     // pmtiles (WebGL) layers are static local files, so skip them.
     if (this.layer instanceof TileLayer) {
-      this.stopRefresh?.();
-      this.stopRefresh = startChartTileRefresh(
-        this.layer.getSource(),
-        chart[1].refreshInterval
-      );
+      const iv = chart[1].refreshInterval;
+      if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
+        this.stopRefresh?.();
+        this.refreshIntervalMs = iv;
+        this.stopRefresh = startChartTileRefresh(this.layer.getSource(), iv);
+      }
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();

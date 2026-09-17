@@ -6,6 +6,7 @@ import {
   isUnevaluableByOl,
   isZoomWithinLayerRange,
   makeChartTilesResilient,
+  MAX_CHART_REFRESH_INTERVAL_MS,
   MIN_CHART_REFRESH_INTERVAL_MS,
   normaliseStyleForOl,
   resolveLayerMaxZoom,
@@ -665,46 +666,62 @@ describe('startChartTileRefresh', () => {
   it('rotates the source key on each tick, and stops when told', () => {
     vi.useFakeTimers();
     const src = source();
-    // The key is rotated via setTileUrlFunction (the public path to setKey).
-    const rotate = vi.spyOn(src, 'setTileUrlFunction');
+    // Assert the observable outcome — the source cache key really rotated via
+    // the public API — rather than that a particular setter was called.
+    const initialKey = src.getKey();
     const interval = 2 * MIN_CHART_REFRESH_INTERVAL_MS;
 
     const stop = startChartTileRefresh(src, interval);
-    expect(rotate).not.toHaveBeenCalled(); // nothing on install
+    expect(src.getKey()).toBe(initialKey); // nothing on install
     vi.advanceTimersByTime(interval);
-    expect(rotate).toHaveBeenCalledTimes(1);
+    const firstRefreshKey = src.getKey();
+    expect(firstRefreshKey).not.toBe(initialKey);
     vi.advanceTimersByTime(interval);
-    expect(rotate).toHaveBeenCalledTimes(2);
-    // each rotation passes a distinct key (2nd argument)
-    expect(rotate.mock.calls[0][1]).not.toBe(rotate.mock.calls[1][1]);
+    const secondRefreshKey = src.getKey();
+    expect(secondRefreshKey).not.toBe(firstRefreshKey);
 
     stop();
     vi.advanceTimersByTime(interval * 3);
-    expect(rotate).toHaveBeenCalledTimes(2); // no ticks after stop
+    expect(src.getKey()).toBe(secondRefreshKey); // no ticks after stop
   });
 
-  it('installs no timer when refreshInterval is absent or 0', () => {
+  it('installs no timer when refreshInterval is absent, 0 or non-finite', () => {
     vi.useFakeTimers();
     const src = source();
-    const rotate = vi.spyOn(src, 'setTileUrlFunction');
+    const initialKey = src.getKey();
 
     startChartTileRefresh(src, 0);
     startChartTileRefresh(src, undefined);
     startChartTileRefresh(src); // no interval at all
+    startChartTileRefresh(src, Infinity);
+    startChartTileRefresh(src, NaN);
     vi.advanceTimersByTime(10 * MIN_CHART_REFRESH_INTERVAL_MS);
 
-    expect(rotate).not.toHaveBeenCalled();
+    expect(src.getKey()).toBe(initialKey);
   });
 
   it('clamps an interval below the minimum up to the floor', () => {
     vi.useFakeTimers();
     const src = source();
-    const rotate = vi.spyOn(src, 'setTileUrlFunction');
+    const initialKey = src.getKey();
 
     startChartTileRefresh(src, 1000); // 1 s requested
     vi.advanceTimersByTime(1000);
-    expect(rotate).not.toHaveBeenCalled(); // did not fire at the requested 1 s
+    expect(src.getKey()).toBe(initialKey); // did not fire at the requested 1 s
     vi.advanceTimersByTime(MIN_CHART_REFRESH_INTERVAL_MS - 1000);
-    expect(rotate).toHaveBeenCalledTimes(1); // fired at the 60 s floor
+    expect(src.getKey()).not.toBe(initialKey); // fired at the 60 s floor
+  });
+
+  it('caps an oversized interval so the timer cannot fire near-continuously', () => {
+    vi.useFakeTimers();
+    const src = source();
+    const initialKey = src.getKey();
+
+    // Above MAX; a raw setInterval delay this large overflows and fires ~at once.
+    startChartTileRefresh(src, MAX_CHART_REFRESH_INTERVAL_MS * 4);
+    vi.advanceTimersByTime(MAX_CHART_REFRESH_INTERVAL_MS - 1);
+    expect(src.getKey()).toBe(initialKey); // has not fired before the cap
+    vi.advanceTimersByTime(1);
+    expect(src.getKey()).not.toBe(initialKey); // fires at the cap
   });
 });

@@ -41,6 +41,8 @@ export class WmtsChartLayerComponent implements OnDestroy {
   private capabilities: string;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
+  private refreshIntervalMs?: number;
+  private destroyed = false;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -56,6 +58,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     this.stopRefresh?.();
     this.capabilities = undefined;
     const map = this.mapComponent.getMap();
@@ -79,6 +82,11 @@ export class WmtsChartLayerComponent implements OnDestroy {
         console.log(err);
         return;
       }
+    }
+    // The capabilities fetch is async: if the component was destroyed while it
+    // was in flight, don't resurrect the layer or start an orphaned timer.
+    if (this.destroyed) {
+      return;
     }
     const options = optionsFromCapabilities(this.capabilities, {
       layer: chart[1].layers[0],
@@ -125,11 +133,12 @@ export class WmtsChartLayerComponent implements OnDestroy {
     }
     // Auto-refresh time-varying charts (radar/satellite) non-destructively.
     if (this.layer) {
-      this.stopRefresh?.();
-      this.stopRefresh = startChartTileRefresh(
-        this.layer.getSource(),
-        chart[1].refreshInterval
-      );
+      const iv = chart[1].refreshInterval;
+      if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
+        this.stopRefresh?.();
+        this.refreshIntervalMs = iv;
+        this.stopRefresh = startChartTileRefresh(this.layer.getSource(), iv);
+      }
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
