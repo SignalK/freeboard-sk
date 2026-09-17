@@ -130,7 +130,7 @@ import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
 import { hitToleranceForPointer, worldCopyOffset } from './ol/lib/util';
-import { LineString as OLLineString } from 'ol/geom';
+import { Circle as OLCircle, LineString as OLLineString } from 'ol/geom';
 import {
   extendRouteAtClick,
   RoutePointMeta,
@@ -147,6 +147,14 @@ import {
   TidalCurrentsService,
   GridSample
 } from './ol/lib/tidal-currents.service';
+
+/** An entry in the feature-list popover built from the features at a click. */
+interface FeatureListEntry {
+  id: string;
+  coord: Position;
+  icon: AppIconDef | string;
+  text: string;
+}
 
 interface IResource {
   id: string;
@@ -890,8 +898,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
       ...m,
       coords: GeoUtils.normaliseCoords(e.lonlat as Position)
     }));
-    this.contextMenuPosition.x = (e as any).clientX + 'px';
-    this.contextMenuPosition.y = (e as any).clientY + 'px';
+    // The pointer position lives on the DOM event OL wraps, not on the
+    // MapBrowserEvent itself.
+    this.contextMenuPosition.x = e.originalEvent.clientX + 'px';
+    this.contextMenuPosition.y = e.originalEvent.clientY + 'px';
   }
 
   protected onMapSingleClick(e) {
@@ -1027,17 +1037,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Handle OL interaction start event */
   protected onMeasureStart(e: DrawEvent) {
     this.app.debug(`onMeasureStart()...`, this.mapInteract.measureGeometryType);
-    let ovPosition: any;
+    let ovPosition: Position | LineString;
     if (this.mapInteract.measureGeometryType === 'LineString') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let c = (e.feature.getGeometry() as any)
+      let c = (e.feature.getGeometry() as OLLineString)
         .getCoordinates()
-        .map((c: Position) => toLonLat(c));
+        .map((c) => toLonLat(c) as Position);
       c = c.slice(0, c.length - 1);
       this.mapInteract.measurementCoords = c;
       ovPosition = c;
     } else {
-      const g = e.feature.getGeometry() as any;
+      const g = e.feature.getGeometry() as OLCircle;
       const center = toLonLat(g.getCenter());
       const radius = g.getRadius();
       this.mapInteract.measurementCenter = center as Position;
@@ -1107,10 +1116,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       let rteCoords: Position[];
       fa.forEach((f: Feature) => {
         if (f.getGeometry().getType() === 'LineString') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          rteCoords = (f.getGeometry() as any)
+          rteCoords = (f.getGeometry() as OLLineString)
             .getCoordinates()
-            .map((c: Position) => toLonLat(c));
+            .map((c) => toLonLat(c) as Position);
           rteCoords = rteCoords.slice(0, rteCoords.length - 1);
         }
       });
@@ -1478,13 +1486,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     if (!this.mapInteract.draw.forSave.id) {
-      this.mapInteract.draw.forSave.id = f.getId();
+      this.mapInteract.draw.forSave.id = f.getId() as string;
     }
     this.mapInteract.draw.forSave.coordsMetadata = result.meta;
     this.mapInteract.draw.coordinates = result.after;
-    const pc = this.transformCoordsArray(result.after);
+    const pc = this.transformCoordsArray(result.after) as LineString;
     this.mapInteract.draw.forSave['coords'] = pc;
-    this.mapInteract.measurementCoords = pc as LineString;
+    this.mapInteract.measurementCoords = pc;
     this.mapInteract.measurementIndex = modifiedLegIndex(
       result.undo.coordinates,
       result.after
@@ -1500,24 +1508,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Process pointer click in non-interaction mode */
   private processMapClick(e) {
     this.s57Features = {};
-    const featureList: Map<
-      string,
-      {
-        id: string;
-        coord: Position;
-        icon: AppIconDef;
-        text: string;
-      }
-    > = new Map(); // features under pointer
-    const chartBoundsFeatures: Map<
-      string,
-      {
-        id: string;
-        coord: Position;
-        icon: string;
-        text: string;
-      }
-    > = new Map(); // chart bounds under pointer
+    const featureList: Map<string, FeatureListEntry> = new Map(); // features under pointer
+    const chartBoundsFeatures: Map<string, FeatureListEntry> = new Map(); // chart bounds under pointer
     const fa = []; // features that can be the target of modify interaction
     let maskPopover = false; // suppress popover display
 
@@ -1758,7 +1750,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected formatPopover(
     id: string,
     coord: Position,
-    featureList?: Map<string, any>
+    featureList?: Map<string, FeatureListEntry>
   ) {
     if (!id) {
       this.overlay.update((current) => {
@@ -1826,7 +1818,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         break;
       case 'alarm': {
         aid = id.split('.').slice(1).join('.');
-        const alm = this.notiMgr.getAlert(aid) as any;
+        const alm = this.notiMgr.getAlert(aid);
         if (!alm) {
           return false;
         }
@@ -2025,7 +2017,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** handle selection from the FeatureList popover */
   protected featureListSelection(feature) {
     // trim the draw.features collection to the selected feature.id
-    const sf = new Collection();
+    const sf = new Collection<Feature>();
     this.mapInteract.draw.features.forEach((e) => {
       if (e.getId() === feature.id) {
         sf.push(e);

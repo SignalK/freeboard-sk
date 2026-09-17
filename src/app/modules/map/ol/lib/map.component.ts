@@ -115,8 +115,8 @@ export class MapComponent implements OnInit, OnDestroy {
     lonlat: Coordinate;
     worldOffset: number;
   }>();
-  @Output() mapContextMenu: EventEmitter<FBPointerEvent> =
-    new EventEmitter<FBPointerEvent>();
+  @Output() mapContextMenu: EventEmitter<PointerEvent> =
+    new EventEmitter<PointerEvent>();
   @Output() mapSingleClick: EventEmitter<FBClickEvent> =
     new EventEmitter<FBClickEvent>();
   @Output() mapDblClick: EventEmitter<FBClickEvent> =
@@ -286,7 +286,7 @@ export class MapComponent implements OnInit, OnDestroy {
   private indicatorTimer: ReturnType<typeof setTimeout>;
   private indicatorShown = false;
   private pointerDownTime = 0;
-  private evCache: { [id: number]: MouseEvent } = {};
+  private evCache: { [id: number]: PointerEvent } = {};
   private touchStartXY: { x: number; y: number } | null = null;
   // The pointer type that opened the current gesture. A native `contextmenu`
   // event carries no pointer type of its own, so it is read from here to tell a
@@ -349,7 +349,7 @@ export class MapComponent implements OnInit, OnDestroy {
       this.indicatorShown = false;
       return;
     }
-    this.mapContextMenu.emit(src as any);
+    this.mapContextMenu.emit(src);
     this.rightClickHandler(src);
   };
   // Show the delete-progress indicator over a grabbed vertex, its bar timed to

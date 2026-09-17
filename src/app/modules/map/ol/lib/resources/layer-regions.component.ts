@@ -12,6 +12,7 @@ import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBRegions } from 'src/app/types';
+import { SKRegion } from 'src/app/modules/skresources';
 
 @Component({
   selector: 'ol-map > fb-regions',
@@ -68,7 +69,7 @@ export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
   }
 
   // build region feature style
-  buildStyle(id: string, reg: any): Style {
+  buildStyle(id: string, reg: SKRegion): Style {
     // default style
     let theStyle = this.setTextLabel(
       new Style({

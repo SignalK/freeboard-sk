@@ -100,7 +100,7 @@ export class VectorChartLayerComponent implements OnDestroy {
         this.layer.setMaxZoom(layerMaxZ);
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
         if (chart[1].style) {
-          applyStyle(this.layer as any, chart[1].style);
+          applyStyle(this.layer, chart[1].style);
         }
         this.layer.set('id', chart[0]);
         this.layer.set('chartId', chart[0]);

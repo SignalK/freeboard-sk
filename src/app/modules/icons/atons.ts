@@ -1,7 +1,10 @@
 // AtoN Icons
 
 import { AppIconSet } from './app.icons';
-import { MapIconDef } from '../map/ol/lib/map-image-registry.service';
+import {
+  MapIconDef,
+  MapIconDefs
+} from '../map/ol/lib/map-image-registry.service';
 import { Convert } from 'src/app/lib/convert';
 
 export const AtoNsType1: AppIconSet = {
@@ -113,7 +116,10 @@ export const meteoWindBucket = (
  * @description Build MapIcon definitions for use by MapImageRegistry
  */
 export const getAtoNDefs = () => {
-  const atonList = {};
+  const atonList: { real: MapIconDefs; virtual: MapIconDefs } = {
+    real: {},
+    virtual: {}
+  };
 
   const addToList = (list: AppIconSet) => {
     list.files.forEach((file: string) => {

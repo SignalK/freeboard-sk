@@ -29,6 +29,9 @@ export interface MapIconDef {
   anchor?: [number, number];
 }
 
+/** Icon definitions keyed by icon id. */
+export type MapIconDefs = { [id: string]: MapIconDef };
+
 /** Symbol ref for the wind-direction arrow; a provider may override it. */
 export const WIND_ARROW_SYMBOL = 'windIndicator-arrow';
 
@@ -91,7 +94,7 @@ export class MapImageRegistry {
   /** Cached built-in wind arrow (used when no provider override exists). */
   private windArrowIcon: Icon;
 
-  private atonImageDefs: any = {
+  private atonImageDefs: { virtual: MapIconDefs; real: MapIconDefs } = {
     virtual: {},
     real: {}
   };
@@ -384,7 +387,7 @@ export class MapImageRegistry {
    */
   private buildIcon(
     group: MapImageCollection,
-    iconDef: { [id: string]: any },
+    iconDef: MapIconDefs,
     id: number | string,
     rotate: boolean = false,
     cacheKey: number | string = id

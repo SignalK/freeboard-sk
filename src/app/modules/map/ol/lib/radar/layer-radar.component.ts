@@ -34,7 +34,7 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() mapZoom: number;
   @Input() zIndex: number;
   @Input() visible: boolean;
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties: Record<string, unknown>;
   @Input() opacity: number = 1;
 
   onError = output<Error>();
