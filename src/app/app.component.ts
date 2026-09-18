@@ -93,7 +93,9 @@ import * as semver from 'semver';
 import {
   NotificationMessage,
   UpdateMessage,
+  InfoLayerParam,
   LineString,
+  MultiLineString,
   Polygon,
   FBRoute,
   Position,
@@ -641,10 +643,7 @@ export class AppComponent {
   }
 
   /** handle infolayer parameter change **/
-  protected onInfoLayerParamChange(param: {
-    id: string;
-    param: { [key: string]: any };
-  }) {
+  protected onInfoLayerParamChange(param: InfoLayerParam) {
     this.skresOther.infoLayerParams.update(() => [param]);
   }
 
@@ -903,7 +902,7 @@ export class AppComponent {
   /** process local vessel trail
    * @param trailData Vessel trail data from server (stream.trail$)
    */
-  private processTrail(trailData?: LineString) {
+  private processTrail(trailData?: MultiLineString) {
     if (!this.app.config.vessels.trail) {
       return;
     }
@@ -941,7 +940,7 @@ export class AppComponent {
     } else {
       // use server trail data, keep minimal local trail data
       const lastseg = trailData.slice(-1);
-      const lastpt: any =
+      const lastpt: LineString =
         lastseg.length !== 0
           ? lastseg[0].slice(-1)
           : trailData.length > 1
@@ -954,7 +953,11 @@ export class AppComponent {
   }
 
   // ** stream.trail$ event handler (vessel trail from server) **
-  private handleTrailUpdate(e: { action: string; mode: string; data: any[] }) {
+  private handleTrailUpdate(e: {
+    action: string;
+    mode: string;
+    data: MultiLineString;
+  }) {
     if (e.action === 'get' && e.mode === 'trail') {
       if (this.app.config.vessels.trailFromServer) {
         this.app.selfTrailFromServer.update(() => {
@@ -1340,12 +1343,16 @@ export class AppComponent {
         data: {}
       })
       .afterClosed()
-      .subscribe((res) => {
+      .subscribe((res: { path: string; data: string }) => {
         if (!res) {
           return;
         } // cancelled
         try {
           const d = JSON.parse(res.data);
+          // the import dialog targets custom resource collections (it filters
+          // the standard types out), which postToServer()'s collection union
+          // does not model.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.skres.postToServer(res.path as any, d);
         } catch {
           this.app.showAlert(

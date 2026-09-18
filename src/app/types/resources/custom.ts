@@ -67,7 +67,7 @@ export interface CustomResource {
   name?: string | null;
   description?: string | null;
   type: string;
-  values: { [key: string]: any };
+  values: { [key: string]: unknown };
 }
 
 export interface CustomStyles {

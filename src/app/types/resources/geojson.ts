@@ -1,3 +1,5 @@
+import type { GeoJsonProperties } from 'geojson';
+
 export type Position = [number, number, number?]; // [lon,lat, alt]
 export type LineString = Position[];
 export type MultiLineString = LineString[];
@@ -6,7 +8,7 @@ export type MultiPolygon = Polygon[];
 
 interface Feature {
   type: 'Feature';
-  properties?: { [key: string]: any };
+  properties?: GeoJsonProperties;
   id?: string;
 }
 

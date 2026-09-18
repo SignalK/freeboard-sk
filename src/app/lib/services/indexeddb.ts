@@ -11,7 +11,7 @@ export class IndexedDB {
 
   openDatabase(
     version: number,
-    upgradeCallback?: (evt: any, db: IDBDatabase) => void
+    upgradeCallback?: (evt: IDBVersionChangeEvent, db: IDBDatabase) => void
   ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new Promise<any>((resolve, reject) => {
@@ -29,7 +29,9 @@ export class IndexedDB {
 
       if (typeof upgradeCallback === 'function') {
         request.onupgradeneeded = (e) => {
-          upgradeCallback(e, this.dbWrapper.db);
+          // onupgradeneeded fires before onsuccess, so the wrapper's db is
+          // not set yet; hand the callback the database being opened.
+          upgradeCallback(e, request.result);
         };
       }
     });

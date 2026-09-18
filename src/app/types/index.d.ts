@@ -276,6 +276,44 @@ export interface IAppConfig {
   };
 }
 
+/** A plotter extension widget placement (`IAppConfig.plotterExtensions.widgets`). */
+export type PlotterExtensionWidget =
+  IAppConfig['plotterExtensions']['widgets'][number];
+
+/**
+ * `IAppConfig` as it may be found in storage. A config saved by an earlier
+ * release can still carry the pre-migration values and fields that
+ * `cleanConfig()` upgrades in place. Every member is a superset of its
+ * `IAppConfig` counterpart, so a current config is assignable to it.
+ */
+export type LegacyAppConfig = Omit<
+  IAppConfig,
+  'units' | 'vessels' | 'plotterExtensions' | 'selections'
+> & {
+  units: Omit<IAppConfig['units'], 'depth' | 'speed' | 'distance'> & {
+    depth: DepthUnitDef | 'ft'; // 'ft' -> 'foot'
+    speed: SpeedUnitDef | 'msec' | 'kmh'; // 'msec' -> 'm/s', 'kmh' -> 'km/h'
+    distance: DistanceUnitDef | 'm' | 'ft'; // 'm' -> 'kilometer', 'ft' -> 'naut-mile'
+  };
+  vessels: Omit<IAppConfig['vessels'], 'selfLines'> & {
+    selfLines?: IAppConfig['vessels']['selfLines']; // created from cogLine / headingLineSize
+    cogLine?: number; // -> selfLines.cog.length
+    headingLineSize?: number; // -> selfLines.heading.length
+  };
+  plotterExtensions: {
+    enabled?: unknown; // early builds kept an enabled list; dropped
+    widgets?: Array<
+      Omit<PlotterExtensionWidget, 'anchor'> & {
+        anchor?: PlotterExtensionWidget['anchor'];
+        corner?: 'tl' | PlotterExtensionWidget['anchor']; // -> anchor ('tl' -> 'tr')
+      }
+    >;
+  };
+  selections: IAppConfig['selections'] & {
+    notes?: unknown; // legacy notes selections section; dropped
+  };
+};
+
 export interface FBAppData {
   loginRequired: boolean;
   chartBounds: {

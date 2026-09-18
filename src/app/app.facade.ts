@@ -37,6 +37,7 @@ import {
   ErrorList,
   IAppConfig,
   LineString,
+  MultiLineString,
   SKServerUnitPrefs,
   SKPathDisplayUnits,
   TemperatureUnitDef,
@@ -272,7 +273,7 @@ export class AppFacade extends InfoService {
     }
   });
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
-  selfTrailFromServer = signal<LineString>([]); // vessel trail from server
+  selfTrailFromServer = signal<MultiLineString>([]); // vessel trail from server
   mapExtent = signal<Extent>([]); // map viewport extent
   mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
   mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)
@@ -1412,7 +1413,8 @@ export class AppDB {
 
     this.db
       .openDatabase(1, (evt) => {
-        const trail = evt.currentTarget.result.createObjectStore('trail', {
+        const db = (evt.currentTarget as IDBOpenDBRequest).result;
+        const trail = db.createObjectStore('trail', {
           keyPath: 'uuid'
         });
         trail.createIndex('uuid_idx', 'uuid', { unique: true });

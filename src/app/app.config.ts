@@ -1,4 +1,10 @@
-import { FBAppData, IAppConfig, TemperatureUnitDef } from './types';
+import {
+  FBAppData,
+  IAppConfig,
+  LegacyAppConfig,
+  PlotterExtensionWidget,
+  TemperatureUnitDef
+} from './types';
 import { Convert } from './lib/convert';
 import { legacyPanBehavior, normaliseCenterOffset } from './lib/follow-offset';
 import { SKVessel } from './modules';
@@ -17,9 +23,9 @@ export function validateConfig(settings: IAppConfig): boolean {
   return result;
 }
 
-// clean loaded app config
+// clean loaded app config (migrates legacy shapes in place)
 export function cleanConfig(
-  settings: IAppConfig,
+  settings: LegacyAppConfig,
   hostParams: { [key: string]: unknown }
 ) {
   /** v2 formatting */
@@ -103,20 +109,20 @@ export function cleanConfig(
   settings.units.temperature =
     settings.units.temperature.toUpperCase() as TemperatureUnitDef;
   settings.units.depth =
-    (settings.units.depth as any) === 'ft' ? 'foot' : settings.units.depth;
+    settings.units.depth === 'ft' ? 'foot' : settings.units.depth;
   if (typeof settings.units.length === 'undefined') {
     settings.units.length = settings.units.depth ?? 'm';
   }
   settings.units.speed =
-    (settings.units.speed as any) === 'msec'
+    settings.units.speed === 'msec'
       ? 'm/s'
-      : (settings.units.speed as any) === 'kmh'
+      : settings.units.speed === 'kmh'
         ? 'km/h'
         : settings.units.speed;
   settings.units.distance =
-    (settings.units.distance as any) === 'm'
+    settings.units.distance === 'm'
       ? 'kilometer'
-      : (settings.units.distance as any) === 'ft'
+      : settings.units.distance === 'ft'
         ? 'naut-mile'
         : settings.units.distance;
 
@@ -277,21 +283,21 @@ export function cleanConfig(
     if (typeof settings.vessels.selfLines === 'undefined') {
       settings.vessels.selfLines = {
         cog: {
-          length: (settings as any).vessels.cogLine ?? 10,
+          length: settings.vessels.cogLine ?? 10,
           color: 'rgba(204, 12, 225, 0.7)',
           weight: 1,
           dash: 'none'
         },
         heading: {
-          length: (settings as any).vessels.headingLineSize ?? -1,
+          length: settings.vessels.headingLineSize ?? -1,
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
         }
       };
       // @todo remove (implemented) v2.22.2
-      delete (settings as any).vessels.cogLine;
-      delete (settings as any).vessels.headingLineSize;
+      delete settings.vessels.cogLine;
+      delete settings.vessels.headingLineSize;
     }
   }
 
@@ -367,14 +373,12 @@ export function cleanConfig(
     };
   }
   // migrate early plotterExtensions config shape
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (settings.plotterExtensions as any).enabled;
+  delete settings.plotterExtensions.enabled;
   if (!Array.isArray(settings.plotterExtensions.widgets)) {
     settings.plotterExtensions.widgets = [];
   }
   settings.plotterExtensions.widgets = settings.plotterExtensions.widgets
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((w: any) => {
+    .map((w) => {
       // early builds used `corner` with a `tl` option
       if (w.corner && !w.anchor) {
         w.anchor = w.corner === 'tl' ? 'tr' : w.corner;
@@ -382,9 +386,8 @@ export function cleanConfig(
       }
       return w;
     })
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (w: any) => ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
+    .filter((w): w is PlotterExtensionWidget =>
+      ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
     );
 
   if (typeof settings.radars === 'undefined') {
@@ -469,9 +472,7 @@ export function cleanConfig(
   }
 
   // ensure legacy notes selections section is removed
-  delete (
-    settings.selections as typeof settings.selections & { notes?: unknown }
-  ).notes;
+  delete settings.selections.notes;
 
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {
