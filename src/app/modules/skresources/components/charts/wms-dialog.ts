@@ -13,6 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { ChartProvider } from 'src/app/types';
+import { chartTimeFromCapabilities } from 'src/app/lib/chart-time';
 import { SKInfoLayer } from '../../custom-resource-classes';
 import { LayerNode } from './maplib';
 import { NodeTreeSelect } from './node-tree-select';
@@ -187,6 +188,12 @@ export class WMSDialog {
       s.name = l.name;
       s.description = l.description;
       s.layers = [l.name];
+      // A layer with a time dimension becomes a time-varying chart, the same
+      // way it becomes a time-sliding InfoLayer above.
+      const time = chartTimeFromCapabilities(l.time);
+      if (time) {
+        s.time = time;
+      }
       return s;
     }
   }
