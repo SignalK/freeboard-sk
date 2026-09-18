@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { SKResourceService } from './resources.service';
 import { SKChart } from './resource-classes';
@@ -148,5 +148,77 @@ describe('sending a chart to the server', () => {
     expect('timeValue' in outbound).toBe(false);
     // The dimension itself is part of the resource and stays.
     expect(outbound.time).toEqual(chart.time);
+  });
+});
+
+describe('refreshing the chart list', () => {
+  it('keeps the instant each scrubbed chart is showing', async () => {
+    const svc = svcWithCache();
+    svc.chartSetTime('radar', T0);
+    // A refresh rebuilds every entry from the server listing (say, after
+    // another chart was toggled); the fresh entry knows nothing of the scrub.
+    const served: FBCharts = [
+      ['radar', radar(), true],
+      [
+        'static',
+        new SKChart({ name: 'S', url: 'http://s/{z}/{x}/{y}.png' }),
+        true
+      ]
+    ];
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      app: {
+        debug: () => undefined,
+        uiConfig: () => ({}),
+        MAP_ZOOM_EXTENT: {}
+      },
+      listFromServer: vi.fn(async () => served),
+      appendOSM: (l: FBCharts) => l,
+      sortByScaleDesc: (l: FBCharts) => l,
+      arrangeChartLayers: (l: FBCharts) => l,
+      setMapZoomRange: () => undefined
+    });
+
+    await svc.refreshCharts();
+
+    expect(cache(svc)[0][1].timeValue).toBe(T0);
+    expect(cache(svc)[1][1].timeValue).toBeNull();
+  });
+});
+
+describe('transformChart', () => {
+  const transform = (chart: Record<string, unknown>) => {
+    const svc = Object.create(SKResourceService.prototype) as SKResourceService;
+    (svc as unknown as { app: unknown }).app = {
+      hostDef: { url: 'http://sk.local:3000' },
+      config: { selections: { chartOpacity: {}, chartImageAdjustment: {} } }
+    };
+    return (
+      svc as unknown as {
+        transformChart: (c: unknown, id: string) => SKChart;
+      }
+    ).transformChart(chart, 'radar');
+  };
+
+  it('resolves a relative time.url against the server, like url', () => {
+    const chart = transform({
+      name: 'Radar',
+      type: 'tilelayer',
+      url: '/radar/{z}/{x}/{y}.png',
+      time: { url: '/radar/{z}/{x}/{y}.png?t={time}', current: true }
+    });
+    expect(chart.url).toBe('http://sk.local:3000/radar/{z}/{x}/{y}.png');
+    expect(chart.time?.url).toBe(
+      'http://sk.local:3000/radar/{z}/{x}/{y}.png?t={time}'
+    );
+  });
+
+  it('leaves an absolute time.url alone', () => {
+    const chart = transform({
+      name: 'Radar',
+      type: 'tilelayer',
+      url: 'https://r.test/{z}/{x}/{y}.png',
+      time: { url: 'https://r.test/{z}/{x}/{y}.png?t={time}', current: true }
+    });
+    expect(chart.time?.url).toBe('https://r.test/{z}/{x}/{y}.png?t={time}');
   });
 });

@@ -659,7 +659,7 @@ export class SKResourceService {
       let flist = chts.filter((chart: FBChart) => chart[2]);
       flist = this.sortByScaleDesc(flist);
       flist = this.arrangeChartLayers(flist);
-      this.chartCacheSignal.set(flist);
+      this.chartCacheSignal.set(this.withShownInstants(flist));
       // set map zoom extent (derived from the cache, so populate it first)
       this.setMapZoomRange();
     } catch (err) {
@@ -668,6 +668,32 @@ export class SKResourceService {
       this.chartCacheSignal.set(flist);
       this.setMapZoomRange();
     }
+  }
+
+  /**
+   * @description Carry the instant each time-varying chart is showing over
+   * to a freshly listed chart set. The selection is session state held only
+   * in the cache, and a refresh (toggling another chart, a chart-resource
+   * update) rebuilds the cache from the server -- without this, every
+   * scrubbed chart would silently snap back to live.
+   * @param charts Freshly built chart set
+   */
+  private withShownInstants(charts: FBCharts): FBCharts {
+    const shown = new Map<string, string>();
+    this.chartCacheSignal().forEach((c: FBChart) => {
+      if (typeof c[1]?.timeValue === 'string') {
+        shown.set(c[0], c[1].timeValue);
+      }
+    });
+    return charts.map((c: FBChart) => {
+      const instant = shown.get(c[0]);
+      if (instant === undefined || !c[1]?.time) {
+        return c;
+      }
+      const updated = new SKChart(c[1]);
+      updated.timeValue = instant;
+      return [c[0], updated, c[2]];
+    });
   }
 
   /**
@@ -691,6 +717,15 @@ export class SKResourceService {
       // ensure host is in url
       if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
         chart.url = this.app.hostDef.url + chart.url;
+      }
+      // … and in the time-varying chart's instant template, which a provider
+      // states relative to the server the same way.
+      const timeUrl = chart.time?.url;
+      if (
+        typeof timeUrl === 'string' &&
+        (timeUrl.startsWith('/') || !timeUrl.startsWith('http'))
+      ) {
+        chart.time = { ...chart.time, url: this.app.hostDef.url + timeUrl };
       }
     }
     // map local chart opacity (use a defined-check, not truthiness, so a fully
