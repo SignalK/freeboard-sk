@@ -144,6 +144,72 @@ same components: `resourcelist.css` positions each scrolling list at a **hardcod
 `top:` px** that must manually track header height — add a header row (e.g. a filter
 toggle line) and the list clips it unless you bump that offset too.
 
+### A WMS/WMTS time dimension is not a timeline you can use as-is
+
+**The trap.** `parseTimeDimension` (`maplib.worker.ts`) faithfully returns what
+GetCapabilities declares, and real services declare things a time control cannot
+take at face value. IEM's NEXRAD WMS (`mesonet.agron.iastate.edu`, layer
+`nexrad-n0r-wmst`) is a good specimen — a public radar archive you'll reach for
+while testing anything time-related:
+
+```xml
+<Dimension name="time" units="ISO8601" default="2006-06-23T03:10:00Z"
+           nearestValue="0">1995-01-01/2026-12-31/PT5M</Dimension>
+```
+
+Three separate surprises, each of which shipped a visible bug before it was caught
+by running the control against this service:
+
+- **The range end runs ahead of now.** `to` is a literal date at the end of the
+  year, not the newest frame. Treat "live" or "the latest frame" as `to` and the
+  control opens on a frame that doesn't exist (and a slider spans months of
+  nothing). Anchor "now"/"latest" at `Date.now()` *clamped into* the range, never
+  at `to`.
+- **The default is a fixed instant, not "latest".** Sending no `TIME` gets you the
+  `default` — here a day in **2006**. A WMS default is only "live" when it is
+  absent, symbolic (`current` / `present`) or the newest instant of the range;
+  otherwise the layer has no live frame at all and must always be addressed by an
+  explicit instant. The parser hands you the default as `current` — use it.
+- **`nearestValue="0"` means exact match only.** The service serves precisely the
+  instants on the `from + n·step` grid and answers anything else with an error or
+  a blank tile. A time taken from a slider, from `Date.now()`, or typed by the
+  user is almost never on that grid — snap every instant you *generate* to it
+  before it goes near the source (the pass-through rule in the Plotter Extensions
+  API applies to instants an *extension* asks for, not to ones the host makes up).
+
+**What to do instead.** Run any new time UI against a service with a decades-long
+range and a fixed default before calling it done — a provider that declares a tidy
+three-hour window hides all three. `src/app/lib/chart-time.ts` has the worked
+version (`chartTimeFromCapabilities`, `chartTimelinePosition(…, null)` and
+`chartTimelineInstant`); the Overlays (InfoLayer) time slider has the same
+exposure and has not been hardened.
+
+### Compacting a `mat-form-field` needs `::ng-deep` — component `styles` won't reach it
+
+**The trap.** A stock `mat-form-field` is ~56 px tall, which is too much for a
+narrow palette row. Targeting its internals (`.mat-mdc-text-field-wrapper`,
+`.mat-mdc-form-field-infix`, `.mat-mdc-select-value`) from the host component's
+`styles` compiles fine and does nothing: with emulated view encapsulation every
+rule is scoped by the host's attribute, and those elements belong to Material's
+own components, so they never carry it. The field just stays full size, with no
+warning.
+
+**What to do instead.** Scope the rule to your own wrapper and pierce it with
+`::ng-deep`, which is how the repo already does it (the Feature Browser's search
+field in `feature-browser-dialog.css`, the Time palette's speed select in
+`chart-time-dialog.ts`):
+
+```css
+._ap-speed ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 30px;
+  padding-top: 6px;
+  padding-bottom: 4px;
+}
+```
+
+Keep the leading own-class selector — a bare `::ng-deep .mat-mdc-…` is global and
+restyles every field in the app.
+
 ### Component surfaces styled from `--mat-sys-*` tokens go light in dark mode
 
 **The trap.** FSK's Material theme is built with `define-theme` +
