@@ -91,6 +91,23 @@ describe('chartSetTime', () => {
     expect(cache(svc)).toBe(before);
   });
 
+  it('ignores a tile chart whose dimension has no template to request an instant with', () => {
+    const svc = svcWithCache();
+    const untargetable = new SKChart({
+      name: 'No template',
+      url: 'http://n/{z}/{x}/{y}.png',
+      type: 'tilelayer',
+      time: { current: true, from: T0, to: T1 }
+    });
+    (
+      svc as unknown as { chartCacheSignal: { set: (v: FBCharts) => void } }
+    ).chartCacheSignal.set([['nt', untargetable, true]]);
+    svc.chartSetTime('nt', T0);
+    // Left live: the layer could not have shown the instant, and would have
+    // suspended its refresh while still drawing live tiles.
+    expect(cache(svc)[0][1].timeValue).toBeNull();
+  });
+
   it('does not rebuild the entry for the instant it already shows', () => {
     const svc = svcWithCache();
     svc.chartSetTime('radar', T0);
@@ -122,6 +139,26 @@ describe('chartIsTemporal', () => {
     expect(
       svc.chartIsTemporal(entry({ type: 'tilelayer', time: { current: true } }))
     ).toBe(false);
+  });
+
+  it('needs a time.url template on the URL-template sources, not on WMS/WMTS', () => {
+    const noTemplate = { current: true, from: T0, to: T1 };
+    const template = {
+      ...noTemplate,
+      url: 'http://r/{z}/{x}/{y}.png?t={time}'
+    };
+    for (const type of ['tilelayer', 'tileJSON', undefined]) {
+      expect(svc.chartIsTemporal(entry({ type, time: noTemplate }))).toBe(
+        false
+      );
+      expect(svc.chartIsTemporal(entry({ type, time: template }))).toBe(true);
+    }
+    expect(svc.chartIsTemporal(entry({ type: 'WMS', time: noTemplate }))).toBe(
+      true
+    );
+    expect(svc.chartIsTemporal(entry({ type: 'wmts', time: noTemplate }))).toBe(
+      true
+    );
   });
 
   it('is false for a vector chart, which never applies one', () => {
@@ -207,6 +244,40 @@ describe('transformChart', () => {
       time: { url: '/radar/{z}/{x}/{y}.png?t={time}', current: true }
     });
     expect(chart.url).toBe('http://sk.local:3000/radar/{z}/{x}/{y}.png');
+    expect(chart.time?.url).toBe(
+      'http://sk.local:3000/radar/{z}/{x}/{y}.png?t={time}'
+    );
+  });
+
+  it('resolves time.url for an untyped chart and joins on exactly one slash', () => {
+    const untyped = transform({
+      name: 'Radar',
+      url: 'http://sk.local:3000/radar/{z}/{x}/{y}.png',
+      time: { url: 'radar/{z}/{x}/{y}.png?t={time}', current: true }
+    });
+    expect(untyped.time?.url).toBe(
+      'http://sk.local:3000/radar/{z}/{x}/{y}.png?t={time}'
+    );
+    const svcSlash = Object.create(
+      SKResourceService.prototype
+    ) as SKResourceService;
+    (svcSlash as unknown as { app: unknown }).app = {
+      hostDef: { url: 'http://sk.local:3000/' },
+      config: { selections: { chartOpacity: {}, chartImageAdjustment: {} } }
+    };
+    const chart = (
+      svcSlash as unknown as {
+        transformChart: (c: unknown, id: string) => SKChart;
+      }
+    ).transformChart(
+      {
+        name: 'Radar',
+        type: 'tilelayer',
+        url: '/radar/{z}/{x}/{y}.png',
+        time: { url: '/radar/{z}/{x}/{y}.png?t={time}', current: true }
+      },
+      'radar'
+    );
     expect(chart.time?.url).toBe(
       'http://sk.local:3000/radar/{z}/{x}/{y}.png?t={time}'
     );

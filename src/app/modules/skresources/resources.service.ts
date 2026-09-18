@@ -718,15 +718,16 @@ export class SKResourceService {
       if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
         chart.url = this.app.hostDef.url + chart.url;
       }
-      // … and in the time-varying chart's instant template, which a provider
-      // states relative to the server the same way.
-      const timeUrl = chart.time?.url;
-      if (
-        typeof timeUrl === 'string' &&
-        (timeUrl.startsWith('/') || !timeUrl.startsWith('http'))
-      ) {
-        chart.time = { ...chart.time, url: this.app.hostDef.url + timeUrl };
-      }
+    }
+    // A time-varying chart's instant template is stated relative to the
+    // server the same way; an untyped chart still renders (as raster tiles),
+    // so it is resolved regardless of type.
+    const timeUrl = chart.time?.url;
+    if (typeof timeUrl === 'string' && !/^https?:\/\//i.test(timeUrl)) {
+      chart.time = {
+        ...chart.time,
+        url: `${this.app.hostDef.url.replace(/\/+$/, '')}/${timeUrl.replace(/^\/+/, '')}`
+      };
     }
     // map local chart opacity (use a defined-check, not truthiness, so a fully
     // transparent 0 is honored rather than silently dropped on refresh)
@@ -1022,7 +1023,7 @@ export class SKResourceService {
       return;
     }
     const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
-    if (!entry?.[1]?.time || entry[1].timeValue === time) {
+    if (!entry || !this.chartIsTemporal(entry) || entry[1].timeValue === time) {
       return;
     }
     this.chartCacheSignal.update((current: FBCharts) => {
@@ -1038,25 +1039,33 @@ export class SKResourceService {
   }
 
   /**
-   * @description True when a chart has a time dimension a time control can
-   * work with -- a `time` block with a usable timeline. Only the raster layers
-   * apply it (an untyped chart is drawn as raster tiles); a vector chart never
-   * does.
+   * @description True when a chart has a time dimension its layer can apply
+   * -- a `time` block with a usable timeline, on a raster layer (an untyped
+   * chart is drawn as raster tiles; a vector chart never applies one). The
+   * URL-template sources (tilelayer, tileJSON) also need the `time.url`
+   * template to request an instant with; WMS and WMTS take it through the
+   * request parameter / dimension instead. Without this a chart could be
+   * "scrubbed" while still showing live tiles, its auto-refresh suspended.
    * @param chart Chart entry
    */
   public chartIsTemporal(chart: FBChart): boolean {
-    if (!chart?.[1]?.time || chartTimeline(chart[1].time) === null) {
+    const dim = chart?.[1]?.time;
+    if (!dim || chartTimeline(dim) === null) {
       return false;
     }
     const type = chart[1].type?.toLowerCase();
     const format = chart[1].format?.toLowerCase();
+    const hasTemplate = typeof dim.url === 'string' && dim.url.length > 0;
     if (!type) {
-      return true;
+      return hasTemplate;
     }
     if (type === 'tilelayer') {
-      return !(format === 'pbf' || format === 'mvt');
+      return hasTemplate && !(format === 'pbf' || format === 'mvt');
     }
-    return ['tilejson', 'wms', 'wmts'].includes(type);
+    if (type === 'tilejson') {
+      return hasTemplate;
+    }
+    return type === 'wms' || type === 'wmts';
   }
 
   /**

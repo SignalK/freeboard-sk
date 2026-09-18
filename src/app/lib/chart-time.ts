@@ -29,19 +29,45 @@ export function chartTimeMs(time?: string | null): number {
 
 /**
  * ISO 8601 as the contract means it: a calendar date, optionally with a time
- * (to the minute or beyond, fractional seconds allowed) and a zone. `Date.parse`
- * alone would also take "September 18, 2026" and slash dates, which are not
- * ISO and would be passed straight to a tile source.
+ * (to the minute or beyond, fractional seconds allowed) that must then carry
+ * a zone -- an unzoned time would be read in the client's zone and mean a
+ * different frame on every boat. `Date.parse` alone would also take
+ * "September 18, 2026" and slash dates, which are not ISO and would be passed
+ * straight to a tile source.
  */
 const ISO_8601_INSTANT =
-  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+  /^(\d{4})-(\d{2})-(\d{2})(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2}))?$/;
 
-/** True when `time` is an ISO 8601 instant that parses to a real date. */
+/**
+ * True when `time` is an ISO 8601 instant naming a real date. `Date.parse`
+ * rolls an impossible date over (Feb 30 → Mar 1) rather than rejecting it, so
+ * the calendar date is checked against what was written -- in the instant's
+ * own zone, which for a date-only value is UTC.
+ */
 export function isChartTimeInstant(time: unknown): time is string {
+  if (typeof time !== 'string') {
+    return false;
+  }
+  const m = ISO_8601_INSTANT.exec(time);
+  if (!m) {
+    return false;
+  }
+  const ms = chartTimeMs(time);
+  if (!Number.isFinite(ms)) {
+    return false;
+  }
+  // Shift into the written zone so the UTC getters read the written date.
+  const zone = m[7] ?? 'Z';
+  const offsetMin =
+    zone === 'Z'
+      ? 0
+      : (zone[0] === '-' ? -1 : 1) *
+        (Number(zone.slice(1, 3)) * 60 + Number(zone.slice(-2)));
+  const local = new Date(ms + offsetMin * 60000);
   return (
-    typeof time === 'string' &&
-    ISO_8601_INSTANT.test(time) &&
-    Number.isFinite(chartTimeMs(time))
+    local.getUTCFullYear() === Number(m[1]) &&
+    local.getUTCMonth() + 1 === Number(m[2]) &&
+    local.getUTCDate() === Number(m[3])
   );
 }
 

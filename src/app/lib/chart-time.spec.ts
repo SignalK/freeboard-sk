@@ -51,8 +51,20 @@ describe('isChartTimeInstant', () => {
     expect(isChartTimeInstant(T0)).toBe(true);
     expect(isChartTimeInstant('2026-09-18T14:35:00Z')).toBe(true);
     expect(isChartTimeInstant('2026-09-18T14:35-04:00')).toBe(true);
+    expect(isChartTimeInstant('2026-09-18T23:30+0100')).toBe(true);
     expect(isChartTimeInstant('2026-09-18')).toBe(true);
+    expect(isChartTimeInstant('2028-02-29T00:00:00Z')).toBe(true); // leap day
     expect(isChartTimeInstant('noon')).toBe(false);
+    // A time without a zone would mean a different frame on every boat.
+    expect(isChartTimeInstant('2026-09-18T14:35')).toBe(false);
+    expect(isChartTimeInstant('2026-09-18T14:35:00.000')).toBe(false);
+    // Impossible dates that Date.parse would roll over.
+    expect(isChartTimeInstant('2026-02-29T00:00:00Z')).toBe(false);
+    expect(isChartTimeInstant('2024-02-30T00:00:00Z')).toBe(false);
+    expect(isChartTimeInstant('2026-04-31')).toBe(false);
+    // Still valid when the zone shifts the UTC date.
+    expect(isChartTimeInstant('2026-09-30T23:30-04:00')).toBe(true);
+    expect(isChartTimeInstant('2026-10-01T00:30+04:00')).toBe(true);
     // Date.parse takes these; the contract does not.
     expect(isChartTimeInstant('September 18, 2026')).toBe(false);
     expect(isChartTimeInstant('2026/09/18')).toBe(false);
