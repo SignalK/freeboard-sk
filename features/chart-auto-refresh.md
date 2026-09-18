@@ -4,6 +4,8 @@ title: Auto-refreshing Charts
 category: Charts
 ---
 
+![Fig 1. NOAA NEXRAD weather radar served by a storm-intelligence plugin, drawn over the Florida Keys](chart-auto-refresh-1.jpg)
+
 While most charts never change once drawn, certain types of charts like weather radar
 and satellite images may need a fresh image every few minutes. Freeboard now supports a
 chart that declares itself time-varying and will re-fetch its tiles on its own, at the
