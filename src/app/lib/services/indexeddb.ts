@@ -29,7 +29,9 @@ export class IndexedDB {
 
       if (typeof upgradeCallback === 'function') {
         request.onupgradeneeded = (e) => {
-          upgradeCallback(e, this.dbWrapper.db);
+          // onupgradeneeded fires before onsuccess, so the wrapper's db is
+          // not set yet; hand the callback the database being opened.
+          upgradeCallback(e, request.result);
         };
       }
     });
