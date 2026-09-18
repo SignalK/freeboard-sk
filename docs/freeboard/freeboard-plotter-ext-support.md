@@ -184,6 +184,16 @@ re-read `chart.list` for the full snapshot.
 (malformed params — e.g. a non-array `ids`, non-boolean `visible`, or out-of-range
 `opacity`), `charts.notSupported`.
 
+### `charts.time` — not yet implemented
+
+The contract defines a `charts.time` sub-capability (`chart.setTime`, a `time`
+object on `chart.list` entries, the `chart.time` event, and the chart-resource
+`time` block that makes a chart time-addressable). Freeboard does **not** yet
+advertise it. The native side — honouring a resource's `time` block and a time
+control in the chart list, on the same OpenLayers key-rotation path that
+`refreshInterval` uses — lands first, and the bus surface follows as a thin
+facade over it; both are tracked as issues on the repository.
+
 ### Key files
 
 | File | Role |

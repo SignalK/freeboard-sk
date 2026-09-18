@@ -120,6 +120,7 @@ extension id (the providing plugin's id is the recommended key):
 | `resources.filter`  | Host implements imperative resource display filters.                                                                              |
 | `routes`            | Host implements live route edit-buffer commands (`route.*`) and emits route lifecycle/mutation events.                            |
 | `charts`            | Host implements chart-layer management (`chart.*`) — enumerate the managed charts, toggle visibility/opacity/order — and emits `chart.*` change events. |
+| `charts.time`       | Host can retarget a time-varying chart to a chosen instant (`chart.setTime`), reports each chart's time dimension in `chart.list`, and emits `chart.time`. Requires `charts`. |
 | `nightMode`         | Host implements the `nightMode.*` methods (read/force the night-vision display state, follow the server's `environment.mode`) and emits `nightMode.changed`. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 
@@ -461,6 +462,7 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `chart.setVisibility`   | `{ ids: string[], visible: boolean }`          | `{}`                       |
 | `chart.setOpacity`      | `{ ids: string[], opacity: number }`           | `{}`                       |
 | `chart.setOrder`        | `{ order: string[] }`                          | `{}`                       |
+| `chart.setTime`         | `{ ids: string[], time: string \| null }`      | `{}`                       |
 | `map.getView`           | —                                              | `{ center, zoom, bounds }` |
 | `map.center`            | `{ position: [lon, lat], zoom? }`              | `{}`                       |
 | `map.fitBounds`         | `{ bounds: [minLon, minLat, maxLon, maxLat] }` | `{}`                       |
@@ -480,7 +482,7 @@ subscribed to its name via `events.subscribe` (so a context that never
 subscribes pays nothing). A host emits an event when the corresponding
 capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
-(`route.*`) with `routes`; chart events (`chart.*`) with `charts`;
+(`route.*`) with `routes`; chart events (`chart.*`) with `charts` (`chart.time` with `charts.time`);
 `map.view` with `map`; `nightMode.changed` with `nightMode`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
@@ -523,6 +525,11 @@ handled by the protocol layer, not subscribed to.
 - `chart.order` — `{ order }`: the chart display/stacking order changed; `order`
   is the new full ordered id list, topmost first (the same order `chart.list`
   returns).
+
+- `chart.time` — `{ id, time }`: a time-varying chart was retargeted to a
+  different instant (`time` is an ISO 8601 instant) or back to its live frame
+  (`time: null`). Emitted only by hosts with `charts.time`. See *Time-varying
+  charts*.
 
   The chart events are **origin-transparent** like the route events — a host
   emits them for *every* change, whether it came from an extension command or the
@@ -781,6 +788,112 @@ when a fuller snapshot is needed.
 (one of the supplied ids names no managed chart), `charts.badRequest` (invalid
 params — e.g. a missing `ids` array, a non-boolean `visible`, or an out-of-range
 `opacity`), `charts.notSupported` (host lacks `charts`).
+
+#### Time-varying charts (`charts.time`)
+
+Some charts are a picture of *now* — weather radar, satellite imagery, a
+nowcast — and the source behind them holds a run of frames, not one image. The
+`charts.time` sub-capability lets an extension **retarget one such chart to a
+chosen instant** (and back to live) without the provider having to publish one
+chart resource per frame. It is still a facade: the host applies the instant to
+a chart it already manages; how the provider serves frames is the provider's
+business (see the chart-resource convention below).
+
+**Discovery.** A host with `charts.time` adds a `time` object to the
+`chart.list` entry of every chart that is time-addressable, and omits it from
+charts that are not:
+
+```jsonc
+{
+  "id": "radar-noaa-composite",
+  "name": "NOAA NEXRAD composite",
+  "visible": true, "opacity": 0.65, "type": "raster",
+  "time": {
+    "value": null,                           // instant currently shown; null = live/current
+    "current": true,                         // the source serves a live/latest frame
+    "from": "2026-09-18T12:00:00Z",          // best-effort timeline metadata — optional
+    "to":   "2026-09-18T15:00:00Z",
+    "step": 300000                           // ms between frames, when regular …
+    // "values": ["2026-09-18T12:00:00Z", …] // … or the explicit instants offered
+  }
+}
+```
+
+`value` and `current` are always present in a `time` object. `from`, `to`,
+`step` and `values` describe the timeline **as the host last learned it** —
+from the chart resource or the source's own capabilities document — and are
+**best-effort metadata for a host or extension UI, not the contract's source of
+truth**: for a rolling product the newest frame moves on between reads. An
+extension whose own plugin serves the frames already knows the real timeline and
+need not consult them at all.
+
+**Retargeting — `chart.setTime({ ids, time })`.** Batch, like every other
+mutator. `time` is an ISO 8601 instant (`"2026-09-18T14:35:00Z"`) or `null`,
+meaning *the live/current frame*. The host **passes the instant through** to
+the source unchanged — it does not snap to `values` or clamp to `from`/`to`.
+Resolving a requested instant to an actual frame (nearest, floor, exact-only) is
+the provider's decision, so an extension animating a provider it does not own
+should pick from `values` when they are given.
+
+A host applying a new instant **should keep the previous frame on screen until
+the new one has loaded** rather than blanking the layer: playback steps every
+few hundred milliseconds, and at sea a frame may never arrive. A chart that
+also auto-refreshes (a `refreshInterval` on the resource) stops refreshing while
+`time` is non-null — a historical frame does not change — and resumes when it
+returns to `null`.
+
+Time selections are **session state**: a host starts every chart at its live
+frame on load and need not persist a selection.
+
+**Following changes.** The host emits `chart.time` `{ id, time }` for **every**
+retarget — an extension's `chart.setTime`, another extension's, or the user's
+own time control in the host's chart UI — with the same origin-transparency as
+the other chart events. A batch call emits one event per *changed* chart.
+
+**Errors:** `charts.notTemporal` (an id names a managed chart that has no time
+dimension), `charts.badRequest` (`time` is neither `null` nor a parseable ISO
+8601 instant, or `ids` is malformed), `charts.unknownId`, and
+`charts.notSupported` (host lacks `charts.time`).
+
+**Chart-resource convention — how a provider makes a chart time-addressable.**
+This is a property of the *chart resource* (the entry a chart-provider plugin
+serves under `/signalk/v2/api/resources/charts`), not of the extension API, so
+it benefits any host with a native time control even when no extension is
+involved. A provider adds a `time` block to the resource:
+
+```jsonc
+{
+  "identifier": "radar-noaa-composite",
+  "name": "NOAA NEXRAD composite",
+  "type": "tilelayer", "format": "png",
+  "url":  "/radar/noaa/composite/{z}/{x}/{y}.png",             // the live/current frame
+  "refreshInterval": 300000,                                    // optional, see the host docs
+  "time": {
+    "url": "/radar/noaa/composite/{z}/{x}/{y}.png?time={time}", // template for a specific instant
+    "current": true,
+    "from": "2026-09-18T12:00:00Z", "to": "2026-09-18T15:00:00Z", "step": 300000
+    // or "values": [ "…", "…" ]
+  }
+}
+```
+
+- For **`tilelayer` / `tileJSON`** sources `time.url` is required: a tile URL
+  template carrying a `{time}` placeholder, which the host replaces with the
+  requested instant (URL-encoded ISO 8601). The plain `url` is used for
+  `null`/live.
+- For **WMS and WMTS** sources `time.url` is omitted: the host applies the
+  instant through the standard `TIME` request parameter (WMS) or `Time`
+  dimension (WMTS), and drops it for `null` so the server's declared default
+  applies. A host **may** derive the `time` block itself from the service's
+  GetCapabilities when the resource omits it.
+- `current: true` says the source serves a live/latest frame, so `null` is a
+  valid target. A purely archival source sets `current: false`, and a host
+  then starts it at `to` (or the last of `values`).
+- `from`/`to`/`step`/`values` are optional and advisory, as above; a provider
+  whose timeline rolls should keep them roughly right or omit them.
+
+A host without `charts.time` ignores the `time` block entirely and draws the
+chart from `url` as before, so declaring it is safe on every host.
 
 ### Map view
 
