@@ -27,9 +27,22 @@ export function chartTimeMs(time?: string | null): number {
   return typeof time === 'string' && time.trim() ? Date.parse(time) : NaN;
 }
 
-/** True when `time` is a parseable ISO 8601 instant. */
+/**
+ * ISO 8601 as the contract means it: a calendar date, optionally with a time
+ * (to the minute or beyond, fractional seconds allowed) and a zone. `Date.parse`
+ * alone would also take "September 18, 2026" and slash dates, which are not
+ * ISO and would be passed straight to a tile source.
+ */
+const ISO_8601_INSTANT =
+  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+
+/** True when `time` is an ISO 8601 instant that parses to a real date. */
 export function isChartTimeInstant(time: unknown): time is string {
-  return typeof time === 'string' && Number.isFinite(chartTimeMs(time));
+  return (
+    typeof time === 'string' &&
+    ISO_8601_INSTANT.test(time) &&
+    Number.isFinite(chartTimeMs(time))
+  );
 }
 
 /**

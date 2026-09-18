@@ -49,8 +49,16 @@ describe('chartTimeTileUrl', () => {
 describe('isChartTimeInstant', () => {
   it('accepts an ISO 8601 instant and rejects anything else', () => {
     expect(isChartTimeInstant(T0)).toBe(true);
+    expect(isChartTimeInstant('2026-09-18T14:35:00Z')).toBe(true);
+    expect(isChartTimeInstant('2026-09-18T14:35-04:00')).toBe(true);
     expect(isChartTimeInstant('2026-09-18')).toBe(true);
     expect(isChartTimeInstant('noon')).toBe(false);
+    // Date.parse takes these; the contract does not.
+    expect(isChartTimeInstant('September 18, 2026')).toBe(false);
+    expect(isChartTimeInstant('2026/09/18')).toBe(false);
+    expect(isChartTimeInstant('09/18/2026')).toBe(false);
+    // Well-formed but not a real date.
+    expect(isChartTimeInstant('2026-13-45T00:00:00Z')).toBe(false);
     expect(isChartTimeInstant('')).toBe(false);
     expect(isChartTimeInstant(null)).toBe(false);
     expect(isChartTimeInstant(1758196800000)).toBe(false);
