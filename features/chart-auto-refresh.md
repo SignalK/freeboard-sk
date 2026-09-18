@@ -17,6 +17,11 @@ Charts that need a refresh, and how often it is needed, is declared by the plugi
 serves them. Chart providers that don't explicitly ask for a refresh behave exactly as
 before. The shortest refresh cadence honoured is **one minute**.
 
+A provider can go further and offer the **earlier** frames too, which turns the chart
+into one you can scrub back through and play as a loop — see **Time-varying Charts**.
+While such a chart is showing a past frame its auto-refresh pauses, and resumes when
+it returns to live.
+
 ## Offline and poor signal
 
 Being out of range is normal at sea, so a refresh that can't reach the server is not an
