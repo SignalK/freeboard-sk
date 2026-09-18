@@ -1,5 +1,9 @@
 import { expect, describe, it, vi, afterEach } from 'vitest';
 import {
+  applyChartTimeToTileSource,
+  applyChartTimeToWms,
+  applyChartTimeToWmts,
+  CHART_TIME_LIVE_KEY,
   extentFromBounds,
   fetchArrayBufferWithRetry,
   isChartInView,
@@ -19,6 +23,9 @@ import TileLayer from 'ol/layer/Tile';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
 import XYZ from 'ol/source/XYZ';
+import TileWMS from 'ol/source/TileWMS';
+import WMTS from 'ol/source/WMTS';
+import WMTSTileGrid from 'ol/tilegrid/WMTS';
 import MVT from 'ol/format/MVT';
 import TileState from 'ol/TileState';
 
@@ -723,5 +730,123 @@ describe('startChartTileRefresh', () => {
     expect(src.getKey()).toBe(initialKey); // has not fired before the cap
     vi.advanceTimersByTime(1);
     expect(src.getKey()).not.toBe(initialKey); // fires at the cap
+  });
+});
+
+describe('applying a chart time (temporal charts)', () => {
+  const T0 = '2026-09-18T12:00:00.000Z';
+  const T1 = '2026-09-18T12:05:00.000Z';
+  // A tile the source would request, so the URL actually built is asserted —
+  // not just that some setter ran.
+  const tileUrl = (src: XYZ) =>
+    src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection());
+
+  describe('URL-template source (tilelayer / tileJSON)', () => {
+    const LIVE = 'https://r.test/{z}/{x}/{y}.png';
+    const TEMPLATE = 'https://r.test/{z}/{x}/{y}.png?time={time}';
+
+    it('requests the instant through the time.url template', () => {
+      const src = new XYZ({ url: LIVE });
+      applyChartTimeToTileSource(src, T0, TEMPLATE, LIVE);
+      expect(tileUrl(src)).toBe(
+        'https://r.test/3/1/2.png?time=2026-09-18T12%3A00%3A00.000Z'
+      );
+    });
+
+    it('rotates the source key per instant, so the previous frame is kept as stale', () => {
+      const src = new XYZ({ url: LIVE });
+      const liveKey = src.getKey();
+      applyChartTimeToTileSource(src, T0, TEMPLATE, LIVE);
+      const k0 = src.getKey();
+      applyChartTimeToTileSource(src, T1, TEMPLATE, LIVE);
+      expect(k0).not.toBe(liveKey);
+      expect(src.getKey()).not.toBe(k0);
+    });
+
+    it('returns to the live URL for null', () => {
+      const src = new XYZ({ url: LIVE });
+      const liveKey = src.getKey();
+      applyChartTimeToTileSource(src, T0, TEMPLATE, LIVE);
+      applyChartTimeToTileSource(src, null, TEMPLATE, LIVE);
+      expect(tileUrl(src)).toBe('https://r.test/3/1/2.png');
+      expect(src.getKey()).toBe(liveKey);
+    });
+
+    it('returns to a live tile-URL function (tileJSON) for null', () => {
+      const src = new XYZ({ url: LIVE });
+      const live = src.getTileUrlFunction();
+      applyChartTimeToTileSource(src, T0, TEMPLATE, live);
+      applyChartTimeToTileSource(src, null, TEMPLATE, live);
+      expect(src.getTileUrlFunction()).toBe(live);
+      expect(src.getKey()).toBe(CHART_TIME_LIVE_KEY);
+    });
+
+    it('leaves the source alone when there is no template for an instant', () => {
+      const src = new XYZ({ url: LIVE });
+      const key = src.getKey();
+      applyChartTimeToTileSource(src, T0, undefined, LIVE);
+      expect(src.getKey()).toBe(key);
+      expect(tileUrl(src)).toBe('https://r.test/3/1/2.png');
+    });
+  });
+
+  describe('WMS', () => {
+    const source = () =>
+      new TileWMS({ url: 'https://wms.test/', params: { LAYERS: 'radar' } });
+
+    it('sends the instant as TIME and rotates the key', () => {
+      const src = source();
+      const liveKey = src.getKey();
+      applyChartTimeToWms(src, T0);
+      expect(src.getParams().TIME).toBe(T0);
+      expect(src.getKey()).not.toBe(liveKey);
+    });
+
+    it('drops TIME for null so the server default applies', () => {
+      const src = source();
+      applyChartTimeToWms(src, T0);
+      applyChartTimeToWms(src, null);
+      expect(src.getParams().TIME).toBeUndefined();
+      expect(src.getParams().LAYERS).toBe('radar');
+    });
+  });
+
+  describe('WMTS', () => {
+    const source = (dimensions: Record<string, unknown>) =>
+      new WMTS({
+        urls: ['https://wmts.test/{Time}/{TileMatrix}/{TileRow}/{TileCol}.png'],
+        layer: 'radar',
+        style: 'default',
+        matrixSet: 'EPSG:3857',
+        format: 'image/png',
+        requestEncoding: 'REST',
+        tileGrid: new WMTSTileGrid({
+          origin: [-20037508.34, 20037508.34],
+          resolutions: [156543.03, 78271.52],
+          matrixIds: ['0', '1']
+        }),
+        dimensions
+      });
+
+    it('sets the Time dimension, matching the name the capabilities used', () => {
+      const src = source({ TIME: 'default' });
+      const liveKey = src.getKey();
+      applyChartTimeToWmts(src, T0, { TIME: 'default' });
+      expect(src.getDimensions()).toEqual({ TIME: T0 });
+      expect(src.getKey()).not.toBe(liveKey);
+    });
+
+    it('restores the declared default for null rather than removing it', () => {
+      const src = source({ Time: 'default' });
+      applyChartTimeToWmts(src, T0, { Time: 'default' });
+      applyChartTimeToWmts(src, null, { Time: 'default' });
+      expect(src.getDimensions()).toEqual({ Time: 'default' });
+    });
+
+    it('uses Time when the capabilities declared no dimension', () => {
+      const src = source({});
+      applyChartTimeToWmts(src, T0, {});
+      expect(src.getDimensions()).toEqual({ Time: T0 });
+    });
   });
 });

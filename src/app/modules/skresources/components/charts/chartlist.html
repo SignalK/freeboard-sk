@@ -169,6 +169,26 @@
                 >
                 }
               </div>
+              } @let timeLabel = timeLabelFor(r); @if(timeLabel) {
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  font-size: 11px;
+                  opacity: 0.75;
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+                matTooltip="Showing a past frame, not live"
+                matTooltipPosition="right"
+              >
+                <mat-icon style="font-size: 14px; width: 14px; height: 14px"
+                  >history</mat-icon
+                >
+                <span>{{timeLabel}}</span>
+              </div>
               }
             </div>
             <div style="display: flex; align-items: center">
@@ -254,6 +274,18 @@
                 matTooltipPosition="above"
               >
                 <mat-icon>vertical_align_bottom</mat-icon>
+              </button>
+            </div>
+            } @if(isTemporal(r)) {
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                [disabled]="!r[2]"
+                (click)="itemTime(r)"
+                matTooltip="Time"
+                matTooltipPosition="above"
+              >
+                <mat-icon>schedule</mat-icon>
               </button>
             </div>
             } @if(r[1].proxy) {

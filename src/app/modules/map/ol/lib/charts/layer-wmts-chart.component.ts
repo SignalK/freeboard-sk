@@ -17,6 +17,7 @@ import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import {
+  applyChartTimeToWmts,
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
@@ -42,6 +43,15 @@ export class WmtsChartLayerComponent implements OnDestroy {
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
+  // Dimension values the capabilities declared as defaults: what the live
+  // frame is drawn with, and what a selected instant is restored to.
+  private defaultDimensions: Record<string, unknown> = {};
+  // Instant the source is showing; it is built showing the live frame.
+  private appliedTime: string | null = null;
+  // Bumped per parseChart call: the capabilities fetch is awaited, so an
+  // earlier call can resume after a later one and would apply the chart it
+  // captured (an older instant, opacity …) over the current one.
+  private parseGeneration = 0;
   private destroyed = false;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
@@ -73,6 +83,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
     if (!map) {
       return;
     }
+    const generation = ++this.parseGeneration;
 
     if (!this.capabilities) {
       try {
@@ -84,8 +95,9 @@ export class WmtsChartLayerComponent implements OnDestroy {
       }
     }
     // The capabilities fetch is async: if the component was destroyed while it
-    // was in flight, don't resurrect the layer or start an orphaned timer.
-    if (this.destroyed) {
+    // was in flight, don't resurrect the layer or start an orphaned timer; if
+    // a newer parseChart started meanwhile, its chart supersedes this one.
+    if (this.destroyed || generation !== this.parseGeneration) {
       return;
     }
     const options = optionsFromCapabilities(this.capabilities, {
@@ -100,6 +112,9 @@ export class WmtsChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
 
+      // Copied: the source takes the dimensions object by reference and
+      // mutates it on every update.
+      this.defaultDimensions = { ...(options.dimensions ?? {}) };
       this.layer = new TileLayer({
         source: new WMTS(options),
         preload: 0,
@@ -131,9 +146,23 @@ export class WmtsChartLayerComponent implements OnDestroy {
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
-    // Auto-refresh time-varying charts (radar/satellite) non-destructively.
     if (this.layer) {
-      const iv = chart[1].refreshInterval;
+      // Show the selected instant of a time-varying chart (null = live). Any
+      // change applies -- including back to live for a chart that has just
+      // lost its time dimension, so no stale dimension lingers on the source.
+      const time = chart[1].timeValue ?? null;
+      if (time !== this.appliedTime) {
+        applyChartTimeToWmts(
+          this.layer.getSource() as WMTS,
+          time,
+          this.defaultDimensions
+        );
+        this.appliedTime = time;
+      }
+      // Auto-refresh time-varying charts (radar/satellite) non-destructively.
+      // A historical frame does not change, so the timer is suspended while an
+      // instant is selected and resumes on return to live.
+      const iv = time === null ? chart[1].refreshInterval : undefined;
       if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
         this.stopRefresh?.();
         this.refreshIntervalMs = iv;

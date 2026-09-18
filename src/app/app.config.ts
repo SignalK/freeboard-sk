@@ -55,6 +55,9 @@ export function cleanConfig(
   if (typeof settings.imageAdjustPalettePos === 'undefined') {
     settings.imageAdjustPalettePos = null;
   }
+  if (typeof settings.timePalettePos === 'undefined') {
+    settings.timePalettePos = null;
+  }
 
   if (typeof settings.display === 'undefined') {
     settings.display = {
@@ -414,6 +417,7 @@ export function cleanConfig(
       chartOpacity: {},
       chartImageAdjustment: {},
       chartDisplayMinZoom: {},
+      chartTimeLoop: {},
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,
@@ -447,6 +451,9 @@ export function cleanConfig(
   }
   if (typeof settings.selections.chartDisplayMinZoom === 'undefined') {
     settings.selections.chartDisplayMinZoom = {};
+  }
+  if (typeof settings.selections.chartTimeLoop === 'undefined') {
+    settings.selections.chartTimeLoop = {};
   }
 
   if (typeof settings.selections.tracks === 'undefined') {
@@ -510,6 +517,7 @@ export function defaultConfig(): IAppConfig {
       autoNightMode: false
     },
     imageAdjustPalettePos: null,
+    timePalettePos: null,
     display: {
       fab: 'wpt', // default FAB button
       disableWakelock: false,
@@ -673,6 +681,7 @@ export function defaultConfig(): IAppConfig {
       chartOpacity: {},
       chartImageAdjustment: {},
       chartDisplayMinZoom: {},
+      chartTimeLoop: {},
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { SKChart } from './resource-classes';
 
 /**
@@ -33,6 +33,64 @@ describe('SKChart', () => {
     original.displayMinZoom = 10;
 
     expect(new SKChart(original).displayMinZoom).toBe(10);
+  });
+
+  it('carries a time dimension from the resource and when cloning', () => {
+    // Dropped here, a temporal chart loses its Time control on the first
+    // re-render (opacity, min zoom …) — the constructor is a whitelist.
+    const time = {
+      url: 'http://x/{z}/{x}/{y}.png?t={time}',
+      current: true,
+      from: '2026-09-18T12:00:00Z',
+      to: '2026-09-18T15:00:00Z',
+      step: 300000
+    };
+    const original = new SKChart({
+      name: 'Radar',
+      url: 'http://x/{z}/{x}/{y}.png',
+      time
+    });
+    expect(original.time).toEqual(time);
+    expect(new SKChart(original).time).toEqual(time);
+  });
+
+  it('starts live and keeps a selected instant when cloning', () => {
+    const original = new SKChart({
+      name: 'Radar',
+      url: 'http://x/{z}/{x}/{y}.png',
+      time: {
+        current: true,
+        from: '2026-09-18T12:00:00Z',
+        to: '2026-09-18T15:00:00Z'
+      }
+    });
+    expect(original.timeValue).toBeNull();
+    original.timeValue = '2026-09-18T13:00:00Z';
+    expect(new SKChart(original).timeValue).toBe('2026-09-18T13:00:00Z');
+    // Back to live is a value too, not an absence.
+    original.timeValue = null;
+    expect(new SKChart(original).timeValue).toBeNull();
+  });
+
+  it('starts an archival source (current: false) at its newest frame', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-18T13:59:00Z'));
+    try {
+      const chart = new SKChart({
+        name: 'Archive',
+        url: 'http://x/{z}/{x}/{y}.png',
+        time: {
+          current: false,
+          from: '2026-09-18T12:00:00Z',
+          to: '2026-09-18T15:00:00Z',
+          step: 3600000
+        }
+      });
+      // The frame at (or before) now, not the declared end still to come.
+      expect(chart.timeValue).toBe('2026-09-18T13:00:00.000Z');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps the source when cloning an instance', () => {
