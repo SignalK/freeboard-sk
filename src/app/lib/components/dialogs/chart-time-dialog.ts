@@ -165,37 +165,36 @@ export function chartTimeLoopFromOffsets(
   latest: number,
   offsets: ChartTimeLoopOffsets
 ): { min: number; max: number } {
-  const at = (before: number) => {
-    const raw = chartTimelinePosition(
+  // Through the instant and back, so a range position lands on the grid.
+  const at = (before: number) =>
+    chartTimelinePosition(
       timeline,
-      new Date(latest - before).toISOString()
-    );
-    // Through the instant and back, so a range position lands on the grid.
-    const snapped = chartTimelinePosition(
-      timeline,
-      chartTimelineInstant(timeline, raw)
-    );
-    return Math.min(window.max, Math.max(window.min, snapped));
-  };
-  const min = at(Math.max(0, offsets.start));
-  const max = at(Math.max(0, offsets.end));
-  if (min < max) {
-    return { min, max };
-  }
-  // The remembered range lies clear of this window (both ends clamped onto
-  // the same edge): fall back to the window's own last hour.
-  const end = chartTimeMs(chartTimelineInstant(timeline, window.max));
-  const start = chartTimelinePosition(
-    timeline,
-    chartTimelineInstant(
-      timeline,
-      chartTimelinePosition(
+      chartTimelineInstant(
         timeline,
-        new Date(end - DEFAULT_CHART_TIME_LOOP.start).toISOString()
+        chartTimelinePosition(
+          timeline,
+          new Date(latest - Math.max(0, before)).toISOString()
+        )
       )
-    )
-  );
-  return { min: Math.max(window.min, start), max: window.max };
+    );
+  const start = at(offsets.start);
+  const end = at(offsets.end);
+  // Judged before clamping: a range that lies clear of this window (the
+  // palette opened deep in an archive) falls back to the window's own last
+  // hour, while a range that merely overlaps an edge is clamped -- and a
+  // single-frame loop, which the handles allow, is kept as one.
+  if (Math.max(start, end) < window.min || Math.min(start, end) > window.max) {
+    return chartTimeLoopFromOffsets(
+      timeline,
+      window,
+      chartTimeMs(chartTimelineInstant(timeline, window.max)),
+      DEFAULT_CHART_TIME_LOOP
+    );
+  }
+  const clamp = (p: number) => Math.min(window.max, Math.max(window.min, p));
+  const min = clamp(Math.min(start, end));
+  const max = clamp(Math.max(start, end));
+  return { min, max };
 }
 
 /** Offsets before `latest` for loop bounds on the timeline. */

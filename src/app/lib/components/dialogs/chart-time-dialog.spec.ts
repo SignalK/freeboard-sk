@@ -193,6 +193,13 @@ describe('loop offsets (remembered between sessions)', () => {
     ).toEqual({ min: deep.max - H, max: deep.max });
   });
 
+  it('keeps a single-frame loop as one', () => {
+    const one = { start: H, end: H };
+    const loop = chartTimeLoopFromOffsets(archive, window, end, one);
+    expect(loop).toEqual({ min: end - H, max: end - H });
+    expect(chartTimeLoopToOffsets(archive, end, loop)).toEqual(one);
+  });
+
   it('picks the nearest explicit frames on a values timeline', () => {
     const frames = chartTimeline({
       current: true,
