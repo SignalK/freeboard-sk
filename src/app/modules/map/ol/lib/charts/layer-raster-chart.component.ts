@@ -144,14 +144,16 @@ export class RasterChartLayerComponent implements OnDestroy {
     // pmtiles (WebGL) layers are static local files, so neither the time
     // dimension nor auto-refresh applies to them.
     if (this.layer instanceof TileLayer) {
-      // Show the selected instant of a time-varying chart (null = live).
+      // Show the selected instant of a time-varying chart (null = live). Any
+      // change applies -- including back to live for a chart that has just
+      // lost its time dimension, so no stale instant lingers on the source.
       const time = chart[1].timeValue ?? null;
       const source = this.layer.getSource();
-      if (source instanceof XYZ && chart[1].time && time !== this.appliedTime) {
+      if (source instanceof XYZ && time !== this.appliedTime) {
         applyChartTimeToTileSource(
           source,
           time,
-          chart[1].time.url,
+          chart[1].time?.url,
           chart[1].url
         );
         this.appliedTime = time;

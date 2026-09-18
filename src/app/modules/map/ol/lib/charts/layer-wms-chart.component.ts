@@ -150,9 +150,11 @@ export class WmsChartLayerComponent implements OnDestroy {
       }
     }
     if (this.layer) {
-      // Show the selected instant of a time-varying chart (null = live).
+      // Show the selected instant of a time-varying chart (null = live). Any
+      // change applies -- including back to live for a chart that has just
+      // lost its time dimension, so no stale TIME lingers on the source.
       const time = chart[1].timeValue ?? null;
-      if (chart[1].time && time !== this.appliedTime) {
+      if (time !== this.appliedTime) {
         applyChartTimeToWms(this.layer.getSource() as TileWMS, time);
         this.appliedTime = time;
       }

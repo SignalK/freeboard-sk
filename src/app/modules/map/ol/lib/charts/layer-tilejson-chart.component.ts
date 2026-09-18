@@ -88,19 +88,18 @@ export class TileJsonChartLayerComponent implements OnDestroy {
         url: chart[1].url,
         crossOrigin: 'anonymous'
       });
-      if (chart[1].time) {
-        // The document arrives asynchronously; the time dimension can only be
-        // applied over the tile-URL function it yields.
-        const onLoaded = () => {
-          if (source.getState() !== 'ready') {
-            return;
-          }
-          source.un('change', onLoaded);
-          this.liveTileUrlFunction = source.getTileUrlFunction();
-          this.applyTime(this.chart());
-        };
-        source.on('change', onLoaded);
-      }
+      // The document arrives asynchronously; an instant can only be applied
+      // over the tile-URL function it yields. Captured for every chart, as
+      // a dimension can arrive later through a chart-resource update.
+      const onLoaded = () => {
+        if (source.getState() !== 'ready') {
+          return;
+        }
+        source.un('change', onLoaded);
+        this.liveTileUrlFunction = source.getTileUrlFunction();
+        this.applyTime(this.chart());
+      };
+      source.on('change', onLoaded);
       this.layer = new TileLayer({
         source,
         preload: 0,
@@ -157,21 +156,19 @@ export class TileJsonChartLayerComponent implements OnDestroy {
    */
   private applyTime(chart: FBChart) {
     const source = this.layer?.getSource();
-    if (
-      !chart?.[1]?.time ||
-      !(source instanceof TileJSON) ||
-      !this.liveTileUrlFunction
-    ) {
+    if (!(source instanceof TileJSON) || !this.liveTileUrlFunction) {
       return;
     }
-    const time = chart[1].timeValue ?? null;
+    // Any change applies -- including back to live for a chart that has just
+    // lost its time dimension, so no stale instant lingers on the source.
+    const time = chart?.[1]?.timeValue ?? null;
     if (time === this.appliedTime) {
       return;
     }
     applyChartTimeToTileSource(
       source,
       time,
-      chart[1].time.url,
+      chart?.[1]?.time?.url,
       this.liveTileUrlFunction
     );
     this.appliedTime = time;

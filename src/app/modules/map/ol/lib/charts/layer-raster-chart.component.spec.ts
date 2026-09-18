@@ -99,6 +99,18 @@ describe('RasterChartLayerComponent — time-varying chart', () => {
     expect(src.getKey()).not.toBe(key);
   });
 
+  it('returns to live when the chart loses its time dimension while scrubbed', () => {
+    // Re-selecting a non-temporal layer in Chart Properties drops `time`; the
+    // refreshed chart arrives live with no dimension, and the source must not
+    // keep requesting the old instant.
+    const fixture = render(radar(T0));
+    const plain = radar(null);
+    delete plain[1].time;
+    fixture.componentRef.setInput('chart', plain);
+    fixture.detectChanges();
+    expect(tileUrl(source())).toBe('https://r.test/3/1/2.png');
+  });
+
   it('keeps the same layer across the swap (no blank while the frame loads)', () => {
     const fixture = render(radar(null));
     fixture.componentRef.setInput('chart', radar(T0));
