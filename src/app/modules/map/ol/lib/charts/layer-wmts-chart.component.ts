@@ -48,6 +48,10 @@ export class WmtsChartLayerComponent implements OnDestroy {
   private defaultDimensions: Record<string, unknown> = {};
   // Instant the source is showing; it is built showing the live frame.
   private appliedTime: string | null = null;
+  // Bumped per parseChart call: the capabilities fetch is awaited, so an
+  // earlier call can resume after a later one and would apply the chart it
+  // captured (an older instant, opacity …) over the current one.
+  private parseGeneration = 0;
   private destroyed = false;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
@@ -79,6 +83,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
     if (!map) {
       return;
     }
+    const generation = ++this.parseGeneration;
 
     if (!this.capabilities) {
       try {
@@ -90,8 +95,9 @@ export class WmtsChartLayerComponent implements OnDestroy {
       }
     }
     // The capabilities fetch is async: if the component was destroyed while it
-    // was in flight, don't resurrect the layer or start an orphaned timer.
-    if (this.destroyed) {
+    // was in flight, don't resurrect the layer or start an orphaned timer; if
+    // a newer parseChart started meanwhile, its chart supersedes this one.
+    if (this.destroyed || generation !== this.parseGeneration) {
       return;
     }
     const options = optionsFromCapabilities(this.capabilities, {
