@@ -347,6 +347,113 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
 });
 
 /**
+ * The Time control on a chart-list row: offered only for time-varying charts,
+ * it hands the chart to the service's palette; while the cached chart shows a
+ * past frame the row says so, since a ticked chart drawing old weather is
+ * otherwise indistinguishable from a live one.
+ */
+describe('ChartListComponent — Time control on temporal rows', () => {
+  const T0 = '2026-09-18T12:00:00.000Z';
+  let openChartTime: ReturnType<typeof vi.fn>;
+  let cached: WritableSignal<FBCharts>;
+
+  const temporal = (id: string, timeValue: string | null): FBChart =>
+    [
+      id,
+      {
+        name: id.toUpperCase(),
+        type: 'tilelayer',
+        time: { current: true, from: T0, to: T0 },
+        timeValue
+      } as never,
+      true
+    ] as FBChart;
+
+  const makeFixture = () => {
+    const fixture = TestBed.createComponent(ChartListComponent);
+    const comp = fixture.componentInstance;
+    fullListOf(comp).push(temporal('radar', null), chart('plain', 'PLAIN'));
+    doFilterOf(comp);
+    fixture.detectChanges();
+    return { fixture, comp };
+  };
+
+  const timeButtons = (fixture: { nativeElement: unknown }) =>
+    Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button')
+    ).filter((b) => b.textContent?.includes('schedule'));
+
+  beforeEach(() => {
+    openChartTime = vi.fn();
+    cached = signal<FBCharts>([temporal('radar', null)]);
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SKResourceService,
+          useValue: {
+            arrangeChartLayers: (list: FBCharts) => [...list],
+            setChartsOrder: vi.fn(),
+            charts: cached,
+            chartIsTemporal: (c: FBChart) =>
+              !!(c[1] as unknown as { time?: unknown })?.time,
+            openChartTime
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: {
+            mapExtent: signal(null),
+            sIsFetching: signal(true),
+            featureFlags: signal({ resourceGroups: false }),
+            debug: vi.fn(),
+            hostDef: { name: 'localhost' },
+            data: { chartBounds: { show: false, charts: [] } }
+          }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+  });
+
+  it('offers the Time action on the temporal row only, opening the palette', () => {
+    const { fixture } = makeFixture();
+    const buttons = timeButtons(fixture);
+    expect(buttons).toHaveLength(1);
+
+    buttons[0].click();
+    expect(openChartTime).toHaveBeenCalledTimes(1);
+    expect(openChartTime.mock.calls[0][0][0]).toBe('radar');
+  });
+
+  it('marks the row while the cached chart shows a past frame', () => {
+    const { fixture } = makeFixture();
+    const host = fixture.nativeElement as HTMLElement;
+    const marker = () =>
+      Array.from(host.querySelectorAll('mat-icon')).find(
+        (i) => i.textContent?.trim() === 'history'
+      );
+    expect(marker()).toBeUndefined();
+
+    cached.set([temporal('radar', T0)]);
+    fixture.detectChanges();
+    const shown = marker();
+    expect(shown).toBeDefined();
+    expect(shown?.parentElement?.textContent).toContain('at ');
+
+    cached.set([temporal('radar', null)]);
+    fixture.detectChanges();
+    expect(marker()).toBeUndefined();
+    expect(timeButtons(fixture)).toHaveLength(1);
+  });
+});
+
+/**
  * Two constructor effects — one on `selectedCharts`, one on `app.mapExtent()` —
  * both end in `doFilter()`, which writes the `filteredList` signal and then reads
  * it back (via `alignSelections()`). Tracked, that read made each effect a

@@ -777,8 +777,8 @@ export class SKResourceService {
    * Called on a confirmed delete rather than when a chart is missing from a
    * listing: a provider that is down this session takes its charts out of the
    * list without them having been deleted, and the settings are the user's
-   * work -- an opacity, an image adjustment, a minimum zoom tuned against a
-   * chart set. They cost a few config keys if a chart is deleted elsewhere,
+   * work -- an opacity, an image adjustment, a minimum zoom, a loop range
+   * tuned against a chart set. They cost a few config keys if a chart is deleted elsewhere,
    * and cannot be recovered if dropped while the chart is only away.
    * @param id Chart identifier
    */
@@ -787,7 +787,8 @@ export class SKResourceService {
     const held = [
       selections.chartOpacity,
       selections.chartImageAdjustment,
-      selections.chartDisplayMinZoom
+      selections.chartDisplayMinZoom,
+      selections.chartTimeLoop
     ].filter((settings) => id in settings);
     if (held.length === 0) {
       return;

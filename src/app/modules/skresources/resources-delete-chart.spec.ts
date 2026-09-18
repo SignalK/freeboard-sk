@@ -15,7 +15,11 @@ function svcWithCharts(confirm: boolean, deleteResult: Promise<void>) {
   const selections = {
     chartOpacity: { c1: 0.5, c2: 0.8 },
     chartImageAdjustment: { c1: { brightness: 1.2, contrast: 1 } },
-    chartDisplayMinZoom: { c1: 14, c2: 9 }
+    chartDisplayMinZoom: { c1: 14, c2: 9 },
+    chartTimeLoop: {
+      c1: { start: 7200000, end: 0 },
+      c2: { start: 3600000, end: 0 }
+    }
   };
   (svc as unknown as { app: unknown }).app = {
     config: { selections },
@@ -51,6 +55,7 @@ describe('deleteChart', () => {
     expect(selections.chartOpacity).not.toHaveProperty('c1');
     expect(selections.chartImageAdjustment).not.toHaveProperty('c1');
     expect(selections.chartDisplayMinZoom).not.toHaveProperty('c1');
+    expect(selections.chartTimeLoop).not.toHaveProperty('c1');
     expect(saveConfig).toHaveBeenCalledOnce();
   });
 
