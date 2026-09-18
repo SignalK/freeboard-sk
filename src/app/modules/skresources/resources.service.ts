@@ -1039,6 +1039,20 @@ export class SKResourceService {
   }
 
   /**
+   * @description Show a set of time-varying charts at an instant, or live
+   * (`null`) -- the batch form of `chartSetTime`, for the host API. Charts
+   * without a time dimension are left untouched.
+   * @param ids Chart identifiers
+   * @param time ISO 8601 instant, or null for the live frame
+   */
+  public setChartsTime(ids: string[], time: string | null) {
+    if (!Array.isArray(ids)) {
+      return;
+    }
+    ids.forEach((id: string) => this.chartSetTime(id, time));
+  }
+
+  /**
    * @description True when a chart has a time dimension its layer can apply
    * -- a `time` block with a usable timeline, on a raster layer (an untyped
    * chart is drawn as raster tiles; a vector chart never applies one). The

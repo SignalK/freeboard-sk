@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createChartMethods, toChartLayer } from './chart-methods';
+import { createChartMethods, toChartLayer, toChartTime } from './chart-methods';
 import { FBChart, FBCharts } from 'src/app/types';
 
 /** Build an FBChart tuple from a partial SKChart-shaped object. */
@@ -16,7 +16,10 @@ function setup(available: FBCharts = []) {
     listAvailableOrdered: vi.fn(async () => available),
     setVisibility: vi.fn(),
     setOpacity: vi.fn(),
-    setOrder: vi.fn()
+    setOrder: vi.fn(),
+    // A chart is temporal when its (stub) SKChart carries a `time` block.
+    isTemporal: vi.fn((c: FBChart) => !!(c?.[1] as { time?: unknown })?.time),
+    setTime: vi.fn()
   };
   const methods = createChartMethods(deps);
   // The bus dispatches handlers as (params, ctx); ctx is unused here.
@@ -184,5 +187,111 @@ describe('chart.setOrder', () => {
     await expect(
       call('chart.setOrder', { order: ['a', 'zz'] })
     ).rejects.toHaveProperty('reason', 'charts.unknownId');
+  });
+});
+
+describe('chart.list — time (charts.time)', () => {
+  const T0 = '2026-09-18T12:00:00.000Z';
+  const T1 = '2026-09-18T15:00:00.000Z';
+  const radar = chart('radar', true, {
+    name: 'Radar',
+    time: { url: 'x?t={time}', current: true, from: T0, to: T1, step: 300000 },
+    timeValue: null
+  });
+
+  it('carries a time object only for temporal charts', async () => {
+    const { call } = setup([radar, chart('static', true, { name: 'S' })]);
+    const { charts } = (await call('chart.list')) as {
+      charts: Array<{ id: string; time?: unknown }>;
+    };
+    expect(charts[0].time).toEqual({
+      value: null,
+      current: true,
+      from: T0,
+      to: T1,
+      step: 300000
+    });
+    expect('time' in charts[1]).toBe(false);
+  });
+
+  it('reports the shown instant, an archival source and explicit values', () => {
+    const archive = chart('a', true, {
+      time: { current: false, values: [T0, T1] },
+      timeValue: T1
+    });
+    expect(toChartTime(archive)).toEqual({
+      value: T1,
+      current: false,
+      values: [T0, T1]
+    });
+    // toChartLayer only projects time when told the chart is temporal.
+    expect('time' in toChartLayer(archive)).toBe(false);
+    expect(toChartLayer(archive, true).time?.value).toBe(T1);
+  });
+});
+
+describe('chart.setTime', () => {
+  const T0 = '2026-09-18T12:00:00.000Z';
+  const available = [
+    chart('radar', true, { time: { current: true, from: T0, to: T0 } }),
+    chart('static', true, { name: 'S' })
+  ];
+
+  it('retargets known temporal charts, passing the instant through unchanged', async () => {
+    const { call, deps } = setup(available);
+    await call('chart.setTime', {
+      ids: ['radar'],
+      time: '2026-09-18T12:02:30Z'
+    });
+    expect(deps.setTime).toHaveBeenCalledWith(
+      ['radar'],
+      '2026-09-18T12:02:30Z'
+    );
+  });
+
+  it('returns a chart to live for null', async () => {
+    const { call, deps } = setup(available);
+    await call('chart.setTime', { ids: ['radar'], time: null });
+    expect(deps.setTime).toHaveBeenCalledWith(['radar'], null);
+  });
+
+  it('rejects a time that is neither null nor an ISO 8601 instant with charts.badRequest', async () => {
+    const { call, deps } = setup(available);
+    for (const time of ['noon', 1758196800000, undefined, '']) {
+      await expect(
+        call('chart.setTime', { ids: ['radar'], time })
+      ).rejects.toHaveProperty('reason', 'charts.badRequest');
+    }
+    expect(deps.setTime).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed ids list with charts.badRequest', async () => {
+    const { call } = setup(available);
+    await expect(
+      call('chart.setTime', { ids: 'radar', time: null })
+    ).rejects.toHaveProperty('reason', 'charts.badRequest');
+  });
+
+  it('rejects an unknown id with charts.unknownId', async () => {
+    const { call } = setup(available);
+    await expect(
+      call('chart.setTime', { ids: ['nope'], time: null })
+    ).rejects.toHaveProperty('reason', 'charts.unknownId');
+  });
+
+  it('rejects a managed chart without a time dimension with charts.notTemporal', async () => {
+    const { call, deps } = setup(available);
+    await expect(
+      call('chart.setTime', { ids: ['radar', 'static'], time: T0 })
+    ).rejects.toHaveProperty('reason', 'charts.notTemporal');
+    expect(deps.setTime).not.toHaveBeenCalled();
+  });
+
+  it('treats an empty batch as a no-op', async () => {
+    const { call, deps } = setup(available);
+    await expect(call('chart.setTime', { ids: [], time: T0 })).resolves.toEqual(
+      {}
+    );
+    expect(deps.setTime).not.toHaveBeenCalled();
   });
 });

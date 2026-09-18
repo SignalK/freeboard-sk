@@ -2,15 +2,18 @@ import {
   RPC_ERRORS,
   RpcError,
   type ChartLayer,
+  type ChartTime,
   type MethodHandler
 } from 'signalk-plotterext-bus/host';
 import { FBChart, FBCharts } from 'src/app/types';
+import { isChartTimeInstant } from 'src/app/lib/chart-time';
 
 /**
  * Host method handlers for the `charts` capability — a lightweight facade over
  * the chart layers Freeboard already manages (the same charts the user turns on
  * and off in the chart controls). It enumerates them and changes visibility,
- * opacity and stacking order; it is **not** a chart provider (no create/delete).
+ * opacity and stacking order, and retargets a time-varying chart to an instant
+ * (`charts.time`); it is **not** a chart provider (no create/delete).
  *
  * A pure factory over injected accessors so the handlers are unit-testable
  * without the Angular host service, matching the {@link createRouteMethods}
@@ -31,10 +34,47 @@ export interface ChartMethodsDeps {
   setOpacity: (ids: string[], opacity: number) => void | Promise<void>;
   /** Set the display/stacking order, topmost first (host-clamped). */
   setOrder: (orderTopmostFirst: string[]) => void | Promise<void>;
+  /**
+   * Whether a chart is time-addressable — has a time dimension the host's own
+   * time control would offer. Gates the `time` object on `chart.list` and
+   * `charts.notTemporal` on `chart.setTime`.
+   */
+  isTemporal: (chart: FBChart) => boolean;
+  /**
+   * Show each named chart at an ISO 8601 instant, or its live frame for
+   * `null`. The instant is passed through unchanged — no snapping or clamping.
+   */
+  setTime: (ids: string[], time: string | null) => void | Promise<void>;
 }
 
-/** Map Freeboard's internal chart tuple to the host-agnostic {@link ChartLayer}. */
-export function toChartLayer(fb: FBChart): ChartLayer {
+/** The `time` object of a `chart.list` entry for a time-varying chart. */
+export function toChartTime(fb: FBChart): ChartTime {
+  const dim = fb[1]?.time;
+  const time: ChartTime = {
+    value: fb[1]?.timeValue ?? null,
+    current: dim?.current !== false
+  };
+  if (typeof dim?.from === 'string') {
+    time.from = dim.from;
+  }
+  if (typeof dim?.to === 'string') {
+    time.to = dim.to;
+  }
+  if (typeof dim?.step === 'number') {
+    time.step = dim.step;
+  }
+  if (Array.isArray(dim?.values)) {
+    time.values = dim.values.slice();
+  }
+  return time;
+}
+
+/**
+ * Map Freeboard's internal chart tuple to the host-agnostic {@link ChartLayer}.
+ * `temporal` says whether the chart is time-addressable (see
+ * {@link ChartMethodsDeps.isTemporal}); only then does the layer carry `time`.
+ */
+export function toChartLayer(fb: FBChart, temporal = false): ChartLayer {
   const [id, chart, visible] = fb;
   const layer: ChartLayer = {
     id,
@@ -59,6 +99,9 @@ export function toChartLayer(fb: FBChart): ChartLayer {
   }
   if (typeof chart?.maxZoom === 'number') {
     layer.maxZoom = chart.maxZoom;
+  }
+  if (temporal) {
+    layer.time = toChartTime(fb);
   }
   return layer;
 }
@@ -100,7 +143,9 @@ export function createChartMethods(
   return {
     'chart.list': async () => {
       const available = await deps.listAvailableOrdered();
-      return { charts: available.map(toChartLayer) };
+      return {
+        charts: available.map((c) => toChartLayer(c, deps.isTemporal(c)))
+      };
     },
 
     'chart.setVisibility': async (params) => {
@@ -128,6 +173,32 @@ export function createChartMethods(
       if (ids.length > 0) {
         requireKnown(ids, await deps.listAvailableOrdered());
         await deps.setOpacity(ids, opacity);
+      }
+      return {};
+    },
+
+    'chart.setTime': async (params) => {
+      const ids = requireIds((params as { ids?: unknown })?.ids, 'ids');
+      const raw = (params as { time?: unknown })?.time;
+      if (raw !== null && !isChartTimeInstant(raw)) {
+        throw badRequest('time must be null or an ISO 8601 instant');
+      }
+      const time = raw as string | null;
+      if (ids.length > 0) {
+        const available = await deps.listAvailableOrdered();
+        requireKnown(ids, available);
+        // A managed chart with no time dimension is a distinct error from a
+        // stale id: the caller's list is fine, the chart just cannot be
+        // retargeted.
+        const fixed = ids.find(
+          (id) => !deps.isTemporal(available.find((c) => c[0] === id))
+        );
+        if (fixed !== undefined) {
+          throw new RpcError(`Chart has no time dimension: ${fixed}`, {
+            reason: 'charts.notTemporal'
+          });
+        }
+        await deps.setTime(ids, time);
       }
       return {};
     },

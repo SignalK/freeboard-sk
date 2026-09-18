@@ -184,15 +184,40 @@ re-read `chart.list` for the full snapshot.
 (malformed params — e.g. a non-array `ids`, non-boolean `visible`, or out-of-range
 `opacity`), `charts.notSupported`.
 
-### `charts.time` — not yet implemented
+### `charts.time` — retargeting a time-varying chart
 
-The contract defines a `charts.time` sub-capability (`chart.setTime`, a `time`
-object on `chart.list` entries, the `chart.time` event, and the chart-resource
-`time` block that makes a chart time-addressable). Freeboard does **not** yet
-advertise it. The native side — honouring a resource's `time` block and a time
-control in the chart list, on the same OpenLayers key-rotation path that
-`refreshInterval` uses — lands first, and the bus surface follows as a thin
-facade over it; both are tracked as issues on the repository.
+Freeboard advertises the `charts.time` sub-capability. A chart is
+**time-addressable** when its resource carries the `time` block from the
+contract's chart-resource convention (or, for a WMS/WMTS chart added through
+Freeboard's own dialogs, when the service's capabilities advertised a time
+dimension — persisted into the resource at layer selection) *and* it renders as a
+raster layer (tilelayer, tileJSON, WMS, WMTS); a vector chart never is. Such a
+chart's `chart.list` entry carries `time: { value, current, from?, to?, step?,
+values? }`; every other chart omits it.
+
+`chart.setTime({ ids, time })` shows each chart at an ISO 8601 instant, or its
+live frame for `null`. The instant is **passed through unchanged** to the tile
+source — no snapping to `values`, no clamping to `from`/`to` — so an extension
+animating a provider it does not own should pick from the timeline it is given.
+It is the same call the native **Time** palette (the clock action on a chart-list
+row) makes; the two stay in sync through the chart cache.
+
+- **Session state.** The shown instant lives on the cached chart (`timeValue`),
+  never in the saved config and never in the chart resource sent to the server;
+  every chart starts live on load (an archival source, `current: false`, starts at
+  its newest frame at or before now).
+- **Non-destructive swap.** The layer rotates the tile source's key rather than
+  refreshing it, so the previous frame stays on screen until the requested one has
+  loaded — the same path `refreshInterval` uses.
+- **`refreshInterval` interplay.** A chart's auto-refresh timer is suspended while
+  `time` is non-null (a historical frame does not change) and resumes on return
+  to live.
+
+`chart.time` (`{id, time}`) is emitted for every retarget, from any origin — an
+extension's `chart.setTime`, another extension's, or the user's palette — one
+event per *changed* chart. Error reasons add `charts.notTemporal` (an id names a
+managed chart with no time dimension); a `time` that is neither `null` nor a
+parseable instant is `charts.badRequest`.
 
 ### Key files
 
@@ -200,7 +225,8 @@ facade over it; both are tracked as issues on the repository.
 |------|------|
 | `src/app/modules/plotterext/chart-methods.ts` | the `chart.*` handlers + param validation + `FBChart`→`ChartLayer` mapping |
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers to the service and emits `chart.*` events (`emitChartChanges`) |
-| `src/app/modules/skresources/resources.service.ts` | `chartsForHostApi` / `setChartsVisibility` / `setChartsOpacity` / `setChartsOrder` |
+| `src/app/modules/skresources/resources.service.ts` | `chartsForHostApi` / `setChartsVisibility` / `setChartsOpacity` / `setChartsOrder` / `setChartsTime` / `chartIsTemporal` |
+| `src/app/lib/chart-time.ts`, `src/app/modules/map/ol/lib/charts/chart-utils.ts` | the time model (timeline, instants) and how an instant is applied to each OpenLayers source |
 
 ## The `nightMode` capability
 
