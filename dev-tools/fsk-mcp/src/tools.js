@@ -199,7 +199,7 @@ const TOOLS = [
   {
     name: 'fsk_list_charts',
     description:
-      'List the chart layers Freeboard-SK manages, in display order (topmost first). Each entry has an opaque id, name, visible flag, opacity (0..1) and best-effort type/bounds/zoom range. This is also how you read the current stacking order.',
+      'List the chart layers Freeboard-SK manages, in display order (topmost first). Each entry has an opaque id, name, visible flag, opacity (0..1) and best-effort type/bounds/zoom range. A time-varying chart (weather radar, satellite) also carries `time`: { value (ISO instant shown, or null = live), current, from?, to?, step?, values? }. This is also how you read the current stacking order.',
     inputSchema: withSession(),
     run: (hub, a) => hub.call('chart.list', {}, { session: a.session })
   },
@@ -266,6 +266,32 @@ const TOOLS = [
     ),
     run: (hub, a) =>
       hub.call('chart.setOrder', { order: a.order }, { session: a.session })
+  },
+  {
+    name: 'fsk_set_chart_time',
+    description:
+      'Show one or more time-varying chart layers (those with a `time` object in fsk_list_charts) at an instant, or return them to live. The instant is passed through to the chart source unchanged, so pick one from the chart\'s `time.values` / `from`..`to` at `step`. Emits chart.time per changed chart. Fails with charts.notTemporal for a chart with no time dimension.',
+    inputSchema: withSession(
+      {
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Chart ids to retarget.'
+        },
+        time: {
+          type: ['string', 'null'],
+          description:
+            'ISO 8601 instant (e.g. "2026-09-18T14:35:00Z"), or null for the live/current frame.'
+        }
+      },
+      ['ids', 'time']
+    ),
+    run: (hub, a) =>
+      hub.call(
+        'chart.setTime',
+        { ids: a.ids, time: a.time },
+        { session: a.session }
+      )
   },
   {
     name: 'fsk_get_night_mode',

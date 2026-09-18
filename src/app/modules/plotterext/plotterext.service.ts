@@ -754,7 +754,9 @@ export class PlotterExtensionService {
       setVisibility: (ids, visible) =>
         this.skres.setChartsVisibility(ids, visible),
       setOpacity: (ids, opacity) => this.skres.setChartsOpacity(ids, opacity),
-      setOrder: (order) => this.skres.setChartsOrder(order)
+      setOrder: (order) => this.skres.setChartsOrder(order),
+      isTemporal: (chart) => this.skres.chartIsTemporal(chart),
+      setTime: (ids, time) => this.skres.setChartsTime(ids, time)
     });
   }
 
@@ -832,19 +834,22 @@ export class PlotterExtensionService {
     this.broadcastMessage('nightMode.changed', state);
   }
 
-  /** Topmost-first id order + per-chart opacity of the last displayed-chart set,
-   *  for diffing successive `skres.charts()` emissions into `chart.*` events. */
+  /** Topmost-first id order + per-chart opacity and shown instant of the last
+   *  displayed-chart set, for diffing successive `skres.charts()` emissions
+   *  into `chart.*` events. */
   private prevChartSnapshot: {
     order: string[];
     opacity: Map<string, number>;
+    time: Map<string, string | null>;
   } | null = null;
 
   /**
    * Diff the displayed chart set against the previous snapshot and emit the
    * fine-grained `chart.*` events. Delivery is subscription-gated by
    * broadcastMessage. A show/hide emits `chart.visibility`; an opacity change on
-   * a still-displayed chart emits `chart.opacity`; a genuine reorder of the
-   * surviving set emits `chart.order`. The first (seeding) run emits nothing.
+   * a still-displayed chart emits `chart.opacity`, a retarget emits
+   * `chart.time`; a genuine reorder of the surviving set emits `chart.order`.
+   * The first (seeding) run emits nothing.
    */
   private emitChartChanges(charts: FBCharts): void {
     const order = charts.map((c) => c[0]).reverse(); // topmost-first
@@ -854,8 +859,11 @@ export class PlotterExtensionService {
         typeof c[1]?.defaultOpacity === 'number' ? c[1].defaultOpacity : 1
       ])
     );
+    const time = new Map<string, string | null>(
+      charts.map((c) => [c[0], c[1]?.timeValue ?? null])
+    );
     const prev = this.prevChartSnapshot;
-    this.prevChartSnapshot = { order, opacity };
+    this.prevChartSnapshot = { order, opacity, time };
     if (!prev) {
       return;
     }
@@ -876,6 +884,13 @@ export class PlotterExtensionService {
       const before = prev.opacity.get(id);
       if (before !== undefined && before !== op) {
         this.broadcastMessage('chart.opacity', { id, opacity: op });
+      }
+    }
+    // Origin-transparent: the user's own Time palette lands here the same way
+    // an extension's chart.setTime does.
+    for (const [id, t] of time) {
+      if (prev.time.has(id) && prev.time.get(id) !== t) {
+        this.broadcastMessage('chart.time', { id, time: t });
       }
     }
     // Fire chart.order only when the relative order of the charts common to both
