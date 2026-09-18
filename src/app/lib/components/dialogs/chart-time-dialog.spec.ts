@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   CHART_TIME_WINDOW_MS,
   chartTimeWindowSpan,
+  initialChartTimeWindowEnd,
   chartTimeLoopFromOffsets,
   chartTimeLoopRange,
   chartTimeLoopToOffsets,
@@ -184,6 +185,14 @@ describe('loop offsets (remembered between sessions)', () => {
     expect(Math.abs(end - 6 * H - loop.max)).toBeLessThanOrEqual(STEP / 2);
   });
 
+  it("falls back to the window's last hour when the remembered range is clear of it", () => {
+    // Remembered "last hour" but the palette opened deep in the archive.
+    const deep = { min: end - 30 * 24 * H - SPAN, max: end - 30 * 24 * H };
+    expect(
+      chartTimeLoopFromOffsets(archive, deep, end, DEFAULT_CHART_TIME_LOOP)
+    ).toEqual({ min: deep.max - H, max: deep.max });
+  });
+
   it('picks the nearest explicit frames on a values timeline', () => {
     const frames = chartTimeline({
       current: true,
@@ -201,5 +210,41 @@ describe('loop offsets (remembered between sessions)', () => {
       start: 50 * 60000,
       end: 0
     });
+  });
+});
+
+describe('initialChartTimeWindowEnd', () => {
+  const H = 3600000;
+  const now = Date.parse('2026-09-18T12:00:00.000Z');
+  const seven = chartTimeline({
+    current: true,
+    from: '2026-09-11T00:00:00.000Z',
+    to: '2026-09-19T00:00:00.000Z',
+    step: 5 * 60000
+  });
+
+  it('opens at the newest frame while the shown instant is within a window of it', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(now));
+    try {
+      // Live, and scrubbed an hour back: both open at now, so the loop
+      // (anchored to now) and the playhead share the bar.
+      expect(initialChartTimeWindowEnd(seven, now)).toBe(now);
+      expect(initialChartTimeWindowEnd(seven, now - H)).toBe(now);
+      expect(initialChartTimeWindowEnd(seven, now - 11 * H)).toBe(now);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('opens at the shown instant when that is deep in the archive', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(now));
+    try {
+      const deep = now - 3 * 24 * H;
+      expect(initialChartTimeWindowEnd(seven, deep)).toBe(deep);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -112,6 +112,21 @@ export function chartTimeWindow(
 }
 
 /**
+ * Where the bar's window ends when the palette opens: at the newest frame
+ * (which the remembered loop is anchored to) when the shown instant lies
+ * within one window of it, so playhead and loop are both on the bar;
+ * otherwise -- the chart scrubbed deep into an archive -- at the shown instant.
+ */
+export function initialChartTimeWindowEnd(
+  timeline: ChartTimeline,
+  position: number
+): number {
+  const newest = chartTimelinePosition(timeline, null);
+  const span = chartTimeWindowSpan(timeline, newest);
+  return newest - position <= span ? Math.max(newest, position) : position;
+}
+
+/**
  * Where the window ends after the shown instant moved to `position`: it stays
  * put while the instant is inside it, and follows the instant out either end.
  */
@@ -164,7 +179,23 @@ export function chartTimeLoopFromOffsets(
   };
   const min = at(Math.max(0, offsets.start));
   const max = at(Math.max(0, offsets.end));
-  return min <= max ? { min, max } : { min: max, max };
+  if (min < max) {
+    return { min, max };
+  }
+  // The remembered range lies clear of this window (both ends clamped onto
+  // the same edge): fall back to the window's own last hour.
+  const end = chartTimeMs(chartTimelineInstant(timeline, window.max));
+  const start = chartTimelinePosition(
+    timeline,
+    chartTimelineInstant(
+      timeline,
+      chartTimelinePosition(
+        timeline,
+        new Date(end - DEFAULT_CHART_TIME_LOOP.start).toISOString()
+      )
+    )
+  );
+  return { min: Math.max(window.min, start), max: window.max };
 }
 
 /** Offsets before `latest` for loop bounds on the timeline. */
@@ -435,10 +466,15 @@ export class ChartTimeDialog implements OnDestroy {
     this.timeline ? chartTimelinePosition(this.timeline, this.data.value()) : 0
   );
 
-  // Timeline position the bar's window ends at. It opens around the shown
-  // instant (now, when live) and follows the instant when it leaves the
-  // window -- by stepping, playback or an extension retargeting it.
-  private windowEnd = signal(this.position());
+  // Timeline position the bar's window ends at. It opens at the newest frame
+  // when the shown instant is near it (else at the shown instant) and follows
+  // the instant when it leaves the window -- by stepping, playback or an
+  // extension retargeting it.
+  private windowEnd = signal(
+    this.timeline
+      ? initialChartTimeWindowEnd(this.timeline, this.position())
+      : 0
+  );
 
   protected window = computed(() =>
     this.timeline
@@ -454,12 +490,13 @@ export class ChartTimeDialog implements OnDestroy {
   };
 
   // The newest frame when the palette opened, in ms: what the remembered loop
-  // offsets are measured back from.
+  // offsets are measured back from -- never the shown instant, or reopening
+  // while scrubbed would shift the remembered range.
   private latestMs = this.timeline
     ? chartTimeMs(
         chartTimelineInstant(
           this.timeline,
-          chartTimeWindow(this.timeline, this.position()).max
+          chartTimelinePosition(this.timeline, null)
         )
       )
     : 0;
@@ -556,7 +593,7 @@ export class ChartTimeDialog implements OnDestroy {
     return this.timeline
       ? chartTimeLoopFromOffsets(
           this.timeline,
-          chartTimeWindow(this.timeline, this.position()),
+          this.window(),
           this.latestMs,
           this.data.loop ?? DEFAULT_CHART_TIME_LOOP
         )
