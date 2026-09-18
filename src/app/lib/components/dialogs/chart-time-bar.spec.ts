@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ChartTimeBar,
   ChartTimeLoop,
+  keyboardBarPosition,
   moveLoopHandle,
   snapBarPosition
 } from './chart-time-bar';
@@ -27,6 +28,34 @@ describe('moveLoopHandle', () => {
   it('pushes the other handle along rather than crossing it', () => {
     expect(moveLoopHandle(loop, 'start', 170)).toEqual({ min: 170, max: 170 });
     expect(moveLoopHandle(loop, 'end', 110)).toEqual({ min: 110, max: 110 });
+  });
+});
+
+describe('keyboardBarPosition', () => {
+  const at = (key: string, shift = false, from = 150) =>
+    keyboardBarPosition(key, shift, from, 100, 200, 5);
+
+  it('steps one frame with the arrows, ten with Shift or Page keys', () => {
+    expect(at('ArrowRight')).toBe(155);
+    expect(at('ArrowUp')).toBe(155);
+    expect(at('ArrowLeft')).toBe(145);
+    expect(at('ArrowDown')).toBe(145);
+    expect(at('ArrowRight', true)).toBe(200);
+    expect(at('ArrowLeft', true)).toBe(100);
+    expect(at('PageUp', false, 120)).toBe(170);
+    expect(at('PageDown', false, 180)).toBe(130);
+  });
+
+  it('jumps to the ends with Home/End and clamps at them', () => {
+    expect(at('Home')).toBe(100);
+    expect(at('End')).toBe(200);
+    expect(at('ArrowLeft', false, 100)).toBe(100);
+    expect(at('ArrowRight', false, 200)).toBe(200);
+  });
+
+  it('ignores other keys', () => {
+    expect(at('Enter')).toBeNull();
+    expect(at('a')).toBeNull();
   });
 });
 
@@ -113,5 +142,45 @@ describe('ChartTimeBar pointer lanes', () => {
     const band = host.querySelector('.band') as HTMLElement;
     expect(band.style.left).toBe('20%');
     expect(band.style.width).toBe('60%');
+  });
+
+  it('exposes each handle as a focusable slider with its value', () => {
+    const { fixture } = render(150, { min: 120, max: 180 });
+    const host = fixture.nativeElement as HTMLElement;
+    const sliders = Array.from(host.querySelectorAll('[role="slider"]'));
+    expect(sliders.map((s) => s.getAttribute('aria-label'))).toEqual([
+      'Loop start',
+      'Loop end',
+      'Instant shown'
+    ]);
+    for (const s of sliders) {
+      expect(s.getAttribute('tabindex')).toBe('0');
+      expect(s.getAttribute('aria-valuemin')).toBe('100');
+      expect(s.getAttribute('aria-valuemax')).toBe('200');
+    }
+    expect(sliders[0].getAttribute('aria-valuenow')).toBe('120');
+    expect(sliders[1].getAttribute('aria-valuenow')).toBe('180');
+    expect(sliders[2].getAttribute('aria-valuenow')).toBe('150');
+  });
+
+  it('moves the playhead and loop handles with the keyboard', () => {
+    const { fixture } = render(150, { min: 120, max: 180 });
+    const host = fixture.nativeElement as HTMLElement;
+    const key = (handle: string, k: string, shiftKey = false) =>
+      host
+        .querySelector(`[data-handle="${handle}"]`)
+        ?.dispatchEvent(
+          new KeyboardEvent('keydown', { key: k, shiftKey, bubbles: true })
+        );
+    key('head', 'ArrowRight');
+    expect(positionChange).toHaveBeenLastCalledWith(155);
+    key('head', 'ArrowLeft', true);
+    expect(positionChange).toHaveBeenLastCalledWith(100);
+    key('start', 'ArrowLeft');
+    expect(loopChange).toHaveBeenLastCalledWith({ min: 115, max: 180 });
+    key('end', 'End');
+    expect(loopChange).toHaveBeenLastCalledWith({ min: 120, max: 200 });
+    key('end', 'Enter'); // not a slider key
+    expect(loopChange).toHaveBeenCalledTimes(2);
   });
 });

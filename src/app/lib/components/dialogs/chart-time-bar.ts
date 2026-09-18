@@ -20,6 +20,51 @@ type BarHandle = 'head' | 'start' | 'end';
 /** Height of the playhead lane; pointers below it work the loop handles. */
 const HEAD_LANE_PX = 30;
 
+/** Steps an arrow key moves a handle with Shift held, or Page Up/Down. */
+const KEY_BIG_STEP = 10;
+
+/**
+ * The position a keyboard handle moves to, or null for a key it does not
+ * handle. Arrow keys step once (Shift: {@link KEY_BIG_STEP}), Page Up/Down
+ * step big, Home/End go to the ends of the axis.
+ */
+export function keyboardBarPosition(
+  key: string,
+  shift: boolean,
+  position: number,
+  min: number,
+  max: number,
+  step: number
+): number | null {
+  const big = KEY_BIG_STEP * step;
+  let next: number;
+  switch (key) {
+    case 'ArrowLeft':
+    case 'ArrowDown':
+      next = position - (shift ? big : step);
+      break;
+    case 'ArrowRight':
+    case 'ArrowUp':
+      next = position + (shift ? big : step);
+      break;
+    case 'PageDown':
+      next = position - big;
+      break;
+    case 'PageUp':
+      next = position + big;
+      break;
+    case 'Home':
+      next = min;
+      break;
+    case 'End':
+      next = max;
+      break;
+    default:
+      return null;
+  }
+  return snapBarPosition(next, min, max, step);
+}
+
 /**
  * Snap a position to the `min + n·step` grid the axis is drawn on, clamped
  * into `[min, max]`.
@@ -53,8 +98,9 @@ export function moveLoopHandle(
  * Scrub-and-loop bar for a time-varying chart: one axis (the slider window)
  * carrying the playhead on its upper lane and the loop-edge handles on its
  * lower lane, with the loop shaded between them. Dragging in the upper lane
- * scrubs; dragging in the lower lane moves the nearer loop handle. The
- * playhead is free to leave the loop — the loop only says where playback
+ * scrubs; dragging in the lower lane moves the nearer loop handle. Each
+ * handle is also a focusable slider for the keyboard (arrows, Page Up/Down,
+ * Home/End). The playhead is free to leave the loop — the loop only says where playback
  * cycles. Positions are whatever the parent's axis uses (ms, or frame index);
  * `label` renders one for the tooltips.
  */
@@ -83,21 +129,54 @@ export function moveLoopHandle(
           [style.left.%]="loopPct().min"
           [title]="'Loop start: ' + label()(loop().min)"
         >
-          <div class="knob"></div>
+          <div
+            class="knob"
+            role="slider"
+            tabindex="0"
+            data-handle="start"
+            aria-label="Loop start"
+            [attr.aria-valuemin]="min()"
+            [attr.aria-valuemax]="max()"
+            [attr.aria-valuenow]="loop().min"
+            [attr.aria-valuetext]="label()(loop().min)"
+            (keydown)="onKeyDown($event, 'start')"
+          ></div>
         </div>
         <div
           class="edge"
           [style.left.%]="loopPct().max"
           [title]="'Loop end: ' + label()(loop().max)"
         >
-          <div class="knob"></div>
+          <div
+            class="knob"
+            role="slider"
+            tabindex="0"
+            data-handle="end"
+            aria-label="Loop end"
+            [attr.aria-valuemin]="min()"
+            [attr.aria-valuemax]="max()"
+            [attr.aria-valuenow]="loop().max"
+            [attr.aria-valuetext]="label()(loop().max)"
+            (keydown)="onKeyDown($event, 'end')"
+          ></div>
         </div>
         <div
           class="head"
           [style.left.%]="headPct()"
           [title]="label()(position())"
         >
-          <div class="knob"></div>
+          <div
+            class="knob"
+            role="slider"
+            tabindex="0"
+            data-handle="head"
+            aria-label="Instant shown"
+            [attr.aria-valuemin]="min()"
+            [attr.aria-valuemax]="max()"
+            [attr.aria-valuenow]="position()"
+            [attr.aria-valuetext]="label()(position())"
+            (keydown)="onKeyDown($event, 'head')"
+          ></div>
         </div>
       </div>
     </div>
@@ -110,12 +189,14 @@ export function moveLoopHandle(
       --bar-head: #1f4e8c;
       --bar-edge: #f2b84b;
       --bar-knob-shadow: rgba(0, 0, 0, 0.35);
+      --bar-focus: #1f4e8c;
     }
     :host-context(.dark-theme) {
       --bar-track: rgba(255, 255, 255, 0.22);
       --bar-band: rgba(127, 212, 255, 0.24);
       --bar-head: #3b7ddb;
       --bar-knob-shadow: rgba(0, 0, 0, 0.6);
+      --bar-focus: #7fd4ff;
     }
     .bar {
       position: relative;
@@ -171,6 +252,10 @@ export function moveLoopHandle(
       margin-left: -1px;
       background: var(--bar-head);
       pointer-events: none;
+    }
+    .knob:focus-visible {
+      outline: 2px solid var(--bar-focus);
+      outline-offset: 2px;
     }
     .knob {
       position: absolute;
@@ -244,8 +329,35 @@ export class ChartTimeBar {
         Math.abs(at - min) <= Math.abs(at - max) ? 'start' : 'end';
     }
     bar.setPointerCapture(e.pointerId);
+    // The knobs sit under pointer-events: none, so hand focus to the handle
+    // taken so the keyboard can continue where the pointer left off.
+    this.host.nativeElement
+      .querySelector<HTMLElement>(`[data-handle="${this.dragging}"]`)
+      ?.focus({ preventScroll: true });
     this.apply(e);
     e.preventDefault();
+  }
+
+  protected onKeyDown(e: KeyboardEvent, handle: BarHandle) {
+    const current =
+      handle === 'head'
+        ? this.position()
+        : handle === 'start'
+          ? this.loop().min
+          : this.loop().max;
+    const next = keyboardBarPosition(
+      e.key,
+      e.shiftKey,
+      current,
+      this.min(),
+      this.max(),
+      this.step()
+    );
+    if (next === null) {
+      return;
+    }
+    e.preventDefault();
+    this.moveHandle(handle, next);
   }
 
   protected onPointerMove(e: PointerEvent) {
@@ -266,19 +378,23 @@ export class ChartTimeBar {
   }
 
   private apply(e: PointerEvent) {
-    const at = this.positionAt(e);
-    if (this.dragging === 'head') {
+    if (this.dragging) {
+      this.moveHandle(this.dragging, this.positionAt(e));
+    }
+  }
+
+  /** Move a handle to a snapped axis position, emitting only real changes. */
+  private moveHandle(handle: BarHandle, at: number) {
+    if (handle === 'head') {
       if (at !== this.position()) {
         this.positionChange.emit(at);
       }
       return;
     }
-    if (this.dragging) {
-      const next = moveLoopHandle(this.loop(), this.dragging, at);
-      const current = this.loop();
-      if (next.min !== current.min || next.max !== current.max) {
-        this.loopChange.emit(next);
-      }
+    const next = moveLoopHandle(this.loop(), handle, at);
+    const current = this.loop();
+    if (next.min !== current.min || next.max !== current.max) {
+      this.loopChange.emit(next);
     }
   }
 }
