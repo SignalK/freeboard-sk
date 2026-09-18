@@ -64,3 +64,36 @@ describe('isPositionStale (#672)', () => {
     expect(isPositionStale(0, now)).toBe(false);
   });
 });
+
+// A target's ship type — what colours it on the chart — arrives as a
+// `design.aisShipType` path delta, not inside the empty-path identity object
+// the subscription already asks for. The server matches subscription paths
+// exactly, so a list without it leaves every target in the "unknown" colour
+// no matter how often it broadcasts its static report.
+describe('SKStreamFacade.subscribe — what the stream asks for', () => {
+  interface Subscription {
+    cmd: string;
+    options: { context: string; path: { path: string }[] };
+  }
+
+  const subscriptionsPosted = (): Subscription[] => {
+    const posted: Subscription[] = [];
+    const facade = Object.create(SKStreamFacade.prototype) as unknown as {
+      worker: { postMessage: (msg: Subscription) => void };
+      subscribe: () => void;
+    };
+    facade.worker = { postMessage: (msg) => posted.push(msg) };
+    facade.subscribe();
+    return posted;
+  };
+
+  it('asks every vessel for its ship type', () => {
+    const vessels = subscriptionsPosted().find(
+      (s) => s.cmd === 'subscribe' && s.options.context === 'vessels.*'
+    );
+    expect(vessels).toBeDefined();
+    expect(vessels?.options.path.map((p) => p.path)).toContain(
+      'design.aisShipType'
+    );
+  });
+});
