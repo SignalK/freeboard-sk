@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { ComponentType } from '@angular/cdk/portal';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -52,6 +52,7 @@ import {
   Regions,
   ChartResource,
   ChartImageAdjustment,
+  ChartTimeLoopOffsets,
   PalettePosition,
   FBChart,
   FBCharts,
@@ -78,9 +79,11 @@ import { ChartSeedJobDialog } from './components/charts/chart-seedjob-dialog';
 import {
   ChartMinZoomDialog,
   ChartMinZoomDialogResult,
+  ChartTimeDialog,
   ImageAdjustmentDialog,
   ImageAdjustmentDialogResult
 } from 'src/app/lib/components';
+import { chartTimeline, isChartTimeInstant } from 'src/app/lib/chart-time';
 
 export type SKResourceType =
   'routes' | 'waypoints' | 'regions' | 'notes' | 'charts' | 'tracks';
@@ -969,6 +972,113 @@ export class SKResourceService {
   }
 
   /**
+   * @description Show a time-varying chart at an instant, or its live frame.
+   * Session state only: it lands in the chart cache so the visible layer
+   * retargets, and is never persisted -- every chart starts live on load.
+   * Charts without a time dimension are left untouched.
+   * @param id Chart identifier
+   * @param time ISO 8601 instant, or null for the live frame. Passed through
+   * to the source unchanged (no snapping or clamping): resolving it to a frame
+   * is the provider's business.
+   */
+  public chartSetTime(id: string, time: string | null) {
+    if (!id || (time !== null && !isChartTimeInstant(time))) {
+      return;
+    }
+    const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
+    if (!entry?.[1]?.time || entry[1].timeValue === time) {
+      return;
+    }
+    this.chartCacheSignal.update((current: FBCharts) => {
+      return current.map((c: FBChart) => {
+        if (c[0] !== id) {
+          return c;
+        }
+        const updated = new SKChart(c[1]);
+        updated.timeValue = time;
+        return [c[0], updated, c[2]];
+      });
+    });
+  }
+
+  /**
+   * @description True when a chart has a time dimension a time control can
+   * work with -- a `time` block with a usable timeline. Only the raster layers
+   * apply it (an untyped chart is drawn as raster tiles); a vector chart never
+   * does.
+   * @param chart Chart entry
+   */
+  public chartIsTemporal(chart: FBChart): boolean {
+    if (!chart?.[1]?.time || chartTimeline(chart[1].time) === null) {
+      return false;
+    }
+    const type = chart[1].type?.toLowerCase();
+    const format = chart[1].format?.toLowerCase();
+    if (!type) {
+      return true;
+    }
+    if (type === 'tilelayer') {
+      return !(format === 'pbf' || format === 'mvt');
+    }
+    return ['tilejson', 'wms', 'wmts'].includes(type);
+  }
+
+  /**
+   * @description Open the modeless, draggable Time palette for a time-varying
+   * chart. Scrubbing takes effect live on the map. The selection is session
+   * state, so closing the palette only stops playback and leaves the chart on
+   * the frame it was scrubbed to -- the chart list marks it as not live.
+   * Owned here (not the chart list) so the list can stay open beside it.
+   * @param chart Chart to scrub
+   */
+  public openChartTime(chart: FBChart) {
+    const id = chart[0];
+    // The loop range is remembered per chart; written back when the palette
+    // closes rather than on every drag of a handle.
+    let loop: ChartTimeLoopOffsets | undefined;
+    const ref = this.openChartPalette<ChartTimeDialog, void>(
+      ChartTimeDialog,
+      {
+        width: '320px',
+        data: {
+          text: chart[1]?.name ?? '',
+          dimension: chart[1]?.time,
+          // Read live: the value can move under the palette (an extension
+          // retargeting the chart) and the readout must follow it.
+          value: computed(
+            () =>
+              this.chartCacheSignal().find((c: FBChart) => c[0] === id)?.[1]
+                ?.timeValue ?? null
+          ),
+          onChange: (value: string | null) => {
+            this.chartSetTime(id, value);
+          },
+          loop: this.app.config.selections.chartTimeLoop?.[id] ?? null,
+          onLoopChange: (value: ChartTimeLoopOffsets) => {
+            loop = value;
+          },
+          position: this.onScreenPalettePosition(
+            this.app.config.timePalettePos,
+            320
+          ),
+          onMoved: (position: PalettePosition) => {
+            this.app.config.timePalettePos = position;
+            this.app.saveConfig();
+          }
+        }
+      },
+      `time:${id}`
+    );
+    ref.afterClosed().subscribe(() => {
+      this.releaseChartPalette(ref);
+      if (loop) {
+        this.app.config.selections.chartTimeLoop[id] = loop;
+        this.app.saveConfig();
+      }
+    });
+  }
+
+  /**
    * @description Open the modeless, draggable Image Adjustment palette for a
    * chart. Sliders take effect live; SAVE persists per-chart, closing (cancel)
    * reverts to the pre-edit values. Owned here (not the chart list) so the list
@@ -1351,7 +1461,10 @@ export class SKResourceService {
       .subscribe(async (r: { save: boolean; chart: SKChart }) => {
         if (r.save) {
           try {
-            const cht = await this.postToServer('charts', r.chart);
+            const cht = await this.postToServer(
+              'charts',
+              this.withoutLocalState(r.chart)
+            );
             this.selectionAdd('charts', cht.id);
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
@@ -1398,25 +1511,25 @@ export class SKResourceService {
       .afterClosed()
       .subscribe((r: { save: boolean; chart: SKChart }) => {
         if (r.save) {
-          this.putToServer(
-            'charts',
-            id,
-            this.withoutDisplayMinZoom(r.chart)
-          ).catch((err) => this.app.parseHttpErrorResponse(err));
+          this.putToServer('charts', id, this.withoutLocalState(r.chart)).catch(
+            (err) => this.app.parseHttpErrorResponse(err)
+          );
         }
       });
   }
 
   /**
-   * @description Copy of a chart without its display minimum zoom, which is a
-   * local preference rather than part of the server's chart resource. Charts
-   * fetched for editing come through `transformChart()`, so the range is
-   * present on the object the properties dialog hands back.
+   * @description Copy of a chart without its local state -- the display
+   * minimum zoom (a local preference) and the selected instant (session state)
+   * -- neither of which is part of the server's chart resource. Charts fetched
+   * for editing come through `transformChart()`, so both are present on the
+   * object the properties dialog hands back.
    * @param chart Chart to strip
    */
-  private withoutDisplayMinZoom(chart: SKChart): SKChart {
+  private withoutLocalState(chart: SKChart): SKChart {
     const outbound = { ...chart };
     delete outbound.displayMinZoom;
+    delete outbound.timeValue;
     return outbound;
   }
 

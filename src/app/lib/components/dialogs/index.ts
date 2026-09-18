@@ -15,3 +15,5 @@ export * from './singleselectlist-dialog';
 export * from './slider-dialog';
 export * from './image-adjustment-dialog';
 export * from './chart-min-zoom-dialog';
+export * from './chart-time-bar';
+export * from './chart-time-dialog';

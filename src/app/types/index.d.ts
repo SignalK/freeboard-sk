@@ -10,7 +10,10 @@ import {
   SKVessel
 } from '../modules/skresources/resource-classes';
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
-import { ChartImageAdjustment } from './resources/signalk';
+import {
+  ChartImageAdjustment,
+  ChartTimeLoopOffsets
+} from './resources/signalk';
 
 export * from './resources/signalk';
 export * from './resources/custom';
@@ -97,6 +100,7 @@ export interface IAppConfig {
     autoNightMode: boolean;
   };
   imageAdjustPalettePos: PalettePosition | null; // remembered drag offset of the chart Image Adjustment palette
+  timePalettePos: PalettePosition | null; // remembered drag offset of the chart Time palette
   display: {
     fab: MFBAction; // FAB button selection
     disableWakelock: boolean;
@@ -263,6 +267,7 @@ export interface IAppConfig {
     chartOpacity: Record<string, number>;
     chartImageAdjustment: Record<string, ChartImageAdjustment>;
     chartDisplayMinZoom: Record<string, number>;
+    chartTimeLoop: Record<string, ChartTimeLoopOffsets>; // Time palette loop range per chart
     aisTargets: string[];
     aisTargetTypes: number[];
     aisFilterByShipType: boolean;

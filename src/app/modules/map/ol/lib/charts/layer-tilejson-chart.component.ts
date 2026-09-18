@@ -13,8 +13,11 @@ import { TileJSON } from 'ol/source';
 
 import { MapComponent } from '../map.component';
 
+import { UrlFunction } from 'ol/Tile';
+
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import {
+  applyChartTimeToTileSource,
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
@@ -39,6 +42,12 @@ export class TileJsonChartLayerComponent implements OnDestroy {
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
+  // The tile-URL function the source built from its TileJSON document: what
+  // draws the live frame. Captured once the document has loaded, since the
+  // source overwrites its function at that point.
+  private liveTileUrlFunction?: UrlFunction;
+  // Instant the tile source is showing; it is built showing the live frame.
+  private appliedTime: string | null = null;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -75,11 +84,25 @@ export class TileJsonChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
 
+      const source = new TileJSON({
+        url: chart[1].url,
+        crossOrigin: 'anonymous'
+      });
+      if (chart[1].time) {
+        // The document arrives asynchronously; the time dimension can only be
+        // applied over the tile-URL function it yields.
+        const onLoaded = () => {
+          if (source.getState() !== 'ready') {
+            return;
+          }
+          source.un('change', onLoaded);
+          this.liveTileUrlFunction = source.getTileUrlFunction();
+          this.applyTime(this.chart());
+        };
+        source.on('change', onLoaded);
+      }
       this.layer = new TileLayer({
-        source: new TileJSON({
-          url: chart[1].url,
-          crossOrigin: 'anonymous'
-        }),
+        source,
         preload: 0,
         zIndex: this.zIndex(),
         minZoom: zoom.min,
@@ -109,9 +132,15 @@ export class TileJsonChartLayerComponent implements OnDestroy {
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
+    this.applyTime(chart);
     // Auto-refresh time-varying charts (radar/satellite) non-destructively.
+    // A historical frame does not change, so the timer is suspended while an
+    // instant is selected and resumes on return to live.
     if (this.layer) {
-      const iv = chart[1].refreshInterval;
+      const iv =
+        typeof chart[1].timeValue === 'string'
+          ? undefined
+          : chart[1].refreshInterval;
       if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
         this.stopRefresh?.();
         this.refreshIntervalMs = iv;
@@ -120,5 +149,31 @@ export class TileJsonChartLayerComponent implements OnDestroy {
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
+  }
+
+  /**
+   * Show the selected instant of a time-varying chart (null = live), once the
+   * TileJSON document has yielded the live tile-URL function to return to.
+   */
+  private applyTime(chart: FBChart) {
+    const source = this.layer?.getSource();
+    if (
+      !chart?.[1]?.time ||
+      !(source instanceof TileJSON) ||
+      !this.liveTileUrlFunction
+    ) {
+      return;
+    }
+    const time = chart[1].timeValue ?? null;
+    if (time === this.appliedTime) {
+      return;
+    }
+    applyChartTimeToTileSource(
+      source,
+      time,
+      chart[1].time.url,
+      this.liveTileUrlFunction
+    );
+    this.appliedTime = time;
   }
 }

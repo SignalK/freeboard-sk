@@ -16,10 +16,12 @@ import {
   NoteResource,
   ChartResource,
   ChartImageAdjustment,
+  ChartTimeDimension,
   SKCourseCalcs,
   SKRegistrations,
   SKVesselDesign
 } from 'src/app/types';
+import { initialChartTime } from 'src/app/lib/chart-time';
 
 // ** Signal K route class
 export class SKRoute {
@@ -142,6 +144,11 @@ export class SKChart {
   displayMinZoom?: number;
   proxy: boolean;
   refreshInterval?: number;
+  time?: ChartTimeDimension;
+  // Instant the chart is currently showing, or null for its live frame. Session
+  // state (never persisted) — every chart starts live on load. Optional only so
+  // it can be stripped before a chart is sent to the server.
+  timeValue?: string | null;
 
   // Accepts a server chart resource or an existing SKChart: the chart cache
   // re-constructs an entry from an instance to trigger a re-render, and the
@@ -171,6 +178,12 @@ export class SKChart {
     this.displayMinZoom = chart?.displayMinZoom;
     this.proxy = chart?.proxy ?? false;
     this.refreshInterval = chart?.refreshInterval;
+    this.time = chart?.time;
+    // A resource carries no selection; an instance carries the session's.
+    this.timeValue =
+      src?.timeValue !== undefined
+        ? src.timeValue
+        : initialChartTime(this.time);
   }
 }
 

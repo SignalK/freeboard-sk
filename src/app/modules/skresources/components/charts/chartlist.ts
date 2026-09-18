@@ -36,6 +36,7 @@ import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
 import {
+  chartTimeLabel,
   displayMinZoomLabel,
   SingleSelectListDialog,
   SliderInputDialog,
@@ -379,6 +380,34 @@ export class ChartListComponent extends ResourceListBase {
       chart[1].displayMinZoom = value;
       this.updateFullList(chart);
     });
+  }
+
+  /**
+   * @description True when the chart has a time dimension the Time control can
+   * scrub -- see `SKResourceService.chartIsTemporal`.
+   * @param chart Chart entry
+   */
+  protected isTemporal(chart: FBChart): boolean {
+    return this.skres.chartIsTemporal(chart);
+  }
+
+  /**
+   * @description Label for a chart showing a past frame rather than live, so a
+   * ticked chart drawing old weather says why. The selected instant is session
+   * state held in the chart cache, not on the list's own copy of the chart.
+   * @param chart Chart entry
+   */
+  protected timeLabelFor(chart: FBChart): string {
+    const shown = this.skres
+      .charts()
+      .find((c) => c[0] === chart[0])?.[1]?.timeValue;
+    return typeof shown === 'string' ? `at ${chartTimeLabel(shown)}` : '';
+  }
+
+  protected itemTime(chart: FBChart) {
+    // The palette is modeless and owned by the service, and the list stays open
+    // beside it so the row's not-live marker can be watched.
+    this.skres.openChartTime(chart);
   }
 
   protected itemImageAdjustment(chart: FBChart) {

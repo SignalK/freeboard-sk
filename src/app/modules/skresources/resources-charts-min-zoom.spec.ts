@@ -141,9 +141,9 @@ describe('chart display minimum zoom', () => {
     );
     const outbound = (
       svc as unknown as {
-        withoutDisplayMinZoom: (c: unknown) => Record<string, unknown>;
+        withoutLocalState: (c: unknown) => Record<string, unknown>;
       }
-    ).withoutDisplayMinZoom(chart);
+    ).withoutLocalState(chart);
 
     expect('displayMinZoom' in outbound).toBe(false);
     expect(outbound.url).toBe('http://x/{z}/{x}/{y}.png');

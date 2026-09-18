@@ -11,8 +11,11 @@ import { FeatureLike } from 'ol/Feature';
 import VectorTileSource from 'ol/source/VectorTile';
 import TileSource from 'ol/source/Tile';
 import UrlTile from 'ol/source/UrlTile';
+import TileWMS from 'ol/source/TileWMS';
+import WMTS from 'ol/source/WMTS';
 import TileState from 'ol/TileState';
 import Projection from 'ol/proj/Projection';
+import { UrlFunction } from 'ol/Tile';
 import {
   isExpression,
   createPropertyExpression,
@@ -20,6 +23,7 @@ import {
   type StylePropertySpecification
 } from '@maplibre/maplibre-gl-style-spec';
 import { ChartImageAdjustment } from 'src/app/types';
+import { chartTimeTileUrl } from 'src/app/lib/chart-time';
 
 /**
  * Build a CSS canvas `filter` string from a chart's image adjustment, or `''`
@@ -585,4 +589,78 @@ export function startChartTileRefresh(
     source.setTileUrlFunction(source.getTileUrlFunction(), String(Date.now()));
   }, interval);
   return () => clearInterval(timer);
+}
+
+/**
+ * Source key used when a URL-template tile source returns to its live frame
+ * by tile-URL function (tileJSON), where there is no URL to derive one from.
+ * Any instant's key is its tile URL, so this can never collide with one.
+ */
+export const CHART_TIME_LIVE_KEY = 'live';
+
+/**
+ * Show a selected instant on a URL-template tile source (tilelayer / XYZ,
+ * tileJSON), or its live frame for `null`. Non-destructive, the same way
+ * {@link startChartTileRefresh} is: a new URL (or function) rotates the source
+ * key, so the previous frame stays on screen until the new one has loaded —
+ * playback steps every few hundred milliseconds, and at sea a frame may never
+ * arrive.
+ *
+ * `live` is what draws the live frame: the plain chart URL for XYZ, or the
+ * tile-URL function a tileJSON source built from its document (which has no
+ * template URL of its own). An instant needs the resource's `time.url`
+ * template; without one it cannot be shown and the source is left as it is.
+ */
+export function applyChartTimeToTileSource(
+  source: UrlTile,
+  time: string | null,
+  timeUrl: string | undefined,
+  live: string | UrlFunction
+): void {
+  if (time === null) {
+    if (typeof live === 'string') {
+      source.setUrl(live);
+    } else {
+      source.setTileUrlFunction(live, CHART_TIME_LIVE_KEY);
+    }
+    return;
+  }
+  if (typeof timeUrl !== 'string' || !timeUrl) {
+    return;
+  }
+  source.setUrl(chartTimeTileUrl(timeUrl, time));
+}
+
+/**
+ * Show a selected instant on a WMS source through the standard `TIME`
+ * parameter, or drop it for `null` so the server's declared default frame
+ * applies. `updateParams` rotates the source key, so the swap is
+ * non-destructive (OpenLayers skips an undefined parameter when building the
+ * request).
+ */
+export function applyChartTimeToWms(
+  source: TileWMS,
+  time: string | null
+): void {
+  source.updateParams({ TIME: time ?? undefined });
+}
+
+/**
+ * Show a selected instant on a WMTS source through its `Time` dimension, or
+ * restore the dimension the capabilities document declared as default for
+ * `null`. The default is restored rather than removed because a RESTful
+ * template would otherwise stringify the missing value into the URL. The
+ * dimension is matched by name case-insensitively against `defaults` (services
+ * spell it `Time`, `TIME` or `time`); `Time` is used when the capabilities
+ * declared none. `updateDimensions` rotates the source key, so the swap is
+ * non-destructive.
+ */
+export function applyChartTimeToWmts(
+  source: WMTS,
+  time: string | null,
+  defaults: Record<string, unknown> = {}
+): void {
+  const key =
+    Object.keys(defaults).find((k) => k.toLowerCase() === 'time') ?? 'Time';
+  source.updateDimensions({ [key]: time ?? defaults[key] });
 }

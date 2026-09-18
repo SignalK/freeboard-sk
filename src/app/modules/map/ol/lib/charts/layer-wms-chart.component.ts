@@ -13,10 +13,11 @@ import { TileWMS } from 'ol/source';
 
 import { MapComponent } from '../map.component';
 
-import { ChartImageAdjustment, FBChart, InfoLayerParam } from 'src/app/types';
+import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import { Map } from 'ol';
 import { MapService } from '../map.service';
 import {
+  applyChartTimeToWms,
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
@@ -34,7 +35,6 @@ import {
 export class WmsChartLayerComponent implements OnDestroy {
   protected chart = input<FBChart>();
   protected zIndex = input<number>();
-  protected params = input<InfoLayerParam[]>();
   protected overZoomTiles = input<boolean>(true);
   protected mapMaxZoom = input<number>();
 
@@ -42,6 +42,8 @@ export class WmsChartLayerComponent implements OnDestroy {
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
+  // Instant the source is showing; it is built showing the live frame.
+  private appliedTime: string | null = null;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
   private mapService = inject(MapService);
@@ -58,13 +60,6 @@ export class WmsChartLayerComponent implements OnDestroy {
       this.overZoomTiles();
       this.mapMaxZoom();
       this.parseChart();
-    });
-    effect(() => {
-      if (!this.layer || !Array.isArray(this.params())) return;
-      const src = this.layer.getSource();
-      if (src) {
-        (src as TileWMS).updateParams(this.params);
-      }
     });
     effect(() => {
       const ev = this.mapComponent.pointerDownSignal();
@@ -154,9 +149,17 @@ export class WmsChartLayerComponent implements OnDestroy {
         src.refresh();
       }
     }
-    // Auto-refresh time-varying charts (radar/satellite) non-destructively.
     if (this.layer) {
-      const iv = chart[1].refreshInterval;
+      // Show the selected instant of a time-varying chart (null = live).
+      const time = chart[1].timeValue ?? null;
+      if (chart[1].time && time !== this.appliedTime) {
+        applyChartTimeToWms(this.layer.getSource() as TileWMS, time);
+        this.appliedTime = time;
+      }
+      // Auto-refresh time-varying charts (radar/satellite) non-destructively.
+      // A historical frame does not change, so the timer is suspended while an
+      // instant is selected and resumes on return to live.
+      const iv = time === null ? chart[1].refreshInterval : undefined;
       if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
         this.stopRefresh?.();
         this.refreshIntervalMs = iv;

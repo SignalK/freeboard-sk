@@ -256,7 +256,11 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
           provide: SKResourceService,
           useValue: {
             arrangeChartLayers: (list: FBCharts) => [...list],
-            setChartsOrder: vi.fn()
+            setChartsOrder: vi.fn(),
+            // The rendered row reads the chart cache for its not-live marker
+            // and asks whether each chart has a time dimension.
+            charts: signal([]),
+            chartIsTemporal: () => false
           }
         },
         {

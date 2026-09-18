@@ -16,6 +16,7 @@ import { initPMTilesXYZLayer } from './pmtiles-utils';
 import { osmLayer } from '../util';
 import { MapComponent } from '../map.component';
 import {
+  applyChartTimeToTileSource,
   attachImageAdjustmentFilter,
   chartLayerClassName,
   extentFromBounds,
@@ -42,6 +43,8 @@ export class RasterChartLayerComponent implements OnDestroy {
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
+  // Instant the tile source is showing; it is built showing the live frame.
+  private appliedTime: string | null = null;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -138,10 +141,25 @@ export class RasterChartLayerComponent implements OnDestroy {
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
-    // Auto-refresh time-varying charts (radar/satellite) non-destructively.
-    // pmtiles (WebGL) layers are static local files, so skip them.
+    // pmtiles (WebGL) layers are static local files, so neither the time
+    // dimension nor auto-refresh applies to them.
     if (this.layer instanceof TileLayer) {
-      const iv = chart[1].refreshInterval;
+      // Show the selected instant of a time-varying chart (null = live).
+      const time = chart[1].timeValue ?? null;
+      const source = this.layer.getSource();
+      if (source instanceof XYZ && chart[1].time && time !== this.appliedTime) {
+        applyChartTimeToTileSource(
+          source,
+          time,
+          chart[1].time.url,
+          chart[1].url
+        );
+        this.appliedTime = time;
+      }
+      // Auto-refresh time-varying charts (radar/satellite) non-destructively.
+      // A historical frame does not change, so the timer is suspended while an
+      // instant is selected and resumes on return to live.
+      const iv = time === null ? chart[1].refreshInterval : undefined;
       if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
         this.stopRefresh?.();
         this.refreshIntervalMs = iv;
