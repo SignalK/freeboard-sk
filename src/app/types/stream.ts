@@ -146,9 +146,8 @@ interface WorkerMessageBase {
   timestamp: string;
 }
 
-export interface DeltaSignal {
-  path: string;
-  value: any;
+/** A single path update surfaced as a signal (resource / radar deltas). */
+export interface DeltaSignal extends PathValue {
   sourceRef?: string;
 }
 

@@ -49,9 +49,13 @@ export class InfoPanelFacade {
           this.close();
         } else {
           this._item.update((current) => {
+            // a resources.<type>.<id> delta carries that resource's definition
+            const resource = this.worker.resourceUpdate().value as Parameters<
+              SKResourceService['transform']
+            >[1];
             current.resource = this.skres.transform(
               current.type,
-              this.worker.resourceUpdate().value,
+              resource,
               current.id
             );
             return current;

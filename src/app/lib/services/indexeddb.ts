@@ -11,7 +11,7 @@ export class IndexedDB {
 
   openDatabase(
     version: number,
-    upgradeCallback?: (evt: any, db: IDBDatabase) => void
+    upgradeCallback?: (evt: IDBVersionChangeEvent, db: IDBDatabase) => void
   ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new Promise<any>((resolve, reject) => {

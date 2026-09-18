@@ -231,7 +231,8 @@ export class RadarAPIService {
     if (m[2] === 'controls') {
       this._radar.update((current) => {
         if (current?.controls) {
-          current.controls.set(m[3], msg.value);
+          // a radars.<id>.controls.<name> delta carries a ControlValue
+          current.controls.set(m[3], msg.value as ControlValue);
         }
         return current;
       });
