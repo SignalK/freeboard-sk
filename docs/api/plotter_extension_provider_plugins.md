@@ -52,6 +52,9 @@ same mechanism at different points on a spectrum.
 - A chart-layer helper (the `charts` capability) — a button or panel that turns
   a set of charts on or off together, swaps between chart presets, or dims an
   overlay's opacity, driving the host's own chart layers.
+- A weather-radar or satellite playback panel (the `charts.time`
+  sub-capability) — a scrubber that steps one time-varying chart through its
+  frames, with the host doing the drawing.
 - A background service that reacts to host events (a route shown or edited, a
   chart shown or hidden, config changed) and computes something.
 
@@ -555,6 +558,66 @@ Points that generalise:
   single "on dirty, `route.get`" keeps you in sync without tracking who edited.
 - **`routeId` is an opaque handle**, distinct from the saved resource's `href`
   (which `route.save` returns) — the two are not interchangeable.
+
+## Example: playing back a time-varying chart
+
+A plugin that serves weather radar or satellite tiles as a chart resource can
+let the user scrub through the last few hours. Declare the chart as
+time-addressable — a `time` block on the chart resource, described under
+*Time-varying charts* in the API contract — and the host with `charts.time`
+retargets that **one** chart to whatever instant the extension asks for. There
+is no need to publish one chart resource per frame and swap their visibility.
+
+```js
+import { connectExtension } from 'signalk-plotterext-bus/extension'
+
+const client = await connectExtension()
+if (!client.hasCapability('charts.time')) {
+  document.body.textContent = 'This host cannot scrub time-varying charts.'
+}
+
+// Find our chart. Ids are opaque — match on the name we published, or on the
+// resource identifier if the host happens to reuse it; never parse them.
+const { charts } = await client.call('chart.list')
+const radar = charts.find((c) => c.time && c.name === 'NOAA NEXRAD composite')
+
+// Our own plugin knows the real timeline (it serves the frames), so ask it —
+// the `time.values` the host reports are only what it last learned.
+const frames = await fetch('/plugins/my-radar/timeline/noaa').then((r) => r.json())
+
+// Scrub: retarget the chart to a frame, or back to live with `null`.
+async function showFrame(iso) {
+  await client.call('chart.setTime', { ids: [radar.id], time: iso })
+}
+async function live() {
+  await client.call('chart.setTime', { ids: [radar.id], time: null })
+}
+
+// Animate at our own cadence; the host keeps the previous frame drawn until
+// the next has loaded, so a slow or offline link degrades to a still, not a
+// blank layer.
+let i = 0
+const playing = setInterval(() => showFrame(frames[i++ % frames.length]), 900)
+
+// Stay in sync whoever moves the time — the user's own scrubber in the host
+// counts too.
+await client.subscribe(['chart.time'], (_name, { id, time }) => {
+  if (id === radar.id) renderPosition(time)
+})
+```
+
+Points that generalise:
+
+- **One chart, many instants.** The resource's `url` is the live frame and
+  `time.url` (with `{time}`) is the template for a specific one. WMS/WMTS
+  sources need no template — the host uses the standard `TIME` dimension.
+- **The host does not snap.** It passes the instant through; resolve it to a
+  real frame on your tile endpoint (nearest is friendliest), or pick from a
+  timeline you trust.
+- **`null` means live**, and a chart with a `refreshInterval` only
+  auto-refreshes while it is live.
+- **Declaring `time` is harmless on a host without `charts.time`** — it draws
+  the chart from `url` exactly as before.
 
 ## Background runtimes
 
