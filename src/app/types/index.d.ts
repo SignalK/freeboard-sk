@@ -295,13 +295,14 @@ export type LegacyAppConfig = Omit<
     speed: SpeedUnitDef | 'msec' | 'kmh'; // 'msec' -> 'm/s', 'kmh' -> 'km/h'
     distance: DistanceUnitDef | 'm' | 'ft'; // 'm' -> 'kilometer', 'ft' -> 'naut-mile'
   };
-  vessels: IAppConfig['vessels'] & {
+  vessels: Omit<IAppConfig['vessels'], 'selfLines'> & {
+    selfLines?: IAppConfig['vessels']['selfLines']; // created from cogLine / headingLineSize
     cogLine?: number; // -> selfLines.cog.length
     headingLineSize?: number; // -> selfLines.heading.length
   };
   plotterExtensions: {
     enabled?: unknown; // early builds kept an enabled list; dropped
-    widgets: Array<
+    widgets?: Array<
       Omit<PlotterExtensionWidget, 'anchor'> & {
         anchor?: PlotterExtensionWidget['anchor'];
         corner?: 'tl' | PlotterExtensionWidget['anchor']; // -> anchor ('tl' -> 'tr')
