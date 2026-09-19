@@ -592,6 +592,11 @@ const parseRegionCoords = (region: Region): Position[] => {
 /** Region feature properties Freeboard reads (`skIcon` flags hazard areas) */
 type RegionProperties = { skIcon?: string };
 
+/** `feature.properties` is optional on a Region — a bare region is not a hazard */
+const isHazardRegion = (region: Region): boolean =>
+  (region.feature.properties as RegionProperties | undefined)?.skIcon ===
+  'hazard';
+
 /**
  * CrUD area alarm from Region delta
  * @param id Region identifier
@@ -601,9 +606,7 @@ const processRegionUpdate = (id: string, region: Region | null) => {
   if (alarmAreas.has(id)) {
     if (!region) {
       deleteArea(id);
-    } else if (
-      (region.feature.properties as RegionProperties).skIcon !== 'hazard'
-    ) {
+    } else if (!isHazardRegion(region)) {
       deleteArea(id);
     } else {
       const r = alarmAreas.get(id);
@@ -613,7 +616,7 @@ const processRegionUpdate = (id: string, region: Region | null) => {
     }
   } else if (region) {
     // a deletion (null) of a region that was never a hazard area is a no-op
-    if ((region.feature.properties as RegionProperties).skIcon === 'hazard') {
+    if (isHazardRegion(region)) {
       alarmAreas.set(id, {
         trigger: 'entry',
         geometry: 'region',

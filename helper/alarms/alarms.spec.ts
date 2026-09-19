@@ -440,6 +440,28 @@ describe('region alarm areas — Region resource shapes (#755)', () => {
     expect(await areaIds(getRoutes)).not.toContain('delta-region');
   });
 
+  it('treats a region with no feature properties as a non-hazard', async () => {
+    const bareRegion = {
+      ...hazardRegion,
+      feature: { ...hazardRegion.feature, properties: undefined }
+    } as unknown as Region;
+    const { server, getRoutes, deltas } = makeServer(() =>
+      Promise.resolve({ 'bare-region': bareRegion })
+    );
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await areaIds(getRoutes)).not.toContain('bare-region');
+
+    // a tracked hazard whose properties are later dropped is no longer one
+    deltas.handler(regionDelta('bare-region', hazardRegion as Region));
+    expect(await areaIds(getRoutes)).toContain('bare-region');
+    expect(() =>
+      deltas.handler(regionDelta('bare-region', bareRegion))
+    ).not.toThrow();
+    expect(await areaIds(getRoutes)).not.toContain('bare-region');
+  });
+
   it('ignores a deletion delta for a region it never tracked', async () => {
     const { server, getRoutes, deltas } = makeServer(() => Promise.resolve({}));
 
