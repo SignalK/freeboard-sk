@@ -78,7 +78,10 @@ export class RadarPanel {
     );
   }
 
-  protected handleControl(controlId: string, value: ControlValue['value']) {
+  protected handleControl(
+    controlId: string,
+    value: NonNullable<ControlValue['value']>
+  ) {
     console.log(controlId, value);
     this.radarApi
       .setControl(undefined, controlId, value)

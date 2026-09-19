@@ -74,9 +74,11 @@ export interface ControlDef {
   units?: string;
 }
 
+// Fields present depend on the control dataType: a button has no value and a
+// rect carries geometry instead (see the server's ControlValue schema).
 export interface ControlValue {
-  timestamp: string;
-  value: number | string;
+  timestamp?: string;
+  value?: number | string;
   auto?: boolean;
   autoValue?: number | string;
   enabled?: boolean;
@@ -340,7 +342,7 @@ export class RadarAPIService {
   public setControl(
     radarId: string = this._selectedRadar(),
     controlId: string,
-    value: ControlValue['value']
+    value: NonNullable<ControlValue['value']>
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.signalk.api

@@ -22,13 +22,18 @@ describe('RadarAPIService init() (#755)', () => {
     controls: {
       range: { id: 1, name: 'Range', category: 'base', dataType: 'number' },
       gain: { id: 2, name: 'Gain', category: 'base', dataType: 'number' },
-      ftc: { id: 3, name: 'FTC', category: 'advanced', dataType: 'number' }
+      ftc: { id: 3, name: 'FTC', category: 'advanced', dataType: 'number' },
+      standby: { id: 4, name: 'Standby', category: 'base', dataType: 'button' },
+      noTx1: { id: 5, name: 'No-transmit', category: 'base', dataType: 'rect' }
     }
   };
+  // a button carries no value and a rect carries geometry instead
   const controls = {
     range: { timestamp: 't', value: 3000 },
     gain: { timestamp: 't', value: 50, auto: true },
-    ftc: { timestamp: 't', value: 1 }
+    ftc: { timestamp: 't', value: 1 },
+    standby: {},
+    noTx1: { enabled: true, x1: 0, y1: 0, x2: 100, y2: 100, width: 10 }
   };
 
   const responses: Record<string, unknown> = {
@@ -87,8 +92,13 @@ describe('RadarAPIService init() (#755)', () => {
 
     const radar = service.radar();
     expect(radar.device).toEqual({ ...device, id: 'radar-1' });
-    expect(radar.capabilities).toBe(capabilities);
-    expect(Array.from(radar.controls.keys())).toEqual(['range', 'gain']);
+    expect(radar.capabilities).toEqual(capabilities);
+    expect(Array.from(radar.controls.keys())).toEqual([
+      'range',
+      'gain',
+      'standby',
+      'noTx1'
+    ]);
     expect(radar.controls.get('gain')).toEqual({
       timestamp: 't',
       value: 50,
@@ -98,6 +108,6 @@ describe('RadarAPIService init() (#755)', () => {
 
   it('resolves the current control values from /controls', async () => {
     const service = TestBed.inject(RadarAPIService);
-    await expect(service.getControls('radar-1')).resolves.toBe(controls);
+    await expect(service.getControls('radar-1')).resolves.toEqual(controls);
   });
 });
