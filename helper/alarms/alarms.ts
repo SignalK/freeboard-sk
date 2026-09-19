@@ -8,7 +8,9 @@ import {
   hasValues,
   Path,
   PathValue,
+  GeoJsonLinestring,
   Position,
+  Region,
   SKVersion,
   SubscribeMessage,
   Update
@@ -16,7 +18,6 @@ import {
 import { FreeboardHelperApp } from '../index';
 import * as uuid from 'uuid';
 import { isPointWithinRadius, isPointInPolygon } from 'geolib';
-import { Point } from 'geojson';
 
 type AlarmTrigger = 'entry' | 'exit';
 type AlarmGeometry = 'polygon' | 'circle' | 'region';
@@ -248,7 +249,7 @@ const handleDeltaMessage = (delta: Delta) => {
     u.values.forEach((v: PathValue) => {
       const t = v.path.split('.');
       if (t[0] === 'resources' && t[1] === 'regions') {
-        processRegionUpdate(t[2], v.value);
+        processRegionUpdate(t[2], v.value as Region | null);
       }
       if (t[0] === 'navigation' && t[1] === 'position') {
         processVesselPositionUpdate(v.value as Position);
@@ -319,7 +320,7 @@ const initAlarmEndpoints = () => {
       if (req.body.geometry === 'region') {
         // use region resource as alarm area
         try {
-          const reg: any = await fetchRegion(req.params.id);
+          const reg = await fetchRegion(req.params.id);
           const coords = parseRegionCoords(reg);
           if (Array.isArray(coords)) {
             alarmAreas.set(req.params.id, {
@@ -440,9 +441,10 @@ const deleteArea = (id: string) => {
 
 /**
  * Validate Area Alarm request parameters
- * @param body request body
+ * @param body request body (untrusted; defaults are applied and stray
+ * fields removed in place)
  */
-const validateAreaBody = (body: any) => {
+const validateAreaBody = (body: Partial<AreaAlarmDef>) => {
   if (!body.trigger) {
     body.trigger = 'entry';
   } else if (!AREA_TRIGGERS.includes(body.trigger)) {
@@ -507,9 +509,9 @@ const isValidPosition = (position: Position): boolean => {
  * @param id Region identifier
  * @returns coordinates array
  */
-const fetchRegion = async (id: string) => {
+const fetchRegion = async (id: string): Promise<Region> => {
   const reg = await server.resourcesApi.getResource('regions', id);
-  return reg;
+  return reg as Region;
 };
 
 /**
@@ -565,7 +567,9 @@ const parseRegionList = async (attempt: number) => {
   if (!regionLoadActive) {
     return; // plugin stopped while the request was in flight
   }
-  Object.entries(regList).forEach((r) => processRegionUpdate(r[0], r[1]));
+  Object.entries(regList).forEach((r) =>
+    processRegionUpdate(r[0], r[1] as Region)
+  );
 };
 
 /**
@@ -573,8 +577,8 @@ const parseRegionList = async (attempt: number) => {
  * @param region Region data
  * @returns coordinates array
  */
-const parseRegionCoords = (region: any): Position[] => {
-  let c: Point[];
+const parseRegionCoords = (region: Region): Position[] => {
+  let c: GeoJsonLinestring;
   if (region.feature.geometry?.type === 'MultiPolygon') {
     c = region.feature.geometry?.coordinates[0][0];
   } else {
@@ -585,16 +589,24 @@ const parseRegionCoords = (region: any): Position[] => {
   });
 };
 
+/** Region feature properties Freeboard reads (`skIcon` flags hazard areas) */
+type RegionProperties = { skIcon?: string };
+
+/** `feature.properties` is optional on a Region — a bare region is not a hazard */
+const isHazardRegion = (region: Region): boolean =>
+  (region.feature.properties as RegionProperties | undefined)?.skIcon ===
+  'hazard';
+
 /**
  * CrUD area alarm from Region delta
  * @param id Region identifier
  * @param region Region data
  */
-const processRegionUpdate = (id: string, region: any) => {
+const processRegionUpdate = (id: string, region: Region | null) => {
   if (alarmAreas.has(id)) {
     if (!region) {
       deleteArea(id);
-    } else if (region.feature.properties.skIcon !== 'hazard') {
+    } else if (!isHazardRegion(region)) {
       deleteArea(id);
     } else {
       const r = alarmAreas.get(id);
@@ -602,8 +614,9 @@ const processRegionUpdate = (id: string, region: any) => {
       r.name = region.name;
       alarmAreas.set(id, r);
     }
-  } else {
-    if (region.feature.properties.skIcon === 'hazard') {
+  } else if (region) {
+    // a deletion (null) of a region that was never a hazard area is a no-op
+    if (isHazardRegion(region)) {
       alarmAreas.set(id, {
         trigger: 'entry',
         geometry: 'region',

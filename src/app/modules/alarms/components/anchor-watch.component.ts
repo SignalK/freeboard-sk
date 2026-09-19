@@ -183,7 +183,7 @@ export class AnchorWatchComponent {
     this.app.saveConfig();
   }
 
-  onDefaultRadiusChange(e: any) {
+  onDefaultRadiusChange(e: number) {
     this.app.config.anchor.radius = Math.round(
       Convert.transform(
         e,

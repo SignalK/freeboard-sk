@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initAlarms, shutdownAlarms } from './alarms';
 import type { FreeboardHelperApp } from '../index';
+import type { Delta, Region } from '@signalk/server-api';
 
 // Regression guards for the initial region load in initAlarms():
 //
@@ -21,25 +22,38 @@ const TOTAL_RETRY_MS = RETRY_DELAYS_MS.reduce((a, b) => a + b, 0);
 const noop = () => undefined;
 
 type RouteHandler = (req: unknown, res: unknown) => unknown;
+type DeltaHandler = (delta: Delta) => void;
 
 // The smallest server surface initAlarms() actually touches: route
 // registration, the delta subscription, and resourcesApi.listResources().
 // GET handlers are captured so a test can read the loaded alarm areas back
-// through the API the app uses, rather than poking module state.
+// through the API the app uses, rather than poking module state; the delta
+// callback is captured so a test can feed it resource updates.
 const makeServer = (
   listResources: (...args: unknown[]) => Promise<unknown>
 ) => {
   const getRoutes = new Map<string, RouteHandler>();
+  const deltas: { handler?: DeltaHandler } = {};
   const server = {
     debug: noop,
     get: (path: string, handler: RouteHandler) => getRoutes.set(path, handler),
     post: noop,
     put: noop,
     delete: noop,
-    subscriptionmanager: { subscribe: noop },
+    handleMessage: noop, // deleting an area clears its notification
+    subscriptionmanager: {
+      subscribe: (
+        _cmd: unknown,
+        _unsubs: unknown,
+        _err: unknown,
+        handler: DeltaHandler
+      ) => {
+        deltas.handler = handler;
+      }
+    },
     resourcesApi: { listResources }
   } as unknown as FreeboardHelperApp;
-  return { server, getRoutes };
+  return { server, getRoutes, deltas };
 };
 
 // Invoke a captured GET handler and return what it sent as JSON.
@@ -289,5 +303,176 @@ describe('initAlarms() — regions provider missing (#732)', () => {
 
     const areas = await invokeGet(getRoutes.get(AREA_PATH), AREA_PATH);
     expect(areas).not.toContainEqual(['stale-region', expect.anything()]);
+  });
+});
+
+// The region shapes the alarm code reads, typed with the published
+// `@signalk/server-api` `Region` (#755): the Polygon / MultiPolygon geometry
+// discriminant selects the outer ring, and `feature.properties.skIcon`
+// decides whether a region is a hazard area at all.
+describe('region alarm areas — Region resource shapes (#755)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    shutdownAlarms();
+    vi.useRealTimers();
+  });
+
+  const multiPolygonHazard: Region = {
+    name: 'Shoal',
+    feature: {
+      type: 'Feature',
+      geometry: {
+        type: 'MultiPolygon',
+        coordinates: [
+          [
+            [
+              [-81.1, 24.1],
+              [-81.2, 24.1],
+              [-81.2, 24.2],
+              [-81.1, 24.1]
+            ]
+          ],
+          [
+            [
+              [-82.1, 23.1],
+              [-82.2, 23.1],
+              [-82.2, 23.2],
+              [-82.1, 23.1]
+            ]
+          ]
+        ]
+      },
+      properties: { skIcon: 'hazard' }
+    }
+  };
+
+  const regionDelta = (id: string, value: Region | null): Delta =>
+    ({
+      updates: [{ values: [{ path: `resources.regions.${id}`, value }] }]
+    }) as unknown as Delta;
+
+  const areaIds = async (getRoutes: Map<string, RouteHandler>) =>
+    ((await invokeGet(getRoutes.get(AREA_PATH), AREA_PATH)) as unknown[][]).map(
+      (a) => a[0]
+    );
+
+  it('takes the first outer ring of a MultiPolygon hazard region', async () => {
+    const { server, getRoutes } = makeServer(() =>
+      Promise.resolve({ 'mp-region': multiPolygonHazard })
+    );
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    const areas = await invokeGet(getRoutes.get(AREA_PATH), AREA_PATH);
+    expect(areas).toContainEqual([
+      'mp-region',
+      {
+        trigger: 'entry',
+        geometry: 'region',
+        name: 'Shoal',
+        coords: [
+          { latitude: 24.1, longitude: -81.1 },
+          { latitude: 24.1, longitude: -81.2 },
+          { latitude: 24.2, longitude: -81.2 },
+          { latitude: 24.1, longitude: -81.1 }
+        ]
+      }
+    ]);
+  });
+
+  it('ignores regions that are not flagged as hazards', async () => {
+    const { server, getRoutes } = makeServer(() =>
+      Promise.resolve({
+        'plain-region': {
+          ...hazardRegion,
+          feature: { ...hazardRegion.feature, properties: { skIcon: 'zone' } }
+        }
+      })
+    );
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(await areaIds(getRoutes)).not.toContain('plain-region');
+  });
+
+  it('adds, updates and removes an area from region resource deltas', async () => {
+    const { server, getRoutes, deltas } = makeServer(() => Promise.resolve({}));
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    // a new hazard region arrives
+    deltas.handler(regionDelta('delta-region', hazardRegion as Region));
+    expect(await areaIds(getRoutes)).toContain('delta-region');
+
+    // renamed: the area follows the resource
+    deltas.handler(
+      regionDelta('delta-region', {
+        ...(hazardRegion as Region),
+        name: 'Reef (renamed)'
+      })
+    );
+    expect(await invokeGet(getRoutes.get(AREA_PATH), AREA_PATH)).toContainEqual(
+      ['delta-region', expect.objectContaining({ name: 'Reef (renamed)' })]
+    );
+
+    // no longer a hazard: the area is dropped
+    deltas.handler(
+      regionDelta('delta-region', {
+        ...(hazardRegion as Region),
+        feature: {
+          ...hazardRegion.feature,
+          properties: {}
+        } as Region['feature']
+      })
+    );
+    expect(await areaIds(getRoutes)).not.toContain('delta-region');
+
+    // deleted on the server (null delta value) after being re-added
+    deltas.handler(regionDelta('delta-region', hazardRegion as Region));
+    expect(await areaIds(getRoutes)).toContain('delta-region');
+    deltas.handler(regionDelta('delta-region', null));
+    expect(await areaIds(getRoutes)).not.toContain('delta-region');
+  });
+
+  it('treats a region with no feature properties as a non-hazard', async () => {
+    const bareRegion = {
+      ...hazardRegion,
+      feature: { ...hazardRegion.feature, properties: undefined }
+    } as unknown as Region;
+    const { server, getRoutes, deltas } = makeServer(() =>
+      Promise.resolve({ 'bare-region': bareRegion })
+    );
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await areaIds(getRoutes)).not.toContain('bare-region');
+
+    // a tracked hazard whose properties are later dropped is no longer one
+    deltas.handler(regionDelta('bare-region', hazardRegion as Region));
+    expect(await areaIds(getRoutes)).toContain('bare-region');
+    expect(() =>
+      deltas.handler(regionDelta('bare-region', bareRegion))
+    ).not.toThrow();
+    expect(await areaIds(getRoutes)).not.toContain('bare-region');
+  });
+
+  it('ignores a deletion delta for a region it never tracked', async () => {
+    const { server, getRoutes, deltas } = makeServer(() => Promise.resolve({}));
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    // deleting a non-hazard region sends a null value for an id the alarm
+    // manager never stored — it must not throw out of the delta handler
+    expect(() =>
+      deltas.handler(regionDelta('never-tracked', null))
+    ).not.toThrow();
+    expect(await areaIds(getRoutes)).not.toContain('never-tracked');
   });
 });

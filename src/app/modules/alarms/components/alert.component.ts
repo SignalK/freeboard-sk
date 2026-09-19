@@ -21,8 +21,15 @@ import { TimerButtonComponent } from './timer-button.component';
 import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
 import { AppIconDef } from '../../icons';
-import { ALARM_STATE } from 'src/app/types';
+import { ALARM_STATE, SKPosition } from 'src/app/types';
 import { CourseService } from '../../course';
+
+/** Extra data carried by the notification that raised the alert. */
+export interface AlertProperties {
+  position?: SKPosition;
+  /** Vessel context of the other party (closest approach alerts). */
+  vesselId?: string;
+}
 
 export interface AlertData {
   id?: string;
@@ -31,7 +38,7 @@ export interface AlertData {
   message: string;
   sound: boolean;
   visual: boolean;
-  properties?: { [index: string]: any };
+  properties?: AlertProperties;
   icon: AppIconDef;
   type?: string;
   acknowledged: boolean;
@@ -217,7 +224,7 @@ export class AlertComponent {
   private audio: HTMLAudioElement;
   private source: MediaElementAudioSourceNode;
   private soundFile = SoundFiles.warn;
-  private timerRef!: any;
+  private timerRef!: ReturnType<typeof setInterval> | null;
 
   protected app = inject(AppFacade);
   private notiMgr = inject(NotificationManager);

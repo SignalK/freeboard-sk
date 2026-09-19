@@ -17,6 +17,7 @@ import {
   ChartResource,
   ChartImageAdjustment,
   ChartTimeDimension,
+  SKCourseApi,
   SKCourseCalcs,
   SKRegistrations,
   SKVesselDesign
@@ -251,7 +252,7 @@ export class SKVessel extends SKTargetBase {
   cog: number;
   cogTrue: number = null;
   cogMagnetic: number = null;
-  courseApi = {
+  courseApi: SKCourseApi = {
     arrivalCircle: 0,
     activeRoute: {},
     nextPoint: {},

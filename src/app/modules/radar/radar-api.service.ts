@@ -62,7 +62,8 @@ export interface ControlDef {
   description: string;
   category: string;
   dataType: string;
-  descriptions?: Record<any, any>;
+  /** Display label for each entry of `validValues`, keyed by value */
+  descriptions?: Record<string | number, string>;
   minValue?: number | string;
   maxValue?: number | string;
   stepValue?: number;
@@ -73,9 +74,11 @@ export interface ControlDef {
   units?: string;
 }
 
+// Fields present depend on the control dataType: a button has no value and a
+// rect carries geometry instead (see the server's ControlValue schema).
 export interface ControlValue {
-  timestamp: string;
-  value: number | string;
+  timestamp?: string;
+  value?: number | string;
   auto?: boolean;
   autoValue?: number | string;
   enabled?: boolean;
@@ -190,7 +193,11 @@ export class RadarAPIService {
     this.app.saveConfig();
 
     // populate selected radar details
-    const rd = {};
+    const rd: Partial<{
+      device: SKRadar;
+      capabilities: CapabilityManifest;
+      controls: Record<string, ControlValue>;
+    }> = {};
     try {
       await Promise.all([
         (rd['device'] = await this.getRadar()),
@@ -205,11 +212,11 @@ export class RadarAPIService {
     // the selected id so consumers (info panel, render, panel) can read it.
     rd['device'].id = this._selectedRadar();
     // filter controls
-    const baseControls = new Map<string, any>();
+    const baseControls = new Map<string, ControlValue>();
     const cdef = rd['capabilities']['controls'];
-    Object.entries(rd['controls']).forEach((i: any[]) => {
-      if (i[0] in cdef && cdef[i[0]].category === 'base') {
-        baseControls.set(i[0], i[1]);
+    Object.entries(rd['controls']).forEach(([id, value]) => {
+      if (id in cdef && cdef[id].category === 'base') {
+        baseControls.set(id, value);
       }
     });
 
@@ -312,17 +319,18 @@ export class RadarAPIService {
     });
   }
 
-  /** Retrieve Radars Controls
+  /** Retrieve current Radar control values (the definitions are on
+   * `/capabilities`)
    * @param radarId Radar device identifier
    */
   public getControls(
     radarId: string = this._selectedRadar()
-  ): Promise<Record<string, ControlDef>> {
+  ): Promise<Record<string, ControlValue>> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .get(this.app.skApiVersion, `${this.getPath(radarId)}/controls`)
         .subscribe({
-          next: (val: Record<string, ControlDef>) => resolve(val),
+          next: (val: Record<string, ControlValue>) => resolve(val),
           error: () => reject(new Error('Unable to retrieve Radar controls!'))
         });
     });
@@ -334,7 +342,7 @@ export class RadarAPIService {
   public setControl(
     radarId: string = this._selectedRadar(),
     controlId: string,
-    value: any
+    value: NonNullable<ControlValue['value']>
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.signalk.api

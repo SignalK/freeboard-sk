@@ -11,7 +11,11 @@ import { MatSliderModule } from '@angular/material/slider';
 
 import { AppFacade } from 'src/app/app.facade';
 import { AppIconDef } from 'src/app/modules/icons';
-import { ActiveRadar, RadarAPIService } from '../radar-api.service';
+import {
+  ActiveRadar,
+  ControlValue,
+  RadarAPIService
+} from '../radar-api.service';
 
 @Component({
   selector: 'radar-panel',
@@ -74,7 +78,10 @@ export class RadarPanel {
     );
   }
 
-  protected handleControl(controlId: string, value: any) {
+  protected handleControl(
+    controlId: string,
+    value: NonNullable<ControlValue['value']>
+  ) {
     console.log(controlId, value);
     this.radarApi
       .setControl(undefined, controlId, value)

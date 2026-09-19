@@ -3,7 +3,8 @@ import { effect, Injectable, signal } from '@angular/core';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKVessel } from '../skresources';
-import { CourseData, FBRoute, SKPosition } from 'src/app/types';
+import { CourseData, FBRoute, SKCourseApi, SKPosition } from 'src/app/types';
+import type { PointDestination } from '@signalk/server-api';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Convert } from 'src/app/lib/convert';
 
@@ -102,7 +103,7 @@ export class CourseService {
    * @param value resource HREF or Signal K position object
    */
   public setDestination(value: SKPosition | string) {
-    let v: any;
+    let v: PointDestination;
     if (typeof value === 'string') {
       //href
       v = { href: value };
@@ -247,7 +248,7 @@ export class CourseService {
   }
 
   /** Update CourseData Signal */
-  private processCourseData(value: any) {
+  private processCourseData(value: SKCourseApi) {
     const clearCourse = (value: CourseData) => {
       value.position = null;
       value.startPosition = null;
@@ -425,7 +426,7 @@ export class CourseService {
     if (typeof v.courseCalcs.estimatedTimeOfArrival !== 'undefined') {
       if (v.courseCalcs.estimatedTimeOfArrival !== null) {
         const d: Date | null = new Date(v.courseCalcs.estimatedTimeOfArrival);
-        c.eta = d instanceof Date && !isNaN(d as any) ? d : null;
+        c.eta = d instanceof Date && !isNaN(d.valueOf()) ? d : null;
       } else {
         c.eta = null;
       }
@@ -436,7 +437,7 @@ export class CourseService {
         const d: Date | null = new Date(
           v.courseCalcs['route.estimatedTimeOfArrival']
         );
-        c.route.eta = d instanceof Date && !isNaN(d as any) ? d : null;
+        c.route.eta = d instanceof Date && !isNaN(d.valueOf()) ? d : null;
       } else {
         c.route.eta = null;
       }

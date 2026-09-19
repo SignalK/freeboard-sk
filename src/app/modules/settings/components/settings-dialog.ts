@@ -43,10 +43,11 @@ import {
   clampCenterOffset
 } from 'src/app/lib/follow-offset';
 import { RadarAPIService, SKRadar } from '../../radar/radar-api.service';
+import { IAppConfig } from 'src/app/types';
 
 interface PreferredPathsResult {
   save: boolean;
-  value: { [key: string]: string };
+  value: IAppConfig['units']['preferredPaths'];
 }
 
 //** Settings **
@@ -179,7 +180,7 @@ export class SettingsDialog implements OnInit {
   }
 
   /** apply S57 Options  */
-  doS57(numericAttrib?: any) {
+  doS57(numericAttrib?: NgModel) {
     this.facade.settings.map.s57Options.depthUnit =
       this.facade.settings.units.depth;
     if (numericAttrib) {
@@ -343,7 +344,7 @@ export class SettingsDialog implements OnInit {
    */
   onPreferredPaths(e: PreferredPathsResult) {
     if (e.save) {
-      this.facade.settings.units.preferredPaths = e.value as any;
+      this.facade.settings.units.preferredPaths = e.value;
       this.persistModel();
     }
   }

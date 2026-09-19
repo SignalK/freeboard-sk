@@ -9,12 +9,17 @@ import {
 } from '../../types/stream';
 import { AppFacade } from 'src/app/app.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
-import { AlertData } from './components/alert.component';
+import { AlertData, AlertProperties } from './components/alert.component';
 import { getAlertIcon } from '../icons';
 import { SignalKClient } from 'signalk-client-angular';
 import { AlertPropertiesModal } from './components/alert-properties-modal';
 
 type AlertItems = Array<[string, AlertData]>;
+
+/** `navigation.closestApproach` notification: also names the other vessel */
+interface CpaNotification extends SKNotification {
+  other?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class NotificationManager {
@@ -171,8 +176,8 @@ export class NotificationManager {
 
     alert.type = alertType;
     alert.icon = getAlertIcon(alert);
-    if ((msg.value as any).position) {
-      alert.properties.position = (msg.value as any).position;
+    if ((msg.value as SKNotification).position) {
+      alert.properties.position = (msg.value as SKNotification).position;
     }
 
     if (['buddy'].includes(alertType)) {
@@ -185,7 +190,7 @@ export class NotificationManager {
     } else {
       // alert
       if (alert.type === 'cpa') {
-        alert.properties = this.parseCpa(msg.value);
+        alert.properties = this.parseCpa(msg.value as CpaNotification);
       }
       this.alertMap.set(alert.path, alert);
       this.emitSignals();
@@ -396,7 +401,7 @@ export class NotificationManager {
   }
 
   // parse ClosestApproach message data
-  private parseCpa(msg: any) {
+  private parseCpa(msg: CpaNotification): AlertProperties {
     return {
       vesselId: msg.other ?? undefined
     };

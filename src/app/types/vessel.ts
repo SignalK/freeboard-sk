@@ -1,5 +1,6 @@
 // ** Signal K vessel data shapes (full model + delta-derived maps) **
 
+import type { ActiveRoute, NextPreviousPoint } from '@signalk/server-api';
 import { SKPosition } from './resources/signalk';
 
 /**
@@ -36,6 +37,18 @@ export interface SKCourseCalcs {
   'route.timeToGo'?: number;
   'route.estimatedTimeOfArrival'?: string | null;
   [path: string]: number | string | null;
+}
+
+/**
+ * `navigation.course.*` (Course API) as received from the server. Each entry
+ * is the delta value verbatim — `null` when the server clears it — and `{}`
+ * until one has been received.
+ */
+export interface SKCourseApi {
+  arrivalCircle: number | null;
+  activeRoute: Partial<ActiveRoute> | null;
+  nextPoint: Partial<NextPreviousPoint> | null;
+  previousPoint: Partial<NextPreviousPoint> | null;
 }
 
 /** `design.*` values Freeboard reads (SI units), null until received. */
