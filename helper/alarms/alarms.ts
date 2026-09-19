@@ -611,7 +611,8 @@ const processRegionUpdate = (id: string, region: Region | null) => {
       r.name = region.name;
       alarmAreas.set(id, r);
     }
-  } else {
+  } else if (region) {
+    // a deletion (null) of a region that was never a hazard area is a no-op
     if ((region.feature.properties as RegionProperties).skIcon === 'hazard') {
       alarmAreas.set(id, {
         trigger: 'entry',

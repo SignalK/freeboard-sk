@@ -439,4 +439,18 @@ describe('region alarm areas — Region resource shapes (#755)', () => {
     deltas.handler(regionDelta('delta-region', null));
     expect(await areaIds(getRoutes)).not.toContain('delta-region');
   });
+
+  it('ignores a deletion delta for a region it never tracked', async () => {
+    const { server, getRoutes, deltas } = makeServer(() => Promise.resolve({}));
+
+    initAlarms(server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    // deleting a non-hazard region sends a null value for an id the alarm
+    // manager never stored — it must not throw out of the delta handler
+    expect(() =>
+      deltas.handler(regionDelta('never-tracked', null))
+    ).not.toThrow();
+    expect(await areaIds(getRoutes)).not.toContain('never-tracked');
+  });
 });
