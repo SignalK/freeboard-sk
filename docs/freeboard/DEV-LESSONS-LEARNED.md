@@ -980,6 +980,20 @@ watching the page sees the comments appear and none of this bites.
   most common good outcome. Take the marker's disappearance as completion, then
   read the finding count to decide *what kind* of completion it was.
 
+- **Reading a `/reviews` entry's `commit_id` as "this commit was reviewed".**
+  When CodeRabbit **replies on an inline thread** (it acknowledges every fix you
+  answer it with), GitHub records that reply as a review too — an entry on
+  `/pulls/{n}/reviews` with an **empty body**, stamped with whatever the head
+  commit is at that moment. Push a fix, reply on the thread, and seconds later
+  there is a CodeRabbit "review" on your new head that is not a review of
+  anything. A poller that takes the newest entry's `commit_id` as coverage then
+  reports the push as reviewed-clean while the real review is still rate-limited
+  (this happened on #779: the status check said *Review rate limited* and the
+  summary's coverage marker still named the previous commit). A real review
+  entry always has a body; ignore the empty ones, and prefer the summary
+  comment's `final_review_risk_coverage` marker (`"coveredCommitId"` with
+  `"kind":"reviewed"`) as the statement of which commit was actually reviewed.
+
 **What to do instead.** Watch both signals, because each catches a different
 outcome. A count higher than before your push on
 `GET /repos/{owner}/{repo}/pulls/{n}/reviews` or `.../pulls/{n}/comments` means
