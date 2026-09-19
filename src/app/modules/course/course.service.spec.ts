@@ -7,7 +7,8 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKVessel } from '../skresources';
 import { Convert } from 'src/app/lib/convert';
-import { DistanceUnitDef } from 'src/app/types';
+import { DistanceUnitDef, SKCourseApi } from 'src/app/types';
+import type { CoursePointType } from '@signalk/server-api';
 
 /**
  * Minimal harness to drive parseSelf() with a chosen distance unit. The course
@@ -61,5 +62,131 @@ describe('CourseService route DTG (#414)', () => {
       Convert.transform(5000, 'm', 'naut-mile'),
       6
     );
+  });
+});
+
+/**
+ * parseSelf() also folds the vessel's Course API state (`navigation.course.*`
+ * deltas, typed as SKCourseApi — #755) and the ISO ETA strings from
+ * `calcValues` into courseData.
+ */
+describe('CourseService course API data (#755)', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const point = (lon: number, lat: number, href?: string) => ({
+    href,
+    type: 'Location' as CoursePointType,
+    position: { longitude: lon, latitude: lat }
+  });
+
+  function setupWithData() {
+    const app = {
+      config: { units: { distance: 'naut-mile' } },
+      useMagnetic: false,
+      data: { activeWaypoint: null, activeRoute: null }
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: {} },
+        { provide: AppFacade, useValue: app },
+        {
+          provide: SKResourceService,
+          useValue: {
+            routes: signal(null),
+            fromCache: () => undefined,
+            waypointAddFromServer: () => undefined,
+            routeAddFromServer: () => undefined
+          }
+        }
+      ]
+    });
+    return { service: TestBed.inject(CourseService), app };
+  }
+
+  const vesselWithCourse = (courseApi: SKCourseApi): SKVessel =>
+    ({ courseApi, courseCalcs: {} }) as unknown as SKVessel;
+
+  it('maps next / previous point positions and the active waypoint href', () => {
+    const { service, app } = setupWithData();
+    service.parseSelf(
+      vesselWithCourse({
+        arrivalCircle: 250,
+        activeRoute: null,
+        nextPoint: point(-80.1, 25.1, '/resources/waypoints/wpt-1'),
+        previousPoint: point(-80.2, 25.2)
+      })
+    );
+
+    const c = service.courseData();
+    expect(c.arrivalCircle).toBe(250);
+    expect(c.position).toEqual([-80.1, 25.1]);
+    expect(c.startPosition).toEqual([-80.2, 25.2]);
+    expect(app.data.activeWaypoint).toBe('wpt-1');
+    expect(c.pointIndex).toBe(-1); // no active route
+  });
+
+  it('takes the active route point index / total and clears the waypoint', () => {
+    const { service, app } = setupWithData();
+    service.parseSelf(
+      vesselWithCourse({
+        arrivalCircle: 250,
+        activeRoute: {
+          href: '/resources/routes/rte-1',
+          pointIndex: 2,
+          pointTotal: 5,
+          reverse: true,
+          name: 'Home'
+        },
+        nextPoint: point(-80.1, 25.1, '/resources/routes/rte-1'),
+        previousPoint: point(-80.2, 25.2)
+      })
+    );
+
+    const c = service.courseData();
+    expect(app.data.activeRoute).toBe('rte-1');
+    expect(app.data.activeWaypoint).toBeNull();
+    expect(c.pointIndex).toBe(2);
+    expect(c.pointTotal).toBe(5);
+  });
+
+  it('clears the course when the destination is removed', () => {
+    const { service, app } = setupWithData();
+    service.parseSelf(
+      vesselWithCourse({
+        arrivalCircle: 250,
+        activeRoute: null,
+        nextPoint: point(-80.1, 25.1, '/resources/waypoints/wpt-1'),
+        previousPoint: point(-80.2, 25.2)
+      })
+    );
+    service.parseSelf(
+      vesselWithCourse({
+        arrivalCircle: 250,
+        activeRoute: null,
+        nextPoint: null,
+        previousPoint: null
+      })
+    );
+
+    const c = service.courseData();
+    expect(c.position).toBeNull();
+    expect(c.startPosition).toBeNull();
+    expect(app.data.activeWaypoint).toBeNull();
+  });
+
+  it('parses ISO ETA strings and rejects unparseable ones', () => {
+    const { service } = setupWithData();
+    service.parseSelf({
+      courseCalcs: {
+        estimatedTimeOfArrival: '2026-09-18T12:00:00.000Z',
+        'route.estimatedTimeOfArrival': 'not-a-date'
+      }
+    } as unknown as SKVessel);
+
+    const c = service.courseData();
+    expect(c.eta).toBeInstanceOf(Date);
+    expect(c.eta.toISOString()).toBe('2026-09-18T12:00:00.000Z');
+    expect(c.route.eta).toBeNull();
   });
 });
