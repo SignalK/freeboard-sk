@@ -9,7 +9,7 @@ import {
   SKTrack,
   SKWaypoint
 } from '../skresources';
-import { FBNote, FBRegion, FBRoute, FBWaypoint } from 'src/app/types';
+import { FBResource } from 'src/app/types';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ActiveRadar } from '../radar/radar-api.service';
 
@@ -84,9 +84,9 @@ export class InfoPanelFacade {
       if (r) {
         this.openWith(resourceType, [
           id,
-          this.skres.transform(resourceType, r, id) as any,
+          this.skres.transform(resourceType, r, id),
           false
-        ]);
+        ] as FBResource);
         return;
       }
     } catch {
@@ -98,10 +98,7 @@ export class InfoPanelFacade {
    * @description Open InfoPanel with the supplied resource
    * @param resource
    */
-  public openWith(
-    resourceType: SKResourceType,
-    resource: FBNote | FBRegion | FBWaypoint | FBRoute
-  ) {
+  public openWith(resourceType: SKResourceType, resource: FBResource) {
     if (!resourceType || !resource) {
       return;
     }

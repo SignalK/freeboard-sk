@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { SignalKDetailsComponent } from '../../skresources';
-import { AlertData } from './alert.component';
+import { AlertData, AlertProperties } from './alert.component';
 import { NotificationManager } from '../notification-manager';
 
 /********* AlertPropertiesModal **********
@@ -122,7 +122,7 @@ import { NotificationManager } from '../notification-manager';
 export class AlertPropertiesModal implements OnInit {
   protected showProperties = true;
   protected hasProperties = false;
-  protected properties: { [key: string]: any };
+  protected properties: AlertProperties;
   protected raisedAt!: string;
 
   protected notiMgr = inject(NotificationManager);

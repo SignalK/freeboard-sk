@@ -5,8 +5,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { Position } from 'src/app/types';
+import { Position, SKPosition } from 'src/app/types';
 import { SKStreamFacade } from '../skstream/skstream.facade';
+
+/** GET `navigation/anchor` — each child path arrives as a `{ value }` node */
+interface AnchorStatusResponse {
+  position?: { value?: SKPosition };
+  maxRadius?: { value?: number };
+  currentRadius?: { value?: number };
+}
 
 @Injectable({ providedIn: 'root' })
 export class AnchorService {
@@ -72,7 +79,7 @@ export class AnchorService {
     this.app.debug('Retrieving anchor status...');
     context = !context || context === 'self' ? 'vessels/self' : context;
     this.signalk.api.get(`/${context}/navigation/anchor`).subscribe(
-      (r: any) => {
+      (r: AnchorStatusResponse) => {
         const pos: Position = r.position?.value
           ? [r.position.value.longitude, r.position.value.latitude]
           : null;
