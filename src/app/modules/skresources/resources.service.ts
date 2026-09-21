@@ -1,4 +1,11 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import {
+  computed,
+  effect,
+  inject,
+  Injectable,
+  signal,
+  untracked
+} from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { ComponentType } from '@angular/cdk/portal';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -52,6 +59,7 @@ import {
   Regions,
   ChartResource,
   ChartImageAdjustment,
+  ChartTimeDimension,
   ChartTimeLoopOffsets,
   PalettePosition,
   FBChart,
@@ -83,7 +91,13 @@ import {
   ImageAdjustmentDialog,
   ImageAdjustmentDialogResult
 } from 'src/app/lib/components';
-import { chartTimeline, isChartTimeInstant } from 'src/app/lib/chart-time';
+import {
+  chartRefreshIntervalMs,
+  chartTimeFollowingHead,
+  chartTimeline,
+  chartTimelineHeadMs,
+  isChartTimeInstant
+} from 'src/app/lib/chart-time';
 
 export type SKResourceType =
   'routes' | 'waypoints' | 'regions' | 'notes' | 'charts' | 'tracks';
@@ -143,6 +157,12 @@ export class SKResourceService {
     this.worker
       .resource$()
       .subscribe((msg: PathValue[]) => this.processResourceMessage(msg));
+    // The displayed-chart set is the trigger; the followers are the side
+    // effect (see the lessons log on effects that write and read one signal).
+    effect(() => {
+      const charts = this.chartCacheSignal();
+      untracked(() => this.syncChartTimeFollowers(charts));
+    });
   }
 
   // ******** Resource selections management ********************
@@ -581,6 +601,21 @@ export class SKResourceService {
 
   private chartCacheSignal = signal<FBCharts>([]);
   readonly charts = this.chartCacheSignal.asReadonly();
+
+  // One follower of the timeline head per displayed time-varying chart with a
+  // refresh interval (see chartFollowTimelineHead). `head` is the head's
+  // instant (ms) as last seen, which the chart's selected instant keeps its
+  // offset from.
+  private chartTimeFollowers = new Map<
+    string,
+    {
+      interval: number;
+      head: number;
+      timer: ReturnType<typeof setInterval>;
+      // When the re-read in progress started, or null when none is.
+      pending: number | null;
+    }
+  >();
 
   /**
    * @description Add OSM charts to supplied chart list
@@ -1036,6 +1071,150 @@ export class SKResourceService {
         return [c[0], updated, c[2]];
       });
     });
+    // A new selection is relative to the head as it is now, not as the
+    // follower last saw it (up to one interval ago).
+    const follower = this.chartTimeFollowers.get(id);
+    const timeline = follower ? chartTimeline(entry[1].time) : null;
+    if (timeline) {
+      follower.head = chartTimelineHeadMs(timeline);
+    }
+  }
+
+  /**
+   * @description Keep a follower of the timeline head for every displayed
+   * time-varying chart with a refresh interval, and drop the rest -- a chart
+   * taken off the map, or whose interval changed (its follower restarts on
+   * the new cadence). The follower is what a `refreshInterval` means for a
+   * chart showing a past frame: the layer's own tile refresh only re-requests
+   * the live frame, so without it an archival chart (IEM's NEXRAD WMS-T,
+   * whose default is a fixed day in 2011) would show the frame it opened on
+   * for ever while the server kept adding newer ones.
+   * @param charts The displayed-chart set
+   */
+  private syncChartTimeFollowers(charts: FBCharts) {
+    const wanted = new Map<string, FBChart>();
+    charts.forEach((c: FBChart) => {
+      if (
+        this.chartIsTemporal(c) &&
+        chartRefreshIntervalMs(c[1].refreshInterval) !== undefined
+      ) {
+        wanted.set(c[0], c);
+      }
+    });
+    this.chartTimeFollowers.forEach((follower, id) => {
+      const interval = chartRefreshIntervalMs(
+        wanted.get(id)?.[1].refreshInterval
+      );
+      if (interval !== follower.interval) {
+        clearInterval(follower.timer);
+        this.chartTimeFollowers.delete(id);
+      }
+    });
+    wanted.forEach((c: FBChart, id: string) => {
+      if (this.chartTimeFollowers.has(id)) {
+        return;
+      }
+      const interval = chartRefreshIntervalMs(c[1].refreshInterval);
+      this.chartTimeFollowers.set(id, {
+        interval,
+        // A chart enters the cache when it is displayed, on the head
+        // (initialChartTime) unless it carries a selection over.
+        head: chartTimelineHeadMs(chartTimeline(c[1].time)),
+        timer: setInterval(() => this.chartFollowTimelineHead(id), interval),
+        pending: null
+      });
+    });
+  }
+
+  /**
+   * @description One refresh tick of a time-varying chart: re-read its
+   * resource so the timeline reflects the frames the provider offers now (a
+   * `values` list grows, a rolling `from`/`to` moves on -- the copy taken
+   * when the chart was listed never would), then advance the selected
+   * instant by however far the head has moved, keeping its offset from the
+   * head: a chart on the newest frame stays on the newest frame, one an hour
+   * behind stays an hour behind. A chart showing its live frame is left to
+   * the layer's own tile refresh; a re-read that fails (offline) still
+   * follows the head of the timeline already held, which on an open-ended
+   * range moves by the clock.
+   * @param id Chart identifier
+   */
+  public async chartFollowTimelineHead(id: string) {
+    const follower = this.chartTimeFollowers.get(id);
+    if (!follower) {
+      return;
+    }
+    // One re-read at a time; one that has been out for a whole interval is
+    // given up on (a request has no timeout of its own), so a stalled
+    // connection cannot hold the chart on a stale frame for ever.
+    const started = Date.now();
+    if (
+      follower.pending !== null &&
+      started - follower.pending < follower.interval
+    ) {
+      return;
+    }
+    follower.pending = started;
+    try {
+      const fresh = await Promise.race([
+        this.fromServer('charts', id),
+        new Promise<undefined>((resolve) =>
+          setTimeout(() => resolve(undefined), follower.interval)
+        )
+      ]);
+      if (fresh) {
+        this.chartSetTimeDimension(id, fresh.time);
+      }
+    } catch (err) {
+      this.app.debug(`** chartFollowTimelineHead(${id}): re-read failed`, err);
+    } finally {
+      if (follower.pending === started) {
+        follower.pending = null;
+      }
+    }
+    if (!this.chartTimeFollowers.has(id)) {
+      // Taken off the map, or no longer temporal, while the re-read ran.
+      return;
+    }
+    const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
+    const timeline = entry ? chartTimeline(entry[1].time) : null;
+    if (!timeline) {
+      return;
+    }
+    const time = entry[1].timeValue;
+    if (typeof time !== 'string') {
+      follower.head = chartTimelineHeadMs(timeline);
+      return;
+    }
+    const next = chartTimeFollowingHead(timeline, time, follower.head);
+    follower.head = next.head;
+    if (next.time !== time) {
+      this.chartSetTime(id, next.time);
+    }
+  }
+
+  /**
+   * @description Replace a displayed chart's time dimension with a freshly
+   * read one, when it differs. Session state like the selected instant is
+   * kept; the Time palette and the layer follow the cache.
+   * @param id Chart identifier
+   * @param time The time dimension as the server states it now
+   */
+  private chartSetTimeDimension(id: string, time?: ChartTimeDimension) {
+    const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
+    if (!entry || JSON.stringify(entry[1].time) === JSON.stringify(time)) {
+      return;
+    }
+    this.chartCacheSignal.update((current: FBCharts) => {
+      return current.map((c: FBChart) => {
+        if (c[0] !== id) {
+          return c;
+        }
+        const updated = new SKChart(c[1]);
+        updated.time = time;
+        return [c[0], updated, c[2]];
+      });
+    });
   }
 
   /**
@@ -1101,9 +1280,15 @@ export class SKResourceService {
         width: '320px',
         data: {
           text: chart[1]?.name ?? '',
-          dimension: chart[1]?.time,
-          // Read live: the value can move under the palette (an extension
-          // retargeting the chart) and the readout must follow it.
+          // Read live: the dimension is re-read from the server on each
+          // refresh tick (the frames a provider offers move on), and the
+          // value can move under the palette (a refresh advancing it, an
+          // extension retargeting the chart) -- the bar must follow both.
+          dimension: computed(
+            () =>
+              this.chartCacheSignal().find((c: FBChart) => c[0] === id)?.[1]
+                ?.time
+          ),
           value: computed(
             () =>
               this.chartCacheSignal().find((c: FBChart) => c[0] === id)?.[1]

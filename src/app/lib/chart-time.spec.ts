@@ -1,8 +1,14 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
+  MAX_CHART_REFRESH_INTERVAL_MS,
+  MIN_CHART_REFRESH_INTERVAL_MS,
+  chartRefreshIntervalMs,
+  chartTimeFollowingHead,
   chartTimeFromCapabilities,
   chartTimeTileUrl,
   chartTimeline,
+  chartTimelineHead,
+  chartTimelineHeadMs,
   chartTimelineInstant,
   chartTimelinePosition,
   initialChartTime,
@@ -314,5 +320,115 @@ describe('chartTimeFromCapabilities', () => {
     expect(
       chartTimeFromCapabilities({ values: [T0, T1, T2], current: T0 })?.current
     ).toBe(false);
+  });
+});
+
+describe('chartRefreshIntervalMs', () => {
+  it('clamps a usable interval and rejects the rest', () => {
+    expect(chartRefreshIntervalMs(300000)).toBe(300000);
+    expect(chartRefreshIntervalMs(1000)).toBe(MIN_CHART_REFRESH_INTERVAL_MS);
+    expect(chartRefreshIntervalMs(2 ** 40)).toBe(MAX_CHART_REFRESH_INTERVAL_MS);
+    expect(chartRefreshIntervalMs(0)).toBeUndefined();
+    expect(chartRefreshIntervalMs(-5)).toBeUndefined();
+    expect(chartRefreshIntervalMs(NaN)).toBeUndefined();
+    expect(chartRefreshIntervalMs(undefined)).toBeUndefined();
+  });
+});
+
+describe('the timeline head', () => {
+  // A range running past now, as IEM's NEXRAD WMS-T declares: the head is
+  // the newest grid instant at or before now, and moves by the clock.
+  const open = chartTimeline({
+    current: false,
+    from: T0,
+    to: '2026-12-31T00:00:00.000Z',
+    step: STEP
+  });
+  const at = (ms: number) => new Date(ms).toISOString();
+  const T3 = '2026-09-18T12:15:00.000Z';
+
+  it('is the newest frame that can exist now', () => {
+    expect(chartTimelineHead(open)).toBe(Date.parse(T1));
+    expect(chartTimelineHeadMs(open)).toBe(Date.parse(T1));
+    const listed = chartTimeline({ current: true, values: [T0, T1, T2] });
+    expect(chartTimelineHead(listed)).toBe(1);
+    expect(chartTimelineHeadMs(listed)).toBe(Date.parse(T1));
+  });
+
+  it('leaves a selection alone while the head has not moved', () => {
+    const head = chartTimelineHeadMs(open);
+    const same = chartTimeFollowingHead(open, T0, head);
+    expect(same.time).toBe(T0);
+    expect(same.head).toBe(head);
+  });
+
+  it('keeps a chart on the newest frame as the head advances', () => {
+    const head = chartTimelineHeadMs(open);
+    vi.setSystemTime(new Date(Date.parse(T2) + 30000));
+    expect(chartTimeFollowingHead(open, T1, head)).toEqual({
+      time: T2,
+      head: Date.parse(T2)
+    });
+  });
+
+  it('keeps a scrubbed chart at its offset from the head', () => {
+    const archive = chartTimeline({
+      current: false,
+      from: '2026-09-01T00:00:00.000Z',
+      to: '2026-12-31T00:00:00.000Z',
+      step: STEP
+    });
+    const head = chartTimelineHeadMs(archive);
+    // Two frames behind the head; the clock moves on two frames.
+    vi.setSystemTime(new Date(Date.parse(T3) + 30000));
+    const next = chartTimeFollowingHead(
+      archive,
+      at(Date.parse(T1) - 2 * STEP),
+      head
+    );
+    expect(next.time).toBe(at(Date.parse(T3) - 2 * STEP));
+    expect(next.head).toBe(Date.parse(T3));
+  });
+
+  it('lands on the timeline as it is now', () => {
+    // A re-read `values` list that dropped its oldest frame while gaining one:
+    // the head is still the last index, but it is a newer frame. A selection
+    // on the dropped frame lands the same distance behind the new head.
+    const before = chartTimeline({ current: true, values: [T0, T1] });
+    const head = chartTimelineHeadMs(before);
+    vi.setSystemTime(new Date(Date.parse(T2) + 30000));
+    const after = chartTimeline({ current: true, values: [T1, T2] });
+    expect(chartTimeFollowingHead(after, T0, head)).toEqual({
+      time: T1,
+      head: Date.parse(T2)
+    });
+    expect(chartTimeFollowingHead(after, T1, head).time).toBe(T2);
+  });
+
+  it('never moves on a fixed timeline', () => {
+    const listed = chartTimeline({ current: true, values: [T0, T1] });
+    const ended = chartTimeline({
+      current: true,
+      from: T0,
+      to: T1,
+      step: STEP
+    });
+    const listedHead = chartTimelineHeadMs(listed);
+    const endedHead = chartTimelineHeadMs(ended);
+    vi.setSystemTime(new Date('2026-09-19T12:00:00.000Z'));
+    expect(chartTimeFollowingHead(listed, T0, listedHead).time).toBe(T0);
+    expect(chartTimeFollowingHead(ended, T0, endedHead).time).toBe(T0);
+  });
+
+  it('clamps a selection ahead of the head to the end of the timeline', () => {
+    const short = chartTimeline({
+      current: false,
+      from: T0,
+      to: T3,
+      step: STEP
+    });
+    const head = chartTimelineHeadMs(short);
+    vi.setSystemTime(new Date(Date.parse(T3) + 30000));
+    expect(chartTimeFollowingHead(short, T2, head).time).toBe(T3);
   });
 });

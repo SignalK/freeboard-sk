@@ -31,6 +31,7 @@ import {
   ChartTimeline,
   chartTimeMs,
   chartTimeline,
+  chartTimelineHeadMs,
   chartTimelineInstant,
   chartTimelinePosition,
   nextChartPlaybackTime,
@@ -39,9 +40,12 @@ import {
 
 export interface ChartTimeDialogData {
   text: string;
-  dimension?: ChartTimeDimension;
+  // The chart's time dimension, read live: a refresh tick re-reads it from
+  // the server, and the frames a provider offers move on.
+  dimension?: Signal<ChartTimeDimension | undefined>;
   // The instant the chart is showing, read live: it can move under the
-  // palette (an extension retargeting the chart) and the readout follows.
+  // palette (a refresh advancing it, an extension retargeting the chart) and
+  // the readout follows.
   value: Signal<string | null>;
   onChange: (value: string | null) => void;
   // Remembered loop range for this chart, and where the palette was dragged.
@@ -146,6 +150,56 @@ export function chartTimeWindowEnd(
     );
   }
   return end;
+}
+
+/**
+ * The palette's bearings on a timeline whose head moves: the head's instant
+ * (ms) as last seen -- what the loop offsets are measured back from -- and
+ * the window end and loop bounds as timeline positions.
+ */
+export interface ChartTimeHeadState {
+  head: number;
+  windowEnd: number;
+  loopStart: number | null;
+  loopEnd: number | null;
+}
+
+/**
+ * The palette's bearings after the timeline head moved on from `state.head`
+ * (a chart with a refresh interval follows new frames, and the timeline
+ * itself is re-read): a window that ended at the head ends at the new one,
+ * and the loop -- measured back from the head -- slides the same distance,
+ * so "the last hour" stays the last hour as frames arrive. A window scrubbed
+ * elsewhere in the archive, and the loop inside it, stay put. The same
+ * object comes back while the head has not moved. `state`'s positions are
+ * on `previous`, the timeline as it was when they were taken (a re-read
+ * `values` list renumbers its frames); the result's are on `timeline`.
+ */
+export function chartTimeStateFollowingHead(
+  timeline: ChartTimeline,
+  state: ChartTimeHeadState,
+  previous: ChartTimeline = timeline
+): ChartTimeHeadState {
+  const head = chartTimelineHeadMs(timeline);
+  if (!(head > state.head)) {
+    return state;
+  }
+  const at = (position: number) =>
+    chartTimeMs(chartTimelineInstant(previous, position));
+  const to = (ms: number) =>
+    chartTimelinePosition(timeline, new Date(ms).toISOString());
+  if (at(state.windowEnd) < state.head) {
+    return { ...state, head };
+  }
+  const moved = head - state.head;
+  const slide = (position: number | null) =>
+    position === null ? null : to(at(position) + moved);
+  return {
+    head,
+    windowEnd: to(at(state.windowEnd) + moved),
+    loopStart: slide(state.loopStart),
+    loopEnd: slide(state.loopEnd)
+  };
 }
 
 /** The loop a chart opens with: the last hour of frames up to the newest. */
@@ -365,7 +419,7 @@ export function chartTimeShortLabel(time: string | null): string {
         {{ valueText() }}
       </div>
 
-      @if (timeline) {
+      @if (timeline(); as timeline) {
         <ap-chart-time-bar
           style="padding: 4px 4px 0"
           [min]="window().min"
@@ -409,7 +463,7 @@ export function chartTimeShortLabel(time: string | null): string {
           mat-icon-button
           aria-label="Previous frame"
           matTooltip="Previous frame"
-          [disabled]="!timeline"
+          [disabled]="!timeline()"
           (click)="step(-1)"
         >
           <mat-icon>navigate_before</mat-icon>
@@ -418,7 +472,7 @@ export function chartTimeShortLabel(time: string | null): string {
           mat-icon-button
           [attr.aria-label]="playing() ? 'Pause' : 'Play'"
           [matTooltip]="playing() ? 'Pause' : 'Play'"
-          [disabled]="!timeline"
+          [disabled]="!timeline()"
           (click)="togglePlay()"
         >
           <mat-icon>{{ playing() ? 'pause' : 'play_arrow' }}</mat-icon>
@@ -427,13 +481,13 @@ export function chartTimeShortLabel(time: string | null): string {
           mat-icon-button
           aria-label="Next frame"
           matTooltip="Next frame"
-          [disabled]="!timeline || (data.value() === null && current)"
+          [disabled]="!timeline() || (data.value() === null && current())"
           (click)="step(1)"
         >
           <mat-icon>navigate_next</mat-icon>
         </button>
         <span style="flex: 1 1 auto"></span>
-        @if (current) {
+        @if (current()) {
           <button
             mat-button
             matTooltip="Return to the live frame"
@@ -451,35 +505,37 @@ export class ChartTimeDialog implements OnDestroy {
   protected dialogRef = inject(MatDialogRef<ChartTimeDialog, void>);
   protected data = inject<ChartTimeDialogData>(MAT_DIALOG_DATA);
 
-  protected readonly timeline: ChartTimeline | null = chartTimeline(
-    this.data.dimension
+  // Rebuilt as the dimension is re-read: a refresh tick can bring frames
+  // that were not there when the palette opened.
+  protected readonly timeline = computed<ChartTimeline | null>(() =>
+    chartTimeline(this.data.dimension?.())
   );
   // Whether the source serves a live frame, so "live" is somewhere to go.
-  protected readonly current = this.data.dimension?.current !== false;
+  protected readonly current = computed(
+    () => this.data.dimension?.()?.current !== false
+  );
 
   protected playing = signal(false);
   protected speed = signal<ChartTimePlaybackSpeed>('medium');
   private playTimer?: ReturnType<typeof setInterval>;
 
-  protected position = computed(() =>
-    this.timeline ? chartTimelinePosition(this.timeline, this.data.value()) : 0
-  );
+  protected position = computed(() => {
+    const timeline = this.timeline();
+    return timeline ? chartTimelinePosition(timeline, this.data.value()) : 0;
+  });
 
   // Timeline position the bar's window ends at. It opens at the newest frame
   // when the shown instant is near it (else at the shown instant) and follows
   // the instant when it leaves the window -- by stepping, playback or an
   // extension retargeting it.
-  private windowEnd = signal(
-    this.timeline
-      ? initialChartTimeWindowEnd(this.timeline, this.position())
-      : 0
-  );
+  private windowEnd = signal(this.initialWindowEnd());
 
-  protected window = computed(() =>
-    this.timeline
-      ? chartTimeWindow(this.timeline, this.windowEnd())
-      : { min: 0, max: 0 }
-  );
+  protected window = computed(() => {
+    const timeline = this.timeline();
+    return timeline
+      ? chartTimeWindow(timeline, this.windowEnd())
+      : { min: 0, max: 0 };
+  });
 
   // Stable reference so cdkDragFreeDragPosition isn't re-applied (and the
   // palette reset to origin) on every change-detection pass.
@@ -488,17 +544,14 @@ export class ChartTimeDialog implements OnDestroy {
     y: 0
   };
 
-  // The newest frame when the palette opened, in ms: what the remembered loop
-  // offsets are measured back from -- never the shown instant, or reopening
-  // while scrubbed would shift the remembered range.
-  private latestMs = this.timeline
-    ? chartTimeMs(
-        chartTimelineInstant(
-          this.timeline,
-          chartTimelinePosition(this.timeline, null)
-        )
-      )
-    : 0;
+  // The newest frame as last seen, in ms: what the remembered loop offsets
+  // are measured back from -- never the shown instant, or reopening while
+  // scrubbed would shift the remembered range. Moves on with the head (see
+  // followHead), never with the selection.
+  private latestMs = this.initialLatestMs();
+  // The timeline the window and loop positions were taken on: a re-read
+  // `values` list renumbers its frames.
+  private seenTimeline: ChartTimeline | null = this.timeline();
 
   // Loop bounds as timeline positions, opening on the remembered range (the
   // last hour by default) measured back from the newest frame.
@@ -510,32 +563,65 @@ export class ChartTimeDialog implements OnDestroy {
   );
   protected loopText = computed(() => {
     const range = this.loopRange();
-    return this.timeline
-      ? `${chartTimeShortLabel(chartTimelineInstant(this.timeline, range.min))} → ` +
-          chartTimeShortLabel(chartTimelineInstant(this.timeline, range.max))
+    const timeline = this.timeline();
+    return timeline
+      ? `${chartTimeShortLabel(chartTimelineInstant(timeline, range.min))} → ` +
+          chartTimeShortLabel(chartTimelineInstant(timeline, range.max))
       : '';
   });
 
   protected valueText = computed(() => chartTimeLabel(this.data.value()));
 
-  protected thumbLabel = (position: number): string =>
-    this.timeline
-      ? chartTimeShortLabel(chartTimelineInstant(this.timeline, position))
+  protected thumbLabel = (position: number): string => {
+    const timeline = this.timeline();
+    return timeline
+      ? chartTimeShortLabel(chartTimelineInstant(timeline, position))
       : '';
+  };
 
   constructor() {
-    // The trigger is the shown instant; moving the window is the side effect
-    // (see the lessons log on effects that write and read the same signal).
+    // The trigger is the shown instant (on the timeline as it is now); moving
+    // the window is the side effect (see the lessons log on effects that
+    // write and read the same signal).
     effect(() => {
       const position = this.position();
       untracked(() => {
-        if (this.timeline) {
+        const timeline = this.timeline();
+        if (timeline) {
+          this.followHead(timeline);
           this.windowEnd.set(
-            chartTimeWindowEnd(this.timeline, this.windowEnd(), position)
+            chartTimeWindowEnd(timeline, this.windowEnd(), position)
           );
         }
       });
     });
+  }
+
+  /**
+   * Slide the window and loop along with the head when it has moved on since
+   * last seen -- a chart with a refresh interval follows new frames, and the
+   * selection arriving here is what triggers the check.
+   */
+  private followHead(timeline: ChartTimeline) {
+    const before: ChartTimeHeadState = {
+      head: this.latestMs,
+      windowEnd: this.windowEnd(),
+      loopStart: this.loopStart(),
+      loopEnd: this.loopEnd()
+    };
+    const after = chartTimeStateFollowingHead(
+      timeline,
+      before,
+      this.seenTimeline ?? timeline
+    );
+    this.seenTimeline = timeline;
+    if (after === before) {
+      return;
+    }
+    this.latestMs = after.head;
+    this.windowEnd.set(after.windowEnd);
+    this.loopStart.set(after.loopStart);
+    this.loopEnd.set(after.loopEnd);
   }
 
   ngOnDestroy() {
@@ -544,39 +630,43 @@ export class ChartTimeDialog implements OnDestroy {
 
   /** The frame cadence, for the caption; the range itself is on the bar. */
   protected rangeText(): string {
-    if (!this.timeline) {
+    const timeline = this.timeline();
+    if (!timeline) {
       return 'no frames advertised';
     }
-    if (this.timeline.frames) {
-      return `${this.timeline.frames.length} frames`;
+    if (timeline.frames) {
+      return `${timeline.frames.length} frames`;
     }
-    return `every ${chartTimeStepLabel(this.timeline.step)}`;
+    return `every ${chartTimeStepLabel(timeline.step)}`;
   }
 
   protected onScrub(position: number) {
-    if (!this.timeline) {
+    const timeline = this.timeline();
+    if (!timeline) {
       return;
     }
     this.stopPlayback();
-    this.data.onChange(chartTimelineInstant(this.timeline, position));
+    this.data.onChange(chartTimelineInstant(timeline, position));
   }
 
   protected step(direction: -1 | 1) {
-    if (!this.timeline) {
+    const timeline = this.timeline();
+    if (!timeline) {
       return;
     }
     this.stopPlayback();
     this.data.onChange(
-      stepChartTime(this.timeline, this.data.value(), direction, this.current)
+      stepChartTime(timeline, this.data.value(), direction, this.current())
     );
   }
 
   protected onLoop(loop: ChartTimeLoop) {
     this.loopStart.set(loop.min);
     this.loopEnd.set(loop.max);
-    if (this.timeline && typeof this.data.onLoopChange === 'function') {
+    const timeline = this.timeline();
+    if (timeline && typeof this.data.onLoopChange === 'function') {
       this.data.onLoopChange(
-        chartTimeLoopToOffsets(this.timeline, this.latestMs, loop)
+        chartTimeLoopToOffsets(timeline, this.latestMs, loop)
       );
     }
   }
@@ -587,11 +677,22 @@ export class ChartTimeDialog implements OnDestroy {
     }
   }
 
+  private initialWindowEnd(): number {
+    const timeline = this.timeline();
+    return timeline ? initialChartTimeWindowEnd(timeline, this.position()) : 0;
+  }
+
+  private initialLatestMs(): number {
+    const timeline = this.timeline();
+    return timeline ? chartTimelineHeadMs(timeline) : 0;
+  }
+
   /** The remembered (or default) loop for the window the palette opened on. */
   private initialLoop(): { min: number; max: number } {
-    return this.timeline
+    const timeline = this.timeline();
+    return timeline
       ? chartTimeLoopFromOffsets(
-          this.timeline,
+          timeline,
           this.window(),
           this.latestMs,
           this.data.loop ?? DEFAULT_CHART_TIME_LOOP
@@ -609,7 +710,7 @@ export class ChartTimeDialog implements OnDestroy {
       this.stopPlayback();
       return;
     }
-    if (!this.timeline) {
+    if (!this.timeline()) {
       return;
     }
     this.playing.set(true);
@@ -635,13 +736,10 @@ export class ChartTimeDialog implements OnDestroy {
 
   /** One playback step over the loop (by default the frames the bar shows). */
   private tick() {
-    if (this.timeline) {
+    const timeline = this.timeline();
+    if (timeline) {
       this.data.onChange(
-        nextChartPlaybackTime(
-          this.timeline,
-          this.data.value(),
-          this.loopRange()
-        )
+        nextChartPlaybackTime(timeline, this.data.value(), this.loopRange())
       );
     }
   }
