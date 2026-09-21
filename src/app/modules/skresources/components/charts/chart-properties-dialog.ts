@@ -25,6 +25,11 @@ import {
   WMTSLayerDef
 } from './maplib';
 import { chartTimeFromCapabilities } from 'src/app/lib/chart-time';
+import {
+  isWholeMinutes,
+  refreshIntervalFromMinutes,
+  refreshIntervalMinutes
+} from 'src/app/lib/chart-refresh';
 import { ChartTimeDimension } from 'src/app/types';
 import { NodeTreeSelect } from './node-tree-select';
 import { NodeListSelect } from './node-list-select';
@@ -102,6 +107,33 @@ import { NodeListSelect } from './node-list-select';
             <div style="display:flex;">
               <div class="key-label">Opacity:</div>
               <div style="flex: 1 1 auto;">{{ data.defaultOpacity }}</div>
+            </div>
+          }
+          @if (isEditable() && supportsRefresh()) {
+            <div style="display:flex;">
+              <div class="key-label">Auto refresh:</div>
+              <div style="flex: 1 1 auto;">
+                <mat-form-field floatLabel="always" style="width:100%">
+                  <mat-label>Refresh interval (minutes)</mat-label>
+                  <input
+                    matInput
+                    #inprefresh="ngModel"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [(ngModel)]="refreshMinutes"
+                  />
+                  <mat-hint>0 = never refresh</mat-hint>
+                  @if (inprefresh.invalid) {
+                    <mat-error>Enter 0 or a whole number of minutes.</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+            </div>
+          } @else if (refreshMinutes > 0) {
+            <div style="display:flex;">
+              <div class="key-label">Auto refresh:</div>
+              <div style="flex: 1 1 auto;">every {{ refreshMinutes }} min</div>
             </div>
           }
           <div style="display:flex;">
@@ -234,6 +266,7 @@ import { NodeListSelect } from './node-list-select';
             mat-flat-button
             [disabled]="
               inpname.invalid ||
+              refreshInvalid() ||
               (['wms', 'wmts'].includes(data.type.toLowerCase()) &&
                 data.layers.length === 0)
             "
@@ -285,6 +318,9 @@ export class ChartPropertiesDialog {
     }>
   >([]);
   protected isEditable = signal<boolean>(false);
+  // Auto-refresh cadence as the user edits it. The resource stores
+  // milliseconds; the field is in whole minutes, 0 meaning never.
+  protected refreshMinutes = 0;
   protected layerErrorText = '';
   private capabilities!: WMTSCapabilitiesDef | WMSCapabilitiesDef;
 
@@ -306,6 +342,20 @@ export class ChartPropertiesDialog {
     if (this.data.source?.toLowerCase() === 'resources-provider') {
       this.isEditable.set(true);
     }
+    this.refreshMinutes = refreshIntervalMinutes(this.data.refreshInterval);
+  }
+
+  /**
+   * Only raster charts are auto-refreshed (see `ChartResource.refreshInterval`),
+   * so a Mapbox-style vector source gets no interval field.
+   */
+  protected supportsRefresh(): boolean {
+    return this.data.type?.toLowerCase() !== 'mapstylejson';
+  }
+
+  /** A blank field means never; anything else must be whole, non-negative minutes. */
+  protected refreshInvalid(): boolean {
+    return !isWholeMinutes(this.refreshMinutes);
   }
 
   ngOnInit() {
@@ -378,6 +428,16 @@ export class ChartPropertiesDialog {
   }
 
   protected handleClose(save: boolean) {
+    if (save && this.isEditable() && this.supportsRefresh()) {
+      // Leave the key off the resource when the chart does not refresh, the
+      // same as a provider that never declared one.
+      const iv = refreshIntervalFromMinutes(this.refreshMinutes);
+      if (iv === undefined) {
+        delete this.data.refreshInterval;
+      } else {
+        this.data.refreshInterval = iv;
+      }
+    }
     this.dialogRef.close({
       save: save,
       chart: this.data

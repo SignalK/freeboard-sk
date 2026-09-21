@@ -15,7 +15,9 @@ import {
   normaliseStyleForOl,
   resolveLayerMaxZoom,
   resolveLayerZoomRange,
-  startChartTileRefresh
+  startChartTileRefresh,
+  cacheBustTileUrl,
+  CHART_REFRESH_URL_PARAM
 } from './chart-utils';
 
 import LayerGroup from 'ol/layer/Group';
@@ -730,6 +732,72 @@ describe('startChartTileRefresh', () => {
     expect(src.getKey()).toBe(initialKey); // has not fired before the cap
     vi.advanceTimersByTime(1);
     expect(src.getKey()).not.toBe(initialKey); // fires at the cap
+  });
+
+  // #783: rotating the key alone re-requests the same URL, which Chrome serves
+  // back from its in-memory image cache for the life of the page even when the
+  // server sent no caching headers -- so the refresh showed the old frame on
+  // public WMS servers (IEM NEXRAD). Each tick must change the URL itself.
+  describe('cache-busts the tile URL', () => {
+    const tileUrl = (src: XYZ) =>
+      src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection());
+    const param = (url: string) =>
+      new URL(url).searchParams.get(CHART_REFRESH_URL_PARAM);
+
+    it('leaves the URL alone until the first tick, then stamps a fresh key on each', () => {
+      vi.useFakeTimers();
+      const src = source();
+      const interval = 2 * MIN_CHART_REFRESH_INTERVAL_MS;
+
+      startChartTileRefresh(src, interval);
+      expect(tileUrl(src)).toBe('https://example.test/3/1/2.png');
+
+      vi.advanceTimersByTime(interval);
+      const first = tileUrl(src);
+      expect(first.startsWith('https://example.test/3/1/2.png?')).toBe(true);
+      expect(param(first)).toBe(src.getKey());
+
+      vi.advanceTimersByTime(interval);
+      const second = tileUrl(src);
+      expect(second).not.toBe(first);
+      expect(param(second)).toBe(src.getKey());
+    });
+
+    it('appends to an existing query string and never stacks the parameter', () => {
+      vi.useFakeTimers();
+      const src = new XYZ({
+        url: 'https://wms.test/ows?SERVICE=WMS&LAYERS=radar&BBOX={x},{y},{z}'
+      });
+      const interval = MIN_CHART_REFRESH_INTERVAL_MS;
+
+      // Two timers on the same source, as a restart with a new interval leaves
+      // behind when it wraps whatever URL function the source currently has.
+      startChartTileRefresh(src, interval);
+      vi.advanceTimersByTime(interval);
+      startChartTileRefresh(src, interval);
+      vi.advanceTimersByTime(interval * 3);
+
+      const url = new URL(tileUrl(src));
+      expect(url.searchParams.get('SERVICE')).toBe('WMS');
+      expect(url.searchParams.get('LAYERS')).toBe('radar');
+      expect(url.searchParams.getAll(CHART_REFRESH_URL_PARAM)).toHaveLength(1);
+    });
+
+    it('cacheBustTileUrl keeps an absent tile absent', () => {
+      expect(cacheBustTileUrl(undefined, '1')).toBeUndefined();
+      expect(cacheBustTileUrl('https://t.test/1.png', '7')).toBe(
+        `https://t.test/1.png?${CHART_REFRESH_URL_PARAM}=7`
+      );
+    });
+
+    it('cacheBustTileUrl puts the key before a fragment, which is never sent', () => {
+      expect(cacheBustTileUrl('https://t.test/1.png#frag', '7')).toBe(
+        `https://t.test/1.png?${CHART_REFRESH_URL_PARAM}=7#frag`
+      );
+      expect(cacheBustTileUrl('https://t.test/ows?a=1#frag', '7')).toBe(
+        `https://t.test/ows?a=1&${CHART_REFRESH_URL_PARAM}=7#frag`
+      );
+    });
   });
 });
 

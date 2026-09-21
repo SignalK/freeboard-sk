@@ -556,12 +556,20 @@ export const MAX_CHART_REFRESH_INTERVAL_MS = 2147483647;
  * `LOADED`. A failed or offline refresh therefore just leaves the current frame
  * in place, silently, and the next tick tries again.
  *
+ * Each tick also stamps the tile URL with a `_refresh=<key>` query parameter
+ * ({@link cacheBustTileUrl}). Rotating the key alone re-requests the *same*
+ * URL, and Chrome serves an image it already holds straight back from its
+ * in-memory cache for the life of the page — even when the server sent no
+ * caching headers at all (IEM's NEXRAD WMS, for one) — so the "refresh" shows
+ * the old frame. A user adding a public WMS/WMTS cannot make the server send
+ * `Cache-Control: no-cache`; a changed URL is the one thing that works
+ * everywhere. Servers ignore unknown query parameters, and re-fetching every
+ * tile on each tick is what the interval asks for anyway.
+ *
  * The interval is clamped to [{@link MIN_CHART_REFRESH_INTERVAL_MS},
  * {@link MAX_CHART_REFRESH_INTERVAL_MS}]. An absent, non-finite or non-positive
  * interval, or a source that is not URL-based, installs no timer (returns a
- * no-op), so static charts are unaffected. Because the tile URL itself does not
- * change, the tile server must send `Cache-Control: no-cache` (or a `max-age`
- * below the interval) or the browser will serve the cached image back.
+ * no-op), so static charts are unaffected.
  */
 export function startChartTileRefresh(
   source: TileSource | null | undefined,
@@ -585,10 +593,50 @@ export function startChartTileRefresh(
     );
   }
   const timer = setInterval(() => {
-    // Same URL function, new key — rotates the tile cache key non-destructively.
-    source.setTileUrlFunction(source.getTileUrlFunction(), String(Date.now()));
+    // Cache-busted URL function, new key -- rotates the tile cache key
+    // non-destructively. Wrap the source's own URL builder (never a previous
+    // tick's wrapper, or the parameter would stack), so LAYERS / TIME changes
+    // made on the source since the last tick are still honoured.
+    const current = source.getTileUrlFunction();
+    const base = refreshWrapperBase.get(current) ?? current;
+    const key = String(Date.now());
+    const wrapped: UrlFunction = (tileCoord, pixelRatio, projection) =>
+      cacheBustTileUrl(base(tileCoord, pixelRatio, projection), key);
+    refreshWrapperBase.set(wrapped, base);
+    source.setTileUrlFunction(wrapped, key);
   }, interval);
   return () => clearInterval(timer);
+}
+
+/** Query parameter a refresh tick stamps on every tile URL. */
+export const CHART_REFRESH_URL_PARAM = '_refresh';
+
+/**
+ * A tile URL function installed by a refresh tick, mapped to the source's own
+ * URL function it wraps, so the next tick (or a restart with a new interval)
+ * wraps the original rather than stacking wrappers.
+ */
+const refreshWrapperBase = new WeakMap<UrlFunction, UrlFunction>();
+
+/**
+ * The tile URL with a refresh key appended as a query parameter, so the
+ * browser treats it as a new resource rather than reusing the image it cached
+ * for the previous tick. The parameter goes before any `#` fragment -- a
+ * fragment is never sent, so a key placed after it would change nothing. An
+ * undefined URL (no tile there) stays undefined.
+ */
+export function cacheBustTileUrl(
+  url: string | undefined,
+  key: string
+): string | undefined {
+  if (!url) {
+    return url;
+  }
+  const hash = url.indexOf('#');
+  const base = hash === -1 ? url : url.slice(0, hash);
+  const fragment = hash === -1 ? '' : url.slice(hash);
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}${CHART_REFRESH_URL_PARAM}=${key}${fragment}`;
 }
 
 /**
