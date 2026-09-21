@@ -277,6 +277,7 @@ export const OL_RENDERABLE_LAYER_TYPES: ReadonlySet<string> = new Set([
 /** Minimal shape of a MapLibre/Mapbox GL style document we touch here. */
 export interface MapStyleDocument {
   layers?: Array<{ type?: string; [key: string]: unknown }>;
+  sprite?: string | Array<{ id: string; url: string }>;
   [key: string]: unknown;
 }
 
@@ -380,6 +381,104 @@ export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
   return style;
 }
 
+/** A sprite set as declared in a style's `sprite` array. */
+type SpriteSet = { id: string; url: string };
+
+/**
+ * The `.json` URL ol-mapbox-style ends up requesting for a sprite set (it
+ * tries `@2x.json` first on hi-DPI screens and falls back to this), resolved
+ * against the style's URL. `undefined` for anything that is not a plain
+ * http(s) URL — a `mapbox://` sprite needs an access token to resolve and is
+ * left for ol-mapbox-style to deal with.
+ */
+function spriteIndexUrl(url: string, styleUrl: string): string | undefined {
+  let resolved: URL;
+  try {
+    resolved = new URL(url, styleUrl);
+  } catch {
+    return undefined;
+  }
+  if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') {
+    return undefined;
+  }
+  return `${resolved.origin}${resolved.pathname}.json${resolved.search}`;
+}
+
+/**
+ * Drop from `style.sprite` every sprite set whose index cannot be fetched, so
+ * that one dead sprite URL cannot blank the whole chart.
+ *
+ * ol-mapbox-style loads every sprite set a style declares before it styles a
+ * single layer, and rejects the entire `apply()` if any one of them fails
+ * ("Sprites cannot be loaded: …"). The chart's layers are already in the
+ * group by then but never receive a style, so the chart is ticked, occupies
+ * its slot in the stack and draws nothing — no fills, no lines, not even the
+ * layers that never reference an icon. A sprite set an upstream provider has
+ * moved (the Open Waters Seamap's `basics` set on versatiles) is enough.
+ *
+ * Checking the index up front and removing the sets that fail turns that into
+ * the degradation a missing glyph range or a failed tile already gets: the
+ * symbols whose icons lived in the dropped set render without an icon (an
+ * `icon-image` that resolves to nothing is tolerated), everything else
+ * renders normally. The GET is the same request ol-mapbox-style makes
+ * moments later, so on a healthy style it costs one cached round trip per
+ * sprite set.
+ *
+ * Mutates `style`. Resolves to the index URLs that were dropped, for the
+ * caller to report; a style with no `sprite` resolves to `[]` untouched.
+ */
+export async function dropUnreachableSprites(
+  style: MapStyleDocument,
+  styleUrl: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<string[]> {
+  const declared = style?.sprite;
+  if (!declared) {
+    return [];
+  }
+  const sets: SpriteSet[] =
+    typeof declared === 'string'
+      ? [{ id: 'default', url: declared }]
+      : Array.isArray(declared)
+        ? (declared as SpriteSet[])
+        : [];
+  if (sets.length === 0) {
+    return [];
+  }
+  const dropped: string[] = [];
+  const reachable = await Promise.all(
+    sets.map(async (set) => {
+      const indexUrl =
+        typeof set?.url === 'string'
+          ? spriteIndexUrl(set.url, styleUrl)
+          : undefined;
+      if (!indexUrl) {
+        return true;
+      }
+      try {
+        const response = await fetchImpl(indexUrl);
+        if (response.ok) {
+          return true;
+        }
+      } catch {
+        // network failure — treated the same as a bad status below
+      }
+      dropped.push(indexUrl);
+      return false;
+    })
+  );
+  if (dropped.length === 0) {
+    return [];
+  }
+  const kept = sets.filter((_, i) => reachable[i]);
+  if (kept.length === 0) {
+    delete style.sprite;
+  } else if (typeof declared !== 'string') {
+    style.sprite = kept;
+  }
+  return dropped;
+}
+
 /** Injectable collaborators for {@link applyMapStyle}, for unit testing. */
 export interface ApplyMapStyleDeps {
   fetchImpl?: typeof fetch;
@@ -393,7 +492,8 @@ export interface ApplyMapStyleDeps {
 
 /**
  * Fetch a Mapbox/MapLibre style, normalise it for the ol-mapbox-style
- * (OpenLayers) renderer (see `normaliseStyleForOl`) and apply it to `group`.
+ * (OpenLayers) renderer (see `normaliseStyleForOl`), drop any sprite set that
+ * cannot be loaded (see `dropUnreachableSprites`) and apply it to `group`.
  *
  * The style is applied **exactly once**. Only a failure to *fetch or parse* the
  * document falls back to handing the raw URL to ol-mapbox-style, so styles that
@@ -435,6 +535,17 @@ export async function applyMapStyle(
       `MapStyleJsonChart: could not normalise style ${url}, applying as-is`,
       err
     );
+  }
+  if (typeof style !== 'string') {
+    // One unreachable sprite set would otherwise blank the whole chart (#800).
+    const dropped = await dropUnreachableSprites(style, styleUrl, fetchImpl);
+    if (dropped.length > 0) {
+      console.warn(
+        `MapStyleJsonChart: ${url} references sprite sets that cannot be ` +
+          `loaded; their icons will not draw:`,
+        dropped
+      );
+    }
   }
   try {
     await applyFn(group, style, { styleUrl });
