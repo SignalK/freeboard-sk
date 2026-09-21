@@ -1,6 +1,7 @@
 import { expect, describe, it, vi, afterEach } from 'vitest';
 import {
   applyChartTimeToTileSource,
+  applyMapStyle,
   applyChartTimeToWms,
   applyChartTimeToWmts,
   CHART_TIME_LIVE_KEY,
@@ -280,7 +281,6 @@ describe('normaliseStyleForOl', () => {
     const out = normaliseStyleForOl(style);
 
     expect(out.layers?.map((l) => l.id)).toEqual([
-      'bg',
       'depths',
       'contours',
       'seamarks'
@@ -293,7 +293,6 @@ describe('normaliseStyleForOl', () => {
 
   it('keeps every renderable layer type', () => {
     const types = [
-      'background',
       'fill',
       'fill-extrusion',
       'line',
@@ -306,6 +305,28 @@ describe('normaliseStyleForOl', () => {
     expect(normaliseStyleForOl(style).layers?.map((l) => l.type)).toEqual(
       types
     );
+  });
+
+  // #796: ol-mapbox-style renders a `background` layer as a full-size opaque
+  // div inside the chart's layer group, hiding every chart (and the base map)
+  // beneath it wherever the style has no data.
+  it('drops background layers so the chart cannot hide what is beneath it', () => {
+    const style = {
+      layers: [
+        {
+          id: 'bg',
+          type: 'background',
+          paint: { 'background-color': '#e9f7ff' }
+        },
+        { id: 'depths', type: 'fill', source: 'seamap' },
+        { id: 'bg2', type: 'background' },
+        { id: 'contours', type: 'line', source: 'seamap' }
+      ]
+    };
+    expect(normaliseStyleForOl(style).layers?.map((l) => l.id)).toEqual([
+      'depths',
+      'contours'
+    ]);
   });
 
   it('drops other unsupported layer types and layers with no type', () => {
@@ -478,6 +499,92 @@ function stalledFetch(): typeof fetch {
       );
     })) as unknown as typeof fetch;
 }
+
+describe('applyMapStyle', () => {
+  const url = 'https://example/style.json';
+  const seamap = () => ({
+    version: 8,
+    sources: { seamap: {} },
+    layers: [
+      { id: 'background', type: 'background' },
+      { id: 'depths', type: 'fill', source: 'seamap' }
+    ]
+  });
+  const styleResponse = (finalUrl = url) =>
+    (() =>
+      Promise.resolve({
+        ok: true,
+        url: finalUrl,
+        json: () => Promise.resolve(seamap())
+      })) as unknown as typeof fetch;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('applies the normalised style once, resolved against the final URL', async () => {
+    const group = new LayerGroup();
+    const applyFn = vi.fn().mockResolvedValue(undefined);
+    const makeResilient = vi.fn();
+
+    await applyMapStyle(group, url, {
+      fetchImpl: styleResponse('https://cdn.example/style.json'),
+      applyFn,
+      makeResilient
+    });
+
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    const [target, style, options] = applyFn.mock.calls[0];
+    expect(target).toBe(group);
+    expect(
+      (style as { layers: { id: string }[] }).layers.map((l) => l.id)
+    ).toEqual(['depths']);
+    expect(options).toEqual({ styleUrl: 'https://cdn.example/style.json' });
+    expect(makeResilient).toHaveBeenCalledWith(group);
+  });
+
+  // #796: a sprite set that fails to load makes ol-mapbox-style reject the
+  // whole apply(). Re-applying the raw style to the same group put the
+  // `background` layer (and every other stripped layer) back on top.
+  it('does not re-apply the raw style when apply() itself rejects', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const group = new LayerGroup();
+    const applyFn = vi
+      .fn()
+      .mockRejectedValue(new Error('Sprites cannot be loaded'));
+    const makeResilient = vi.fn();
+
+    await expect(
+      applyMapStyle(group, url, {
+        fetchImpl: styleResponse(),
+        applyFn,
+        makeResilient
+      })
+    ).resolves.toBeUndefined();
+
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect(applyFn.mock.calls[0][1]).not.toBe(url);
+    expect(makeResilient).not.toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('could not apply style'),
+      expect.any(Error)
+    );
+  });
+
+  it('falls back to the raw URL only when the style cannot be fetched', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const group = new LayerGroup();
+    const applyFn = vi.fn().mockResolvedValue(undefined);
+    const fetchImpl = (() =>
+      Promise.resolve({ ok: false, status: 404 })) as unknown as typeof fetch;
+
+    await applyMapStyle(group, url, { fetchImpl, applyFn });
+
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect(applyFn.mock.calls[0][1]).toBe(url);
+    expect(applyFn.mock.calls[0][2]).toEqual({ styleUrl: url });
+  });
+});
 
 describe('fetchArrayBufferWithRetry', () => {
   const fast = { timeoutMs: 50, retries: 2, backoffMs: 1 };

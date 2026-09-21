@@ -16,6 +16,7 @@ import WMTS from 'ol/source/WMTS';
 import TileState from 'ol/TileState';
 import Projection from 'ol/proj/Projection';
 import { UrlFunction } from 'ol/Tile';
+import apply from 'ol-mapbox-style';
 import {
   isExpression,
   createPropertyExpression,
@@ -332,10 +333,19 @@ export function isUnevaluableByOl(
 
 /**
  * Normalise a MapLibre/Mapbox GL style so it renders through the
- * ol-mapbox-style (OpenLayers) renderer instead of rejecting or later crashing:
+ * ol-mapbox-style (OpenLayers) renderer instead of rejecting or later crashing,
+ * and so it behaves like any other chart in the stack:
  *  - drop the layer types the renderer cannot draw (see
  *    `OL_RENDERABLE_LAYER_TYPES`), preserving the order of the layers that
- *    remain; and
+ *    remain;
+ *  - drop `background` layers. A style's background is a full-map fill, not
+ *    chart content: ol-mapbox-style renders it as a full-size, opaque
+ *    `<div class="ol-mapbox-style-background">` layer inside the chart's
+ *    group, which hides every chart stacked beneath it — including the base
+ *    map — wherever the style has no data (e.g. zoomed out past its tiles the
+ *    whole map goes a flat pale blue). Freeboard supplies its own base layers,
+ *    so a mapstyle chart must draw only its content and leave what is
+ *    beneath alone; and
  *  - drop any layout/paint property whose value the renderer cannot evaluate
  *    (see `isUnevaluableByOl`), so a higher-zoom layer cannot freeze the map.
  *    The layer still renders (e.g. a solid line); only that one unusable
@@ -349,6 +359,7 @@ export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
     style.layers = style.layers.filter(
       (layer) =>
         typeof layer?.type === 'string' &&
+        layer.type !== 'background' &&
         OL_RENDERABLE_LAYER_TYPES.has(layer.type)
     );
     for (const layer of style.layers) {
@@ -367,6 +378,70 @@ export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
     }
   }
   return style;
+}
+
+/** Injectable collaborators for {@link applyMapStyle}, for unit testing. */
+export interface ApplyMapStyleDeps {
+  fetchImpl?: typeof fetch;
+  applyFn?: (
+    group: LayerGroup,
+    style: MapStyleDocument | string,
+    options: { styleUrl: string }
+  ) => Promise<unknown>;
+  makeResilient?: (group: LayerGroup) => void;
+}
+
+/**
+ * Fetch a Mapbox/MapLibre style, normalise it for the ol-mapbox-style
+ * (OpenLayers) renderer (see `normaliseStyleForOl`) and apply it to `group`.
+ *
+ * The style is applied **exactly once**. Only a failure to *fetch or parse* the
+ * document falls back to handing the raw URL to ol-mapbox-style, so styles that
+ * need no normalisation behave as they always have. A failure inside `apply()`
+ * itself — typically a sprite set that no longer resolves, which makes
+ * ol-mapbox-style reject the whole style — is logged and left there. It must
+ * not be retried with the raw style: by then ol-mapbox-style has already added
+ * the normalised layers to the group, and a second `apply()` stacks every layer
+ * the normalisation removed on top of them — the opaque `background` layer
+ * among them, which then hides every chart beneath (#796) — while failing on
+ * the very same sprites.
+ *
+ * Resolves rather than rejects: a chart that cannot be styled is a warning,
+ * not an error the caller can act on.
+ */
+export async function applyMapStyle(
+  group: LayerGroup,
+  url: string,
+  deps: ApplyMapStyleDeps = {}
+): Promise<void> {
+  const {
+    fetchImpl = fetch,
+    applyFn = apply,
+    makeResilient = makeChartTilesResilient
+  } = deps;
+  let style: MapStyleDocument | string = url;
+  let styleUrl = url;
+  try {
+    const response = await fetchImpl(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    style = normaliseStyleForOl(await response.json());
+    // Resolve relative sprite/glyph/tile URLs against the style's final URL
+    // (after any redirect), falling back to the requested URL.
+    styleUrl = response.url || url;
+  } catch (err) {
+    console.warn(
+      `MapStyleJsonChart: could not normalise style ${url}, applying as-is`,
+      err
+    );
+  }
+  try {
+    await applyFn(group, style, { styleUrl });
+    makeResilient(group);
+  } catch (err) {
+    console.warn(`MapStyleJsonChart: could not apply style ${url}`, err);
+  }
 }
 
 /**
