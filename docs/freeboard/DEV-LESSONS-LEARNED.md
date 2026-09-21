@@ -839,6 +839,50 @@ that state through the resource list's **select-all** toggle, which calls
 an all-inclusive array behind, which still counts as filtered and silently masks
 the bug. Confirm the config value before concluding anything from a manual repro.
 
+### Tile-layer image loads are invisible to Resource Timing — and a cache hit looks like "never fired"
+
+**The trap.** Verifying that a raster chart re-fetches its tiles (auto-refresh,
+a time-frame swap, a `LAYERS` change) by watching the page's own network record
+does not work, twice over. First, the cross-origin `<img>` loads OpenLayers uses
+for tiles produce **no `PerformanceResourceTiming` entry at all** — a
+`PerformanceObserver` or `performance.getEntriesByType('resource')` poll in the
+Freeboard tab records the app's own XHRs and nothing from the tile server, so a
+refresh that fired every minute reads as "the timer isn't running". Second, when
+a refresh re-requests the *same* URL, Chrome serves the image it already holds
+from its in-memory cache for the life of the page — in 0 ms, with the old pixels
+— **even when the server sent no caching headers at all** (IEM's NEXRAD WMS
+sends none). No request leaves the browser, so nothing you can watch from the
+page distinguishes "refreshed from cache" from "never refreshed", and the chart
+looks stale either way. Two confident, wrong "the refresh isn't working" reads
+came out of exactly this in one session; the mechanism was fine and the cache
+was the bug (#793).
+
+**What to do instead.** Instrument the one thing every tile goes through — the
+image's `src` setter — and time the load:
+
+```js
+const d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+Object.defineProperty(HTMLImageElement.prototype, 'src', {
+  configurable: true,
+  get() { return d.get.call(this); },
+  set(v) {
+    if (/tileserver\.example/.test(v)) {
+      const t0 = performance.now();
+      this.addEventListener('load', () =>
+        console.log(Math.round(performance.now() - t0), 'ms', v), { once: true });
+    }
+    return d.set.call(this, v);
+  }
+});
+```
+
+A load of ~0 ms is a memory-cache hit; tens to hundreds of ms is the network.
+DevTools → Network shows the same thing by eye (memory-cache hits are labelled in
+the *Size* column) but can't be scripted. And if the goal is a genuinely fresh
+tile, don't rely on the server's `Cache-Control` — make the URL differ
+(`startChartTileRefresh` in `chart-utils.ts` now stamps a `_refresh` query
+parameter per tick for exactly this reason).
+
 ### Asserting on `toLocaleString` output — pin the locale, and reproduce its default
 
 **The trap.** The CI matrix runs on Linux, macOS, Windows and armv7, and each leg
