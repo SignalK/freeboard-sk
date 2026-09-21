@@ -14,7 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
 import { SKInfoLayer } from '../../custom-resource-classes';
-import { WMTSLayerDef } from './maplib';
+import { WMTSLayerDef, layerIdHint } from './maplib';
 import { wmtsCapabilitiesInWorker } from './maplib';
 
 @Component({
@@ -77,7 +77,14 @@ import { wmtsCapabilitiesInWorker } from './maplib';
                   >
                     @for (layer of wmtsLayers; track layer; let idx = $index) {
                       <mat-list-option [value]="idx">
-                        <span matListItemTitle>{{ layer.name }}</span>
+                        <span matListItemTitle
+                          >{{ layer.name }}
+                          @if (idHint(layer)) {
+                            <span class="_ap-layer-id"
+                              >({{ idHint(layer) }})</span
+                            >
+                          }
+                        </span>
                         <span
                           style="flex: 1 1 auto;white-space: pre; overflow:hidden;text-overflow:elipsis;"
                           >{{ layer.description }}</span
@@ -112,6 +119,11 @@ import { wmtsCapabilitiesInWorker } from './maplib';
         width: 150px;
         font-weight: 500;
       }
+      ._ap-wmts ._ap-layer-id {
+        margin-left: 0.4em;
+        font-size: 0.85em;
+        opacity: 0.7;
+      }
     `
   ]
 })
@@ -123,6 +135,9 @@ export class WMTSDialog {
   protected selections: Array<number> = [];
   protected selectionInfo: Array<{ name: string; description: string }> = [];
   protected hostUrl = '';
+
+  /** Layer identifier to show beside the title when it disambiguates (#797) */
+  protected idHint = (layer: WMTSLayerDef) => layerIdHint(layer.name, layer.id);
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<WMTSDialog>);

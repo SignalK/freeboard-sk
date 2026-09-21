@@ -15,7 +15,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 
 import { AppFacade } from 'src/app/app.facade';
-import { LayerNode } from './maplib';
+import { LayerNode, layerIdHint } from './maplib';
 
 /********* NodeTree Select ***********/
 @Component({
@@ -44,6 +44,9 @@ import { LayerNode } from './maplib';
               (change)="toggleSelection($event.checked, node)"
             >
               {{ node.title ?? node.name }}
+              @if (idHint(node)) {
+                <span class="_ap-layer-id">({{ idHint(node) }})</span>
+              }
             </mat-checkbox>
           </mat-nested-tree-node>
           <mat-nested-tree-node
@@ -67,6 +70,9 @@ import { LayerNode } from './maplib';
                 (change)="toggleSelection($event.checked, node)"
               >
                 {{ node.title ?? node.name }}
+                @if (idHint(node)) {
+                  <span class="_ap-layer-id">({{ idHint(node) }})</span>
+                }
               </mat-checkbox>
             </div>
             <div role="group" [class.tree-invisible]="!tree.isExpanded(node)">
@@ -94,6 +100,11 @@ import { LayerNode } from './maplib';
       .node-tree .tree-invisible {
         display: none;
       }
+      .node-tree ._ap-layer-id {
+        margin-left: 0.4em;
+        font-size: 0.85em;
+        opacity: 0.7;
+      }
     `
   ]
 })
@@ -107,6 +118,8 @@ export class NodeTreeSelect {
   protected childrenAccessor = (node: LayerNode) => node.children ?? [];
   protected hasChild = (_: number, node: LayerNode) =>
     !!node.children && node.children.length > 0;
+  /** Layer name to show beside the title when it disambiguates (#797) */
+  protected idHint = (node: LayerNode) => layerIdHint(node.title, node.name);
 
   private app = inject(AppFacade);
 
