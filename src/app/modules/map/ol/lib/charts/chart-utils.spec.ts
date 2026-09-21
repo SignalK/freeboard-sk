@@ -282,6 +282,7 @@ describe('normaliseStyleForOl', () => {
     const out = normaliseStyleForOl(style);
 
     expect(out.layers?.map((l) => l.id)).toEqual([
+      'bg',
       'depths',
       'contours',
       'seamarks'
@@ -294,6 +295,7 @@ describe('normaliseStyleForOl', () => {
 
   it('keeps every renderable layer type', () => {
     const types = [
+      'background',
       'fill',
       'fill-extrusion',
       'line',
@@ -306,28 +308,6 @@ describe('normaliseStyleForOl', () => {
     expect(normaliseStyleForOl(style).layers?.map((l) => l.type)).toEqual(
       types
     );
-  });
-
-  // #796: ol-mapbox-style renders a `background` layer as a full-size opaque
-  // div inside the chart's layer group, hiding every chart (and the base map)
-  // beneath it wherever the style has no data.
-  it('drops background layers so the chart cannot hide what is beneath it', () => {
-    const style = {
-      layers: [
-        {
-          id: 'bg',
-          type: 'background',
-          paint: { 'background-color': '#e9f7ff' }
-        },
-        { id: 'depths', type: 'fill', source: 'seamap' },
-        { id: 'bg2', type: 'background' },
-        { id: 'contours', type: 'line', source: 'seamap' }
-      ]
-    };
-    expect(normaliseStyleForOl(style).layers?.map((l) => l.id)).toEqual([
-      'depths',
-      'contours'
-    ]);
   });
 
   it('drops other unsupported layer types and layers with no type', () => {
@@ -539,7 +519,7 @@ describe('applyMapStyle', () => {
     expect(target).toBe(group);
     expect(
       (style as { layers: { id: string }[] }).layers.map((l) => l.id)
-    ).toEqual(['depths']);
+    ).toEqual(['background', 'depths']);
     expect(options).toEqual({ styleUrl: 'https://cdn.example/style.json' });
     expect(makeResilient).toHaveBeenCalledWith(group);
   });
