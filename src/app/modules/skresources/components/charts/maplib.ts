@@ -44,6 +44,27 @@ export interface LayerNode {
   parent: LayerNode;
 }
 
+/** Return the layer identifier to show alongside its display title.
+ *
+ * Capabilities documents often give sibling layers the same `Title` but
+ * distinct `Name` / `Identifier` values (e.g. one regional mosaic per
+ * territory), and the identifier is what is actually stored in the chart's
+ * `layers` array — so it is the identity the user is choosing (#797).
+ * @param title Display title (WMS `Title`, WMTS `ows:Title`)
+ * @param id Layer identifier (WMS `Name`, WMTS `ows:Identifier`)
+ * @returns id when it adds information, else '' (missing, or the same as the
+ * title ignoring case / surrounding whitespace, or when there is no title —
+ * the id is already the label in that case)
+ */
+export const layerIdHint = (title?: string, id?: string): string => {
+  const t = (title ?? '').trim();
+  const i = (id ?? '').trim();
+  if (!t || !i) {
+    return '';
+  }
+  return t.toLowerCase() === i.toLowerCase() ? '' : i;
+};
+
 /** Return layer with the supplied name
  * @param name Layer Name
  * @param data Array of LayerNode objects

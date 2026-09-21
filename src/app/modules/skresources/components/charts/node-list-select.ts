@@ -2,6 +2,7 @@ import { Component, EventEmitter, inject, input, Output } from '@angular/core';
 
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
+import { layerIdHint } from './maplib';
 
 /********* NodeList Select ***********/
 @Component({
@@ -20,7 +21,12 @@ import { AppFacade } from 'src/app/app.facade';
               [value]="layer.id"
               [selected]="preSelect().includes(layer.id)"
             >
-              <span matListItemTitle>{{ layer.name }}</span>
+              <span matListItemTitle
+                >{{ layer.name }}
+                @if (idHint(layer)) {
+                  <span class="_ap-layer-id">({{ idHint(layer) }})</span>
+                }
+              </span>
               <span
                 style="flex: 1 1 auto;white-space: pre; overflow:hidden;text-overflow:elipsis;"
                 >{{ layer.description }}</span
@@ -39,6 +45,11 @@ import { AppFacade } from 'src/app/app.facade';
         width: 150px;
         font-weight: 500;
       }
+      ._ap-node-list ._ap-layer-id {
+        margin-left: 0.4em;
+        font-size: 0.85em;
+        opacity: 0.7;
+      }
     `
   ]
 })
@@ -52,6 +63,10 @@ export class NodeListSelect {
   private selections: Array<string> = [];
 
   protected app = inject(AppFacade);
+
+  /** Layer identifier to show beside the title when it disambiguates (#797) */
+  protected idHint = (layer: { id: string; name: string }) =>
+    layerIdHint(layer.name, layer.id);
 
   constructor() {}
 
