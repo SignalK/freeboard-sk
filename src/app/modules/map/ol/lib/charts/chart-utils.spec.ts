@@ -2,6 +2,7 @@ import { expect, describe, it, vi, afterEach } from 'vitest';
 import {
   applyChartTimeToTileSource,
   applyMapStyle,
+  dropUnreachableSprites,
   applyChartTimeToWms,
   applyChartTimeToWmts,
   CHART_TIME_LIVE_KEY,
@@ -571,6 +572,40 @@ describe('applyMapStyle', () => {
     );
   });
 
+  it('drops an unreachable sprite set before applying (#800)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const group = new LayerGroup();
+    const applyFn = vi.fn().mockResolvedValue(undefined);
+    const withSprites = {
+      ...seamap(),
+      sprite: [
+        { id: 'dead', url: 'https://gone.example/sprites' },
+        { id: 'live', url: 'https://example/sprites' }
+      ]
+    };
+    const fetchImpl = ((u: string) =>
+      Promise.resolve(
+        u === url
+          ? { ok: true, url, json: () => Promise.resolve(withSprites) }
+          : { ok: u === 'https://example/sprites.json', status: 404 }
+      )) as unknown as typeof fetch;
+
+    await applyMapStyle(group, url, {
+      fetchImpl,
+      applyFn,
+      makeResilient: vi.fn()
+    });
+
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect((applyFn.mock.calls[0][1] as { sprite: unknown }).sprite).toEqual([
+      { id: 'live', url: 'https://example/sprites' }
+    ]);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('sprite sets that cannot be loaded'),
+      ['https://gone.example/sprites.json']
+    );
+  });
+
   it('falls back to the raw URL only when the style cannot be fetched', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const group = new LayerGroup();
@@ -583,6 +618,117 @@ describe('applyMapStyle', () => {
     expect(applyFn).toHaveBeenCalledTimes(1);
     expect(applyFn.mock.calls[0][1]).toBe(url);
     expect(applyFn.mock.calls[0][2]).toEqual({ styleUrl: url });
+  });
+});
+
+describe('dropUnreachableSprites', () => {
+  const styleUrl = 'https://tiles.example/seamap/style.json';
+  /** fetch stub answering 200 for URLs in `ok`, 404 otherwise; records calls. */
+  const fetchAnswering = (ok: string[], calls: string[] = []) =>
+    ((url: string) => {
+      calls.push(url);
+      return Promise.resolve({ ok: ok.includes(url), status: 404 });
+    }) as unknown as typeof fetch;
+
+  it('is a no-op on a style with no sprite', async () => {
+    const style = { version: 8 };
+    const calls: string[] = [];
+    expect(
+      await dropUnreachableSprites(style, styleUrl, fetchAnswering([], calls))
+    ).toEqual([]);
+    expect(calls).toEqual([]);
+    expect(style).toEqual({ version: 8 });
+  });
+
+  it('checks the .json index of each set, resolved against the style URL', async () => {
+    const style = {
+      sprite: [
+        { id: 'a', url: 'https://cdn.example/sprites/a' },
+        { id: 'b', url: '../sprites/b?key=1' }
+      ]
+    };
+    const calls: string[] = [];
+    await dropUnreachableSprites(
+      style,
+      styleUrl,
+      fetchAnswering(
+        [
+          'https://cdn.example/sprites/a.json',
+          'https://tiles.example/sprites/b.json?key=1'
+        ],
+        calls
+      )
+    );
+    expect(calls.sort()).toEqual([
+      'https://cdn.example/sprites/a.json',
+      'https://tiles.example/sprites/b.json?key=1'
+    ]);
+    expect(style.sprite).toEqual([
+      { id: 'a', url: 'https://cdn.example/sprites/a' },
+      { id: 'b', url: '../sprites/b?key=1' }
+    ]);
+  });
+
+  // The Open Waters Seamap shape (#800): one of two sets has gone away.
+  it('drops only the sets whose index fails, keeping ids of the rest', async () => {
+    const style = {
+      sprite: [
+        {
+          id: 'basics',
+          url: 'https://tiles.versatiles.org/assets/sprites/basics/sprites'
+        },
+        {
+          id: 'freenauticalchart',
+          url: 'https://tiles.example/seamap/sprites/freenauticalchart'
+        }
+      ]
+    };
+    const dropped = await dropUnreachableSprites(
+      style,
+      styleUrl,
+      fetchAnswering([
+        'https://tiles.example/seamap/sprites/freenauticalchart.json'
+      ])
+    );
+    expect(dropped).toEqual([
+      'https://tiles.versatiles.org/assets/sprites/basics/sprites.json'
+    ]);
+    expect(style.sprite).toEqual([
+      {
+        id: 'freenauticalchart',
+        url: 'https://tiles.example/seamap/sprites/freenauticalchart'
+      }
+    ]);
+  });
+
+  it('removes `sprite` entirely when every set fails, including a network error', async () => {
+    const style = { sprite: 'https://cdn.example/sprites/only' };
+    const fetchImpl = (() =>
+      Promise.reject(new Error('offline'))) as unknown as typeof fetch;
+    expect(await dropUnreachableSprites(style, styleUrl, fetchImpl)).toEqual([
+      'https://cdn.example/sprites/only.json'
+    ]);
+    expect('sprite' in style).toBe(false);
+  });
+
+  it('leaves a reachable string sprite as a string', async () => {
+    const style = { sprite: 'https://cdn.example/sprites/only' };
+    await dropUnreachableSprites(
+      style,
+      styleUrl,
+      fetchAnswering(['https://cdn.example/sprites/only.json'])
+    );
+    expect(style.sprite).toBe('https://cdn.example/sprites/only');
+  });
+
+  it('does not probe non-http sprite URLs and keeps them', async () => {
+    const style = { sprite: 'mapbox://sprites/mapbox/streets-v8' };
+    const calls: string[] = [];
+    expect(
+      await dropUnreachableSprites(style, styleUrl, fetchAnswering([], calls))
+    ).toEqual([]);
+    expect(calls).toEqual([]);
+    expect(style.sprite).toBe('mapbox://sprites/mapbox/streets-v8');
   });
 });
 
