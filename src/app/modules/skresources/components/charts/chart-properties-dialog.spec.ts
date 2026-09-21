@@ -89,6 +89,19 @@ describe('ChartPropertiesDialog — refresh interval', () => {
     expect('refreshInterval' in saved()).toBe(false);
   });
 
+  it('rejects a fractional number of minutes rather than rounding it', async () => {
+    await open(userChart({ refreshInterval: 300000 }));
+    await typeMinutes('1.5');
+    const saveButton = fixture.nativeElement.querySelector(
+      'mat-dialog-actions button'
+    ) as HTMLButtonElement;
+    expect(saveButton.disabled).toBe(true);
+    // Even if a save got through, the fraction is not persisted as something
+    // the user did not type.
+    save();
+    expect('refreshInterval' in saved()).toBe(false);
+  });
+
   it('leaves a provider-served chart read-only and its interval untouched', async () => {
     await open({
       ...userChart({ refreshInterval: 120000 }),

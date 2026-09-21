@@ -30,14 +30,29 @@ export function refreshIntervalMinutes(refreshInterval?: number): number {
 /**
  * Stored `refreshInterval` (ms) for a minutes value entered by the user, or
  * `undefined` when the entry means "no auto-refresh" (0, blank, negative or
- * not a number) so the key can be left off the resource.
+ * not a number) so the key can be left off the resource. The field is whole
+ * minutes, so a fractional entry is not rounded to something the user did not
+ * type: it is rejected the same way, and the dialog blocks it before it gets
+ * here ({@link isWholeMinutes}).
  */
 export function refreshIntervalFromMinutes(
   minutes?: number | string | null
 ): number | undefined {
   const n = typeof minutes === 'string' ? Number(minutes) : minutes;
-  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) {
+  if (typeof n !== 'number' || !Number.isInteger(n) || n <= 0) {
     return undefined;
   }
-  return Math.round(n) * MINUTE_MS;
+  return n * MINUTE_MS;
+}
+
+/**
+ * Whether a minutes entry is one the field accepts: blank (never) or a whole,
+ * non-negative number of minutes.
+ */
+export function isWholeMinutes(minutes?: number | string | null): boolean {
+  if (minutes === null || minutes === undefined || minutes === '') {
+    return true;
+  }
+  const n = typeof minutes === 'string' ? Number(minutes) : minutes;
+  return Number.isInteger(n) && n >= 0;
 }

@@ -621,7 +621,9 @@ const refreshWrapperBase = new WeakMap<UrlFunction, UrlFunction>();
 /**
  * The tile URL with a refresh key appended as a query parameter, so the
  * browser treats it as a new resource rather than reusing the image it cached
- * for the previous tick. An undefined URL (no tile there) stays undefined.
+ * for the previous tick. The parameter goes before any `#` fragment -- a
+ * fragment is never sent, so a key placed after it would change nothing. An
+ * undefined URL (no tile there) stays undefined.
  */
 export function cacheBustTileUrl(
   url: string | undefined,
@@ -630,7 +632,11 @@ export function cacheBustTileUrl(
   if (!url) {
     return url;
   }
-  return `${url}${url.includes('?') ? '&' : '?'}${CHART_REFRESH_URL_PARAM}=${key}`;
+  const hash = url.indexOf('#');
+  const base = hash === -1 ? url : url.slice(0, hash);
+  const fragment = hash === -1 ? '' : url.slice(hash);
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}${CHART_REFRESH_URL_PARAM}=${key}${fragment}`;
 }
 
 /**

@@ -789,6 +789,15 @@ describe('startChartTileRefresh', () => {
         `https://t.test/1.png?${CHART_REFRESH_URL_PARAM}=7`
       );
     });
+
+    it('cacheBustTileUrl puts the key before a fragment, which is never sent', () => {
+      expect(cacheBustTileUrl('https://t.test/1.png#frag', '7')).toBe(
+        `https://t.test/1.png?${CHART_REFRESH_URL_PARAM}=7#frag`
+      );
+      expect(cacheBustTileUrl('https://t.test/ows?a=1#frag', '7')).toBe(
+        `https://t.test/ows?a=1&${CHART_REFRESH_URL_PARAM}=7#frag`
+      );
+    });
   });
 });
 

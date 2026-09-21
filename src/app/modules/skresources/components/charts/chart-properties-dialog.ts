@@ -26,6 +26,7 @@ import {
 } from './maplib';
 import { chartTimeFromCapabilities } from 'src/app/lib/chart-time';
 import {
+  isWholeMinutes,
   refreshIntervalFromMinutes,
   refreshIntervalMinutes
 } from 'src/app/lib/chart-refresh';
@@ -124,7 +125,7 @@ import { NodeListSelect } from './node-list-select';
                   />
                   <mat-hint>0 = never refresh</mat-hint>
                   @if (inprefresh.invalid) {
-                    <mat-error>Enter 0 or a number of minutes.</mat-error>
+                    <mat-error>Enter 0 or a whole number of minutes.</mat-error>
                   }
                 </mat-form-field>
               </div>
@@ -352,10 +353,9 @@ export class ChartPropertiesDialog {
     return this.data.type?.toLowerCase() !== 'mapstylejson';
   }
 
-  /** A blank field means never; anything else must be a non-negative number. */
+  /** A blank field means never; anything else must be whole, non-negative minutes. */
   protected refreshInvalid(): boolean {
-    const n = this.refreshMinutes;
-    return n !== null && (!Number.isFinite(n) || n < 0);
+    return !isWholeMinutes(this.refreshMinutes);
   }
 
   ngOnInit() {
