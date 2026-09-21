@@ -79,6 +79,21 @@ updates:
       # Node 20; in-range minor/patch still flow through the groups.
       - dependency-name: 'jsdom'
         update-types: ['version-update:semver-major']
+      # ol-mapbox-style and @maplibre/maplibre-gl-style-spec must move together.
+      # FSK depends on the style spec directly only so that isUnevaluableByOl()
+      # (src/app/modules/map/ol/lib/charts/chart-utils.ts) asks the SAME spec
+      # version ol-mapbox-style renders with (#733). ol-mapbox-style 12.x pins
+      # spec ^23; bumping either package alone splits them (npm nests a second
+      # copy under ol-mapbox-style), so the pre-flight check and the renderer
+      # disagree and the mapstyleJSON map-freeze #733 fixed comes back. Spec 26
+      # also changed the createPropertyExpression signature (#789). Upgrade the
+      # pair by hand: ol-mapbox-style 13.x + spec ^26 + the chart-utils call
+      # site, verified against a vector chart. In-range minor/patch still flow
+      # through the groups.
+      - dependency-name: 'ol-mapbox-style'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@maplibre/maplibre-gl-style-spec'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: '/'
