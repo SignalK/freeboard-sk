@@ -334,19 +334,12 @@ export function isUnevaluableByOl(
 
 /**
  * Normalise a MapLibre/Mapbox GL style so it renders through the
- * ol-mapbox-style (OpenLayers) renderer instead of rejecting or later crashing,
- * and so it behaves like any other chart in the stack:
+ * ol-mapbox-style (OpenLayers) renderer instead of rejecting or later crashing:
  *  - drop the layer types the renderer cannot draw (see
  *    `OL_RENDERABLE_LAYER_TYPES`), preserving the order of the layers that
- *    remain;
- *  - drop `background` layers. A style's background is a full-map fill, not
- *    chart content: ol-mapbox-style renders it as a full-size, opaque
- *    `<div class="ol-mapbox-style-background">` layer inside the chart's
- *    group, which hides every chart stacked beneath it — including the base
- *    map — wherever the style has no data (e.g. zoomed out past its tiles the
- *    whole map goes a flat pale blue). Freeboard supplies its own base layers,
- *    so a mapstyle chart must draw only its content and leave what is
- *    beneath alone; and
+ *    remain. A `background` layer is kept: the style's author draws the
+ *    ocean with it, and a Mapbox-style chart is a basemap — dropping it
+ *    renders black water wherever the style relies on its background; and
  *  - drop any layout/paint property whose value the renderer cannot evaluate
  *    (see `isUnevaluableByOl`), so a higher-zoom layer cannot freeze the map.
  *    The layer still renders (e.g. a solid line); only that one unusable
@@ -360,7 +353,6 @@ export function normaliseStyleForOl(style: MapStyleDocument): MapStyleDocument {
     style.layers = style.layers.filter(
       (layer) =>
         typeof layer?.type === 'string' &&
-        layer.type !== 'background' &&
         OL_RENDERABLE_LAYER_TYPES.has(layer.type)
     );
     for (const layer of style.layers) {
