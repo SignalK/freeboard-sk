@@ -22,6 +22,44 @@ const DEFAULT_TIMELINE_FRAMES = 60;
 /** Smallest scrub step for a continuous timeline with no declared `step`. */
 const MIN_TIMELINE_STEP_MS = 60000;
 
+/**
+ * Minimum auto-refresh cadence for a chart, in milliseconds. Time-varying
+ * raster products (weather radar, satellite) update every few minutes, and the
+ * InfoLayer refresh timer already works at 60 s granularity, so a shorter
+ * interval would only re-request tiles the server has not changed.
+ */
+export const MIN_CHART_REFRESH_INTERVAL_MS = 60000;
+
+/**
+ * Maximum auto-refresh cadence, in milliseconds: the largest delay `setInterval`
+ * accepts before its signed 32-bit timeout overflows and the timer fires almost
+ * continuously. Clamping here stops a misconfigured provider from hammering its
+ * own tile endpoint.
+ */
+export const MAX_CHART_REFRESH_INTERVAL_MS = 2147483647;
+
+/**
+ * A chart's `refreshInterval` as a usable timer delay: clamped to
+ * [{@link MIN_CHART_REFRESH_INTERVAL_MS}, {@link MAX_CHART_REFRESH_INTERVAL_MS}],
+ * or undefined when absent, non-finite or non-positive (the chart never
+ * auto-refreshes).
+ */
+export function chartRefreshIntervalMs(
+  refreshInterval?: number
+): number | undefined {
+  if (
+    typeof refreshInterval !== 'number' ||
+    !Number.isFinite(refreshInterval) ||
+    refreshInterval <= 0
+  ) {
+    return undefined;
+  }
+  return Math.min(
+    Math.max(refreshInterval, MIN_CHART_REFRESH_INTERVAL_MS),
+    MAX_CHART_REFRESH_INTERVAL_MS
+  );
+}
+
 /** Milliseconds since the epoch for an ISO 8601 instant, or NaN when invalid. */
 export function chartTimeMs(time?: string | null): number {
   return typeof time === 'string' && time.trim() ? Date.parse(time) : NaN;
@@ -217,6 +255,58 @@ export function stepChartTime(
     return current ? null : chartTimelineInstant(timeline, timeline.max);
   }
   return chartTimelineInstant(timeline, next);
+}
+
+/**
+ * The head of a timeline: the position of the newest frame that can exist
+ * now -- at or before the present, clamped into the range. It moves on as
+ * frames are added: by the clock on a range whose declared `to` runs ahead of
+ * the present, or when a re-read of the chart resource brings a longer
+ * `values` list or a rolling `from`/`to` that has moved on.
+ */
+export function chartTimelineHead(timeline: ChartTimeline): number {
+  return chartTimelinePosition(timeline, null);
+}
+
+/** The instant at the head of a timeline, in milliseconds since the epoch. */
+export function chartTimelineHeadMs(timeline: ChartTimeline): number {
+  return chartTimeMs(
+    chartTimelineInstant(timeline, chartTimelineHead(timeline))
+  );
+}
+
+/**
+ * Where a selected instant moves to as the head advances: it keeps its offset
+ * from the head, so a chart on the newest frame stays on the newest frame and
+ * one an hour behind stays an hour behind as new frames arrive. `head` is the
+ * head's instant (ms) as last seen. The offset is measured in time and the
+ * result lands on a frame of the timeline as it is *now*, so a re-read
+ * `values` list that has since dropped the selected frame still puts the
+ * selection the same distance behind the new head, on the nearest listed
+ * frame. Returns `time` itself (the same string) while the head has not
+ * moved, so the caller can tell nothing needs re-requesting.
+ */
+export function chartTimeFollowingHead(
+  timeline: ChartTimeline,
+  time: string,
+  head: number
+): { time: string; head: number } {
+  const headMs = chartTimelineHeadMs(timeline);
+  if (!(headMs > head)) {
+    return { time, head };
+  }
+  const ms = chartTimeMs(time);
+  if (!Number.isFinite(ms)) {
+    return { time, head: headMs };
+  }
+  const moved = new Date(ms + headMs - head).toISOString();
+  return {
+    time: chartTimelineInstant(
+      timeline,
+      chartTimelinePosition(timeline, moved)
+    ),
+    head: headMs
+  };
 }
 
 /**

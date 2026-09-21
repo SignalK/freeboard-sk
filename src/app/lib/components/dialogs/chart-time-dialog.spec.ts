@@ -6,12 +6,13 @@ import {
   chartTimeLoopFromOffsets,
   chartTimeLoopRange,
   chartTimeLoopToOffsets,
+  chartTimeStateFollowingHead,
   chartTimeStepLabel,
   DEFAULT_CHART_TIME_LOOP,
   chartTimeWindow,
   chartTimeWindowEnd
 } from './chart-time-dialog';
-import { chartTimeline } from '../../chart-time';
+import { chartTimeline, chartTimelineHeadMs } from '../../chart-time';
 
 /**
  * The Time palette's slider shows a window of the timeline, since a service
@@ -253,5 +254,95 @@ describe('initialChartTimeWindowEnd', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('chartTimeStateFollowingHead', () => {
+  const H = 3600000;
+  const now = Date.parse('2026-09-18T12:00:00.000Z');
+  function withClock<T>(ms: number, run: () => T): T {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(ms));
+    try {
+      return run();
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+  // The palette opened at the head with the default last-hour loop.
+  const opened = () =>
+    withClock(now, () => ({
+      head: chartTimelineHeadMs(archive),
+      windowEnd: now,
+      loopStart: now - H,
+      loopEnd: now
+    }));
+
+  it('is unchanged while the head has not moved', () => {
+    const state = opened();
+    withClock(now + STEP - 1000, () => {
+      expect(chartTimeStateFollowingHead(archive, state)).toBe(state);
+    });
+  });
+
+  it('slides a window ending at the head, and the loop, along with it', () => {
+    const state = opened();
+    withClock(now + 2 * STEP + 1000, () => {
+      expect(chartTimeStateFollowingHead(archive, state)).toEqual({
+        head: now + 2 * STEP,
+        windowEnd: now + 2 * STEP,
+        loopStart: now - H + 2 * STEP,
+        loopEnd: now + 2 * STEP
+      });
+    });
+  });
+
+  it('leaves a window scrubbed into the archive where it is, but moves the head on', () => {
+    const state = { ...opened(), windowEnd: now - 3 * 24 * H };
+    withClock(now + STEP + 1000, () => {
+      expect(chartTimeStateFollowingHead(archive, state)).toEqual({
+        ...state,
+        head: now + STEP
+      });
+    });
+  });
+
+  it('keeps an unset loop bound unset', () => {
+    const state = { ...opened(), loopStart: null, loopEnd: null };
+    withClock(now + STEP + 1000, () => {
+      const after = chartTimeStateFollowingHead(archive, state);
+      expect(after.loopStart).toBeNull();
+      expect(after.loopEnd).toBeNull();
+      expect(after.windowEnd).toBe(now + STEP);
+    });
+  });
+
+  it('renumbers positions taken on a re-read values list', () => {
+    const t = (n: number) => new Date(now + n * STEP).toISOString();
+    // Twelve frames up to now, then the list rolled on by one.
+    const before = chartTimeline({
+      current: true,
+      values: Array.from({ length: 12 }, (_, i) => t(i - 11))
+    });
+    const after = chartTimeline({
+      current: true,
+      values: Array.from({ length: 12 }, (_, i) => t(i - 10))
+    });
+    const state = withClock(now, () => ({
+      head: chartTimelineHeadMs(before),
+      windowEnd: 11,
+      loopStart: 8,
+      loopEnd: 11
+    }));
+    withClock(now + STEP + 1000, () => {
+      // The same frames, one index lower on the new list, plus the one
+      // frame the head moved: the loop still spans the last three steps.
+      expect(chartTimeStateFollowingHead(after, state, before)).toEqual({
+        head: now + STEP,
+        windowEnd: 11,
+        loopStart: 8,
+        loopEnd: 11
+      });
+    });
   });
 });

@@ -23,7 +23,10 @@ import {
   type StylePropertySpecification
 } from '@maplibre/maplibre-gl-style-spec';
 import { ChartImageAdjustment } from 'src/app/types';
-import { chartTimeTileUrl } from 'src/app/lib/chart-time';
+import {
+  chartRefreshIntervalMs,
+  chartTimeTileUrl
+} from 'src/app/lib/chart-time';
 
 /**
  * Build a CSS canvas `filter` string from a chart's image adjustment, or `''`
@@ -525,21 +528,10 @@ export function makeChartTilesResilient(
   walk(group.getLayers().getArray());
 }
 
-/**
- * Minimum auto-refresh cadence for a chart, in milliseconds. Time-varying
- * raster products (weather radar, satellite) update every few minutes, and the
- * InfoLayer refresh timer already works at 60 s granularity, so a shorter
- * interval would only re-request tiles the server has not changed.
- */
-export const MIN_CHART_REFRESH_INTERVAL_MS = 60000;
-
-/**
- * Maximum auto-refresh cadence, in milliseconds: the largest delay `setInterval`
- * accepts before its signed 32-bit timeout overflows and the timer fires almost
- * continuously. Clamping here stops a misconfigured provider from hammering its
- * own tile endpoint.
- */
-export const MAX_CHART_REFRESH_INTERVAL_MS = 2147483647;
+export {
+  MIN_CHART_REFRESH_INTERVAL_MS,
+  MAX_CHART_REFRESH_INTERVAL_MS
+} from 'src/app/lib/chart-time';
 
 /**
  * Start a periodic, non-destructive refresh of a chart's raster tile source and
@@ -575,18 +567,10 @@ export function startChartTileRefresh(
   source: TileSource | null | undefined,
   refreshInterval?: number
 ): () => void {
-  if (
-    !(source instanceof UrlTile) ||
-    typeof refreshInterval !== 'number' ||
-    !Number.isFinite(refreshInterval) ||
-    refreshInterval <= 0
-  ) {
+  const interval = chartRefreshIntervalMs(refreshInterval);
+  if (!(source instanceof UrlTile) || interval === undefined) {
     return () => undefined;
   }
-  const interval = Math.min(
-    Math.max(refreshInterval, MIN_CHART_REFRESH_INTERVAL_MS),
-    MAX_CHART_REFRESH_INTERVAL_MS
-  );
   if (interval !== refreshInterval) {
     console.debug(
       `startChartTileRefresh: refreshInterval ${refreshInterval}ms clamped to ${interval}ms`
