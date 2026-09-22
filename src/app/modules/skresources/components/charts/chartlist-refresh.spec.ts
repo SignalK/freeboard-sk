@@ -47,7 +47,7 @@ describe('ChartListComponent — refreshing the list keeps per-chart settings', 
         {
           provide: SKResourceService,
           useValue: {
-            listFromServer: async () => listed,
+            listChartsFromServer: async () => listed,
             appendOSM: (list: FBCharts) => list,
             arrangeChartLayers: (list: FBCharts) => [...list],
             selectionClean: vi.fn()

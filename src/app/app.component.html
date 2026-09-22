@@ -38,7 +38,7 @@
         </button>
       }
       @if (app.featureFlags().infoLayers) {
-        <button mat-menu-item (click)="displayLeftMenu('infoLayerList', true)">
+        <button mat-menu-item (click)="showOverlaysMoved()">
           <mat-icon>layers</mat-icon>
           &nbsp;Overlays
         </button>
@@ -708,14 +708,6 @@
                 @if (leftMenuCtrl().resourceGroups) {
                   @defer {
                     <group-list (closed)="displayLeftMenu()"> </group-list>
-                  }
-                }
-                @if (leftMenuCtrl().infoLayerList) {
-                  @defer {
-                    <infolayer-list
-                      (closed)="displayLeftMenu()"
-                      (paramChanged)="onInfoLayerParamChange($event)"
-                    ></infolayer-list>
                   }
                 }
                 @if (leftMenuCtrl().anchorWatch) {

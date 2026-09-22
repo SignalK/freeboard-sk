@@ -45,8 +45,8 @@ connection returns, the chart catches up.
 
 Any raster chart can opt in: plain tile layers, TileJSON, WMS and WMTS. Vector charts
 (Mapbox-style sources, S-57 ENCs) are not refreshed. OpenStreetMap and OpenSeaMap are
-unaffected, and the **Overlays** you add from a WMS/WMTS server have their own refresh
-interval, set when you create the overlay.
+unaffected. An Overlay from an earlier Freeboard now appears in the Chart list as a
+chart and keeps the refresh interval it was given (see **Overlays**).
 
 ## For chart-provider plugins
 

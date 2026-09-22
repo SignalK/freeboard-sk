@@ -1,5 +1,5 @@
 // **** CUSTOM RESOURCE CLASSES **********
-import { ResourceSet, CustomStyles, InfoLayerResource } from 'src/app/types';
+import { ResourceSet, CustomStyles } from 'src/app/types';
 
 // ** Freeboard / SK ResourceSet
 export class SKResourceSet {
@@ -20,38 +20,6 @@ export class SKResourceSet {
         type: 'FeatureCollection',
         features: []
       };
-    }
-  }
-}
-
-// ** Freeboard / SK Information Layer
-export class SKInfoLayer {
-  id: string;
-  name: string;
-  description: string;
-  values: InfoLayerResource['values'] = {
-    url: null,
-    sourceType: null,
-    layers: [],
-    time: {
-      current: null,
-      from: null,
-      to: null,
-      values: []
-    },
-    opacity: 1,
-    minZoom: 1,
-    maxZoom: 24,
-    refreshInterval: 0
-  };
-  type = 'InfoLayer';
-
-  constructor(info?: InfoLayerResource) {
-    if (info) {
-      this.id = info.id ? info.id : null;
-      this.name = info.name ? info.name : null;
-      this.description = info.description ? info.description : null;
-      this.values = info.values ?? this.values;
     }
   }
 }

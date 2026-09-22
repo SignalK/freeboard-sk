@@ -856,65 +856,10 @@
 
           <div style="display: flex; flex-wrap: wrap">
             <div style="padding-left: 15px">
-              Overlays allow information to be "overlaid" on charts as map
-              layers.
-              <br />
-              They can be configured to be refreshed at regular intervals to
-              update the displayed data from the source.
-              <br />
-              The opacity of the overlay can be configured to control the
-              visibility of the underlying chart layers.
-              <br />
-              <ul>
-                <li>
-                  <i class="material-icons">add</i> <b>New Overlay:</b> Create a
-                  new overlay from a WMS or WMTS source.
-                </li>
-                <li>
-                  <i class="material-icons">delete</i>
-                  <b>Delete Overlay:</b> Delete the overlay definition from the
-                  server.
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div style="display: flex; flex-wrap: wrap">
-            <div style="padding-left: 15px; background-color: orange">
-              <b>Enabling Overlays</b><br />
-              Freeboard will try to create a resource collection on the Signal K
-              server to store Overlays. <br />
-              <i
-                >Note: this requires that:
-                <ol>
-                  <li>You are logged in to the Signal K server</li>
-                  <li>
-                    <b>resources-provider</b> plugin version 1.4.1 or greater is
-                    installed on the server
-                  </li>
-                </ol>
-              </i>
-
-              If Freeboard cannot create the store then you can configure a
-              <i>infolayers</i> resource endpoint on the Signal K server.
-              <br />
-              To do this:
-              <ul>
-                <li>
-                  In the Signal K server Admin console select
-                  <b>Server | Plugin Config</b>
-                </li>
-                <li>Select the <b>Resources Provider</b> plugin</li>
-                <li>
-                  In the <b>Resources (Custom)</b> section, click
-                  <i class="material-icons">add</i> and type
-                  <i>infolayers</i> in the <b>Resource Type</b>
-                </li>
-                <li>Click <b>Submit</b></li>
-              </ul>
-              <i
-                >Note: Freeboard-SK will need to be re-loaded to make the
-                Overlays menu item available.</i
-              >
+              Overlays have moved to the <b>Chart list</b>. An overlay you
+              created in an earlier version of Freeboard appears there as a
+              chart, keeping its refresh interval and time control. Add new WMS
+              / WMTS layers with <b>Add Chart Source</b>.
             </div>
           </div>
 
@@ -1272,6 +1217,10 @@
                 data which can be hosted on commodity storage.
               </li>
             </ul>
+            Charts such as weather radar or satellite imagery may refresh
+            themselves at an interval and carry a time control; see the Feature
+            Browser &rarr; <i>Auto-refreshing Charts</i> and
+            <i>Time-varying Charts</i>.
           </div>
           <br />
           <div style="display: flex; flex-wrap: wrap">

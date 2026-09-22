@@ -1,26 +1,17 @@
 import { Component, inject } from '@angular/core';
-import {
-  MatDialogModule,
-  MatDialogRef,
-  MAT_DIALOG_DATA
-} from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { ChartProvider } from 'src/app/types';
-import { chartTimeFromCapabilities } from 'src/app/lib/chart-time';
-import { SKInfoLayer } from '../../custom-resource-classes';
-import { LayerNode } from './maplib';
-import { NodeTreeSelect } from './node-tree-select';
-import { wmsCapabilitiesInWorker } from './maplib';
 
 /********* WMSDialog **********
-	data: SKChart
+	Prompts for a WMS host and returns a new chart source for it; the layer
+	selection is made in the chart properties dialog.
 ***********************************/
 @Component({
   selector: 'wms-dialog',
@@ -31,9 +22,7 @@ import { wmsCapabilitiesInWorker } from './maplib';
     MatButtonModule,
     MatToolbarModule,
     MatDialogModule,
-    MatProgressBarModule,
-    MatInputModule,
-    NodeTreeSelect
+    MatInputModule
   ],
   template: `
     <div class="_ap-wms">
@@ -55,7 +44,7 @@ import { wmsCapabilitiesInWorker } from './maplib';
               matSuffix
               mat-icon-button
               [disabled]="txturl.value.length === 0"
-              (click)="getCapabilities(txturl.value)"
+              (click)="handleSave(txturl.value)"
             >
               <mat-icon>arrow_forward</mat-icon>
             </button>
@@ -65,181 +54,28 @@ import { wmsCapabilitiesInWorker } from './maplib';
             <mat-error>WMS host is required!</mat-error>
           }
         </mat-form-field>
-
-        @if (isFetching) {
-          <mat-progress-bar mode="query"></mat-progress-bar>
-        } @else {
-          @if (errorMsg) {
-            <mat-error>Error retrieving capabilities from server!</mat-error>
-          } @else {
-            <node-tree-select
-              [layers]="dataSource"
-              (selected)="handleLayerSelection()"
-            >
-            </node-tree-select>
-          }
-        }
       </mat-dialog-content>
-      @if (data.format !== 'chartprovider') {
-        <mat-dialog-actions align="right">
-          <button
-            mat-flat-button
-            [disabled]="this.selections.length === 0"
-            (click)="handleSave()"
-          >
-            Save
-          </button>
-        </mat-dialog-actions>
-      }
     </div>
-  `,
-  styles: [
-    `
-      ._ap-wms {
-      }
-      ._ap-wms .key-label {
-        width: 150px;
-        font-weight: 500;
-      }
-      .wms-tree .mat-nested-tree-node div[role='group'] {
-        padding-left: 20px;
-      }
-      .wms-tree div[role='group'] > .mat-tree-node {
-        padding-left: 20px;
-      }
-      .wms-tree .tree-invisible {
-        display: none;
-      }
-    `
-  ]
+  `
 })
 export class WMSDialog {
-  protected isFetching = false;
-  protected fetchError = false;
-  protected errorMsg = '';
-  protected selections: Array<string> = [];
-  protected wmsBase: ChartProvider;
-  protected wmsSources: { [key: string]: ChartProvider | SKInfoLayer } = {};
   protected hostUrl = '';
-
-  protected dataSource: LayerNode[] = [];
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<WMSDialog>);
-  protected data = inject<{ format: 'chartprovider' | 'infolayer' }>(
-    MAT_DIALOG_DATA
-  );
-
-  constructor() {}
-  /**
-   * Handle layer selections and build WMS source objects
-   */
-  protected handleLayerSelection() {
-    this.selections = [];
-    this.wmsSources = {};
-    this.dataSource.forEach((l: LayerNode) => {
-      this.parseSelections(l);
-    });
-  }
 
   /**
-   * Parse selections under the supplied layer node
-   * @param node Parent layer
-   */
-  private parseSelections(node: LayerNode) {
-    const selNode = (n: LayerNode) => {
-      if (n.selected) {
-        if (!this.selections.includes(n.name)) {
-          this.selections.push(n.name);
-          this.wmsSources[n.name] = this.buildSource(n);
-        } else {
-          if (
-            this.wmsSources[n.name].description === this.wmsSources[n.name].name
-          ) {
-            this.wmsSources[n.name].description = n.description;
-          }
-        }
-      }
-    };
-    if (Array.isArray(node.children)) {
-      node.children.forEach((c) => this.parseSelections(c));
-    } else {
-      selNode(node);
-    }
-  }
-
-  /**
-   *
-   * @param l Build and return the WMS source object
-   * @returns WMS source object
-   */
-  private buildSource(l: LayerNode): ChartProvider | SKInfoLayer {
-    if (this.data.format === 'infolayer') {
-      const s = new SKInfoLayer();
-      s.name = l.name;
-      s.description = l.description;
-      s.values.layers = [l.name];
-      s.values.time = l.time;
-      s.values.url = this.wmsBase.url;
-      s.values.sourceType = 'WMS';
-      return s;
-    } else {
-      const s = Object.assign({}, this.wmsBase);
-      s.name = l.name;
-      s.description = l.description;
-      s.layers = [l.name];
-      // A layer with a time dimension becomes a time-varying chart, the same
-      // way it becomes a time-sliding InfoLayer above.
-      const time = chartTimeFromCapabilities(l.time);
-      if (time) {
-        s.time = time;
-      }
-      return s;
-    }
-  }
-
-  /**
-   * Close and return WMS objects
-   */
-  protected handleSave() {
-    this.dialogRef.close(Object.values(this.wmsSources));
-  }
-
-  /**
-   * Retrieve and process capabilities from WMS server
+   * Close and return a new WMS chart source for the host
    * @param wmsHost WMS server host url (without parameters)
    */
-  protected async getCapabilities(wmsHost: string) {
-    if (this.data.format === 'chartprovider') {
-      this.dialogRef.close([
-        {
-          name: 'New WMS Chart',
-          description: '',
-          type: 'WMS',
-          url: wmsHost,
-          layers: []
-        }
-      ]);
-      return;
-    }
-    this.selections = [];
-    this.errorMsg = '';
-    try {
-      this.isFetching = true;
-      const capabilities = await wmsCapabilitiesInWorker(wmsHost);
-      this.wmsBase = {
-        name: capabilities?.name ?? '',
-        description: capabilities?.description ?? '',
-        type: 'WMS',
-        url: wmsHost,
-        layers: []
-      };
-      this.dataSource = capabilities.layers;
-      this.isFetching = false;
-    } catch (err) {
-      this.isFetching = false;
-      this.fetchError = true;
-      this.errorMsg = err.message;
-    }
+  handleSave(wmsHost: string) {
+    const source: ChartProvider = {
+      name: 'New WMS Chart',
+      description: '',
+      type: 'WMS',
+      url: wmsHost,
+      layers: []
+    };
+    this.dialogRef.close([source]);
   }
 }

@@ -211,11 +211,12 @@ describe('refreshing the chart list', () => {
         uiConfig: () => ({}),
         MAP_ZOOM_EXTENT: {}
       },
-      listFromServer: vi.fn(async () => served),
+      listChartsFromServer: vi.fn(async () => served),
       appendOSM: (l: FBCharts) => l,
       sortByScaleDesc: (l: FBCharts) => l,
       arrangeChartLayers: (l: FBCharts) => l,
-      setMapZoomRange: () => undefined
+      setMapZoomRange: () => undefined,
+      migrateAdoptedOverlays: () => undefined
     });
 
     await svc.refreshCharts();
@@ -332,6 +333,7 @@ describe('timeline head followers', () => {
       set: (v: FBCharts) => void;
     };
     chartTimeFollowers: Followers;
+    adoptedOverlays: Map<string, string>;
     syncChartTimeFollowers: (charts: FBCharts) => void;
     fromServer: (c: string, id: string) => Promise<SKChart>;
     app: { debug: () => void };
@@ -345,6 +347,7 @@ describe('timeline head followers', () => {
     const internals = svc as unknown as Internals;
     internals.chartCacheSignal = signal(charts());
     internals.chartTimeFollowers = new Map();
+    internals.adoptedOverlays = new Map();
     internals.app = { debug: () => undefined };
     internals.fromServer =
       fresh ??

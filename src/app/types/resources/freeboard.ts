@@ -8,10 +8,7 @@ import {
   SKVessel
 } from 'src/app/modules/skresources/resource-classes';
 
-import {
-  SKInfoLayer,
-  SKResourceSet
-} from 'src/app/modules/skresources/custom-resource-classes';
+import { SKResourceSet } from 'src/app/modules/skresources/custom-resource-classes';
 
 export type FBRoutes = Array<FBRoute>;
 export type FBRoute = [string, SKRoute, boolean?];
@@ -36,9 +33,6 @@ export type FBVessel = [string, SKVessel, boolean?];
 
 export type FBResourceSets = Array<FBResourceSet>;
 export type FBResourceSet = [string, SKResourceSet, boolean?];
-
-export type FBInfoLayers = Array<FBInfoLayer>;
-export type FBInfoLayer = [string, SKInfoLayer, boolean?];
 
 export type FBResource =
   FBRoute | FBWaypoint | FBNote | FBRegion | FBChart | FBTrack;

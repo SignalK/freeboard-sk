@@ -24,9 +24,9 @@ const MIN_TIMELINE_STEP_MS = 60000;
 
 /**
  * Minimum auto-refresh cadence for a chart, in milliseconds. Time-varying
- * raster products (weather radar, satellite) update every few minutes, and the
- * InfoLayer refresh timer already works at 60 s granularity, so a shorter
- * interval would only re-request tiles the server has not changed.
+ * raster products (weather radar, satellite) update every few minutes, and
+ * the Overlay refresh timer this replaced worked at 60 s granularity, so a
+ * shorter interval would only re-request tiles the server has not changed.
  */
 export const MIN_CHART_REFRESH_INTERVAL_MS = 60000;
 

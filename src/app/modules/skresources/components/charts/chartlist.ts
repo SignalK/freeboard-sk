@@ -27,7 +27,7 @@ import {
 } from '@angular/cdk/drag-drop';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SKResourceService, SKResourceType } from '../../resources.service';
+import { SKResourceService } from '../../resources.service';
 import { FBCharts, FBChart } from 'src/app/types';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
@@ -180,9 +180,7 @@ export class ChartListComponent extends ResourceListBase {
     }
     this.app.sIsFetching.set(!(silent ?? false));
     try {
-      this.fullList = await this.skres.listFromServer<FBChart>(
-        this.collection as SKResourceType
-      );
+      this.fullList = await this.skres.listChartsFromServer();
       this.fullList = this.skres.appendOSM(this.fullList);
       this.app.sIsFetching.set(false);
       this.doFilter();

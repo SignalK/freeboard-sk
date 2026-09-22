@@ -78,5 +78,8 @@
   { "feature": "chart-auto-refresh", "pr": 767, "kind": "new", "since": "v3.2.0-beta.2", "date": "2026-09-17", "title": "feat(charts): auto-refresh time-varying raster charts (radar/satellite)" },
   { "feature": "temporal-charts", "pr": 775, "kind": "new", "since": "v3.2.0-beta.2", "date": "2026-09-18", "title": "feat(charts): native support for time-varying (temporal) charts" },
   { "feature": null, "pr": 777, "kind": "skip", "reason": "implements the charts.time sub-capability of the Plotter Extensions API for extension plugins; the user-facing Time control is documented under Time-varying Charts" },
-  { "feature": "chart-auto-refresh", "pr": 793, "kind": "enhanced", "date": "2026-09-20", "title": "feat(charts): refresh interval for user-added chart sources" }
+  { "feature": "chart-auto-refresh", "pr": 793, "kind": "enhanced", "date": "2026-09-20", "title": "feat(charts): refresh interval for user-added chart sources" },
+  { "feature": "overlays", "kind": "new", "since": "v2.19.0", "date": "2025-10-31", "title": "Overlay map data from WMS & WMTS sources over charts" },
+  { "feature": "overlays", "kind": "enhanced", "since": "v2.19.2", "date": "2025-11-23", "title": "add WMTS time dimension support" },
+  { "feature": "overlays", "pr": 805, "kind": "enhanced", "date": "2026-09-21", "title": "feat(charts): fold overlays into the chart list" }
 ]

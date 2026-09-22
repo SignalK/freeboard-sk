@@ -47,10 +47,11 @@ describe('map zoom extent (#552)', () => {
     // identity list helpers keep the fixture deterministic — the built-in OSM
     // charts would otherwise widen the union to their own 0..24 range.
     Object.assign(svc as unknown as Record<string, unknown>, {
-      listFromServer: vi.fn(async () => served),
+      listChartsFromServer: vi.fn(async () => served),
       appendOSM: (l: FBCharts) => l,
       sortByScaleDesc: (l: FBCharts) => l,
-      arrangeChartLayers: (l: FBCharts) => l
+      arrangeChartLayers: (l: FBCharts) => l,
+      migrateAdoptedOverlays: () => undefined
     });
 
     await svc.refreshCharts();

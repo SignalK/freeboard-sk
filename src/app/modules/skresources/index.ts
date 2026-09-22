@@ -46,7 +46,4 @@ export * from './components/groups/grouplist';
 export * from './components/resourcesets/resourceset-list-modal';
 export * from './components/resourcesets/resourceset-feature-properties-modal';
 
-export * from './components/infolayers/infolayerlist';
-export * from './components/infolayers/infolayer-properties-dialog';
-
 export * from './components/weather/weatherlist';
