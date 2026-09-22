@@ -58,6 +58,8 @@ type Private = {
   chartCacheSignal: { (): FBCharts; set: (v: FBCharts) => void };
   chartTimeFollowers: Map<string, unknown>;
   migrateAdoptedOverlays: () => Promise<void>;
+  chartTimeFromMapService: (chart: FBChart) => Promise<{ time?: unknown }>;
+  putToServer: (c: string, id: string, value: unknown) => Promise<void>;
 };
 
 function harness(opts: {
@@ -481,12 +483,16 @@ describe('editing an adopted Overlay', () => {
     expect(refreshCharts).toHaveBeenCalled();
   });
 
-  it('re-reads an adopted entry from the Overlay on a timeline refresh tick', async () => {
-    // The follower re-reads a chart's resource each tick (#799); an adopted
-    // entry has none until it migrates, so the read goes to `infolayers`.
+  it('re-reads an adopted WMS entry from its map service on a timeline refresh tick, and writes nothing', async () => {
+    // The follower re-reads a chart's time dimension each tick (#799). An
+    // adopted WMS / WMTS entry is a user-added source, so like any other it
+    // is read from GetCapabilities (#804) -- its Overlay record is only the
+    // snapshot taken when it was saved -- and, having no chart resource until
+    // it migrates, the fresh dimension is never written back.
     const T1 = '2026-09-21T12:00:00.000Z';
+    const T2 = '2026-09-21T12:05:00.000Z';
     const timed = overlay('nexrad', 300000);
-    timed.values.time = { current: T1, from: T1, to: T1, values: [] };
+    timed.values.time = { current: T1, from: T1, to: T1, values: [T1] };
     const { svc, priv, get, fromServer } = harness({
       overlays: { [OV1]: timed }
     });
@@ -498,12 +504,24 @@ describe('editing an adopted Overlay', () => {
       timer: undefined,
       pending: null
     });
+    const service = vi.fn((_c: FBChart) =>
+      Promise.resolve({ time: { current: true, values: [T1, T2] } })
+    );
+    priv.chartTimeFromMapService = service;
+    priv.putToServer = vi.fn(() => Promise.resolve());
     get.mockClear();
 
     await svc.chartFollowTimelineHead(CH1);
 
+    expect(service).toHaveBeenCalledTimes(1);
+    expect(service.mock.calls[0][0][0]).toBe(CH1);
     expect(fromServer).not.toHaveBeenCalled();
-    expect(get).toHaveBeenCalledWith(2, `/resources/infolayers/${OV1}`);
+    expect(get).not.toHaveBeenCalled();
+    expect(priv.chartCacheSignal()[0][1].time).toEqual({
+      current: true,
+      values: [T1, T2]
+    });
+    expect(priv.putToServer).not.toHaveBeenCalled();
   });
 
   it('writes nothing when the dialog is cancelled', async () => {

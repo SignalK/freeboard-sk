@@ -336,11 +336,22 @@ describe('timeline head followers', () => {
     adoptedOverlays: Map<string, string>;
     syncChartTimeFollowers: (charts: FBCharts) => void;
     fromServer: (c: string, id: string) => Promise<SKChart>;
+    chartTimeFromMapService: (
+      chart: FBChart
+    ) => Promise<{ time?: ChartTimeDimension }>;
+    putToServer: (c: string, id: string, value: unknown) => Promise<void>;
+    absorbChartDelta: (id: string, value: unknown) => boolean;
+    processResourceMessage: (msg: unknown[]) => void;
+    refreshCharts: () => Promise<void>;
     app: { debug: () => void };
   };
 
   // `charts` is a factory: a chart opens on the head as of the faked clock.
-  function following(charts: () => FBCharts, fresh?: () => Promise<SKChart>) {
+  function following(
+    charts: () => FBCharts,
+    fresh?: () => Promise<SKChart>,
+    service?: (chart: FBChart) => Promise<{ time?: ChartTimeDimension }>
+  ) {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(NOW));
     const svc = Object.create(SKResourceService.prototype) as SKResourceService;
@@ -355,6 +366,9 @@ describe('timeline head followers', () => {
         Promise.resolve(
           new SKChart(internals.chartCacheSignal().find((c) => c[0] === id)[1])
         ));
+    internals.chartTimeFromMapService =
+      service ?? (() => Promise.reject(new Error('no worker here')));
+    internals.putToServer = vi.fn(() => Promise.resolve());
     // What the constructor's effect does on each cache change.
     internals.syncChartTimeFollowers(internals.chartCacheSignal());
     return { svc, internals };
@@ -429,6 +443,224 @@ describe('timeline head followers', () => {
     // The cache carries the fresh timeline, and the selection the new head.
     expect(internals.chartCacheSignal()[0][1].time).toEqual(rolled.time);
     expect(shown(svc)).toBe(t(1));
+  });
+
+  /**
+   * A user-added WMS / WMTS chart lives in the resources-provider store,
+   * whose `time` block is the snapshot of GetCapabilities taken when it was
+   * saved -- re-reading the resource would return the same frozen list. Its
+   * tick re-reads the map service itself instead (#804).
+   */
+  describe('a user-added WMS chart', () => {
+    const t = (n: number) =>
+      new Date(Date.parse('2026-09-18T12:05:00.000Z') + n * STEP).toISOString();
+    const listed = (from: number, to: number): ChartTimeDimension => ({
+      current: true,
+      values: Array.from({ length: to - from + 1 }, (_, i) => t(from + i))
+    });
+    const userAdded = (time: ChartTimeDimension) => {
+      const c = wms(time, STEP);
+      c.source = 'resources-provider';
+      return c;
+    };
+
+    it('is brought up to date as soon as it is displayed, then on each tick', async () => {
+      const service = vi.fn((_c: FBChart) =>
+        Promise.resolve({ time: listed(-9, 1) })
+      );
+      const { svc, internals } = following(
+        () => [['nowcoast', userAdded(listed(-10, 0)), true]],
+        undefined,
+        service
+      );
+      // The immediate tick: no interval has passed.
+      expect(service).toHaveBeenCalledTimes(1);
+      expect(service.mock.calls[0][0][0]).toBe('nowcoast');
+      await tick(0);
+      expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-9, 1));
+      await tick(STEP);
+      expect(service).toHaveBeenCalledTimes(2);
+      expect(shown(svc)).toBeNull(); // live: left to the layer refresh
+    });
+
+    it('re-reads the map service, not the resource, and follows the head', async () => {
+      const resource = vi.fn(() => Promise.resolve(userAdded(listed(-10, 0))));
+      let current = listed(-10, 0);
+      const { svc, internals } = following(
+        () => [['nowcoast', userAdded(listed(-10, 0)), true]],
+        resource,
+        () => Promise.resolve({ time: current })
+      );
+      await tick(0);
+      svc.chartSetTime('nowcoast', t(0)); // scrubbed onto the head
+      current = listed(-9, 1);
+      await tick(STEP);
+      expect(resource).not.toHaveBeenCalled();
+      expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-9, 1));
+      expect(shown(svc)).toBe(t(1));
+    });
+
+    it('writes the fresh dimension back to the resource, without session state', async () => {
+      const { svc, internals } = following(
+        () => [['nowcoast', userAdded(listed(-10, 0)), true]],
+        undefined,
+        () => Promise.resolve({ time: listed(-9, 1) })
+      );
+      svc.chartSetTime('nowcoast', t(0));
+      await tick(0);
+      const put = internals.putToServer as ReturnType<typeof vi.fn>;
+      expect(put).toHaveBeenCalledTimes(1);
+      const [collection, id, value] = put.mock.calls[0] as [
+        string,
+        string,
+        SKChart
+      ];
+      expect(collection).toBe('charts');
+      expect(id).toBe('nowcoast');
+      expect(value.time).toEqual(listed(-9, 1));
+      expect('timeValue' in value).toBe(false);
+      // Nothing new on the next tick: nothing written.
+      await tick(STEP);
+      expect(put).toHaveBeenCalledTimes(1);
+    });
+
+    it('is still re-read from the resource when served by a plugin, and never written back', async () => {
+      const resource = vi.fn(() => Promise.resolve(wms(listed(-9, 1), STEP)));
+      const service = vi.fn((_c: FBChart) =>
+        Promise.resolve({ time: listed(-9, 1) })
+      );
+      const { internals } = following(
+        () => [['plugin', wms(listed(-10, 0), STEP), true]],
+        resource,
+        service
+      );
+      expect(service).not.toHaveBeenCalled(); // no immediate tick
+      await tick(STEP);
+      expect(resource).toHaveBeenCalledTimes(1);
+      expect(service).not.toHaveBeenCalled();
+      expect(internals.putToServer).not.toHaveBeenCalled();
+    });
+
+    it('refreshes an adopted Overlay in memory only -- it has no resource to write', async () => {
+      const service = vi.fn((_c: FBChart) =>
+        Promise.resolve({ time: listed(-9, 1) })
+      );
+      const { internals } = following(
+        () => [['overlay-x', userAdded(listed(-10, 0)), true]],
+        undefined,
+        service
+      );
+      internals.adoptedOverlays.set('overlay-x', 'x');
+      internals.syncChartTimeFollowers([]);
+      internals.syncChartTimeFollowers(internals.chartCacheSignal());
+      await tick(0);
+      expect(service).toHaveBeenCalled();
+      expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-9, 1));
+      expect(internals.putToServer).not.toHaveBeenCalled();
+    });
+
+    it('keeps its timeline when the service cannot be read', async () => {
+      const { svc, internals } = following(
+        () => [['nowcoast', userAdded(listed(-10, 0)), true]],
+        undefined,
+        () => Promise.reject(new Error('offline'))
+      );
+      await tick(0);
+      svc.chartSetTime('nowcoast', t(0));
+      await tick(STEP);
+      expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-10, 0));
+      expect(shown(svc)).toBe(t(0));
+      expect(internals.putToServer).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The write-back raises a resource delta on every client. One that only
+     * carries a new dimension is taken into the displayed chart in place --
+     * no full chart re-list -- whether it is the writer's own echo or news
+     * to another client.
+     */
+    describe('the resource delta it raises', () => {
+      const withTransform = (internals: Internals) => {
+        internals.app = {
+          debug: () => undefined,
+          hostDef: { url: 'http://sk.local:3000' },
+          config: {
+            selections: {
+              chartOpacity: {},
+              chartImageAdjustment: {},
+              chartDisplayMinZoom: {}
+            }
+          }
+        } as unknown as Internals['app'];
+      };
+      const resourceOf = (chart: SKChart) => {
+        const r = { ...chart } as Record<string, unknown>;
+        delete r.timeValue;
+        delete r.displayMinZoom;
+        return r;
+      };
+
+      it('is absorbed in place when only the dimension changed', () => {
+        const { svc, internals } = following(() => [
+          ['nowcoast', userAdded(listed(-10, 0)), true]
+        ]);
+        withTransform(internals);
+        svc.chartSetTime('nowcoast', t(0));
+        const delta = resourceOf(userAdded(listed(-9, 1)));
+        expect(internals.absorbChartDelta('nowcoast', delta)).toBe(true);
+        expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-9, 1));
+        expect(shown(svc)).toBe(t(0)); // session state kept
+      });
+
+      it('is absorbed as a no-op when it is the echo of what is held', () => {
+        const { internals } = following(() => [
+          ['nowcoast', userAdded(listed(-10, 0)), true]
+        ]);
+        withTransform(internals);
+        const before = internals.chartCacheSignal()[0];
+        const delta = resourceOf(userAdded(listed(-10, 0)));
+        expect(internals.absorbChartDelta('nowcoast', delta)).toBe(true);
+        expect(internals.chartCacheSignal()[0]).toBe(before);
+      });
+
+      it('spares every client the full chart re-list', () => {
+        const { internals } = following(() => [
+          ['nowcoast', userAdded(listed(-10, 0)), true]
+        ]);
+        withTransform(internals);
+        internals.refreshCharts = vi.fn(() => Promise.resolve());
+        const message = (value: unknown) => [
+          { path: 'resources.charts.nowcoast', value }
+        ];
+        internals.processResourceMessage(
+          message(resourceOf(userAdded(listed(-9, 1))))
+        );
+        expect(internals.refreshCharts).not.toHaveBeenCalled();
+        expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-9, 1));
+        // Deleted, or changed beyond its dimension: the refresh as before.
+        internals.processResourceMessage(message(null));
+        expect(internals.refreshCharts).toHaveBeenCalledTimes(1);
+      });
+
+      it('is left to the full refresh when anything else changed, or the chart is not shown', () => {
+        const { internals } = following(() => [
+          ['nowcoast', userAdded(listed(-10, 0)), true]
+        ]);
+        withTransform(internals);
+        const moved = userAdded(listed(-9, 1));
+        moved.url = 'https://elsewhere/wms';
+        expect(internals.absorbChartDelta('nowcoast', resourceOf(moved))).toBe(
+          false
+        );
+        expect(
+          internals.absorbChartDelta(
+            'other',
+            resourceOf(userAdded(listed(-9, 1)))
+          )
+        ).toBe(false);
+        expect(internals.absorbChartDelta('nowcoast', null)).toBe(false);
+      });
+    });
   });
 
   it('still follows the clock when the re-read fails', async () => {
