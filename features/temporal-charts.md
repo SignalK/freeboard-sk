@@ -45,22 +45,30 @@ instant currently on the map, and a bar spanning the last 12 hours of frames:
   change either end; the two cannot cross.
 - **Play / Pause** — cycle the loop at the chosen **Speed** (Slow, Medium, Fast or
   X-fast). Scrubbing, stepping or NOW stops playback.
-- **NOW** — return to the live frame. It is only offered for sources that serve a
-  live frame; an archive-only source (IEM's NEXRAD history, for instance) has no
-  "now" and instead opens on its newest frame.
+- **NOW** — return to the newest frame: the live frame for a source that serves one,
+  or, for an archive-only source (IEM's NEXRAD history, for instance), the newest
+  frame it holds — which the chart then keeps up with as new frames are added.
 
 Dates and times are shown in your local time.
+
+Scrubbing back in time is something you do with the palette in view. **Closing the
+palette returns the chart to its newest frame** — whatever you had scrubbed to is
+discarded, so a chart is never left drawing old weather with nothing on screen to
+say so. While the palette is open, the frame you have selected stays exactly where
+you put it: a chart that also auto-refreshes keeps its bar and loop current as new
+frames arrive, but never moves your selection.
 
 ## What the chart list shows
 
 While a chart is showing a past frame its row carries a small **"at …"** note with
 the frame's time, so a ticked chart drawing old weather says why. The note clears
-when the chart is back on live.
+when the chart is back on its newest frame.
 
 ## What is remembered
 
 - The **frame you are looking at is not remembered** — every time-varying chart
-  starts on its live (or newest) frame when Freeboard loads.
+  starts on its newest frame when Freeboard loads, and returns to it when the
+  palette closes.
 - The **loop range is remembered per chart**, measured back from the newest frame,
   so a chart you loop over "the last three hours" opens on the last three hours
   next time too.
@@ -70,7 +78,9 @@ when the chart is back on live.
 
 A chart that also auto-refreshes (see **Auto-refreshing Charts**) stops refreshing
 while it is showing a past frame — a historical frame does not change — and picks up
-again when it returns to live.
+again when it returns to its newest frame. For an archive-only source that keeps
+adding frames, "newest" moves on with them: on each refresh the chart is drawn from
+the newest frame the source now holds.
 
 ## For chart-provider plugins
 

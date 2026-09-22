@@ -29,12 +29,14 @@ import {
 } from 'src/app/types';
 import {
   ChartTimeline,
+  MIN_CHART_REFRESH_INTERVAL_MS,
   chartTimeMs,
   chartTimeline,
   chartTimelineHeadMs,
   chartTimelineInstant,
   chartTimelinePosition,
   nextChartPlaybackTime,
+  resolveChartTime,
   stepChartTime
 } from 'src/app/lib/chart-time';
 
@@ -44,8 +46,7 @@ export interface ChartTimeDialogData {
   // the server, and the frames a provider offers move on.
   dimension?: Signal<ChartTimeDimension | undefined>;
   // The instant the chart is showing, read live: it can move under the
-  // palette (a refresh advancing it, an extension retargeting the chart) and
-  // the readout follows.
+  // palette (an extension retargeting the chart) and the readout follows.
   value: Signal<string | null>;
   onChange: (value: string | null) => void;
   // Remembered loop range for this chart, and where the palette was dragged.
@@ -166,8 +167,9 @@ export interface ChartTimeHeadState {
 
 /**
  * The palette's bearings after the timeline head moved on from `state.head`
- * (a chart with a refresh interval follows new frames, and the timeline
- * itself is re-read): a window that ended at the head ends at the new one,
+ * (a chart with a refresh interval re-reads its timeline, and on an
+ * open-ended range the head moves by the clock): a window that ended at the
+ * head ends at the new one,
  * and the loop -- measured back from the head -- slides the same distance,
  * so "the last hour" stays the last hour as frames arrive. A window scrubbed
  * elsewhere in the archive, and the loop inside it, stay put. The same
@@ -307,9 +309,10 @@ export function chartTimeStepLabel(stepMs: number): string {
 
 /**
  * Readout for an instant: local date and time to the minute, or "Live" for
- * the live frame. `dateStyle` picks the spelled-out ("Sep 18, 2026") form for
- * the playhead readout, or the region's short numeric one ("9/18/26") for
- * everything else.
+ * the live frame (`null` on a source that serves one; on an archival source
+ * the caller resolves `null` to the newest frame first). `dateStyle` picks
+ * the spelled-out ("Sep 18, 2026") form for the playhead readout, or the
+ * region's short numeric one ("9/18/26") for everything else.
  */
 export function chartTimeLabel(
   time: string | null,
@@ -333,10 +336,10 @@ export function chartTimeShortLabel(time: string | null): string {
 /**
  * Modeless, draggable time control for a time-varying chart: scrub over the
  * frames the chart's time dimension describes, step and play through them,
- * and return to the live frame. Every move is applied to the map as it
- * happens; the selection is session state, so closing the palette leaves the
- * chart on the frame it was scrubbed to (the chart list marks it as not
- * live) and only stops playback.
+ * and return to the newest frame. Every move is applied to the map as it
+ * happens. Scrubbing is done with the palette in view: closing it stops
+ * playback and (the owner, `SKResourceService.openChartTime`) returns the
+ * chart to its newest frame.
  */
 @Component({
   selector: 'ap-chart-time-dialog',
@@ -481,22 +484,24 @@ export function chartTimeShortLabel(time: string | null): string {
           mat-icon-button
           aria-label="Next frame"
           matTooltip="Next frame"
-          [disabled]="!timeline() || (data.value() === null && current())"
+          [disabled]="!timeline() || data.value() === null"
           (click)="step(1)"
         >
           <mat-icon>navigate_next</mat-icon>
         </button>
         <span style="flex: 1 1 auto"></span>
-        @if (current()) {
-          <button
-            mat-button
-            matTooltip="Return to the live frame"
-            [disabled]="data.value() === null"
-            (click)="goLive()"
-          >
-            NOW
-          </button>
-        }
+        <button
+          mat-button
+          [matTooltip]="
+            current()
+              ? 'Return to the live frame'
+              : 'Return to the newest frame'
+          "
+          [disabled]="data.value() === null"
+          (click)="goLive()"
+        >
+          NOW
+        </button>
       </mat-dialog-actions>
     </div>
   `
@@ -519,7 +524,18 @@ export class ChartTimeDialog implements OnDestroy {
   protected speed = signal<ChartTimePlaybackSpeed>('medium');
   private playTimer?: ReturnType<typeof setInterval>;
 
+  // The clock, as a signal: on a range whose declared end runs ahead of the
+  // present the newest frame moves on by the clock alone, with no re-read
+  // to say so, and the playhead of a chart on its newest frame (and the
+  // window ending there) must move with it.
+  private clock = signal(Date.now());
+  private clockTimer = setInterval(
+    () => this.clock.set(Date.now()),
+    MIN_CHART_REFRESH_INTERVAL_MS
+  );
+
   protected position = computed(() => {
+    this.clock();
     const timeline = this.timeline();
     return timeline ? chartTimelinePosition(timeline, this.data.value()) : 0;
   });
@@ -570,7 +586,14 @@ export class ChartTimeDialog implements OnDestroy {
       : '';
   });
 
-  protected valueText = computed(() => chartTimeLabel(this.data.value()));
+  // On an archival source `null` is the newest frame, and the readout names
+  // it (as of the clock) rather than saying "Live".
+  protected valueText = computed(() => {
+    this.clock();
+    return chartTimeLabel(
+      resolveChartTime(this.data.dimension?.(), this.data.value())
+    );
+  });
 
   protected thumbLabel = (position: number): string => {
     const timeline = this.timeline();
@@ -580,13 +603,14 @@ export class ChartTimeDialog implements OnDestroy {
   };
 
   constructor() {
-    // The trigger is the shown instant (on the timeline as it is now); moving
-    // the window is the side effect (see the lessons log on effects that
-    // write and read the same signal).
+    // The triggers are the timeline (re-read on each refresh tick) and the
+    // shown instant on it; moving the window is the side effect (see the
+    // lessons log on effects that write and read the same signal).
     effect(() => {
+      const timeline = this.timeline();
       const position = this.position();
+      this.clock();
       untracked(() => {
-        const timeline = this.timeline();
         if (timeline) {
           this.followHead(timeline);
           this.windowEnd.set(
@@ -599,8 +623,8 @@ export class ChartTimeDialog implements OnDestroy {
 
   /**
    * Slide the window and loop along with the head when it has moved on since
-   * last seen -- a chart with a refresh interval follows new frames, and the
-   * selection arriving here is what triggers the check.
+   * last seen -- a chart with a refresh interval re-reads its timeline, and
+   * that (or the selection moving) is what triggers the check.
    */
   private followHead(timeline: ChartTimeline) {
     const before: ChartTimeHeadState = {
@@ -626,6 +650,7 @@ export class ChartTimeDialog implements OnDestroy {
 
   ngOnDestroy() {
     this.stopPlayback();
+    clearInterval(this.clockTimer);
   }
 
   /** The frame cadence, for the caption; the range itself is on the bar. */

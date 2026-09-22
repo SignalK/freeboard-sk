@@ -12,6 +12,7 @@ import TileLayer from 'ol/layer/Tile';
 
 import { MapComponent } from '../map.component';
 
+import { resolveChartTime } from 'src/app/lib/chart-time';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 
@@ -46,7 +47,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
   // Dimension values the capabilities declared as defaults: what the live
   // frame is drawn with, and what a selected instant is restored to.
   private defaultDimensions: Record<string, unknown> = {};
-  // Instant the source is showing; it is built showing the live frame.
+  // Instant the source is requesting; it is built requesting the live frame.
   private appliedTime: string | null = null;
   // Bumped per parseChart call: the capabilities fetch is awaited, so an
   // earlier call can resume after a later one and would apply the chart it
@@ -147,30 +148,47 @@ export class WmtsChartLayerComponent implements OnDestroy {
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
     if (this.layer) {
-      // Show the selected instant of a time-varying chart (null = live). Any
-      // change applies -- including back to live for a chart that has just
-      // lost its time dimension, so no stale dimension lingers on the source.
-      const time = chart[1].timeValue ?? null;
-      if (time !== this.appliedTime) {
-        applyChartTimeToWmts(
-          this.layer.getSource() as WMTS,
-          time,
-          this.defaultDimensions
-        );
-        this.appliedTime = time;
-      }
+      this.applyTime(chart);
       // Auto-refresh time-varying charts (radar/satellite) non-destructively.
       // A historical frame does not change, so the timer is suspended while an
-      // instant is selected and resumes on return to live.
-      const iv = time === null ? chart[1].refreshInterval : undefined;
+      // instant is selected and resumes on return to the newest frame, which
+      // each tick resolves afresh.
+      const iv =
+        typeof chart[1].timeValue === 'string'
+          ? undefined
+          : chart[1].refreshInterval;
       if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
         this.stopRefresh?.();
         this.refreshIntervalMs = iv;
-        this.stopRefresh = startChartTileRefresh(this.layer.getSource(), iv);
+        this.stopRefresh = startChartTileRefresh(
+          this.layer.getSource(),
+          iv,
+          () => this.applyTime(this.chart())
+        );
       }
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
+  }
+
+  /**
+   * Request the selected instant of a time-varying chart, or its newest frame
+   * for `null` (live where the source serves it, else the newest frame that
+   * exists now). Any change applies -- including back to live for a chart that
+   * has just lost its time dimension, so no stale dimension lingers on the
+   * source.
+   */
+  private applyTime(chart?: FBChart) {
+    const source = this.layer?.getSource();
+    if (!chart || !(source instanceof WMTS)) {
+      return;
+    }
+    const time = resolveChartTime(chart[1].time, chart[1].timeValue ?? null);
+    if (time === this.appliedTime) {
+      return;
+    }
+    applyChartTimeToWmts(source, time, this.defaultDimensions);
+    this.appliedTime = time;
   }
 
   /** Retrieve WMTS capabilities as JSON object*/

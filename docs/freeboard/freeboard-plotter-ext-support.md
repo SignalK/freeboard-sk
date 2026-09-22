@@ -196,7 +196,10 @@ chart's `chart.list` entry carries `time: { value, current, from?, to?, step?,
 values? }`; every other chart omits it.
 
 `chart.setTime({ ids, time })` shows each chart at an ISO 8601 instant, or its
-live frame for `null`. The instant is **passed through unchanged** to the tile
+newest frame for `null` (the live frame where the source serves one; on an
+archival source, `current: false`, the newest frame at or before now, which the
+layer resolves as it requests it and again on each refresh tick). The instant is
+**passed through unchanged** to the tile
 source — no snapping to `values`, no clamping to `from`/`to` — so an extension
 animating a provider it does not own should pick from the timeline it is given.
 It is the same call the native **Time** palette (the clock action on a chart-list
@@ -204,14 +207,16 @@ row) makes; the two stay in sync through the chart cache.
 
 - **Session state.** The shown instant lives on the cached chart (`timeValue`),
   never in the saved config and never in the chart resource sent to the server;
-  every chart starts live on load (an archival source, `current: false`, starts at
-  its newest frame at or before now).
+  every chart starts on its newest frame (`null`) on load. An explicit instant
+  stays where it is put -- a refresh tick re-reads the chart's timeline but never
+  moves the selection -- until another `chart.setTime`, or the native Time
+  palette closing, which returns the chart to `null`.
 - **Non-destructive swap.** The layer rotates the tile source's key rather than
   refreshing it, so the previous frame stays on screen until the requested one has
   loaded — the same path `refreshInterval` uses.
 - **`refreshInterval` interplay.** A chart's auto-refresh timer is suspended while
   `time` is non-null (a historical frame does not change) and resumes on return
-  to live.
+  to `null`; on an archival source each tick re-resolves which frame is newest.
 
 `chart.time` (`{id, time}`) is emitted for every retarget, from any origin — an
 extension's `chart.setTime`, another extension's, or the user's palette — one

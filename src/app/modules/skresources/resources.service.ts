@@ -105,9 +105,7 @@ import {
 } from 'src/app/lib/components';
 import {
   chartRefreshIntervalMs,
-  chartTimeFollowingHead,
   chartTimeline,
-  chartTimelineHeadMs,
   isChartTimeInstant
 } from 'src/app/lib/chart-time';
 
@@ -169,11 +167,11 @@ export class SKResourceService {
     this.worker
       .resource$()
       .subscribe((msg: PathValue[]) => this.processResourceMessage(msg));
-    // The displayed-chart set is the trigger; the followers are the side
+    // The displayed-chart set is the trigger; the refresh timers are the side
     // effect (see the lessons log on effects that write and read one signal).
     effect(() => {
       const charts = this.chartCacheSignal();
-      untracked(() => this.syncChartTimeFollowers(charts));
+      untracked(() => this.syncChartTimeRefreshers(charts));
     });
   }
 
@@ -645,15 +643,12 @@ export class SKResourceService {
   private chartCacheSignal = signal<FBCharts>([]);
   readonly charts = this.chartCacheSignal.asReadonly();
 
-  // One follower of the timeline head per displayed time-varying chart with a
-  // refresh interval (see chartFollowTimelineHead). `head` is the head's
-  // instant (ms) as last seen, which the chart's selected instant keeps its
-  // offset from.
-  private chartTimeFollowers = new Map<
+  // One re-read of the time dimension per displayed time-varying chart with
+  // a refresh interval (see chartRefreshTimeDimension).
+  private chartTimeRefreshers = new Map<
     string,
     {
       interval: number;
-      head: number;
       timer: ReturnType<typeof setInterval>;
       // When the re-read in progress started, or null when none is.
       pending: number | null;
@@ -1362,14 +1357,18 @@ export class SKResourceService {
   }
 
   /**
-   * @description Show a time-varying chart at an instant, or its live frame.
+   * @description Show a time-varying chart at an instant, or its newest frame
+   * (the live frame where the source serves one; the newest frame that exists
+   * on an archival source, which the layer resolves as it requests it).
    * Session state only: it lands in the chart cache so the visible layer
-   * retargets, and is never persisted -- every chart starts live on load.
-   * Charts without a time dimension are left untouched.
+   * retargets, and is never persisted -- every chart starts on its newest
+   * frame on load. An explicit instant stays where it is put: nothing moves
+   * it but another call here, or the time control closing (see
+   * `openChartTime`). Charts without a time dimension are left untouched.
    * @param id Chart identifier
-   * @param time ISO 8601 instant, or null for the live frame. Passed through
-   * to the source unchanged (no snapping or clamping): resolving it to a frame
-   * is the provider's business.
+   * @param time ISO 8601 instant, or null for the newest frame. Passed
+   * through to the source unchanged (no snapping or clamping): resolving it
+   * to a frame is the provider's business.
    */
   public chartSetTime(id: string, time: string | null) {
     if (!id || (time !== null && !isChartTimeInstant(time))) {
@@ -1389,27 +1388,21 @@ export class SKResourceService {
         return [c[0], updated, c[2]];
       });
     });
-    // A new selection is relative to the head as it is now, not as the
-    // follower last saw it (up to one interval ago).
-    const follower = this.chartTimeFollowers.get(id);
-    const timeline = follower ? chartTimeline(entry[1].time) : null;
-    if (timeline) {
-      follower.head = chartTimelineHeadMs(timeline);
-    }
   }
 
   /**
-   * @description Keep a follower of the timeline head for every displayed
-   * time-varying chart with a refresh interval, and drop the rest -- a chart
-   * taken off the map, or whose interval changed (its follower restarts on
-   * the new cadence). The follower is what a `refreshInterval` means for a
-   * chart showing a past frame: the layer's own tile refresh only re-requests
-   * the live frame, so without it an archival chart (IEM's NEXRAD WMS-T,
-   * whose default is a fixed day in 2011) would show the frame it opened on
-   * for ever while the server kept adding newer ones.
+   * @description Keep a re-read of the time dimension going for every
+   * displayed time-varying chart with a refresh interval, and drop the rest
+   * -- a chart taken off the map, or whose interval changed (its timer
+   * restarts on the new cadence). The layer's own tile refresh re-requests
+   * the newest frame on the same cadence; this is what keeps the timeline
+   * that frame is resolved against (and that the time control scrubs over)
+   * current, so an archival source that keeps adding frames (IEM's NEXRAD
+   * WMS-T, whose default is a fixed day in 2011) is not shown the frame it
+   * opened on for ever.
    * @param charts The displayed-chart set
    */
-  private syncChartTimeFollowers(charts: FBCharts) {
+  private syncChartTimeRefreshers(charts: FBCharts) {
     const wanted = new Map<string, FBChart>();
     charts.forEach((c: FBChart) => {
       if (
@@ -1419,33 +1412,30 @@ export class SKResourceService {
         wanted.set(c[0], c);
       }
     });
-    this.chartTimeFollowers.forEach((follower, id) => {
+    this.chartTimeRefreshers.forEach((refresher, id) => {
       const interval = chartRefreshIntervalMs(
         wanted.get(id)?.[1].refreshInterval
       );
-      if (interval !== follower.interval) {
-        clearInterval(follower.timer);
-        this.chartTimeFollowers.delete(id);
+      if (interval !== refresher.interval) {
+        clearInterval(refresher.timer);
+        this.chartTimeRefreshers.delete(id);
       }
     });
     wanted.forEach((c: FBChart, id: string) => {
-      if (this.chartTimeFollowers.has(id)) {
+      if (this.chartTimeRefreshers.has(id)) {
         return;
       }
       const interval = chartRefreshIntervalMs(c[1].refreshInterval);
-      this.chartTimeFollowers.set(id, {
+      this.chartTimeRefreshers.set(id, {
         interval,
-        // A chart enters the cache when it is displayed, on the head
-        // (initialChartTime) unless it carries a selection over.
-        head: chartTimelineHeadMs(chartTimeline(c[1].time)),
-        timer: setInterval(() => this.chartFollowTimelineHead(id), interval),
+        timer: setInterval(() => this.chartRefreshTimeDimension(id), interval),
         pending: null
       });
       // A user-added chart's stored dimension is as old as its last
       // write-back, so it is brought up to date at once rather than a whole
       // interval later; a plugin's resource was just listed and is current.
       if (this.chartIsUserAddedMapService(c)) {
-        this.chartFollowTimelineHead(id);
+        this.chartRefreshTimeDimension(id);
       }
     });
   }
@@ -1454,42 +1444,40 @@ export class SKResourceService {
    * @description One refresh tick of a time-varying chart: re-read its time
    * dimension so the timeline reflects the frames on offer now (a `values`
    * list grows, a rolling `from`/`to` moves on -- the copy taken when the
-   * chart was listed never would), then advance the selected instant by
-   * however far the head has moved, keeping its offset from the head: a
-   * chart on the newest frame stays on the newest frame, one an hour behind
-   * stays an hour behind. A plugin-served chart is re-read from its
-   * resource, which the provider keeps current; a user-added WMS / WMTS
-   * chart from the map service itself, since its resource is only the
-   * snapshot of GetCapabilities taken when it was saved (#804). A chart
-   * showing its live frame is left to the layer's own tile refresh; a
-   * re-read that fails (offline) still follows the head of the timeline
-   * already held, which on an open-ended range moves by the clock.
+   * chart was listed never would). The selected instant is left alone: a
+   * chart showing its newest frame (`null`) is re-resolved against the fresh
+   * timeline by its layer, and an explicit instant never moves on its own.
+   * A plugin-served chart is re-read from its resource, which the provider
+   * keeps current; a user-added WMS / WMTS chart from the map service
+   * itself, since its resource is only the snapshot of GetCapabilities taken
+   * when it was saved (#804). A re-read that fails (offline) leaves the
+   * timeline already held in place.
    * @param id Chart identifier
    */
-  public async chartFollowTimelineHead(id: string) {
-    const follower = this.chartTimeFollowers.get(id);
+  public async chartRefreshTimeDimension(id: string) {
+    const refresher = this.chartTimeRefreshers.get(id);
     const chart = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
-    if (!follower || !chart) {
+    if (!refresher || !chart) {
       return;
     }
     // One re-read at a time; one that has been out for a whole interval is
     // given up on (a request has no timeout of its own), so a stalled
-    // connection cannot hold the chart on a stale frame for ever.
+    // connection cannot hold the chart on a stale timeline for ever.
     const started = Date.now();
     if (
-      follower.pending !== null &&
-      started - follower.pending < follower.interval
+      refresher.pending !== null &&
+      started - refresher.pending < refresher.interval
     ) {
       return;
     }
-    follower.pending = started;
+    refresher.pending = started;
     try {
       const fresh = await Promise.race([
         this.chartIsUserAddedMapService(chart)
           ? this.chartTimeFromMapService(chart)
           : this.readChart(id),
         new Promise<undefined>((resolve) =>
-          setTimeout(() => resolve(undefined), follower.interval)
+          setTimeout(() => resolve(undefined), refresher.interval)
         )
       ]);
       if (
@@ -1514,37 +1502,21 @@ export class SKResourceService {
             this.withoutLocalState(updated[1])
           ).catch((err) =>
             this.app.debug(
-              `** chartFollowTimelineHead(${id}): write-back failed`,
+              `** chartRefreshTimeDimension(${id}): write-back failed`,
               err
             )
           );
         }
       }
     } catch (err) {
-      this.app.debug(`** chartFollowTimelineHead(${id}): re-read failed`, err);
+      this.app.debug(
+        `** chartRefreshTimeDimension(${id}): re-read failed`,
+        err
+      );
     } finally {
-      if (follower.pending === started) {
-        follower.pending = null;
+      if (refresher.pending === started) {
+        refresher.pending = null;
       }
-    }
-    if (!this.chartTimeFollowers.has(id)) {
-      // Taken off the map, or no longer temporal, while the re-read ran.
-      return;
-    }
-    const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
-    const timeline = entry ? chartTimeline(entry[1].time) : null;
-    if (!timeline) {
-      return;
-    }
-    const time = entry[1].timeValue;
-    if (typeof time !== 'string') {
-      follower.head = chartTimelineHeadMs(timeline);
-      return;
-    }
-    const next = chartTimeFollowingHead(timeline, time, follower.head);
-    follower.head = next.head;
-    if (next.time !== time) {
-      this.chartSetTime(id, next.time);
     }
   }
 
@@ -1612,11 +1584,11 @@ export class SKResourceService {
   }
 
   /**
-   * @description Show a set of time-varying charts at an instant, or live
-   * (`null`) -- the batch form of `chartSetTime`, for the host API. Charts
-   * without a time dimension are left untouched.
+   * @description Show a set of time-varying charts at an instant, or their
+   * newest frame (`null`) -- the batch form of `chartSetTime`, for the host
+   * API. Charts without a time dimension are left untouched.
    * @param ids Chart identifiers
-   * @param time ISO 8601 instant, or null for the live frame
+   * @param time ISO 8601 instant, or null for the newest frame
    */
   public setChartsTime(ids: string[], time: string | null) {
     if (!Array.isArray(ids)) {
@@ -1657,10 +1629,11 @@ export class SKResourceService {
 
   /**
    * @description Open the modeless, draggable Time palette for a time-varying
-   * chart. Scrubbing takes effect live on the map. The selection is session
-   * state, so closing the palette only stops playback and leaves the chart on
-   * the frame it was scrubbed to -- the chart list marks it as not live.
-   * Owned here (not the chart list) so the list can stay open beside it.
+   * chart. Scrubbing takes effect live on the map. Scrubbing back in time is
+   * something done with the palette in view: closing it returns the chart to
+   * its newest frame, discarding whatever was scrubbed -- there is no use for
+   * a chart left on an old frame with nothing on screen to say so. Owned
+   * here (not the chart list) so the list can stay open beside it.
    * @param chart Chart to scrub
    */
   public openChartTime(chart: FBChart) {
@@ -1676,8 +1649,8 @@ export class SKResourceService {
           text: chart[1]?.name ?? '',
           // Read live: the dimension is re-read from the server on each
           // refresh tick (the frames a provider offers move on), and the
-          // value can move under the palette (a refresh advancing it, an
-          // extension retargeting the chart) -- the bar must follow both.
+          // value can move under the palette (an extension retargeting the
+          // chart) -- the bar must follow both.
           dimension: computed(
             () =>
               this.chartCacheSignal().find((c: FBChart) => c[0] === id)?.[1]
@@ -1708,7 +1681,13 @@ export class SKResourceService {
       `time:${id}`
     );
     ref.afterClosed().subscribe(() => {
+      // Reopened for the same chart before this one had closed: the palette
+      // is still in view, so the selection is the replacement's to keep.
+      const handedOver = this.paletteHandedOver(`time:${id}`, ref);
       this.releaseChartPalette(ref);
+      if (!handedOver) {
+        this.chartSetTime(id, null);
+      }
       if (loop) {
         this.app.config.selections.chartTimeLoop[id] = loop;
         this.app.saveConfig();

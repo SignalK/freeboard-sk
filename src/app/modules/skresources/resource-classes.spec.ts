@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { SKChart } from './resource-classes';
 
 /**
@@ -72,25 +72,21 @@ describe('SKChart', () => {
     expect(new SKChart(original).timeValue).toBeNull();
   });
 
-  it('starts an archival source (current: false) at its newest frame', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-09-18T13:59:00Z'));
-    try {
-      const chart = new SKChart({
-        name: 'Archive',
-        url: 'http://x/{z}/{x}/{y}.png',
-        time: {
-          current: false,
-          from: '2026-09-18T12:00:00Z',
-          to: '2026-09-18T15:00:00Z',
-          step: 3600000
-        }
-      });
-      // The frame at (or before) now, not the declared end still to come.
-      expect(chart.timeValue).toBe('2026-09-18T13:00:00.000Z');
-    } finally {
-      vi.useRealTimers();
-    }
+  it('starts an archival source (current: false) on its newest frame too', () => {
+    // `null` is the newest frame whatever the source: the layer resolves it
+    // to an instant for an archive as it requests it (resolveChartTime), so
+    // the cache never pins one at load.
+    const chart = new SKChart({
+      name: 'Archive',
+      url: 'http://x/{z}/{x}/{y}.png',
+      time: {
+        current: false,
+        from: '2026-09-18T12:00:00Z',
+        to: '2026-09-18T15:00:00Z',
+        step: 3600000
+      }
+    });
+    expect(chart.timeValue).toBeNull();
   });
 
   it('keeps the source when cloning an instance', () => {

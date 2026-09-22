@@ -927,6 +927,24 @@ describe('startChartTileRefresh', () => {
     expect(src.getKey()).toBe(secondRefreshKey); // no ticks after stop
   });
 
+  it('runs beforeTick first on each tick, and wraps what it left on the source', () => {
+    vi.useFakeTimers();
+    const src = source();
+    const interval = 2 * MIN_CHART_REFRESH_INTERVAL_MS;
+    const beforeTick = vi.fn(() =>
+      src.setUrl('https://example.test/t2/{z}/{x}/{y}.png')
+    );
+    startChartTileRefresh(src, interval, beforeTick);
+    expect(beforeTick).not.toHaveBeenCalled(); // nothing on install
+    vi.advanceTimersByTime(interval);
+    expect(beforeTick).toHaveBeenCalledTimes(1);
+    // The retarget made in beforeTick is what the cache-busted tick requests.
+    const url = src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection());
+    expect(url).toMatch(
+      /^https:\/\/example\.test\/t2\/3\/1\/2\.png\?_refresh=/
+    );
+  });
+
   it('installs no timer when refreshInterval is absent, 0 or non-finite', () => {
     vi.useFakeTimers();
     const src = source();

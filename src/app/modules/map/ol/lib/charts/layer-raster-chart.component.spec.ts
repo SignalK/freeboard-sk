@@ -14,7 +14,9 @@ import { FBChart } from 'src/app/types';
  * (`timeValue`), through the resource's `time.url` template, and returns to
  * the plain `url` for live. A historical frame does not change, so the
  * chart's auto-refresh timer must stand still while an instant is shown and
- * pick up again on return to live.
+ * pick up again on return to live. On an archival source (no live frame)
+ * `null` is the newest frame that exists, which the layer resolves itself --
+ * afresh on each refresh tick, so the chart moves on as frames are added.
  */
 describe('RasterChartLayerComponent — time-varying chart', () => {
   const T0 = '2026-09-18T12:00:00.000Z';
@@ -117,6 +119,57 @@ describe('RasterChartLayerComponent — time-varying chart', () => {
     fixture.detectChanges();
     expect(map.addLayer).toHaveBeenCalledTimes(1);
     expect(map.removeLayer).not.toHaveBeenCalled();
+  });
+
+  describe('on an archival source (current: false)', () => {
+    const NOW = '2026-09-18T12:07:00.000Z';
+    const archive = (timeValue: string | null): FBChart => {
+      const chart = radar(timeValue);
+      chart[1].time = {
+        ...chart[1].time,
+        current: false,
+        to: '2026-12-31T00:00:00.000Z'
+      };
+      return chart;
+    };
+    const frame = (iso: string) =>
+      `https://r.test/3/1/2.png?t=${encodeURIComponent(iso)}`;
+
+    beforeEach(() => vi.setSystemTime(new Date(NOW)));
+
+    it('requests the newest frame that exists for null, not the declared end', () => {
+      render(archive(null));
+      expect(tileUrl(source())).toBe(frame('2026-09-18T12:05:00.000Z'));
+    });
+
+    it('moves on to the newer frame on each refresh tick', () => {
+      render(archive(null));
+      const src = source();
+      vi.setSystemTime(new Date('2026-09-18T12:12:00.000Z'));
+      vi.advanceTimersByTime(REFRESH);
+      // The tick's cache-bust rides on the newly resolved frame's URL.
+      expect(tileUrl(src)).toBe(
+        `${frame('2026-09-18T12:10:00.000Z')}&_refresh=${src.getKey()}`
+      );
+    });
+
+    it('holds an explicit instant and suspends the refresh, as on a live source', () => {
+      render(archive(T0));
+      const src = source();
+      expect(tileUrl(src)).toBe(frame(T0));
+      const key = src.getKey();
+      vi.setSystemTime(new Date('2026-09-18T12:12:00.000Z'));
+      vi.advanceTimersByTime(REFRESH * 3);
+      expect(src.getKey()).toBe(key);
+      expect(tileUrl(src)).toBe(frame(T0));
+    });
+
+    it('returns to the newest frame for null', () => {
+      const fixture = render(archive(T0));
+      fixture.componentRef.setInput('chart', archive(null));
+      fixture.detectChanges();
+      expect(tileUrl(source())).toBe(frame('2026-09-18T12:05:00.000Z'));
+    });
   });
 
   it('stops the refresh timer when destroyed', () => {

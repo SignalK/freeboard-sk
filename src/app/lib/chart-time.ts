@@ -204,19 +204,30 @@ export function isChartTimeInstant(time: unknown): time is string {
 }
 
 /**
- * The instant a chart starts at when first shown. A source that serves a
- * live/latest frame (`current` true, or no time dimension at all) starts live
- * (`null`); a purely archival source starts at its newest frame — the one at
- * (or nearest before) now, since a declared `to` may run ahead of the frames
- * that actually exist.
+ * The instant a layer requests for a chart's selection. An explicit instant
+ * is requested as it is -- unless the chart has no time dimension any more
+ * (a re-read found its layers no longer time-varying), when nothing can be
+ * addressed by instant and the live frame is requested, so no stale instant
+ * lingers on the source. `null` means the newest frame: for a source that
+ * serves a live/latest frame (`current` true) that is the live frame -- no
+ * instant -- and for a purely archival source it is the newest frame that
+ * exists, the one at (or nearest before) now, since a declared `to` may run
+ * ahead of the frames that actually exist. Resolved when asked, so a layer
+ * re-requesting on its refresh tick lands on whatever is newest by then.
  */
-export function initialChartTime(dim?: ChartTimeDimension): string | null {
-  if (!dim || dim.current !== false) {
+export function resolveChartTime(
+  dim: ChartTimeDimension | undefined,
+  time: string | null
+): string | null {
+  if (!dim) {
     return null;
+  }
+  if (time !== null || dim.current !== false) {
+    return time;
   }
   const timeline = chartTimeline(dim);
   return timeline
-    ? chartTimelineInstant(timeline, chartTimelinePosition(timeline, null))
+    ? chartTimelineInstant(timeline, chartTimelineHead(timeline))
     : null;
 }
 
@@ -329,10 +340,13 @@ export function chartTimelineInstant(
 }
 
 /**
- * The instant one step before (-1) or after (+1) the current one. Stepping
- * back from live lands on the newest frame; stepping forward off the end
- * returns to live when the source serves a live frame (`current`), otherwise
- * stays on the last frame.
+ * The instant one step before (-1) or after (+1) the current one. `null` is
+ * the newest frame: on a source that serves a live frame (`current`) that is
+ * live, so stepping back lands on the newest listed frame and stepping
+ * forward off the end returns to live; on an archival source it is the head
+ * of the timeline (see {@link chartTimelineHead}), so stepping back from it
+ * lands one frame before the head, and stepping forward onto (or past) the
+ * head returns `null`.
  */
 export function stepChartTime(
   timeline: ChartTimeline,
@@ -340,13 +354,20 @@ export function stepChartTime(
   direction: -1 | 1,
   current: boolean
 ): string | null {
+  const end = current ? timeline.max : chartTimelineHead(timeline);
   if (time === null) {
-    return direction < 0 ? chartTimelineInstant(timeline, timeline.max) : null;
+    if (direction > 0) {
+      return null;
+    }
+    return chartTimelineInstant(
+      timeline,
+      current ? timeline.max : end - timeline.step
+    );
   }
   const next =
     chartTimelinePosition(timeline, time) + direction * timeline.step;
-  if (next > timeline.max) {
-    return current ? null : chartTimelineInstant(timeline, timeline.max);
+  if (current ? next > end : next >= end) {
+    return null;
   }
   return chartTimelineInstant(timeline, next);
 }
@@ -367,40 +388,6 @@ export function chartTimelineHeadMs(timeline: ChartTimeline): number {
   return chartTimeMs(
     chartTimelineInstant(timeline, chartTimelineHead(timeline))
   );
-}
-
-/**
- * Where a selected instant moves to as the head advances: it keeps its offset
- * from the head, so a chart on the newest frame stays on the newest frame and
- * one an hour behind stays an hour behind as new frames arrive. `head` is the
- * head's instant (ms) as last seen. The offset is measured in time and the
- * result lands on a frame of the timeline as it is *now*, so a re-read
- * `values` list that has since dropped the selected frame still puts the
- * selection the same distance behind the new head, on the nearest listed
- * frame. Returns `time` itself (the same string) while the head has not
- * moved, so the caller can tell nothing needs re-requesting.
- */
-export function chartTimeFollowingHead(
-  timeline: ChartTimeline,
-  time: string,
-  head: number
-): { time: string; head: number } {
-  const headMs = chartTimelineHeadMs(timeline);
-  if (!(headMs > head)) {
-    return { time, head };
-  }
-  const ms = chartTimeMs(time);
-  if (!Number.isFinite(ms)) {
-    return { time, head: headMs };
-  }
-  const moved = new Date(ms + headMs - head).toISOString();
-  return {
-    time: chartTimelineInstant(
-      timeline,
-      chartTimelinePosition(timeline, moved)
-    ),
-    head: headMs
-  };
 }
 
 /**
