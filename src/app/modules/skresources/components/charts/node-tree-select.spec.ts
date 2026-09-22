@@ -135,10 +135,13 @@ describe('NodeTreeSelect — time-varying indicator', () => {
     ]);
     expect(markers().length).toBe(1);
     expect(markers()[0].textContent.trim()).toBe('schedule');
-    // It prefixes the label so a wrapped row cannot mis-attribute it.
+    // It prefixes the label so a wrapped row cannot mis-attribute it, is
+    // decorative to assistive tech, and the summary is in the label's
+    // accessible name instead (a keyboard user never hovers the icon).
+    expect(markers()[0].getAttribute('aria-hidden')).toBe('true');
     const label = markers()[0].closest('mat-checkbox') as HTMLElement;
     expect(label.textContent.replace(/\s+/g, ' ').trim()).toBe(
-      'schedule radar'
+      'schedule radar Time-varying: every 5 min, last 12 h'
     );
   });
 

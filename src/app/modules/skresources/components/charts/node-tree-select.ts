@@ -43,7 +43,10 @@ import { LayerNode, layerIdHint, layerTimeHint } from './maplib';
               (change)="toggleSelection($event.checked, node)"
             >
               @if (timeHint(node); as hint) {
-                <mat-icon class="_ap-layer-time" [matTooltip]="hint"
+                <mat-icon
+                  class="_ap-layer-time"
+                  aria-hidden="true"
+                  [matTooltip]="hint"
                   >schedule</mat-icon
                 >
               }
@@ -53,6 +56,9 @@ import { LayerNode, layerIdHint, layerTimeHint } from './maplib';
                   <span class="_ap-layer-id">({{ idHint(node) }})</span>
                 }
               </span>
+              @if (timeHint(node); as hint) {
+                <span class="_ap-sr-only">{{ ' ' + hint }}</span>
+              }
             </mat-checkbox>
           </mat-nested-tree-node>
           <mat-nested-tree-node
@@ -75,7 +81,10 @@ import { LayerNode, layerIdHint, layerTimeHint } from './maplib';
                 (change)="toggleSelection($event.checked, node)"
               >
                 @if (timeHint(node); as hint) {
-                  <mat-icon class="_ap-layer-time" [matTooltip]="hint"
+                  <mat-icon
+                    class="_ap-layer-time"
+                    aria-hidden="true"
+                    [matTooltip]="hint"
                     >schedule</mat-icon
                   >
                 }
@@ -85,6 +94,9 @@ import { LayerNode, layerIdHint, layerTimeHint } from './maplib';
                     <span class="_ap-layer-id">({{ idHint(node) }})</span>
                   }
                 </span>
+                @if (timeHint(node); as hint) {
+                  <span class="_ap-sr-only">{{ ' ' + hint }}</span>
+                }
               </mat-checkbox>
             </div>
             <div role="group" [class.tree-invisible]="!tree.isExpanded(node)">
@@ -116,6 +128,14 @@ import { LayerNode, layerIdHint, layerTimeHint } from './maplib';
         margin-left: 0.4em;
         font-size: 0.85em;
         opacity: 0.7;
+      }
+      ._ap-sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
       }
       .node-tree ._ap-layer-time {
         margin-right: 0.3em;

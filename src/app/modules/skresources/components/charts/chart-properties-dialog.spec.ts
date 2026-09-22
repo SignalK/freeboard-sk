@@ -361,6 +361,31 @@ describe('ChartPropertiesDialog — layer pick pre-fills', () => {
     expect(minutesInput()?.value).toBe('15');
   });
 
+  it('keeps a 0 the user typed, even for a time-varying layer', async () => {
+    await open(newWms({ refreshInterval: 900000 }), wmsCapabilities);
+    await typeInto(minutesInput(), '0');
+    await pick(['nexrad-n0q']);
+    expect(minutesInput()?.value).toBe('0');
+    expect(dialog().refreshMinutes).toBe(0);
+  });
+
+  it('follows a re-pick while the interval is still the one it filled in', async () => {
+    await open(newWms(), wmsCapabilities);
+    await pick(['nexrad-n0q']);
+    expect(dialog().refreshMinutes).toBe(10);
+    // ...and drops the cadence again for a layer with no time dimension
+    await pick(['coastline']);
+    expect(dialog().refreshMinutes).toBe(0);
+    await pick(['nexrad-n0r']);
+    expect(dialog().refreshMinutes).toBe(1);
+  });
+
+  it('does not clear an interval it never set when a static layer is picked', async () => {
+    await open(newWms({ refreshInterval: 900000 }), wmsCapabilities);
+    await pick(['coastline']);
+    expect(dialog().refreshMinutes).toBe(15);
+  });
+
   it('writes the pre-filled values through to the saved chart', async () => {
     await open(newWms(), wmsCapabilities);
     await pick(['nexrad-n0q']);

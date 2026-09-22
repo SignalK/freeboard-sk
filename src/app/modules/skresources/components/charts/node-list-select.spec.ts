@@ -90,13 +90,21 @@ describe('NodeListSelect — time-varying indicator', () => {
       (r) => r.querySelector('mat-icon._ap-layer-time') !== null
     );
     expect(marked).toEqual([true, false]);
-    // It prefixes the title.
+    // It prefixes the title, is decorative to assistive tech, and the
+    // summary is part of the option's accessible name for keyboard users.
+    expect(
+      rows()[0]
+        .querySelector('mat-icon._ap-layer-time')
+        .getAttribute('aria-hidden')
+    ).toBe('true');
     expect(
       rows()[0]
         .querySelector('[matListItemTitle]')
         .textContent.replace(/\s+/g, ' ')
         .trim()
-    ).toBe('schedule MODIS True Color (modis)');
+    ).toBe(
+      'schedule MODIS True Color (modis) Time-varying: 2 frames, last 12 h'
+    );
     const tooltip = fixture.debugElement
       .queryAll((de) => de.name === 'mat-icon')
       .map((de) => de.injector.get(MatTooltip, null))

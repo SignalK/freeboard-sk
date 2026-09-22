@@ -125,6 +125,7 @@ import { NodeListSelect } from './node-list-select';
                     min="0"
                     step="1"
                     [(ngModel)]="refreshMinutes"
+                    (ngModelChange)="refreshEdited = true"
                   />
                   <mat-hint>0 = never refresh</mat-hint>
                   @if (inprefresh.invalid) {
@@ -317,6 +318,9 @@ export class ChartPropertiesDialog {
   // Auto-refresh cadence as the user edits it. The resource stores
   // milliseconds; the field is in whole minutes, 0 meaning never.
   protected refreshMinutes = 0;
+  // Set once the user touches the refresh field: from then on it is theirs,
+  // whatever it holds (a typed 0 is a decision, not the initial blank).
+  protected refreshEdited = false;
   // What the last layer pick filled in on the user's behalf (#808). A field
   // still holding its pre-filled value is re-filled by the next pick; one the
   // user has since edited is left alone.
@@ -466,11 +470,19 @@ export class ChartPropertiesDialog {
       }
     }
     const refreshIsOurs =
-      !this.refreshMinutes ||
-      this.refreshMinutes === this.autoFilled.refreshMinutes;
-    if (time && refreshIsOurs) {
+      !this.refreshEdited &&
+      (!this.refreshMinutes ||
+        this.refreshMinutes === this.autoFilled.refreshMinutes);
+    if (!refreshIsOurs) {
+      return;
+    }
+    if (time) {
       this.refreshMinutes = this.autoFilled.refreshMinutes =
         refreshIntervalMinutes(defaultChartRefreshIntervalMs(time));
+    } else if (this.autoFilled.refreshMinutes !== undefined) {
+      // The cadence was for a time-varying layer; this one is static.
+      this.refreshMinutes = 0;
+      delete this.autoFilled.refreshMinutes;
     }
   }
 
