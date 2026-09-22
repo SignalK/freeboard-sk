@@ -18,8 +18,9 @@ A chart is time-varying when its provider says so. Charts served by a plugin dec
 it on the chart resource (see below). A **WMS or WMTS** chart you add yourself
 becomes time-varying automatically when the service advertises a time dimension for
 the layer you pick — either in the add-chart dialog or later under **Chart
-Properties**. Vector charts (Mapbox-style sources, S-57 ENCs) are never
-time-varying.
+Properties**. An Overlay from an earlier Freeboard that had a time slider appears
+in the Chart list as a chart, with this control in its place (see **Overlays**).
+Vector charts (Mapbox-style sources, S-57 ENCs) are never time-varying.
 
 A time-varying chart shows a **clock** action on its row in the Chart list,
 alongside Opacity, Image Adjustment and Minimum Zoom Level. The action is available
