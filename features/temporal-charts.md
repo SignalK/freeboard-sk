@@ -80,7 +80,8 @@ A chart that also auto-refreshes (see **Auto-refreshing Charts**) stops refreshi
 while it is showing a past frame — a historical frame does not change — and picks up
 again when it returns to its newest frame. For an archive-only source that keeps
 adding frames, "newest" moves on with them: on each refresh the chart is drawn from
-the newest frame the source now holds.
+the newest frame the source now holds. A **WMS or WMTS chart you added yourself**
+keeps up the same way.
 
 ## For chart-provider plugins
 
