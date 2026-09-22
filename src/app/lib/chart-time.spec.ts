@@ -98,8 +98,14 @@ describe('resolveChartTime', () => {
     expect(resolveChartTime({ current: true, from: T0, to: T2 }, T0)).toBe(T0);
   });
 
-  it('requests the live frame (no instant) for null on a live source', () => {
+  it('requests the live frame for a chart with no time dimension, whatever was selected', () => {
+    // A re-read can find the layers no longer time-varying while the cache
+    // still holds the instant that was scrubbed to; it cannot be requested.
+    expect(resolveChartTime(undefined, T0)).toBeNull();
     expect(resolveChartTime(undefined, null)).toBeNull();
+  });
+
+  it('requests the live frame (no instant) for null on a live source', () => {
     expect(resolveChartTime({ current: true, from: T0, to: T2 }, null)).toBe(
       null
     );

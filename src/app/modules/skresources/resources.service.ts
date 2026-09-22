@@ -1681,8 +1681,13 @@ export class SKResourceService {
       `time:${id}`
     );
     ref.afterClosed().subscribe(() => {
+      // Reopened for the same chart before this one had closed: the palette
+      // is still in view, so the selection is the replacement's to keep.
+      const handedOver = this.paletteHandedOver(`time:${id}`, ref);
       this.releaseChartPalette(ref);
-      this.chartSetTime(id, null);
+      if (!handedOver) {
+        this.chartSetTime(id, null);
+      }
       if (loop) {
         this.app.config.selections.chartTimeLoop[id] = loop;
         this.app.saveConfig();

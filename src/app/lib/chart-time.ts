@@ -205,19 +205,24 @@ export function isChartTimeInstant(time: unknown): time is string {
 
 /**
  * The instant a layer requests for a chart's selection. An explicit instant
- * is requested as it is. `null` means the newest frame: for a source that
- * serves a live/latest frame (`current` true, or no time dimension at all)
- * that is the live frame -- no instant -- and for a purely archival source it
- * is the newest frame that exists, the one at (or nearest before) now, since a
- * declared `to` may run ahead of the frames that actually exist. Resolved
- * when asked, so a layer re-requesting on its refresh tick lands on whatever
- * is newest by then.
+ * is requested as it is -- unless the chart has no time dimension any more
+ * (a re-read found its layers no longer time-varying), when nothing can be
+ * addressed by instant and the live frame is requested, so no stale instant
+ * lingers on the source. `null` means the newest frame: for a source that
+ * serves a live/latest frame (`current` true) that is the live frame -- no
+ * instant -- and for a purely archival source it is the newest frame that
+ * exists, the one at (or nearest before) now, since a declared `to` may run
+ * ahead of the frames that actually exist. Resolved when asked, so a layer
+ * re-requesting on its refresh tick lands on whatever is newest by then.
  */
 export function resolveChartTime(
   dim: ChartTimeDimension | undefined,
   time: string | null
 ): string | null {
-  if (time !== null || !dim || dim.current !== false) {
+  if (!dim) {
+    return null;
+  }
+  if (time !== null || dim.current !== false) {
     return time;
   }
   const timeline = chartTimeline(dim);

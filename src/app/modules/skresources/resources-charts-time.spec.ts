@@ -311,7 +311,8 @@ describe('closing the time control', () => {
   // the Image Adjustment palette is.
   function svcWithPalette() {
     const svc = svcWithCache();
-    const closed = new Subject<void>();
+    // One `afterClosed` subject per palette opened, in order.
+    const closers: Subject<void>[] = [];
     Object.assign(svc as unknown as Record<string, unknown>, {
       app: {
         config: {
@@ -321,10 +322,14 @@ describe('closing the time control', () => {
         saveConfig: vi.fn()
       },
       dialog: {
-        open: () => ({ afterClosed: () => closed, close: vi.fn() })
+        open: () => {
+          const closed = new Subject<void>();
+          closers.push(closed);
+          return { afterClosed: () => closed, close: vi.fn() };
+        }
       }
     });
-    return { svc, close: () => closed.next() };
+    return { svc, close: (n = 0) => closers[n].next() };
   }
 
   it('returns the chart to its newest frame, discarding what was scrubbed', () => {
@@ -333,6 +338,21 @@ describe('closing the time control', () => {
     svc.chartSetTime('radar', T0);
     expect(cache(svc)[0][1].timeValue).toBe(T0);
     close();
+    expect(cache(svc)[0][1].timeValue).toBeNull();
+  });
+
+  it('leaves the selection to a replacement palette opened for the same chart', () => {
+    // The clock clicked again while the palette is open: the first palette
+    // is closed for its replacement, and its afterClosed arrives late -- an
+    // exit animation after the replacement has opened. The chart is still
+    // under a palette, so the first one's close must not reset it.
+    const { svc, close } = svcWithPalette();
+    svc.openChartTime(cache(svc)[0]);
+    svc.openChartTime(cache(svc)[0]);
+    svc.chartSetTime('radar', T0);
+    close(0);
+    expect(cache(svc)[0][1].timeValue).toBe(T0);
+    close(1);
     expect(cache(svc)[0][1].timeValue).toBeNull();
   });
 
