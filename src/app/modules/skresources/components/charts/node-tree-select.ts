@@ -15,7 +15,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 
 import { AppFacade } from 'src/app/app.facade';
-import { LayerNode, layerIdHint } from './maplib';
+import { LayerNode, layerIdHint, layerTimeHint } from './maplib';
 
 /********* NodeTree Select ***********/
 @Component({
@@ -39,13 +39,25 @@ import { LayerNode, layerIdHint } from './maplib';
         >
           <mat-nested-tree-node *matTreeNodeDef="let node">
             <mat-checkbox
-              [matTooltip]="node.description"
               [checked]="node.selected"
               (change)="toggleSelection($event.checked, node)"
             >
-              {{ node.title ?? node.name }}
-              @if (idHint(node)) {
-                <span class="_ap-layer-id">({{ idHint(node) }})</span>
+              @if (timeHint(node); as hint) {
+                <mat-icon
+                  class="_ap-layer-time"
+                  aria-hidden="true"
+                  [matTooltip]="hint"
+                  >schedule</mat-icon
+                >
+              }
+              <span [matTooltip]="node.description">
+                {{ node.title ?? node.name }}
+                @if (idHint(node)) {
+                  <span class="_ap-layer-id">({{ idHint(node) }})</span>
+                }
+              </span>
+              @if (timeHint(node); as hint) {
+                <span class="_ap-sr-only">{{ ' ' + hint }}</span>
               }
             </mat-checkbox>
           </mat-nested-tree-node>
@@ -65,13 +77,25 @@ import { LayerNode, layerIdHint } from './maplib';
                 </mat-icon>
               </button>
               <mat-checkbox
-                [matTooltip]="node.description"
                 [checked]="node.selected"
                 (change)="toggleSelection($event.checked, node)"
               >
-                {{ node.title ?? node.name }}
-                @if (idHint(node)) {
-                  <span class="_ap-layer-id">({{ idHint(node) }})</span>
+                @if (timeHint(node); as hint) {
+                  <mat-icon
+                    class="_ap-layer-time"
+                    aria-hidden="true"
+                    [matTooltip]="hint"
+                    >schedule</mat-icon
+                  >
+                }
+                <span [matTooltip]="node.description">
+                  {{ node.title ?? node.name }}
+                  @if (idHint(node)) {
+                    <span class="_ap-layer-id">({{ idHint(node) }})</span>
+                  }
+                </span>
+                @if (timeHint(node); as hint) {
+                  <span class="_ap-sr-only">{{ ' ' + hint }}</span>
                 }
               </mat-checkbox>
             </div>
@@ -105,6 +129,22 @@ import { LayerNode, layerIdHint } from './maplib';
         font-size: 0.85em;
         opacity: 0.7;
       }
+      ._ap-sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      .node-tree ._ap-layer-time {
+        margin-right: 0.3em;
+        vertical-align: middle;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        opacity: 0.7;
+      }
     `
   ]
 })
@@ -120,6 +160,8 @@ export class NodeTreeSelect {
     !!node.children && node.children.length > 0;
   /** Layer name to show beside the title when it disambiguates (#797) */
   protected idHint = (node: LayerNode) => layerIdHint(node.title, node.name);
+  /** Time-dimension summary to show beside a time-varying layer (#808) */
+  protected timeHint = (node: LayerNode) => layerTimeHint(node.time);
 
   private app = inject(AppFacade);
 

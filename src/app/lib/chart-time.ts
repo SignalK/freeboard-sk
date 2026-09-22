@@ -39,6 +39,100 @@ export const MIN_CHART_REFRESH_INTERVAL_MS = 60000;
 export const MAX_CHART_REFRESH_INTERVAL_MS = 2147483647;
 
 /**
+ * Auto-refresh cadence to suggest for a time-varying chart whose interval has
+ * not been set: a fresh frame every few minutes is the norm for radar and
+ * satellite products, so *never* (the field's initial 0) is almost always the
+ * wrong default for them (#808).
+ */
+export const DEFAULT_CHART_REFRESH_INTERVAL_MS = 300000;
+
+/**
+ * The auto-refresh interval to pre-fill for a chart that has just been
+ * pointed at a time-varying layer: the dimension's own `step` when it declares
+ * one (clamped like any interval), else
+ * {@link DEFAULT_CHART_REFRESH_INTERVAL_MS}. Undefined for a chart with no
+ * time dimension, which has nothing to suggest (#808).
+ */
+export function defaultChartRefreshIntervalMs(
+  dim?: ChartTimeDimension
+): number | undefined {
+  if (!dim) {
+    return undefined;
+  }
+  return (
+    chartRefreshIntervalMs(dim.step) ??
+    chartRefreshIntervalMs(DEFAULT_CHART_REFRESH_INTERVAL_MS)
+  );
+}
+
+/**
+ * Longest span a live dimension is described as "last …" rather than by its
+ * dates: past a month the relative form stops being meaningful.
+ */
+const RELATIVE_SPAN_MAX_MS = 31 * 86400000;
+
+/**
+ * One-line description of a time dimension for a layer picker, e.g.
+ * `Time-varying: every 5 min, last 12 h` for a live product or
+ * `Time-varying: every 5 min, 1995-01-01 – 2026-12-31` for an archive, or
+ * `Time-varying: 24 frames` for a discrete list. Empty when the dimension has
+ * no usable range (the layer gets no Time control either) (#808).
+ */
+export function chartTimeSummary(dim?: ChartTimeDimension): string {
+  const timeline = chartTimeline(dim);
+  if (!timeline) {
+    return '';
+  }
+  const parts: string[] = [];
+  const first = timeline.frames
+    ? chartTimeMs(timeline.frames[0])
+    : timeline.min;
+  const last = timeline.frames
+    ? chartTimeMs(timeline.frames[timeline.frames.length - 1])
+    : timeline.max;
+  const span = last - first;
+  if (timeline.frames) {
+    parts.push(`${timeline.frames.length} frames`);
+  } else if (
+    typeof dim.step === 'number' &&
+    Number.isFinite(dim.step) &&
+    dim.step > 0
+  ) {
+    parts.push(`every ${formatDuration(dim.step)}`);
+  }
+  if (span > 0) {
+    parts.push(
+      dim.current && span <= RELATIVE_SPAN_MAX_MS
+        ? `last ${formatDuration(span)}`
+        : `${isoDate(first)} – ${isoDate(last)}`
+    );
+  }
+  return parts.length ? `Time-varying: ${parts.join(', ')}` : 'Time-varying';
+}
+
+/** A duration in the largest whole-ish unit that reads naturally. */
+function formatDuration(ms: number): string {
+  const units: Array<[number, string]> = [
+    [86400000, 'd'],
+    [3600000, 'h'],
+    [60000, 'min'],
+    [1000, 's']
+  ];
+  for (const [size, label] of units) {
+    if (ms >= size) {
+      const n = ms / size;
+      return `${Number.isInteger(n) ? n : Number(n.toFixed(1))} ${label}`;
+    }
+  }
+  return `${ms} ms`;
+}
+
+/** Calendar date (UTC) of an epoch instant, `YYYY-MM-DD`. */
+function isoDate(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+/**
  * A chart's `refreshInterval` as a usable timer delay: clamped to
  * [{@link MIN_CHART_REFRESH_INTERVAL_MS}, {@link MAX_CHART_REFRESH_INTERVAL_MS}],
  * or undefined when absent, non-finite or non-positive (the chart never

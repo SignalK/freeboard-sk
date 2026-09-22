@@ -8,6 +8,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { ChartProvider } from 'src/app/types';
+import { NEW_WMTS_CHART_NAME } from './maplib';
 
 /********* WMTSDialog **********
 	Prompts for a WMTS host and returns a new chart source for it; the layer
@@ -70,7 +71,7 @@ export class WMTSDialog {
    */
   handleSave(wmtsHost: string) {
     const source: ChartProvider = {
-      name: 'New WMTS Chart',
+      name: NEW_WMTS_CHART_NAME,
       description: '',
       type: 'WMTS',
       url: wmtsHost,

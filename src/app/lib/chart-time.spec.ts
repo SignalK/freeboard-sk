@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
+  DEFAULT_CHART_REFRESH_INTERVAL_MS,
   MAX_CHART_REFRESH_INTERVAL_MS,
   MIN_CHART_REFRESH_INTERVAL_MS,
   chartRefreshIntervalMs,
   chartTimeFollowingHead,
   chartTimeFromCapabilities,
+  chartTimeSummary,
   chartTimeTileUrl,
   chartTimeline,
   chartTimelineHead,
@@ -13,6 +15,7 @@ import {
   chartTimelinePosition,
   initialChartTime,
   isChartTimeInstant,
+  defaultChartRefreshIntervalMs,
   nextChartPlaybackTime,
   stepChartTime
 } from './chart-time';
@@ -320,6 +323,106 @@ describe('chartTimeFromCapabilities', () => {
     expect(
       chartTimeFromCapabilities({ values: [T0, T1, T2], current: T0 })?.current
     ).toBe(false);
+  });
+});
+
+/**
+ * #808: the refresh interval a Properties dialog pre-fills for a chart just
+ * pointed at a time-varying layer -- the layer's own step when it has one,
+ * else five minutes; never below the one-minute floor.
+ */
+describe('defaultChartRefreshIntervalMs', () => {
+  it('suggests the declared step for a stepped range', () => {
+    expect(
+      defaultChartRefreshIntervalMs({
+        current: true,
+        from: T0,
+        to: T2,
+        step: STEP
+      })
+    ).toBe(STEP);
+  });
+
+  it('clamps a sub-minute step up to the floor', () => {
+    expect(
+      defaultChartRefreshIntervalMs({
+        current: true,
+        from: T0,
+        to: T2,
+        step: 10000
+      })
+    ).toBe(MIN_CHART_REFRESH_INTERVAL_MS);
+  });
+
+  it('falls back to five minutes when no step is declared', () => {
+    expect(
+      defaultChartRefreshIntervalMs({ current: true, from: T0, to: T2 })
+    ).toBe(DEFAULT_CHART_REFRESH_INTERVAL_MS);
+    // A WMTS dimension is normally a discrete list with no step.
+    expect(
+      defaultChartRefreshIntervalMs({ current: true, values: [T0, T1, T2] })
+    ).toBe(DEFAULT_CHART_REFRESH_INTERVAL_MS);
+  });
+
+  it('has nothing to suggest without a time dimension', () => {
+    expect(defaultChartRefreshIntervalMs(undefined)).toBeUndefined();
+  });
+});
+
+/**
+ * #808: the one-line hint a layer picker shows beside a time-varying layer.
+ */
+describe('chartTimeSummary', () => {
+  it('describes a live stepped range relative to now', () => {
+    const from = '2026-09-18T00:00:00.000Z';
+    expect(chartTimeSummary({ current: true, from, to: T0, step: STEP })).toBe(
+      'Time-varying: every 5 min, last 12 h'
+    );
+  });
+
+  it('describes an archive by its dates', () => {
+    // IEM NEXRAD: 1995-01-01/2026-12-31/PT5M with a fixed 2006 default.
+    expect(
+      chartTimeSummary({
+        current: false,
+        from: '1995-01-01T00:00:00.000Z',
+        to: '2026-12-31T23:59:59.999Z',
+        step: STEP
+      })
+    ).toBe('Time-varying: every 5 min, 1995-01-01 – 2026-12-31');
+  });
+
+  it('uses dates for a live range longer than a month', () => {
+    expect(
+      chartTimeSummary({
+        current: true,
+        from: '2025-09-18T12:00:00.000Z',
+        to: T0,
+        step: 3600000
+      })
+    ).toBe('Time-varying: every 1 h, 2025-09-18 – 2026-09-18');
+  });
+
+  it('counts the frames of a discrete list', () => {
+    expect(chartTimeSummary({ current: true, values: [T0, T1, T2] })).toBe(
+      'Time-varying: 3 frames, last 10 min'
+    );
+  });
+
+  it('omits the cadence when none is declared', () => {
+    expect(
+      chartTimeSummary({
+        current: true,
+        from: '2026-09-18T06:00:00.000Z',
+        to: T0
+      })
+    ).toBe('Time-varying: last 6 h');
+  });
+
+  it('is empty for a layer with no usable range', () => {
+    expect(chartTimeSummary(undefined)).toBe('');
+    expect(chartTimeSummary({ current: true })).toBe('');
+    expect(chartTimeSummary({ current: true, from: T2, to: T0 })).toBe('');
   });
 });
 

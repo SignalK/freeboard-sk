@@ -1,5 +1,26 @@
 import { ChartTimeDimension } from 'src/app/types';
-import { chartTimeFromCapabilities } from 'src/app/lib/chart-time';
+import {
+  chartTimeFromCapabilities,
+  chartTimeSummary
+} from 'src/app/lib/chart-time';
+
+/**
+ * Names a user-added WMS / WMTS chart carries until it is given one: the
+ * Properties dialog treats either as "not yet named" and fills the name in
+ * from the first layer the user picks (#808).
+ */
+export const NEW_WMS_CHART_NAME = 'New WMS Chart';
+export const NEW_WMTS_CHART_NAME = 'New WMTS Chart';
+
+/** Whether a chart name is blank or still one of the placeholders above. */
+export const isPlaceholderChartName = (name?: string): boolean => {
+  const n = (name ?? '').trim();
+  return (
+    !n ||
+    n.toLowerCase() === NEW_WMS_CHART_NAME.toLowerCase() ||
+    n.toLowerCase() === NEW_WMTS_CHART_NAME.toLowerCase()
+  );
+};
 
 type CapabilitiesBaseDef = {
   name: string;
@@ -67,6 +88,28 @@ export const layerIdHint = (title?: string, id?: string): string => {
   }
   return t.toLowerCase() === i.toLowerCase() ? '' : i;
 };
+
+/** The chart description to take from a layer abstract (#808): its first
+ * clause -- up to, not including, the first `.`, `,` or `;` -- since a WMS
+ * abstract is often a paragraph and the field is a single line. A `.`
+ * between two digits is a decimal point (`~12.0 µm`, `v1.2`), not a break.
+ * Falls back to the whole (trimmed) abstract when the cut would leave nothing.
+ * @param abstract Layer `Abstract` / `ows:Abstract`
+ */
+export const chartDescriptionFromAbstract = (abstract?: string): string => {
+  const text = (abstract ?? '').trim();
+  const m = /[,;]|\.(?!\d)|(?<!\d)\./.exec(text);
+  const clause = m ? text.slice(0, m.index).trim() : text;
+  return clause || text;
+};
+
+/** Return the picker hint for a layer's time dimension: a one-line summary
+ * (see `chartTimeSummary`) when the layer advertises one that would give the
+ * chart a Time control, else '' (#808).
+ * @param time Layer time dimension as the capabilities parser yields it
+ */
+export const layerTimeHint = (time?: TimeDef | null): string =>
+  chartTimeSummary(chartTimeFromCapabilities(time ?? undefined));
 
 /** Return layer with the supplied name
  * @param name Layer Name
