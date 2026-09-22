@@ -24,6 +24,7 @@ import {
   startChartTileRefresh
 } from './chart-utils';
 
+import { resolveChartTime } from 'src/app/lib/chart-time';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
 
 // ** Freeboard Raster TileLayer Chart **
@@ -43,7 +44,8 @@ export class RasterChartLayerComponent implements OnDestroy {
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
-  // Instant the tile source is showing; it is built showing the live frame.
+  // Instant the tile source is requesting; it is built requesting the live
+  // frame.
   private appliedTime: string | null = null;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
@@ -144,31 +146,47 @@ export class RasterChartLayerComponent implements OnDestroy {
     // pmtiles (WebGL) layers are static local files, so neither the time
     // dimension nor auto-refresh applies to them.
     if (this.layer instanceof TileLayer) {
-      // Show the selected instant of a time-varying chart (null = live). Any
-      // change applies -- including back to live for a chart that has just
-      // lost its time dimension, so no stale instant lingers on the source.
-      const time = chart[1].timeValue ?? null;
-      const source = this.layer.getSource();
-      if (source instanceof XYZ && time !== this.appliedTime) {
-        applyChartTimeToTileSource(
-          source,
-          time,
-          chart[1].time?.url,
-          chart[1].url
-        );
-        this.appliedTime = time;
-      }
+      this.applyTime(chart);
       // Auto-refresh time-varying charts (radar/satellite) non-destructively.
       // A historical frame does not change, so the timer is suspended while an
-      // instant is selected and resumes on return to live.
-      const iv = time === null ? chart[1].refreshInterval : undefined;
+      // instant is selected and resumes on return to the newest frame, which
+      // each tick resolves afresh.
+      const iv =
+        typeof chart[1].timeValue === 'string'
+          ? undefined
+          : chart[1].refreshInterval;
       if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
         this.stopRefresh?.();
         this.refreshIntervalMs = iv;
-        this.stopRefresh = startChartTileRefresh(this.layer.getSource(), iv);
+        this.stopRefresh = startChartTileRefresh(
+          this.layer.getSource(),
+          iv,
+          () => this.applyTime(this.chart())
+        );
       }
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
+  }
+
+  /**
+   * Request the selected instant of a time-varying chart, or its newest frame
+   * for `null` (live where the source serves it, else the newest frame that
+   * exists now). Any change applies -- including back to live for a chart that
+   * has just lost its time dimension, so no stale instant lingers on the
+   * source.
+   */
+  private applyTime(chart?: FBChart) {
+    const source =
+      this.layer instanceof TileLayer ? this.layer.getSource() : undefined;
+    if (!chart || !(source instanceof XYZ)) {
+      return;
+    }
+    const time = resolveChartTime(chart[1].time, chart[1].timeValue ?? null);
+    if (time === this.appliedTime) {
+      return;
+    }
+    applyChartTimeToTileSource(source, time, chart[1].time?.url, chart[1].url);
+    this.appliedTime = time;
   }
 }

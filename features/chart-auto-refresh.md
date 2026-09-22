@@ -21,7 +21,7 @@ refresh cadence honoured is **one minute**.
 A provider can go further and offer the **earlier** frames too, which turns the chart
 into one you can scrub back through and play as a loop — see **Time-varying Charts**.
 While such a chart is showing a past frame its auto-refresh pauses, and resumes when
-it returns to live.
+it returns to its newest frame.
 
 ## For sources you add yourself
 

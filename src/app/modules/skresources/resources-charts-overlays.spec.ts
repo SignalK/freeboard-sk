@@ -56,7 +56,7 @@ type Private = {
   overlaysToTop: Set<string>;
   overlayMigrationTried: boolean;
   chartCacheSignal: { (): FBCharts; set: (v: FBCharts) => void };
-  chartTimeFollowers: Map<string, unknown>;
+  chartTimeRefreshers: Map<string, unknown>;
   migrateAdoptedOverlays: () => Promise<void>;
   chartTimeFromMapService: (chart: FBChart) => Promise<{ time?: unknown }>;
   putToServer: (c: string, id: string, value: unknown) => Promise<void>;
@@ -131,7 +131,7 @@ function harness(opts: {
     overlaysUnavailable: false,
     overlayMigrationTried: false,
     chartCacheSignal: signal<FBCharts>([]),
-    chartTimeFollowers: new Map(),
+    chartTimeRefreshers: new Map(),
     listFromServer,
     postToServer,
     deleteFromServer,
@@ -498,9 +498,8 @@ describe('editing an adopted Overlay', () => {
     });
     const charts = await svc.listChartsFromServer();
     priv.chartCacheSignal.set(charts.filter((c) => c[0] === CH1));
-    priv.chartTimeFollowers.set(CH1, {
+    priv.chartTimeRefreshers.set(CH1, {
       interval: 300000,
-      head: Date.parse(T1),
       timer: undefined,
       pending: null
     });
@@ -511,7 +510,7 @@ describe('editing an adopted Overlay', () => {
     priv.putToServer = vi.fn(() => Promise.resolve());
     get.mockClear();
 
-    await svc.chartFollowTimelineHead(CH1);
+    await svc.chartRefreshTimeDimension(CH1);
 
     expect(service).toHaveBeenCalledTimes(1);
     expect(service.mock.calls[0][0][0]).toBe(CH1);

@@ -736,6 +736,11 @@ export {
  * everywhere. Servers ignore unknown query parameters, and re-fetching every
  * tile on each tick is what the interval asks for anyway.
  *
+ * `beforeTick` runs first on each tick, before the key rotates: a
+ * time-varying chart showing its newest frame re-resolves which frame that is
+ * there (an archival source has no live frame, so "newest" is an instant that
+ * moves on), and a retarget it makes is picked up by the wrapper below.
+ *
  * The interval is clamped to [{@link MIN_CHART_REFRESH_INTERVAL_MS},
  * {@link MAX_CHART_REFRESH_INTERVAL_MS}]. An absent, non-finite or non-positive
  * interval, or a source that is not URL-based, installs no timer (returns a
@@ -743,7 +748,8 @@ export {
  */
 export function startChartTileRefresh(
   source: TileSource | null | undefined,
-  refreshInterval?: number
+  refreshInterval?: number,
+  beforeTick?: () => void
 ): () => void {
   const interval = chartRefreshIntervalMs(refreshInterval);
   if (!(source instanceof UrlTile) || interval === undefined) {
@@ -755,6 +761,7 @@ export function startChartTileRefresh(
     );
   }
   const timer = setInterval(() => {
+    beforeTick?.();
     // Cache-busted URL function, new key -- rotates the tile cache key
     // non-destructively. Wrap the source's own URL builder (never a previous
     // tick's wrapper, or the parameter would stack), so LAYERS / TIME changes

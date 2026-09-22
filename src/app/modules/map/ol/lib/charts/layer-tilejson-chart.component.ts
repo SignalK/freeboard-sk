@@ -15,6 +15,7 @@ import { MapComponent } from '../map.component';
 
 import { UrlFunction } from 'ol/Tile';
 
+import { resolveChartTime } from 'src/app/lib/chart-time';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import {
   applyChartTimeToTileSource,
@@ -46,7 +47,8 @@ export class TileJsonChartLayerComponent implements OnDestroy {
   // draws the live frame. Captured once the document has loaded, since the
   // source overwrites its function at that point.
   private liveTileUrlFunction?: UrlFunction;
-  // Instant the tile source is showing; it is built showing the live frame.
+  // Instant the tile source is requesting; it is built requesting the live
+  // frame.
   private appliedTime: string | null = null;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
@@ -134,7 +136,8 @@ export class TileJsonChartLayerComponent implements OnDestroy {
     this.applyTime(chart);
     // Auto-refresh time-varying charts (radar/satellite) non-destructively.
     // A historical frame does not change, so the timer is suspended while an
-    // instant is selected and resumes on return to live.
+    // instant is selected and resumes on return to the newest frame, which
+    // each tick resolves afresh.
     if (this.layer) {
       const iv =
         typeof chart[1].timeValue === 'string'
@@ -143,7 +146,11 @@ export class TileJsonChartLayerComponent implements OnDestroy {
       if (!this.stopRefresh || iv !== this.refreshIntervalMs) {
         this.stopRefresh?.();
         this.refreshIntervalMs = iv;
-        this.stopRefresh = startChartTileRefresh(this.layer.getSource(), iv);
+        this.stopRefresh = startChartTileRefresh(
+          this.layer.getSource(),
+          iv,
+          () => this.applyTime(this.chart())
+        );
       }
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
@@ -151,24 +158,26 @@ export class TileJsonChartLayerComponent implements OnDestroy {
   }
 
   /**
-   * Show the selected instant of a time-varying chart (null = live), once the
-   * TileJSON document has yielded the live tile-URL function to return to.
+   * Request the selected instant of a time-varying chart, or its newest frame
+   * for `null` (live where the source serves it, else the newest frame that
+   * exists now), once the TileJSON document has yielded the live tile-URL
+   * function to return to.
    */
-  private applyTime(chart: FBChart) {
+  private applyTime(chart?: FBChart) {
     const source = this.layer?.getSource();
-    if (!(source instanceof TileJSON) || !this.liveTileUrlFunction) {
+    if (!chart || !(source instanceof TileJSON) || !this.liveTileUrlFunction) {
       return;
     }
     // Any change applies -- including back to live for a chart that has just
     // lost its time dimension, so no stale instant lingers on the source.
-    const time = chart?.[1]?.timeValue ?? null;
+    const time = resolveChartTime(chart[1].time, chart[1].timeValue ?? null);
     if (time === this.appliedTime) {
       return;
     }
     applyChartTimeToTileSource(
       source,
       time,
-      chart?.[1]?.time?.url,
+      chart[1].time?.url,
       this.liveTileUrlFunction
     );
     this.appliedTime = time;

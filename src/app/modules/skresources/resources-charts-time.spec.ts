@@ -1,5 +1,6 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { Subject } from 'rxjs';
 import { SKResourceService } from './resources.service';
 import { SKChart } from './resource-classes';
 import { ChartTimeDimension, FBChart, FBCharts } from 'src/app/types';
@@ -39,7 +40,7 @@ function svcWithCache() {
   Object.assign(svc as unknown as Record<string, unknown>, {
     chartCacheSignal: signal(cachedCharts()),
     // Field initialisers do not run on a bare prototype instance.
-    chartTimeFollowers: new Map()
+    chartTimeRefreshers: new Map()
   });
   return svc;
 }
@@ -304,11 +305,49 @@ describe('transformChart', () => {
  * offers move on) and advances the selected instant by however far the head
  * moved, keeping its offset from it (#795).
  */
-describe('timeline head followers', () => {
+describe('closing the time control', () => {
+  // `openChartTime` only touches `app`, `dialog` and the chart cache, so it
+  // is exercised on a bare prototype instance with those stubbed, the way
+  // the Image Adjustment palette is.
+  function svcWithPalette() {
+    const svc = svcWithCache();
+    const closed = new Subject<void>();
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      app: {
+        config: {
+          selections: { chartTimeLoop: {} },
+          timePalettePos: null
+        },
+        saveConfig: vi.fn()
+      },
+      dialog: {
+        open: () => ({ afterClosed: () => closed, close: vi.fn() })
+      }
+    });
+    return { svc, close: () => closed.next() };
+  }
+
+  it('returns the chart to its newest frame, discarding what was scrubbed', () => {
+    const { svc, close } = svcWithPalette();
+    svc.openChartTime(cache(svc)[0]);
+    svc.chartSetTime('radar', T0);
+    expect(cache(svc)[0][1].timeValue).toBe(T0);
+    close();
+    expect(cache(svc)[0][1].timeValue).toBeNull();
+  });
+
+  it('leaves a chart that was never scrubbed as it is', () => {
+    const { svc, close } = svcWithPalette();
+    svc.openChartTime(cache(svc)[0]);
+    const entry = cache(svc)[0];
+    close();
+    expect(cache(svc)[0]).toBe(entry);
+  });
+});
+
+describe('time dimension refresh', () => {
   const STEP = 300000;
   const NOW = '2026-09-18T12:07:00.000Z';
-  const T2 = '2026-09-18T12:10:00.000Z';
-  const T3 = '2026-09-18T12:15:00.000Z';
   // IEM-shaped: archival, range running past now.
   const nexrad = (): ChartTimeDimension => ({
     current: false,
@@ -326,15 +365,15 @@ describe('timeline head followers', () => {
       time
     });
 
-  type Followers = Map<string, { interval: number; head: number }>;
+  type Refreshers = Map<string, { interval: number }>;
   type Internals = {
     chartCacheSignal: {
       (): FBCharts;
       set: (v: FBCharts) => void;
     };
-    chartTimeFollowers: Followers;
+    chartTimeRefreshers: Refreshers;
     adoptedOverlays: Map<string, string>;
-    syncChartTimeFollowers: (charts: FBCharts) => void;
+    syncChartTimeRefreshers: (charts: FBCharts) => void;
     fromServer: (c: string, id: string) => Promise<SKChart>;
     chartTimeFromMapService: (
       chart: FBChart
@@ -346,8 +385,7 @@ describe('timeline head followers', () => {
     app: { debug: () => void };
   };
 
-  // `charts` is a factory: a chart opens on the head as of the faked clock.
-  function following(
+  function refreshing(
     charts: () => FBCharts,
     fresh?: () => Promise<SKChart>,
     service?: (chart: FBChart) => Promise<{ time?: ChartTimeDimension }>
@@ -357,7 +395,7 @@ describe('timeline head followers', () => {
     const svc = Object.create(SKResourceService.prototype) as SKResourceService;
     const internals = svc as unknown as Internals;
     internals.chartCacheSignal = signal(charts());
-    internals.chartTimeFollowers = new Map();
+    internals.chartTimeRefreshers = new Map();
     internals.adoptedOverlays = new Map();
     internals.app = { debug: () => undefined };
     internals.fromServer =
@@ -370,7 +408,7 @@ describe('timeline head followers', () => {
       service ?? (() => Promise.reject(new Error('no worker here')));
     internals.putToServer = vi.fn(() => Promise.resolve());
     // What the constructor's effect does on each cache change.
-    internals.syncChartTimeFollowers(internals.chartCacheSignal());
+    internals.syncChartTimeRefreshers(internals.chartCacheSignal());
     return { svc, internals };
   }
   const shown = (svc: SKResourceService) => cache(svc)[0][1].timeValue;
@@ -381,8 +419,8 @@ describe('timeline head followers', () => {
 
   afterEach(() => vi.useRealTimers());
 
-  it('follows a displayed temporal chart with a refresh interval, and only that', () => {
-    const { internals } = following(() => [
+  it('re-reads a displayed temporal chart with a refresh interval, and only that', () => {
+    const { internals } = refreshing(() => [
       ['nexrad', wms(nexrad(), STEP), true],
       ['manual', wms(nexrad()), true],
       [
@@ -395,38 +433,29 @@ describe('timeline head followers', () => {
         true
       ]
     ]);
-    expect([...internals.chartTimeFollowers.keys()]).toEqual(['nexrad']);
-    expect(internals.chartTimeFollowers.get('nexrad').interval).toBe(STEP);
+    expect([...internals.chartTimeRefreshers.keys()]).toEqual(['nexrad']);
+    expect(internals.chartTimeRefreshers.get('nexrad').interval).toBe(STEP);
   });
 
-  it('keeps a chart that opened on the head on the head as frames arrive', async () => {
-    const { svc } = following(() => [['nexrad', wms(nexrad(), STEP), true]]);
-    expect(shown(svc)).toBe('2026-09-18T12:05:00.000Z');
+  it('leaves an explicit instant where it was put as frames arrive', async () => {
+    // Scrubbed an hour back: a historical frame does not change, and the
+    // refresh must not turn the selection into a rolling "an hour ago".
+    const { svc } = refreshing(() => [['nexrad', wms(nexrad(), STEP), true]]);
+    svc.chartSetTime('nexrad', '2026-09-18T11:05:00.000Z');
     await tick(STEP); // 12:12 -- 12:10 exists now
-    expect(shown(svc)).toBe(T2);
+    expect(shown(svc)).toBe('2026-09-18T11:05:00.000Z');
     await tick(STEP); // 12:17
-    expect(shown(svc)).toBe(T3);
+    expect(shown(svc)).toBe('2026-09-18T11:05:00.000Z');
   });
 
-  it('keeps a scrubbed chart at its offset from the head', async () => {
-    const { svc } = following(() => [['nexrad', wms(nexrad(), STEP), true]]);
-    svc.chartSetTime('nexrad', '2026-09-18T11:05:00.000Z'); // an hour back
+  it('leaves a chart on its newest frame there -- the layer resolves which frame that is', async () => {
+    const { svc } = refreshing(() => [['nexrad', wms(nexrad(), STEP), true]]);
+    expect(shown(svc)).toBeNull();
     await tick(STEP);
-    expect(shown(svc)).toBe('2026-09-18T11:10:00.000Z');
+    expect(shown(svc)).toBeNull();
   });
 
-  it('measures a new selection from the head as it is then, not as last seen', async () => {
-    const { svc } = following(() => [
-      ['nexrad', wms(nexrad(), 2 * STEP), true]
-    ]);
-    // The head moved on to 12:10 since the follower last looked (12:05).
-    vi.setSystemTime(new Date('2026-09-18T12:11:00.000Z'));
-    svc.chartSetTime('nexrad', '2026-09-18T11:10:00.000Z'); // an hour back
-    await tick(2 * STEP); // 12:21 -- head 12:20
-    expect(shown(svc)).toBe('2026-09-18T11:20:00.000Z');
-  });
-
-  it('re-reads the resource so a values list that rolled on is followed', async () => {
+  it('re-reads the resource so a values list that rolled on is seen', async () => {
     const t = (n: number) =>
       new Date(Date.parse('2026-09-18T12:05:00.000Z') + n * STEP).toISOString();
     const listed = (from: number, to: number): ChartTimeDimension => ({
@@ -434,15 +463,15 @@ describe('timeline head followers', () => {
       values: Array.from({ length: to - from + 1 }, (_, i) => t(from + i))
     });
     const rolled = wms(listed(-9, 1), STEP);
-    const { svc, internals } = following(
+    const { svc, internals } = refreshing(
       () => [['nexrad', wms(listed(-10, 0), STEP), true]],
       () => Promise.resolve(rolled)
     );
-    expect(shown(svc)).toBe(t(0));
+    svc.chartSetTime('nexrad', t(-1));
     await tick(STEP);
-    // The cache carries the fresh timeline, and the selection the new head.
+    // The cache carries the fresh timeline; the selection is untouched.
     expect(internals.chartCacheSignal()[0][1].time).toEqual(rolled.time);
-    expect(shown(svc)).toBe(t(1));
+    expect(shown(svc)).toBe(t(-1));
   });
 
   /**
@@ -468,7 +497,7 @@ describe('timeline head followers', () => {
       const service = vi.fn((_c: FBChart) =>
         Promise.resolve({ time: listed(-9, 1) })
       );
-      const { svc, internals } = following(
+      const { svc, internals } = refreshing(
         () => [['nowcoast', userAdded(listed(-10, 0)), true]],
         undefined,
         service
@@ -483,25 +512,25 @@ describe('timeline head followers', () => {
       expect(shown(svc)).toBeNull(); // live: left to the layer refresh
     });
 
-    it('re-reads the map service, not the resource, and follows the head', async () => {
+    it('re-reads the map service, not the resource, and leaves the selection alone', async () => {
       const resource = vi.fn(() => Promise.resolve(userAdded(listed(-10, 0))));
       let current = listed(-10, 0);
-      const { svc, internals } = following(
+      const { svc, internals } = refreshing(
         () => [['nowcoast', userAdded(listed(-10, 0)), true]],
         resource,
         () => Promise.resolve({ time: current })
       );
       await tick(0);
-      svc.chartSetTime('nowcoast', t(0)); // scrubbed onto the head
+      svc.chartSetTime('nowcoast', t(0)); // scrubbed onto what was the head
       current = listed(-9, 1);
       await tick(STEP);
       expect(resource).not.toHaveBeenCalled();
       expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-9, 1));
-      expect(shown(svc)).toBe(t(1));
+      expect(shown(svc)).toBe(t(0));
     });
 
     it('writes the fresh dimension back to the resource, without session state', async () => {
-      const { svc, internals } = following(
+      const { svc, internals } = refreshing(
         () => [['nowcoast', userAdded(listed(-10, 0)), true]],
         undefined,
         () => Promise.resolve({ time: listed(-9, 1) })
@@ -529,7 +558,7 @@ describe('timeline head followers', () => {
       const service = vi.fn((_c: FBChart) =>
         Promise.resolve({ time: listed(-9, 1) })
       );
-      const { internals } = following(
+      const { internals } = refreshing(
         () => [['plugin', wms(listed(-10, 0), STEP), true]],
         resource,
         service
@@ -545,14 +574,14 @@ describe('timeline head followers', () => {
       const service = vi.fn((_c: FBChart) =>
         Promise.resolve({ time: listed(-9, 1) })
       );
-      const { internals } = following(
+      const { internals } = refreshing(
         () => [['overlay-x', userAdded(listed(-10, 0)), true]],
         undefined,
         service
       );
       internals.adoptedOverlays.set('overlay-x', 'x');
-      internals.syncChartTimeFollowers([]);
-      internals.syncChartTimeFollowers(internals.chartCacheSignal());
+      internals.syncChartTimeRefreshers([]);
+      internals.syncChartTimeRefreshers(internals.chartCacheSignal());
       await tick(0);
       expect(service).toHaveBeenCalled();
       expect(internals.chartCacheSignal()[0][1].time).toEqual(listed(-9, 1));
@@ -560,7 +589,7 @@ describe('timeline head followers', () => {
     });
 
     it('keeps its timeline when the service cannot be read', async () => {
-      const { svc, internals } = following(
+      const { svc, internals } = refreshing(
         () => [['nowcoast', userAdded(listed(-10, 0)), true]],
         undefined,
         () => Promise.reject(new Error('offline'))
@@ -601,7 +630,7 @@ describe('timeline head followers', () => {
       };
 
       it('is absorbed in place when only the dimension changed', () => {
-        const { svc, internals } = following(() => [
+        const { svc, internals } = refreshing(() => [
           ['nowcoast', userAdded(listed(-10, 0)), true]
         ]);
         withTransform(internals);
@@ -613,7 +642,7 @@ describe('timeline head followers', () => {
       });
 
       it('is absorbed as a no-op when it is the echo of what is held', () => {
-        const { internals } = following(() => [
+        const { internals } = refreshing(() => [
           ['nowcoast', userAdded(listed(-10, 0)), true]
         ]);
         withTransform(internals);
@@ -624,7 +653,7 @@ describe('timeline head followers', () => {
       });
 
       it('spares every client the full chart re-list', () => {
-        const { internals } = following(() => [
+        const { internals } = refreshing(() => [
           ['nowcoast', userAdded(listed(-10, 0)), true]
         ]);
         withTransform(internals);
@@ -643,7 +672,7 @@ describe('timeline head followers', () => {
       });
 
       it('is left to the full refresh when anything else changed, or the chart is not shown', () => {
-        const { internals } = following(() => [
+        const { internals } = refreshing(() => [
           ['nowcoast', userAdded(listed(-10, 0)), true]
         ]);
         withTransform(internals);
@@ -663,54 +692,46 @@ describe('timeline head followers', () => {
     });
   });
 
-  it('still follows the clock when the re-read fails', async () => {
-    const { svc } = following(
+  it('keeps the timeline it holds when the re-read fails', async () => {
+    const { svc, internals } = refreshing(
       () => [['nexrad', wms(nexrad(), STEP), true]],
       () => Promise.reject(new Error('offline'))
     );
+    svc.chartSetTime('nexrad', '2026-09-18T11:05:00.000Z');
     await tick(STEP);
-    expect(shown(svc)).toBe(T2);
+    expect(internals.chartCacheSignal()[0][1].time).toEqual(nexrad());
+    expect(shown(svc)).toBe('2026-09-18T11:05:00.000Z');
   });
 
-  it('is not held on a stale frame by a re-read that never returns', async () => {
-    const { svc } = following(
-      () => [['nexrad', wms(nexrad(), STEP), true]],
-      () => new Promise<SKChart>(() => undefined) // hangs
-    );
+  it('gives up on a re-read that never returns, so the next tick can try again', async () => {
+    const read = vi.fn(() => new Promise<SKChart>(() => undefined)); // hangs
+    refreshing(() => [['nexrad', wms(nexrad(), STEP), true]], read);
     await tick(STEP); // 12:12 -- the re-read is out; the tick waits on it
-    expect(shown(svc)).toBe('2026-09-18T12:05:00.000Z');
+    expect(read).toHaveBeenCalledTimes(1);
     await tick(STEP); // 12:17 -- out for a whole interval: given up on
-    expect(shown(svc)).toBe(T3);
+    expect(read).toHaveBeenCalledTimes(2);
   });
 
-  it('leaves a chart on its live frame to the layer refresh', async () => {
-    const live = wms({ ...nexrad(), current: true }, STEP);
-    const { svc } = following(() => [['nexrad', live, true]]);
-    expect(shown(svc)).toBeNull();
-    await tick(STEP);
-    expect(shown(svc)).toBeNull();
-  });
-
-  it('does not rebuild the entry while the head has not moved', async () => {
-    const { svc } = following(() => [['nexrad', wms(nexrad(), 60000), true]]);
+  it('does not rebuild the entry when the re-read brings nothing new', async () => {
+    const { svc } = refreshing(() => [['nexrad', wms(nexrad(), 60000), true]]);
     const entry = cache(svc)[0];
-    await tick(60000); // 12:08 -- still 12:05
+    await tick(60000);
     expect(cache(svc)[0]).toBe(entry);
   });
 
-  it('drops the follower of a chart taken off the map, or given a new interval', () => {
-    const { internals } = following(() => [
+  it('drops the timer of a chart taken off the map, or given a new interval', () => {
+    const { internals } = refreshing(() => [
       ['nexrad', wms(nexrad(), STEP), true]
     ]);
-    const first = internals.chartTimeFollowers.get('nexrad');
-    internals.syncChartTimeFollowers([
+    const first = internals.chartTimeRefreshers.get('nexrad');
+    internals.syncChartTimeRefreshers([
       ['nexrad', wms(nexrad(), 2 * STEP), true]
     ]);
-    const second = internals.chartTimeFollowers.get('nexrad');
+    const second = internals.chartTimeRefreshers.get('nexrad');
     expect(second).not.toBe(first);
     expect(second.interval).toBe(2 * STEP);
-    internals.syncChartTimeFollowers([]);
-    expect(internals.chartTimeFollowers.size).toBe(0);
+    internals.syncChartTimeRefreshers([]);
+    expect(internals.chartTimeRefreshers.size).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

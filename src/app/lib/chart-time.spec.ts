@@ -4,7 +4,6 @@ import {
   MAX_CHART_REFRESH_INTERVAL_MS,
   MIN_CHART_REFRESH_INTERVAL_MS,
   chartRefreshIntervalMs,
-  chartTimeFollowingHead,
   chartTimeFromCapabilities,
   chartTimeSummary,
   chartTimeTileUrl,
@@ -13,10 +12,10 @@ import {
   chartTimelineHeadMs,
   chartTimelineInstant,
   chartTimelinePosition,
-  initialChartTime,
   isChartTimeInstant,
   defaultChartRefreshIntervalMs,
   nextChartPlaybackTime,
+  resolveChartTime,
   stepChartTime
 } from './chart-time';
 
@@ -86,31 +85,46 @@ describe('isChartTimeInstant', () => {
   });
 });
 
-describe('initialChartTime', () => {
-  it('starts a live source (or a chart without a dimension) live', () => {
-    expect(initialChartTime(undefined)).toBeNull();
-    expect(initialChartTime({ current: true, from: T0, to: T2 })).toBeNull();
+describe('resolveChartTime', () => {
+  const archive = {
+    current: false,
+    from: T0,
+    to: '2026-12-31T00:00:00.000Z',
+    step: STEP
+  };
+
+  it('requests an explicit instant as it is', () => {
+    expect(resolveChartTime(archive, T0)).toBe(T0);
+    expect(resolveChartTime({ current: true, from: T0, to: T2 }, T0)).toBe(T0);
   });
 
-  it('starts an archival source at its newest frame that can exist', () => {
+  it('requests the live frame (no instant) for null on a live source', () => {
+    expect(resolveChartTime(undefined, null)).toBeNull();
+    expect(resolveChartTime({ current: true, from: T0, to: T2 }, null)).toBe(
+      null
+    );
+  });
+
+  it('resolves null on an archival source to its newest frame that can exist', () => {
     // A declared end ahead of now is not a frame yet: the newest frame is the
     // one on the grid at (or before) now.
-    expect(
-      initialChartTime({
-        current: false,
-        from: T0,
-        to: '2026-12-31T00:00:00.000Z',
-        step: STEP
-      })
-    ).toBe(T1);
-    // An archive that ended in the past starts at its end.
+    expect(resolveChartTime(archive, null)).toBe(T1);
+    // An archive that ended in the past: its end.
     const past = { from: '2026-09-17T00:00:00.000Z', to: T0, step: STEP };
-    expect(initialChartTime({ current: false, ...past })).toBe(T0);
-    expect(initialChartTime({ current: false, values: [T1, T0] })).toBe(T1);
+    expect(resolveChartTime({ current: false, ...past }, null)).toBe(T0);
+    expect(resolveChartTime({ current: false, values: [T1, T0] }, null)).toBe(
+      T1
+    );
   });
 
-  it('has nowhere to start an archival source with no timeline', () => {
-    expect(initialChartTime({ current: false })).toBeNull();
+  it('resolves as of now, so the newest frame moves on with the clock', () => {
+    expect(resolveChartTime(archive, null)).toBe(T1);
+    vi.setSystemTime(new Date(Date.parse(T2) + 30000));
+    expect(resolveChartTime(archive, null)).toBe(T2);
+  });
+
+  it('has no frame to resolve to on an archival source with no timeline', () => {
+    expect(resolveChartTime({ current: false }, null)).toBeNull();
   });
 });
 
@@ -229,13 +243,43 @@ describe('stepChartTime', () => {
     expect(stepChartTime(tl, null, 1, true)).toBeNull();
   });
 
-  it('returns to live past the end of a live source, else holds the last frame', () => {
+  it('returns to live past the end of a live source', () => {
     expect(stepChartTime(tl, T2, 1, true)).toBeNull();
-    expect(stepChartTime(tl, T2, 1, false)).toBe(T2);
   });
 
   it('holds the first frame stepping back off the start', () => {
     expect(stepChartTime(tl, T0, -1, true)).toBe(T0);
+  });
+
+  describe('on an archival source, where null is the newest frame', () => {
+    // IEM-shaped: the declared end runs ahead of now, so the newest frame is
+    // the head (T1 at the faked clock), not the end of the range.
+    const archive = chartTimeline({
+      current: false,
+      from: '2026-09-18T11:00:00.000Z',
+      to: '2026-12-31T00:00:00.000Z',
+      step: STEP
+    });
+    const T_1 = '2026-09-18T11:55:00.000Z';
+
+    it('steps back from the newest frame onto the one before it', () => {
+      // The head is T1 (12:05) at the faked clock.
+      expect(stepChartTime(archive, null, -1, false)).toBe(T0);
+    });
+
+    it('returns to the newest frame stepping forward onto or past the head', () => {
+      expect(stepChartTime(archive, T0, 1, false)).toBeNull();
+      expect(stepChartTime(archive, T1, 1, false)).toBeNull();
+    });
+
+    it('stays put stepping forward from the newest frame', () => {
+      expect(stepChartTime(archive, null, 1, false)).toBeNull();
+    });
+
+    it('steps through the archive below the head as usual', () => {
+      expect(stepChartTime(archive, T0, -1, false)).toBe(T_1);
+      expect(stepChartTime(archive, T_1, 1, false)).toBe(T0);
+    });
   });
 });
 
@@ -447,8 +491,6 @@ describe('the timeline head', () => {
     to: '2026-12-31T00:00:00.000Z',
     step: STEP
   });
-  const at = (ms: number) => new Date(ms).toISOString();
-  const T3 = '2026-09-18T12:15:00.000Z';
 
   it('is the newest frame that can exist now', () => {
     expect(chartTimelineHead(open)).toBe(Date.parse(T1));
@@ -458,54 +500,9 @@ describe('the timeline head', () => {
     expect(chartTimelineHeadMs(listed)).toBe(Date.parse(T1));
   });
 
-  it('leaves a selection alone while the head has not moved', () => {
-    const head = chartTimelineHeadMs(open);
-    const same = chartTimeFollowingHead(open, T0, head);
-    expect(same.time).toBe(T0);
-    expect(same.head).toBe(head);
-  });
-
-  it('keeps a chart on the newest frame as the head advances', () => {
-    const head = chartTimelineHeadMs(open);
+  it('moves on by the clock on an open-ended range', () => {
     vi.setSystemTime(new Date(Date.parse(T2) + 30000));
-    expect(chartTimeFollowingHead(open, T1, head)).toEqual({
-      time: T2,
-      head: Date.parse(T2)
-    });
-  });
-
-  it('keeps a scrubbed chart at its offset from the head', () => {
-    const archive = chartTimeline({
-      current: false,
-      from: '2026-09-01T00:00:00.000Z',
-      to: '2026-12-31T00:00:00.000Z',
-      step: STEP
-    });
-    const head = chartTimelineHeadMs(archive);
-    // Two frames behind the head; the clock moves on two frames.
-    vi.setSystemTime(new Date(Date.parse(T3) + 30000));
-    const next = chartTimeFollowingHead(
-      archive,
-      at(Date.parse(T1) - 2 * STEP),
-      head
-    );
-    expect(next.time).toBe(at(Date.parse(T3) - 2 * STEP));
-    expect(next.head).toBe(Date.parse(T3));
-  });
-
-  it('lands on the timeline as it is now', () => {
-    // A re-read `values` list that dropped its oldest frame while gaining one:
-    // the head is still the last index, but it is a newer frame. A selection
-    // on the dropped frame lands the same distance behind the new head.
-    const before = chartTimeline({ current: true, values: [T0, T1] });
-    const head = chartTimelineHeadMs(before);
-    vi.setSystemTime(new Date(Date.parse(T2) + 30000));
-    const after = chartTimeline({ current: true, values: [T1, T2] });
-    expect(chartTimeFollowingHead(after, T0, head)).toEqual({
-      time: T1,
-      head: Date.parse(T2)
-    });
-    expect(chartTimeFollowingHead(after, T1, head).time).toBe(T2);
+    expect(chartTimelineHeadMs(open)).toBe(Date.parse(T2));
   });
 
   it('never moves on a fixed timeline', () => {
@@ -516,22 +513,8 @@ describe('the timeline head', () => {
       to: T1,
       step: STEP
     });
-    const listedHead = chartTimelineHeadMs(listed);
-    const endedHead = chartTimelineHeadMs(ended);
     vi.setSystemTime(new Date('2026-09-19T12:00:00.000Z'));
-    expect(chartTimeFollowingHead(listed, T0, listedHead).time).toBe(T0);
-    expect(chartTimeFollowingHead(ended, T0, endedHead).time).toBe(T0);
-  });
-
-  it('clamps a selection ahead of the head to the end of the timeline', () => {
-    const short = chartTimeline({
-      current: false,
-      from: T0,
-      to: T3,
-      step: STEP
-    });
-    const head = chartTimelineHeadMs(short);
-    vi.setSystemTime(new Date(Date.parse(T3) + 30000));
-    expect(chartTimeFollowingHead(short, T2, head).time).toBe(T3);
+    expect(chartTimelineHeadMs(listed)).toBe(Date.parse(T1));
+    expect(chartTimelineHeadMs(ended)).toBe(Date.parse(T1));
   });
 });
