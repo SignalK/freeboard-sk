@@ -81,5 +81,9 @@
   { "feature": "chart-auto-refresh", "pr": 793, "kind": "enhanced", "date": "2026-09-20", "title": "feat(charts): refresh interval for user-added chart sources" },
   { "feature": "overlays", "kind": "new", "since": "v2.19.0", "date": "2025-10-31", "title": "Overlay map data from WMS & WMTS sources over charts" },
   { "feature": "overlays", "kind": "enhanced", "since": "v2.19.2", "date": "2025-11-23", "title": "add WMTS time dimension support" },
-  { "feature": "overlays", "pr": 805, "kind": "enhanced", "date": "2026-09-21", "title": "feat(charts): fold overlays into the chart list" }
+  { "feature": "overlays", "pr": 805, "kind": "enhanced", "date": "2026-09-21", "title": "feat(charts): fold overlays into the chart list" },
+  { "feature": "chart-sources", "kind": "new", "since": "v2.12.0", "date": "2024-10-24", "title": "Add WMS/WMTS/JSON chart sources from the chart list" },
+  { "feature": "chart-sources", "pr": 798, "kind": "enhanced", "date": "2026-09-21", "title": "feat(charts): show layer names in the WMS/WMTS layer pickers" },
+  { "feature": "chart-sources", "pr": 811, "kind": "enhanced", "date": "2026-09-22", "title": "feat(charts): fill name, description and refresh from the picked WMS/WMTS layer" },
+  { "feature": "chart-sources", "pr": 813, "kind": "enhanced", "date": "2026-09-22", "title": "fix(charts): accept a WMS/WMTS GetCapabilities link as the source URL" }
 ]
