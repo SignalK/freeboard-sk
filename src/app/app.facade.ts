@@ -124,16 +124,25 @@ export class AppFacade extends InfoService {
     'notes',
     'charts'
   ];
-  public readonly CUSTOM_RESOURCES = [
+  public readonly CUSTOM_RESOURCES: Array<{
+    name: string;
+    description: string;
+    featureKey: string;
+    // false: only report whether the collection exists (default: create it)
+    createIfMissing?: boolean;
+  }> = [
     {
       name: 'tracks',
       description: 'Freeboard GPX track imports.',
       featureKey: 'resourceTracks'
     },
     {
+      // Legacy Overlays: read for adoption as charts (#784), never created.
+      // The flag only gates the "Overlays have moved" menu signpost.
       name: 'infolayers',
       description: 'Freeboard map overlays.',
-      featureKey: 'infoLayers'
+      featureKey: 'infoLayers',
+      createIfMissing: false
     },
     {
       name: 'groups',
@@ -249,7 +258,7 @@ export class AppFacade extends InfoService {
     notificationApi: false,
     resourceGroups: false, // ability to store resource groups
     resourceTracks: false, // ability to store track resources
-    infoLayers: false, // ability to store map information overlays
+    infoLayers: false, // legacy Overlays collection present (#784 signpost)
     buddyList: false,
     tidalApi: false
   });

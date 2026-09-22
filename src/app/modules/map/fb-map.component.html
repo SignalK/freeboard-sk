@@ -218,14 +218,6 @@
     }
   }
 
-  <!-- Chart Overlay -->
-  <fb-livelayer
-    [params]="skresOther.infoLayerParams()"
-    [layerDefs]="skresOther.infoLayers()"
-    [zIndex]="50"
-  >
-  </fb-livelayer>
-
   <!-- Radar Overlay -->
   @if (app.uiCtrl().radarLayer) {
     <fb-radar

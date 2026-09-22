@@ -32,6 +32,12 @@ export interface ResourceSet extends CustomResource {
   };
 }
 
+/**
+ * Legacy Overlays (`infolayers` collection, Freeboard 2.19 – 3.1). Overlays
+ * were folded into charts (#784): entries are read only, to be adopted as
+ * charts and migrated to chart resources -- see `lib/overlay-charts.ts`.
+ * Nothing creates or updates one any more.
+ */
 export type InfoLayers = { [id: string]: InfoLayerResource };
 
 export interface InfoLayerResource extends CustomResource {
@@ -49,15 +55,6 @@ export interface InfoLayerResource extends CustomResource {
     // time dimension parsed from the source's capabilities
     time?: TimeDef;
   };
-}
-
-/**
- * A source parameter change for an info layer, applied to its WMS / WMTS
- * source (e.g. `{ TIME: '2026-09-16T00:00:00.000Z' }`).
- */
-export interface InfoLayerParam {
-  id: string;
-  param: Record<string, string>;
 }
 
 export type CustomResources = { [id: string]: CustomResource };

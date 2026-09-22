@@ -211,11 +211,12 @@ describe('refreshing the chart list', () => {
         uiConfig: () => ({}),
         MAP_ZOOM_EXTENT: {}
       },
-      listFromServer: vi.fn(async () => served),
+      listChartsFromServer: vi.fn(async () => served),
       appendOSM: (l: FBCharts) => l,
       sortByScaleDesc: (l: FBCharts) => l,
       arrangeChartLayers: (l: FBCharts) => l,
-      setMapZoomRange: () => undefined
+      setMapZoomRange: () => undefined,
+      migrateAdoptedOverlays: () => undefined
     });
 
     await svc.refreshCharts();

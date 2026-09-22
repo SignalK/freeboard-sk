@@ -1,22 +1,18 @@
 import { Component, inject } from '@angular/core';
-import {
-  MatDialogModule,
-  MatDialogRef,
-  MAT_DIALOG_DATA
-} from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
-import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
-import { SKInfoLayer } from '../../custom-resource-classes';
-import { WMTSLayerDef, layerIdHint } from './maplib';
-import { wmtsCapabilitiesInWorker } from './maplib';
+import { ChartProvider } from 'src/app/types';
 
+/********* WMTSDialog **********
+	Prompts for a WMTS host and returns a new chart source for it; the layer
+	selection is made in the chart properties dialog.
+***********************************/
 @Component({
   selector: 'wmts-dialog',
   imports: [
@@ -26,9 +22,7 @@ import { wmtsCapabilitiesInWorker } from './maplib';
     MatButtonModule,
     MatToolbarModule,
     MatDialogModule,
-    MatProgressBarModule,
-    MatInputModule,
-    MatListModule
+    MatInputModule
   ],
   template: `
     <div class="_ap-wmts">
@@ -50,7 +44,7 @@ import { wmtsCapabilitiesInWorker } from './maplib';
               matSuffix
               mat-icon-button
               [disabled]="txturl.value.length === 0"
-              (click)="getCapabilities(txturl.value)"
+              (click)="handleSave(txturl.value)"
             >
               <mat-icon>arrow_forward</mat-icon>
             </button>
@@ -60,143 +54,29 @@ import { wmtsCapabilitiesInWorker } from './maplib';
             <mat-error>WMTS host is required!</mat-error>
           }
         </mat-form-field>
-
-        @if (isFetching) {
-          <mat-progress-bar mode="query"></mat-progress-bar>
-        } @else {
-          @if (errorMsg) {
-            <mat-error>Error retrieving capabilities from server!</mat-error>
-          } @else {
-            <div>
-              @if (wmtsLayers.length > 0) {
-                <div style="height: 200px;overflow-x: hidden;overflow-y: auto;">
-                  <mat-selection-list
-                    #wlayers
-                    [multiple]="false"
-                    (selectionChange)="handleSelection($event)"
-                  >
-                    @for (layer of wmtsLayers; track layer; let idx = $index) {
-                      <mat-list-option [value]="idx">
-                        <span matListItemTitle
-                          >{{ layer.name }}
-                          @if (idHint(layer)) {
-                            <span class="_ap-layer-id"
-                              >({{ idHint(layer) }})</span
-                            >
-                          }
-                        </span>
-                        <span
-                          style="flex: 1 1 auto;white-space: pre; overflow:hidden;text-overflow:elipsis;"
-                          >{{ layer.description }}</span
-                        >
-                      </mat-list-option>
-                    }
-                  </mat-selection-list>
-                </div>
-              }
-            </div>
-          }
-        }
       </mat-dialog-content>
-      @if (data.format !== 'chartprovider') {
-        <mat-dialog-actions align="right">
-          <button
-            mat-flat-button
-            [disabled]="selections.length === 0"
-            (click)="handleSave()"
-          >
-            Save
-          </button>
-        </mat-dialog-actions>
-      }
     </div>
-  `,
-  styles: [
-    `
-      ._ap-wmts {
-      }
-      ._ap-wmts .key-label {
-        width: 150px;
-        font-weight: 500;
-      }
-      ._ap-wmts ._ap-layer-id {
-        margin-left: 0.4em;
-        font-size: 0.85em;
-        opacity: 0.7;
-      }
-    `
-  ]
+  `
 })
 export class WMTSDialog {
-  protected isFetching = false;
-  protected fetchError = false;
-  protected errorMsg = '';
-  protected wmtsLayers: WMTSLayerDef[] = [];
-  protected selections: Array<number> = [];
-  protected selectionInfo: Array<{ name: string; description: string }> = [];
   protected hostUrl = '';
-
-  /** Layer identifier to show beside the title when it disambiguates (#797) */
-  protected idHint = (layer: WMTSLayerDef) => layerIdHint(layer.name, layer.id);
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<WMTSDialog>);
-  protected data = inject<{ format: 'chartprovider' | 'infolayer' }>(
-    MAT_DIALOG_DATA
-  );
-
-  constructor() {}
-
-  handleSelection(e: MatSelectionListChange) {
-    this.selections = e.source.selectedOptions.selected.map((opt) => opt.value);
-  }
-
-  handleSave() {
-    const layer = this.wmtsLayers[this.selections[0]];
-    const l = new SKInfoLayer();
-    l.name = layer.name ?? 'Untitled layer';
-    l.description = layer.description ?? '';
-    l.values.layers = [layer.id];
-    l.values.url = this.hostUrl;
-    l.values.sourceType = 'WMTS';
-    if (layer.time) {
-      l.values.time = layer.time;
-    }
-    this.dialogRef.close([l]);
-  }
 
   /**
-   * Retrieve and process capabilities from WMS server
+   * Close and return a new WMTS chart source for the host
    * @param wmtsHost WMTS server host url (without parameters)
    */
-  async getCapabilities(wmtsHost: string) {
-    this.selections = [];
-    this.selectionInfo = [];
-    this.wmtsLayers = [];
-    this.errorMsg = '';
-    this.hostUrl = wmtsHost;
-    try {
-      if (this.data.format === 'chartprovider') {
-        this.dialogRef.close([
-          {
-            name: 'New WMTS Chart',
-            description: '',
-            type: 'WMTS',
-            url: wmtsHost,
-            format: 'png',
-            layers: []
-          }
-        ]);
-        return;
-      }
-      this.isFetching = true;
-      const capabilities = await wmtsCapabilitiesInWorker(wmtsHost);
-      this.isFetching = false;
-      this.wmtsLayers = capabilities.layers;
-    } catch (err) {
-      this.isFetching = false;
-      this.fetchError = true;
-      this.errorMsg = err.message;
-    }
+  handleSave(wmtsHost: string) {
+    const source: ChartProvider = {
+      name: 'New WMTS Chart',
+      description: '',
+      type: 'WMTS',
+      url: wmtsHost,
+      format: 'png',
+      layers: []
+    };
+    this.dialogRef.close([source]);
   }
 }

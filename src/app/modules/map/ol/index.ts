@@ -19,7 +19,6 @@ import { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints
 import { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
 import { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 import { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
-import { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 import { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 import { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
@@ -77,7 +76,6 @@ export { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints
 export { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
 export { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 export { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
-export { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 export { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 export { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
@@ -130,7 +128,6 @@ const declarations = [
   FreeboardRouteLayerComponent,
   FreeboardRegionLayerComponent,
   TrackLayerComponent,
-  FreeboardLiveLayerComponent,
   ChartBoundsLayerComponent,
   ResourceSetLayerComponent,
   AnchorAlarmComponent,

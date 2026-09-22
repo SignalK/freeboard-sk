@@ -2,16 +2,11 @@ import { Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
-import { SKInfoLayer, SKResourceSet } from './custom-resource-classes';
+import { SKResourceSet } from './custom-resource-classes';
 import { SKResourceService, SKSelection } from './resources.service';
 import {
-  FBInfoLayer,
-  FBInfoLayers,
   FBResourceSet,
   FBResourceSets,
-  InfoLayerParam,
-  InfoLayerResource,
-  InfoLayers,
   ResourceSet,
   ResourceSets
 } from 'src/app/types';
@@ -20,18 +15,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 /** ResourceSet entries cached per collection */
 type ResourceSetCache = Map<string, FBResourceSets>;
-type CustomResourceType = 'InfoLayer' | 'ResourceSet';
+type CustomResourceType = 'ResourceSet';
 
 // ** Signal K custom / other resource(s) operations
 @Injectable({ providedIn: 'root' })
 export class FBCustomResourceService {
   private resSetCacheSignal = signal<ResourceSetCache>(new Map());
   readonly resourceSets = this.resSetCacheSignal.asReadonly();
-
-  private infoLayerCacheSignal = signal<FBInfoLayers>([]);
-  readonly infoLayers = this.infoLayerCacheSignal.asReadonly();
-
-  public infoLayerParams = signal<InfoLayerParam[]>([]);
 
   constructor(
     public dialog: MatDialog,
@@ -54,7 +44,8 @@ export class FBCustomResourceService {
       this.app.CUSTOM_RESOURCES.map(async (cr) => {
         rcs[cr.featureKey] = await this.checkCustomCollection(
           cr.name,
-          cr.description
+          cr.description,
+          cr.createIfMissing ?? true
         );
       })
     );
@@ -65,11 +56,13 @@ export class FBCustomResourceService {
    * @description Check for supplied custom resource collection
    * @param name Name of resource collection to check
    * @param description Collection description.
+   * @param createIfMissing Create the collection when it is not found.
    * @returns true if collection is available on the Signal K server
    */
   private checkCustomCollection(
     name: string,
-    description: string
+    description: string,
+    createIfMissing = true
   ): Promise<boolean> {
     return new Promise((resolve) => {
       this.signalk.api
@@ -77,6 +70,10 @@ export class FBCustomResourceService {
         .subscribe(
           () => resolve(true),
           () => {
+            if (!createIfMissing) {
+              resolve(false);
+              return;
+            }
             this.signalk
               .post(`/plugins/resources-provider/_config/${name}`, {
                 description: description
@@ -97,7 +94,7 @@ export class FBCustomResourceService {
    * @param query  Filter criteria for resources to return
    * @returns Promise<T[]> (rejects with HTTPErrorResponse)
    */
-  public customListFromServer<T extends FBInfoLayer | FBResourceSet>(
+  public customListFromServer<T extends FBResourceSet>(
     collection: string,
     type: CustomResourceType,
     query?: string,
@@ -114,22 +111,14 @@ export class FBCustomResourceService {
         `/resources/${collection}${query}`
       );
       skf?.subscribe(
-        (res: ResourceSets | InfoLayers) => {
+        (res: ResourceSets) => {
           const list = Object.entries(res);
           if (list.length === 0) {
             resolve([]);
           }
           list.forEach((i) => (i[1].id = i[0]));
-          let flist: Array<FBInfoLayer | FBResourceSet>;
-          if (type === 'InfoLayer') {
-            flist = list
-              .filter((i) => this.isInfoLayer(i[1]))
-              .map((i): FBInfoLayer => [
-                i[0],
-                new SKInfoLayer(i[1]),
-                this.isSelected(collection as SKSelection, i[1].type, i[0])
-              ]);
-          } else if (type === 'ResourceSet') {
+          let flist: Array<FBResourceSet>;
+          if (type === 'ResourceSet') {
             flist = list
               .filter((i) => this.isResourceSet(i[1]))
               .map((i): FBResourceSet => [
@@ -157,11 +146,7 @@ export class FBCustomResourceService {
     type: CustomResourceType,
     id: string
   ): boolean {
-    if (type === 'InfoLayer') {
-      return !this.skres.selectionIsFiltered(collection)
-        ? true
-        : this.skres.selectionHas(collection, id);
-    } else if (type === 'ResourceSet') {
+    if (type === 'ResourceSet') {
       if (Array.isArray(this.app.config.selections.resourceSets[collection])) {
         return this.app.config.selections.resourceSets[collection].includes(id);
       } else {
@@ -298,45 +283,5 @@ export class FBCustomResourceService {
         }
       });
     return result;
-  }
-
-  /** **********************************
-   * InfoLayer methods
-   *************************************/
-
-  /**
-   * Test if supplied item is a InfoLayer
-   * @param item Item to test
-   * @returns true on success
-   */
-  private isInfoLayer(item: InfoLayerResource) {
-    if (typeof item.type === 'undefined') return false;
-    if (item.type !== 'InfoLayer') return false;
-    if (typeof item.values === 'undefined') return false;
-    return true;
-  }
-
-  /**
-   * @description Refresh InfoLayer cache with entries fetched from sk server
-   * @param query Filter criteria for items in placed in the cache
-   */
-  public async refreshInfoLayers(query?: string) {
-    if (query && query[0] !== '?') {
-      query = '?' + query;
-    }
-    this.app.debug(`** refreshInfoLayers(): ${query}`);
-    try {
-      const layers = await this.customListFromServer<FBInfoLayer>(
-        'infolayers',
-        'InfoLayer',
-        query,
-        true
-      );
-      const flist = layers.filter((layer: FBInfoLayer) => layer[2]);
-      //flist = this.arrangeLayers(flist);
-      this.infoLayerCacheSignal.set(flist);
-    } catch (err) {
-      this.app.debug('** refreshInfoLayers:', err);
-    }
   }
 }

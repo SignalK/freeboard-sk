@@ -29,10 +29,15 @@ import {
   WaypointDialog,
   RelatedNotesDialog,
   TrackDialog,
-  SKInfoLayer,
   ChartPropertiesDialog
 } from '.';
 import { processUrlTokens } from 'src/app/app.config';
+import {
+  chartFromOverlay,
+  isOverlayResource,
+  overlayChartId,
+  overlayIdFromChartId
+} from 'src/app/lib/overlay-charts';
 
 import {
   SKChart,
@@ -58,6 +63,8 @@ import {
   Position,
   Regions,
   ChartResource,
+  InfoLayers,
+  InfoLayerResource,
   ChartImageAdjustment,
   ChartTimeDimension,
   ChartTimeLoopOffsets,
@@ -470,16 +477,9 @@ export class SKResourceService {
    * @returns Promise<ActionResult> (rejects with HTTPErrorResponse)
    */
   public putToServer(
-    collection: SKResourceType | 'tracks' | 'infolayers',
+    collection: SKResourceType | 'tracks',
     id: string,
-    data:
-      | SKRoute
-      | SKWaypoint
-      | SKRegion
-      | SKNote
-      | SKChart
-      | SKTrack
-      | SKInfoLayer,
+    data: SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack,
     provider?: string
   ): Promise<ActionResult> {
     const p = provider ? `?provider=${provider}` : '';
@@ -504,9 +504,8 @@ export class SKResourceService {
    * @returns Promise<ResourceActionResult> (rejects with HTTPErrorResponse)
    */
   public postToServer(
-    collection: SKResourceType | 'tracks' | 'infolayers',
-    data:
-      SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack | SKInfoLayer
+    collection: SKResourceType | 'tracks',
+    data: SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack
   ): Promise<ResourceActionResult> {
     return new Promise((resolve, reject) => {
       this.signalk.api
@@ -689,7 +688,7 @@ export class SKResourceService {
     }
     this.app.debug(`** refreshCharts(): ${query}`);
     try {
-      const chts = await this.listFromServer<FBChart>('charts', query);
+      const chts = await this.listChartsFromServer(query);
       this.appendOSM(chts);
       let flist = chts.filter((chart: FBChart) => chart[2]);
       flist = this.sortByScaleDesc(flist);
@@ -703,6 +702,230 @@ export class SKResourceService {
       this.chartCacheSignal.set(flist);
       this.setMapZoomRange();
     }
+    this.migrateAdoptedOverlays();
+  }
+
+  // **** CHARTS: Overlays adopted as charts (#784) ****
+
+  // Overlays (`infolayers` entries) currently presented as charts without a
+  // chart resource behind them, keyed by chart id → `infolayers` id. Rebuilt
+  // on every listing; consulted by the chart delete / properties paths.
+  private adoptedOverlays = new Map<string, string>();
+  // Overlays whose chart already exists (a migration whose delete did not
+  // land, or one another client completed): delete-only work for migration.
+  private leftoverOverlays = new Map<string, string>();
+  // Adopted chart ids seen for the first time, to be placed above every other
+  // chart on the next arrange — an Overlay always rendered above the charts.
+  private overlaysToTop = new Set<string>();
+  // Set once the `infolayers` collection is known to be absent, so an
+  // ordinary boat does not re-request it on every chart refresh.
+  private overlaysUnavailable = false;
+  // Migration is attempted once per session (it retries on the next load).
+  private overlayMigrationTried = false;
+
+  /**
+   * @description List the available charts: the server's chart resources plus
+   * any legacy Overlays (`infolayers` entries) adopted as charts. Every
+   * consumer of the available-chart set goes through here so an adopted
+   * Overlay is a chart everywhere -- the chart list, the rendered stack and
+   * the host API alike.
+   * @param query Filter criteria (charts only)
+   * @returns FBChart array (rejects with HTTPErrorResponse)
+   */
+  public async listChartsFromServer(query?: string): Promise<FBCharts> {
+    const charts = await this.listFromServer<FBChart>('charts', query);
+    return this.adoptOverlays(charts);
+  }
+
+  /**
+   * @description Fetch the `infolayers` collection.
+   * @returns Entries keyed by id; empty when the collection is unavailable.
+   */
+  private listOverlays(): Promise<InfoLayers> {
+    if (this.overlaysUnavailable) {
+      return Promise.resolve({});
+    }
+    return new Promise((resolve) => {
+      this.signalk.api
+        .get(this.app.skApiVersion, '/resources/infolayers')
+        .subscribe({
+          next: (res: InfoLayers) =>
+            resolve(res && typeof res === 'object' ? res : {}),
+          error: (err: HttpErrorResponse) => {
+            // 400 / 404: the collection is not enabled on this server.
+            if (err?.status === 400 || err?.status === 404) {
+              this.overlaysUnavailable = true;
+            } else {
+              this.app.debug('** listOverlays:', err);
+            }
+            resolve({});
+          }
+        });
+    });
+  }
+
+  /**
+   * @description Present each `infolayers` entry as a chart, alongside the
+   * charts already listed. An Overlay whose chart already exists is not
+   * adopted (the chart wins) but is remembered so migration can finish the
+   * delete. On an Overlay's first sighting its selection is carried over to
+   * the chart selection and it is queued to sit on top of the chart order.
+   * @param charts Charts listed from the server
+   * @returns The list with adopted Overlays appended
+   */
+  private async adoptOverlays(charts: FBCharts): Promise<FBCharts> {
+    const overlays = await this.listOverlays();
+    this.adoptedOverlays.clear();
+    this.leftoverOverlays.clear();
+    const known = new Set(charts.map((c: FBChart) => c[0]));
+    const chartOrder = Array.isArray(this.app.config.selections.chartOrder)
+      ? this.app.config.selections.chartOrder
+      : [];
+    let configChanged = false;
+    Object.entries(overlays).forEach(([overlayId, overlay]) => {
+      if (!isOverlayResource(overlay)) {
+        return;
+      }
+      const chartId = overlayChartId(overlayId);
+      if (known.has(chartId)) {
+        this.leftoverOverlays.set(chartId, overlayId);
+        return;
+      }
+      this.adoptedOverlays.set(chartId, overlayId);
+      if (!chartOrder.includes(chartId)) {
+        // first sighting: carry the Overlay's selection across and raise it
+        const wasShown =
+          !this.selectionIsFiltered('infolayers') ||
+          this.selectionHas('infolayers', overlayId);
+        if (
+          wasShown &&
+          this.selectionIsFiltered('charts') &&
+          !this.app.config.selections.charts.includes(chartId)
+        ) {
+          this.app.config.selections.charts.push(chartId);
+          configChanged = true;
+        }
+        this.overlaysToTop.add(chartId);
+      }
+      charts.push([
+        chartId,
+        this.transformChart(chartFromOverlay(overlayId, overlay), chartId),
+        !this.selectionIsFiltered('charts')
+          ? true
+          : this.selectionHas('charts', chartId)
+      ]);
+    });
+    if (configChanged) {
+      this.app.saveConfig();
+    }
+    return charts;
+  }
+
+  /**
+   * @description Convert each adopted Overlay into a real chart resource, then
+   * delete the Overlay -- when the session can write charts. Attempted once
+   * per load; when a write fails (read-only session, no `charts` collection in
+   * resources-provider) the adopted entries keep working and migration is
+   * retried on the next load. Idempotent: an Overlay whose chart already
+   * exists is only deleted, so concurrent clients and repeated loads are safe.
+   */
+  private async migrateAdoptedOverlays() {
+    if (
+      this.overlayMigrationTried ||
+      (this.adoptedOverlays.size === 0 && this.leftoverOverlays.size === 0)
+    ) {
+      return;
+    }
+    this.overlayMigrationTried = true;
+    let migrated = 0;
+    for (const [chartId, overlayId] of this.adoptedOverlays) {
+      let overlay: InfoLayerResource;
+      try {
+        overlay = await this.fetchOverlay(overlayId);
+      } catch (err) {
+        this.app.debug(`** overlay ${overlayId}: not migrated (read)`, err);
+        continue;
+      }
+      const chart = this.transformChart(
+        chartFromOverlay(overlayId, overlay),
+        chartId
+      );
+      try {
+        await this.postToServer('charts', this.withoutLocalState(chart));
+      } catch (err) {
+        this.app.debug(`** overlay ${overlayId}: not migrated (write)`, err);
+        // the first failure tells us charts are not writable this session
+        break;
+      }
+      this.leftoverOverlays.set(chartId, overlayId);
+      migrated++;
+    }
+    for (const [chartId, overlayId] of this.leftoverOverlays) {
+      try {
+        await this.deleteOverlay(overlayId);
+        this.app.debug(`** overlay ${overlayId}: migrated to chart ${chartId}`);
+      } catch (err) {
+        this.app.debug(`** overlay ${overlayId}: not removed`, err);
+      }
+    }
+    if (migrated > 0) {
+      this.refreshCharts();
+    }
+  }
+
+  /**
+   * @description Fetch an `infolayers` entry.
+   * @param overlayId Entry identifier
+   * @returns Promise<InfoLayerResource> (rejects with HTTPErrorResponse)
+   */
+  private fetchOverlay(overlayId: string): Promise<InfoLayerResource> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .get(this.app.skApiVersion, `/resources/infolayers/${overlayId}`)
+        .subscribe({
+          next: (res: InfoLayerResource) => {
+            if (isOverlayResource(res)) {
+              resolve(res);
+            } else {
+              reject(new Error(`Overlay ${overlayId}: not an InfoLayer`));
+            }
+          },
+          error: (err: HttpErrorResponse) => reject(err)
+        });
+    });
+  }
+
+  /**
+   * @description Delete an `infolayers` entry; an entry already gone counts
+   * as deleted.
+   * @param overlayId Entry identifier
+   */
+  private async deleteOverlay(overlayId: string): Promise<void> {
+    try {
+      await this.deleteFromServer('infolayers', overlayId);
+    } catch (err) {
+      if ((err as HttpErrorResponse)?.status !== 404) {
+        throw err;
+      }
+    }
+  }
+
+  /**
+   * @description Migrate one adopted Overlay with the chart the user has
+   * edited: create the chart resource under the adopted id, then delete the
+   * Overlay. The write path for an adopted entry (Save in Properties).
+   * @param chartId Adopted chart id
+   * @param chart Edited chart
+   */
+  private async migrateOverlayWithEdits(chartId: string, chart: SKChart) {
+    const overlayId = this.adoptedOverlays.get(chartId);
+    chart.identifier = chartId;
+    await this.postToServer('charts', this.withoutLocalState(chart));
+    if (overlayId) {
+      await this.deleteOverlay(overlayId);
+    }
+    this.selectionAdd('charts', chartId);
+    this.refreshCharts();
   }
 
   /**
@@ -834,13 +1057,38 @@ export class SKResourceService {
       )
       .subscribe((result: { ok: boolean }) => {
         if (result && result.ok) {
-          this.deleteFromServer('charts', id, 'resources-provider')
+          this.deleteChartFromServer(id)
             .then(() => this.forgetChartSettings(id))
             .catch((err: HttpErrorResponse) =>
               this.app.parseHttpErrorResponse(err)
             );
         }
       });
+  }
+
+  /**
+   * @description Delete a chart resource. For a chart that is (or was) an
+   * Overlay, remove the `infolayers` entry too -- otherwise a leftover entry
+   * would be adopted again on the next listing -- and accept either record
+   * being already gone.
+   * @param id Chart identifier
+   */
+  private async deleteChartFromServer(id: string): Promise<void> {
+    const overlayId = overlayIdFromChartId(id);
+    if (!overlayId) {
+      return this.deleteFromServer('charts', id, 'resources-provider');
+    }
+    if (!this.adoptedOverlays.has(id)) {
+      try {
+        await this.deleteFromServer('charts', id, 'resources-provider');
+      } catch (err) {
+        if ((err as HttpErrorResponse)?.status !== 404) {
+          throw err;
+        }
+      }
+    }
+    await this.deleteOverlay(overlayId);
+    this.refreshCharts();
   }
 
   /**
@@ -892,6 +1140,15 @@ export class SKResourceService {
     // ensure chartList ids are included in chartOrder
     chartList.forEach((c: FBChart) => {
       if (!chartOrder.includes(c[0])) {
+        chartOrder.push(c[0]);
+      }
+    });
+    // a newly adopted Overlay goes above every chart (bottom-first order, so
+    // last), once it is in the rendered set
+    chartList.forEach((c: FBChart) => {
+      if (this.overlaysToTop.has(c[0])) {
+        this.overlaysToTop.delete(c[0]);
+        chartOrder.splice(chartOrder.indexOf(c[0]), 1);
         chartOrder.push(c[0]);
       }
     });
@@ -1574,7 +1831,7 @@ export class SKResourceService {
   public async chartsForHostApi(): Promise<FBCharts> {
     let available: FBCharts;
     try {
-      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+      available = this.appendOSM(await this.listChartsFromServer());
     } catch (err) {
       this.app.debug('** chartsForHostApi:', err);
       available = this.appendOSM([]);
@@ -1606,7 +1863,7 @@ export class SKResourceService {
     }
     let available: FBCharts;
     try {
-      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+      available = this.appendOSM(await this.listChartsFromServer());
     } catch (err) {
       // A transient fetch failure leaves us unable to reason about the current
       // visible set; degrade like the sibling chart methods and leave the
@@ -1737,9 +1994,15 @@ export class SKResourceService {
         type: 'tilelayer'
       });
     } else {
+      const overlayId = this.adoptedOverlays.get(id);
       try {
         this.app.sIsFetching.set(true);
-        chart = await this.fromServer('charts', id);
+        chart = overlayId
+          ? this.transformChart(
+              chartFromOverlay(overlayId, await this.fetchOverlay(overlayId)),
+              id
+            )
+          : await this.fromServer('charts', id);
         this.app.sIsFetching.set(false);
       } catch (err) {
         this.app.sIsFetching.set(false);
@@ -1755,9 +2018,12 @@ export class SKResourceService {
       .afterClosed()
       .subscribe((r: { save: boolean; chart: SKChart }) => {
         if (r.save) {
-          this.putToServer('charts', id, this.withoutLocalState(r.chart)).catch(
-            (err) => this.app.parseHttpErrorResponse(err)
-          );
+          // an adopted Overlay has no chart resource to update: saving it
+          // migrates it, with the edits, into one
+          const write = this.adoptedOverlays.has(id)
+            ? this.migrateOverlayWithEdits(id, r.chart)
+            : this.putToServer('charts', id, this.withoutLocalState(r.chart));
+          write.catch((err) => this.app.parseHttpErrorResponse(err));
         }
       });
   }

@@ -76,7 +76,6 @@ import {
   TrackListComponent,
   AISListComponent,
   GroupListComponent,
-  InfoLayerListComponent,
   BuildRouteComponent,
   NotePanel,
   RegionPanel,
@@ -93,7 +92,6 @@ import * as semver from 'semver';
 import {
   NotificationMessage,
   UpdateMessage,
-  InfoLayerParam,
   LineString,
   MultiLineString,
   Polygon,
@@ -157,7 +155,6 @@ import { SymbolService, setSymbolRegistry } from './modules/icons';
     TrackListComponent,
     AISListComponent,
     GroupListComponent,
-    InfoLayerListComponent,
     BuildRouteComponent,
     InfoPanelComponent,
     NotePanel,
@@ -199,7 +196,6 @@ export class AppComponent {
     trackList: boolean;
     aisList: boolean;
     resourceGroups: boolean;
-    infoLayerList: boolean;
     anchorWatch: boolean;
     weatherList: boolean;
   }>({
@@ -212,7 +208,6 @@ export class AppComponent {
     trackList: false,
     aisList: false,
     resourceGroups: false,
-    infoLayerList: false,
     anchorWatch: false,
     weatherList: false
   });
@@ -642,9 +637,16 @@ export class AppComponent {
     this.instUrl.update(() => this.dom.bypassSecurityTrustResourceUrl(url));
   }
 
-  /** handle infolayer parameter change **/
-  protected onInfoLayerParamChange(param: InfoLayerParam) {
-    this.skresOther.infoLayerParams.update(() => [param]);
+  /**
+   * Overlays were folded into charts (#784). The menu item stays for now as a
+   * signpost, so a user looking for an Overlay in its old place is told where
+   * it went.
+   */
+  protected showOverlaysMoved() {
+    this.app.showMsgBox(
+      'Overlays have moved',
+      'Overlays have moved to the Chart list.\n\nYour existing overlays appear there as charts, with the same Time control and auto-refresh.'
+    );
   }
 
   // ** handle map context menu selections **
@@ -1092,7 +1094,6 @@ export class AppComponent {
       trackList: false,
       aisList: false,
       resourceGroups: false,
-      infoLayerList: false,
       anchorWatch: false,
       weatherList: false
     };
@@ -1123,9 +1124,6 @@ export class AppComponent {
         break;
       case 'resourceGroups':
         lm.resourceGroups = show;
-        break;
-      case 'infoLayerList':
-        lm.infoLayerList = show;
         break;
       case 'weatherList':
         lm.weatherList = show;
@@ -2115,7 +2113,6 @@ export class AppComponent {
   private fetchOtherResources() {
     this.skres.refreshTracks();
     this.skresOther.refreshResourceSetsInBounds();
-    this.skresOther.refreshInfoLayers();
   }
 
   /** open WS Stream */
