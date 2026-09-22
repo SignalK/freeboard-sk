@@ -13,6 +13,7 @@ import TileLayer from 'ol/layer/Tile';
 import { MapComponent } from '../map.component';
 
 import { resolveChartTime } from 'src/app/lib/chart-time';
+import { ogcRequestUrl } from 'src/app/modules/skresources/components/charts/maplib';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 
@@ -196,9 +197,12 @@ export class WmtsChartLayerComponent implements OnDestroy {
     const abortCtrl = new AbortController();
     const abortTimer = setTimeout(() => abortCtrl.abort(), 5000);
     try {
-      const r = await fetch(hostUrl + `?request=GetCapabilities&service=wmts`, {
-        signal: abortCtrl.signal
-      });
+      const r = await fetch(
+        ogcRequestUrl(hostUrl, { service: 'WMTS', request: 'GetCapabilities' }),
+        {
+          signal: abortCtrl.signal
+        }
+      );
       clearTimeout(abortTimer);
       const res = await r.text();
       const wmts = new WMTSCapabilities();

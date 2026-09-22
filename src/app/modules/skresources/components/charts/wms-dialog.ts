@@ -8,7 +8,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { ChartProvider } from 'src/app/types';
-import { NEW_WMS_CHART_NAME } from './maplib';
+import { NEW_WMS_CHART_NAME, ogcServiceUrl } from './maplib';
 
 /********* WMSDialog **********
 	Prompts for a WMS host and returns a new chart source for it; the layer
@@ -38,7 +38,7 @@ import { NEW_WMS_CHART_NAME } from './maplib';
       </mat-toolbar>
       <mat-dialog-content>
         <mat-form-field floatLabel="always" style="width:100%">
-          <mat-label> WMS host. </mat-label>
+          <mat-label> WMS service URL </mat-label>
           <input matInput #txturl type="url" required [(value)]="hostUrl" />
           @if (txturl) {
             <button
@@ -67,14 +67,15 @@ export class WMSDialog {
 
   /**
    * Close and return a new WMS chart source for the host
-   * @param wmsHost WMS server host url (without parameters)
+   * @param wmsHost WMS service URL as entered; a pasted GetCapabilities link
+   * is accepted and stored without its request parameters (#810)
    */
   handleSave(wmsHost: string) {
     const source: ChartProvider = {
       name: NEW_WMS_CHART_NAME,
       description: '',
       type: 'WMS',
-      url: wmsHost,
+      url: ogcServiceUrl(wmsHost),
       layers: []
     };
     this.dialogRef.close([source]);

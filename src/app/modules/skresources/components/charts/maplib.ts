@@ -103,6 +103,69 @@ export const chartDescriptionFromAbstract = (abstract?: string): string => {
   return clause || text;
 };
 
+/**
+ * Query parameters an OGC request supplies itself. A user who pastes the
+ * GetCapabilities link a provider publishes brings these along; the request
+ * builder replaces them, so they are dropped from the stored service URL and
+ * anything else on the link (a `map=` or an API key) is kept (#810).
+ */
+const OGC_REQUEST_PARAMS = ['service', 'request', 'version'];
+
+/** Split a URL into its base and query, dropping any fragment. */
+const splitQuery = (url: string): { base: string; params: URLSearchParams } => {
+  const noHash = url.trim().split('#')[0];
+  const q = noHash.indexOf('?');
+  return q === -1
+    ? { base: noHash, params: new URLSearchParams() }
+    : {
+        base: noHash.slice(0, q),
+        params: new URLSearchParams(noHash.slice(q + 1))
+      };
+};
+
+const withoutParams = (
+  params: URLSearchParams,
+  names: string[]
+): URLSearchParams => {
+  const drop = names.map((n) => n.toLowerCase());
+  const kept = new URLSearchParams();
+  params.forEach((value, key) => {
+    if (!drop.includes(key.toLowerCase())) {
+      kept.append(key, value);
+    }
+  });
+  return kept;
+};
+
+/**
+ * The service URL to store for a WMS / WMTS source the user entered: the
+ * link with `service`, `request` and `version` removed (they are supplied
+ * per request), other parameters kept, and no dangling `?` (#810).
+ * @param entered What the user typed or pasted
+ */
+export const ogcServiceUrl = (entered: string): string => {
+  const { base, params } = splitQuery(entered ?? '');
+  const kept = withoutParams(params, OGC_REQUEST_PARAMS).toString();
+  return kept ? `${base}?${kept}` : base;
+};
+
+/**
+ * A request URL for an OGC service: `params` are appended with `?` or `&`
+ * as the service URL requires, replacing any of the same name already on it
+ * (#810).
+ * @param serviceUrl Stored service URL (see `ogcServiceUrl`)
+ * @param params Request parameters, e.g. `{ service: 'WMS', request: 'GetCapabilities' }`
+ */
+export const ogcRequestUrl = (
+  serviceUrl: string,
+  params: Record<string, string>
+): string => {
+  const { base, params: existing } = splitQuery(serviceUrl ?? '');
+  const merged = withoutParams(existing, Object.keys(params));
+  Object.entries(params).forEach(([k, v]) => merged.append(k, v));
+  return `${base}?${merged.toString()}`;
+};
+
 /** Return the picker hint for a layer's time dimension: a one-line summary
  * (see `chartTimeSummary`) when the layer advertises one that would give the
  * chart a Time control, else '' (#808).
@@ -236,11 +299,14 @@ const capabilitiesInWorker = (
     });
 
     const finalise = (
-      result: WMTSCapabilitiesDef | WMSCapabilitiesDef | null
+      result:
+        WMTSCapabilitiesDef | WMSCapabilitiesDef | { error: string } | null
     ) => {
       worker.terminate();
-      if (result) {
-        resolve(result);
+      if (result && 'error' in result) {
+        reject(new Error(result.error));
+      } else if (result) {
+        resolve(result as WMTSCapabilitiesDef | WMSCapabilitiesDef);
       } else {
         reject(new Error('Error processing capabilities!'));
       }

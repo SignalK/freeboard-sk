@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   chartDescriptionFromAbstract,
+  ogcRequestUrl,
+  ogcServiceUrl,
   chartTimeFromLayers,
   layerIdHint,
   LayerNode,
@@ -143,5 +145,69 @@ describe('chartDescriptionFromAbstract', () => {
 
   it('falls back to the whole abstract when the cut would be empty', () => {
     expect(chartDescriptionFromAbstract('. odd')).toBe('. odd');
+  });
+});
+
+/**
+ * #810: a user adding a WMS/WMTS source pastes the GetCapabilities link the
+ * provider publishes, query string and all. The stored service URL drops the
+ * request parameters (they are supplied per request) and keeps the rest; a
+ * request URL is then built with `?` or `&` as the service URL needs.
+ */
+describe('ogcServiceUrl', () => {
+  it('strips the request parameters from a pasted GetCapabilities link', () => {
+    expect(
+      ogcServiceUrl(
+        'https://opengeo.ncep.noaa.gov/geoserver/kamx/ows?service=wms&version=1.3.0&request=GetCapabilities'
+      )
+    ).toBe('https://opengeo.ncep.noaa.gov/geoserver/kamx/ows');
+  });
+
+  it('keeps parameters that belong to the service, case-insensitively', () => {
+    expect(
+      ogcServiceUrl(
+        'https://wms.example/cgi-bin/mapserv?map=/maps/radar.map&SERVICE=WMS&REQUEST=GetCapabilities'
+      )
+    ).toBe('https://wms.example/cgi-bin/mapserv?map=%2Fmaps%2Fradar.map');
+  });
+
+  it('leaves a bare service URL alone and trims whitespace and fragments', () => {
+    expect(ogcServiceUrl('https://wms.example/ows')).toBe(
+      'https://wms.example/ows'
+    );
+    expect(ogcServiceUrl('  https://wms.example/ows?#top ')).toBe(
+      'https://wms.example/ows'
+    );
+    expect(ogcServiceUrl(undefined)).toBe('');
+  });
+});
+
+describe('ogcRequestUrl', () => {
+  const params = { service: 'WMS', request: 'GetCapabilities' };
+
+  it('appends with ? to a bare service URL', () => {
+    expect(ogcRequestUrl('https://wms.example/ows', params)).toBe(
+      'https://wms.example/ows?service=WMS&request=GetCapabilities'
+    );
+  });
+
+  it('appends with & to a service URL that already has a query', () => {
+    expect(
+      ogcRequestUrl('https://wms.example/mapserv?map=radar.map', params)
+    ).toBe(
+      'https://wms.example/mapserv?map=radar.map&service=WMS&request=GetCapabilities'
+    );
+  });
+
+  it('never produces a second ? even for an un-normalised link', () => {
+    // A chart stored before the URL was normalised on entry.
+    expect(
+      ogcRequestUrl(
+        'https://wms.example/ows?service=wms&version=1.3.0&request=GetCapabilities',
+        params
+      )
+    ).toBe(
+      'https://wms.example/ows?version=1.3.0&service=WMS&request=GetCapabilities'
+    );
   });
 });
