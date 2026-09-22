@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { parseWMSCapabilities, parseWMTSCapabilities } from './maplib.worker';
+import {
+  ogcExceptionMessage,
+  parseWMSCapabilities,
+  parseWMTSCapabilities
+} from './maplib.worker';
 
 /**
  * The capabilities parsers read xml2js output, whose shape is only implied by
@@ -153,5 +157,52 @@ describe('parseWMTSCapabilities', () => {
       OPTIONS
     );
     expect(wmts.layers.find((l) => l.id === 'attrs').format).toBe('png');
+  });
+});
+
+/**
+ * #810: a service answers a request it cannot serve with an OGC exception
+ * report -- and HTTP 200, so only the body says what went wrong. The reason
+ * must reach the user instead of a generic "invalid response".
+ */
+describe('OGC exception reports', () => {
+  // GeoServer's answer to a GetCapabilities link that got a second query
+  // string appended to it.
+  const WMS_EXCEPTION = `<?xml version="1.0" encoding="UTF-8"?>
+<ServiceExceptionReport version="1.3.0" xmlns="http://www.opengis.net/ogc">
+  <ServiceException code="OperationNotSupported" locator="GetCapabilities?request=getcapabilities">
+    No such operation wms 1.3.0 GetCapabilities?request=getcapabilities
+  </ServiceException>
+</ServiceExceptionReport>`;
+
+  const WMTS_EXCEPTION = `<?xml version="1.0" encoding="UTF-8"?>
+<ows:ExceptionReport xmlns:ows="http://www.opengis.net/ows/1.1" version="1.1.0">
+  <ows:Exception exceptionCode="InvalidParameterValue" locator="request">
+    <ows:ExceptionText>Unknown request</ows:ExceptionText>
+  </ows:Exception>
+</ows:ExceptionReport>`;
+
+  it('surfaces a WMS ServiceExceptionReport by its message', async () => {
+    await expect(
+      parseWMSCapabilities(WMS_EXCEPTION, 'http://x/wms', OPTIONS)
+    ).rejects.toThrow(
+      'Service reported: No such operation wms 1.3.0 GetCapabilities?request=getcapabilities'
+    );
+  });
+
+  it('surfaces a WMTS ows:ExceptionReport by its message', async () => {
+    await expect(
+      parseWMTSCapabilities(WMTS_EXCEPTION, 'http://x/wmts', OPTIONS)
+    ).rejects.toThrow('Service reported: Unknown request');
+  });
+
+  it('extracts the text, or falls back when the report has none', () => {
+    expect(ogcExceptionMessage(WMS_EXCEPTION)).toBe(
+      'Service reported: No such operation wms 1.3.0 GetCapabilities?request=getcapabilities'
+    );
+    expect(ogcExceptionMessage('<ServiceExceptionReport/>')).toBe(
+      'Service reported an error.'
+    );
+    expect(ogcExceptionMessage('<WMS_Capabilities/>')).toBeUndefined();
   });
 });

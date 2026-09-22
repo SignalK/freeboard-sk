@@ -1,5 +1,6 @@
 import {
   LayerNode,
+  ogcRequestUrl,
   WMSCapabilitiesDef,
   WMTSCapabilitiesDef,
   WMTSLayerDef,
@@ -77,9 +78,32 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       result = null;
     }
     self.postMessage(result);
-  } catch {
-    self.postMessage(null);
+  } catch (err) {
+    // The reason travels with the failure so the dialog can show it (#810).
+    self.postMessage({ error: (err as Error)?.message ?? String(err) });
   }
+};
+
+/**
+ * The message of an OGC exception report, or undefined when the document is
+ * not one. A service answers a request it cannot serve with a
+ * `ServiceExceptionReport` (WMS) or `ows:ExceptionReport` (WMTS) -- and with
+ * HTTP 200, so the status check does not catch it (#810).
+ * @param xml Response body
+ */
+export const ogcExceptionMessage = (xml: string): string | undefined => {
+  if (!/<(ServiceExceptionReport|(ows:)?ExceptionReport)[\s>/]/.test(xml)) {
+    return undefined;
+  }
+  const m =
+    /<ServiceException(?![A-Za-z])[^>]*>([\s\S]*?)<\/ServiceException>/.exec(
+      xml
+    ) ??
+    /<(?:ows:)?ExceptionText[^>]*>([\s\S]*?)<\/(?:ows:)?ExceptionText>/.exec(
+      xml
+    );
+  const text = m?.[1]?.replace(/\s+/g, ' ').trim();
+  return text ? `Service reported: ${text}` : 'Service reported an error.';
 };
 
 /**
@@ -91,7 +115,10 @@ const wmsGetInfo = async (
   hostUrl: string,
   options: WorkerMessageOptions
 ): Promise<WMSCapabilitiesDef> => {
-  const url = hostUrl + `?request=getcapabilities&service=wms`;
+  const url = ogcRequestUrl(hostUrl, {
+    service: 'WMS',
+    request: 'GetCapabilities'
+  });
   const abortCtrl = new AbortController();
   const abortTimer = setTimeout(() => abortCtrl.abort(), FETCH_ABORT_TIMEOUT);
   try {
@@ -171,6 +198,10 @@ export const parseWMSCapabilities = async (
     cList.push(node);
   };
 
+  const reported = ogcExceptionMessage(xml);
+  if (reported) {
+    throw new Error(reported);
+  }
   if (xml.indexOf('<Capability') === -1) {
     throw new Error('Error: Invalid response received!');
   }
@@ -223,7 +254,10 @@ const wmtsGetInfo = async (
   hostUrl: string,
   options: WorkerMessageOptions
 ): Promise<WMTSCapabilitiesDef> => {
-  const url = hostUrl + `?request=GetCapabilities&service=wmts`;
+  const url = ogcRequestUrl(hostUrl, {
+    service: 'WMTS',
+    request: 'GetCapabilities'
+  });
   const abortCtrl = new AbortController();
   const abortTimer = setTimeout(() => abortCtrl.abort(), FETCH_ABORT_TIMEOUT);
   try {
@@ -303,6 +337,10 @@ export const parseWMTSCapabilities = async (
     return l;
   };
 
+  const reported = ogcExceptionMessage(xml);
+  if (reported) {
+    throw new Error(reported);
+  }
   if (xml.indexOf('<Capabilities') === -1) {
     throw new Error('Error: Invalid response received!');
   }

@@ -232,6 +232,7 @@ import { NodeListSelect } from './node-list-select';
                     <div style="display:flex;">
                       <div class="key-label"></div>
                       <div style="flex: 1 1 auto;">
+                        <div class="_ap-layer-error">{{ layerErrorText }}</div>
                         {{ data.layers }}
                       </div>
                     </div>
@@ -298,6 +299,10 @@ import { NodeListSelect } from './node-list-select';
       ._ap-chartinfo .key-label {
         width: 150px;
         font-weight: 500;
+      }
+      ._ap-chartinfo ._ap-layer-error {
+        color: var(--mat-sys-error, #b3261e);
+        margin-bottom: 0.5em;
       }
 
       @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
@@ -398,8 +403,11 @@ export class ChartPropertiesDialog {
           () => this.capabilities.layers as WMTSLayerDef[]
         );
       }
-    } catch {
-      this.layerErrorText = 'Error retrieving layers.';
+    } catch (err) {
+      const reason = (err as Error)?.message;
+      this.layerErrorText = reason
+        ? `Error retrieving layers: ${reason}`
+        : 'Error retrieving layers.';
     }
   }
 

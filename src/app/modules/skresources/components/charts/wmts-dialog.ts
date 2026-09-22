@@ -8,7 +8,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { ChartProvider } from 'src/app/types';
-import { NEW_WMTS_CHART_NAME } from './maplib';
+import { NEW_WMTS_CHART_NAME, ogcServiceUrl } from './maplib';
 
 /********* WMTSDialog **********
 	Prompts for a WMTS host and returns a new chart source for it; the layer
@@ -38,7 +38,7 @@ import { NEW_WMTS_CHART_NAME } from './maplib';
       </mat-toolbar>
       <mat-dialog-content>
         <mat-form-field floatLabel="always" style="width:100%">
-          <mat-label> WMTS host. </mat-label>
+          <mat-label> WMTS service URL </mat-label>
           <input matInput #txturl type="url" required [(value)]="hostUrl" />
           @if (txturl) {
             <button
@@ -67,14 +67,15 @@ export class WMTSDialog {
 
   /**
    * Close and return a new WMTS chart source for the host
-   * @param wmtsHost WMTS server host url (without parameters)
+   * @param wmtsHost WMTS service URL as entered; a pasted GetCapabilities link
+   * is accepted and stored without its request parameters (#810)
    */
   handleSave(wmtsHost: string) {
     const source: ChartProvider = {
       name: NEW_WMTS_CHART_NAME,
       description: '',
       type: 'WMTS',
-      url: wmtsHost,
+      url: ogcServiceUrl(wmtsHost),
       format: 'png',
       layers: []
     };
