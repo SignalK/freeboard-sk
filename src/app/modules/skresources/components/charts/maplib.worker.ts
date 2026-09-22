@@ -85,6 +85,22 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 };
 
 /**
+ * The reason a capabilities request failed: a service that rejects the
+ * request often explains itself in an OGC exception report, and may send it
+ * with an error status rather than a 200 -- so the body is read before
+ * falling back to the status line (#810).
+ * @param res The failed response
+ */
+const fetchErrorMessage = async (res: Response): Promise<string> => {
+  const status = `(${res.status}) Error fetching capabilities.. ${res.statusText}`;
+  try {
+    return ogcExceptionMessage(await res.text()) ?? status;
+  } catch {
+    return status;
+  }
+};
+
+/**
  * The message of an OGC exception report, or undefined when the document is
  * not one. A service answers a request it cannot serve with a
  * `ServiceExceptionReport` (WMS) or `ows:ExceptionReport` (WMTS) -- and with
@@ -111,7 +127,7 @@ export const ogcExceptionMessage = (xml: string): string | undefined => {
  * @param hostUrl WMS host url
  * @returns WMSCapabilitiesDef
  */
-const wmsGetInfo = async (
+export const wmsGetInfo = async (
   hostUrl: string,
   options: WorkerMessageOptions
 ): Promise<WMSCapabilitiesDef> => {
@@ -126,9 +142,7 @@ const wmsGetInfo = async (
       signal: abortCtrl.signal
     });
     if (!res.ok) {
-      throw new Error(
-        `(${res.status}) Error fetching capabilities.. ${res.statusText}`
-      );
+      throw new Error(await fetchErrorMessage(res));
     }
     const xml = await res.text();
     const wmsInfo = await parseWMSCapabilities(xml, url, options);
@@ -265,9 +279,7 @@ const wmtsGetInfo = async (
       signal: abortCtrl.signal
     });
     if (!res.ok) {
-      throw new Error(
-        `(${res.status}) Error fetching capabilities.. ${res.statusText}`
-      );
+      throw new Error(await fetchErrorMessage(res));
     }
     const xml = await res.text();
     const wmtsInfo = await parseWMTSCapabilities(xml, url, options);

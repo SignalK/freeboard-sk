@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   ogcExceptionMessage,
+  wmsGetInfo,
   parseWMSCapabilities,
   parseWMTSCapabilities
 } from './maplib.worker';
@@ -194,6 +195,43 @@ describe('OGC exception reports', () => {
     await expect(
       parseWMTSCapabilities(WMTS_EXCEPTION, 'http://x/wmts', OPTIONS)
     ).rejects.toThrow('Service reported: Unknown request');
+  });
+
+  it('reads an exception report sent with an error status', async () => {
+    // A rejected request may arrive as 400 with the explanation in the body;
+    // the status line alone would tell the user nothing.
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(WMS_EXCEPTION, { status: 400, statusText: 'Bad Request' })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await expect(
+        wmsGetInfo('https://wms.example/ows', OPTIONS)
+      ).rejects.toThrow(
+        'Service reported: No such operation wms 1.3.0 GetCapabilities?request=getcapabilities'
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('falls back to the status when an error response says nothing useful', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response('<html>502</html>', {
+          status: 502,
+          statusText: 'Bad Gateway'
+        })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await expect(
+        wmsGetInfo('https://wms.example/ows', OPTIONS)
+      ).rejects.toThrow('(502) Error fetching capabilities.. Bad Gateway');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('extracts the text, or falls back when the report has none', () => {
