@@ -1,13 +1,21 @@
 import { Component, EventEmitter, inject, input, Output } from '@angular/core';
 
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppFacade } from 'src/app/app.facade';
-import { layerIdHint } from './maplib';
+import { layerIdHint, layerTimeHint, WMTSLayerDef } from './maplib';
+
+/** What a row of the list needs from a WMTS layer (`time` is optional). */
+export type NodeListLayer = Pick<
+  WMTSLayerDef,
+  'id' | 'name' | 'description' | 'time'
+>;
 
 /********* NodeList Select ***********/
 @Component({
   selector: 'node-list-select',
-  imports: [MatListModule],
+  imports: [MatListModule, MatIconModule, MatTooltipModule],
   template: `
     <div class="_ap-node-list">
       <div>
@@ -21,8 +29,13 @@ import { layerIdHint } from './maplib';
               [value]="layer.id"
               [selected]="preSelect().includes(layer.id)"
             >
-              <span matListItemTitle
-                >{{ layer.name }}
+              <span matListItemTitle>
+                @if (timeHint(layer); as hint) {
+                  <mat-icon class="_ap-layer-time" [matTooltip]="hint"
+                    >schedule</mat-icon
+                  >
+                }
+                {{ layer.name }}
                 @if (idHint(layer)) {
                   <span class="_ap-layer-id">({{ idHint(layer) }})</span>
                 }
@@ -50,15 +63,21 @@ import { layerIdHint } from './maplib';
         font-size: 0.85em;
         opacity: 0.7;
       }
+      ._ap-node-list ._ap-layer-time {
+        margin-right: 0.3em;
+        vertical-align: middle;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        opacity: 0.7;
+      }
     `
   ]
 })
 export class NodeListSelect {
   @Output() selected: EventEmitter<string[]> = new EventEmitter<string[]>();
   protected preSelect = input<string[]>([]);
-  protected layers = input<{ id: string; name: string; description: string }[]>(
-    []
-  );
+  protected layers = input<NodeListLayer[]>([]);
 
   private selections: Array<string> = [];
 
@@ -67,6 +86,8 @@ export class NodeListSelect {
   /** Layer identifier to show beside the title when it disambiguates (#797) */
   protected idHint = (layer: { id: string; name: string }) =>
     layerIdHint(layer.name, layer.id);
+  /** Time-dimension summary to show beside a time-varying layer (#808) */
+  protected timeHint = (layer: NodeListLayer) => layerTimeHint(layer.time);
 
   constructor() {}
 

@@ -8,6 +8,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { ChartProvider } from 'src/app/types';
+import { NEW_WMS_CHART_NAME } from './maplib';
 
 /********* WMSDialog **********
 	Prompts for a WMS host and returns a new chart source for it; the layer
@@ -70,7 +71,7 @@ export class WMSDialog {
    */
   handleSave(wmsHost: string) {
     const source: ChartProvider = {
-      name: 'New WMS Chart',
+      name: NEW_WMS_CHART_NAME,
       description: '',
       type: 'WMS',
       url: wmsHost,

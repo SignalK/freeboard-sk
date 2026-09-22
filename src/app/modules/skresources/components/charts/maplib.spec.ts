@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  chartDescriptionFromAbstract,
   chartTimeFromLayers,
   layerIdHint,
   LayerNode,
@@ -101,5 +102,46 @@ describe('chartTimeFromLayers', () => {
     expect(chartTimeFromLayers(wmts, ['base'])).toBeUndefined();
     expect(chartTimeFromLayers(undefined, ['radar'])).toBeUndefined();
     expect(chartTimeFromLayers(wmts, undefined)).toBeUndefined();
+  });
+});
+
+/**
+ * #808: the description a chart takes from a picked layer's abstract -- its
+ * first clause, since abstracts are often paragraphs and the field is a line.
+ */
+describe('chartDescriptionFromAbstract', () => {
+  it('cuts at the first comma, semicolon or full stop', () => {
+    expect(
+      chartDescriptionFromAbstract(
+        'Composite radar mosaic, updated every 5 minutes. Coverage: CONUS.'
+      )
+    ).toBe('Composite radar mosaic');
+    expect(chartDescriptionFromAbstract('Coastline; 1:50000 scale')).toBe(
+      'Coastline'
+    );
+    expect(chartDescriptionFromAbstract('Static coastline. Not tidal.')).toBe(
+      'Static coastline'
+    );
+  });
+
+  it('does not treat a decimal point as a break', () => {
+    expect(
+      chartDescriptionFromAbstract(
+        'GMGSI longwave thermal infrared band (~12.0 µm) has hourly updates. More.'
+      )
+    ).toBe(
+      'GMGSI longwave thermal infrared band (~12.0 µm) has hourly updates'
+    );
+  });
+
+  it('keeps a one-clause abstract whole, trimmed', () => {
+    expect(chartDescriptionFromAbstract('  Daily true-colour imagery ')).toBe(
+      'Daily true-colour imagery'
+    );
+    expect(chartDescriptionFromAbstract(undefined)).toBe('');
+  });
+
+  it('falls back to the whole abstract when the cut would be empty', () => {
+    expect(chartDescriptionFromAbstract('. odd')).toBe('. odd');
   });
 });

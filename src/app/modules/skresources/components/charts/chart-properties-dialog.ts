@@ -14,9 +14,13 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
+import { ChartTimeDimension } from 'src/app/types';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import {
+  chartDescriptionFromAbstract,
   chartTimeFromLayers,
+  getLayerNodeByName,
+  isPlaceholderChartName,
   LayerNode,
   WMSCapabilitiesDef,
   wmsCapabilitiesInWorker,
@@ -29,6 +33,7 @@ import {
   refreshIntervalFromMinutes,
   refreshIntervalMinutes
 } from 'src/app/lib/chart-refresh';
+import { defaultChartRefreshIntervalMs } from 'src/app/lib/chart-time';
 import { NodeTreeSelect } from './node-tree-select';
 import { NodeListSelect } from './node-list-select';
 
@@ -307,18 +312,19 @@ import { NodeListSelect } from './node-list-select';
 export class ChartPropertiesDialog {
   protected icon: string;
   protected wmsLayers = signal<LayerNode[]>([]);
-  protected wmtsLayers = signal<
-    Array<{
-      name: string;
-      description: string;
-      format?: string;
-      bounds?: [number, number, number, number];
-    }>
-  >([]);
+  protected wmtsLayers = signal<WMTSLayerDef[]>([]);
   protected isEditable = signal<boolean>(false);
   // Auto-refresh cadence as the user edits it. The resource stores
   // milliseconds; the field is in whole minutes, 0 meaning never.
   protected refreshMinutes = 0;
+  // What the last layer pick filled in on the user's behalf (#808). A field
+  // still holding its pre-filled value is re-filled by the next pick; one the
+  // user has since edited is left alone.
+  private autoFilled: {
+    name?: string;
+    description?: string;
+    refreshMinutes?: number;
+  } = {};
   protected layerErrorText = '';
   private capabilities!: WMTSCapabilitiesDef | WMSCapabilitiesDef;
 
@@ -384,7 +390,9 @@ export class ChartPropertiesDialog {
         this.wmsLayers.update(() => this.capabilities.layers as LayerNode[]);
       } else if (chartType === 'wmts') {
         this.capabilities = await wmtsCapabilitiesInWorker(url);
-        this.wmtsLayers.update(() => this.capabilities.layers);
+        this.wmtsLayers.update(
+          () => this.capabilities.layers as WMTSLayerDef[]
+        );
       }
     } catch {
       this.layerErrorText = 'Error retrieving layers.';
@@ -394,6 +402,7 @@ export class ChartPropertiesDialog {
   protected handleLayerSelection(e: string[]) {
     // The time dimension follows the selected layer(s): a chart re-pointed at a
     // layer without one stops being time-varying.
+    let picked: { title: string; description: string } | undefined;
     if (this.data.type?.toLowerCase() === 'wmts') {
       const l: WMTSLayerDef = (this.capabilities.layers as WMTSLayerDef[]).find(
         (i: WMTSLayerDef) => i.id === e[0]
@@ -401,6 +410,18 @@ export class ChartPropertiesDialog {
       if (l) {
         this.data.format = l.format ? l.format : this.data.format;
         this.data.bounds = l.bounds ? l.bounds : this.data.bounds;
+        picked = { title: l.name, description: l.description };
+      }
+    } else {
+      const node = getLayerNodeByName(
+        e[0],
+        this.capabilities.layers as LayerNode[]
+      );
+      if (node) {
+        picked = {
+          title: node.title ?? node.name,
+          description: node.description
+        };
       }
     }
     const time = chartTimeFromLayers(this.capabilities, e);
@@ -410,6 +431,47 @@ export class ChartPropertiesDialog {
       delete this.data.time;
     }
     this.data.layers = e;
+    if (picked) {
+      this.fillFromLayer(picked, time);
+    }
+  }
+
+  /**
+   * Fill in what the picked layer can tell us, without touching anything the
+   * user has typed (#808): a chart still carrying its placeholder name takes
+   * the layer's title and the first clause of its abstract, and one pointed
+   * at a time-varying layer with no refresh interval gets a sensible cadence,
+   * since *never* is almost always wrong for a radar or satellite product.
+   * Each value is remembered so a later pick can replace it -- but not a
+   * value the user has changed.
+   * @param layer Title / abstract of the (first) selected layer
+   * @param time The chart's time dimension after this pick, if any
+   */
+  private fillFromLayer(
+    layer: { title: string; description: string },
+    time?: ChartTimeDimension
+  ) {
+    const nameIsOurs =
+      isPlaceholderChartName(this.data.name) ||
+      (this.autoFilled.name !== undefined &&
+        this.data.name === this.autoFilled.name);
+    if (nameIsOurs && layer.title?.trim()) {
+      this.data.name = this.autoFilled.name = layer.title.trim();
+      const descriptionIsOurs =
+        !this.data.description?.trim() ||
+        this.data.description === this.autoFilled.description;
+      if (descriptionIsOurs) {
+        this.data.description = this.autoFilled.description =
+          chartDescriptionFromAbstract(layer.description);
+      }
+    }
+    const refreshIsOurs =
+      !this.refreshMinutes ||
+      this.refreshMinutes === this.autoFilled.refreshMinutes;
+    if (time && refreshIsOurs) {
+      this.refreshMinutes = this.autoFilled.refreshMinutes =
+        refreshIntervalMinutes(defaultChartRefreshIntervalMs(time));
+    }
   }
 
   protected handleClose(save: boolean) {
