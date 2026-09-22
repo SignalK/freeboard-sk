@@ -1,3 +1,6 @@
+import { ChartTimeDimension } from 'src/app/types';
+import { chartTimeFromCapabilities } from 'src/app/lib/chart-time';
+
 type CapabilitiesBaseDef = {
   name: string;
   description: string;
@@ -94,6 +97,38 @@ export const getLayerNodeByName = (
     }
   }
   return result;
+};
+
+/**
+ * The time dimension a chart takes from a capabilities document for the
+ * layers it shows: a WMTS chart its (single) layer's, a WMS chart the first
+ * selected layer's that advertises one -- the rule the Properties dialog
+ * applies when a layer is picked, and what a refresh tick re-derives for a
+ * user-added chart, whose stored resource is only a snapshot of this
+ * (#804). Undefined when none of the layers is time-varying.
+ * @param capabilities Parsed WMS / WMTS capabilities
+ * @param layers The chart's `layers` (WMS `Name`s / a WMTS `Identifier`)
+ */
+export const chartTimeFromLayers = (
+  capabilities: WMSCapabilitiesDef | WMTSCapabilitiesDef | undefined,
+  layers: string[] | undefined
+): ChartTimeDimension | undefined => {
+  if (!capabilities || !Array.isArray(layers)) {
+    return undefined;
+  }
+  if (capabilities.type === 'WMTS') {
+    const l = capabilities.layers.find((i: WMTSLayerDef) => i.id === layers[0]);
+    return chartTimeFromCapabilities(l?.time);
+  }
+  for (const name of layers) {
+    const time = chartTimeFromCapabilities(
+      getLayerNodeByName(name, capabilities.layers)?.time
+    );
+    if (time) {
+      return time;
+    }
+  }
+  return undefined;
 };
 
 // ********************************

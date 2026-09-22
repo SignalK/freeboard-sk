@@ -16,7 +16,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import {
-  getLayerNodeByName,
+  chartTimeFromLayers,
   LayerNode,
   WMSCapabilitiesDef,
   wmsCapabilitiesInWorker,
@@ -24,13 +24,11 @@ import {
   wmtsCapabilitiesInWorker,
   WMTSLayerDef
 } from './maplib';
-import { chartTimeFromCapabilities } from 'src/app/lib/chart-time';
 import {
   isWholeMinutes,
   refreshIntervalFromMinutes,
   refreshIntervalMinutes
 } from 'src/app/lib/chart-refresh';
-import { ChartTimeDimension } from 'src/app/types';
 import { NodeTreeSelect } from './node-tree-select';
 import { NodeListSelect } from './node-list-select';
 
@@ -396,7 +394,6 @@ export class ChartPropertiesDialog {
   protected handleLayerSelection(e: string[]) {
     // The time dimension follows the selected layer(s): a chart re-pointed at a
     // layer without one stops being time-varying.
-    let time: ChartTimeDimension | undefined;
     if (this.data.type?.toLowerCase() === 'wmts') {
       const l: WMTSLayerDef = (this.capabilities.layers as WMTSLayerDef[]).find(
         (i: WMTSLayerDef) => i.id === e[0]
@@ -404,21 +401,9 @@ export class ChartPropertiesDialog {
       if (l) {
         this.data.format = l.format ? l.format : this.data.format;
         this.data.bounds = l.bounds ? l.bounds : this.data.bounds;
-        time = chartTimeFromCapabilities(l.time);
-      }
-    } else {
-      // First selected WMS layer that advertises a time dimension.
-      for (const name of e) {
-        const node = getLayerNodeByName(
-          name,
-          this.capabilities.layers as LayerNode[]
-        );
-        time = chartTimeFromCapabilities(node?.time);
-        if (time) {
-          break;
-        }
       }
     }
+    const time = chartTimeFromLayers(this.capabilities, e);
     if (time) {
       this.data.time = time;
     } else {

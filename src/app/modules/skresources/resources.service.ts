@@ -92,6 +92,11 @@ import { groupBy } from 'rxjs/operators';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ChartSeedJobDialog } from './components/charts/chart-seedjob-dialog';
 import {
+  chartTimeFromLayers,
+  wmsCapabilitiesInWorker,
+  wmtsCapabilitiesInWorker
+} from './components/charts/maplib';
+import {
   ChartMinZoomDialog,
   ChartMinZoomDialogResult,
   ChartTimeDialog,
@@ -537,6 +542,9 @@ export class SKResourceService {
       if (p.length === 3) {
         const collection = p[1] as SKResourceType;
         const id = p[2];
+        if (collection === 'charts' && this.absorbChartDelta(id, item.value)) {
+          return;
+        }
         if (collection in action) {
           action[collection] = true;
         }
@@ -568,6 +576,42 @@ export class SKResourceService {
     if (action['charts']) {
       this.refreshCharts();
     }
+  }
+
+  /**
+   * @description Take a chart delta that only carries a new time dimension
+   * straight into the displayed chart, without re-listing every chart from
+   * the server. A refresh tick writes the dimension it re-read back to the
+   * resource (#804), and the resulting delta reaches every client -- the
+   * writer, for which it changes nothing, and the others, which get the
+   * fresh frame list without a tick of their own. A delta that changes
+   * anything else, or is about a chart not on the map, is left to the full
+   * refresh.
+   * @param id Chart identifier
+   * @param value The chart resource as the delta carries it
+   * @returns true when the delta was absorbed
+   */
+  private absorbChartDelta(id: string, value: unknown): boolean {
+    const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
+    if (!entry || !value || typeof value !== 'object') {
+      return false;
+    }
+    let fresh: SKChart;
+    try {
+      fresh = this.transformChart({ ...(value as ChartResource) }, id);
+    } catch {
+      return false;
+    }
+    const stripped = (chart: SKChart) => {
+      const outbound = this.withoutLocalState(chart);
+      delete outbound.time;
+      return JSON.stringify(outbound);
+    };
+    if (stripped(fresh) !== stripped(entry[1])) {
+      return false;
+    }
+    this.chartSetTimeDimension(id, fresh.time);
+    return true;
   }
 
   // ******** UI methods ****************************
@@ -1397,25 +1441,35 @@ export class SKResourceService {
         timer: setInterval(() => this.chartFollowTimelineHead(id), interval),
         pending: null
       });
+      // A user-added chart's stored dimension is as old as its last
+      // write-back, so it is brought up to date at once rather than a whole
+      // interval later; a plugin's resource was just listed and is current.
+      if (this.chartIsUserAddedMapService(c)) {
+        this.chartFollowTimelineHead(id);
+      }
     });
   }
 
   /**
-   * @description One refresh tick of a time-varying chart: re-read its
-   * resource so the timeline reflects the frames the provider offers now (a
-   * `values` list grows, a rolling `from`/`to` moves on -- the copy taken
-   * when the chart was listed never would), then advance the selected
-   * instant by however far the head has moved, keeping its offset from the
-   * head: a chart on the newest frame stays on the newest frame, one an hour
-   * behind stays an hour behind. A chart showing its live frame is left to
-   * the layer's own tile refresh; a re-read that fails (offline) still
-   * follows the head of the timeline already held, which on an open-ended
-   * range moves by the clock.
+   * @description One refresh tick of a time-varying chart: re-read its time
+   * dimension so the timeline reflects the frames on offer now (a `values`
+   * list grows, a rolling `from`/`to` moves on -- the copy taken when the
+   * chart was listed never would), then advance the selected instant by
+   * however far the head has moved, keeping its offset from the head: a
+   * chart on the newest frame stays on the newest frame, one an hour behind
+   * stays an hour behind. A plugin-served chart is re-read from its
+   * resource, which the provider keeps current; a user-added WMS / WMTS
+   * chart from the map service itself, since its resource is only the
+   * snapshot of GetCapabilities taken when it was saved (#804). A chart
+   * showing its live frame is left to the layer's own tile refresh; a
+   * re-read that fails (offline) still follows the head of the timeline
+   * already held, which on an open-ended range moves by the clock.
    * @param id Chart identifier
    */
   public async chartFollowTimelineHead(id: string) {
     const follower = this.chartTimeFollowers.get(id);
-    if (!follower) {
+    const chart = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
+    if (!follower || !chart) {
       return;
     }
     // One re-read at a time; one that has been out for a whole interval is
@@ -1431,13 +1485,40 @@ export class SKResourceService {
     follower.pending = started;
     try {
       const fresh = await Promise.race([
-        this.readChart(id),
+        this.chartIsUserAddedMapService(chart)
+          ? this.chartTimeFromMapService(chart)
+          : this.readChart(id),
         new Promise<undefined>((resolve) =>
           setTimeout(() => resolve(undefined), follower.interval)
         )
       ]);
-      if (fresh) {
-        this.chartSetTimeDimension(id, fresh.time);
+      if (
+        fresh &&
+        this.chartSetTimeDimension(id, fresh.time) &&
+        this.chartIsUserAddedMapService(chart) &&
+        !this.adoptedOverlays.has(id)
+      ) {
+        // Keep the stored resource current, so the next session (and any
+        // other consumer of the resource) starts from this list rather than
+        // the one saved when the chart was added. The delta this raises is
+        // absorbed in place by every client (absorbChartDelta). An adopted
+        // Overlay has no chart resource to keep current -- writing one would
+        // be half a migration -- so it is only ever refreshed in memory.
+        const updated = this.chartCacheSignal().find(
+          (c: FBChart) => c[0] === id
+        );
+        if (updated) {
+          this.putToServer(
+            'charts',
+            id,
+            this.withoutLocalState(updated[1])
+          ).catch((err) =>
+            this.app.debug(
+              `** chartFollowTimelineHead(${id}): write-back failed`,
+              err
+            )
+          );
+        }
       }
     } catch (err) {
       this.app.debug(`** chartFollowTimelineHead(${id}): re-read failed`, err);
@@ -1468,16 +1549,54 @@ export class SKResourceService {
   }
 
   /**
+   * @description True for a WMS / WMTS chart the user added through
+   * Freeboard: it lives in the `resources-provider` store, so nothing keeps
+   * its `time` block current but a fresh look at the service.
+   * @param chart Chart entry
+   */
+  private chartIsUserAddedMapService(chart: FBChart): boolean {
+    const type = chart[1]?.type?.toLowerCase();
+    return (
+      chart[1]?.source?.toLowerCase() === 'resources-provider' &&
+      (type === 'wms' || type === 'wmts')
+    );
+  }
+
+  /**
+   * @description A user-added chart's time dimension as its map service
+   * declares it now: GetCapabilities parsed in the worker (as the Properties
+   * dialog does) and the dimension of the chart's layers taken from it. No
+   * dimension means the layers are no longer time-varying, as it would in
+   * the dialog. Rejects when the capabilities cannot be fetched or parsed,
+   * so a chart is never stripped of its timeline by a network failure.
+   * @param chart Chart entry
+   */
+  private async chartTimeFromMapService(
+    chart: FBChart
+  ): Promise<{ time?: ChartTimeDimension }> {
+    const url = chart[1].url;
+    const capabilities =
+      chart[1].type?.toLowerCase() === 'wmts'
+        ? await wmtsCapabilitiesInWorker(url)
+        : await wmsCapabilitiesInWorker(url);
+    return { time: chartTimeFromLayers(capabilities, chart[1].layers) };
+  }
+
+  /**
    * @description Replace a displayed chart's time dimension with a freshly
    * read one, when it differs. Session state like the selected instant is
    * kept; the Time palette and the layer follow the cache.
    * @param id Chart identifier
-   * @param time The time dimension as the server states it now
+   * @param time The time dimension as the service states it now
+   * @returns true when the dimension changed
    */
-  private chartSetTimeDimension(id: string, time?: ChartTimeDimension) {
+  private chartSetTimeDimension(
+    id: string,
+    time?: ChartTimeDimension
+  ): boolean {
     const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
     if (!entry || JSON.stringify(entry[1].time) === JSON.stringify(time)) {
-      return;
+      return false;
     }
     this.chartCacheSignal.update((current: FBCharts) => {
       return current.map((c: FBChart) => {
@@ -1489,6 +1608,7 @@ export class SKResourceService {
         return [c[0], updated, c[2]];
       });
     });
+    return true;
   }
 
   /**
