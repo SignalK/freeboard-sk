@@ -43,13 +43,23 @@ export function overlayIdFromChartId(chartId: string): string | undefined {
   return chartId.slice(OVERLAY_CHART_ID_PREFIX.length);
 }
 
-/** True when a custom-resource entry is a well-formed Overlay. */
+/**
+ * True when a custom-resource entry is a well-formed Overlay: one with a
+ * source URL, since a chart is built around it (an entry without one would
+ * throw while the chart list is built and take every chart down with it).
+ */
 export function isOverlayResource(item: unknown): item is InfoLayerResource {
   if (!item || typeof item !== 'object') {
     return false;
   }
   const r = item as InfoLayerResource;
-  return r.type === 'InfoLayer' && !!r.values && typeof r.values === 'object';
+  return (
+    r.type === 'InfoLayer' &&
+    !!r.values &&
+    typeof r.values === 'object' &&
+    typeof r.values.url === 'string' &&
+    r.values.url.trim().length > 0
+  );
 }
 
 /** Chart source type for an Overlay's `sourceType` (WMS / WMTS / xyz). */

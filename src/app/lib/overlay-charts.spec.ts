@@ -57,6 +57,14 @@ describe('isOverlayResource', () => {
     expect(isOverlayResource({ type: 'ResourceSet', values: {} })).toBe(false);
     expect(isOverlayResource(null)).toBe(false);
   });
+
+  it('rejects an Overlay with no source URL, which no chart can be built on', () => {
+    const noUrl = radarOverlay();
+    delete noUrl.values.url;
+    expect(isOverlayResource(noUrl)).toBe(false);
+    noUrl.values.url = '  ';
+    expect(isOverlayResource(noUrl)).toBe(false);
+  });
 });
 
 describe('chartFromOverlay', () => {

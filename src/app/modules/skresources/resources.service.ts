@@ -896,6 +896,23 @@ export class SKResourceService {
   }
 
   /**
+   * @description Read a chart's current resource: the chart itself, or -- for
+   * an adopted Overlay, which has no chart resource until it migrates -- the
+   * `infolayers` entry it is built from.
+   * @param id Chart identifier
+   * @returns Promise<SKChart> (rejects with HTTPErrorResponse)
+   */
+  private async readChart(id: string): Promise<SKChart> {
+    const overlayId = this.adoptedOverlays.get(id);
+    return overlayId
+      ? this.transformChart(
+          chartFromOverlay(overlayId, await this.fetchOverlay(overlayId)),
+          id
+        )
+      : this.fromServer('charts', id);
+  }
+
+  /**
    * @description Delete an `infolayers` entry; an entry already gone counts
    * as deleted.
    * @param overlayId Entry identifier
@@ -1414,7 +1431,7 @@ export class SKResourceService {
     follower.pending = started;
     try {
       const fresh = await Promise.race([
-        this.fromServer('charts', id),
+        this.readChart(id),
         new Promise<undefined>((resolve) =>
           setTimeout(() => resolve(undefined), follower.interval)
         )
@@ -1994,15 +2011,9 @@ export class SKResourceService {
         type: 'tilelayer'
       });
     } else {
-      const overlayId = this.adoptedOverlays.get(id);
       try {
         this.app.sIsFetching.set(true);
-        chart = overlayId
-          ? this.transformChart(
-              chartFromOverlay(overlayId, await this.fetchOverlay(overlayId)),
-              id
-            )
-          : await this.fromServer('charts', id);
+        chart = await this.readChart(id);
         this.app.sIsFetching.set(false);
       } catch (err) {
         this.app.sIsFetching.set(false);

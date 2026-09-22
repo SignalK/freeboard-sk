@@ -81,5 +81,5 @@
   { "feature": "chart-auto-refresh", "pr": 793, "kind": "enhanced", "date": "2026-09-20", "title": "feat(charts): refresh interval for user-added chart sources" },
   { "feature": "overlays", "kind": "new", "since": "v2.19.0", "date": "2025-10-31", "title": "Overlay map data from WMS & WMTS sources over charts" },
   { "feature": "overlays", "kind": "enhanced", "since": "v2.19.2", "date": "2025-11-23", "title": "add WMTS time dimension support" },
-  { "feature": "overlays", "kind": "enhanced", "date": "2026-09-21", "title": "feat(charts): fold overlays into the chart list" }
+  { "feature": "overlays", "pr": 805, "kind": "enhanced", "date": "2026-09-21", "title": "feat(charts): fold overlays into the chart list" }
 ]

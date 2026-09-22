@@ -55,7 +55,8 @@ type Private = {
   leftoverOverlays: Map<string, string>;
   overlaysToTop: Set<string>;
   overlayMigrationTried: boolean;
-  chartCacheSignal: () => FBCharts;
+  chartCacheSignal: { (): FBCharts; set: (v: FBCharts) => void };
+  chartTimeFollowers: Map<string, unknown>;
   migrateAdoptedOverlays: () => Promise<void>;
 };
 
@@ -72,6 +73,7 @@ function harness(opts: {
   const overlays = opts.overlays ?? {};
   const app = {
     hostDef: { url: 'http://sk.local:3000' },
+    skApiVersion: 2,
     config: {
       selections: {
         charts: opts.chartsSelection === undefined ? [] : opts.chartsSelection,
@@ -111,6 +113,7 @@ function harness(opts: {
     id: chart.identifier
   }));
   const deleteFromServer = vi.fn(async () => undefined);
+  const fromServer = vi.fn(async () => undefined);
   const refreshCharts = vi.fn(async () => undefined);
   const dialog = {
     open: () => ({ afterClosed: () => of(opts.dialogResult) })
@@ -129,7 +132,8 @@ function harness(opts: {
     chartTimeFollowers: new Map(),
     listFromServer,
     postToServer,
-    deleteFromServer
+    deleteFromServer,
+    fromServer
   });
   const priv = svc as unknown as Private;
   return {
@@ -139,6 +143,7 @@ function harness(opts: {
     get,
     postToServer,
     deleteFromServer,
+    fromServer,
     refreshCharts,
     // swap the real refresh for a spy where a test only wants to see it fire
     stubRefresh: () =>
@@ -474,6 +479,31 @@ describe('editing an adopted Overlay', () => {
     expect(chart.name).toBe('NEXRAD (renamed)');
     expect(deleteFromServer).toHaveBeenCalledWith('infolayers', OV1);
     expect(refreshCharts).toHaveBeenCalled();
+  });
+
+  it('re-reads an adopted entry from the Overlay on a timeline refresh tick', async () => {
+    // The follower re-reads a chart's resource each tick (#799); an adopted
+    // entry has none until it migrates, so the read goes to `infolayers`.
+    const T1 = '2026-09-21T12:00:00.000Z';
+    const timed = overlay('nexrad', 300000);
+    timed.values.time = { current: T1, from: T1, to: T1, values: [] };
+    const { svc, priv, get, fromServer } = harness({
+      overlays: { [OV1]: timed }
+    });
+    const charts = await svc.listChartsFromServer();
+    priv.chartCacheSignal.set(charts.filter((c) => c[0] === CH1));
+    priv.chartTimeFollowers.set(CH1, {
+      interval: 300000,
+      head: Date.parse(T1),
+      timer: undefined,
+      pending: null
+    });
+    get.mockClear();
+
+    await svc.chartFollowTimelineHead(CH1);
+
+    expect(fromServer).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledWith(2, `/resources/infolayers/${OV1}`);
   });
 
   it('writes nothing when the dialog is cancelled', async () => {

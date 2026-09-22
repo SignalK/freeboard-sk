@@ -333,6 +333,7 @@ describe('timeline head followers', () => {
       set: (v: FBCharts) => void;
     };
     chartTimeFollowers: Followers;
+    adoptedOverlays: Map<string, string>;
     syncChartTimeFollowers: (charts: FBCharts) => void;
     fromServer: (c: string, id: string) => Promise<SKChart>;
     app: { debug: () => void };
@@ -346,6 +347,7 @@ describe('timeline head followers', () => {
     const internals = svc as unknown as Internals;
     internals.chartCacheSignal = signal(charts());
     internals.chartTimeFollowers = new Map();
+    internals.adoptedOverlays = new Map();
     internals.app = { debug: () => undefined };
     internals.fromServer =
       fresh ??
