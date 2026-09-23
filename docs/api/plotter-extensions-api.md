@@ -121,6 +121,7 @@ extension id (the providing plugin's id is the recommended key):
 | `routes`            | Host implements live route edit-buffer commands (`route.*`) and emits route lifecycle/mutation events.                            |
 | `charts`            | Host implements chart-layer management (`chart.*`) — enumerate the managed charts, toggle visibility/opacity/order — and emits `chart.*` change events. |
 | `charts.time`       | Host can retarget a time-varying chart to a chosen instant (`chart.setTime`), reports each chart's time dimension in `chart.list`, and emits `chart.time`. Requires `charts`. |
+| `resourceGroups`    | Host can apply a stored resource group (`resourceGroup.apply`) — show the group's routes, waypoints, regions and charts — and emits `resourceGroup.applied`. |
 | `nightMode`         | Host implements the `nightMode.*` methods (read/force the night-vision display state, follow the server's `environment.mode`) and emits `nightMode.changed`. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 
@@ -463,6 +464,7 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `chart.setOpacity`      | `{ ids: string[], opacity: number }`           | `{}`                       |
 | `chart.setOrder`        | `{ order: string[] }`                          | `{}`                       |
 | `chart.setTime`         | `{ ids: string[], time: string \| null }`      | `{}`                       |
+| `resourceGroup.apply`   | `{ id }`                                       | `{ applied }`              |
 | `map.getView`           | —                                              | `{ center, zoom, bounds }` |
 | `map.center`            | `{ position: [lon, lat], zoom? }`              | `{}`                       |
 | `map.fitBounds`         | `{ bounds: [minLon, minLat, maxLon, maxLat] }` | `{}`                       |
@@ -483,7 +485,8 @@ subscribes pays nothing). A host emits an event when the corresponding
 capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
 (`route.*`) with `routes`; chart events (`chart.*`) with `charts` (`chart.time` with `charts.time`);
-`map.view` with `map`; `nightMode.changed` with `nightMode`. The
+`resourceGroup.applied` with `resourceGroups`; `map.view` with `map`;
+`nightMode.changed` with `nightMode`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -535,6 +538,10 @@ handled by the protocol layer, not subscribed to.
   emits them for *every* change, whether it came from an extension command or the
   user's own chart controls, so a following extension stays in sync no matter who
   is driving.
+- `resourceGroup.applied` — `{ id, applied }`: a resource group was applied,
+  whether by an extension's `resourceGroup.apply` or by the user choosing a group
+  in the host's own UI (origin-transparent). `applied` is the same list the
+  method returns. See *Resource groups*.
 - `map.view` — `{ center, zoom, bounds }`: the chart viewport was panned and/or
   zoomed. The payload is the same shape `map.getView` returns. Emitted once per
   **settled** view change, not continuously during the gesture. See *Map view*.
@@ -894,6 +901,91 @@ involved. A provider adds a `time` block to the resource:
 
 A host without `charts.time` ignores the `time` block entirely and draws the
 chart from `url` as before, so declaring it is safe on every host.
+
+### Resource groups
+
+A **resource group** is a named, stored set of routes, waypoints, regions and
+charts — "the Bahamas crossing", "home cruising grounds" — that a user switches
+the chart to in one step. Groups are ordinary Signal K resources in the `groups`
+collection (`/signalk/v2/api/resources/groups`), so they belong to the server,
+not to any one chartplotter. The `resourceGroups` capability does **not** wrap
+that collection: an extension creates, edits, deletes and lists groups through
+the server's resources API directly (or lists them with
+`resources.list({ type: "groups" })`). What only the host can do is **apply** a
+group to its display, and that is all this capability adds.
+
+**The group document.** A group resource is:
+
+```jsonc
+{
+  "name": "Bahamas crossing",
+  "description": "Routes and charts for the Gulf Stream crossing",
+  "routes":    ["<route id>", "..."],     // optional
+  "waypoints": ["<waypoint id>", "..."],  // optional
+  "regions":   ["<region id>", "..."],    // optional
+  "charts":    ["<chart id>", "..."]      // optional
+}
+```
+
+The ids are resource ids — the keys of the matching `/resources/<type>`
+collection. Each of the four lists is an instruction for its resource type,
+with three distinct meanings:
+
+| Value | Instruction for that type |
+|-------|---------------------------|
+| `["a", "b", …]` | Display these. Ids that resolve to no existing resource are ignored. |
+| `[]` | Display none of this type. |
+| key absent | Leave this type's display as it is. |
+
+The distinction between `[]` and an absent key is deliberate and must be
+preserved: `[]` hides every resource of that type, while an absent key leaves
+the type alone. A host that treats them the same will hide things a group's
+author meant to leave untouched.
+
+> **Note (non-normative):** `charts: []` hides every chart, which leaves an empty
+> map. It is a valid instruction and hosts do not reject it, but group editors
+> may reasonably choose not to offer it.
+
+**Applying — `resourceGroup.apply({ id })`.** The host fetches the group with
+that id from the server and carries out each type's instruction against its own
+display. The result reports what it did:
+
+```json
+{ "applied": ["routes", "waypoints", "regions", "charts"] }
+```
+
+`applied` lists every type for which the host made a **best-effort attempt** to
+carry out the instruction — displaying the listed resources (all of them, or as
+many as it can), or hiding the type for `[]`. *How* it does so is the host's
+choice: per-resource selection lists, turning a whole layer on or off, or
+anything else that resembles what was asked. A host that does not act on a type
+— because it does not display that resource type at all, or cannot do anything
+resembling the request — omits it from `applied`, exactly as if it did not
+support that type. A type whose key is absent from the group is never listed,
+since there was nothing to apply.
+
+`applied` reports what the host **attempted**, not the resulting display. An
+extension that needs to know what is actually shown follows the display itself
+— the `chart.*` and `route.*` events (which a conforming host emits for the
+changes an apply causes, like any other change) or `resources.list`.
+
+Whether an applied group's effect survives a host reload is host-defined; the
+contract makes no promise either way.
+
+**Following changes.** `resourceGroup.applied` (see *Host events*) is emitted
+**origin-transparently** each time a group is applied — by any extension, or by
+the user picking a group in the host's own UI — so an extension that tracks the
+active group subscribes with `{ patterns: ["resourceGroup.applied"] }`. It is an
+event about an *action*, not a readable state: there is no "current group"
+query, because a group stops describing the display as soon as the user shows
+or hides a single resource by hand.
+
+**Errors** use the standard `error.data.reason` convention:
+`resourceGroups.unknownId` (no group with that id, including when the server has
+no `groups` collection), `resourceGroups.fetchFailed` (the group could not be
+read for another reason), `resourceGroups.badRequest` (invalid params — a missing
+or non-string `id`, or a group whose lists are not arrays of strings),
+`resourceGroups.notSupported` (host lacks `resourceGroups`).
 
 ### Map view
 

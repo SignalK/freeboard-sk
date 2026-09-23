@@ -286,6 +286,18 @@ neither field present), `nightMode.notSupported`.
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers (`readNightMode`/`applyNightMode`) and emits `nightMode.changed` (`emitNightModeChange`) |
 | `src/app/modules/skstream/skstream.facade.ts` | `selfNightMode` signal + `refreshSelfNightMode()` |
 
+## The `resourceGroups` capability — not yet implemented
+
+The contract defines a `resourceGroups` capability (`resourceGroup.apply`, the
+`resourceGroup.applied` event, and the group document's three-way list
+semantics). Freeboard does **not** yet advertise it. Freeboard already has the
+native model: the Resource Groups list applies a group by overwriting
+`config.selections.{routes,waypoints,regions,charts}` with the group's lists
+(skipping any list that is absent), which matches the contract's semantics. The
+bus surface lands as a thin facade over that path — which first has to move out
+of the list component so the user's own checkbox also emits
+`resourceGroup.applied` — tracked as an issue on the repository.
+
 ## The `map` capability
 
 `map` exposes the chart viewport: `map.getView` reads it, `map.center` /

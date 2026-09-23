@@ -273,6 +273,7 @@ required and optional capabilities and lists your contributions. A real one
 | `charts`            | Manage chart-layer display — visibility/opacity/order (`chart.*`) |
 | `units`             | Read the user's display-unit preferences (`units.get`)        |
 | `nightMode`         | Read/set the host's night-vision display state (`nightMode.*`) |
+| `resourceGroups`    | Apply a stored resource group to the display (`resourceGroup.apply`) |
 | `background.iframe` | Run a headless background runtime                             |
 
 **Contribution fields**
