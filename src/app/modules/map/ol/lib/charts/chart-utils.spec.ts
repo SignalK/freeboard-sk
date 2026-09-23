@@ -788,6 +788,47 @@ describe('fetchArrayBufferWithRetry', () => {
     ).rejects.toThrow('down');
     expect(calls).toBe(fast.retries + 1);
   });
+
+  it('retries past the default limit and self-heals when retries is Infinity', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return calls <= 4
+        ? Promise.reject(new Error('offline'))
+        : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry(
+      'u',
+      { ...fast, retries: Number.POSITIVE_INFINITY },
+      fetchImpl
+    );
+    expect(buf.byteLength).toBeGreaterThan(0);
+    expect(calls).toBe(5); // kept trying well past the default 2 retries
+  });
+
+  it('stops retrying when shouldContinue turns false (tile discarded)', async () => {
+    let calls = 0;
+    let live = true;
+    const fetchImpl = (() => {
+      calls++;
+      live = false; // OpenLayers discards the tile after the first attempt
+      return Promise.reject(new Error('offline'));
+    }) as unknown as typeof fetch;
+
+    await expect(
+      fetchArrayBufferWithRetry(
+        'u',
+        {
+          ...fast,
+          retries: Number.POSITIVE_INFINITY,
+          shouldContinue: () => live
+        },
+        fetchImpl
+      )
+    ).rejects.toHaveProperty('name', 'AbortError');
+    expect(calls).toBe(1); // did not keep hammering a discarded tile
+  });
 });
 
 describe('makeChartTilesResilient', () => {

@@ -559,16 +559,34 @@ export interface ResilientTileLoadingOptions {
    * never fires.
    */
   timeoutMs?: number;
-  /** Extra attempts after the first before the tile is marked as errored. */
+  /**
+   * Extra attempts after the first before the tile is marked as errored. May be
+   * `Number.POSITIVE_INFINITY` to retry indefinitely — used by the self-healing
+   * tile loader so a stalled tile recovers on its own once the link returns,
+   * instead of giving up and waiting for the user to pan or zoom.
+   */
   retries?: number;
   /** Base back-off between attempts, multiplied by the (1-based) attempt number. */
   backoffMs?: number;
+  /**
+   * Upper bound on a single back-off wait. With linear growth the delay would
+   * otherwise increase without limit when retrying indefinitely; this caps it so
+   * an offline tile keeps re-checking at a steady interval.
+   */
+  maxBackoffMs?: number;
+  /**
+   * Consulted before each retry, and again after each back-off wait. Returning
+   * `false` cancels the retry loop with an `AbortError` instead of continuing —
+   * used to stop retrying a tile OpenLayers has already discarded.
+   */
+  shouldContinue?: () => boolean;
 }
 
-const DEFAULT_RESILIENT_TILE_OPTIONS: Required<ResilientTileLoadingOptions> = {
+const DEFAULT_RESILIENT_TILE_OPTIONS = {
   timeoutMs: 30000,
   retries: 2,
-  backoffMs: 1000
+  backoffMs: 1000,
+  maxBackoffMs: 30000
 };
 
 const delay = (ms: number): Promise<void> =>
@@ -601,15 +619,24 @@ export async function fetchArrayBufferWithRetry(
   options?: ResilientTileLoadingOptions,
   fetchImpl: typeof fetch = fetch
 ): Promise<ArrayBuffer> {
-  const opts: Required<ResilientTileLoadingOptions> = {
+  const opts = {
     timeoutMs: options?.timeoutMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.timeoutMs,
     retries: options?.retries ?? DEFAULT_RESILIENT_TILE_OPTIONS.retries,
-    backoffMs: options?.backoffMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.backoffMs
+    backoffMs: options?.backoffMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.backoffMs,
+    maxBackoffMs:
+      options?.maxBackoffMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.maxBackoffMs
   };
+  const shouldContinue = options?.shouldContinue;
   let lastError: unknown;
   for (let attempt = 0; attempt <= opts.retries; attempt++) {
     if (attempt > 0) {
-      await delay(opts.backoffMs * attempt);
+      if (shouldContinue && !shouldContinue()) {
+        throw new DOMException('tile retry cancelled', 'AbortError');
+      }
+      await delay(Math.min(opts.backoffMs * attempt, opts.maxBackoffMs));
+      if (shouldContinue && !shouldContinue()) {
+        throw new DOMException('tile retry cancelled', 'AbortError');
+      }
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), opts.timeoutMs);
@@ -638,24 +665,45 @@ export async function fetchArrayBufferWithRetry(
 }
 
 /**
- * Build a vector tile load function that fetches via
+ * Build a self-healing vector tile load function that fetches via
  * {@link fetchArrayBufferWithRetry} and parses the result with the tile's own
- * format, only marking the tile as errored once every attempt has failed.
+ * format.
  *
- * Retrying happens inside the loader, before the tile ever reaches the `ERROR`
- * state, so it does not rely on `tileloaderror` handling or on calling
- * `source.refresh()` — both of which are documented to cause render loops with
- * vector tile sources (https://github.com/openlayers/openlayers/issues/17389).
+ * By default it retries indefinitely with a capped back-off: a tile stalled by a
+ * dropped or flaky link (a Starlink re-handshake, a VPN blip) is not abandoned in
+ * the `ERROR` state — where OpenLayers leaves it stuck and never re-requests it
+ * until the user pans or zooms — but keeps re-checking and paints itself the
+ * moment the link returns. The retry loop stops immediately once OpenLayers has
+ * discarded the tile (pan/zoom), so it never pins a queue slot for a tile that is
+ * no longer on screen. The only path to `ERROR` is a definitive answer (a 4xx,
+ * e.g. a 404 for a genuinely empty tile).
+ *
+ * Retrying happens inside the loader, so it does not rely on `tileloaderror`
+ * handling or on calling `source.refresh()` — both documented to cause render
+ * loops with vector tile sources
+ * (https://github.com/openlayers/openlayers/issues/17389).
  */
 function resilientVectorTileLoader(
   options?: ResilientTileLoadingOptions
 ): (tile: Tile, url: string) => void {
   return (tile: Tile, url: string): void => {
     const vectorTile = tile as VectorTile<FeatureLike>;
+    const isDiscarded = () =>
+      (vectorTile as unknown as { disposed?: boolean }).disposed === true;
     vectorTile.setLoader(
       (extent: Extent, resolution: number, projection: Projection) => {
-        fetchArrayBufferWithRetry(url, options)
+        fetchArrayBufferWithRetry(url, {
+          ...options,
+          retries: options?.retries ?? Number.POSITIVE_INFINITY,
+          // Keep re-checking a stalled tile at least every 15 s so it recovers
+          // on its own once the link returns, without pinning the queue forever.
+          maxBackoffMs: options?.maxBackoffMs ?? 15000,
+          shouldContinue: () => !isDiscarded()
+        })
           .then((data) => {
+            if (isDiscarded()) {
+              return;
+            }
             const format = vectorTile.getFormat();
             const features = format.readFeatures(data, {
               extent,
@@ -664,7 +712,12 @@ function resilientVectorTileLoader(
             vectorTile.setFeatures(features);
           })
           .catch(() => {
-            vectorTile.setState(TileState.ERROR);
+            // Reached only on a definitive answer (a 4xx empty tile) or once the
+            // tile has been discarded by OpenLayers. Don't mark a discarded tile
+            // as errored — it is already gone.
+            if (!isDiscarded()) {
+              vectorTile.setState(TileState.ERROR);
+            }
           });
       }
     );
