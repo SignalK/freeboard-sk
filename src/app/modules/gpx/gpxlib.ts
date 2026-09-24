@@ -221,16 +221,22 @@ export class GPX {
     xml += `${pad}\t<${tag} lat="${pt.lat.toFixed(6)}" lon="${pt.lon.toFixed(
       6
     )}">\r\n`;
+    // <ele> and <time> lead the point, as the GPX 1.1 schema orders them
+    xml += pt.ele ? `${pad}\t\t<ele>${pt.ele || ''}</ele>\r\n` : '';
+    // GPX times are ISO 8601 UTC; an invalid date is left out rather than
+    // written as 'Invalid Date'
+    xml +=
+      pt.datetime instanceof Date && !isNaN(pt.datetime.getTime())
+        ? `${pad}\t\t<time>${pt.datetime.toISOString()}</time>\r\n`
+        : '';
     xml += pt.sym ? `${pad}\t\t<sym>${pt.sym || ''}</sym>\r\n` : '';
     xml += pt.name ? `${pad}\t\t<name>${pt.name || ''}</name>\r\n` : '';
     xml += pt.cmt ? `${pad}\t\t<cmt>${pt.cmt || ''}</cmt>\r\n` : '';
     xml += pt.desc ? `${pad}\t\t<desc>${pt.desc || ''}</desc>\r\n` : '';
     xml += pt.src ? `${pad}\t\t<src>${pt.src || ''}</src>\r\n` : '';
     xml += pt.type ? `${pad}\t\t<type>${pt.type || ''}</type>\r\n` : '';
-    xml += pt.time ? `${pad}\t\t<time>${pt.datetime || ''}</time>\r\n` : '';
     xml += pt.fix ? `${pad}\t\t<fix>${pt.fix || ''}</fix>\r\n` : '';
 
-    xml += pt.ele ? `${pad}\t\t<ele>${pt.ele || ''}</ele>\r\n` : '';
     xml += pt.magvar ? `${pad}\t\t<magvar>${pt.magvar || ''}</magvar>\r\n` : '';
     xml += pt.geoidHeight
       ? `${pad}\t\t<geoidheight>${pt.geoidHeight || ''}</geoidheight>\r\n`
