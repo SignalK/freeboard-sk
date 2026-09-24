@@ -122,6 +122,15 @@ describe('GPXExportService', () => {
     );
   });
 
+  it('offers a vessel with no track drawn, for a Track history range', () => {
+    const app = appStub({ trackApi: 'v2' });
+    app.data.vessels.aisTracks.clear();
+    app.data.vessels.aisTargets.get(CTX).track = undefined;
+    const t = service(app).vesselTrack(CTX);
+    expect(t.label).toBe('FERRY ONE (366000012)');
+    expect(t.displayed.lines).toEqual([]);
+  });
+
   it('has nothing to offer for an unknown vessel', () => {
     expect(service(appStub({})).vesselTrack('vessels.nobody')).toBeUndefined();
   });

@@ -67,7 +67,7 @@ export class GPXExportService {
   vesselTrack(id: string): TrackExportSource | undefined {
     const vessel = this.app.data.vessels.aisTargets.get(id);
     const lines = this.app.data.vessels.aisTracks.get(id) ?? vessel?.track;
-    if (!lines) {
+    if (!vessel && !lines) {
       return undefined;
     }
     const timed = this.app.aisTracksTimed().get(id);
@@ -79,7 +79,8 @@ export class GPXExportService {
     return {
       context: id,
       label: vesselLabel(id, vessel?.name, vessel?.mmsi),
-      displayed: attachTimes(lines, timed),
+      // none drawn: a vessel shown only in Track history exports a range
+      displayed: attachTimes(lines ?? [], timed),
       tailOnly: !recorded
     };
   }
