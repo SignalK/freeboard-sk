@@ -141,9 +141,15 @@ export class GPXSaveFacade {
             this.resultSource.next(1);
           });
       })
-      .catch(() => {
-        // save cancelled by user
-        this.resultSource.next(-1);
+      .catch((err: unknown) => {
+        if ((err as { name?: string })?.name === 'SecurityError') {
+          // the picker needs a recent user gesture, which a range export
+          // spends waiting for the server: download the file instead
+          this.legacySaveToFile();
+        } else {
+          // save cancelled by user
+          this.resultSource.next(-1);
+        }
       });
   }
 }
