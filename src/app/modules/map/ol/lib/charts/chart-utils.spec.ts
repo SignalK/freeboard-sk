@@ -829,6 +829,30 @@ describe('fetchArrayBufferWithRetry', () => {
     ).rejects.toHaveProperty('name', 'AbortError');
     expect(calls).toBe(1); // did not keep hammering a discarded tile
   });
+
+  it('gives up after maxElapsedMs even with unlimited retries', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.reject(new Error('offline'));
+    }) as unknown as typeof fetch;
+
+    // Unbounded retries, but a tiny self-heal window: it must terminate, not
+    // loop forever, so a dropped-but-not-disposed tile can't retry indefinitely.
+    await expect(
+      fetchArrayBufferWithRetry(
+        'u',
+        {
+          timeoutMs: 50,
+          retries: Number.POSITIVE_INFINITY,
+          backoffMs: 1,
+          maxElapsedMs: 25
+        },
+        fetchImpl
+      )
+    ).rejects.toThrow('offline');
+    expect(calls).toBeGreaterThan(0);
+  });
 });
 
 describe('makeChartTilesResilient', () => {

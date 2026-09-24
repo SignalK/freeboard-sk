@@ -575,6 +575,13 @@ export interface ResilientTileLoadingOptions {
    */
   maxBackoffMs?: number;
   /**
+   * Give up (let the tile error) once this many milliseconds have elapsed across
+   * all attempts. Bounds an otherwise-indefinite retry so a tile OpenLayers has
+   * dropped without disposing it (e.g. via `removeSourceTiles`, which leaves
+   * `disposed` false) cannot keep re-requesting forever. `0`/omitted = no limit.
+   */
+  maxElapsedMs?: number;
+  /**
    * Consulted before each retry, and again after each back-off wait. Returning
    * `false` cancels the retry loop with an `AbortError` instead of continuing —
    * used to stop retrying a tile OpenLayers has already discarded.
@@ -624,14 +631,21 @@ export async function fetchArrayBufferWithRetry(
     retries: options?.retries ?? DEFAULT_RESILIENT_TILE_OPTIONS.retries,
     backoffMs: options?.backoffMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.backoffMs,
     maxBackoffMs:
-      options?.maxBackoffMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.maxBackoffMs
+      options?.maxBackoffMs ?? DEFAULT_RESILIENT_TILE_OPTIONS.maxBackoffMs,
+    maxElapsedMs: options?.maxElapsedMs ?? 0
   };
   const shouldContinue = options?.shouldContinue;
+  const start = Date.now();
   let lastError: unknown;
   for (let attempt = 0; attempt <= opts.retries; attempt++) {
     if (attempt > 0) {
       if (shouldContinue && !shouldContinue()) {
         throw new DOMException('tile retry cancelled', 'AbortError');
+      }
+      // Stop an otherwise-unbounded retry once the self-heal window is spent, so
+      // a tile OpenLayers dropped without disposing cannot re-request forever.
+      if (opts.maxElapsedMs > 0 && Date.now() - start >= opts.maxElapsedMs) {
+        break;
       }
       await delay(Math.min(opts.backoffMs * attempt, opts.maxBackoffMs));
       if (shouldContinue && !shouldContinue()) {
@@ -698,7 +712,12 @@ function resilientVectorTileLoader(
           // Keep re-checking a stalled tile at least every 15 s so it recovers
           // on its own once the link returns, without pinning the queue forever.
           maxBackoffMs: options?.maxBackoffMs ?? 15000,
-          shouldContinue: () => !isDiscarded()
+          // Bound the indefinite retry so a tile OpenLayers dropped without
+          // disposing (removeSourceTiles leaves `disposed` false) cannot keep
+          // re-requesting forever; disposal still stops it immediately below.
+          maxElapsedMs: options?.maxElapsedMs ?? 300000,
+          shouldContinue: () =>
+            !isDiscarded() && (options?.shouldContinue?.() ?? true)
         })
           .then((data) => {
             if (isDiscarded()) {
