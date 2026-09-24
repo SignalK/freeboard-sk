@@ -879,6 +879,40 @@ describe('fetchArrayBufferWithRetry', () => {
     expect(buf.byteLength).toBeGreaterThan(0);
     expect(calls).toBe(2); // 429 is retryable; Retry-After: 0 retries immediately
   });
+
+  it('gives up rather than wait a Retry-After that overruns the window', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.resolve(errorResponse(429, { 'Retry-After': '3600' }));
+    }) as unknown as typeof fetch;
+
+    // A 1-hour Retry-After must not hold the slot: the wait overruns the 100ms
+    // window, so it errors at once and leaves recovery to reload later.
+    await expect(
+      fetchArrayBufferWithRetry(
+        'u',
+        {
+          timeoutMs: 50,
+          retries: Number.POSITIVE_INFINITY,
+          backoffMs: 1,
+          maxElapsedMs: 100
+        },
+        fetchImpl
+      )
+    ).rejects.toThrow('429');
+    expect(calls).toBe(1);
+  });
+
+  it('marks a definitive 4xx so the caller can render an empty tile', async () => {
+    const fetchImpl = (() =>
+      Promise.resolve(errorResponse(404))) as unknown as typeof fetch;
+    const err = await fetchArrayBufferWithRetry('u', fast, fetchImpl).catch(
+      (e) => e
+    );
+    expect(err).toBeInstanceOf(Error);
+    expect((err as { definitive?: boolean }).definitive).toBe(true);
+  });
 });
 
 describe('createTileRecoveryScheduler', () => {

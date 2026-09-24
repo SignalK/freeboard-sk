@@ -668,14 +668,20 @@ export async function fetchArrayBufferWithRetry(
       if (shouldContinue && !shouldContinue()) {
         throw new DOMException('tile retry cancelled', 'AbortError');
       }
-      // Stop an otherwise-unbounded retry once the self-heal window is spent, so
-      // a tile OpenLayers dropped without disposing cannot re-request forever.
-      if (opts.maxElapsedMs > 0 && Date.now() - start >= opts.maxElapsedMs) {
-        break;
-      }
       const backoff =
         retryAfterMs ?? Math.min(opts.backoffMs * attempt, opts.maxBackoffMs);
       retryAfterMs = undefined;
+      // Give up if this wait would carry us past the self-heal window, counting
+      // the wait itself — otherwise a long back-off (a 429 `Retry-After`, or the
+      // >=60s floor) would hold a shared TileQueue slot well past the window.
+      // The tile errors instead, and startChartTileRecovery retries it later
+      // without pinning a slot.
+      if (
+        opts.maxElapsedMs > 0 &&
+        Date.now() - start + backoff >= opts.maxElapsedMs
+      ) {
+        break;
+      }
       await delay(backoff);
       if (shouldContinue && !shouldContinue()) {
         throw new DOMException('tile retry cancelled', 'AbortError');
@@ -700,6 +706,9 @@ export async function fetchArrayBufferWithRetry(
           Math.max(opts.maxBackoffMs, 60000);
       } else if (response.status < 500) {
         // Any other 4xx is a definitive answer (e.g. a 404 for an empty tile).
+        // Flag it so the loader can render an empty tile rather than an errored
+        // one, which would otherwise trip outage recovery on a healthy link.
+        (lastError as { definitive?: boolean }).definitive = true;
         definitive = true;
       }
     } catch (err) {
@@ -729,8 +738,10 @@ export async function fetchArrayBufferWithRetry(
  * the source key once tiles start failing so OpenLayers rebuilds them (it will
  * not re-request an `ERROR` tile on its own) — for an outage of any duration, and
  * without the `source.refresh()` render loop (openlayers#17389). The retry also
- * stops immediately once OpenLayers discards the tile (pan/zoom); the only fast
- * path to `ERROR` is a definitive 4xx.
+ * stops immediately once OpenLayers discards the tile (pan/zoom). A definitive
+ * 4xx (e.g. a 404 for an empty tile) renders as an empty tile rather than an
+ * error, so only an exhausted transient failure reaches `ERROR` — which
+ * startChartTileRecovery then rebuilds.
  */
 function resilientVectorTileLoader(
   options?: ResilientTileLoadingOptions
@@ -768,11 +779,19 @@ function resilientVectorTileLoader(
             });
             vectorTile.setFeatures(features);
           })
-          .catch(() => {
-            // Reached only on a definitive answer (a 4xx empty tile) or once the
-            // tile has been discarded by OpenLayers. Don't mark a discarded tile
-            // as errored — it is already gone.
-            if (!isDiscarded()) {
+          .catch((err) => {
+            if (isDiscarded()) {
+              // The tile has been discarded by OpenLayers — it's already gone.
+              return;
+            }
+            if (err && (err as { definitive?: boolean }).definitive) {
+              // A definitive 4xx (e.g. a 404 for an empty tile) is not a
+              // connectivity failure: render an empty tile so it does not trip
+              // startChartTileRecovery into rotating keys on a healthy link.
+              vectorTile.setFeatures([]);
+            } else {
+              // Transient failure exhausted the short window: error so the slot
+              // frees; startChartTileRecovery rebuilds it once the link returns.
               vectorTile.setState(TileState.ERROR);
             }
           });
