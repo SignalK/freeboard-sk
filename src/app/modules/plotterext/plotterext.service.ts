@@ -64,6 +64,8 @@ import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
 import { createNightModeMethods } from './nightmode-methods';
+import { createResourceGroupMethods } from './resourcegroup-methods';
+import { SKResourceGroupService } from 'src/app/modules/skresources/components/groups/groups.service';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
@@ -577,7 +579,8 @@ export class PlotterExtensionService {
     private skres: SKResourceService,
     private mapService: MapService,
     private routeRegistry: RouteBufferRegistry,
-    private stream: SKStreamFacade
+    private stream: SKStreamFacade,
+    private skgroups: SKResourceGroupService
   ) {
     if (isDevMode()) {
       // console handle for exercising the host API during development
@@ -590,6 +593,12 @@ export class PlotterExtensionService {
       this.viewportTick.update((n) => n + 1)
     );
     this.bridgeRouteEvents();
+    // Relay every group apply — the user's Resource Groups checkbox or an
+    // extension's resourceGroup.apply — as `resourceGroup.applied`
+    // (origin-transparent). App-lifetime singleton: lives for the session.
+    this.skgroups.applied$.subscribe((e) =>
+      this.broadcastMessage('resourceGroup.applied', e)
+    );
     // Mirror Freeboard's displayed (selected) routes into the visible-route
     // registry so the `routes` capability reflects them — including routes
     // restored from a previous session's selection state on load. Reads
@@ -757,6 +766,14 @@ export class PlotterExtensionService {
       setOrder: (order) => this.skres.setChartsOrder(order),
       isTemporal: (chart) => this.skres.chartIsTemporal(chart),
       setTime: (ids, time) => this.skres.setChartsTime(ids, time)
+    });
+  }
+
+  /** Host API handlers for the `resourceGroups` capability. */
+  private resourceGroupMethods(): Record<string, MethodHandler> {
+    return createResourceGroupMethods({
+      fetchGroup: (id) => this.skgroups.fromServer(id),
+      applyGroup: (id, group) => this.skgroups.applyGroup(id, group)
     });
   }
 
@@ -1538,6 +1555,7 @@ export class PlotterExtensionService {
         ...this.routeMethods(),
         ...this.chartMethods(),
         ...this.nightModeMethods(),
+        ...this.resourceGroupMethods(),
         ...this.uiPanelMethods(placed.extension),
         'ui.openConfigPanel': async () => {
           this.openConfigPanel(placed);
@@ -1595,6 +1613,7 @@ export class PlotterExtensionService {
         ...this.routeMethods(),
         ...this.chartMethods(),
         ...this.nightModeMethods(),
+        ...this.resourceGroupMethods(),
         ...this.uiPanelMethods(opts.extension),
         'ui.closePanel': async () => {
           opts.close();
@@ -1642,6 +1661,7 @@ export class PlotterExtensionService {
         ...this.routeMethods(),
         ...this.chartMethods(),
         ...this.nightModeMethods(),
+        ...this.resourceGroupMethods(),
         ...this.uiPanelMethods(opts.extension)
       },
       onError: (err) => console.warn('plotterext background error', err)
@@ -1692,6 +1712,7 @@ export class PlotterExtensionService {
         ...this.routeMethods(),
         ...this.chartMethods(),
         ...this.nightModeMethods(),
+        ...this.resourceGroupMethods(),
         ...this.uiPanelMethods(id)
       },
       onError: (err) => console.warn('plotterext embedding-host error', err)

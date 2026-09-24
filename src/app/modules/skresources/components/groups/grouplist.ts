@@ -172,32 +172,15 @@ export class GroupListComponent {
       return fl;
     });
 
-    // update selections
+    // apply the group (shared with the plotter extension host's
+    // resourceGroup.apply, so both paths emit resourceGroup.applied)
     if (idx !== -1 && group) {
       if (checked) {
         this.selectedGroup = id;
-
-        if (Array.isArray(group.routes)) {
-          this.app.config.selections.routes = group.routes;
-          this.skres.refreshRoutes();
-        }
-
-        if (Array.isArray(group.waypoints)) {
-          this.app.config.selections.waypoints = group.waypoints;
-          this.skres.refreshWaypoints();
-        }
-
-        if (Array.isArray(group.regions)) {
-          this.app.config.selections.regions = group.regions;
-          this.skres.refreshRegions();
-        }
-
-        if (Array.isArray(group.charts)) {
-          this.app.config.selections.charts = group.charts;
-          this.skres.refreshCharts();
-        }
+        this.skgroups.applyGroup(id, group);
+      } else {
+        this.app.saveConfig();
       }
-      this.app.saveConfig();
     }
   }
 
