@@ -388,13 +388,11 @@ export function viewportBbox(
     return null;
   }
   if (Array.isArray(radiusBox) && radiusBox.length === 4) {
-    let [rw, rs, re, rn] = radiusBox as [number, number, number, number];
+    const [rw, rs, re, rn] = radiusBox as [number, number, number, number];
     // move the radius box into the viewport's world copy before intersecting
     const shift = Math.round(((w + e) / 2 - (rw + re) / 2) / 360) * 360;
-    rw += shift;
-    re += shift;
-    w = Math.max(w, rw);
-    e = Math.min(e, re);
+    w = Math.max(w, rw + shift);
+    e = Math.min(e, re + shift);
     s = Math.max(s, rs);
     n = Math.min(n, rn);
     if (w >= e || s >= n) {
@@ -407,4 +405,49 @@ export function viewportBbox(
     return [-180, s, 180, n];
   }
   return [wrapLongitude(w), s, wrapLongitude(e), n];
+}
+
+// ******** AIS tracks request ********
+
+export interface AisTracksRequest {
+  view: { extent: Extent | number[]; zoom: number } | null;
+  /** "Show Track" (all AIS tracks) is on. */
+  showAll: boolean;
+  /** Contexts picked with the per-vessel TRACK toggle. */
+  picks: string[];
+  /** Contexts currently held as AIS targets (hidden / purged ones are not). */
+  targets: { has(context: string): boolean };
+  /** AIS max-radius box around own position, when a max radius is set. */
+  radiusBox?: Extent | number[];
+  provider?: string;
+}
+
+/** Query string for the AIS tracks request, or null when there is nothing to
+ * fetch. "Show Track" on: every track in the viewport (∩ the max-radius box).
+ * Off: only the picked vessels, by context — cheaper and exact. Nothing below
+ * the zoom at which the track layer draws (the low-zoom viewport query is the
+ * expensive one). */
+export function aisTracksQuery(req: AisTracksRequest): string | null {
+  if (!req.view || !(req.view.zoom >= AIS_TRACK_MIN_ZOOM)) {
+    return null;
+  }
+  const params: Record<string, string | number | undefined> = {
+    duration: AIS_TRACK_WINDOW,
+    maxPoints: AIS_TRACK_MAX_POINTS,
+    provider: req.provider
+  };
+  if (req.showAll) {
+    const bbox = viewportBbox(req.view.extent, req.radiusBox);
+    if (!bbox) {
+      return null;
+    }
+    params.bbox = bbox.join(',');
+  } else {
+    const picks = req.picks.filter((id) => req.targets.has(id));
+    if (picks.length === 0) {
+      return null;
+    }
+    params.contexts = picks.join(',');
+  }
+  return queryString(params);
 }

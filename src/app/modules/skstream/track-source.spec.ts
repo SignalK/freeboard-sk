@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  aisTracksQuery,
   detectTrackSource,
   migrateTrailSource,
   parseAisTracks,
@@ -424,5 +425,86 @@ describe('track-source response parsing', () => {
     expect(parseAisTracks(fc, 'b').get('vessels.urn:mrn:imo:mmsi:2')).toEqual(
       aisB.geometry.coordinates
     );
+  });
+});
+
+describe('track-source aisTracksQuery', () => {
+  const targets = new Set(['vessels.a', 'vessels.b']);
+  const view = { extent: [-81, 24, -80, 25], zoom: 12 };
+  const params = (q: string | null) =>
+    Object.fromEntries(new URLSearchParams(q ?? ''));
+
+  it('Show Track on: fetches by viewport bbox, windowed and bounded', () => {
+    expect(
+      params(
+        aisTracksQuery({
+          view,
+          showAll: true,
+          picks: [],
+          targets,
+          provider: 'tracks'
+        })
+      )
+    ).toEqual({
+      bbox: '-81,24,-80,25',
+      duration: 'PT1H',
+      maxPoints: '120',
+      provider: 'tracks'
+    });
+  });
+
+  it('intersects the viewport with the max-radius box', () => {
+    const q = aisTracksQuery({
+      view,
+      showAll: true,
+      picks: [],
+      targets,
+      radiusBox: [-80.5, 24.5, -80, 25]
+    });
+    expect(params(q).bbox).toBe('-80.5,24.5,-80,25');
+  });
+
+  it('Show Track off: fetches only the picked vessels still held as targets', () => {
+    const q = aisTracksQuery({
+      view,
+      showAll: false,
+      picks: ['vessels.a', 'vessels.gone'],
+      targets
+    });
+    expect(params(q).contexts).toBe('vessels.a');
+    expect(params(q).bbox).toBeUndefined();
+    expect(params(q).duration).toBe('PT1H');
+  });
+
+  it('fetches nothing with Show Track off and nothing picked', () => {
+    expect(
+      aisTracksQuery({ view, showAll: false, picks: [], targets })
+    ).toBeNull();
+  });
+
+  it('fetches nothing below the track layer minimum zoom', () => {
+    expect(
+      aisTracksQuery({
+        view: { ...view, zoom: 9.9 },
+        showAll: true,
+        picks: [],
+        targets
+      })
+    ).toBeNull();
+    expect(
+      aisTracksQuery({ view: null, showAll: true, picks: [], targets })
+    ).toBeNull();
+  });
+
+  it('fetches nothing when the viewport is outside the max radius', () => {
+    expect(
+      aisTracksQuery({
+        view,
+        showAll: true,
+        picks: [],
+        targets,
+        radiusBox: [10, 10, 11, 11]
+      })
+    ).toBeNull();
   });
 });
