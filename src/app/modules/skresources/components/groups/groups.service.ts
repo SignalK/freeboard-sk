@@ -11,7 +11,11 @@ import { ResourceGroupDialog } from './group-dialog';
 
 import { ActionResult, ResourceActionResult } from 'src/app/types';
 import { SKResourceService, SKResourceType } from '../../resources.service';
-import { applyGroupToSelections, GroupSelections } from './group-apply';
+import {
+  applyGroupToSelections,
+  GroupSelections,
+  isValidGroup
+} from './group-apply';
 
 export interface SKResourceGroup {
   name: string;
@@ -51,12 +55,17 @@ export class SKResourceGroupService {
    * @description Apply a group to the display: each list the group carries
    * replaces that type's selection (`[]` hides the type), an absent list leaves
    * the type untouched. Refreshes the affected layers, persists the selections
-   * and announces the apply on {@link applied$}.
+   * and announces the apply on {@link applied$}. A malformed group (a list
+   * that is not an array of ids) is rejected whole: nothing is applied, saved
+   * or announced.
    * @param id Group identifier
-   * @param group The group document (already fetched and validated)
-   * @returns The types that were applied
+   * @param group The group document
+   * @returns The types that were applied (empty for a malformed group)
    */
   public applyGroup(id: string, group: SKResourceGroup) {
+    if (!isValidGroup(group)) {
+      return [];
+    }
     const applied = applyGroupToSelections(
       group,
       this.app.config.selections as GroupSelections

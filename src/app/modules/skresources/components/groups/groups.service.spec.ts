@@ -76,4 +76,21 @@ describe('SKResourceGroupService.applyGroup', () => {
       { id: 'g1', applied: ['waypoints'] }
     ]);
   });
+
+  it('rejects a malformed group whole: no selection change, save or event', () => {
+    const events: unknown[] = [];
+    service.applied$.subscribe((e) => events.push(e));
+    const before = structuredClone(app.config.selections);
+    const applied = service.applyGroup('bad', {
+      name: 'g',
+      description: '',
+      routes: ['r1'],
+      charts: 'bad' as unknown as string[]
+    });
+    expect(applied).toEqual([]);
+    expect(app.config.selections).toEqual(before);
+    expect(skres.refreshRoutes).not.toHaveBeenCalled();
+    expect(app.saveConfig).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+  });
 });
