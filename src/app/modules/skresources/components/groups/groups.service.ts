@@ -4,7 +4,10 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { Observable, Subject } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
-import type { ResourceGroupAppliedEvent } from 'signalk-plotterext-bus/host';
+import type {
+  ResourceGroupAppliedEvent,
+  ResourceGroupType
+} from 'signalk-plotterext-bus/host';
 import { AppFacade } from 'src/app/app.facade';
 
 import { ResourceGroupDialog } from './group-dialog';
@@ -54,15 +57,19 @@ export class SKResourceGroupService {
   /**
    * @description Apply a group to the display: each list the group carries
    * replaces that type's selection (`[]` hides the type), an absent list leaves
-   * the type untouched. Refreshes the affected layers, persists the selections
-   * and announces the apply on {@link applied$}. A malformed group (a list
+   * the type untouched. Refreshes the affected layers and waits for them, then
+   * persists the selections and announces the apply on {@link applied$} — so a
+   * follower that re-reads the display on the event sees the applied state. A malformed group (a list
    * that is not an array of ids) is rejected whole: nothing is applied, saved
    * or announced.
    * @param id Group identifier
    * @param group The group document
    * @returns The types that were applied (empty for a malformed group)
    */
-  public applyGroup(id: string, group: SKResourceGroup) {
+  public async applyGroup(
+    id: string,
+    group: SKResourceGroup
+  ): Promise<ResourceGroupType[]> {
     if (!isValidGroup(group)) {
       return [];
     }
@@ -76,7 +83,8 @@ export class SKResourceGroupService {
       regions: () => this.skres.refreshRegions(),
       charts: () => this.skres.refreshCharts()
     };
-    applied.forEach((type) => refresh[type]());
+    // The refresh* methods catch their own errors, so this never rejects.
+    await Promise.all(applied.map((type) => refresh[type]()));
     this.app.saveConfig();
     this.applied.next({ id, applied });
     return applied;

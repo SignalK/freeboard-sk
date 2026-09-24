@@ -78,5 +78,6 @@ describe('isValidGroup', () => {
     expect(isValidGroup({ name: 'g', routes: 'r1' })).toBe(false);
     expect(isValidGroup({ name: 'g', charts: [1] })).toBe(false);
     expect(isValidGroup(null)).toBe(false);
+    expect(isValidGroup([])).toBe(false);
   });
 });

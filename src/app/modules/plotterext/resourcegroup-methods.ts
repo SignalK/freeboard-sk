@@ -21,8 +21,14 @@ import type { SKResourceGroup } from 'src/app/modules/skresources/components/gro
 export interface ResourceGroupMethodsDeps {
   /** Fetch the group document. Rejects with an HTTP error (`status`) on failure. */
   fetchGroup: (id: string) => Promise<unknown>;
-  /** Apply a fetched, validated group; returns the types that were applied. */
-  applyGroup: (id: string, group: SKResourceGroup) => ResourceGroupType[];
+  /**
+   * Apply a fetched, validated group; resolves with the types that were
+   * applied once the display has been refreshed.
+   */
+  applyGroup: (
+    id: string,
+    group: SKResourceGroup
+  ) => Promise<ResourceGroupType[]>;
 }
 
 export function createResourceGroupMethods(
@@ -63,7 +69,7 @@ export function createResourceGroupMethods(
           `Resource group ${id} has a list that is not an array of ids`
         );
       }
-      return { applied: deps.applyGroup(id, group as SKResourceGroup) };
+      return { applied: await deps.applyGroup(id, group as SKResourceGroup) };
     }
   };
 }

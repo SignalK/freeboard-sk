@@ -44,8 +44,8 @@ describe('SKResourceGroupService.applyGroup', () => {
     service = TestBed.inject(SKResourceGroupService);
   });
 
-  it('writes the selections, refreshes only the applied types and saves', () => {
-    const applied = service.applyGroup('g1', {
+  it('writes the selections, refreshes only the applied types and saves', async () => {
+    const applied = await service.applyGroup('g1', {
       name: 'g',
       description: '',
       routes: ['r1'],
@@ -65,23 +65,23 @@ describe('SKResourceGroupService.applyGroup', () => {
     expect(app.saveConfig).toHaveBeenCalledTimes(1);
   });
 
-  it('announces every apply on applied$, including a repeat of the same group', () => {
+  it('announces every apply on applied$, including a repeat of the same group', async () => {
     const events: unknown[] = [];
     service.applied$.subscribe((e) => events.push(e));
     const group = { name: 'g', description: '', waypoints: [] };
-    service.applyGroup('g1', group);
-    service.applyGroup('g1', group);
+    await service.applyGroup('g1', group);
+    await service.applyGroup('g1', group);
     expect(events).toEqual([
       { id: 'g1', applied: ['waypoints'] },
       { id: 'g1', applied: ['waypoints'] }
     ]);
   });
 
-  it('rejects a malformed group whole: no selection change, save or event', () => {
+  it('rejects a malformed group whole: no selection change, save or event', async () => {
     const events: unknown[] = [];
     service.applied$.subscribe((e) => events.push(e));
     const before = structuredClone(app.config.selections);
-    const applied = service.applyGroup('bad', {
+    const applied = await service.applyGroup('bad', {
       name: 'g',
       description: '',
       routes: ['r1'],
@@ -92,5 +92,26 @@ describe('SKResourceGroupService.applyGroup', () => {
     expect(skres.refreshRoutes).not.toHaveBeenCalled();
     expect(app.saveConfig).not.toHaveBeenCalled();
     expect(events).toEqual([]);
+  });
+
+  it('saves and announces only after the refreshes have finished', async () => {
+    let finishCharts!: () => void;
+    skres.refreshCharts.mockReturnValue(
+      new Promise<void>((resolve) => (finishCharts = resolve))
+    );
+    const events: unknown[] = [];
+    service.applied$.subscribe((e) => events.push(e));
+    const pending = service.applyGroup('g1', {
+      name: 'g',
+      description: '',
+      charts: ['c1']
+    });
+    await Promise.resolve();
+    expect(app.saveConfig).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+    finishCharts();
+    expect(await pending).toEqual(['charts']);
+    expect(app.saveConfig).toHaveBeenCalledTimes(1);
+    expect(events).toEqual([{ id: 'g1', applied: ['charts'] }]);
   });
 });

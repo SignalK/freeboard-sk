@@ -5,7 +5,7 @@ import { createResourceGroupMethods } from './resourcegroup-methods';
 function setup(fetchGroup: (id: string) => Promise<unknown>) {
   const deps = {
     fetchGroup: vi.fn(fetchGroup),
-    applyGroup: vi.fn(() => ['routes', 'charts'] as never)
+    applyGroup: vi.fn(async () => ['routes', 'charts'] as never)
   };
   const methods = createResourceGroupMethods(deps);
   // The bus dispatches handlers as (params, ctx); ctx is unused here.
@@ -46,6 +46,12 @@ describe('resourceGroup.apply', () => {
       Promise.reject({ status: 500, message: 'boom' })
     );
     expect(await reason(call({ id: 'g1' }))).toBe('resourceGroups.fetchFailed');
+  });
+
+  it('rejects an array response as a malformed group', async () => {
+    const { deps, call, reason } = setup(async () => []);
+    expect(await reason(call({ id: 'g1' }))).toBe('resourceGroups.badRequest');
+    expect(deps.applyGroup).not.toHaveBeenCalled();
   });
 
   it('rejects a malformed group with resourceGroups.badRequest and applies nothing', async () => {

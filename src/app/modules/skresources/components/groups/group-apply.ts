@@ -19,7 +19,7 @@ export type GroupSelections = Partial<
  * `[]` is fine (it means "display none").
  */
 export function isValidGroup(group: unknown): boolean {
-  if (!group || typeof group !== 'object') {
+  if (!group || typeof group !== 'object' || Array.isArray(group)) {
     return false;
   }
   return GROUP_TYPES.every((type) => {

@@ -177,7 +177,7 @@ export class GroupListComponent {
     if (idx !== -1 && group) {
       if (checked) {
         this.selectedGroup = id;
-        this.skgroups.applyGroup(id, group);
+        void this.skgroups.applyGroup(id, group);
       } else {
         this.app.saveConfig();
       }
