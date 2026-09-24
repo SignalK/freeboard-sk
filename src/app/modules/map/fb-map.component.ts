@@ -437,8 +437,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.settings.change$.subscribe((r: string[]) => {
         this.renderMapContents(r.includes('fetchNotes'));
-        if (r.includes(`trailFromServer`)) {
-          if (!this.app.config.vessels.trailFromServer) {
+        if (r.includes(`trailSource`)) {
+          if (!this.app.serverTrailWanted()) {
             this.app.selfTrailFromServer.update(() => {
               return [];
             });
@@ -715,12 +715,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Tell the stream worker the initial view: a fresh map emits no move-end
+   * until the user moves it, and the AIS tracks request is scoped to the view. */
+  protected onMapReady() {
+    const zoom = this.olMap?.getMap()?.getView().getZoom();
+    if (typeof zoom === 'number') {
+      this.skstream.postMapView(this.olMap.getMapExtent(), zoom);
+    }
+  }
+
   // handle map move / zoom
   protected onMapMoveEnd(e: FBMapEvent) {
     this.app.config.map.zoomLevel = e.zoom;
     this.app.mapZoom.set(e.zoom);
 
     this.app.mapExtent.update(() => e.extent);
+    this.skstream.postMapView(e.extent, e.zoom);
     this.app.mapViewTopCenter.update(() => e.topCenter as Position);
     this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
     this.app.mapViewRotation.update(() => e.rotation);

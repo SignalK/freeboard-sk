@@ -1111,15 +1111,34 @@
                     </legend>
                     <div class="setting-card-row" style="padding-bottom: 10px">
                       <div class="setting-card-row-item">
-                        <mat-checkbox
-                          [disabled]="!facade.settings.vessels.trail"
-                          [(ngModel)]="facade.settings.vessels.trailFromServer"
-                          (change)="persistModel(`trailFromServer`)"
-                          matTooltip="Select to source trail data from the server"
-                          label="after"
-                        >
-                          Get Track from server
-                        </mat-checkbox>
+                        <mat-form-field style="width: 200px">
+                          <mat-label>Track source</mat-label>
+                          <mat-select
+                            [disabled]="!facade.settings.vessels.trail"
+                            [(ngModel)]="facade.settings.vessels.trailSource"
+                            (selectionChange)="persistModel(`trailSource`)"
+                            matTooltip="Where the vessel track comes from. Auto uses the server when it can supply one."
+                          >
+                            <mat-option value="auto">Auto</mat-option>
+                            <mat-option
+                              value="server"
+                              [disabled]="!serverTrailAvailable"
+                              >Server</mat-option
+                            >
+                            <mat-option value="local">This device</mat-option>
+                          </mat-select>
+                          @if (!serverTrailAvailable) {
+                          <mat-hint
+                            >Server requires a Track API (v2) provider</mat-hint
+                          >
+                          } @else if (facade.settings.vessels.trailSource ===
+                          'auto') {
+                          <mat-hint
+                            >Using: {{ app.serverTrailWanted() ? 'Server' :
+                            'This device' }}</mat-hint
+                          >
+                          }
+                        </mat-form-field>
                         &nbsp;&nbsp;
 
                         <mat-slider
@@ -1127,7 +1146,7 @@
                           tickInterval="1"
                           min="1"
                           max="96"
-                          [disabled]="!facade.settings.vessels.trailFromServer || !facade.settings.vessels.trail"
+                          [disabled]="!app.serverTrailWanted() || !facade.settings.vessels.trail"
                         >
                           <input
                             matSliderThumb
@@ -1144,7 +1163,7 @@
                           <mat-label>Resolution: Last hour</mat-label>
                           <mat-select
                             [(ngModel)]="facade.settings.vessels.trailResolution.lastHour"
-                            [disabled]="!facade.settings.vessels.trailFromServer || !facade.settings.vessels.trail"
+                            [disabled]="!app.serverTrailWanted() || !facade.settings.vessels.trail"
                             (selectionChange)="persistModel()"
                           >
                             @for(i of options.trailIntervals.highResolution;
@@ -1159,7 +1178,7 @@
                           <mat-label>Resolution: 1 hr -> 24 hrs</mat-label>
                           <mat-select
                             [(ngModel)]="facade.settings.vessels.trailResolution.next23"
-                            [disabled]="!facade.settings.vessels.trailFromServer || !facade.settings.vessels.trail"
+                            [disabled]="!app.serverTrailWanted() || !facade.settings.vessels.trail"
                             (selectionChange)="persistModel()"
                           >
                             @for(i of options.trailIntervals.highResolution;
@@ -1174,7 +1193,7 @@
                           <mat-label>Resolution: > 24 hrs</mat-label>
                           <mat-select
                             [(ngModel)]="facade.settings.vessels.trailResolution.beyond24"
-                            [disabled]="!facade.settings.vessels.trailFromServer || !facade.settings.vessels.trail"
+                            [disabled]="!app.serverTrailWanted() || !facade.settings.vessels.trail"
                             (selectionChange)="persistModel()"
                           >
                             @for(i of options.trailIntervals.mediumResolution;

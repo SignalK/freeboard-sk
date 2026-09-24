@@ -385,9 +385,6 @@ export class SettingsFacade {
   /** Apply / persist settings */
   applySettings() {
     this.app.debug('Saving Settings..');
-    if (!this.app.config.vessels.trail) {
-      this.app.config.vessels.trailFromServer = false;
-    }
     if (
       typeof this.fixedPosition[0] === 'number' &&
       typeof this.fixedPosition[1] === 'number'

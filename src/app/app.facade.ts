@@ -11,6 +11,10 @@ import { Subject } from 'rxjs';
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 import {
+  resolveTrailSource,
+  TrackSource
+} from './modules/skstream/track-source';
+import {
   MapViewport,
   mapCenterForOffset,
   mapCenterForZoomShift,
@@ -250,6 +254,7 @@ export class AppFacade extends InfoService {
     infoLayers: boolean;
     buddyList: boolean;
     tidalApi: boolean;
+    tracksApi: boolean;
   }>({
     anchorApi: true, // default true until API is available
     autopilotApi: false,
@@ -260,8 +265,14 @@ export class AppFacade extends InfoService {
     resourceTracks: false, // ability to store track resources
     infoLayers: false, // legacy Overlays collection present (#784 signpost)
     buddyList: false,
-    tidalApi: false
+    tidalApi: false,
+    tracksApi: false // v2 Track API with a registered provider (#820)
   });
+
+  /** Where recorded tracks come from; null until detected at connect. */
+  trackSource = signal<TrackSource | null>(null);
+  /** Emits the per-vessel TRACK picks whenever they change. */
+  readonly vesselTrackSelection$ = new Subject<string[]>();
 
   selfLines = signal<{ cog: LineStyleDef; heading: LineStyleDef }>({
     cog: {
@@ -966,6 +977,18 @@ export class AppFacade extends InfoService {
       this.data.vessels.showTrack,
       id
     );
+    this.vesselTrackSelection$.next(this.data.vessels.showTrack);
+  }
+
+  /** Whether the own-vessel trail should come from the server: the trail
+   * source setting resolved against what the server can supply. */
+  serverTrailWanted(): boolean {
+    return (
+      resolveTrailSource(
+        this.config.vessels.trailSource,
+        this.trackSource()
+      ) === 'server'
+    );
   }
 
   /**
@@ -1107,15 +1130,18 @@ export class AppFacade extends InfoService {
       .afterClosed();
   }
 
-  /** display alert dialog */
-  showAlert(title: string, message: string, btn?: string) {
+  /** display alert dialog
+   * @param checkText optional check box text; the dialog then closes with
+   * `{ checked }` (or undefined when dismissed without the button) */
+  showAlert(title: string, message: string, btn?: string, checkText?: string) {
     return this.dialog
       .open(AlertDialog, {
         disableClose: false,
         data: {
           message: message,
           title: title,
-          buttonText: btn
+          buttonText: btn,
+          checkText: checkText
         }
       })
       .afterClosed();

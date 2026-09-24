@@ -37,6 +37,7 @@ import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
+import { serverTrailAvailable } from 'src/app/modules/skstream/track-source';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import {
   CENTER_OFFSET_LIMIT,
@@ -313,6 +314,12 @@ export class SettingsDialog implements OnInit {
   /**
    * Persist Settings after model change
    */
+  /** Whether the server can supply the own-vessel trail (Track API v2, or
+   * the v1 fallback). */
+  protected get serverTrailAvailable(): boolean {
+    return serverTrailAvailable(this.app.trackSource());
+  }
+
   persistModel(value?: string) {
     this.facade.applySettings();
     this.facade.emitChangeEvent(value);

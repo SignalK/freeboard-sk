@@ -118,6 +118,13 @@ import {
   WaypointPanel
 } from './modules/skresources';
 import { SymbolService, setSymbolRegistry } from './modules/icons';
+import {
+  trackApiNoticeMessage,
+  TrackSource
+} from './modules/skstream/track-source';
+
+/** Per-device dismissal of the v1 track-interface notice. */
+const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
 
 @Component({
   selector: 'app-root',
@@ -225,6 +232,7 @@ export class AppComponent {
   public mode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME; // current mode
 
   private timers = [];
+  private trackApiNoticeShown = false; // this session
 
   // external resources
   protected instUrl = signal<SafeResourceUrl | null>(null);
@@ -406,6 +414,12 @@ export class AppComponent {
     // ** TRAIL$ update event
     this.obsList.push(
       this.stream.trail$().subscribe((msg) => this.handleTrailUpdate(msg))
+    );
+    // ** TRACKSOURCE$ - recorded-track source detected on (re)connect
+    this.obsList.push(
+      this.stream
+        .trackSource$()
+        .subscribe((source) => this.handleTrackSource(source))
     );
 
     // ** SETTINGS.CHANGE$ - handle settings.change$ event
@@ -934,7 +948,7 @@ export class AppComponent {
     if (!trailData || trailData.length === 0) {
       // no server trail data supplied
       if (this.app.selfTrail().length % 60 === 0 && this.app.data.serverTrail) {
-        if (this.app.config.vessels.trailFromServer) {
+        if (this.app.serverTrailWanted()) {
           this.stream.requestTrailFromServer(); // request trail from server
         }
       }
@@ -954,6 +968,49 @@ export class AppComponent {
     this.app.db.saveTrail(trailId, this.app.selfTrail());
   }
 
+  /** stream.trackSource$ handler: the server's recorded-track source is known
+   * (on every (re)connect), so the trail can now be fetched from it. */
+  private handleTrackSource(source: TrackSource) {
+    this.app.debug('Track source:', source);
+    if (this.app.config.vessels.trail && this.app.serverTrailWanted()) {
+      this.stream.requestTrailFromServer();
+    }
+    this.showTrackApiNotice(source);
+  }
+
+  /** While tracks come from the v1 fallback, say once per session that the
+   * interface is going away, until the user ticks "Don't show this message
+   * again" (remembered on this device). */
+  private showTrackApiNotice(source: TrackSource) {
+    if (source.api !== 'v1' || this.trackApiNoticeShown) {
+      return;
+    }
+    try {
+      if (localStorage.getItem(TRACK_API_NOTICE_KEY)) {
+        return;
+      }
+    } catch {
+      // storage unavailable — show the notice
+    }
+    this.trackApiNoticeShown = true;
+    this.app
+      .showAlert(
+        'Vessel Tracks',
+        trackApiNoticeMessage(source),
+        'OK',
+        "Don't show this message again"
+      )
+      .subscribe((r: { checked?: boolean }) => {
+        if (r?.checked) {
+          try {
+            localStorage.setItem(TRACK_API_NOTICE_KEY, '1');
+          } catch {
+            // storage unavailable — the notice shows again next start
+          }
+        }
+      });
+  }
+
   // ** stream.trail$ event handler (vessel trail from server) **
   private handleTrailUpdate(e: {
     action: string;
@@ -961,7 +1018,7 @@ export class AppComponent {
     data: MultiLineString;
   }) {
     if (e.action === 'get' && e.mode === 'trail') {
-      if (this.app.config.vessels.trailFromServer) {
+      if (this.app.serverTrailWanted()) {
         this.app.selfTrailFromServer.update(() => {
           return e.data;
         });
@@ -1027,10 +1084,10 @@ export class AppComponent {
     }
 
     // ** trail **
-    if (e?.includes('vesselTrail') || e?.includes('trailFromServer')) {
+    if (e?.includes('vesselTrail') || e?.includes('trailSource')) {
       if (this.app.config.vessels.trail) {
         // show trail
-        if (this.app.config.vessels.trailFromServer) {
+        if (this.app.serverTrailWanted()) {
           this.stream.requestTrailFromServer();
         } else {
           this.app.data.serverTrail = false;
@@ -1506,7 +1563,7 @@ export class AppComponent {
       if (!this.app.data.serverTrail) {
         this.app.selfTrail.set([]);
       } else {
-        if (this.app.config.vessels.trailFromServer) {
+        if (this.app.serverTrailWanted()) {
           this.stream.requestTrailFromServer(); // request trail from server
         }
       }
@@ -2145,9 +2202,6 @@ export class AppComponent {
           cmd: 'vessel',
           options: { context: 'self', name: r['name'] }
         });
-        if (this.app.config.vessels.trailFromServer) {
-          this.stream.requestTrailFromServer(); // request trail from server
-        }
         // query anchor alarm status
         this.anchor.queryAnchorStatus(
           undefined,

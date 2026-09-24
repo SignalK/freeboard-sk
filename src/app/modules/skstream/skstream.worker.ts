@@ -19,12 +19,28 @@ import {
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
-import { IAppConfig, PathValue } from 'src/app/types';
+import { IAppConfig, PathValue, Position } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
   ORIENTATION_SOURCE_PATHS,
   resolveOrientation
 } from './orientation';
+import {
+  AIS_TRACK_BBOX_PAD,
+  aisTracksQuery,
+  createRequestGate,
+  detectTrackSource,
+  needsAisRefetch,
+  padExtent,
+  NO_TRACK_SOURCE,
+  parseAisTracks,
+  parseSelfTrail,
+  TrackSource,
+  trackSourceUrls,
+  tracksApiUrl,
+  trailBands,
+  trailBandUrl
+} from './track-source';
 
 interface AisStatus {
   updated: { [key: string]: boolean };
@@ -65,7 +81,9 @@ interface MsgFromApp {
     | 'alarm'
     | 'vessel'
     | 'auth'
-    | 'trail';
+    | 'trail'
+    | 'view'
+    | 'trackSelection';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options: { [key: string]: any };
 }
@@ -101,7 +119,26 @@ let timers = [];
 let updateReceived = false;
 
 let apiUrl: string; // path to Signal K api
-let hasTrackPlugin = false;
+
+// ** recorded tracks (#820) **
+// where recorded tracks come from; re-detected on every (re)connect
+let trackSource: TrackSource = NO_TRACK_SOURCE;
+let trackSourceReady: Promise<TrackSource> = Promise.resolve(NO_TRACK_SOURCE);
+// map viewport (lon/lat extent) + zoom, posted by the app on move-end
+let aisView: { extent: Extent; zoom: number } | null = null;
+// the view box (padded viewport) and zoom of the last AIS tracks request
+let aisFetched: { extent: number[]; zoom: number } | null = null;
+// AIS targets picked with the per-vessel TRACK toggle (session-only)
+let aisTrackPicks: string[] = [];
+let aisShowTrack = false;
+let aisTrackTimer: ReturnType<typeof setTimeout>;
+const AIS_TRACK_DEBOUNCE = 1000;
+// AIS targets whose track came from the v2 Track API: their track is not cut
+// back to the short client-side tail between polls
+const serverTracked = new Set<string>();
+// AIS track requests overlap (poll, move-end, picks); only the latest applies
+const aisTracksGate = createRequestGate();
+const SERVER_TRACK_TAIL_CAP = 5000;
 
 // ** AIS target management **
 const targetFilter: AisFilter = { signalk: {}, aisState: [] };
@@ -162,6 +199,8 @@ export function initVessels() {
   };
   // flag to indicate at least one position data message received
   vessels.self.positionReceived = false;
+  serverTracked.clear();
+  aisTracksGate.invalidate();
 
   initAisTargetStatus();
 }
@@ -193,6 +232,7 @@ export function handleStreamEvent({ action, msg }) {
         playback: playbackMode,
         result: msg.target.readyState
       });
+      refreshTrackSource();
       watchDog.msgCount = 0;
       watchDog.intervalCount = 0;
       watchDog.alarm = false;
@@ -324,7 +364,21 @@ function handleCommand(data: MsgFromApp) {
             data.options.trailResolution.beyond24 ?? '5m';
         }
       }
-      getVesselTrail(trailMgr);
+      requestVesselTrail();
+      break;
+    //** { cmd: 'view', options: {extent: Extent, zoom: number} }
+    case 'view':
+      if (data.options?.extent) {
+        aisView = { extent: data.options.extent, zoom: data.options.zoom };
+        if (needsAisRefetch(aisFetched, aisView)) {
+          scheduleAisTracks();
+        }
+      }
+      break;
+    //** { cmd: 'trackSelection', options: {ids: string[]} }
+    case 'trackSelection':
+      aisTrackPicks = Array.isArray(data.options?.ids) ? data.options.ids : [];
+      scheduleAisTracks();
       break;
   }
 }
@@ -365,6 +419,10 @@ function applySettings(opt: WorkerSettings = {}) {
     }
 
     vesselPrefs = opt.config.vessels;
+    if (opt.config.vessels.aisShowTrack !== aisShowTrack) {
+      aisShowTrack = opt.config.vessels.aisShowTrack;
+      scheduleAisTracks();
+    }
 
     //console.log('Worker: AIS Filter...', targetFilter);
   }
@@ -395,6 +453,190 @@ export function apiGet(url: string): Promise<unknown> {
   return fetch(url).then((r: Response) => r.json());
 }
 
+// ******** recorded tracks (#820) ********
+
+/** fetch for the Track API and its detection probes. Sends the session token
+ * when there is one, as the app's own HTTP client does, so a secured server
+ * without read-only access still answers; same-origin cookies cover the rest. */
+export function trackFetch(url: string): Promise<Response> {
+  return fetch(
+    url,
+    skToken ? { headers: { Authorization: `Bearer ${skToken}` } } : undefined
+  );
+}
+
+/** GET a Track API url, rejecting on a non-2xx answer. */
+function trackApiGet(url: string): Promise<unknown> {
+  return trackFetch(url).then((r) => {
+    if (!r.ok) {
+      throw new Error(`${r.status}`);
+    }
+    return r.json();
+  });
+}
+
+/** (Re)detect where recorded tracks come from and tell the app. Runs on every
+ * stream (re)connect, so a track plugin started after Freeboard connected is
+ * picked up on the next reconnect rather than never. */
+function refreshTrackSource() {
+  if (!apiUrl) {
+    return;
+  }
+  trackSourceReady = detectTrackSource(trackFetch, trackSourceUrls(apiUrl))
+    .catch(() => NO_TRACK_SOURCE)
+    .then((source) => {
+      trackSource = source;
+      postMessage({
+        action: 'trackSource',
+        playback: playbackMode,
+        result: source
+      });
+      pollAisTracks();
+      return source;
+    });
+}
+
+/** Fetch the own-vessel trail from whichever interface the server offers.
+ * With none, answer with an empty result so the app falls back to its local
+ * trail. */
+function requestVesselTrail() {
+  trackSourceReady.then((source) => {
+    if (source.api === 'v2') {
+      getVesselTrailV2(trailMgr, source.provider);
+    } else if (source.api === 'v1' && source.v1SelfTrack) {
+      getVesselTrail(trailMgr);
+    } else {
+      const msg = new TrailMessage();
+      msg.playback = playbackMode;
+      msg.result = null;
+      postMessage(msg);
+    }
+  });
+}
+
+/** Fetch the own-vessel trail from the v2 Track API: the same three bands as
+ * v1, as absolute from/to, from the default provider only. */
+function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
+  const url = tracksApiUrl(apiUrl);
+  const bands = trailBands(opt.trailDuration, opt.trailResolution, Date.now());
+  const msg = new TrailMessage();
+  msg.playback = playbackMode;
+  Promise.all(
+    bands.map((b) =>
+      trackApiGet(trailBandUrl(url, b, provider)).then(
+        (fc) => parseSelfTrail(fc) ?? null
+      )
+    )
+  )
+    .then((lines) => {
+      msg.result = assembleTrail(lines);
+      postMessage(msg);
+    })
+    .catch(() => {
+      msg.result = null;
+      postMessage(msg);
+    });
+}
+
+/** Re-query AIS tracks shortly after the view or the picks settle, so a flurry
+ * of pans collapses into one request. */
+function scheduleAisTracks() {
+  // the view, picks or Show Track changed: anything in flight is for the old one
+  aisTracksGate.invalidate();
+  clearTimeout(aisTrackTimer);
+  aisTrackTimer = setTimeout(() => {
+    if (trackSource.api === 'v2') {
+      pollAisTracks();
+    }
+  }, AIS_TRACK_DEBOUNCE);
+}
+
+/** Fetch AIS tracks from the detected source (never during playback: the
+ * tracks would be of now, not of the playback time). */
+function pollAisTracks() {
+  if (playbackMode || !vessels) {
+    return;
+  }
+  if (trackSource.api === 'v2') {
+    getAISTracksV2(trackSource.provider);
+  } else if (trackSource.api === 'v1' && trackSource.v1AisTracks) {
+    getAISTracks();
+  }
+}
+
+/** AIS tracks from the v2 Track API. "Show Track" on: every track in the map
+ * viewport (intersected with the AIS max radius, when one is set). Off: only
+ * the vessels picked with the per-vessel TRACK toggle. Nothing is fetched
+ * below the zoom at which the track layer draws. */
+function getAISTracksV2(provider?: string) {
+  const view = aisView && {
+    extent: padExtent(aisView.extent, AIS_TRACK_BBOX_PAD),
+    zoom: aisView.zoom
+  };
+  aisFetched = view;
+  const query = aisTracksQuery({
+    view,
+    showAll: aisShowTrack,
+    picks: aisTrackPicks,
+    targets: vessels.aisTargets,
+    radiusBox:
+      targetFilter.signalk.maxRadius && vessels.self.positionReceived
+        ? GeoUtils.calcMapifiedExtent(
+            vessels.self.position,
+            targetFilter.signalk.maxRadius
+          )
+        : undefined,
+    provider
+  });
+  if (!query) {
+    // nothing to fetch now (e.g. the last pick removed): drop any in flight
+    aisTracksGate.invalidate();
+    return;
+  }
+  const token = aisTracksGate.begin();
+  trackApiGet(`${tracksApiUrl(apiUrl)}?${query}`)
+    .then((fc) => {
+      // a later request (or a new stream / playback) supersedes this one
+      if (aisTracksGate.isCurrent(token) && !playbackMode) {
+        applyServerAisTracks(vessels.aisTargets, parseAisTracks(fc, provider));
+      }
+    })
+    .catch(() => {
+      //console.warn('Unable to fetch AIS tracks!');
+    });
+}
+
+/** Apply AIS tracks from a v2 response to the held targets. The set of
+ * server-tracked targets is rebuilt from each response, and a target that
+ * drops out of it is cut back to the short client tail straight away. A
+ * target that has not reported a position yet is skipped: appendTrack()
+ * extends the track with the current position. */
+export function applyServerAisTracks(
+  targets: Map<string, SKVessel>,
+  tracks: Map<string, Position[][]>
+) {
+  const previous = [...serverTracked];
+  serverTracked.clear();
+  tracks.forEach((lines, context) => {
+    const v = targets.get(context);
+    const track = lines.filter((l) => Array.isArray(l) && l.length > 0);
+    if (v?.positionReceived && v.position && track.length > 0) {
+      v.track = track;
+      serverTracked.add(context);
+      appendTrack(v);
+    }
+  });
+  previous
+    .filter((context) => !serverTracked.has(context))
+    .forEach((context) => {
+      const v = targets.get(context);
+      const last = v?.track?.[v.track.length - 1];
+      if (last) {
+        v.track = [last.slice(0 - aisMgr.maxTrack)];
+      }
+    });
+}
+
 // fetch other vessel tracks
 function getAISTracks() {
   const filter: string =
@@ -403,7 +645,6 @@ function getAISTracks() {
       : `?radius=10000`; // default radius if none supplied
   apiGet(apiUrl + '/tracks' + filter)
     .then((r) => {
-      hasTrackPlugin = true;
       // update ais vessels track data
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Object.entries(r).forEach((t: any) => {
@@ -415,7 +656,6 @@ function getAISTracks() {
       });
     })
     .catch(() => {
-      hasTrackPlugin = false;
       //console.warn('Unable to fetch AIS tracks!');
     });
 }
@@ -425,8 +665,6 @@ function getVesselTrail(opt: VesselTrailConfig) {
   //console.info('Worker: Fetching vessel trail from server', opt);
   const url = apiUrl + '/self/track?';
   const req = [];
-  const tolerance = 0.0005; //0.0001
-  const highQuality = true;
   // set up fetch requests
   if (opt.trailDuration > 24) {
     // beyond last 24hrs
@@ -458,55 +696,63 @@ function getVesselTrail(opt: VesselTrailConfig) {
     apiGet(`${url}timespan=1h&resolution=${opt.trailResolution.lastHour}`)
   );
 
-  let trail = [];
   const msg = new TrailMessage();
   msg.playback = playbackMode;
 
   Promise.all(req)
     .then((res) => {
-      let idx = 0;
-      const lastIdx = req.length - 1;
-      const segLen = 60; // max line segment length (OL rendering treatment)
-
-      res.forEach((r) => {
-        if (r.type && r.type === 'MultiLineString') {
-          if (r.coordinates && Array.isArray(r.coordinates)) {
-            if (idx !== lastIdx) {
-              // > 1hr simplify trail
-              let coords = [];
-              r.coordinates.forEach((line) => {
-                coords = coords.concat(line);
-              });
-              coords = SimplifyAP(coords, tolerance, highQuality);
-              // break up into segments for OL rendering
-              while (coords.length > segLen) {
-                const ls = coords.slice(0, segLen);
-                trail.push(ls);
-                coords = coords.slice(segLen - 1); // ensure segments join
-                // offset first point so OL renders
-                coords[0] = [
-                  coords[0][0] + 0.000000005,
-                  coords[0][1] + 0.000000005
-                ];
-              }
-              if (coords.length !== 0) {
-                trail.push(coords);
-              }
-            } else {
-              // last Hour
-              trail = trail.concat(r.coordinates);
-            }
-          }
-        }
-        idx++;
-      });
-      msg.result = trail;
+      msg.result = assembleTrail(
+        res.map((r) =>
+          r?.type === 'MultiLineString' && Array.isArray(r.coordinates)
+            ? r.coordinates
+            : null
+        )
+      );
       postMessage(msg);
     })
     .catch(() => {
       msg.result = null;
       postMessage(msg);
     });
+}
+
+/** Join trail bands (oldest first, the LAST one being the last hour) into one
+ * trail. Older bands are simplified and cut into segments for OL rendering;
+ * the last hour is kept as received. A null band contributes nothing. */
+function assembleTrail(bands: Array<Position[][] | null>) {
+  const tolerance = 0.0005; //0.0001
+  const highQuality = true;
+  const segLen = 60; // max line segment length (OL rendering treatment)
+  const lastIdx = bands.length - 1;
+  let trail = [];
+  bands.forEach((lines, idx) => {
+    if (!lines) {
+      return;
+    }
+    if (idx !== lastIdx) {
+      // > 1hr simplify trail
+      let coords = [];
+      lines.forEach((line) => {
+        coords = coords.concat(line);
+      });
+      coords = SimplifyAP(coords, tolerance, highQuality);
+      // break up into segments for OL rendering
+      while (coords.length > segLen) {
+        const ls = coords.slice(0, segLen);
+        trail.push(ls);
+        coords = coords.slice(segLen - 1); // ensure segments join
+        // offset first point so OL renders
+        coords[0] = [coords[0][0] + 0.000000005, coords[0][1] + 0.000000005];
+      }
+      if (coords.length !== 0) {
+        trail.push(coords);
+      }
+    } else {
+      // last Hour
+      trail = trail.concat(lines);
+    }
+  });
+  return trail;
 }
 
 function openStream(opt) {
@@ -560,7 +806,6 @@ function openStream(opt) {
     stream.open(url, opt.playbackOptions.subscribe, opt.token);
   } else {
     stream.open(opt.url, opt.subscribe, opt.token);
-    getAISTracks();
   }
 }
 
@@ -783,14 +1028,7 @@ function startTimers() {
       }, msgInterval)
     );
   }
-  timers.push(
-    setInterval(() => {
-      //console.warn('hasTrackPlugin', hasTrackPlugin);
-      if (hasTrackPlugin) {
-        getAISTracks();
-      }
-    }, 60000)
-  );
+  timers.push(setInterval(() => pollAisTracks(), 60000));
 }
 
 // ** clear message timers
@@ -1288,6 +1526,6 @@ function appendTrack(d: SKAircraft | SKVessel) {
     }
   }
   d.track[d.track.length - 1] = d.track[d.track.length - 1].slice(
-    0 - aisMgr.maxTrack
+    0 - (serverTracked.has(d.id) ? SERVER_TRACK_TAIL_CAP : aisMgr.maxTrack)
   );
 }

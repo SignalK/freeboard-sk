@@ -15,6 +15,7 @@ import {
   IAppConfig,
   SKPosition
 } from 'src/app/types';
+import { TrackSource } from './track-source';
 
 export enum SKSTREAM_MODE {
   REALTIME = 0,
@@ -59,6 +60,7 @@ export class SKStreamFacade {
     data: MultiLineString;
   }> = new Subject();
   private vesselsUpdate: Subject<void> = new Subject();
+  private onTrackSource: Subject<TrackSource> = new Subject();
   // **************** SIGNALS ***********************************
   private anchorSignal = signal<{
     maxRadius?: number;
@@ -137,6 +139,8 @@ export class SKStreamFacade {
         this.onError.next(msg);
       } else if (msg.action === 'trail') {
         this.parseSelfTrail(msg as TrailMessage);
+      } else if (msg.action === 'trackSource') {
+        this.setTrackSource(msg.result as TrackSource);
       } else {
         this.parseUpdateMessage(msg);
         this.watchDogAlarmSignal.update(() => msg.watchDogAlarm);
@@ -147,6 +151,10 @@ export class SKStreamFacade {
     setInterval(
       () => this.refreshSelfPositionStale(),
       SELF_POSITION_STALE_CHECK_INTERVAL
+    );
+
+    this.app.vesselTrackSelection$.subscribe((ids) =>
+      this.worker.postMessage({ cmd: 'trackSelection', options: { ids } })
     );
 
     // ** Handle app.config$ / settings.change$ events
@@ -176,6 +184,11 @@ export class SKStreamFacade {
     data: MultiLineString;
   }> {
     return this.onSelfTrail.asObservable();
+  }
+
+  /** Emits where recorded tracks come from, on each (re)connect. */
+  trackSource$(): Observable<TrackSource> {
+    return this.onTrackSource.asObservable();
   }
 
   // ** Data centric messages
@@ -323,6 +336,12 @@ export class SKStreamFacade {
     });
   }
 
+  /** Tell the worker the map viewport (lon/lat) and zoom, which scope the AIS
+   * tracks it fetches from the Track API. */
+  postMapView(extent: number[], zoom: number) {
+    this.worker.postMessage({ cmd: 'view', options: { extent, zoom } });
+  }
+
   /**
    * Refresh the aisLifecycle().updated list.
    */
@@ -334,6 +353,15 @@ export class SKStreamFacade {
     this.aisLifecycle.update((current) => {
       return Object.assign({}, current, { updated: av });
     });
+  }
+
+  // ** record the detected track source and emit trackSource$ **
+  private setTrackSource(source: TrackSource) {
+    this.app.trackSource.set(source);
+    this.app.featureFlags.update((current) =>
+      Object.assign({}, current, { tracksApi: source.api === 'v2' })
+    );
+    this.onTrackSource.next(source);
   }
 
   // ** process selfTrail message from worker and emit trail$ **

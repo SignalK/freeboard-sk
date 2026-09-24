@@ -10,6 +10,7 @@ import {
   SKVessel
 } from '../modules/skresources/resource-classes';
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
+import { TrailSource } from '../modules/skstream/track-source';
 import {
   ChartImageAdjustment,
   ChartTimeLoopOffsets
@@ -196,7 +197,7 @@ export interface IAppConfig {
     aisWindApparent: boolean;
     aisWindMinZoom: number;
     aisShowTrack: boolean;
-    trailFromServer: boolean;
+    trailSource: TrailSource; // own-vessel trail source: auto | server | local (this device)
     trailDuration: number; // number of hours of trail to fetch from server
     trailResolution: {
       // resolution of server trail at defined time horizons
@@ -300,8 +301,10 @@ export type LegacyAppConfig = Omit<
     speed: SpeedUnitDef | 'msec' | 'kmh'; // 'msec' -> 'm/s', 'kmh' -> 'km/h'
     distance: DistanceUnitDef | 'm' | 'ft'; // 'm' -> 'kilometer', 'ft' -> 'naut-mile'
   };
-  vessels: Omit<IAppConfig['vessels'], 'selfLines'> & {
+  vessels: Omit<IAppConfig['vessels'], 'selfLines' | 'trailSource'> & {
     selfLines?: IAppConfig['vessels']['selfLines']; // created from cogLine / headingLineSize
+    trailSource?: IAppConfig['vessels']['trailSource']; // created from trailFromServer
+    trailFromServer?: boolean; // -> trailSource (true -> 'server', false -> 'auto')
     cogLine?: number; // -> selfLines.cog.length
     headingLineSize?: number; // -> selfLines.heading.length
   };
