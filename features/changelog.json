@@ -88,5 +88,6 @@
   { "feature": "chart-sources", "pr": 813, "kind": "enhanced", "since": "v3.2.0-beta.3", "date": "2026-09-22", "title": "fix(charts): accept a WMS/WMTS GetCapabilities link as the source URL" },
   { "feature": "temporal-charts", "pr": 799, "kind": "enhanced", "since": "v3.2.0-beta.3", "date": "2026-09-21", "title": "feat(charts): temporal chart follows the newest frame on auto-refresh" },
   { "feature": "temporal-charts", "pr": 807, "kind": "enhanced", "since": "v3.2.0-beta.3", "date": "2026-09-21", "title": "feat(charts): re-read the time dimension from the service for user-added temporal charts" },
-  { "feature": null, "pr": 818, "kind": "skip", "reason": "implements the resourceGroups capability of the Plotter Extensions API for extension plugins; the user-facing Resource Groups list behaves as before" }
+  { "feature": null, "pr": 818, "kind": "skip", "reason": "implements the resourceGroups capability of the Plotter Extensions API for extension plugins; the user-facing Resource Groups list behaves as before" },
+  { "feature": "vessel-tracks", "kind": "enhanced", "date": "2026-09-24", "title": "feat(tracks): source the own-vessel trail and AIS tracks from the v2 Track API" }
 ]

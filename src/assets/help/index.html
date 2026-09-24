@@ -996,9 +996,10 @@
                   Check the <b>Include trail from server</b> if you want to
                   include trail data stored on the server.<br />
                   <i>
-                    Recommended if you have the
-                    <b>Get Trail from server</b> option checked in
-                    <b>Settings</b>.
+                    Recommended when the vessel trail comes from the server (<b
+                      >Track source</b
+                    >
+                    in <b>Settings</b>).
                   </i>
                 </li>
                 <li>
@@ -1399,8 +1400,11 @@
               Additionally, the locally stored vessel trail can be saved as a
               GPX track.<br />
               <i
-                >Note: this option is only available when
-                <b>Get Trail from Server</b> setting is not selected.</i
+                >Note: this option is only available when the vessel trail is
+                kept on this device, not fetched from the server (<b
+                  >Track source</b
+                >
+                in <b>Settings</b>).</i
               ><br />
               <ul>
                 <li>
@@ -2561,22 +2565,37 @@
               the selected time and the vessel's current SOG.
             </li>
             <li>
-              <b>Display Vessel Trail</b>: Check this box if you want to display
-              the vessel trail.<br />
-              By default Freeboard will display the vessel trail using a local
-              cache maintaining up to 5000 points at a 5 second interval.
+              <b>Display Vessel Track</b>: Check this box to display the vessel
+              trail (on by default). See the Feature Browser &rarr;
+              <i>Vessel Tracks</i> for how the trail is shown.
               <ul>
                 <li>
-                  <b>Get Trail from Server</b>: Check this to retrieve vessel
-                  trail data from the server at the path
-                  <i>signalk/v1/api/self/track</i>.<br />
+                  <b>Track source</b>: where the trail comes from.
+                  <ul>
+                    <li>
+                      <i>Auto</i> (default): the server's recorded track when
+                      the server can supply one, otherwise a local cache on this
+                      device.
+                    </li>
+                    <li>
+                      <i>Server</i>: the track recorded by the server's Track
+                      API (<i>signalk/v2/api/tracks</i>, Signal K server 2.33 or
+                      later with a track provider). Unavailable when the server
+                      has no track source.
+                    </li>
+                    <li>
+                      <i>This device</i>: a local cache maintaining up to 5000
+                      points at a 5 second interval, recorded while Freeboard is
+                      open.
+                    </li>
+                  </ul>
                 </li>
                 <li>
                   Use the slider to set the <b>length</b> of track to retrieve
                   from the server in hours. Time is relative to the current
                   time.<br />
 
-                  The <b>Resolution</b> settings define the number of track
+                  The <b>Resolution</b> settings define the spacing of track
                   points returned by the server for the following time windows:
                   <ul>
                     <li>Last hour (default = 5 secs)</li>
@@ -2588,8 +2607,8 @@
                     transferred from the server which may impact performance. </span
                   ><br />
                   Trail data received from the server undergoes temporal
-                  simplification to minimise the data used to display the trail
-                  whilst maintianing integrity.
+                  simplification to minimize the data used to display the trail
+                  while maintaining integrity.
                 </li>
               </ul>
             </li>
@@ -2618,9 +2637,8 @@
               <i>(Default=15)</i>
             </li>
             <li>
-              <b>Show Trails</b>: Select to display trails of other vessels on
-              map. Note: length of trail is limited in length to approx 1hr of
-              data.
+              <b>Show Track</b>: Select to display the tracks of other vessels
+              in the map view. Note: tracks cover approx the last hour.
             </li>
             <li>
               <b>Hide Moored</b>: Select to hide vessels with a state of
