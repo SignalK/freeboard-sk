@@ -33,6 +33,7 @@ import { TargetAngleComponent } from './lib/navigation/layer-target-angle.compon
 import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
+import { TrackHistoryLayerComponent } from './lib/vessel/layer-track-history.component';
 import { FBFeatureLayerComponent } from './lib/sk-feature.component';
 import { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
 import { AISFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
@@ -90,6 +91,10 @@ export { TargetAngleComponent } from './lib/navigation/layer-target-angle.compon
 export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
+export {
+  TrackHistoryLayerComponent,
+  TRACK_HISTORY_ID
+} from './lib/vessel/layer-track-history.component';
 export { FBFeatureLayerComponent } from './lib/sk-feature.component';
 export { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
 export { AISFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
@@ -141,6 +146,7 @@ const declarations = [
   TargetAngleComponent,
   VesselComponent,
   VesselTrailComponent,
+  TrackHistoryLayerComponent,
   DirectionOfTravelComponent,
   FBFeatureLayerComponent,
   RacingStartLineLayerComponent,

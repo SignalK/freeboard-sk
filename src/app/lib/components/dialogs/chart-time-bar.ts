@@ -103,6 +103,9 @@ export function moveLoopHandle(
  * Home/End). The playhead is free to leave the loop — the loop only says where playback
  * cycles. Positions are whatever the parent's axis uses (ms, or frame index);
  * `label` renders one for the tooltips.
+ *
+ * With a null `position` it is a plain range bar (track history's from/to):
+ * no playhead, and a press anywhere on the bar moves the nearer range handle.
  */
 @Component({
   selector: 'ap-chart-time-bar',
@@ -111,7 +114,9 @@ export function moveLoopHandle(
     <div
       class="bar"
       role="group"
-      aria-label="Time scrub and loop bar"
+      [attr.aria-label]="
+        hasHead() ? 'Time scrub and loop bar' : 'Time range bar'
+      "
       (pointerdown)="onPointerDown($event)"
       (pointermove)="onPointerMove($event)"
       (pointerup)="onPointerUp($event)"
@@ -127,14 +132,14 @@ export function moveLoopHandle(
         <div
           class="edge"
           [style.left.%]="loopPct().min"
-          [title]="'Loop start: ' + label()(loop().min)"
+          [title]="names().start + ': ' + label()(loop().min)"
         >
           <div
             class="knob"
             role="slider"
             tabindex="0"
             data-handle="start"
-            aria-label="Loop start"
+            [attr.aria-label]="names().start"
             [attr.aria-valuemin]="min()"
             [attr.aria-valuemax]="max()"
             [attr.aria-valuenow]="loop().min"
@@ -145,14 +150,14 @@ export function moveLoopHandle(
         <div
           class="edge"
           [style.left.%]="loopPct().max"
-          [title]="'Loop end: ' + label()(loop().max)"
+          [title]="names().end + ': ' + label()(loop().max)"
         >
           <div
             class="knob"
             role="slider"
             tabindex="0"
             data-handle="end"
-            aria-label="Loop end"
+            [attr.aria-label]="names().end"
             [attr.aria-valuemin]="min()"
             [attr.aria-valuemax]="max()"
             [attr.aria-valuenow]="loop().max"
@@ -160,24 +165,26 @@ export function moveLoopHandle(
             (keydown)="onKeyDown($event, 'end')"
           ></div>
         </div>
-        <div
-          class="head"
-          [style.left.%]="headPct()"
-          [title]="label()(position())"
-        >
+        @if (hasHead()) {
           <div
-            class="knob"
-            role="slider"
-            tabindex="0"
-            data-handle="head"
-            aria-label="Instant shown"
-            [attr.aria-valuemin]="min()"
-            [attr.aria-valuemax]="max()"
-            [attr.aria-valuenow]="position()"
-            [attr.aria-valuetext]="label()(position())"
-            (keydown)="onKeyDown($event, 'head')"
-          ></div>
-        </div>
+            class="head"
+            [style.left.%]="headPct()"
+            [title]="label()(position())"
+          >
+            <div
+              class="knob"
+              role="slider"
+              tabindex="0"
+              data-handle="head"
+              aria-label="Instant shown"
+              [attr.aria-valuemin]="min()"
+              [attr.aria-valuemax]="max()"
+              [attr.aria-valuenow]="position()"
+              [attr.aria-valuetext]="label()(position())"
+              (keydown)="onKeyDown($event, 'head')"
+            ></div>
+          </div>
+        }
       </div>
     </div>
   `,
@@ -275,12 +282,19 @@ export class ChartTimeBar {
   min = input.required<number>();
   max = input.required<number>();
   step = input.required<number>();
-  /** Playhead position on the axis. */
-  position = input.required<number>();
+  /** Playhead position on the axis; null for a range-only bar, where the
+   * whole bar works the two range handles. */
+  position = input.required<number | null>();
   /** Loop bounds on the axis. */
   loop = input.required<ChartTimeLoop>();
   /** Label for a position, for the handle tooltips. */
   label = input<(position: number) => string>(() => '');
+  /** What the two range handles are called, in tooltips and to assistive
+   * technology. */
+  names = input<{ start: string; end: string }>({
+    start: 'Loop start',
+    end: 'Loop end'
+  });
 
   positionChange = output<number>();
   loopChange = output<ChartTimeLoop>();
@@ -288,7 +302,8 @@ export class ChartTimeBar {
   private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private dragging: BarHandle | null = null;
 
-  protected headPct = computed(() => this.pct(this.position()));
+  protected hasHead = computed(() => this.position() !== null);
+  protected headPct = computed(() => this.pct(this.position() ?? this.min()));
   protected loopPct = computed(() => ({
     min: this.pct(this.loop().min),
     max: this.pct(this.loop().max)
@@ -319,7 +334,7 @@ export class ChartTimeBar {
     }
     const bar = e.currentTarget as HTMLElement;
     const laneY = e.clientY - bar.getBoundingClientRect().top;
-    if (laneY < HEAD_LANE_PX) {
+    if (this.hasHead() && laneY < HEAD_LANE_PX) {
       this.dragging = 'head';
     } else {
       // The nearer loop handle takes the gesture.

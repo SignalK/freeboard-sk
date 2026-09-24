@@ -90,7 +90,7 @@ describe('track-source trailBands', () => {
     expect(url).toBe(
       'http://h/signalk/v2/api/tracks?context=self' +
         '&from=2026-09-24T11%3A00%3A00.000Z&to=2026-09-24T12%3A00%3A00.000Z' +
-        '&resolution=PT5S&provider=tracks'
+        '&resolution=PT5S&times=true&provider=tracks'
     );
     expect(url).not.toContain('bbox');
   });
@@ -450,8 +450,9 @@ describe('track-source aisTracksQuery', () => {
       )
     ).toEqual({
       bbox: '-81,24,-80,25',
-      duration: 'PT1H',
+      duration: 'PT2H',
       maxPoints: '120',
+      times: 'true',
       provider: 'tracks'
     });
   });
@@ -476,7 +477,28 @@ describe('track-source aisTracksQuery', () => {
     });
     expect(params(q).contexts).toBe('vessels.a');
     expect(params(q).bbox).toBeUndefined();
-    expect(params(q).duration).toBe('PT1H');
+    expect(params(q).duration).toBe('PT12H');
+    expect(params(q).maxPoints).toBe('1000');
+    expect(params(q).times).toBe('true');
+  });
+
+  it('fetches picked vessels over the picked-track length, at any zoom', () => {
+    const q = aisTracksQuery({
+      view: { ...view, zoom: 5 },
+      showAll: false,
+      picks: ['vessels.a'],
+      targets,
+      pickHours: 6
+    });
+    expect(params(q).duration).toBe('PT6H');
+    expect(
+      aisTracksQuery({
+        view: null,
+        showAll: false,
+        picks: ['vessels.a'],
+        targets
+      })
+    ).not.toBeNull();
   });
 
   it('fetches nothing with Show Track off and nothing picked', () => {
@@ -485,7 +507,7 @@ describe('track-source aisTracksQuery', () => {
     ).toBeNull();
   });
 
-  it('fetches nothing below the track layer minimum zoom', () => {
+  it('Show Track fetches nothing below the track layer minimum zoom', () => {
     expect(
       aisTracksQuery({
         view: { ...view, zoom: 9.9 },

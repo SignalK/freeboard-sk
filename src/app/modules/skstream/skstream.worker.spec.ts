@@ -4,7 +4,8 @@ import {
   applyServerAisTracks,
   handleStreamEvent,
   initVessels,
-  processVessel
+  processVessel,
+  timedTrail
 } from './skstream.worker';
 import { SKVessel } from '../skresources/resource-classes';
 
@@ -284,5 +285,89 @@ describe('skstream.worker applyServerAisTracks — v2 AIS tracks (#820)', () => 
     });
 
     expect(v.track[v.track.length - 1]).toHaveLength(20);
+  });
+});
+
+describe('skstream.worker timedTrail — trail recording times (#821)', () => {
+  const band = (coords: number[][][], coordTimes?: string[][]) => ({
+    features: [
+      {
+        geometry: { type: 'MultiLineString', coordinates: coords },
+        properties: { providerId: 'tracks', isSelf: true, coordTimes }
+      }
+    ]
+  });
+
+  it('joins the bands as recorded, each point with its time', () => {
+    const t = timedTrail(
+      [
+        band(
+          [
+            [
+              [1, 1],
+              [2, 2]
+            ]
+          ],
+          [['2026-09-23T00:00:00Z', '2026-09-23T01:00:00Z']]
+        ),
+        null,
+        band([[[3, 3]]], [['2026-09-24T00:00:00Z']])
+      ],
+      'tracks'
+    );
+    expect(t.lines).toEqual([
+      [
+        [1, 1],
+        [2, 2]
+      ],
+      [[3, 3]]
+    ]);
+    expect(t.times).toEqual([
+      ['2026-09-23T00:00:00Z', '2026-09-23T01:00:00Z'],
+      ['2026-09-24T00:00:00Z']
+    ]);
+  });
+
+  it('joins bands that follow on in time into one stretch, but not across a gap', () => {
+    const t = timedTrail([
+      band(
+        [
+          [
+            [1, 1],
+            [2, 2]
+          ]
+        ],
+        [['2026-09-23T00:00:00Z', '2026-09-23T01:00:00Z']]
+      ),
+      band(
+        [[[3, 3]], [[4, 4]]],
+        [['2026-09-23T01:00:05Z'], ['2026-09-23T05:00:00Z']]
+      ),
+      band([[[5, 5]]], [['2026-09-23T09:00:00Z']])
+    ]);
+    expect(t.lines).toEqual([
+      [
+        [1, 1],
+        [2, 2],
+        [3, 3]
+      ],
+      [[4, 4]],
+      [[5, 5]]
+    ]);
+    expect(t.times[0]).toEqual([
+      '2026-09-23T00:00:00Z',
+      '2026-09-23T01:00:00Z',
+      '2026-09-23T01:00:05Z'
+    ]);
+  });
+
+  it('has no times when a band came back without them', () => {
+    expect(
+      timedTrail([
+        band([[[1, 1]]], [['2026-09-23T00:00:00Z']]),
+        band([[[3, 3]]])
+      ])
+    ).toBeUndefined();
+    expect(timedTrail([null, null])).toBeUndefined();
   });
 });

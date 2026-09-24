@@ -147,6 +147,14 @@ import {
   TidalCurrentsService,
   GridSample
 } from './ol/lib/tidal-currents.service';
+import { TRACK_HISTORY_ID } from './ol/lib/vessel/layer-track-history.component';
+import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
+import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
+import {
+  durationLabel,
+  trackTimeInfo
+} from 'src/app/modules/skstream/track-history';
+import { chartTimeShortLabel } from 'src/app/lib/components/dialogs/chart-time-dialog';
 
 /** An entry in the feature-list popover built from the features at a click. */
 interface FeatureListEntry {
@@ -409,6 +417,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private infoPanel = inject(InfoPanelFacade);
   protected routeBuffers = inject(RouteBufferRegistry);
   private tidalCurrents = inject(TidalCurrentsService);
+  protected trackHistory = inject(TrackHistoryService);
+  // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
+  protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   private ngZone = inject(NgZone);
 
   constructor() {
@@ -721,6 +732,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const zoom = this.olMap?.getMap()?.getView().getZoom();
     if (typeof zoom === 'number') {
       this.skstream.postMapView(this.olMap.getMapExtent(), zoom);
+      this.trackHistory.setView(this.olMap.getMapExtent(), zoom);
     }
   }
 
@@ -731,6 +743,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     this.app.mapExtent.update(() => e.extent);
     this.skstream.postMapView(e.extent, e.zoom);
+    this.trackHistory.setView(e.extent, e.zoom);
     this.app.mapViewTopCenter.update(() => e.topCenter as Position);
     this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
     this.app.mapViewRotation.update(() => e.rotation);
@@ -1518,6 +1531,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Process pointer click in non-interaction mode */
   private processMapClick(e) {
     this.s57Features = {};
+    this.trackHistoryFeatures = {};
     const featureList: Map<string, FeatureListEntry> = new Map(); // features under pointer
     const chartBoundsFeatures: Map<string, FeatureListEntry> = new Map(); // chart bounds under pointer
     const fa = []; // features that can be the target of modify interaction
@@ -1684,6 +1698,54 @@ export class FBMapComponent implements OnInit, OnDestroy {
             aircraft = this.app.data.aircraft.get(id);
             text = aircraft ? aircraft.name || aircraft.mmsi : '';
             break;
+          case TRACK_HISTORY_ID:
+            addToFeatureList = true;
+            icon = {
+              name: 'history',
+              svgIcon: undefined
+            };
+            text = `Track history: ${this.trackHistory.label(feature.get('context'))}`;
+            this.trackHistoryFeatures[id] = {
+              context: feature.get('context'),
+              lines: [feature.get('line')],
+              times: feature.get('times') ? [feature.get('times')] : undefined,
+              at: e.lonlat
+            };
+            break;
+          case 'track-vessels': {
+            // an AIS track from the v2 Track API says when the vessel was there
+            const context = id.slice('track-'.length);
+            const timed = this.app.aisTracksTimed().get(context);
+            if (timed) {
+              addToFeatureList = true;
+              icon = { name: 'history', svgIcon: undefined };
+              text = `Vessel track: ${this.trackHistory.label(context)}`;
+              this.trackHistoryFeatures[id] = {
+                context,
+                lines: timed.lines,
+                times: timed.times,
+                at: e.lonlat
+              };
+            }
+            break;
+          }
+          case 'trail': {
+            // the server trail says when the vessel was where it was tapped;
+            // the local trail records no times
+            const timed = this.app.selfTrailTimed();
+            if (id === 'trail.self.server' && timed) {
+              addToFeatureList = true;
+              icon = { name: 'history', svgIcon: undefined };
+              text = 'Vessel trail';
+              this.trackHistoryFeatures[id] = {
+                context: 'self',
+                lines: timed.lines,
+                times: timed.times,
+                at: e.lonlat
+              };
+            }
+            break;
+          }
           case 'tidal':
             addToFeatureList = true;
             icon = {
@@ -1743,6 +1805,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private s57Features: Record<string, Record<string, string | number>> = {};
+  private trackHistoryFeatures: Record<
+    string,
+    { context: string; lines: Position[][]; times?: string[][]; at: Position }
+  > = {};
   private tidalFeatures: Record<
     string,
     Pick<GridSample, 'speedKn' | 'direction'>
@@ -1898,6 +1964,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.position = poData.aircraft.position;
         poData.show = true;
         break;
+      case 'trail':
+      case 'track-vessels':
+      case TRACK_HISTORY_ID: {
+        const hf = this.trackHistoryFeatures[id];
+        if (!hf) {
+          return;
+        }
+        const info = trackTimeInfo(hf.lines, hf.times, hf.at);
+        const label = (t: number) =>
+          chartTimeShortLabel(new Date(t).toISOString());
+        poData.id = id;
+        poData.type = TRACK_HISTORY_ID;
+        poData.position = coord;
+        poData.show = true;
+        poData.readOnly = true;
+        poData.trackHistory = {
+          name: this.trackHistory.label(hf.context),
+          start: info && label(info.start),
+          end: info && label(info.end),
+          duration: info && durationLabel(info.duration),
+          at: info?.atTime !== undefined ? label(info.atTime) : undefined
+        };
+        break;
+      }
       case 'tidal': {
         const tf = this.tidalFeatures[id];
         poData.id = id;

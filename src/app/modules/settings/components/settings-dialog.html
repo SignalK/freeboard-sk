@@ -1219,7 +1219,7 @@
                       (change)="persistModel()"
                       label="after"
                     >
-                      Show Track
+                      Show all tracks
                     </mat-checkbox>
                     &nbsp;
                     <mat-checkbox
@@ -1239,6 +1239,31 @@
                     </mat-checkbox>
                   </div>
                 </div>
+                <!-- per-vessel picks only apply while all tracks are off -->
+                @if (!facade.settings.vessels.aisShowTrack) {
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div
+                    class="setting-card-row-item"
+                    matTooltip="How far back the track of a vessel picked with its TRACK button reaches. Needs a Track API (v2) provider."
+                  >
+                    <mat-slider
+                      discrete
+                      tickInterval="1"
+                      min="1"
+                      max="96"
+                      [disabled]="!app.featureFlags().tracksApi"
+                    >
+                      <input
+                        matSliderThumb
+                        [(ngModel)]="facade.settings.vessels.aisTrackLength"
+                        (valueChange)="deferPersist()"
+                      />
+                    </mat-slider>
+                    Picked vessel track length
+                    ({{facade.settings.vessels.aisTrackLength}} hrs)
+                  </div>
+                </div>
+                }
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">

@@ -49,6 +49,13 @@ export interface IPopover {
   alarm?: AlertData;
   s57Feature?: Record<string, string | number>;
   tidal?: { speedLabel: string; directionLabel: string };
+  trackHistory?: {
+    name: string;
+    start?: string;
+    end?: string;
+    duration?: string;
+    at?: string;
+  };
   readOnly: boolean;
 }
 

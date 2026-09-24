@@ -192,7 +192,7 @@
             <span
               [matTooltip]="
                 app.config.vessels.aisShowTrack
-                  ? 'Turn off &quot;Show All&quot; to enable'
+                  ? 'Turn off &quot;Show all tracks&quot; to enable'
                   : trackShown
                     ? 'Hide vessel track'
                     : 'Show vessel track'
@@ -207,6 +207,31 @@
                 {{ trackShown ? 'UNTRACK' : 'TRACK' }}
               </button>
             </span>
+            @if (trackHistory.available()) { @let historyShown =
+            trackHistory.isShown(r[0]); @let noHistory =
+            trackHistory.hasHistory(r[0]) === false;
+            <span
+              [matTooltip]="
+                  historyShown
+                    ? 'Hide track history'
+                    : noHistory
+                      ? 'No recorded track history'
+                      : 'Show track history'
+                "
+            >
+              <button
+                mat-button
+                (click)="trackHistory.toggle(r[0])"
+                [disabled]="noHistory && !historyShown"
+              >
+                <mat-icon
+                  >{{ historyShown ? 'history_toggle_off' : 'history'
+                  }}</mat-icon
+                >
+                HISTORY
+              </button>
+            </span>
+            }
             <div>
               <button
                 mat-icon-button

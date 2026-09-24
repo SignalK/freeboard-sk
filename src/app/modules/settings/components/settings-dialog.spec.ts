@@ -174,4 +174,30 @@ describe('settings dialog — note details option placement', () => {
       );
     });
   });
+
+  describe('other vessels tracks (#821)', () => {
+    const text = () => dialog.textContent ?? '';
+
+    it('names the all-targets option "Show all tracks"', async () => {
+      await selectTab('Vessels');
+      expect(text()).toContain('Show all tracks');
+    });
+
+    it('offers the picked vessel track length only while all tracks are off', async () => {
+      settings.vessels.aisShowTrack = false;
+      await selectTab('Vessels');
+      expect(text()).toContain('Picked vessel track length (12 hrs)');
+
+      const showAll = Array.from(
+        dialog.querySelectorAll<HTMLElement>('mat-checkbox')
+      ).find((c) => (c.textContent ?? '').includes('Show all tracks'));
+      showAll?.querySelector<HTMLInputElement>('input')?.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(settings.vessels.aisShowTrack).toBe(true);
+      expect(text()).not.toContain('Picked vessel track length');
+    });
+  });
 });

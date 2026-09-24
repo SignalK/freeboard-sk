@@ -294,6 +294,16 @@ export class AppFacade extends InfoService {
   });
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
   selfTrailFromServer = signal<MultiLineString>([]); // vessel trail from server
+  /** The server trail as recorded, with each point's time, for answering a tap
+   * on the trail (v2 Track API only; null otherwise). */
+  selfTrailTimed = signal<{ lines: Position[][]; times: string[][] } | null>(
+    null
+  );
+  /** AIS tracks from the v2 Track API as recorded, with each point's time,
+   * keyed by context, for answering a tap on a track. */
+  aisTracksTimed = signal<
+    Map<string, { lines: Position[][]; times: string[][] }>
+  >(new Map());
   mapExtent = signal<Extent>([]); // map viewport extent
   mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
   mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)

@@ -70,7 +70,7 @@ describe('ChartTimeBar pointer lanes', () => {
   let loopChange: (value: ChartTimeLoop) => void;
 
   const render = (
-    position = 150,
+    position: number | null = 150,
     loop: ChartTimeLoop = { min: 100, max: 200 }
   ) => {
     const fixture = TestBed.createComponent(ChartTimeBar);
@@ -161,6 +161,23 @@ describe('ChartTimeBar pointer lanes', () => {
     expect(sliders[0].getAttribute('aria-valuenow')).toBe('120');
     expect(sliders[1].getAttribute('aria-valuenow')).toBe('180');
     expect(sliders[2].getAttribute('aria-valuenow')).toBe('150');
+  });
+
+  it('is a plain range bar without a playhead', () => {
+    const { fixture, bar } = render(null, { min: 120, max: 180 });
+    fixture.componentRef.setInput('names', { start: 'From', end: 'To' });
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('.head')).toBeNull();
+    expect(
+      Array.from(host.querySelectorAll('[role="slider"]')).map((s) =>
+        s.getAttribute('aria-label')
+      )
+    ).toEqual(['From', 'To']);
+    // the upper lane, which would scrub, moves the nearer range handle
+    pointer(bar, 'pointerdown', 20, 10);
+    expect(loopChange).toHaveBeenLastCalledWith({ min: 110, max: 180 });
+    expect(positionChange).not.toHaveBeenCalled();
   });
 
   it('moves the playhead and loop handles with the keyboard', () => {

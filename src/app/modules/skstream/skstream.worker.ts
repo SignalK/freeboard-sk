@@ -28,6 +28,7 @@ import {
 import {
   AIS_TRACK_BBOX_PAD,
   aisTracksQuery,
+  AIS_PICK_DEFAULT_HOURS,
   createRequestGate,
   detectTrackSource,
   needsAisRefetch,
@@ -41,6 +42,7 @@ import {
   trailBands,
   trailBandUrl
 } from './track-source';
+import { parseHistoryTrack, parseTimedTracks } from './track-history';
 
 interface AisStatus {
   updated: { [key: string]: boolean };
@@ -131,6 +133,8 @@ let aisFetched: { extent: number[]; zoom: number } | null = null;
 // AIS targets picked with the per-vessel TRACK toggle (session-only)
 let aisTrackPicks: string[] = [];
 let aisShowTrack = false;
+// hours of track for a vessel picked with the TRACK toggle (vessels.aisTrackLength)
+let aisPickHours = AIS_PICK_DEFAULT_HOURS;
 let aisTrackTimer: ReturnType<typeof setTimeout>;
 const AIS_TRACK_DEBOUNCE = 1000;
 // AIS targets whose track came from the v2 Track API: their track is not cut
@@ -370,7 +374,8 @@ function handleCommand(data: MsgFromApp) {
     case 'view':
       if (data.options?.extent) {
         aisView = { extent: data.options.extent, zoom: data.options.zoom };
-        if (needsAisRefetch(aisFetched, aisView)) {
+        // picked vessels are fetched by context, whatever the view
+        if (aisShowTrack && needsAisRefetch(aisFetched, aisView)) {
           scheduleAisTracks();
         }
       }
@@ -421,6 +426,12 @@ function applySettings(opt: WorkerSettings = {}) {
     vesselPrefs = opt.config.vessels;
     if (opt.config.vessels.aisShowTrack !== aisShowTrack) {
       aisShowTrack = opt.config.vessels.aisShowTrack;
+      scheduleAisTracks();
+    }
+    const pickHours =
+      opt.config.vessels.aisTrackLength ?? AIS_PICK_DEFAULT_HOURS;
+    if (pickHours !== aisPickHours) {
+      aisPickHours = pickHours;
       scheduleAisTracks();
     }
 
@@ -521,21 +532,53 @@ function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
   const bands = trailBands(opt.trailDuration, opt.trailResolution, Date.now());
   const msg = new TrailMessage();
   msg.playback = playbackMode;
-  Promise.all(
-    bands.map((b) =>
-      trackApiGet(trailBandUrl(url, b, provider)).then(
-        (fc) => parseSelfTrail(fc) ?? null
-      )
-    )
-  )
-    .then((lines) => {
-      msg.result = assembleTrail(lines);
+  Promise.all(bands.map((b) => trackApiGet(trailBandUrl(url, b, provider))))
+    .then((fcs) => {
+      msg.result = assembleTrail(fcs.map((fc) => parseSelfTrail(fc) ?? null));
+      msg.timed = timedTrail(fcs, provider);
       postMessage(msg);
     })
     .catch(() => {
       msg.result = null;
       postMessage(msg);
     });
+}
+
+/** Longest time between the end of one trail band and the start of the next
+ * for the two to read as one continuous stretch of recording. */
+const TRAIL_JOIN_GAP_MS = 10 * 60000;
+
+/** The trail bands as recorded, each point with its time, or undefined when
+ * the provider sent no times. Kept apart from the drawn trail because
+ * assembleTrail() simplifies and re-splits the older bands. A band's first
+ * segment continues the previous band's last one when they follow on in
+ * time, so a tapped stretch reports when the passage began, not the band. */
+export function timedTrail(
+  bands: unknown[],
+  provider?: string
+): TrailMessage['timed'] {
+  const lines: Position[][] = [];
+  const times: string[][] = [];
+  for (const fc of bands) {
+    const t = parseHistoryTrack('self', fc, provider);
+    if (t && !t.times) {
+      return undefined;
+    }
+    t?.lines.forEach((line, i) => {
+      const prev = times[times.length - 1];
+      const gap = prev
+        ? Date.parse(t.times[i][0]) - Date.parse(prev[prev.length - 1])
+        : NaN;
+      if (i === 0 && gap >= 0 && gap <= TRAIL_JOIN_GAP_MS) {
+        lines[lines.length - 1] = lines[lines.length - 1].concat(line);
+        times[times.length - 1] = prev.concat(t.times[i]);
+      } else {
+        lines.push(line);
+        times.push(t.times[i]);
+      }
+    });
+  }
+  return lines.length ? { lines, times } : undefined;
 }
 
 /** Re-query AIS tracks shortly after the view or the picks settle, so a flurry
@@ -586,6 +629,7 @@ function getAISTracksV2(provider?: string) {
             targetFilter.signalk.maxRadius
           )
         : undefined,
+    pickHours: aisPickHours,
     provider
   });
   if (!query) {
@@ -599,6 +643,13 @@ function getAISTracksV2(provider?: string) {
       // a later request (or a new stream / playback) supersedes this one
       if (aisTracksGate.isCurrent(token) && !playbackMode) {
         applyServerAisTracks(vessels.aisTargets, parseAisTracks(fc, provider));
+        // with their recording times, once per fetch rather than in every
+        // vessel update, for answering a tap on a track
+        postMessage({
+          action: 'aisTracksTimed',
+          playback: playbackMode,
+          result: parseTimedTracks(fc, provider)
+        });
       }
     })
     .catch(() => {

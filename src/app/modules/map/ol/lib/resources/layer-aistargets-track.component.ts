@@ -60,7 +60,8 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
             this.reloadTracks();
           }
         }
-        if (keys.includes('mapZoom')) {
+        // only "Show Track" is gated by zoom; picked vessels draw at any zoom
+        if (keys.includes('mapZoom') && this.showAll) {
           if (typeof this.tracksMinZoom !== 'undefined') {
             if (
               changes['mapZoom'].currentValue >= this.tracksMinZoom &&
@@ -80,7 +81,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   }
 
   okToRenderTracks() {
-    return this.mapZoom >= this.tracksMinZoom;
+    return !this.showAll || this.mapZoom >= this.tracksMinZoom;
   }
 
   // render every target's track when showAll, else only the individually selected ones
