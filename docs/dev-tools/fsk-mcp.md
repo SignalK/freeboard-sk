@@ -110,6 +110,7 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_list_resources`                  | `resources.list`                      | query a resource collection (relayed, authenticated)                                                                      |
 | `fsk_set_filter` / `fsk_clear_filter` | `resources.setFilter` / `clearFilter` | display-only resource filters                                                                                             |
 | `fsk_list_routes` / `fsk_get_route`   | `route.list` / `route.get`            | inspect the visible routes                                                                                                |
+| `fsk_apply_resource_group`            | `resourceGroup.apply`                 | apply a stored resource group to the display (same as checking it in the Resource Groups list)                            |
 
 **Targeting a specific tab.** With more than one Freeboard tab open, pass a
 `session` id (from `fsk_list_sessions`) to any tool; omit it to use the most

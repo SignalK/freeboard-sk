@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.8.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.13.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -37,8 +37,8 @@ package; Freeboard depends on it (`^0.8.0`) and imports its host entry point
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
 `widgets`, `panels.iframe`, `buttons`, `signalk.stream`, `signalk.put`, `units`,
-`map`, `resources`, `resources.filter`, `routes`, `charts`, `nightMode`,
-`background.iframe`, `ui`.
+`map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
+`nightMode`, `resourceGroups`, `background.iframe`, `ui`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -286,17 +286,60 @@ neither field present), `nightMode.notSupported`.
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers (`readNightMode`/`applyNightMode`) and emits `nightMode.changed` (`emitNightModeChange`) |
 | `src/app/modules/skstream/skstream.facade.ts` | `selfNightMode` signal + `refreshSelfNightMode()` |
 
-## The `resourceGroups` capability — not yet implemented
+## The `resourceGroups` capability
 
-The contract defines a `resourceGroups` capability (`resourceGroup.apply`, the
-`resourceGroup.applied` event, and the group document's three-way list
-semantics). Freeboard does **not** yet advertise it. Freeboard already has the
-native model: the Resource Groups list applies a group by overwriting
-`config.selections.{routes,waypoints,regions,charts}` with the group's lists
-(skipping any list that is absent), which matches the contract's semantics. The
-bus surface lands as a thin facade over that path — which first has to move out
-of the list component so the user's own checkbox also emits
-`resourceGroup.applied` — tracked as an issue on the repository.
+`resourceGroups` lets an extension apply a stored resource group — the same
+action as checking a group in Freeboard's Resource Groups list. Group CRUD is not
+part of it: groups are ordinary resources in the server's `groups` collection, and
+extensions create, edit and list them through the resources API.
+
+### The group model
+
+Applying a group overwrites `config.selections.{routes,waypoints,regions,charts}`
+with the group's lists, then refreshes those layers and saves the config. A list
+that is present replaces that type's selection (`[]` empties it, hiding the type);
+an absent list leaves the type untouched. That is exactly the contract's
+three-way rule, so Freeboard acts on every type present in the group and reports
+all of them in `applied`. Ids that name no resource are simply never drawn.
+
+Both paths go through one method, `SKResourceGroupService.applyGroup()`: the
+Resource Groups checkbox (`grouplist.ts`) and the host method. The pure selection
+logic lives in `group-apply.ts` (`applyGroupToSelections`, `isValidGroup`).
+
+A group Freeboard creates is saved with `routes`, `waypoints` and `regions` set to
+`[]` (the dialog's *Hide* boxes default to checked) and no `charts` key, so
+applying a fresh group hides those three types and leaves the charts alone.
+Unchecking *Hide* in the group dialog removes that key.
+
+### Methods
+
+`resourceGroup.apply({ id })` → `{ applied }`. The handler fetches
+`/resources/groups/{id}`, validates the document, and applies it. The handlers are
+a pure factory (`resourcegroup-methods.ts`) over the group service.
+
+### Events (`resourceGroup.applied`)
+
+`resourceGroup.applied` (`{ id, applied }`) is emitted for **every** apply —
+an extension's `resourceGroup.apply` or the user checking a group — via the
+group service's `applied$` stream, which the host relays. The chart and route
+changes an apply causes also arrive as the usual `chart.*` / `route.*` events,
+since those are derived from the displayed state.
+
+### Error reasons
+
+`resourceGroups.unknownId` (the server answered 404 — no such group, or no
+`groups` collection), `resourceGroups.fetchFailed` (any other fetch failure),
+`resourceGroups.badRequest` (a missing or non-string `id`, or a group whose lists
+are not arrays of strings), `resourceGroups.notSupported`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/resourcegroup-methods.ts` | the `resourceGroup.apply` handler + param/document validation + error mapping |
+| `src/app/modules/plotterext/plotterext.service.ts` | binds the handler and relays `applied$` as `resourceGroup.applied` |
+| `src/app/modules/skresources/components/groups/groups.service.ts` | `applyGroup()` — the shared apply path — and the `applied$` stream |
+| `src/app/modules/skresources/components/groups/group-apply.ts` | the pure three-way selection logic and document validation |
 
 ## The `map` capability
 
