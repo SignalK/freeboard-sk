@@ -24,9 +24,8 @@ import {
   rangeToLoop,
   segmentTimeInfo,
   trackTimeInfo,
-  timedRuns,
   joinStretches,
-  trailPointKey
+  TrailStamps
 } from './track-history';
 
 const MIN = 60000;
@@ -476,33 +475,48 @@ describe('track-history playback', () => {
   });
 });
 
-describe('track-history timedRuns (local trail)', () => {
-  it('splits the trail at points that were never stamped', () => {
+describe('track-history TrailStamps (local trail)', () => {
+  const at = (h: number) => `2026-09-24T${String(h).padStart(2, '0')}:00:00Z`;
+
+  it('keeps a time per logged sample, so revisiting a spot keeps both', () => {
+    // A -> B -> A: two samples at the same coordinates
+    const a1: [number, number] = [0, 0];
+    const b: [number, number] = [1, 0];
+    const a2: [number, number] = [0, 0];
+    const stamps = new TrailStamps();
+    stamps.stamp(a1, at(10));
+    stamps.stamp(b, at(11));
+    stamps.stamp(a2, at(12));
+    expect(stamps.timed([a1, b, a2]).times).toEqual([[at(10), at(11), at(12)]]);
+  });
+
+  it('leaves a point rebuilt from storage without a time', () => {
+    const stamps = new TrailStamps();
+    const p: [number, number] = [5, 5];
+    stamps.stamp(p, at(10));
+    const restored = JSON.parse(JSON.stringify(p));
+    expect(stamps.timeOf(restored)).toBeUndefined();
+    expect(stamps.timed([]).lines).toEqual([]);
+  });
+
+  it('answers a tap on an untimed leg with nothing, not a nearby time', () => {
+    // restored (untimed) leg westward, then a newly logged (timed) stretch
+    // well east of it
     const line: [number, number][] = [
       [0, 0],
-      [1, 1],
-      [2, 2],
-      [3, 3],
-      [4, 4]
+      [1, 0],
+      [5, 0],
+      [6, 0]
     ];
-    const stamped = new Map([
-      [trailPointKey([1, 1]), '2026-09-24T10:00:00Z'],
-      [trailPointKey([2, 2]), '2026-09-24T10:00:05Z'],
-      [trailPointKey([4, 4]), '2026-09-24T10:00:15Z']
-    ]);
-    const r = timedRuns(line, (p) => stamped.get(trailPointKey(p)));
-    expect(r.lines).toEqual([
-      [
-        [1, 1],
-        [2, 2]
-      ],
-      [[4, 4]]
-    ]);
-    expect(r.times).toEqual([
-      ['2026-09-24T10:00:00Z', '2026-09-24T10:00:05Z'],
-      ['2026-09-24T10:00:15Z']
-    ]);
-    expect(timedRuns(line, () => undefined).lines).toEqual([]);
+    const times = [undefined, undefined, at(10), at(11)];
+    expect(segmentTimeInfo(line, times, [0.5, 0.01])).toBeUndefined();
+    // the timed stretch answers for itself, bounded to its own points
+    const info = segmentTimeInfo(line, times, [5.5, 0.01]);
+    expect(info.start).toBe(Date.parse(at(10)));
+    expect(info.end).toBe(Date.parse(at(11)));
+    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-24T10:30:00Z'), -3);
+    // the leg bridging untimed to timed has no time either
+    expect(segmentTimeInfo(line, times, [3, 0.01])).toBeUndefined();
   });
 });
 

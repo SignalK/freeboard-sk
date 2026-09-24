@@ -14,10 +14,7 @@ import {
   resolveTrailSource,
   TrackSource
 } from './modules/skstream/track-source';
-import { timedRuns, trailPointKey } from './modules/skstream/track-history';
-
-/** Most local trail point times kept: the local trail itself keeps 5000. */
-const TRAIL_TIMES_MAX = 6000;
+import { TimedTrack, TrailStamps } from './modules/skstream/track-history';
 import {
   MapViewport,
   mapCenterForOffset,
@@ -297,8 +294,8 @@ export class AppFacade extends InfoService {
     }
   });
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
-  // when each local trail point was logged, keyed by position (see stampTrailPoint)
-  private trailTimes = new Map<string, string>();
+  // when each local trail point was logged (see stampTrailPoint)
+  private trailStamps = new TrailStamps();
   selfTrailFromServer = signal<MultiLineString>([]); // vessel trail from server
   /** The server trail as recorded, with each point's time, for answering a tap
    * on the trail (v2 Track API only; null otherwise). */
@@ -967,28 +964,22 @@ export class AppFacade extends InfoService {
   }
 
   /** Record when a point was added to the local trail, so a tap on the
-   * trail can say when the vessel was there. Kept beside the trail, keyed by
-   * position, rather than in it: the trail is persisted and rewritten in
-   * several places, and a point restored without a time simply has none. */
+   * trail can say when the vessel was there. The time belongs to the logged
+   * point itself (see TrailStamps), kept beside the trail rather than in it:
+   * the trail is persisted and rewritten in several places, and a point
+   * restored without a time simply has none. */
   stampTrailPoint(pt: Position, time?: string) {
-    const t =
+    this.trailStamps.stamp(
+      pt,
       time ||
-      this.data.vessels.self?.positionTimestamp ||
-      new Date().toISOString();
-    const key = trailPointKey(pt);
-    this.trailTimes.delete(key);
-    this.trailTimes.set(key, t);
-    // the local trail keeps at most 5000 points
-    if (this.trailTimes.size > TRAIL_TIMES_MAX) {
-      this.trailTimes.delete(this.trailTimes.keys().next().value);
-    }
+        this.data.vessels.self?.positionTimestamp ||
+        new Date().toISOString()
+    );
   }
 
-  /** The local trail as stretches of points with the time each was logged. */
-  localTrailTimed(): { lines: Position[][]; times: string[][] } {
-    return timedRuns(this.selfTrail(), (p) =>
-      this.trailTimes.get(trailPointKey(p))
-    );
+  /** The local trail as drawn, with the time each point was logged. */
+  localTrailTimed(): TimedTrack {
+    return this.trailStamps.timed(this.selfTrail());
   }
 
   /** add point to self vessel track */

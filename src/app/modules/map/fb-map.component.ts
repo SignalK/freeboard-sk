@@ -148,12 +148,12 @@ import {
   GridSample
 } from './ol/lib/tidal-currents.service';
 import { TRACK_HISTORY_ID } from './ol/lib/vessel/layer-track-history.component';
-import { trackTimesHiddenByVessel } from './track-time-taps';
+import { trackTimesHiddenByVessel, trailTapTrack } from './track-time-taps';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
   durationLabel,
-  joinStretches,
+  PointTime,
   trackTimeInfo
 } from 'src/app/modules/skstream/track-history';
 import { chartTimeShortLabel } from 'src/app/lib/components/dialogs/chart-time-dialog';
@@ -1738,8 +1738,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
             // from the two joined into one passage
             const timed =
               id === 'trail.self.server' || id === 'trail.self.local'
-                ? joinStretches(
-                    this.app.selfTrailTimed() ?? { lines: [], times: [] },
+                ? trailTapTrack(
+                    this.app.selfTrailTimed(),
+                    this.app.selfTrailFromServer().length > 0,
                     this.app.localTrailTimed()
                   )
                 : null;
@@ -1828,7 +1829,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private s57Features: Record<string, Record<string, string | number>> = {};
   private trackHistoryFeatures: Record<
     string,
-    { context: string; lines: Position[][]; times?: string[][]; at: Position }
+    {
+      context: string;
+      lines: Position[][];
+      times?: PointTime[][];
+      at: Position;
+    }
   > = {};
   private tidalFeatures: Record<
     string,

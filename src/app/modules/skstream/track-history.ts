@@ -372,47 +372,69 @@ export function nearestOnLine(
   return best;
 }
 
-/** What a tapped stretch of recording shows: when it starts and ends, and
- * when the vessel was at the tapped point (interpolated along the recorded
- * leg nearest the tap). Undefined when the stretch carries no recording
- * times. */
+/** A point's recording time; undefined for a point never stamped (e.g. part
+ * of a local trail restored from an earlier session). */
+export type PointTime = string | undefined;
+
+/** A track as drawn, with each point's recording time where it has one. */
+export interface TimedTrack {
+  lines: Position[][];
+  times: PointTime[][];
+}
+
+const timeMs = (t: PointTime) => (t ? Date.parse(t) : NaN);
+
+/** What a tap on a line shows: when the timed stretch holding the tapped leg
+ * starts and ends, and when the vessel was at the tapped point (interpolated
+ * along that leg). The leg is found in the whole line first, so a tap on an
+ * untimed leg is undefined — never answered with a nearby leg's time. */
 export function segmentTimeInfo(
   line: Position[],
-  times: string[] | undefined,
+  times: PointTime[] | undefined,
   at: Position
 ):
   | { start: number; end: number; duration: number; atTime?: number }
   | undefined {
-  if (!Array.isArray(times) || times.length === 0) {
+  if (!Array.isArray(times) || times.length !== line.length) {
     return undefined;
   }
-  const start = Date.parse(times[0]);
-  const end = Date.parse(times[times.length - 1]);
-  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+  const near = nearestOnLine(line, at);
+  if (!near) {
     return undefined;
   }
-  const near = times.length === line.length ? nearestOnLine(line, at) : null;
-  let atTime = NaN;
-  if (near) {
-    const a = Date.parse(times[near.index]);
-    const b = Date.parse(times[Math.min(near.index + 1, times.length - 1)]);
-    atTime = a + (b - a) * near.f;
+  const i = near.index;
+  const j = Math.min(i + 1, line.length - 1);
+  const a = timeMs(times[i]);
+  const b = timeMs(times[j]);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) {
+    return undefined;
   }
+  // widen to the run of timed points either side of the tapped leg
+  let s = i;
+  while (s > 0 && Number.isFinite(timeMs(times[s - 1]))) {
+    s--;
+  }
+  let e = j;
+  while (e < times.length - 1 && Number.isFinite(timeMs(times[e + 1]))) {
+    e++;
+  }
+  const start = timeMs(times[s]);
+  const end = timeMs(times[e]);
   return {
     start,
     end,
     duration: end - start,
-    atTime: Number.isFinite(atTime) ? atTime : undefined
+    atTime: a + (b - a) * near.f
   };
 }
 
 /** {@link segmentTimeInfo} for a tap on a multi-segment track: the stretch
  * whose line passes nearest the tap — not the one with the nearest recorded
  * point, which on a sparse passage can be a different passage close by.
- * Stretches without recording times are skipped. */
+ * Lines carrying no per-point times at all are skipped. */
 export function trackTimeInfo(
   lines: Position[][],
-  times: string[][] | undefined,
+  times: PointTime[][] | undefined,
   at: Position
 ): ReturnType<typeof segmentTimeInfo> {
   if (!Array.isArray(times)) {
@@ -433,38 +455,6 @@ export function trackTimeInfo(
   return best < 0 ? undefined : segmentTimeInfo(lines[best], times[best], at);
 }
 
-/** A trail as contiguous stretches of timed points, for answering a tap:
- * `timeOf` gives a point's time, or undefined for one never stamped (e.g. a
- * point restored from an earlier session), which splits the trail. */
-export function timedRuns(
-  line: Position[],
-  timeOf: (p: Position) => string | undefined
-): { lines: Position[][]; times: string[][] } {
-  const lines: Position[][] = [];
-  const times: string[][] = [];
-  let run: Position[] = [];
-  let runTimes: string[] = [];
-  const close = () => {
-    if (run.length) {
-      lines.push(run);
-      times.push(runTimes);
-    }
-    run = [];
-    runTimes = [];
-  };
-  line.forEach((p) => {
-    const t = timeOf(p);
-    if (t && Number.isFinite(Date.parse(t))) {
-      run.push(p);
-      runTimes.push(t);
-    } else {
-      close();
-    }
-  });
-  close();
-  return { lines, times };
-}
-
 /** Longest time between the end of one stretch of recording and the start of
  * the next for the two to read as one continuous passage. */
 export const TRAIL_JOIN_GAP_MS = 10 * 60000;
@@ -473,16 +463,13 @@ export const TRAIL_JOIN_GAP_MS = 10 * 60000;
  * `a`'s last one when it follows on within {@link TRAIL_JOIN_GAP_MS}, so a tap
  * reports the passage rather than where one request (or the local trail)
  * happened to start. */
-export function joinStretches(
-  a: { lines: Position[][]; times: string[][] },
-  b: { lines: Position[][]; times: string[][] }
-): { lines: Position[][]; times: string[][] } {
+export function joinStretches(a: TimedTrack, b: TimedTrack): TimedTrack {
   const lines = [...a.lines];
   const times = [...a.times];
   b.lines.forEach((line, i) => {
     const prev = times[times.length - 1];
     const gap = prev
-      ? Date.parse(b.times[i][0]) - Date.parse(prev[prev.length - 1])
+      ? timeMs(b.times[i][0]) - timeMs(prev[prev.length - 1])
       : NaN;
     if (i === 0 && gap >= 0 && gap <= TRAIL_JOIN_GAP_MS) {
       lines[lines.length - 1] = lines[lines.length - 1].concat(line);
@@ -495,8 +482,31 @@ export function joinStretches(
   return { lines, times };
 }
 
-/** Key for a trail point's recorded time. */
-export const trailPointKey = (p: Position) => `${p[0]},${p[1]}`;
+/** When each point of the local trail was logged. A time belongs to the
+ * logged sample — the position object — not to its coordinates, so a vessel
+ * passing the same spot twice keeps both times, and a point rebuilt from
+ * storage (a new object) simply has none. Weakly held: a point dropped from
+ * the trail takes its time with it. */
+export class TrailStamps {
+  private stamps = new WeakMap<Position, string>();
+
+  stamp(p: Position, time: string) {
+    if (p) {
+      this.stamps.set(p, time);
+    }
+  }
+
+  timeOf(p: Position): PointTime {
+    return p ? this.stamps.get(p) : undefined;
+  }
+
+  /** A trail as drawn, with each point's time where it was stamped. */
+  timed(line: Position[]): TimedTrack {
+    return line.length
+      ? { lines: [line], times: [line.map((p) => this.timeOf(p))] }
+      : { lines: [], times: [] };
+  }
+}
 
 // ******** scrubbing: where a vessel was at a time ********
 

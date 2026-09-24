@@ -964,6 +964,13 @@ export class AppComponent {
           : trailData.length > 1
             ? trailData[trailData.length - 2].slice(-1)
             : [];
+      // the local trail carries on from the server trail's last point: give
+      // it the server's time for it, so the two join into one passage
+      const timed = this.app.selfTrailTimed()?.times;
+      const lastTime = timed?.[timed.length - 1]?.slice(-1)[0];
+      if (lastpt[0] && lastTime) {
+        this.app.stampTrailPoint(lastpt[0], lastTime);
+      }
       this.app.selfTrail.update(() => lastpt);
     }
     const trailId = this.mode === SKSTREAM_MODE.PLAYBACK ? 'history' : 'self';

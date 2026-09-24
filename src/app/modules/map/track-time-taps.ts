@@ -3,6 +3,11 @@
  * always lands on its track too. The vessel is what was meant: its popover
  * opens, rather than a list offering the track's recording times beside it. */
 
+import {
+  joinStretches,
+  TimedTrack
+} from 'src/app/modules/skstream/track-history';
+
 /** Feature id prefixes (up to the first '.') of vessels on the map. */
 const VESSEL_PREFIXES = new Set(['vessels', 'ais-vessels']);
 /** Feature id prefixes of tracks that answer a tap with recording times. */
@@ -17,4 +22,19 @@ export function trackTimesHiddenByVessel(ids: Iterable<string>): string[] {
   return all.some((id) => VESSEL_PREFIXES.has(prefix(id)))
     ? all.filter((id) => TRACK_TIME_PREFIXES.has(prefix(id)))
     : [];
+}
+
+/** What a tap on the own trail is answered from: the local trail, carrying on
+ * from the server trail — but the server trail only while it is the one
+ * drawn. After switching to this device's trail, its times would otherwise
+ * still be searched, and answer a tap on today's trail with yesterday's. */
+export function trailTapTrack(
+  server: TimedTrack | null,
+  serverShown: boolean,
+  local: TimedTrack
+): TimedTrack {
+  return joinStretches(
+    serverShown && server ? server : { lines: [], times: [] },
+    local
+  );
 }
