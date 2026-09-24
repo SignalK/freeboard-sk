@@ -347,6 +347,13 @@ describe('GPX track', () => {
     );
   });
 
+  it('escapes a vessel name in the track name', () => {
+    const t = gpxTrack('M&M <II>', { lines, times }, NOW);
+    const gpx = new SK2GPX();
+    gpx.setTracks({ id1: gpxTrackResource('id1', t) });
+    expect(gpx.toXML()).toContain('<name>M&amp;M &lt;II&gt; ');
+  });
+
   it('writes one track, a segment per line, and each known point time', () => {
     const t = gpxTrack('FERRY ONE', { lines, times }, NOW);
     const gpx = new SK2GPX();

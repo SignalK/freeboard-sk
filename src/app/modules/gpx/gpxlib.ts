@@ -15,6 +15,15 @@ import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
  * `minlat="NaN"`. Falling back to the caller's current value keeps the
  * accumulate-from-points sentinels intact instead.
  */
+/** Text as XML character data: `&`, `<` and `>` escaped, so a name such as
+ * an AIS vessel's `M&M` keeps the file well formed. */
+export function xmlText(value: unknown): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 /** A parsed GPX `<bounds>` element as xml2js emits it: attributes under `$`. */
 export type GPXBoundsElement = { $?: Record<string, unknown> } | undefined;
 
@@ -180,12 +189,13 @@ export class GPX {
     let xml = '';
     this.trk.forEach((tk) => {
       xml += '\t<trk>\r\n';
-      xml += tk.name ? `\t\t<name>${tk.name || ''}</name>\r\n` : '';
-      xml += tk.cmt ? `\t\t<cmt>${tk.cmt || ''}</cmt>\r\n` : '';
-      xml += tk.desc ? `\t\t<desc>${tk.desc || ''}</desc>\r\n` : '';
-      xml += tk.src ? `\t\t<src>${tk.src || ''}</src>\r\n` : '';
+      // track names come from AIS data, so escape them
+      xml += tk.name ? `\t\t<name>${xmlText(tk.name)}</name>\r\n` : '';
+      xml += tk.cmt ? `\t\t<cmt>${xmlText(tk.cmt)}</cmt>\r\n` : '';
+      xml += tk.desc ? `\t\t<desc>${xmlText(tk.desc)}</desc>\r\n` : '';
+      xml += tk.src ? `\t\t<src>${xmlText(tk.src)}</src>\r\n` : '';
       xml += tk.number ? `\t\t<number>${tk.number || ''}</number>\r\n` : '';
-      xml += tk.type ? `\t\t<type>${tk.type || ''}</type>\r\n` : '';
+      xml += tk.type ? `\t\t<type>${xmlText(tk.type)}</type>\r\n` : '';
 
       xml += this.extensionsToXML(tk.extensions, 2);
 
