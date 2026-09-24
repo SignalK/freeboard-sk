@@ -10,6 +10,7 @@ import { legacyPanBehavior, normaliseCenterOffset } from './lib/follow-offset';
 import { SKVessel } from './modules';
 import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
 import { DEFAULT_TAP_FADE_SPEED } from './modules/map/cursor-marker';
+import { migrateTrailSource } from './modules/skstream/track-source';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -262,7 +263,7 @@ export function cleanConfig(
       aisWindApparent: false,
       aisWindMinZoom: 15,
       aisShowTrack: false,
-      trailFromServer: false,
+      trailSource: 'auto',
       trailDuration: 24,
       trailResolution: {
         lastHour: '5s',
@@ -271,6 +272,12 @@ export function cleanConfig(
       }
     };
   } else {
+    // legacy boolean trailFromServer -> tri-state trailSource (#820)
+    settings.vessels.trailSource = migrateTrailSource(
+      settings.vessels.trailFromServer,
+      settings.vessels.trailSource
+    );
+    delete settings.vessels.trailFromServer;
     if (typeof settings.vessels.rangeCircleCount === 'undefined') {
       settings.vessels.rangeCircleCount = 4;
     }
@@ -619,7 +626,7 @@ export function defaultConfig(): IAppConfig {
       aisWindApparent: false,
       aisWindMinZoom: 15,
       aisShowTrack: false,
-      trailFromServer: false,
+      trailSource: 'auto',
       trailDuration: 24, // number of hours of trail to fetch from server
       trailResolution: {
         // resolution of server trail at defined time horizons

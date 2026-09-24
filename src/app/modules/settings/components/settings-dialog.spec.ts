@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -12,6 +13,11 @@ import { WakeLockService } from 'src/app/lib/services';
 import { S57Service } from '../../map/ol';
 import { RadarAPIService } from '../../radar/radar-api.service';
 import { defaultConfig, initData } from 'src/app/app.config';
+import {
+  NO_TRACK_SOURCE,
+  resolveTrailSource,
+  TrackSource
+} from 'src/app/modules/skstream/track-source';
 
 /**
  * "Single Click for Note Details" configures how a note responds to a tap, so it
@@ -35,6 +41,7 @@ describe('settings dialog — note details option placement', () => {
   let dialog: HTMLElement;
   let settings: ReturnType<typeof defaultConfig>;
   let applied: number;
+  const trackSource = signal<TrackSource | null>(null);
 
   /** Activate a tab by its visible label and let its body attach. */
   const selectTab = async (label: string) => {
@@ -50,6 +57,7 @@ describe('settings dialog — note details option placement', () => {
 
   beforeEach(async () => {
     settings = defaultConfig();
+    trackSource.set(null);
     applied = 0;
 
     const facadeStub = {
@@ -65,6 +73,10 @@ describe('settings dialog — note details option placement', () => {
 
     const appStub = {
       config: settings,
+      trackSource,
+      serverTrailWanted: () =>
+        resolveTrailSource(settings.vessels.trailSource, trackSource()) ===
+        'server',
       data: initData(),
       featureFlags: () => ({ radarApi: false }),
       uiCtrl: () => ({ radarLayer: false }),
@@ -131,5 +143,35 @@ describe('settings dialog — note details option placement', () => {
 
     expect(settings.display.singleClickNoteDetails).toBe(true);
     expect(applied).toBeGreaterThan(before);
+  });
+
+  describe('vessel track source (#820)', () => {
+    const hints = () =>
+      Array.from(dialog.querySelectorAll('mat-hint')).map((h) =>
+        (h.textContent ?? '').trim()
+      );
+
+    it('says a Track API provider is needed when the server has none', async () => {
+      trackSource.set(NO_TRACK_SOURCE);
+      await selectTab('Vessels');
+
+      expect(hints()).toContain('Server requires a Track API (v2) provider');
+    });
+
+    it('shows what Auto resolved to when the server supplies a trail', async () => {
+      trackSource.set({
+        api: 'v2',
+        serverHasTracksApi: true,
+        provider: 'tracks',
+        v1SelfTrack: false,
+        v1AisTracks: false
+      });
+      await selectTab('Vessels');
+
+      expect(hints()).toContain('Using: Server');
+      expect(hints()).not.toContain(
+        'Server requires a Track API (v2) provider'
+      );
+    });
   });
 });

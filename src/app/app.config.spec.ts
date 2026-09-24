@@ -115,6 +115,32 @@ describe('cleanConfig() legacy migration', () => {
     ]);
   });
 
+  it.each([
+    [true, 'server'],
+    [false, 'auto']
+  ])(
+    'maps legacy vessels.trailFromServer %s -> trailSource %s',
+    (legacy, current) => {
+      const cfg: LegacyAppConfig = defaultConfig();
+      delete cfg.vessels.trailSource;
+      cfg.vessels.trailFromServer = legacy;
+      cleanConfig(cfg, {});
+      expect(cfg.vessels.trailSource).toBe(current);
+      expect(cfg.vessels).not.toHaveProperty('trailFromServer');
+    }
+  );
+
+  it('keeps a trail source the user already chose', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.vessels.trailSource = 'local';
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.trailSource).toBe('local');
+  });
+
+  it('defaults the trail source to auto', () => {
+    expect(defaultConfig().vessels.trailSource).toBe('auto');
+  });
+
   it('drops the legacy selections.notes section', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});

@@ -437,8 +437,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.settings.change$.subscribe((r: string[]) => {
         this.renderMapContents(r.includes('fetchNotes'));
-        if (r.includes(`trailFromServer`)) {
-          if (!this.app.config.vessels.trailFromServer) {
+        if (r.includes(`trailSource`)) {
+          if (!this.app.serverTrailWanted()) {
             this.app.selfTrailFromServer.update(() => {
               return [];
             });
@@ -721,6 +721,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.mapZoom.set(e.zoom);
 
     this.app.mapExtent.update(() => e.extent);
+    this.skstream.postMapView(e.extent, e.zoom);
     this.app.mapViewTopCenter.update(() => e.topCenter as Position);
     this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
     this.app.mapViewRotation.update(() => e.rotation);
