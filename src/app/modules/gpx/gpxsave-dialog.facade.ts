@@ -3,8 +3,8 @@
 import { inject, Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { SK2GPX } from './sk2gpx';
-import { SKTrack } from 'src/app/modules';
 import { SignalKClient } from 'signalk-client-angular';
+import { GpxTrackData, gpxTrackResource } from './track-export';
 
 @Injectable({ providedIn: 'root' })
 export class GPXSaveFacade {
@@ -85,16 +85,11 @@ export class GPXSaveFacade {
     }
     this.sk2gpx.setWaypoints(skwaypoints);
 
-    for (let i = 0; i < selections.trk.selected.length; i++) {
-      if (selections.trk.selected[i]) {
-        const uuid = this.signalk.uuid;
-        sktracks[uuid] = new SKTrack();
-        sktracks[uuid].feature.id = uuid;
-        sktracks[uuid].feature.properties.name =
-          `Vessel trail: ${Date().toString()}`;
-        sktracks[uuid].feature.geometry.coordinates.push(res.tracks[i]);
-      }
-    }
+    // tracks arrive resolved: the selected ones, fetched and named
+    (selections.trk.tracks ?? []).forEach((t: GpxTrackData) => {
+      const uuid = this.signalk.uuid;
+      sktracks[uuid] = gpxTrackResource(uuid, t);
+    });
     this.sk2gpx.setTracks(sktracks);
 
     if (this.hasFSA) {
