@@ -22,6 +22,7 @@ import { SKResourceService } from 'src/app/modules';
 import { FBVessel, FBVessels, Position } from 'src/app/types';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { getAisIcon } from 'src/app/modules/icons';
+import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 
 //** AIS Dialog **
 @Component({
@@ -126,6 +127,7 @@ export class AISListComponent extends ResourceListBase {
   }
 
   protected app = inject(AppFacade);
+  protected trackHistory = inject(TrackHistoryService);
 
   constructor(protected override skres: SKResourceService) {
     super('aisTargets', skres);
@@ -133,6 +135,7 @@ export class AISListComponent extends ResourceListBase {
 
   ngOnInit() {
     this.initItems();
+    this.trackHistory.refreshRecorded();
   }
 
   close() {

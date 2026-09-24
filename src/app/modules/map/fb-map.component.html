@@ -244,6 +244,20 @@
     </fb-tracks>
   }
 
+  <!-- recorded track history (#821) -->
+  @if (trackHistory.shown().length > 0) {
+    <fb-track-history [tracks]="trackHistory.tracks()" [zIndex]="105">
+    </fb-track-history>
+  }
+  @if (trackHistory.ghosts().length > 0) {
+    <fb-track-history-ghosts
+      [ghosts]="trackHistory.ghosts()"
+      [iconScale]="app.config.vessels.iconScale"
+      [zIndex]="995"
+    >
+    </fb-track-history-ghosts>
+  }
+
   <!-- AIS target tracks -->
   @if (
     app.config.ui.showAisTargets &&
@@ -253,7 +267,7 @@
       [tracks]="app.data.vessels.aisTracks"
       [showAll]="app.config.vessels.aisShowTrack"
       [selectedIds]="app.data.vessels.showTrack"
-      [tracksMinZoom]="10"
+      [tracksMinZoom]="aisTrackMinZoom"
       targetContext="vessels"
       [updateIds]="skstream.aisStatus().updated"
       [removeIds]="skstream.aisStatus().expired"
@@ -578,6 +592,38 @@
           (closed)="popoverClosed()"
         >
         </s57-popover>
+      }
+      @if (this.overlay().type === 'trackhistory') {
+        @let th = overlay().trackHistory;
+        <ap-popover
+          [title]="th?.name"
+          [icon]="{ class: '', name: 'history' }"
+          [canClose]="app.config.map.popoverMulti"
+          (closed)="popoverClosed()"
+        >
+          @if (th?.start) {
+            @for (
+              row of [
+                ['From', th.start],
+                ['To', th.end],
+                ['Duration', th.duration],
+                ['Here at', th.at]
+              ];
+              track row[0]
+            ) {
+              @if (row[1]) {
+                <div style="display: flex; gap: 12px">
+                  <div style="font-weight: bold">{{ row[0] }}:</div>
+                  <div style="flex: 1 1 auto; text-align: right">
+                    {{ row[1] }}
+                  </div>
+                </div>
+              }
+            }
+          } @else {
+            <div style="opacity: 0.7">No recording times available</div>
+          }
+        </ap-popover>
       }
       @if (this.overlay().type === 'tidal') {
         <ap-popover

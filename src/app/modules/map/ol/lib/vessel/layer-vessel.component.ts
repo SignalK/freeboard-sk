@@ -35,6 +35,28 @@ const vesselIconDef = {
   rotateWithView: true
 };
 
+/** The own-vessel icon at `iconScale`: the external symbol override when one
+ * is registered, else the built-in icon. A fresh instance, so per-render
+ * heading rotation does not mutate a shared one. */
+export function selfVesselIcon(
+  mapImages: MapImageRegistry,
+  iconScale?: number
+): Icon {
+  const ext = mapImages.getExternalSymbol(VESSEL_SELF_MARKER);
+  if (ext) {
+    const img = ext.clone();
+    img.setRotateWithView(true);
+    if (iconScale) {
+      img.setScale(Math.abs(iconScale));
+    }
+    return img;
+  }
+  return new Icon({
+    ...vesselIconDef,
+    scale: iconScale ? Math.abs(iconScale) : vesselIconDef.scale
+  } as Options);
+}
+
 const inactiveVesselStyle = new Style({
   image: new Icon({
     src: './assets/img/vessels/self_blur.png',
@@ -222,24 +244,9 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   // default self style with specified scale
   generateSelfStyle() {
-    if (this.iconScale) {
-      vesselIconDef.scale = Math.abs(this.iconScale);
-    }
-    // External symbol override for the own-vessel marker. Clone the cached icon
-    // so per-render heading rotation does not mutate the shared instance.
-    const ext = this.mapImages.getExternalSymbol(VESSEL_SELF_MARKER);
-    if (ext) {
-      const img = ext.clone();
-      img.setRotateWithView(true);
-      if (this.iconScale) {
-        img.setScale(Math.abs(this.iconScale));
-      }
-      this.selfStyle = new Style({ image: img });
-    } else {
-      this.selfStyle = new Style({
-        image: new Icon(vesselIconDef as Options)
-      });
-    }
+    this.selfStyle = new Style({
+      image: selfVesselIcon(this.mapImages, this.iconScale)
+    });
   }
 
   // build target style

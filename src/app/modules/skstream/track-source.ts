@@ -38,12 +38,20 @@ export const NO_TRACK_SOURCE: TrackSource = {
   v1AisTracks: false
 };
 
-/** Time window requested for AIS tracks (a multi-context query needs one). */
-export const AIS_TRACK_WINDOW = 'PT1H';
-/** Points per AIS track, so a busy harbour stays bounded. */
+/** Time window for "Show Track" (every AIS target in view); a multi-context
+ * query needs one. Two hours, as the tracks plugin kept before the Track API. */
+export const AIS_TRACK_WINDOW = 'PT2H';
+/** Points per AIS track under "Show Track", so a busy harbour stays bounded. */
 export const AIS_TRACK_MAX_POINTS = 120;
-/** Below this zoom the AIS track layer draws nothing, so nothing is fetched (#706). */
+/** Below this zoom "Show Track" draws and fetches nothing: the low-zoom view of
+ * every target is the expensive one (#706). Vessels picked one by one are not
+ * gated, since the user asked for each of them. */
 export const AIS_TRACK_MIN_ZOOM = 10;
+/** Points per track of a vessel picked with the per-vessel TRACK toggle: few
+ * vessels, over a window of hours (`vessels.aisTrackLength`). */
+export const AIS_PICK_MAX_POINTS = 1000;
+/** Default hours of track for a picked vessel (`vessels.aisTrackLength`). */
+export const AIS_PICK_DEFAULT_HOURS = 12;
 
 // ******** source selection ********
 
@@ -286,7 +294,9 @@ export function queryString(
 }
 
 /** URL for one own-vessel trail band. No `bbox`: the own vessel is a single
- * context, and a bbox would only hide the trail when the map is panned away. */
+ * context, and a bbox would only hide the trail when the map is panned away.
+ * `times` carries each point's recording time, which a tap on the trail is
+ * answered from. */
 export function trailBandUrl(
   tracksUrl: string,
   band: TrailBand,
@@ -297,6 +307,7 @@ export function trailBandUrl(
     from: band.from,
     to: band.to,
     resolution: band.resolution,
+    times: 'true',
     provider
   })}`;
 }
@@ -420,37 +431,50 @@ export interface AisTracksRequest {
   targets: { has(context: string): boolean };
   /** AIS max-radius box around own position, when a max radius is set. */
   radiusBox?: Extent | number[];
+  /** Hours of track for a picked vessel. */
+  pickHours?: number;
   provider?: string;
 }
 
 /** Query string for the AIS tracks request, or null when there is nothing to
- * fetch. "Show Track" on: every track in the viewport (∩ the max-radius box).
- * Off: only the picked vessels, by context — cheaper and exact. Nothing below
- * the zoom at which the track layer draws (the low-zoom viewport query is the
- * expensive one). */
+ * fetch. "Show Track" on: every track in the viewport (∩ the max-radius box),
+ * over a short window and not below the zoom at which the layer draws them
+ * (the low-zoom viewport query is the expensive one). Off: only the picked
+ * vessels, by context — cheaper and exact, at any zoom, over `pickHours`.
+ * Recording times come back too, so a tapped track can say when the vessel
+ * was there. */
 export function aisTracksQuery(req: AisTracksRequest): string | null {
-  if (!req.view || !(req.view.zoom >= AIS_TRACK_MIN_ZOOM)) {
-    return null;
-  }
-  const params: Record<string, string | number | undefined> = {
-    duration: AIS_TRACK_WINDOW,
-    maxPoints: AIS_TRACK_MAX_POINTS,
-    provider: req.provider
-  };
   if (req.showAll) {
+    if (!req.view || !(req.view.zoom >= AIS_TRACK_MIN_ZOOM)) {
+      return null;
+    }
     const bbox = viewportBbox(req.view.extent, req.radiusBox);
     if (!bbox) {
       return null;
     }
-    params.bbox = bbox.join(',');
-  } else {
-    const picks = req.picks.filter((id) => req.targets.has(id));
-    if (picks.length === 0) {
-      return null;
-    }
-    params.contexts = picks.join(',');
+    return queryString({
+      bbox: bbox.join(','),
+      duration: AIS_TRACK_WINDOW,
+      maxPoints: AIS_TRACK_MAX_POINTS,
+      times: 'true',
+      provider: req.provider
+    });
   }
-  return queryString(params);
+  const picks = req.picks.filter((id) => req.targets.has(id));
+  if (picks.length === 0) {
+    return null;
+  }
+  const hours =
+    Number.isFinite(req.pickHours) && req.pickHours > 0
+      ? req.pickHours
+      : AIS_PICK_DEFAULT_HOURS;
+  return queryString({
+    contexts: picks.join(','),
+    duration: `PT${hours}H`,
+    maxPoints: AIS_PICK_MAX_POINTS,
+    times: 'true',
+    provider: req.provider
+  });
 }
 
 /** Share of the viewport's width / height added on each side of the AIS

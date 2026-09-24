@@ -139,6 +139,10 @@ export class SKStreamFacade {
         this.onError.next(msg);
       } else if (msg.action === 'trail') {
         this.parseSelfTrail(msg as TrailMessage);
+      } else if (msg.action === 'aisTracksTimed') {
+        this.app.aisTracksTimed.set(
+          msg.result as Map<string, { lines: Position[][]; times: string[][] }>
+        );
       } else if (msg.action === 'trackSource') {
         this.setTrackSource(msg.result as TrackSource);
       } else {
@@ -358,6 +362,8 @@ export class SKStreamFacade {
   // ** record the detected track source and emit trackSource$ **
   private setTrackSource(source: TrackSource) {
     this.app.trackSource.set(source);
+    // times from another source (or none, on v1) no longer describe the tracks
+    this.app.aisTracksTimed.set(new Map());
     this.app.featureFlags.update((current) =>
       Object.assign({}, current, { tracksApi: source.api === 'v2' })
     );
@@ -370,10 +376,12 @@ export class SKStreamFacade {
       if (!this.app.data.serverTrail) {
         this.app.data.serverTrail = true;
       }
+      this.app.selfTrailTimed.set(msg.timed ?? null);
       this.onSelfTrail.next({ action: 'get', mode: 'trail', data: msg.result });
     } else {
       console.warn('Unable to fetch vessel trail from server.');
       this.app.data.serverTrail = false;
+      this.app.selfTrailTimed.set(null);
     }
   }
 

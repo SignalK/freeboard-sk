@@ -14,6 +14,7 @@ import {
   resolveTrailSource,
   TrackSource
 } from './modules/skstream/track-source';
+import { TimedTrack, TrailStamps } from './modules/skstream/track-history';
 import {
   MapViewport,
   mapCenterForOffset,
@@ -293,7 +294,19 @@ export class AppFacade extends InfoService {
     }
   });
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
+  // when each local trail point was logged (see stampTrailPoint)
+  private trailStamps = new TrailStamps();
   selfTrailFromServer = signal<MultiLineString>([]); // vessel trail from server
+  /** The server trail as recorded, with each point's time, for answering a tap
+   * on the trail (v2 Track API only; null otherwise). */
+  selfTrailTimed = signal<{ lines: Position[][]; times: string[][] } | null>(
+    null
+  );
+  /** AIS tracks from the v2 Track API as recorded, with each point's time,
+   * keyed by context, for answering a tap on a track. */
+  aisTracksTimed = signal<
+    Map<string, { lines: Position[][]; times: string[][] }>
+  >(new Map());
   mapExtent = signal<Extent>([]); // map viewport extent
   mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
   mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)
@@ -950,6 +963,25 @@ export class AppFacade extends InfoService {
       : false;
   }
 
+  /** Record when a point was added to the local trail, so a tap on the
+   * trail can say when the vessel was there. The time belongs to the logged
+   * point itself (see TrailStamps), kept beside the trail rather than in it:
+   * the trail is persisted and rewritten in several places, and a point
+   * restored without a time simply has none. */
+  stampTrailPoint(pt: Position, time?: string) {
+    this.trailStamps.stamp(
+      pt,
+      time ||
+        this.data.vessels.self?.positionTimestamp ||
+        new Date().toISOString()
+    );
+  }
+
+  /** The local trail as drawn, with the time each point was logged. */
+  localTrailTimed(): TimedTrack {
+    return this.trailStamps.timed(this.selfTrail());
+  }
+
   /** add point to self vessel track */
   addToSelfTrail(pt: Position) {
     this.selfTrail.update((current) => {
@@ -960,6 +992,7 @@ export class AppFacade extends InfoService {
       if (pt[0] === lastPoint[0] && pt[1] === lastPoint[1]) {
         return current;
       }
+      this.stampTrailPoint(pt);
       const st = [].concat(current);
       st.push(pt);
       return st;

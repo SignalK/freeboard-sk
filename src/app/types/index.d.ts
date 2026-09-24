@@ -102,6 +102,7 @@ export interface IAppConfig {
   };
   imageAdjustPalettePos: PalettePosition | null; // remembered drag offset of the chart Image Adjustment palette
   timePalettePos: PalettePosition | null; // remembered drag offset of the chart Time palette
+  trackHistoryPalettePos: PalettePosition | null; // remembered drag offset of the Track history palette
   display: {
     fab: MFBAction; // FAB button selection
     disableWakelock: boolean;
@@ -197,6 +198,7 @@ export interface IAppConfig {
     aisWindApparent: boolean;
     aisWindMinZoom: number;
     aisShowTrack: boolean;
+    aisTrackLength: number; // hours of track for a vessel picked with its TRACK toggle (Track API v2)
     trailSource: TrailSource; // own-vessel trail source: auto | server | local (this device)
     trailDuration: number; // number of hours of trail to fetch from server
     trailResolution: {

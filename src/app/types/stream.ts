@@ -6,6 +6,7 @@ import type {
   SubscribeMessage,
   Update
 } from '@signalk/server-api';
+import type { Position } from './resources/geojson';
 
 // Notification types
 export enum ALARM_STATE {
@@ -203,6 +204,11 @@ export class RadarMessage extends UpdateMessage {
 }
 
 export class TrailMessage extends UpdateMessage {
+  /** The trail as recorded, with each point's time (`times[i][j]` is when
+   * `lines[i][j]` was recorded), before the older bands are simplified for
+   * drawing. v2 Track API only. */
+  timed?: { lines: Position[][]; times: string[][] };
+
   constructor() {
     super();
     this.action = 'trail';

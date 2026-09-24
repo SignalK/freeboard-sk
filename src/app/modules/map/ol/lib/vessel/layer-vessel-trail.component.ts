@@ -184,8 +184,8 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
           // default server
           stroke: new Stroke({
             color: 'rgb(252, 3, 132)',
-            width: 1,
-            lineDash: [4, 4]
+            width: 2,
+            lineDash: [8, 6]
           })
         });
       }
@@ -197,8 +197,8 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
           // default local
           stroke: new Stroke({
             color: 'rgb(252, 3, 132)',
-            width: 1,
-            lineDash: [2, 2]
+            width: 2,
+            lineDash: [4, 4]
           })
         });
       }

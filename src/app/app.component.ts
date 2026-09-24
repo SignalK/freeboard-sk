@@ -926,6 +926,7 @@ export class AppComponent {
     const t = this.app.selfTrail().slice(-1);
     if (this.app.data.vessels.showSelf) {
       if (t.length === 0) {
+        this.app.stampTrailPoint(this.app.data.vessels.self.position);
         this.app.selfTrail.update((current) => {
           const st = [].concat(current);
           st.push(this.app.data.vessels.self.position);
@@ -937,6 +938,7 @@ export class AppComponent {
         this.app.data.vessels.self.position[0] !== t[0][0] ||
         this.app.data.vessels.self.position[1] !== t[0][1]
       ) {
+        this.app.stampTrailPoint(this.app.data.vessels.self.position);
         this.app.selfTrail.update((current) => {
           const st = [].concat(current);
           st.push(this.app.data.vessels.self.position);
@@ -962,6 +964,13 @@ export class AppComponent {
           : trailData.length > 1
             ? trailData[trailData.length - 2].slice(-1)
             : [];
+      // the local trail carries on from the server trail's last point: give
+      // it the server's time for it, so the two join into one passage
+      const timed = this.app.selfTrailTimed()?.times;
+      const lastTime = timed?.[timed.length - 1]?.slice(-1)[0];
+      if (lastpt[0] && lastTime) {
+        this.app.stampTrailPoint(lastpt[0], lastTime);
+      }
       this.app.selfTrail.update(() => lastpt);
     }
     const trailId = this.mode === SKSTREAM_MODE.PLAYBACK ? 'history' : 'self';

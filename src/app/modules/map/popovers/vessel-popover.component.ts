@@ -23,6 +23,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
 import { Position } from 'src/app/types';
 import { AppIconDef, getAisIcon } from '../../icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 
 @Component({
   selector: 'vessel-popover',
@@ -96,7 +97,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             <span
               [matTooltip]="
                 app.config.vessels.aisShowTrack
-                  ? 'Turn off &quot;Show All&quot; to enable'
+                  ? 'Turn off &quot;Show all tracks&quot; to enable'
                   : trackShown
                     ? 'Hide vessel track'
                     : 'Show vessel track'
@@ -108,6 +109,30 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                 [disabled]="app.config.vessels.aisShowTrack"
               >
                 <mat-icon>{{ trackShown ? 'layers_clear' : 'route' }}</mat-icon>
+              </button>
+            </span>
+          }
+          @if (trackHistory.available()) {
+            @let historyCtx = historyContext();
+            @let historyShown = trackHistory.isShown(historyCtx);
+            @let noHistory = trackHistory.hasHistory(historyCtx) === false;
+            <span
+              [matTooltip]="
+                historyShown
+                  ? 'Hide track history'
+                  : noHistory
+                    ? 'No recorded track history'
+                    : 'Show track history'
+              "
+            >
+              <button
+                mat-icon-button
+                (click)="toggleHistory(historyCtx)"
+                [disabled]="noHistory && !historyShown"
+              >
+                <mat-icon>{{
+                  historyShown ? 'history_toggle_off' : 'history'
+                }}</mat-icon>
               </button>
             </span>
           }
@@ -269,7 +294,13 @@ export class VesselPopoverComponent {
 
   protected app = inject(AppFacade);
   protected buddies = inject(Buddies);
+  protected trackHistory = inject(TrackHistoryService);
   private destroyRef = inject(DestroyRef);
+
+  /** The Track API context: the own vessel is asked for as `self`. */
+  protected historyContext(): string {
+    return this.isSelf() ? 'self' : this.vessel().id;
+  }
 
   /**
    * Format a wind speed (m/s) for display, honoring the per-path unit override
@@ -283,6 +314,7 @@ export class VesselPopoverComponent {
   }
 
   constructor() {
+    this.trackHistory.refreshRecorded();
     effect(() => {
       if (!this.vessel()) {
         this.handleClose();
@@ -396,6 +428,16 @@ export class VesselPopoverComponent {
 
   toggleTrack() {
     this.app.toggleVesselTrack(this.vessel().id);
+  }
+
+  /** Showing history opens the Track history palette, which the popover
+   * could otherwise hide, so the popover gets out of the way first. */
+  toggleHistory(context: string) {
+    const showing = !this.trackHistory.isShown(context);
+    this.trackHistory.toggle(context);
+    if (showing) {
+      this.handleClose();
+    }
   }
 
   toggleFlag() {

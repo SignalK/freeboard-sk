@@ -86,6 +86,14 @@ describe('AISTargetsTrackLayerComponent minimum-zoom gate (#706)', () => {
     c.reloadTracks();
     expect(c.source.getFeatures()).toHaveLength(0);
   });
+
+  it('draws a vessel picked with its TRACK toggle at any zoom', () => {
+    const c = layer(5);
+    Object.assign(c, { showAll: false, selectedIds: [ID] });
+    expect(c.okToRenderTracks()).toBe(true);
+    c.reloadTracks();
+    expect(c.source.getFeatureById('track-' + ID)).not.toBeNull();
+  });
 });
 
 describe('AISTargetsTrackLayerComponent.parseCoordinates', () => {

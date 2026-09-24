@@ -59,6 +59,9 @@ export function cleanConfig(
   if (typeof settings.timePalettePos === 'undefined') {
     settings.timePalettePos = null;
   }
+  if (typeof settings.trackHistoryPalettePos === 'undefined') {
+    settings.trackHistoryPalettePos = null;
+  }
 
   if (typeof settings.display === 'undefined') {
     settings.display = {
@@ -263,6 +266,7 @@ export function cleanConfig(
       aisWindApparent: false,
       aisWindMinZoom: 15,
       aisShowTrack: false,
+      aisTrackLength: 12,
       trailSource: 'auto',
       trailDuration: 24,
       trailResolution: {
@@ -278,6 +282,9 @@ export function cleanConfig(
       settings.vessels.trailSource
     );
     delete settings.vessels.trailFromServer;
+    if (typeof settings.vessels.aisTrackLength === 'undefined') {
+      settings.vessels.aisTrackLength = 12;
+    }
     if (typeof settings.vessels.rangeCircleCount === 'undefined') {
       settings.vessels.rangeCircleCount = 4;
     }
@@ -525,6 +532,7 @@ export function defaultConfig(): IAppConfig {
     },
     imageAdjustPalettePos: null,
     timePalettePos: null,
+    trackHistoryPalettePos: null,
     display: {
       fab: 'wpt', // default FAB button
       disableWakelock: false,
@@ -626,6 +634,7 @@ export function defaultConfig(): IAppConfig {
       aisWindApparent: false,
       aisWindMinZoom: 15,
       aisShowTrack: false,
+      aisTrackLength: 12, // hours of track for a vessel picked with its TRACK toggle
       trailSource: 'auto',
       trailDuration: 24, // number of hours of trail to fetch from server
       trailResolution: {
