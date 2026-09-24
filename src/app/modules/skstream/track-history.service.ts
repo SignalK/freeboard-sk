@@ -23,8 +23,20 @@ import {
   parseHistoryContexts,
   parseHistorySpan,
   parseHistoryTrack,
+  poseAt,
   presetRange
 } from './track-history';
+import { Position } from 'src/app/types';
+
+/** A shown vessel drawn where it was at the scrubbed time. */
+export interface TrackHistoryGhost {
+  context: string;
+  position: Position;
+  /** Radians clockwise from north. */
+  heading: number;
+  /** AIS ship type, for the vessel's icon; undefined for the own vessel. */
+  typeId?: number;
+}
 import { needsAisRefetch, padExtent, viewportBbox } from './track-source';
 
 /** Share of the viewport added on each side of the history box, so small pans
@@ -68,6 +80,32 @@ export class TrackHistoryService {
   readonly recorded = signal<Set<string> | null>(null);
   /** A v2 Track API provider is available. */
   readonly available = computed(() => this.app.featureFlags().tracksApi);
+  /** The time the history is scrubbed to; null is live (now), which shows no
+   * ghost vessels. */
+  readonly scrubTime = signal<number | null>(null);
+  /** Where each shown vessel was at the scrubbed time, for drawing a ghost of
+   * it there. A vessel with nothing recorded at that time has none. */
+  readonly ghosts = computed<TrackHistoryGhost[]>(() => {
+    const t = this.scrubTime();
+    if (t === null) {
+      return [];
+    }
+    const ghosts: TrackHistoryGhost[] = [];
+    this.tracks().forEach((track, context) => {
+      const pose = poseAt(track.lines, track.times, t);
+      if (pose) {
+        ghosts.push({
+          context,
+          ...pose,
+          typeId:
+            context === 'self'
+              ? undefined
+              : this.app.data.vessels.aisTargets.get(context)?.type?.id
+        });
+      }
+    });
+    return ghosts;
+  });
 
   private view: { extent: number[]; zoom: number } | null = null;
   private fetched: { extent: number[]; zoom: number } | null = null;
@@ -159,6 +197,7 @@ export class TrackHistoryService {
     this.spans.set(new Map());
     this.range.set(HISTORY_ALL);
     this.preset.set('all');
+    this.scrubTime.set(null);
     this.fetched = null;
     const ref = this.paletteRef;
     this.paletteRef = undefined;
@@ -175,6 +214,11 @@ export class TrackHistoryService {
     this.range.set(range);
     this.preset.set(preset);
     this.schedule();
+  }
+
+  /** Scrub the history to a time; null returns it to live. */
+  setScrub(t: number | null) {
+    this.scrubTime.set(t);
   }
 
   /** The map viewport (lon/lat) and zoom, after every move-end. */

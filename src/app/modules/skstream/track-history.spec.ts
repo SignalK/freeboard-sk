@@ -14,6 +14,10 @@ import {
   parseHistorySpan,
   parseHistoryTrack,
   parseTimedTracks,
+  poseAt,
+  nextPlaybackTime,
+  stepScrubTime,
+  bearingBetween,
   presetRange,
   rangeParams,
   rangeToLoop,
@@ -335,5 +339,97 @@ describe('track-history tapped segment', () => {
     expect(durationLabel(2 * HOUR + 15 * MIN)).toBe('2 h 15 min');
     expect(durationLabel(3 * DAY + 4 * HOUR)).toBe('3 d 4 h');
     expect(durationLabel(2 * DAY)).toBe('2 d');
+  });
+});
+
+describe('track-history scrubbing', () => {
+  const line: [number, number][] = [
+    [0, 0],
+    [0, 1],
+    [1, 1],
+    [1, 0]
+  ];
+  const times = [
+    '2026-09-20T00:00:00Z',
+    '2026-09-20T01:00:00Z',
+    '2026-09-20T02:00:00Z',
+    '2026-09-20T03:00:00Z'
+  ];
+  const at = (iso: string) => Date.parse(iso);
+
+  it('measures bearings clockwise from north', () => {
+    expect(bearingBetween([0, 0], [0, 1])).toBeCloseTo(0);
+    expect(bearingBetween([0, 0], [1, 0])).toBeCloseTo(Math.PI / 2);
+    expect(bearingBetween([0, 1], [0, 0])).toBeCloseTo(Math.PI);
+  });
+
+  it('interpolates the position between the recorded points either side', () => {
+    const p = poseAt([line], [times], at('2026-09-20T00:30:00Z'));
+    expect(p.position[0]).toBeCloseTo(0);
+    expect(p.position[1]).toBeCloseTo(0.5);
+  });
+
+  it('points the vessel at the recorded point two ahead', () => {
+    // between points 0 and 1: two ahead is [1, 1], north-east of [0, 0.5]
+    const p = poseAt([line], [times], at('2026-09-20T00:30:00Z'));
+    expect(p.heading).toBeGreaterThan(0);
+    expect(p.heading).toBeLessThan(Math.PI / 2);
+  });
+
+  it('at the end of a stretch, keeps the heading it arrived on', () => {
+    const p = poseAt([line], [times], at('2026-09-20T03:00:00Z'));
+    expect(p.position).toEqual([1, 0]);
+    // from [0, 1] (two before the end) to [1, 0]: south-east
+    expect(p.heading).toBeGreaterThan(Math.PI / 2);
+    expect(p.heading).toBeLessThan(Math.PI);
+  });
+
+  it('is undefined outside the record and in a gap between stretches', () => {
+    const later: [number, number][] = [[5, 5]];
+    const laterTimes = ['2026-09-20T06:00:00Z'];
+    const lines = [line, later];
+    const ts = [times, laterTimes];
+    expect(poseAt(lines, ts, at('2026-09-19T00:00:00Z'))).toBeUndefined();
+    expect(poseAt(lines, ts, at('2026-09-20T04:00:00Z'))).toBeUndefined();
+    expect(poseAt(lines, ts, at('2026-09-21T00:00:00Z'))).toBeUndefined();
+    expect(poseAt(lines, ts, at('2026-09-20T06:00:00Z')).position).toEqual([
+      5, 5
+    ]);
+    expect(poseAt([line], undefined, at(times[1]))).toBeUndefined();
+  });
+
+  it('interpolates across the antimeridian the short way', () => {
+    const p = poseAt(
+      [
+        [
+          [179, 0],
+          [-179, 0]
+        ]
+      ],
+      [['2026-09-20T00:00:00Z', '2026-09-20T01:00:00Z']],
+      at('2026-09-20T00:15:00Z')
+    );
+    expect(p.position[0]).toBeCloseTo(179.5);
+  });
+});
+
+describe('track-history playback', () => {
+  const loop = { min: 100, max: 200 };
+
+  it('starts at the range start, steps on, shows the end, then wraps', () => {
+    expect(nextPlaybackTime(null, loop, 30)).toBe(100);
+    expect(nextPlaybackTime(50, loop, 30)).toBe(100);
+    expect(nextPlaybackTime(100, loop, 30)).toBe(130);
+    expect(nextPlaybackTime(190, loop, 30)).toBe(200);
+    expect(nextPlaybackTime(200, loop, 30)).toBe(100);
+  });
+
+  it('steps the scrubber by one grid step, clamped, with the end meaning live', () => {
+    const axis = { min: 0, max: 100, step: 10 };
+    expect(stepScrubTime(null, -1, axis)).toBe(90);
+    expect(stepScrubTime(null, 1, axis)).toBeNull();
+    expect(stepScrubTime(90, 1, axis)).toBeNull();
+    expect(stepScrubTime(40, 1, axis)).toBe(50);
+    expect(stepScrubTime(0, -1, axis)).toBe(0);
   });
 });

@@ -226,6 +226,40 @@ describe('TrackHistoryService', () => {
     expect(service.tracks().size).toBe(0);
   });
 
+  it('places a ghost of each shown vessel at the scrubbed time, and none when live', () => {
+    answer = () =>
+      of(
+        trackFc(
+          [
+            [
+              [-81.9, 24.5],
+              [-81.8, 24.5],
+              [-81.7, 24.5]
+            ]
+          ],
+          [
+            [
+              '2026-09-20T00:00:00Z',
+              '2026-09-20T01:00:00Z',
+              '2026-09-20T02:00:00Z'
+            ]
+          ]
+        )
+      );
+    service.toggle('self');
+    expect(service.ghosts()).toEqual([]);
+    service.setScrub(Date.parse('2026-09-20T00:30:00Z'));
+    const [g] = service.ghosts();
+    expect(g.context).toBe('self');
+    expect(g.position[0]).toBeCloseTo(-81.85);
+    expect(g.heading).toBeCloseTo(Math.PI / 2, 1); // heading east
+    service.setScrub(Date.parse('2026-09-21T00:00:00Z')); // nothing recorded then
+    expect(service.ghosts()).toEqual([]);
+    service.setScrub(Date.parse('2026-09-20T00:30:00Z'));
+    service.clear();
+    expect(service.scrubTime()).toBeNull();
+  });
+
   it('hides everything when the palette is closed', () => {
     service.toggle('self');
     afterClosed.next();

@@ -249,6 +249,14 @@
     <fb-track-history [tracks]="trackHistory.tracks()" [zIndex]="105">
     </fb-track-history>
   }
+  @if (trackHistory.ghosts().length > 0) {
+    <fb-track-history-ghosts
+      [ghosts]="trackHistory.ghosts()"
+      [iconScale]="app.config.vessels.iconScale"
+      [zIndex]="995"
+    >
+    </fb-track-history-ghosts>
+  }
 
   <!-- AIS target tracks -->
   @if (

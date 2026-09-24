@@ -148,6 +148,7 @@ import {
   GridSample
 } from './ol/lib/tidal-currents.service';
 import { TRACK_HISTORY_ID } from './ol/lib/vessel/layer-track-history.component';
+import { trackTimesHiddenByVessel } from './track-time-taps';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
@@ -1784,6 +1785,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         fa.push(feature);
       }
     });
+
+    trackTimesHiddenByVessel(featureList.keys()).forEach((id) =>
+      featureList.delete(id)
+    );
 
     if (chartBoundsFeatures.size > 0) {
       // show list of chart features

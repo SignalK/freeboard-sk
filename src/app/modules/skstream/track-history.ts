@@ -384,6 +384,114 @@ export function trackTimeInfo(
   return best < 0 ? undefined : segmentTimeInfo(lines[best], times[best], at);
 }
 
+// ******** scrubbing: where a vessel was at a time ********
+
+/** How many recorded points ahead of the scrubbed position the ghost vessel
+ * is pointed at: far enough to smooth jitter, near enough to follow a turn. */
+export const GHOST_HEADING_LOOKAHEAD = 2;
+
+/** Initial great-circle bearing from `a` to `b`, in radians clockwise from
+ * north ([0, 2π)), as vessel headings and OpenLayers icon rotation use. */
+export function bearingBetween(a: Position, b: Position): number {
+  const rad = Math.PI / 180;
+  const f1 = a[1] * rad;
+  const f2 = b[1] * rad;
+  const dl = (b[0] - a[0]) * rad;
+  const y = Math.sin(dl) * Math.cos(f2);
+  const x =
+    Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+  return (Math.atan2(y, x) + 2 * Math.PI) % (2 * Math.PI);
+}
+
+/** Where a vessel was at time `t` along its recorded track, and which way it
+ * was heading: interpolated between the two recorded points either side of
+ * `t`, and pointed at the recorded point {@link GHOST_HEADING_LOOKAHEAD} ahead
+ * (or, at the end of a stretch of recording, from the same distance behind).
+ * Undefined when `t` falls outside every recorded stretch — before the
+ * record, after it, or in a gap. */
+export function poseAt(
+  lines: Position[][],
+  times: string[][] | undefined,
+  t: number
+): { position: Position; heading: number } | undefined {
+  if (!Array.isArray(times)) {
+    return undefined;
+  }
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const ts = times[i]?.map((v) => Date.parse(v));
+    if (!ts || ts.length !== line.length || line.length === 0) {
+      continue;
+    }
+    if (!(t >= ts[0] && t <= ts[ts.length - 1])) {
+      continue;
+    }
+    // last recorded point at or before t
+    let lo = 0;
+    let hi = ts.length - 1;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (ts[mid] <= t) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    const a = line[lo];
+    const b = line[Math.min(lo + 1, line.length - 1)];
+    const span = ts[Math.min(lo + 1, ts.length - 1)] - ts[lo];
+    const f = span > 0 ? (t - ts[lo]) / span : 0;
+    // unwrap across the antimeridian before interpolating
+    let bLon = b[0];
+    if (bLon - a[0] > 180) bLon -= 360;
+    if (a[0] - bLon > 180) bLon += 360;
+    let lon = a[0] + (bLon - a[0]) * f;
+    lon = ((((lon + 180) % 360) + 360) % 360) - 180;
+    const position: Position = [lon, a[1] + (b[1] - a[1]) * f];
+
+    const ahead = lo + GHOST_HEADING_LOOKAHEAD;
+    const heading =
+      ahead < line.length
+        ? bearingBetween(position, line[ahead])
+        : line.length > 1
+          ? bearingBetween(
+              line[Math.max(0, line.length - 1 - GHOST_HEADING_LOOKAHEAD)],
+              line[line.length - 1]
+            )
+          : 0;
+    return { position, heading };
+  }
+  return undefined;
+}
+
+/** The next playback time: one step on through the selected range, wrapping
+ * back to its start after showing its end. Playback starts at the range start
+ * from live, or from a scrub outside the range. */
+export function nextPlaybackTime(
+  current: number | null,
+  loop: { min: number; max: number },
+  step: number
+): number {
+  if (current === null || current < loop.min || current >= loop.max) {
+    return loop.min;
+  }
+  return Math.min(current + step, loop.max);
+}
+
+/** One manual step of the scrubber, clamped to the bar; stepping to its end
+ * (now) returns to live (null). Live steps back from the end. */
+export function stepScrubTime(
+  current: number | null,
+  direction: -1 | 1,
+  axis: { min: number; max: number; step: number }
+): number | null {
+  const next = Math.min(
+    axis.max,
+    Math.max(axis.min, (current ?? axis.max) + direction * axis.step)
+  );
+  return next >= axis.max ? null : next;
+}
+
 // ******** palette placement ********
 
 /** A saved palette drag offset brought back on screen, relative to where the

@@ -10,11 +10,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CdkDrag, CdkDragEnd, CdkDragHandle } from '@angular/cdk/drag-drop';
 
 import { ChartTimeBar, ChartTimeLoop } from './chart-time-bar';
-import { chartTimeShortLabel } from './chart-time-dialog';
+import {
+  CHART_TIME_PLAYBACK_MS,
+  ChartTimePlaybackSpeed,
+  chartTimeShortLabel
+} from './chart-time-dialog';
 import { PalettePosition } from 'src/app/types';
 // type-only: the service opens this palette, so a value import would be a cycle
 import type { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
@@ -22,7 +28,9 @@ import {
   HistoryPreset,
   historyAxis,
   loopToRange,
-  rangeToLoop
+  nextPlaybackTime,
+  rangeToLoop,
+  stepScrubTime
 } from 'src/app/modules/skstream/track-history';
 
 export interface TrackHistoryDialogData {
@@ -36,9 +44,11 @@ const CLOCK_TICK_MS = 60000;
 
 /**
  * Modeless, draggable palette for recorded track history (#821): the vessels
- * whose history is shown, and the one time range shown for all of them, as
- * quick choices and as a from/to range bar over the whole recorded span.
- * Closing it hides every history layer.
+ * whose history is shown, the one time range shown for all of them (quick
+ * choices, and the from/to handles of the bar over the whole recorded span),
+ * and a scrubber — the bar's playhead, stepped or played through the range —
+ * that puts a ghost of each vessel where it was at that time. Closing it
+ * hides every history layer.
  */
 @Component({
   selector: 'ap-track-history-dialog',
@@ -48,15 +58,42 @@ const CLOCK_TICK_MS = 60000;
     MatButtonModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    MatFormFieldModule,
+    MatSelectModule,
     ChartTimeBar,
     CdkDrag,
     CdkDragHandle
   ],
   styles: `
+    .section-title {
+      padding: 8px 16px 0;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      opacity: 0.7;
+    }
     .presets {
       display: flex;
       gap: 4px;
       padding: 4px 12px 0;
+    }
+    .group {
+      margin: 10px 12px 0;
+      padding: 0 4px 4px;
+      border: 1px solid rgba(127, 127, 127, 0.4);
+      border-radius: 6px;
+    }
+    .group legend {
+      padding: 0 4px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      opacity: 0.7;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
     }
     .presets button {
       min-width: 0;
@@ -72,7 +109,7 @@ const CLOCK_TICK_MS = 60000;
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
-      padding: 6px 12px 0;
+      padding: 2px 4px 4px;
     }
     .vessel {
       display: flex;
@@ -99,6 +136,24 @@ const CLOCK_TICK_MS = 60000;
       font-size: 16px;
       width: 16px;
       height: 16px;
+    }
+    /* Compact select, as on the chart time palette. */
+    ._ap-speed {
+      width: 92px;
+      font-size: 11px;
+    }
+    ._ap-speed ::ng-deep .mat-mdc-text-field-wrapper {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    ._ap-speed ::ng-deep .mat-mdc-form-field-infix {
+      min-height: 30px;
+      padding-top: 6px;
+      padding-bottom: 4px;
+    }
+    ._ap-speed ::ng-deep .mat-mdc-select-value,
+    ._ap-speed ::ng-deep .mat-mdc-floating-label {
+      font-size: 11px;
     }
     .status {
       display: flex;
@@ -136,13 +191,26 @@ const CLOCK_TICK_MS = 60000;
         </button>
       </div>
 
-      <div
-        style="padding: 0 16px; font-size: 12px; opacity: 0.8;"
-        aria-live="polite"
-      >
-        {{ rangeText() }}
-      </div>
+      <fieldset class="group">
+        <legend>Vessels</legend>
+        <div class="vessels">
+          @for (c of history.shown(); track c) {
+            <div class="vessel">
+              <span [title]="history.label(c)">{{ history.label(c) }}</span>
+              <button
+                mat-icon-button
+                [attr.aria-label]="'Hide history of ' + history.label(c)"
+                matTooltip="Hide this vessel's history"
+                (click)="history.remove(c)"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      </fieldset>
 
+      <div class="section-title">Range: {{ rangeText() }}</div>
       <div class="presets" role="group" aria-label="Quick ranges">
         @for (p of presets; track p.id) {
           <button
@@ -156,33 +224,80 @@ const CLOCK_TICK_MS = 60000;
         }
       </div>
 
-      <ap-chart-time-bar
-        style="padding: 4px 4px 0"
-        [min]="axis().min"
-        [max]="axis().max"
-        [step]="axis().step"
-        [position]="null"
-        [loop]="loop()"
-        [label]="thumbLabel"
-        [names]="handleNames"
-        (loopChange)="onLoop($event)"
-      />
-
-      <div class="vessels">
-        @for (c of history.shown(); track c) {
-          <div class="vessel">
-            <span [title]="history.label(c)">{{ history.label(c) }}</span>
-            <button
-              mat-icon-button
-              [attr.aria-label]="'Hide history of ' + history.label(c)"
-              matTooltip="Hide this vessel's history"
-              (click)="history.remove(c)"
+      <fieldset class="group">
+        <legend>Playback</legend>
+        <div
+          style="padding: 0 8px; font-size: 15px; font-weight: 500;"
+          aria-live="polite"
+        >
+          {{ scrubText() }}
+        </div>
+        <ap-chart-time-bar
+          style="padding: 4px 0 0"
+          [min]="axis().min"
+          [max]="axis().max"
+          [step]="axis().step"
+          [position]="head()"
+          [loop]="loop()"
+          [label]="thumbLabel"
+          [names]="handleNames"
+          (positionChange)="onScrub($event)"
+          (loopChange)="onLoop($event)"
+        />
+        <div class="controls">
+          <button
+            mat-icon-button
+            aria-label="Step back"
+            matTooltip="Step back"
+            (click)="step(-1)"
+          >
+            <mat-icon>navigate_before</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            [attr.aria-label]="playing() ? 'Pause' : 'Play'"
+            [matTooltip]="playing() ? 'Pause' : 'Play'"
+            (click)="togglePlay()"
+          >
+            <mat-icon>{{ playing() ? 'pause' : 'play_arrow' }}</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            aria-label="Step forward"
+            matTooltip="Step forward"
+            [disabled]="history.scrubTime() === null"
+            (click)="step(1)"
+          >
+            <mat-icon>navigate_next</mat-icon>
+          </button>
+          <mat-form-field
+            class="_ap-speed"
+            appearance="outline"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>Speed</mat-label>
+            <mat-select
+              [value]="speed()"
+              (valueChange)="setSpeed($event)"
+              aria-label="Playback speed"
             >
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-        }
-      </div>
+              <mat-option value="slow">Slow</mat-option>
+              <mat-option value="medium">Medium</mat-option>
+              <mat-option value="fast">Fast</mat-option>
+              <mat-option value="xfast">X-fast</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <span style="flex: 1 1 auto"></span>
+          <button
+            mat-button
+            matTooltip="Return to the vessels' current positions"
+            [disabled]="history.scrubTime() === null"
+            (click)="goLive()"
+          >
+            NOW
+          </button>
+        </div>
+      </fieldset>
 
       <div class="status">
         @if (history.pending() > 0) {
@@ -227,6 +342,14 @@ export class TrackHistoryDialog {
     rangeToLoop(this.history.range(), this.axis())
   );
 
+  /** The playhead: the scrubbed time, or the end of the bar (now) when live. */
+  protected head = computed(() => this.history.scrubTime() ?? this.axis().max);
+
+  protected scrubText = computed(() => {
+    const t = this.history.scrubTime();
+    return t === null ? 'Now' : this.thumbLabel(t);
+  });
+
   protected rangeText = computed(() => {
     const r = this.history.range();
     if (r.from === null && r.to === null) {
@@ -249,9 +372,71 @@ export class TrackHistoryDialog {
     return `${points} points shown`;
   });
 
+  protected playing = signal(false);
+  protected speed = signal<ChartTimePlaybackSpeed>('medium');
+  private playTimer?: ReturnType<typeof setInterval>;
+
   constructor() {
     const timer = setInterval(() => this.now.set(Date.now()), CLOCK_TICK_MS);
-    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(timer);
+      this.stopPlayback();
+    });
+  }
+
+  /** Scrub from the bar; the end of the bar (now) is live. */
+  protected onScrub(t: number) {
+    this.history.setScrub(t >= this.axis().max ? null : t);
+  }
+
+  protected step(direction: -1 | 1) {
+    this.history.setScrub(
+      stepScrubTime(this.history.scrubTime(), direction, this.axis())
+    );
+  }
+
+  protected goLive() {
+    this.stopPlayback();
+    this.history.setScrub(null);
+  }
+
+  protected togglePlay() {
+    if (this.playing()) {
+      this.stopPlayback();
+      return;
+    }
+    this.playing.set(true);
+    this.tick();
+    this.startTimer();
+  }
+
+  protected setSpeed(speed: ChartTimePlaybackSpeed) {
+    this.speed.set(speed);
+    // a running playback picks the new pace up at once
+    if (this.playing()) {
+      clearInterval(this.playTimer);
+      this.startTimer();
+    }
+  }
+
+  private startTimer() {
+    this.playTimer = setInterval(
+      () => this.tick(),
+      CHART_TIME_PLAYBACK_MS[this.speed()]
+    );
+  }
+
+  /** One step of playback through the selected range. */
+  private tick() {
+    this.history.setScrub(
+      nextPlaybackTime(this.history.scrubTime(), this.loop(), this.axis().step)
+    );
+  }
+
+  private stopPlayback() {
+    clearInterval(this.playTimer);
+    this.playTimer = undefined;
+    this.playing.set(false);
   }
 
   protected onLoop(loop: ChartTimeLoop) {

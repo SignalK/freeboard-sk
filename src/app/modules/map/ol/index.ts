@@ -34,6 +34,7 @@ import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 import { TrackHistoryLayerComponent } from './lib/vessel/layer-track-history.component';
+import { TrackHistoryGhostLayerComponent } from './lib/vessel/layer-track-history-ghosts.component';
 import { FBFeatureLayerComponent } from './lib/sk-feature.component';
 import { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
 import { AISFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
@@ -147,6 +148,7 @@ const declarations = [
   VesselComponent,
   VesselTrailComponent,
   TrackHistoryLayerComponent,
+  TrackHistoryGhostLayerComponent,
   DirectionOfTravelComponent,
   FBFeatureLayerComponent,
   RacingStartLineLayerComponent,
