@@ -4,7 +4,7 @@ title: Vessel Tracks
 category: Tracks
 ---
 
-![Fig 1. The "Show vessel track" button in a vessel's popover](vessel-tracks-1.jpg)
+![Fig 1. A vessel's popover: its track button, and the history button beside it](vessel-tracks-1.jpg)
 
 See where your own boat has been, and where other AIS vessels have been, as a
 track (trail) drawn on the chart.
@@ -37,25 +37,43 @@ In the chart's context menu (right-click, or long-press on a touch screen),
 same item reads **Clear Trail** and deletes it. **Trail to Route** turns the
 track into a route.
 
+![Fig 2. Tapping the trail shows when you were there](vessel-tracks-2.jpg)
+
+Tap your trail to see when that stretch was recorded, **From** and **To**,
+how long it lasted, and when you were at the spot you tapped (**Here at**).
+Tapping the boat itself still opens its usual popover.
+
 ## Other vessels' tracks
 
-**To show every vessel's track at once**, turn on **Show Track** under
-**Settings → Vessels → Other Vessels**. The tracks of the vessels on screen
-draw on the chart, and they follow the chart as you pan to a new area. Tracks
-are drawn when you are zoomed in, not when zoomed far out.
+![Fig 3. Other Vessels settings](vessel-tracks-3.jpg)
+
+**To show every vessel's track at once**, turn on **Show all tracks** under
+**Settings → Vessels → Other Vessels**. The last two hours of each track are
+drawn for the vessels on screen, and they follow the chart as you pan to a
+new area. These tracks are drawn only when zoomed in (zoom level 10 or
+closer), so a crowded chart zoomed far out stays readable.
 
 **To follow just one or two vessels** instead of cluttering the chart with
 everyone's track, leave that setting off and pick vessels individually. Tap a
 vessel on the chart to open its popover, or find it in the AIS vessel list.
 Then use the **track** button (labelled **TRACK** in the list) to turn its
-track on or off. Your picks apply for the current session only; they aren't
-saved between visits.
+track on or off. A picked vessel's track shows at any zoom, and
+**Picked vessel track length** sets how far back it reaches (12 hours by
+default). Your picks apply for the current session only; they aren't saved
+between visits.
 
-The per-vessel picker is only available while **Show Track** is off. With it
-on, every vessel is already shown, so there's nothing to pick.
+The per-vessel picker and its length setting are only available while
+**Show all tracks** is off. With it on, every vessel is already shown, so
+there's nothing to pick.
+
+Tap another vessel's track to see when it was recorded and when the vessel
+was at that spot, just as for your own trail.
 
 Vessels hidden by **Hide Moored** or **Hide Anchored** don't have their tracks
 drawn either.
+
+To see a vessel's whole recorded track, beyond these recent hours, see
+**Track History & Playback**.
 
 ## Where the tracks come from
 
