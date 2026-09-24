@@ -595,14 +595,15 @@ function getAISTracksV2(provider?: string) {
 }
 
 /** Apply AIS tracks from a v2 response to the held targets. The set of
- * server-tracked targets is rebuilt from each response, so a target that
- * drops out of it is trimmed back to the short client tail on its next
- * position. A target that has not reported a position yet is skipped:
- * appendTrack() extends the track with the current position. */
+ * server-tracked targets is rebuilt from each response, and a target that
+ * drops out of it is cut back to the short client tail straight away. A
+ * target that has not reported a position yet is skipped: appendTrack()
+ * extends the track with the current position. */
 export function applyServerAisTracks(
   targets: Map<string, SKVessel>,
   tracks: Map<string, Position[][]>
 ) {
+  const previous = [...serverTracked];
   serverTracked.clear();
   tracks.forEach((lines, context) => {
     const v = targets.get(context);
@@ -613,6 +614,15 @@ export function applyServerAisTracks(
       appendTrack(v);
     }
   });
+  previous
+    .filter((context) => !serverTracked.has(context))
+    .forEach((context) => {
+      const v = targets.get(context);
+      const last = v?.track?.[v.track.length - 1];
+      if (last) {
+        v.track = [last.slice(0 - aisMgr.maxTrack)];
+      }
+    });
 }
 
 // fetch other vessel tracks

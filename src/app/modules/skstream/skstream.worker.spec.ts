@@ -256,7 +256,22 @@ describe('skstream.worker applyServerAisTracks — v2 AIS tracks (#820)', () => 
     expect(v.track).toBe(before);
   });
 
-  it('trims a target back to the client tail once it leaves the response', () => {
+  it('trims a target back to the client tail as soon as it leaves the response', () => {
+    const v = target([-80, 25]);
+    v.id = 'vessels.a';
+    const targets = new Map([['vessels.a', v]]);
+    applyServerAisTracks(
+      targets,
+      new Map([['vessels.a', [line(10), line(30)]]])
+    );
+
+    applyServerAisTracks(targets, new Map()); // no longer in the response
+
+    expect(v.track).toHaveLength(1);
+    expect(v.track[0]).toHaveLength(20);
+  });
+
+  it('keeps the client tail once a trimmed target reports again', () => {
     const v = target([-80, 25]);
     v.id = 'vessels.a';
     const targets = new Map([['vessels.a', v]]);
