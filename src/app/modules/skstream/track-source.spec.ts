@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   aisTracksQuery,
+  createRequestGate,
   detectTrackSource,
   migrateTrailSource,
   needsAisRefetch,
@@ -550,5 +551,23 @@ describe('track-source AIS re-query on move-end', () => {
     expect(viewportBbox([-82.13, 24.25, -81.42000000000002, 24.74])).toEqual([
       -82.13, 24.25, -81.42, 24.74
     ]);
+  });
+});
+
+describe('track-source createRequestGate', () => {
+  it('lets only the latest request apply, whatever order responses arrive in', () => {
+    const gate = createRequestGate();
+    const older = gate.begin();
+    const newer = gate.begin();
+    expect(gate.isCurrent(newer)).toBe(true);
+    expect(gate.isCurrent(older)).toBe(false); // late response is discarded
+  });
+
+  it('supersedes every in-flight request on invalidate', () => {
+    const gate = createRequestGate();
+    const inFlight = gate.begin();
+    gate.invalidate(); // new stream
+    expect(gate.isCurrent(inFlight)).toBe(false);
+    expect(gate.isCurrent(gate.begin())).toBe(true);
   });
 });

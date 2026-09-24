@@ -28,6 +28,7 @@ import {
 import {
   AIS_TRACK_BBOX_PAD,
   aisTracksQuery,
+  createRequestGate,
   detectTrackSource,
   needsAisRefetch,
   padExtent,
@@ -135,6 +136,8 @@ const AIS_TRACK_DEBOUNCE = 1000;
 // AIS targets whose track came from the v2 Track API: their track is not cut
 // back to the short client-side tail between polls
 const serverTracked = new Set<string>();
+// AIS track requests overlap (poll, move-end, picks); only the latest applies
+const aisTracksGate = createRequestGate();
 const SERVER_TRACK_TAIL_CAP = 5000;
 
 // ** AIS target management **
@@ -197,6 +200,7 @@ export function initVessels() {
   // flag to indicate at least one position data message received
   vessels.self.positionReceived = false;
   serverTracked.clear();
+  aisTracksGate.invalidate();
 
   initAisTargetStatus();
 }
@@ -585,10 +589,14 @@ function getAISTracksV2(provider?: string) {
   if (!query) {
     return;
   }
+  const token = aisTracksGate.begin();
   trackApiGet(`${tracksApiUrl(apiUrl)}?${query}`)
-    .then((fc) =>
-      applyServerAisTracks(vessels.aisTargets, parseAisTracks(fc, provider))
-    )
+    .then((fc) => {
+      // a later request (or a new stream / playback) supersedes this one
+      if (aisTracksGate.isCurrent(token) && !playbackMode) {
+        applyServerAisTracks(vessels.aisTargets, parseAisTracks(fc, provider));
+      }
+    })
     .catch(() => {
       //console.warn('Unable to fetch AIS tracks!');
     });

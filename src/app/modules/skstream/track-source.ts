@@ -487,3 +487,18 @@ export function needsAisRefetch(
   const [lw, ls, le, ln] = last.extent;
   return w < lw || s < ls || e > le || n > ln;
 }
+
+/** Latest-request-wins gate for overlapping async requests. `begin()` returns
+ * a token for a new request and supersedes every earlier one; `invalidate()`
+ * supersedes them all (e.g. on a new stream). Apply a response only while
+ * `isCurrent(token)`. */
+export function createRequestGate() {
+  let generation = 0;
+  return {
+    begin: (): number => ++generation,
+    invalidate: (): void => {
+      generation++;
+    },
+    isCurrent: (token: number): boolean => token === generation
+  };
+}
