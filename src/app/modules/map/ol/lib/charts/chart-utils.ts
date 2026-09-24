@@ -479,7 +479,7 @@ export interface ApplyMapStyleDeps {
     style: MapStyleDocument | string,
     options: { styleUrl: string }
   ) => Promise<unknown>;
-  makeResilient?: (group: LayerGroup) => void;
+  makeResilient?: (group: LayerGroup) => (() => void) | void;
 }
 
 /**
@@ -505,7 +505,7 @@ export async function applyMapStyle(
   group: LayerGroup,
   url: string,
   deps: ApplyMapStyleDeps = {}
-): Promise<void> {
+): Promise<() => void> {
   const {
     fetchImpl = fetch,
     applyFn = apply,
@@ -513,6 +513,7 @@ export async function applyMapStyle(
   } = deps;
   let style: MapStyleDocument | string = url;
   let styleUrl = url;
+  let stopRecovery: () => void = () => undefined;
   try {
     const response = await fetchImpl(url);
     if (!response.ok) {
@@ -541,10 +542,14 @@ export async function applyMapStyle(
   }
   try {
     await applyFn(group, style, { styleUrl });
-    makeResilient(group);
+    const stop = makeResilient(group);
+    if (typeof stop === 'function') {
+      stopRecovery = stop;
+    }
   } catch (err) {
     console.warn(`MapStyleJsonChart: could not apply style ${url}`, err);
   }
+  return stopRecovery;
 }
 
 /**
@@ -600,6 +605,25 @@ const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Parse an HTTP `Retry-After` header (delta-seconds or an HTTP-date) into a
+ * non-negative millisecond delay, or `undefined` when it is absent/unparseable.
+ */
+function parseRetryAfterMs(header: string | null): number | undefined {
+  if (!header) {
+    return undefined;
+  }
+  const trimmed = header.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed) * 1000;
+  }
+  const when = Date.parse(trimmed);
+  if (!Number.isNaN(when)) {
+    return Math.max(0, when - Date.now());
+  }
+  return undefined;
+}
+
+/**
  * Fetch a vector tile as an `ArrayBuffer`, retrying on failure with a
  * per-attempt timeout and linear back-off.
  *
@@ -637,6 +661,8 @@ export async function fetchArrayBufferWithRetry(
   const shouldContinue = options?.shouldContinue;
   const start = Date.now();
   let lastError: unknown;
+  // When a 429 asks us to wait a specific time, it overrides the next back-off.
+  let retryAfterMs: number | undefined;
   for (let attempt = 0; attempt <= opts.retries; attempt++) {
     if (attempt > 0) {
       if (shouldContinue && !shouldContinue()) {
@@ -647,7 +673,10 @@ export async function fetchArrayBufferWithRetry(
       if (opts.maxElapsedMs > 0 && Date.now() - start >= opts.maxElapsedMs) {
         break;
       }
-      await delay(Math.min(opts.backoffMs * attempt, opts.maxBackoffMs));
+      const backoff =
+        retryAfterMs ?? Math.min(opts.backoffMs * attempt, opts.maxBackoffMs);
+      retryAfterMs = undefined;
+      await delay(backoff);
       if (shouldContinue && !shouldContinue()) {
         throw new DOMException('tile retry cancelled', 'AbortError');
       }
@@ -661,8 +690,16 @@ export async function fetchArrayBufferWithRetry(
         return await response.arrayBuffer();
       }
       lastError = new Error(`HTTP ${response.status}`);
-      // A 4xx (other than 429 Too Many Requests) is a definitive answer: stop.
-      if (response.status < 500 && response.status !== 429) {
+      if (response.status === 429) {
+        // Rate-limited: honour Retry-After, else back off much harder than a
+        // network failure — hammering a rate-limiting free tile server every
+        // few seconds (15-30 tiles on screen) only deepens the limit and burns
+        // data on a metered link.
+        retryAfterMs =
+          parseRetryAfterMs(response.headers?.get('Retry-After') ?? null) ??
+          Math.max(opts.maxBackoffMs, 60000);
+      } else if (response.status < 500) {
+        // Any other 4xx is a definitive answer (e.g. a 404 for an empty tile).
         definitive = true;
       }
     } catch (err) {
@@ -683,19 +720,17 @@ export async function fetchArrayBufferWithRetry(
  * {@link fetchArrayBufferWithRetry} and parses the result with the tile's own
  * format.
  *
- * By default it retries indefinitely with a capped back-off: a tile stalled by a
- * dropped or flaky link (a Starlink re-handshake, a VPN blip) is not abandoned in
- * the `ERROR` state — where OpenLayers leaves it stuck and never re-requests it
- * until the user pans or zooms — but keeps re-checking and paints itself the
- * moment the link returns. The retry loop stops immediately once OpenLayers has
- * discarded the tile (pan/zoom), so it never pins a queue slot for a tile that is
- * no longer on screen. The only path to `ERROR` is a definitive answer (a 4xx,
- * e.g. a 404 for a genuinely empty tile).
- *
- * Retrying happens inside the loader, so it does not rely on `tileloaderror`
- * handling or on calling `source.refresh()` — both documented to cause render
- * loops with vector tile sources
- * (https://github.com/openlayers/openlayers/issues/17389).
+ * It absorbs a brief blip (a Starlink re-handshake, a VPN hiccup) by retrying
+ * with a capped back-off for a short window, then lets the tile go to `ERROR` so
+ * it does not keep holding a TileQueue slot — the queue is shared with any local
+ * chart sources (e.g. NOAA/ENC MBTiles on the same Pi), which must not be starved
+ * while an online basemap is unreachable. Recovery from a longer outage is
+ * handled at the source level by {@link startChartTileRecovery}, which rotates
+ * the source key once tiles start failing so OpenLayers rebuilds them (it will
+ * not re-request an `ERROR` tile on its own) — for an outage of any duration, and
+ * without the `source.refresh()` render loop (openlayers#17389). The retry also
+ * stops immediately once OpenLayers discards the tile (pan/zoom); the only fast
+ * path to `ERROR` is a definitive 4xx.
  */
 function resilientVectorTileLoader(
   options?: ResilientTileLoadingOptions
@@ -712,10 +747,13 @@ function resilientVectorTileLoader(
           // Keep re-checking a stalled tile at least every 15 s so it recovers
           // on its own once the link returns, without pinning the queue forever.
           maxBackoffMs: options?.maxBackoffMs ?? 15000,
-          // Bound the indefinite retry so a tile OpenLayers dropped without
+          // Short self-heal window for brief blips: retry a few times, then let
+          // the tile error so it stops holding a shared TileQueue slot. Longer
+          // outages are recovered by startChartTileRecovery (key rotation), which
+          // does not pin slots; this also means a tile OpenLayers dropped without
           // disposing (removeSourceTiles leaves `disposed` false) cannot keep
-          // re-requesting forever; disposal still stops it immediately below.
-          maxElapsedMs: options?.maxElapsedMs ?? 300000,
+          // re-requesting beyond this window.
+          maxElapsedMs: options?.maxElapsedMs ?? 45000,
           shouldContinue: () =>
             !isDiscarded() && (options?.shouldContinue?.() ?? true)
         })
@@ -756,12 +794,14 @@ function resilientVectorTileLoader(
  * do not satisfy.
  *
  * Call after `apply()` has resolved, when the sources described by the style
- * have been created.
+ * have been created. Returns a teardown that stops the outage-recovery watcher
+ * it starts (see {@link startChartTileRecovery}); call it when the chart layer
+ * is destroyed or before re-applying a style to the same group.
  */
 export function makeChartTilesResilient(
   group: LayerGroup,
   options?: ResilientTileLoadingOptions
-): void {
+): () => void {
   const loader = resilientVectorTileLoader(options);
   const walk = (layers: BaseLayer[]): void => {
     for (const child of layers) {
@@ -776,6 +816,151 @@ export function makeChartTilesResilient(
     }
   };
   walk(group.getLayers().getArray());
+  // Longer outages are recovered at the source level (the in-loader retry only
+  // covers short blips); return that watcher's teardown for the caller to stop.
+  return startChartTileRecovery(group);
+}
+
+/**
+ * Turns a stream of tile-load failures into at most one pending key-rotation,
+ * with exponential back-off between attempts (reset by a successful load or an
+ * immediate trigger). Kept free of OpenLayers so the timing can be unit-tested.
+ */
+export interface TileRecoveryScheduler {
+  /** A tile failed to load: arm a (debounced) rotation if none is pending. */
+  onError(): void;
+  /** A tile loaded: connectivity looks healthy again, so reset the back-off. */
+  onLoadEnd(): void;
+  /** Rotate now and reset the back-off (e.g. the browser came back online). */
+  triggerNow(): void;
+  /** Stop scheduling and drop any pending rotation. */
+  teardown(): void;
+}
+
+export function createTileRecoveryScheduler(config: {
+  rotate: () => void;
+  minDelayMs?: number;
+  maxDelayMs?: number;
+}): TileRecoveryScheduler {
+  const minDelayMs = config.minDelayMs ?? 15000;
+  const maxDelayMs = config.maxDelayMs ?? 120000;
+  let delayMs = minDelayMs;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let torn = false;
+  const clear = (): void => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+  };
+  return {
+    onError(): void {
+      if (torn || timer !== undefined) {
+        return;
+      }
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (torn) {
+          return;
+        }
+        config.rotate();
+        // Grow the wait for the next attempt; a still-failing rotation fires
+        // another tileloaderror, which re-arms at this larger delay.
+        delayMs = Math.min(delayMs * 2, maxDelayMs);
+      }, delayMs);
+    },
+    onLoadEnd(): void {
+      delayMs = minDelayMs;
+    },
+    triggerNow(): void {
+      if (torn) {
+        return;
+      }
+      clear();
+      delayMs = minDelayMs;
+      config.rotate();
+    },
+    teardown(): void {
+      torn = true;
+      clear();
+    }
+  };
+}
+
+/**
+ * Recover a chart's resilient vector tiles from an outage of any length, and
+ * return a function that stops it.
+ *
+ * {@link resilientVectorTileLoader} only absorbs short blips before letting a
+ * tile error (so it doesn't hold a shared TileQueue slot). OpenLayers never
+ * re-requests an errored vector tile on its own, so on a longer outage the chart
+ * would stay frozen on the last-drawn tiles until the user pans. This watches
+ * each vector source for load failures and, with an exponential back-off,
+ * rotates the source key — the same non-destructive mechanism as
+ * {@link startChartTileRefresh}: OpenLayers keeps drawing the stale tiles while
+ * fresh ones are rebuilt, so the chart never blanks and there is no
+ * `source.refresh()` render loop (openlayers#17389). A successful load resets
+ * the back-off; a browser `online` event rotates immediately. Because rotations
+ * are spaced by the back-off, during an outage the online tiles occupy the
+ * TileQueue only in brief bursts, leaving room for local chart sources.
+ */
+export function startChartTileRecovery(
+  group: LayerGroup,
+  config?: { minDelayMs?: number; maxDelayMs?: number }
+): () => void {
+  const sources: VectorTileSource[] = [];
+  const collect = (layers: BaseLayer[]): void => {
+    for (const child of layers) {
+      if (child instanceof LayerGroup) {
+        collect(child.getLayers().getArray());
+      } else if (child instanceof Layer) {
+        const source = child.getSource();
+        if (source instanceof VectorTileSource) {
+          sources.push(source);
+        }
+      }
+    }
+  };
+  collect(group.getLayers().getArray());
+  if (sources.length === 0) {
+    return () => undefined;
+  }
+
+  const rotate = (): void => {
+    for (const source of sources) {
+      const current = source.getTileUrlFunction();
+      const base = refreshWrapperBase.get(current) ?? current;
+      const key = String(Date.now());
+      const wrapped: UrlFunction = (tileCoord, pixelRatio, projection) =>
+        cacheBustTileUrl(base(tileCoord, pixelRatio, projection), key);
+      refreshWrapperBase.set(wrapped, base);
+      source.setTileUrlFunction(wrapped, key);
+    }
+  };
+  const scheduler = createTileRecoveryScheduler({ ...config, rotate });
+
+  const onError = (): void => scheduler.onError();
+  const onLoadEnd = (): void => scheduler.onLoadEnd();
+  for (const source of sources) {
+    source.on('tileloaderror', onError);
+    source.on('tileloadend', onLoadEnd);
+  }
+  const onOnline = (): void => scheduler.triggerNow();
+  const hasWindow = typeof window !== 'undefined';
+  if (hasWindow) {
+    window.addEventListener('online', onOnline);
+  }
+
+  return () => {
+    for (const source of sources) {
+      source.un('tileloaderror', onError);
+      source.un('tileloadend', onLoadEnd);
+    }
+    if (hasWindow) {
+      window.removeEventListener('online', onOnline);
+    }
+    scheduler.teardown();
+  };
 }
 
 export {

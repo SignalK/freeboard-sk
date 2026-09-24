@@ -7,6 +7,7 @@ import {
   applyChartTimeToWmts,
   CHART_TIME_LIVE_KEY,
   extentFromBounds,
+  createTileRecoveryScheduler,
   fetchArrayBufferWithRetry,
   isChartInView,
   isUnevaluableByOl,
@@ -463,10 +464,14 @@ function okResponse(bytes = 4): Response {
   } as unknown as Response;
 }
 
-function errorResponse(status: number): Response {
+function errorResponse(
+  status: number,
+  headers: Record<string, string> = {}
+): Response {
   return {
     ok: false,
     status,
+    headers: { get: (name: string) => headers[name] ?? null },
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
   } as unknown as Response;
 }
@@ -541,7 +546,7 @@ describe('applyMapStyle', () => {
         applyFn,
         makeResilient
       })
-    ).resolves.toBeUndefined();
+    ).resolves.toBeTypeOf('function'); // returns a (no-op) recovery teardown
 
     expect(applyFn).toHaveBeenCalledTimes(1);
     expect(applyFn.mock.calls[0][1]).not.toBe(url);
@@ -746,7 +751,14 @@ describe('fetchArrayBufferWithRetry', () => {
       const fetchImpl = (() => {
         calls++;
         return calls === 1
-          ? Promise.resolve(errorResponse(status))
+          ? // Retry-After: 0 keeps the 429 case fast; without it a 429 backs off
+            // hard (>=60s) on purpose, which is covered by its own test below.
+            Promise.resolve(
+              errorResponse(
+                status,
+                status === 429 ? { 'Retry-After': '0' } : {}
+              )
+            )
           : Promise.resolve(okResponse());
       }) as unknown as typeof fetch;
       await fetchArrayBufferWithRetry('u', fast, fetchImpl);
@@ -852,6 +864,84 @@ describe('fetchArrayBufferWithRetry', () => {
       )
     ).rejects.toThrow('offline');
     expect(calls).toBeGreaterThan(0);
+  });
+
+  it('retries a 429 honouring Retry-After rather than treating it as final', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return calls === 1
+        ? Promise.resolve(errorResponse(429, { 'Retry-After': '0' }))
+        : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(buf.byteLength).toBeGreaterThan(0);
+    expect(calls).toBe(2); // 429 is retryable; Retry-After: 0 retries immediately
+  });
+});
+
+describe('createTileRecoveryScheduler', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('rotates once after the min delay when a tile errors, then backs off', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({
+      rotate,
+      minDelayMs: 100,
+      maxDelayMs: 400
+    });
+
+    s.onError();
+    s.onError(); // coalesced — still a single pending rotation
+    vi.advanceTimersByTime(99);
+    expect(rotate).toHaveBeenCalledTimes(0);
+    vi.advanceTimersByTime(1);
+    expect(rotate).toHaveBeenCalledTimes(1);
+
+    s.onError(); // still failing: the next attempt waits the doubled delay
+    vi.advanceTimersByTime(199);
+    expect(rotate).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1);
+    expect(rotate).toHaveBeenCalledTimes(2);
+  });
+
+  it('resets the back-off after a successful load', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({
+      rotate,
+      minDelayMs: 100,
+      maxDelayMs: 400
+    });
+    s.onError();
+    vi.advanceTimersByTime(100); // rotate #1; back-off would grow to 200
+    s.onLoadEnd(); // recovered — reset back to the min delay
+    s.onError();
+    vi.advanceTimersByTime(100);
+    expect(rotate).toHaveBeenCalledTimes(2);
+  });
+
+  it('triggerNow rotates immediately and cancels a pending rotation', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({ rotate, minDelayMs: 100 });
+    s.onError();
+    s.triggerNow();
+    expect(rotate).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(100);
+    expect(rotate).toHaveBeenCalledTimes(1);
+  });
+
+  it('teardown drops any pending rotation', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({ rotate, minDelayMs: 100 });
+    s.onError();
+    s.teardown();
+    vi.advanceTimersByTime(1000);
+    expect(rotate).toHaveBeenCalledTimes(0);
   });
 });
 
