@@ -715,6 +715,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Tell the stream worker the initial view: a fresh map emits no move-end
+   * until the user moves it, and the AIS tracks request is scoped to the view. */
+  protected onMapReady() {
+    const zoom = this.olMap?.getMap()?.getView().getZoom();
+    if (typeof zoom === 'number') {
+      this.skstream.postMapView(this.olMap.getMapExtent(), zoom);
+    }
+  }
+
   // handle map move / zoom
   protected onMapMoveEnd(e: FBMapEvent) {
     this.app.config.map.zoomLevel = e.zoom;

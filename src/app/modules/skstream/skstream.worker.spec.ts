@@ -1,6 +1,7 @@
 import { expect, describe, it, vi, afterEach, beforeEach } from 'vitest';
 import {
   apiGet,
+  applyServerAisTracks,
   handleStreamEvent,
   initVessels,
   processVessel
@@ -192,5 +193,81 @@ describe('skstream.worker processVessel — orientation source (#704)', () => {
     );
 
     expect(vessel.orientation).toBe(1.5);
+  });
+});
+
+// AIS tracks from the v2 Track API (#820) replace a target's track wholesale,
+// so they must not reach appendTrack() for a target with no position yet (it
+// extends the track with the current position), and a server track is kept
+// whole only while the target is still in the latest response — once it drops
+// out it goes back to the short client-side tail.
+describe('skstream.worker applyServerAisTracks — v2 AIS tracks (#820)', () => {
+  const line = (n: number) =>
+    Array.from(
+      { length: n },
+      (_, i) => [-81 + i * 0.001, 24] as [number, number]
+    );
+
+  const target = (position: [number, number] | null) => {
+    const v = new SKVessel();
+    v.position = position;
+    v.positionReceived = position !== null;
+    return v;
+  };
+
+  beforeEach(() => initVessels());
+
+  it('applies a server track and extends it with the current position', () => {
+    const v = target([-80, 25]);
+    const targets = new Map([['vessels.a', v]]);
+    v.id = 'vessels.a';
+
+    applyServerAisTracks(targets, new Map([['vessels.a', [line(30)]]]));
+
+    expect(v.track).toHaveLength(1);
+    expect(v.track[0]).toHaveLength(31); // not cut to the 20-point tail
+    expect(v.track[0][30]).toEqual([-80, 25]);
+  });
+
+  it('skips a target that has not reported a position yet', () => {
+    const v = target(null);
+    v.id = 'vessels.a';
+    const before = v.track;
+
+    expect(() =>
+      applyServerAisTracks(
+        new Map([['vessels.a', v]]),
+        new Map([['vessels.a', [line(5)]]])
+      )
+    ).not.toThrow();
+    expect(v.track).toBe(before);
+  });
+
+  it('skips empty lines and empty tracks', () => {
+    const v = target([-80, 25]);
+    v.id = 'vessels.a';
+    const before = v.track;
+
+    applyServerAisTracks(
+      new Map([['vessels.a', v]]),
+      new Map([['vessels.a', [[]]]])
+    );
+
+    expect(v.track).toBe(before);
+  });
+
+  it('trims a target back to the client tail once it leaves the response', () => {
+    const v = target([-80, 25]);
+    v.id = 'vessels.a';
+    const targets = new Map([['vessels.a', v]]);
+    applyServerAisTracks(targets, new Map([['vessels.a', [line(30)]]]));
+
+    applyServerAisTracks(targets, new Map()); // no longer in the response
+    processVessel(v, {
+      path: 'navigation.position',
+      value: { latitude: 25.1, longitude: -79.9 }
+    });
+
+    expect(v.track[v.track.length - 1]).toHaveLength(20);
   });
 });

@@ -196,6 +196,7 @@ export function initVessels() {
   };
   // flag to indicate at least one position data message received
   vessels.self.positionReceived = false;
+  serverTracked.clear();
 
   initAisTargetStatus();
 }
@@ -585,19 +586,33 @@ function getAISTracksV2(provider?: string) {
     return;
   }
   trackApiGet(`${tracksApiUrl(apiUrl)}?${query}`)
-    .then((fc) => {
-      parseAisTracks(fc, provider).forEach((lines, context) => {
-        const v = vessels.aisTargets.get(context);
-        if (v) {
-          v.track = lines;
-          serverTracked.add(context);
-          appendTrack(v);
-        }
-      });
-    })
+    .then((fc) =>
+      applyServerAisTracks(vessels.aisTargets, parseAisTracks(fc, provider))
+    )
     .catch(() => {
       //console.warn('Unable to fetch AIS tracks!');
     });
+}
+
+/** Apply AIS tracks from a v2 response to the held targets. The set of
+ * server-tracked targets is rebuilt from each response, so a target that
+ * drops out of it is trimmed back to the short client tail on its next
+ * position. A target that has not reported a position yet is skipped:
+ * appendTrack() extends the track with the current position. */
+export function applyServerAisTracks(
+  targets: Map<string, SKVessel>,
+  tracks: Map<string, Position[][]>
+) {
+  serverTracked.clear();
+  tracks.forEach((lines, context) => {
+    const v = targets.get(context);
+    const track = lines.filter((l) => Array.isArray(l) && l.length > 0);
+    if (v?.positionReceived && v.position && track.length > 0) {
+      v.track = track;
+      serverTracked.add(context);
+      appendTrack(v);
+    }
+  });
 }
 
 // fetch other vessel tracks
