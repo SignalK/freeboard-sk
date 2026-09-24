@@ -153,6 +153,7 @@ import { TrackHistoryService } from 'src/app/modules/skstream/track-history.serv
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
   durationLabel,
+  joinStretches,
   trackTimeInfo
 } from 'src/app/modules/skstream/track-history';
 import { chartTimeShortLabel } from 'src/app/lib/components/dialogs/chart-time-dialog';
@@ -1731,10 +1732,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
             break;
           }
           case 'trail': {
-            // the server trail says when the vessel was where it was tapped;
-            // the local trail records no times
-            const timed = this.app.selfTrailTimed();
-            if (id === 'trail.self.server' && timed) {
+            // the server trail carries its recording times; the local trail,
+            // the time each point was logged
+            // the local trail carries on from the server trail, so both answer
+            // from the two joined into one passage
+            const timed =
+              id === 'trail.self.server' || id === 'trail.self.local'
+                ? joinStretches(
+                    this.app.selfTrailTimed() ?? { lines: [], times: [] },
+                    this.app.localTrailTimed()
+                  )
+                : null;
+            if (timed?.lines.length) {
               addToFeatureList = true;
               icon = { name: 'history', svgIcon: undefined };
               text = 'Vessel trail';
@@ -1789,6 +1798,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     trackTimesHiddenByVessel(featureList.keys()).forEach((id) =>
       featureList.delete(id)
     );
+    // server and local trail are one trail, answered from the same data
+    if (
+      featureList.has('trail.self.server') &&
+      featureList.has('trail.self.local')
+    ) {
+      featureList.delete('trail.self.local');
+    }
 
     if (chartBoundsFeatures.size > 0) {
       // show list of chart features

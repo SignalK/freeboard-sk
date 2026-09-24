@@ -42,7 +42,11 @@ import {
   trailBands,
   trailBandUrl
 } from './track-source';
-import { parseHistoryTrack, parseTimedTracks } from './track-history';
+import {
+  joinStretches,
+  parseHistoryTrack,
+  parseTimedTracks
+} from './track-history';
 
 interface AisStatus {
   updated: { [key: string]: boolean };
@@ -544,41 +548,26 @@ function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
     });
 }
 
-/** Longest time between the end of one trail band and the start of the next
- * for the two to read as one continuous stretch of recording. */
-const TRAIL_JOIN_GAP_MS = 10 * 60000;
-
 /** The trail bands as recorded, each point with its time, or undefined when
  * the provider sent no times. Kept apart from the drawn trail because
- * assembleTrail() simplifies and re-splits the older bands. A band's first
- * segment continues the previous band's last one when they follow on in
- * time, so a tapped stretch reports when the passage began, not the band. */
+ * assembleTrail() simplifies and re-splits the older bands. Bands that follow
+ * on in time are joined, so a tapped stretch reports when the passage began,
+ * not the band. */
 export function timedTrail(
   bands: unknown[],
   provider?: string
 ): TrailMessage['timed'] {
-  const lines: Position[][] = [];
-  const times: string[][] = [];
+  let timed = { lines: [] as Position[][], times: [] as string[][] };
   for (const fc of bands) {
     const t = parseHistoryTrack('self', fc, provider);
     if (t && !t.times) {
       return undefined;
     }
-    t?.lines.forEach((line, i) => {
-      const prev = times[times.length - 1];
-      const gap = prev
-        ? Date.parse(t.times[i][0]) - Date.parse(prev[prev.length - 1])
-        : NaN;
-      if (i === 0 && gap >= 0 && gap <= TRAIL_JOIN_GAP_MS) {
-        lines[lines.length - 1] = lines[lines.length - 1].concat(line);
-        times[times.length - 1] = prev.concat(t.times[i]);
-      } else {
-        lines.push(line);
-        times.push(t.times[i]);
-      }
-    });
+    if (t) {
+      timed = joinStretches(timed, { lines: t.lines, times: t.times });
+    }
   }
-  return lines.length ? { lines, times } : undefined;
+  return timed.lines.length ? timed : undefined;
 }
 
 /** Re-query AIS tracks shortly after the view or the picks settle, so a flurry

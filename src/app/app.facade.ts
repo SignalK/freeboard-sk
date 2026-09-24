@@ -14,6 +14,10 @@ import {
   resolveTrailSource,
   TrackSource
 } from './modules/skstream/track-source';
+import { timedRuns, trailPointKey } from './modules/skstream/track-history';
+
+/** Most local trail point times kept: the local trail itself keeps 5000. */
+const TRAIL_TIMES_MAX = 6000;
 import {
   MapViewport,
   mapCenterForOffset,
@@ -293,6 +297,8 @@ export class AppFacade extends InfoService {
     }
   });
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
+  // when each local trail point was logged, keyed by position (see stampTrailPoint)
+  private trailTimes = new Map<string, string>();
   selfTrailFromServer = signal<MultiLineString>([]); // vessel trail from server
   /** The server trail as recorded, with each point's time, for answering a tap
    * on the trail (v2 Track API only; null otherwise). */
@@ -960,6 +966,31 @@ export class AppFacade extends InfoService {
       : false;
   }
 
+  /** Record when a point was added to the local trail, so a tap on the
+   * trail can say when the vessel was there. Kept beside the trail, keyed by
+   * position, rather than in it: the trail is persisted and rewritten in
+   * several places, and a point restored without a time simply has none. */
+  stampTrailPoint(pt: Position, time?: string) {
+    const t =
+      time ||
+      this.data.vessels.self?.positionTimestamp ||
+      new Date().toISOString();
+    const key = trailPointKey(pt);
+    this.trailTimes.delete(key);
+    this.trailTimes.set(key, t);
+    // the local trail keeps at most 5000 points
+    if (this.trailTimes.size > TRAIL_TIMES_MAX) {
+      this.trailTimes.delete(this.trailTimes.keys().next().value);
+    }
+  }
+
+  /** The local trail as stretches of points with the time each was logged. */
+  localTrailTimed(): { lines: Position[][]; times: string[][] } {
+    return timedRuns(this.selfTrail(), (p) =>
+      this.trailTimes.get(trailPointKey(p))
+    );
+  }
+
   /** add point to self vessel track */
   addToSelfTrail(pt: Position) {
     this.selfTrail.update((current) => {
@@ -970,6 +1001,7 @@ export class AppFacade extends InfoService {
       if (pt[0] === lastPoint[0] && pt[1] === lastPoint[1]) {
         return current;
       }
+      this.stampTrailPoint(pt);
       const st = [].concat(current);
       st.push(pt);
       return st;

@@ -433,6 +433,71 @@ export function trackTimeInfo(
   return best < 0 ? undefined : segmentTimeInfo(lines[best], times[best], at);
 }
 
+/** A trail as contiguous stretches of timed points, for answering a tap:
+ * `timeOf` gives a point's time, or undefined for one never stamped (e.g. a
+ * point restored from an earlier session), which splits the trail. */
+export function timedRuns(
+  line: Position[],
+  timeOf: (p: Position) => string | undefined
+): { lines: Position[][]; times: string[][] } {
+  const lines: Position[][] = [];
+  const times: string[][] = [];
+  let run: Position[] = [];
+  let runTimes: string[] = [];
+  const close = () => {
+    if (run.length) {
+      lines.push(run);
+      times.push(runTimes);
+    }
+    run = [];
+    runTimes = [];
+  };
+  line.forEach((p) => {
+    const t = timeOf(p);
+    if (t && Number.isFinite(Date.parse(t))) {
+      run.push(p);
+      runTimes.push(t);
+    } else {
+      close();
+    }
+  });
+  close();
+  return { lines, times };
+}
+
+/** Longest time between the end of one stretch of recording and the start of
+ * the next for the two to read as one continuous passage. */
+export const TRAIL_JOIN_GAP_MS = 10 * 60000;
+
+/** Stretches of timed track `b` appended to `a`. `b`'s first stretch continues
+ * `a`'s last one when it follows on within {@link TRAIL_JOIN_GAP_MS}, so a tap
+ * reports the passage rather than where one request (or the local trail)
+ * happened to start. */
+export function joinStretches(
+  a: { lines: Position[][]; times: string[][] },
+  b: { lines: Position[][]; times: string[][] }
+): { lines: Position[][]; times: string[][] } {
+  const lines = [...a.lines];
+  const times = [...a.times];
+  b.lines.forEach((line, i) => {
+    const prev = times[times.length - 1];
+    const gap = prev
+      ? Date.parse(b.times[i][0]) - Date.parse(prev[prev.length - 1])
+      : NaN;
+    if (i === 0 && gap >= 0 && gap <= TRAIL_JOIN_GAP_MS) {
+      lines[lines.length - 1] = lines[lines.length - 1].concat(line);
+      times[times.length - 1] = prev.concat(b.times[i]);
+    } else {
+      lines.push(line);
+      times.push(b.times[i]);
+    }
+  });
+  return { lines, times };
+}
+
+/** Key for a trail point's recorded time. */
+export const trailPointKey = (p: Position) => `${p[0]},${p[1]}`;
+
 // ******** scrubbing: where a vessel was at a time ********
 
 /** How many recorded points ahead of the scrubbed position the ghost vessel

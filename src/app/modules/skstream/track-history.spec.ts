@@ -23,7 +23,10 @@ import {
   rangeParams,
   rangeToLoop,
   segmentTimeInfo,
-  trackTimeInfo
+  trackTimeInfo,
+  timedRuns,
+  joinStretches,
+  trailPointKey
 } from './track-history';
 
 const MIN = 60000;
@@ -470,5 +473,67 @@ describe('track-history playback', () => {
     expect(stepScrubTime(90, 1, axis)).toBeNull();
     expect(stepScrubTime(40, 1, axis)).toBe(50);
     expect(stepScrubTime(0, -1, axis)).toBe(0);
+  });
+});
+
+describe('track-history timedRuns (local trail)', () => {
+  it('splits the trail at points that were never stamped', () => {
+    const line: [number, number][] = [
+      [0, 0],
+      [1, 1],
+      [2, 2],
+      [3, 3],
+      [4, 4]
+    ];
+    const stamped = new Map([
+      [trailPointKey([1, 1]), '2026-09-24T10:00:00Z'],
+      [trailPointKey([2, 2]), '2026-09-24T10:00:05Z'],
+      [trailPointKey([4, 4]), '2026-09-24T10:00:15Z']
+    ]);
+    const r = timedRuns(line, (p) => stamped.get(trailPointKey(p)));
+    expect(r.lines).toEqual([
+      [
+        [1, 1],
+        [2, 2]
+      ],
+      [[4, 4]]
+    ]);
+    expect(r.times).toEqual([
+      ['2026-09-24T10:00:00Z', '2026-09-24T10:00:05Z'],
+      ['2026-09-24T10:00:15Z']
+    ]);
+    expect(timedRuns(line, () => undefined).lines).toEqual([]);
+  });
+});
+
+describe('track-history joinStretches', () => {
+  const a = {
+    lines: [[[0, 0] as [number, number], [1, 1] as [number, number]]],
+    times: [['2026-09-24T10:00:00Z', '2026-09-24T10:05:00Z']]
+  };
+
+  it('continues the last stretch when the next follows on in time', () => {
+    const j = joinStretches(a, {
+      lines: [[[2, 2]]],
+      times: [['2026-09-24T10:06:00Z']]
+    });
+    expect(j.lines).toEqual([
+      [
+        [0, 0],
+        [1, 1],
+        [2, 2]
+      ]
+    ]);
+    expect(j.times[0]).toHaveLength(3);
+    expect(a.lines[0]).toHaveLength(2); // inputs untouched
+  });
+
+  it('starts a new stretch after a gap, or when there is nothing before', () => {
+    const j = joinStretches(a, {
+      lines: [[[2, 2]]],
+      times: [['2026-09-24T11:00:00Z']]
+    });
+    expect(j.lines).toHaveLength(2);
+    expect(joinStretches({ lines: [], times: [] }, a).lines).toEqual(a.lines);
   });
 });

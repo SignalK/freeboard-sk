@@ -926,6 +926,7 @@ export class AppComponent {
     const t = this.app.selfTrail().slice(-1);
     if (this.app.data.vessels.showSelf) {
       if (t.length === 0) {
+        this.app.stampTrailPoint(this.app.data.vessels.self.position);
         this.app.selfTrail.update((current) => {
           const st = [].concat(current);
           st.push(this.app.data.vessels.self.position);
@@ -937,6 +938,7 @@ export class AppComponent {
         this.app.data.vessels.self.position[0] !== t[0][0] ||
         this.app.data.vessels.self.position[1] !== t[0][1]
       ) {
+        this.app.stampTrailPoint(this.app.data.vessels.self.position);
         this.app.selfTrail.update((current) => {
           const st = [].concat(current);
           st.push(this.app.data.vessels.self.position);
