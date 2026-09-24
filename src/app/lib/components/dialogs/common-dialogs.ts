@@ -64,7 +64,7 @@ export class MsgBox implements OnInit {
 
 @Component({
   selector: 'ap-alertdialog',
-  imports: [MatDialogModule, MatIconModule, MatButtonModule],
+  imports: [MatDialogModule, MatIconModule, MatCheckboxModule, MatButtonModule],
   template: `
     <div class="_ap-alert">
       <div>
@@ -83,9 +83,19 @@ export class MsgBox implements OnInit {
             }
           </div>
         </div>
+        @if (data.checkText) {
+          <div style="padding: 10px 0 0 10px;">
+            <mat-checkbox (change)="checked = $event.checked">
+              {{ data.checkText }}
+            </mat-checkbox>
+          </div>
+        }
       </mat-dialog-content>
       <mat-dialog-actions align="center">
-        <button mat-raised-button (click)="dialogRef.close(true)">
+        <button
+          mat-raised-button
+          (click)="dialogRef.close(data.checkText ? { checked } : true)"
+        >
           {{ data.buttonText }}
         </button>
       </mat-dialog-actions>
@@ -102,12 +112,14 @@ export class MsgBox implements OnInit {
 export class AlertDialog implements OnInit {
   public msglines = [];
   public image = null;
+  public checked = false;
 
   protected dialogRef = inject(MatDialogRef<AlertDialog>);
   protected data = inject<{
     title: string; // title text,
     message: string; // text to display,
     buttonText: string; // button text
+    checkText?: string; // optional check box text; closes with { checked }
   }>(MAT_DIALOG_DATA);
 
   constructor() {}
