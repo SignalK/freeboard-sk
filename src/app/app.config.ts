@@ -597,7 +597,7 @@ export function defaultConfig(): IAppConfig {
     vessels: {
       fixedLocationMode: false,
       fixedPosition: [0, 0],
-      trail: false, // display trail
+      trail: true, // display trail (from the server when it can supply one, #820)
       windVectors: true, // display vessel TWD, AWD vectors
       laylines: false,
       selfLines: {

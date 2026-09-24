@@ -141,6 +141,10 @@ describe('cleanConfig() legacy migration', () => {
     expect(defaultConfig().vessels.trailSource).toBe('auto');
   });
 
+  it('displays the vessel trail by default', () => {
+    expect(defaultConfig().vessels.trail).toBe(true);
+  });
+
   it('drops the legacy selections.notes section', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});
