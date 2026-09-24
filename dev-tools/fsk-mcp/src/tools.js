@@ -320,6 +320,22 @@ const TOOLS = [
       if (typeof a.auto === 'boolean') params.auto = a.auto;
       return hub.call('nightMode.set', params, { session: a.session });
     }
+  },
+  {
+    name: 'fsk_apply_resource_group',
+    description:
+      "Apply a stored resource group (/resources/groups/{id}) to Freeboard-SK's display — the same as checking it in the Resource Groups list. Each of the group's routes/waypoints/regions/charts lists replaces that type's selection ([] hides the type); an absent list leaves the type alone. Returns { applied }: the types acted on. List groups with fsk_list_resources({ type: 'groups' }).",
+    inputSchema: withSession(
+      {
+        id: {
+          type: 'string',
+          description: 'Id of the group in the server groups collection.'
+        }
+      },
+      ['id']
+    ),
+    run: (hub, a) =>
+      hub.call('resourceGroup.apply', { id: a.id }, { session: a.session })
   }
 ];
 
