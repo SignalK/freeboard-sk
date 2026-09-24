@@ -22,6 +22,7 @@ export const HOST_CAPABILITIES = [
   'charts',
   'charts.time',
   'nightMode',
+  'resourceGroups',
   'background.iframe',
   'ui'
 ];

@@ -1,0 +1,117 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { SignalKClient } from 'signalk-client-angular';
+import { AppFacade } from '../../../../app.facade';
+import { SKResourceService } from '../../resources.service';
+import { SKResourceGroupService } from './groups.service';
+
+describe('SKResourceGroupService.applyGroup', () => {
+  let service: SKResourceGroupService;
+  let app: {
+    config: { selections: Record<string, unknown> };
+    saveConfig: () => void;
+  };
+  let skres: Record<string, ReturnType<typeof vi.fn>>;
+
+  beforeEach(() => {
+    app = {
+      config: {
+        selections: {
+          routes: ['r0'],
+          waypoints: ['w0'],
+          regions: null,
+          charts: ['c0']
+        }
+      },
+      saveConfig: vi.fn()
+    };
+    skres = {
+      refreshRoutes: vi.fn(),
+      refreshWaypoints: vi.fn(),
+      refreshRegions: vi.fn(),
+      refreshCharts: vi.fn()
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        SKResourceGroupService,
+        { provide: AppFacade, useValue: app },
+        { provide: SKResourceService, useValue: skres },
+        { provide: SignalKClient, useValue: {} },
+        { provide: MatDialog, useValue: {} }
+      ]
+    });
+    service = TestBed.inject(SKResourceGroupService);
+  });
+
+  it('writes the selections, refreshes only the applied types and saves', async () => {
+    const applied = await service.applyGroup('g1', {
+      name: 'g',
+      description: '',
+      routes: ['r1'],
+      charts: []
+    });
+    expect(applied).toEqual(['routes', 'charts']);
+    expect(app.config.selections).toEqual({
+      routes: ['r1'],
+      waypoints: ['w0'],
+      regions: null,
+      charts: []
+    });
+    expect(skres.refreshRoutes).toHaveBeenCalledTimes(1);
+    expect(skres.refreshCharts).toHaveBeenCalledTimes(1);
+    expect(skres.refreshWaypoints).not.toHaveBeenCalled();
+    expect(skres.refreshRegions).not.toHaveBeenCalled();
+    expect(app.saveConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('announces every apply on applied$, including a repeat of the same group', async () => {
+    const events: unknown[] = [];
+    service.applied$.subscribe((e) => events.push(e));
+    const group = { name: 'g', description: '', waypoints: [] };
+    await service.applyGroup('g1', group);
+    await service.applyGroup('g1', group);
+    expect(events).toEqual([
+      { id: 'g1', applied: ['waypoints'] },
+      { id: 'g1', applied: ['waypoints'] }
+    ]);
+  });
+
+  it('rejects a malformed group whole: no selection change, save or event', async () => {
+    const events: unknown[] = [];
+    service.applied$.subscribe((e) => events.push(e));
+    const before = structuredClone(app.config.selections);
+    const applied = await service.applyGroup('bad', {
+      name: 'g',
+      description: '',
+      routes: ['r1'],
+      charts: 'bad' as unknown as string[]
+    });
+    expect(applied).toEqual([]);
+    expect(app.config.selections).toEqual(before);
+    expect(skres.refreshRoutes).not.toHaveBeenCalled();
+    expect(app.saveConfig).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+  });
+
+  it('saves and announces only after the refreshes have finished', async () => {
+    let finishCharts!: () => void;
+    skres.refreshCharts.mockReturnValue(
+      new Promise<void>((resolve) => (finishCharts = resolve))
+    );
+    const events: unknown[] = [];
+    service.applied$.subscribe((e) => events.push(e));
+    const pending = service.applyGroup('g1', {
+      name: 'g',
+      description: '',
+      charts: ['c1']
+    });
+    await Promise.resolve();
+    expect(app.saveConfig).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+    finishCharts();
+    expect(await pending).toEqual(['charts']);
+    expect(app.saveConfig).toHaveBeenCalledTimes(1);
+    expect(events).toEqual([{ id: 'g1', applied: ['charts'] }]);
+  });
+});

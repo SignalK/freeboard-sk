@@ -1,14 +1,24 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 
+import { Observable, Subject } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
+import type {
+  ResourceGroupAppliedEvent,
+  ResourceGroupType
+} from 'signalk-plotterext-bus/host';
 import { AppFacade } from 'src/app/app.facade';
 
 import { ResourceGroupDialog } from './group-dialog';
 
 import { ActionResult, ResourceActionResult } from 'src/app/types';
-import { SKResourceType } from '../../resources.service';
+import { SKResourceService, SKResourceType } from '../../resources.service';
+import {
+  applyGroupToSelections,
+  GroupSelections,
+  isValidGroup
+} from './group-apply';
 
 export interface SKResourceGroup {
   name: string;
@@ -27,11 +37,58 @@ export type FBResourceGroups = Array<FBResourceGroup>;
 // ** Signal K resource group operations
 @Injectable({ providedIn: 'root' })
 export class SKResourceGroupService {
+  private skres = inject(SKResourceService);
+  private readonly applied = new Subject<ResourceGroupAppliedEvent>();
+
+  /**
+   * Every group apply, whatever started it — the user checking a group in the
+   * Resource Groups list, or an extension's `resourceGroup.apply`. The plotter
+   * extension host relays it as the `resourceGroup.applied` event.
+   */
+  readonly applied$: Observable<ResourceGroupAppliedEvent> =
+    this.applied.asObservable();
+
   constructor(
     private dialog: MatDialog,
     private signalk: SignalKClient,
     private app: AppFacade
   ) {}
+
+  /**
+   * @description Apply a group to the display: each list the group carries
+   * replaces that type's selection (`[]` hides the type), an absent list leaves
+   * the type untouched. Refreshes the affected layers and waits for them, then
+   * persists the selections and announces the apply on {@link applied$} — so a
+   * follower that re-reads the display on the event sees the applied state. A malformed group (a list
+   * that is not an array of ids) is rejected whole: nothing is applied, saved
+   * or announced.
+   * @param id Group identifier
+   * @param group The group document
+   * @returns The types that were applied (empty for a malformed group)
+   */
+  public async applyGroup(
+    id: string,
+    group: SKResourceGroup
+  ): Promise<ResourceGroupType[]> {
+    if (!isValidGroup(group)) {
+      return [];
+    }
+    const applied = applyGroupToSelections(
+      group,
+      this.app.config.selections as GroupSelections
+    );
+    const refresh = {
+      routes: () => this.skres.refreshRoutes(),
+      waypoints: () => this.skres.refreshWaypoints(),
+      regions: () => this.skres.refreshRegions(),
+      charts: () => this.skres.refreshCharts()
+    };
+    // The refresh* methods catch their own errors, so this never rejects.
+    await Promise.all(applied.map((type) => refresh[type]()));
+    this.app.saveConfig();
+    this.applied.next({ id, applied });
+    return applied;
+  }
 
   // ******** SK Resource Group operations ********************
 
@@ -68,7 +125,7 @@ export class SKResourceGroupService {
    * @param id  Resource group identifier
    * @returns Promise<SKResourceGroup> (rejects with HTTPErrorResponse)
    */
-  private fromServer(id: string): Promise<SKResourceGroup> {
+  public fromServer(id: string): Promise<SKResourceGroup> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .get(this.app.skApiVersion, `/resources/groups/${id}`)
