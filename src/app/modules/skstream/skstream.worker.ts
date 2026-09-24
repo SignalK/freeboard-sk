@@ -541,6 +541,8 @@ function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
 /** Re-query AIS tracks shortly after the view or the picks settle, so a flurry
  * of pans collapses into one request. */
 function scheduleAisTracks() {
+  // the view, picks or Show Track changed: anything in flight is for the old one
+  aisTracksGate.invalidate();
   clearTimeout(aisTrackTimer);
   aisTrackTimer = setTimeout(() => {
     if (trackSource.api === 'v2') {
@@ -587,6 +589,8 @@ function getAISTracksV2(provider?: string) {
     provider
   });
   if (!query) {
+    // nothing to fetch now (e.g. the last pick removed): drop any in flight
+    aisTracksGate.invalidate();
     return;
   }
   const token = aisTracksGate.begin();
