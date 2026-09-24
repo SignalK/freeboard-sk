@@ -3,6 +3,8 @@ import {
   aisTracksQuery,
   detectTrackSource,
   migrateTrailSource,
+  needsAisRefetch,
+  padExtent,
   parseAisTracks,
   parseSelfTrail,
   ProbeResponse,
@@ -506,5 +508,47 @@ describe('track-source aisTracksQuery', () => {
         radiusBox: [10, 10, 11, 11]
       })
     ).toBeNull();
+  });
+});
+
+describe('track-source AIS re-query on move-end', () => {
+  const view = { extent: [-81, 24, -80, 25], zoom: 12 };
+  const last = { extent: padExtent(view.extent, 0.5), zoom: 12 };
+
+  it('pads the viewport by the given share on each side', () => {
+    expect(padExtent([-81, 24, -80, 25], 0.5)).toEqual([
+      -81.5, 23.5, -79.5, 25.5
+    ]);
+  });
+
+  it('re-queries when nothing has been fetched yet', () => {
+    expect(needsAisRefetch(null, view)).toBe(true);
+  });
+
+  it('does not re-query for a small pan or a rotation inside the fetched box', () => {
+    expect(
+      needsAisRefetch(last, { extent: [-80.8, 24.1, -79.8, 25.1], zoom: 12 })
+    ).toBe(false);
+    // a rotated view's bounding box grows, but stays inside the padding
+    expect(
+      needsAisRefetch(last, { extent: [-81.2, 23.8, -79.8, 25.2], zoom: 12.4 })
+    ).toBe(false);
+  });
+
+  it('re-queries once the view leaves the fetched box', () => {
+    expect(
+      needsAisRefetch(last, { extent: [-80.2, 24, -79.2, 25], zoom: 12 })
+    ).toBe(true);
+  });
+
+  it('re-queries when the zoom level changes', () => {
+    expect(needsAisRefetch(last, { ...view, zoom: 11.9 })).toBe(true);
+    expect(needsAisRefetch(last, { ...view, zoom: 13 })).toBe(true);
+  });
+
+  it('rounds bbox coordinates to 6 decimals', () => {
+    expect(viewportBbox([-82.13, 24.25, -81.42000000000002, 24.74])).toEqual([
+      -82.13, 24.25, -81.42, 24.74
+    ]);
   });
 });

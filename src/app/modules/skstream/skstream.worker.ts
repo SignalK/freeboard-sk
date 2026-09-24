@@ -26,8 +26,11 @@ import {
   resolveOrientation
 } from './orientation';
 import {
+  AIS_TRACK_BBOX_PAD,
   aisTracksQuery,
   detectTrackSource,
+  needsAisRefetch,
+  padExtent,
   NO_TRACK_SOURCE,
   parseAisTracks,
   parseSelfTrail,
@@ -122,6 +125,8 @@ let trackSource: TrackSource = NO_TRACK_SOURCE;
 let trackSourceReady: Promise<TrackSource> = Promise.resolve(NO_TRACK_SOURCE);
 // map viewport (lon/lat extent) + zoom, posted by the app on move-end
 let aisView: { extent: Extent; zoom: number } | null = null;
+// the view box (padded viewport) and zoom of the last AIS tracks request
+let aisFetched: { extent: number[]; zoom: number } | null = null;
 // AIS targets picked with the per-vessel TRACK toggle (session-only)
 let aisTrackPicks: string[] = [];
 let aisShowTrack = false;
@@ -360,7 +365,9 @@ function handleCommand(data: MsgFromApp) {
     case 'view':
       if (data.options?.extent) {
         aisView = { extent: data.options.extent, zoom: data.options.zoom };
-        scheduleAisTracks();
+        if (needsAisRefetch(aisFetched, aisView)) {
+          scheduleAisTracks();
+        }
       }
       break;
     //** { cmd: 'trackSelection', options: {ids: string[]} }
@@ -555,8 +562,13 @@ function pollAisTracks() {
  * the vessels picked with the per-vessel TRACK toggle. Nothing is fetched
  * below the zoom at which the track layer draws. */
 function getAISTracksV2(provider?: string) {
+  const view = aisView && {
+    extent: padExtent(aisView.extent, AIS_TRACK_BBOX_PAD),
+    zoom: aisView.zoom
+  };
+  aisFetched = view;
   const query = aisTracksQuery({
-    view: aisView,
+    view,
     showAll: aisShowTrack,
     picks: aisTrackPicks,
     targets: vessels.aisTargets,

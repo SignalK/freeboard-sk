@@ -399,12 +399,13 @@ export function viewportBbox(
       return null;
     }
   }
-  s = Math.max(-90, s);
-  n = Math.min(90, n);
+  const r = (v: number) => Math.round(v * 1e6) / 1e6;
+  s = r(Math.max(-90, s));
+  n = r(Math.min(90, n));
   if (e - w >= 360) {
     return [-180, s, 180, n];
   }
-  return [wrapLongitude(w), s, wrapLongitude(e), n];
+  return [r(wrapLongitude(w)), s, r(wrapLongitude(e)), n];
 }
 
 // ******** AIS tracks request ********
@@ -450,4 +451,39 @@ export function aisTracksQuery(req: AisTracksRequest): string | null {
     params.contexts = picks.join(',');
   }
   return queryString(params);
+}
+
+/** Share of the viewport's width / height added on each side of the AIS
+ * tracks box, so small pans and a heading-up map's rotations stay inside it. */
+export const AIS_TRACK_BBOX_PAD = 0.5;
+
+/** Grow an extent by `factor` of its width / height on each side. */
+export function padExtent(
+  extent: Extent | number[],
+  factor: number
+): [number, number, number, number] {
+  const [w, s, e, n] = extent;
+  const dx = (e - w) * factor;
+  const dy = (n - s) * factor;
+  return [w - dx, s - dy, e + dx, n + dy];
+}
+
+/** Whether a move-end needs a new AIS tracks request. `moveend` fires for any
+ * view change — including a heading-up map re-rotating on every heading
+ * update and a followed vessel panning the map — so a request is only made
+ * when the zoom level changes or the view leaves the (padded) box last
+ * fetched. The periodic poll keeps the tracks themselves fresh. */
+export function needsAisRefetch(
+  last: { extent: number[]; zoom: number } | null,
+  view: { extent: Extent | number[]; zoom: number }
+): boolean {
+  if (!last) {
+    return true;
+  }
+  if (Math.floor(last.zoom) !== Math.floor(view.zoom)) {
+    return true;
+  }
+  const [w, s, e, n] = view.extent;
+  const [lw, ls, le, ln] = last.extent;
+  return w < lw || s < ls || e > le || n > ln;
 }
