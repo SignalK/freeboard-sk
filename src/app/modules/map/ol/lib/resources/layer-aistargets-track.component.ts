@@ -162,9 +162,9 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
     } else {
       return new Style({
         stroke: new Stroke({
-          width: 1,
+          width: 2,
           color: color,
-          lineDash: [2, 2]
+          lineDash: [4, 4]
         })
       });
     }

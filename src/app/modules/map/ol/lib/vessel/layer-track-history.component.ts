@@ -23,10 +23,10 @@ export const TRACK_HISTORY_ID = 'trackhistory';
 // Solid and translucent, so recorded history reads as background to the
 // dashed fresh trail and AIS tracks drawn in the same colours.
 const SELF_STYLE = new Style({
-  stroke: new Stroke({ color: 'rgba(252, 3, 132, 0.45)', width: 2.5 })
+  stroke: new Stroke({ color: 'rgba(252, 3, 132, 0.45)', width: 3 })
 });
 const AIS_STYLE = new Style({
-  stroke: new Stroke({ color: 'rgba(255, 0, 255, 0.4)', width: 2 })
+  stroke: new Stroke({ color: 'rgba(255, 0, 255, 0.4)', width: 3 })
 });
 
 /** Recorded track history (#821): one feature per recorded segment, so a
