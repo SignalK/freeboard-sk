@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable, of, Subject } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,6 +42,7 @@ describe('TrackHistoryService', () => {
   let close: ReturnType<typeof vi.fn>;
   let afterClosed: Subject<void>;
   let tracksApi: ReturnType<typeof signal<{ tracksApi: boolean }>>;
+  let trackSource: ReturnType<typeof signal<{ api: string; provider: string }>>;
   /** Answer for a `/tracks?…` history request, by call order. */
   let answer: (path: string) => Observable<unknown>;
 
@@ -76,6 +77,7 @@ describe('TrackHistoryService', () => {
       return answer(path);
     });
     tracksApi = signal({ tracksApi: true });
+    trackSource = signal({ api: 'v2', provider: 'tracks' });
     TestBed.configureTestingModule({
       providers: [
         TrackHistoryService,
@@ -83,7 +85,7 @@ describe('TrackHistoryService', () => {
           provide: AppFacade,
           useValue: {
             featureFlags: tracksApi,
-            trackSource: signal({ api: 'v2', provider: 'tracks' }),
+            trackSource,
             data: {
               vessels: {
                 self: { id: SELF_ID, name: 'eSea Street' },
@@ -99,6 +101,7 @@ describe('TrackHistoryService', () => {
       ]
     });
     service = TestBed.inject(TrackHistoryService);
+    TestBed.tick(); // settle the provider effect before each test
     service.setView([-82, 24, -81, 25], 12);
   });
 
@@ -258,6 +261,92 @@ describe('TrackHistoryService', () => {
     service.setScrub(Date.parse('2026-09-20T00:30:00Z'));
     service.clear();
     expect(service.scrubTime()).toBeNull();
+  });
+
+  it("drops a removed vessel's span, so the bar no longer spans its record", () => {
+    service.toggle('self');
+    service.toggle(AIS);
+    expect(service.spans().has(AIS)).toBe(true);
+    service.remove(AIS);
+    expect(service.spans().has(AIS)).toBe(false);
+    expect(service.spans().has('self')).toBe(true);
+  });
+
+  it('drops the old geometry and says so when a refresh fails', () => {
+    service.toggle('self');
+    expect(service.tracks().has('self')).toBe(true);
+    answer = () => throwError(() => new Error('500'));
+    service.setPreset('7d');
+    vi.advanceTimersByTime(1000);
+    expect(service.tracks().has('self')).toBe(false);
+    expect(service.failed().has('self')).toBe(true);
+    expect(service.pending()).toBe(0);
+    // a later success clears it
+    answer = () =>
+      of(
+        trackFc([
+          [
+            [1, 1],
+            [2, 2]
+          ]
+        ])
+      );
+    service.setPreset('all');
+    vi.advanceTimersByTime(1000);
+    expect(service.failed().size).toBe(0);
+    expect(service.tracks().has('self')).toBe(true);
+  });
+
+  it('ignores a failure superseded by a newer request', () => {
+    const replies: Subject<unknown>[] = [];
+    answer = () => {
+      const s = new Subject<unknown>();
+      replies.push(s);
+      return s;
+    };
+    service.toggle('self');
+    service.setPreset('7d');
+    vi.advanceTimersByTime(1000);
+    replies[1].next(
+      trackFc([
+        [
+          [1, 1],
+          [2, 2]
+        ]
+      ])
+    );
+    replies[1].complete();
+    replies[0].error(new Error('500'));
+    expect(service.failed().size).toBe(0);
+    expect(service.tracks().has('self')).toBe(true);
+    expect(service.pending()).toBe(0);
+  });
+
+  it('forgets everything from one provider when another takes over', async () => {
+    const replies: Subject<unknown>[] = [];
+    answer = () => {
+      const s = new Subject<unknown>();
+      replies.push(s);
+      return s;
+    };
+    service.refreshRecorded();
+    expect(service.recorded()).not.toBeNull();
+    service.toggle('self');
+    trackSource.set({ api: 'v2', provider: 'parquet' });
+    TestBed.tick();
+    expect(service.shown()).toEqual([]);
+    expect(service.recorded()).toBeNull();
+    // the old provider's answer arriving late is dropped
+    replies[0].next(
+      trackFc([
+        [
+          [1, 1],
+          [2, 2]
+        ]
+      ])
+    );
+    replies[0].complete();
+    expect(service.tracks().size).toBe(0);
   });
 
   it('hides everything when the palette is closed', () => {

@@ -286,6 +286,20 @@ export function loopToRange(
   };
 }
 
+/** The bar's handles kept at least one step apart. Handles that meet would
+ * ask for `from` equal to `to`, which the Track API rejects; the end handle
+ * moves on a step instead (or, at the end of the bar, the start moves back). */
+export function minimumLoop(
+  loop: { min: number; max: number },
+  axis: { min: number; max: number; step: number }
+): { min: number; max: number } {
+  if (loop.max - loop.min >= axis.step) {
+    return loop;
+  }
+  const max = Math.min(axis.max, loop.min + axis.step);
+  return { min: Math.max(axis.min, max - axis.step), max };
+}
+
 // ******** tapped segment ********
 
 /** Index of the vertex of `line` nearest `p` (lon/lat), with longitude scaled
@@ -323,9 +337,45 @@ export function durationLabel(ms: number): string {
   return `${m} min`;
 }
 
-/** What a tapped history segment shows: when the segment (a continuous stretch
- * of recording) starts and ends, and when the vessel was at the tapped point.
- * Undefined when the segment carries no recording times. */
+/** The point of `line` nearest `p` (lon/lat): the segment it lies on (from
+ * vertex `index`, a fraction `f` of the way to the next), and its squared
+ * distance, in degrees of latitude. Longitude is scaled by the cosine of
+ * latitude, and measured the short way round the antimeridian. */
+export function nearestOnLine(
+  line: Position[],
+  p: Position
+): { index: number; f: number; d: number } | undefined {
+  if (line.length === 0) {
+    return undefined;
+  }
+  const k = Math.cos((p[1] * Math.PI) / 180);
+  // each vertex as (x, y) relative to p, x unwrapped towards p
+  const xy = line.map((v) => {
+    let dx = (v[0] - p[0]) % 360;
+    dx = dx > 180 ? dx - 360 : dx < -180 ? dx + 360 : dx;
+    return [dx * k, v[1] - p[1]];
+  });
+  let best = { index: 0, f: 0, d: xy[0][0] ** 2 + xy[0][1] ** 2 };
+  for (let i = 0; i < xy.length - 1; i++) {
+    const [ax, ay] = xy[i];
+    const [bx, by] = xy[i + 1];
+    const len2 = (bx - ax) ** 2 + (by - ay) ** 2;
+    const f =
+      len2 > 0
+        ? Math.min(1, Math.max(0, -(ax * (bx - ax) + ay * (by - ay)) / len2))
+        : 0;
+    const d = (ax + f * (bx - ax)) ** 2 + (ay + f * (by - ay)) ** 2;
+    if (d < best.d) {
+      best = { index: i, f, d };
+    }
+  }
+  return best;
+}
+
+/** What a tapped stretch of recording shows: when it starts and ends, and
+ * when the vessel was at the tapped point (interpolated along the recorded
+ * leg nearest the tap). Undefined when the stretch carries no recording
+ * times. */
 export function segmentTimeInfo(
   line: Position[],
   times: string[] | undefined,
@@ -341,8 +391,13 @@ export function segmentTimeInfo(
   if (!Number.isFinite(start) || !Number.isFinite(end)) {
     return undefined;
   }
-  const i = times.length === line.length ? nearestVertexIndex(line, at) : -1;
-  const atTime = i >= 0 ? Date.parse(times[i]) : NaN;
+  const near = times.length === line.length ? nearestOnLine(line, at) : null;
+  let atTime = NaN;
+  if (near) {
+    const a = Date.parse(times[near.index]);
+    const b = Date.parse(times[Math.min(near.index + 1, times.length - 1)]);
+    atTime = a + (b - a) * near.f;
+  }
   return {
     start,
     end,
@@ -351,9 +406,10 @@ export function segmentTimeInfo(
   };
 }
 
-/** {@link segmentTimeInfo} for a tap on a multi-segment track: the segment
- * holding the recorded point nearest the tap. Segments without recording
- * times are skipped. */
+/** {@link segmentTimeInfo} for a tap on a multi-segment track: the stretch
+ * whose line passes nearest the tap — not the one with the nearest recorded
+ * point, which on a sparse passage can be a different passage close by.
+ * Stretches without recording times are skipped. */
 export function trackTimeInfo(
   lines: Position[][],
   times: string[][] | undefined,
@@ -362,22 +418,15 @@ export function trackTimeInfo(
   if (!Array.isArray(times)) {
     return undefined;
   }
-  const k = Math.cos((at[1] * Math.PI) / 180);
   let best = -1;
   let bestD = Infinity;
   lines.forEach((line, i) => {
     if (times[i]?.length !== line.length) {
       return;
     }
-    const v = line[nearestVertexIndex(line, at)];
-    if (!v) {
-      return;
-    }
-    let dLon = Math.abs(v[0] - at[0]) % 360;
-    dLon = dLon > 180 ? 360 - dLon : dLon;
-    const d = (dLon * k) ** 2 + (v[1] - at[1]) ** 2;
-    if (d < bestD) {
-      bestD = d;
+    const near = nearestOnLine(line, at);
+    if (near && near.d < bestD) {
+      bestD = near.d;
       best = i;
     }
   });

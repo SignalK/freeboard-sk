@@ -9,6 +9,7 @@ import {
   historyMetaQuery,
   historyQuery,
   loopToRange,
+  minimumLoop,
   nearestVertexIndex,
   parseHistoryContexts,
   parseHistorySpan,
@@ -260,6 +261,22 @@ describe('track-history range bar axis', () => {
     expect(b.max - b.min).toBeGreaterThanOrEqual(HOUR);
   });
 
+  it('keeps the range handles at least one step apart', () => {
+    const axis = { min: 0, max: 100, step: 10 };
+    expect(minimumLoop({ min: 20, max: 60 }, axis)).toEqual({
+      min: 20,
+      max: 60
+    });
+    expect(minimumLoop({ min: 40, max: 40 }, axis)).toEqual({
+      min: 40,
+      max: 50
+    });
+    expect(minimumLoop({ min: 100, max: 100 }, axis)).toEqual({
+      min: 90,
+      max: 100
+    });
+  });
+
   it('puts an open end at that end of the axis, and back again', () => {
     const axis = { min: 1000, max: 5000 };
     expect(rangeToLoop(HISTORY_ALL, axis)).toEqual({ min: 1000, max: 5000 });
@@ -301,12 +318,12 @@ describe('track-history tapped segment', () => {
   });
 
   it('reports the segment span and the time at the tapped point', () => {
-    expect(segmentTimeInfo(line, times, [-81.71, 24.5])).toEqual({
-      start: Date.parse(times[0]),
-      end: Date.parse(times[2]),
-      duration: 3.5 * HOUR,
-      atTime: Date.parse(times[2])
-    });
+    const info = segmentTimeInfo(line, times, [-81.71, 24.5]);
+    expect(info.start).toBe(Date.parse(times[0]));
+    expect(info.end).toBe(Date.parse(times[2]));
+    expect(info.duration).toBe(3.5 * HOUR);
+    // 90% of the way along the 11:00 -> 13:30 leg
+    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-20T13:15:00Z'), -3);
   });
 
   it('has nothing to say without recording times', () => {
@@ -326,11 +343,33 @@ describe('track-history tapped segment', () => {
       [-81.79, 24.5]
     );
     expect(info.start).toBe(Date.parse(times[0]));
-    expect(info.atTime).toBe(Date.parse(times[1]));
+    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-20T11:15:00Z'), -3);
     expect(
       trackTimeInfo([other, line], [otherTimes, []], [-81.79, 24.5]).start
     ).toBe(Date.parse(otherTimes[0])); // a segment without times is skipped
     expect(trackTimeInfo([line], undefined, [0, 0])).toBeUndefined();
+  });
+
+  it('picks the passage the tap is on, not the one with the nearest recorded point', () => {
+    // a sparse passage whose leg runs under the tap, and the next day's
+    // passage with a recorded point close by
+    const sparse: [number, number][] = [
+      [0, 0],
+      [10, 0]
+    ];
+    const sparseTimes = ['2026-09-20T00:00:00Z', '2026-09-20T10:00:00Z'];
+    const nextDay: [number, number][] = [
+      [4.9, 0.3],
+      [4.9, 5]
+    ];
+    const nextDayTimes = ['2026-09-21T00:00:00Z', '2026-09-21T05:00:00Z'];
+    const info = trackTimeInfo(
+      [nextDay, sparse],
+      [nextDayTimes, sparseTimes],
+      [5, 0.01]
+    );
+    expect(info.start).toBe(Date.parse(sparseTimes[0]));
+    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-20T05:00:00Z'), -3);
   });
 
   it('formats durations', () => {

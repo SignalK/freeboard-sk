@@ -28,6 +28,7 @@ import {
   HistoryPreset,
   historyAxis,
   loopToRange,
+  minimumLoop,
   nextPlaybackTime,
   rangeToLoop,
   stepScrubTime
@@ -361,6 +362,12 @@ export class TrackHistoryDialog {
   });
 
   protected statusText = computed(() => {
+    const failed = [...this.history.failed()];
+    if (failed.length) {
+      return `Couldn't load history for ${failed
+        .map((c) => this.history.label(c))
+        .join(', ')}`;
+    }
     const tracks = [...this.history.tracks().values()];
     if (tracks.length === 0) {
       return 'No recorded track in this area and time range';
@@ -440,7 +447,9 @@ export class TrackHistoryDialog {
   }
 
   protected onLoop(loop: ChartTimeLoop) {
-    this.history.setRange(loopToRange(loop, this.axis()));
+    this.history.setRange(
+      loopToRange(minimumLoop(loop, this.axis()), this.axis())
+    );
   }
 
   protected onDragEnded(e: CdkDragEnd) {
