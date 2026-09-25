@@ -245,4 +245,27 @@ describe('WmtsChartLayerComponent — tile matrix set', () => {
     expect((source as WMTS).getMatrixSet()).toBe('webmercator');
     expect(source.getProjection().getCode()).toBe('EPSG:3857');
   });
+
+  it('warns and adds no layer when no linked set is in a projection it can display', async () => {
+    const utmOnly = structuredClone(capabilities);
+    utmOnly.Contents.Layer[0].TileMatrixSetLink = [{ TileMatrixSet: 'utm32n' }];
+    vi.spyOn(
+      WmtsChartLayerComponent.prototype as unknown as {
+        fetchWMTSCapabilities: () => Promise<unknown>;
+      },
+      'fetchWMTSCapabilities'
+    ).mockResolvedValue(utmOnly);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const fixture = TestBed.createComponent(WmtsChartLayerComponent);
+    fixture.componentRef.setInput('chart', sjokart());
+    fixture.componentRef.setInput('zIndex', 10);
+    fixture.detectChanges();
+    await flush();
+
+    expect(map.addLayer).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("'sjokartraster'")
+    );
+  });
 });

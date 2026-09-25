@@ -15,7 +15,7 @@ import { MapComponent } from '../map.component';
 import { resolveChartTime } from 'src/app/lib/chart-time';
 import { ogcRequestUrl } from 'src/app/modules/skresources/components/charts/maplib';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
-import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
+import WMTS, { Options, optionsFromCapabilities } from 'ol/source/WMTS';
 
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import {
@@ -105,13 +105,10 @@ export class WmtsChartLayerComponent implements OnDestroy {
       return;
     }
     const layer = chart[1].layers[0];
-    // Chosen by CRS, not by name. With no Web Mercator set OpenLayers falls
-    // back to the layer's first set, as it always has: drawn reprojected when
-    // OpenLayers knows its CRS, and not at all otherwise.
-    const options = optionsFromCapabilities(this.capabilities, {
-      layer,
-      matrixSet: webMercatorMatrixSet(this.capabilities, layer)
-    });
+    const options = this.sourceOptions(layer);
+    if (!options) {
+      return;
+    }
 
     if (!this.layer) {
       const zoom = resolveLayerZoomRange(
@@ -176,6 +173,33 @@ export class WmtsChartLayerComponent implements OnDestroy {
     }
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
+  }
+
+  /**
+   * WMTS source options for `layer`, on its Web Mercator tile matrix set —
+   * chosen by CRS, not by name. With no Web Mercator set OpenLayers falls back
+   * to the layer's first set, drawn reprojected when OpenLayers knows its CRS.
+   * When it does not, OpenLayers throws rather than returning, so the chart
+   * cannot be drawn: warn and return `null` instead of leaving an unhandled
+   * rejection behind.
+   */
+  private sourceOptions(layer: string): Options | null {
+    let options: Options | null;
+    try {
+      options = optionsFromCapabilities(this.capabilities, {
+        layer,
+        matrixSet: webMercatorMatrixSet(this.capabilities, layer)
+      });
+    } catch {
+      console.warn(
+        `WMTS layer '${layer}' has no tile matrix set in a projection Freeboard can display`
+      );
+      return null;
+    }
+    if (!options) {
+      console.warn(`WMTS layer '${layer}' is not in the service capabilities`);
+    }
+    return options;
   }
 
   /**
