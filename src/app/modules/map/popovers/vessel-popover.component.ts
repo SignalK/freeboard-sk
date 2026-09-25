@@ -457,10 +457,10 @@ export class VesselPopoverComponent {
    * shown. */
   protected trackExportOffer(): TrackExportChoice | null {
     if (this.isSelf()) {
-      const server = this.app.selfTrailFromServer();
+      // the trail as exported: the server trail and the local trail joined
       return vesselExportOffer({
         trackDisplayed: this.app.config.vessels.trail,
-        lines: server.length > 0 ? server : [this.app.selfTrail()],
+        lines: this.gpxExport.ownTrail().displayed.lines,
         historyShown:
           this.trackHistory.available() && this.trackHistory.isShown('self')
       });
