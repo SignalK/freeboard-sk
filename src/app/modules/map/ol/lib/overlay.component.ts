@@ -11,6 +11,9 @@ import {
 } from '@angular/core';
 import Overlay, { Options, PanIntoViewOptions } from 'ol/Overlay';
 import { fromLonLat } from 'ol/proj';
+import { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
+import { Subject } from 'rxjs';
 import { MapComponent } from './map.component';
 import { Coordinate } from './models';
 
@@ -39,6 +42,15 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() stopEvent: boolean;
   @Input() insertFirst: boolean;
 
+  /**
+   * Emits when the overlay may have moved on screen: after it is moved to a
+   * new anchor position, and after the map finishes a pan, zoom or resize.
+   * Content that depends on where it sits (a popover choosing to open above
+   * or below) re-measures on it.
+   */
+  readonly repositioned = new Subject<void>();
+  private moveEndKey: EventsKey;
+
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
     protected elementRef: ElementRef,
@@ -58,6 +70,12 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
       this.element = this.elementRef.nativeElement;
       this.overlay = new Overlay(this as Options);
       this.mapComponent.getMap().addOverlay(this.overlay);
+      // moveend is dispatched before postrender, and the overlay only moves
+      // to its new screen position on postrender, so signal after that.
+      const map = this.mapComponent.getMap();
+      this.moveEndKey = map.on('moveend', () =>
+        map.once('postrender', () => this.repositioned.next())
+      );
       if (this.position) {
         this.overlay.setPosition(this.toWorldPosition(this.position));
       }
@@ -65,6 +83,8 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    unByKey(this.moveEndKey);
+    this.repositioned.complete();
     if (this.overlay) {
       this.mapComponent.getMap().removeOverlay(this.overlay);
       this.overlay = null;
@@ -76,6 +96,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
     if (this.overlay && (changes.position || changes.worldOffset)) {
       if (this.position) {
         this.overlay.setPosition(this.toWorldPosition(this.position));
+        this.repositioned.next();
       }
     }
   }

@@ -7,8 +7,14 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
-  inject
+  ElementRef,
+  DestroyRef,
+  ViewChild,
+  afterNextRender,
+  inject,
+  signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +22,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CountryFlagComponent } from 'src/app/lib/components/country-flags.component';
 import { AppFacade } from 'src/app/app.facade';
+import { OverlayComponent } from '../ol/lib/overlay.component';
+import { PopoverPlacement, choosePopoverPlacement } from './popover-placement';
 
 /*********** Popover ***************
 title: string -  title text,
@@ -34,7 +42,10 @@ measure: boolean= measure mode;
   ],
   template: `
     <div
-      class="popover top in mat-app-background"
+      #box
+      class="popover in mat-app-background"
+      [class.top]="placement() === 'top'"
+      [class.bottom]="placement() === 'bottom'"
       [ngClass]="{ measure: measure, compact: compact, docked: docked }"
     >
       @if (title || icon || mmsi || canClose || navTo) {
@@ -113,9 +124,65 @@ export class PopoverComponent {
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() navigateTo: EventEmitter<void> = new EventEmitter();
 
+  @ViewChild('box', { static: true }) private box: ElementRef<HTMLElement>;
+
   protected app = inject(AppFacade);
 
-  constructor() {}
+  /** Side of the anchor the popover opens on (#827). */
+  protected placement = signal<PopoverPlacement>('top');
+
+  private overlay = inject(OverlayComponent, { optional: true });
+  private resizeObserver: ResizeObserver;
+
+  constructor() {
+    // Open below the anchor when there is no room above it, so the title bar
+    // and close button stay on screen (see choosePopoverPlacement). Re-check when the content changes size,
+    // when the popover is re-anchored to another feature, and when the map is
+    // panned, zoomed or resized (e.g. a device rotated). Deliberately
+    // not OpenLayers' autoPan: panning the chart to fit would fight Center &
+    // Follow Vessel.
+    afterNextRender(() => {
+      this.updatePlacement();
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(() => this.updatePlacement());
+        this.resizeObserver.observe(this.box.nativeElement);
+      }
+    });
+    this.overlay?.repositioned
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.updatePlacement());
+    inject(DestroyRef).onDestroy(() => this.resizeObserver?.disconnect());
+  }
+
+  /**
+   * Measure the popover against its anchor and the visible map area, and pick
+   * the side to open on. The anchor is the popover's offset parent: the
+   * OpenLayers overlay container, whose top edge sits on the anchor point.
+   *
+   * A popover that fits on neither side is capped to the room it gets. The cap
+   * is set on the element directly, not through a binding, so it can be lifted
+   * and the natural height measured in the same synchronous pass: measuring
+   * the capped height would make it "fit" and flip it back and forth.
+   */
+  protected updatePlacement() {
+    const box = this.box?.nativeElement;
+    const anchor = box?.offsetParent;
+    if (this.docked || !anchor) {
+      return;
+    }
+    box.style.maxHeight = '';
+    const area = box.closest('.ol-viewport')?.getBoundingClientRect();
+    const layout = choosePopoverPlacement({
+      anchorY: anchor.getBoundingClientRect().top,
+      height: box.getBoundingClientRect().height,
+      top: Math.max(area?.top ?? 0, 0),
+      bottom: Math.min(area?.bottom ?? window.innerHeight, window.innerHeight)
+    });
+    const capped = layout.maxHeight !== undefined;
+    box.style.maxHeight = capped ? `${layout.maxHeight}px` : '';
+    box.classList.toggle('capped', capped);
+    this.placement.set(layout.placement);
+  }
 
   handleClose() {
     this.closed.emit();
