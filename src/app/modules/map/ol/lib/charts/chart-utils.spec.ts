@@ -1038,6 +1038,31 @@ describe('startChartTileRecovery', () => {
     stop();
   });
 
+  it('evicts only errored source tiles on recovery so they reload, keeping loaded ones cached', () => {
+    vi.useFakeTimers();
+    const { source, group } = makeGroup();
+    // OpenLayers caches vector source tiles by URL; seed one errored and one
+    // loaded so we can assert recovery drops only the errored one.
+    const src = source as unknown as {
+      sourceTiles_: Record<string, { getState: () => number }>;
+    };
+    src.sourceTiles_ = src.sourceTiles_ ?? {};
+    const erroredUrl = 'https://tiles.example/5/1/1.pbf';
+    const loadedUrl = 'https://tiles.example/5/1/2.pbf';
+    src.sourceTiles_[erroredUrl] = { getState: () => TileState.ERROR };
+    src.sourceTiles_[loadedUrl] = { getState: () => TileState.LOADED };
+
+    const stop = startChartTileRecovery(group, { minDelayMs: 50 });
+    source.dispatchEvent('tileloaderror');
+    vi.advanceTimersByTime(50);
+
+    // Errored tile dropped -> OL rebuilds it as IDLE and refetches it.
+    expect(erroredUrl in src.sourceTiles_).toBe(false);
+    // Loaded tile kept -> reused from cache at its unchanged URL, not re-downloaded.
+    expect(loadedUrl in src.sourceTiles_).toBe(true);
+    stop();
+  });
+
   it('stops rotating after teardown', () => {
     vi.useFakeTimers();
     const { source, group } = makeGroup();

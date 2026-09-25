@@ -952,14 +952,28 @@ export function startChartTileRecovery(
   }
 
   const rotate = (): void => {
-    // Rotate the source key ONLY, leaving the tile URL unchanged. A failed
-    // request was never cached, so a new key is enough to re-request it; tiles
-    // that had loaded come back from the browser/HTTP cache or a local caching
-    // proxy at the same URL rather than re-downloading (which matters on a
-    // metered Starlink/cellular link). This is the opposite of
-    // startChartTileRefresh, whose tiles are time-varying and must cache-bust
-    // the URL to fetch new data — recovery must NOT.
     for (const source of sources) {
+      // OpenLayers caches vector source tiles by URL and will not reload one
+      // that is in ERROR when only the render-tile key changes
+      // (ol/source/VectorTile getSourceTiles: an ERROR source tile is neither
+      // `< LOADED` nor `IDLE`, so it is reused, not re-fetched). Drop just the
+      // errored source tiles so the key rotation below rebuilds them as fresh
+      // IDLE tiles that load. Tiles that loaded keep their cache entry and their
+      // unchanged URL, so they are reused from the browser/HTTP cache or a local
+      // proxy rather than re-downloaded (which matters on a metered link) — the
+      // opposite of startChartTileRefresh, whose time-varying tiles must
+      // cache-bust the URL. Guarded so an OpenLayers internals change degrades
+      // to a plain key rotation rather than throwing.
+      const cache = (
+        source as unknown as { sourceTiles_?: Record<string, Tile> }
+      ).sourceTiles_;
+      if (cache) {
+        for (const url of Object.keys(cache)) {
+          if (cache[url]?.getState() === TileState.ERROR) {
+            delete cache[url];
+          }
+        }
+      }
       source.setTileUrlFunction(
         source.getTileUrlFunction(),
         String(Date.now())
