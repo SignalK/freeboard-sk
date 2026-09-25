@@ -70,9 +70,12 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
       this.element = this.elementRef.nativeElement;
       this.overlay = new Overlay(this as Options);
       this.mapComponent.getMap().addOverlay(this.overlay);
-      this.moveEndKey = this.mapComponent
-        .getMap()
-        .on('moveend', () => this.repositioned.next());
+      // moveend is dispatched before postrender, and the overlay only moves
+      // to its new screen position on postrender, so signal after that.
+      const map = this.mapComponent.getMap();
+      this.moveEndKey = map.on('moveend', () =>
+        map.once('postrender', () => this.repositioned.next())
+      );
       if (this.position) {
         this.overlay.setPosition(this.toWorldPosition(this.position));
       }
