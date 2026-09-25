@@ -56,6 +56,19 @@
     max-height:330px;
     overflow:auto;
 }
+/* Capped to the room beside its anchor when it fits on neither side (#827):
+   the title bar keeps its height and the content scrolls. */
+.popover.capped {
+    display: flex;
+    flex-direction: column;
+}
+.popover.capped > .popover-title {
+    flex-shrink: 0;
+}
+.popover.capped > .popover-content {
+    flex: 1 1 auto;
+    min-height: 0;
+}
 
 .popover > .arrow,
 .popover > .arrow:after {

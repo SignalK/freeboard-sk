@@ -136,7 +136,7 @@ export class PopoverComponent {
 
   constructor() {
     // Open below the anchor when there is no room above it, so the title bar
-    // and close button stay on screen. Re-check when the content changes size,
+    // and close button stay on screen (see choosePopoverPlacement). Re-check when the content changes size,
     // when the popover is re-anchored to another feature, and when the map is
     // panned, zoomed or resized (e.g. a device rotated). Deliberately
     // not OpenLayers' autoPan: panning the chart to fit would fight Center &
@@ -158,6 +158,11 @@ export class PopoverComponent {
    * Measure the popover against its anchor and the visible map area, and pick
    * the side to open on. The anchor is the popover's offset parent: the
    * OpenLayers overlay container, whose top edge sits on the anchor point.
+   *
+   * A popover that fits on neither side is capped to the room it gets. The cap
+   * is set on the element directly, not through a binding, so it can be lifted
+   * and the natural height measured in the same synchronous pass: measuring
+   * the capped height would make it "fit" and flip it back and forth.
    */
   protected updatePlacement() {
     const box = this.box?.nativeElement;
@@ -165,18 +170,18 @@ export class PopoverComponent {
     if (this.docked || !anchor) {
       return;
     }
+    box.style.maxHeight = '';
     const area = box.closest('.ol-viewport')?.getBoundingClientRect();
-    this.placement.set(
-      choosePopoverPlacement({
-        anchorY: anchor.getBoundingClientRect().top,
-        height: box.getBoundingClientRect().height,
-        titleHeight:
-          box.querySelector('.popover-title')?.getBoundingClientRect().height ??
-          0,
-        top: Math.max(area?.top ?? 0, 0),
-        bottom: Math.min(area?.bottom ?? window.innerHeight, window.innerHeight)
-      })
-    );
+    const layout = choosePopoverPlacement({
+      anchorY: anchor.getBoundingClientRect().top,
+      height: box.getBoundingClientRect().height,
+      top: Math.max(area?.top ?? 0, 0),
+      bottom: Math.min(area?.bottom ?? window.innerHeight, window.innerHeight)
+    });
+    const capped = layout.maxHeight !== undefined;
+    box.style.maxHeight = capped ? `${layout.maxHeight}px` : '';
+    box.classList.toggle('capped', capped);
+    this.placement.set(layout.placement);
   }
 
   handleClose() {
