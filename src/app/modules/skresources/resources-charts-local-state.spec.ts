@@ -17,6 +17,7 @@ const ADJ: ChartImageAdjustment = { brightness: 1.2, contrast: 0.8 };
 
 type Internals = {
   transformChart: (c: ChartResource, id: string) => SKChart;
+  absorbChartDelta: (id: string, value: unknown) => boolean;
   withoutLocalState: (c: SKChart) => SKChart;
   chartCacheSignal: { (): FBCharts; set: (v: FBCharts) => void };
 };
@@ -151,5 +152,15 @@ describe('sending a chart with user display preferences to the server (#836)', (
     expect(chart.name).toBe('Renamed');
     expect(chart.defaultOpacity).toBe(1);
     expect('imageAdjustment' in chart).toBe(false);
+  });
+
+  it("does not absorb a delta that changes the resource's opacity, though the user's hides it", () => {
+    const { internals } = svcWithPrefs();
+    internals.chartCacheSignal.set([
+      ['my-chart', internals.transformChart(resource(1), 'my-chart'), true]
+    ]);
+    // Both sides draw at the user's 0.37; only the resource changed. It must
+    // reach the cache through a full refresh, not be dropped as a no-op.
+    expect(internals.absorbChartDelta('my-chart', resource(0.5))).toBe(false);
   });
 });

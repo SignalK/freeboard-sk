@@ -506,6 +506,37 @@ describe('editing an adopted Overlay', () => {
     expect(refreshCharts).toHaveBeenCalled();
   });
 
+  it("migrates on Save with the Overlay's opacity, not this user's display preferences (#836)", async () => {
+    const { svc, app, postToServer, stubRefresh } = harness({
+      overlays: { [OV1]: overlay('nexrad') },
+      chartsSelection: ['noaa']
+    });
+    app.config.selections.chartOpacity = { [CH1]: 0.37 };
+    app.config.selections.chartImageAdjustment = {
+      [CH1]: { brightness: 1.2, contrast: 0.8 }
+    };
+    // the dialog hands back the chart it was given
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      dialog: {
+        open: (_c: unknown, cfg: { data: SKChart }) => ({
+          afterClosed: () => of({ save: true, chart: cfg.data })
+        })
+      }
+    });
+    await svc.listChartsFromServer();
+    stubRefresh();
+
+    await svc.editChartInfo(CH1);
+    await settled();
+
+    const [, chart] = postToServer.mock.calls[0] as unknown as [
+      string,
+      SKChart
+    ];
+    expect(chart.defaultOpacity).toBe(0.5);
+    expect('imageAdjustment' in chart).toBe(false);
+  });
+
   it('re-reads an adopted WMS entry from its map service on a timeline refresh tick, and writes nothing', async () => {
     // The follower re-reads a chart's time dimension each tick (#799). An
     // adopted WMS / WMTS entry is a user-added source, so like any other it
