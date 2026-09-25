@@ -2,10 +2,55 @@ import { CommonModule } from '@angular/common';
 import {
   Component,
   ChangeDetectorRef,
+  computed,
   inject,
   output,
   input
 } from '@angular/core';
+
+/** The parts of `navigator` used to recognise an iOS / iPadOS browser. */
+export interface PlatformHints {
+  userAgent: string;
+  platform: string;
+  maxTouchPoints: number;
+}
+
+/**
+ * Whether the browser is on iOS or iPadOS. iPadOS reports itself as a Mac
+ * ("MacIntel") by default, so a touch-capable "Mac" is taken to be an iPad.
+ */
+export function isIOSPlatform(p: PlatformHints): boolean {
+  return (
+    /iPad|iPhone|iPod/.test(p.userAgent) ||
+    (p.platform === 'MacIntel' && p.maxTouchPoints > 1)
+  );
+}
+
+/**
+ * A MIME type iOS resolves to its generic "data" file type, which every
+ * document conforms to (see `effectiveAccept`).
+ */
+const IOS_ANY_DOCUMENT = 'application/octet-stream';
+
+/**
+ * The `accept` attribute to put on the file `<input>`.
+ *
+ * iOS does not filter the document picker by extension: it maps each
+ * `.ext` entry to a system file type and greys out every file whose
+ * extension has no registered type — `.gpx` among them (#828). On iOS an
+ * extension filter is therefore widened with a catch-all document type so
+ * those files stay selectable, leaving the file's content to decide. Dropping
+ * the filter instead would also work, but an empty `accept` makes Safari offer
+ * the photo library and camera before the Files picker. MIME-only filters
+ * (e.g. `image/*`) map cleanly and are kept as they are.
+ */
+export function effectiveAccept(accept: string, p: PlatformHints): string {
+  if (!accept || !isIOSPlatform(p)) {
+    return accept;
+  }
+  const hasExtension = accept.split(',').some((t) => t.trim().startsWith('.'));
+  return hasExtension ? `${accept},${IOS_ANY_DOCUMENT}` : accept;
+}
 
 @Component({
   selector: 'ap-file-input',
@@ -32,6 +77,10 @@ export class FileInputComponent {
   cleared = output<void>();
 
   protected avatar = null;
+
+  protected inputAccept = computed(() =>
+    effectiveAccept(this.accept(), navigator)
+  );
 
   private changeDetectorRef = inject(ChangeDetectorRef);
 
