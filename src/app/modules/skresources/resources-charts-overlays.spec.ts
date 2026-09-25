@@ -306,6 +306,29 @@ describe('migrating adopted Overlays', () => {
     expect(refreshCharts).toHaveBeenCalledOnce();
   });
 
+  it("carries the Overlay's opacity, not this user's display preferences (#836)", async () => {
+    const { svc, priv, app, postToServer, refreshCharts } = harness({
+      overlays: { [OV1]: overlay('nexrad') }
+    });
+    app.config.selections.chartOpacity = { [CH1]: 0.37 };
+    app.config.selections.chartImageAdjustment = {
+      [CH1]: { brightness: 1.2, contrast: 0.8 }
+    };
+    await svc.listChartsFromServer();
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      refreshCharts
+    });
+
+    await priv.migrateAdoptedOverlays();
+
+    const [, chart] = postToServer.mock.calls[0] as unknown as [
+      string,
+      SKChart
+    ];
+    expect(chart.defaultOpacity).toBe(0.5);
+    expect('imageAdjustment' in chart).toBe(false);
+  });
+
   it('does nothing when charts cannot be written, and keeps the adopted entry', async () => {
     const { svc, priv, postToServer, deleteFromServer, refreshCharts } =
       harness({ overlays: { [OV1]: overlay('a'), [OV2]: overlay('b') } });

@@ -139,7 +139,14 @@ export class SKChart {
   url: string;
   source: string;
   style: string;
+  // The opacity drawn at: the user's own setting where there is one, else the
+  // resource's.
   defaultOpacity: number;
+  // The resource's own `defaultOpacity`, kept so the user's setting never
+  // reaches the server in its place. Set only on a chart read from the server
+  // (null: the resource declares none); undefined on a chart built locally,
+  // whose `defaultOpacity` is the resource's.
+  resourceOpacity?: number | null;
   imageAdjustment?: ChartImageAdjustment;
   displayMinZoom?: number;
   proxy: boolean;
@@ -175,6 +182,7 @@ export class SKChart {
     this.style = chart?.style ?? undefined;
     this.source = src?.$source ?? src?.source ?? undefined;
     this.defaultOpacity = chart?.defaultOpacity ?? 1;
+    this.resourceOpacity = src?.resourceOpacity;
     this.imageAdjustment = chart?.imageAdjustment;
     this.displayMinZoom = chart?.displayMinZoom;
     this.proxy = chart?.proxy ?? false;
