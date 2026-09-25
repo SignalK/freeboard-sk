@@ -1043,6 +1043,10 @@ export class SKResourceService {
         url: `${this.app.hostDef.url.replace(/\/+$/, '')}/${timeUrl.replace(/^\/+/, '')}`
       };
     }
+    // Keep the resource's own opacity before the user's setting replaces it,
+    // so a write back to the server carries it (withoutLocalState).
+    const resourceOpacity =
+      typeof chart.defaultOpacity === 'number' ? chart.defaultOpacity : null;
     // map local chart opacity (use a defined-check, not truthiness, so a fully
     // transparent 0 is honored rather than silently dropped on refresh)
     if (typeof this.app.config.selections.chartOpacity[id] !== 'undefined') {
@@ -1056,7 +1060,9 @@ export class SKResourceService {
     if (typeof dmz !== 'undefined') {
       chart.displayMinZoom = dmz;
     }
-    return new SKChart(chart);
+    const skChart = new SKChart(chart);
+    skChart.resourceOpacity = resourceOpacity;
+    return skChart;
   }
 
   /**
@@ -2139,15 +2145,24 @@ export class SKResourceService {
   }
 
   /**
-   * @description Copy of a chart without its local state -- the display
-   * minimum zoom (a local preference) and the selected instant (session state)
-   * -- neither of which is part of the server's chart resource. Charts fetched
-   * for editing come through `transformChart()`, so both are present on the
-   * object the properties dialog hands back.
+   * @description Copy of a chart without its local state, fit to send to the
+   * server. The user's display preferences (opacity, image adjustment, display
+   * minimum zoom) and the selected instant (session state) are this client's,
+   * not the shared resource's: the image adjustment, minimum zoom and instant
+   * are dropped, and the opacity goes back to the resource's own. Charts
+   * fetched for editing come through `transformChart()`, so all of them are
+   * present on the object the properties dialog hands back.
    * @param chart Chart to strip
    */
   private withoutLocalState(chart: SKChart): SKChart {
     const outbound = { ...chart };
+    if (chart.resourceOpacity === null) {
+      delete outbound.defaultOpacity;
+    } else if (typeof chart.resourceOpacity === 'number') {
+      outbound.defaultOpacity = chart.resourceOpacity;
+    }
+    delete outbound.resourceOpacity;
+    delete outbound.imageAdjustment;
     delete outbound.displayMinZoom;
     delete outbound.timeValue;
     return outbound;

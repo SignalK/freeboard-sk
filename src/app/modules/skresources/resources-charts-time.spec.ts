@@ -573,6 +573,28 @@ describe('time dimension refresh', () => {
       expect(put).toHaveBeenCalledTimes(1);
     });
 
+    it("writes back the resource's opacity, not this user's display preferences (#836)", async () => {
+      const { internals } = refreshing(
+        () => {
+          // As transformChart leaves it: the user's opacity and image
+          // adjustment applied over the resource's own opacity.
+          const c = userAdded(listed(-10, 0));
+          c.resourceOpacity = 1;
+          c.defaultOpacity = 0.37;
+          c.imageAdjustment = { brightness: 1, contrast: 1 };
+          return [['nowcoast', c, true]];
+        },
+        undefined,
+        () => Promise.resolve({ time: listed(-9, 1) })
+      );
+      await tick(0);
+      const put = internals.putToServer as ReturnType<typeof vi.fn>;
+      expect(put).toHaveBeenCalledTimes(1);
+      const value = put.mock.calls[0][2] as SKChart;
+      expect(value.defaultOpacity).toBe(1);
+      expect('imageAdjustment' in value).toBe(false);
+    });
+
     it('is still re-read from the resource when served by a plugin, and never written back', async () => {
       const resource = vi.fn(() => Promise.resolve(wms(listed(-9, 1), STEP)));
       const service = vi.fn((_c: FBChart) =>
