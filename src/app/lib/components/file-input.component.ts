@@ -2,10 +2,47 @@ import { CommonModule } from '@angular/common';
 import {
   Component,
   ChangeDetectorRef,
+  computed,
   inject,
   output,
   input
 } from '@angular/core';
+
+/** The parts of `navigator` used to recognise an iOS / iPadOS browser. */
+export interface PlatformHints {
+  userAgent: string;
+  platform: string;
+  maxTouchPoints: number;
+}
+
+/**
+ * Whether the browser is on iOS or iPadOS. iPadOS reports itself as a Mac
+ * ("MacIntel") by default, so a touch-capable "Mac" is taken to be an iPad.
+ */
+export function isIOSPlatform(p: PlatformHints): boolean {
+  return (
+    /iPad|iPhone|iPod/.test(p.userAgent) ||
+    (p.platform === 'MacIntel' && p.maxTouchPoints > 1)
+  );
+}
+
+/**
+ * The `accept` attribute to put on the file `<input>`.
+ *
+ * iOS does not filter the document picker by extension: it maps each
+ * `.ext` entry to a system file type and greys out every file whose
+ * extension has no registered type — `.gpx` among them (#828). An extension
+ * filter on iOS can therefore make the very files it names unselectable, so
+ * it is dropped there and the file's content is left to decide. MIME-only
+ * filters (e.g. `image/*`) map cleanly and are kept.
+ */
+export function effectiveAccept(accept: string, p: PlatformHints): string {
+  if (!accept || !isIOSPlatform(p)) {
+    return accept;
+  }
+  const hasExtension = accept.split(',').some((t) => t.trim().startsWith('.'));
+  return hasExtension ? '' : accept;
+}
 
 @Component({
   selector: 'ap-file-input',
@@ -32,6 +69,12 @@ export class FileInputComponent {
   cleared = output<void>();
 
   protected avatar = null;
+
+  protected inputAccept = computed(() =>
+    typeof navigator === 'undefined'
+      ? this.accept()
+      : effectiveAccept(this.accept(), navigator)
+  );
 
   private changeDetectorRef = inject(ChangeDetectorRef);
 
