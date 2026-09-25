@@ -397,6 +397,30 @@ not moving, so spurious `moveend`s are not the cause" — but centre and zoom ar
 exactly the two quantities a rotation does *not* change. The measurement excluded
 the thing being measured.
 
+### A file input's `accept` filter can grey out the very files it names on iOS
+
+**The trap.** Desktop browsers filter an `<input type="file">` picker by extension,
+so `accept=".gpx,.json"` does what it says. iOS doesn't. Safari maps each `.ext`
+entry to a system file type (a UTI) and hands the Files picker those types, so any
+extension iOS has no type for is greyed out — **the file the filter names becomes
+unselectable**. `.gpx` is one of them, and Import could not load a GPX route on any
+iPhone or iPad until #828.
+
+The obvious fix trades that for a second iOS problem: **removing `accept`** makes the
+file selectable, but an empty filter makes Safari open a Photo Library / Take Photo
+menu before the Files picker — an extra tap, and photo options that make no sense
+for the input. Nothing in the test suite or a desktop browser shows either problem;
+only a real device does.
+
+**What to do instead.** On iOS, keep the filter and append
+`application/octet-stream`. iOS resolves it to the generic data type every document
+conforms to, so the file stays selectable, and with no image or video type in the
+list Safari goes straight to Files. `ap-file-input` already does this
+(`effectiveAccept()` in `src/app/lib/components/file-input.component.ts`), so any
+picker built on it is covered. Two things follow: validate the file by its
+**content**, not the extension, since iOS will now hand over any file the user
+picks; and test a new picker on an actual iPhone or iPad.
+
 ---
 
 ## When testing
