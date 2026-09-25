@@ -48,7 +48,7 @@ describe('track-source trailBands', () => {
     expect(bands).toEqual([
       { from: hoursAgo(48), to: hoursAgo(24), resolution: 'PT5M' },
       { from: hoursAgo(24), to: hoursAgo(1), resolution: 'PT1M' },
-      { from: hoursAgo(1), to: hoursAgo(0), resolution: 'PT5S' }
+      { from: hoursAgo(1), resolution: 'PT5S' }
     ]);
   });
 
@@ -56,13 +56,13 @@ describe('track-source trailBands', () => {
     const bands = trailBands(24, res, now);
     expect(bands.map((b) => [b.from, b.to])).toEqual([
       [hoursAgo(24), hoursAgo(1)],
-      [hoursAgo(1), hoursAgo(0)]
+      [hoursAgo(1), undefined]
     ]);
   });
 
   it('uses only the last-hour band for a 1 h window', () => {
     expect(trailBands(1, res, now)).toEqual([
-      { from: hoursAgo(1), to: hoursAgo(0), resolution: 'PT5S' }
+      { from: hoursAgo(1), resolution: 'PT5S' }
     ]);
   });
 
@@ -70,11 +70,33 @@ describe('track-source trailBands', () => {
     [2, 12, 25, 96].forEach((d) => {
       const bands = trailBands(d, res, now);
       expect(bands[0].from).toBe(hoursAgo(d));
-      expect(bands[bands.length - 1].to).toBe(hoursAgo(0));
       for (let i = 1; i < bands.length; i++) {
         expect(bands[i].from).toBe(bands[i - 1].to);
       }
     });
+  });
+
+  // The server resolves an omitted `to` to its own now. Closing the last band
+  // with the device clock instead drops the newest part of the trail whenever
+  // that clock runs behind the server's.
+  it('leaves the last band open-ended, for the server to close at its now', () => {
+    [1, 2, 25].forEach((d) => {
+      const bands = trailBands(d, res, now);
+      expect(bands[bands.length - 1].to).toBeUndefined();
+    });
+  });
+
+  it('omits to from the url of an open-ended band', () => {
+    const url = trailBandUrl(
+      'http://h/signalk/v2/api/tracks',
+      { from: '2026-09-24T11:00:00.000Z', resolution: 'PT5S' },
+      'tracks'
+    );
+    expect(url).toBe(
+      'http://h/signalk/v2/api/tracks?context=self' +
+        '&from=2026-09-24T11%3A00%3A00.000Z' +
+        '&resolution=PT5S&times=true&provider=tracks'
+    );
   });
 
   it('builds a self-context band url with the provider and no bbox', () => {

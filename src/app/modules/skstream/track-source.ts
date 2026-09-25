@@ -240,16 +240,17 @@ export function resolutionToIso(res: string | undefined): string | undefined {
 
 export interface TrailBand {
   from: string; // ISO 8601 instant
-  to: string; // ISO 8601 instant
+  to?: string; // ISO 8601 instant; absent leaves the band open to the server's now
   resolution?: string; // ISO 8601 duration
 }
 
 const HOUR = 3600000;
 
 /** Split the trail window into the same bands as the v1 request (beyond 24 h /
- * 1 → 24 h / last hour), oldest first, as absolute `from`/`to`. Adjacent bands
- * share their boundary instant, so they tile the window with no gap or overlap.
- * The LAST band is always the last hour. */
+ * 1 → 24 h / last hour), oldest first. Adjacent bands share their boundary
+ * instant, so they tile the window with no gap or overlap. The LAST band is
+ * always the last hour, and has no `to`: the server closes it at its own now,
+ * where the device's clock, if behind, would cut off the newest points. */
 export function trailBands(
   durationHrs: number,
   resolution: { lastHour: string; next23: string; beyond24: string },
@@ -277,7 +278,6 @@ export function trailBands(
   }
   bands.push({
     from: iso(now - HOUR),
-    to: iso(now),
     resolution: resolutionToIso(resolution.lastHour)
   });
   return bands;
