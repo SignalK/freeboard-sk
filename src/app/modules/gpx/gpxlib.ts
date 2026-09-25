@@ -4,6 +4,9 @@
 
 import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
 
+/** A parsed GPX `<bounds>` element as xml2js emits it: attributes under `$`. */
+export type GPXBoundsElement = { $?: Record<string, unknown> } | undefined;
+
 /**
  * Parse a GPX XML attribute as a finite number, falling back when it is
  * absent, empty or malformed.
@@ -15,15 +18,21 @@ import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
  * `minlat="NaN"`. Falling back to the caller's current value keeps the
  * accumulate-from-points sentinels intact instead.
  */
-/** A parsed GPX `<bounds>` element as xml2js emits it: attributes under `$`. */
-export type GPXBoundsElement = { $?: Record<string, unknown> } | undefined;
-
 export function finiteOr(value: unknown, fallback: number): number {
   if (typeof value !== 'string' || value.trim() === '') {
     return fallback;
   }
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+/** Text as XML character data: `&`, `<` and `>` escaped, so a name such as
+ * an AIS vessel's `M&M` keeps the file well formed. */
+export function xmlText(value: unknown): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 /************************
@@ -180,12 +189,13 @@ export class GPX {
     let xml = '';
     this.trk.forEach((tk) => {
       xml += '\t<trk>\r\n';
-      xml += tk.name ? `\t\t<name>${tk.name || ''}</name>\r\n` : '';
-      xml += tk.cmt ? `\t\t<cmt>${tk.cmt || ''}</cmt>\r\n` : '';
-      xml += tk.desc ? `\t\t<desc>${tk.desc || ''}</desc>\r\n` : '';
-      xml += tk.src ? `\t\t<src>${tk.src || ''}</src>\r\n` : '';
+      // track names come from AIS data, so escape them
+      xml += tk.name ? `\t\t<name>${xmlText(tk.name)}</name>\r\n` : '';
+      xml += tk.cmt ? `\t\t<cmt>${xmlText(tk.cmt)}</cmt>\r\n` : '';
+      xml += tk.desc ? `\t\t<desc>${xmlText(tk.desc)}</desc>\r\n` : '';
+      xml += tk.src ? `\t\t<src>${xmlText(tk.src)}</src>\r\n` : '';
       xml += tk.number ? `\t\t<number>${tk.number || ''}</number>\r\n` : '';
-      xml += tk.type ? `\t\t<type>${tk.type || ''}</type>\r\n` : '';
+      xml += tk.type ? `\t\t<type>${xmlText(tk.type)}</type>\r\n` : '';
 
       xml += this.extensionsToXML(tk.extensions, 2);
 
@@ -221,16 +231,22 @@ export class GPX {
     xml += `${pad}\t<${tag} lat="${pt.lat.toFixed(6)}" lon="${pt.lon.toFixed(
       6
     )}">\r\n`;
+    // <ele> then <time>: the first elements of a point in the GPX 1.1 schema
+    xml += pt.ele ? `${pad}\t\t<ele>${pt.ele || ''}</ele>\r\n` : '';
+    // GPX times are ISO 8601 UTC; an invalid date is left out rather than
+    // written as 'Invalid Date'
+    xml +=
+      pt.datetime instanceof Date && !isNaN(pt.datetime.getTime())
+        ? `${pad}\t\t<time>${pt.datetime.toISOString()}</time>\r\n`
+        : '';
     xml += pt.sym ? `${pad}\t\t<sym>${pt.sym || ''}</sym>\r\n` : '';
     xml += pt.name ? `${pad}\t\t<name>${pt.name || ''}</name>\r\n` : '';
     xml += pt.cmt ? `${pad}\t\t<cmt>${pt.cmt || ''}</cmt>\r\n` : '';
     xml += pt.desc ? `${pad}\t\t<desc>${pt.desc || ''}</desc>\r\n` : '';
     xml += pt.src ? `${pad}\t\t<src>${pt.src || ''}</src>\r\n` : '';
     xml += pt.type ? `${pad}\t\t<type>${pt.type || ''}</type>\r\n` : '';
-    xml += pt.time ? `${pad}\t\t<time>${pt.datetime || ''}</time>\r\n` : '';
     xml += pt.fix ? `${pad}\t\t<fix>${pt.fix || ''}</fix>\r\n` : '';
 
-    xml += pt.ele ? `${pad}\t\t<ele>${pt.ele || ''}</ele>\r\n` : '';
     xml += pt.magvar ? `${pad}\t\t<magvar>${pt.magvar || ''}</magvar>\r\n` : '';
     xml += pt.geoidHeight
       ? `${pad}\t\t<geoidheight>${pt.geoidHeight || ''}</geoidheight>\r\n`

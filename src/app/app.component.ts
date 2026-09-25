@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
+import { GPXExportService } from 'src/app/modules/gpx/gpx-export.service';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
@@ -263,6 +264,7 @@ export class AppComponent {
   protected course = inject(CourseService);
   protected stream = inject(SKStreamFacade);
   protected skres = inject(SKResourceService);
+  private gpxExport = inject(GPXExportService);
   protected skresOther = inject(FBCustomResourceService);
   protected signalk = inject(SignalKClient);
   private dom = inject(DomSanitizer);
@@ -1332,33 +1334,8 @@ export class AppComponent {
 
   /** Export resources to GPX file */
   protected async exportToGPX() {
-    const { GPXExportDialog } =
-      await import('src/app/modules/gpx/gpxsave-dialog');
-    this.dialog
-      .open(GPXExportDialog, {
-        disableClose: true,
-        data: {
-          routes: this.skres.routes(),
-          tracks: [this.app.selfTrail()]
-        }
-      })
-      .afterClosed()
-      .subscribe((errCount) => {
-        if (errCount < 0) {
-          // cancelled
-          this.focusMap();
-          return;
-        }
-        if (errCount === 0) {
-          this.app.showMsgBox(
-            'GPX Save',
-            'Resources saved to GPX file successfully.'
-          );
-        } else {
-          this.app.showAlert('GPX Save', 'Error saving resources to GPX file!');
-        }
-        this.focusMap();
-      });
+    await this.gpxExport.exportResources();
+    this.focusMap();
   }
 
   /** process GeoJSON file */

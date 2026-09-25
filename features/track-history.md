@@ -43,6 +43,8 @@ drawn; zoom in and they are redrawn in more detail.
 The window can be dragged anywhere on the screen, and it reopens where you
 left it. History is shown for the current session only.
 
+To save a vessel's history to a GPX file, see **Export to GPX**.
+
 ## Playback
 
 The **Playback** box replays the history. Drag the round playhead on the bar

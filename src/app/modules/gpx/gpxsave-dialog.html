@@ -7,13 +7,15 @@
           mat-raised-button
           matTooltip="Save selected resources"
           matTooltipPosition="right"
-          [disabled]="!display.saveRoutesOK && !display.saveWaypointsOK && !display.saveTracksOK"
+          [disabled]="!canSave"
           (click)="save()"
         >
           <mat-icon>save</mat-icon>&nbsp;Save&nbsp;
         </button>
       </div>
-      <div style="flex: 1 1 auto; text-align: center">Export to GPX</div>
+      <div style="flex: 1 1 auto; text-align: center">
+        {{ data.tracksOnly ? 'Export track to GPX' : 'Export to GPX' }}
+      </div>
       <div style="text-align: right">
         <button mat-icon-button (click)="this.dialogRef.close(-1);">
           <mat-icon>close</mat-icon>
@@ -21,6 +23,9 @@
       </div>
     </div>
   </mat-toolbar>
+  @if(fetching) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
 
   <div mat-dialog-content style="padding: 2px">
     <!-- Waypoints -->
@@ -125,9 +130,13 @@
     }
 
     <!-- Tracks -->
-    @if(!app.data.serverTrail && resData.tracks.length !== 0) {
+    @if(resData.tracks.length !== 0) {
     <div class="card-group">
-      <mat-expansion-panel [expanded]="false">
+      <mat-expansion-panel
+        [expanded]="display.expand.tracks"
+        (opened)="display.expand.tracks=true"
+        (closed)="display.expand.tracks=false"
+      >
         <mat-expansion-panel-header class="panel-header">
           <mat-panel-title>
             <mat-icon class="icon-track">show_chart</mat-icon>
@@ -136,12 +145,12 @@
           <mat-panel-description>
             <div class="panel-description">
               <mat-checkbox
-                [indeterminate]="false"
+                [indeterminate]="display.someTrkChecked"
                 [checked]="display.allTracksChecked"
                 [disabled]="resData.tracks.length==0"
                 (change)="checkTrk($event.checked, -1)"
                 (click)="$event.cancelBubble=true"
-                matTooltip="Vessel Trail to Track"
+                matTooltip="Select all Tracks"
                 matTooltipPosition="before"
               >
               </mat-checkbox>
@@ -149,11 +158,11 @@
           </mat-panel-description>
         </mat-expansion-panel-header>
         <div class="list-container-scrollable">
-          @for(r of resData.tracks; track r; let i=$index) {
+          @for(r of resData.tracks; track r.context; let i=$index) {
           <div class="item-row">
             <div class="name">
               <mat-icon class="icon-track">directions_boat</mat-icon>
-              Vessel Trail
+              {{r.label}}
             </div>
             <div class="check">
               <mat-checkbox
@@ -166,8 +175,49 @@
               </mat-checkbox>
             </div>
           </div>
+          @if(r.tailOnly && trackChoice === 'displayed') {
+          <div class="track-note">
+            Only the positions gathered while Freeboard was open: the server has
+            no recorded track for this vessel.
+          </div>
+          } }
+        </div>
+        @if(rangeAvailable) {
+        <div class="track-range">
+          <mat-form-field class="track-range-select">
+            <mat-label>Track to export</mat-label>
+            <mat-select [(ngModel)]="trackChoice">
+              <mat-option value="displayed">As displayed</mat-option>
+              <mat-option value="7d">Last 7 days</mat-option>
+              <mat-option value="30d">Last 30 days</mat-option>
+              <mat-option value="all">All recorded</mat-option>
+              @if(historyRange) {
+              <mat-option value="history">Track history range</mat-option>
+              }
+              <mat-option value="custom">Custom range</mat-option>
+            </mat-select>
+          </mat-form-field>
+          @if(trackChoice === 'custom') {
+          <div class="track-range-custom">
+            <mat-form-field>
+              <mat-label>From</mat-label>
+              <input matInput type="datetime-local" [(ngModel)]="customFrom" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>To</mat-label>
+              <input matInput type="datetime-local" [(ngModel)]="customTo" />
+            </mat-form-field>
+          </div>
+          @if(customInvalid) {
+          <div class="track-note">Choose a From time before the To time.</div>
+          } } @else if(trackChoice !== 'displayed') {
+          <div class="track-note">
+            Fetched from the server when you save, in the most detail it
+            provides.
+          </div>
           }
         </div>
+        }
       </mat-expansion-panel>
     </div>
     }

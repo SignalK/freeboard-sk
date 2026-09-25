@@ -73,7 +73,8 @@ Vessels hidden by **Hide Moored** or **Hide Anchored** don't have their tracks
 drawn either.
 
 To see a vessel's whole recorded track, beyond these recent hours, see
-**Track History & Playback**.
+**Track History & Playback**. To save a track to a GPX file, see
+**Export to GPX**.
 
 ## Where the tracks come from
 

@@ -64,6 +64,31 @@ button {
 }
 
 
+.track-note {
+    font-size: 0.85em;
+    opacity: 0.8;
+    padding: 0 15px 4px 30px;
+}
+
+.track-range {
+    padding: 8px 5px 0 5px;
+}
+
+.track-range-select {
+    width: 100%;
+}
+
+.track-range-custom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+}
+
+.track-range-custom mat-form-field {
+    /* room for a full date and time (with AM/PM); stacks when narrower */
+    flex: 1 1 220px;
+}
+
 /* tablet */
 @media only screen and (min-width : 475px) { 
     button {

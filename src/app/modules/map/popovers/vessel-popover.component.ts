@@ -24,6 +24,13 @@ import { Position } from 'src/app/types';
 import { AppIconDef, getAisIcon } from '../../icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
+import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
+import { GPXExportService } from 'src/app/modules/gpx/gpx-export.service';
+import {
+  aisTrackDisplayed,
+  TrackExportChoice,
+  vesselExportOffer
+} from 'src/app/modules/gpx/track-export';
 
 @Component({
   selector: 'vessel-popover',
@@ -135,6 +142,20 @@ import { TrackHistoryService } from 'src/app/modules/skstream/track-history.serv
                 }}</mat-icon>
               </button>
             </span>
+          }
+          @let exportOffer = trackExportOffer();
+          @if (exportOffer) {
+            <button
+              mat-icon-button
+              (click)="exportTrack(exportOffer)"
+              [matTooltip]="
+                isSelf() || !gpxExport.tailOnly(vessel().id)
+                  ? 'Export track to GPX'
+                  : 'Export track to GPX (only the positions gathered while Freeboard was open)'
+              "
+            >
+              <mat-icon>download</mat-icon>
+            </button>
           }
         </div>
         <div style="text-align:right;">
@@ -295,6 +316,7 @@ export class VesselPopoverComponent {
   protected app = inject(AppFacade);
   protected buddies = inject(Buddies);
   protected trackHistory = inject(TrackHistoryService);
+  protected gpxExport = inject(GPXExportService);
   private destroyRef = inject(DestroyRef);
 
   /** The Track API context: the own vessel is asked for as `self`. */
@@ -428,6 +450,41 @@ export class VesselPopoverComponent {
 
   toggleTrack() {
     this.app.toggleVesselTrack(this.vessel().id);
+  }
+
+  /** A vessel's track can be exported while it is displayed, as its track
+   * (the own vessel's trail) or as its Track history; null when neither is
+   * shown. */
+  protected trackExportOffer(): TrackExportChoice | null {
+    if (this.isSelf()) {
+      // the trail as exported: the server trail and the local trail joined
+      return vesselExportOffer({
+        trackDisplayed: this.app.config.vessels.trail,
+        lines: this.gpxExport.ownTrail().displayed.lines,
+        historyShown:
+          this.trackHistory.available() && this.trackHistory.isShown('self')
+      });
+    }
+    const id = this.vessel().id;
+    return vesselExportOffer({
+      trackDisplayed: aisTrackDisplayed({
+        showAll: this.app.config.vessels.aisShowTrack,
+        picked: this.app.isVesselTrackShown(id),
+        zoom: this.app.mapZoom(),
+        minZoom: AIS_TRACK_MIN_ZOOM
+      }),
+      lines: this.app.data.vessels.aisTracks.get(id),
+      historyShown:
+        this.trackHistory.available() && this.trackHistory.isShown(id)
+    });
+  }
+
+  exportTrack(choice: TrackExportChoice) {
+    if (this.isSelf()) {
+      this.gpxExport.exportOwnTrail(choice);
+    } else {
+      this.gpxExport.exportVesselTrack(this.vessel().id, choice);
+    }
   }
 
   /** Showing history opens the Track history palette, which the popover

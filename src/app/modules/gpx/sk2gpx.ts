@@ -173,18 +173,25 @@ export class SK2GPX {
     trk.type = t.feature.properties['type'] || null;
 
     // ** add segments **
-    for (const s of t.feature.geometry.coordinates) {
+    // recording time of each point, nested to match the coordinates (as the
+    // Track API's `coordTimes`); absent or partial when not known
+    const coordTimes = t.feature.properties['coordTimes'];
+    t.feature.geometry.coordinates.forEach((s, i: number) => {
       const seg = new GPXTrackSegment();
-      for (const p of s) {
+      s.forEach((p, j: number) => {
         const pt = new GPXWaypoint();
         pt.lon = p[0];
         pt.lat = p[1];
         pt.ele = p[2] || null;
+        const time = coordTimes?.[i]?.[j];
+        if (time) {
+          pt.datetime = new Date(time);
+        }
         seg.trkpt.push(pt);
         this.gpx.updateBounds(pt);
-      }
+      });
       trk.trkseg.push(seg);
-    }
+    });
     return trk;
   }
 }
