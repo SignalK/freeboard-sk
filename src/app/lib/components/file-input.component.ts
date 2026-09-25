@@ -27,21 +27,29 @@ export function isIOSPlatform(p: PlatformHints): boolean {
 }
 
 /**
+ * A MIME type iOS resolves to its generic "data" file type, which every
+ * document conforms to (see `effectiveAccept`).
+ */
+const IOS_ANY_DOCUMENT = 'application/octet-stream';
+
+/**
  * The `accept` attribute to put on the file `<input>`.
  *
  * iOS does not filter the document picker by extension: it maps each
  * `.ext` entry to a system file type and greys out every file whose
- * extension has no registered type — `.gpx` among them (#828). An extension
- * filter on iOS can therefore make the very files it names unselectable, so
- * it is dropped there and the file's content is left to decide. MIME-only
- * filters (e.g. `image/*`) map cleanly and are kept.
+ * extension has no registered type — `.gpx` among them (#828). On iOS an
+ * extension filter is therefore widened with a catch-all document type so
+ * those files stay selectable, leaving the file's content to decide. Dropping
+ * the filter instead would also work, but an empty `accept` makes Safari offer
+ * the photo library and camera before the Files picker. MIME-only filters
+ * (e.g. `image/*`) map cleanly and are kept as they are.
  */
 export function effectiveAccept(accept: string, p: PlatformHints): string {
   if (!accept || !isIOSPlatform(p)) {
     return accept;
   }
   const hasExtension = accept.split(',').some((t) => t.trim().startsWith('.'));
-  return hasExtension ? '' : accept;
+  return hasExtension ? `${accept},${IOS_ANY_DOCUMENT}` : accept;
 }
 
 @Component({
@@ -71,9 +79,7 @@ export class FileInputComponent {
   protected avatar = null;
 
   protected inputAccept = computed(() =>
-    typeof navigator === 'undefined'
-      ? this.accept()
-      : effectiveAccept(this.accept(), navigator)
+    effectiveAccept(this.accept(), navigator)
   );
 
   private changeDetectorRef = inject(ChangeDetectorRef);

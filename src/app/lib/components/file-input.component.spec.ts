@@ -12,7 +12,9 @@ import {
  * Issue #828: on iOS, Import (`accept=".gpx,.json"`) greyed out every .gpx
  * file in the document picker. iOS maps each extension in `accept` to a
  * system file type, and `.gpx` has none, so the filter excluded the very
- * files it named. On iOS an extension filter is dropped; elsewhere it stays.
+ * files it named. On iOS an extension filter is widened with a catch-all
+ * document type (not dropped, which would make Safari offer the photo library
+ * and camera first); elsewhere it is left alone.
  */
 
 const IPHONE: PlatformHints = {
@@ -52,14 +54,23 @@ describe('isIOSPlatform', () => {
 });
 
 describe('effectiveAccept', () => {
-  it('drops an extension filter on iOS (#828)', () => {
-    expect(effectiveAccept('.gpx,.json', IPHONE)).toBe('');
-    expect(effectiveAccept('.gpx,.json', IPAD_DESKTOP_UA)).toBe('');
+  it('widens an extension filter with a catch-all document type on iOS (#828)', () => {
+    const widened = '.gpx,.json,application/octet-stream';
+    expect(effectiveAccept('.gpx,.json', IPHONE)).toBe(widened);
+    expect(effectiveAccept('.gpx,.json', IPAD_DESKTOP_UA)).toBe(widened);
   });
 
-  it('drops a mixed extension + MIME filter on iOS', () => {
-    // Keeping only the MIME part would still grey out the .gpx file.
-    expect(effectiveAccept('.gpx, application/json', IPHONE)).toBe('');
+  it('widens a mixed extension + MIME filter on iOS', () => {
+    expect(effectiveAccept('.gpx, application/json', IPHONE)).toBe(
+      '.gpx, application/json,application/octet-stream'
+    );
+  });
+
+  it('never leaves an image or video type in a widened iOS filter', () => {
+    // Either would make Safari offer the photo library / camera first.
+    expect(effectiveAccept('.gpx,.json', IPHONE)).not.toMatch(
+      /image\/|video\//
+    );
   });
 
   it('keeps a MIME-only filter on iOS', () => {
@@ -78,8 +89,8 @@ describe('effectiveAccept', () => {
 });
 
 describe('FileInputComponent — rendered accept attribute', () => {
-  const stubNavigator = (p: PlatformHints) =>
-    vi.stubGlobal('navigator', { ...navigator, ...p });
+  // Only the fields isIOSPlatform() reads are needed.
+  const stubNavigator = (p: PlatformHints) => vi.stubGlobal('navigator', p);
 
   const renderedAccept = (accept: string): string | null => {
     const fixture = TestBed.createComponent(FileInputComponent);
@@ -96,9 +107,11 @@ describe('FileInputComponent — rendered accept attribute', () => {
     TestBed.resetTestingModule();
   });
 
-  it('renders no extension filter on an iPhone (#828)', () => {
+  it('renders a widened filter on an iPhone (#828)', () => {
     stubNavigator(IPHONE);
-    expect(renderedAccept('.gpx,.json') ?? '').toBe('');
+    expect(renderedAccept('.gpx,.json')).toBe(
+      '.gpx,.json,application/octet-stream'
+    );
   });
 
   it('renders the extension filter on desktop', () => {
