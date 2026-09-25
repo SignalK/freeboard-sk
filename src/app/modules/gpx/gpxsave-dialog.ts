@@ -224,12 +224,22 @@ export class GPXExportDialog implements OnInit {
     );
   }
 
+  /** A range is chosen but can't be resolved: an incomplete custom range, or
+   * the Track history range once that history is no longer shown. */
+  protected get rangeUnusable(): boolean {
+    return (
+      this.rangeAvailable &&
+      this.trackChoice !== 'displayed' &&
+      this.chosenRange() === null
+    );
+  }
+
   /** Something is selected, and a selected track has a usable range (an
-   * incomplete custom range would otherwise quietly save the displayed one). */
+   * unusable one would otherwise quietly save the displayed track). */
   protected get canSave(): boolean {
     return (
       !this.fetching &&
-      !(this.display.saveTracksOK && this.customInvalid) &&
+      !(this.display.saveTracksOK && this.rangeUnusable) &&
       (this.display.saveRoutesOK ||
         this.display.saveWaypointsOK ||
         this.display.saveTracksOK)
@@ -259,8 +269,8 @@ export class GPXExportDialog implements OnInit {
   }
 
   /** The selected tracks as they will be written: as displayed, or fetched
-   * over the chosen range at full resolution. Null (after telling the user)
-   * when a selected track has nothing to write. */
+   * over the chosen range with no thinning asked for. Null (after telling the
+   * user) when a selected track has nothing to write. */
   private async selectedTracks(): Promise<GpxTrackData[] | null> {
     const selected = this.resData.tracks.filter((_, i) => this.selTracks[i]);
     if (selected.length === 0) {
