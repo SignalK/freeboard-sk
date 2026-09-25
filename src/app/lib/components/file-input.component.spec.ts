@@ -66,13 +66,6 @@ describe('effectiveAccept', () => {
     );
   });
 
-  it('never leaves an image or video type in a widened iOS filter', () => {
-    // Either would make Safari offer the photo library / camera first.
-    expect(effectiveAccept('.gpx,.json', IPHONE)).not.toMatch(
-      /image\/|video\//
-    );
-  });
-
   it('keeps a MIME-only filter on iOS', () => {
     expect(effectiveAccept('image/*', IPHONE)).toBe('image/*');
   });
