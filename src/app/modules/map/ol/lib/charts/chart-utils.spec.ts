@@ -19,7 +19,8 @@ import {
   resolveLayerZoomRange,
   startChartTileRefresh,
   cacheBustTileUrl,
-  CHART_REFRESH_URL_PARAM
+  CHART_REFRESH_URL_PARAM,
+  webMercatorMatrixSet
 } from './chart-utils';
 
 import LayerGroup from 'ol/layer/Group';
@@ -1167,5 +1168,91 @@ describe('applying a chart time (temporal charts)', () => {
       applyChartTimeToWmts(src, T0, {});
       expect(src.getDimensions()).toEqual({ Time: T0 });
     });
+  });
+});
+
+describe('webMercatorMatrixSet', () => {
+  /** Capabilities for one layer linking `links`, drawn from `sets`. */
+  const caps = (links: string[], sets: Array<[string, string]>) => ({
+    Contents: {
+      Layer: [
+        {
+          Identifier: 'charts',
+          TileMatrixSetLink: links.map((TileMatrixSet) => ({ TileMatrixSet }))
+        }
+      ],
+      TileMatrixSet: sets.map(([Identifier, SupportedCRS]) => ({
+        Identifier,
+        SupportedCRS
+      }))
+    }
+  });
+
+  it('finds a Web Mercator set under another name, listed after other projections', () => {
+    // Kartverket sjøkart: UTM zones first, in CRSs OpenLayers does not know.
+    const c = caps(
+      ['utm32n', 'utm33n', 'webmercator'],
+      [
+        ['utm32n', 'urn:ogc:def:crs:EPSG:25832'],
+        ['utm33n', 'urn:ogc:def:crs:EPSG:25833'],
+        ['webmercator', 'urn:ogc:def:crs:EPSG:3857']
+      ]
+    );
+    expect(webMercatorMatrixSet(c, 'charts')).toBe('webmercator');
+  });
+
+  it('matches the CRS through its equivalent codes', () => {
+    const c = caps(
+      ['EPSG:3395_FTA', 'WGS84_Pseudo-Mercator', 'GoogleMaps'],
+      [
+        ['EPSG:3395_FTA', 'EPSG:3395'],
+        ['WGS84_Pseudo-Mercator', 'urn:ogc:def:crs:EPSG::3857'],
+        ['GoogleMaps', 'EPSG:900913']
+      ]
+    );
+    expect(webMercatorMatrixSet(c, 'charts')).toBe('WGS84_Pseudo-Mercator');
+    const legacy = caps(
+      ['inspire_quad', 'GoogleMaps'],
+      [
+        ['inspire_quad', 'urn:ogc:def:crs:EPSG::4326'],
+        ['GoogleMaps', 'EPSG:900913']
+      ]
+    );
+    expect(webMercatorMatrixSet(legacy, 'charts')).toBe('GoogleMaps');
+  });
+
+  it('keeps a set literally named EPSG:3857 ahead of other Web Mercator sets', () => {
+    const c = caps(
+      ['GoogleMapsCompatible', 'EPSG:3857'],
+      [
+        ['GoogleMapsCompatible', 'urn:ogc:def:crs:EPSG::3857'],
+        ['EPSG:3857', 'urn:ogc:def:crs:EPSG::3857']
+      ]
+    );
+    expect(webMercatorMatrixSet(c, 'charts')).toBe('EPSG:3857');
+  });
+
+  it('ignores a Web Mercator set the layer does not link', () => {
+    const c = caps(
+      ['inspire_quad'],
+      [
+        ['inspire_quad', 'urn:ogc:def:crs:EPSG::4326'],
+        ['web_mercator', 'urn:ogc:def:crs:EPSG::3857']
+      ]
+    );
+    expect(webMercatorMatrixSet(c, 'charts')).toBeUndefined();
+  });
+
+  it('returns undefined when there is no Web Mercator set or no such layer', () => {
+    const c = caps(
+      ['inspire_quad', 'utm32n'],
+      [
+        ['inspire_quad', 'urn:ogc:def:crs:EPSG::4326'],
+        ['utm32n', 'urn:ogc:def:crs:EPSG:25832']
+      ]
+    );
+    expect(webMercatorMatrixSet(c, 'charts')).toBeUndefined();
+    expect(webMercatorMatrixSet(c, 'other')).toBeUndefined();
+    expect(webMercatorMatrixSet(undefined, 'charts')).toBeUndefined();
   });
 });

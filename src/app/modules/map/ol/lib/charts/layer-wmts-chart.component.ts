@@ -24,7 +24,9 @@ import {
   chartLayerClassName,
   extentFromBounds,
   resolveLayerZoomRange,
-  startChartTileRefresh
+  startChartTileRefresh,
+  webMercatorMatrixSet,
+  WmtsCapabilitiesDoc
 } from './chart-utils';
 
 // ** Freeboard WMTS Chart **
@@ -41,7 +43,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
   protected mapMaxZoom = input<number>();
 
   private layer: TileLayer;
-  private capabilities: string;
+  private capabilities: WmtsCapabilitiesDoc;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
@@ -102,9 +104,12 @@ export class WmtsChartLayerComponent implements OnDestroy {
     if (this.destroyed || generation !== this.parseGeneration) {
       return;
     }
+    const layer = chart[1].layers[0];
+    // Chosen by CRS, not by name. With no Web Mercator set OpenLayers falls
+    // back to the layer's first set, as it always has.
     const options = optionsFromCapabilities(this.capabilities, {
-      layer: chart[1].layers[0],
-      matrixSet: 'EPSG:3857'
+      layer,
+      matrixSet: webMercatorMatrixSet(this.capabilities, layer)
     });
 
     if (!this.layer) {

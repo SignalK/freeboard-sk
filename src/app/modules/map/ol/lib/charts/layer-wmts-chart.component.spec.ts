@@ -142,3 +142,107 @@ describe('WmtsChartLayerComponent — time-varying chart', () => {
     expect(map.addLayer).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * Which of a layer's tile matrix sets the source is built on (#838). The
+ * fixture is Kartverket's Norwegian chart layer as its capabilities publish it:
+ * a UTM set listed first and the Web Mercator set under another name.
+ */
+describe('WmtsChartLayerComponent — tile matrix set', () => {
+  const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
+
+  const matrix = (scale: number, topLeft: number[]) => [
+    {
+      Identifier: '00',
+      ScaleDenominator: scale,
+      TopLeftCorner: topLeft,
+      TileWidth: 256,
+      TileHeight: 256,
+      MatrixWidth: 1,
+      MatrixHeight: 1
+    }
+  ];
+
+  const capabilities = {
+    Contents: {
+      Layer: [
+        {
+          Identifier: 'sjokartraster',
+          Format: ['image/png'],
+          Style: [{ Identifier: 'default', isDefault: true }],
+          TileMatrixSetLink: [
+            { TileMatrixSet: 'utm32n' },
+            { TileMatrixSet: 'webmercator' }
+          ],
+          ResourceURL: [
+            {
+              resourceType: 'tile',
+              format: 'image/png',
+              template:
+                'https://wmts.test/sjokartraster/default/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.png'
+            }
+          ]
+        }
+      ],
+      TileMatrixSet: [
+        {
+          Identifier: 'utm32n',
+          SupportedCRS: 'urn:ogc:def:crs:EPSG:25832',
+          TileMatrix: matrix(77371428.57142857, [-2000000, 9045984])
+        },
+        {
+          Identifier: 'webmercator',
+          SupportedCRS: 'urn:ogc:def:crs:EPSG:3857',
+          TileMatrix: matrix(
+            559082264.0287176,
+            [-20037508.342789244, 20037508.342789244]
+          )
+        }
+      ]
+    }
+  };
+
+  const sjokart = (): FBChart => [
+    'sjokart',
+    new SKChart({
+      name: 'Sjøkart',
+      url: 'https://wmts.test',
+      type: 'WMTS',
+      layers: ['sjokartraster']
+    }),
+    true
+  ];
+
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  beforeEach(async () => {
+    map.addLayer.mockReset();
+    map.removeLayer.mockReset();
+    map.render.mockReset();
+    vi.spyOn(
+      WmtsChartLayerComponent.prototype as unknown as {
+        fetchWMTSCapabilities: () => Promise<unknown>;
+      },
+      'fetchWMTSCapabilities'
+    ).mockResolvedValue(capabilities);
+    await TestBed.configureTestingModule({
+      declarations: [WmtsChartLayerComponent],
+      providers: [{ provide: MapComponent, useValue: { getMap: () => map } }]
+    }).compileComponents();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('builds on the Web Mercator set even when it is not named EPSG:3857 or listed first', async () => {
+    const fixture = TestBed.createComponent(WmtsChartLayerComponent);
+    fixture.componentRef.setInput('chart', sjokart());
+    fixture.componentRef.setInput('zIndex', 10);
+    fixture.detectChanges();
+    await flush();
+
+    expect(map.addLayer).toHaveBeenCalledTimes(1);
+    const source = (map.addLayer.mock.calls[0][0] as TileLayer).getSource();
+    expect((source as WMTS).getMatrixSet()).toBe('webmercator');
+    expect(source.getProjection().getCode()).toBe('EPSG:3857');
+  });
+});
