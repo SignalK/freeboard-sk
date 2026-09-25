@@ -74,10 +74,12 @@ export function validCustomRange(range?: HistoryRange): boolean {
   );
 }
 
-/** Query string for one vessel's track over a range, at full resolution: no
- * `bbox` (which selects passages by the viewport), no `maxPoints` and no
- * `epsilon` (which thin the line for display). `times` carries each point's
- * recording time into the file. */
+/** Query string for one vessel's track over a range, asking for no
+ * thinning: no `bbox` (which selects passages by the viewport), no
+ * `maxPoints` and no `epsilon` (which thin the line for display). A provider
+ * may still thin a very large result; the Track API has it report that in
+ * `resolution` / `epsilon`. `times` carries each point's recording time into
+ * the file. */
 export function trackExportQuery(
   context: string,
   range: HistoryRange,
@@ -102,19 +104,30 @@ export function attachTimes(
   lines: Position[][],
   timed?: { lines: Position[][]; times: PointTime[][] } | null
 ): TimedTrack {
-  const queue = new Map<string, PointTime[]>();
+  // times per position, in recording order, and how many have been used
+  const queue = new Map<string, { times: PointTime[]; next: number }>();
   timed?.lines.forEach((line, i) =>
     line.forEach((p, j) => {
       const t = timed.times[i]?.[j];
       if (t) {
         const k = pointKey(p);
-        queue.set(k, [...(queue.get(k) ?? []), t]);
+        const q = queue.get(k);
+        if (q) {
+          q.times.push(t);
+        } else {
+          queue.set(k, { times: [t], next: 0 });
+        }
       }
     })
   );
   return {
     lines,
-    times: lines.map((line) => line.map((p) => queue.get(pointKey(p))?.shift()))
+    times: lines.map((line) =>
+      line.map((p) => {
+        const q = queue.get(pointKey(p));
+        return q ? q.times[q.next++] : undefined;
+      })
+    )
   };
 }
 

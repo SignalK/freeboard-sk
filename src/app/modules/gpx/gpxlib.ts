@@ -4,6 +4,9 @@
 
 import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
 
+/** A parsed GPX `<bounds>` element as xml2js emits it: attributes under `$`. */
+export type GPXBoundsElement = { $?: Record<string, unknown> } | undefined;
+
 /**
  * Parse a GPX XML attribute as a finite number, falling back when it is
  * absent, empty or malformed.
@@ -15,6 +18,14 @@ import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
  * `minlat="NaN"`. Falling back to the caller's current value keeps the
  * accumulate-from-points sentinels intact instead.
  */
+export function finiteOr(value: unknown, fallback: number): number {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return fallback;
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 /** Text as XML character data: `&`, `<` and `>` escaped, so a name such as
  * an AIS vessel's `M&M` keeps the file well formed. */
 export function xmlText(value: unknown): string {
@@ -22,17 +33,6 @@ export function xmlText(value: unknown): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-}
-
-/** A parsed GPX `<bounds>` element as xml2js emits it: attributes under `$`. */
-export type GPXBoundsElement = { $?: Record<string, unknown> } | undefined;
-
-export function finiteOr(value: unknown, fallback: number): number {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return fallback;
-  }
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
 }
 
 /************************
@@ -231,7 +231,7 @@ export class GPX {
     xml += `${pad}\t<${tag} lat="${pt.lat.toFixed(6)}" lon="${pt.lon.toFixed(
       6
     )}">\r\n`;
-    // <ele> and <time> lead the point, as the GPX 1.1 schema orders them
+    // <ele> then <time>: the first elements of a point in the GPX 1.1 schema
     xml += pt.ele ? `${pad}\t\t<ele>${pt.ele || ''}</ele>\r\n` : '';
     // GPX times are ISO 8601 UTC; an invalid date is left out rather than
     // written as 'Invalid Date'
