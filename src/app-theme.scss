@@ -73,6 +73,14 @@ html {
         border-top-color: mat.get-theme-color($light-theme, surface);
     }
 
+    .popover.bottom > .arrow {
+        border-bottom-color: mat.get-theme-color($light-theme, surface);
+    }
+
+    .popover.bottom > .arrow:after {
+        border-bottom-color: mat.get-theme-color($light-theme, surface);
+    }
+
     .bg-primary {
         background-color: mat.get-theme-color($light-theme, primary) !important;
         color: mat.get-theme-color($light-theme, on-primary) !important;
@@ -247,6 +255,14 @@ html {
     
     .popover.top > .arrow:after {
         border-top-color: mat.get-theme-color($dark-theme, surface);
+    }
+
+    .popover.bottom > .arrow {
+        border-bottom-color: mat.get-theme-color($dark-theme, surface);
+    }
+
+    .popover.bottom > .arrow:after {
+        border-bottom-color: mat.get-theme-color($dark-theme, surface);
     }
 
     .title-bar-bg {

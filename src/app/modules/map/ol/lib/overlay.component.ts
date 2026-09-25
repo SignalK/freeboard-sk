@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import Overlay, { Options, PanIntoViewOptions } from 'ol/Overlay';
 import { fromLonLat } from 'ol/proj';
+import { Subject } from 'rxjs';
 import { MapComponent } from './map.component';
 import { Coordinate } from './models';
 
@@ -39,6 +40,13 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() stopEvent: boolean;
   @Input() insertFirst: boolean;
 
+  /**
+   * Emits after the overlay has been moved to a new anchor position, so
+   * content that depends on where it sits on screen (a popover choosing to
+   * open above or below) can re-measure.
+   */
+  readonly repositioned = new Subject<void>();
+
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
     protected elementRef: ElementRef,
@@ -65,6 +73,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.repositioned.complete();
     if (this.overlay) {
       this.mapComponent.getMap().removeOverlay(this.overlay);
       this.overlay = null;
@@ -76,6 +85,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
     if (this.overlay && (changes.position || changes.worldOffset)) {
       if (this.position) {
         this.overlay.setPosition(this.toWorldPosition(this.position));
+        this.repositioned.next();
       }
     }
   }

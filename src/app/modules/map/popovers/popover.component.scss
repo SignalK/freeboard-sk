@@ -35,6 +35,12 @@
     margin-top: -10px;
     margin-left: 10px;
 }
+/* Opened below the anchor when there is no room above it (#827). */
+.popover.bottom {
+    transform: translate(-50%, 0);
+    margin-top: 10px;
+    margin-left: 10px;
+}
 .popover-title {
     padding: 2px 0 2px 5px;
     margin: 0;
@@ -82,6 +88,21 @@
     border-bottom-width: 0;
 }
 
+.popover.bottom > .arrow {
+    top: -11px;
+    left: 50%;
+    margin-left: -11px;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-left-width: 0;
+}
+.popover.bottom > .arrow:after {
+    top: 1px;
+    margin-left: -10px;
+    content: " ";
+    border-top-width: 0;
+}
+
 .popover.measure {
     min-width: 100px;
     background-color: #3399CC;
@@ -114,6 +135,10 @@
     content: " ";
     border-bottom-width: 0;
     border-top-color: #3399CC;
+}
+
+.popover.bottom.measure > .arrow:after {
+    border-bottom-color: #3399CC;
 }
 
 .popover-action-button {
