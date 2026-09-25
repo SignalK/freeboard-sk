@@ -77,8 +77,10 @@ html {
         border-bottom-color: mat.get-theme-color($light-theme, surface);
     }
 
+    // Touches the title bar, which blends rgba(250,250,250,.51) over surface.
     .popover.bottom > .arrow:after {
         border-bottom-color: mat.get-theme-color($light-theme, surface);
+        border-bottom-color: color-mix(in srgb, rgb(250 250 250) 51%, mat.get-theme-color($light-theme, surface));
     }
 
     .bg-primary {
@@ -261,8 +263,10 @@ html {
         border-bottom-color: mat.get-theme-color($dark-theme, surface);
     }
 
+    // Touches the title bar, which blends rgba(250,250,250,.51) over surface.
     .popover.bottom > .arrow:after {
         border-bottom-color: mat.get-theme-color($dark-theme, surface);
+        border-bottom-color: color-mix(in srgb, rgb(250 250 250) 51%, mat.get-theme-color($dark-theme, surface));
     }
 
     .title-bar-bg {
