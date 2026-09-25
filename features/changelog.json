@@ -91,5 +91,8 @@
   { "feature": null, "pr": 818, "kind": "skip", "reason": "implements the resourceGroups capability of the Plotter Extensions API for extension plugins; the user-facing Resource Groups list behaves as before" },
   { "feature": "vessel-tracks", "pr": 822, "kind": "enhanced", "date": "2026-09-24", "title": "feat(tracks): source the own-vessel trail and AIS tracks from the v2 Track API" },
   { "feature": "vessel-tracks", "pr": 829, "kind": "enhanced", "date": "2026-09-24", "title": "feat(tracks): browse, scrub and play back recorded track history" },
-  { "feature": "track-history", "pr": 829, "kind": "new", "date": "2026-09-24", "title": "feat(tracks): browse, scrub and play back recorded track history" }
+  { "feature": "track-history", "pr": 829, "kind": "new", "date": "2026-09-24", "title": "feat(tracks): browse, scrub and play back recorded track history" },
+  { "feature": "gpx-export", "kind": "new", "since": "v1.18.0", "date": "2021-08-26", "title": "feature: Save to GPX" },
+  { "feature": "gpx-export", "kind": "enhanced", "since": "v1.18.0", "date": "2021-08-30", "title": "add vessel trail to track option in Save to GPX" },
+  { "feature": "gpx-export", "pr": 831, "kind": "enhanced", "date": "2026-09-24", "title": "feat(gpx): export the server trail and other vessels' tracks to GPX, over any recorded range" }
 ]
