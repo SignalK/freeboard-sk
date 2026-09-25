@@ -71,7 +71,8 @@ function popover(anchorY: number, docked = false) {
   const box = {
     offsetParent: rect({ top: anchorY }),
     getBoundingClientRect: () => ({ height: 300 }),
-    closest: () => rect({ top: 0, bottom: 800 }),
+    closest: (selector: string) =>
+      selector === '.ol-viewport' ? rect({ top: 200, bottom: 800 }) : null,
     querySelector: () => rect({ height: 40 })
   };
   const c = Object.create(PopoverComponent.prototype);
@@ -85,8 +86,10 @@ function popover(anchorY: number, docked = false) {
 }
 
 describe('PopoverComponent placement (#827)', () => {
+  // The map starts 200px down the page, so an anchor at y=400 has only 200px
+  // above it inside the map, although 400px of page.
   it('opens a popover anchored near the top of the map below its anchor', () => {
-    expect(popover(60)).toBe('bottom');
+    expect(popover(400)).toBe('bottom');
   });
 
   it('keeps a popover with room above opening upward', () => {
@@ -94,6 +97,6 @@ describe('PopoverComponent placement (#827)', () => {
   });
 
   it('leaves a docked popover alone', () => {
-    expect(popover(60, true)).toBe('top');
+    expect(popover(400, true)).toBe('top');
   });
 });
