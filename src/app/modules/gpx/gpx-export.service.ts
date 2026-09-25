@@ -28,6 +28,17 @@ export class GPXExportService {
     });
   }
 
+  /** The own-vessel trail alone (its popover), as displayed or over a range,
+   * starting on `choice`. */
+  exportOwnTrail(choice: TrackExportChoice = 'displayed'): Promise<void> {
+    return this.open({
+      routes: [],
+      tracks: [this.ownTrail()],
+      tracksOnly: true,
+      initialChoice: choice
+    });
+  }
+
   /** One AIS vessel's track, as displayed or over a range, starting on
    * `choice`. */
   exportVesselTrack(

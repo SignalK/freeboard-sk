@@ -143,13 +143,13 @@ import {
               </button>
             </span>
           }
-          @let exportOffer = isSelf() ? null : trackExportOffer();
+          @let exportOffer = trackExportOffer();
           @if (exportOffer) {
             <button
               mat-icon-button
               (click)="exportTrack(exportOffer)"
               [matTooltip]="
-                app.featureFlags().tracksApi
+                isSelf() || app.featureFlags().tracksApi
                   ? 'Export track to GPX'
                   : 'Export track to GPX (only the positions gathered while Freeboard was open)'
               "
@@ -452,9 +452,19 @@ export class VesselPopoverComponent {
     this.app.toggleVesselTrack(this.vessel().id);
   }
 
-  /** An AIS vessel's track can be exported while it is displayed, as its
-   * track or as its Track history; null when neither is shown. */
+  /** A vessel's track can be exported while it is displayed, as its track
+   * (the own vessel's trail) or as its Track history; null when neither is
+   * shown. */
   protected trackExportOffer(): TrackExportChoice | null {
+    if (this.isSelf()) {
+      const server = this.app.selfTrailFromServer();
+      return vesselExportOffer({
+        trackDisplayed: this.app.config.vessels.trail,
+        lines: server.length > 0 ? server : [this.app.selfTrail()],
+        historyShown:
+          this.trackHistory.available() && this.trackHistory.isShown('self')
+      });
+    }
     const id = this.vessel().id;
     return vesselExportOffer({
       trackDisplayed: aisTrackDisplayed({
@@ -470,7 +480,11 @@ export class VesselPopoverComponent {
   }
 
   exportTrack(choice: TrackExportChoice) {
-    this.gpxExport.exportVesselTrack(this.vessel().id, choice);
+    if (this.isSelf()) {
+      this.gpxExport.exportOwnTrail(choice);
+    } else {
+      this.gpxExport.exportVesselTrack(this.vessel().id, choice);
+    }
   }
 
   /** Showing history opens the Track history palette, which the popover
