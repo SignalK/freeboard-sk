@@ -105,7 +105,7 @@ function setup(opts: {
   const dialog = fixture.componentInstance as unknown as DialogUnderTest;
   const savedTracks = (): GpxTrackData[] =>
     saveToFile.mock.calls[0]?.[1]?.trk?.tracks;
-  return { dialog, get, saveToFile, showAlert, savedTracks };
+  return { dialog, fixture, get, saveToFile, showAlert, savedTracks };
 }
 
 describe('GPXExportDialog track export', () => {
@@ -172,6 +172,25 @@ describe('GPXExportDialog track export', () => {
       expect.stringMatching(/No track is recorded/)
     );
     expect(saveToFile).not.toHaveBeenCalled();
+  });
+
+  it('abandons the save when the dialog is closed during the fetch', async () => {
+    const response = new Subject<unknown>();
+    const get = vi.fn(() => response);
+    const { dialog, fixture, saveToFile, showAlert } = setup({ get });
+    dialog.trackChoice = 'all';
+    const saving = dialog.save();
+    fixture.destroy();
+    response.next(
+      trackResponse(
+        [displayedLine],
+        [['2026-09-20T10:00:00Z', '2026-09-20T10:01:00Z']]
+      )
+    );
+    response.complete();
+    await saving;
+    expect(saveToFile).not.toHaveBeenCalled();
+    expect(showAlert).not.toHaveBeenCalled();
   });
 
   it('cannot save a range it cannot resolve', () => {

@@ -105,6 +105,8 @@ export class GPXExportDialog implements OnInit {
   protected customFrom = '';
   protected customTo = '';
   protected fetching = false;
+  // closed while a range was being fetched: the save is abandoned
+  private closed = false;
 
   private signalk = inject(SignalKClient);
   protected trackHistory = inject(TrackHistoryService);
@@ -161,6 +163,7 @@ export class GPXExportDialog implements OnInit {
   }
 
   ngOnDestroy() {
+    this.closed = true;
     this.unsubscribe.forEach((i) => i.unsubscribe());
     this.facade.clear();
   }
@@ -252,13 +255,16 @@ export class GPXExportDialog implements OnInit {
     try {
       tracks = await this.selectedTracks();
     } catch {
+      if (this.closed) {
+        return;
+      }
       this.app.showAlert(
         'GPX Save',
         'Unable to fetch the recorded track from the server.'
       );
       return;
     }
-    if (tracks === null) {
+    if (tracks === null || this.closed) {
       return;
     }
     this.facade.saveToFile(this.resData, {
