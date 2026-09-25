@@ -136,8 +136,9 @@ export class PopoverComponent {
 
   constructor() {
     // Open below the anchor when there is no room above it, so the title bar
-    // and close button stay on screen. Re-check when the content changes size
-    // and when the popover is re-anchored to another feature. Deliberately
+    // and close button stay on screen. Re-check when the content changes size,
+    // when the popover is re-anchored to another feature, and when the map is
+    // panned, zoomed or resized (e.g. a device rotated). Deliberately
     // not OpenLayers' autoPan: panning the chart to fit would fight Center &
     // Follow Vessel.
     afterNextRender(() => {

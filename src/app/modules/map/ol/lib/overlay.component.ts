@@ -11,6 +11,8 @@ import {
 } from '@angular/core';
 import Overlay, { Options, PanIntoViewOptions } from 'ol/Overlay';
 import { fromLonLat } from 'ol/proj';
+import { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
 import { Subject } from 'rxjs';
 import { MapComponent } from './map.component';
 import { Coordinate } from './models';
@@ -41,11 +43,13 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() insertFirst: boolean;
 
   /**
-   * Emits after the overlay has been moved to a new anchor position, so
-   * content that depends on where it sits on screen (a popover choosing to
-   * open above or below) can re-measure.
+   * Emits when the overlay may have moved on screen: after it is moved to a
+   * new anchor position, and after the map finishes a pan, zoom or resize.
+   * Content that depends on where it sits (a popover choosing to open above
+   * or below) re-measures on it.
    */
   readonly repositioned = new Subject<void>();
+  private moveEndKey: EventsKey;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -66,6 +70,9 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
       this.element = this.elementRef.nativeElement;
       this.overlay = new Overlay(this as Options);
       this.mapComponent.getMap().addOverlay(this.overlay);
+      this.moveEndKey = this.mapComponent
+        .getMap()
+        .on('moveend', () => this.repositioned.next());
       if (this.position) {
         this.overlay.setPosition(this.toWorldPosition(this.position));
       }
@@ -73,6 +80,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    unByKey(this.moveEndKey);
     this.repositioned.complete();
     if (this.overlay) {
       this.mapComponent.getMap().removeOverlay(this.overlay);
