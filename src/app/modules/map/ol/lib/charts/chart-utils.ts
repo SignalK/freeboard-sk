@@ -889,7 +889,13 @@ export function createTileRecoveryScheduler(config: {
       }, delayMs);
     },
     onLoadEnd(): void {
-      delayMs = minDelayMs;
+      // Only treat a success as "recovered" when no rotation is pending. While a
+      // rotation is armed (a tile is still failing), a sibling tile that loads
+      // from cache must not reset the back-off, or one persistently-failing tile
+      // would keep the whole style rotating at the minimum interval forever.
+      if (timer === undefined) {
+        delayMs = minDelayMs;
+      }
     },
     triggerNow(): void {
       if (torn) {
@@ -946,14 +952,18 @@ export function startChartTileRecovery(
   }
 
   const rotate = (): void => {
+    // Rotate the source key ONLY, leaving the tile URL unchanged. A failed
+    // request was never cached, so a new key is enough to re-request it; tiles
+    // that had loaded come back from the browser/HTTP cache or a local caching
+    // proxy at the same URL rather than re-downloading (which matters on a
+    // metered Starlink/cellular link). This is the opposite of
+    // startChartTileRefresh, whose tiles are time-varying and must cache-bust
+    // the URL to fetch new data — recovery must NOT.
     for (const source of sources) {
-      const current = source.getTileUrlFunction();
-      const base = refreshWrapperBase.get(current) ?? current;
-      const key = String(Date.now());
-      const wrapped: UrlFunction = (tileCoord, pixelRatio, projection) =>
-        cacheBustTileUrl(base(tileCoord, pixelRatio, projection), key);
-      refreshWrapperBase.set(wrapped, base);
-      source.setTileUrlFunction(wrapped, key);
+      source.setTileUrlFunction(
+        source.getTileUrlFunction(),
+        String(Date.now())
+      );
     }
   };
   const scheduler = createTileRecoveryScheduler({ ...config, rotate });

@@ -8,6 +8,7 @@ import {
   CHART_TIME_LIVE_KEY,
   extentFromBounds,
   createTileRecoveryScheduler,
+  startChartTileRecovery,
   fetchArrayBufferWithRetry,
   isChartInView,
   isUnevaluableByOl,
@@ -957,6 +958,24 @@ describe('createTileRecoveryScheduler', () => {
     expect(rotate).toHaveBeenCalledTimes(2);
   });
 
+  it('does not reset the back-off on a success while a rotation is pending', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({
+      rotate,
+      minDelayMs: 100,
+      maxDelayMs: 800
+    });
+    s.onError();
+    vi.advanceTimersByTime(100); // rotate #1; back-off grows to 200
+    s.onError(); // a tile is still failing: rotation armed at 200
+    s.onLoadEnd(); // sibling loads from cache — must NOT reset while armed
+    vi.advanceTimersByTime(199);
+    expect(rotate).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1); // fires at 200, proving the delay wasn't reset to 100
+    expect(rotate).toHaveBeenCalledTimes(2);
+  });
+
   it('triggerNow rotates immediately and cancels a pending rotation', () => {
     vi.useFakeTimers();
     const rotate = vi.fn();
@@ -976,6 +995,58 @@ describe('createTileRecoveryScheduler', () => {
     s.teardown();
     vi.advanceTimersByTime(1000);
     expect(rotate).toHaveBeenCalledTimes(0);
+  });
+});
+
+describe('startChartTileRecovery', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const makeGroup = () => {
+    const source = new VectorTileSource({
+      format: new MVT(),
+      url: 'https://tiles.example/{z}/{x}/{y}.pbf'
+    });
+    const group = new LayerGroup({
+      layers: [new VectorTileLayer({ source })]
+    });
+    return { source, group };
+  };
+
+  it('rotates a real source key on tileloaderror without cache-busting the URL', () => {
+    vi.useFakeTimers();
+    const { source, group } = makeGroup();
+    const keyBefore = source.getKey();
+    const stop = startChartTileRecovery(group, {
+      minDelayMs: 50,
+      maxDelayMs: 200
+    });
+
+    source.dispatchEvent('tileloaderror');
+    vi.advanceTimersByTime(50);
+
+    // Key rotated -> OpenLayers rebuilds the tiles and re-requests the failed one.
+    expect(source.getKey()).not.toBe(keyBefore);
+    // ...but the tile URL is unchanged (no _refresh), so cached tiles are reused.
+    const url = source.getTileUrlFunction()(
+      [5, 10, 12] as [number, number, number],
+      1,
+      source.getProjection()!
+    );
+    expect(url).toBeTypeOf('string');
+    expect(url).not.toContain('_refresh');
+
+    stop();
+  });
+
+  it('stops rotating after teardown', () => {
+    vi.useFakeTimers();
+    const { source, group } = makeGroup();
+    const stop = startChartTileRecovery(group, { minDelayMs: 50 });
+    stop();
+    const key = source.getKey();
+    source.dispatchEvent('tileloaderror');
+    vi.advanceTimersByTime(500);
+    expect(source.getKey()).toBe(key);
   });
 });
 
