@@ -106,7 +106,8 @@ export class WmtsChartLayerComponent implements OnDestroy {
     }
     const layer = chart[1].layers[0];
     // Chosen by CRS, not by name. With no Web Mercator set OpenLayers falls
-    // back to the layer's first set, as it always has.
+    // back to the layer's first set, as it always has: drawn reprojected when
+    // OpenLayers knows its CRS, and not at all otherwise.
     const options = optionsFromCapabilities(this.capabilities, {
       layer,
       matrixSet: webMercatorMatrixSet(this.capabilities, layer)
