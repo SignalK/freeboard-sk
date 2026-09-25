@@ -72,9 +72,20 @@ export class GPXExportService {
     };
   }
 
+  /** Whether an AIS vessel's track is only the tail gathered while Freeboard
+   * was open: no provider records it (v2 sent no track for this vessel, or
+   * v1 has no AIS tracks). */
+  tailOnly(id: string): boolean {
+    const source = this.app.trackSource();
+    const recorded =
+      source?.api === 'v2'
+        ? this.app.aisTracksTimed().has(id)
+        : source?.api === 'v1' && source.v1AisTracks;
+    return !recorded;
+  }
+
   /** An AIS vessel's track as displayed, with the recording times the Track
-   * API sent for it. Without a recorded track (no provider, or none for this
-   * vessel) it is only the tail gathered while Freeboard was open. */
+   * API sent for it. */
   vesselTrack(id: string): TrackExportSource | undefined {
     const vessel = this.app.data.vessels.aisTargets.get(id);
     const lines = this.app.data.vessels.aisTracks.get(id) ?? vessel?.track;
@@ -82,17 +93,12 @@ export class GPXExportService {
       return undefined;
     }
     const timed = this.app.aisTracksTimed().get(id);
-    const source = this.app.trackSource();
-    const recorded =
-      source?.api === 'v2'
-        ? !!timed
-        : source?.api === 'v1' && source.v1AisTracks;
     return {
       context: id,
       label: vesselLabel(id, vessel?.name, vessel?.mmsi),
       // none drawn: a vessel shown only in Track history exports a range
       displayed: attachTimes(lines ?? [], timed),
-      tailOnly: !recorded
+      tailOnly: this.tailOnly(id)
     };
   }
 

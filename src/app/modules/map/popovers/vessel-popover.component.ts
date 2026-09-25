@@ -149,7 +149,7 @@ import {
               mat-icon-button
               (click)="exportTrack(exportOffer)"
               [matTooltip]="
-                isSelf() || app.featureFlags().tracksApi
+                isSelf() || !gpxExport.tailOnly(vessel().id)
                   ? 'Export track to GPX'
                   : 'Export track to GPX (only the positions gathered while Freeboard was open)'
               "
@@ -316,7 +316,7 @@ export class VesselPopoverComponent {
   protected app = inject(AppFacade);
   protected buddies = inject(Buddies);
   protected trackHistory = inject(TrackHistoryService);
-  private gpxExport = inject(GPXExportService);
+  protected gpxExport = inject(GPXExportService);
   private destroyRef = inject(DestroyRef);
 
   /** The Track API context: the own vessel is asked for as `self`. */
