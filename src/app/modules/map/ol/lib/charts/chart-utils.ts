@@ -1,5 +1,5 @@
 import { Extent, intersects } from 'ol/extent';
-import { transformExtent } from 'ol/proj';
+import { equivalent, get as getProjection, transformExtent } from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import RenderEvent from 'ol/render/Event';
 import LayerGroup from 'ol/layer/Group';
@@ -880,4 +880,54 @@ export function applyChartTimeToWmts(
   const key =
     Object.keys(defaults).find((k) => k.toLowerCase() === 'time') ?? 'Time';
   source.updateDimensions({ [key]: time ?? defaults[key] });
+}
+
+/** The parts of a parsed WMTS capabilities document FSK reads itself. */
+export interface WmtsCapabilitiesDoc {
+  Contents?: {
+    Layer?: Array<{
+      Identifier?: string;
+      TileMatrixSetLink?: Array<{ TileMatrixSet?: string }>;
+    }>;
+    TileMatrixSet?: Array<{ Identifier?: string; SupportedCRS?: string }>;
+  };
+}
+
+/**
+ * Identifier of the Web Mercator tile matrix set a WMTS layer links, or
+ * `undefined` when it links none.
+ *
+ * OpenLayers' `optionsFromCapabilities` matches `matrixSet` by identifier and
+ * falls back to the layer's first linked set on a miss, so asking for
+ * `EPSG:3857` by name picks whatever the service lists first whenever it names
+ * its Web Mercator set something else (`webmercator`, `GoogleMapsCompatible`,
+ * `WebMercatorQuad` …). A set literally named `EPSG:3857` still wins, so
+ * services that already worked are unchanged; otherwise the first set whose
+ * SupportedCRS is equivalent to EPSG:3857 (`urn:ogc:def:crs:EPSG::3857`,
+ * `EPSG:900913` …).
+ *
+ * Selected here rather than with OpenLayers' own `projection` option, which
+ * also treats a set in a CRS it does not know as EPSG:3857 — drawing a UTM or
+ * EPSG:3395 grid's tiles in the wrong place instead of not at all.
+ */
+export function webMercatorMatrixSet(
+  capabilities: WmtsCapabilitiesDoc | undefined,
+  layer: string
+): string | undefined {
+  const contents = capabilities?.Contents;
+  const linked = (
+    contents?.Layer?.find((l) => l.Identifier === layer)?.TileMatrixSetLink ??
+    []
+  ).map((link) => link.TileMatrixSet);
+  if (linked.includes('EPSG:3857')) {
+    return 'EPSG:3857';
+  }
+  const webMercator = getProjection('EPSG:3857');
+  return linked.find((id) => {
+    const crs = contents?.TileMatrixSet?.find(
+      (set) => set.Identifier === id
+    )?.SupportedCRS;
+    const projection = crs ? getProjection(crs) : null;
+    return !!projection && equivalent(projection, webMercator);
+  });
 }
