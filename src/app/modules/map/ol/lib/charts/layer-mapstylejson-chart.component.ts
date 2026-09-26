@@ -27,6 +27,8 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
   protected zIndex = input<number>();
 
   private layer: LayerGroup;
+  private stopRecovery?: () => void;
+  private destroyed = false;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -40,6 +42,8 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
+    this.stopRecovery?.();
     const map = this.mapComponent.getMap();
     if (this.layer) {
       map.removeLayer(this.layer);
@@ -65,7 +69,15 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
         this.layer.set('chartFormat', chart[1].format);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
-        applyMapStyle(this.layer, `${chart[1].url}`);
+        applyMapStyle(this.layer, `${chart[1].url}`).then((stop) => {
+          // If we were destroyed before the async style apply resolved, stop the
+          // outage-recovery watcher now; otherwise keep it for ngOnDestroy.
+          if (this.destroyed) {
+            stop();
+          } else {
+            this.stopRecovery = stop;
+          }
+        });
         map.addLayer(this.layer);
       }
     } else {

@@ -7,6 +7,8 @@ import {
   applyChartTimeToWmts,
   CHART_TIME_LIVE_KEY,
   extentFromBounds,
+  createTileRecoveryScheduler,
+  startChartTileRecovery,
   fetchArrayBufferWithRetry,
   isChartInView,
   isUnevaluableByOl,
@@ -464,10 +466,14 @@ function okResponse(bytes = 4): Response {
   } as unknown as Response;
 }
 
-function errorResponse(status: number): Response {
+function errorResponse(
+  status: number,
+  headers: Record<string, string> = {}
+): Response {
   return {
     ok: false,
     status,
+    headers: { get: (name: string) => headers[name] ?? null },
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
   } as unknown as Response;
 }
@@ -542,7 +548,7 @@ describe('applyMapStyle', () => {
         applyFn,
         makeResilient
       })
-    ).resolves.toBeUndefined();
+    ).resolves.toBeTypeOf('function'); // returns a (no-op) recovery teardown
 
     expect(applyFn).toHaveBeenCalledTimes(1);
     expect(applyFn.mock.calls[0][1]).not.toBe(url);
@@ -747,7 +753,14 @@ describe('fetchArrayBufferWithRetry', () => {
       const fetchImpl = (() => {
         calls++;
         return calls === 1
-          ? Promise.resolve(errorResponse(status))
+          ? // Retry-After: 0 keeps the 429 case fast; without it a 429 backs off
+            // hard (>=60s) on purpose, which is covered by its own test below.
+            Promise.resolve(
+              errorResponse(
+                status,
+                status === 429 ? { 'Retry-After': '0' } : {}
+              )
+            )
           : Promise.resolve(okResponse());
       }) as unknown as typeof fetch;
       await fetchArrayBufferWithRetry('u', fast, fetchImpl);
@@ -788,6 +801,295 @@ describe('fetchArrayBufferWithRetry', () => {
       fetchArrayBufferWithRetry('u', fast, fetchImpl)
     ).rejects.toThrow('down');
     expect(calls).toBe(fast.retries + 1);
+  });
+
+  it('retries past the default limit and self-heals when retries is Infinity', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return calls <= 4
+        ? Promise.reject(new Error('offline'))
+        : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry(
+      'u',
+      { ...fast, retries: Number.POSITIVE_INFINITY },
+      fetchImpl
+    );
+    expect(buf.byteLength).toBeGreaterThan(0);
+    expect(calls).toBe(5); // kept trying well past the default 2 retries
+  });
+
+  it('stops retrying when shouldContinue turns false (tile discarded)', async () => {
+    let calls = 0;
+    let live = true;
+    const fetchImpl = (() => {
+      calls++;
+      live = false; // OpenLayers discards the tile after the first attempt
+      return Promise.reject(new Error('offline'));
+    }) as unknown as typeof fetch;
+
+    await expect(
+      fetchArrayBufferWithRetry(
+        'u',
+        {
+          ...fast,
+          retries: Number.POSITIVE_INFINITY,
+          shouldContinue: () => live
+        },
+        fetchImpl
+      )
+    ).rejects.toHaveProperty('name', 'AbortError');
+    expect(calls).toBe(1); // did not keep hammering a discarded tile
+  });
+
+  it('gives up after maxElapsedMs even with unlimited retries', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.reject(new Error('offline'));
+    }) as unknown as typeof fetch;
+
+    // Unbounded retries, but a tiny self-heal window: it must terminate, not
+    // loop forever, so a dropped-but-not-disposed tile can't retry indefinitely.
+    await expect(
+      fetchArrayBufferWithRetry(
+        'u',
+        {
+          timeoutMs: 50,
+          retries: Number.POSITIVE_INFINITY,
+          backoffMs: 1,
+          maxElapsedMs: 25
+        },
+        fetchImpl
+      )
+    ).rejects.toThrow('offline');
+    expect(calls).toBeGreaterThan(0);
+  });
+
+  it('retries a 429 honouring Retry-After rather than treating it as final', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return calls === 1
+        ? Promise.resolve(errorResponse(429, { 'Retry-After': '0' }))
+        : Promise.resolve(okResponse());
+    }) as unknown as typeof fetch;
+
+    const buf = await fetchArrayBufferWithRetry('u', fast, fetchImpl);
+    expect(buf.byteLength).toBeGreaterThan(0);
+    expect(calls).toBe(2); // 429 is retryable; Retry-After: 0 retries immediately
+  });
+
+  it('gives up rather than wait a Retry-After that overruns the window', async () => {
+    let calls = 0;
+    const fetchImpl = (() => {
+      calls++;
+      return Promise.resolve(errorResponse(429, { 'Retry-After': '3600' }));
+    }) as unknown as typeof fetch;
+
+    // A 1-hour Retry-After must not hold the slot: the wait overruns the 100ms
+    // window, so it errors at once and leaves recovery to reload later.
+    await expect(
+      fetchArrayBufferWithRetry(
+        'u',
+        {
+          timeoutMs: 50,
+          retries: Number.POSITIVE_INFINITY,
+          backoffMs: 1,
+          maxElapsedMs: 100
+        },
+        fetchImpl
+      )
+    ).rejects.toThrow('429');
+    expect(calls).toBe(1);
+  });
+
+  it('marks a definitive 4xx so the caller can render an empty tile', async () => {
+    const fetchImpl = (() =>
+      Promise.resolve(errorResponse(404))) as unknown as typeof fetch;
+    const err = await fetchArrayBufferWithRetry('u', fast, fetchImpl).catch(
+      (e) => e
+    );
+    expect(err).toBeInstanceOf(Error);
+    expect((err as { definitive?: boolean }).definitive).toBe(true);
+  });
+});
+
+describe('createTileRecoveryScheduler', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('rotates once after the min delay when a tile errors, then backs off', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({
+      rotate,
+      minDelayMs: 100,
+      maxDelayMs: 400
+    });
+
+    s.onError();
+    s.onError(); // coalesced — still a single pending rotation
+    vi.advanceTimersByTime(99);
+    expect(rotate).toHaveBeenCalledTimes(0);
+    vi.advanceTimersByTime(1);
+    expect(rotate).toHaveBeenCalledTimes(1);
+
+    s.onError(); // still failing: the next attempt waits the doubled delay
+    vi.advanceTimersByTime(199);
+    expect(rotate).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1);
+    expect(rotate).toHaveBeenCalledTimes(2);
+  });
+
+  it('resets the back-off after a successful load', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({
+      rotate,
+      minDelayMs: 100,
+      maxDelayMs: 400
+    });
+    s.onError();
+    vi.advanceTimersByTime(100); // rotate #1; back-off would grow to 200
+    s.onLoadEnd(); // recovered — reset back to the min delay
+    s.onError();
+    vi.advanceTimersByTime(100);
+    expect(rotate).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reset the back-off on a success while a rotation is pending', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({
+      rotate,
+      minDelayMs: 100,
+      maxDelayMs: 800
+    });
+    s.onError();
+    vi.advanceTimersByTime(100); // rotate #1; back-off grows to 200
+    s.onError(); // a tile is still failing: rotation armed at 200
+    s.onLoadEnd(); // sibling loads from cache — must NOT reset while armed
+    vi.advanceTimersByTime(199);
+    expect(rotate).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1); // fires at 200, proving the delay wasn't reset to 100
+    expect(rotate).toHaveBeenCalledTimes(2);
+  });
+
+  it('triggerNow rotates immediately and cancels a pending rotation', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({ rotate, minDelayMs: 100 });
+    s.onError();
+    s.triggerNow();
+    expect(rotate).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(100);
+    expect(rotate).toHaveBeenCalledTimes(1);
+  });
+
+  it('teardown drops any pending rotation', () => {
+    vi.useFakeTimers();
+    const rotate = vi.fn();
+    const s = createTileRecoveryScheduler({ rotate, minDelayMs: 100 });
+    s.onError();
+    s.teardown();
+    vi.advanceTimersByTime(1000);
+    expect(rotate).toHaveBeenCalledTimes(0);
+  });
+});
+
+describe('startChartTileRecovery', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const makeGroup = () => {
+    const source = new VectorTileSource({
+      format: new MVT(),
+      url: 'https://tiles.example/{z}/{x}/{y}.pbf'
+    });
+    const group = new LayerGroup({
+      layers: [new VectorTileLayer({ source })]
+    });
+    return { source, group };
+  };
+
+  it('rotates a real source key on tileloaderror without cache-busting the URL', () => {
+    vi.useFakeTimers();
+    const { source, group } = makeGroup();
+    const keyBefore = source.getKey();
+    const stop = startChartTileRecovery(group, {
+      minDelayMs: 50,
+      maxDelayMs: 200
+    });
+
+    source.dispatchEvent('tileloaderror');
+    vi.advanceTimersByTime(50);
+
+    // Key rotated -> OpenLayers rebuilds the tiles and re-requests the failed one.
+    expect(source.getKey()).not.toBe(keyBefore);
+    // ...but the tile URL is unchanged (no _refresh), so cached tiles are reused.
+    const url = source.getTileUrlFunction()(
+      [5, 10, 12] as [number, number, number],
+      1,
+      source.getProjection()!
+    );
+    expect(url).toBeTypeOf('string');
+    expect(url).not.toContain('_refresh');
+
+    stop();
+  });
+
+  it('relies on OpenLayers exposing sourceTiles_ (canary for recovery eviction)', () => {
+    // Recovery eviction (startChartTileRecovery) reads the private sourceTiles_
+    // cache to drop errored tiles. We allow any ol@^10.x; if a minor bump renames
+    // that field, the guarded access silently degrades to a key-only rotation
+    // that recovers nothing (see the f836b87 regression). This canary — a fresh
+    // source, deliberately NOT seeded — fails CI on that rename instead of
+    // letting recovery quietly regress in the field.
+    const source = new VectorTileSource({
+      format: new MVT(),
+      url: 'https://tiles.example/{z}/{x}/{y}.pbf'
+    });
+    const cache = (source as unknown as { sourceTiles_?: unknown })
+      .sourceTiles_;
+    expect(cache).toBeTypeOf('object');
+    expect(cache).not.toBeNull();
+  });
+
+  it('evicts only errored source tiles on recovery so they reload, keeping loaded ones cached', () => {
+    vi.useFakeTimers();
+    const { source, group } = makeGroup();
+    // OpenLayers caches vector source tiles by URL; seed one errored and one
+    // loaded so we can assert recovery drops only the errored one.
+    const src = source as unknown as {
+      sourceTiles_: Record<string, { getState: () => number }>;
+    };
+    src.sourceTiles_ = src.sourceTiles_ ?? {};
+    const erroredUrl = 'https://tiles.example/5/1/1.pbf';
+    const loadedUrl = 'https://tiles.example/5/1/2.pbf';
+    src.sourceTiles_[erroredUrl] = { getState: () => TileState.ERROR };
+    src.sourceTiles_[loadedUrl] = { getState: () => TileState.LOADED };
+
+    const stop = startChartTileRecovery(group, { minDelayMs: 50 });
+    source.dispatchEvent('tileloaderror');
+    vi.advanceTimersByTime(50);
+
+    // Errored tile dropped -> OL rebuilds it as IDLE and refetches it.
+    expect(erroredUrl in src.sourceTiles_).toBe(false);
+    // Loaded tile kept -> reused from cache at its unchanged URL, not re-downloaded.
+    expect(loadedUrl in src.sourceTiles_).toBe(true);
+    stop();
+  });
+
+  it('stops rotating after teardown', () => {
+    vi.useFakeTimers();
+    const { source, group } = makeGroup();
+    const stop = startChartTileRecovery(group, { minDelayMs: 50 });
+    stop();
+    const key = source.getKey();
+    source.dispatchEvent('tileloaderror');
+    vi.advanceTimersByTime(500);
+    expect(source.getKey()).toBe(key);
   });
 });
 
