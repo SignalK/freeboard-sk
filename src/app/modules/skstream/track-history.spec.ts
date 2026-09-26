@@ -27,6 +27,7 @@ import {
   trackTimeInfo,
   joinStretches,
   TrailStamps,
+  bboxInView,
   fitBbox,
   unionBbox,
   unionBboxes,
@@ -741,9 +742,47 @@ describe('track-history extent (zoom to a recorded track)', () => {
       expect(west.center[0]).toBeCloseTo(-179, 6);
     });
 
+    it('fits the box as it lies on a rotated map', () => {
+      const box: [number, number, number, number] = [-45, -1, 45, 1];
+      const turned = fitBbox(box, [512, 1024], limits, Math.PI / 2);
+      // a quarter turn lays the wide box along the tall side of the map
+      const upright = fitBbox(box, [1024, 512], limits);
+      expect(turned.zoom).toBeCloseTo(upright.zoom, 6);
+      expect(turned.center).toEqual(upright.center);
+      // half a turn changes nothing
+      const half = fitBbox(box, [1024, 512], limits, Math.PI);
+      expect(half.zoom).toBeCloseTo(upright.zoom, 6);
+    });
+
     it('zooms a single point to the limit, and never past either limit', () => {
       expect(fitBbox([-81, 24, -81, 24], [1000, 800], limits).zoom).toBe(16);
       expect(fitBbox([-180, -80, 180, 80], [300, 300], limits).zoom).toBe(2);
+    });
+  });
+
+  describe('bboxInView', () => {
+    it('knows a box in, beside and away from the view', () => {
+      const view = [-82, 24, -81, 25];
+      expect(bboxInView([-81.5, 24.5, -81.4, 24.6], view)).toBe(true);
+      expect(bboxInView([-83, 23, -80, 26], view)).toBe(true); // around it
+      expect(bboxInView([-81.1, 24.9, -80, 26], view)).toBe(true); // corner
+      expect(bboxInView([-80.9, 24.5, -80, 24.6], view)).toBe(false); // east
+      expect(bboxInView([-81.5, 25.1, -81.4, 26], view)).toBe(false); // north
+      expect(bboxInView([-81.5, 24.5, -81.4, 24.6], null)).toBe(false);
+    });
+
+    it('matches across the antimeridian and in other world copies', () => {
+      // a view straddling 180, as OL reports it: past +180
+      const fiji = [175, -20, 185, -15];
+      expect(bboxInView([-179, -18, -178, -17], fiji)).toBe(true);
+      expect(bboxInView([178, -18, -178, -16], fiji)).toBe(true);
+      expect(bboxInView([100, -18, 101, -17], fiji)).toBe(false);
+      // the same place one world west
+      expect(bboxInView([-81.5, 24.5, -81.4, 24.6], [-442, 24, -441, 25])).toBe(
+        true
+      );
+      // a view wider than the world holds everything at its latitudes
+      expect(bboxInView([10, 0, 11, 1], [-300, -10, 300, 10])).toBe(true);
     });
   });
 });

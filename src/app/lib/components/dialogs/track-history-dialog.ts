@@ -321,7 +321,7 @@ const CLOCK_TICK_MS = 60000;
           <span>Loading…</span>
         } @else {
           <span>{{ statusText() }}</span>
-          @if (history.offscreen().length) {
+          @if (showOffscreen()) {
             <button
               mat-button
               class="show"
@@ -385,6 +385,13 @@ export class TrackHistoryDialog {
     const to = r.to === null ? 'Now' : this.thumbLabel(r.to);
     return `${from} – ${to}`;
   });
+
+  /** Offer to bring the tracks out of view into it; not beside a failure
+   * message, which is about another vessel. */
+  protected showOffscreen = computed(
+    () =>
+      this.history.failed().size === 0 && this.history.offscreen().length > 0
+  );
 
   protected statusText = computed(() => {
     const failed = [...this.history.failed()];

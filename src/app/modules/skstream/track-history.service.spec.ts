@@ -114,7 +114,14 @@ describe('TrackHistoryService', () => {
         },
         {
           provide: MapService,
-          useValue: { getMaps: () => [{ getSize: () => [1000, 800] }] }
+          useValue: {
+            getMaps: () => [
+              {
+                getSize: () => [1000, 800],
+                getView: () => ({ getRotation: () => 0 })
+              }
+            ]
+          }
         },
         { provide: SignalKClient, useValue: { api: { get } } },
         { provide: MatDialog, useValue: { open } }
@@ -433,11 +440,48 @@ describe('TrackHistoryService', () => {
     });
 
     it('lists a vessel whose track lies outside the view, and not one drawn in it', () => {
+      meta = () => metaWith([-81.9, 24.5, -81.8, 24.5]); // where it is drawn
       service.toggle('self');
       expect(service.offscreen()).toEqual([]); // drawn
       answer = noTrack;
+      meta = () => of(spanFc);
       service.toggle(AIS);
       expect(service.offscreen()).toEqual([AIS]);
+    });
+
+    it('lists a track drawn in the padded box but out of the visible view', () => {
+      meta = () => metaWith([-81.9, 24.5, -81.8, 24.5]);
+      service.toggle('self');
+      // still inside the fetched box, so nothing is refetched...
+      service.setView([-81.7, 24.6, -80.7, 25.4], 12);
+      vi.advanceTimersByTime(1000);
+      expect(historyCalls().length).toBe(1);
+      expect(service.tracks().has('self')).toBe(true);
+      // ...but what was drawn is off-screen
+      expect(service.offscreen()).toEqual(['self']);
+    });
+
+    it('counts span and extent requests as loading, and warns when one fails', () => {
+      const replies: Subject<unknown>[] = [];
+      meta = () => {
+        const s = new Subject<unknown>();
+        replies.push(s);
+        return s;
+      };
+      service.setPreset('7d');
+      service.toggle('self');
+      expect(replies.length).toBe(2); // the whole record, and the range
+      expect(service.pending()).toBe(2); // the track itself has answered
+      replies[0].next(spanFc);
+      replies[0].complete();
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      replies[1].error(new Error('500'));
+      expect(service.pending()).toBe(0);
+      expect(service.extents().has('self')).toBe(false);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('extent request for self failed')
+      );
+      warn.mockRestore();
     });
 
     it('does not call a range with nothing recorded "outside this area"', () => {
@@ -481,6 +525,24 @@ describe('TrackHistoryService', () => {
       service.zoomTo(service.offscreen());
       // the two together, the short way round: 178 east to 175 west
       expect(mapMoveRequest().center[0]).toBeCloseTo(-178.5, 6);
+    });
+
+    it('fits the track as it lies on a rotated (heading-up) map', () => {
+      meta = () => metaWith([-100, 20, -90, 21]); // wide and flat
+      let rotation = 0;
+      TestBed.inject(MapService).getMaps = () =>
+        [
+          {
+            getSize: () => [1000, 400],
+            getView: () => ({ getRotation: () => rotation })
+          }
+        ] as never;
+      service.toggle('self');
+      service.zoomTo(['self']);
+      const northUp = mapMoveRequest().zoom;
+      rotation = Math.PI / 2; // the wide track now runs up the short side
+      service.zoomTo(['self']);
+      expect(mapMoveRequest().zoom).toBeLessThan(northUp - 1);
     });
 
     it('caps the zoom for a track of a single point', () => {

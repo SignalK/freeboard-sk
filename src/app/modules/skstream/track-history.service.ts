@@ -13,6 +13,7 @@ import { PalettePosition } from 'src/app/types';
 import { TrackHistoryDialog } from 'src/app/lib/components/dialogs/track-history-dialog';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
 import {
+  bboxInView,
   clampPaletteOffset,
   fitBbox,
   HISTORY_ALL,
@@ -98,15 +99,23 @@ export class TrackHistoryService {
   readonly failed = signal<Set<string>>(new Set());
   /** Contexts with any recorded track; null until listed. */
   readonly recorded = signal<Set<string> | null>(null);
-  /** Shown vessels with track in the selected range but none drawn: it was
-   * all recorded outside the fetched area. */
+  /** The map viewport (lon/lat `[w, s, e, n]`), as of the last move-end. */
+  readonly viewExtent = signal<number[] | null>(null);
+  /** Shown vessels with track in the selected range that can't be seen:
+   * none was drawn (it was all recorded outside the fetched area), or what
+   * was drawn lies outside the view — history is fetched for a padded box,
+   * so a passage can be drawn off-screen. */
   readonly offscreen = computed(() => {
     const tracks = this.tracks();
     const extents = this.extents();
     const failed = this.failed();
-    return this.shown().filter(
-      (c) => !tracks.has(c) && !failed.has(c) && !!extents.get(c)
-    );
+    const view = this.viewExtent();
+    return this.shown().filter((c) => {
+      const bbox = extents.get(c);
+      return (
+        !!bbox && !failed.has(c) && (!tracks.has(c) || !bboxInView(bbox, view))
+      );
+    });
   });
   /** A v2 Track API provider is available. */
   readonly available = computed(() => this.app.featureFlags().tracksApi);
@@ -295,6 +304,7 @@ export class TrackHistoryService {
   /** The map viewport (lon/lat) and zoom, after every move-end. */
   setView(extent: number[], zoom: number) {
     this.view = { extent, zoom };
+    this.viewExtent.set(extent);
     if (this.shown().length !== 0 && needsAisRefetch(this.fetched, this.view)) {
       this.schedule();
     }
@@ -319,7 +329,8 @@ export class TrackHistoryService {
       size && size[0] > 0 && size[1] > 0
         ? [size[0], size[1]]
         : [window.innerWidth, window.innerHeight],
-      { min: limits.min, max: Math.min(limits.max, FIT_MAX_ZOOM) }
+      { min: limits.min, max: Math.min(limits.max, FIT_MAX_ZOOM) },
+      map?.getView()?.getRotation() ?? 0
     );
     this.app.mapMoveRequest.set(fit);
   }
@@ -454,9 +465,14 @@ export class TrackHistoryService {
     const extentToken = this.rangeIsAll()
       ? this.claimExtent(context)
       : undefined;
-    this.get(
+    const req = this.get(
       `/tracks?${historyMetaQuery(context, this.provider())}`
-    )?.subscribe({
+    );
+    if (!req) {
+      return;
+    }
+    this.pending.update((n) => n + 1);
+    req.subscribe({
       next: (fc) => {
         if (epoch !== this.sourceEpoch || !this.isShown(context)) {
           return;
@@ -472,7 +488,11 @@ export class TrackHistoryService {
           this.setExtent(context, extentOf(span));
         }
       },
-      error: () => undefined
+      error: () => {
+        this.pending.update((n) => n - 1);
+        console.warn(`Track history: span request for ${context} failed`);
+      },
+      complete: () => this.pending.update((n) => n - 1)
     });
   }
 
@@ -482,9 +502,14 @@ export class TrackHistoryService {
     const token = this.claimExtent(context);
     // what is known is for the previous range
     this.setExtent(context, undefined);
-    this.get(
+    const req = this.get(
       `/tracks?${historyMetaQuery(context, this.provider(), this.range())}`
-    )?.subscribe({
+    );
+    if (!req) {
+      return;
+    }
+    this.pending.update((n) => n + 1);
+    req.subscribe({
       next: (fc) => {
         if (
           epoch === this.sourceEpoch &&
@@ -496,7 +521,11 @@ export class TrackHistoryService {
           );
         }
       },
-      error: () => undefined
+      error: () => {
+        this.pending.update((n) => n - 1);
+        console.warn(`Track history: extent request for ${context} failed`);
+      },
+      complete: () => this.pending.update((n) => n - 1)
     });
   }
 

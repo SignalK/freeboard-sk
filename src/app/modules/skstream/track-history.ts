@@ -397,26 +397,26 @@ function mercatorY(lat: number): number {
 /** The map centre and zoom that fit a box into a map `size` pixels
  * (`[width, height]`) with a margin. The centre is the box's middle in Web
  * Mercator, taken the short way round when the box crosses the antimeridian,
- * so a track near Fiji is centred near 180° rather than on Greenwich. A box
- * with no size (a single recorded point) gets `maxZoom`. */
+ * so a track near Fiji is centred near 180° rather than on Greenwich. On a map
+ * turned `rotation` radians (heading-up) the box is fitted as it lies on the
+ * screen, turned with it. A box with no size (a single recorded point) gets
+ * the maximum zoom. */
 export function fitBbox(
   bbox: HistoryBbox,
   size: [number, number],
-  zoomLimits: { min: number; max: number }
+  zoomLimits: { min: number; max: number },
+  rotation = 0
 ): { center: Position; zoom: number } {
   const [w, s, e, n] = bbox;
   const span = lonSpan(w, e);
-  const midY = (mercatorY(s) + mercatorY(n)) / 2;
-  const center: Position = [
-    wrapLon(w + span / 2),
-    (2 * Math.atan(Math.exp(midY / EARTH_RADIUS)) - Math.PI / 2) *
-      (180 / Math.PI)
-  ];
+  const center: Position = [wrapLon(w + span / 2), mercatorMidLatitude(s, n)];
   const width = ((span * Math.PI) / 180) * EARTH_RADIUS;
   const height = mercatorY(n) - mercatorY(s);
+  const cos = Math.abs(Math.cos(rotation));
+  const sin = Math.abs(Math.sin(rotation));
   const resolution = Math.max(
-    width / Math.max(1, size[0] * FIT_FILL),
-    height / Math.max(1, size[1] * FIT_FILL)
+    (width * cos + height * sin) / Math.max(1, size[0] * FIT_FILL),
+    (width * sin + height * cos) / Math.max(1, size[1] * FIT_FILL)
   );
   const zoom =
     resolution > 0
@@ -426,6 +426,32 @@ export function fitBbox(
     center,
     zoom: Math.min(zoomLimits.max, Math.max(zoomLimits.min, zoom))
   };
+}
+
+/** Whether a box reaches into a map view: `view` is the lon/lat
+ * `[w, s, e, n]` viewport, whose longitudes run past ±180 when the map shows
+ * another world copy. The box is tried in the world copies either side too,
+ * so a track just across the antimeridian from the view still counts. */
+export function bboxInView(
+  bbox: HistoryBbox,
+  view: number[] | null | undefined
+): boolean {
+  if (!Array.isArray(view) || view.length !== 4) {
+    return false;
+  }
+  const [vw, vs, ve, vn] = view;
+  const [w, s, , n] = bbox;
+  if (s > vn || n < vs) {
+    return false;
+  }
+  if (ve - vw >= 360) {
+    return true;
+  }
+  const east = w + lonSpan(w, bbox[2]);
+  const shift = Math.round((vw + ve - w - east) / 2 / 360) * 360;
+  return [-360, 0, 360].some(
+    (k) => w + shift + k <= ve && east + shift + k >= vw
+  );
 }
 
 /** The contexts listed by `/tracks/contexts`. */
