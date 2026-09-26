@@ -486,6 +486,13 @@ Points that generalise:
   user is looking at, subscribe to `map.view` and re-run when it fires — the
   host emits it once the pan/zoom settles, so you get one refresh per gesture.
   Seed with `map.getView` so you have a view before the first change.
+- **Bounds can cross the antimeridian.** Every box is `[west, south, east,
+  north]` with longitudes in `[-180, 180]`, so a view around 180° has `west`
+  greater than `east`. Width is not `east - west` there — see *Bounding boxes*
+  in the API spec. `signalk-plotterext-bus` (0.14.0 and later) exports
+  `boundsLonSpan`, `boundsContainsLon` and `normalizeBounds` for this, the last
+  also converting a map library's unwrapped box. Signal K's own APIs use the
+  same convention, so a box passes between them unchanged.
 - **Guard optional capabilities** with `hasCapability` and carry on without
   them.
 
