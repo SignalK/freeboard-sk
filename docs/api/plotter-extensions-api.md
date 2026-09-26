@@ -1010,6 +1010,35 @@ view itself. Treat it as "at least this much is on screen". `center` and `bounds
 are both in the range described under *Bounding boxes*, so the centre always lies
 inside the box.
 
+**`map.view`** (see *Host events*) is emitted when the viewport has **settled** —
+once the pan or zoom gesture and any kinetic glide have come to rest, which is
+what `moveend` means on the common map engines. It is deliberately **not** a
+per-frame stream: a drag across the chart produces one event, not dozens, so an
+extension that refetches data for the visible area does so once. A single event
+carries the whole view rather than separate pan and zoom notifications, because
+one gesture routinely changes both (a pinch-zoom, or a `map.fitBounds`) — an
+extension that cares which changed compares against the view it last saw.
+
+Like the route, chart and night-mode events it is **origin-transparent**: the host
+emits it for *every* settled change, whether it came from the user dragging the
+chart, the host recentring on the vessel, or an extension's own `map.center` /
+`map.fitBounds` call.
+
+The usual pattern is seed-then-follow — subscribe with
+`{ patterns: ["map.view"] }`, then call `map.getView` once for the starting
+state, so no change is missed between the two:
+
+```js
+await client.subscribe(['map.view'], (_name, view) => applyView(view))
+applyView(await client.call('map.getView'))
+```
+
+**Older hosts.** `map.view` was added after the `map` capability itself, so a host
+built against the earlier contract advertises `map`, answers `map.getView`, and
+never emits. An extension that must work on such a host should fall back to
+polling `map.getView` if no `map.view` arrives — but keep the interval slow, since
+polling for a change is exactly what this event exists to avoid.
+
 #### Bounding boxes
 
 Every lon/lat box in this API — `bounds` in `map.getView` and `map.view`, the
@@ -1046,42 +1075,14 @@ const lonSpan = ([w, , e]) => (e >= w ? e - w : e - w + 360)
 const holdsLon = ([w, , e], lon) => (w <= e ? lon >= w && lon <= e : lon >= w || lon <= e)
 ```
 
-**Older hosts.** Hosts built before this was specified may report longitudes past
+**Hosts built before this convention** may report longitudes past
 ±180 from `map.getView` / `map.view`, and may centre a `map.fitBounds` box that
 crosses the antimeridian in the wrong place. An extension that must support them
-can normalise what it receives by wrapping each longitude into range
-(`((lon + 540) % 360) - 180`), treating a box 360 or more degrees wide as
-`[-180, south, 180, north]`; and can pass `map.fitBounds` a crossing box in the
-unwrapped form, which the reference host has always fitted correctly.
-
-**`map.view`** (see *Host events*) is emitted when the viewport has **settled** —
-once the pan or zoom gesture and any kinetic glide have come to rest, which is
-what `moveend` means on the common map engines. It is deliberately **not** a
-per-frame stream: a drag across the chart produces one event, not dozens, so an
-extension that refetches data for the visible area does so once. A single event
-carries the whole view rather than separate pan and zoom notifications, because
-one gesture routinely changes both (a pinch-zoom, or a `map.fitBounds`) — an
-extension that cares which changed compares against the view it last saw.
-
-Like the route, chart and night-mode events it is **origin-transparent**: the host
-emits it for *every* settled change, whether it came from the user dragging the
-chart, the host recentring on the vessel, or an extension's own `map.center` /
-`map.fitBounds` call.
-
-The usual pattern is seed-then-follow — subscribe with
-`{ patterns: ["map.view"] }`, then call `map.getView` once for the starting
-state, so no change is missed between the two:
-
-```js
-await client.subscribe(['map.view'], (_name, view) => applyView(view))
-applyView(await client.call('map.getView'))
-```
-
-**Older hosts.** `map.view` was added after the `map` capability itself, so a host
-built against the earlier contract advertises `map`, answers `map.getView`, and
-never emits. An extension that must work on such a host should fall back to
-polling `map.getView` if no `map.view` arrives — but keep the interval slow, since
-polling for a change is exactly what this event exists to avoid.
+can normalise what it receives by wrapping each longitude outside `[-180, 180]`
+into range (`((lon % 360) + 540) % 360 - 180`, which holds for any finite
+longitude), treating a box 360 or more degrees wide as `[-180, south, 180,
+north]`; and can pass `map.fitBounds` a crossing box in the unwrapped form,
+which the reference host has always fitted correctly.
 
 ### State storage
 
