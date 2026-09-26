@@ -71,6 +71,25 @@ describe('toChartLayer', () => {
       chart('c1', true, { name: 'C', bounds: [1, 2, 3] })
     );
     expect(layer.bounds).toBeUndefined();
+    // south above north is not a box either
+    expect(
+      toChartLayer(chart('c2', true, { name: 'C', bounds: [1, 5, 2, 4] }))
+        .bounds
+    ).toBeUndefined();
+  });
+
+  it('reports a chart across the antimeridian as west > east (#847)', () => {
+    // a chart whose extent was stored unwrapped, east past 180
+    const layer = toChartLayer(
+      chart('fiji', true, { name: 'Fiji', bounds: [176, -20, 182, -15] })
+    );
+    expect(layer.bounds).toEqual([176, -20, -178, -15]);
+    // already in the API's form: unchanged
+    expect(
+      toChartLayer(
+        chart('fiji2', true, { name: 'Fiji', bounds: [176, -20, -178, -15] })
+      ).bounds
+    ).toEqual([176, -20, -178, -15]);
   });
 });
 

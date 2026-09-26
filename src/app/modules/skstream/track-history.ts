@@ -15,23 +15,17 @@
  */
 
 import { Position } from 'src/app/types';
+import {
+  lonSpan,
+  MERCATOR_RESOLUTION_Z0,
+  mercatorMidLatitude,
+  type LonLatBox
+} from 'src/app/lib/map-fit';
 import { queryString } from './track-source';
 
 /** Most points per history track, at every zoom level: the budget cap on top
  * of the per-view `epsilon`. */
 export const HISTORY_MAX_POINTS = 5000;
-
-const EARTH_RADIUS = 6378137;
-
-/** Web Mercator northing (metres) of a latitude, clamped to the projection. */
-function mercatorY(lat: number): number {
-  const c = Math.max(-85, Math.min(85, lat));
-  return EARTH_RADIUS * Math.log(Math.tan(Math.PI / 4 + (c * Math.PI) / 360));
-}
-
-/** Web Mercator ground resolution at zoom 0 on the equator, in metres per
- * pixel: the equator's length over one 256-pixel tile. */
-const MERCATOR_RESOLUTION_Z0 = (2 * Math.PI * 6378137) / 256;
 
 /** Start of time, for a window that is open at the start but bounded at the
  * end (a `to` alone is not a window the API accepts). */
@@ -126,13 +120,6 @@ export function historyEpsilon(
   // away to nothing is not one the API accepts
   const rounded = Number(metres.toPrecision(3));
   return rounded > 0 ? rounded : null;
-}
-
-/** The latitude halfway between `s` and `n` in Web Mercator, both clamped to
- * the projection's usable range. */
-function mercatorMidLatitude(s: number, n: number): number {
-  const mid = (mercatorY(s) + mercatorY(n)) / 2 / EARTH_RADIUS;
-  return ((2 * Math.atan(Math.exp(mid)) - Math.PI / 2) * 180) / Math.PI;
 }
 
 /** Query string for one vessel's history in the viewport. `epsilon` sets the
@@ -324,7 +311,7 @@ export function parseHistorySpan(
 /** A box `[west, south, east, north]` in degrees. `west > east` crosses the
  * antimeridian and is read the short way round, as the Track API sends it:
  * `[175, -20, -175, -10]` is a box around Fiji, not a band round the world. */
-export type HistoryBbox = [number, number, number, number];
+export type HistoryBbox = LonLatBox;
 
 /** A box as the Track API sent it, or undefined when it isn't one. */
 export function validBbox(b: unknown): HistoryBbox | undefined {
@@ -342,16 +329,6 @@ export function validBbox(b: unknown): HistoryBbox | undefined {
     return undefined;
   }
   return [w, s, e, n];
-}
-
-/** Degrees of longitude a box spans eastwards from its west edge, 0–360. */
-function lonSpan(w: number, e: number): number {
-  return e >= w ? e - w : e - w + 360;
-}
-
-/** `lon` wrapped into (-180, 180]. */
-function wrapLon(lon: number): number {
-  return lon > 180 ? lon - 360 : lon <= -180 ? lon + 360 : lon;
 }
 
 /** The smallest box holding both boxes. Longitudes are arcs on a circle, so
@@ -383,69 +360,6 @@ export function unionBboxes(boxes: HistoryBbox[]): HistoryBbox | undefined {
   return boxes.reduce<HistoryBbox | undefined>(
     (u, b) => (u ? unionBbox(u, b) : b),
     undefined
-  );
-}
-
-/** Share of the map a fitted track fills, leaving a margin round its edge. */
-const FIT_FILL = 0.85;
-
-/** The map centre and zoom that fit a box into a map `size` pixels
- * (`[width, height]`) with a margin. The centre is the box's middle in Web
- * Mercator, taken the short way round when the box crosses the antimeridian,
- * so a track near Fiji is centred near 180° rather than on Greenwich. On a map
- * turned `rotation` radians (heading-up) the box is fitted as it lies on the
- * screen, turned with it. A box with no size (a single recorded point) gets
- * the maximum zoom. */
-export function fitBbox(
-  bbox: HistoryBbox,
-  size: [number, number],
-  zoomLimits: { min: number; max: number },
-  rotation = 0
-): { center: Position; zoom: number } {
-  const [w, s, e, n] = bbox;
-  const span = lonSpan(w, e);
-  const center: Position = [wrapLon(w + span / 2), mercatorMidLatitude(s, n)];
-  const width = ((span * Math.PI) / 180) * EARTH_RADIUS;
-  const height = mercatorY(n) - mercatorY(s);
-  const cos = Math.abs(Math.cos(rotation));
-  const sin = Math.abs(Math.sin(rotation));
-  const resolution = Math.max(
-    (width * cos + height * sin) / Math.max(1, size[0] * FIT_FILL),
-    (width * sin + height * cos) / Math.max(1, size[1] * FIT_FILL)
-  );
-  const zoom =
-    resolution > 0
-      ? Math.log2(MERCATOR_RESOLUTION_Z0 / resolution)
-      : zoomLimits.max;
-  return {
-    center,
-    zoom: Math.min(zoomLimits.max, Math.max(zoomLimits.min, zoom))
-  };
-}
-
-/** Whether a box reaches into a map view: `view` is the lon/lat
- * `[w, s, e, n]` viewport, whose longitudes run past ±180 when the map shows
- * another world copy. The box is tried in the world copies either side too,
- * so a track just across the antimeridian from the view still counts. */
-export function bboxInView(
-  bbox: HistoryBbox,
-  view: number[] | null | undefined
-): boolean {
-  if (!Array.isArray(view) || view.length !== 4) {
-    return false;
-  }
-  const [vw, vs, ve, vn] = view;
-  const [w, s, , n] = bbox;
-  if (s > vn || n < vs) {
-    return false;
-  }
-  if (ve - vw >= 360) {
-    return true;
-  }
-  const east = w + lonSpan(w, bbox[2]);
-  const shift = Math.round((vw + ve - w - east) / 2 / 360) * 360;
-  return [-360, 0, 360].some(
-    (k) => w + shift + k <= ve && east + shift + k >= vw
   );
 }
 
