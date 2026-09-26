@@ -114,6 +114,8 @@ describe('TrackHistoryService', () => {
     const [path] = historyCalls();
     expect(params(path)).toMatchObject({
       context: 'self',
+      // one pixel's ground distance a level into zoom 12, latitude 24.5
+      epsilon: '17.4',
       maxPoints: '5000',
       times: 'true',
       provider: 'tracks'
@@ -148,6 +150,8 @@ describe('TrackHistoryService', () => {
     service.setView([-81.9, 24.1, -80.9, 25.1], 13.1); // zoomed a level
     vi.advanceTimersByTime(1000);
     expect(historyCalls().length).toBe(2);
+    // ...and asked again at the finer detail of the new zoom
+    expect(params(historyCalls()[1]).epsilon).toBe('8.69');
     service.setView([-75, 24, -74, 25], 13.1); // panned away
     vi.advanceTimersByTime(1000);
     expect(historyCalls().length).toBe(3);

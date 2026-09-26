@@ -4,9 +4,11 @@
  * The v2 Track API keeps the own vessel's track indefinitely (tracks-plugin v3
  * default) and other vessels' for 30 days. A single-context query may omit the
  * time window, which returns that vessel's whole history; a `bbox` then
- * *selects* passages touching the viewport (it never clips them), and with no
- * `epsilon` the provider picks a simplification tolerance suited to the box, so
- * the viewport doubles as the level-of-detail control.
+ * *selects* passages touching the viewport (it never clips them). Detail is
+ * set by an explicit `epsilon` of about one screen pixel's ground distance, so
+ * zooming in refetches at finer detail. Providers don't size a tolerance to the
+ * box themselves (SignalK/signalk-server#3081), and `simplify` alone derives
+ * one from the whole track, far too coarse once zoomed in.
  *
  * Pure helpers (no Angular, no state) so they can be unit tested directly.
  * v2 only: the v1 routes have no equivalent.
@@ -15,8 +17,13 @@
 import { Position } from 'src/app/types';
 import { queryString } from './track-source';
 
-/** Points per history track, at every zoom level. */
+/** Most points per history track, at every zoom level: the budget cap on top
+ * of the per-view `epsilon`. */
 export const HISTORY_MAX_POINTS = 5000;
+
+/** Web Mercator ground resolution at zoom 0 on the equator, in metres per
+ * pixel: the equator's length over one 256-pixel tile. */
+const MERCATOR_RESOLUTION_Z0 = (2 * Math.PI * 6378137) / 256;
 
 /** Start of time, for a window that is open at the start but bounded at the
  * end (a `to` alone is not a window the API accepts). */
@@ -74,18 +81,67 @@ export interface HistoryRequest {
   /** Viewport box `[w, s, e, n]`, as `viewportBbox()` returns it. */
   bbox: [number, number, number, number] | null;
   range: HistoryRange;
+  /** Simplification tolerance in metres, as `historyEpsilon()` returns it. */
+  epsilon?: number | null;
   provider?: string;
 }
 
-/** Query string for one vessel's history in the viewport. No `epsilon`: with a
- * `bbox` the provider picks a tolerance for the box size, so zooming in
- * refetches at finer detail. `times` carries each point's recording time,
- * which a tapped segment's time span is read from. */
+/** The simplification tolerance for a view: one screen pixel's ground distance
+ * in metres at the view's centre latitude (Web Mercator shrinks a pixel by the
+ * cosine of the latitude). Anything finer than a pixel cannot be seen, so this
+ * drops only invisible detail.
+ *
+ * The pixel is taken at the deepest zoom of the current level, not the zoom
+ * itself: history is refetched only when the level changes, so zooming in
+ * within the level would otherwise stretch the tolerance to nearly two pixels.
+ *
+ * `extent` is the lon/lat `[w, s, e, n]` viewport; its centre latitude is the
+ * Mercator midpoint of `s` and `n`, which is where the view is centred (the
+ * plain average sits well south of it in a wide northern view). `null` when
+ * the view gives no usable zoom or extent. */
+export function historyEpsilon(
+  zoom: number,
+  extent: number[] | undefined
+): number | null {
+  if (!Number.isFinite(zoom) || !Array.isArray(extent) || extent.length !== 4) {
+    return null;
+  }
+  const lat = mercatorMidLatitude(extent[1], extent[3]);
+  if (!Number.isFinite(lat)) {
+    return null;
+  }
+  const level = Math.floor(zoom) + 1;
+  const metres =
+    (MERCATOR_RESOLUTION_Z0 / Math.pow(2, level)) *
+    Math.cos((lat * Math.PI) / 180);
+  // three significant figures keep the query short; a tolerance that rounds
+  // away to nothing is not one the API accepts
+  const rounded = Number(metres.toPrecision(3));
+  return rounded > 0 ? rounded : null;
+}
+
+/** The latitude halfway between `s` and `n` in Web Mercator, both clamped to
+ * the projection's usable range. */
+function mercatorMidLatitude(s: number, n: number): number {
+  const rad = Math.PI / 180;
+  const y = (lat: number) =>
+    Math.log(
+      Math.tan(Math.PI / 4 + (Math.max(-85, Math.min(85, lat)) * rad) / 2)
+    );
+  const mid = (y(s) + y(n)) / 2;
+  return (2 * Math.atan(Math.exp(mid)) - Math.PI / 2) / rad;
+}
+
+/** Query string for one vessel's history in the viewport. `epsilon` sets the
+ * detail for the view and `maxPoints` caps it, so zooming in refetches at
+ * finer detail. `times` carries each point's recording time, which a tapped
+ * segment's time span is read from. */
 export function historyQuery(req: HistoryRequest): string {
   return queryString({
     context: req.context,
     ...rangeParams(req.range),
     bbox: req.bbox ? req.bbox.join(',') : undefined,
+    epsilon: req.epsilon ?? undefined,
     maxPoints: HISTORY_MAX_POINTS,
     times: 'true',
     provider: req.provider

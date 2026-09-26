@@ -6,6 +6,7 @@ import {
   HISTORY_MAX_POINTS,
   historyAxis,
   historyContextsQuery,
+  historyEpsilon,
   historyMetaQuery,
   historyQuery,
   loopToRange,
@@ -60,12 +61,65 @@ describe('track-history ranges', () => {
   });
 });
 
+describe('historyEpsilon', () => {
+  const box = (lat: number) => [-82, lat - 0.5, -81, lat + 0.5];
+
+  it('is one Web Mercator pixel on the ground, in metres, a level in', () => {
+    // zoom 0 on the equator: the equator's length over a 256-pixel tile, a
+    // level deeper
+    expect(historyEpsilon(0, box(0))).toBe(78300);
+    // a pixel covers half the ground at 60 degrees
+    expect(historyEpsilon(1, box(60))).toBe(19600);
+  });
+
+  it('follows the zoom level: coarse zoomed out, fine in a harbour', () => {
+    expect(historyEpsilon(6, box(24.5))).toBe(1110);
+    expect(historyEpsilon(16, box(24.5))).toBe(1.09);
+    // each level in halves the tolerance
+    expect(
+      historyEpsilon(13, box(24.5)) / historyEpsilon(12, box(24.5))
+    ).toBeCloseTo(0.5, 2);
+  });
+
+  it('holds within a level, where no refetch happens, at no more than a pixel', () => {
+    // zooming 12.0 -> 12.9 keeps the fetched track, so its tolerance must
+    // already suit 12.9
+    expect(historyEpsilon(12.9, box(24.5))).toBe(historyEpsilon(12, box(24.5)));
+    expect(historyEpsilon(12, box(24.5))).toBeCloseTo(
+      historyEpsilon(13, box(24.5)) * 2,
+      1
+    );
+  });
+
+  it('reads the latitude at the Mercator centre of the view', () => {
+    // a wide northern view: the plain average (55) is well south of the
+    // centre (58)
+    const wide = historyEpsilon(3, [0, 40, 10, 70]);
+    expect(wide).toBe(historyEpsilon(3, [0, 57.5, 10, 58.5]));
+    expect(wide).toBeLessThan(historyEpsilon(3, [0, 54.5, 10, 55.5]));
+    // clamped to the projection's usable range
+    expect(historyEpsilon(18, [0, 88, 1, 90])).toBe(
+      historyEpsilon(18, [0, 86, 1, 89])
+    );
+    expect(historyEpsilon(18, [0, 88, 1, 90])).toBeGreaterThan(0);
+  });
+
+  it('is null without a usable zoom or extent, or once it rounds to nothing', () => {
+    expect(historyEpsilon(NaN, box(24.5))).toBeNull();
+    expect(historyEpsilon(12, undefined)).toBeNull();
+    expect(historyEpsilon(12, [0, 0])).toBeNull();
+    expect(historyEpsilon(12, [0, NaN, 1, 1])).toBeNull();
+    expect(historyEpsilon(2000, box(24.5))).toBeNull();
+  });
+});
+
 describe('track-history queries', () => {
-  it('asks for one vessel in the viewport, bounded, with times and no epsilon', () => {
+  it('asks for one vessel in the viewport at a detail for the view, capped, with times', () => {
     const p = params(
       historyQuery({
         context: 'self',
         bbox: [-82, 24, -81, 25],
+        epsilon: 17.4,
         range: HISTORY_ALL,
         provider: 'tracks'
       })
@@ -73,6 +127,7 @@ describe('track-history queries', () => {
     expect(p).toEqual({
       context: 'self',
       bbox: '-82,24,-81,25',
+      epsilon: '17.4',
       maxPoints: String(HISTORY_MAX_POINTS),
       times: 'true',
       provider: 'tracks'
@@ -91,7 +146,9 @@ describe('track-history queries', () => {
     expect(p.bbox).toBe('170,-20,-170,-10');
     expect(p.from).toBe(new Date(NOW - 7 * DAY).toISOString());
     expect(p.to).toBeUndefined();
+    // without an epsilon none is sent, and never a bare simplify
     expect(p.epsilon).toBeUndefined();
+    expect(p.simplify).toBeUndefined();
     expect(p.provider).toBeUndefined();
   });
 
