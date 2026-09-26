@@ -11,11 +11,16 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { PalettePosition } from 'src/app/types';
 import { TrackHistoryDialog } from 'src/app/lib/components/dialogs/track-history-dialog';
+import { MapService } from 'src/app/modules/map/ol/lib/map.service';
 import {
+  bboxInView,
   clampPaletteOffset,
+  fitBbox,
   HISTORY_ALL,
+  HistoryBbox,
   HistoryPreset,
   HistoryRange,
+  HistorySpan,
   HistoryTrack,
   historyContextsQuery,
   historyEpsilon,
@@ -25,7 +30,8 @@ import {
   parseHistorySpan,
   parseHistoryTrack,
   poseAt,
-  presetRange
+  presetRange,
+  unionBboxes
 } from './track-history';
 import { Position } from 'src/app/types';
 
@@ -53,6 +59,14 @@ const PALETTE_TOP = 70;
 const PALETTE_HEADER = 40;
 const PALETTE_RIGHT_MARGIN = 70;
 
+/** Deepest zoom a fitted track is shown at: a vessel that never moved has a
+ * box of one point, which would otherwise zoom as far in as the map goes. */
+const FIT_MAX_ZOOM = 16;
+
+/** The extent a span answer gives: `null` when nothing was recorded, and
+ * undefined (unknown) when the provider sent no box. */
+const extentOf = (span: HistorySpan | undefined) => (span ? span.bbox : null);
+
 /** Browsing recorded track history (#821): the vessels whose whole recorded
  * track is shown, the time range it is shown for, and the tracks fetched for
  * the current map viewport from the v2 Track API. Session-only, like the
@@ -62,6 +76,7 @@ export class TrackHistoryService {
   private app = inject(AppFacade);
   private signalk = inject(SignalKClient);
   private dialog = inject(MatDialog);
+  private mapService = inject(MapService);
 
   /** Vessels whose history is shown: `self`, or an AIS vessel's context. */
   readonly shown = signal<string[]>([]);
@@ -72,9 +87,11 @@ export class TrackHistoryService {
   /** Fetched history for the current viewport, keyed as `shown`. */
   readonly tracks = signal<Map<string, HistoryTrack>>(new Map());
   /** Recorded span (and provider-recorded name) of each shown vessel. */
-  readonly spans = signal<
-    Map<string, { from: number; to: number; name?: string }>
-  >(new Map());
+  readonly spans = signal<Map<string, HistorySpan>>(new Map());
+  /** Where each shown vessel's track in the selected range lies, from the
+   * whole range rather than the viewport; `null` when the range holds nothing
+   * for it. A vessel is absent while unknown. */
+  readonly extents = signal<Map<string, HistoryBbox | null>>(new Map());
   /** Requests in flight. */
   readonly pending = signal(0);
   /** Shown vessels whose latest history request failed: their earlier
@@ -82,6 +99,32 @@ export class TrackHistoryService {
   readonly failed = signal<Set<string>>(new Set());
   /** Contexts with any recorded track; null until listed. */
   readonly recorded = signal<Set<string> | null>(null);
+  /** Shown vessels whose latest span or extent request failed: where their
+   * track lies in the range is unknown, which is not the same as "none". */
+  readonly extentFailed = signal<Set<string>>(new Set());
+  /** The map viewport (lon/lat `[w, s, e, n]`), as of the last move-end. On
+   * a rotated (heading-up) map this is the box around the turned viewport,
+   * so a track in one of its corners is taken as in view. */
+  readonly viewExtent = signal<number[] | null>(null);
+  /** Shown vessels with track in the selected range that can't be seen:
+   * none was drawn (it was all recorded outside the fetched area), or what
+   * was drawn lies outside the view — history is fetched for a padded box,
+   * so a passage can be drawn off-screen. */
+  readonly offscreen = computed(() => {
+    const tracks = this.tracks();
+    const extents = this.extents();
+    const failed = this.failed();
+    const view = this.viewExtent();
+    return this.shown().filter((c) => {
+      const bbox = extents.get(c);
+      return (
+        !!bbox &&
+        !failed.has(c) &&
+        // an unknown view says nothing about where the track is drawn
+        (!tracks.has(c) || (!!view && !bboxInView(bbox, view)))
+      );
+    });
+  });
   /** A v2 Track API provider is available. */
   readonly available = computed(() => this.app.featureFlags().tracksApi);
   /** The time the history is scrubbed to; null is live (now), which shows no
@@ -116,6 +159,10 @@ export class TrackHistoryService {
   // latest request per vessel: an older answer never replaces a newer one
   private generation = new Map<string, number>();
   private seq = 0;
+  // latest extent request per vessel, as `generation` is for tracks
+  private extentGeneration = new Map<string, number>();
+  // the range changed since the extents were last requested
+  private extentsStale = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private recordedAt = 0;
   private paletteRef: MatDialogRef<TrackHistoryDialog> | undefined;
@@ -190,6 +237,9 @@ export class TrackHistoryService {
     } else if (this.available()) {
       this.shown.update((s) => [...s, context]);
       this.fetchSpan(context);
+      if (!this.rangeIsAll()) {
+        this.fetchExtent(context);
+      }
       this.fetchTrack(context);
       this.openPalette();
     }
@@ -209,6 +259,9 @@ export class TrackHistoryService {
       n.delete(context);
       return n;
     });
+    this.extentGeneration.delete(context);
+    this.setExtent(context, undefined);
+    this.setExtentFailed(context, false);
     this.setFailed(context, false);
     if (this.shown().length === 0) {
       this.clear();
@@ -219,6 +272,8 @@ export class TrackHistoryService {
   clear() {
     clearTimeout(this.timer);
     this.generation.clear();
+    this.extentGeneration.clear();
+    this.extentsStale = false;
     if (this.shown().length !== 0) {
       this.shown.set([]);
     }
@@ -226,6 +281,8 @@ export class TrackHistoryService {
       this.tracks.set(new Map());
     }
     this.spans.set(new Map());
+    this.extents.set(new Map());
+    this.extentFailed.set(new Set());
     this.failed.set(new Set());
     this.range.set(HISTORY_ALL);
     this.preset.set('all');
@@ -245,6 +302,7 @@ export class TrackHistoryService {
   setRange(range: HistoryRange, preset: HistoryPreset | null = null) {
     this.range.set(range);
     this.preset.set(preset);
+    this.extentsStale = true;
     this.schedule();
   }
 
@@ -256,9 +314,35 @@ export class TrackHistoryService {
   /** The map viewport (lon/lat) and zoom, after every move-end. */
   setView(extent: number[], zoom: number) {
     this.view = { extent, zoom };
+    this.viewExtent.set(extent);
     if (this.shown().length !== 0 && needsAisRefetch(this.fetched, this.view)) {
       this.schedule();
     }
+  }
+
+  /** Fit the map to where the given vessels' tracks in the selected range
+   * lie. Never done unasked: it moves the chart, and turns off follow-vessel
+   * (as every requested map move does). */
+  zoomTo(contexts: string[]) {
+    const extents = this.extents();
+    const bbox = unionBboxes(
+      contexts.map((c) => extents.get(c)).filter((b): b is HistoryBbox => !!b)
+    );
+    if (!bbox) {
+      return;
+    }
+    const map = this.mapService.getMaps()[0];
+    const size = map?.getSize();
+    const limits = this.app.MAP_ZOOM_EXTENT;
+    const fit = fitBbox(
+      bbox,
+      size && size[0] > 0 && size[1] > 0
+        ? [size[0], size[1]]
+        : [window.innerWidth, window.innerHeight],
+      { min: limits.min, max: Math.min(limits.max, FIT_MAX_ZOOM) },
+      map?.getView()?.getRotation() ?? 0
+    );
+    this.app.mapMoveRequest.set(fit);
   }
 
   /** A display name for a shown vessel. */
@@ -289,7 +373,19 @@ export class TrackHistoryService {
   }
 
   private fetchAll() {
-    this.shown().forEach((c) => this.fetchTrack(c));
+    const extents = this.extentsStale;
+    this.extentsStale = false;
+    this.shown().forEach((c) => {
+      if (extents) {
+        this.fetchExtent(c);
+      }
+      this.fetchTrack(c);
+    });
+  }
+
+  private rangeIsAll(): boolean {
+    const r = this.range();
+    return r.from === null && r.to === null;
   }
 
   /** The padded viewport box to ask for, remembered as what was fetched. */
@@ -372,18 +468,123 @@ export class TrackHistoryService {
     }
   }
 
+  /** The whole record's span, for the bar's axis. With the whole record
+   * selected it is also the extent of the range, so no second request. */
   private fetchSpan(context: string) {
     const epoch = this.sourceEpoch;
-    this.get(
+    const extentToken = this.rangeIsAll()
+      ? this.claimExtent(context)
+      : undefined;
+    const req = this.get(
       `/tracks?${historyMetaQuery(context, this.provider())}`
-    )?.subscribe({
+    );
+    if (!req) {
+      return;
+    }
+    this.pending.update((n) => n + 1);
+    req.subscribe({
       next: (fc) => {
+        if (epoch !== this.sourceEpoch || !this.isShown(context)) {
+          return;
+        }
         const span = parseHistorySpan(fc, this.provider());
-        if (span && epoch === this.sourceEpoch && this.isShown(context)) {
+        if (span) {
           this.spans.update((m) => new Map(m).set(context, span));
         }
+        if (
+          extentToken !== undefined &&
+          this.extentGeneration.get(context) === extentToken
+        ) {
+          this.setExtent(context, extentOf(span));
+        }
       },
-      error: () => undefined
+      error: () => {
+        this.pending.update((n) => n - 1);
+        if (
+          extentToken !== undefined &&
+          epoch === this.sourceEpoch &&
+          this.extentGeneration.get(context) === extentToken
+        ) {
+          this.setExtentFailed(context, true);
+        }
+        console.warn(`Track history: span request for ${context} failed`);
+      },
+      complete: () => this.pending.update((n) => n - 1)
+    });
+  }
+
+  /** Where the vessel's track in the selected range lies. */
+  private fetchExtent(context: string) {
+    const epoch = this.sourceEpoch;
+    const token = this.claimExtent(context);
+    // what is known is for the previous range
+    this.setExtent(context, undefined);
+    const req = this.get(
+      `/tracks?${historyMetaQuery(context, this.provider(), this.range())}`
+    );
+    if (!req) {
+      return;
+    }
+    this.pending.update((n) => n + 1);
+    req.subscribe({
+      next: (fc) => {
+        if (
+          epoch === this.sourceEpoch &&
+          this.extentGeneration.get(context) === token
+        ) {
+          this.setExtent(
+            context,
+            extentOf(parseHistorySpan(fc, this.provider()))
+          );
+        }
+      },
+      error: () => {
+        this.pending.update((n) => n - 1);
+        if (
+          epoch === this.sourceEpoch &&
+          this.extentGeneration.get(context) === token
+        ) {
+          this.setExtentFailed(context, true);
+        }
+        console.warn(`Track history: extent request for ${context} failed`);
+      },
+      complete: () => this.pending.update((n) => n - 1)
+    });
+  }
+
+  private claimExtent(context: string): number {
+    const token = ++this.seq;
+    this.extentGeneration.set(context, token);
+    this.setExtentFailed(context, false);
+    return token;
+  }
+
+  private setExtentFailed(context: string, failed: boolean) {
+    if (this.extentFailed().has(context) !== failed) {
+      this.extentFailed.update((f) => {
+        const n = new Set(f);
+        if (failed) {
+          n.add(context);
+        } else {
+          n.delete(context);
+        }
+        return n;
+      });
+    }
+  }
+
+  private setExtent(context: string, bbox: HistoryBbox | null | undefined) {
+    if (bbox === undefined && !this.extents().has(context)) {
+      return;
+    }
+    this.extents.update((m) => {
+      const n = new Map(m);
+      if (bbox === undefined) {
+        n.delete(context);
+      } else {
+        n.set(context, bbox);
+      }
+      return n;
     });
   }
 

@@ -156,6 +156,12 @@ const CLOCK_TICK_MS = 60000;
     ._ap-speed ::ng-deep .mat-mdc-floating-label {
       font-size: 11px;
     }
+    .status button.show {
+      min-width: 0;
+      height: 22px;
+      padding: 0 8px;
+      font-size: 11px;
+    }
     .status {
       display: flex;
       align-items: center;
@@ -198,6 +204,15 @@ const CLOCK_TICK_MS = 60000;
           @for (c of history.shown(); track c) {
             <div class="vessel">
               <span [title]="history.label(c)">{{ history.label(c) }}</span>
+              <button
+                mat-icon-button
+                [attr.aria-label]="'Zoom to the track of ' + history.label(c)"
+                matTooltip="Zoom to this vessel's track"
+                [disabled]="!history.extents().get(c)"
+                (click)="history.zoomTo([c])"
+              >
+                <mat-icon>center_focus_strong</mat-icon>
+              </button>
               <button
                 mat-icon-button
                 [attr.aria-label]="'Hide history of ' + history.label(c)"
@@ -306,6 +321,16 @@ const CLOCK_TICK_MS = 60000;
           <span>Loading…</span>
         } @else {
           <span>{{ statusText() }}</span>
+          @if (showOffscreen()) {
+            <button
+              mat-button
+              class="show"
+              matTooltip="Zoom the chart to show it"
+              (click)="history.zoomTo(history.offscreen())"
+            >
+              Show
+            </button>
+          }
         }
       </div>
     </div>
@@ -361,21 +386,49 @@ export class TrackHistoryDialog {
     return `${from} – ${to}`;
   });
 
+  /** Vessels whose history, or where it lies, couldn't be loaded. */
+  private unloaded = computed(() => [
+    ...new Set([...this.history.failed(), ...this.history.extentFailed()])
+  ]);
+
+  /** Offer to bring the tracks out of view into it; not beside a failure
+   * message, which is about another vessel. */
+  protected showOffscreen = computed(
+    () => this.unloaded().length === 0 && this.history.offscreen().length > 0
+  );
+
   protected statusText = computed(() => {
-    const failed = [...this.history.failed()];
+    const failed = this.unloaded();
     if (failed.length) {
       return `Couldn't load history for ${failed
         .map((c) => this.history.label(c))
         .join(', ')}`;
     }
-    const tracks = [...this.history.tracks().values()];
+    const offscreen = this.history.offscreen();
+    // only what can be seen counts as shown
+    const tracks = [...this.history.tracks()]
+      .filter(([c]) => !offscreen.includes(c))
+      .map(([, t]) => t);
     if (tracks.length === 0) {
+      if (offscreen.length) {
+        return 'Recorded outside this area';
+      }
+      const extents = this.history.extents();
+      const shown = this.history.shown();
+      if (shown.length && shown.every((c) => extents.get(c) === null)) {
+        return 'No recorded track in this time range';
+      }
       return 'No recorded track in this area and time range';
     }
     const points = tracks.reduce(
       (n, t) => n + t.lines.reduce((m, l) => m + l.length, 0),
       0
     );
+    if (offscreen.length) {
+      return `${points} points shown · ${offscreen
+        .map((c) => this.history.label(c))
+        .join(', ')} outside this area`;
+    }
     return `${points} points shown`;
   });
 
