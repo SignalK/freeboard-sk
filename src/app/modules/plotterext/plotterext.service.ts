@@ -22,12 +22,12 @@ import { Injectable, computed, effect, isDevMode, signal } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
-import { transformExtent } from 'ol/proj';
 import * as uuid from 'uuid';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
+import { fitBbox, type LonLatBox } from 'src/app/lib/map-fit';
 import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
   type BusPort,
@@ -35,6 +35,7 @@ import {
   type MapView,
   MethodHandler,
   type NightModeState,
+  normalizeBounds,
   RoutePoint,
   RpcError,
   RPC_ERRORS,
@@ -2041,7 +2042,12 @@ export class PlotterExtensionService {
     return {
       center: this.app.config.map.center as [number, number],
       zoom: this.app.config.map.zoomLevel,
-      bounds: this.app.mapExtent() as [number, number, number, number]
+      // OpenLayers' extent runs past ±180 once the view has scrolled round
+      // the world; the API reports [west, south, east, north] in range, with
+      // west > east across the antimeridian
+      bounds:
+        normalizeBounds(this.app.mapExtent()) ??
+        (this.app.mapExtent() as [number, number, number, number])
     };
   }
 
@@ -2097,48 +2103,44 @@ export class PlotterExtensionService {
         return {};
       },
       'map.fitBounds': async (params) => {
-        const { bounds } = (params ?? {}) as { bounds?: number[] };
-        if (
-          !Array.isArray(bounds) ||
-          bounds.length !== 4 ||
-          !bounds.every((v) => typeof v === 'number')
-        ) {
+        // the API's form (west > east across the antimeridian) or a map
+        // engine's unwrapped one (east past 180) — both are the same box
+        const box = normalizeBounds((params as { bounds?: unknown })?.bounds);
+        if (!box) {
           throw new RpcError(
-            'map.fitBounds requires bounds [minLon, minLat, maxLon, maxLat]',
+            'map.fitBounds requires bounds [west, south, east, north]',
             { code: RPC_ERRORS.INVALID_PARAMS, reason: 'INVALID_BOUNDS' }
           );
         }
-        const [minLon, minLat, maxLon, maxLat] = bounds as number[];
-        const center: [number, number] = [
-          (minLon + maxLon) / 2,
-          (minLat + maxLat) / 2
-        ];
-        this.app.mapMoveRequest.set({
-          center,
-          zoom: this.zoomForBounds(bounds as number[])
-        });
+        this.app.mapMoveRequest.set(this.fitView(box));
         return {};
       }
     };
   }
 
   /**
-   * Compute a zoom level that frames a lon/lat bounding box in the current
-   * viewport (read-only use of the OL view). Falls back to a reasonable
-   * zoom when the map is unavailable.
+   * The centre and zoom that frame a box in the current map (read-only use of
+   * the OL map): centred on its Web Mercator middle, the short way round the
+   * antimeridian, and fitted as it lies on a rotated (heading-up) map with a
+   * margin so markers aren't at the edge. Falls back to a reasonable zoom when
+   * the map is unavailable.
    */
-  private zoomForBounds(bounds: number[]): number {
+  private fitView(box: LonLatBox): { center: Position; zoom: number } {
     const map = this.mapService.getMaps()[0];
     const size = map?.getSize();
-    if (!map || !size) return 12;
-    const view = map.getView();
-    const ext = transformExtent(bounds, 'EPSG:4326', 'EPSG:3857');
-    // pad by shrinking the usable size ~15% so markers aren't at the edge
-    const padded: [number, number] = [size[0] * 0.85, size[1] * 0.85];
-    const resolution = view.getResolutionForExtent(ext, padded);
-    const zoom = view.getZoomForResolution(resolution) ?? 12;
-    const maxZoom = this.app.MAP_ZOOM_EXTENT?.max ?? 18;
-    return Math.min(zoom, maxZoom);
+    const limits = {
+      min: this.app.MAP_ZOOM_EXTENT?.min ?? 0,
+      max: this.app.MAP_ZOOM_EXTENT?.max ?? 18
+    };
+    if (!map || !size) {
+      return { center: fitBbox(box, [1, 1], limits).center, zoom: 12 };
+    }
+    return fitBbox(
+      box,
+      [size[0], size[1]],
+      limits,
+      map.getView().getRotation()
+    );
   }
 
   /**

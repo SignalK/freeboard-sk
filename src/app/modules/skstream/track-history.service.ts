@@ -12,10 +12,9 @@ import { AppFacade } from 'src/app/app.facade';
 import { PalettePosition } from 'src/app/types';
 import { TrackHistoryDialog } from 'src/app/lib/components/dialogs/track-history-dialog';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
+import { bboxInView, fitBbox } from 'src/app/lib/map-fit';
 import {
-  bboxInView,
   clampPaletteOffset,
-  fitBbox,
   HISTORY_ALL,
   HistoryBbox,
   HistoryPreset,
