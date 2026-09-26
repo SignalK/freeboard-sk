@@ -1,4 +1,5 @@
 import {
+  normalizeBounds,
   RPC_ERRORS,
   RpcError,
   type ChartLayer,
@@ -86,13 +87,11 @@ export function toChartLayer(fb: FBChart, temporal = false): ChartLayer {
   if (chart?.type) {
     layer.type = chart.type;
   }
-  if (Array.isArray(chart?.bounds) && chart.bounds.length === 4) {
-    layer.bounds = [
-      chart.bounds[0],
-      chart.bounds[1],
-      chart.bounds[2],
-      chart.bounds[3]
-    ];
+  // [west, south, east, north] in range, west > east across the antimeridian;
+  // a chart's extent may be stored unwrapped (east past 180)
+  const bounds = normalizeBounds(chart?.bounds);
+  if (bounds) {
+    layer.bounds = bounds;
   }
   if (typeof chart?.minZoom === 'number') {
     layer.minZoom = chart.minZoom;

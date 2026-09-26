@@ -133,6 +133,26 @@ describe('PlotterExtensionService map.view event', () => {
     expect(published.filter((p) => p.event === 'map.view')).toHaveLength(1);
   });
 
+  it('reports bounds in range, west > east across the antimeridian (#847)', async () => {
+    // OpenLayers' extent for a view straddling 180
+    moveEnd([179.9, -17], 7, [174.275, -20.99, 185.525, -12.93]);
+    let view = published.filter((p) => p.event === 'map.view').at(-1)
+      ?.params as { bounds: number[] };
+    expect(view.bounds[0]).toBeCloseTo(174.275, 6);
+    expect(view.bounds[2]).toBeCloseTo(-174.475, 6);
+    // ...and for a view panned a whole world east: the Americas, not 219..399
+    moveEnd([-50.725, -17], 3, [219.275, -64.33, 399.275, 44.82]);
+    view = published.filter((p) => p.event === 'map.view').at(-1)?.params as {
+      bounds: number[];
+    };
+    expect(view.bounds[0]).toBeCloseTo(-140.725, 6);
+    expect(view.bounds[2]).toBeCloseTo(39.275, 6);
+    // map.getView agrees
+    expect(((await getView()) as { bounds: number[] }).bounds).toEqual(
+      view.bounds
+    );
+  });
+
   it('publishes for a zoom-only change', () => {
     moveEnd([-80.0, 25.5], 12, [-80.5, 25.0, -79.5, 26.0]);
     // Centre and bounds are deliberately held identical — a real zoom would move

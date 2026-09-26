@@ -68,7 +68,7 @@ const TOOLS = [
   {
     name: 'fsk_get_view',
     description:
-      'Read the current map view (center [lon,lat], zoom, and bounds) from Freeboard-SK. Handy for verifying the effect of a fsk_set_view / fsk_fit_bounds call.',
+      'Read the current map view (center [lon,lat], zoom, and bounds [west,south,east,north]) from Freeboard-SK. Longitudes are in [-180,180]; a view across the antimeridian has west > east. Handy for verifying the effect of a fsk_set_view / fsk_fit_bounds call.',
     inputSchema: withSession(),
     run: (hub, a) => hub.call('map.getView', {}, { session: a.session })
   },
@@ -102,7 +102,7 @@ const TOOLS = [
   {
     name: 'fsk_fit_bounds',
     description:
-      'Fit the Freeboard-SK map to a bounding box so the whole box is visible. Coordinates are decimal degrees.',
+      'Fit the Freeboard-SK map to a bounding box so the whole box is visible. Coordinates are decimal degrees; minLon is the west edge and maxLon the east edge. For a box across the antimeridian pass minLon > maxLon (e.g. 175 and -175) or an unwrapped maxLon past 180 (e.g. 175 and 185); either is fitted the short way round.',
     inputSchema: withSession(
       {
         minLon: { type: 'number' },

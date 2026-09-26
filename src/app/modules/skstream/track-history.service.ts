@@ -12,10 +12,9 @@ import { AppFacade } from 'src/app/app.facade';
 import { PalettePosition } from 'src/app/types';
 import { TrackHistoryDialog } from 'src/app/lib/components/dialogs/track-history-dialog';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
+import { bboxInView, fitBbox, FIT_MAX_ZOOM } from 'src/app/lib/map-fit';
 import {
-  bboxInView,
   clampPaletteOffset,
-  fitBbox,
   HISTORY_ALL,
   HistoryBbox,
   HistoryPreset,
@@ -58,10 +57,6 @@ const PALETTE_WIDTH = 320;
 const PALETTE_TOP = 70;
 const PALETTE_HEADER = 40;
 const PALETTE_RIGHT_MARGIN = 70;
-
-/** Deepest zoom a fitted track is shown at: a vessel that never moved has a
- * box of one point, which would otherwise zoom as far in as the map goes. */
-const FIT_MAX_ZOOM = 16;
 
 /** The extent a span answer gives: `null` when nothing was recorded, and
  * undefined (unknown) when the provider sent no box. */
