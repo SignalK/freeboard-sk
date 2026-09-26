@@ -74,27 +74,44 @@ export class FreeboardNoteLayerComponent extends FBFeatureLayerComponent {
   buildStyle(note: SKNote | NoteResource): Style {
     const icon = this.mapImages.getSymbol(note.properties?.skIcon ?? 'default');
     if (icon) {
-      return new Style({
-        image: icon,
-        text: new Text({
-          text: '',
-          offsetX: 0,
-          offsetY: -12
-        })
-      });
+      // Label here rather than leaving it to updateLabels(): notes are
+      // re-fetched as the map moves, and ngOnChanges rebuilds every feature
+      // after super.ngOnChanges() has run, so a label applied there is
+      // discarded with the features it was applied to.
+      return this.setTextLabel(
+        new Style({
+          image: icon,
+          text: new Text({
+            text: '',
+            offsetX: 0,
+            offsetY: -12
+          })
+        }),
+        note.name
+      );
     } else {
-      return new Style({
-        image: new RegularShape({
-          points: 4,
-          radius: 10,
-          fill: new Fill({ color: 'gold' }),
-          stroke: new Stroke({
-            color: 'black',
-            width: 1
+      // A note whose icon could not be resolved still needs its label: the
+      // fallback diamond carries no other identification.
+      return this.setTextLabel(
+        new Style({
+          image: new RegularShape({
+            points: 4,
+            radius: 10,
+            fill: new Fill({ color: 'gold' }),
+            stroke: new Stroke({
+              color: 'black',
+              width: 1
+            }),
+            rotation: (Math.PI / 180) * 45
           }),
-          rotation: (Math.PI / 180) * 45
-        })
-      });
+          text: new Text({
+            text: '',
+            offsetX: 0,
+            offsetY: -12
+          })
+        }),
+        note.name
+      );
     }
   }
 }
