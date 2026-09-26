@@ -6,6 +6,7 @@ import {
   HISTORY_MAX_POINTS,
   historyAxis,
   historyContextsQuery,
+  historyEpsilon,
   historyMetaQuery,
   historyQuery,
   loopToRange,
@@ -60,12 +61,52 @@ describe('track-history ranges', () => {
   });
 });
 
+describe('historyEpsilon', () => {
+  const box = (lat: number) => [-82, lat - 0.5, -81, lat + 0.5];
+
+  it('is one Web Mercator pixel on the ground, in metres', () => {
+    // zoom 0 on the equator: the equator's length over one 256-pixel tile
+    expect(historyEpsilon(0, box(0))).toBe(157000);
+    // a pixel covers half the ground at 60 degrees, and half again a level in
+    expect(historyEpsilon(1, box(60))).toBe(39100);
+  });
+
+  it('follows the zoom level: coarse zoomed out, fine in a harbour', () => {
+    const wide = historyEpsilon(6, box(24.5));
+    const harbour = historyEpsilon(16, box(24.5));
+    expect(wide).toBe(2230);
+    expect(harbour).toBe(2.17);
+    // each level in halves the tolerance
+    expect(
+      historyEpsilon(13, box(24.5)) / historyEpsilon(12, box(24.5))
+    ).toBeCloseTo(0.5, 2);
+  });
+
+  it('reads the latitude from the middle of the view, clamped to the Mercator limit', () => {
+    expect(historyEpsilon(12, [-82, 20, -81, 29])).toBe(
+      historyEpsilon(12, box(24.5))
+    );
+    expect(historyEpsilon(18, [0, 88, 1, 90])).toBe(
+      historyEpsilon(18, box(85))
+    );
+    expect(historyEpsilon(18, [0, 88, 1, 90])).toBeGreaterThan(0);
+  });
+
+  it('is null without a usable zoom or extent', () => {
+    expect(historyEpsilon(NaN, box(24.5))).toBeNull();
+    expect(historyEpsilon(12, undefined)).toBeNull();
+    expect(historyEpsilon(12, [0, 0])).toBeNull();
+    expect(historyEpsilon(12, [0, NaN, 1, 1])).toBeNull();
+  });
+});
+
 describe('track-history queries', () => {
-  it('asks for one vessel in the viewport, bounded, with times and no epsilon', () => {
+  it('asks for one vessel in the viewport at a detail for the view, capped, with times', () => {
     const p = params(
       historyQuery({
         context: 'self',
         bbox: [-82, 24, -81, 25],
+        epsilon: 34.8,
         range: HISTORY_ALL,
         provider: 'tracks'
       })
@@ -73,6 +114,7 @@ describe('track-history queries', () => {
     expect(p).toEqual({
       context: 'self',
       bbox: '-82,24,-81,25',
+      epsilon: '34.8',
       maxPoints: String(HISTORY_MAX_POINTS),
       times: 'true',
       provider: 'tracks'
@@ -91,7 +133,9 @@ describe('track-history queries', () => {
     expect(p.bbox).toBe('170,-20,-170,-10');
     expect(p.from).toBe(new Date(NOW - 7 * DAY).toISOString());
     expect(p.to).toBeUndefined();
+    // no view yet: the provider's own tolerance, under the point cap
     expect(p.epsilon).toBeUndefined();
+    expect(p.simplify).toBeUndefined();
     expect(p.provider).toBeUndefined();
   });
 

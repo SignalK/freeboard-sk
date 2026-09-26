@@ -18,6 +18,7 @@ import {
   HistoryRange,
   HistoryTrack,
   historyContextsQuery,
+  historyEpsilon,
   historyMetaQuery,
   historyQuery,
   parseHistoryContexts,
@@ -309,6 +310,9 @@ export class TrackHistoryService {
       `/tracks?${historyQuery({
         context,
         bbox: this.requestBox(),
+        epsilon: this.view
+          ? historyEpsilon(this.view.zoom, this.view.extent)
+          : null,
         range: this.range(),
         provider
       })}`
