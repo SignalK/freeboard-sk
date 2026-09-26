@@ -386,22 +386,29 @@ export class TrackHistoryDialog {
     return `${from} – ${to}`;
   });
 
+  /** Vessels whose history, or where it lies, couldn't be loaded. */
+  private unloaded = computed(() => [
+    ...new Set([...this.history.failed(), ...this.history.extentFailed()])
+  ]);
+
   /** Offer to bring the tracks out of view into it; not beside a failure
    * message, which is about another vessel. */
   protected showOffscreen = computed(
-    () =>
-      this.history.failed().size === 0 && this.history.offscreen().length > 0
+    () => this.unloaded().length === 0 && this.history.offscreen().length > 0
   );
 
   protected statusText = computed(() => {
-    const failed = [...this.history.failed()];
+    const failed = this.unloaded();
     if (failed.length) {
       return `Couldn't load history for ${failed
         .map((c) => this.history.label(c))
         .join(', ')}`;
     }
-    const tracks = [...this.history.tracks().values()];
     const offscreen = this.history.offscreen();
+    // only what can be seen counts as shown
+    const tracks = [...this.history.tracks()]
+      .filter(([c]) => !offscreen.includes(c))
+      .map(([, t]) => t);
     if (tracks.length === 0) {
       if (offscreen.length) {
         return 'Recorded outside this area';

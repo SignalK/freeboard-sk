@@ -99,7 +99,12 @@ export class TrackHistoryService {
   readonly failed = signal<Set<string>>(new Set());
   /** Contexts with any recorded track; null until listed. */
   readonly recorded = signal<Set<string> | null>(null);
-  /** The map viewport (lon/lat `[w, s, e, n]`), as of the last move-end. */
+  /** Shown vessels whose latest span or extent request failed: where their
+   * track lies in the range is unknown, which is not the same as "none". */
+  readonly extentFailed = signal<Set<string>>(new Set());
+  /** The map viewport (lon/lat `[w, s, e, n]`), as of the last move-end. On
+   * a rotated (heading-up) map this is the box around the turned viewport,
+   * so a track in one of its corners is taken as in view. */
   readonly viewExtent = signal<number[] | null>(null);
   /** Shown vessels with track in the selected range that can't be seen:
    * none was drawn (it was all recorded outside the fetched area), or what
@@ -113,7 +118,10 @@ export class TrackHistoryService {
     return this.shown().filter((c) => {
       const bbox = extents.get(c);
       return (
-        !!bbox && !failed.has(c) && (!tracks.has(c) || !bboxInView(bbox, view))
+        !!bbox &&
+        !failed.has(c) &&
+        // an unknown view says nothing about where the track is drawn
+        (!tracks.has(c) || (!!view && !bboxInView(bbox, view)))
       );
     });
   });
@@ -253,6 +261,7 @@ export class TrackHistoryService {
     });
     this.extentGeneration.delete(context);
     this.setExtent(context, undefined);
+    this.setExtentFailed(context, false);
     this.setFailed(context, false);
     if (this.shown().length === 0) {
       this.clear();
@@ -273,6 +282,7 @@ export class TrackHistoryService {
     }
     this.spans.set(new Map());
     this.extents.set(new Map());
+    this.extentFailed.set(new Set());
     this.failed.set(new Set());
     this.range.set(HISTORY_ALL);
     this.preset.set('all');
@@ -490,6 +500,13 @@ export class TrackHistoryService {
       },
       error: () => {
         this.pending.update((n) => n - 1);
+        if (
+          extentToken !== undefined &&
+          epoch === this.sourceEpoch &&
+          this.extentGeneration.get(context) === extentToken
+        ) {
+          this.setExtentFailed(context, true);
+        }
         console.warn(`Track history: span request for ${context} failed`);
       },
       complete: () => this.pending.update((n) => n - 1)
@@ -523,6 +540,12 @@ export class TrackHistoryService {
       },
       error: () => {
         this.pending.update((n) => n - 1);
+        if (
+          epoch === this.sourceEpoch &&
+          this.extentGeneration.get(context) === token
+        ) {
+          this.setExtentFailed(context, true);
+        }
         console.warn(`Track history: extent request for ${context} failed`);
       },
       complete: () => this.pending.update((n) => n - 1)
@@ -532,7 +555,22 @@ export class TrackHistoryService {
   private claimExtent(context: string): number {
     const token = ++this.seq;
     this.extentGeneration.set(context, token);
+    this.setExtentFailed(context, false);
     return token;
+  }
+
+  private setExtentFailed(context: string, failed: boolean) {
+    if (this.extentFailed().has(context) !== failed) {
+      this.extentFailed.update((f) => {
+        const n = new Set(f);
+        if (failed) {
+          n.add(context);
+        } else {
+          n.delete(context);
+        }
+        return n;
+      });
+    }
   }
 
   private setExtent(context: string, bbox: HistoryBbox | null | undefined) {

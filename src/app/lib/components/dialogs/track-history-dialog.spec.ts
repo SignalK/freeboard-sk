@@ -17,6 +17,7 @@ describe('TrackHistoryDialog status', () => {
     extents: ReturnType<typeof signal<Map<string, typeof BOX | null>>>;
     offscreen: ReturnType<typeof signal<string[]>>;
     failed: ReturnType<typeof signal<Set<string>>>;
+    extentFailed: ReturnType<typeof signal<Set<string>>>;
     [k: string]: unknown;
   };
   let dialog: TrackHistoryDialog;
@@ -33,6 +34,7 @@ describe('TrackHistoryDialog status', () => {
       extents: signal(new Map()),
       offscreen: signal([]),
       failed: signal(new Set()),
+      extentFailed: signal(new Set()),
       spans: signal(new Map()),
       range: signal({ from: null, to: null }),
       scrubTime: signal(null),
@@ -92,6 +94,22 @@ describe('TrackHistoryDialog status', () => {
     history.offscreen.set([AIS]);
     expect(status()).toBe('3 points shown · TEST 1 outside this area');
     expect(showsShow()).toBe(true);
+  });
+
+  it('counts no drawn track as shown when all of it is out of view', () => {
+    history.tracks.set(new Map([['self', { lines: [[[0, 0]]] }]]));
+    history.extents.set(new Map([['self', BOX]]));
+    history.offscreen.set(['self']);
+    expect(status()).toBe('Recorded outside this area');
+    expect(showsShow()).toBe(true);
+  });
+
+  it("says so when where a vessel's track lies couldn't be loaded", () => {
+    history.shown.set(['self', AIS]);
+    history.extentFailed.set(new Set(['self']));
+    history.offscreen.set([AIS]);
+    expect(status()).toBe("Couldn't load history for Own vessel");
+    expect(showsShow()).toBe(false);
   });
 
   it('shows just the count when everything is in view', () => {

@@ -21,6 +21,14 @@ import { queryString } from './track-source';
  * of the per-view `epsilon`. */
 export const HISTORY_MAX_POINTS = 5000;
 
+const EARTH_RADIUS = 6378137;
+
+/** Web Mercator northing (metres) of a latitude, clamped to the projection. */
+function mercatorY(lat: number): number {
+  const c = Math.max(-85, Math.min(85, lat));
+  return EARTH_RADIUS * Math.log(Math.tan(Math.PI / 4 + (c * Math.PI) / 360));
+}
+
 /** Web Mercator ground resolution at zoom 0 on the equator, in metres per
  * pixel: the equator's length over one 256-pixel tile. */
 const MERCATOR_RESOLUTION_Z0 = (2 * Math.PI * 6378137) / 256;
@@ -123,13 +131,8 @@ export function historyEpsilon(
 /** The latitude halfway between `s` and `n` in Web Mercator, both clamped to
  * the projection's usable range. */
 function mercatorMidLatitude(s: number, n: number): number {
-  const rad = Math.PI / 180;
-  const y = (lat: number) =>
-    Math.log(
-      Math.tan(Math.PI / 4 + (Math.max(-85, Math.min(85, lat)) * rad) / 2)
-    );
-  const mid = (y(s) + y(n)) / 2;
-  return (2 * Math.atan(Math.exp(mid)) - Math.PI / 2) / rad;
+  const mid = (mercatorY(s) + mercatorY(n)) / 2 / EARTH_RADIUS;
+  return ((2 * Math.atan(Math.exp(mid)) - Math.PI / 2) * 180) / Math.PI;
 }
 
 /** Query string for one vessel's history in the viewport. `epsilon` sets the
@@ -385,14 +388,6 @@ export function unionBboxes(boxes: HistoryBbox[]): HistoryBbox | undefined {
 
 /** Share of the map a fitted track fills, leaving a margin round its edge. */
 const FIT_FILL = 0.85;
-
-const EARTH_RADIUS = 6378137;
-
-/** Web Mercator northing (metres) of a latitude, clamped to the projection. */
-function mercatorY(lat: number): number {
-  const c = Math.max(-85, Math.min(85, lat));
-  return EARTH_RADIUS * Math.log(Math.tan(Math.PI / 4 + (c * Math.PI) / 360));
-}
 
 /** The map centre and zoom that fit a box into a map `size` pixels
  * (`[width, height]`) with a margin. The centre is the box's middle in Web

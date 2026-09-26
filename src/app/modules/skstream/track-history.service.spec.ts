@@ -449,6 +449,28 @@ describe('TrackHistoryService', () => {
       expect(service.offscreen()).toEqual([AIS]);
     });
 
+    it('clears an extent failure when the range is asked for again', () => {
+      meta = (path) =>
+        params(path).from ? throwError(() => new Error('500')) : of(spanFc);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      service.setPreset('7d');
+      service.toggle('self');
+      expect(service.extentFailed().has('self')).toBe(true);
+      meta = () => of(spanFc);
+      service.setPreset('30d');
+      vi.advanceTimersByTime(1000);
+      expect(service.extentFailed().has('self')).toBe(false);
+      expect(service.extents().get('self')).toEqual([-100, 20, -99, 21]);
+      warn.mockRestore();
+    });
+
+    it('does not call a drawn track out of view while the view is unknown', () => {
+      service.toggle('self');
+      service.viewExtent.set(null);
+      expect(service.tracks().has('self')).toBe(true);
+      expect(service.offscreen()).toEqual([]);
+    });
+
     it('lists a track drawn in the padded box but out of the visible view', () => {
       meta = () => metaWith([-81.9, 24.5, -81.8, 24.5]);
       service.toggle('self');
@@ -478,6 +500,8 @@ describe('TrackHistoryService', () => {
       replies[1].error(new Error('500'));
       expect(service.pending()).toBe(0);
       expect(service.extents().has('self')).toBe(false);
+      // unknown, and known to be: not taken for "no track here"
+      expect(service.extentFailed()).toEqual(new Set(['self']));
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('extent request for self failed')
       );
