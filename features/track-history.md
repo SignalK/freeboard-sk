@@ -28,14 +28,16 @@ track goes depends on your server: the Tracks plugin keeps your own track
 indefinitely and other vessels' tracks for 30 days.
 
 The history follows the chart. Pan somewhere else and the passages there are
-drawn; zoom in and they are redrawn in more detail.
+drawn; zoom in and they are redrawn in more detail. If a vessel's track is
+somewhere else, see **Finding a track that's out of view** below.
 
 ## The Track history window
 
 ![Fig 3. The Track history window](track-history-3.jpg)
 
-- **Vessels** lists every vessel whose history is shown. Remove one with its
-  ×, or close the window to hide them all. Add more from their popovers.
+- **Vessels** lists every vessel whose history is shown. Zoom the chart to one
+  with its zoom-to-track button, remove one with its ×, or close the window to
+  hide them all. Add more from their popovers.
 - **Range** chooses how far back to look: **7 days**, **30 days** or **All**,
   or drag the two handles under the bar to pick any stretch of time. The same
   range applies to every vessel shown.
@@ -44,6 +46,31 @@ The window can be dragged anywhere on the screen, and it reopens where you
 left it. History is shown for the current session only.
 
 To save a vessel's history to a GPX file, see **Export to GPX**.
+
+## Finding a track that's out of view
+
+History is drawn for the part of the chart you're looking at, so a vessel's
+track can be shown and still be off-screen: another boat's passage last
+month, or your own trip from last season.
+
+![Fig 4. Zoom to a vessel's track from the Vessels list](track-history-4.jpg)
+
+Each vessel in the **Vessels** list has a **zoom to track** button beside its
+name. It moves the chart to fit where that vessel's track lies in the selected
+**Range**, so after switching to **7 days** it zooms to the last week's
+passages, not the whole record. The button is greyed out when the range holds
+nothing for that vessel.
+
+When a track you're showing is out of view, the line at the bottom of the
+window says so: **Recorded outside this area**, or which vessels are out of
+view beside the ones you can see. It also offers **Show**, which fits the chart
+to all of them at once. When the range holds no track at all, it says **No
+recorded track in this time range** instead.
+
+![Fig 5. The chart fitted to a recorded passage](track-history-5.jpg)
+
+The chart only moves when you ask. Zooming to a track turns off **follow
+vessel**, so the chart stays on the track instead of jumping back to your boat.
 
 ## Playback
 
