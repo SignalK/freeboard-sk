@@ -87,10 +87,18 @@ export interface HistoryRequest {
 }
 
 /** The simplification tolerance for a view: one screen pixel's ground distance
- * in metres at its zoom and centre latitude (Web Mercator shrinks a pixel by
- * the cosine of the latitude). Anything finer than a pixel cannot be seen, so
- * this drops only invisible detail. `extent` is the lon/lat `[w, s, e, n]`
- * viewport; `null` when the view gives no usable zoom or extent. */
+ * in metres at the view's centre latitude (Web Mercator shrinks a pixel by the
+ * cosine of the latitude). Anything finer than a pixel cannot be seen, so this
+ * drops only invisible detail.
+ *
+ * The pixel is taken at the deepest zoom of the current level, not the zoom
+ * itself: history is refetched only when the level changes, so zooming in
+ * within the level would otherwise stretch the tolerance to nearly two pixels.
+ *
+ * `extent` is the lon/lat `[w, s, e, n]` viewport; its centre latitude is the
+ * Mercator midpoint of `s` and `n`, which is where the view is centred (the
+ * plain average sits well south of it in a wide northern view). `null` when
+ * the view gives no usable zoom or extent. */
 export function historyEpsilon(
   zoom: number,
   extent: number[] | undefined
@@ -98,16 +106,30 @@ export function historyEpsilon(
   if (!Number.isFinite(zoom) || !Array.isArray(extent) || extent.length !== 4) {
     return null;
   }
-  const lat = (extent[1] + extent[3]) / 2;
+  const lat = mercatorMidLatitude(extent[1], extent[3]);
   if (!Number.isFinite(lat)) {
     return null;
   }
-  const clamped = Math.max(-85, Math.min(85, lat));
+  const level = Math.floor(zoom) + 1;
   const metres =
-    (MERCATOR_RESOLUTION_Z0 / Math.pow(2, zoom)) *
-    Math.cos((clamped * Math.PI) / 180);
-  // three significant figures: the same view always asks the same question
-  return Number(metres.toPrecision(3));
+    (MERCATOR_RESOLUTION_Z0 / Math.pow(2, level)) *
+    Math.cos((lat * Math.PI) / 180);
+  // three significant figures keep the query short; a tolerance that rounds
+  // away to nothing is not one the API accepts
+  const rounded = Number(metres.toPrecision(3));
+  return rounded > 0 ? rounded : null;
+}
+
+/** The latitude halfway between `s` and `n` in Web Mercator, both clamped to
+ * the projection's usable range. */
+function mercatorMidLatitude(s: number, n: number): number {
+  const rad = Math.PI / 180;
+  const y = (lat: number) =>
+    Math.log(
+      Math.tan(Math.PI / 4 + (Math.max(-85, Math.min(85, lat)) * rad) / 2)
+    );
+  const mid = (y(s) + y(n)) / 2;
+  return (2 * Math.atan(Math.exp(mid)) - Math.PI / 2) / rad;
 }
 
 /** Query string for one vessel's history in the viewport. `epsilon` sets the
