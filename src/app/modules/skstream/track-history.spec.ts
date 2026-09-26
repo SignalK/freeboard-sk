@@ -26,7 +26,11 @@ import {
   segmentTimeInfo,
   trackTimeInfo,
   joinStretches,
-  TrailStamps
+  TrailStamps,
+  fitBbox,
+  unionBbox,
+  unionBboxes,
+  validBbox
 } from './track-history';
 
 const MIN = 60000;
@@ -155,6 +159,19 @@ describe('track-history queries', () => {
   it('asks for metadata only when probing a recorded span', () => {
     expect(params(historyMetaQuery('self', 'tracks'))).toEqual({
       context: 'self',
+      geometry: 'false',
+      provider: 'tracks'
+    });
+  });
+
+  it('asks for the metadata of a selected range', () => {
+    expect(
+      params(
+        historyMetaQuery('self', 'tracks', { from: NOW - 7 * DAY, to: null })
+      )
+    ).toEqual({
+      context: 'self',
+      from: new Date(NOW - 7 * DAY).toISOString(),
       geometry: 'false',
       provider: 'tracks'
     });
@@ -606,5 +623,127 @@ describe('track-history joinStretches', () => {
     });
     expect(j.lines).toHaveLength(2);
     expect(joinStretches({ lines: [], times: [] }, a).lines).toEqual(a.lines);
+  });
+});
+
+describe('track-history extent (zoom to a recorded track)', () => {
+  const meta = (providerId: string, bbox: unknown) => ({
+    geometry: null,
+    properties: {
+      providerId,
+      from: '2026-09-17T00:00:00Z',
+      to: '2026-09-20T00:00:00Z',
+      bbox
+    }
+  });
+
+  it('keeps the recorded bbox, union-ed across features of one provider', () => {
+    const span = parseHistorySpan(
+      {
+        features: [
+          meta('tracks', [-82, 24, -81, 25]),
+          meta('tracks', [-80, 23, -79.5, 24.5]),
+          meta('other', [100, 0, 101, 1])
+        ]
+      },
+      'tracks'
+    );
+    expect(span.bbox).toEqual([-82, 23, -79.5, 25]);
+  });
+
+  it('keeps a bbox crossing the antimeridian the short way round', () => {
+    const span = parseHistorySpan({
+      features: [meta('tracks', [178, -18, -179, -16])]
+    });
+    expect(span.bbox).toEqual([178, -18, -179, -16]);
+    // a second passage further east stays on the short side
+    const both = parseHistorySpan({
+      features: [
+        meta('tracks', [178, -18, -179, -16]),
+        meta('tracks', [-178, -17, -177, -15])
+      ]
+    });
+    expect(both.bbox).toEqual([178, -18, -177, -15]);
+  });
+
+  it('ignores a missing or malformed bbox', () => {
+    expect(
+      parseHistorySpan({ features: [meta('tracks', undefined)] }).bbox
+    ).toBeUndefined();
+    expect(validBbox([1, 2, 3])).toBeUndefined();
+    expect(validBbox([1, 2, 3, 'x'])).toBeUndefined();
+    expect(validBbox([-190, 0, 0, 1])).toBeUndefined();
+    expect(validBbox([0, 10, 1, 5])).toBeUndefined(); // south above north
+    expect(validBbox([0, 0, 1, 1])).toEqual([0, 0, 1, 1]);
+  });
+
+  it('unions boxes as arcs of longitude', () => {
+    // disjoint, same side
+    expect(unionBbox([0, 0, 10, 1], [20, 2, 30, 3])).toEqual([0, 0, 30, 3]);
+    // one inside the other
+    expect(unionBbox([0, 0, 30, 1], [10, 0, 20, 1])).toEqual([0, 0, 30, 1]);
+    // either side of the antimeridian: the short way is across it
+    expect(unionBbox([170, 0, 175, 1], [-175, 0, -170, 1])).toEqual([
+      170, 0, -170, 1
+    ]);
+    // either side of Greenwich: the short way is not
+    expect(unionBbox([-10, 0, -5, 1], [5, 0, 10, 1])).toEqual([-10, 0, 10, 1]);
+    // one box wrapping round the other's west edge
+    expect(unionBbox([0, 0, 10, 1], [-10, 0, 5, 1])).toEqual([-10, 0, 10, 1]);
+    // together they cover every longitude
+    expect(unionBbox([-180, 0, 0, 1], [0, 0, 180, 1])).toEqual([
+      -180, 0, 180, 1
+    ]);
+    expect(unionBboxes([])).toBeUndefined();
+    expect(
+      unionBboxes([
+        [0, 0, 1, 1],
+        [2, 2, 3, 3],
+        [-1, -1, 0, 0]
+      ])
+    ).toEqual([-1, -1, 3, 3]);
+  });
+
+  describe('fitBbox', () => {
+    const limits = { min: 2, max: 16 };
+
+    it('centres a box and picks the zoom that fits it with a margin', () => {
+      // a quarter of the world wide, on the equator, in a 1024-pixel map
+      const fit = fitBbox([-45, -1, 45, 1], [1024, 1024], limits);
+      expect(fit.center[0]).toBeCloseTo(0, 9);
+      expect(fit.center[1]).toBeCloseTo(0, 9);
+      // zoom 2 draws the world 1024 pixels wide, so a quarter of it is 256;
+      // filling 85% of 1024 pixels needs log2(0.85 * 4) more
+      expect(fit.zoom).toBeCloseTo(2 + Math.log2(0.85 * 4), 6);
+    });
+
+    it('fits by the tighter side of the map', () => {
+      const wide = fitBbox([-45, -1, 45, 1], [1024, 1024], limits);
+      const narrow = fitBbox([-45, -1, 45, 1], [512, 1024], limits);
+      expect(narrow.zoom).toBeCloseTo(wide.zoom - 1, 6);
+    });
+
+    it('centres on the Mercator middle, not the average latitude', () => {
+      const fit = fitBbox([0, 0, 1, 60], [1000, 1000], limits);
+      expect(fit.center[1]).toBeGreaterThan(30);
+      expect(fit.center[1]).toBeLessThan(60);
+    });
+
+    it('centres a box crossing the antimeridian near 180, not Greenwich', () => {
+      const fit = fitBbox([178, -18, -178, -16], [1000, 1000], limits);
+      expect(Math.abs(fit.center[0])).toBeCloseTo(180, 6);
+      // four degrees wide, not 356
+      const same = fitBbox([-2, -18, 2, -16], [1000, 1000], limits);
+      expect(fit.zoom).toBeCloseTo(same.zoom, 6);
+      const east = fitBbox([176, -18, -178, -16], [1000, 1000], limits);
+      expect(east.center[0]).toBeCloseTo(179, 6);
+      const west = fitBbox([178, -18, -176, -16], [1000, 1000], limits);
+      expect(west.center[0]).toBeCloseTo(-179, 6);
+    });
+
+    it('zooms a single point to the limit, and never past either limit', () => {
+      expect(fitBbox([-81, 24, -81, 24], [1000, 800], limits).zoom).toBe(16);
+      expect(fitBbox([-180, -80, 180, 80], [300, 300], limits).zoom).toBe(2);
+    });
   });
 });

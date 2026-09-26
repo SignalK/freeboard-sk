@@ -6,6 +6,7 @@ import { SignalKClient } from 'signalk-client-angular';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppFacade } from '../../app.facade';
+import { MapService } from '../map/ol/lib/map.service';
 import { TrackHistoryService } from './track-history.service';
 
 const SELF_ID = 'vessels.urn:mrn:signalk:uuid:self';
@@ -29,7 +30,9 @@ const spanFc = {
         providerId: 'tracks',
         from: '2026-09-17T00:00:00Z',
         to: '2026-09-20T00:00:00Z',
-        contextName: 'TEST 1'
+        contextName: 'TEST 1',
+        // well away from the view the tests start in
+        bbox: [-100, 20, -99, 21]
       }
     }
   ]
@@ -45,11 +48,20 @@ describe('TrackHistoryService', () => {
   let trackSource: ReturnType<typeof signal<{ api: string; provider: string }>>;
   /** Answer for a `/tracks?…` history request, by call order. */
   let answer: (path: string) => Observable<unknown>;
+  /** Answer for a `geometry=false` span / extent request. */
+  let meta: (path: string) => Observable<unknown>;
+  let mapMoveRequest: ReturnType<
+    typeof signal<{ center: number[]; zoom?: number } | null>
+  >;
 
   const historyCalls = () =>
     get.mock.calls
       .map((c) => c[1] as string)
       .filter((p) => p.startsWith('/tracks?') && !p.includes('geometry=false'));
+  const metaCalls = () =>
+    get.mock.calls
+      .map((c) => c[1] as string)
+      .filter((p) => p.includes('geometry=false'));
   const params = (path: string) =>
     Object.fromEntries(new URLSearchParams(path.split('?')[1]));
 
@@ -72,10 +84,12 @@ describe('TrackHistoryService', () => {
         return of([SELF_ID, AIS]);
       }
       if (path.includes('geometry=false')) {
-        return of(spanFc);
+        return meta(path);
       }
       return answer(path);
     });
+    meta = () => of(spanFc);
+    mapMoveRequest = signal(null);
     tracksApi = signal({ tracksApi: true });
     trackSource = signal({ api: 'v2', provider: 'tracks' });
     TestBed.configureTestingModule({
@@ -93,8 +107,14 @@ describe('TrackHistoryService', () => {
               }
             },
             config: { trackHistoryPalettePos: null },
-            saveConfig: vi.fn()
+            saveConfig: vi.fn(),
+            mapMoveRequest,
+            MAP_ZOOM_EXTENT: { min: 2, max: 28 }
           }
+        },
+        {
+          provide: MapService,
+          useValue: { getMaps: () => [{ getSize: () => [1000, 800] }] }
         },
         { provide: SignalKClient, useValue: { api: { get } } },
         { provide: MatDialog, useValue: { open } }
@@ -358,5 +378,151 @@ describe('TrackHistoryService', () => {
     afterClosed.next();
     expect(service.shown()).toEqual([]);
     expect(service.tracks().size).toBe(0);
+  });
+
+  describe('zoom to a recorded track (#842)', () => {
+    const noTrack = () => of({ type: 'FeatureCollection', features: [] });
+    const metaWith = (bbox: number[] | undefined) =>
+      of({
+        features: [
+          {
+            geometry: null,
+            properties: { ...spanFc.features[0].properties, bbox }
+          }
+        ]
+      });
+
+    it("takes the whole record's extent from the span, with no second request", () => {
+      service.toggle('self');
+      expect(metaCalls().length).toBe(1);
+      expect(service.extents().get('self')).toEqual([-100, 20, -99, 21]);
+    });
+
+    it("asks where the selected range's track lies, and again when the range changes", () => {
+      meta = (path) =>
+        params(path).from ? metaWith([-90, 30, -89, 31]) : of(spanFc);
+      service.setPreset('7d');
+      service.toggle('self');
+      // the whole record for the bar's axis, the range for the extent
+      expect(metaCalls().length).toBe(2);
+      expect(params(metaCalls()[1]).from).toBeDefined();
+      expect(service.extents().get('self')).toEqual([-90, 30, -89, 31]);
+      expect(service.spans().get('self').bbox).toEqual([-100, 20, -99, 21]);
+
+      service.setPreset('all');
+      vi.advanceTimersByTime(1000);
+      expect(metaCalls().length).toBe(3);
+      expect(params(metaCalls()[2]).from).toBeUndefined();
+      expect(service.extents().get('self')).toEqual([-100, 20, -99, 21]);
+    });
+
+    it('does not ask for extents again when only the view moves', () => {
+      service.toggle('self');
+      service.setView([-75, 24, -74, 25], 12);
+      vi.advanceTimersByTime(1000);
+      expect(historyCalls().length).toBe(2);
+      expect(metaCalls().length).toBe(1);
+    });
+
+    it('asks for extents after a range change even if a view move follows', () => {
+      service.toggle('self');
+      service.setPreset('7d');
+      service.setView([-75, 24, -74, 25], 12); // restarts the debounce
+      vi.advanceTimersByTime(1000);
+      expect(metaCalls().length).toBe(2);
+    });
+
+    it('lists a vessel whose track lies outside the view, and not one drawn in it', () => {
+      service.toggle('self');
+      expect(service.offscreen()).toEqual([]); // drawn
+      answer = noTrack;
+      service.toggle(AIS);
+      expect(service.offscreen()).toEqual([AIS]);
+    });
+
+    it('does not call a range with nothing recorded "outside this area"', () => {
+      answer = noTrack;
+      meta = () => of({ features: [] });
+      service.toggle('self');
+      expect(service.extents().get('self')).toBeNull();
+      expect(service.offscreen()).toEqual([]);
+    });
+
+    it('treats a provider that sends no bbox as unknown, not empty', () => {
+      answer = noTrack;
+      meta = () => metaWith(undefined);
+      service.toggle('self');
+      expect(service.extents().has('self')).toBe(false);
+      expect(service.offscreen()).toEqual([]);
+    });
+
+    it('fits the map to the track, only when asked', () => {
+      answer = noTrack;
+      service.toggle('self');
+      expect(mapMoveRequest()).toBeNull(); // never moved unasked
+      service.zoomTo(['self']);
+      const req = mapMoveRequest();
+      expect(req.center[0]).toBeCloseTo(-99.5, 6);
+      expect(req.center[1]).toBeGreaterThan(20);
+      expect(req.center[1]).toBeLessThan(21);
+      expect(req.zoom).toBeGreaterThan(8);
+      expect(req.zoom).toBeLessThanOrEqual(16);
+    });
+
+    it('fits a track across the antimeridian near 180, and several tracks at once', () => {
+      answer = noTrack;
+      meta = () => metaWith([178, -18, -178, -16]);
+      service.toggle(AIS);
+      service.zoomTo([AIS]);
+      expect(Math.abs(mapMoveRequest().center[0])).toBeCloseTo(180, 6);
+
+      meta = () => metaWith([-176, -18, -175, -16]);
+      service.toggle('self');
+      service.zoomTo(service.offscreen());
+      // the two together, the short way round: 178 east to 175 west
+      expect(mapMoveRequest().center[0]).toBeCloseTo(-178.5, 6);
+    });
+
+    it('caps the zoom for a track of a single point', () => {
+      meta = () => metaWith([-81.5, 24.5, -81.5, 24.5]);
+      service.toggle('self');
+      service.zoomTo(['self']);
+      expect(mapMoveRequest().zoom).toBe(16);
+    });
+
+    it('drops an extent answer superseded by a newer range', () => {
+      const replies: Subject<unknown>[] = [];
+      meta = (path) => {
+        if (!params(path).from) {
+          return of(spanFc);
+        }
+        const s = new Subject<unknown>();
+        replies.push(s);
+        return s;
+      };
+      service.setPreset('7d');
+      service.toggle('self');
+      service.setPreset('30d');
+      vi.advanceTimersByTime(1000);
+      expect(replies.length).toBe(2);
+      replies[1].next({
+        features: [
+          {
+            geometry: null,
+            properties: { ...spanFc.features[0].properties, bbox: [1, 1, 2, 2] }
+          }
+        ]
+      });
+      replies[0].next({ features: [] });
+      expect(service.extents().get('self')).toEqual([1, 1, 2, 2]);
+    });
+
+    it("forgets a removed vessel's extent", () => {
+      service.toggle('self');
+      service.toggle(AIS);
+      service.remove(AIS);
+      expect(service.extents().has(AIS)).toBe(false);
+      expect(service.extents().has('self')).toBe(true);
+    });
   });
 });

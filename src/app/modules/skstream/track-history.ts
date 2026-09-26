@@ -148,9 +148,20 @@ export function historyQuery(req: HistoryRequest): string {
   });
 }
 
-/** Query string for a vessel's recorded span only: metadata, no geometry. */
-export function historyMetaQuery(context: string, provider?: string): string {
-  return queryString({ context, geometry: 'false', provider });
+/** Query string for a vessel's recorded span only: metadata, no geometry.
+ * With a `range` it is the span and extent of what that range holds; without
+ * one, of the whole record. */
+export function historyMetaQuery(
+  context: string,
+  provider?: string,
+  range: HistoryRange = HISTORY_ALL
+): string {
+  return queryString({
+    context,
+    ...rangeParams(range),
+    geometry: 'false',
+    provider
+  });
 }
 
 /** Query string for `/tracks/contexts`: every context with any recorded track.
@@ -177,6 +188,7 @@ interface HistoryFeatureLike {
     contextName?: string;
     from?: string;
     to?: string;
+    bbox?: unknown;
     pointCount?: number;
     coordTimes?: string[][];
   };
@@ -262,16 +274,29 @@ export function parseTimedTracks(
   return result;
 }
 
-/** A vessel's recorded span (ms) from a `geometry=false` response, and the
- * name the provider recorded for it (useful once the vessel has left AIS
- * range and the app no longer holds it). */
+/** A vessel's recorded span from a `geometry=false` response. */
+export interface HistorySpan {
+  /** First and last recorded point, in ms. */
+  from: number;
+  to: number;
+  /** The name the provider recorded (useful once the vessel has left AIS
+   * range and the app no longer holds it). */
+  name?: string;
+  /** Where the recorded track lies, union-ed across the provider's features;
+   * absent when the provider sent none. */
+  bbox?: HistoryBbox;
+}
+
+/** A vessel's recorded span (ms), name and extent from a `geometry=false`
+ * response. */
 export function parseHistorySpan(
   fc: unknown,
   preferredProvider?: string
-): { from: number; to: number; name?: string } | undefined {
+): HistorySpan | undefined {
   let from = Infinity;
   let to = -Infinity;
   let name: string | undefined;
+  let bbox: HistoryBbox | undefined;
   oneProvider(featuresOf(fc), preferredProvider).forEach((f) => {
     const a = Date.parse(f.properties?.from ?? '');
     const b = Date.parse(f.properties?.to ?? '');
@@ -280,8 +305,127 @@ export function parseHistorySpan(
       to = Math.max(to, b);
     }
     name = name ?? f.properties?.contextName;
+    const box = validBbox(f.properties?.bbox);
+    if (box) {
+      bbox = bbox ? unionBbox(bbox, box) : box;
+    }
   });
-  return Number.isFinite(from) ? { from, to, name } : undefined;
+  if (!Number.isFinite(from)) {
+    return undefined;
+  }
+  return bbox ? { from, to, name, bbox } : { from, to, name };
+}
+
+// ******** extent: zooming to a recorded track ********
+
+/** A box `[west, south, east, north]` in degrees. `west > east` crosses the
+ * antimeridian and is read the short way round, as the Track API sends it:
+ * `[175, -20, -175, -10]` is a box around Fiji, not a band round the world. */
+export type HistoryBbox = [number, number, number, number];
+
+/** A box as the Track API sent it, or undefined when it isn't one. */
+export function validBbox(b: unknown): HistoryBbox | undefined {
+  if (
+    !Array.isArray(b) ||
+    b.length !== 4 ||
+    !b.every((v) => typeof v === 'number' && Number.isFinite(v))
+  ) {
+    return undefined;
+  }
+  const [w, s, e, n] = b as number[];
+  const lonOk = (v: number) => v >= -180 && v <= 180;
+  const latOk = (v: number) => v >= -90 && v <= 90;
+  if (!lonOk(w) || !lonOk(e) || !latOk(s) || !latOk(n) || s > n) {
+    return undefined;
+  }
+  return [w, s, e, n];
+}
+
+/** Degrees of longitude a box spans eastwards from its west edge, 0–360. */
+function lonSpan(w: number, e: number): number {
+  return e >= w ? e - w : e - w + 360;
+}
+
+/** `lon` wrapped into (-180, 180]. */
+function wrapLon(lon: number): number {
+  return lon > 180 ? lon - 360 : lon <= -180 ? lon + 360 : lon;
+}
+
+/** The smallest box holding both boxes. Longitudes are arcs on a circle, so
+ * the union is the shorter of the two arcs that start at one box's west edge
+ * and run east far enough to take in the other; it crosses the antimeridian
+ * (`west > east`) when that is the short way round. */
+export function unionBbox(a: HistoryBbox, b: HistoryBbox): HistoryBbox {
+  const arc = (from: HistoryBbox, other: HistoryBbox) => {
+    const offset = lonSpan(from[0], other[0]) % 360;
+    return Math.max(
+      lonSpan(from[0], from[2]),
+      offset + lonSpan(other[0], other[2])
+    );
+  };
+  const viaA = arc(a, b);
+  const viaB = arc(b, a);
+  const south = Math.min(a[1], b[1]);
+  const north = Math.max(a[3], b[3]);
+  const [west, span] = viaA <= viaB ? [a[0], viaA] : [b[0], viaB];
+  if (span >= 360) {
+    return [-180, south, 180, north];
+  }
+  const east = west + span > 180 ? west + span - 360 : west + span;
+  return [west, south, east, north];
+}
+
+/** The union of several boxes; undefined when there are none. */
+export function unionBboxes(boxes: HistoryBbox[]): HistoryBbox | undefined {
+  return boxes.reduce<HistoryBbox | undefined>(
+    (u, b) => (u ? unionBbox(u, b) : b),
+    undefined
+  );
+}
+
+/** Share of the map a fitted track fills, leaving a margin round its edge. */
+const FIT_FILL = 0.85;
+
+const EARTH_RADIUS = 6378137;
+
+/** Web Mercator northing (metres) of a latitude, clamped to the projection. */
+function mercatorY(lat: number): number {
+  const c = Math.max(-85, Math.min(85, lat));
+  return EARTH_RADIUS * Math.log(Math.tan(Math.PI / 4 + (c * Math.PI) / 360));
+}
+
+/** The map centre and zoom that fit a box into a map `size` pixels
+ * (`[width, height]`) with a margin. The centre is the box's middle in Web
+ * Mercator, taken the short way round when the box crosses the antimeridian,
+ * so a track near Fiji is centred near 180° rather than on Greenwich. A box
+ * with no size (a single recorded point) gets `maxZoom`. */
+export function fitBbox(
+  bbox: HistoryBbox,
+  size: [number, number],
+  zoomLimits: { min: number; max: number }
+): { center: Position; zoom: number } {
+  const [w, s, e, n] = bbox;
+  const span = lonSpan(w, e);
+  const midY = (mercatorY(s) + mercatorY(n)) / 2;
+  const center: Position = [
+    wrapLon(w + span / 2),
+    (2 * Math.atan(Math.exp(midY / EARTH_RADIUS)) - Math.PI / 2) *
+      (180 / Math.PI)
+  ];
+  const width = ((span * Math.PI) / 180) * EARTH_RADIUS;
+  const height = mercatorY(n) - mercatorY(s);
+  const resolution = Math.max(
+    width / Math.max(1, size[0] * FIT_FILL),
+    height / Math.max(1, size[1] * FIT_FILL)
+  );
+  const zoom =
+    resolution > 0
+      ? Math.log2(MERCATOR_RESOLUTION_Z0 / resolution)
+      : zoomLimits.max;
+  return {
+    center,
+    zoom: Math.min(zoomLimits.max, Math.max(zoomLimits.min, zoom))
+  };
 }
 
 /** The contexts listed by `/tracks/contexts`. */
