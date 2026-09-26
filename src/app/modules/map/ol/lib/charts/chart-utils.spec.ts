@@ -1038,6 +1038,23 @@ describe('startChartTileRecovery', () => {
     stop();
   });
 
+  it('relies on OpenLayers exposing sourceTiles_ (canary for recovery eviction)', () => {
+    // Recovery eviction (startChartTileRecovery) reads the private sourceTiles_
+    // cache to drop errored tiles. We allow any ol@^10.x; if a minor bump renames
+    // that field, the guarded access silently degrades to a key-only rotation
+    // that recovers nothing (see the f836b87 regression). This canary — a fresh
+    // source, deliberately NOT seeded — fails CI on that rename instead of
+    // letting recovery quietly regress in the field.
+    const source = new VectorTileSource({
+      format: new MVT(),
+      url: 'https://tiles.example/{z}/{x}/{y}.pbf'
+    });
+    const cache = (source as unknown as { sourceTiles_?: unknown })
+      .sourceTiles_;
+    expect(cache).toBeTypeOf('object');
+    expect(cache).not.toBeNull();
+  });
+
   it('evicts only errored source tiles on recovery so they reload, keeping loaded ones cached', () => {
     vi.useFakeTimers();
     const { source, group } = makeGroup();
