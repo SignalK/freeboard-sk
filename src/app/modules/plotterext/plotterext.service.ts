@@ -27,7 +27,7 @@ import * as uuid from 'uuid';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
-import { fitBbox, type LonLatBox } from 'src/app/lib/map-fit';
+import { FIT_MAX_ZOOM, fitBbox, type LonLatBox } from 'src/app/lib/map-fit';
 import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
   type BusPort,
@@ -2039,15 +2039,16 @@ export class PlotterExtensionService {
    * `map.view` depends on it.
    */
   private mapView(): MapView {
+    const extent = this.app.mapExtent();
     return {
       center: this.app.config.map.center as [number, number],
       zoom: this.app.config.map.zoomLevel,
       // OpenLayers' extent runs past ±180 once the view has scrolled round
       // the world; the API reports [west, south, east, north] in range, with
-      // west > east across the antimeridian
+      // west > east across the antimeridian. Only the empty extent before the
+      // map's first moveend is not a box; it passes through as before.
       bounds:
-        normalizeBounds(this.app.mapExtent()) ??
-        (this.app.mapExtent() as [number, number, number, number])
+        normalizeBounds(extent) ?? (extent as [number, number, number, number])
     };
   }
 
@@ -2130,7 +2131,7 @@ export class PlotterExtensionService {
     const size = map?.getSize();
     const limits = {
       min: this.app.MAP_ZOOM_EXTENT?.min ?? 0,
-      max: this.app.MAP_ZOOM_EXTENT?.max ?? 18
+      max: Math.min(this.app.MAP_ZOOM_EXTENT?.max ?? 18, FIT_MAX_ZOOM)
     };
     if (!map || !size) {
       return { center: fitBbox(box, [1, 1], limits).center, zoom: 12 };

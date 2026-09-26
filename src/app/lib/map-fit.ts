@@ -41,6 +41,12 @@ function wrapLon(lon: number): number {
   return lon > 180 ? lon - 360 : lon <= -180 ? lon + 360 : lon;
 }
 
+/** Deepest zoom a fitted box is shown at. A box of one point (a single
+ * waypoint, a vessel that never moved) has no size and would otherwise zoom
+ * as far in as the map goes, well past any chart's detail; a tiny box nearly
+ * as far. */
+export const FIT_MAX_ZOOM = 16;
+
 /** Share of the map a fitted box fills, leaving a margin round its edge. */
 const FIT_FILL = 0.85;
 

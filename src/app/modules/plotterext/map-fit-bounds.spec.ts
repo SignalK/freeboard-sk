@@ -10,6 +10,7 @@ import { AppFacade } from '../../app.facade';
 import { SKResourceService } from '../skresources/resources.service';
 import { MapService } from '../map/ol/lib/map.service';
 import { SKStreamFacade } from '../skstream/skstream.facade';
+import { FIT_MAX_ZOOM } from '../../lib/map-fit';
 
 type MoveRequest = { center: [number, number]; zoom?: number } | null;
 
@@ -120,6 +121,14 @@ describe('PlotterExtensionService map.fitBounds', () => {
     rotation = Math.PI / 2; // now it runs up the map's short side
     await fitBounds([-100, 20, -90, 21]);
     expect(mapMoveRequest().zoom).toBeLessThan(northUp - 1);
+  });
+
+  it('zooms a single-point box no deeper than the fit cap, not the map maximum', async () => {
+    await fitBounds([-81, 24, -81, 24]);
+    expect(mapMoveRequest().zoom).toBe(FIT_MAX_ZOOM);
+    const [lon, lat] = mapMoveRequest().center;
+    expect(lon).toBeCloseTo(-81, 9);
+    expect(lat).toBeCloseTo(24, 9);
   });
 
   it('rejects what is not a box', async () => {

@@ -354,8 +354,8 @@ after the move.
 
 Boxes follow the spec's *Bounding boxes* convention — `[west, south, east,
 north]`, longitudes in `[-180, 180]`, `west > east` across the antimeridian. Two
-places need work to meet it, because OpenLayers pans round the world without
-limit and its extents run past ±180:
+places enforce it, because OpenLayers pans round the world without limit and its
+extents run past ±180:
 
 - **Reporting** — `mapView()` passes `app.mapExtent()` (the OL extent transformed
   to EPSG:4326) through the bus's `normalizeBounds`, which wraps each longitude
@@ -365,7 +365,9 @@ limit and its extents run past ±180:
   (rejecting a non-box with `INVALID_BOUNDS`) and computes the move with
   `fitBbox` (`src/app/lib/map-fit.ts`, shared with the Track history window's
   zoom-to-track): the box's Web Mercator middle, the short way round the
-  antimeridian, fitted as it lies on a rotated (heading-up) map.
+  antimeridian, fitted as it lies on a rotated (heading-up) map, and zoomed no
+  deeper than `FIT_MAX_ZOOM` (16) so a single-point box doesn't land far past any
+  chart's detail.
 
 ### Events (`map.view`)
 
