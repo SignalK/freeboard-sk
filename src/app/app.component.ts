@@ -1585,10 +1585,22 @@ export class AppComponent {
   // ********** MAP / UI ACTIONS **********
 
   // ** set active route starting at nearest point **
-  protected activateRoute(id: string) {
-    const r = this.skres.fromCache('routes', id);
+  protected async activateRoute(id: string) {
+    let coordinates = this.skres.fromCache('routes', id)?.[1].feature.geometry
+      .coordinates;
+    if (!coordinates) {
+      // Only routes displayed on the map are cached; the Routes list can open
+      // the info panel of any route.
+      try {
+        coordinates = (await this.skres.fromServer('routes', id)).feature
+          .geometry.coordinates;
+      } catch (err) {
+        this.app.parseHttpErrorResponse(err);
+        return;
+      }
+    }
     const cpi = GeoUtils.closestForwardPoint(
-      r[1].feature.geometry.coordinates,
+      coordinates,
       this.app.data.vessels.self.position,
       Convert.radiansToDegrees(this.app.data.vessels.self.heading)
     );

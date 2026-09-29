@@ -119,4 +119,66 @@ describe('AppComponent', () => {
       'allow-scripts'
     ]);
   });
+
+  describe('starting a route that is not displayed on the map', () => {
+    type Internals = {
+      activateRoute: (id: string) => Promise<void>;
+      app: {
+        data: { vessels: { self: { position: number[]; heading: number } } };
+        parseHttpErrorResponse: (err: unknown) => void;
+      };
+      skres: {
+        fromCache: (collection: string, id: string) => unknown;
+        fromServer: (collection: string, id: string) => Promise<unknown>;
+      };
+      course: { activateRoute: (id: string, pointIndex?: number) => void };
+    };
+
+    const setup = () => {
+      const c = TestBed.createComponent(AppComponent)
+        .componentInstance as unknown as Internals;
+      // Heading north from just south of the route.
+      c.app.data.vessels.self.position = [24.95, 60.15];
+      c.app.data.vessels.self.heading = 0;
+      vi.spyOn(c.skres, 'fromCache').mockReturnValue(undefined);
+      const activate = vi
+        .spyOn(c.course, 'activateRoute')
+        .mockImplementation(() => undefined);
+      return { c, activate };
+    };
+
+    it('starts it at the closest point ahead, read from the server', async () => {
+      const { c, activate } = setup();
+      const fromServer = vi.spyOn(c.skres, 'fromServer').mockResolvedValue({
+        feature: {
+          geometry: {
+            coordinates: [
+              [24.95, 60.18],
+              [24.95, 60.16],
+              [24.96, 60.2]
+            ]
+          }
+        }
+      });
+
+      await c.activateRoute('hidden');
+
+      expect(fromServer).toHaveBeenCalledWith('routes', 'hidden');
+      expect(activate).toHaveBeenCalledWith('hidden', 1);
+    });
+
+    it('reports a failed fetch and starts nothing', async () => {
+      const { c, activate } = setup();
+      const failure = new Error('not found');
+      vi.spyOn(c.skres, 'fromServer').mockRejectedValue(failure);
+      const reported = vi
+        .spyOn(c.app, 'parseHttpErrorResponse')
+        .mockImplementation(() => undefined);
+
+      await c.activateRoute('gone');
+
+      expect(reported).toHaveBeenCalledWith(failure);
+      expect(activate).not.toHaveBeenCalled();
+    });
+  });
 });
