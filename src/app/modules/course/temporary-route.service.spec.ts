@@ -217,6 +217,19 @@ describe('TemporaryRouteService — starting a drawn route', () => {
     expect(t.infoPanel.close).toHaveBeenCalled();
     expect(t.infoPanel.open).not.toHaveBeenCalled();
   });
+
+  it('keeps the stored copy as the drawing when it cannot be deleted', async () => {
+    const t = setup();
+    const draft = t.registry.create({ points: POINTS });
+    t.course.activateRoute.mockResolvedValueOnce(false);
+    t.skres.deleteFromServer.mockRejectedValueOnce(new Error('offline'));
+
+    expect(await t.service.start(draft.routeId)).toBeNull();
+
+    // no second copy: the stored route is still the only one
+    expect(t.registry.all()).toHaveLength(1);
+    expect(t.registry.all()[0].href).toBe('rte-1');
+  });
 });
 
 describe('TemporaryRouteService — cleaning up', () => {

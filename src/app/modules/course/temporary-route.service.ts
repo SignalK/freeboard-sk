@@ -108,15 +108,18 @@ export class TemporaryRouteService {
     }
     if (!(await this.course.activateRoute(saved.href, pointIndex))) {
       // Not followed after all: remove the stored copy and hand the drawing
-      // back as a draft, so it can be started again or saved.
-      await this.deleteUnlessActive([saved.href]);
-      this.routeBuffers.create({
-        name: buffer.name ?? undefined,
-        description: buffer.description ?? undefined,
-        points: buffer.points
-      });
-      if (this.infoPanel.item()?.id === bufferId) {
-        this.infoPanel.close();
+      // back as a draft, so it can be started again or saved. If the copy
+      // stays, it is the drawing: START on it retries, a sweep removes it.
+      const deleted = await this.deleteUnlessActive([saved.href]);
+      if (deleted.includes(saved.href)) {
+        this.routeBuffers.create({
+          name: buffer.name ?? undefined,
+          description: buffer.description ?? undefined,
+          points: buffer.points
+        });
+        if (this.infoPanel.item()?.id === bufferId) {
+          this.infoPanel.close();
+        }
       }
       return null;
     }
@@ -159,14 +162,15 @@ export class TemporaryRouteService {
    * Delete temporary routes unless the server reports one of them as the
    * active route. The local course state can be reset while the course is
    * unchanged (a reconnect, switching the active vessel), so the server
-   * decides.
+   * decides. Resolves with the ids that were deleted.
    */
-  private async deleteUnlessActive(ids: string[]) {
+  private async deleteUnlessActive(ids: string[]): Promise<string[]> {
+    const deleted: string[] = [];
     const pending = ids.filter(
       (id) => !this.deleting.has(id) && !this.attempted.has(id)
     );
     if (!pending.length) {
-      return;
+      return deleted;
     }
     pending.forEach((id) => this.deleting.add(id));
     try {
@@ -178,6 +182,7 @@ export class TemporaryRouteService {
         this.attempted.add(id);
         try {
           await this.skres.deleteFromServer('routes', id);
+          deleted.push(id);
           this.skres.selectionRemove('routes', id);
           if (this.infoPanel.item()?.id === id) {
             this.infoPanel.close();
@@ -193,6 +198,7 @@ export class TemporaryRouteService {
     } finally {
       pending.forEach((id) => this.deleting.delete(id));
     }
+    return deleted;
   }
 
   private async serverActiveRoute(): Promise<string | null> {
