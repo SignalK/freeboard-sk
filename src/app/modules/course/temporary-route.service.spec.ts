@@ -81,9 +81,17 @@ function setup() {
     selectionRemove: vi.fn()
   };
   const courseData = signal({});
-  const course = { courseData, activateRoute: vi.fn() };
+  const course = {
+    courseData,
+    activateRoute: vi.fn(() => Promise.resolve(true))
+  };
+  const registry = new RouteBufferRegistry();
+  // Like the real save, the draft becomes a saved route backed by 'rte-1'.
   const plotterExt = {
-    saveBuffer: vi.fn(() => Promise.resolve({ href: 'rte-1', rev: 2 }))
+    saveBuffer: vi.fn((routeId: string) => {
+      registry.markSaved(routeId, 'rte-1');
+      return Promise.resolve({ href: 'rte-1', rev: 2 });
+    })
   };
   const infoPanel = {
     item: signal<{ id: string } | null>(null),
@@ -94,7 +102,7 @@ function setup() {
   TestBed.configureTestingModule({
     providers: [
       TemporaryRouteService,
-      RouteBufferRegistry,
+      { provide: RouteBufferRegistry, useValue: registry },
       { provide: AppFacade, useValue: app },
       { provide: SignalKClient, useValue: signalk },
       { provide: SKResourceService, useValue: skres },
@@ -120,7 +128,7 @@ function setup() {
 
   return {
     service,
-    registry: TestBed.inject(RouteBufferRegistry),
+    registry,
     signalk,
     skres,
     routes,
@@ -189,6 +197,25 @@ describe('TemporaryRouteService — starting a drawn route', () => {
 
     expect(await t.service.start(draft.routeId)).toBeNull();
     expect(t.course.activateRoute).not.toHaveBeenCalled();
+  });
+
+  it('gives the drawing back as a draft when the server will not follow it', async () => {
+    const t = setup();
+    const draft = t.registry.create({ name: 'Harbour exit', points: POINTS });
+    t.infoPanel.item.set({ id: draft.routeId });
+    t.course.activateRoute.mockResolvedValueOnce(false);
+
+    expect(await t.service.start(draft.routeId)).toBeNull();
+
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'rte-1');
+    const drafts = t.registry.all().filter((b) => !b.saved);
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0].name).toBe('Harbour exit');
+    expect(drafts[0].points.map((p) => p.position)).toEqual(
+      POINTS.map((p) => p.position)
+    );
+    expect(t.infoPanel.close).toHaveBeenCalled();
+    expect(t.infoPanel.open).not.toHaveBeenCalled();
   });
 });
 

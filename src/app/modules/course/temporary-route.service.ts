@@ -86,7 +86,7 @@ export class TemporaryRouteService {
   /**
    * Store the drawn route `bufferId` as a temporary route and follow it from
    * `pointIndex`. Resolves with the stored route's id, or null if it could not
-   * be stored.
+   * be stored or the server would not follow it.
    */
   async start(bufferId: string, pointIndex = 0): Promise<string | null> {
     const buffer = this.routeBuffers.get(bufferId);
@@ -106,7 +106,20 @@ export class TemporaryRouteService {
     if (!saved) {
       return null;
     }
-    this.course.activateRoute(saved.href, pointIndex);
+    if (!(await this.course.activateRoute(saved.href, pointIndex))) {
+      // Not followed after all: remove the stored copy and hand the drawing
+      // back as a draft, so it can be started again or saved.
+      await this.deleteUnlessActive([saved.href]);
+      this.routeBuffers.create({
+        name: buffer.name ?? undefined,
+        description: buffer.description ?? undefined,
+        points: buffer.points
+      });
+      if (this.infoPanel.item()?.id === bufferId) {
+        this.infoPanel.close();
+      }
+      return null;
+    }
     if (this.infoPanel.item()?.id === bufferId) {
       // Point the panel at the stored route so it offers STOP, not START.
       this.infoPanel.open('routes', saved.href);
