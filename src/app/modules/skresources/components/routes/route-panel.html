@@ -50,7 +50,7 @@
         } &nbsp; @if (this.app.data.activeRoute !== id()) {
         <button
           mat-button
-          [disabled]="interacting() || isUnsaved()"
+          [disabled]="interacting() || (isUnsaved() && !isDraft())"
           (click)="onGoto()"
           matTooltip="Navigate To"
         >
@@ -113,6 +113,12 @@
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
         {{ _route()?.name }} @if (isUnsaved()) {
         <span style="color: gray; font-style: italic">&nbsp;(unsaved)</span>
+        } @else if (isTemporary()) {
+        <span
+          style="color: gray; font-style: italic"
+          matTooltip="Deleted when you stop following it"
+          >&nbsp;(temporary)</span
+        >
         }
       </div>
     </div>
@@ -174,7 +180,7 @@
             <button
               matIconButton
               matTooltip="Start here"
-              [disabled]="interacting() || isUnsaved()"
+              [disabled]="interacting() || (isUnsaved() && !isDraft())"
               (click)="onGoto(point.index)"
             >
               <mat-icon>near_me</mat-icon>

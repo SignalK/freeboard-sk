@@ -672,6 +672,7 @@
           [featureCount]="overlay().featureCount"
           [units]="scaleUnits()"
           [canSave]="isUnsavedRoute()"
+          [canStart]="isDraftRoute()"
           (modify)="modifyFeature(); popoverClosed()"
           (save)="saveRouteFromPopover(); popoverClosed()"
           (delete)="

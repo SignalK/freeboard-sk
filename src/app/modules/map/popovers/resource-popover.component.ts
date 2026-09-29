@@ -307,6 +307,9 @@ export class ResourcePopoverComponent {
   canClose = input<boolean>();
   /** Host-set: this route is an unsaved draft → show the Save shortcut. */
   canSave = input<boolean>(false);
+  /** Host-set: this unsaved route was drawn and never saved → Start follows it
+   *  as a temporary route. */
+  canStart = input<boolean>(false);
   modify = output<void>();
   save = output<void>();
   delete = output<void>();
@@ -362,14 +365,16 @@ export class ResourcePopoverComponent {
     this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
     if (this.ctrl.showSaveButton) {
       // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
-      // the actions that only work against a stored resource — Start
-      // (navigation), Show Notes and Info — which a draft has none of. Info
-      // fetches the route from the server, which 404s for a draft; Save already
-      // opens the details dialog for title/description. Route Points stays
-      // visible: its reorder dialog now edits the route buffer (#583), so the
-      // draft's points can be re-ordered before it is saved.
+      // the actions that only work against a stored resource — Show Notes and
+      // Info — which a draft has none of. Info fetches the route from the
+      // server, which 404s for a draft; Save already opens the details dialog
+      // for title/description. Route Points stays visible: its reorder dialog
+      // now edits the route buffer (#583), so the draft's points can be
+      // re-ordered before it is saved. Start is kept only for a never-saved
+      // draft, which it follows as a temporary route; for a saved route with
+      // pending edits it would follow the stored geometry, not the edits.
       this.ctrl.showDeleteButton = true;
-      this.ctrl.canActivate = false;
+      this.ctrl.canActivate = this.canStart();
       this.ctrl.showNotesButton = false;
       this.ctrl.showInfoButton = false;
       // An unsaved draft isn't in the Routes list, so Hide would remove it with

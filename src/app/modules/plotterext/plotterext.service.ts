@@ -61,6 +61,7 @@ import {
   cellHeightPx,
   parseSize
 } from './types';
+import { temporaryRouteMarker } from 'src/app/modules/course/temporary-route';
 import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
@@ -1065,11 +1066,18 @@ export class PlotterExtensionService {
    * dirty:false`) — saving does not consume the route. Resolves with
    * `{ href, rev }` on save, or null if the user cancelled. Shared by the
    * `route.save` host method and the FSK info-panel "Save" action so both behave
-   * identically. Pass `dialog:true` to prompt for the name/description.
+   * identically. Pass `dialog:true` to prompt for the name/description, and
+   * `temporary:true` to store a never-saved route as a temporary route (see
+   * `course/temporary-route.ts`) — `route.save` never passes it.
    */
   async saveBuffer(
     routeId: string,
-    opts: { name?: string; description?: string; dialog?: boolean } = {}
+    opts: {
+      name?: string;
+      description?: string;
+      dialog?: boolean;
+      temporary?: boolean;
+    } = {}
   ): Promise<{ href: string; rev: number } | null> {
     const buf = this.routeRegistry.get(routeId);
     if (!buf) {
@@ -1089,6 +1097,9 @@ export class PlotterExtensionService {
     }
     route.name = opts.name ?? buf.name ?? '';
     route.description = opts.description ?? buf.description ?? '';
+    if (opts.temporary && !buf.href) {
+      route.feature.properties.temporary = temporaryRouteMarker(new Date());
+    }
     let savedId: string | null;
     if (buf.href) {
       // Backed by an existing resource — update it in place (keep its id).

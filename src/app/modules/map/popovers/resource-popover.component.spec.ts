@@ -29,7 +29,12 @@ const appStub = {
   useInfoPanel: () => false
 };
 
-function popover(canSave: boolean, readOnly = false, active?: string) {
+function popover(
+  canSave: boolean,
+  readOnly = false,
+  active?: string,
+  canStart = false
+) {
   const c = Object.create(
     ResourcePopoverComponent.prototype
   ) as ResourcePopoverComponent;
@@ -39,6 +44,7 @@ function popover(canSave: boolean, readOnly = false, active?: string) {
     active: () => active,
     featureCount: () => 2,
     canSave: () => canSave,
+    canStart: () => canStart,
     app: appStub,
     _title: { set: () => undefined },
     hasMarkdown: { set: () => undefined },
@@ -66,6 +72,7 @@ function popover(canSave: boolean, readOnly = false, active?: string) {
       showSaveButton: boolean;
       showHideButton: boolean;
       showPointsButton: boolean;
+      canActivate: boolean;
       isActive: boolean;
     };
   };
@@ -138,5 +145,29 @@ describe('ResourcePopoverComponent — route Points visibility (#583)', () => {
     const c = popover(true);
     expect(c.ctrl.showSaveButton).toBe(true);
     expect(c.ctrl.showPointsButton).toBe(true);
+  });
+});
+
+/**
+ * Start for an unsaved route. A drawn route that was never saved can be started
+ * straight away — the host follows it as a temporary route. A saved route with
+ * pending edits cannot: Start would follow the stored geometry, not the edits.
+ */
+describe('ResourcePopoverComponent — route Start for unsaved routes', () => {
+  it('offers START for a saved route', () => {
+    const c = popover(false);
+    expect(c.ctrl.canActivate).toBe(true);
+  });
+
+  it('offers START for a drawn route that was never saved', () => {
+    const c = popover(true, false, undefined, true);
+    expect(c.ctrl.showSaveButton).toBe(true);
+    expect(c.ctrl.canActivate).toBe(true);
+  });
+
+  it('does not offer START for a saved route with pending edits', () => {
+    const c = popover(true, false, undefined, false);
+    expect(c.ctrl.showSaveButton).toBe(true);
+    expect(c.ctrl.canActivate).toBe(false);
   });
 });
