@@ -1589,6 +1589,12 @@ export class AppComponent {
   // ** set active route starting at nearest point **
   // A drawn route that was never saved is followed as a temporary route.
   protected async activateRoute(id: string) {
+    // A stored draft keeps its draft id (e.g. in a popover opened before it
+    // was stored); navigate the stored route it now points at.
+    const buffer = this.routeBuffers.get(id);
+    if (buffer?.saved && buffer.href) {
+      id = buffer.href;
+    }
     const isDraft = this.temporaryRoutes.isDraft(id);
     let coordinates = isDraft
       ? (this.routeBuffers.get(id).points.map((p) => p.position) as LineString)
