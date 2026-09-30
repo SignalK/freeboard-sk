@@ -885,6 +885,7 @@
     </fb-cog-line>
   }
   @if (app.config.vessels.windVectors) {
+    <!-- twd: TRUE wind, not wind.direction (follows the true/magnetic display setting, #857) -->
     <fb-wind-lines
       [twd]="this.dfeat.active.wind.twd"
       [tws]="this.dfeat.active.wind.tws"
