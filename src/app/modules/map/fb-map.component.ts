@@ -33,6 +33,7 @@ import {
   AlarmPopoverComponent,
   ResourcePopoverComponent,
   ResourceSetPopoverComponent,
+  RoutePointPopoverComponent,
   VesselPopoverComponent,
   S57PopoverComponent,
   S57_CLICKABLE_LAYERS,
@@ -144,6 +145,12 @@ import {
 } from './route-extend';
 import { vertexDeleted } from './ol/lib/vertex-delete';
 import { modifiedLegIndex } from './route-modify-leg';
+import {
+  ActiveRoutePoint,
+  followedPointIndex,
+  pickRoutePoint,
+  ROUTE_POINT_PICK_PX
+} from './route-point-pick';
 import { AppIconDef } from '../icons';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
@@ -221,6 +228,7 @@ const OFFSET_GRACE_PERIOD = 2000;
     AlarmPopoverComponent,
     ResourcePopoverComponent,
     ResourceSetPopoverComponent,
+    RoutePointPopoverComponent,
     VesselPopoverComponent,
     S57PopoverComponent,
     LayerWindWeatherComponent,
@@ -1548,6 +1556,59 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.data.editingId = this.mapInteract.draw.forSave.id;
   }
 
+  /** The active route's point `index`, counted in the order it is followed. */
+  private activeRoutePoint(index: number): ActiveRoutePoint {
+    const c = this.course.courseData();
+    // Point names are in the order the route is stored.
+    const stored = followedPointIndex(
+      index,
+      c.pointTotal,
+      this.app.data.activeRouteReversed
+    );
+    return {
+      index,
+      total: c.pointTotal,
+      name: c.pointNames?.[stored] || undefined,
+      isNext: index === c.pointIndex
+    };
+  }
+
+  /**
+   * The point of the active route a click picked, counted in the order the
+   * route is being followed; null for a click on a leg or on another route.
+   */
+  private activeRoutePointAt(
+    e: FBClickEvent,
+    feature: Feature,
+    routeId: string
+  ): number | null {
+    const geometry = feature.getGeometry();
+    if (
+      !this.activeRoute ||
+      routeId !== this.activeRoute ||
+      !(geometry instanceof OLLineString)
+    ) {
+      return null;
+    }
+    const coordinates = geometry.getCoordinates();
+    const index = pickRoutePoint(
+      coordinates,
+      e.coordinate,
+      e.map.getView().getResolution(),
+      e.originalEvent?.pointerType === 'touch'
+        ? ROUTE_POINT_PICK_PX.touch
+        : ROUTE_POINT_PICK_PX.mouse,
+      WORLD_WIDTH_3857
+    );
+    return index === null
+      ? null
+      : followedPointIndex(
+          index,
+          coordinates.length,
+          this.app.data.activeRouteReversed
+        );
+  }
+
   /** Process pointer click in non-interaction mode */
   private processMapClick(e) {
     this.s57Features = {};
@@ -1626,6 +1687,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
             break;
           }
           case 'route': {
+            const point = this.activeRoutePointAt(e, feature, t[1]);
+            if (point !== null) {
+              id = `rtept.${point}`;
+              icon = {
+                name: 'location_on',
+                svgIcon: undefined,
+                class: 'icon-route'
+              };
+              addToFeatureList = true;
+              text =
+                this.activeRoutePoint(point).name || `Route point ${point + 1}`;
+              break;
+            }
             icon = {
               svgIcon: 'route',
               name: undefined,
@@ -1817,6 +1891,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     trackTimesHiddenByVessel(featureList.keys()).forEach((id) =>
       featureList.delete(id)
     );
+    // The destination flag marks the route point being headed for; the route
+    // point's own popover covers it and adds Skip.
+    if ([...featureList.keys()].some((id) => id.startsWith('rtept.'))) {
+      [...featureList.keys()]
+        .filter((id) => id.startsWith('dest.'))
+        .forEach((id) => featureList.delete(id));
+    }
     // server and local trail are one trail, answered from the same data
     if (
       featureList.has('trail.self.server') &&
@@ -2134,6 +2215,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
           this.popoverInfo();
         }
         break;
+      case 'rtept': {
+        const index = Number(t[1]);
+        poData.id = id;
+        poData.type = 'rtept';
+        poData.routePoint = this.activeRoutePoint(index);
+        poData.title = poData.routePoint.name || 'Route point';
+        poData.show = true;
+        break;
+      }
       case 'dest':
         poData.id = id;
         poData.type = 'destination';
@@ -2461,6 +2551,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ** deactivate route / waypoint
   protected clearActiveFeature() {
     this.deactivate.emit(this.overlay().id);
+  }
+
+  // ** head straight for a point of the active route, or past the next one
+  protected navigateFromRoutePoint(pointIndex: number) {
+    this.course.navigateFromRoutePoint(pointIndex);
+  }
+
+  protected skipRoutePoint() {
+    this.course.skipRoutePoint();
   }
 
   // ** emit info event **

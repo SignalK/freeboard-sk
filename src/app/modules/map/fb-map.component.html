@@ -754,6 +754,16 @@
         >
         </aircraft-popover>
       }
+      @if (overlay().type === 'rtept') {
+        <route-point-popover
+          [canClose]="app.config.map.popoverMulti"
+          [point]="overlay().routePoint"
+          (navigate)="navigateFromRoutePoint($event); popoverClosed()"
+          (skip)="skipRoutePoint(); popoverClosed()"
+          (closed)="popoverClosed()"
+        >
+        </route-point-popover>
+      }
       @if (overlay().type === 'alarm') {
         <alarm-popover
           [canClose]="app.config.map.popoverMulti"
