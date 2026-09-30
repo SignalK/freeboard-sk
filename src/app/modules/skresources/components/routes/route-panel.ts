@@ -10,6 +10,8 @@ import {
   signal
 } from '@angular/core';
 import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
+import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.service';
+import { isTemporaryRoute } from 'src/app/modules/course/temporary-route';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -81,6 +83,13 @@ export class RoutePanel {
     const b = this.routeBuffers.live().find((x) => x.routeId === this.id());
     return !!b && (!b.saved || b.dirty);
   });
+  /** True for a drawn route that was never saved: START follows it as a
+   *  temporary route. */
+  protected isDraft = computed(() => {
+    const b = this.routeBuffers.live().find((x) => x.routeId === this.id());
+    return !!b && !b.saved;
+  });
+  protected isTemporary = computed(() => isTemporaryRoute(this._route()));
   protected notes = signal<FBNotes>([]);
   protected groups = signal<FBResourceGroups>([]);
   protected points = signal<
@@ -101,6 +110,7 @@ export class RoutePanel {
   private routeBuffers = inject(RouteBufferRegistry);
   private infoPanel = inject(InfoPanelFacade);
   private course = inject(CourseService);
+  private temporaryRoutes = inject(TemporaryRouteService);
   protected skgroups = inject(SKResourceGroupService);
   private dialog = inject(MatDialog);
   private bottomSheet = inject(MatBottomSheet);
@@ -251,6 +261,8 @@ export class RoutePanel {
     }
     if (typeof index === 'undefined') {
       this.activate.emit(this.id());
+    } else if (this.isDraft()) {
+      this.temporaryRoutes.start(this.id(), index);
     } else {
       this.course.activateRoute(this.id(), index);
     }

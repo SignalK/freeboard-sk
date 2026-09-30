@@ -61,6 +61,10 @@ import {
   cellHeightPx,
   parseSize
 } from './types';
+import {
+  isTemporaryRoute,
+  temporaryRouteMarker
+} from 'src/app/modules/course/temporary-route';
 import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
@@ -1065,11 +1069,21 @@ export class PlotterExtensionService {
    * dirty:false`) — saving does not consume the route. Resolves with
    * `{ href, rev }` on save, or null if the user cancelled. Shared by the
    * `route.save` host method and the FSK info-panel "Save" action so both behave
-   * identically. Pass `dialog:true` to prompt for the name/description.
+   * identically. Pass `dialog:true` to prompt for the name/description,
+   * `temporary:true` to store a never-saved route as a temporary route (see
+   * `course/temporary-route.ts`), and `promote:true` when the user saves a
+   * temporary route to keep it. `route.save` passes neither, so an extension
+   * saving a temporary route leaves it temporary.
    */
   async saveBuffer(
     routeId: string,
-    opts: { name?: string; description?: string; dialog?: boolean } = {}
+    opts: {
+      name?: string;
+      description?: string;
+      dialog?: boolean;
+      temporary?: boolean;
+      promote?: boolean;
+    } = {}
   ): Promise<{ href: string; rev: number } | null> {
     const buf = this.routeRegistry.get(routeId);
     if (!buf) {
@@ -1089,6 +1103,15 @@ export class PlotterExtensionService {
     }
     route.name = opts.name ?? buf.name ?? '';
     route.description = opts.description ?? buf.description ?? '';
+    if (opts.temporary && !buf.href) {
+      route.feature.properties.temporary = temporaryRouteMarker(new Date());
+    }
+    const stored = buf.href
+      ? this.skres.fromCache('routes', buf.href)?.[1]
+      : undefined;
+    if (isTemporaryRoute(stored) && !opts.promote) {
+      route.feature.properties.temporary = stored.feature.properties.temporary;
+    }
     let savedId: string | null;
     if (buf.href) {
       // Backed by an existing resource — update it in place (keep its id).

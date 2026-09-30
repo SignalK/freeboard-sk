@@ -1281,6 +1281,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     return !!b && (!b.saved || b.dirty);
   }
 
+  /** True when the popover's route was drawn and never saved. */
+  protected isDraftRoute(): boolean {
+    if (this.overlay().type !== 'route') {
+      return false;
+    }
+    const b = this.routeBuffers.get(this.overlay().id);
+    return !!b && !b.saved;
+  }
+
   /**
    * Popover "Save" shortcut for an unsaved route — opens the standard Route
    * Details dialog (same path as the info-panel SAVE) and persists. Saves the
@@ -1288,7 +1297,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   protected async saveRouteFromPopover() {
     try {
-      await this.plotterExt.saveBuffer(this.overlay().id, { dialog: true });
+      await this.plotterExt.saveBuffer(this.overlay().id, {
+        dialog: true,
+        promote: true
+      });
     } catch {
       // saveBuffer surfaced the server error via parseHttpErrorResponse; the
       // buffer stays dirty so the user can retry.

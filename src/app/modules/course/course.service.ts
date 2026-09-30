@@ -6,6 +6,7 @@ import { SKResourceService, SKVessel } from '../skresources';
 import { CourseData, FBRoute, SKCourseApi, SKPosition } from 'src/app/types';
 import type { PointDestination } from '@signalk/server-api';
 import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { Convert } from 'src/app/lib/convert';
 
 // ** Signal K course operations
@@ -54,26 +55,33 @@ export class CourseService {
    * @param id Route identifier
    * @param startPoint Index of point in route to set as the active destination
    * @param reverse Follow route in reverse point order
+   * @returns Whether the server accepted the route; a rejection has already
+   * been reported to the user.
    */
-  public activateRoute(id: string, startPoint = 0, reverse = false) {
-    this.signalk.api
-      .putWithContext(
-        this.app.skApiVersion,
-        'self',
-        'navigation/course/activeRoute',
-        {
-          href: `/resources/routes/${id}`,
-          reverse: reverse,
-          pointIndex: startPoint,
-          arrivalCircle: this.app.config.course.arrivalCircle
-        }
-      )
-      .subscribe(
-        () => undefined,
-        (err: HttpErrorResponse) => {
-          this.app.parseHttpErrorResponse(err);
-        }
+  public async activateRoute(
+    id: string,
+    startPoint = 0,
+    reverse = false
+  ): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.signalk.api.putWithContext(
+          this.app.skApiVersion,
+          'self',
+          'navigation/course/activeRoute',
+          {
+            href: `/resources/routes/${id}`,
+            reverse: reverse,
+            pointIndex: startPoint,
+            arrivalCircle: this.app.config.course.arrivalCircle
+          }
+        )
       );
+      return true;
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      return false;
+    }
   }
 
   /**

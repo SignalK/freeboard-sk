@@ -110,6 +110,7 @@ import { RadarAPIService } from './modules/radar/radar-api.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
 import { WhatsNewService } from './modules/features/whats-new.service';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
+import { TemporaryRouteService } from './modules/course/temporary-route.service';
 import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.component';
 import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
 import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
@@ -278,6 +279,7 @@ export class AppComponent {
   private symbols = inject(SymbolService);
   protected routeBuffers = inject(RouteBufferRegistry);
   protected plotterExt = inject(PlotterExtensionService);
+  private temporaryRoutes = inject(TemporaryRouteService);
   protected whatsNew = inject(WhatsNewService);
 
   constructor() {
@@ -1585,9 +1587,18 @@ export class AppComponent {
   // ********** MAP / UI ACTIONS **********
 
   // ** set active route starting at nearest point **
+  // A drawn route that was never saved is followed as a temporary route.
   protected async activateRoute(id: string) {
-    let coordinates = this.skres.fromCache('routes', id)?.[1].feature.geometry
-      .coordinates;
+    // A stored draft keeps its draft id (e.g. in a popover opened before it
+    // was stored); navigate the stored route it now points at.
+    const buffer = this.routeBuffers.get(id);
+    if (buffer?.saved && buffer.href) {
+      id = buffer.href;
+    }
+    const isDraft = this.temporaryRoutes.isDraft(id);
+    let coordinates = isDraft
+      ? (this.routeBuffers.get(id).points.map((p) => p.position) as LineString)
+      : this.skres.fromCache('routes', id)?.[1].feature.geometry.coordinates;
     if (!coordinates) {
       // Only routes displayed on the map are cached; the Routes list can open
       // the info panel of any route.
@@ -1599,6 +1610,10 @@ export class AppComponent {
         return;
       }
     }
+    const start = (pointIndex?: number) =>
+      isDraft
+        ? this.temporaryRoutes.start(id, pointIndex)
+        : this.course.activateRoute(id, pointIndex);
     const cpi = GeoUtils.closestForwardPoint(
       coordinates,
       this.app.data.vessels.self.position,
@@ -1612,12 +1627,12 @@ export class AppComponent {
         )
         .subscribe((r) => {
           if (r) {
-            this.course.activateRoute(id);
+            start();
           }
         });
       return;
     }
-    this.course.activateRoute(id, cpi);
+    start(cpi);
   }
 
   // ** Increment / decrement next active route point **
@@ -1921,7 +1936,8 @@ export class AppComponent {
     // dialog: true — the FSK SAVE button always prompts for a name.
     try {
       const result = await this.plotterExt.saveBuffer(bufferId, {
-        dialog: true
+        dialog: true,
+        promote: true
       });
       if (result) {
         this.infoPanel.open('routes', result.href);
@@ -2225,6 +2241,7 @@ export class AppComponent {
     this.queryAfterConnect();
     // ** start trail timer
     this.startTimers();
+    this.temporaryRoutes.sweep();
   }
 
   // ** handle connection closure
