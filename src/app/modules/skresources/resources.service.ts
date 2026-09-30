@@ -108,6 +108,7 @@ import {
   chartTimeline,
   isChartTimeInstant
 } from 'src/app/lib/chart-time';
+import { promoteTemporaryRoute } from 'src/app/modules/course/temporary-route';
 
 export type SKResourceType =
   'routes' | 'waypoints' | 'regions' | 'notes' | 'charts' | 'tracks';
@@ -2492,6 +2493,9 @@ export class SKResourceService {
       .afterClosed()
       .subscribe((r: { save: boolean; route: SKRoute }) => {
         if (r.save) {
+          // Saving it under a name keeps it: a temporary route becomes an
+          // ordinary one.
+          promoteTemporaryRoute(r.route);
           this.putToServer('routes', id, r.route).catch((err) =>
             this.app.parseHttpErrorResponse(err)
           );

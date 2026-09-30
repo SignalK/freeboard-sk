@@ -37,6 +37,16 @@
           <mat-icon>save</mat-icon>
           SAVE
         </button>
+        } @else if (isTemporary()) {
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onEdit()"
+          matTooltip="Keep this route"
+        >
+          <mat-icon>save</mat-icon>
+          SAVE
+        </button>
         } @else {
         <button
           mat-button
@@ -116,7 +126,7 @@
         } @else if (isTemporary()) {
         <span
           style="color: gray; font-style: italic"
-          matTooltip="Deleted when you stop following it"
+          matTooltip="Replaced by the next temporary route; deleted a day after you stop following it"
           >&nbsp;(temporary)</span
         >
         }

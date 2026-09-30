@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   isTemporaryRoute,
+  promoteTemporaryRoute,
   routeIdFromHref,
   TEMPORARY_ROUTE_GRACE_MS,
   TEMPORARY_ROUTE_KEEP_MS,
@@ -47,6 +48,13 @@ describe('temporary route marker', () => {
   it("ignores another app's plain `temporary` flag", () => {
     expect(isTemporaryRoute(route({ temporary: true }))).toBe(false);
     expect(isTemporaryRoute(route({ temporary: null }))).toBe(false);
+  });
+
+  it('is removed when the route is promoted, leaving the rest', () => {
+    const r = route({ temporary: { created: iso(NOW) }, coordinatesMeta: [] });
+    promoteTemporaryRoute(r);
+    expect(isTemporaryRoute(r)).toBe(false);
+    expect(r.feature.properties).toEqual({ coordinatesMeta: [] });
   });
 });
 

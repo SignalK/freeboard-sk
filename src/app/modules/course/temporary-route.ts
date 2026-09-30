@@ -7,7 +7,7 @@
  * properties. The most recent temporary route is kept after it stops being
  * followed, so a detour or a course cleared elsewhere does not lose it; it is
  * deleted when a newer temporary route replaces it, or once it has not been
- * followed for a day.
+ * followed for a day. Saving it under a name removes the marker.
  */
 
 export const TEMPORARY_ROUTE_NAME = 'Temporary route';
@@ -42,6 +42,13 @@ export function temporaryRouteMarker(now: Date): TemporaryRouteMarker {
 export function isTemporaryRoute(route: RouteLike): boolean {
   const marker = route?.feature?.properties?.['temporary'];
   return typeof marker === 'object' && marker !== null;
+}
+
+/** Make a temporary route an ordinary saved route. */
+export function promoteTemporaryRoute(route: RouteLike) {
+  if (route?.feature?.properties) {
+    delete route.feature.properties['temporary'];
+  }
 }
 
 /** A marker time as epoch ms; NaN when missing or unreadable. */

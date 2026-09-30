@@ -1293,7 +1293,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   protected async saveRouteFromPopover() {
     try {
-      await this.plotterExt.saveBuffer(this.overlay().id, { dialog: true });
+      await this.plotterExt.saveBuffer(this.overlay().id, {
+        dialog: true,
+        promote: true
+      });
     } catch {
       // saveBuffer surfaced the server error via parseHttpErrorResponse; the
       // buffer stays dirty so the user can retry.

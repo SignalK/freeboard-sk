@@ -1936,7 +1936,8 @@ export class AppComponent {
     // dialog: true — the FSK SAVE button always prompts for a name.
     try {
       const result = await this.plotterExt.saveBuffer(bufferId, {
-        dialog: true
+        dialog: true,
+        promote: true
       });
       if (result) {
         this.infoPanel.open('routes', result.href);
