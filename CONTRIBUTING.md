@@ -76,8 +76,14 @@ Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
    - **The title becomes a line in the release notes / App Store Changelog** — make
      it descriptive and user-facing.
    - Keep the description succinct: the motivation (why) and the approach (how), not
-     the mechanics (what). Include before/after screenshots for UI changes. If you
-     use AI, **trim the fluff** — maintainers will ask if they need more.
+     the mechanics (what). If you use AI, **trim the fluff** — maintainers will ask
+     if they need more.
+   - **Screenshots are for changes whose look matters.** They let a maintainer judge
+     how a change looks and fits (layout, clutter, how it reads on a small screen)
+     without checking out and building your branch. Add before/after screenshots for
+     a new or rearranged layout, a new dialog, or something drawn on the map. Skip
+     them when a sentence in *What changes for the user?* says it all — a button
+     added beside existing ones, a new label, or a change in behaviour only.
    - **Document the change in the description — but don't edit `features/`.** Fill in
      *What changes for the user?* properly: what they can now do, where the control is,
      what they see. That prose is what the in-app Feature Browser documentation gets
