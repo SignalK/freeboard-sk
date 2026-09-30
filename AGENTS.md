@@ -153,7 +153,8 @@ PR that stops at step 6 will not be merged.
    meaningful step per commit, with a message that says *why*. Keep every commit.
 6. Open the PR against `SignalK/freeboard-sk:master` with the template filled in:
    the title (it becomes a release-notes line), *What changes for the user?* in
-   real sentences, before/after screenshots for UI changes. **Do not edit
+   real sentences, before/after screenshots when the look of the change matters
+   (see *PR descriptions* below). **Do not edit
    `features/`** — that corpus is maintainer-owned and compiled after merge.
 7. **Wait for CodeRabbit, and confirm it actually reviewed.** CodeRabbit normally
    starts within minutes of the push, but reviews are **rate-limited per repository**
@@ -194,7 +195,11 @@ PR that stops at step 6 will not be merged.
   pad with mechanics, changed-line lists, version numbers, or self-congratulation —
   maintainers should not have to wade through AI fluff. Call out breaking changes.
   If you include a test-plan checklist, **every box must be checked** before review.
-  Include before/after screenshots for visible UI changes.
+  **Screenshots** let a maintainer judge how a change looks and fits without
+  building the branch, so add before/after screenshots when the look matters: a
+  new or rearranged layout, a new dialog, something drawn on the map. Skip them
+  when a sentence says it all (a button beside existing ones, a label, a change
+  in behaviour only).
 - **Tests + CI must pass.** Add/extend `*.spec.ts` for new behaviour. CI runs the
   shared Signal K `plugin-ci` workflow (`build:all` + `test:ci`) across a
   Linux/macOS/Windows + arm matrix; it must be green.

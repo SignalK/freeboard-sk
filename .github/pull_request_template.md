@@ -40,7 +40,10 @@ See CONTRIBUTING.md / AGENTS.md for the full guidelines.
 ## How was this tested?
 
 <!-- How you verified it. New behaviour should have tests (npm run test:ci).
-     Include before/after screenshots for visible UI changes. -->
+     Add before/after screenshots when how the change looks matters (a new or
+     rearranged layout, a new dialog, something drawn on the map) so a reviewer
+     can judge it without building the branch. Skip them when a sentence says it
+     all: a button beside existing ones, a label, a change in behaviour only. -->
 
 ## Checklist
 
