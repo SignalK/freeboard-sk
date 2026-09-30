@@ -280,3 +280,51 @@ describe('CourseService rejoin the route at a point', () => {
     expect(puts[0].body).toEqual({ value: 2 });
   });
 });
+
+describe('CourseService arrival circle', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const setup = (fail = false) => {
+    const putWithContext = vi.fn(() =>
+      fail ? throwError(() => ({ status: 403 })) : of({})
+    );
+    const parseHttpErrorResponse = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: { api: { putWithContext } } },
+        {
+          provide: AppFacade,
+          useValue: { skApiVersion: 2, parseHttpErrorResponse }
+        },
+        { provide: SKResourceService, useValue: { routes: signal(null) } }
+      ]
+    });
+    return {
+      service: TestBed.inject(CourseService),
+      putWithContext,
+      parseHttpErrorResponse
+    };
+  };
+
+  it('sets the arrival circle of the course being followed', async () => {
+    const { service, putWithContext } = setup();
+
+    expect(await service.setArrivalCircle(50)).toBe(true);
+
+    expect(putWithContext).toHaveBeenCalledWith(
+      2,
+      'self',
+      'navigation/course/arrivalCircle',
+      { value: 50 }
+    );
+  });
+
+  it('reports a refusal', async () => {
+    const { service, parseHttpErrorResponse } = setup(true);
+
+    expect(await service.setArrivalCircle(50)).toBe(false);
+
+    expect(parseHttpErrorResponse).toHaveBeenCalled();
+  });
+});

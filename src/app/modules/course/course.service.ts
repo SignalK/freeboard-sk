@@ -194,6 +194,29 @@ export class CourseService {
   }
 
   /**
+   * @description Set the arrival circle of the course being followed.
+   * @param radius Radius in metres.
+   * @returns Whether the server accepted it; a rejection has already been
+   * reported to the user.
+   */
+  public async setArrivalCircle(radius: number): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.signalk.api.putWithContext(
+          this.app.skApiVersion,
+          'self',
+          'navigation/course/arrivalCircle',
+          { value: radius }
+        )
+      );
+      return true;
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      return false;
+    }
+  }
+
+  /**
    * @description Set destination to the route point with the supplied index,
    * along the route's legs: the leg into it starts at the point before it. That
    * keeps an arrival advance on the planned track, even when the vessel passed

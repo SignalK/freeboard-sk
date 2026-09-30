@@ -44,6 +44,7 @@ import {
   clampCenterOffset
 } from 'src/app/lib/follow-offset';
 import { RadarAPIService, SKRadar } from '../../radar/radar-api.service';
+import { CourseService } from 'src/app/modules/course/course.service';
 import { IAppConfig } from 'src/app/types';
 
 interface PreferredPathsResult {
@@ -108,6 +109,7 @@ export class SettingsDialog implements OnInit {
   private s57 = inject(S57Service);
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);
+  private course = inject(CourseService);
 
   constructor() {
     this.options = new SettingsOptions();
@@ -242,6 +244,19 @@ export class SettingsDialog implements OnInit {
    * Parse entered number value and fall back to default if null.
    * Resultant number value is always positive unless allowNegative = true.
    */
+  /**
+   * The arrival circle is sent with every course Freeboard starts, so a
+   * course already being followed keeps the old one unless it is set there
+   * too.
+   */
+  protected onArrivalCircleChange(e: NgModel) {
+    this.parseNumber(e);
+    const radius = this.facade.settings.course.arrivalCircle;
+    if (this.course.courseData().position && radius > 0) {
+      this.course.setArrivalCircle(radius);
+    }
+  }
+
   parseNumber(e: NgModel, allowNegative?: boolean) {
     if (typeof e.model !== 'number') {
       e.reset(this.fallbackToDefault());

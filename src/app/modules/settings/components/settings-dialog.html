@@ -747,7 +747,7 @@
                         #coursearrivalcircle="ngModel"
                         required
                         [(ngModel)]="facade.settings.course.arrivalCircle"
-                        (change)="parseNumber(coursearrivalcircle)"
+                        (change)="onArrivalCircleChange(coursearrivalcircle)"
                         min="0"
                       />
                       @if(coursearrivalcircle.invalid &&
