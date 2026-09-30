@@ -13,7 +13,8 @@ import { SKResourceService } from 'src/app/modules/skresources/resources.service
 import { CourseService } from './course.service';
 import { TemporaryRouteService } from './temporary-route.service';
 import {
-  TEMPORARY_ROUTE_GRACE_MS,
+  TEMPORARY_ROUTE_KEEP_MS,
+  TemporaryRouteMarker,
   temporaryRouteMarker
 } from './temporary-route';
 
@@ -23,15 +24,21 @@ const POINTS = [
   { position: [23.3, 60.3] as [number, number] }
 ];
 
+const HOUR = 60 * 60 * 1000;
+
 function storedRoute(
   id: string,
-  opts: { temporary?: boolean; ageMs?: number } = {}
+  opts: { temporary?: boolean; ageMs?: number; releasedAgoMs?: number } = {}
 ): FBRoute {
   const properties: { [name: string]: unknown } = {};
   if (opts.temporary) {
-    properties['temporary'] = temporaryRouteMarker(
+    const marker: TemporaryRouteMarker = temporaryRouteMarker(
       new Date(Date.now() - (opts.ageMs ?? 0))
     );
+    if (opts.releasedAgoMs !== undefined) {
+      marker.released = new Date(Date.now() - opts.releasedAgoMs).toISOString();
+    }
+    properties['temporary'] = marker;
   }
   return [
     id,
@@ -48,8 +55,6 @@ function storedRoute(
     true
   ] as FBRoute;
 }
-
-const EXPIRED = TEMPORARY_ROUTE_GRACE_MS + 60_000;
 
 /** Let the async cleanup (course GET, then deletes) run to completion. */
 const settle = async () => {
@@ -70,13 +75,16 @@ function setup() {
   const signalk = {
     api: { get: vi.fn(() => of(serverCourse)) }
   };
+  // Displayed routes (the cache) and every route stored on the server.
   const routes = signal<FBRoute[]>([]);
+  const server = { routes: [] as FBRoute[] };
   const skres = {
     routes,
     fromCache: (_collection: string, id: string) =>
       routes().find((r) => r[0] === id),
     fromServer: vi.fn(() => Promise.reject(new Error('not found'))),
-    listFromServer: vi.fn(() => Promise.resolve([] as FBRoute[])),
+    listFromServer: vi.fn(() => Promise.resolve(server.routes)),
+    putToServer: vi.fn(() => Promise.resolve({})),
     deleteFromServer: vi.fn(() => Promise.resolve()),
     selectionRemove: vi.fn()
   };
@@ -132,6 +140,7 @@ function setup() {
     signalk,
     skres,
     routes,
+    server,
     course,
     plotterExt,
     infoPanel,
@@ -235,33 +244,77 @@ describe('TemporaryRouteService — starting a drawn route', () => {
 describe('TemporaryRouteService — cleaning up', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
-  it('deletes a temporary route once it stops being the active route', async () => {
+  /** Displayed and stored on the server. */
+  const store = (t: ReturnType<typeof setup>, ...rtes: FBRoute[]) => {
+    t.routes.set(rtes);
+    t.server.routes = rtes;
+  };
+
+  it('keeps the most recent temporary route when it stops being followed', async () => {
     const t = setup();
-    t.routes.set([storedRoute('rte-1', { temporary: true })]);
+    store(t, storedRoute('rte-1', { temporary: true, ageMs: HOUR }));
     t.courseUpdate('rte-1');
 
     t.courseUpdate(null);
     await settle();
 
-    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'rte-1');
-    expect(t.skres.selectionRemove).toHaveBeenCalledWith('routes', 'rte-1');
+    expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
+    // stamped with when it stopped, so it expires a day after that
+    expect(t.skres.putToServer).toHaveBeenCalledTimes(1);
+    const [collection, id, route] = t.skres.putToServer.mock
+      .calls[0] as unknown as [string, string, FBRoute[1]];
+    expect([collection, id]).toEqual(['routes', 'rte-1']);
+    const marker = route.feature.properties[
+      'temporary'
+    ] as TemporaryRouteMarker;
+    expect(Date.now() - Date.parse(marker.released)).toBeLessThan(5000);
   });
 
-  it('closes an info panel showing the deleted route', async () => {
+  it('deletes the previous temporary route once a new one replaces it', async () => {
     const t = setup();
-    t.routes.set([storedRoute('rte-1', { temporary: true })]);
-    t.courseUpdate('rte-1');
-    t.infoPanel.item.set({ id: 'rte-1' });
+    // started a minute ago: the grace period does not protect a route that
+    // has been followed
+    store(
+      t,
+      storedRoute('rte-old', { temporary: true, ageMs: 60_000 }),
+      storedRoute('rte-new', { temporary: true })
+    );
+    t.courseUpdate('rte-old');
+    t.infoPanel.item.set({ id: 'rte-old' });
 
-    t.courseUpdate(null);
+    t.setServerActiveRoute('rte-new');
+    t.courseUpdate('rte-new');
     await settle();
 
+    expect(t.skres.deleteFromServer).toHaveBeenCalledTimes(1);
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'rte-old');
+    expect(t.skres.selectionRemove).toHaveBeenCalledWith('routes', 'rte-old');
     expect(t.infoPanel.close).toHaveBeenCalled();
+    expect(t.skres.putToServer).not.toHaveBeenCalled();
   });
 
-  it('keeps it while the server still reports it as the active route', async () => {
+  it('deletes the previous temporary route when a new one is started', async () => {
     const t = setup();
-    t.routes.set([storedRoute('rte-1', { temporary: true })]);
+    // stopped a while ago and kept as the most recent one
+    const previous = storedRoute('rte-prev', {
+      temporary: true,
+      ageMs: 2 * HOUR,
+      releasedAgoMs: HOUR
+    });
+    const draft = t.registry.create({ points: POINTS });
+    t.server.routes = [previous, storedRoute('rte-1', { temporary: true })];
+    t.setServerActiveRoute('rte-1');
+
+    await t.service.start(draft.routeId);
+    await settle();
+
+    expect(t.skres.deleteFromServer).toHaveBeenCalledTimes(1);
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'rte-prev');
+  });
+
+  it('does nothing while the server still reports it as the active route', async () => {
+    const t = setup();
+    store(t, storedRoute('rte-1', { temporary: true }));
     t.courseUpdate('rte-1');
     t.setServerActiveRoute('rte-1');
 
@@ -269,79 +322,67 @@ describe('TemporaryRouteService — cleaning up', () => {
     t.courseUpdate(null);
     await settle();
 
-    expect(t.signalk.api.get).toHaveBeenCalled();
+    expect(t.skres.putToServer).not.toHaveBeenCalled();
     expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
   });
 
-  it('leaves a saved route alone when it stops being the active route', async () => {
+  it('leaves a saved route alone when it stops being followed', async () => {
     const t = setup();
-    t.routes.set([storedRoute('passage')]);
+    store(t, storedRoute('passage'));
     t.courseUpdate('passage');
 
     t.courseUpdate(null);
     await settle();
 
-    expect(t.signalk.api.get).not.toHaveBeenCalled();
+    expect(t.skres.listFromServer).not.toHaveBeenCalled();
     expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
   });
 
-  it('deletes an expired temporary route among the displayed routes', async () => {
+  it('sweeps older temporary routes the user has not selected', async () => {
     const t = setup();
-
-    // The stream never showed this client that the route stopped.
-    t.routes.set([storedRoute('rte-old', { temporary: true, ageMs: EXPIRED })]);
-    TestBed.tick();
-    await settle();
-
-    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'rte-old');
-  });
-
-  it('sweeps expired temporary routes the user has not selected', async () => {
-    const t = setup();
-    t.skres.listFromServer.mockResolvedValue([
-      storedRoute('rte-old', { temporary: true, ageMs: EXPIRED }),
-      storedRoute('rte-new', { temporary: true }),
+    t.server.routes = [
+      storedRoute('rte-older', { temporary: true, ageMs: 3 * HOUR }),
+      storedRoute('rte-latest', {
+        temporary: true,
+        ageMs: 2 * HOUR,
+        releasedAgoMs: HOUR
+      }),
       storedRoute('passage')
-    ]);
+    ];
 
     await t.service.sweep();
-    await settle();
 
     expect(t.skres.listFromServer).toHaveBeenCalledWith('routes');
     expect(t.skres.deleteFromServer).toHaveBeenCalledTimes(1);
-    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'rte-old');
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith(
+      'routes',
+      'rte-older'
+    );
   });
 
-  it('sweeps nothing when the route list is unavailable', async () => {
+  it('sweeps the most recent temporary route a day after it stopped', async () => {
+    const t = setup();
+    t.server.routes = [
+      storedRoute('rte-latest', {
+        temporary: true,
+        ageMs: TEMPORARY_ROUTE_KEEP_MS + 2 * HOUR,
+        releasedAgoMs: TEMPORARY_ROUTE_KEEP_MS + HOUR
+      })
+    ];
+
+    await t.service.sweep();
+
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith(
+      'routes',
+      'rte-latest'
+    );
+  });
+
+  it('sweeps nothing when the server state is unavailable', async () => {
     const t = setup();
     t.skres.listFromServer.mockRejectedValue(new Error('unauthorized'));
 
     await t.service.sweep();
-    await settle();
-
-    expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
-  });
-
-  it('leaves a temporary route that was stored moments ago', async () => {
-    const t = setup();
-
-    // Another Freeboard has stored it and is about to make it active.
-    t.routes.set([storedRoute('rte-new', { temporary: true })]);
-    TestBed.tick();
-    await settle();
-
-    expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
-  });
-
-  it('leaves the active temporary route alone however old it is', async () => {
-    const t = setup();
-    t.setServerActiveRoute('rte-long');
-
-    t.routes.set([
-      storedRoute('rte-long', { temporary: true, ageMs: EXPIRED })
-    ]);
-    TestBed.tick();
-    await settle();
 
     expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
   });
@@ -349,14 +390,13 @@ describe('TemporaryRouteService — cleaning up', () => {
   it('does not retry a delete the server refused', async () => {
     const t = setup();
     t.skres.deleteFromServer.mockRejectedValue(new Error('forbidden'));
-    const left = storedRoute('rte-old', { temporary: true, ageMs: EXPIRED });
+    t.server.routes = [
+      storedRoute('rte-older', { temporary: true, ageMs: 3 * HOUR }),
+      storedRoute('rte-latest', { temporary: true, ageMs: HOUR })
+    ];
 
-    t.routes.set([left]);
-    TestBed.tick();
-    await settle();
-    t.routes.set([left, storedRoute('passage')]);
-    TestBed.tick();
-    await settle();
+    await t.service.sweep();
+    await t.service.sweep();
 
     expect(t.skres.deleteFromServer).toHaveBeenCalledTimes(1);
   });
