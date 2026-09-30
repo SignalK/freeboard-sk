@@ -19,10 +19,13 @@ import {
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
+import { magneticToTrue } from 'src/app/lib/true-bearing';
 import { IAppConfig, PathValue, Position } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
   ORIENTATION_SOURCE_PATHS,
+  magneticPreferenceOrientation,
+  orientationFromPath,
   resolveOrientation
 } from './orientation';
 import {
@@ -1274,6 +1277,8 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
   } else if (v.path === 'navigation.headingMagnetic') {
     d.headingMagnetic = value;
     d.headingMagneticUpdatedAt = Date.now();
+  } else if (v.path === 'navigation.magneticVariation') {
+    d.magneticVariation = value;
   }
 
   // ** orientation **
@@ -1287,7 +1292,10 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
       resolveOrientation(d);
     }
   } else if (v.path === headingPref) {
-    d.orientation = value;
+    d.orientation = orientationFromPath(v.path, value, d.magneticVariation);
+  } else if (v.path === 'navigation.magneticVariation') {
+    d.orientation =
+      magneticPreferenceOrientation(d, headingPref) ?? d.orientation;
   }
 
   // use preferred path value for tws **
@@ -1310,7 +1318,11 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
   }
 
   // ** cog vector **
-  const cog = d.cogTrue ?? d.cogMagnetic ?? undefined;
+  const cog =
+    d.cogTrue ??
+    magneticToTrue(d.cogMagnetic, d.magneticVariation) ??
+    d.cogMagnetic ??
+    undefined;
   if (typeof cog !== 'undefined' && d.position) {
     const cogLen = isSelf
       ? vesselPrefs.selfLines.cog.length

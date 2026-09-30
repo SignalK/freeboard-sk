@@ -197,6 +197,69 @@ describe('skstream.worker processVessel — orientation source (#704)', () => {
   });
 });
 
+// Everything drawn on the chart needs a TRUE angle. A boat that reports only
+// magnetic heading/COG had its icon, heading line and COG vector rotated by the
+// variation; with navigation.magneticVariation they are corrected (#858).
+describe('skstream.worker processVessel — magnetic variation (#858)', () => {
+  const rad = (d: number) => (d * Math.PI) / 180;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('re-orients a magnetic-only heading when the variation arrives', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const vessel = new SKVessel();
+
+    processVessel(
+      vessel,
+      { path: 'navigation.headingMagnetic', value: rad(100) },
+      true
+    );
+    expect(vessel.orientation).toBeCloseTo(rad(100), 9);
+
+    processVessel(
+      vessel,
+      { path: 'navigation.magneticVariation', value: rad(12.8) },
+      true
+    );
+    expect(vessel.magneticVariation).toBe(rad(12.8));
+    expect(vessel.orientation).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('draws a magnetic-only COG vector along the true course', () => {
+    const vessel = new SKVessel();
+    const position = { latitude: -33.855, longitude: 151.225 };
+    processVessel(
+      vessel,
+      { path: 'navigation.magneticVariation', value: rad(12.8) },
+      true
+    );
+    processVessel(
+      vessel,
+      { path: 'navigation.speedOverGround', value: 3 },
+      true
+    );
+    processVessel(
+      vessel,
+      { path: 'navigation.position', value: position },
+      true
+    );
+    processVessel(
+      vessel,
+      { path: 'navigation.courseOverGroundMagnetic', value: rad(77.2) },
+      true
+    );
+
+    const [from, to] = vessel.vectors.cog;
+    const bearing =
+      (Math.atan2((to[0] - from[0]) * Math.cos(rad(from[1])), to[1] - from[1]) *
+        180) /
+      Math.PI;
+    expect(bearing).toBeCloseTo(90, 1);
+  });
+});
+
 // AIS tracks from the v2 Track API (#820) replace a target's track wholesale,
 // so they must not reach appendTrack() for a target with no position yet (it
 // extends the track with the current position), and a server track is kept

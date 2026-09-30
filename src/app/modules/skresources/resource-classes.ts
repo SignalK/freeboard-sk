@@ -279,6 +279,9 @@ export class SKVessel extends SKTargetBase {
   // away), so the two are stamped separately.
   headingTrueUpdatedAt = 0;
   headingMagneticUpdatedAt = 0;
+  // navigation.magneticVariation (radians, easterly positive): derives true
+  // angles for drawing when only magnetic ones are reported (#858)
+  magneticVariation: number = null;
   performance = {
     beatAngle: null,
     gybeAngle: null

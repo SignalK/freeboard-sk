@@ -13,6 +13,7 @@ import { MapComponent, zoomOffsetLevel } from '../map.component';
 import { AISBaseLayerComponent } from './ais-base.component';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { SKVessel } from 'src/app/modules/skresources';
+import { trueWindDirection } from 'src/app/lib/true-bearing';
 
 // ** Signal K AIS Vessel Wind vector  **
 @Component({
@@ -40,13 +41,13 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
 
   // The chart is laid out to true north, so draw from the TRUE wind direction:
   // `wind.direction` follows the true/magnetic display setting and would rotate
-  // the vector by the local variation (#857).
+  // the vector by the local variation (#857, #858).
   calcVector(target: SKVessel) {
     const windDirection = this.vectorApparent
       ? typeof target.wind.awa !== 'undefined'
         ? target.orientation + target.wind.awa
         : null
-      : target.wind.twd;
+      : trueWindDirection(target);
 
     if (typeof windDirection !== 'number') {
       return [];

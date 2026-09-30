@@ -2,6 +2,8 @@ import { expect, describe, it, vi, afterEach } from 'vitest';
 import {
   HEADING_MAX_AGE_MS,
   MIN_COG_SOG,
+  magneticPreferenceOrientation,
+  orientationFromPath,
   resolveOrientation
 } from './orientation';
 import { SKVessel } from '../skresources/resource-classes';
@@ -142,5 +144,132 @@ describe('resolveOrientation — automatic source selection (#704)', () => {
     resolveOrientation(v);
 
     expect(v.orientation).toBe(1.2);
+  });
+});
+
+// Orientation is drawn on a chart laid out to true north, so a magnetic source
+// must be corrected by the magnetic variation when the boat reports one (#858).
+describe('resolveOrientation — magnetic sources corrected by variation (#858)', () => {
+  const NOW = 1_700_000_000_000;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const VAR = rad(12.8);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const vessel = (over: Partial<SKVessel> = {}): SKVessel => {
+    const v = new SKVessel();
+    v.headingMagneticUpdatedAt = NOW;
+    Object.assign(v, over);
+    return v;
+  };
+
+  it('adds the variation to a magnetic heading', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const v = vessel({ headingMagnetic: rad(100), magneticVariation: VAR });
+
+    resolveOrientation(v);
+
+    expect(v.orientation).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('adds the variation to a magnetic COG', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const v = vessel({
+      headingMagneticUpdatedAt: 0,
+      cogMagnetic: rad(100),
+      sog: 5,
+      magneticVariation: VAR
+    });
+
+    resolveOrientation(v);
+
+    expect(v.orientation).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('prefers true COG over corrected magnetic COG', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const v = vessel({
+      headingMagneticUpdatedAt: 0,
+      cogTrue: rad(50),
+      cogMagnetic: rad(100),
+      sog: 5,
+      magneticVariation: VAR
+    });
+
+    resolveOrientation(v);
+
+    expect(v.orientation).toBe(rad(50));
+  });
+});
+
+// An explicit Heading / COG preference is honoured, but a magnetic one is still
+// drawn on a true-north chart, so it is corrected too (#858).
+describe('orientationFromPath — explicit source preference (#858)', () => {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const VAR = rad(12.8);
+
+  it('corrects an explicit magnetic heading', () => {
+    expect(
+      orientationFromPath('navigation.headingMagnetic', rad(100), VAR)
+    ).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('corrects an explicit magnetic COG', () => {
+    expect(
+      orientationFromPath('navigation.courseOverGroundMagnetic', rad(100), VAR)
+    ).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('keeps the magnetic value without variation', () => {
+    expect(
+      orientationFromPath('navigation.headingMagnetic', rad(100), null)
+    ).toBe(rad(100));
+  });
+
+  it('leaves a true path unchanged', () => {
+    expect(orientationFromPath('navigation.headingTrue', rad(100), VAR)).toBe(
+      rad(100)
+    );
+  });
+});
+
+// With an explicit magnetic preference, a variation update must re-orient at
+// once from the stored magnetic value, as automatic resolution does.
+describe('magneticPreferenceOrientation — variation updates (#858)', () => {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const vessel = (over: Partial<SKVessel>) =>
+    Object.assign(new SKVessel(), over);
+
+  it('re-applies a magnetic heading preference with the new variation', () => {
+    const v = vessel({
+      headingMagnetic: rad(100),
+      magneticVariation: rad(12.8)
+    });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.headingMagnetic')
+    ).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('re-applies a magnetic COG preference with the new variation', () => {
+    const v = vessel({ cogMagnetic: rad(100), magneticVariation: rad(-10) });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.courseOverGroundMagnetic')
+    ).toBeCloseTo(rad(90), 9);
+  });
+
+  it('is null for a true preference, which a variation does not affect', () => {
+    const v = vessel({ headingTrue: rad(100), magneticVariation: rad(12.8) });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.headingTrue')
+    ).toBeNull();
+  });
+
+  it('is null before the magnetic value has arrived', () => {
+    const v = vessel({ magneticVariation: rad(12.8) });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.headingMagnetic')
+    ).toBeNull();
   });
 });

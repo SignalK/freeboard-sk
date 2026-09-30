@@ -810,7 +810,7 @@
         [line]="perfTargetAngle()"
         [lineStyle]="featureStyles.targetAngle"
         [position]="app.data.vessels.active.position"
-        [twd]="app.data.vessels.self.wind.twd"
+        [twd]="trueWindDirection(app.data.vessels.self)"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="345"
       >
@@ -819,7 +819,7 @@
         [lines]="perfLaylines()"
         [laylineStyles]="featureStyles.layline"
         [position]="app.data.vessels.active.position"
-        [twd]="app.data.vessels.self.wind.twd"
+        [twd]="trueWindDirection(app.data.vessels.self)"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="330"
       >
@@ -888,7 +888,7 @@
   @if (app.config.vessels.windVectors) {
     <!-- twd: TRUE wind, not wind.direction (follows the true/magnetic display setting, #857) -->
     <fb-wind-lines
-      [twd]="this.dfeat.active.wind.twd"
+      [twd]="trueWindDirection(this.dfeat.active)"
       [tws]="this.dfeat.active.wind.tws"
       [awa]="this.dfeat.active.wind.awa + this.dfeat.active.orientation"
       [aws]="this.dfeat.active.wind.aws"

@@ -16,6 +16,7 @@ import {
   SKPosition
 } from 'src/app/types';
 import { TrackSource } from './track-source';
+import { magneticToTrue } from 'src/app/lib/true-bearing';
 
 export enum SKSTREAM_MODE {
   REALTIME = 0,
@@ -493,10 +494,14 @@ export class SKStreamFacade {
         ? value.wind.mwd
         : value.wind.twd;
 
+      // drawn on a true-north chart: correct magnetic sources by the
+      // target's own variation when it reports one (#858)
       value.orientation =
         value.headingTrue ??
+        magneticToTrue(value.headingMagnetic, value.magneticVariation) ??
         value.headingMagnetic ??
         value.cogTrue ??
+        magneticToTrue(value.cogMagnetic, value.magneticVariation) ??
         value.cogMagnetic ??
         0;
     });

@@ -16,8 +16,13 @@ const variation = 12.8;
 const off = (a: number, b: number) => Math.abs(Angle.difference(a, b));
 
 describe('laylineInput', () => {
-  const self = (twd: number | null, mwd: number | null) => ({
+  const self = (
+    twd: number | null,
+    mwd: number | null,
+    magneticVariation: number | null = null
+  ) => ({
     wind: { twd, mwd, direction: mwd },
+    magneticVariation,
     performance: { beatAngle: rad(40), gybeAngle: rad(150) }
   });
 
@@ -27,6 +32,15 @@ describe('laylineInput', () => {
       vessel,
       mark,
       self(rad(40), rad(40 - variation))
+    );
+    expect(input.twd).toBeCloseTo(rad(40), 9);
+  });
+
+  it('derives true wind from magnetic wind and variation when there is no true wind (#858)', () => {
+    const input = laylineInput(
+      vessel,
+      mark,
+      self(null, rad(40 - variation), rad(variation))
     );
     expect(input.twd).toBeCloseTo(rad(40), 9);
   });
