@@ -1222,6 +1222,22 @@ Two consequences worth planning for, because both cost a rate-limited review:
 Upstream `SignalK/freeboard-sk` is well past the star threshold and reviews
 automatically, so none of this applies there.
 
+### A PR that builds on another unmerged PR: open it as a draft
+
+**The trap.** A pull request from a fork can only target a branch of the upstream
+repository, not your other PR's branch. So a change that depends on an unmerged PR
+has to be opened against `master`, and its diff includes every commit of the PR it
+builds on. Open it as a normal PR and CodeRabbit reviews that code a second time.
+That uses a rate-limited review that the first PR already needed, and it mixes
+findings about both changes on the second PR.
+
+**What to do instead.** Open the dependent PR as a **draft**, and say in the
+description which PR it builds on. CodeRabbit does not review drafts by default. It
+posts *"Draft PR not reviewed"*, and no review is used. Once the first PR is merged,
+rebase the dependent branch onto `master` (the routine rebase force-push), check that
+the diff now contains only its own commits, and mark it ready for review. If no
+review starts, post `@coderabbitai review` as a comment.
+
 ### The Prettier CI gate covers only `ts|html` — don't `prettier --write` the CSS or the docs
 
 **The trap.** CI's format check runs `format:check` =
