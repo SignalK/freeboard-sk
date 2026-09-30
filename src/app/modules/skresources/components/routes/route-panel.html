@@ -190,9 +190,9 @@
             @if (isActive()) {
             <button
               matIconButton
-              matTooltip="Navigate from here"
-              [disabled]="interacting()"
-              (click)="onNavigateFrom($index)"
+              matTooltip="Rejoin here"
+              [disabled]="interacting() || hasUnsavedEdits()"
+              (click)="onRejoin($index)"
             >
               <mat-icon>near_me</mat-icon>
             </button>
@@ -210,8 +210,8 @@
             <button
               matIconButton
               matTooltip="Skip this point"
-              [disabled]="interacting()"
-              (click)="onSkip()"
+              [disabled]="interacting() || hasUnsavedEdits()"
+              (click)="onSkip($index)"
             >
               <mat-icon>skip_next</mat-icon>
             </button>

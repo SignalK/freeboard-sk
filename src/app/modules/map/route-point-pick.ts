@@ -9,6 +9,8 @@ export interface ActiveRoutePoint {
   index: number;
   total: number;
   name?: string;
+  /** [lon, lat] */
+  position?: number[];
   /** Whether this is the point being headed for. */
   isNext: boolean;
 }
@@ -16,32 +18,53 @@ export interface ActiveRoutePoint {
 /** How close a click must be to a route point, in pixels. */
 export const ROUTE_POINT_PICK_PX = { mouse: 10, touch: 20 };
 
+/** Points closer together than this, in pixels, are the same spot. */
+const SAME_SPOT_PX = 1;
+
 /**
- * The index of the route vertex nearest to `click`, if it is within
- * `tolerancePx`; otherwise null. `coordinates` and `click` are in render space
- * (EPSG:3857 metres) and `resolution` is metres per pixel. The x difference is
- * folded into one world width, so a click in another world copy, or on a route
- * stored past ±180°, still finds its vertex.
+ * The indexes of the route vertices at the spot nearest to `click`, if it is
+ * within `tolerancePx`; otherwise empty. A spot can hold more than one vertex,
+ * like the shared start and end of a loop. `coordinates` and `click` are in
+ * render space (EPSG:3857 metres) and `resolution` is metres per pixel. The x
+ * difference is folded into one world width, so a click in another world
+ * copy, or on a route stored past ±180°, still finds its vertex.
  */
-export function pickRoutePoint(
+export function pickRoutePoints(
   coordinates: ReadonlyArray<ReadonlyArray<number>>,
   click: ReadonlyArray<number>,
   resolution: number,
   tolerancePx: number,
   worldWidth: number
-): number | null {
-  let best: number | null = null;
-  let bestPx = tolerancePx;
-  coordinates.forEach(([x, y], i) => {
+): number[] {
+  const px = coordinates.map(([x, y]) => {
     let dx = click[0] - x;
     dx -= Math.round(dx / worldWidth) * worldWidth;
-    const px = Math.hypot(dx, click[1] - y) / resolution;
-    if (px <= bestPx) {
-      best = i;
-      bestPx = px;
-    }
+    return Math.hypot(dx, click[1] - y) / resolution;
   });
-  return best;
+  const nearest = Math.min(...px);
+  if (!(nearest <= tolerancePx)) {
+    return [];
+  }
+  return px
+    .map((d, i) => (d - nearest <= SAME_SPOT_PX ? i : -1))
+    .filter((i) => i !== -1);
+}
+
+/**
+ * Which of several points at one spot a click means, all counted in the order
+ * the route is followed: the one being headed for, else the next one ahead,
+ * else the first.
+ */
+export function preferredRoutePoint(
+  candidates: ReadonlyArray<number>,
+  headingFor: number
+): number {
+  const sorted = [...candidates].sort((a, b) => a - b);
+  return (
+    sorted.find((i) => i === headingFor) ??
+    sorted.find((i) => i > headingFor) ??
+    sorted[0]
+  );
 }
 
 /**

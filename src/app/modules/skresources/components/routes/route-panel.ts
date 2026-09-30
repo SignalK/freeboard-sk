@@ -39,6 +39,7 @@ import { CourseService } from 'src/app/modules/course';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { MatStepperModule } from '@angular/material/stepper';
 import { ActiveResourcePropertiesModal } from '../active-resource-dialog';
+import { editsRouteBuffer } from '../route-reorder.util';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -92,6 +93,13 @@ export class RoutePanel {
   protected isTemporary = computed(() => isTemporaryRoute(this._route()));
   /** Whether this is the route being followed. Read from course data so it
    *  updates when the course changes. */
+  /** Whether this route has edits not yet saved to the server, whose point
+   *  order the Course API follows. */
+  protected hasUnsavedEdits = computed(() => {
+    // live() makes this re-evaluate when a buffer changes.
+    this.routeBuffers.live();
+    return editsRouteBuffer(this.routeBuffers.getForRoute(this.id()));
+  });
   protected isActive = computed(() => {
     this.course.courseData();
     return !!this.id() && this.app.data.activeRoute === this.id();
@@ -274,14 +282,14 @@ export class RoutePanel {
     }
   }
 
-  /** Head straight for point `index` (in the order it is followed), then
-   *  follow the route on. */
-  protected onNavigateFrom(index: number) {
-    this.course.navigateFromRoutePoint(index);
+  /** Rejoin the route at point `index` (in the order it is followed): head
+   *  straight there, then follow the route on. */
+  protected onRejoin(index: number) {
+    this.course.rejoinRouteAt(index);
   }
 
-  protected onSkip() {
-    this.course.skipRoutePoint();
+  protected onSkip(index: number) {
+    this.course.skipRoutePoint(index);
   }
 
   protected async onDelete() {

@@ -758,8 +758,8 @@
         <route-point-popover
           [canClose]="app.config.map.popoverMulti"
           [point]="overlay().routePoint"
-          (navigate)="navigateFromRoutePoint($event); popoverClosed()"
-          (skip)="skipRoutePoint(); popoverClosed()"
+          (rejoin)="rejoinRouteAt($event); popoverClosed()"
+          (skip)="skipRoutePoint($event); popoverClosed()"
           (closed)="popoverClosed()"
         >
         </route-point-popover>

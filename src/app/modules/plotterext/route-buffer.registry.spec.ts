@@ -196,3 +196,24 @@ describe('RouteBufferRegistry', () => {
     expect(reg.live()).toEqual([]);
   });
 });
+
+describe('RouteBufferRegistry.getForRoute', () => {
+  it('finds a stored route mirrored under its own id', () => {
+    const reg = new RouteBufferRegistry();
+    reg.show({ routeId: 'rte-1', href: 'rte-1', points: [] });
+    expect(reg.getForRoute('rte-1')?.routeId).toBe('rte-1');
+  });
+
+  it('finds a route stored from a drawing, still keyed by the drawing', () => {
+    const reg = new RouteBufferRegistry();
+    const { routeId } = reg.create({ points: [{ position: [24.9, 60.1] }] });
+    reg.markSaved(routeId, 'rte-2');
+    const b = reg.getForRoute('rte-2');
+    expect(b?.routeId).toBe(routeId);
+    expect(b?.href).toBe('rte-2');
+  });
+
+  it('finds nothing for a route with no buffer', () => {
+    expect(new RouteBufferRegistry().getForRoute('rte-3')).toBeUndefined();
+  });
+});

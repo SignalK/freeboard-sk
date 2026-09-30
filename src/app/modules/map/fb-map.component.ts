@@ -148,10 +148,12 @@ import { modifiedLegIndex } from './route-modify-leg';
 import {
   ActiveRoutePoint,
   followedPointIndex,
-  pickRoutePoint,
+  pickRoutePoints,
+  preferredRoutePoint,
   ROUTE_POINT_PICK_PX
 } from './route-point-pick';
 import { AppIconDef } from '../icons';
+import { editsRouteBuffer } from '../skresources/components/route-reorder.util';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 import { TidalCurrentsLayerComponent } from './ol/lib/resources/tidal-currents-layer.component';
@@ -1569,13 +1571,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
       index,
       total: c.pointTotal,
       name: c.pointNames?.[stored] || undefined,
+      position: c.activeRoutePoints?.[stored],
       isNext: index === c.pointIndex
     };
   }
 
+  /** Whether the active route has edits not yet saved to the server, whose
+   *  point order the Course API follows. */
+  private activeRouteHasUnsavedEdits(): boolean {
+    return editsRouteBuffer(this.routeBuffers.getForRoute(this.activeRoute));
+  }
+
   /**
    * The point of the active route a click picked, counted in the order the
-   * route is being followed; null for a click on a leg or on another route.
+   * route is being followed; null for a click on a leg, on another route, or
+   * on the active route while it has unsaved edits (its points on screen may
+   * not be the server's).
    */
   private activeRoutePointAt(
     e: FBClickEvent,
@@ -1586,12 +1597,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (
       !this.activeRoute ||
       routeId !== this.activeRoute ||
-      !(geometry instanceof OLLineString)
+      !(geometry instanceof OLLineString) ||
+      this.activeRouteHasUnsavedEdits()
     ) {
       return null;
     }
     const coordinates = geometry.getCoordinates();
-    const index = pickRoutePoint(
+    const candidates = pickRoutePoints(
       coordinates,
       e.coordinate,
       e.map.getView().getResolution(),
@@ -1600,13 +1612,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
         : ROUTE_POINT_PICK_PX.mouse,
       WORLD_WIDTH_3857
     );
-    return index === null
-      ? null
-      : followedPointIndex(
-          index,
+    if (!candidates.length) {
+      return null;
+    }
+    return preferredRoutePoint(
+      candidates.map((i) =>
+        followedPointIndex(
+          i,
           coordinates.length,
           this.app.data.activeRouteReversed
-        );
+        )
+      ),
+      this.course.courseData().pointIndex
+    );
   }
 
   /** Process pointer click in non-interaction mode */
@@ -2553,13 +2571,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.deactivate.emit(this.overlay().id);
   }
 
-  // ** head straight for a point of the active route, or past the next one
-  protected navigateFromRoutePoint(pointIndex: number) {
-    this.course.navigateFromRoutePoint(pointIndex);
+  // ** rejoin the active route at a point, or skip the one being headed for
+  protected rejoinRouteAt(pointIndex: number) {
+    this.course.rejoinRouteAt(pointIndex);
   }
 
-  protected skipRoutePoint() {
-    this.course.skipRoutePoint();
+  protected skipRoutePoint(pointIndex: number) {
+    this.course.skipRoutePoint(pointIndex);
   }
 
   // ** emit info event **

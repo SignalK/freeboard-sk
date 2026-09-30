@@ -216,8 +216,8 @@ export class CourseService {
   }
 
   /**
-   * @description Head straight from the vessel for the active route's point
-   * `pointIndex`, then follow the route on from there. Setting the point
+   * @description Rejoin the active route at its point `pointIndex`: head
+   * straight there from the vessel, then follow the route on. Setting the point
    * alone measures cross-track error along the route's leg into it; the
    * restart starts that leg at the vessel instead.
    * @param pointIndex 0 based index of the route point, in the order the
@@ -225,7 +225,7 @@ export class CourseService {
    * @returns Whether the server accepted both steps; a rejection has already
    * been reported to the user.
    */
-  public async navigateFromRoutePoint(pointIndex: number): Promise<boolean> {
+  public async rejoinRouteAt(pointIndex: number): Promise<boolean> {
     try {
       await firstValueFrom(
         this.signalk.api.putWithContext(
@@ -251,11 +251,13 @@ export class CourseService {
   }
 
   /**
-   * @description Skip the route point being headed for: head straight for the
-   * one after it.
+   * @description Skip route point `pointIndex`, the one being headed for as
+   * the user saw it: head straight for the one after it. Taking the index from
+   * the screen rather than the live course means a skip that crosses an
+   * arrival re-targets the new point instead of skipping it too.
    */
-  public skipRoutePoint(): Promise<boolean> {
-    return this.navigateFromRoutePoint(this.courseData().pointIndex + 1);
+  public skipRoutePoint(pointIndex: number): Promise<boolean> {
+    return this.rejoinRouteAt(pointIndex + 1);
   }
 
   /**
