@@ -24,6 +24,11 @@ interface CpaNotification extends SKNotification {
 @Injectable({ providedIn: 'root' })
 export class NotificationManager {
   private alertMap: Map<string, AlertData>;
+  /** Ids of alerts with an acknowledge / silence request awaiting a reply */
+  private pendingActions = {
+    acknowledged: new Set<string>(),
+    silenced: new Set<string>()
+  };
 
   // signals
   private alertsSignal = signal<AlertItems>([]);
@@ -128,8 +133,10 @@ export class NotificationManager {
         sound: v.method.includes(ALARM_METHOD.sound),
         visual: v.method.includes(ALARM_METHOD.visual),
         properties: {},
-        acknowledged: v.status.acknowledged,
-        silenced: v.status.silenced,
+        // see applyAlertAction()
+        acknowledged:
+          v.status.acknowledged || this.pendingActions.acknowledged.has(v.id),
+        silenced: v.status.silenced || this.pendingActions.silenced.has(v.id),
         icon: {},
         type: undefined,
         canAcknowledge: v.status.canAcknowledge,
@@ -295,7 +302,9 @@ export class NotificationManager {
    * which the `notifications.*` subscription period can hold back for up to a
    * second. Until then the alert's buttons would stay live, and the server
    * rejects a second press with a 400 because the action is already applied.
-   * The local flag is reverted if the request fails.
+   * While the request is in flight, `parse()` keeps the flag set on deltas the
+   * server sent before it applied the action. The flag is reverted if the
+   * request fails.
    * @param path Path of the alert
    * @param action Notifications API action
    * @param flag Alert status flag the action sets
@@ -309,17 +318,25 @@ export class NotificationManager {
     if (!alert || alert[flag] || !this.app.featureFlags().notificationApi) {
       return;
     }
+    const { id } = alert;
+    const pending = this.pendingActions[flag];
+    pending.add(id);
     alert[flag] = true;
     this.emitSignals();
     this.signalk.api
-      .post(this.app.skApiVersion, `notifications/${alert.id}/${action}`, {})
+      .post(this.app.skApiVersion, `notifications/${id}/${action}`, {})
       .subscribe(
         () => {
-          this.app.debug(`${action} ${alert.id}, ${path}`);
+          pending.delete(id);
+          this.app.debug(`${action} ${id}, ${path}`);
         },
         (err: HttpErrorResponse) => {
-          alert[flag] = false;
-          this.emitSignals();
+          pending.delete(id);
+          const current = this.alertMap.get(path);
+          if (current?.id === id) {
+            current[flag] = false;
+            this.emitSignals();
+          }
           this.app.parseHttpErrorResponse(err);
         }
       );

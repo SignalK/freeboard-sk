@@ -176,12 +176,12 @@ describe('NotificationManager alert actions', () => {
     });
   });
 
-  const arrive = () => {
+  const arrive = (id = ID) => {
     const msg = new NotificationMessage();
     msg.result = {
       path: PATH,
       value: {
-        id: ID,
+        id,
         state: ALARM_STATE.alert,
         method: [ALARM_METHOD.visual, ALARM_METHOD.sound],
         message: 'Entered arrival zone: 22m < 100',
@@ -237,6 +237,39 @@ describe('NotificationManager alert actions', () => {
     expect(errors).toEqual([failure]);
     mgr.acknowledge(PATH);
     expect(posts).toHaveLength(2);
+  });
+
+  it('keeps the alert acknowledged when a delta sent before the acknowledgement arrives', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    arrive();
+
+    expect(shown(mgr).acknowledged).toBe(true);
+    mgr.acknowledge(PATH);
+    expect(posts).toHaveLength(1);
+  });
+
+  it('reverts the alert shown after such a delta when the request fails', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    arrive();
+    posts[0].response.error({ status: 400 });
+
+    expect(shown(mgr).acknowledged).toBe(false);
+  });
+
+  it('does not carry a pending acknowledgement to a new notification on the path', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    arrive('0b6c1f7e-3d2a-4c55-9e1b-8a7f6d5c4b3a');
+
+    expect(shown(mgr).acknowledged).toBe(false);
   });
 
   it('sends one request when MUTE is pressed twice before the delta confirms it', () => {
