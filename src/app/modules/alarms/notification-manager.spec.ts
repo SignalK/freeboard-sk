@@ -288,6 +288,18 @@ describe('NotificationManager alert actions', () => {
     expect(shown(mgr).acknowledged).toBe(false);
   });
 
+  it('drops the pending acknowledgement of a notification replaced on the path', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    succeed();
+    arrive({ id: '0b6c1f7e-3d2a-4c55-9e1b-8a7f6d5c4b3a' });
+    arrive();
+
+    expect(shown(mgr).acknowledged).toBe(false);
+  });
+
   it('keeps the alert acknowledged when an unconfirmed delta arrives after the request succeeded', () => {
     const mgr = TestBed.inject(NotificationManager);
     arrive();

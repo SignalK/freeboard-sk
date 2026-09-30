@@ -144,6 +144,10 @@ export class NotificationManager {
     // Test for Notifications API
     if (this.app.featureFlags().notificationApi) {
       const v: SKNotification = msg.value as SKNotification;
+      const replaced = this.alertMap.get(msg.path);
+      if (replaced && replaced.id !== v.id) {
+        this.dropPendingActions(replaced.id);
+      }
       this.settlePendingActions(v);
       alert = {
         id: v.id,
