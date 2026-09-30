@@ -181,4 +181,27 @@ describe('AppComponent', () => {
       expect(activate).not.toHaveBeenCalled();
     });
   });
+  describe('the route stepper', () => {
+    it('heads straight from the vessel for the point it steps to', () => {
+      const c = TestBed.createComponent(AppComponent)
+        .componentInstance as unknown as {
+        routeNextPoint: (pointIndex: number) => void;
+        course: {
+          rejoinRouteAt: (pointIndex: number) => Promise<boolean>;
+          coursePointIndex: (pointIndex: number) => void;
+        };
+      };
+      const rejoin = vi
+        .spyOn(c.course, 'rejoinRouteAt')
+        .mockResolvedValue(true);
+      const alongLeg = vi
+        .spyOn(c.course, 'coursePointIndex')
+        .mockImplementation(() => undefined);
+
+      c.routeNextPoint(2);
+
+      expect(rejoin).toHaveBeenCalledWith(2);
+      expect(alongLeg).not.toHaveBeenCalled();
+    });
+  });
 });
