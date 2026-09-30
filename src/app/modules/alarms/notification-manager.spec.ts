@@ -122,9 +122,10 @@ describe('NotificationManager alert properties (#755)', () => {
 
 /**
  * The server confirms an acknowledge / silence in a notification delta that the
- * `notifications.*` subscription period can hold back for a second. A second
- * press inside that window must not reach the server, which rejects it with a
- * 400 because the alarm is already acknowledged / silenced.
+ * `notifications.*` subscription period can hold back for a second, and deltas
+ * it sent before applying the action can arrive after the request succeeded. A
+ * second press until the confirmation must not reach the server, which rejects
+ * it with a 400 because the alarm is already acknowledged / silenced.
  */
 describe('NotificationManager alert actions', () => {
   const PATH = 'notifications.navigation.course.arrivalCircleEntered';
@@ -176,18 +177,23 @@ describe('NotificationManager alert actions', () => {
     });
   });
 
-  const arrive = (id = ID) => {
+  const arrive = ({
+    id = ID,
+    state = ALARM_STATE.alert,
+    acknowledged = false,
+    silenced = false
+  } = {}) => {
     const msg = new NotificationMessage();
     msg.result = {
       path: PATH,
       value: {
         id,
-        state: ALARM_STATE.alert,
+        state,
         method: [ALARM_METHOD.visual, ALARM_METHOD.sound],
         message: 'Entered arrival zone: 22m < 100',
         status: {
-          silenced: false,
-          acknowledged: false,
+          silenced,
+          acknowledged,
           canSilence: true,
           canAcknowledge: true,
           canClear: false
@@ -195,6 +201,17 @@ describe('NotificationManager alert actions', () => {
       } as SKNotification
     };
     notifications.next(msg);
+  };
+
+  const clear = () => {
+    const msg = new NotificationMessage();
+    msg.result = { path: PATH, value: null };
+    notifications.next(msg);
+  };
+
+  const succeed = (i = 0) => {
+    posts[i].response.next({ state: 'COMPLETED', statusCode: 200 });
+    posts[i].response.complete();
   };
 
   const shown = (mgr: NotificationManager) => mgr.getAlert(PATH);
@@ -217,8 +234,7 @@ describe('NotificationManager alert actions', () => {
 
     mgr.acknowledge(PATH);
     mgr.acknowledge(PATH);
-    posts[0].response.next({ state: 'COMPLETED', statusCode: 200 });
-    posts[0].response.complete();
+    succeed();
     mgr.acknowledge(PATH);
 
     expect(posts).toHaveLength(1);
@@ -267,7 +283,67 @@ describe('NotificationManager alert actions', () => {
     arrive();
 
     mgr.acknowledge(PATH);
-    arrive('0b6c1f7e-3d2a-4c55-9e1b-8a7f6d5c4b3a');
+    arrive({ id: '0b6c1f7e-3d2a-4c55-9e1b-8a7f6d5c4b3a' });
+
+    expect(shown(mgr).acknowledged).toBe(false);
+  });
+
+  it('keeps the alert acknowledged when an unconfirmed delta arrives after the request succeeded', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    succeed();
+    arrive();
+
+    expect(shown(mgr).acknowledged).toBe(true);
+    mgr.acknowledge(PATH);
+    expect(posts).toHaveLength(1);
+  });
+
+  it('shows the server status again once a delta confirms the acknowledgement', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    succeed();
+    arrive({ acknowledged: true });
+    arrive();
+
+    expect(shown(mgr).acknowledged).toBe(false);
+  });
+
+  it('keeps an acknowledgement the server confirmed when the request fails', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    arrive({ acknowledged: true });
+    posts[0].response.error({ status: 400 });
+
+    expect(shown(mgr).acknowledged).toBe(true);
+    expect(errors).toHaveLength(1);
+  });
+
+  it('shows an alarm that escalates while its acknowledgement is pending', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    succeed();
+    arrive({ state: ALARM_STATE.alarm });
+
+    expect(shown(mgr).acknowledged).toBe(false);
+  });
+
+  it('does not carry a pending acknowledgement over the alert clearing', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    succeed();
+    clear();
+    arrive();
 
     expect(shown(mgr).acknowledged).toBe(false);
   });
