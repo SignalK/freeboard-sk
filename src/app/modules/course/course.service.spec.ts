@@ -193,6 +193,97 @@ describe('CourseService course API data (#755)', () => {
 });
 
 /**
+ * The destination flag and its popover are labelled with the name of the point
+ * the route is heading for. Point names are in the order the route is stored,
+ * while the Course API's `pointIndex` counts in the order it is followed (#871).
+ */
+describe('CourseService destination point name', () => {
+  const names = ['Alpha', 'Bravo', 'Charlie', 'Delta'];
+  const route = [
+    'rte-1',
+    {
+      name: 'Reverse test',
+      feature: {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [24.95, 60.15],
+            [24.955, 60.16],
+            [24.95, 60.17],
+            [24.955, 60.18]
+          ]
+        },
+        properties: { coordinatesMeta: names.map((name) => ({ name })) }
+      }
+    }
+  ];
+  const point = (lon: number, lat: number) => ({
+    type: 'RoutePoint' as CoursePointType,
+    position: { longitude: lon, latitude: lat }
+  });
+
+  const destinationName = (pointIndex: number, reverse: boolean) => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: {} },
+        {
+          provide: AppFacade,
+          useValue: {
+            config: { units: { distance: 'naut-mile' } },
+            useMagnetic: false,
+            data: {
+              activeWaypoint: null,
+              activeRoute: null,
+              activeRouteReversed: false
+            }
+          }
+        },
+        {
+          provide: SKResourceService,
+          useValue: {
+            routes: signal(null),
+            fromCache: () => route,
+            routeAddFromServer: () => undefined
+          }
+        }
+      ]
+    });
+    const service = TestBed.inject(CourseService);
+    service.parseSelf({
+      courseApi: {
+        arrivalCircle: 100,
+        activeRoute: {
+          href: '/resources/routes/rte-1',
+          pointIndex,
+          pointTotal: names.length,
+          reverse,
+          name: 'Reverse test'
+        },
+        nextPoint: point(24.95, 60.17),
+        previousPoint: point(24.955, 60.18)
+      },
+      courseCalcs: {}
+    } as unknown as SKVessel);
+    return service.courseData().destPointName;
+  };
+
+  it('names the point being headed for on a route followed in reverse', () => {
+    expect(destinationName(0, true)).toBe('Delta');
+    expect(destinationName(1, true)).toBe('Charlie');
+    expect(destinationName(3, true)).toBe('Alpha');
+  });
+
+  it('names the point being headed for on a route followed forwards', () => {
+    expect(destinationName(0, false)).toBe('Alpha');
+    expect(destinationName(1, false)).toBe('Bravo');
+    expect(destinationName(3, false)).toBe('Delta');
+  });
+});
+
+/**
  * Rejoin the route at a point: the Course API measures cross-track error along
  * the route's leg into the new point, so the course is restarted from the
  * vessel afterwards to head straight for it.

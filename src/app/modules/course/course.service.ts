@@ -8,6 +8,7 @@ import type { PointDestination } from '@signalk/server-api';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Convert } from 'src/app/lib/convert';
+import { followedPointIndex } from '../map/route-point-pick';
 
 // ** Signal K course operations
 @Injectable({ providedIn: 'root' })
@@ -511,7 +512,15 @@ export class CourseService {
         return pt?.name ?? '';
       });
       if (c.pointIndex !== -1 && c.pointIndex < c.pointNames.length) {
-        c.destPointName = c.pointNames[c.pointIndex];
+        // Point names are in the order the route is stored.
+        c.destPointName =
+          c.pointNames[
+            followedPointIndex(
+              c.pointIndex,
+              c.activeRoutePoints.length,
+              this.app.data.activeRouteReversed
+            )
+          ];
       }
     }
     // is route circular?
