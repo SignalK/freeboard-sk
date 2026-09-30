@@ -145,9 +145,12 @@ export class RoutePanel {
     });
 
     effect(() => {
+      // Runs on every course change: the reversed flag is not a signal, and
+      // isActive() only notifies when its own value changes.
       this.course.courseData();
-      if (this.routeReversed !== this.app.data.activeRouteReversed) {
-        this.routeReversed = this.app.data.activeRouteReversed;
+      const reversed = this.listReversed();
+      if (this.routeReversed !== reversed) {
+        this.routeReversed = reversed;
         this.parsePoints();
       }
     });
@@ -184,12 +187,18 @@ export class RoutePanel {
         for (let i = 0; i < legs.length; ++i) {
           r.push(Object.assign({}, legs[i], meta[i]));
         }
-        if (this.app.data.activeRouteReversed) {
+        if (this.listReversed()) {
           r = r.reverse();
         }
         return r;
       });
     }
+  }
+
+  /** Whether the points are listed in reverse: only while this is the active
+   *  route and it is followed in reverse. */
+  private listReversed(): boolean {
+    return this.isActive() && this.app.data.activeRouteReversed;
   }
 
   /** Get bearing and distance for each route leg */
