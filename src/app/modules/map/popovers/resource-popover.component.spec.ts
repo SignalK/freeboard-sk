@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { ResourcePopoverComponent } from './resource-popover.component';
+import { TestBed } from '@angular/core/testing';
+import {
+  ResourcePopoverComponent,
+  ResourceSetPopoverComponent
+} from './resource-popover.component';
+import { AppFacade } from 'src/app/app.facade';
 
 // A minimal route stub — just the fields parseRoute() reads. Built inline
 // rather than importing SKRoute, to avoid pulling a second deep module path
@@ -169,5 +174,35 @@ describe('ResourcePopoverComponent — route Start for unsaved routes', () => {
     const c = popover(true, false, undefined, false);
     expect(c.ctrl.showSaveButton).toBe(true);
     expect(c.ctrl.canActivate).toBe(false);
+  });
+});
+
+/**
+ * The resource set popover's close button follows the "Popovers close with
+ * button" setting, which the map passes as `canClose`.
+ */
+describe('ResourceSetPopoverComponent — close button', () => {
+  const render = (canClose: boolean) => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: AppFacade, useValue: { hostDef: { url: '' } } }]
+    });
+    const fixture = TestBed.createComponent(ResourceSetPopoverComponent);
+    fixture.componentRef.setInput('title', 'Buoys');
+    fixture.componentRef.setInput('resource', {
+      properties: { name: 'Buoys', description: '' }
+    });
+    fixture.componentRef.setInput('canClose', canClose);
+    fixture.detectChanges();
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('mat-icon')
+    ).some((i) => (i.textContent ?? '').trim() === 'close');
+  };
+
+  it('has no close button when the setting is off', () => {
+    expect(render(false)).toBe(false);
+  });
+
+  it('has a close button when the setting is on', () => {
+    expect(render(true)).toBe(true);
   });
 });
