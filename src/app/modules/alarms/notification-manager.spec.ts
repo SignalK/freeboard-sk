@@ -119,3 +119,134 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(alert.properties).toEqual({});
   });
 });
+
+/**
+ * The server confirms an acknowledge / silence in a notification delta that the
+ * `notifications.*` subscription period can hold back for a second. A second
+ * press inside that window must not reach the server, which rejects it with a
+ * 400 because the alarm is already acknowledged / silenced.
+ */
+describe('NotificationManager alert actions', () => {
+  const PATH = 'notifications.navigation.course.arrivalCircleEntered';
+  const ID = '6efdf5cc-bcb2-4b6e-9c8b-dbcd0539822b';
+  let notifications: Subject<NotificationMessage>;
+  let posts: Array<{ path: string; response: Subject<unknown> }>;
+  let errors: unknown[];
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    notifications = new Subject<NotificationMessage>();
+    posts = [];
+    errors = [];
+    TestBed.configureTestingModule({
+      providers: [
+        NotificationManager,
+        {
+          provide: AppFacade,
+          useValue: {
+            featureFlags: signal({ notificationApi: true }),
+            config: {
+              display: { depthAlarm: { enabled: true }, muteSound: true }
+            },
+            data: { vessels: { closest: [] } },
+            skApiVersion: 2,
+            debug: () => undefined,
+            showMessage: () => undefined,
+            parseHttpErrorResponse: (err: unknown) => errors.push(err)
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { notification$: () => notifications.asObservable() }
+        },
+        {
+          provide: SignalKClient,
+          useValue: {
+            api: {
+              post: (_version: number, path: string) => {
+                const response = new Subject<unknown>();
+                posts.push({ path, response });
+                return response.asObservable();
+              }
+            }
+          }
+        },
+        { provide: MatBottomSheet, useValue: {} }
+      ]
+    });
+  });
+
+  const arrive = () => {
+    const msg = new NotificationMessage();
+    msg.result = {
+      path: PATH,
+      value: {
+        id: ID,
+        state: ALARM_STATE.alert,
+        method: [ALARM_METHOD.visual, ALARM_METHOD.sound],
+        message: 'Entered arrival zone: 22m < 100',
+        status: {
+          silenced: false,
+          acknowledged: false,
+          canSilence: true,
+          canAcknowledge: true,
+          canClear: false
+        }
+      } as SKNotification
+    };
+    notifications.next(msg);
+  };
+
+  const shown = (mgr: NotificationManager) => mgr.getAlert(PATH);
+
+  it('shows the alert acknowledged as soon as ACK is pressed', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+
+    expect(posts.map((p) => p.path)).toEqual([
+      `notifications/${ID}/acknowledge`
+    ]);
+    expect(shown(mgr).acknowledged).toBe(true);
+  });
+
+  it('sends one request when ACK is pressed twice before the delta confirms it', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    mgr.acknowledge(PATH);
+    posts[0].response.next({ state: 'COMPLETED', statusCode: 200 });
+    posts[0].response.complete();
+    mgr.acknowledge(PATH);
+
+    expect(posts).toHaveLength(1);
+    expect(errors).toEqual([]);
+  });
+
+  it('reverts the acknowledgement and reports the error when the request fails', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    const failure = { status: 400, error: { message: 'Alarm not found!' } };
+    posts[0].response.error(failure);
+
+    expect(shown(mgr).acknowledged).toBe(false);
+    expect(errors).toEqual([failure]);
+    mgr.acknowledge(PATH);
+    expect(posts).toHaveLength(2);
+  });
+
+  it('sends one request when MUTE is pressed twice before the delta confirms it', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    mgr.silence(PATH);
+
+    expect(posts.map((p) => p.path)).toEqual([`notifications/${ID}/silence`]);
+    expect(shown(mgr).silenced).toBe(true);
+  });
+});

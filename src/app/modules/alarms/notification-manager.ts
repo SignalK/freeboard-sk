@@ -278,25 +278,7 @@ export class NotificationManager {
    * @param path Path of the the alert to acknowledge
    */
   public acknowledge(path: string) {
-    if (this.alertMap.has(path)) {
-      if (this.app.featureFlags().notificationApi) {
-        const alert = this.alertMap.get(path);
-        this.signalk.api
-          .post(
-            this.app.skApiVersion,
-            `notifications/${alert.id}/acknowledge`,
-            {}
-          )
-          .subscribe(
-            () => {
-              this.app.debug(`Acknowledged ${alert.id}, ${path}`);
-            },
-            (err: HttpErrorResponse) => {
-              this.app.parseHttpErrorResponse(err);
-            }
-          );
-      }
-    }
+    this.applyAlertAction(path, 'acknowledge', 'acknowledged');
   }
 
   /**
@@ -304,21 +286,43 @@ export class NotificationManager {
    * @param path Path of the the alert to silence
    */
   public silence(path: string) {
-    if (this.alertMap.has(path)) {
-      const alert = this.alertMap.get(path);
-      if (this.app.featureFlags().notificationApi) {
-        this.signalk.api
-          .post(this.app.skApiVersion, `notifications/${alert.id}/silence`, {})
-          .subscribe(
-            () => {
-              this.app.debug(`Silenced ${alert.id}, ${path}`);
-            },
-            (err: HttpErrorResponse) => {
-              this.app.parseHttpErrorResponse(err);
-            }
-          );
-      }
+    this.applyAlertAction(path, 'silence', 'silenced');
+  }
+
+  /**
+   * @description Send an acknowledge / silence request for an alert and show
+   * its result straight away. The server confirms it in a notification delta,
+   * which the `notifications.*` subscription period can hold back for up to a
+   * second. Until then the alert's buttons would stay live, and the server
+   * rejects a second press with a 400 because the action is already applied.
+   * The local flag is reverted if the request fails.
+   * @param path Path of the alert
+   * @param action Notifications API action
+   * @param flag Alert status flag the action sets
+   */
+  private applyAlertAction(
+    path: string,
+    action: 'acknowledge' | 'silence',
+    flag: 'acknowledged' | 'silenced'
+  ) {
+    const alert = this.alertMap.get(path);
+    if (!alert || alert[flag] || !this.app.featureFlags().notificationApi) {
+      return;
     }
+    alert[flag] = true;
+    this.emitSignals();
+    this.signalk.api
+      .post(this.app.skApiVersion, `notifications/${alert.id}/${action}`, {})
+      .subscribe(
+        () => {
+          this.app.debug(`${action} ${alert.id}, ${path}`);
+        },
+        (err: HttpErrorResponse) => {
+          alert[flag] = false;
+          this.emitSignals();
+          this.app.parseHttpErrorResponse(err);
+        }
+      );
   }
 
   /**
