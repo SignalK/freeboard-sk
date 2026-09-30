@@ -2,6 +2,7 @@ import { expect, describe, it, vi, afterEach } from 'vitest';
 import {
   HEADING_MAX_AGE_MS,
   MIN_COG_SOG,
+  magneticPreferenceOrientation,
   orientationFromPath,
   resolveOrientation
 } from './orientation';
@@ -231,5 +232,44 @@ describe('orientationFromPath — explicit source preference (#858)', () => {
     expect(orientationFromPath('navigation.headingTrue', rad(100), VAR)).toBe(
       rad(100)
     );
+  });
+});
+
+// With an explicit magnetic preference, a variation update must re-orient at
+// once from the stored magnetic value, as automatic resolution does.
+describe('magneticPreferenceOrientation — variation updates (#858)', () => {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const vessel = (over: Partial<SKVessel>) =>
+    Object.assign(new SKVessel(), over);
+
+  it('re-applies a magnetic heading preference with the new variation', () => {
+    const v = vessel({
+      headingMagnetic: rad(100),
+      magneticVariation: rad(12.8)
+    });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.headingMagnetic')
+    ).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('re-applies a magnetic COG preference with the new variation', () => {
+    const v = vessel({ cogMagnetic: rad(100), magneticVariation: rad(-10) });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.courseOverGroundMagnetic')
+    ).toBeCloseTo(rad(90), 9);
+  });
+
+  it('is null for a true preference, which a variation does not affect', () => {
+    const v = vessel({ headingTrue: rad(100), magneticVariation: rad(12.8) });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.headingTrue')
+    ).toBeNull();
+  });
+
+  it('is null before the magnetic value has arrived', () => {
+    const v = vessel({ magneticVariation: rad(12.8) });
+    expect(
+      magneticPreferenceOrientation(v, 'navigation.headingMagnetic')
+    ).toBeNull();
   });
 });

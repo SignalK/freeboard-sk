@@ -102,3 +102,24 @@ export function orientationFromPath(
     ? (magneticToTrue(value, variation) ?? value)
     : value;
 }
+
+/**
+ * Orientation for an explicit magnetic Heading / COG preference, recomputed
+ * from the stored magnetic value when the variation changes, so a new
+ * variation re-orients at once instead of waiting for the next heading delta.
+ * Null when the preference is not magnetic or its value has not arrived.
+ */
+export function magneticPreferenceOrientation(
+  d: SKVessel,
+  path: string
+): number | null {
+  const value =
+    path === 'navigation.headingMagnetic'
+      ? d.headingMagnetic
+      : path === 'navigation.courseOverGroundMagnetic'
+        ? d.cogMagnetic
+        : null;
+  return Number.isFinite(value)
+    ? orientationFromPath(path, value, d.magneticVariation)
+    : null;
+}
