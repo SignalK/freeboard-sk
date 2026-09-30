@@ -8,3 +8,4 @@ export * from './aircraft-popover.component';
 export * from './alarm-popover.component';
 export * from './aton-popover.component';
 export * from './s57-popover.component';
+export * from './route-point-popover.component';

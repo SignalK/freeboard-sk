@@ -22,6 +22,7 @@ import {
 } from '../skresources';
 import { GeoJSONFeature } from 'ol/format/GeoJSON';
 import { AlertData } from '../alarms';
+import { ActiveRoutePoint } from './route-point-pick';
 
 export interface IPopover {
   id: string;
@@ -47,6 +48,7 @@ export interface IPopover {
   meteo?: SKMeteo;
   aircraft?: SKAircraft;
   alarm?: AlertData;
+  routePoint?: ActiveRoutePoint;
   s57Feature?: Record<string, string | number>;
   tidal?: { speedLabel: string; directionLabel: string };
   trackHistory?: {

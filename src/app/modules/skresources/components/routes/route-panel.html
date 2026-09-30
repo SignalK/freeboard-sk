@@ -187,6 +187,16 @@
         @for( point of points(); track point.index) {
         <mat-step state="point" [completed]="true">
           <ng-template matStepLabel>
+            @if (isActive()) {
+            <button
+              matIconButton
+              matTooltip="Rejoin here"
+              [disabled]="interacting() || hasUnsavedEdits()"
+              (click)="onRejoin($index)"
+            >
+              <mat-icon>near_me</mat-icon>
+            </button>
+            } @else {
             <button
               matIconButton
               matTooltip="Start here"
@@ -195,7 +205,17 @@
             >
               <mat-icon>near_me</mat-icon>
             </button>
-            {{point.name}}
+            } {{point.name}} @if (isActive() && $index ===
+            course.courseData().pointIndex && $index < points().length - 1) {
+            <button
+              matIconButton
+              matTooltip="Skip this point"
+              [disabled]="interacting() || hasUnsavedEdits()"
+              (click)="onSkip($index)"
+            >
+              <mat-icon>skip_next</mat-icon>
+            </button>
+            }
           </ng-template>
           <p style="font-size: smaller; padding: 0">
             <span>{{point.bearing}}</span>&nbsp;

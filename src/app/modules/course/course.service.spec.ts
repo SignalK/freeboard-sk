@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { beforeEach, describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { of, throwError } from 'rxjs';
 
 import { CourseService } from './course.service';
 import { SignalKClient } from 'signalk-client-angular';
@@ -188,5 +189,94 @@ describe('CourseService course API data (#755)', () => {
     expect(c.eta).toBeInstanceOf(Date);
     expect(c.eta.toISOString()).toBe('2026-09-18T12:00:00.000Z');
     expect(c.route.eta).toBeNull();
+  });
+});
+
+/**
+ * Rejoin the route at a point: the Course API measures cross-track error along
+ * the route's leg into the new point, so the course is restarted from the
+ * vessel afterwards to head straight for it.
+ */
+describe('CourseService rejoin the route at a point', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const setup = (failPointIndex = false) => {
+    const puts: Array<{ path: string; body: unknown }> = [];
+    const putWithContext = vi.fn(
+      (_version: number, _context: string, path: string, body: unknown) => {
+        puts.push({ path, body });
+        return failPointIndex && path.endsWith('pointIndex')
+          ? throwError(() => ({ status: 400 }))
+          : of({});
+      }
+    );
+    const parseHttpErrorResponse = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: { api: { putWithContext } } },
+        {
+          provide: AppFacade,
+          useValue: { skApiVersion: 2, parseHttpErrorResponse }
+        },
+        { provide: SKResourceService, useValue: { routes: signal(null) } }
+      ]
+    });
+    return {
+      service: TestBed.inject(CourseService),
+      puts,
+      parseHttpErrorResponse
+    };
+  };
+
+  it('sets the point, then restarts the course from the vessel', async () => {
+    const { service, puts } = setup();
+
+    expect(await service.rejoinRouteAt(3)).toBe(true);
+
+    expect(puts).toEqual([
+      {
+        path: 'navigation/course/activeRoute/pointIndex',
+        body: { value: 3 }
+      },
+      { path: 'navigation/course/restart', body: null }
+    ]);
+  });
+
+  it('does not restart when the point is refused', async () => {
+    const { service, puts, parseHttpErrorResponse } = setup(true);
+
+    expect(await service.rejoinRouteAt(3)).toBe(false);
+
+    expect(puts.map((p) => p.path)).toEqual([
+      'navigation/course/activeRoute/pointIndex'
+    ]);
+    expect(parseHttpErrorResponse).toHaveBeenCalled();
+  });
+
+  it('skips to the point after the one shown', async () => {
+    const { service, puts } = setup();
+
+    await service.skipRoutePoint(1);
+
+    expect(puts[0]).toEqual({
+      path: 'navigation/course/activeRoute/pointIndex',
+      body: { value: 2 }
+    });
+  });
+
+  it('only re-targets when the course moved on before the skip landed', async () => {
+    const { service, puts } = setup();
+    // SKIP shown on point 1, but the vessel arrived and the course advanced
+    (
+      service as unknown as {
+        _courseData: { update: (fn: (c: object) => object) => void };
+      }
+    )._courseData.update((c) => ({ ...c, pointIndex: 2 }));
+
+    await service.skipRoutePoint(1);
+
+    // point 2 again, not point 3: the new target is not skipped too
+    expect(puts[0].body).toEqual({ value: 2 });
   });
 });
