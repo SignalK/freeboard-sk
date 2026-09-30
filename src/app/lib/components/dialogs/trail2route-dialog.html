@@ -18,10 +18,13 @@
           min="0.000001"
           max="0.1005"
           step="0.000001"
-          value="tolerance"
           matTooltip="Set tolerance"
         >
-          <input matSliderThumb (valueChange)="changeTolerance($event.value)" />
+          <input
+            matSliderThumb
+            [value]="tolerance"
+            (valueChange)="changeTolerance($event)"
+          />
         </mat-slider>
         &nbsp;Points: {{pointCount}}
       </div>
