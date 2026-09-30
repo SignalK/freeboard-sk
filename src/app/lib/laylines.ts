@@ -47,7 +47,7 @@ export const NO_LAYLINES: Laylines = {
 };
 
 const isPosition = (p: unknown): p is Position =>
-  Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'number';
+  Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]);
 
 /**
  * Select the layline inputs from vessel data, or null when they can't be drawn.
@@ -67,7 +67,7 @@ export function laylineInput(
   if (
     !isPosition(vessel) ||
     !isPosition(mark) ||
-    typeof self.wind.twd !== 'number'
+    !Number.isFinite(self.wind.twd)
   ) {
     return null;
   }
@@ -97,12 +97,12 @@ export function computeLaylines(input: LaylineInput): Laylines {
   const ba_deg = Convert.radiansToDegrees(input.beatAngle ?? Math.PI / 4);
 
   // gybe angle
-  let ga_deg: number;
-  let ga_diff: number;
-  if (typeof input.gybeAngle === 'number') {
-    ga_deg = Convert.radiansToDegrees(input.gybeAngle);
-    ga_diff = 180 - Math.abs(ga_deg);
-  }
+  const ga_deg =
+    typeof input.gybeAngle === 'number'
+      ? Convert.radiansToDegrees(input.gybeAngle)
+      : undefined;
+  const ga_diff =
+    typeof ga_deg === 'number' ? 180 - Math.abs(ga_deg) : undefined;
 
   // mark laylines
   const markLines = (angle: number): LineString => {

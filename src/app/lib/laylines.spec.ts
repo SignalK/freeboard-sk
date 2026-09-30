@@ -106,6 +106,16 @@ describe('computeLaylines', () => {
     expect(off(getGreatCircleBearing(p, mark), downwind + 30)).toBeLessThan(
       0.5
     );
+    // target-angle lines at the mark run back upwind, at the gybe angle
+    // either side of the wind's reciprocal
+    const [a, m, b] = l.targetAngle;
+    expect(m).toEqual(mark);
+    expect(
+      off(getGreatCircleBearing(mark, a as Position), downwind + ga)
+    ).toBeLessThan(0.1);
+    expect(
+      off(getGreatCircleBearing(mark, b as Position), downwind - ga)
+    ).toBeLessThan(0.1);
   });
 
   it('draws nothing downwind without a gybe angle', () => {

@@ -2373,7 +2373,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private buildLaylines() {
     const input =
       this.app.config.vessels.laylines &&
-      typeof this.app.data.vessels.active.heading === 'number'
+      typeof (
+        this.app.data.vessels.active.headingTrue ??
+        this.app.data.vessels.active.headingMagnetic
+      ) === 'number'
         ? laylineInput(
             this.app.data.vessels.active.position,
             this.dfeat.navData.position,
