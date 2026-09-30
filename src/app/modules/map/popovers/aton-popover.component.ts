@@ -12,7 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { NorthUpCompassComponent } from './compass.component';
-import { SKMeteo } from 'src/app/modules';
+import { SKAtoN, SKMeteo } from 'src/app/modules';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import { AppIconDef } from '../../icons';
@@ -106,7 +106,10 @@ import { AppIconDef } from '../../icons';
 })
 export class AtoNPopoverComponent {
   title = input<string>();
-  aton = input<SKMeteo>();
+  /** An AtoN, or a meteo station, which adds wind and temperature. */
+  aton = input<
+    SKAtoN & Partial<Pick<SKMeteo, 'twd' | 'tws' | 'temperature'>>
+  >();
   canClose = input<boolean>();
   info = output<string>();
   closed = output<void>();

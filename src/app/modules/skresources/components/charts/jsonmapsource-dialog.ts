@@ -75,7 +75,7 @@ interface TileJson {
       <mat-dialog-content>
         <mat-form-field floatLabel="always" style="width:100%">
           <mat-label> Map Server host. </mat-label>
-          <input matInput #txturl type="url" required [(value)]="hostUrl" />
+          <input matInput #txturl type="url" required [value]="hostUrl" />
           @if (txturl) {
             <button
               matSuffix
@@ -87,9 +87,6 @@ interface TileJson {
             </button>
           }
           <mat-hint> Enter url of the Map Server. </mat-hint>
-          @if (txturl.invalid) {
-            <mat-error>Map server host url is required!</mat-error>
-          }
         </mat-form-field>
         @if (isFetching) {
           <mat-progress-bar mode="query"></mat-progress-bar>
@@ -128,7 +125,7 @@ interface TileJson {
         }
       </mat-dialog-content>
       @if (provider) {
-        <mat-dialog-actions align="right">
+        <mat-dialog-actions align="end">
           <button mat-raised-button (click)="handleSave()">Save</button>
         </mat-dialog-actions>
       }

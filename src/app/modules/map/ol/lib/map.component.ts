@@ -123,7 +123,8 @@ export class MapComponent implements OnInit, OnDestroy {
     new EventEmitter<FBClickEvent>();
   @Output() mapMoveStart: EventEmitter<MapEvent> =
     new EventEmitter<FBMapEvent>();
-  @Output() mapMoveEnd: EventEmitter<MapEvent> = new EventEmitter<FBMapEvent>();
+  @Output() mapMoveEnd: EventEmitter<FBMapEvent> =
+    new EventEmitter<FBMapEvent>();
   @Output() mapPointerDrag: EventEmitter<FBPointerEvent> =
     new EventEmitter<FBPointerEvent>();
   @Output() mapPointerMove: EventEmitter<FBPointerEvent> =

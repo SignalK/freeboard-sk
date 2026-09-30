@@ -989,15 +989,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Handle right click / touch hold */
   protected onMapRightClick(e: {
     features: FeatureLike[];
-    lonlat: Position;
+    lonlat: Coordinate;
     worldOffset?: number;
   }) {
+    // toLonLat() gives [lon, lat]
+    const lonlat = e.lonlat as Position;
     this.clickWorldOffset = e.worldOffset ?? 0;
-    this.clickMercX = fromLonLat(e.lonlat)[0] + this.clickWorldOffset;
-    this.app.data.map.atClick = e;
+    this.clickMercX = fromLonLat(lonlat)[0] + this.clickWorldOffset;
+    this.app.data.map.atClick = { features: e.features, lonlat };
     this.app.debug(`onRightClick()`, this.app.data.map.atClick);
     if (this.mapInteract.isMeasuring()) {
-      this.parseClickInMeasureMode(e.lonlat);
+      this.parseClickInMeasureMode(lonlat);
     }
   }
 
@@ -2255,11 +2257,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'rset':
         poData.id = id;
         poData.type = t[0];
-        poData.resource = this.skresOther.fromResourceSetCache(id, true);
+        poData.resourceSet = this.skresOther.fromResourceSetCache(id, true);
         poData.title =
-          (poData.resource as GeoJsonFeature)?.properties?.name ??
+          (poData.resourceSet as GeoJsonFeature)?.properties?.name ??
           'Resource Set';
-        poData.show = poData.resource ? true : false;
+        poData.show = poData.resourceSet ? true : false;
         break;
       default:
         return;

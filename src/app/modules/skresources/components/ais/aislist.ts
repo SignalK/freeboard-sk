@@ -43,7 +43,7 @@ import { TrackHistoryService } from 'src/app/modules/skstream/track-history.serv
     MatProgressBar
   ]
 })
-export class AISListComponent extends ResourceListBase {
+export class AISListComponent extends ResourceListBase<FBVessel> {
   focusId = input<string>();
   closed = output<void>();
   properties = output<string>();

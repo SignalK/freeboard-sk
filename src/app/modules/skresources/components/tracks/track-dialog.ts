@@ -77,7 +77,7 @@ interface DialogData {
       </mat-dialog-content>
 
       @if (!readOnly) {
-        <mat-dialog-actions align="right">
+        <mat-dialog-actions align="end">
           <button
             mat-flat-button
             [disabled]="inpname.invalid || readOnly"

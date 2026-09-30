@@ -227,7 +227,7 @@ interface GroupItem {
           }
         </mat-tab-group>
       </mat-dialog-content>
-      <mat-dialog-actions align="left">
+      <mat-dialog-actions align="end">
         <div style="text-align:left;flex: 1;">
           <button
             mat-flat-button

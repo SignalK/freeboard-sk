@@ -20,6 +20,7 @@ import { SimplifyAP } from 'simplify-ts';
 import { SKRoute, SKResourceService, SKStreamFacade } from 'src/app/modules';
 import { AppFacade } from 'src/app/app.facade';
 import { MultiLineString } from 'src/app/types';
+import { Coordinate } from 'src/app/modules/map/ol/lib/models';
 
 @Component({
   selector: 'ap-trail2routedialog',
@@ -46,7 +47,7 @@ import { MultiLineString } from 'src/app/types';
 export class Trail2RouteDialog implements OnInit {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rteFromTrail: any[];
-  mapCenter = [0, 0];
+  mapCenter: Coordinate = [0, 0];
   pointCount = 0;
   incServer = false;
 

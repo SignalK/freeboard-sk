@@ -91,7 +91,7 @@ interface DialogData {
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions align="right">
+      <mat-dialog-actions align="end">
         <button mat-flat-button (click)="dialogRef.close(selZoom)">
           Submit
         </button>

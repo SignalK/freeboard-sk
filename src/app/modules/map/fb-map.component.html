@@ -707,7 +707,7 @@
         <resourceset-popover
           [canClose]="app.config.map.popoverMulti"
           [title]="overlay().title"
-          [resource]="overlay().resource"
+          [resource]="overlay().resourceSet"
           (modify)="modifyFeature(); popoverClosed()"
           (delete)="
             deleteFeature(overlay().id, overlay().type); popoverClosed()

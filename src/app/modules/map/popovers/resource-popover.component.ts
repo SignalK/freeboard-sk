@@ -299,9 +299,10 @@ interface PopoverCtrl {
 export class ResourcePopoverComponent {
   protected readonly mdProcessor = markdownProcessor;
   title = input<string>(); // popover title text
-  resource = input<SKRoute | SKWaypoint | SKNote | SKRegion>();
+  resource = input<[string, SKRoute | SKWaypoint | SKNote | SKRegion]>();
   type = input<string>(); // resource type
-  active = input<boolean>();
+  /** Id of the route or waypoint being followed. */
+  active = input<string>();
   featureCount = input<number>(0);
   units = input<string>('m');
   canClose = input<boolean>();
@@ -317,7 +318,7 @@ export class ResourcePopoverComponent {
   addNote = output<void>();
   activated = output<void>();
   deactivated = output<void>();
-  related = output<void>();
+  related = output<string>();
   info = output<void>();
   closed = output<void>();
   points = output<void>();
@@ -402,6 +403,7 @@ export class ResourcePopoverComponent {
   }
 
   private parseDestination() {
+    const wpt = this.resource()[1] as SKWaypoint;
     this.icon = undefined;
     this.ctrl.isActive = this.app.data.activeRoute ? false : true;
     this.ctrl.activeText = 'GO TO';
@@ -415,25 +417,20 @@ export class ResourcePopoverComponent {
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
     this.properties = [];
-    if (this.resource()[1].name) {
-      this.properties.push(['Name', this.resource()[1].name]);
+    if (wpt.name) {
+      this.properties.push(['Name', wpt.name]);
     }
-    if (this.resource()[1].description) {
-      this.properties.push(['Desc.', this.resource()[1].description]);
+    if (wpt.description) {
+      this.properties.push(['Desc.', wpt.description]);
     }
-    this.properties.push([
-      'Latitude',
-      this.resource()[1].feature.geometry.coordinates[1]
-    ]);
-    this.properties.push([
-      'Longitude',
-      this.resource()[1].feature.geometry.coordinates[0]
-    ]);
+    this.properties.push(['Latitude', wpt.feature.geometry.coordinates[1]]);
+    this.properties.push(['Longitude', wpt.feature.geometry.coordinates[0]]);
     this.hasMarkdown.set(true);
   }
 
   private parseWaypoint() {
-    this.ctrl.isReadOnly = this.resource()[1].feature.properties?.readOnly;
+    const wpt = this.resource()[1] as SKWaypoint;
+    this.ctrl.isReadOnly = wpt.feature.properties?.readOnly;
     this.ctrl.isActive =
       this.active() && this.active() === this.resource()[0] ? true : false;
     this.ctrl.activeText = 'GO TO';
@@ -451,22 +448,17 @@ export class ResourcePopoverComponent {
 
     this.properties = [];
 
-    this.icon = getResourceIcon('waypoints', this.resource()[1]);
-    this._title.set(this.resource()[1].name ?? '');
+    this.icon = getResourceIcon('waypoints', wpt);
+    this._title.set(wpt.name ?? '');
 
-    this.properties.push([
-      'Latitude',
-      this.resource()[1].feature.geometry.coordinates[1]
-    ]);
-    this.properties.push([
-      'Longitude',
-      this.resource()[1].feature.geometry.coordinates[0]
-    ]);
+    this.properties.push(['Latitude', wpt.feature.geometry.coordinates[1]]);
+    this.properties.push(['Longitude', wpt.feature.geometry.coordinates[0]]);
     this.hasMarkdown.set(true);
   }
 
   private parseRoute() {
-    this.ctrl.isReadOnly = this.resource()[1].feature.properties?.readOnly;
+    const rte = this.resource()[1] as SKRoute;
+    this.ctrl.isReadOnly = rte.feature.properties?.readOnly;
     this.ctrl.isActive =
       this.active() && this.active() === this.resource()[0] ? true : false;
     this.ctrl.activeText = 'START';
@@ -485,16 +477,17 @@ export class ResourcePopoverComponent {
     // read-only included — and only disabled while the route is active.
     this.ctrl.showHideButton = true;
 
-    this.icon = getResourceIcon('routes', this.resource()[1]);
-    this._title.set(this.resource()[1].name ?? '');
+    this.icon = getResourceIcon('routes', rte);
+    this._title.set(rte.name ?? '');
     this.properties = [];
-    const d = this.app.formatValueForDisplay(this.resource()[1].distance, 'm');
+    const d = this.app.formatValueForDisplay(rte.distance, 'm');
     this.properties.push(['Distance', d]);
     this.hasMarkdown.set(true);
   }
 
   private parseNote() {
-    this.ctrl.isReadOnly = this.resource()[1].properties?.readOnly;
+    const note = this.resource()[1] as SKNote;
+    this.ctrl.isReadOnly = note.properties?.readOnly;
     this.ctrl.isActive = false;
     this.ctrl.activeText = '';
     this.ctrl.canActivate = false;
@@ -508,27 +501,26 @@ export class ResourcePopoverComponent {
     this.ctrl.showNotesButton = false;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton =
-      this.resource()[1].group && this.app.config.resources.notes.groupNameEdit
+      note.group && this.app.config.resources.notes.groupNameEdit
         ? true
         : false;
 
-    this.icon = getResourceIcon('notes', this.resource()[1]);
-    this._title.set(this.resource()[1].name ?? '');
+    this.icon = getResourceIcon('notes', note);
+    this._title.set(note.name ?? '');
     this.properties = [];
-    this.ctrl.isReadOnly = this.resource()[1].properties?.readOnly;
-    this.hasMarkdown.update(() =>
-      this.resource()[1].mimeType?.includes('markdown')
-    );
+    this.ctrl.isReadOnly = note.properties?.readOnly;
+    this.hasMarkdown.update(() => note.mimeType?.includes('markdown'));
   }
 
   private parseRegion() {
-    this.ctrl.isReadOnly = this.resource()[1].feature.properties?.readOnly;
+    const region = this.resource()[1] as SKRegion;
+    this.ctrl.isReadOnly = region.feature.properties?.readOnly;
     this.ctrl.isActive = false;
     this.ctrl.activeText = '';
     this.ctrl.canActivate = false;
     this.ctrl.showInfoButton = true;
     this.ctrl.showModifyButton =
-      this.resource()[1].feature.geometry.type === 'MultiPolygon'
+      region.feature.geometry.type === 'MultiPolygon'
         ? false
         : !this.ctrl.isReadOnly;
     this.ctrl.showDeleteButton = this.app.useInfoPanel()
@@ -541,8 +533,8 @@ export class ResourcePopoverComponent {
     this.ctrl.showRelatedButton = false;
 
     this.properties = [];
-    this.icon = getResourceIcon('regions', this.resource()[1]);
-    this._title.set(this.resource()[1].name ?? '');
+    this.icon = getResourceIcon('regions', region);
+    this._title.set(region.name ?? '');
     this.hasMarkdown.set(true);
   }
 
@@ -589,7 +581,7 @@ export class ResourcePopoverComponent {
   }
 
   emitRelated() {
-    this.related.emit(this.resource()[1].group);
+    this.related.emit((this.resource()[1] as SKNote).group);
   }
 
   handleClose() {
