@@ -924,6 +924,44 @@ maintainer's tab instead of the agent's.
 - A move that seems to have done nothing in a tab you aren't looking at has most
   likely been held, not dropped.
 
+### The sample data has no true wind — inject it to test laylines and wind overlays
+
+**The trap.** `bin/n2k-from-file` replays `samples/aava-n2k.data`, and its wind is
+**apparent only** (every PGN 130306 frame carries the apparent reference). There is
+no magnetic variation (PGN 127258), no `performance.beatAngle` / `gybeAngle`, and no
+active destination. Anything Freeboard draws from true wind — laylines, the wind
+vectors, any true-vs-magnetic comparison — has nothing to work with. It draws
+nothing, which reads as "the feature is broken" or "my fix did nothing". A
+recorded log of your own boat may lack the same paths.
+
+**What to do instead.** Supply the missing data yourself:
+
+- Set a destination through the Course API
+  (`PUT /signalk/v2/api/vessels/self/navigation/course/destination` with
+  `{"position": {"latitude": …, "longitude": …}}`).
+- Push the missing paths into the server's stream from a small Node client (the `ws` package),
+  about once a second, with a token from `POST /signalk/v1/auth/login`:
+
+  ```js
+  const ws = new WebSocket(`ws://localhost:3000/signalk/v1/stream?subscribe=none&token=${token}`);
+  const rad = (d) => (d * Math.PI) / 180;
+  const VAR = 12.8, TWD = 30; // a large variation makes true/magnetic mix-ups obvious
+  ws.on('open', () => setInterval(() => ws.send(JSON.stringify({
+    context: 'vessels.self',
+    updates: [{ values: [
+      { path: 'navigation.magneticVariation', value: rad(VAR) },
+      { path: 'environment.wind.directionTrue', value: rad(TWD) },
+      { path: 'environment.wind.directionMagnetic', value: rad(TWD - VAR) },
+      { path: 'environment.wind.speedTrue', value: 7 },
+      { path: 'performance.beatAngle', value: rad(45) },
+      { path: 'performance.gybeAngle', value: rad(150) }
+    ] }]
+  })), 1000));
+  ```
+
+- Injected values stay in the server's state after the client stops, until the
+  server restarts. Tell whoever owns the server what you left behind.
+
 ### Tile-layer image loads are invisible to Resource Timing — and a cache hit looks like "never fired"
 
 **The trap.** Verifying that a raster chart re-fetches its tiles (auto-refresh,
