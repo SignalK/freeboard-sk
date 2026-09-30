@@ -809,7 +809,7 @@
         [line]="perfTargetAngle()"
         [lineStyle]="featureStyles.targetAngle"
         [position]="app.data.vessels.active.position"
-        [twd]="app.data.vessels.self.wind.direction"
+        [twd]="app.data.vessels.self.wind.twd"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="345"
       >
@@ -818,7 +818,7 @@
         [lines]="perfLaylines()"
         [laylineStyles]="featureStyles.layline"
         [position]="app.data.vessels.active.position"
-        [twd]="app.data.vessels.self.wind.direction"
+        [twd]="app.data.vessels.self.wind.twd"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="330"
       >

@@ -41,14 +41,19 @@ import {
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
-import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
+import { getGreatCircleBearing } from 'geolib';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
-import { GeoUtils, Angle } from 'src/app/lib/geoutils';
+import { GeoUtils } from 'src/app/lib/geoutils';
+import {
+  computeLaylines,
+  laylineInput,
+  NO_LAYLINES
+} from 'src/app/lib/laylines';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
@@ -109,7 +114,6 @@ import {
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import { SKPosition } from 'src/app/types';
 import {
   FBClickEvent,
   FBMapEvent,
@@ -2367,167 +2371,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** calculate vessel & dest laylines & update signals */
   private buildLaylines() {
-    if (
+    const input =
       this.app.config.vessels.laylines &&
-      Array.isArray(this.dfeat.navData.position) &&
-      typeof this.dfeat.navData.position[0] === 'number' &&
       typeof this.app.data.vessels.active.heading === 'number'
-    ) {
-      const twd_deg = Convert.radiansToDegrees(
-        this.app.data.vessels.self.wind.direction ?? 0
-      );
-
-      const twd_inv = Angle.add(twd_deg, 180);
-
-      const destUpwind =
-        Math.abs(
-          Angle.difference(this.course.courseData().bearing.value, twd_deg)
-        ) < 90;
-
-      // beat angle
-      const ba_deg = Convert.radiansToDegrees(
-        this.app.data.vessels.self.performance.beatAngle ?? Math.PI / 4
-      );
-
-      // gybe angle
-      let ga_deg: number;
-      let ga_diff: number;
-      if (
-        typeof this.app.data.vessels.self.performance.gybeAngle === 'number'
-      ) {
-        ga_deg = Convert.radiansToDegrees(
-          this.app.data.vessels.self.performance.gybeAngle
-        );
-        ga_diff = 180 - Math.abs(ga_deg);
-      }
-
-      const destInTarget = destUpwind
-        ? Math.abs(
-            Angle.difference(this.course.courseData().bearing.value, twd_deg)
-          ) < ba_deg
-        : Math.abs(
-            Angle.difference(this.course.courseData().bearing.value, twd_inv)
-          ) < (ga_diff ?? 0);
-
-      const dtg =
-        this.app.config.units.distance === 'kilometer'
-          ? this.course.courseData().dtg * 1000
-          : Convert.nauticalMilesToKm(this.course.courseData().dtg * 1000);
-
-      // mark laylines
-      let markLines = [];
-      if (destUpwind) {
-        const bapt1 = computeDestinationPoint(
-          this.dfeat.navData.position,
-          dtg,
-          Angle.add(twd_inv, ba_deg)
-        );
-        const bapt2 = computeDestinationPoint(
-          this.dfeat.navData.position,
-          dtg,
-          Angle.add(twd_inv, 0 - ba_deg)
-        );
-
-        markLines = [
-          [bapt1.longitude, bapt1.latitude],
-          this.dfeat.navData.position,
-          [bapt2.longitude, bapt2.latitude]
-        ];
-      } else if (typeof ga_deg === 'number') {
-        const gapt1 = computeDestinationPoint(
-          this.dfeat.navData.position,
-          dtg,
-          Angle.add(twd_inv, ga_deg)
-        );
-        const gapt2 = computeDestinationPoint(
-          this.dfeat.navData.position,
-          dtg,
-          Angle.add(twd_inv, 0 - ga_deg)
-        );
-
-        markLines = [
-          [gapt1.longitude, gapt1.latitude],
-          this.dfeat.navData.position,
-          [gapt2.longitude, gapt2.latitude]
-        ];
-      }
-
-      this.perfTargetAngle.update(() => markLines);
-
-      // vessel laylines
-      if (destInTarget) {
-        const hbd_deg = Angle.difference(
-          twd_deg,
-          this.course.courseData().bearing.value
-        );
-        // Vector lengths
-        let b: number;
-        let c: number;
-        // intersection points
-        let ipts: SKPosition;
-        let iptp: SKPosition;
-
-        if (destUpwind) {
-          // Vector angles
-          const C_RAD = Convert.degreesToRadians(ba_deg - hbd_deg);
-          const B_RAD = Convert.degreesToRadians(ba_deg + hbd_deg);
-          const A_RAD = Math.PI - (B_RAD + C_RAD);
-          b = (dtg * Math.sin(B_RAD)) / Math.sin(A_RAD);
-          c = (dtg * Math.sin(C_RAD)) / Math.sin(A_RAD);
-          // intersection points
-          ipts = computeDestinationPoint(
+        ? laylineInput(
             this.app.data.vessels.active.position,
-            b,
-            Angle.add(twd_deg, ba_deg)
-          );
-          iptp = computeDestinationPoint(
-            this.app.data.vessels.active.position,
-            c,
-            Angle.add(twd_deg, 0 - ba_deg)
-          );
-        } else {
-          // downwind
-          if (markLines.length !== 0 && typeof ga_diff === 'number') {
-            // Vector angles
-            const C_RAD = Convert.degreesToRadians(ga_diff - hbd_deg);
-            const B_RAD = Convert.degreesToRadians(ga_diff + hbd_deg);
-            const A_RAD = Math.PI - (B_RAD + C_RAD);
-            b = (dtg * Math.sin(B_RAD)) / Math.sin(A_RAD);
-            c = (dtg * Math.sin(C_RAD)) / Math.sin(A_RAD);
-            // intersection points
-            ipts = computeDestinationPoint(
-              this.app.data.vessels.active.position,
-              b,
-              Angle.add(twd_deg, ga_diff)
-            );
-            iptp = computeDestinationPoint(
-              this.app.data.vessels.active.position,
-              c,
-              Angle.add(twd_deg, 0 - ga_diff)
-            );
-          }
-        }
-
-        this.perfLaylines.update(() => {
-          return {
-            port: [
-              [
-                [iptp.longitude, iptp.latitude],
-                this.app.data.vessels.active.position
-              ],
-              [
-                [ipts.longitude, ipts.latitude],
-                this.app.data.vessels.active.position
-              ]
-            ],
-            starboard: [
-              [[ipts.longitude, ipts.latitude], markLines[1]],
-              [markLines[1], [iptp.longitude, iptp.latitude]]
-            ]
-          };
-        });
-      }
-    }
+            this.dfeat.navData.position,
+            this.app.data.vessels.self
+          )
+        : null;
+    const laylines = input ? computeLaylines(input) : NO_LAYLINES;
+    this.perfTargetAngle.set(laylines.targetAngle);
+    this.perfLaylines.set({
+      port: laylines.port,
+      starboard: laylines.starboard
+    });
   }
 
   // ********************
