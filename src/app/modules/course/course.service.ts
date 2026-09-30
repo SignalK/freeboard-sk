@@ -216,6 +216,49 @@ export class CourseService {
   }
 
   /**
+   * @description Head straight from the vessel for the active route's point
+   * `pointIndex`, then follow the route on from there. Setting the point
+   * alone measures cross-track error along the route's leg into it; the
+   * restart starts that leg at the vessel instead.
+   * @param pointIndex 0 based index of the route point, in the order the
+   * route is being followed.
+   * @returns Whether the server accepted both steps; a rejection has already
+   * been reported to the user.
+   */
+  public async navigateFromRoutePoint(pointIndex: number): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.signalk.api.putWithContext(
+          this.app.skApiVersion,
+          'self',
+          'navigation/course/activeRoute/pointIndex',
+          { value: pointIndex }
+        )
+      );
+      await firstValueFrom(
+        this.signalk.api.putWithContext(
+          this.app.skApiVersion,
+          'self',
+          'navigation/course/restart',
+          null
+        )
+      );
+      return true;
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      return false;
+    }
+  }
+
+  /**
+   * @description Skip the route point being headed for: head straight for the
+   * one after it.
+   */
+  public skipRoutePoint(): Promise<boolean> {
+    return this.navigateFromRoutePoint(this.courseData().pointIndex + 1);
+  }
+
+  /**
    * @description Process self vessel course data and update signal(s)
    * @param self vessel
    */
