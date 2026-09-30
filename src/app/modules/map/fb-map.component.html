@@ -886,7 +886,7 @@
   }
   @if (app.config.vessels.windVectors) {
     <fb-wind-lines
-      [twd]="this.dfeat.active.wind.direction"
+      [twd]="this.dfeat.active.wind.twd"
       [tws]="this.dfeat.active.wind.tws"
       [awa]="this.dfeat.active.wind.awa + this.dfeat.active.orientation"
       [aws]="this.dfeat.active.wind.aws"
