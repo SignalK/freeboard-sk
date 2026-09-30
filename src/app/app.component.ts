@@ -1636,8 +1636,9 @@ export class AppComponent {
   }
 
   // ** Increment / decrement next active route point **
+  // Stepping is a manual skip, so like Skip it heads straight from the vessel.
   protected routeNextPoint(pointIndex: number) {
-    this.course.coursePointIndex(pointIndex);
+    this.course.rejoinRouteAt(pointIndex);
     this.focusMap();
   }
 

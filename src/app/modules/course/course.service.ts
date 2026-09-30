@@ -194,7 +194,11 @@ export class CourseService {
   }
 
   /**
-   * @description Set destination to the route point with the supplied index.
+   * @description Set destination to the route point with the supplied index,
+   * along the route's legs: the leg into it starts at the point before it. That
+   * keeps an arrival advance on the planned track, even when the vessel passed
+   * the point off to one side; to head straight from the vessel, use
+   * rejoinRouteAt.
    * @param pointIndex 0 based index of route point.
    */
   public coursePointIndex(pointIndex: number) {
