@@ -605,7 +605,7 @@ export class ResourcePopoverComponent {
     <ap-popover
       [title]="title()"
       [icon]="icon"
-      [canClose]="canClose"
+      [canClose]="canClose()"
       (closed)="handleClose()"
     >
       @for (p of properties; track p) {

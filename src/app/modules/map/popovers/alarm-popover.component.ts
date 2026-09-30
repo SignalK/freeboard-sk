@@ -28,7 +28,7 @@ import { AlertData } from '../../alarms';
   template: `
     <ap-popover
       [title]="_title"
-      [canClose]="canClose"
+      [canClose]="canClose()"
       [icon]="alarm().icon"
       (closed)="handleClose()"
     >
