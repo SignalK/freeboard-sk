@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
+import { Feature } from 'ol';
+import { LineString } from 'ol/geom';
+import VectorSource from 'ol/source/Vector';
 import { AISWindLayerComponent } from './layer-aiswind.component';
 import { SKVessel } from 'src/app/modules/skresources';
 import { Convert } from 'src/app/lib/convert';
@@ -53,5 +56,29 @@ describe('AISWindLayerComponent.calcVector (#857)', () => {
 
   it('draws no true-wind vector without a true wind direction', () => {
     expect(layer().calcVector(target(null, rad(17)))).toEqual([]);
+  });
+});
+
+describe('AISWindLayerComponent.onUpdateTargets', () => {
+  it('removes a drawn vector once the target has no direction for it', () => {
+    const id = 'vessels.urn:mrn:imo:mmsi:503999001';
+    const c = layer(true);
+    const t = target(null, rad(17));
+    (t as unknown as { wind: { awa: number } }).wind.awa = rad(60);
+    const source = new VectorSource();
+    Object.assign(c, {
+      targetContext: 'vessels',
+      targets: new Map([[id, t]]),
+      source
+    });
+    const f = new Feature(new LineString(c.calcVector(t)));
+    f.setId('wind-' + id);
+    source.addFeature(f);
+
+    // switch to true-wind vectors: this target reports no true wind
+    c.vectorApparent = false;
+    c.onUpdateTargets([id]);
+
+    expect(source.getFeatureById('wind-' + id)).toBeNull();
   });
 });
