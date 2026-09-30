@@ -24,6 +24,7 @@ import { IAppConfig, PathValue, Position } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
   ORIENTATION_SOURCE_PATHS,
+  orientationFromPath,
   resolveOrientation
 } from './orientation';
 import {
@@ -1290,7 +1291,7 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
       resolveOrientation(d);
     }
   } else if (v.path === headingPref) {
-    d.orientation = value;
+    d.orientation = orientationFromPath(v.path, value, d.magneticVariation);
   }
 
   // use preferred path value for tws **

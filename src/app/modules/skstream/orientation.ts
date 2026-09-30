@@ -82,3 +82,23 @@ export function resolveOrientation(d: SKVessel) {
     d.orientation = cog;
   }
 }
+
+const MAGNETIC_ORIENTATION_PATHS = new Set([
+  'navigation.headingMagnetic',
+  'navigation.courseOverGroundMagnetic'
+]);
+
+/**
+ * Orientation from an explicitly selected source path. The path is honoured,
+ * but a magnetic value is still corrected to true when variation is reported:
+ * it is drawn on a chart laid out to true north (#858).
+ */
+export function orientationFromPath(
+  path: string,
+  value: number,
+  variation: number | null
+): number {
+  return MAGNETIC_ORIENTATION_PATHS.has(path)
+    ? (magneticToTrue(value, variation) ?? value)
+    : value;
+}

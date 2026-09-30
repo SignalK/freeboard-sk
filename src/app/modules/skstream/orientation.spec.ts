@@ -2,6 +2,7 @@ import { expect, describe, it, vi, afterEach } from 'vitest';
 import {
   HEADING_MAX_AGE_MS,
   MIN_COG_SOG,
+  orientationFromPath,
   resolveOrientation
 } from './orientation';
 import { SKVessel } from '../skresources/resource-classes';
@@ -199,5 +200,36 @@ describe('resolveOrientation — magnetic sources corrected by variation (#858)'
     resolveOrientation(v);
 
     expect(v.orientation).toBe(rad(50));
+  });
+});
+
+// An explicit Heading / COG preference is honoured, but a magnetic one is still
+// drawn on a true-north chart, so it is corrected too (#858).
+describe('orientationFromPath — explicit source preference (#858)', () => {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const VAR = rad(12.8);
+
+  it('corrects an explicit magnetic heading', () => {
+    expect(
+      orientationFromPath('navigation.headingMagnetic', rad(100), VAR)
+    ).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('corrects an explicit magnetic COG', () => {
+    expect(
+      orientationFromPath('navigation.courseOverGroundMagnetic', rad(100), VAR)
+    ).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('keeps the magnetic value without variation', () => {
+    expect(
+      orientationFromPath('navigation.headingMagnetic', rad(100), null)
+    ).toBe(rad(100));
+  });
+
+  it('leaves a true path unchanged', () => {
+    expect(orientationFromPath('navigation.headingTrue', rad(100), VAR)).toBe(
+      rad(100)
+    );
   });
 });

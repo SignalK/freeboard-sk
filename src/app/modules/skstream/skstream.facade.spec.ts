@@ -31,6 +31,20 @@ describe('SKStreamFacade.parseVesselOther — AIS target orientation', () => {
     ).toBe(Math.PI / 4);
   });
 
+  // a buddy relayed over signalk-to-signalk may report only magnetic values
+  // and its variation; the icon must then agree with its corrected COG vector
+  it('corrects a magnetic-only heading by the target variation (#858)', () => {
+    expect(
+      orientationOf(vessel({ headingMagnetic: 1, magneticVariation: 0.2 }))
+    ).toBeCloseTo(1.2, 9);
+  });
+
+  it('corrects a magnetic-only COG by the target variation (#858)', () => {
+    expect(
+      orientationOf(vessel({ cogMagnetic: 1, magneticVariation: 0.2 }))
+    ).toBeCloseTo(1.2, 9);
+  });
+
   it('falls back to COG when no heading is reported', () => {
     expect(
       orientationOf(
