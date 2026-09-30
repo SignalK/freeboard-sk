@@ -2,6 +2,7 @@
 Vessel orientation source resolution
 ***********************************/
 import { SKVessel } from 'src/app/modules/skresources/resource-classes';
+import { magneticToTrue } from 'src/app/lib/true-bearing';
 
 /** `preferredPaths.heading` value selecting automatic orientation resolution. */
 export const AUTO_ORIENTATION = 'auto';
@@ -30,7 +31,8 @@ export const ORIENTATION_SOURCE_PATHS = new Set([
   'navigation.headingMagnetic',
   'navigation.courseOverGroundTrue',
   'navigation.courseOverGroundMagnetic',
-  'navigation.speedOverGround'
+  'navigation.speedOverGround',
+  'navigation.magneticVariation'
 ]);
 
 /**
@@ -49,6 +51,10 @@ export const ORIENTATION_SOURCE_PATHS = new Set([
  * When nothing qualifies the previous orientation is held rather than reset:
  * the bow has not moved, and freezing avoids the oscillation a boat drifting
  * across the SOG threshold would otherwise show.
+ *
+ * Orientation is drawn on a chart laid out to true north, so a magnetic source
+ * is corrected by the magnetic variation when one is reported (#858). Without
+ * variation the magnetic value is still the best available.
  */
 export function resolveOrientation(d: SKVessel) {
   const now = Date.now();
@@ -63,10 +69,15 @@ export function resolveOrientation(d: SKVessel) {
     d.headingMagnetic !== null &&
     now - d.headingMagneticUpdatedAt <= HEADING_MAX_AGE_MS
   ) {
-    d.orientation = d.headingMagnetic;
+    d.orientation =
+      magneticToTrue(d.headingMagnetic, d.magneticVariation) ??
+      d.headingMagnetic;
     return;
   }
-  const cog = d.cogTrue ?? d.cogMagnetic;
+  const cog =
+    d.cogTrue ??
+    magneticToTrue(d.cogMagnetic, d.magneticVariation) ??
+    d.cogMagnetic;
   if (typeof cog === 'number' && (d.sog ?? 0) >= MIN_COG_SOG) {
     d.orientation = cog;
   }

@@ -54,6 +54,7 @@ import {
   laylineInput,
   NO_LAYLINES
 } from 'src/app/lib/laylines';
+import { trueWindDirection } from 'src/app/lib/true-bearing';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
@@ -285,6 +286,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   });
 
   protected olMapControls = mapControls;
+  protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
   protected mapZoomText = computed(() => zoomDisplayText(this.mapZoomLevel()));

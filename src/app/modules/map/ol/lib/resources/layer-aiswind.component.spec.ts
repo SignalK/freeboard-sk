@@ -32,10 +32,15 @@ function layer(vectorApparent = false) {
 const position: [number, number] = [151.225, -33.855];
 const variation = 12.8;
 
-function target(twd: number | null, mwd: number | null): SKVessel {
+function target(
+  twd: number | null,
+  mwd: number | null,
+  magneticVariation: number | null = null
+): SKVessel {
   return {
     position,
     orientation: 0,
+    magneticVariation,
     // with useMagnetic on, wind.direction carries the magnetic value
     wind: { twd, mwd, direction: mwd }
   } as unknown as SKVessel;
@@ -50,6 +55,14 @@ function vectorBearing(v: number[][]) {
 describe('AISWindLayerComponent.calcVector (#857)', () => {
   it('draws the true-wind vector from true wind direction when the display is magnetic', () => {
     const v = layer().calcVector(target(rad(30), rad(30 - variation)));
+    expect(v).toHaveLength(2);
+    expect(Math.abs(Angle.difference(vectorBearing(v), 30))).toBeLessThan(0.1);
+  });
+
+  it('derives the true-wind vector from magnetic wind and variation (#858)', () => {
+    const v = layer().calcVector(
+      target(null, rad(30 - variation), rad(variation))
+    );
     expect(v).toHaveLength(2);
     expect(Math.abs(Angle.difference(vectorBearing(v), 30))).toBeLessThan(0.1);
   });

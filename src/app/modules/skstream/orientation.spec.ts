@@ -144,3 +144,60 @@ describe('resolveOrientation — automatic source selection (#704)', () => {
     expect(v.orientation).toBe(1.2);
   });
 });
+
+// Orientation is drawn on a chart laid out to true north, so a magnetic source
+// must be corrected by the magnetic variation when the boat reports one (#858).
+describe('resolveOrientation — magnetic sources corrected by variation (#858)', () => {
+  const NOW = 1_700_000_000_000;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const VAR = rad(12.8);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const vessel = (over: Partial<SKVessel> = {}): SKVessel => {
+    const v = new SKVessel();
+    v.headingMagneticUpdatedAt = NOW;
+    Object.assign(v, over);
+    return v;
+  };
+
+  it('adds the variation to a magnetic heading', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const v = vessel({ headingMagnetic: rad(100), magneticVariation: VAR });
+
+    resolveOrientation(v);
+
+    expect(v.orientation).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('adds the variation to a magnetic COG', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const v = vessel({
+      headingMagneticUpdatedAt: 0,
+      cogMagnetic: rad(100),
+      sog: 5,
+      magneticVariation: VAR
+    });
+
+    resolveOrientation(v);
+
+    expect(v.orientation).toBeCloseTo(rad(112.8), 9);
+  });
+
+  it('prefers true COG over corrected magnetic COG', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const v = vessel({
+      headingMagneticUpdatedAt: 0,
+      cogTrue: rad(50),
+      cogMagnetic: rad(100),
+      sog: 5,
+      magneticVariation: VAR
+    });
+
+    resolveOrientation(v);
+
+    expect(v.orientation).toBe(rad(50));
+  });
+});

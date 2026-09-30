@@ -17,6 +17,7 @@ import {
 } from 'geolib';
 import { Convert } from './convert';
 import { Angle } from './geoutils';
+import { trueWindDirection } from './true-bearing';
 import { LineString, MultiLineString, Position } from '../types';
 
 export interface LaylineInput {
@@ -52,29 +53,28 @@ const isPosition = (p: unknown): p is Position =>
 /**
  * Select the layline inputs from vessel data, or null when they can't be drawn.
  *
- * Reads `wind.twd`, never `wind.direction` — the latter follows the
- * true/magnetic display setting. With no true wind direction the laylines are
- * skipped rather than drawn for an assumed wind.
+ * Reads the TRUE wind direction, never `wind.direction` — the latter follows
+ * the true/magnetic display setting. True wind is `wind.twd`, else magnetic
+ * wind corrected by the magnetic variation (#858). With neither the laylines
+ * are skipped rather than drawn for an assumed wind.
  */
 export function laylineInput(
   vessel: Position | null | undefined,
   mark: Position | null | undefined,
   self: {
-    wind: { twd: number | null };
+    wind: { twd: number | null; mwd?: number | null };
+    magneticVariation?: number | null;
     performance: { beatAngle: number | null; gybeAngle: number | null };
   }
 ): LaylineInput | null {
-  if (
-    !isPosition(vessel) ||
-    !isPosition(mark) ||
-    !Number.isFinite(self.wind.twd)
-  ) {
+  const twd = trueWindDirection(self);
+  if (!isPosition(vessel) || !isPosition(mark) || twd === null) {
     return null;
   }
   return {
     vessel,
     mark,
-    twd: self.wind.twd,
+    twd,
     beatAngle: self.performance.beatAngle,
     gybeAngle: self.performance.gybeAngle
   };
