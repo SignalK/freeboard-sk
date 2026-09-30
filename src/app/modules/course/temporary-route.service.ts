@@ -45,9 +45,10 @@ export class TemporaryRouteService {
   private activeRoute: string | null = null;
   /** Deletes in flight, so overlapping triggers don't repeat one. */
   private readonly deleting = new Set<string>();
-  /** Routes already sent a delete this session. A read-only user's delete
-   *  fails every time, so it is not retried on each routes refresh. */
-  private readonly attempted = new Set<string>();
+  /** Routes the server would not let this user delete. Such a refusal
+   *  repeats every time, so it is not retried this session; any other failure
+   *  is retried by the next sweep. */
+  private readonly refused = new Set<string>();
 
   constructor() {
     effect(() => {
@@ -213,11 +214,10 @@ export class TemporaryRouteService {
   private async deleteRoutes(ids: string[]): Promise<string[]> {
     const deleted: string[] = [];
     const pending = ids.filter(
-      (id) => !this.deleting.has(id) && !this.attempted.has(id)
+      (id) => !this.deleting.has(id) && !this.refused.has(id)
     );
     pending.forEach((id) => this.deleting.add(id));
     for (const id of pending) {
-      this.attempted.add(id);
       try {
         await this.skres.deleteFromServer('routes', id);
         deleted.push(id);
@@ -226,7 +226,10 @@ export class TemporaryRouteService {
           this.infoPanel.close();
         }
       } catch (err) {
-        // Another Freeboard may have deleted it first.
+        const status = (err as { status?: number })?.status;
+        if (status === 401 || status === 403) {
+          this.refused.add(id);
+        }
         this.app.debug(`temporary route ${id} not deleted`, err);
       } finally {
         this.deleting.delete(id);

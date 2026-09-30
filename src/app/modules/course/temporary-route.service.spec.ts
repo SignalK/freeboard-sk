@@ -387,17 +387,37 @@ describe('TemporaryRouteService — cleaning up', () => {
     expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
   });
 
-  it('does not retry a delete the server refused', async () => {
+  const due = () => [
+    storedRoute('rte-older', { temporary: true, ageMs: 3 * HOUR }),
+    storedRoute('rte-latest', { temporary: true, ageMs: HOUR })
+  ];
+
+  it('does not retry a delete the server refused this user', async () => {
     const t = setup();
-    t.skres.deleteFromServer.mockRejectedValue(new Error('forbidden'));
-    t.server.routes = [
-      storedRoute('rte-older', { temporary: true, ageMs: 3 * HOUR }),
-      storedRoute('rte-latest', { temporary: true, ageMs: HOUR })
-    ];
+    // a read-only user: every attempt is refused the same way
+    t.skres.deleteFromServer.mockRejectedValue({ status: 403 });
+    t.server.routes = due();
 
     await t.service.sweep();
     await t.service.sweep();
 
     expect(t.skres.deleteFromServer).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a delete that failed for another reason on the next sweep', async () => {
+    const t = setup();
+    t.skres.deleteFromServer
+      .mockRejectedValueOnce({ status: 503 })
+      .mockResolvedValueOnce(undefined);
+    t.server.routes = due();
+
+    await t.service.sweep();
+    await t.service.sweep();
+
+    expect(t.skres.deleteFromServer).toHaveBeenCalledTimes(2);
+    expect(t.skres.deleteFromServer).toHaveBeenLastCalledWith(
+      'routes',
+      'rte-older'
+    );
   });
 });
