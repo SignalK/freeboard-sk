@@ -219,7 +219,7 @@ export class RoutePanel {
   /** get route point metatdata */
   private getPointsMeta() {
     return routePointsMeta(
-      this._route().feature.geometry.coordinates,
+      this._route().feature.geometry.coordinates.length,
       this._route().feature.properties.coordinatesMeta,
       (id) => this.skres.fromCache('waypoints', id)?.[1] as SKWaypoint
     ).map((meta, index) => ({ index, ...meta }));

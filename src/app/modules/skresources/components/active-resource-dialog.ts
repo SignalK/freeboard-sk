@@ -269,7 +269,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
 
   getPointsMeta() {
     return routePointsMeta(
-      this.points,
+      this.points.length,
       this.data.resource[1].feature.properties.coordinatesMeta,
       (id) => this.skres.fromCache('waypoints', id)?.[1] as SKWaypoint
     );

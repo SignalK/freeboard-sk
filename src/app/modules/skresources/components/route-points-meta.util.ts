@@ -1,14 +1,5 @@
 import type { SKWaypoint } from '../resource-classes';
-
-/**
- * A route's `feature.properties.coordinatesMeta` entry: either the point's own
- * name/description, or an `href` reference to a saved waypoint.
- */
-interface CoordinateMeta {
-  name?: string;
-  description?: string;
-  href?: string;
-}
+import type { PointMeta } from './route-reorder.util';
 
 /** The name and description listed for a route point. */
 export interface RoutePointMeta {
@@ -25,12 +16,12 @@ const generatedName = (index: number) =>
  * without a name gets a generated `RtePt-NNN`.
  */
 export function routePointsMeta(
-  coordinates: unknown[],
-  coordinatesMeta: CoordinateMeta[] | undefined,
+  pointCount: number,
+  coordinatesMeta: PointMeta[] | undefined,
   waypoint: (id: string) => SKWaypoint | undefined
 ): RoutePointMeta[] {
   if (!Array.isArray(coordinatesMeta)) {
-    return coordinates.map((_, index) => ({
+    return Array.from({ length: pointCount }, (_, index) => ({
       name: generatedName(index),
       description: ''
     }));
@@ -40,7 +31,7 @@ export function routePointsMeta(
       const wpt = waypoint(pt.href.split('/').slice(-1)[0]);
       return wpt
         ? {
-            name: `* ${wpt.name}`,
+            name: `* ${wpt.name || generatedName(index)}`,
             description: wpt.description ? `* ${wpt.description}` : ''
           }
         : { name: '!wpt reference!', description: '' };
