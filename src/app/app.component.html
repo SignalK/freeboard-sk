@@ -962,7 +962,9 @@
                       }"
                       matTooltip="Autopilot"
                       matTooltipPosition="before"
-                      (click)="toggleAutopilotConsole(true)"
+                      (click)="
+                        toggleAutopilotConsole(!app.uiCtrl().autopilotConsole)
+                      "
                     >
                       <mat-icon
                         class="ob"
