@@ -27,7 +27,7 @@ import { markdownProcessor } from '../../../../lib/markdown';
 import { AppFacade } from 'src/app/app.facade';
 import { InfoPanelFacade } from 'src/app/modules/info-panel/info-panel.facade';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
-import { SKRoute } from '../../resource-classes';
+import { SKRoute, SKWaypoint } from '../../resource-classes';
 import { SKResourceService } from '../../resources.service';
 import { FBNotes, Position } from 'src/app/types';
 import {
@@ -40,6 +40,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
 import { MatStepperModule } from '@angular/material/stepper';
 import { ActiveResourcePropertiesModal } from '../active-resource-dialog';
 import { editsRouteBuffer } from '../route-reorder.util';
+import { routePointsMeta } from '../route-points-meta.util';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -217,51 +218,11 @@ export class RoutePanel {
 
   /** get route point metatdata */
   private getPointsMeta() {
-    if (
-      this._route().feature.properties.coordinatesMeta &&
-      Array.isArray(this._route().feature.properties.coordinatesMeta)
-    ) {
-      const pointsMeta = this._route().feature.properties.coordinatesMeta.map(
-        (p) => {
-          return {
-            name: p?.name ?? '',
-            description: p?.description ?? ''
-          };
-        }
-      );
-      return pointsMeta.map((pt, index) => {
-        if (pt.href) {
-          const id = pt.href.split('/').slice(-1);
-          const wpt = this.skres.fromCache('waypoints', id[0]);
-          return wpt
-            ? {
-                index,
-                name: `* ${wpt[1].name}`,
-                description: `* ${wpt[1].description}`
-              }
-            : {
-                index,
-                name: '!wpt reference!',
-                description: ''
-              };
-        } else {
-          return {
-            index,
-            name: pt.name ?? `RtePt-${('000' + String(index + 1)).slice(-3)}`,
-            description: pt.description ?? ``
-          };
-        }
-      });
-    } else {
-      let idx = 0;
-      return this._route().feature.geometry.coordinates.map(() => {
-        return {
-          index: idx,
-          name: `RtePt-${('000' + String(++idx)).slice(-3)}`,
-          description: ''
-        };
-      });
-    }
+    return routePointsMeta(
+      this._route().feature.geometry.coordinates.length,
+      this._route().feature.properties.coordinatesMeta,
+      (id) => this.skres.fromCache('waypoints', id)?.[1] as SKWaypoint
+    ).map((meta, index) => ({ index, ...meta }));
   }
 
   protected onEdit() {

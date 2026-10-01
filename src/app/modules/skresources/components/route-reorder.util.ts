@@ -1,10 +1,14 @@
 import type { RoutePoint } from 'signalk-plotterext-bus/host';
 import type { Position } from 'src/app/types';
 
-/** Per-point metadata as stored in a route's `feature.properties.coordinatesMeta`. */
-interface PointMeta {
+/**
+ * Per-point metadata as stored in a route's `feature.properties.coordinatesMeta`:
+ * the point's own name/description, or an `href` reference to a saved waypoint.
+ */
+export interface PointMeta {
   name?: string;
   description?: string;
+  href?: string;
 }
 
 /**
