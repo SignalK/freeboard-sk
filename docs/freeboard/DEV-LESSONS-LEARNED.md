@@ -59,6 +59,31 @@ mutates the feature geometry re-derives the drawn form by itself — you keep li
 feedback while editing, and no split vertex can ever reach saved data, without
 maintaining a shadow feature.
 
+### The waypoint cache holds only the waypoints shown on the map
+
+**The trap.** `SKResourceService.fromCache('waypoints', id)` (and the `waypoints()`
+signal behind it) reads like a lookup into every waypoint on the server. It is not.
+`refreshWaypoints()` keeps only the waypoints selected for display (`waypoint[2]`)
+from the current fetch. A waypoint the user has hidden in the Waypoints list, or one
+outside the fetch area, is simply absent. Nothing fails: the lookup returns
+`undefined`, and the code falls through to whatever it does for an unknown id. This
+matters wherever one resource points at another by `href`, such as a route point
+stored as `{ href: "/resources/waypoints/<id>" }` (what **Build Route** writes). The
+reference resolves while the waypoint is on the chart and stops resolving when the
+user hides it.
+
+**What to do instead.** Treat a cache miss as normal, not as a broken reference.
+Fall back to data you already hold, such as a `name` stored next to the `href`.
+Fetch from the server only if the value really must be current. When testing,
+remember that the result depends on what is displayed: tick the waypoint in the
+Waypoints list before expecting a reference to resolve, and test the hidden case
+too.
+
+A related constraint applies when you build test routes by hand: the server
+validates each `coordinatesMeta` entry as either a name entry (`name` required, other
+fields allowed, so `{ name, href }` is fine) or a bare `{ href }`. An entry with
+neither, such as `{}` or `{ description }`, is rejected with a 400.
+
 ---
 
 ## When coding
