@@ -93,3 +93,111 @@ describe('ActiveResourcePropertiesModal flagged route point', () => {
     expect(flagged(-1, true)).toBeUndefined();
   });
 });
+
+/**
+ * A route point's `coordinatesMeta` entry may reference a saved waypoint
+ * (`{ href }`) instead of naming the point. The sheet lists such a point by the
+ * waypoint's name, marked `*`, and names a point that has no name (#875).
+ */
+describe('ActiveResourcePropertiesModal point names', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const waypoints: Record<
+    string,
+    [string, { name: string; description: string }]
+  > = {
+    'wpt-1': ['wpt-1', { name: 'Harbour entrance', description: 'Red buoy' }]
+  };
+
+  const listed = (
+    coordinatesMeta: Array<{
+      name?: string;
+      description?: string;
+      href?: string;
+    }>
+  ) => {
+    const route = {
+      name: 'Harbour run',
+      feature: {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [24.95, 60.15],
+            [24.955, 60.16],
+            [24.95, 60.17]
+          ]
+        },
+        properties: { coordinatesMeta }
+      }
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ActiveResourcePropertiesModal,
+        {
+          provide: AppFacade,
+          useValue: {
+            data: {
+              activeRoute: null,
+              activeRouteReversed: false,
+              vessels: { self: { position: [24.95, 60.14], heading: 0 } }
+            },
+            formatValueForDisplay: () => ''
+          }
+        },
+        {
+          provide: CourseService,
+          useValue: { courseData: () => ({ pointIndex: -1 }) }
+        },
+        {
+          provide: SKResourceService,
+          useValue: {
+            fromCache: (collection: string, id: string) =>
+              collection === 'waypoints' ? waypoints[id] : undefined
+          }
+        },
+        { provide: RouteBufferRegistry, useValue: {} },
+        { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
+        {
+          provide: MAT_BOTTOM_SHEET_DATA,
+          useValue: {
+            title: 'Route Properties',
+            type: 'route',
+            resource: ['rte-1', route, false],
+            noButtons: true
+          }
+        }
+      ]
+    });
+    const modal = TestBed.inject(ActiveResourcePropertiesModal);
+    modal.ngOnInit();
+    return (
+      modal as unknown as {
+        pointMeta: Array<{ name: string; description: string }>;
+      }
+    ).pointMeta;
+  };
+
+  it('lists a point that references a saved waypoint by the waypoint name', () => {
+    const points = listed([
+      { name: 'One' },
+      { href: '/resources/waypoints/wpt-1' },
+      { name: 'Three' }
+    ]);
+    expect(points.map((p) => p.name)).toEqual([
+      'One',
+      '* Harbour entrance',
+      'Three'
+    ]);
+    expect(points[1].description).toBe('* Red buoy');
+  });
+
+  it('names a point that has no name', () => {
+    const points = listed([
+      { name: 'One' },
+      { description: 'No name here' },
+      { name: 'Three' }
+    ]);
+    expect(points.map((p) => p.name)).toEqual(['One', 'RtePt-002', 'Three']);
+  });
+});

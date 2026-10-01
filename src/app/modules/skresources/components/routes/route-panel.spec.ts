@@ -143,3 +143,132 @@ describe('RoutePanel point order', () => {
     expect(listed()).toEqual(['Three', 'Two', 'One']);
   });
 });
+
+/**
+ * A route point's `coordinatesMeta` entry may reference a saved waypoint
+ * (`{ href }`) instead of naming the point. The panel lists such a point by the
+ * waypoint's name, marked `*`, and names a point that has no name (#875).
+ */
+describe('RoutePanel point names', () => {
+  const waypoints: Record<
+    string,
+    [string, { name: string; description: string }]
+  > = {
+    'wpt-1': ['wpt-1', { name: 'Harbour entrance', description: 'Red buoy' }]
+  };
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    TestBed.overrideComponent(RoutePanel, {
+      set: { template: '', imports: [] }
+    });
+    TestBed.configureTestingModule({
+      imports: [RoutePanel],
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            data: {
+              activeRoute: null,
+              activeRouteReversed: false,
+              vessels: { self: { position: [24.95, 60.14] } }
+            },
+            formatValueForDisplay: () => ''
+          }
+        },
+        {
+          provide: SKResourceService,
+          useValue: {
+            getRelatedNotes: async () => [],
+            fromCache: (collection: string, id: string) =>
+              collection === 'waypoints' ? waypoints[id] : undefined
+          }
+        },
+        {
+          provide: RouteBufferRegistry,
+          useValue: {
+            live: signal(0),
+            get: () => undefined,
+            getForRoute: () => undefined
+          }
+        },
+        { provide: InfoPanelFacade, useValue: {} },
+        {
+          provide: CourseService,
+          useValue: { courseData: signal({ pointIndex: -1 }) }
+        },
+        { provide: TemporaryRouteService, useValue: {} },
+        { provide: SKResourceGroupService, useValue: { with: async () => [] } },
+        { provide: MatDialog, useValue: {} },
+        { provide: MatBottomSheet, useValue: {} }
+      ]
+    });
+  });
+
+  const listed = (
+    coordinatesMeta: Array<{
+      name?: string;
+      description?: string;
+      href?: string;
+    }>
+  ) => {
+    const fixture = TestBed.createComponent(RoutePanel);
+    fixture.componentRef.setInput('id', 'rte-1');
+    fixture.componentRef.setInput(
+      'route',
+      new SKRoute({
+        name: 'Harbour run',
+        feature: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [24.95, 60.15],
+              [24.955, 60.16],
+              [24.95, 60.17]
+            ]
+          },
+          properties: { coordinatesMeta }
+        }
+      })
+    );
+    fixture.detectChanges();
+    return (
+      fixture.componentInstance as unknown as {
+        points: () => Array<{ name: string; description: string }>;
+      }
+    ).points();
+  };
+
+  it('lists a point that references a saved waypoint by the waypoint name', () => {
+    const points = listed([
+      { name: 'One' },
+      { href: '/resources/waypoints/wpt-1' },
+      { name: 'Three' }
+    ]);
+    expect(points.map((p) => p.name)).toEqual([
+      'One',
+      '* Harbour entrance',
+      'Three'
+    ]);
+    expect(points[1].description).toBe('* Red buoy');
+  });
+
+  it('flags a reference to a waypoint that is not loaded', () => {
+    const points = listed([
+      { name: 'One' },
+      { href: '/resources/waypoints/wpt-unknown' },
+      { name: 'Three' }
+    ]);
+    expect(points[1].name).toBe('!wpt reference!');
+  });
+
+  it('names a point that has no name', () => {
+    const points = listed([
+      { name: 'One' },
+      { description: 'No name here' },
+      { name: 'Three' }
+    ]);
+    expect(points.map((p) => p.name)).toEqual(['One', 'RtePt-002', 'Three']);
+  });
+});
