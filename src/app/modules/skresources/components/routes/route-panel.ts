@@ -220,27 +220,25 @@ export class RoutePanel {
           };
         }
       );
-      let idx = 0;
-      return pointsMeta.map((pt) => {
-        idx++;
+      return pointsMeta.map((pt, index) => {
         if (pt.href) {
           const id = pt.href.split('/').slice(-1);
           const wpt = this.skres.fromCache('waypoints', id[0]);
           return wpt
             ? {
-                index: idx,
+                index,
                 name: `* ${wpt[1].name}`,
                 description: `* ${wpt[1].description}`
               }
             : {
-                index: idx,
+                index,
                 name: '!wpt reference!',
                 description: ''
               };
         } else {
           return {
-            index: idx,
-            name: pt.name ?? `RtePt-${('000' + String(idx)).slice(-3)}`,
+            index,
+            name: pt.name ?? `RtePt-${('000' + String(index + 1)).slice(-3)}`,
             description: pt.description ?? ``
           };
         }
