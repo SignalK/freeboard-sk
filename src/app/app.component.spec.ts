@@ -181,6 +181,34 @@ describe('AppComponent', () => {
       expect(activate).not.toHaveBeenCalled();
     });
   });
+  it('closes the autopilot console with the Autopilot button that opened it', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = TestBed.inject(AppFacade);
+    app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
+    app.featureFlags.update((f) =>
+      Object.assign({}, f, { autopilotApi: true })
+    );
+    app.data.vessels.self.autopilot.default = 'mock-pilot';
+    app.config.display.fab = 'wpt';
+    fixture.detectChanges();
+
+    const consoleShown = () =>
+      fixture.debugElement.query(By.css('autopilot-console')) !== null;
+    const press = () => {
+      fixture.debugElement
+        .query(By.css('button[mattooltip="Autopilot"]'))
+        .nativeElement.click();
+      fixture.detectChanges();
+    };
+
+    press();
+    expect(consoleShown()).toBe(true);
+    press();
+    expect(consoleShown()).toBe(false);
+    press();
+    expect(consoleShown()).toBe(true);
+  });
+
   describe('the route stepper', () => {
     it('heads straight from the vessel for the point it steps to', () => {
       const c = TestBed.createComponent(AppComponent)
