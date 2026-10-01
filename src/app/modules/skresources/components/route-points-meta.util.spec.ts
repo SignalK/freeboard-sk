@@ -52,6 +52,32 @@ describe('routePointsMeta', () => {
     ).toEqual({ name: 'RtePt-002', description: '' });
   });
 
+  it('shows the stored name of a reference to a waypoint that is not loaded', () => {
+    expect(
+      routePointsMeta(
+        1,
+        [
+          {
+            name: 'Outer mark',
+            description: 'Green can',
+            href: '/resources/waypoints/unknown'
+          }
+        ],
+        lookup
+      )
+    ).toEqual([{ name: '* Outer mark', description: '* Green can' }]);
+  });
+
+  it("prefers a loaded waypoint's current name to the stored one", () => {
+    expect(
+      routePointsMeta(
+        1,
+        [{ name: 'Old name', href: '/resources/waypoints/named' }],
+        lookup
+      )
+    ).toEqual([{ name: '* Harbour entrance', description: '* Red buoy' }]);
+  });
+
   it('names a point that has no name', () => {
     expect(
       routePointsMeta(2, [{ name: 'One' }, { description: 'Shoal' }], lookup)
