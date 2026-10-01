@@ -16,6 +16,13 @@ import { AlertPropertiesModal } from './components/alert-properties-modal';
 
 type AlertItems = Array<[string, AlertData]>;
 
+type AlertFlag = 'acknowledged' | 'silenced';
+
+/** An acknowledge / silence request and the alarm state it was sent for */
+interface PendingAction {
+  state: AlertData['priority'];
+}
+
 /** `navigation.closestApproach` notification: also names the other vessel */
 interface CpaNotification extends SKNotification {
   other?: string;
@@ -23,7 +30,17 @@ interface CpaNotification extends SKNotification {
 
 @Injectable({ providedIn: 'root' })
 export class NotificationManager {
+  /** Alerts as last reported by the server */
   private alertMap: Map<string, AlertData>;
+  /**
+   * Acknowledge / silence actions the server has not yet confirmed, keyed by
+   * alert id. emitSignals() shows them over the server's status; see
+   * applyAlertAction().
+   */
+  private pendingActions: Record<AlertFlag, Map<string, PendingAction>> = {
+    acknowledged: new Map(),
+    silenced: new Map()
+  };
 
   // signals
   private alertsSignal = signal<AlertItems>([]);
@@ -59,7 +76,13 @@ export class NotificationManager {
       nominal: 6
     };
     // sort based on priority and time raised
-    const alerts = Array.from(this.alertMap).sort((a, b) => {
+    const alerts = Array.from(
+      this.alertMap,
+      ([path, alert]): [string, AlertData] => [
+        path,
+        this.withPendingActions(alert)
+      ]
+    ).sort((a, b) => {
       const ra = rankings[a[1].priority];
       const rb = rankings[b[1].priority];
       if (ra === rb) {
@@ -109,6 +132,7 @@ export class NotificationManager {
     // test for return to normal state
     if (!msg.value || (msg.value as SKNotification)?.state === 'normal') {
       if (this.alertMap.has(msg.path)) {
+        this.dropPendingActions(this.alertMap.get(msg.path).id);
         this.alertMap.delete(msg.path);
         this.emitSignals();
       }
@@ -120,6 +144,11 @@ export class NotificationManager {
     // Test for Notifications API
     if (this.app.featureFlags().notificationApi) {
       const v: SKNotification = msg.value as SKNotification;
+      const replaced = this.alertMap.get(msg.path);
+      if (replaced && replaced.id !== v.id) {
+        this.dropPendingActions(replaced.id);
+      }
+      this.settlePendingActions(v);
       alert = {
         id: v.id,
         path: msg.path,
@@ -278,25 +307,7 @@ export class NotificationManager {
    * @param path Path of the the alert to acknowledge
    */
   public acknowledge(path: string) {
-    if (this.alertMap.has(path)) {
-      if (this.app.featureFlags().notificationApi) {
-        const alert = this.alertMap.get(path);
-        this.signalk.api
-          .post(
-            this.app.skApiVersion,
-            `notifications/${alert.id}/acknowledge`,
-            {}
-          )
-          .subscribe(
-            () => {
-              this.app.debug(`Acknowledged ${alert.id}, ${path}`);
-            },
-            (err: HttpErrorResponse) => {
-              this.app.parseHttpErrorResponse(err);
-            }
-          );
-      }
-    }
+    this.applyAlertAction(path, 'acknowledge', 'acknowledged');
   }
 
   /**
@@ -304,21 +315,97 @@ export class NotificationManager {
    * @param path Path of the the alert to silence
    */
   public silence(path: string) {
-    if (this.alertMap.has(path)) {
-      const alert = this.alertMap.get(path);
-      if (this.app.featureFlags().notificationApi) {
-        this.signalk.api
-          .post(this.app.skApiVersion, `notifications/${alert.id}/silence`, {})
-          .subscribe(
-            () => {
-              this.app.debug(`Silenced ${alert.id}, ${path}`);
-            },
-            (err: HttpErrorResponse) => {
-              this.app.parseHttpErrorResponse(err);
-            }
-          );
+    this.applyAlertAction(path, 'silence', 'silenced');
+  }
+
+  /**
+   * @description Send an acknowledge / silence request for an alert and show
+   * its result straight away. The server confirms it in a notification delta,
+   * which the `notifications.*` subscription period can hold back for up to a
+   * second, and deltas it sent before applying the action can still arrive
+   * after the request succeeds. Showing the server's status meanwhile would
+   * bring the alert's buttons back, and the server rejects a second press with
+   * a 400 because the action is already applied.
+   *
+   * The action is therefore kept pending, shown over the server's status, until
+   * a delta confirms it (settlePendingActions()). If the request fails it is
+   * dropped, and the alert shows the server's latest status again.
+   * @param path Path of the alert
+   * @param action Notifications API action
+   * @param flag Alert status flag the action sets
+   */
+  private applyAlertAction(
+    path: string,
+    action: 'acknowledge' | 'silence',
+    flag: AlertFlag
+  ) {
+    const alert = this.alertMap.get(path);
+    const pending = this.pendingActions[flag];
+    if (
+      !alert ||
+      alert[flag] ||
+      pending.has(alert.id) ||
+      !this.app.featureFlags().notificationApi
+    ) {
+      return;
+    }
+    const { id } = alert;
+    const entry: PendingAction = { state: alert.priority };
+    pending.set(id, entry);
+    this.emitSignals();
+    this.signalk.api
+      .post(this.app.skApiVersion, `notifications/${id}/${action}`, {})
+      .subscribe(
+        () => {
+          this.app.debug(`${action} ${id}, ${path}`);
+        },
+        (err: HttpErrorResponse) => {
+          if (pending.get(id) === entry) {
+            pending.delete(id);
+            this.emitSignals();
+          }
+          this.app.parseHttpErrorResponse(err);
+        }
+      );
+  }
+
+  /**
+   * @description Returns the alert with its pending actions applied
+   * @param alert Alert as reported by the server
+   */
+  private withPendingActions(alert: AlertData): AlertData {
+    const acknowledged =
+      alert.acknowledged || this.pendingActions.acknowledged.has(alert.id);
+    const silenced =
+      alert.silenced || this.pendingActions.silenced.has(alert.id);
+    return acknowledged === alert.acknowledged && silenced === alert.silenced
+      ? alert
+      : { ...alert, acknowledged, silenced };
+  }
+
+  /**
+   * @description Drop the pending actions a notification delta settles: those
+   * it confirms, and those sent for a different alarm state. The server clears
+   * acknowledged / silenced when an alarm escalates, so a pending action must
+   * not hide the escalated alarm.
+   * @param v Notification value
+   */
+  private settlePendingActions(v: SKNotification) {
+    for (const flag of ['acknowledged', 'silenced'] as const) {
+      const entry = this.pendingActions[flag].get(v.id);
+      if (entry && (v.status[flag] || v.state !== entry.state)) {
+        this.pendingActions[flag].delete(v.id);
       }
     }
+  }
+
+  /**
+   * @description Drop the pending actions of an alert that has cleared
+   * @param id Alert id
+   */
+  private dropPendingActions(id: string) {
+    this.pendingActions.acknowledged.delete(id);
+    this.pendingActions.silenced.delete(id);
   }
 
   /**
