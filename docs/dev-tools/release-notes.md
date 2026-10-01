@@ -26,7 +26,8 @@ landed across its betas. A pre-release version only fills blanks.
 
 It runs automatically from the **`version` npm lifecycle hook**, which re-stages the
 stamped `features/changelog.json` into the version-bump commit — so `npm version …`
-stamps with no manual step.
+stamps with no manual step. release-please bumps the version without npm, so
+`release-please.yml` runs the same stamp on every release PR.
 
 ### `render <tag>`
 
@@ -57,10 +58,15 @@ git checkout features/changelog.json                # discard the dry-run stamp
 
 ## Release wiring
 
-`release.yml` (on a `v*` tag push) runs `render <tag> --out RELEASE_NOTES.md` and passes
-it to `action-gh-release` via `body_path`. `generate_release_notes` stays **off** so
-features aren't listed twice. A bad render is never stuck — the Release body is freely
-editable after publish and is independent of the (immutable) npm publish.
+Releases go through release-please (`release-please.yml`). Every push to `master`
+refreshes one release PR that proposes the next beta, with the merged PRs and their
+authors as its changelog; merging it tags the release.
+
+`release.yml` (for that tag, or for a `v*` tag pushed by hand) runs
+`render <tag> --out RELEASE_NOTES.md` and passes it to `action-gh-release` via
+`body_path`. `generate_release_notes` stays **off** so features aren't listed twice. A
+bad render is never stuck — the Release body is freely editable after publish and is
+independent of the (immutable) npm publish.
 
 ## Tests
 

@@ -1,0 +1,79 @@
+name: Release Please
+
+# Every push to master refreshes one release PR proposing the next beta
+# (3.2.0-beta.5 -> 3.2.0-beta.6, 3.2.0 -> 3.3.0-beta.0). Merging that PR is the
+# release: release-please tags it and release.yml publishes it.
+
+on:
+  push:
+    branches: [master]
+
+permissions: {}
+
+# Two pushes in quick succession must not rewrite the release PR at the same time.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    if: github.repository == 'SignalK/freeboard-sk'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      pr: ${{ steps.release.outputs.pr }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+
+  # npm version runs the ledger stamp from the `version` lifecycle hook;
+  # release-please bumps the version without npm, so the release PR gets the
+  # same stamp here. always-update rebuilds the PR from master on every run,
+  # which drops this commit, so it is re-applied each time.
+  stamp-ledger:
+    needs: release-please
+    if: needs.release-please.outputs.pr != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+
+      - name: Stamp the feature ledger with the release version
+        run: |
+          node dev-tools/changelog/index.mjs stamp
+          if git diff --quiet -- features/changelog.json; then
+            exit 0
+          fi
+          version=$(node -p "require('./package.json').version")
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "chore: stamp the feature ledger for v$version" -- features/changelog.json
+          git push
+
+  # A tag pushed with the workflow token starts no workflows, so release.yml's
+  # tag trigger never sees release-please's tags. A dispatch is the one event
+  # that token can start.
+  publish:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Run release.yml for the new tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
