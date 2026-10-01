@@ -5,6 +5,9 @@ import { beforeEach, expect, describe, it, vi } from 'vitest';
 import '@vitest/web-worker';
 import { MatMenuTrigger } from '@angular/material/menu';
 import { By } from '@angular/platform-browser';
+import { WritableSignal } from '@angular/core';
+import { RadarAPIService } from './modules/radar/radar-api.service';
+import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -203,5 +206,75 @@ describe('AppComponent', () => {
       expect(rejoin).toHaveBeenCalledWith(2);
       expect(alongLeg).not.toHaveBeenCalled();
     });
+  });
+
+  describe('the Radar buttons', () => {
+    const setup = (fab: 'wpt' | 'radar') => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = TestBed.inject(AppFacade);
+      const radarApi = TestBed.inject(RadarAPIService);
+      app.uiConfig.update((c) =>
+        Object.assign({}, c, { toolbarButtons: true })
+      );
+      app.featureFlags.update((f) => Object.assign({}, f, { radarApi: true }));
+      app.config.display.fab = fab;
+      app.data.vessels.showSelf = true;
+      const radar = radarApi as unknown as {
+        _selectedRadar: WritableSignal<string>;
+        _radar: WritableSignal<unknown>;
+      };
+      radar._selectedRadar.set('radar-1');
+      radar._radar.set({
+        device: { id: 'radar-1', name: 'Radar' },
+        capabilities: { controls: {} },
+        controls: new Map()
+      });
+      vi.spyOn(radarApi, 'hasWebGL', 'get').mockReturnValue(true);
+      // The overlay itself needs WebGL, which the test browser lacks; what
+      // matters here is whether it is switched on or off.
+      const overlay = fixture.componentInstance as unknown as {
+        connectRadar: () => void;
+        disconnectRadar: () => void;
+      };
+      const connect = vi
+        .spyOn(overlay, 'connectRadar')
+        .mockImplementation(() => undefined);
+      const disconnect = vi
+        .spyOn(overlay, 'disconnectRadar')
+        .mockImplementation(() => undefined);
+      fixture.detectChanges();
+      return {
+        fixture,
+        infoPanel: TestBed.inject(InfoPanelFacade),
+        connect,
+        disconnect
+      };
+    };
+
+    it.each([
+      ['button panel', 'wpt', 'button[mattooltip="Radar"]'],
+      ['floating action', 'radar', 'radar-button button']
+    ] as const)(
+      'closes the radar panel with the %s button that opened it',
+      (_, fab, selector) => {
+        const { fixture, infoPanel, connect, disconnect } = setup(fab);
+        const panelShown = () => infoPanel.item()?.type === 'radars';
+        const press = () => {
+          fixture.debugElement.query(By.css(selector)).nativeElement.click();
+          fixture.detectChanges();
+        };
+
+        press();
+        expect(panelShown()).toBe(true);
+        expect(connect).toHaveBeenCalledTimes(1);
+
+        press();
+        expect(panelShown()).toBe(false);
+
+        press();
+        expect(panelShown()).toBe(true);
+        expect(disconnect).not.toHaveBeenCalled();
+      }
+    );
   });
 });

@@ -480,6 +480,17 @@ export class AppComponent {
     this.focusMap();
   }
 
+  /** Open the radar panel, or close it when it is already showing. Closing it
+   *  leaves the radar overlay on; the overlay is switched off in the panel. */
+  protected toggleRadarPanel() {
+    if (this.infoPanel.item()?.type === 'radars') {
+      this.infoPanel.close();
+      this.closeDrawer();
+    } else {
+      this.showRadarPanel();
+    }
+  }
+
   protected connectRadar() {
     if (!this.app.uiCtrl().radarLayer) {
       this.app.uiCtrl.update((current) => {
