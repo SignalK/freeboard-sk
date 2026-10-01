@@ -254,13 +254,13 @@ describe('RoutePanel point names', () => {
     expect(points[1].description).toBe('* Red buoy');
   });
 
-  it('flags a reference to a waypoint that is not loaded', () => {
+  it('names a reference to a waypoint that is not loaded', () => {
     const points = listed([
       { name: 'One' },
       { href: '/resources/waypoints/wpt-unknown' },
       { name: 'Three' }
     ]);
-    expect(points[1].name).toBe('!wpt reference!');
+    expect(points[1].name).toBe('* RtePt-002');
   });
 
   it('names a point that has no name', () => {

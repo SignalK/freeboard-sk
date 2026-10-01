@@ -13,7 +13,8 @@ const generatedName = (index: number) =>
 /**
  * Name and description to list for each point of a route. A point that
  * references a saved waypoint shows the waypoint's name, marked `*`; a point
- * without a name gets a generated `RtePt-NNN`.
+ * without a name gets a generated `RtePt-NNN`, as does a referenced waypoint
+ * that is not loaded (only waypoints shown on the map are cached).
  */
 export function routePointsMeta(
   pointCount: number,
@@ -34,10 +35,10 @@ export function routePointsMeta(
             name: `* ${wpt.name || generatedName(index)}`,
             description: wpt.description ? `* ${wpt.description}` : ''
           }
-        : { name: '!wpt reference!', description: '' };
+        : { name: `* ${generatedName(index)}`, description: '' };
     }
     return {
-      name: pt?.name ?? generatedName(index),
+      name: pt?.name || generatedName(index),
       description: pt?.description ?? ''
     };
   });

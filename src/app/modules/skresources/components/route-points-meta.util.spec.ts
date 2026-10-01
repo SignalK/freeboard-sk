@@ -40,10 +40,16 @@ describe('routePointsMeta', () => {
     ).toEqual({ name: '* RtePt-002', description: '' });
   });
 
-  it('flags a reference to a waypoint that is not loaded', () => {
+  it('names a reference to a waypoint that is not loaded', () => {
     expect(
       routePointsMeta(1, [{ href: '/resources/waypoints/unknown' }], lookup)
-    ).toEqual([{ name: '!wpt reference!', description: '' }]);
+    ).toEqual([{ name: '* RtePt-001', description: '' }]);
+  });
+
+  it('names a point whose name is empty', () => {
+    expect(
+      routePointsMeta(2, [{ name: 'One' }, { name: '' }], lookup)[1]
+    ).toEqual({ name: 'RtePt-002', description: '' });
   });
 
   it('names a point that has no name', () => {
