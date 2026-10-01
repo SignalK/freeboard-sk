@@ -101,6 +101,7 @@ export class SettingsDialog implements OnInit {
   protected radarList = signal<SKRadar[]>([]);
 
   private saveOnClose = false;
+  private arrivalCircleChanged = false;
 
   protected facade = inject(SettingsFacade);
   protected myElement = inject(ElementRef);
@@ -168,6 +169,9 @@ export class SettingsDialog implements OnInit {
   handleClose() {
     if (this.saveOnClose) {
       this.persistModel();
+    }
+    if (this.arrivalCircleChanged) {
+      this.applyArrivalCircle();
     }
     this.dialogRef.close();
   }
@@ -241,22 +245,29 @@ export class SettingsDialog implements OnInit {
   }
 
   /**
-   * Parse entered number value and fall back to default if null.
-   * Resultant number value is always positive unless allowNegative = true.
-   */
-  /**
    * The arrival circle is sent with every course Freeboard starts, so a
    * course already being followed keeps the old one unless it is set there
-   * too.
+   * too. That is done once, when the dialog closes: a number input fires
+   * `change` on every spinner step.
    */
   protected onArrivalCircleChange(e: NgModel) {
     this.parseNumber(e);
+    this.arrivalCircleChanged = true;
+  }
+
+  /** Set a changed arrival circle on the course being followed. */
+  private applyArrivalCircle() {
     const radius = this.facade.settings.course.arrivalCircle;
-    if (this.course.courseData().position && radius > 0) {
+    const course = this.course.courseData();
+    if (course.position && radius > 0 && radius !== course.arrivalCircle) {
       this.course.setArrivalCircle(radius);
     }
   }
 
+  /**
+   * Parse entered number value and fall back to default if null.
+   * Resultant number value is always positive unless allowNegative = true.
+   */
   parseNumber(e: NgModel, allowNegative?: boolean) {
     if (typeof e.model !== 'number') {
       e.reset(this.fallbackToDefault());

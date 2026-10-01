@@ -22,13 +22,16 @@ import {
 /**
  * Freeboard sends the arrival circle with every course it starts, so changing
  * it in Settings has to reach a course already being followed as well;
- * otherwise the map keeps drawing the old circle and arrival uses it too.
+ * otherwise the map keeps drawing the old circle and arrival uses it too. It
+ * is sent once, when the dialog closes: the number input fires `change` on
+ * every spinner step.
  */
 describe('settings dialog — arrival circle', () => {
   let fixture: ComponentFixture<SettingsDialog>;
   let dialog: HTMLElement;
   let settings: ReturnType<typeof defaultConfig>;
   let destination: number[] | null;
+  let courseCircle: number;
   let setArrivalCircle: ReturnType<typeof vi.fn>;
   const trackSource = signal<TrackSource | null>(null);
 
@@ -58,9 +61,19 @@ describe('settings dialog — arrival circle', () => {
     fixture.detectChanges();
   };
 
+  /** Close the dialog with its close button. */
+  const closeDialog = () => {
+    const close = Array.from(
+      dialog.querySelectorAll<HTMLButtonElement>('button')
+    ).find((b) => (b.textContent ?? '').trim() === 'close');
+    expect(close, 'no close button').toBeTruthy();
+    close.click();
+  };
+
   beforeEach(async () => {
     settings = defaultConfig();
     destination = null;
+    courseCircle = 100;
     setArrivalCircle = vi.fn(() => Promise.resolve(true));
 
     TestBed.configureTestingModule({
@@ -111,7 +124,10 @@ describe('settings dialog — arrival circle', () => {
         {
           provide: CourseService,
           useValue: {
-            courseData: () => ({ position: destination }),
+            courseData: () => ({
+              position: destination,
+              arrivalCircle: courseCircle
+            }),
             setArrivalCircle
           }
         }
@@ -124,17 +140,52 @@ describe('settings dialog — arrival circle', () => {
     dialog = fixture.nativeElement as HTMLElement;
   });
 
-  it('applies a new arrival circle to the course being followed', async () => {
+  it('applies a new arrival circle to the course being followed on close', async () => {
     destination = [24.95, 60.16];
 
     await enterArrivalCircle('50');
-
     expect(settings.course.arrivalCircle).toBe(50);
+    expect(setArrivalCircle).not.toHaveBeenCalled();
+
+    closeDialog();
+    expect(setArrivalCircle).toHaveBeenCalledTimes(1);
     expect(setArrivalCircle).toHaveBeenCalledWith(50);
+  });
+
+  it('sends one request for several steps of the field', async () => {
+    destination = [24.95, 60.16];
+
+    for (const step of ['90', '80', '70', '60', '50']) {
+      await enterArrivalCircle(step);
+    }
+    closeDialog();
+
+    expect(setArrivalCircle).toHaveBeenCalledTimes(1);
+    expect(setArrivalCircle).toHaveBeenCalledWith(50);
+  });
+
+  it('sends nothing when the value ends where the course already is', async () => {
+    destination = [24.95, 60.16];
+
+    await enterArrivalCircle('50');
+    await enterArrivalCircle('100');
+    closeDialog();
+
+    expect(setArrivalCircle).not.toHaveBeenCalled();
+  });
+
+  it('sends nothing when the arrival circle was not changed', async () => {
+    destination = [24.95, 60.16];
+    courseCircle = 250;
+
+    closeDialog();
+
+    expect(setArrivalCircle).not.toHaveBeenCalled();
   });
 
   it('only saves the setting when no course is being followed', async () => {
     await enterArrivalCircle('50');
+    closeDialog();
 
     expect(settings.course.arrivalCircle).toBe(50);
     expect(setArrivalCircle).not.toHaveBeenCalled();
@@ -144,6 +195,7 @@ describe('settings dialog — arrival circle', () => {
     destination = [24.95, 60.16];
 
     await enterArrivalCircle('-50');
+    closeDialog();
 
     expect(settings.course.arrivalCircle).toBe(50);
     expect(setArrivalCircle).toHaveBeenCalledWith(50);
@@ -153,6 +205,7 @@ describe('settings dialog — arrival circle', () => {
     destination = [24.95, 60.16];
 
     await enterArrivalCircle('0');
+    closeDialog();
 
     expect(setArrivalCircle).not.toHaveBeenCalled();
   });
