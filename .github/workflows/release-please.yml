@@ -3,21 +3,56 @@ name: Release Please
 # Every push to master refreshes one release PR proposing the next beta
 # (3.2.0-beta.5 -> 3.2.0-beta.6, 3.2.0 -> 3.3.0-beta.0). Merging that PR is the
 # release: release-please tags it and release.yml publishes it.
+#
+# "Run workflow" on this workflow turns the release PR into the stable release
+# of the current beta (3.2.0-beta.6 -> 3.2.0) instead.
 
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 permissions: {}
 
-# Two pushes in quick succession must not rewrite the release PR at the same time.
+# A dispatch and a push must not rewrite the release PR at the same time.
 concurrency:
   group: release-please
   cancel-in-progress: false
 
 jobs:
+  # release-please only opens a PR when there are commits since the last
+  # release, and the stable release of a tested beta usually has none. This
+  # empty commit gives it one, and its Release-As footer fixes the version for
+  # every later run until that release is made.
+  promote:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'SignalK/freeboard-sk'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Mark the current beta for a stable release
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/master ]; then
+            echo "::error::Run this workflow from master."
+            exit 1
+          fi
+          current=$(jq -r '."."' .release-please-manifest.json)
+          stable="${current%%-*}"
+          if [ "$current" = "$stable" ]; then
+            echo "::error::$current is already a stable release; there is no beta to promote."
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty -m "chore: promote $current to $stable" -m "Release-As: $stable"
+          git push origin HEAD:master
+
   release-please:
-    if: github.repository == 'SignalK/freeboard-sk'
+    needs: promote
+    # Runs after promote on a dispatch, and on its own on a push (promote skipped).
+    if: ${{ !cancelled() && needs.promote.result != 'failure' && github.repository == 'SignalK/freeboard-sk' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -37,7 +72,9 @@ jobs:
   # which drops this commit, so it is re-applied each time.
   stamp-ledger:
     needs: release-please
-    if: needs.release-please.outputs.pr != ''
+    # A skipped promote skips every job below it unless the condition names a
+    # status itself, even though release-please ran.
+    if: ${{ !cancelled() && needs.release-please.result == 'success' && needs.release-please.outputs.pr != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -67,7 +104,7 @@ jobs:
   # that token can start.
   publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: ${{ !cancelled() && needs.release-please.result == 'success' && needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       actions: write

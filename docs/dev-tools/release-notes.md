@@ -60,7 +60,9 @@ git checkout features/changelog.json                # discard the dry-run stamp
 
 Releases go through release-please (`release-please.yml`). Every push to `master`
 refreshes one release PR that proposes the next beta, with the merged PRs and their
-authors as its changelog; merging it tags the release.
+authors as its changelog; merging it tags the release. **Run workflow** on that
+workflow turns the PR into the stable release of the current beta instead, which also
+graduates the betas' ledger rows (see `stamp`).
 
 `release.yml` (for that tag, or for a `v*` tag pushed by hand) runs
 `render <tag> --out RELEASE_NOTES.md` and passes it to `action-gh-release` via
