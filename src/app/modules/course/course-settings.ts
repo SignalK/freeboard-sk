@@ -91,7 +91,7 @@ import { Subscription } from 'rxjs';
             id="targetarrivalenable"
             labelPosition="before"
             [hideIcon]="true"
-            [(checked)]="targetArrivalEnabled"
+            [checked]="targetArrivalEnabled"
             (change)="toggleTargetArrival($event)"
           >
             Target Arrival time

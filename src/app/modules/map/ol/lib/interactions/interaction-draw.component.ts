@@ -9,7 +9,7 @@ import {
 import { Map } from 'ol';
 import { Draw } from 'ol/interaction';
 import { DrawEvent } from 'ol/interaction/Draw';
-import { Style } from 'ol/style';
+import { StyleLike } from 'ol/style/Style';
 import { MapComponent } from '../map.component';
 
 @Component({
@@ -27,7 +27,7 @@ export class InteractionDrawComponent {
   }
 
   @Input() type = 'LineString';
-  @Input() style: Style;
+  @Input() style: StyleLike;
   @Input() stopClick: boolean;
 
   @Output() change: EventEmitter<DrawEvent> = new EventEmitter();

@@ -39,7 +39,7 @@ import { NEW_WMTS_CHART_NAME, ogcServiceUrl } from './maplib';
       <mat-dialog-content>
         <mat-form-field floatLabel="always" style="width:100%">
           <mat-label> WMTS service URL </mat-label>
-          <input matInput #txturl type="url" required [(value)]="hostUrl" />
+          <input matInput #txturl type="url" required [value]="hostUrl" />
           @if (txturl) {
             <button
               matSuffix
@@ -51,9 +51,6 @@ import { NEW_WMTS_CHART_NAME, ogcServiceUrl } from './maplib';
             </button>
           }
           <mat-hint> Enter url of the WMTS host. </mat-hint>
-          @if (txturl.invalid) {
-            <mat-error>WMTS host is required!</mat-error>
-          }
         </mat-form-field>
       </mat-dialog-content>
     </div>

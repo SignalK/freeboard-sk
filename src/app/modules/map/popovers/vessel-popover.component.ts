@@ -290,7 +290,7 @@ import {
 export class VesselPopoverComponent {
   title = input<string>();
   vessel = input<SKVessel>();
-  useMagnetic = input<string>();
+  useMagnetic = input<boolean>();
   isActive = input<boolean>();
   isSelf = input<boolean>();
   canClose = input<boolean>();

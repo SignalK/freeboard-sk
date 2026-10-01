@@ -113,7 +113,7 @@ measure: boolean= measure mode;
 export class PopoverComponent {
   @Input() title: string;
   @Input() mmsi: string;
-  @Input() icon: { class: string; name?: string; svgIcon?: string };
+  @Input() icon: { class?: string; name?: string; svgIcon?: string };
   @Input() canClose = true;
   @Input() measure = false;
   @Input() compact = false;

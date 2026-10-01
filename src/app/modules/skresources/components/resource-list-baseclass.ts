@@ -8,15 +8,16 @@ import { SKResourceService, SKSelection } from '../resources.service';
 export type ResourceListEntry = [string, { name: string }, boolean?];
 
 /**
- * Base class for Resource Lists
+ * Base class for Resource Lists. `T` is the list's own entry type, so its
+ * template can read the resource's fields.
  */
-export class ResourceListBase {
+export class ResourceListBase<T extends ResourceListEntry = ResourceListEntry> {
   protected collection!: SKSelection;
   protected filterText = '';
   protected someSel = false;
   protected allSel = false;
-  protected fullList: Array<ResourceListEntry> = [];
-  protected filteredList = signal<ResourceListEntry[]>([]);
+  protected fullList: Array<T> = [];
+  protected filteredList = signal<T[]>([]);
 
   constructor(
     collection: SKSelection,
@@ -41,7 +42,7 @@ export class ResourceListBase {
     const sortList = () => {
       fl.sort((a, b) => a[1].name.localeCompare(b[1].name));
     };
-    let fl: Array<ResourceListEntry>;
+    let fl: Array<T>;
     if (this.filterText.length === 0) {
       fl = this.fullList.slice(0);
     } else {

@@ -1449,6 +1449,8 @@ export class AppFacade extends InfoService {
   }
 
   // convert speed value and set the value of this.app.formattedSpeedUnits
+  formatSpeed(value: number, asString?: false): number;
+  formatSpeed(value: number, asString: true): string;
   formatSpeed(value: number, asString = false): string | number {
     this.formattedSpeedUnits = Convert.getSymbol(this.config.units.speed);
     try {

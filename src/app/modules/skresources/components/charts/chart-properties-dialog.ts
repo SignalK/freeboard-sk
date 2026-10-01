@@ -266,7 +266,7 @@ import { NodeListSelect } from './node-list-select';
         </div>
       </mat-dialog-content>
       @if (isEditable()) {
-        <mat-dialog-actions align="right">
+        <mat-dialog-actions align="end">
           <button
             mat-flat-button
             [disabled]="
