@@ -220,6 +220,46 @@ describe('route methods (host handlers)', () => {
     ).rejects.toHaveProperty('reason', 'routes.badRequest');
   });
 
+  it('carries a point waypoint link through create, get and replace (#880)', async () => {
+    const { call } = setup();
+    const href = '/resources/waypoints/abc-123';
+    const { routeId } = (await call('route.create', {
+      points: [{ position: [0, 0], href }, { position: [1, 1] }]
+    })) as { routeId: string };
+    const created = (await call('route.get', { routeId })) as {
+      points: Array<{ href?: string }>;
+    };
+    expect(created.points[0].href).toBe(href);
+    expect('href' in created.points[1]).toBe(false);
+
+    await call('route.replace', {
+      routeId,
+      points: [{ position: [0, 0] }, { position: [1, 1], href }]
+    });
+    const replaced = (await call('route.get', { routeId })) as {
+      points: Array<{ href?: string }>;
+    };
+    expect(replaced.points[0].href).toBeUndefined();
+    expect(replaced.points[1].href).toBe(href);
+  });
+
+  it('rejects a point href that is not a waypoint reference', async () => {
+    const { call } = setup();
+    for (const href of [
+      42,
+      '',
+      'abc-123',
+      '/resources/routes/abc-123',
+      '/resources/waypoints/'
+    ]) {
+      await expect(
+        call('route.create', {
+          points: [{ position: [0, 0], href }, { position: [1, 1] }]
+        })
+      ).rejects.toHaveProperty('reason', 'routes.badRequest');
+    }
+  });
+
   it('route.hide delegates to onHide when provided', async () => {
     const registry = new RouteBufferRegistry();
     const seen: string[] = [];

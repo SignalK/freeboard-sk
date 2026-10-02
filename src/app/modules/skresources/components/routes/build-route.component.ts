@@ -24,6 +24,10 @@ import {
 import { SKResourceService } from '../../resources.service';
 import { FBWaypoint, LineString } from 'src/app/types';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  coordinatesMetaFromPoints,
+  type PointMeta
+} from '../route-reorder.util';
 
 @Component({
   selector: 'route-builder',
@@ -145,7 +149,7 @@ export class BuildRouteComponent {
 
   save = output<{
     coordinates: LineString;
-    meta?: Array<{ href?: string; name?: string }>;
+    meta?: PointMeta[];
   }>();
   close = output<void>();
 
@@ -171,6 +175,7 @@ export class BuildRouteComponent {
         return {
           id: w[0],
           name: w[1].name,
+          description: w[1].description,
           position: w[1].feature.geometry.coordinates,
           href: `/resources/waypoints/${w[0]}`
         };
@@ -221,21 +226,13 @@ export class BuildRouteComponent {
   }
 
   doSave() {
-    const rte = {
-      coordinates: [],
-      meta: []
-    };
-
-    this.rtepts.forEach((pt) => {
-      rte.coordinates.push(pt.position);
-      if (pt.href) {
-        rte.meta.push({ href: pt.href });
-      } else {
-        rte.meta.push({ name: pt.name });
-      }
+    // Store each point's name and description alongside its waypoint link, so
+    // readers that look only at `name` (course point names, extensions, other
+    // apps) still have one (#880).
+    this.save.emit({
+      coordinates: this.rtepts.map((pt) => pt.position) as LineString,
+      meta: coordinatesMetaFromPoints(this.rtepts)
     });
-
-    this.save.emit(rte);
     this.close.emit();
   }
 }

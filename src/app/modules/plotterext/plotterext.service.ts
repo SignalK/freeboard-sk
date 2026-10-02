@@ -71,6 +71,11 @@ import { createChartMethods } from './chart-methods';
 import { createNightModeMethods } from './nightmode-methods';
 import { createResourceGroupMethods } from './resourcegroup-methods';
 import { SKResourceGroupService } from 'src/app/modules/skresources/components/groups/groups.service';
+import {
+  buildRoutePoints,
+  coordinatesMetaFromPoints,
+  type PointMeta
+} from 'src/app/modules/skresources/components/route-reorder.util';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
@@ -631,20 +636,16 @@ export class PlotterExtensionService {
    * (emits `route.hidden saved:true`). Drafts and dirty edits are left alone.
    */
   /** Build RoutePoints from a route's geometry + coordinatesMeta, carrying each
-   *  point's name AND description so they survive a round-trip through the
-   *  registry and back into coordinatesMeta on save. */
+   *  point's name, description AND waypoint link so they survive a round-trip
+   *  through the registry and back into coordinatesMeta on save. */
   private pointsFromRoute(
     coords: Position[],
-    meta?: Array<{ name?: string; description?: string }>
+    meta?: PointMeta[]
   ): RoutePoint[] {
-    return coords.map((position, i) => ({
-      position,
-      ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
-      ...(meta?.[i]?.description ? { description: meta[i].description } : {})
-    }));
+    return buildRoutePoints(coords, meta);
   }
 
-  /** Deep-compare two point lists (position + name + description) so a
+  /** Deep-compare two point lists (position + name + description + href) so a
    *  same-length geometry/metadata edit is still detected as a change. */
   private pointsEqual(a: RoutePoint[], b: RoutePoint[]): boolean {
     if (a.length !== b.length) {
@@ -657,7 +658,8 @@ export class PlotterExtensionService {
         p.position[1] === q.position[1] &&
         (p.position[2] ?? null) === (q.position[2] ?? null) &&
         (p.name ?? null) === (q.name ?? null) &&
-        (p.description ?? null) === (q.description ?? null)
+        (p.description ?? null) === (q.description ?? null) &&
+        (p.href ?? null) === (q.href ?? null)
       );
     });
   }
@@ -668,7 +670,7 @@ export class PlotterExtensionService {
     for (const [id, route] of displayed) {
       const coords = (route.feature?.geometry?.coordinates ?? []) as Position[];
       const meta = route.feature?.properties?.coordinatesMeta as
-        Array<{ name?: string; description?: string }> | undefined;
+        PointMeta[] | undefined;
       const points = this.pointsFromRoute(coords, meta);
       // Resolve by href, not routeId: a draft saved via route.save keeps its
       // original (draft) routeId while its href points at the new resource, so
@@ -1001,7 +1003,7 @@ export class PlotterExtensionService {
     const route = cached[1];
     const coords = (route.feature?.geometry?.coordinates ?? []) as Position[];
     const meta = route.feature?.properties?.coordinatesMeta as
-      Array<{ name?: string; description?: string }> | undefined;
+      PointMeta[] | undefined;
     const points = this.pointsFromRoute(coords, meta);
     const buf = this.routeRegistry.show({
       routeId: ref,
@@ -1092,13 +1094,11 @@ export class PlotterExtensionService {
     const [, route] = this.skres.buildRoute(
       buf.points.map((p) => p.position) as LineString
     );
-    // buildRoute keeps only positions — carry the per-point names/descriptions
-    // and the route-level description so they are not silently dropped on save.
-    const coordinatesMeta = buf.points.map((p) => ({
-      ...(p.name ? { name: p.name } : {}),
-      ...(p.description ? { description: p.description } : {})
-    }));
-    if (coordinatesMeta.some((m) => Object.keys(m).length > 0)) {
+    // buildRoute keeps only positions — carry the per-point names, descriptions
+    // and waypoint links, and the route-level description, so they are not
+    // silently dropped on save.
+    const coordinatesMeta = coordinatesMetaFromPoints(buf.points);
+    if (coordinatesMeta) {
       route.feature.properties.coordinatesMeta = coordinatesMeta;
     }
     route.name = opts.name ?? buf.name ?? '';

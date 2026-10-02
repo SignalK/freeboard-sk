@@ -43,6 +43,13 @@ export type RouteHideHandler = (routeId: string) => Promise<void> | void;
  *  Host-specific (deletes the resource). */
 export type RouteDeleteHandler = (routeId: string) => Promise<void> | void;
 
+/** A route point's waypoint link: `/resources/waypoints/<id>`. */
+const WAYPOINT_HREF = /^\/resources\/waypoints\/[^/]+$/;
+
+function isWaypointHref(v: unknown): v is string {
+  return typeof v === 'string' && WAYPOINT_HREF.test(v);
+}
+
 export function createRouteMethods(
   registry: RouteBufferRegistry,
   opts: {
@@ -101,6 +108,12 @@ export function createRouteMethods(
       }
       requireOptString((p as RoutePoint).name, 'point name');
       requireOptString((p as RoutePoint).description, 'point description');
+      const href = (p as RoutePoint).href;
+      if (href !== undefined && !isWaypointHref(href)) {
+        throw badRequest(
+          'point href must be a waypoint reference (/resources/waypoints/<id>)'
+        );
+      }
     }
     return points as RoutePoint[];
   };

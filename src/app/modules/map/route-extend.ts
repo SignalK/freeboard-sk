@@ -1,14 +1,12 @@
 import { Position } from 'src/app/types';
 import { worldCopyOffset } from './ol/lib/util';
+import type { PointMeta } from '../skresources/components/route-reorder.util';
 
 /** EPSG:3857 world width in metres (the map's Mercator projection). */
 export const WORLD_WIDTH_3857 = 2 * 20037508.342789244;
 
 /** Per-point route metadata carried alongside the geometry. */
-export interface RoutePointMeta {
-  name?: string;
-  description?: string;
-}
+export type RoutePointMeta = PointMeta;
 
 /** Everything the caller needs to apply a route extension (issue #549). */
 export interface RouteExtension {
@@ -85,4 +83,37 @@ export function extendRouteAtClick(
       coordsMetadata: meta ? meta.map((m) => ({ ...m })) : undefined
     }
   };
+}
+
+/**
+ * Drop the waypoint link from every point a Modify move took off its original
+ * position (#880). A link is a reference, not a copy, so a point dragged away
+ * from its waypoint is no longer that waypoint; keeping the `href` would label
+ * it with the waypoint's name and save a link to somewhere it isn't. Only for a
+ * same-length edit (a move) — an insert or delete realigns the metadata instead.
+ *
+ * The unlinked point keeps a name, so the entry stays valid on the server
+ * (which rejects `{}`): its own name, else the waypoint's name it was showing
+ * (via `waypointName`, when the waypoint is known), else `''`.
+ *
+ * Mutates `meta` in place, as `updateCoordsMeta` does for an insert or delete,
+ * but replaces each changed entry rather than editing it, since the entry
+ * objects can be shared with other copies of the metadata.
+ */
+export function unlinkMovedPoints(
+  before: Position[],
+  after: Position[],
+  meta: RoutePointMeta[],
+  waypointName?: (href: string) => string | undefined
+): void {
+  for (let i = 0; i < meta.length && i < after.length; i++) {
+    const moved =
+      before[i]?.[0] !== after[i][0] || before[i]?.[1] !== after[i][1];
+    const href = meta[i]?.href;
+    if (moved && href) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { href: _unlinked, ...rest } = meta[i];
+      meta[i] = { ...rest, name: rest.name || waypointName?.(href) || '' };
+    }
+  }
 }
