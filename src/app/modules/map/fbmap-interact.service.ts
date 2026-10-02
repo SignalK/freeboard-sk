@@ -58,6 +58,8 @@ export interface IPopover {
     end?: string;
     duration?: string;
     at?: string;
+    /** The tapped passage as a route (see trackSectionRoute). */
+    route?: Position[];
   };
   readOnly: boolean;
 }
