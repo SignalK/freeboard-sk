@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { Collection, Feature } from 'ol';
 
 import { FBMapComponent } from './fb-map.component';
 import { RouteBufferRegistry } from '../plotterext/route-buffer.registry';
@@ -133,14 +134,21 @@ describe('FBMapComponent — a route from a recorded track', () => {
     cmp.app = { useInfoPanel: () => false };
     tap(cmp, 'trail.self.server', 'self', passage(0));
     const at = cmp.overlay().position;
+    // the tap selected the track
+    cmp.mapInteract.draw.features = new Collection([new Feature()]);
+    let selectedAtOpen: number;
     const formatPopover = vi
       .spyOn(cmp, 'formatPopover')
-      .mockImplementation(() => undefined);
+      .mockImplementation(() => {
+        selectedAtOpen = cmp.mapInteract.draw.features.getLength();
+      });
 
     cmp.routeFromTrack();
 
     const [draft] = cmp.routeBuffers.all();
     expect(formatPopover).toHaveBeenCalledWith(`route.${draft.routeId}`, at);
     expect(cmp.infoPanel.openWith).not.toHaveBeenCalled();
+    // nothing selected for the draft's MODIFY to edit in place of the route
+    expect(selectedAtOpen).toBe(0);
   });
 });

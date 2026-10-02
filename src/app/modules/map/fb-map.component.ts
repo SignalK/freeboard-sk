@@ -2306,6 +2306,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.popoverClosed();
       this.infoPanel.openWith('routes', this.bufferToFBRoute(buffer));
     } else {
+      // the tapped track is no feature of the route: MODIFY would edit it
+      this.mapInteract.draw.features = new Collection<Feature>();
       this.formatPopover(`route.${buffer.routeId}`, this.overlay().position);
     }
   }
