@@ -2,12 +2,14 @@ import { expect, describe, it, vi, afterEach, beforeEach } from 'vitest';
 import {
   apiGet,
   applyServerAisTracks,
+  assembleTrail,
   handleStreamEvent,
   initVessels,
   processVessel,
   timedTrail
 } from './skstream.worker';
 import { SKVessel } from '../skresources/resource-classes';
+import { Position } from 'src/app/types';
 
 // getVesselTrail() fetches the server-side "self" track with several apiGet()
 // calls fired in the same tick and awaited via Promise.all. A shared in-flight
@@ -432,5 +434,30 @@ describe('skstream.worker timedTrail — trail recording times (#821)', () => {
       ])
     ).toBeUndefined();
     expect(timedTrail([null, null])).toBeUndefined();
+  });
+});
+
+describe('skstream.worker assembleTrail — server-simplified bands', () => {
+  // a zigzag finer than the fixed tolerance older bands are thinned to
+  const zigzag = Array.from({ length: 10 }, (_, i): Position => [
+    i * 0.0001,
+    (i % 2) * 0.0001
+  ]);
+  const lastHour: Position[][] = [
+    [
+      [1, 1],
+      [1.0001, 1.0001]
+    ]
+  ];
+
+  it('thins an older band to the fixed tolerance', () => {
+    const [older] = assembleTrail([[zigzag], lastHour]);
+    expect(older.length).toBeLessThan(zigzag.length);
+  });
+
+  it('keeps the detail of a band the server simplified for the map zoom', () => {
+    const [older, newest] = assembleTrail([[zigzag], lastHour], [true, false]);
+    expect(older).toEqual(zigzag);
+    expect(newest).toEqual(lastHour[0]);
   });
 });

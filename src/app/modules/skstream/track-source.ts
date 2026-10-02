@@ -239,26 +239,70 @@ export function resolutionToIso(res: string | undefined): string | undefined {
 }
 
 export interface TrailBand {
-  from: string; // ISO 8601 instant
+  from?: string; // ISO 8601 instant; absent reaches back to the first recorded point
   to?: string; // ISO 8601 instant; absent leaves the band open to the server's now
   resolution?: string; // ISO 8601 duration
+  /** Simplification tolerance in metres, applied by the server: the band's
+   * detail then follows the zoom it was fetched for. */
+  epsilon?: number;
+  /** Server simplification at a tolerance the provider picks, for when no
+   * zoom is known yet to size `epsilon` to. */
+  simplify?: boolean;
 }
 
 const HOUR = 3600000;
+
+/** `vessels.trailDuration` value for the whole recorded track ("All"). */
+export const TRAIL_DURATION_ALL = 0;
+
+/** The longest trail length offered in hours; "All" follows it. The v1
+ * interface, which has no open-ended query, is asked for this much when "All"
+ * is set. */
+export const TRAIL_MAX_HOURS = 96;
+
+/** Ground metres covered by one screen pixel at a Web Mercator zoom level and
+ * latitude (256 px tiles). */
+export function metresPerPixel(zoom: number, latitude: number): number {
+  const EQUATOR_METRES_PER_PIXEL_AT_ZOOM_0 = 156543.03392;
+  return (
+    (EQUATOR_METRES_PER_PIXEL_AT_ZOOM_0 *
+      Math.cos((latitude * Math.PI) / 180)) /
+    2 ** zoom
+  );
+}
 
 /** Split the trail window into the same bands as the v1 request (beyond 24 h /
  * 1 → 24 h / last hour), oldest first. Adjacent bands share their boundary
  * instant, so they tile the window with no gap or overlap. The LAST band is
  * always the last hour, and has no `to`: the server closes it at its own now,
- * where the device's clock, if behind, would cut off the newest points. */
+ * where the device's clock, if behind, would cut off the newest points.
+ *
+ * With TRAIL_DURATION_ALL the oldest band has no `from`, so it reaches back to
+ * the first recorded point; the Track API allows that for a single vessel. It
+ * is simplified by the server to `epsilon` metres (about a pixel at the map's
+ * zoom), so a long history stays light on a zoomed-out chart and keeps its
+ * turns on a zoomed-in one; without an `epsilon` the provider picks the
+ * tolerance. */
 export function trailBands(
   durationHrs: number,
   resolution: { lastHour: string; next23: string; beyond24: string },
-  now: number
+  now: number,
+  epsilon?: number
 ): TrailBand[] {
   const iso = (t: number) => new Date(t).toISOString();
   const bands: TrailBand[] = [];
-  if (durationHrs > 24) {
+  if (durationHrs === TRAIL_DURATION_ALL) {
+    bands.push({
+      to: iso(now - 24 * HOUR),
+      resolution: resolutionToIso(resolution.beyond24),
+      ...(epsilon === undefined ? { simplify: true } : { epsilon })
+    });
+    bands.push({
+      from: iso(now - 24 * HOUR),
+      to: iso(now - HOUR),
+      resolution: resolutionToIso(resolution.next23)
+    });
+  } else if (durationHrs > 24) {
     bands.push({
       from: iso(now - durationHrs * HOUR),
       to: iso(now - 24 * HOUR),
@@ -307,6 +351,8 @@ export function trailBandUrl(
     from: band.from,
     to: band.to,
     resolution: band.resolution,
+    epsilon: band.epsilon,
+    simplify: band.simplify ? 'true' : undefined,
     times: 'true',
     provider
   })}`;

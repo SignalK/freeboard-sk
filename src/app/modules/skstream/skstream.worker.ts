@@ -34,6 +34,7 @@ import {
   AIS_PICK_DEFAULT_HOURS,
   createRequestGate,
   detectTrackSource,
+  metresPerPixel,
   needsAisRefetch,
   padExtent,
   NO_TRACK_SOURCE,
@@ -42,6 +43,8 @@ import {
   TrackSource,
   trackSourceUrls,
   tracksApiUrl,
+  TRAIL_DURATION_ALL,
+  TRAIL_MAX_HOURS,
   trailBands,
   trailBandUrl
 } from './track-source';
@@ -70,7 +73,7 @@ interface WorkerSettings {
 }
 
 interface VesselTrailConfig {
-  trailDuration: number; // number of hours of trail to fetch from server
+  trailDuration: number; // hours of trail to fetch from server; TRAIL_DURATION_ALL for the whole recorded track
   trailResolution: {
     // resolution at defined time horizons e.g. '5s', '1m', '5m'
     lastHour: string;
@@ -134,7 +137,7 @@ let apiUrl: string; // path to Signal K api
 let trackSource: TrackSource = NO_TRACK_SOURCE;
 let trackSourceReady: Promise<TrackSource> = Promise.resolve(NO_TRACK_SOURCE);
 // map viewport (lon/lat extent) + zoom, posted by the app on move-end
-let aisView: { extent: Extent; zoom: number } | null = null;
+let mapView: { extent: Extent; zoom: number } | null = null;
 // the view box (padded viewport) and zoom of the last AIS tracks request
 let aisFetched: { extent: number[]; zoom: number } | null = null;
 // AIS targets picked with the per-vessel TRACK toggle (session-only)
@@ -380,9 +383,9 @@ function handleCommand(data: MsgFromApp) {
     //** { cmd: 'view', options: {extent: Extent, zoom: number} }
     case 'view':
       if (data.options?.extent) {
-        aisView = { extent: data.options.extent, zoom: data.options.zoom };
+        mapView = { extent: data.options.extent, zoom: data.options.zoom };
         // picked vessels are fetched by context, whatever the view
-        if (aisShowTrack && needsAisRefetch(aisFetched, aisView)) {
+        if (aisShowTrack && needsAisRefetch(aisFetched, mapView)) {
           scheduleAisTracks();
         }
       }
@@ -533,15 +536,27 @@ function requestVesselTrail() {
 }
 
 /** Fetch the own-vessel trail from the v2 Track API: the same three bands as
- * v1, as absolute from/to, from the default provider only. */
+ * v1, as absolute from/to, from the default provider only. With "All" the
+ * oldest band is simplified by the server to a pixel at the map's zoom. */
 function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
   const url = tracksApiUrl(apiUrl);
-  const bands = trailBands(opt.trailDuration, opt.trailResolution, Date.now());
+  const epsilon = mapView
+    ? metresPerPixel(mapView.zoom, (mapView.extent[1] + mapView.extent[3]) / 2)
+    : undefined;
+  const bands = trailBands(
+    opt.trailDuration,
+    opt.trailResolution,
+    Date.now(),
+    epsilon
+  );
   const msg = new TrailMessage();
   msg.playback = playbackMode;
   Promise.all(bands.map((b) => trackApiGet(trailBandUrl(url, b, provider))))
     .then((fcs) => {
-      msg.result = assembleTrail(fcs.map((fc) => parseSelfTrail(fc) ?? null));
+      msg.result = assembleTrail(
+        fcs.map((fc) => parseSelfTrail(fc) ?? null),
+        bands.map((b) => b.epsilon !== undefined || b.simplify === true)
+      );
       msg.timed = timedTrail(fcs, provider);
       postMessage(msg);
     })
@@ -604,9 +619,9 @@ function pollAisTracks() {
  * the vessels picked with the per-vessel TRACK toggle. Nothing is fetched
  * below the zoom at which the track layer draws. */
 function getAISTracksV2(provider?: string) {
-  const view = aisView && {
-    extent: padExtent(aisView.extent, AIS_TRACK_BBOX_PAD),
-    zoom: aisView.zoom
+  const view = mapView && {
+    extent: padExtent(mapView.extent, AIS_TRACK_BBOX_PAD),
+    zoom: mapView.zoom
   };
   aisFetched = view;
   const query = aisTracksQuery({
@@ -707,13 +722,18 @@ function getAISTracks() {
 function getVesselTrail(opt: VesselTrailConfig) {
   //console.info('Worker: Fetching vessel trail from server', opt);
   const url = apiUrl + '/self/track?';
+  // v1 has no open-ended query: "All" asks for its longest length
+  const hours =
+    opt.trailDuration === TRAIL_DURATION_ALL
+      ? TRAIL_MAX_HOURS
+      : opt.trailDuration;
   const req = [];
   // set up fetch requests
-  if (opt.trailDuration > 24) {
+  if (hours > 24) {
     // beyond last 24hrs
     req.push(
       apiGet(
-        `${url}timespan=${opt.trailDuration - 24}h&resolution=${
+        `${url}timespan=${hours - 24}h&resolution=${
           opt.trailResolution.beyond24
         }&timespanOffset=24`
       )
@@ -724,11 +744,11 @@ function getVesselTrail(opt: VesselTrailConfig) {
       )
     );
   }
-  if (opt.trailDuration > 1 && opt.trailDuration < 25) {
+  if (hours > 1 && hours < 25) {
     // last 24hrs
     req.push(
       apiGet(
-        `${url}timespan=${opt.trailDuration - 1}h&resolution=${
+        `${url}timespan=${hours - 1}h&resolution=${
           opt.trailResolution.next23
         }&timespanOffset=1`
       )
@@ -761,8 +781,13 @@ function getVesselTrail(opt: VesselTrailConfig) {
 
 /** Join trail bands (oldest first, the LAST one being the last hour) into one
  * trail. Older bands are simplified and cut into segments for OL rendering;
- * the last hour is kept as received. A null band contributes nothing. */
-function assembleTrail(bands: Array<Position[][] | null>) {
+ * the last hour is kept as received. A null band contributes nothing. A band
+ * the server already simplified to the map's zoom (`serverSimplified`) is only
+ * cut into segments: a fixed tolerance would undo its zoomed-in detail. */
+export function assembleTrail(
+  bands: Array<Position[][] | null>,
+  serverSimplified: boolean[] = []
+) {
   const tolerance = 0.0005; //0.0001
   const highQuality = true;
   const segLen = 60; // max line segment length (OL rendering treatment)
@@ -778,7 +803,9 @@ function assembleTrail(bands: Array<Position[][] | null>) {
       lines.forEach((line) => {
         coords = coords.concat(line);
       });
-      coords = SimplifyAP(coords, tolerance, highQuality);
+      if (!serverSimplified[idx]) {
+        coords = SimplifyAP(coords, tolerance, highQuality);
+      }
       // break up into segments for OL rendering
       while (coords.length > segLen) {
         const ls = coords.slice(0, segLen);
