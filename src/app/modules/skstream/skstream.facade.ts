@@ -401,6 +401,8 @@ export class SKStreamFacade {
       console.warn('Unable to fetch vessel trail from server.');
       this.app.data.serverTrail = false;
       this.app.selfTrailTimed.set(null);
+      // nothing was fetched for this zoom: the next view change tries again
+      this.trailZoomLevel = undefined;
     }
   }
 

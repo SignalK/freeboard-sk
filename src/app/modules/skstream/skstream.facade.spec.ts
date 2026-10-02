@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it, vi } from 'vitest';
 import {
   SKStreamFacade,
   isPositionStale,
@@ -133,6 +133,7 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
       worker: { postMessage: (msg: Msg) => void };
       postMapView: (extent: number[], zoom: number) => void;
       requestTrailFromServer: () => void;
+      parseSelfTrail: (msg: { result: unknown }) => void;
     };
     facade.worker = { postMessage: (msg) => posted.push(msg) };
     facade.app = {
@@ -145,7 +146,9 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
         }
       },
       serverTrailWanted: () => serverTrailWanted,
-      trackSource: () => ({ api })
+      trackSource: () => ({ api }),
+      data: { serverTrail: true },
+      selfTrailTimed: { set: () => undefined }
     };
     const trailRequests = () => posted.filter((m) => m.cmd === 'trail').length;
     return { facade, trailRequests };
@@ -175,6 +178,16 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
     facade.requestTrailFromServer();
     facade.postMapView(extent, 10.6);
     expect(trailRequests()).toBe(2);
+  });
+
+  it('tries again on the next view change when the fetch failed', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { facade, trailRequests } = facadeWith();
+    facade.postMapView(extent, 10.2);
+    facade.parseSelfTrail({ result: null });
+    facade.postMapView([0, 50, 2, 51], 10.2);
+    expect(trailRequests()).toBe(2);
+    vi.restoreAllMocks();
   });
 
   it('leaves a trail of a fixed length alone', () => {
