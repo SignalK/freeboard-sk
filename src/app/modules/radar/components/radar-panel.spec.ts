@@ -238,6 +238,22 @@ describe('RadarPanel', () => {
     });
   });
 
+  it('disables power and range while the radar does not allow them', () => {
+    radar.update((r) => ({
+      ...r,
+      controls: new Map(r.controls)
+        .set('power', { value: 1, allowed: false })
+        .set('range', { value: 1852, allowed: false })
+    }));
+    const el: HTMLElement = open().nativeElement;
+    expect(el.querySelector<HTMLButtonElement>('.power-button').disabled).toBe(
+      true
+    );
+    expect(
+      el.querySelector('.range mat-select').getAttribute('aria-disabled')
+    ).toBe('true');
+  });
+
   it('switches to another radar from the radar menu', async () => {
     const fixture = open();
     fixture.nativeElement.querySelector('.radar-name').click();

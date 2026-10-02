@@ -59,7 +59,7 @@
     <mat-label>Range</mat-label>
     <mat-select
       [value]="rangeValue()"
-      [disabled]="rangeDef().isReadOnly"
+      [disabled]="isDisabled(rangeDef(), values().get('range'))"
       (selectionChange)="setRange($event.value)"
     >
       @for (o of ranges(); track o.value) {

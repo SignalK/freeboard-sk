@@ -76,7 +76,9 @@ export class RadarPanel {
     return this.powerDef()?.descriptions?.[value] ?? String(value);
   });
   protected nextPower = computed(() =>
-    nextPowerValue(this.powerDef(), this.powerValue())
+    this.values().get('power')?.allowed === false
+      ? undefined
+      : nextPowerValue(this.powerDef(), this.powerValue())
   );
 
   protected rangeDef = computed(() => this.capabilities()?.controls?.['range']);

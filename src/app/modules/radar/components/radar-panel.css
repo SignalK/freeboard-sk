@@ -29,11 +29,14 @@
     border: 2px solid var(--power-color);
     border-radius: 24px;
     --power-color: #757575;
+    --power-icon: 255, 255, 255;
 }
 
+/* white on amber is unreadable, so the icon goes dark there */
 .lozenge.power-standby,
 .lozenge.power-preparing {
     --power-color: #f9a825;
+    --power-icon: 0, 0, 0;
 }
 
 .lozenge.power-transmit {
@@ -47,11 +50,11 @@
 .power-button {
     flex: 0 0 auto;
     background-color: var(--power-color);
-    color: #fff;
+    color: rgba(var(--power-icon), 0.87);
 }
 
 .power-button:disabled {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(var(--power-icon), 0.5);
 }
 
 .radar-name {
