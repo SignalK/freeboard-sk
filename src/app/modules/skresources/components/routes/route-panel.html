@@ -80,7 +80,7 @@
         } &nbsp;
         <button
           mat-button
-          [disabled]="this.app.data.activeRoute !== id() || interacting()"
+          [disabled]="!canReverse() || interacting()"
           (click)="onReverse()"
           matTooltip="Reverse direction"
         >

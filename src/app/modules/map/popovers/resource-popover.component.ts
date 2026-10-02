@@ -31,6 +31,7 @@ interface PopoverCtrl {
   showPointsButton: boolean;
   showNotesButton: boolean;
   showSaveButton: boolean;
+  showReverseButton: boolean;
   canActivate: boolean;
   isActive: boolean;
   activeText: string;
@@ -213,6 +214,19 @@ interface PopoverCtrl {
             </button>
           </div>
         }
+        @if (ctrl.showReverseButton) {
+          <div class="popover-action-button" [style.order]="2">
+            <button
+              mat-button
+              (click)="emitReverse()"
+              matTooltip="Reverse direction"
+              matTooltipPosition="after"
+            >
+              <mat-icon>multiple_stop</mat-icon>
+              REVERSE
+            </button>
+          </div>
+        }
         @if (ctrl.showPointsButton) {
           <div
             class="popover-action-button"
@@ -323,6 +337,8 @@ export class ResourcePopoverComponent {
   closed = output<void>();
   points = output<void>();
   notes = output<void>();
+  /** Turn a draft round, before START follows it. */
+  reverse = output<void>();
 
   protected _title = linkedSignal(() => this.title());
 
@@ -337,6 +353,7 @@ export class ResourcePopoverComponent {
     showPointsButton: false,
     showNotesButton: false,
     showSaveButton: false,
+    showReverseButton: false,
     canActivate: false,
     isActive: false,
     activeText: 'ACTIVE',
@@ -364,6 +381,9 @@ export class ResourcePopoverComponent {
       this.type() === 'route' || this.type() === 'region' ? 'MODIFY' : 'MOVE';
     // Save shortcut: only for an unsaved route (host-decided via canSave).
     this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
+    // A draft is turned round before START follows it; the route being
+    // followed is turned round from the route panel, through the course.
+    this.ctrl.showReverseButton = this.ctrl.showSaveButton && this.canStart();
     if (this.ctrl.showSaveButton) {
       // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
       // the actions that only work against a stored resource — Show Notes and
@@ -574,6 +594,10 @@ export class ResourcePopoverComponent {
 
   emitNotes() {
     this.notes.emit();
+  }
+
+  emitReverse() {
+    this.reverse.emit();
   }
 
   emitInfo() {
