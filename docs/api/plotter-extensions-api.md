@@ -679,11 +679,38 @@ follower the outcome (`true` = still on the server, `false` = gone), while the
 *verb the extension called* carries the intent.
 
 **Points and geometry.** A route's points are an ordered list (0-based). A point
-is `{ position: [lon, lat, alt?], name?, description? }` — `name`/`description`
-map to a host's per-point metadata and round-trip through `route.get`,
-`route.replace`, and `route.save`. `route.create` and `route.replace` require at
-least two points and reject a malformed point (a non-numeric `position`, or
-non-string `name`/`description`) with `routes.badRequest`.
+is `{ position: [lon, lat, alt?], name?, description?, href? }` —
+`name`/`description`/`href` map to a host's per-point metadata and round-trip
+through `route.get`, `route.replace`, and `route.save`. `route.create` and
+`route.replace` require at least two points and reject a malformed point (a
+non-numeric `position`, a non-string `name`/`description`, or an `href` that is
+not a waypoint reference) with `routes.badRequest`.
+
+**Waypoint links.** `href` links a point to a saved waypoint, as a Signal K
+resource path: `/resources/waypoints/<id>`. This is the same reference a Signal K
+route stores in its per-point metadata, so a point that is linked on the server
+arrives linked in `route.get`, and `route.save` stores the link again.
+
+- **A link is a reference, not a copy.** `position` alone defines the route's
+  geometry, and a point's own `name`/`description` stay its own. A linked point
+  may also carry a `name`; one that doesn't may be labelled with the waypoint's
+  name wherever it is shown.
+- **The host does not keep the point and its waypoint in step.** A client that
+  moves a linked point off its waypoint should drop the `href` (or link the
+  point to a different waypoint). Moving the waypoint itself later does not move
+  the route point.
+- **A link can outlive its waypoint.** A host need not check that the waypoint
+  exists when it accepts or saves an `href`. Treat a link that no longer
+  resolves as no link.
+- Adding, changing or removing only a point's `href` is still a content change:
+  it emits `route.dirty` and bumps `rev` like any other edit.
+
+**Older hosts.** `href` was added after the `routes` capability. A host built
+against the earlier contract never reports it and drops it when it copies points,
+so a link set through `route.create` or `route.replace` is lost and the point is
+saved unlinked. Nothing on the wire tells the two hosts apart. An extension that
+depends on links can call `route.get` after its write and check that the `href`
+is still there.
 
 **Revisions and mirroring.** Each route carries a monotonic `rev` that
 increments on every mutation. `route.get` and `route.list` report the current
