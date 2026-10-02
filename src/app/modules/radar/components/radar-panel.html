@@ -33,6 +33,9 @@
       [matTooltip]="
           app.uiCtrl().radarLayer ? 'Hide radar on chart' : 'Show radar on chart'
         "
+      [attr.aria-label]="
+        app.uiCtrl().radarLayer ? 'Hide radar on chart' : 'Show radar on chart'
+      "
       [attr.aria-pressed]="app.uiCtrl().radarLayer"
       (click)="toggleOverlay()"
     >
@@ -77,6 +80,7 @@
     <mat-slider class="ctl-slider" [min]="0" [max]="1" [step]="0.1">
       <input
         matSliderThumb
+        aria-label="Opacity"
         [value]="app.config.radars.opacity"
         (input)="handleOpacity($event)"
       />
@@ -113,6 +117,7 @@
           @if (c.def.hasAuto) {
           <mat-slide-toggle
             class="ctl-auto"
+            [aria-label]="c.def.name + ' auto'"
             [checked]="!!cv?.auto"
             [disabled]="disabled"
             (change)="setAuto(c, $event.checked)"
@@ -133,6 +138,7 @@
         >
           <input
             matSliderThumb
+            [attr.aria-label]="c.def.name"
             [value]="stepIndex(c, cv)"
             (change)="setStep(c, $event)"
           />
@@ -140,6 +146,7 @@
         } @case ('select') {
         <mat-form-field class="compact" subscriptSizing="dynamic">
           <mat-select
+            [aria-label]="c.def.name"
             [value]="cv?.value"
             [disabled]="disabled"
             (selectionChange)="setValue(c, $event.value)"
@@ -159,6 +166,7 @@
         >
           <input
             matSliderThumb
+            [attr.aria-label]="c.def.name"
             [value]="current(c.def, cv)"
             (change)="setNumber(c, $event)"
           />
@@ -168,6 +176,7 @@
           <input
             matInput
             type="number"
+            [attr.aria-label]="c.def.name"
             [min]="b[0]"
             [max]="b[1]"
             [step]="c.def.stepValue || 1"
@@ -181,6 +190,7 @@
           <input
             matInput
             type="text"
+            [attr.aria-label]="c.def.name"
             [value]="cv?.value ?? ''"
             [disabled]="disabled"
             (change)="setText(c, $event)"
