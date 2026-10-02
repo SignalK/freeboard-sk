@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { editsRouteBuffer, buildRoutePoints } from './route-reorder.util';
+import {
+  editsRouteBuffer,
+  buildRoutePoints,
+  coordinatesMetaFromPoints
+} from './route-reorder.util';
 
 /**
  * Route Points reorder persistence (#583). Dragging a point in the Points
@@ -63,18 +67,61 @@ describe('buildRoutePoints (#583)', () => {
     expect(result[0].description).toBeUndefined();
   });
 
-  it('does not synthesize an href for waypoint-referenced points', () => {
-    // coordinatesMeta can carry an href (a route point that references a stored
-    // waypoint), but RoutePoint / the route buffer don't model waypoint refs.
-    // buildRoutePoints only runs on buffer-derived meta, which never carries
-    // href; href-bearing routes persist through the server path, which keeps the
-    // full coordinatesMeta. Assert the rebuild carries position/name/description
-    // and never invents an href field.
-    const meta: Array<{ name?: string; description?: string; href?: string }> =
-      [{ name: 'WP-1', href: '/resources/waypoints/abc' }];
-    const result = buildRoutePoints([[-80, 25]], meta);
-    expect(result[0].position).toEqual([-80, 25]);
-    expect(result[0].name).toBe('WP-1');
-    expect('href' in result[0]).toBe(false);
+  it('carries a waypoint link through the rebuild (#880)', () => {
+    const href = '/resources/waypoints/abc';
+    const result = buildRoutePoints(
+      [
+        [-80, 25],
+        [-81, 26]
+      ],
+      [{ name: 'WP-1', href }, { href }]
+    );
+    expect(result[0]).toEqual({ position: [-80, 25], name: 'WP-1', href });
+    expect(result[1]).toEqual({ position: [-81, 26], href });
+  });
+});
+
+describe('coordinatesMetaFromPoints (#880)', () => {
+  const href = '/resources/waypoints/abc';
+
+  it('stores no metadata when no point has any', () => {
+    expect(
+      coordinatesMetaFromPoints([{}, { name: '', description: '' }])
+    ).toBeUndefined();
+  });
+
+  it('gives an unnamed point an empty name, never an empty entry', () => {
+    // The server rejects `{}`, so a partly named route has to name every point.
+    const meta = coordinatesMetaFromPoints([{ name: 'Start' }, {}, {}]);
+    expect(meta).toEqual([{ name: 'Start' }, { name: '' }, { name: '' }]);
+  });
+
+  it('keeps the waypoint link alongside the name and description', () => {
+    expect(
+      coordinatesMetaFromPoints([
+        { name: 'Mark', description: 'Red nun', href },
+        { href }
+      ])
+    ).toEqual([
+      { name: 'Mark', description: 'Red nun', href },
+      { name: '', href }
+    ]);
+  });
+
+  it('survives a load and save round trip unchanged', () => {
+    const stored = [
+      { name: 'Mark', description: 'Red nun', href },
+      { name: '' },
+      { name: 'End' }
+    ];
+    const points = buildRoutePoints(
+      [
+        [0, 0],
+        [1, 1],
+        [2, 2]
+      ],
+      stored
+    );
+    expect(coordinatesMetaFromPoints(points)).toEqual(stored);
   });
 });

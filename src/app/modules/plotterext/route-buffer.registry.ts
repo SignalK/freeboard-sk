@@ -302,7 +302,8 @@ export class RouteBufferRegistry {
     return {
       position: [...p.position] as RoutePoint['position'],
       ...(p.name !== undefined ? { name: p.name } : {}),
-      ...(p.description !== undefined ? { description: p.description } : {})
+      ...(p.description !== undefined ? { description: p.description } : {}),
+      ...(p.href !== undefined ? { href: p.href } : {})
     };
   }
 

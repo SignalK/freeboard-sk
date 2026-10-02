@@ -116,7 +116,10 @@ persist — distinct from the user-cancel `routes.saveCancelled`),
   Edit / Delete** consistently (drafts get a quick Delete/discard; server-backed
   actions like Start / Route Points / Show Notes are hidden for unsaved drafts).
 - Saving keeps the route on the map (it isn't consumed), and per-point
-  names/descriptions plus the route description round-trip through save.
+  names/descriptions, waypoint links (`href`) and the route description
+  round-trip through save. Every saved point carries a `name` (`''` when
+  unnamed), and moving a linked point off its waypoint in the native editor
+  drops its link.
 - Freeboard mirrors its own displayed/edited routes into the visible set, so
   extensions observe native edits as `route.*` events too.
 

@@ -4,6 +4,7 @@ import {
   WORLD_WIDTH_3857,
   extendRouteAtClick,
   shouldExtendRoute,
+  unlinkMovedPoints,
   worldAlignedPoint
 } from './route-extend';
 
@@ -98,5 +99,67 @@ describe('extendRouteAtClick', () => {
     // deep clone — mutating the snapshot must not reach the source geometry
     r.undo.coordinates[0][0] = 999;
     expect(before[0][0]).toBe(0);
+  });
+});
+
+describe('unlinkMovedPoints (#880)', () => {
+  const href = '/resources/waypoints/abc';
+  const before: Position[] = [
+    [0, 0],
+    [10, 10],
+    [20, 20]
+  ];
+
+  it('drops the link from a point moved off its waypoint, keeping its name', () => {
+    const meta = [
+      { name: 'A', href },
+      { name: 'B', href },
+      { name: 'C', href }
+    ];
+    unlinkMovedPoints(
+      before,
+      [
+        [0, 0],
+        [11, 10],
+        [20, 20]
+      ],
+      meta
+    );
+    expect(meta).toEqual([
+      { name: 'A', href },
+      { name: 'B' },
+      { name: 'C', href }
+    ]);
+  });
+
+  it('replaces the entry rather than mutating it', () => {
+    const shared = { name: 'B', href };
+    const meta = [{ name: 'A' }, shared, { name: 'C' }];
+    unlinkMovedPoints(
+      before,
+      [
+        [0, 0],
+        [11, 10],
+        [20, 20]
+      ],
+      meta
+    );
+    expect(shared.href).toBe(href);
+    expect(meta[1]).not.toBe(shared);
+  });
+
+  it('leaves a moved point without a link untouched', () => {
+    const entry = { name: 'B' };
+    const meta = [{ name: 'A' }, entry, { name: 'C' }];
+    unlinkMovedPoints(
+      before,
+      [
+        [0, 0],
+        [11, 10],
+        [20, 20]
+      ],
+      meta
+    );
+    expect(meta[1]).toBe(entry);
   });
 });

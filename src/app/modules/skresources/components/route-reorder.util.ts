@@ -23,8 +23,9 @@ export function editsRouteBuffer(
 }
 
 /**
- * Build route-buffer points from reordered coordinates, carrying each point's
- * name/description so a reorder doesn't drop per-point metadata.
+ * Build route-buffer points from coordinates and their `coordinatesMeta`,
+ * carrying each point's name, description and waypoint link (`href`) so a load,
+ * reorder or edit doesn't drop per-point metadata (#880).
  */
 export function buildRoutePoints(
   points: Position[],
@@ -35,7 +36,31 @@ export function buildRoutePoints(
     return {
       position,
       ...(m?.name ? { name: m.name } : {}),
-      ...(m?.description ? { description: m.description } : {})
+      ...(m?.description ? { description: m.description } : {}),
+      ...(m?.href ? { href: m.href } : {})
     };
   });
+}
+
+/**
+ * The `coordinatesMeta` to store for a route's points, or undefined when no
+ * point carries a name, description or waypoint link.
+ *
+ * Every entry has a `name` (`''` for an unnamed point): the server rejects an
+ * empty `{}` entry, and readers that look only at `name` (course point names,
+ * other apps) need one on a waypoint-linked point too (#880). An unnamed point
+ * stores `''` rather than a generated `RtePt-NNN`, which would be persisted and
+ * then go stale once the points are reordered; readers generate one for display.
+ */
+export function coordinatesMetaFromPoints(
+  points: Array<Pick<RoutePoint, 'name' | 'description' | 'href'>>
+): PointMeta[] | undefined {
+  if (!points.some((p) => p.name || p.description || p.href)) {
+    return undefined;
+  }
+  return points.map((p) => ({
+    name: p.name ?? '',
+    ...(p.description ? { description: p.description } : {}),
+    ...(p.href ? { href: p.href } : {})
+  }));
 }

@@ -141,6 +141,7 @@ import {
   extendRouteAtClick,
   RoutePointMeta,
   shouldExtendRoute,
+  unlinkMovedPoints,
   WORLD_WIDTH_3857
 } from './route-extend';
 import { vertexDeleted } from './ol/lib/vertex-delete';
@@ -153,7 +154,10 @@ import {
   ROUTE_POINT_PICK_PX
 } from './route-point-pick';
 import { AppIconDef } from '../icons';
-import { editsRouteBuffer } from '../skresources/components/route-reorder.util';
+import {
+  coordinatesMetaFromPoints,
+  editsRouteBuffer
+} from '../skresources/components/route-reorder.util';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 import { TidalCurrentsLayerComponent } from './ol/lib/resources/tidal-currents-layer.component';
@@ -1274,12 +1278,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) as LineString;
     // Carry per-point metadata so editing a named draft (which seeds
     // coordsMetadata from the rendered feature's pointMetadata) doesn't drop
-    // waypoint names/descriptions on save.
-    const coordsMeta = b.points.map((p) => ({
-      ...(p.name ? { name: p.name } : {}),
-      ...(p.description ? { description: p.description } : {})
-    }));
-    if (coordsMeta.some((m) => Object.keys(m).length > 0)) {
+    // point names/descriptions or waypoint links on save.
+    const coordsMeta = coordinatesMetaFromPoints(b.points);
+    if (coordsMeta) {
       rte.feature.properties.coordinatesMeta = coordsMeta;
     }
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
@@ -2328,6 +2329,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     if (mode === 'MOVE') {
+      unlinkMovedPoints(startCoords, endCoords, meta);
       return meta;
     }
     startCoords = stringifyCoords(startCoords);

@@ -87,6 +87,10 @@ import {
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { isUndoKeyEvent } from 'src/app/lib/undo-keys';
+import {
+  buildRoutePoints,
+  type PointMeta
+} from 'src/app/modules/skresources/components/route-reorder.util';
 
 import * as semver from 'semver';
 
@@ -2101,19 +2105,13 @@ export class AppComponent {
         if (buf && !buf.saved) {
           // Unsaved draft: stage the modified geometry to the buffer (emits
           // route.dirty). Persisted only via an explicit Save. Carry the
-          // per-point name/description so metadata is not dropped on a later
-          // Save.
+          // per-point name/description/waypoint link so metadata is not
+          // dropped on a later Save.
           const meta = this.mapInteract.draw.forSave.coordsMetadata as
-            Array<{ name?: string; description?: string }> | undefined;
+            PointMeta[] | undefined;
           this.routeBuffers.replace(
             r[1],
-            (coords as Position[]).map((position, i) => ({
-              position,
-              ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
-              ...(meta?.[i]?.description
-                ? { description: meta[i].description }
-                : {})
-            }))
+            buildRoutePoints(coords as Position[], meta)
           );
         } else {
           // Saved route (plain resource or a saved buffer): persist the edit,

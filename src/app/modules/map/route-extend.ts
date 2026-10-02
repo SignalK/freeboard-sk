@@ -8,6 +8,8 @@ export const WORLD_WIDTH_3857 = 2 * 20037508.342789244;
 export interface RoutePointMeta {
   name?: string;
   description?: string;
+  /** Link to a saved waypoint (`/resources/waypoints/<id>`). */
+  href?: string;
 }
 
 /** Everything the caller needs to apply a route extension (issue #549). */
@@ -85,4 +87,29 @@ export function extendRouteAtClick(
       coordsMetadata: meta ? meta.map((m) => ({ ...m })) : undefined
     }
   };
+}
+
+/**
+ * Drop the waypoint link from every point a Modify move took off its original
+ * position (#880). A link is a reference, not a copy, so a point dragged away
+ * from its waypoint is no longer that waypoint; keeping the `href` would label
+ * it with the waypoint's name and save a link to somewhere it isn't. Only for a
+ * same-length edit (a move) — an insert or delete realigns the metadata instead.
+ * Replaces the changed entries rather than mutating them, since `meta` can share
+ * objects with the cached route.
+ */
+export function unlinkMovedPoints(
+  before: Position[],
+  after: Position[],
+  meta: RoutePointMeta[]
+): void {
+  for (let i = 0; i < meta.length && i < after.length; i++) {
+    const moved =
+      before[i]?.[0] !== after[i][0] || before[i]?.[1] !== after[i][1];
+    if (moved && meta[i]?.href) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { href, ...rest } = meta[i];
+      meta[i] = rest;
+    }
+  }
 }
