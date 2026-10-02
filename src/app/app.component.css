@@ -220,21 +220,11 @@ mat-nav-list {
     height: 45px;
 }
 
-.instrumentPanelToggle {
-    display: block;
-} 
-
 @media only screen and (max-width: 650px) {  
     .bottomSheet {
         left: 0;
         min-width: 100%;
     }       
-}
-
-@media only screen and (max-width: 800px) { 
-    .instrumentPanelToggle {
-        display: none;
-    }     
 }
 
 /* Over bottom-left widgets the panel lines up with their left edge; on short

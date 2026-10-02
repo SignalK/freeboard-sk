@@ -17,7 +17,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatListModule, MatSelectionList } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -76,7 +75,6 @@ type AisState = 'moored' | 'anchored';
     MatCheckboxModule,
     MatRadioModule,
     MatCardModule,
-    MatListModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
@@ -95,10 +93,6 @@ type AisState = 'moored' | 'anchored';
   styleUrls: ['./settings-dialog.css']
 })
 export class SettingsDialog implements OnInit {
-  protected show = {
-    favourites: signal<boolean>(false)
-  };
-
   protected options: SettingsOptions;
   protected readonly centerOffsetLimit = CENTER_OFFSET_LIMIT;
 
@@ -309,13 +303,6 @@ export class SettingsDialog implements OnInit {
   }
 
   /**
-   * toggle display of favourites
-   */
-  toggleFavourites() {
-    this.show.favourites.update((current) => !current);
-  }
-
-  /**
    * Parse the entered vessel centre offset, clamping it to a whole percentage
    * that keeps the vessel on screen. Negative values look behind the vessel.
    */
@@ -479,14 +466,6 @@ export class SettingsDialog implements OnInit {
   }
 
   /**
-   * Handle default intrument app selection
-   */
-  onInstrumentApp() {
-    this.persistModel('pluginInstruments');
-    this.facade.buildFavouritesList();
-  }
-
-  /**
    * Handle Preferred Paths component event
    * @param e
    */
@@ -495,16 +474,6 @@ export class SettingsDialog implements OnInit {
       this.facade.settings.units.preferredPaths = e.value;
       this.persistModel();
     }
-  }
-
-  /**
-   * Handle favourites component event
-   * @param e
-   */
-  onFavSelected(e: unknown, f: MatSelectionList) {
-    this.facade.settings.display.plugins.favourites =
-      f.selectedOptions.selected.map((i) => i.value);
-    this.persistModel();
   }
 
   /**
