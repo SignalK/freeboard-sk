@@ -29,7 +29,8 @@
       "signalk-symbol-manager",
       "@signalk/open-meteo-provider",
       "signalk-basic-tide-widgets",
-      "signalk-restricted-areas"
+      "signalk-restricted-areas",
+      "signalk-flags"
     ]
   },
   "engines": {
