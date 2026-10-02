@@ -84,10 +84,6 @@ interface PreferredPathsResult {
   styleUrls: ['./settings-dialog.css']
 })
 export class SettingsDialog implements OnInit {
-  protected show = {
-    favourites: signal<boolean>(false)
-  };
-
   protected options: SettingsOptions;
   protected readonly centerOffsetLimit = CENTER_OFFSET_LIMIT;
 
@@ -230,13 +226,6 @@ export class SettingsDialog implements OnInit {
       });
       this.persistModel();
     }
-  }
-
-  /**
-   * toggle display of favourites
-   */
-  toggleFavourites() {
-    this.show.favourites.update((current) => !current);
   }
 
   /**
@@ -390,14 +379,6 @@ export class SettingsDialog implements OnInit {
   }
 
   /**
-   * Handle default intrument app selection
-   */
-  onInstrumentApp() {
-    this.persistModel('pluginInstruments');
-    this.facade.buildFavouritesList();
-  }
-
-  /**
    * Handle Preferred Paths component event
    * @param e
    */
@@ -406,16 +387,6 @@ export class SettingsDialog implements OnInit {
       this.facade.settings.units.preferredPaths = e.value;
       this.persistModel();
     }
-  }
-
-  /**
-   * Handle favourites component event
-   * @param e
-   */
-  onFavSelected(e: unknown, f) {
-    this.facade.settings.display.plugins.favourites =
-      f.selectedOptions.selected.map((i) => i.value);
-    this.persistModel();
   }
 
   /**
