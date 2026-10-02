@@ -20,6 +20,7 @@ import {
 import {
   ControlOption,
   controlSections,
+  ControlWidget,
   nextPowerValue,
   powerState,
   rangeOptions,
@@ -199,6 +200,22 @@ export class RadarPanel {
 
   protected stepIndex(c: SectionControl, cv: ControlValue | undefined) {
     return c.options.findIndex((o) => o.value === cv?.value);
+  }
+
+  /** A slider has no position for a value the radar has not reported, or for
+   *  one outside its steps, so such a control is shown as a drop-down or a
+   *  field instead, rather than at a setting the radar is not at. */
+  protected widgetFor(
+    c: SectionControl,
+    cv: ControlValue | undefined
+  ): ControlWidget {
+    if (c.widget === 'steps' && this.stepIndex(c, cv) < 0) {
+      return 'select';
+    }
+    if (c.widget === 'slider' && typeof this.current(c.def, cv) !== 'number') {
+      return 'number';
+    }
+    return c.widget;
   }
 
   /** The value text shown beside a control's name. A dash means the radar has

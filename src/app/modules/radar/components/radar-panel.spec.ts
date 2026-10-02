@@ -154,6 +154,32 @@ describe('RadarPanel', () => {
     ).toBe('Off');
   });
 
+  it('shows an enum the radar has not reported as a drop-down, not as its first step', () => {
+    radar.update((r) => {
+      const controls = new Map(r.controls);
+      controls.delete('doppler');
+      return { ...r, controls };
+    });
+    const el: HTMLElement = open().nativeElement;
+    const row = control(el, 'Doppler');
+    expect(row.querySelector('mat-slider')).toBeNull();
+    expect(row.querySelector('mat-select')).not.toBeNull();
+    expect(row.querySelector('.ctl-value').textContent.trim()).toBe('—');
+  });
+
+  it('shows a level with no reported value as an empty field, not a slider at its minimum', () => {
+    radar.update((r) => ({
+      ...r,
+      controls: new Map(r.controls).set('gain', { auto: false })
+    }));
+    const el: HTMLElement = open().nativeElement;
+    const row = control(el, 'Gain');
+    expect(row.querySelector('mat-slider')).toBeNull();
+    expect(
+      row.querySelector<HTMLInputElement>('input[type=number]').value
+    ).toBe('');
+  });
+
   it('shows read-only information as text', () => {
     const el: HTMLElement = open().nativeElement;
     const row = control(el, 'Firmware version');

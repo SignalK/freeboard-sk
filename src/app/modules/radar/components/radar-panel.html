@@ -121,7 +121,8 @@
           }
           <span class="ctl-value">{{ display(c.def, cv) }}</span>
         </div>
-        @if (!onAuto(c.def, cv)) { @switch (c.widget) { @case ('steps') {
+        @if (!onAuto(c.def, cv)) { @switch (widgetFor(c, cv)) { @case ('steps')
+        {
         <mat-slider
           class="ctl-slider"
           [min]="0"
