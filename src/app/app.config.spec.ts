@@ -216,6 +216,18 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.selections).not.toHaveProperty('notes');
   });
 
+  it('drops the settings of the retired instruments panel', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.display.plugins = {
+      instruments: '/@signalk/instrumentpanel',
+      startOnOpen: true,
+      parameters: null,
+      favourites: ['/@mxtommy/kip']
+    };
+    cleanConfig(cfg, {});
+    expect(cfg.display).not.toHaveProperty('plugins');
+  });
+
   it('produces a config with every default key present', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});

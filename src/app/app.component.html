@@ -231,7 +231,6 @@
         !isInteracting() &&
         app.featureFlags().radarApi &&
         radarApi.radarId() &&
-        !this.app.instrumentPanel().open &&
         this.app.data.vessels.showSelf
       ) {
         <a mat-menu-item (click)="toggleRadarOverlay()">
@@ -292,134 +291,61 @@
           [disableClose]="false"
           mode="side"
           position="end"
-          [style.width]="app.instrumentPanel().open ? '350px' : '250px'"
+          style="width: 250px"
         >
-          @if (this.infoPanel.item && !app.instrumentPanel().open) {
-            <info-panel (closed)="closeDrawer()">
-              @if (infoPanel.item()?.type === 'radars') {
-                <radar-panel
-                  (connect)="connectRadar()"
-                  (disconnect)="disconnectRadar()"
-                />
-              }
-              @if (infoPanel.item()?.type === 'notes') {
-                <note-panel
-                  [note]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [interacting]="isInteracting()"
-                  (edit)="
-                    skres.showNoteEditor({
-                      id: $event
-                    })
-                  "
-                  (move)="onNoteMove($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
-              }
-              @if (infoPanel.item()?.type === 'regions') {
-                <region-panel
-                  [region]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [related]="infoPanel.related()"
-                  [interacting]="isInteracting()"
-                  (edit)="skres.editRegionInfo($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
-              }
-              @if (infoPanel.item()?.type === 'waypoints') {
-                <waypoint-panel
-                  [waypoint]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [related]="infoPanel.related()"
-                  [interacting]="isInteracting()"
-                  (edit)="skres.editWaypointInfo($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
-              }
-              @if (infoPanel.item()?.type === 'routes') {
-                <route-panel
-                  [route]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [related]="infoPanel.related()"
-                  [interacting]="isInteracting()"
-                  (edit)="onRouteInfoEdit($event)"
-                  (activate)="activateRoute($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
-              }
-            </info-panel>
-          } @else {
-            <!-- instrument panel-->
-            <div
-              style="display: flex; flex-direction: column; position: relative"
-            >
-              <mat-nav-list>
-                <a mat-list-item>
-                  <a mat-icon-button (click)="closeInstrumentPanel()">
-                    <mat-icon>arrow_forward</mat-icon>
-                  </a>
-                  &nbsp;&nbsp;&nbsp;&nbsp;
-                  @if (app.config.display.plugins.instruments) {
-                    <a
-                      mat-icon-button
-                      [href]="instUrl()"
-                      (click)="closeInstrumentPanel()"
-                      target="_blank"
-                      matTooltip="Open Instruments in window."
-                      matTooltipPosition="right"
-                    >
-                      <mat-icon>open_in_new</mat-icon>
-                    </a>
-                  }
-                  &nbsp;&nbsp;
-                  <a
-                    mat-icon-button
-                    (click)="selectPlugin()"
-                    [disabled]="
-                      app.config.display.plugins.favourites.length === 0
-                    "
-                    matTooltip="Previous plugin"
-                    matTooltipPosition="below"
-                  >
-                    <mat-icon>arrow_back_ios</mat-icon>
-                  </a>
-                  <a
-                    mat-icon-button
-                    (click)="selectPlugin(true)"
-                    [disabled]="
-                      app.config.display.plugins.favourites.length === 0
-                    "
-                    matTooltip="Next plugin"
-                    matTooltipPosition="below"
-                  >
-                    <mat-icon>arrow_forward_ios</mat-icon>
-                  </a>
-                </a>
-                <mat-divider></mat-divider>
-              </mat-nav-list>
-              <div
-                style="
-                  position: fixed;
-                  bottom: 0;
-                  top: 48px;
-                  overflow: auto;
-                  -webkit-overfow-scrolling: touch;
+          <info-panel (closed)="closeDrawer()">
+            @if (infoPanel.item()?.type === 'radars') {
+              <radar-panel
+                (connect)="connectRadar()"
+                (disconnect)="disconnectRadar()"
+              />
+            }
+            @if (infoPanel.item()?.type === 'notes') {
+              <note-panel
+                [note]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                [interacting]="isInteracting()"
+                (edit)="
+                  skres.showNoteEditor({
+                    id: $event
+                  })
                 "
-              >
-                @if (app.instrumentPanel().activate) {
-                  <!-- allow-forms: embedded webapps submit forms (e.g. KIP's
-                       Signal K sign-in). Matches the plotter extension iframe
-                       baseline — fault containment, not a security boundary. -->
-                  <iframe
-                    [src]="instUrl()"
-                    style="width: 345px; height: 100%"
-                    sandbox="allow-scripts allow-same-origin allow-forms"
-                  >
-                  </iframe>
-                }
-              </div>
-            </div>
-          }
+                (move)="onNoteMove($event)"
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+            @if (infoPanel.item()?.type === 'regions') {
+              <region-panel
+                [region]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                [related]="infoPanel.related()"
+                [interacting]="isInteracting()"
+                (edit)="skres.editRegionInfo($event)"
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+            @if (infoPanel.item()?.type === 'waypoints') {
+              <waypoint-panel
+                [waypoint]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                [related]="infoPanel.related()"
+                [interacting]="isInteracting()"
+                (edit)="skres.editWaypointInfo($event)"
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+            @if (infoPanel.item()?.type === 'routes') {
+              <route-panel
+                [route]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                [related]="infoPanel.related()"
+                [interacting]="isInteracting()"
+                (edit)="onRouteInfoEdit($event)"
+                (activate)="activateRoute($event)"
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+          </info-panel>
         </mat-sidenav>
 
         <!-- main display content-->
@@ -807,36 +733,6 @@
                 class="buttonPanel right"
                 [style.top.px]="60 + plotterExt.toolbarTopOffset()"
               >
-                <!-- instrument sidebar open button -->
-                @if (
-                  app.instrumentPanelAvailable() &&
-                  app.config.display.plugins.instruments
-                ) {
-                  <!-- The slot is only dropped when instruments are
-                       unavailable; the transient conditions below hide the
-                       button but keep its space so the buttons under it do
-                       not shift as the user works. -->
-                  <div class="instrumentPanelToggle buttonPanelItem">
-                    @if (
-                      !app.instrumentPanel().open &&
-                      !infoPanel.opened() &&
-                      !isInteracting() &&
-                      !app.data.vessels.activeId
-                    ) {
-                      <button
-                        class="button-toolbar"
-                        mat-mini-fab
-                        (click)="openInstrumentPanel()"
-                        matTooltip="Instruments"
-                        matTooltipPosition="before"
-                      >
-                        <mat-icon>av_timer</mat-icon>
-                      </button>
-                    }
-                    <br />&nbsp;<br />&nbsp;
-                  </div>
-                }
-
                 <!-- Web audio enable -->
                 @if (audioStatus() !== 'running') {
                   <div class="buttonPanelItem">
@@ -986,7 +882,6 @@
                         'button-primary': app.uiCtrl().radarLayer,
                         'button-toolbar': !app.uiCtrl().radarLayer
                       }"
-                      [disabled]="this.app.instrumentPanel().open"
                       matTooltip="Radar"
                       matTooltipPosition="before"
                       (click)="toggleRadarPanel()"
