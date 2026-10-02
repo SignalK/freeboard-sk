@@ -95,5 +95,6 @@
   { "feature": "gpx-export", "kind": "new", "since": "v1.18.0", "date": "2021-08-26", "title": "feature: Save to GPX" },
   { "feature": "gpx-export", "kind": "enhanced", "since": "v1.18.0", "date": "2021-08-30", "title": "add vessel trail to track option in Save to GPX" },
   { "feature": "gpx-export", "pr": 831, "kind": "enhanced", "since": "v3.2.0-beta.4", "date": "2026-09-24", "title": "feat(gpx): export the server trail and other vessels' tracks to GPX, over any recorded range" },
-  { "feature": "track-history", "pr": 844, "kind": "enhanced", "since": "v3.2.0-beta.5", "date": "2026-09-26", "title": "feat(tracks): zoom to a vessel's recorded track from the Track history window" }
+  { "feature": "track-history", "pr": 844, "kind": "enhanced", "since": "v3.2.0-beta.5", "date": "2026-09-26", "title": "feat(tracks): zoom to a vessel's recorded track from the Track history window" },
+  { "feature": "route-planning", "pr": 853, "kind": "enhanced", "date": "2026-09-30", "title": "feat(routes): start a drawn route without saving it first" }
 ]
