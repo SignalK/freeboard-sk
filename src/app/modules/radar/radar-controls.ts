@@ -46,6 +46,8 @@ const MEASURED_UNITS = ['m', 'm/s', 'deg'];
 
 const POWER_STANDBY = 1;
 const POWER_TRANSMIT = 2;
+// the states the power button toggles from
+const TOGGLE_STATES: PowerState[] = ['off', 'standby', 'transmit'];
 
 /** Group the radar's controls by category, in id order, with each category
  *  placed where its first control falls. */
@@ -155,19 +157,20 @@ export function powerState(
   return states[Number(value)] ?? 'unknown';
 }
 
-/** The power value the power button sets: Transmit from any other state,
+/** The power value the power button sets: Transmit from Off or Standby,
  *  Standby from Transmit. It never switches the radar Off: like the MaYaRa
  *  GUI, powering a radar down stays a deliberate act elsewhere. Undefined
- *  when the radar does not accept the value. */
+ *  while the radar is preparing, in fault or has not reported its state,
+ *  and when it does not accept the value. */
 export function nextPowerValue(
   def: ControlDef | undefined,
   value: number | string | undefined
 ): number | undefined {
-  if (!def || def.isReadOnly) {
+  const state = powerState(def, value);
+  if (!def || def.isReadOnly || !TOGGLE_STATES.includes(state)) {
     return undefined;
   }
-  const next =
-    powerState(def, value) === 'transmit' ? POWER_STANDBY : POWER_TRANSMIT;
+  const next = state === 'transmit' ? POWER_STANDBY : POWER_TRANSMIT;
   if (def.validValues?.length && !def.validValues.includes(next)) {
     return undefined;
   }

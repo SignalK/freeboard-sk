@@ -262,6 +262,12 @@ describe('radar power', () => {
     expect(nextPowerValue(power, 2)).toBe(1);
   });
 
+  it('does nothing while the radar is preparing, in fault or unreported', () => {
+    expect(nextPowerValue(power, 3)).toBe(undefined);
+    expect(nextPowerValue(power, 4)).toBe(undefined);
+    expect(nextPowerValue(power, undefined)).toBe(undefined);
+  });
+
   it('offers nothing the radar does not accept', () => {
     expect(nextPowerValue({ ...power, validValues: [0, 1] }, 1)).toBe(
       undefined
