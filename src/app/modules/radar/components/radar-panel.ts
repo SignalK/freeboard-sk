@@ -233,12 +233,13 @@ export class RadarPanel {
     if (value === undefined || value === null || value === '') {
       return '—';
     }
+    // an auto adjustment is an offset, which the value labels do not describe
+    if (cv?.auto && def.hasAutoAdjustable) {
+      return `A${Number(value) > 0 ? '+' : ''}${value}`;
+    }
     const label = def.descriptions?.[value];
     if (label) {
       return label;
-    }
-    if (cv?.auto && def.hasAutoAdjustable) {
-      return `A${Number(value) > 0 ? '+' : ''}${value}`;
     }
     return typeof value === 'number'
       ? this.formatNumber(value, def.units)

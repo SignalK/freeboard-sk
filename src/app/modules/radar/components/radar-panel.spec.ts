@@ -206,6 +206,41 @@ describe('RadarPanel', () => {
     ).toBe('28');
   });
 
+  it('shows an auto adjustment as an offset, not as a value label', () => {
+    radar.update((r) => ({
+      ...r,
+      capabilities: {
+        ...r.capabilities,
+        controls: {
+          ...r.capabilities.controls,
+          sea: {
+            id: 6,
+            name: 'Sea clutter',
+            description: 'Sea clutter suppression',
+            category: 'base',
+            dataType: 'number',
+            hasAuto: true,
+            hasAutoAdjustable: true,
+            autoAdjustMinValue: -50,
+            autoAdjustMaxValue: 50,
+            minValue: 0,
+            maxValue: 100,
+            descriptions: { 0: 'Off' }
+          }
+        }
+      },
+      controls: new Map(r.controls).set('sea', {
+        auto: true,
+        autoValue: 0,
+        value: 0
+      })
+    }));
+    const el: HTMLElement = open().nativeElement;
+    expect(
+      control(el, 'Sea clutter').querySelector('.ctl-value').textContent.trim()
+    ).toBe('A0');
+  });
+
   it('switches auto off with an { auto } change', () => {
     const fixture = open();
     control(fixture.nativeElement, 'Gain')
