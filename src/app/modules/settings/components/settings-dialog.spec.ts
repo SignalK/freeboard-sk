@@ -16,7 +16,8 @@ import { defaultConfig, initData } from 'src/app/app.config';
 import {
   NO_TRACK_SOURCE,
   resolveTrailSource,
-  TrackSource
+  TrackSource,
+  TRAIL_DURATION_ALL
 } from 'src/app/modules/skstream/track-source';
 
 /**
@@ -172,6 +173,62 @@ describe('settings dialog — note details option placement', () => {
       expect(hints()).not.toContain(
         'Server requires a Track API (v2) provider'
       );
+    });
+  });
+
+  describe('own vessel trail length', () => {
+    const lengthLabel = () =>
+      /Length \(([^)]*)\)/.exec(dialog.textContent ?? '')?.[1];
+
+    /** The thumb of the slider labelled "Length (…)". */
+    const lengthThumb = () =>
+      Array.from(dialog.querySelectorAll('mat-slider'))
+        .find((s) => (s.parentElement?.textContent ?? '').includes('Length ('))
+        ?.querySelector<HTMLInputElement>('input');
+
+    const slideTo = async (stop: number) => {
+      const thumb = lengthThumb() as HTMLInputElement;
+      thumb.value = String(stop);
+      thumb.dispatchEvent(new Event('input'));
+      thumb.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    beforeEach(() => {
+      trackSource.set({
+        api: 'v2',
+        serverHasTracksApi: true,
+        provider: 'tracks',
+        v1SelfTrack: false,
+        v1AisTracks: false
+      });
+    });
+
+    it('reads All for the whole recorded trail', async () => {
+      await selectTab('Vessels');
+      expect(lengthLabel()).toBe('All');
+    });
+
+    it('reads a fixed length in hours', async () => {
+      settings.vessels.trailDuration = 24;
+      await selectTab('Vessels');
+      expect(lengthLabel()).toBe('24 hrs');
+    });
+
+    it('offers All as the stop after the longest length', async () => {
+      settings.vessels.trailDuration = 24;
+      await selectTab('Vessels');
+      expect(lengthThumb()?.max).toBe('97');
+
+      await slideTo(97);
+      expect(settings.vessels.trailDuration).toBe(TRAIL_DURATION_ALL);
+      expect(lengthLabel()).toBe('All');
+
+      await slideTo(96);
+      expect(settings.vessels.trailDuration).toBe(96);
+      expect(lengthLabel()).toBe('96 hrs');
     });
   });
 

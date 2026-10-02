@@ -5,6 +5,7 @@ import {
   SELF_POSITION_STALE_AGE
 } from './skstream.facade';
 import { SKVessel } from '../skresources/resource-classes';
+import { TRAIL_DURATION_ALL, TrackSource } from './track-source';
 
 // AIS icons rotate by `orientation`. A crabbing target's heading and COG differ,
 // so the icon must follow heading, with COG only as a fallback when no heading
@@ -108,6 +109,95 @@ describe('SKStreamFacade.subscribe — what the stream asks for', () => {
     expect(vessels).toBeDefined();
     expect(vessels?.options.path.map((p) => p.path)).toContain(
       'design.aisShipType'
+    );
+  });
+});
+
+// With the trail length set to "All", the server simplifies the older trail to
+// about a pixel at the zoom it was fetched for: kept after zooming in it looks
+// coarse, after zooming out it carries points the chart cannot show.
+describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
+  interface Msg {
+    cmd: string;
+  }
+  const extent = [-1, 50, 1, 51];
+
+  const facadeWith = (
+    vessels: { trail?: boolean; trailDuration?: number } = {},
+    serverTrailWanted = true,
+    api: TrackSource['api'] = 'v2'
+  ) => {
+    const posted: Msg[] = [];
+    const facade = Object.create(SKStreamFacade.prototype) as unknown as {
+      app: unknown;
+      worker: { postMessage: (msg: Msg) => void };
+      postMapView: (extent: number[], zoom: number) => void;
+      requestTrailFromServer: () => void;
+    };
+    facade.worker = { postMessage: (msg) => posted.push(msg) };
+    facade.app = {
+      config: {
+        vessels: {
+          trail: true,
+          trailDuration: TRAIL_DURATION_ALL,
+          trailResolution: { lastHour: '5s', next23: '1m', beyond24: '5m' },
+          ...vessels
+        }
+      },
+      serverTrailWanted: () => serverTrailWanted,
+      trackSource: () => ({ api })
+    };
+    const trailRequests = () => posted.filter((m) => m.cmd === 'trail').length;
+    return { facade, trailRequests };
+  };
+
+  it('fetches the trail again when the zoom level changes', () => {
+    const { facade, trailRequests } = facadeWith();
+    facade.postMapView(extent, 10.2);
+    expect(trailRequests()).toBe(1);
+    facade.postMapView(extent, 12.4);
+    expect(trailRequests()).toBe(2);
+    facade.postMapView(extent, 11.7);
+    expect(trailRequests()).toBe(3);
+  });
+
+  it('does not fetch it again for a pan or a zoom within the level', () => {
+    const { facade, trailRequests } = facadeWith();
+    facade.postMapView(extent, 10.2);
+    facade.postMapView([0, 50, 2, 51], 10.2);
+    facade.postMapView(extent, 10.9);
+    expect(trailRequests()).toBe(1);
+  });
+
+  it('counts a fetch made for another reason as made for the current zoom', () => {
+    const { facade, trailRequests } = facadeWith();
+    facade.postMapView(extent, 10.2);
+    facade.requestTrailFromServer();
+    facade.postMapView(extent, 10.6);
+    expect(trailRequests()).toBe(2);
+  });
+
+  it('leaves a trail of a fixed length alone', () => {
+    const { facade, trailRequests } = facadeWith({ trailDuration: 24 });
+    facade.postMapView(extent, 10.2);
+    facade.postMapView(extent, 13.2);
+    expect(trailRequests()).toBe(0);
+  });
+
+  it('leaves a trail from the v1 interface alone, which has no zoom to follow', () => {
+    const { facade, trailRequests } = facadeWith({}, true, 'v1');
+    facade.postMapView(extent, 10.2);
+    facade.postMapView(extent, 13.2);
+    expect(trailRequests()).toBe(0);
+  });
+
+  it('fetches nothing with the trail hidden or kept on this device', () => {
+    [facadeWith({ trail: false }), facadeWith({}, false)].forEach(
+      ({ facade, trailRequests }) => {
+        facade.postMapView(extent, 10.2);
+        facade.postMapView(extent, 13.2);
+        expect(trailRequests()).toBe(0);
+      }
     );
   });
 });

@@ -37,7 +37,11 @@ import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
-import { serverTrailAvailable } from 'src/app/modules/skstream/track-source';
+import {
+  serverTrailAvailable,
+  TRAIL_DURATION_ALL,
+  TRAIL_MAX_HOURS
+} from 'src/app/modules/skstream/track-source';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import {
   CENTER_OFFSET_LIMIT,
@@ -344,6 +348,28 @@ export class SettingsDialog implements OnInit {
    * the v1 fallback). */
   protected get serverTrailAvailable(): boolean {
     return serverTrailAvailable(this.app.trackSource());
+  }
+
+  /** The trail length slider stops at every hour up to TRAIL_MAX_HOURS, then
+   * once more for the whole recorded track. */
+  protected readonly trailLengthAllStop = TRAIL_MAX_HOURS + 1;
+
+  protected get trailLengthStop(): number {
+    const hours = this.facade.settings.vessels.trailDuration;
+    return hours === TRAIL_DURATION_ALL ? this.trailLengthAllStop : hours;
+  }
+
+  protected set trailLengthStop(stop: number) {
+    this.facade.settings.vessels.trailDuration =
+      stop === this.trailLengthAllStop ? TRAIL_DURATION_ALL : stop;
+  }
+
+  protected readonly trailLengthStopLabel = (stop: number): string =>
+    stop === this.trailLengthAllStop ? 'All' : `${stop}`;
+
+  protected get trailLengthText(): string {
+    const hours = this.facade.settings.vessels.trailDuration;
+    return hours === TRAIL_DURATION_ALL ? 'All' : `${hours} hrs`;
   }
 
   persistModel(value?: string) {

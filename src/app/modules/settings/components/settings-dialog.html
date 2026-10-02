@@ -1145,16 +1145,17 @@
                           discrete
                           tickInterval="1"
                           min="1"
-                          max="96"
+                          [max]="trailLengthAllStop"
+                          [displayWith]="trailLengthStopLabel"
                           [disabled]="!app.serverTrailWanted() || !facade.settings.vessels.trail"
                         >
                           <input
                             matSliderThumb
-                            [(ngModel)]="facade.settings.vessels.trailDuration"
+                            [(ngModel)]="trailLengthStop"
                             (valueChange)="deferPersist()"
                           />
                         </mat-slider>
-                        Length ({{facade.settings.vessels.trailDuration}} hrs)
+                        Length ({{ trailLengthText }})
                       </div>
                     </div>
                     <div class="setting-card-row" style="padding-bottom: 10px">
