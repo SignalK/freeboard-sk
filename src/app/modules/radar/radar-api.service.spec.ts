@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,13 +7,13 @@ import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
+import { DeltaSignal } from 'src/app/types';
 
 /**
  * init() assembles the active radar from three Radar API responses: the
  * device, its capability manifest (control *definitions*) and the current
- * control *values*. Only controls the manifest files under the `base`
- * category are kept, keyed by id — the `Map<string, ControlValue>` the panel
- * renders (#755).
+ * control *values*. Every control the manifest defines is kept, keyed by id —
+ * the `Map<string, ControlValue>` the panel renders (#755).
  */
 describe('RadarAPIService init() (#755)', () => {
   const device = { name: 'Bridge', brand: 'Furuno' };
@@ -33,16 +32,23 @@ describe('RadarAPIService init() (#755)', () => {
     gain: { timestamp: 't', value: 50, auto: true },
     ftc: { timestamp: 't', value: 1 },
     standby: {},
-    noTx1: { enabled: true, x1: 0, y1: 0, x2: 100, y2: 100, width: 10 }
+    noTx1: { enabled: true, x1: 0, y1: 0, x2: 100, y2: 100, width: 10 },
+    // a value the manifest has no definition for
+    stray: { timestamp: 't', value: 7 }
   };
 
   const responses: Record<string, unknown> = {
-    'vessels/self/radars': { version: '3.4.0', radars: { 'radar-1': device } },
+    'vessels/self/radars': {
+      version: '3.4.0',
+      radars: { 'radar-1': device, 'radar-2': { name: 'Bridge B' } }
+    },
     'vessels/self/radars/radar-1': device,
     'vessels/self/radars/radar-1/capabilities': capabilities,
     'vessels/self/radars/radar-1/controls': controls
   };
 
+  let radarUpdates: Subject<DeltaSignal>;
+  let put: ReturnType<typeof vi.fn>;
   let app: {
     config: { radars: { deviceId: string } };
     skApiVersion: number;
@@ -53,6 +59,8 @@ describe('RadarAPIService init() (#755)', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     vi.spyOn(console, 'warn').mockImplementation(() => undefined); // no WebGL in jsdom
+    radarUpdates = new Subject<DeltaSignal>();
+    put = vi.fn(() => of(undefined));
     app = {
       config: { radars: { deviceId: '' } },
       skApiVersion: 2,
@@ -70,7 +78,8 @@ describe('RadarAPIService init() (#755)', () => {
               get: (_v: number, path: string) =>
                 path in responses
                   ? of(responses[path])
-                  : throwError(() => new Error(`unexpected GET ${path}`))
+                  : throwError(() => new Error(`unexpected GET ${path}`)),
+              put
             }
           }
         },
@@ -78,12 +87,15 @@ describe('RadarAPIService init() (#755)', () => {
           provide: SKStreamFacade,
           useValue: { vessels$: () => new Subject().asObservable() }
         },
-        { provide: SKWorkerService, useValue: { radarUpdate: signal(null) } }
+        {
+          provide: SKWorkerService,
+          useValue: { radar$: () => radarUpdates.asObservable() }
+        }
       ]
     });
   });
 
-  it('keeps only base-category control values, keyed by control id', async () => {
+  it('keeps the value of every control the manifest defines, keyed by control id', async () => {
     const service = TestBed.inject(RadarAPIService);
     const id = await service.init();
 
@@ -96,6 +108,7 @@ describe('RadarAPIService init() (#755)', () => {
     expect(Array.from(radar.controls.keys())).toEqual([
       'range',
       'gain',
+      'ftc',
       'standby',
       'noTx1'
     ]);
@@ -103,6 +116,61 @@ describe('RadarAPIService init() (#755)', () => {
       timestamp: 't',
       value: 50,
       auto: true
+    });
+  });
+
+  describe('control updates from the stream', () => {
+    const update = (path: string, value: unknown) =>
+      radarUpdates.next({ path, value } as DeltaSignal);
+
+    it('applies an update for the shown radar as a new value', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      const before = service.radar();
+
+      update('radars.radar-1.controls.gain', { value: 20, auto: false });
+
+      expect(service.radar()).not.toBe(before);
+      expect(service.radar().controls.get('gain')).toEqual({
+        value: 20,
+        auto: false
+      });
+    });
+
+    it('applies every update of a burst, not just the last', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      // one setting reported for both ranges of a dual-range radar
+      update('radars.radar-1.controls.gain', { value: 20, auto: false });
+      update('radars.radar-2.controls.gain', { value: 20, auto: false });
+
+      expect(service.radar().controls.get('gain')).toEqual({
+        value: 20,
+        auto: false
+      });
+    });
+
+    it("ignores another radar's controls", async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      update('radars.radar-2.controls.gain', { value: 20, auto: false });
+
+      expect(service.radar().controls.get('gain')).toEqual({
+        timestamp: 't',
+        value: 50,
+        auto: true
+      });
+    });
+
+    it('ignores a control the manifest does not define', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      update('radars.radar-1.controls.stray', { value: 8 });
+
+      expect(service.radar().controls.has('stray')).toBe(false);
     });
   });
 

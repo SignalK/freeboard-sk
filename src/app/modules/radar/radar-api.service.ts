@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
@@ -122,9 +122,7 @@ export class RadarAPIService {
   constructor() {
     this._hasWebGL = this.testForWebGL();
     this.skstream.vessels$().subscribe(() => this.onVessels());
-    effect(() => {
-      this.parseRadarDelta(this.worker.radarUpdate());
-    });
+    this.worker.radar$().subscribe((msg) => this.parseRadarDelta(msg));
   }
 
   private testForWebGL(): boolean {
@@ -211,19 +209,19 @@ export class RadarAPIService {
     // Radar API 3.4.0: the discovery object is lean and carries no id; fold in
     // the selected id so consumers (info panel, render, panel) can read it.
     rd['device'].id = this._selectedRadar();
-    // filter controls
-    const baseControls = new Map<string, ControlValue>();
-    const cdef = rd['capabilities']['controls'];
-    Object.entries(rd['controls']).forEach(([id, value]) => {
-      if (id in cdef && cdef[id].category === 'base') {
-        baseControls.set(id, value);
+    // keep the values of the controls the capabilities define
+    const controls = new Map<string, ControlValue>();
+    const cdef = rd['capabilities']['controls'] ?? {};
+    Object.entries(rd['controls'] ?? {}).forEach(([id, value]) => {
+      if (id in cdef) {
+        controls.set(id, value);
       }
     });
 
     this._radar.set({
       device: rd['device'],
       capabilities: rd['capabilities'],
-      controls: baseControls
+      controls
     });
 
     this.app.debug(this._radar());
@@ -234,16 +232,25 @@ export class RadarAPIService {
   /** Update radar status and controls */
   private parseRadarDelta(msg: DeltaSignal) {
     if (!msg) return;
-    const m = msg.path?.split('.');
-    if (m[2] === 'controls') {
-      this._radar.update((current) => {
-        if (current?.controls) {
-          // a radars.<id>.controls.<name> delta carries a ControlValue
-          current.controls.set(m[3], msg.value as ControlValue);
-        }
-        return current;
-      });
+    // radars.<id>.controls.<name>: the stream carries every radar's controls,
+    // and only the shown radar's belong in its panel
+    const [, radarId, kind, controlId] = msg.path?.split('.') ?? [];
+    if (kind !== 'controls') {
+      return;
     }
+    this._radar.update((current) => {
+      if (
+        current?.device?.id !== radarId ||
+        !current.controls ||
+        !current.capabilities?.controls?.[controlId]
+      ) {
+        return current;
+      }
+      // a new object, so the panel sees the change
+      const controls = new Map(current.controls);
+      controls.set(controlId, msg.value as ControlValue);
+      return { ...current, controls };
+    });
   }
 
   /** Return list of available radars */
