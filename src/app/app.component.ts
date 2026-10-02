@@ -267,8 +267,6 @@ export class AppComponent {
   private trackApiNoticeShown = false; // this session
 
   // external resources
-  protected instUrl = signal<SafeResourceUrl | null>(null);
-  private selFavourite = -1;
   protected vidUrl = signal<SafeResourceUrl | null>(null);
 
   protected convert = Convert;
@@ -367,7 +365,7 @@ export class AppComponent {
     });
 
     effect(() => {
-      if (this.infoPanel.opened() || this.app.instrumentPanel().activate) {
+      if (this.infoPanel.opened()) {
         if (!this.sideright?.opened) {
           this.openDrawer();
         }
@@ -418,18 +416,9 @@ export class AppComponent {
 
     // ** apply loaded app config
     this.mapCenter.update(() => this.app.config.map.center);
-    this.app.instrumentPanel.update((current) => {
-      return Object.assign({}, current, {
-        activate: !this.app.config.display.plugins.startOnOpen
-      });
-    });
-
     // overlay dark-theme
     this.setDarkTheme();
 
-    this.instUrl.update(() =>
-      this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
-    );
     this.vidUrl.update(() =>
       this.dom.bypassSecurityTrustResourceUrl(
         `${this.app.config.resources.video.url}`
@@ -519,9 +508,6 @@ export class AppComponent {
     if (!this.radarApi.hasWebGL) {
       this.radarApi.showNoWebGLMessage();
       return;
-    }
-    if (this.app.instrumentPanel().open) {
-      this.closeInstrumentPanel();
     }
     this.connectRadar();
     this.infoPanel.openRadar(this.radarApi.radar());
@@ -707,25 +693,6 @@ export class AppComponent {
   protected rightToolbarItems(): ToolbarItem[] {
     const items: ToolbarItem[] = [];
     const ui = this.app.uiConfig();
-    if (
-      this.app.instrumentPanelAvailable() &&
-      this.app.config.display.plugins.instruments &&
-      !this.narrowScreen()
-    ) {
-      // Transient conditions disable the button rather than remove it, so the
-      // buttons below it don't shift as the user works.
-      items.push({
-        id: 'instruments',
-        icon: 'av_timer',
-        tooltip: 'Instruments',
-        disabled:
-          this.app.instrumentPanel().open ||
-          this.infoPanel.opened() ||
-          this.isInteracting() ||
-          !!this.app.data.vessels.activeId,
-        action: () => this.openInstrumentPanel()
-      });
-    }
     if (this.audioStatus() !== 'running') {
       items.push({
         id: 'audio',
@@ -819,7 +786,6 @@ export class AppComponent {
         iconClass: 'ob',
         tooltip: 'Radar',
         active: this.app.uiCtrl().radarLayer,
-        disabled: this.app.instrumentPanel().open,
         action: () => this.toggleRadarPanel()
       });
     }
@@ -939,50 +905,6 @@ export class AppComponent {
       el.classList.remove('dark-theme');
     }
     this.app.config.display.darkMode.enabled = enabled;
-  }
-
-  private formatInstrumentsUrl() {
-    const url = `${this.app.hostDef.url}${this.app.config.display.plugins.instruments}`;
-    const params = this.app.config.display.plugins.parameters
-      ? this.app.config.display.plugins.parameters.length > 0 &&
-        this.app.config.display.plugins.parameters[0] !== '?'
-        ? `?${this.app.config.display.plugins.parameters}`
-        : this.app.config.display.plugins.parameters
-      : '';
-    return params ? `${url}/${params}` : url;
-  }
-
-  // ** select prev/next favourite plugin **
-  protected selectPlugin(next = false) {
-    if (next) {
-      if (this.selFavourite === -1) {
-        this.selFavourite = 0;
-      } else if (
-        this.selFavourite ===
-        this.app.config.display.plugins.favourites.length - 1
-      ) {
-        this.selFavourite = -1;
-      } else {
-        this.selFavourite++;
-      }
-    } else {
-      if (this.selFavourite === -1) {
-        this.selFavourite =
-          this.app.config.display.plugins.favourites.length - 1;
-      } else if (this.selFavourite === 0) {
-        this.selFavourite = -1;
-      } else {
-        this.selFavourite--;
-      }
-    }
-    const url =
-      this.selFavourite === -1
-        ? this.formatInstrumentsUrl()
-        : `${this.app.hostDef.url}${
-            this.app.config.display.plugins.favourites[this.selFavourite]
-          }`;
-
-    this.instUrl.update(() => this.dom.bypassSecurityTrustResourceUrl(url));
   }
 
   /**
@@ -1479,26 +1401,6 @@ export class AppComponent {
       this.app.sTrueMagChoice.set(this.app.config.units.headingAttribute);
     }
 
-    if (
-      e?.includes('pluginParameters') ||
-      e?.includes('pluginInstruments') ||
-      e?.includes('pluginStartOnOpen')
-    ) {
-      this.instUrl.update(() =>
-        this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
-      );
-      // update instrument app state
-      this.app.instrumentPanel.update((current) => {
-        return Object.assign({}, current, {
-          activate: this.app.config.display.plugins.startOnOpen
-            ? current.open
-              ? true
-              : false
-            : true
-        });
-      });
-    }
-
     if (e?.includes('videoUrl')) {
       this.vidUrl.update(() =>
         this.dom.bypassSecurityTrustResourceUrl(
@@ -1541,34 +1443,6 @@ export class AppComponent {
 
   protected closeDrawer() {
     this.sideright.close();
-  }
-
-  protected openInstrumentPanel() {
-    if (this.app.instrumentPanel().open) {
-      return;
-    }
-    if (this.infoPanel.opened()) {
-      this.infoPanel.close();
-    }
-
-    this.app.instrumentPanel.update((current) => {
-      return Object.assign({}, current, {
-        open: true,
-        activate: true
-      });
-    });
-  }
-
-  protected closeInstrumentPanel() {
-    this.app.instrumentPanel.update((current) => {
-      return Object.assign({}, current, {
-        open: false,
-        activate: this.app.config.display.plugins.startOnOpen
-          ? false
-          : current.activate
-      });
-    });
-    this.focusMap();
   }
 
   /** control left menu display  */
@@ -2289,7 +2163,6 @@ export class AppComponent {
         this.app.data.vessels.activeId = null;
       } else {
         this.app.data.vessels.active = av;
-        // if instrument panel open - close it
         this.sideright.close();
       }
     }
