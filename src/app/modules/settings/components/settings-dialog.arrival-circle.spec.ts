@@ -87,8 +87,6 @@ describe('settings dialog — arrival circle', () => {
           provide: SettingsFacade,
           useValue: {
             settings,
-            applicationList: [],
-            favouritesList: [],
             fixedPosition: [0, 0],
             resourcePathList: [],
             refresh: (): void => undefined,

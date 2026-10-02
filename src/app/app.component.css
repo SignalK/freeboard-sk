@@ -205,21 +205,11 @@ mat-nav-list {
     height: 45px;
 }
 
-.instrumentPanelToggle {
-    display: block;
-} 
-
 @media only screen and (max-width: 650px) {  
     .bottomSheet {
         left: 0;
         min-width: 100%;
     }       
-}
-
-@media only screen and (max-width: 800px) { 
-    .instrumentPanelToggle {
-        display: none;
-    }     
 }
 
 @media only screen and (max-height: 600px) { 
