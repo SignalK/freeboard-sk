@@ -2329,7 +2329,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     if (mode === 'MOVE') {
-      unlinkMovedPoints(startCoords, endCoords, meta);
+      unlinkMovedPoints(
+        startCoords,
+        endCoords,
+        meta,
+        (href) =>
+          this.skres.fromCache('waypoints', href.split('/').pop())?.[1]?.name
+      );
       return meta;
     }
     startCoords = stringifyCoords(startCoords);

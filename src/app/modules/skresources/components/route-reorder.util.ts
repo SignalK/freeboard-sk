@@ -64,3 +64,15 @@ export function coordinatesMetaFromPoints(
     ...(p.href ? { href: p.href } : {})
   }));
 }
+
+/**
+ * Stored `coordinatesMeta` entries with a `name` on every entry (`''` when
+ * absent), keeping every other field as it is. For save paths that write stored
+ * entries back rather than rebuilding them from route-buffer points: a legacy
+ * bare `{ href }` entry gains a name, and an entry left without one (e.g. a
+ * point unlinked from its waypoint) is never written as the `{}` the server
+ * rejects (#880).
+ */
+export function withPointNames(meta: PointMeta[]): PointMeta[] {
+  return meta.map((m) => ({ ...m, name: m?.name ?? '' }));
+}

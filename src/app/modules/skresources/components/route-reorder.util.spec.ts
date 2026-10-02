@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   editsRouteBuffer,
   buildRoutePoints,
-  coordinatesMetaFromPoints
+  coordinatesMetaFromPoints,
+  withPointNames
 } from './route-reorder.util';
 
 /**
@@ -123,5 +124,29 @@ describe('coordinatesMetaFromPoints (#880)', () => {
       stored
     );
     expect(coordinatesMetaFromPoints(points)).toEqual(stored);
+  });
+});
+
+describe('withPointNames (#880)', () => {
+  it('names every stored entry and keeps its other fields', () => {
+    const href = '/resources/waypoints/abc';
+    expect(
+      withPointNames([
+        { href },
+        { description: 'Red nun' },
+        { name: 'Mark', href },
+        {}
+      ])
+    ).toEqual([
+      { name: '', href },
+      { name: '', description: 'Red nun' },
+      { name: 'Mark', href },
+      { name: '' }
+    ]);
+  });
+
+  it('keeps fields it does not know about', () => {
+    const meta = [{ name: 'A', extra: 1 } as unknown as { name: string }];
+    expect(withPointNames(meta)).toEqual([{ name: 'A', extra: 1 }]);
   });
 });

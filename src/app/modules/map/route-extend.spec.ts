@@ -148,6 +148,46 @@ describe('unlinkMovedPoints (#880)', () => {
     expect(meta[1]).not.toBe(shared);
   });
 
+  it('names a moved point that had only a link, so the entry stays valid', () => {
+    // A bare { href } entry (what Build Route used to store) must not become
+    // the {} the server rejects; same for { description, href }.
+    const meta: Array<{ name?: string; description?: string; href?: string }> =
+      [{ href }, { description: 'Red nun', href }, { href }];
+    unlinkMovedPoints(
+      before,
+      [
+        [1, 0],
+        [11, 10],
+        [20, 20]
+      ],
+      meta
+    );
+    expect(meta).toEqual([
+      { name: '' },
+      { name: '', description: 'Red nun' },
+      { href }
+    ]);
+  });
+
+  it("labels an unlinked point with the waypoint's name when it is known", () => {
+    const meta = [{ href }, { name: '', href }, { name: 'Own', href }];
+    unlinkMovedPoints(
+      before,
+      [
+        [1, 0],
+        [11, 10],
+        [21, 20]
+      ],
+      meta,
+      (h) => (h === href ? 'Waypoint A' : undefined)
+    );
+    expect(meta).toEqual([
+      { name: 'Waypoint A' },
+      { name: 'Waypoint A' },
+      { name: 'Own' }
+    ]);
+  });
+
   it('leaves a moved point without a link untouched', () => {
     const entry = { name: 'B' };
     const meta = [{ name: 'A' }, entry, { name: 'C' }];

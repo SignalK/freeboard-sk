@@ -46,7 +46,7 @@ export type RouteDeleteHandler = (routeId: string) => Promise<void> | void;
 /** A route point's waypoint link: `/resources/waypoints/<id>`. */
 const WAYPOINT_HREF = /^\/resources\/waypoints\/[^/]+$/;
 
-export function isWaypointHref(v: unknown): v is string {
+function isWaypointHref(v: unknown): v is string {
   return typeof v === 'string' && WAYPOINT_HREF.test(v);
 }
 
