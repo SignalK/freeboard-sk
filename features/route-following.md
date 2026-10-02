@@ -4,19 +4,30 @@ title: Following a Route
 category: Navigation
 ---
 
-![Fig 1. Tap a route and choose Start to begin following it](route-following-1.jpg)
+![Fig 1. Tap a route and choose Start to start following it](route-following-1.jpg)
 
-Start a route and Freeboard steers you along it, point by point — and when
-plans change underway, you can rejoin it further on or skip a point without
-starting over.
+Start following a route and Freeboard steers you along it, point by point —
+and when plans change underway, you can rejoin it further on or skip a point
+without starting over.
 
-**Starting a route.** Tap a route on the chart and choose **Start**, or press
-**Start** beside it in the Routes list or in its info panel. Navigation begins
-at the route's first point. To begin somewhere else, press **Start here**
-beside a point in the info panel's point list, or open the route's **Points**
-and choose **Start at nearest point** to pick up the route at the point
-closest to your boat. A route you've just drawn can be started without saving
-it first — see *Route Planning*.
+**Following a route.** Tap a route on the chart and choose **Start**, or press
+**Start** beside it in the Routes list or in its info panel, and Freeboard
+starts following it from its first point. To start partway along, press
+**Start here** beside a point in the info panel's point list, or open the
+route's **Points** and choose **Start at nearest point** to pick up the route
+at the point closest to your boat.
+
+**Following a route you haven't saved.** For a quick "take me there" route —
+around a shoal, or into an anchorage — you don't have to name and save it
+first. Tap **Start** on a freshly drawn route, or **Start here** on one of its
+points, and Freeboard starts following it at once. It stores the route on your
+server as **Temporary route**, and its info panel labels it **(temporary)**.
+It stays on the chart after you stop following it, so if the course gets
+cleared — a detour to a waypoint, or the autopilot or another display clearing
+it — just press **Start** on it again. Only one temporary route is kept: it's
+replaced the next time you start following a drawn route, and removed a day
+after you stop following it. To keep it for good, press **Save** (*Keep this
+route*) in its info panel and give it a name; it becomes an ordinary route.
 
 ![Fig 2. The course controls while following a route — previous and next point, reverse, restart XTE and Course Settings](route-following-2.jpg)
 

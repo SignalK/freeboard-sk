@@ -96,7 +96,7 @@
   { "feature": "gpx-export", "kind": "enhanced", "since": "v1.18.0", "date": "2021-08-30", "title": "add vessel trail to track option in Save to GPX" },
   { "feature": "gpx-export", "pr": 831, "kind": "enhanced", "since": "v3.2.0-beta.4", "date": "2026-09-24", "title": "feat(gpx): export the server trail and other vessels' tracks to GPX, over any recorded range" },
   { "feature": "track-history", "pr": 844, "kind": "enhanced", "since": "v3.2.0-beta.5", "date": "2026-09-26", "title": "feat(tracks): zoom to a vessel's recorded track from the Track history window" },
-  { "feature": "route-planning", "pr": 853, "kind": "enhanced", "since": "v3.2.0-beta.6", "date": "2026-09-30", "title": "feat(routes): start a drawn route without saving it first" },
+  { "feature": "route-following", "pr": 853, "kind": "enhanced", "since": "v3.2.0-beta.6", "date": "2026-09-30", "title": "feat(routes): start a drawn route without saving it first" },
   { "feature": "route-following", "kind": "new", "since": "v1.8.0-rc1", "date": "2018-09-12", "title": "Set a route as the Active Route" },
   { "feature": "route-following", "kind": "enhanced", "since": "v1.8.0-rc1", "date": "2018-12-17", "title": "Added Next / Prev Point selection for Active Route" },
   { "feature": "route-following", "kind": "enhanced", "since": "v2.0.0", "date": "2022-04-06", "title": "Course API: reverse route, restart XTE, auto-advance to next point on arrival" },
