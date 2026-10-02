@@ -152,6 +152,9 @@ const AIS_TRACK_DEBOUNCE = 1000;
 const serverTracked = new Set<string>();
 // AIS track requests overlap (poll, move-end, picks); only the latest applies
 const aisTracksGate = createRequestGate();
+// own-trail requests overlap (a zoom change with the trail length "All", a
+// new track source); only the latest answers
+const trailGate = createRequestGate();
 const SERVER_TRACK_TAIL_CAP = 5000;
 
 // ** AIS target management **
@@ -521,12 +524,13 @@ function refreshTrackSource() {
  * With none, answer with an empty result so the app falls back to its local
  * trail. */
 function requestVesselTrail() {
+  const token = trailGate.begin();
   trackSourceReady.then((source) => {
     if (source.api === 'v2') {
-      getVesselTrailV2(trailMgr, source.provider);
+      getVesselTrailV2(tracksApiUrl(apiUrl), trailMgr, source.provider, token);
     } else if (source.api === 'v1' && source.v1SelfTrack) {
-      getVesselTrail(trailMgr);
-    } else {
+      getVesselTrail(trailMgr, token);
+    } else if (trailGate.isCurrent(token)) {
       const msg = new TrailMessage();
       msg.playback = playbackMode;
       msg.result = null;
@@ -537,9 +541,14 @@ function requestVesselTrail() {
 
 /** Fetch the own-vessel trail from the v2 Track API: the same three bands as
  * v1, as absolute from/to, from the default provider only. With "All" the
- * oldest band is simplified by the server to a pixel at the map's zoom. */
-function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
-  const url = tracksApiUrl(apiUrl);
+ * oldest band is simplified by the server to a pixel at the map's zoom.
+ * `token` is the request's trailGate token; it answers only while current. */
+export function getVesselTrailV2(
+  url: string,
+  opt: VesselTrailConfig,
+  provider?: string,
+  token = trailGate.begin()
+) {
   const epsilon = mapView
     ? metresPerPixel(mapView.zoom, (mapView.extent[1] + mapView.extent[3]) / 2)
     : undefined;
@@ -553,6 +562,9 @@ function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
   msg.playback = playbackMode;
   Promise.all(bands.map((b) => trackApiGet(trailBandUrl(url, b, provider))))
     .then((fcs) => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       msg.result = assembleTrail(
         fcs.map((fc) => parseSelfTrail(fc) ?? null),
         bands.map((b) => b.epsilon !== undefined || b.simplify === true)
@@ -561,6 +573,9 @@ function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
       postMessage(msg);
     })
     .catch(() => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       msg.result = null;
       postMessage(msg);
     });
@@ -718,8 +733,12 @@ function getAISTracks() {
     });
 }
 
-// fetch vessel trail from server
-function getVesselTrail(opt: VesselTrailConfig) {
+/** Fetch the own-vessel trail from the v1 interface. `token` is the request's
+ * trailGate token; it answers only while current. */
+export function getVesselTrail(
+  opt: VesselTrailConfig,
+  token = trailGate.begin()
+) {
   //console.info('Worker: Fetching vessel trail from server', opt);
   const url = apiUrl + '/self/track?';
   // v1 has no open-ended query: "All" asks for its longest length
@@ -764,6 +783,9 @@ function getVesselTrail(opt: VesselTrailConfig) {
 
   Promise.all(req)
     .then((res) => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       msg.result = assembleTrail(
         res.map((r) =>
           r?.type === 'MultiLineString' && Array.isArray(r.coordinates)
@@ -774,6 +796,9 @@ function getVesselTrail(opt: VesselTrailConfig) {
       postMessage(msg);
     })
     .catch(() => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       msg.result = null;
       postMessage(msg);
     });
