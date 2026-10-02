@@ -22,9 +22,22 @@ yet.
 chart — freshly drawn or previously saved — to bring up its actions:
 **Modify** to reshape it, **Points** to reorder its point list, **Hide**
 to take it off the chart, **Delete** to remove it, and more. An unsaved
-route also offers **Save** right there, so turning a quick sketch into a
-permanent route is one tap. Saving keeps the route right where it is on the
-chart — it won't disappear on you.
+route also offers **Save** and **Start** right there: Save turns a quick
+sketch into a permanent route in one tap, and Start follows it straight away
+(see below). Saving keeps the route right where it is on the chart — it
+won't disappear on you.
+
+**Starting a route without saving it.** For a quick "take me there" route —
+around a shoal, or into an anchorage — you don't have to name and save it
+first. Tap **Start** on a freshly drawn route, or **Start here** on one of its
+points, and navigation begins at once. Freeboard stores it on your server as
+**Temporary route**. It stays on the chart after you stop following it, so if
+the course gets cleared — a detour to a waypoint, or the autopilot or another
+display clearing it — just Start it again from the route. Only one temporary
+route is kept: it's replaced the next time you start a drawn route, and
+removed a day after you stop following it. To keep it for good, press
+**Save** (*Keep this route*) in its info panel and give it a name; it becomes
+an ordinary route.
 
 ![Fig 2. The editing card while modifying a route — running distance, the active leg, and Undo / Save / Cancel in one place](route-planning-2.jpg)
 
@@ -37,7 +50,7 @@ of deleting it. To **extend the route**, click open water past its end: the
 route grows by a new end point, the same way you drew it, without leaving
 Modify.
 **Undo** steps back through your edits one at a time. The card's commit
-action saves your changes — labelled **Save** for a route that isn't stored
+action saves your changes — labeled **Save** for a route that isn't stored
 yet, **Finish** for one that is — and **Cancel** (or the ✕) discards them,
 with no separate "save changes?" prompt to answer.
 
@@ -54,8 +67,9 @@ active can't be hidden.)
 
 The route's info panel offers the same actions — **Save**, **Edit**,
 **Delete** — plus the point list, distance, and a description you can write
-for the route. A route that hasn't been saved yet is labelled **(unsaved)**
-so you always know its status at a glance.
+for the route. A route that hasn't been saved yet is labeled **(unsaved)**,
+and one you started without saving is labeled **(temporary)**, so you always
+know its status at a glance.
 
 If you have an extension plugin installed that helps you plan routes — an
 auto-router that fits a route around land, for instance — it can work with
