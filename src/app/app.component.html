@@ -991,7 +991,7 @@
                       [disabled]="this.app.instrumentPanel().open"
                       matTooltip="Radar"
                       matTooltipPosition="before"
-                      (click)="showRadarPanel()"
+                      (click)="toggleRadarPanel()"
                     >
                       <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
                     </button>
@@ -1282,7 +1282,7 @@
           @if (!isInteracting() && !app.kioskMode()) {
             <mfb-container
               [action]="app.config.display.fab"
-              (radarClick)="showRadarPanel()"
+              (radarClick)="toggleRadarPanel()"
             >
             </mfb-container>
           }
