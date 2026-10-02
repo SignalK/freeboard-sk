@@ -177,10 +177,12 @@ export class RadarPanel {
     def: ControlDef,
     cv: ControlValue | undefined
   ): [number, number] {
+    const min = Number(def.minValue ?? 0);
+    const max = Number(def.maxValue);
     if (cv?.auto && def.hasAutoAdjustable) {
-      return [def.autoAdjustMinValue, def.autoAdjustMaxValue];
+      return [def.autoAdjustMinValue ?? min, def.autoAdjustMaxValue ?? max];
     }
-    return [Number(def.minValue ?? 0), Number(def.maxValue)];
+    return [min, max];
   }
 
   /** The value a slider or field shows: the auto adjustment while on auto. */
