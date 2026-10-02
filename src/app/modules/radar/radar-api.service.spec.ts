@@ -119,6 +119,13 @@ describe('RadarAPIService init() (#755)', () => {
     });
   });
 
+  it('lists every radar the server reports', async () => {
+    const service = TestBed.inject(RadarAPIService);
+    await service.init();
+
+    expect(service.radars().map((r) => r.id)).toEqual(['radar-1', 'radar-2']);
+  });
+
   describe('control updates from the stream', () => {
     const update = (path: string, value: unknown) =>
       radarUpdates.next({ path, value } as DeltaSignal);
@@ -172,6 +179,19 @@ describe('RadarAPIService init() (#755)', () => {
 
       expect(service.radar().controls.has('stray')).toBe(false);
     });
+  });
+
+  it('sends a control change as the PUT body', async () => {
+    const service = TestBed.inject(RadarAPIService);
+    await service.init();
+
+    await service.setControl(undefined, 'gain', { auto: true });
+
+    expect(put).toHaveBeenCalledWith(
+      2,
+      'vessels/self/radars/radar-1/controls/gain',
+      { auto: true }
+    );
   });
 
   it('resolves the current control values from /controls', async () => {

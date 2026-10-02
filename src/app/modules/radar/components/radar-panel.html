@@ -1,111 +1,195 @@
-<div
-  style="
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    width: stretch;
-    height: 100%;
-  "
->
-  <div>
-    <div style="display: flex">
-      <div>
-        <mat-button-toggle-group
-          name="connection"
-          [value]="app.uiCtrl().radarLayer"
-          [hideSingleSelectionIndicator]="true"
-          (change)="handleConnect($event.value)"
-        >
-          <mat-button-toggle [value]="false">Off</mat-button-toggle>
-          <mat-button-toggle [value]="true">
-            On
-            <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
-      </div>
-
-      <div
-        style="flex: 1; font-size: 10pt; padding: 0 0 0 10px; text-align: right"
+@if (radar(); as r) {
+<div class="radar-panel">
+  <div class="radar-head">
+    <div class="lozenge" [class]="'power-' + power()">
+      <button
+        mat-icon-button
+        class="power-button"
+        [disabled]="nextPower() === undefined"
+        [matTooltip]="power() === 'transmit' ? 'Standby' : 'Transmit'"
+        [attr.aria-label]="power() === 'transmit' ? 'Standby' : 'Transmit'"
+        (click)="togglePower()"
       >
-        {{radar().device.name ?? radar().device.id ?? ''}}
-        <br />
-        {{radar()?.device?.brand}}
-      </div>
+        <mat-icon>power_settings_new</mat-icon>
+      </button>
+      <button
+        class="radar-name"
+        [matMenuTriggerFor]="radarMenu"
+        [disabled]="radarApi.radars().length < 2"
+        matTooltip="Choose the radar"
+        [matTooltipDisabled]="radarApi.radars().length < 2"
+      >
+        <span class="name-text">
+          <span class="name">{{ r.device.name || r.device.id }}</span>
+          <span class="state">{{ powerLabel() }}</span>
+        </span>
+        @if (radarApi.radars().length > 1) {
+        <mat-icon class="caret">arrow_drop_down</mat-icon>
+        }
+      </button>
     </div>
-    <div style="display: flex">
-      <div style="flex: 1; padding-top: 1em">Opacity</div>
-      <div style="flex: 1 1 auto">
+    <button
+      mat-icon-button
+      [matTooltip]="
+          app.uiCtrl().radarLayer ? 'Hide radar on chart' : 'Show radar on chart'
+        "
+      [attr.aria-pressed]="app.uiCtrl().radarLayer"
+      (click)="toggleOverlay()"
+    >
+      <mat-icon
+        >{{ app.uiCtrl().radarLayer ? 'visibility' : 'visibility_off'
+        }}</mat-icon
+      >
+    </button>
+  </div>
+  <mat-menu #radarMenu="matMenu">
+    @for (item of radarApi.radars(); track item.id) {
+    <button mat-menu-item (click)="selectRadar(item.id)">
+      <mat-icon
+        >{{ item.id === r.device.id ? 'radio_button_checked' :
+        'radio_button_unchecked' }}</mat-icon
+      >
+      {{ item.name || item.id }}
+    </button>
+    }
+  </mat-menu>
+
+  @if (rangeDef() && ranges().length) {
+  <mat-form-field class="compact range" subscriptSizing="dynamic">
+    <mat-label>Range</mat-label>
+    <mat-select
+      [value]="rangeValue()"
+      [disabled]="rangeDef().isReadOnly"
+      (selectionChange)="setRange($event.value)"
+    >
+      @for (o of ranges(); track o.value) {
+      <mat-option [value]="o.value">{{ rangeLabel(o) }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  }
+
+  <div class="ctl">
+    <div class="ctl-head">
+      <span class="ctl-name">Opacity</span>
+      <span class="ctl-value">{{ opacityPercent() }}</span>
+    </div>
+    <mat-slider class="ctl-slider" [min]="0" [max]="1" [step]="0.1">
+      <input
+        matSliderThumb
+        [value]="app.config.radars.opacity"
+        (input)="handleOpacity($event)"
+      />
+    </mat-slider>
+  </div>
+
+  <mat-accordion multi class="sections">
+    @for (s of sections(); track s.category) {
+    <mat-expansion-panel [expanded]="s.category === 'base'">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ s.title }}</mat-panel-title>
+      </mat-expansion-panel-header>
+      @for (c of s.controls; track c.id) { @let cv = values().get(c.id); @let
+      disabled = isDisabled(c.def, cv); @if (c.widget === 'button') {
+      <button
+        mat-stroked-button
+        class="ctl-button"
+        [disabled]="disabled"
+        [matTooltip]="c.def.description"
+        [matTooltipShowDelay]="600"
+        (click)="press(c)"
+      >
+        {{ c.def.name }}
+      </button>
+      } @else {
+      <div class="ctl" [class.ctl-disabled]="disabled">
+        <div class="ctl-head">
+          <span
+            class="ctl-name"
+            [matTooltip]="c.def.description"
+            [matTooltipShowDelay]="600"
+            >{{ c.def.name }}</span
+          >
+          @if (c.def.hasAuto) {
+          <mat-slide-toggle
+            class="ctl-auto"
+            [checked]="!!cv?.auto"
+            [disabled]="disabled"
+            (change)="setAuto(c, $event.checked)"
+            >Auto</mat-slide-toggle
+          >
+          }
+          <span class="ctl-value">{{ display(c.def, cv) }}</span>
+        </div>
+        @if (!onAuto(c.def, cv)) { @switch (c.widget) { @case ('steps') {
         <mat-slider
-          style="width: stretch"
+          class="ctl-slider"
           [min]="0"
-          [max]="1"
-          [step]="0.1"
+          [max]="c.options.length - 1"
+          [step]="1"
+          [disabled]="disabled"
           showTickMarks
-          discrete
         >
           <input
             matSliderThumb
-            [value]="app.config.radars.opacity"
-            (input)="handleOpacity($event)"
+            [value]="stepIndex(c, cv)"
+            (change)="setStep(c, $event)"
           />
         </mat-slider>
-      </div>
-    </div>
-  </div>
-
-  <!-- Controls -->
-  <div
-    style="
-      flex: 2 1 auto;
-      overflow-y: auto;
-      padding-left: 5px;
-      padding-top: 10px;
-    "
-  >
-    @for( control of this.radar().controls; track control[0]) { @let cdef =
-    this.radar().capabilities.controls[control[0]];
-    <div class="kvRow">
-      <div style="flex: 2; text-align: right">
-        <mat-form-field style="width: stretch" [matTooltip]="cdef.description">
-          <mat-label> {{cdef.name}} </mat-label>
-          <mat-hint
-            style="
-              overflow: hidden;
-              display: -webkit-box;
-              -webkit-box-orient: vertical;
-              -webkit-line-clamp: 1;
-              line-clamp: 1;
-              text-overflow: ellipsis;
-            "
-          >
-            {{cdef.description}}
-          </mat-hint>
-          @if(cdef.dataType === 'enum' || (cdef.dataType === 'number' &&
-          cdef.validValues)) {
+        } @case ('select') {
+        <mat-form-field class="compact" subscriptSizing="dynamic">
           <mat-select
-            [disabled]="cdef.isReadOnly || !app.uiCtrl().radarLayer || forceReadOnly"
-            [value]="control[1].value"
-            (selectionChange)="handleControl(control[0], $event.value)"
+            [value]="cv?.value"
+            [disabled]="disabled"
+            (selectionChange)="setValue(c, $event.value)"
           >
-            @for(i of cdef.validValues; track i) {
-            <mat-option [value]="i">
-              {{cdef.descriptions ? cdef.descriptions[i] : i}}
-            </mat-option>
+            @for (o of c.options; track o.value) {
+            <mat-option [value]="o.value">{{ o.label }}</mat-option>
             }
           </mat-select>
-          } @else if(cdef.dataType === 'number') {
+        </mat-form-field>
+        } @case ('slider') { @let b = bounds(c.def, cv);
+        <mat-slider
+          class="ctl-slider"
+          [min]="b[0]"
+          [max]="b[1]"
+          [step]="c.def.stepValue || 1"
+          [disabled]="disabled"
+        >
+          <input
+            matSliderThumb
+            [value]="current(c.def, cv)"
+            (change)="setNumber(c, $event)"
+          />
+        </mat-slider>
+        } @case ('number') { @let b = bounds(c.def, cv);
+        <mat-form-field class="compact" subscriptSizing="dynamic">
           <input
             matInput
             type="number"
-            [disabled]="cdef.isReadOnly || !app.uiCtrl().radarLayer || forceReadOnly"
-            [min]="cdef.minValue ?? 0"
-            [max]="cdef.maxValue ?? undefined"
-            [value]="control[1].value"
+            [min]="b[0]"
+            [max]="b[1]"
+            [step]="c.def.stepValue || 1"
+            [value]="current(c.def, cv) ?? ''"
+            [disabled]="disabled"
+            (change)="setNumber(c, $event)"
           />
-          }
         </mat-form-field>
+        } @case ('string') {
+        <mat-form-field class="compact" subscriptSizing="dynamic">
+          <input
+            matInput
+            type="text"
+            [value]="cv?.value ?? ''"
+            [disabled]="disabled"
+            (change)="setText(c, $event)"
+          />
+        </mat-form-field>
+        } } }
       </div>
-    </div>
+      } }
+    </mat-expansion-panel>
     }
-  </div>
+  </mat-accordion>
 </div>
+}

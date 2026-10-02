@@ -227,6 +227,7 @@
       [mapZoom]="mapZoomLevel()"
       [zIndex]="99"
       [opacity]="app.config.radars.opacity"
+      [radarId]="radarApi.radar()?.device?.id"
       (onError)="handleRadarError($event)"
     >
     </fb-radar>

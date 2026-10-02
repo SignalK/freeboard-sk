@@ -70,6 +70,12 @@ export interface ControlDef {
   validValues?: Array<number | string>;
   isReadOnly?: boolean;
   hasEnabled?: boolean;
+  hasAuto?: boolean;
+  /** In auto mode the radar takes an adjustment (`autoValue`) within
+   *  `autoAdjustMinValue`..`autoAdjustMaxValue` instead of a value */
+  hasAutoAdjustable?: boolean;
+  autoAdjustMinValue?: number;
+  autoAdjustMaxValue?: number;
   maxDistance?: number;
   units?: string;
 }
@@ -82,6 +88,8 @@ export interface ControlValue {
   auto?: boolean;
   autoValue?: number | string;
   enabled?: boolean;
+  /** false while the radar's current mode makes this control read-only */
+  allowed?: boolean;
   endValue?: number;
   startDistance?: number;
   endDistance?: number;
@@ -91,6 +99,9 @@ export interface ControlValue {
   y2?: number;
   width?: number;
 }
+
+// The writable part of a control value (Radar API PUT body)
+export type ControlChange = Omit<ControlValue, 'timestamp' | 'allowed'>;
 
 export interface ActiveRadar {
   device: SKRadar;
@@ -107,6 +118,9 @@ export class RadarAPIService {
   readonly radarId = this._selectedRadar.asReadonly();
   private _radar = signal<ActiveRadar>(undefined);
   readonly radar = this._radar.asReadonly();
+  // every radar the server reported on the last init(), in its order
+  private _radars = signal<SKRadar[]>([]);
+  readonly radars = this._radars.asReadonly();
   // Radar API version reported by GET /radars. Empty for pre-3.4.0 servers,
   // which return a bare array with no version envelope.
   private _apiVersion = signal<string>('');
@@ -169,6 +183,7 @@ export class RadarAPIService {
   /** Initialise radar */
   public async init(id?: string): Promise<string> {
     const radars = await this.listRadars();
+    this._radars.set(radars);
     if (!radars.length) {
       this._selectedRadar.set('');
       return;
@@ -344,19 +359,20 @@ export class RadarAPIService {
   }
 
   /**
-   * Send new control value to server.
+   * Send a control change to the server: `{ value }`, `{ auto }`,
+   * `{ auto, value }` or, for a button, `{}`.
    */
   public setControl(
     radarId: string = this._selectedRadar(),
     controlId: string,
-    value: NonNullable<ControlValue['value']>
+    change: ControlChange
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .put(
           this.app.skApiVersion,
           `${this.getPath(radarId)}/controls/${controlId}`,
-          { value: value }
+          change
         )
         .subscribe({
           next: () => resolve(),
