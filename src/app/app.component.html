@@ -373,6 +373,19 @@
                       <mat-icon>open_in_new</mat-icon>
                     </a>
                   }
+                  @if (
+                    app.config.experiments &&
+                    app.config.display.plugins.instruments
+                  ) {
+                    <a
+                      mat-icon-button
+                      (click)="openInstrumentsAsPipApp()"
+                      matTooltip="Open as PiP App over the chart."
+                      matTooltipPosition="below"
+                    >
+                      <mat-icon>picture_in_picture_alt</mat-icon>
+                    </a>
+                  }
                   &nbsp;&nbsp;
                   <a
                     mat-icon-button
