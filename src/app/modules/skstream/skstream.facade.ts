@@ -395,6 +395,8 @@ export class SKStreamFacade {
 
       this.parseVesselOther(msg.result.aisTargets);
 
+      this.app.data.vessels.radarTargets = msg.result.radarTargets;
+
       this.app.data.vessels.prefAvailablePaths = msg.result.paths;
 
       // ** update active vessel map display **
