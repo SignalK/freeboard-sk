@@ -12,16 +12,7 @@ import {
   WindIndicator
 } from 'src/app/types';
 import { Observable, Subject } from 'rxjs';
-
-interface SKAppsList {
-  author: string;
-  description: string;
-  license: string;
-  location: string;
-  _location: string; //npm linked app
-  name: string;
-  version: string;
-}
+import { mapWebappList, SKAppsList } from 'src/app/lib/webapps';
 
 interface ResourceTypeList {
   [key: string]: {
@@ -330,38 +321,7 @@ export class SettingsFacade {
 
     this.signalk.apps.list().subscribe(
       (a: Array<SKAppsList>) => {
-        this.applicationList = a
-          .map((i) => {
-            if (i.name === '@signalk/freeboard-sk') {
-              return null;
-            }
-            if (!i._location && !i.location) {
-              // npm linked app
-              return {
-                name: i.name,
-                description: i.description,
-                url: `/${i.name}`
-              };
-            }
-            if (typeof i._location !== 'undefined') {
-              // legacywebapps list
-              const x = i._location.indexOf('/signalk-server/');
-              return {
-                name: i.name,
-                description: i.description,
-                url: x === -1 ? i._location : i._location.slice(15)
-              };
-            } else if (typeof i.location !== 'undefined') {
-              return {
-                name: i.name,
-                description: i.description,
-                url: i.location
-              };
-            }
-          })
-          .filter((e) => {
-            return e;
-          });
+        this.applicationList = mapWebappList(a);
 
         this.applicationList.unshift({
           name: 'None',
