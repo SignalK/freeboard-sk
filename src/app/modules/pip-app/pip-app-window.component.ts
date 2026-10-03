@@ -25,6 +25,7 @@ import {
   fromFractions,
   toFractions
 } from './geometry';
+import { PipAppPopoutService } from './pip-app-popout.service';
 import { PipAppService } from './pip-app.service';
 import { PipAppDef } from './types';
 
@@ -110,6 +111,24 @@ interface ActiveGesture {
         </a>
         <mat-divider></mat-divider>
       }
+      @if (url()) {
+        @if (isOut()) {
+          <button mat-menu-item (click)="popIn()">
+            <mat-icon>open_in_browser</mat-icon>
+            <span>Bring back</span>
+          </button>
+        } @else {
+          <button mat-menu-item (click)="popOut()">
+            <mat-icon>launch</mat-icon>
+            <span>{{
+              popout.alwaysOnTop
+                ? 'Pop out, always on top'
+                : 'Pop out to a window'
+            }}</span>
+          </button>
+        }
+        <mat-divider></mat-divider>
+      }
       @for (o of opacities; track o) {
         <button
           mat-menu-item
@@ -127,7 +146,19 @@ interface ActiveGesture {
       }
     </mat-menu>
     <div class="fb-pip-app__body">
-      @if (safeUrl(); as src) {
+      @if (isOut()) {
+        <div class="fb-pip-app__out">
+          @if (popout.poppedOut()?.mode === 'popup') {
+            <p>
+              Shown in a separate window. Close that window before bringing the
+              app back here.
+            </p>
+          } @else {
+            <p>Shown in a picture-in-picture window.</p>
+          }
+          <button mat-stroked-button (click)="popIn()">Bring back</button>
+        </div>
+      } @else if (safeUrl(); as src) {
         <iframe
           [src]="src"
           [title]="def().title"
@@ -222,6 +253,18 @@ interface ActiveGesture {
       height: 100%;
       border: 0;
       background: #fff;
+    }
+    .fb-pip-app__out {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      box-sizing: border-box;
+      text-align: center;
+      font-size: 13px;
     }
     .fb-pip-app__error {
       padding: 12px;
@@ -330,6 +373,7 @@ export class PipAppWindowComponent implements OnDestroy {
   protected readonly opacities = [1, 0.8, 0.6, 0.4];
 
   private service = inject(PipAppService);
+  protected popout = inject(PipAppPopoutService);
   private sanitizer = inject(DomSanitizer);
   private zone = inject(NgZone);
   private el: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
@@ -448,6 +492,20 @@ export class PipAppWindowComponent implements OnDestroy {
       this.service.setRect(this.def().id, { x: f.x, y: f.y, w, h });
     }
     this.applyRect(commit ? g.current : this.drawn());
+  }
+
+  /** True while this window is shown outside the page. */
+  protected readonly isOut = computed(
+    () => this.popout.poppedOut()?.id === this.def().id
+  );
+
+  protected popOut() {
+    const r = this.rect();
+    this.popout.popOut(this.def(), { w: r.w, h: r.h });
+  }
+
+  protected popIn() {
+    this.popout.popIn(this.def().id);
   }
 
   protected toggleCollapsed() {

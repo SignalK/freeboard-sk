@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PipAppWindowComponent } from './pip-app-window.component';
+import { PipAppPopoutService } from './pip-app-popout.service';
 import { PipAppService } from './pip-app.service';
 import { PIP_APP_SANDBOX, PipAppDef } from './types';
 
@@ -26,6 +27,14 @@ describe('PipAppWindowComponent', () => {
     setOpacity: ReturnType<typeof vi.fn>;
   };
   let host: HTMLElement;
+  let popout: {
+    poppedOut: ReturnType<
+      typeof signal<{ id: string; mode: 'document-pip' | 'popup' } | null>
+    >;
+    alwaysOnTop: boolean;
+    popOut: ReturnType<typeof vi.fn>;
+    popIn: ReturnType<typeof vi.fn>;
+  };
 
   const pointer = (
     el: HTMLElement,
@@ -64,11 +73,18 @@ describe('PipAppWindowComponent', () => {
       setCollapsed: vi.fn(),
       setOpacity: vi.fn()
     };
+    popout = {
+      poppedOut: signal(null),
+      alwaysOnTop: true,
+      popOut: vi.fn(),
+      popIn: vi.fn()
+    };
     TestBed.configureTestingModule({
       imports: [PipAppWindowComponent],
       providers: [
         provideNoopAnimations(),
-        { provide: PipAppService, useValue: service }
+        { provide: PipAppService, useValue: service },
+        { provide: PipAppPopoutService, useValue: popout }
       ]
     });
     fixture = TestBed.createComponent(PipAppWindowComponent);
@@ -183,6 +199,26 @@ describe('PipAppWindowComponent', () => {
     fixture.componentRef.setInput('def', { ...def, opacity: 0.6 });
     fixture.detectChanges();
     expect(host.style.opacity).toBe('0.6');
+  });
+
+  it('shows Bring back instead of the app while popped out', () => {
+    popout.poppedOut.set({ id: 'w1', mode: 'popup' });
+    fixture.detectChanges();
+    expect(host.querySelector('iframe')).toBeNull();
+    expect(host.querySelector('.fb-pip-app__out').textContent).toContain(
+      'Close that window'
+    );
+    (host.querySelector('.fb-pip-app__out button') as HTMLElement).click();
+    expect(popout.popIn).toHaveBeenCalledWith('w1');
+    popout.poppedOut.set(null);
+    fixture.detectChanges();
+    expect(host.querySelector('iframe')).not.toBeNull();
+  });
+
+  it('is unaffected when another window is popped out', () => {
+    popout.poppedOut.set({ id: 'other', mode: 'document-pip' });
+    fixture.detectChanges();
+    expect(host.querySelector('iframe')).not.toBeNull();
   });
 
   it('emits close with its id', () => {
