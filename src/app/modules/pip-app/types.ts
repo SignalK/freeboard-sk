@@ -21,6 +21,8 @@ export interface PipAppDef {
   collapsed: boolean;
   /** Window opacity, PIP_APP_MIN_OPACITY..1. */
   opacity: number;
+  /** Keep the title bar shown instead of hiding it over the app when idle. */
+  barPinned?: boolean;
   /**
    * Out in a `noopener` popup, which cannot be watched for closing; the
    * in-app copy stays unmounted until the user brings it back.

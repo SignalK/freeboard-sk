@@ -128,6 +128,12 @@ describe('normalisePipApps', () => {
     expect(normalisePipApps([{ ...ok, popout: 'tab' }])[0]).not.toHaveProperty(
       'popout'
     );
+    expect(normalisePipApps([{ ...ok, barPinned: true }])[0].barPinned).toBe(
+      true
+    );
+    expect(
+      normalisePipApps([{ ...ok, barPinned: 'yes' }])[0]
+    ).not.toHaveProperty('barPinned');
   });
 
   it('defaults a missing title and tolerates a non-array', () => {

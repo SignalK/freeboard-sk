@@ -1,8 +1,14 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatMenuTrigger } from '@angular/material/menu';
+import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PipAppWindowComponent } from './pip-app-window.component';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  BAR_HIDE_DELAY_MS,
+  BAR_LEAVE_DELAY_MS,
+  PipAppWindowComponent
+} from './pip-app-window.component';
 import { PipAppPopoutService } from './pip-app-popout.service';
 import { PipAppService } from './pip-app.service';
 import { PIP_APP_SANDBOX, PipAppDef } from './types';
@@ -24,6 +30,7 @@ describe('PipAppWindowComponent', () => {
     resolveUrl: (s: PipAppDef['source']) => string;
     setRect: ReturnType<typeof vi.fn>;
     setCollapsed: ReturnType<typeof vi.fn>;
+    setBarPinned: ReturnType<typeof vi.fn>;
     setOpacity: ReturnType<typeof vi.fn>;
   };
   let host: HTMLElement;
@@ -65,6 +72,7 @@ describe('PipAppWindowComponent', () => {
   };
 
   beforeEach(() => {
+    vi.useFakeTimers();
     service = {
       viewport: signal({ w: 1000, h: 800 }),
       gestureActive: signal(false),
@@ -72,6 +80,7 @@ describe('PipAppWindowComponent', () => {
         s.kind === 'webapp' ? `http://boat.local:3000${s.path}` : s.url,
       setRect: vi.fn(),
       setCollapsed: vi.fn(),
+      setBarPinned: vi.fn(),
       setOpacity: vi.fn()
     };
     const out = signal<{ id: string; mode: 'document-pip' | 'popup' } | null>(
@@ -97,6 +106,20 @@ describe('PipAppWindowComponent', () => {
     fixture.detectChanges();
     host = fixture.nativeElement as HTMLElement;
   });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const barHidden = () => {
+    fixture.detectChanges();
+    return host.classList.contains('bar-hidden');
+  };
+
+  const idle = (ms: number) => {
+    vi.advanceTimersByTime(ms);
+    return barHidden();
+  };
 
   it('embeds the app in an iframe with exactly the baseline sandbox', () => {
     const iframe = host.querySelector('iframe');
@@ -160,7 +183,7 @@ describe('PipAppWindowComponent', () => {
 
   it('does not start a drag from the title bar buttons', () => {
     const bar = withCapture(host.querySelector('.fb-pip-app__bar'));
-    const close = host.querySelector('button');
+    const close = bar.querySelector('button');
     pointer(bar, 'pointerdown', 200, 100, close);
     expect(service.gestureActive()).toBe(false);
   });
@@ -226,6 +249,85 @@ describe('PipAppWindowComponent', () => {
     popout.out.set({ id: 'other', mode: 'document-pip' });
     fixture.detectChanges();
     expect(host.querySelector('iframe')).not.toBeNull();
+  });
+
+  it('floats the title bar over the app and hides it once idle', () => {
+    const iframe = host.querySelector('iframe');
+    expect(host.classList).toContain('bar-overlay');
+    expect(idle(BAR_HIDE_DELAY_MS - 1)).toBe(false);
+    expect(idle(1)).toBe(true);
+    expect(host.querySelector('iframe')).toBe(iframe);
+  });
+
+  it('brings the bar back from the grip, which also drags the window', () => {
+    idle(BAR_HIDE_DELAY_MS);
+    const grip = withCapture(host.querySelector('.fb-pip-app__grip'));
+    pointer(grip, 'pointerenter', 500, 85);
+    expect(barHidden()).toBe(false);
+    expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
+
+    pointer(grip, 'pointerdown', 500, 85);
+    expect(barHidden()).toBe(false);
+    pointer(grip, 'pointermove', 600, 165);
+    expect(idle(BAR_HIDE_DELAY_MS * 2)).toBe(false);
+    pointer(grip, 'pointerup', 600, 165);
+    expect(service.setRect).toHaveBeenCalledWith('w1', {
+      x: 0.2,
+      y: 0.2,
+      w: 0.4,
+      h: 0.5
+    });
+    expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
+  });
+
+  it('keeps the bar while hovered and hides it soon after the mouse leaves', () => {
+    const bar = host.querySelector('.fb-pip-app__bar') as HTMLElement;
+    pointer(bar, 'pointerenter', 200, 90);
+    expect(idle(BAR_HIDE_DELAY_MS * 3)).toBe(false);
+    pointer(bar, 'pointerleave', 200, 200);
+    expect(idle(BAR_LEAVE_DELAY_MS - 1)).toBe(false);
+    expect(idle(1)).toBe(true);
+  });
+
+  it('keeps the bar while its menu is open', () => {
+    const trigger = fixture.debugElement
+      .query(By.directive(MatMenuTrigger))
+      .injector.get(MatMenuTrigger);
+    trigger.openMenu();
+    expect(idle(BAR_HIDE_DELAY_MS * 3)).toBe(false);
+    trigger.closeMenu();
+    expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
+  });
+
+  it('never hides the bar of a pinned or collapsed window', () => {
+    for (const change of [{ barPinned: true }, { collapsed: true }]) {
+      fixture.componentRef.setInput('def', { ...def, ...change });
+      expect(idle(BAR_HIDE_DELAY_MS * 3)).toBe(false);
+      expect(host.classList).not.toContain('bar-overlay');
+      expect(host.querySelector('.fb-pip-app__grip')).toBeNull();
+    }
+  });
+
+  it('shows the bar again when auto-hide resumes', () => {
+    fixture.componentRef.setInput('def', { ...def, collapsed: true });
+    idle(BAR_HIDE_DELAY_MS);
+    fixture.componentRef.setInput('def', def);
+    expect(barHidden()).toBe(false);
+    expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
+  });
+
+  it('turns auto-hide off and on from the menu', () => {
+    fixture.debugElement
+      .query(By.directive(MatMenuTrigger))
+      .injector.get(MatMenuTrigger)
+      .openMenu();
+    fixture.detectChanges();
+    const item = Array.from(
+      document.querySelectorAll<HTMLElement>('[role="menuitemcheckbox"]')
+    ).find((b) => b.textContent.includes('Auto-hide title bar'));
+    expect(item.getAttribute('aria-checked')).toBe('true');
+    item.click();
+    expect(service.setBarPinned).toHaveBeenCalledWith('w1', true);
   });
 
   it('emits close with its id', () => {

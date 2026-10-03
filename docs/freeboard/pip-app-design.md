@@ -94,6 +94,7 @@ export interface PipAppDef {
   rect: PipRect;
   collapsed: boolean;         // title bar only; iframe stays mounted (hidden)
   opacity: number;            // 0.3 .. 1, default 1
+  barPinned?: boolean;        // keep the title bar shown; absent = auto-hide (§6.2)
   popout?: 'popup';           // out in a noopener popup until the user brings it back (§6.6)
 }
 
@@ -147,7 +148,8 @@ div.view                               (position:fixed; inset:0; flex row)
 
 ```
 .fb-pip-app  (position:absolute; transform:translate(x,y); width/height px; box-shadow; border-radius)
-  .fb-pip-app__bar      title · [collapse] [more: open in tab, pop out, opacity] [close]   ← drag handle
+  .fb-pip-app__grip     shown while the bar is hidden: hover/tap reveals the bar, drag moves the window
+  .fb-pip-app__bar      title · [collapse] [more: open in tab, pop out, auto-hide, opacity] [close]   ← drag handle
   .fb-pip-app__body
      iframe[src][sandbox="allow-scripts allow-same-origin allow-forms"][allow="fullscreen"]
   .fb-pip-app__handle × 8 (n, s, e, w, ne, nw, se, sw; 10px hit area, 16px on coarse pointers)
@@ -161,6 +163,20 @@ div.view                               (position:fixed; inset:0; flex row)
   embedded app keeps a real size and its timers/SSE stream keep running). Double-tap on the title toggles it. No separate
   dock strip: the bottom edge is already contested by widget anchors, the FAB and
   the nav-data panel.
+- **Auto-hiding title bar.** Unless the window is pinned ("Auto-hide title bar" in
+  the More menu, persisted as `barPinned`), the bar floats over the top of the
+  iframe and fades out after **3 s** idle, so the app gets the whole window. The
+  iframe keeps the full window height whether the bar is shown or not, so hiding
+  and showing never reflows the embedded app (an echogram would otherwise redraw).
+  A small grip pill at the top centre brings it back: mouse hover over the grip or
+  the top edge, a tap, or Enter when focused. The grip also drags the window
+  directly. The bar stays while the mouse is over it, a gesture runs, its menu is
+  open or keyboard focus is in it, and hides **1 s** after the mouse leaves. A
+  collapsed or popped-out window always shows its bar. Hover can't be the only
+  trigger: the parent page gets no pointer events from inside the iframe, so
+  touch users and anyone working in the app would otherwise have no way back.
+  The 3 s matches the idle time of video-player controls and full-screen system
+  bars: long enough to read the title and reach a button.
 - Click/pointerdown anywhere on a window brings it to the front (`zOrder` update)
   and sets `activeId`; the active bar gets the primary colour.
 - Chrome colours come from `--mat-sys-*` tokens like the rest of the app. Lesson log

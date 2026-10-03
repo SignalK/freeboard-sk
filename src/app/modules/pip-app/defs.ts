@@ -32,6 +32,7 @@ export function normalisePipApps(input: unknown): PipAppDef[] {
       rect: { ...d.rect },
       collapsed: d.collapsed === true,
       opacity: clampOpacity(d.opacity),
+      ...(d.barPinned === true ? { barPinned: true } : {}),
       ...(d.popout === 'popup' ? { popout: 'popup' as const } : {})
     });
   }

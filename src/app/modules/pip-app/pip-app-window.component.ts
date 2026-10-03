@@ -8,7 +8,9 @@ import {
   effect,
   inject,
   input,
-  output
+  output,
+  signal,
+  untracked
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,6 +34,18 @@ import { PipAppDef } from './types';
 /** Title bar plus the 1px top and bottom border. */
 const COLLAPSED_HEIGHT = DEFAULT_LIMITS.barH + 2;
 
+/**
+ * How long an auto-hiding title bar stays after it was last used: long enough
+ * to read the title and reach a button, the same idle time video players and
+ * full-screen system bars use before getting out of the way.
+ */
+export const BAR_HIDE_DELAY_MS = 3000;
+/** Grace after a mouse leaves the bar, so a pass over its edge does not flicker. */
+export const BAR_LEAVE_DELAY_MS = 1000;
+
+/** What keeps an auto-hiding title bar shown. */
+type BarHold = 'hover' | 'gesture' | 'menu' | 'focus';
+
 interface ActiveGesture {
   pointerId: number;
   mode: GestureMode;
@@ -44,7 +58,12 @@ interface ActiveGesture {
 
 /**
  * One PiP App window: a title bar to drag, eight resize handles and the
- * embedded app. The iframe is created once per source and never re-parented
+ * embedded app. Unless pinned, the title bar floats over the app and fades out
+ * when idle so the app gets the whole window; a grip at the top brings it back
+ * (hover, tap or drag). The iframe keeps its size either way, so hiding and
+ * showing the bar never reflows the embedded app.
+ *
+ * The iframe is created once per source and never re-parented
  * or re-bound while the window moves, resizes or restacks, so the embedded
  * app keeps running (and keeps its state) throughout.
  */
@@ -59,10 +78,22 @@ interface ActiveGesture {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (autoHide()) {
+      <button
+        class="fb-pip-app__grip"
+        aria-label="Show title bar"
+        [attr.tabindex]="barShown() ? -1 : 0"
+        (pointerenter)="onHoverReveal($event)"
+        (pointerdown)="revealBar(); startGesture($event, 'move')"
+        (click)="revealBar()"
+      ></button>
+    }
     <div
       class="fb-pip-app__bar"
       [class.front]="front()"
-      (pointerdown)="startGesture($event, 'move')"
+      (pointerenter)="onBarEnter($event)"
+      (pointerleave)="onBarLeave($event)"
+      (pointerdown)="revealBar(); startGesture($event, 'move')"
       (dblclick)="onBarDoubleClick($event)"
     >
       <span class="fb-pip-app__title" [title]="def().title">{{
@@ -85,6 +116,8 @@ interface ActiveGesture {
         matTooltip="More"
         aria-label="More"
         [matMenuTriggerFor]="moremenu"
+        (menuOpened)="holdBar('menu')"
+        (menuClosed)="releaseBar('menu')"
       >
         <mat-icon>more_vert</mat-icon>
       </button>
@@ -129,6 +162,18 @@ interface ActiveGesture {
         }
         <mat-divider></mat-divider>
       }
+      <button
+        mat-menu-item
+        role="menuitemcheckbox"
+        [attr.aria-checked]="!def().barPinned"
+        (click)="toggleBarPinned()"
+      >
+        <mat-icon>{{
+          def().barPinned ? 'check_box_outline_blank' : 'check_box'
+        }}</mat-icon>
+        <span>Auto-hide title bar</span>
+      </button>
+      <mat-divider></mat-divider>
       @for (o of opacities; track o) {
         <button
           mat-menu-item
@@ -173,6 +218,7 @@ interface ActiveGesture {
       <div
         class="fb-pip-app__handle"
         [attr.data-mode]="m"
+        (pointerenter)="m.includes('n') && onHoverReveal($event)"
         (pointerdown)="startGesture($event, m)"
       ></div>
     }
@@ -270,6 +316,75 @@ interface ActiveGesture {
       padding: 12px;
       font-size: 13px;
     }
+    :host(.bar-overlay) .fb-pip-app__bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      transition:
+        opacity 150ms ease-out,
+        transform 150ms ease-out;
+    }
+    :host(.bar-overlay) .fb-pip-app__body {
+      border-radius: 6px;
+    }
+    :host(.bar-hidden) .fb-pip-app__bar {
+      opacity: 0;
+      transform: translateY(-6px);
+      visibility: hidden;
+      transition:
+        opacity 300ms ease-in,
+        transform 300ms ease-in,
+        visibility 0s linear 300ms;
+    }
+    .fb-pip-app__grip {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      z-index: 1;
+      width: 64px;
+      height: 16px;
+      margin: 0 0 0 -32px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: grab;
+      touch-action: none;
+      transition: opacity 150ms ease-out;
+    }
+    .fb-pip-app__grip::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 14px;
+      right: 14px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.45);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+    :host(:not(.bar-hidden)) .fb-pip-app__grip {
+      opacity: 0;
+    }
+    @media (pointer: coarse) {
+      .fb-pip-app__grip {
+        width: 96px;
+        height: 24px;
+        margin-left: -48px;
+      }
+      .fb-pip-app__grip::before {
+        top: 9px;
+        left: 24px;
+        right: 24px;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fb-pip-app__bar,
+      .fb-pip-app__grip {
+        transition: none !important;
+      }
+    }
     :host(.collapsed) .fb-pip-app__body {
       visibility: hidden;
     }
@@ -281,6 +396,7 @@ interface ActiveGesture {
     }
     .fb-pip-app__handle {
       position: absolute;
+      z-index: 3;
       touch-action: none;
       --edge: 10px;
     }
@@ -347,9 +463,13 @@ interface ActiveGesture {
     class: 'fb-pip-app',
     '[attr.data-pip-id]': 'def().id',
     '[class.collapsed]': 'def().collapsed',
+    '[class.bar-overlay]': 'autoHide()',
+    '[class.bar-hidden]': 'autoHide() && !barShown()',
     '[style.z-index]': 'z()',
     '[style.opacity]': 'def().opacity',
-    '(pointerdown)': 'focused.emit(def().id)'
+    '(pointerdown)': 'focused.emit(def().id)',
+    '(focusin)': 'onFocusIn($event)',
+    '(focusout)': 'releaseBar("focus")'
   }
 })
 export class PipAppWindowComponent implements OnDestroy {
@@ -399,10 +519,28 @@ export class PipAppWindowComponent implements OnDestroy {
     return this.def().collapsed ? { ...r, h: COLLAPSED_HEIGHT } : r;
   });
 
+  /** Hide the title bar when idle: only while the app itself is shown. */
+  protected readonly autoHide = computed(
+    () =>
+      !this.def().barPinned &&
+      !this.def().collapsed &&
+      !this.isOut() &&
+      !!this.safeUrl()
+  );
+  protected readonly barShown = signal(true);
+  private barHolds = new Set<BarHold>();
+  private barTimer: ReturnType<typeof setTimeout> | undefined;
+
   private gesture: ActiveGesture | null = null;
   private frame = 0;
 
   constructor() {
+    // Show the bar whenever auto-hide starts (a window opens, expands or is
+    // brought back), so the user sees it before it gets out of the way.
+    effect(() => {
+      if (this.autoHide()) untracked(() => this.revealBar());
+    });
+
     // Layout is written straight to the element so a gesture can update it
     // per frame without change detection; between gestures this effect keeps
     // it in step with the stored layout and the viewport.
@@ -414,15 +552,72 @@ export class PipAppWindowComponent implements OnDestroy {
 
   ngOnDestroy() {
     this.endGesture();
+    clearTimeout(this.barTimer);
+  }
+
+  /** Show the title bar, then hide it again once it has been idle a while. */
+  protected revealBar() {
+    this.barShown.set(true);
+    this.scheduleBarHide(BAR_HIDE_DELAY_MS);
+  }
+
+  protected holdBar(reason: BarHold) {
+    this.barHolds.add(reason);
+    clearTimeout(this.barTimer);
+    this.barShown.set(true);
+  }
+
+  protected releaseBar(reason: BarHold, delay = BAR_HIDE_DELAY_MS) {
+    if (!this.barHolds.delete(reason)) return;
+    this.scheduleBarHide(delay);
+  }
+
+  private scheduleBarHide(delay: number) {
+    clearTimeout(this.barTimer);
+    if (this.barHolds.size) return;
+    this.barTimer = setTimeout(() => this.barShown.set(false), delay);
+  }
+
+  /** Hover is a mouse thing: on touch, enter and leave wrap every tap. */
+  private isHover(e: PointerEvent) {
+    return e.pointerType === 'mouse' || e.pointerType === 'pen';
+  }
+
+  protected onHoverReveal(e: PointerEvent) {
+    if (this.autoHide() && this.isHover(e)) this.revealBar();
+  }
+
+  protected onBarEnter(e: PointerEvent) {
+    if (this.isHover(e)) this.holdBar('hover');
+  }
+
+  protected onBarLeave(e: PointerEvent) {
+    if (this.isHover(e)) this.releaseBar('hover', BAR_LEAVE_DELAY_MS);
+  }
+
+  /**
+   * Keep the bar while keyboard focus is in it. Only keyboard focus counts: a
+   * clicked button keeps focus too, and must not pin the bar.
+   */
+  protected onFocusIn(e: FocusEvent) {
+    const t = e.target as HTMLElement;
+    if (!t.closest('.fb-pip-app__bar, .fb-pip-app__grip')) return;
+    let keyboard = false;
+    try {
+      keyboard = t.matches(':focus-visible');
+    } catch {
+      // :focus-visible is unknown to this engine; treat focus as from a click.
+    }
+    if (keyboard) this.holdBar('focus');
   }
 
   protected startGesture(e: PointerEvent, mode: GestureMode) {
     if (this.gesture) return;
     if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
     const target = e.currentTarget as HTMLElement;
-    if (mode === 'move' && (e.target as HTMLElement).closest('a, button')) {
-      return;
-    }
+    // A press on a bar button is a click; the grip is a button that drags.
+    const control = (e.target as HTMLElement).closest('a, button');
+    if (mode === 'move' && control && control !== target) return;
     e.preventDefault();
     const start = this.drawn();
     this.gesture = {
@@ -435,6 +630,7 @@ export class PipAppWindowComponent implements OnDestroy {
       target
     };
     target.setPointerCapture?.(e.pointerId);
+    this.holdBar('gesture');
     this.service.gestureActive.set(true);
     this.zone.runOutsideAngular(() => {
       target.addEventListener('pointermove', this.onMove);
@@ -484,6 +680,7 @@ export class PipAppWindowComponent implements OnDestroy {
       g.target.releasePointerCapture(g.pointerId);
     }
     this.service.gestureActive.set(false);
+    this.releaseBar('gesture');
     if (commit && g.current !== g.start) {
       const vp = this.service.viewport();
       const f = toFractions(g.current, vp);
@@ -509,6 +706,10 @@ export class PipAppWindowComponent implements OnDestroy {
 
   protected toggleCollapsed() {
     this.service.setCollapsed(this.def().id, !this.def().collapsed);
+  }
+
+  protected toggleBarPinned() {
+    this.service.setBarPinned(this.def().id, !this.def().barPinned);
   }
 
   protected setOpacity(o: number) {

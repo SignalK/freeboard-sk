@@ -119,17 +119,26 @@ describe('PipAppService', () => {
     expect(service.windows()).toEqual([]);
   });
 
-  it('collapses, expands and sets opacity, persisting each change', () => {
+  it('collapses, expands, sets opacity and pins the bar, persisting each change', () => {
     const service = create();
     const a = service.open(wifish);
-    expect([a.collapsed, a.opacity]).toEqual([false, 1]);
+    expect([a.collapsed, a.opacity, a.barPinned]).toEqual([
+      false,
+      1,
+      undefined
+    ]);
     service.setCollapsed(a.id, true);
     service.setOpacity(a.id, 0.05);
+    service.setBarPinned(a.id, true);
     expect(service.windows()[0]).toMatchObject({
       collapsed: true,
-      opacity: 0.3
+      opacity: 0.3,
+      barPinned: true
     });
-    expect(app.config.pipApps.windows[0]).toMatchObject({ collapsed: true });
+    expect(app.config.pipApps.windows[0]).toMatchObject({
+      collapsed: true,
+      barPinned: true
+    });
   });
 
   it('marks a window as out in a popup and back again, persisting both', () => {

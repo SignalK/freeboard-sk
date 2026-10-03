@@ -168,6 +168,10 @@ export class PipAppService {
     this.persist();
   }
 
+  setBarPinned(id: string, barPinned: boolean) {
+    this.patch(id, { barPinned });
+  }
+
   setOpacity(id: string, opacity: number) {
     this.patch(id, { opacity: clampOpacity(opacity) });
   }
