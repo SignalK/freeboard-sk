@@ -93,6 +93,25 @@ missing rows on `master` refreshes the PR and re-runs the check.
 bad render is never stuck — the Release body is freely editable after publish and is
 independent of the (immutable) npm publish.
 
+### When the tag and Release exist but npm has no package
+
+The npm publish is the last step and can fail on its own: the `publish` job of
+`release-please.yml` might not have dispatched `release.yml`, or `release.yml`'s own
+`publish` job might have failed. To recover:
+
+1. Check what npm has:
+   `npm view @signalk/freeboard-sk@X.Y.Z version` (empty or E404 = not published) and
+   `npm view @signalk/freeboard-sk dist-tags` (`beta` for a beta, `latest` for a
+   stable release).
+2. If the version is missing, run `release.yml` on the tag: **Actions → Release → Run
+   workflow → Use workflow from → Tags → vX.Y.Z**, or
+   `gh workflow run release.yml --ref vX.Y.Z`. It regenerates the Release body
+   (updating the existing Release) and publishes. If the run that failed is still
+   there, **Re-run failed jobs** on it does the same.
+3. If the version is there but a dist-tag is wrong, fix the tag rather than
+   republishing (a published version can't be published again):
+   `npm dist-tag add @signalk/freeboard-sk@X.Y.Z latest`.
+
 ## Tests
 
 Pure logic lives in `lib.mjs` and is unit-tested in `lib.spec.mjs`
