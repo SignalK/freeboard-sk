@@ -93,22 +93,33 @@ export class PipAppService {
   }
 
   close(id: string) {
-    const closing = this.windows().find((w) => w.id === id);
-    if (closing?.popout === 'popup') {
-      // A noopener popup is out of reach; only the user can close it.
-      this.app.showMessage(
-        `${closing.title} is still open in its separate window. Close it there.`
-      );
-    }
+    this.warnOpenPopups(this.windows().filter((w) => w.id === id));
     this.windows.update((list) => list.filter((w) => w.id !== id));
     this.zOrder.update((z) => z.filter((i) => i !== id));
     this.persist();
   }
 
   closeAll() {
+    this.warnOpenPopups(this.windows());
     this.windows.set([]);
     this.zOrder.set([]);
     this.persist();
+  }
+
+  /** A noopener popup is out of reach; only the user can close it. */
+  private warnOpenPopups(closing: PipAppDef[]) {
+    const titles = closing
+      .filter((w) => w.popout === 'popup')
+      .map((w) => w.title);
+    if (titles.length === 1) {
+      this.app.showMessage(
+        `${titles[0]} is still open in its separate window. Close it there.`
+      );
+    } else if (titles.length > 1) {
+      this.app.showMessage(
+        `${titles.join(', ')} are still open in separate windows. Close them there.`
+      );
+    }
   }
 
   /** Bring a window to the front. */

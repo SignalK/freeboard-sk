@@ -156,6 +156,23 @@ describe('PipAppService', () => {
     expect(service.windows()).toEqual([]);
   });
 
+  it('warns about every popup still open when all windows close', () => {
+    const service = create();
+    const a = service.open(wifish, 'Sounder');
+    service.open({ kind: 'url', url: 'https://example.com/' }, 'Web');
+    const c = service.open(
+      { kind: 'url', url: 'https://example.com/radar' },
+      'Radar'
+    );
+    service.setPopout(a.id, 'popup');
+    service.setPopout(c.id, 'popup');
+    service.closeAll();
+    expect(app.showMessage).toHaveBeenCalledWith(
+      'Sounder, Radar are still open in separate windows. Close them there.'
+    );
+    expect(service.windows()).toEqual([]);
+  });
+
   it('reveals a collapsed window when it is chosen again', () => {
     const service = create();
     const a = service.open(wifish);

@@ -34,6 +34,8 @@ export class PipAppPopoutService {
   readonly pipId = signal<string | null>(null);
 
   private pipWindow: Window | null = null;
+  /** A Document PiP request is in flight; overlapping ones are ignored. */
+  private requesting = false;
 
   constructor() {
     // The window was closed (or removed by a config reload) while in the
@@ -71,12 +73,16 @@ export class PipAppPopoutService {
     const height = Math.round(size.h);
     const dpip = this.alwaysOnTop ? this.documentPip() : null;
     if (dpip) {
+      if (this.requesting) return;
+      this.requesting = true;
       let pip: Window;
       try {
         pip = await dpip.requestWindow({ width, height });
       } catch (err) {
         console.warn('PiP App: picture-in-picture window refused', err);
         return;
+      } finally {
+        this.requesting = false;
       }
       // One Document PiP window per tab: the new one has replaced the old.
       // Swap only now, so a refused request leaves the current one out.
