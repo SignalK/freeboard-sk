@@ -150,8 +150,8 @@ interface ActiveGesture {
         <div class="fb-pip-app__out">
           @if (outMode() === 'popup') {
             <p>
-              Shown in a separate window. Close that window before bringing the
-              app back here.
+              If the separate window opened, close it before selecting Bring
+              back. If it did not open, select Bring back to restore the app.
             </p>
           } @else {
             <p>Shown in a picture-in-picture window.</p>

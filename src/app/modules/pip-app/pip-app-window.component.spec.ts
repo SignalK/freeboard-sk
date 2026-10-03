@@ -213,7 +213,7 @@ describe('PipAppWindowComponent', () => {
     fixture.detectChanges();
     expect(host.querySelector('iframe')).toBeNull();
     expect(host.querySelector('.fb-pip-app__out').textContent).toContain(
-      'Close that window'
+      'If it did not open, select Bring back'
     );
     (host.querySelector('.fb-pip-app__out button') as HTMLElement).click();
     expect(popout.popIn).toHaveBeenCalledWith('w1');
