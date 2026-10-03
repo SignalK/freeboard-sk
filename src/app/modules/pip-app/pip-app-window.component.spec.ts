@@ -166,6 +166,8 @@ describe('PipAppWindowComponent', () => {
       w: 0.4,
       h: 0.5
     });
+    // the dragged rectangle stayed a title bar
+    expect(host.style.height).toBe('34px');
   });
 
   it('toggles collapse from its button and a double-click on the title', () => {
