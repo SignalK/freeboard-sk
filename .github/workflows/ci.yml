@@ -2,9 +2,9 @@ name: SignalK Plugin CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, pip-app]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, pip-app]
 
 jobs:
   test:
