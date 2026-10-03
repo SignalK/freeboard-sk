@@ -11,7 +11,11 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
+import {
+  MAT_SNACK_BAR_DATA,
+  MatSnackBarAction,
+  MatSnackBarRef
+} from '@angular/material/snack-bar';
 
 @Component({
   selector: 'ap-msgbox',
@@ -396,11 +400,21 @@ export class LoginDialog implements OnInit {
 
 @Component({
   selector: 'message-bar',
-  imports: [MatIconModule],
+  imports: [MatIconModule, MatButtonModule, MatSnackBarAction],
   template: `
     <div class="message-bar">
       <mat-icon>message</mat-icon>&nbsp;&nbsp;
       {{ data.message }}
+      @if (data.action) {
+        &nbsp;
+        <button
+          mat-button
+          matSnackBarAction
+          (click)="snackBarRef.dismissWithAction()"
+        >
+          {{ data.action }}
+        </button>
+      }
     </div>
     @if (data.sound) {
       <audio src="./assets/sound/ding.mp3" [autoplay]="true"></audio>
@@ -418,7 +432,9 @@ export class MessageBarComponent {
   protected data = inject<{
     message: string; // text to display,
     sound: boolean; // play sound
+    action?: string; // label of a button that dismisses it with an action
   }>(MAT_SNACK_BAR_DATA);
+  protected snackBarRef = inject(MatSnackBarRef<MessageBarComponent>);
 
   constructor() {}
 }

@@ -1194,10 +1194,17 @@ export class AppFacade extends InfoService {
   }
 
   /** display message bar */
-  showMessage(message: string, sound = false, duration = 5000) {
-    this.snackbar.openFromComponent(MessageBarComponent, {
+  /** Show a message at the bottom of the screen. With `action`, it offers a
+   *  button of that label; the returned ref's onAction() emits when pressed. */
+  showMessage(
+    message: string,
+    sound = false,
+    duration = 5000,
+    action?: string
+  ) {
+    return this.snackbar.openFromComponent(MessageBarComponent, {
       duration: duration,
-      data: { message: message, sound: sound }
+      data: { message: message, sound: sound, action }
     });
   }
 
