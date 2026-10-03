@@ -14,16 +14,15 @@ const NIGHT_FILTER = 'brightness(0.3) sepia(0.2) hue-rotate(-30deg)';
 
 export type PopoutMode = 'document-pip' | 'popup';
 
-export interface PoppedOut {
-  id: string;
-  mode: PopoutMode;
-}
-
 /**
- * Moves one PiP App window at a time out of the page: into an always-on-top
+ * Moves PiP App windows out of the page: into the tab's one always-on-top
  * Document Picture-in-Picture window where the browser has one, otherwise
- * into a plain popup. While a window is out its in-app iframe is unmounted,
+ * into plain popups. While a window is out its in-app iframe is unmounted,
  * so the embedded app never runs twice.
+ *
+ * The Document PiP window is observable: it comes back on `pagehide`, and is
+ * replaced when another window pops out. A `noopener` popup is not: it stays
+ * out (persisted with the window) until the user confirms with Bring back.
  */
 @Injectable({ providedIn: 'root' })
 export class PipAppPopoutService {
@@ -31,24 +30,22 @@ export class PipAppPopoutService {
   private stream = inject(SKStreamFacade);
   private service = inject(PipAppService);
 
-  /** The window currently shown outside the page, if any. Runtime only. */
-  readonly poppedOut = signal<PoppedOut | null>(null);
+  /** The window shown in the Document PiP window, if any. Runtime only. */
+  readonly pipId = signal<string | null>(null);
 
   private pipWindow: Window | null = null;
 
   constructor() {
-    // A window closed (or removed by a config reload) while out: close its
-    // external window too.
+    // The window was closed (or removed by a config reload) while in the
+    // Document PiP window: close that too.
     effect(() => {
-      const out = this.poppedOut();
+      const id = this.pipId();
       const ids = this.service.windows().map((w) => w.id);
-      if (out && !ids.includes(out.id)) untracked(() => this.popIn(out.id));
+      if (id && !ids.includes(id)) untracked(() => this.popIn(id));
     });
     effect(() => {
       const night = this.isNight();
-      if (this.poppedOut()?.mode === 'document-pip') {
-        untracked(() => this.applyNight(night));
-      }
+      if (this.pipId()) untracked(() => this.applyNight(night));
     });
   }
 
@@ -57,19 +54,26 @@ export class PipAppPopoutService {
     return !!this.documentPip() && this.app.isTopWindow();
   }
 
+  /** Where `def` is shown outside the page, or null while it is in-app. */
+  modeOf(def: PipAppDef): PopoutMode | null {
+    if (def.popout === 'popup') return 'popup';
+    return this.pipId() === def.id ? 'document-pip' : null;
+  }
+
   /**
    * Pop `def` out. Must be called from a user gesture (a click), which both
    * browser APIs require.
    */
   async popOut(def: PipAppDef, size: { w: number; h: number }) {
     const url = this.service.resolveUrl(def.source);
-    if (!url) return;
-    const current = this.poppedOut();
-    if (current) this.popIn(current.id);
+    if (!url || this.modeOf(def)) return;
     const width = Math.round(size.w);
     const height = Math.round(size.h);
     const dpip = this.alwaysOnTop ? this.documentPip() : null;
     if (dpip) {
+      // One Document PiP window per tab: the new one replaces the old.
+      const current = this.pipId();
+      if (current) this.popIn(current);
       let pip: Window;
       try {
         pip = await dpip.requestWindow({ width, height });
@@ -83,7 +87,7 @@ export class PipAppPopoutService {
       }
       this.pipWindow = pip;
       this.buildDocument(pip.document, url, def.title);
-      this.poppedOut.set({ id: def.id, mode: 'document-pip' });
+      this.pipId.set(def.id);
       this.applyNight(this.isNight());
       pip.addEventListener('pagehide', () => {
         // Ignore a late event from a window that was already replaced.
@@ -98,17 +102,21 @@ export class PipAppPopoutService {
         `fsk-pip-${def.id}`,
         `popup=yes,noopener,width=${width},height=${height}`
       );
-      this.poppedOut.set({ id: def.id, mode: 'popup' });
+      this.service.setPopout(def.id, 'popup');
     }
   }
 
   /** Bring a popped-out window back into the page. */
   popIn(id: string) {
-    if (this.poppedOut()?.id !== id) return;
-    const pip = this.pipWindow;
-    this.pipWindow = null;
-    this.poppedOut.set(null);
-    pip?.close();
+    if (this.pipId() === id) {
+      const pip = this.pipWindow;
+      this.pipWindow = null;
+      this.pipId.set(null);
+      pip?.close();
+    }
+    if (this.service.windows().find((w) => w.id === id)?.popout) {
+      this.service.setPopout(id, null);
+    }
   }
 
   private documentPip(): DocumentPictureInPicture | undefined {

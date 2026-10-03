@@ -51,7 +51,17 @@ describe('PipAppPopoutService', () => {
           useValue: {
             windows,
             resolveUrl: (s: PipAppDef['source']) =>
-              s.kind === 'url' ? s.url : null
+              s.kind === 'url' ? s.url : null,
+            setPopout: (id: string, popout: 'popup' | null) =>
+              windows.update((l) =>
+                l.map((w) => {
+                  if (w.id !== id) return w;
+                  const next = { ...w };
+                  if (popout) next.popout = popout;
+                  else delete next.popout;
+                  return next;
+                })
+              )
           }
         }
       ]
@@ -82,7 +92,7 @@ describe('PipAppPopoutService', () => {
     expect(popout.alwaysOnTop).toBe(true);
     await popout.popOut(def('a'), { w: 400.4, h: 300 });
     expect(requestWindow).toHaveBeenCalledWith({ width: 400, height: 300 });
-    expect(popout.poppedOut()).toEqual({ id: 'a', mode: 'document-pip' });
+    expect(popout.modeOf(windows()[0])).toBe('document-pip');
     const pip = await requestWindow.mock.results[0].value;
     const frame = pip.document.querySelector('iframe');
     expect(frame.getAttribute('src')).toBe('https://example.com/a');
@@ -95,7 +105,8 @@ describe('PipAppPopoutService', () => {
     await popout.popOut(def('a'), { w: 400, h: 300 });
     const pip = await requestWindow.mock.results[0].value;
     pip.fire('pagehide');
-    expect(popout.poppedOut()).toBeNull();
+    expect(popout.pipId()).toBeNull();
+    expect(popout.modeOf(windows()[0])).toBeNull();
   });
 
   it('brings the previous window back before popping out another', async () => {
@@ -104,10 +115,10 @@ describe('PipAppPopoutService', () => {
     const first = await requestWindow.mock.results[0].value;
     await popout.popOut(def('b'), { w: 400, h: 300 });
     expect(first.close).toHaveBeenCalled();
-    expect(popout.poppedOut()).toEqual({ id: 'b', mode: 'document-pip' });
+    expect(popout.pipId()).toBe('b');
     // the first window's late pagehide must not pop the second one back in
     first.fire('pagehide');
-    expect(popout.poppedOut()?.id).toBe('b');
+    expect(popout.pipId()).toBe('b');
   });
 
   it('closes the external window when its PiP App window is closed', async () => {
@@ -117,7 +128,7 @@ describe('PipAppPopoutService', () => {
     windows.set([def('b')]);
     TestBed.tick();
     expect(pip.close).toHaveBeenCalled();
-    expect(popout.poppedOut()).toBeNull();
+    expect(popout.pipId()).toBeNull();
   });
 
   it('carries night mode into the picture-in-picture window', async () => {
@@ -135,7 +146,7 @@ describe('PipAppPopoutService', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const popout = create();
     await popout.popOut(def('a'), { w: 400, h: 300 });
-    expect(popout.poppedOut()).toBeNull();
+    expect(popout.pipId()).toBeNull();
     expect(warn).toHaveBeenCalled();
   });
 
@@ -150,8 +161,23 @@ describe('PipAppPopoutService', () => {
       'fsk-pip-a',
       'popup=yes,noopener,width=400,height=300'
     );
-    expect(popout.poppedOut()).toEqual({ id: 'a', mode: 'popup' });
+    expect(windows()[0].popout).toBe('popup');
+    expect(popout.modeOf(windows()[0])).toBe('popup');
     popout.popIn('a');
-    expect(popout.poppedOut()).toBeNull();
+    expect(windows()[0].popout).toBeUndefined();
+  });
+
+  it('leaves a popup out when another window pops out', async () => {
+    topWindow = false;
+    const popout = create();
+    await popout.popOut(def('a'), { w: 400, h: 300 });
+    await popout.popOut(windows()[1], { w: 400, h: 300 });
+    expect(windows().map((w) => w.popout)).toEqual(['popup', 'popup']);
+  });
+
+  it('keeps a stored popup mark: a reload does not bring the app back', () => {
+    windows.set([{ ...def('a'), popout: 'popup' }]);
+    const popout = create();
+    expect(popout.modeOf(windows()[0])).toBe('popup');
   });
 });

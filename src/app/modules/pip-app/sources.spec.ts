@@ -114,6 +114,12 @@ describe('normalisePipApps', () => {
     expect(normalisePipApps([{ ...ok, collapsed: true }])[0].collapsed).toBe(
       true
     );
+    expect(normalisePipApps([{ ...ok, popout: 'popup' }])[0].popout).toBe(
+      'popup'
+    );
+    expect(normalisePipApps([{ ...ok, popout: 'tab' }])[0]).not.toHaveProperty(
+      'popout'
+    );
   });
 
   it('defaults a missing title and tolerates a non-array', () => {

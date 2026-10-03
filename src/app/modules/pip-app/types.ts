@@ -21,6 +21,11 @@ export interface PipAppDef {
   collapsed: boolean;
   /** Window opacity, PIP_APP_MIN_OPACITY..1. */
   opacity: number;
+  /**
+   * Out in a `noopener` popup, which cannot be watched for closing; the
+   * in-app copy stays unmounted until the user brings it back.
+   */
+  popout?: 'popup';
 }
 
 export const PIP_APP_MIN_OPACITY = 0.3;

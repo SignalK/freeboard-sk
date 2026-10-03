@@ -132,6 +132,16 @@ describe('PipAppService', () => {
     expect(app.config.pipApps.windows[0]).toMatchObject({ collapsed: true });
   });
 
+  it('marks a window as out in a popup and back again, persisting both', () => {
+    const service = create();
+    const a = service.open(wifish);
+    service.setPopout(a.id, 'popup');
+    expect(app.config.pipApps.windows[0].popout).toBe('popup');
+    service.setPopout(a.id, null);
+    expect(service.windows()[0]).not.toHaveProperty('popout');
+    expect(app.config.pipApps.windows[0]).not.toHaveProperty('popout');
+  });
+
   it('reveals a collapsed window when it is chosen again', () => {
     const service = create();
     const a = service.open(wifish);
