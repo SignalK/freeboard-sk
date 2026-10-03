@@ -440,7 +440,8 @@ export function cleanConfig(
       infolayers: null,
       weatherWindEnabled: false,
       oceanCurrentsEnabled: false,
-      tidalCurrentsEnabled: false
+      tidalCurrentsEnabled: false,
+      chartsNearVessel: true
     };
   }
 
@@ -490,6 +491,9 @@ export function cleanConfig(
   }
   if (typeof settings.selections.tidalCurrentsEnabled === 'undefined') {
     settings.selections.tidalCurrentsEnabled = false;
+  }
+  if (typeof settings.selections.chartsNearVessel === 'undefined') {
+    settings.selections.chartsNearVessel = true;
   }
 
   // ensure legacy notes selections section is removed
@@ -706,7 +710,8 @@ export function defaultConfig(): IAppConfig {
       infolayers: null,
       weatherWindEnabled: false,
       oceanCurrentsEnabled: false,
-      tidalCurrentsEnabled: false
+      tidalCurrentsEnabled: false,
+      chartsNearVessel: true
     }
   };
 }

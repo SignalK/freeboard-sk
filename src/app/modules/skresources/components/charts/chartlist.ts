@@ -28,7 +28,8 @@ import {
 
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from '../../resources.service';
-import { FBCharts, FBChart } from 'src/app/types';
+import { FBCharts, FBChart, Position } from 'src/app/types';
+import { chartsNearPosition } from './chart-near-vessel';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
 import { JsonMapSourceDialog } from './jsonmapsource-dialog';
@@ -130,7 +131,11 @@ export class ChartListComponent extends ResourceListBase {
    * source and its target would move unpredictably.
    */
   protected canReorder(): boolean {
-    return !this.filterText && !this.inViewOnly;
+    return (
+      !this.filterText &&
+      !this.inViewOnly &&
+      !this.app.config.selections.chartsNearVessel
+    );
   }
 
   /**
@@ -138,6 +143,9 @@ export class ChartListComponent extends ResourceListBase {
    * handles are absent. Without it a filtered list just loses its handles.
    */
   protected reorderHint(): string {
+    if (this.app.config.selections.chartsNearVessel) {
+      return '(most detailed first)';
+    }
     return this.canReorder()
       ? '(drag to re-order)'
       : '(clear the filter to re-order)';
@@ -434,6 +442,25 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   /**
+   * @description Toggle listing the charts by the vessel's position rather
+   * than in layer order. Remembered across sessions.
+   */
+  protected toggleNearVessel(checked: boolean) {
+    this.app.config.selections.chartsNearVessel = checked;
+    this.app.saveConfig();
+    this.doFilter();
+  }
+
+  /** Where the charts are listed from: the vessel, or the map centre while
+   *  the vessel has no position yet. */
+  private listPosition(): Position {
+    const self = this.app.data.vessels.self;
+    return self?.positionReceived || this.app.config.vessels.fixedLocationMode
+      ? self.position
+      : this.app.config.map.center;
+  }
+
+  /**
    * @description Toggle filtering of the chart list to the current map view.
    */
   protected toggleInViewOnly(checked: boolean) {
@@ -443,8 +470,9 @@ export class ChartListComponent extends ResourceListBase {
 
   /**
    * @description Order charts to match the Re-order (Chart Order) screen — top
-   * layer first — additionally restricting the list to charts visible in the
-   * current map view when the in-view filter is on.
+   * layer first — or, with Near vessel on, by the vessel's position (see
+   * chartsNearPosition); additionally restricting the list to charts visible
+   * in the current map view when the in-view filter is on.
    */
   protected override doFilter() {
     const text = this.filterText?.toLowerCase() ?? '';
@@ -453,9 +481,12 @@ export class ChartListComponent extends ResourceListBase {
       this.inViewOnly && Array.isArray(extent) && extent.length === 4;
     // Present the list in the user-chosen layer order (top layer first), the
     // same ordering the Re-order screen uses, so the two screens agree.
-    const ordered = this.skres
+    const layers = this.skres
       .arrangeChartLayers(this.fullList.slice())
       .reverse();
+    const ordered = this.app.config.selections.chartsNearVessel
+      ? chartsNearPosition(layers, this.listPosition())
+      : layers;
     const fl = ordered.filter((item) => {
       if (text && !item[1].name?.toLowerCase().includes(text)) {
         return false;

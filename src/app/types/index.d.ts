@@ -267,6 +267,7 @@ export interface IAppConfig {
     tracks: string[] | null;
     charts: string[];
     chartOrder: string[]; // chart layer ordering
+    chartsNearVessel: boolean; // chart list ordered by the vessel's position, not layer order
     chartOpacity: Record<string, number>;
     chartImageAdjustment: Record<string, ChartImageAdjustment>;
     chartDisplayMinZoom: Record<string, number>;
