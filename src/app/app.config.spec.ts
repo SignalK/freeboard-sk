@@ -82,6 +82,28 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels).not.toHaveProperty('headingLineSize');
   });
 
+  it('adds an empty pipApps list to a config that has none', () => {
+    const cfg = legacyConfig();
+    delete cfg.pipApps;
+    cleanConfig(cfg, {});
+    expect(cfg.pipApps).toEqual({ windows: [] });
+  });
+
+  it('drops unusable stored PiP App windows', () => {
+    const cfg = legacyConfig();
+    const ok = {
+      id: 'a',
+      title: 'Sounder',
+      source: { kind: 'webapp' as const, path: '/signalk-wifish/' },
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+    };
+    cfg.pipApps = {
+      windows: [ok, { ...ok, id: 'b', source: { kind: 'url', url: 'x:y' } }]
+    };
+    cleanConfig(cfg, {});
+    expect(cfg.pipApps.windows).toEqual([ok]);
+  });
+
   it('migrates the early plotterExtensions shape', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});

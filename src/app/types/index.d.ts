@@ -11,6 +11,7 @@ import {
 } from '../modules/skresources/resource-classes';
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
 import { TrailSource } from '../modules/skstream/track-source';
+import { PipAppDef } from '../modules/pip-app/types';
 import {
   ChartImageAdjustment,
   ChartTimeLoopOffsets
@@ -240,6 +241,10 @@ export interface IAppConfig {
     opacity: number;
   };
   experiments: boolean;
+  pipApps: {
+    // ** PiP App windows: other webapps / pages floating over the chart
+    windows: PipAppDef[];
+  };
   plotterExtensions: {
     // ** plotter extension host (plotterExtensions resource type).
     // No enabled list: extension availability is controlled on the server

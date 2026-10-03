@@ -11,6 +11,7 @@ import { SKVessel } from './modules';
 import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
 import { DEFAULT_TAP_FADE_SPEED } from './modules/map/cursor-marker';
 import { migrateTrailSource } from './modules/skstream/track-source';
+import { normalisePipApps } from './modules/pip-app/defs';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -407,6 +408,15 @@ export function cleanConfig(
       ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
     );
 
+  if (
+    !settings.pipApps ||
+    typeof settings.pipApps !== 'object' ||
+    Array.isArray(settings.pipApps)
+  ) {
+    settings.pipApps = { windows: [] };
+  }
+  settings.pipApps.windows = normalisePipApps(settings.pipApps.windows);
+
   if (typeof settings.radars === 'undefined') {
     settings.radars = {
       deviceId: '',
@@ -684,6 +694,9 @@ export function defaultConfig(): IAppConfig {
       opacity: 1
     },
     experiments: false,
+    pipApps: {
+      windows: []
+    },
     plotterExtensions: {
       widgets: []
     },
