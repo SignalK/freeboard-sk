@@ -109,6 +109,7 @@ import {
   bearingDistanceStyle
 } from './mapconfig';
 import { SKRoute } from 'src/app/modules/skresources/resource-classes';
+import { RouteReverseService } from 'src/app/modules/skresources/route-reverse.service';
 import {
   RouteBuffer,
   RouteBufferRegistry
@@ -432,6 +433,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected notiMgr = inject(NotificationManager);
   protected plotterExt = inject(PlotterExtensionService);
   protected course = inject(CourseService);
+  private routeReverse = inject(RouteReverseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
   private settings = inject(SettingsFacade);
@@ -1296,13 +1298,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
     return !!b && (!b.saved || b.dirty);
   }
 
-  /** REVERSE in a draft route's popover: turn it round before START. The
-   *  popover stays open, to START it straight away. */
-  protected reverseDraftRoute() {
-    const b = this.routeBuffers.get(this.overlay().id);
-    if (b && !b.saved) {
-      this.routeBuffers.replace(b.routeId, [...b.points].reverse());
-    }
+  /** True when REVERSE can turn the popover's route round. */
+  protected canReverseRoute(): boolean {
+    return (
+      this.overlay().type === 'route' &&
+      this.routeReverse.mode(this.overlay().id) !== null
+    );
+  }
+
+  /** REVERSE in a route's popover. The popover stays open, so a draft can be
+   *  STARTed straight away. */
+  protected reverseRoute() {
+    this.routeReverse.reverse(this.overlay().id);
   }
 
   /** True when the popover's route was drawn and never saved. */

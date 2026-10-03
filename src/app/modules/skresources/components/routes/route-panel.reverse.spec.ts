@@ -18,7 +18,8 @@ import { Position } from 'src/app/types';
 /**
  * REVERSE turns a route round. The route being followed is turned round by the
  * Course API; a drawn route that was never saved (a draft) has no course yet,
- * so its points are turned round before START follows it.
+ * so its points are turned round before START follows it; a saved route is
+ * turned round on the server.
  */
 describe('RoutePanel REVERSE', () => {
   const coords: Position[] = [
@@ -30,12 +31,27 @@ describe('RoutePanel REVERSE', () => {
   let registry: RouteBufferRegistry;
   let courseReverse: ReturnType<typeof vi.fn>;
   let data: { activeRoute: string | null; activeRouteReversed: boolean };
+  // the route cache, by id
+  let cached: Map<string, SKRoute>;
+  let updateRouteCoords: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     registry = new RouteBufferRegistry();
     courseReverse = vi.fn();
     data = { activeRoute: null, activeRouteReversed: false };
+    cached = new Map();
+    // like the real one: rewrites the cached route in place
+    updateRouteCoords = vi.fn(
+      async (id: string, c: Position[], meta?: Array<{ name: string }>) => {
+        const route = cached.get(id);
+        route.feature.geometry.coordinates = c;
+        if (meta) {
+          route.feature.properties.coordinatesMeta = meta;
+        }
+        return true;
+      }
+    );
     TestBed.overrideComponent(RoutePanel, {
       set: { template: '', imports: [] }
     });
@@ -55,7 +71,9 @@ describe('RoutePanel REVERSE', () => {
           provide: SKResourceService,
           useValue: {
             getRelatedNotes: async () => [],
-            fromCache: () => undefined
+            fromCache: (_c: string, id: string) =>
+              cached.has(id) ? [id, cached.get(id), true] : undefined,
+            updateRouteCoords
           }
         },
         { provide: RouteBufferRegistry, useValue: registry },
@@ -72,26 +90,36 @@ describe('RoutePanel REVERSE', () => {
     });
   });
 
-  const open = (id: string) => {
+  const route = (readOnly = false) =>
+    new SKRoute({
+      name: 'Harbour run',
+      feature: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [...coords] },
+        properties: {
+          coordinatesMeta: names.map((name) => ({ name })),
+          ...(readOnly ? { readOnly } : {})
+        }
+      }
+    });
+
+  const open = (id: string, shown: SKRoute = route()) => {
     const fixture = TestBed.createComponent(RoutePanel);
     fixture.componentRef.setInput('id', id);
-    fixture.componentRef.setInput(
-      'route',
-      new SKRoute({
-        name: 'Harbour run',
-        feature: {
-          type: 'Feature',
-          geometry: { type: 'LineString', coordinates: coords },
-          properties: { coordinatesMeta: names.map((name) => ({ name })) }
-        }
-      })
-    );
+    fixture.componentRef.setInput('route', shown);
     fixture.detectChanges();
     return fixture.componentInstance as unknown as {
       canReverse: () => boolean;
-      onReverse: () => void;
+      onReverse: () => Promise<void>;
       points: () => Array<{ name: string }>;
     };
+  };
+
+  /** A saved route, shown in the panel as the very object the cache holds. */
+  const saved = (id: string, readOnly = false) => {
+    const r = route(readOnly);
+    cached.set(id, r);
+    return open(id, r);
   };
 
   const draft = () =>
@@ -99,12 +127,12 @@ describe('RoutePanel REVERSE', () => {
       points: coords.map((position, i) => ({ position, name: names[i] }))
     }).routeId;
 
-  it('turns a draft round, its points and their names, before it is started', () => {
+  it('turns a draft round, its points and their names, before it is started', async () => {
     const id = draft();
     const panel = open(id);
 
     expect(panel.canReverse()).toBe(true);
-    panel.onReverse();
+    await panel.onReverse();
 
     expect(registry.get(id).points.map((p) => p.position)).toEqual(
       [...coords].reverse()
@@ -116,29 +144,46 @@ describe('RoutePanel REVERSE', () => {
     expect(courseReverse).not.toHaveBeenCalled();
   });
 
-  it('turns it back again', () => {
+  it('turns it back again', async () => {
     const id = draft();
     const panel = open(id);
 
-    panel.onReverse();
-    panel.onReverse();
+    await panel.onReverse();
+    await panel.onReverse();
 
     expect(registry.get(id).points.map((p) => p.position)).toEqual(coords);
     expect(panel.points().map((p) => p.name)).toEqual(names);
   });
 
-  it('turns the route being followed round through the course', () => {
+  it('turns the route being followed round through the course', async () => {
     data.activeRoute = 'rte-1';
-    const panel = open('rte-1');
+    const panel = saved('rte-1');
 
     expect(panel.canReverse()).toBe(true);
-    panel.onReverse();
+    await panel.onReverse();
 
     expect(courseReverse).toHaveBeenCalledOnce();
+    expect(updateRouteCoords).not.toHaveBeenCalled();
   });
 
-  it('is not offered for a stored route that is not being followed', () => {
+  it('turns a saved route round on the server, its points and their names', async () => {
     data.activeRoute = 'rte-other';
-    expect(open('rte-1').canReverse()).toBe(false);
+    const panel = saved('rte-1');
+
+    expect(panel.canReverse()).toBe(true);
+    await panel.onReverse();
+
+    expect(updateRouteCoords).toHaveBeenCalledWith(
+      'rte-1',
+      [...coords].reverse(),
+      [...names].reverse().map((name) => ({ name }))
+    );
+    expect(panel.points().map((p) => p.name)).toEqual([...names].reverse());
+    expect(courseReverse).not.toHaveBeenCalled();
+  });
+
+  it('is not offered for a read-only route that is not being followed', () => {
+    data.activeRoute = 'rte-other';
+    expect(saved('rte-1', true).canReverse()).toBe(false);
   });
 });

@@ -40,6 +40,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
 import { MatStepperModule } from '@angular/material/stepper';
 import { ActiveResourcePropertiesModal } from '../active-resource-dialog';
 import { editsRouteBuffer } from '../route-reorder.util';
+import { RouteReverseService } from '../../route-reverse.service';
 import { routePointsMeta } from '../route-points-meta.util';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -92,8 +93,9 @@ export class RoutePanel {
     return !!b && !b.saved;
   });
   protected isTemporary = computed(() => isTemporaryRoute(this._route()));
-  /** REVERSE turns round the route being followed, or a draft before START. */
-  protected canReverse = computed(() => this.isDraft() || this.isActive());
+  /** How REVERSE turns this route round (see RouteReverseService). */
+  private reverseMode = computed(() => this.routeReverse.mode(this.id()));
+  protected canReverse = computed(() => this.reverseMode() !== null);
   /** Whether this is the route being followed. Read from course data so it
    *  updates when the course changes. */
   /** Whether this route has edits not yet saved to the server, whose point
@@ -125,6 +127,7 @@ export class RoutePanel {
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
   private routeBuffers = inject(RouteBufferRegistry);
+  private routeReverse = inject(RouteReverseService);
   private infoPanel = inject(InfoPanelFacade);
   protected course = inject(CourseService);
   private temporaryRoutes = inject(TemporaryRouteService);
@@ -231,22 +234,32 @@ export class RoutePanel {
     this.edit.emit(this.id());
   }
 
-  protected onReverse() {
-    if (this.isDraft()) {
-      this.reverseDraft();
-    } else {
-      this.course.courseReverse();
+  protected async onReverse() {
+    const mode = this.reverseMode();
+    if (!(await this.routeReverse.reverse(this.id()))) {
+      return;
+    }
+    if (mode === 'buffer') {
+      this.showReversed();
+    } else if (mode === 'stored') {
+      this.showStored();
     }
   }
 
-  /** Turn a draft round, point names and all, so START follows it the other
-   *  way. */
-  private reverseDraft() {
-    const buffer = this.routeBuffers.get(this.id());
-    if (!buffer) {
-      return;
+  /** Show the stored route as the server now has it. The write updates the
+   *  cached route in place, which may be the object this panel shows, so it
+   *  is read back rather than turned round a second time. */
+  private showStored() {
+    const stored = this.skres.fromCache('routes', this.id())?.[1];
+    if (stored) {
+      this._route.set(Object.assign(new SKRoute(), stored));
+      this.parsePoints();
     }
-    this.routeBuffers.replace(this.id(), [...buffer.points].reverse());
+  }
+
+  /** Turn the panel's own copy of a buffered route round, point names and
+   *  all, so the list follows straight away. */
+  private showReversed() {
     const route = this._route();
     const meta = route.feature.properties.coordinatesMeta;
     this._route.set(
