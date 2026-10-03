@@ -113,9 +113,9 @@ describe('SKStreamFacade.subscribe — what the stream asks for', () => {
   });
 });
 
-// With the trail length set to "All", the server simplifies the older trail to
-// about a pixel at the zoom it was fetched for: kept after zooming in it looks
-// coarse, after zooming out it carries points the chart cannot show.
+// The server simplifies the trail older than an hour to about a pixel at the
+// zoom it was fetched for: kept after zooming in it looks coarse, after zooming
+// out it carries points the chart cannot show.
 describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
   interface Msg {
     cmd: string;
@@ -133,7 +133,7 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
       worker: { postMessage: (msg: Msg) => void };
       postMapView: (extent: number[], zoom: number) => void;
       requestTrailFromServer: () => void;
-      refreshAllTrail: () => void;
+      refreshTrail: () => void;
       parseSelfTrail: (msg: { result: unknown }) => void;
     };
     facade.worker = { postMessage: (msg) => posted.push(msg) };
@@ -204,16 +204,30 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
       trailDuration: 24
     });
     facade.postMapView(extent, 10.2);
-    facade.requestTrailFromServer();
+    expect(trailRequests()).toBe(1);
     vessels.trailDuration = TRAIL_DURATION_ALL;
-    facade.refreshAllTrail();
+    facade.refreshTrail();
     expect(trailRequests()).toBe(2);
-    facade.refreshAllTrail();
+    facade.refreshTrail();
     expect(trailRequests()).toBe(2);
   });
 
-  it('leaves a trail of a fixed length alone', () => {
+  it('does not fetch a trail of a fixed length again for a pan out of the box', () => {
     const { facade, trailRequests } = facadeWith({ trailDuration: 24 });
+    facade.postMapView(extent, 10.2);
+    facade.postMapView([1, 50, 3, 51], 10.2);
+    expect(trailRequests()).toBe(1);
+  });
+
+  it('fetches a trail of a fixed length again when the zoom level changes', () => {
+    const { facade, trailRequests } = facadeWith({ trailDuration: 24 });
+    facade.postMapView(extent, 10.2);
+    facade.postMapView(extent, 13.2);
+    expect(trailRequests()).toBe(2);
+  });
+
+  it('leaves a one-hour trail alone, which is drawn as recorded', () => {
+    const { facade, trailRequests } = facadeWith({ trailDuration: 1 });
     facade.postMapView(extent, 10.2);
     facade.postMapView(extent, 13.2);
     expect(trailRequests()).toBe(0);

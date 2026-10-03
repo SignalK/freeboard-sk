@@ -157,6 +157,41 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels.trailDuration).toBe(TRAIL_DURATION_ALL);
   });
 
+  it('samples the older trail finely by default', () => {
+    const r = defaultConfig().vessels.trailResolution;
+    expect([r.next23, r.beyond24]).toEqual(['5s', '10s']);
+  });
+
+  it('moves an install still on the old trail resolutions once', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    delete cfg.vessels.trailResolutionApplied;
+    cfg.vessels.trailResolution.next23 = '1m';
+    cfg.vessels.trailResolution.beyond24 = '5m';
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.trailResolution.next23).toBe('5s');
+    expect(cfg.vessels.trailResolution.beyond24).toBe('10s');
+    expect(cfg.vessels.trailResolutionApplied).toBe(true);
+  });
+
+  it('keeps trail resolutions the user changed', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    delete cfg.vessels.trailResolutionApplied;
+    cfg.vessels.trailResolution.next23 = '30s';
+    cfg.vessels.trailResolution.beyond24 = '15m';
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.trailResolution.next23).toBe('30s');
+    expect(cfg.vessels.trailResolution.beyond24).toBe('15m');
+  });
+
+  it('keeps a coarse trail resolution chosen after the move', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.vessels.trailResolution.next23 = '1m';
+    cfg.vessels.trailResolution.beyond24 = '5m';
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.trailResolution.next23).toBe('1m');
+    expect(cfg.vessels.trailResolution.beyond24).toBe('5m');
+  });
+
   it('drops the legacy selections.notes section', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});

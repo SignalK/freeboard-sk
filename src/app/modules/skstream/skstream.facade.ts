@@ -180,7 +180,7 @@ export class SKStreamFacade {
     // ** Handle app.config$ / settings.change$ events
     this.settings.change$.subscribe(() => {
       this.sendConfig();
-      this.refreshAllTrail();
+      this.refreshTrail();
     });
     this.app.config$.subscribe((value: string) => {
       if (value === 'ready') {
@@ -365,27 +365,31 @@ export class SKStreamFacade {
   }
 
   /** Tell the worker the map viewport (lon/lat) and zoom, which scope the AIS
-   * tracks it fetches from the Track API. With the trail length set to "All",
-   * the older trail is simplified to the zoom it was fetched for and asked for
-   * only in a padded box around the view, so it is fetched again when the zoom
-   * level changes or the view leaves that box. */
+   * tracks it fetches from the Track API. The Track API simplifies the trail
+   * older than an hour to the zoom it was fetched for, so a trail that reaches
+   * back further is fetched again when the zoom level changes. With the trail
+   * length set to "All" the oldest part is also asked for only in a padded box
+   * around the view, so it is fetched again when the view leaves that box. */
   postMapView(extent: number[], zoom: number) {
     this.worker.postMessage({ cmd: 'view', options: { extent, zoom } });
     this.view = { extent, zoom };
-    this.refreshAllTrail();
+    this.refreshTrail();
   }
 
-  /** With the trail length set to "All", fetch the trail again unless it was
-   * fetched as All for this zoom level and a box still around the view. */
-  private refreshAllTrail() {
+  /** Fetch a trail longer than an hour again unless it was fetched at this
+   * length for this zoom level and, with "All", a box still around the view. */
+  private refreshTrail() {
+    const duration = this.app.config.vessels.trailDuration;
     if (
       this.view &&
       this.app.config.vessels.trail &&
-      this.app.config.vessels.trailDuration === TRAIL_DURATION_ALL &&
+      (duration === TRAIL_DURATION_ALL || duration > 1) &&
       this.app.serverTrailWanted() &&
       this.app.trackSource()?.api === 'v2' &&
-      (this.trailFetched?.duration !== TRAIL_DURATION_ALL ||
-        needsAisRefetch(this.trailFetched, this.view))
+      (this.trailFetched?.duration !== duration ||
+        (duration === TRAIL_DURATION_ALL
+          ? needsAisRefetch(this.trailFetched, this.view)
+          : Math.floor(this.trailFetched.zoom) !== Math.floor(this.view.zoom)))
     ) {
       this.requestTrailFromServer();
     }

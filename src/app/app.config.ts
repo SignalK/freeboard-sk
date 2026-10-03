@@ -271,11 +271,26 @@ export function cleanConfig(
       trailDuration: 24,
       trailResolution: {
         lastHour: '5s',
-        next23: '1m',
-        beyond24: '5m'
-      }
+        next23: '5s',
+        beyond24: '10s'
+      },
+      trailResolutionApplied: true
     };
   } else {
+    // The trail older than an hour is simplified by the server to the map's
+    // zoom, so it can be sampled finely. Move installs still on the old coarse
+    // defaults (1 min, 5 min) to the new ones once: after this, a deliberate
+    // choice of a coarse resolution must stick, hence the one-time flag.
+    if (!settings.vessels.trailResolutionApplied) {
+      const r = settings.vessels.trailResolution;
+      if (r?.next23 === '1m') {
+        r.next23 = '5s';
+      }
+      if (r?.beyond24 === '5m') {
+        r.beyond24 = '10s';
+      }
+      settings.vessels.trailResolutionApplied = true;
+    }
     // legacy boolean trailFromServer -> tri-state trailSource (#820)
     settings.vessels.trailSource = migrateTrailSource(
       settings.vessels.trailFromServer,
@@ -640,9 +655,10 @@ export function defaultConfig(): IAppConfig {
       trailResolution: {
         // resolution of server trail at defined time horizons
         lastHour: '5s',
-        next23: '1m',
-        beyond24: '5m'
-      }
+        next23: '5s',
+        beyond24: '10s'
+      },
+      trailResolutionApplied: true // one-time move off the old 1 min / 5 min defaults
     },
     resources: {
       // ** resource options

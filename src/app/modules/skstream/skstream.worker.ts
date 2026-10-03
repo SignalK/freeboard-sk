@@ -378,9 +378,9 @@ function handleCommand(data: MsgFromApp) {
           trailMgr.trailResolution.lastHour =
             data.options.trailResolution.lastHour ?? '5s';
           trailMgr.trailResolution.next23 =
-            data.options.trailResolution.next23 ?? '1m';
+            data.options.trailResolution.next23 ?? '5s';
           trailMgr.trailResolution.beyond24 =
-            data.options.trailResolution.beyond24 ?? '5m';
+            data.options.trailResolution.beyond24 ?? '10s';
         }
       }
       requestVesselTrail();
@@ -542,9 +542,9 @@ function requestVesselTrail() {
 }
 
 /** Fetch the own-vessel trail from the v2 Track API: the same three bands as
- * v1, as absolute from/to, from the default provider only. With "All" the
- * oldest band is simplified by the server to a pixel at the map's zoom, and
- * asked for only in the padded map view.
+ * v1, as absolute from/to, from the default provider only. Every band but the
+ * last hour is simplified by the server to a pixel at the map's zoom; with
+ * "All" the oldest band is asked for only in the padded map view.
  * `token` is the request's trailGate token; it answers only while current. */
 export function getVesselTrailV2(
   url: string,
