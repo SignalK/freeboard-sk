@@ -24,7 +24,8 @@ export const HOST_CAPABILITIES = [
   'nightMode',
   'resourceGroups',
   'background.iframe',
-  'ui'
+  'ui',
+  'x-freeboard-sk.windows'
 ];
 
 export type WidgetSize = '1x1' | '2x1' | '1x2' | '2x2';

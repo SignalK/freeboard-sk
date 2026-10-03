@@ -336,6 +336,56 @@ const TOOLS = [
     ),
     run: (hub, a) =>
       hub.call('resourceGroup.apply', { id: a.id }, { session: a.session })
+  },
+  {
+    name: 'fsk_open_pip_app',
+    description:
+      "Open a page on the Signal K server (e.g. url '/signalk-wifish/') in a PiP App window floating over the chart, or bring it to the front if it is already open. Needs the host capability 'x-freeboard-sk.windows' and Experimental Features switched on in Freeboard (reason 'windows.disabled' otherwise). Other origins are refused. Returns { windowId } for fsk_close_pip_app.",
+    inputSchema: withSession(
+      {
+        url: {
+          type: 'string',
+          description:
+            "Server-relative path (or same-origin URL) of the page to show, e.g. '/signalk-wifish/'."
+        },
+        title: {
+          type: 'string',
+          description: 'Window title. Defaults to the app name.'
+        },
+        width: {
+          type: 'number',
+          description: 'Window width in CSS pixels (give with height).'
+        },
+        height: {
+          type: 'number',
+          description: 'Window height in CSS pixels (give with width).'
+        }
+      },
+      ['url']
+    ),
+    run: (hub, a) => {
+      const params = { url: a.url };
+      if (typeof a.title === 'string') params.title = a.title;
+      if (typeof a.width === 'number') params.width = a.width;
+      if (typeof a.height === 'number') params.height = a.height;
+      return hub.call('ui.openWindow', params, { session: a.session });
+    }
+  },
+  {
+    name: 'fsk_close_pip_app',
+    description:
+      'Close a PiP App window this bridge opened with fsk_open_pip_app. Windows the user opened, or another extension opened, are refused (reason UNKNOWN_WINDOW).',
+    inputSchema: withSession(
+      {
+        windowId: {
+          type: 'string',
+          description: 'The windowId fsk_open_pip_app returned.'
+        }
+      },
+      ['windowId']
+    ),
+    run: (hub, a) =>
+      hub.call('ui.closeWindow', { windowId: a.windowId }, { session: a.session })
   }
 ];
 

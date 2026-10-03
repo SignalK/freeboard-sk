@@ -18,7 +18,15 @@
 //
 // Map/resource host APIs (buttons, filters, map.*) belong to phase 3.
 
-import { Injectable, computed, effect, isDevMode, signal } from '@angular/core';
+import {
+  Injectable,
+  Injector,
+  computed,
+  effect,
+  inject,
+  isDevMode,
+  signal
+} from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
@@ -69,6 +77,8 @@ import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
 import { createNightModeMethods } from './nightmode-methods';
+import { createWindowMethods } from './window-methods';
+import { PipAppService } from 'src/app/modules/pip-app/pip-app.service';
 import { createResourceGroupMethods } from './resourcegroup-methods';
 import { SKResourceGroupService } from 'src/app/modules/skresources/components/groups/groups.service';
 import {
@@ -358,6 +368,74 @@ export class PlotterExtensionService {
     };
   }
 
+  /**
+   * `ui.openWindow` / `ui.closeWindow` (the `x-freeboard-sk.windows`
+   * capability): show one of the caller's own iframe panels, or a page by
+   * URL, as a PiP App window. Every URL goes through resolveAssetUrl, so only
+   * pages on the Signal K server can be opened, as for drawer panels; an
+   * extension iframe is already same-origin with them, so this adds no reach.
+   */
+  private uiWindowMethods(extension: string): Record<string, MethodHandler> {
+    const pipApps = () => this.injector.get(PipAppService);
+    const panelOf = (id: string) => {
+      const panel = this.manifests()[extension]?.panels?.find(
+        (p) => p.id === id
+      );
+      return panel?.type === 'iframe' &&
+        panel.url &&
+        (panel.apiVersion === undefined ||
+          panel.apiVersion === HOST_API_VERSION)
+        ? panel
+        : undefined;
+    };
+    return createWindowMethods({
+      enabled: () => !!this.app.config.experiments,
+      hasPanel: (id) => !!panelOf(id),
+      open: (target, title, size) => {
+        const panel = 'panel' in target ? panelOf(target.panel) : undefined;
+        const raw = 'panel' in target ? panel?.url : target.url;
+        const resolved = raw ? this.resolveAssetUrl(raw) : null;
+        if (!resolved || resolved === 'about:blank') return null;
+        const u = new URL(resolved);
+        const vp = pipApps().viewport();
+        // Clear of the right-hand toolbar, below the top controls.
+        const rect = size
+          ? pipApps().rectFromPixels({
+              x: vp.w - size.width - 70,
+              y: 70,
+              w: size.width,
+              h: size.height
+            })
+          : undefined;
+        // open() reveals an existing window for the same page; only a window
+        // this call created becomes the caller's, so it cannot take over (and
+        // close) one the user or another extension opened.
+        const existing = new Set(
+          pipApps()
+            .windows()
+            .map((w) => w.id)
+        );
+        const def = pipApps().open(
+          { kind: 'webapp', path: `${u.pathname}${u.search}${u.hash}` },
+          title ?? panel?.title,
+          rect
+        );
+        if (!def) return null;
+        if (!existing.has(def.id)) this.windowOwners.set(def.id, extension);
+        return def.id;
+      },
+      owns: (windowId) =>
+        this.windowOwners.get(windowId) === extension &&
+        pipApps()
+          .windows()
+          .some((w) => w.id === windowId),
+      close: (windowId) => {
+        this.windowOwners.delete(windowId);
+        pipApps().close(windowId);
+      }
+    });
+  }
+
   handleButtonAction(extension: string, button: ButtonContribution) {
     const action = button.action;
     if (!action) return;
@@ -581,6 +659,10 @@ export class PlotterExtensionService {
   private wsReady = false;
   private pathRefs = new Map<string, number>();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private injector = inject(Injector);
+  /** Window id -> extension that opened it (runtime only). */
+  private windowOwners = new Map<string, string>();
 
   constructor(
     private app: AppFacade,
@@ -1581,6 +1663,7 @@ export class PlotterExtensionService {
         ...this.nightModeMethods(),
         ...this.resourceGroupMethods(),
         ...this.uiPanelMethods(placed.extension),
+        ...this.uiWindowMethods(placed.extension),
         'ui.openConfigPanel': async () => {
           this.openConfigPanel(placed);
           return {};
@@ -1639,6 +1722,7 @@ export class PlotterExtensionService {
         ...this.nightModeMethods(),
         ...this.resourceGroupMethods(),
         ...this.uiPanelMethods(opts.extension),
+        ...this.uiWindowMethods(opts.extension),
         'ui.closePanel': async () => {
           opts.close();
           return {};
@@ -1686,7 +1770,8 @@ export class PlotterExtensionService {
         ...this.chartMethods(),
         ...this.nightModeMethods(),
         ...this.resourceGroupMethods(),
-        ...this.uiPanelMethods(opts.extension)
+        ...this.uiPanelMethods(opts.extension),
+        ...this.uiWindowMethods(opts.extension)
       },
       onError: (err) => console.warn('plotterext background error', err)
     });
