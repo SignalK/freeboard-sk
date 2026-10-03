@@ -72,7 +72,11 @@ Releases go through release-please (`release-please.yml`). Every push to `master
 refreshes one release PR that proposes the next beta, with the merged PRs and their
 authors as its changelog; merging it tags the release. **Run workflow** on that
 workflow turns the PR into the stable release of the current beta instead, which also
-graduates the betas' ledger rows (see `stamp`).
+graduates the betas' ledger rows (see `stamp`). It refuses when a `feat`, `fix` or
+`perf` PR has been merged since that beta, because the stable release is `master` as
+it is now and those changes were never in a beta: release another beta first. Docs,
+chores and dependency updates don't block it. To promote anyway, push an empty commit
+with a `Release-As: X.Y.Z` footer to `master` by hand.
 
 After stamping the release PR, the workflow runs `check` on it. It sets a
 **`docs/ledger`** commit status on the PR's head commit and keeps one comment on the

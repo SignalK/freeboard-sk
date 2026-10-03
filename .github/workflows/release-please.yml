@@ -31,6 +31,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the beta's tag and every commit since
 
       - name: Mark the current beta for a stable release
         run: |
@@ -42,6 +44,21 @@ jobs:
           stable="${current%%-*}"
           if [ "$current" = "$stable" ]; then
             echo "::error::$current is already a stable release; there is no beta to promote."
+            exit 1
+          fi
+          # The stable release is master as it is now, so a fix or feature
+          # merged after the beta would ship without ever being in one. Docs,
+          # chores and dependency updates may follow the beta.
+          untested=$(git log "v$current..HEAD" --no-merges --format=%s \
+            | grep -E '^(feat|fix|perf)(\([^)]*\))?!?:' || true)
+          if [ -n "$untested" ]; then
+            echo "::error::master has changes since v$current that were never in a beta. Release a beta first, or push a Release-As commit by hand."
+            {
+              echo "### Not promoted: changes since v$current"
+              echo
+              printf '%s\n' "$untested" | sed 's/^/- /'
+            } >> "$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$untested"
             exit 1
           fi
           git config user.name 'github-actions[bot]'
