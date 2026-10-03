@@ -267,10 +267,24 @@ async popOut(def: PipAppDef) {
     pip.addEventListener('pagehide', () => this.popIn(def.id));   // user closed the PiP window
     this.service.markPoppedOut(def.id);   // hides + unmounts the in-app iframe (no double SSE session)
   } else {
-    window.open(url, `fsk-pip-${def.id}`, `popup=yes,width=${w},height=${h}`);  // Safari and older browsers
+    // Safari and older browsers. `noopener` severs window.opener, so the page
+    // cannot navigate the Freeboard tab; it also makes window.open return
+    // null, so the popup cannot be watched for closing (see below).
+    window.open(url, `fsk-pip-${def.id}`, `popup=yes,noopener,width=${w},height=${h}`);
+    this.service.markPoppedOut(def.id);   // same unmount as above: one session only
   }
 }
 ```
+
+Both branches follow one lifecycle. Popping out marks the window popped out, which
+unmounts its in-app iframe so an app streaming over SSE or a WebSocket never runs
+twice. The window keeps its place on the chart as a title bar with a
+"Shown in a separate window" note and a **Bring back** button. Popping in clears
+the mark and remounts the iframe. The Document PiP branch pops in by itself on
+`pagehide`. The `noopener` fallback cannot observe its popup, so it pops in only
+from that button; closing the popup alone leaves the note in place. Closing the
+PiP App window, or popping out another one, pops in first. The popped-out mark is
+runtime state only, so a reload always starts with every window in-app.
 
 Facts that shape it (checked Oct 2026): supported in Chrome/Edge 130+ and current
 Firefox (shipped in 151), not Safari; **one Document PiP window per tab** (a second request closes the
@@ -287,6 +301,10 @@ mode: copy the `.app-night` filter rule into the PiP document when
   app spec pins this for the instrument iframe; add the same assertion for windows).
   No `allow-top-navigation`, `allow-popups`, `allow-modals`, matching the extension
   spec's Security section. `allow="fullscreen"` is fine.
+- Anything opened outside the iframe sandbox severs its opener: the "Open in new
+  tab" link uses `rel="noopener noreferrer"` and the popup fallback passes
+  `noopener`, so an untrusted page cannot navigate the Freeboard tab through
+  `window.opener`, whatever opener policy the server sends.
 - No token is appended to URLs. Same-origin webapps share the session cookie, which
   is how wifish's read-only login works today in the instrument panel.
 - **Cross-origin pages can refuse framing** (`X-Frame-Options`,
