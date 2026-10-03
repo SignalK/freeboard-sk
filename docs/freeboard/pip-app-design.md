@@ -1,6 +1,7 @@
 # PiP App for Freeboard-SK — design and plan
 
-Status: **being built** in steps on the `pip-app` branch (one reviewed PR per phase in §8).
+Status: **being built** in steps on the `pip-app` branch, one reviewed PR into `master`
+per phase in §8.
 
 ## 1. The ask
 
@@ -341,10 +342,6 @@ no `features/` edits, no version bumps).
 | **4 Extension API** (`feat(plotterext): ui.openWindow host method`) | New capability id in `HOST_CAPABILITIES` (`windows` or `x-freeboard-sk.windows` while experimental), `ui.openWindow {url,title,rect?,aspect?}` / `ui.closeWindow`, spread into every `attach*` method map, events `ui.windowClosed`, docs in both API files, **matching tool in `dev-tools/fsk-mcp/src/tools.js`**, an end-to-end spec over a `MessageChannel` like `plotterext.embedding-host.spec.ts`. Same-origin only (inherits `resolveAssetUrl`), so extensions can open *their own* UI, not arbitrary pages | wifish ships a `plotterExtensions` manifest with a toolbar button that opens itself in a window at its preferred size | 1-2 days |
 | **5 Optional** | `?pipapp=` launch param; helper `HEAD` embed pre-check; `component` source kind (second map view, autopilot console) | Only if asked | — |
 | **6 Graduate** | Remove the experiments gate upstream after feedback; `docs(lessons):` PR with the traps found (iframe pointer capture, Document PiP one-per-tab, no re-parenting) | Maintainer decision | — |
-
-The `pip-app` integration branch also runs CI for PRs that target it (a trigger
-added to `.github/workflows/ci.yml` on that branch only). That commit is dropped
-when the feature is proposed upstream.
 
 For the owner's own use, phases 1-3 on this fork are the target; phase 4 is what
 makes it compelling upstream (a plugin-driven, declared-size window rather than a
