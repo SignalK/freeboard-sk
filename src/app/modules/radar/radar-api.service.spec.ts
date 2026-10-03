@@ -216,6 +216,41 @@ describe('RadarAPIService init() (#755)', () => {
         expect(service.radar().capabilities).toBe(nautical);
       });
 
+      it('keeps the newest answer when an older read answers late', async () => {
+        const service = TestBed.inject(RadarAPIService);
+        await service.init();
+        const late = new Subject<unknown>();
+        held.set(capsPath, [late]);
+        const mixed = { ...nautical, supportedRanges: [125, 926] };
+
+        update('radars.radar-1.controls.rangeUnits', { value: 1 });
+        responses[capsPath] = mixed;
+        update('radars.radar-1.controls.rangeUnits', { value: 2 });
+        await settle();
+        late.next(metric);
+        late.complete();
+        await settle();
+
+        expect(service.radar().capabilities).toBe(mixed);
+      });
+
+      it('drops a read that a reload of the radar overtook', async () => {
+        const service = TestBed.inject(RadarAPIService);
+        await service.init();
+        const late = new Subject<unknown>();
+        held.set(capsPath, [late]);
+        const reloaded = { ...nautical };
+
+        update('radars.radar-1.controls.rangeUnits', { value: 1 });
+        responses[capsPath] = reloaded;
+        await service.init();
+        late.next(metric);
+        late.complete();
+        await settle();
+
+        expect(service.radar().capabilities).toBe(reloaded);
+      });
+
       it("keeps them when another radar's Range Units change", async () => {
         const service = TestBed.inject(RadarAPIService);
         await service.init();

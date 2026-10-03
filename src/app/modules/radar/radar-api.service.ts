@@ -133,6 +133,7 @@ export class RadarAPIService {
 
   private initialised = false;
   private initCalls = 0;
+  private capabilityReads = 0;
 
   constructor() {
     this._hasWebGL = this.testForWebGL();
@@ -295,10 +296,17 @@ export class RadarAPIService {
    *  is that of the unit system its Range Units are set to, and changes with
    *  them; the stream carries only control values, not their definitions. */
   private async refreshCapabilities(radarId: string) {
+    // Only the newest read counts, and none started before a reload: a
+    // slower, older answer must not replace newer capabilities.
+    const read = ++this.capabilityReads;
+    const call = this.initCalls;
     let capabilities: CapabilityManifest;
     try {
       capabilities = await this.getCapabilities(radarId);
     } catch {
+      return;
+    }
+    if (read !== this.capabilityReads || call !== this.initCalls) {
       return;
     }
     this._radar.update((current) =>
