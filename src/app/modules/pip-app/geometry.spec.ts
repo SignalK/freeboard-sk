@@ -94,6 +94,14 @@ describe('snapToEdges', () => {
     });
   });
 
+  it('keeps a short (collapsed) window short while it moves and snaps', () => {
+    const bar = { x: 100, y: 100, w: 300, h: 34 };
+    const moved = boundedGesture(bar, 'move', 50, 5000, vp);
+    expect(moved.h).toBe(34);
+    expect(moved.y + moved.h).toBe(vp.h);
+    expect(boundedGesture(bar, 'move', 10, 20, vp).h).toBe(34);
+  });
+
   it('snaps a dragged window but not a resize', () => {
     expect(boundedGesture(start, 'move', -92, 0, vp).x).toBe(0);
     expect(boundedGesture(start, 'w', -92, 0, vp).x).toBe(8);
