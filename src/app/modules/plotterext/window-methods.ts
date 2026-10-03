@@ -40,6 +40,12 @@ export interface WindowMethodsDeps {
   close: (windowId: string) => void;
 }
 
+/**
+ * Build the `ui.openWindow` / `ui.closeWindow` handlers. They validate the
+ * params and map failures to RPC reasons (`windows.disabled`,
+ * `windows.badRequest`, `UNKNOWN_PANEL`, `UNKNOWN_WINDOW`); everything that
+ * touches Freeboard state goes through `deps`.
+ */
 export function createWindowMethods(
   deps: WindowMethodsDeps
 ): Record<string, MethodHandler> {
