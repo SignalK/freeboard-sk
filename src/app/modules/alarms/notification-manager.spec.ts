@@ -371,3 +371,114 @@ describe('NotificationManager alert actions', () => {
     expect(shown(mgr).silenced).toBe(true);
   });
 });
+
+/**
+ * The buddy list plugin notifies on notifications.buddy.<vessel urn> when a
+ * buddy comes near. Freeboard shows that as a passing message; where it has
+ * the buddy's position, the message offers LOCATE, which centres the map on
+ * the buddy.
+ */
+describe('NotificationManager buddy notifications', () => {
+  const BUDDY = 'urn:mrn:imo:mmsi:520000001';
+  let notifications: Subject<NotificationMessage>;
+  let pressed: Subject<void>;
+  let shown: Array<[string, boolean, number, string | undefined]>;
+  let aisTargets: Map<
+    string,
+    { position: number[]; positionReceived: boolean }
+  >;
+  let mapMoveRequest: ReturnType<typeof signal>;
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    notifications = new Subject<NotificationMessage>();
+    pressed = new Subject<void>();
+    shown = [];
+    aisTargets = new Map();
+    mapMoveRequest = signal(null);
+    TestBed.configureTestingModule({
+      providers: [
+        NotificationManager,
+        {
+          provide: AppFacade,
+          useValue: {
+            featureFlags: signal({ notificationApi: true }),
+            config: {
+              display: { depthAlarm: { enabled: true }, muteSound: true }
+            },
+            data: { vessels: { closest: [], aisTargets } },
+            debug: () => undefined,
+            mapMoveRequest,
+            showMessage: (
+              message: string,
+              sound: boolean,
+              duration: number,
+              action?: string
+            ) => {
+              shown.push([message, sound, duration, action]);
+              return { onAction: () => pressed.asObservable() };
+            }
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { notification$: () => notifications.asObservable() }
+        },
+        { provide: SignalKClient, useValue: {} },
+        { provide: MatBottomSheet, useValue: {} }
+      ]
+    });
+  });
+
+  const buddyNear = () => {
+    const msg = new NotificationMessage();
+    msg.result = {
+      path: `notifications.buddy.${BUDDY}`,
+      value: {
+        state: ALARM_STATE.alert,
+        method: [ALARM_METHOD.visual, ALARM_METHOD.sound],
+        message: 'Your buddy Mako is near',
+        status: {
+          silenced: false,
+          acknowledged: false,
+          canSilence: true,
+          canAcknowledge: true,
+          canClear: true
+        }
+      } as SKNotification
+    };
+    notifications.next(msg);
+  };
+
+  it('offers LOCATE, which centres the map on where the buddy is', () => {
+    aisTargets.set(`vessels.${BUDDY}`, {
+      position: [177.2, -17.8],
+      positionReceived: true
+    });
+    const mgr = TestBed.inject(NotificationManager);
+    buddyNear();
+
+    expect(shown).toHaveLength(1);
+    expect(shown[0][0]).toBe('Your buddy Mako is near');
+    expect(shown[0][3]).toBe('LOCATE');
+    expect(mgr.alerts()).toHaveLength(0);
+
+    // the buddy has moved on by the time LOCATE is pressed
+    aisTargets.get(`vessels.${BUDDY}`).position = [177.25, -17.75];
+    pressed.next();
+
+    expect(mapMoveRequest()).toEqual({ center: [177.25, -17.75] });
+  });
+
+  it('offers no LOCATE for a buddy without a position', () => {
+    aisTargets.set(`vessels.${BUDDY}`, {
+      position: [0, 0],
+      positionReceived: false
+    });
+    TestBed.inject(NotificationManager);
+    buddyNear();
+
+    expect(shown).toHaveLength(1);
+    expect(shown[0][3]).toBeUndefined();
+  });
+});
