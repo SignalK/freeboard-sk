@@ -147,6 +147,8 @@ const AIS_TRACK_DEBOUNCE = 1000;
 // AIS targets whose track came from the v2 Track API: their track is not cut
 // back to the short client-side tail between polls
 const serverTracked = new Set<string>();
+// when each radar target position was last reported, keyed like radarTargets
+const radarTargetSeen = new Map<string, number>();
 // AIS track requests overlap (poll, move-end, picks); only the latest applies
 const aisTracksGate = createRequestGate();
 const SERVER_TRACK_TAIL_CAP = 5000;
@@ -212,6 +214,7 @@ export function initVessels() {
   // flag to indicate at least one position data message received
   vessels.self.positionReceived = false;
   serverTracked.clear();
+  radarTargetSeen.clear();
   aisTracksGate.invalidate();
 
   initAisTargetStatus();
@@ -1109,7 +1112,7 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
       // emit immediate resource update for single path
       processResourceUpdate(v);
     } else if (v.path.startsWith('radars')) {
-      processRadarTarget(vessels.radarTargets, d.id, v);
+      processRadarTarget(vessels.radarTargets, radarTargetSeen, d.id, v);
       // emit immediate radar update for single path
       processRadarUpdate(v);
     } else if (v.path.startsWith('navigation.racing')) {
@@ -1339,17 +1342,22 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
 
 // process radar messages **
 const RADAR_TARGET_PATH = /^radars\.[^.]+\.targets\.[^.]+$/;
+// ARPA targets update every antenna sweep; one silent this long has gone
+// without a lost/deleted report reaching us.
+export const RADAR_TARGET_MAX_AGE = 60000;
 
 /**
  * Keep the position of each radar (ARPA) target, keyed by its full Signal K
  * path, so a collision alarm naming it in `data.targetRef` can be located.
  * A lost target, one deleted (null), or one without a usable position is
- * dropped.
+ * dropped; `seen` records when each kept position was reported.
  */
 export function processRadarTarget(
   targets: Map<string, Position>,
+  seen: Map<string, number>,
   selfId: string,
-  v: PathValue
+  v: PathValue,
+  now = Date.now()
 ) {
   if (!RADAR_TARGET_PATH.test(v.path)) {
     return;
@@ -1364,13 +1372,29 @@ export function processRadarTarget(
     target?.status === 'lost' ||
     typeof latitude !== 'number' ||
     typeof longitude !== 'number' ||
-    !Number.isFinite(longitude) ||
+    !(Math.abs(longitude) <= 180) ||
     !(Math.abs(latitude) <= 90)
   ) {
     targets.delete(key);
+    seen.delete(key);
   } else {
     targets.set(key, [longitude, latitude]);
+    seen.set(key, now);
   }
+}
+
+/** Drop radar targets not reported for `RADAR_TARGET_MAX_AGE`. */
+export function expireRadarTargets(
+  targets: Map<string, Position>,
+  seen: Map<string, number>,
+  now = Date.now()
+) {
+  seen.forEach((t, key) => {
+    if (t < now - RADAR_TARGET_MAX_AGE) {
+      seen.delete(key);
+      targets.delete(key);
+    }
+  });
 }
 
 function processRadarUpdate(v: PathValue) {
@@ -1443,6 +1467,7 @@ function processAISStatus() {
       targetStatus.stale[k] = true;
     }
   });
+  expireRadarTargets(vessels.radarTargets, radarTargetSeen, now);
 }
 
 // process AtoN values

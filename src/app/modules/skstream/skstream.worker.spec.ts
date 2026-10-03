@@ -4,7 +4,9 @@ import {
   applyServerAisTracks,
   handleStreamEvent,
   initVessels,
+  expireRadarTargets,
   processRadarTarget,
+  RADAR_TARGET_MAX_AGE,
   processVessel,
   timedTrail
 } from './skstream.worker';
@@ -108,18 +110,20 @@ describe('skstream.worker processRadarTarget — CPA line to radar targets', () 
 
   it('keeps the target position under its full Signal K path', () => {
     const targets = new Map();
-    processRadarTarget(targets, SELF, target());
+    const seen = new Map();
+    processRadarTarget(targets, seen, SELF, target());
     expect(targets.get(REF)).toEqual([4.2, 52.1]);
   });
 
   it('drops a lost or deleted target', () => {
     const targets = new Map();
-    processRadarTarget(targets, SELF, target());
-    processRadarTarget(targets, SELF, target({ status: 'lost' }));
+    const seen = new Map();
+    processRadarTarget(targets, seen, SELF, target());
+    processRadarTarget(targets, seen, SELF, target({ status: 'lost' }));
     expect(targets.has(REF)).toBe(false);
 
-    processRadarTarget(targets, SELF, target());
-    processRadarTarget(targets, SELF, {
+    processRadarTarget(targets, seen, SELF, target());
+    processRadarTarget(targets, seen, SELF, {
       path: 'radars.nav1.targets.7',
       value: null
     });
@@ -128,24 +132,38 @@ describe('skstream.worker processRadarTarget — CPA line to radar targets', () 
 
   it('drops a target whose position is not a valid coordinate', () => {
     const targets = new Map();
+    const seen = new Map();
     for (const position of [
       { latitude: 91, longitude: 4.2 },
       { latitude: NaN, longitude: 4.2 },
-      { latitude: 52.1, longitude: Infinity }
+      { latitude: 52.1, longitude: Infinity },
+      { latitude: 52.1, longitude: 200 }
     ]) {
-      processRadarTarget(targets, SELF, target());
-      processRadarTarget(targets, SELF, target({ position }));
+      processRadarTarget(targets, seen, SELF, target());
+      processRadarTarget(targets, seen, SELF, target({ position }));
       expect(targets.has(REF)).toBe(false);
     }
   });
 
   it('ignores radar paths that are not targets', () => {
     const targets = new Map();
-    processRadarTarget(targets, SELF, {
+    const seen = new Map();
+    processRadarTarget(targets, seen, SELF, {
       path: 'radars.nav1.controls.gain',
       value: { position: { latitude: 1, longitude: 2 } }
     });
     expect(targets.size).toBe(0);
+  });
+
+  it('drops a target that stops being reported', () => {
+    const targets = new Map();
+    const seen = new Map();
+    processRadarTarget(targets, seen, SELF, target(), 0);
+    expireRadarTargets(targets, seen, RADAR_TARGET_MAX_AGE);
+    expect(targets.has(REF)).toBe(true);
+    expireRadarTargets(targets, seen, RADAR_TARGET_MAX_AGE + 1);
+    expect(targets.has(REF)).toBe(false);
+    expect(seen.size).toBe(0);
   });
 });
 
