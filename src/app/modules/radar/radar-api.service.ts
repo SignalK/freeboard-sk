@@ -132,6 +132,7 @@ export class RadarAPIService {
   private worker = inject(SKWorkerService);
 
   private initialised = false;
+  private initCalls = 0;
 
   constructor() {
     this._hasWebGL = this.testForWebGL();
@@ -182,7 +183,13 @@ export class RadarAPIService {
 
   /** Initialise radar */
   public async init(id?: string): Promise<string> {
+    // Selections can overlap (another radar picked before the last one has
+    // loaded); only the latest may change the radar state.
+    const call = ++this.initCalls;
     const radars = await this.listRadars();
+    if (call !== this.initCalls) {
+      return;
+    }
     this._radars.set(radars);
     if (!radars.length) {
       this._selectedRadar.set('');
@@ -202,7 +209,8 @@ export class RadarAPIService {
         this._selectedRadar.set(radars[0].id);
       }
     }
-    this.app.config.radars.deviceId = this._selectedRadar();
+    const selected = this._selectedRadar();
+    this.app.config.radars.deviceId = selected;
     this.app.saveConfig();
 
     // populate selected radar details
@@ -212,18 +220,23 @@ export class RadarAPIService {
       controls: Record<string, ControlValue>;
     }> = {};
     try {
-      await Promise.all([
-        (rd['device'] = await this.getRadar()),
-        (rd['capabilities'] = await this.getCapabilities()),
-        (rd['controls'] = await this.getControls())
+      [rd['device'], rd['capabilities'], rd['controls']] = await Promise.all([
+        this.getRadar(selected),
+        this.getCapabilities(selected),
+        this.getControls(selected)
       ]);
     } catch {
-      this._radar.set(undefined);
+      if (call === this.initCalls) {
+        this._radar.set(undefined);
+      }
+      return;
+    }
+    if (call !== this.initCalls) {
       return;
     }
     // Radar API 3.4.0: the discovery object is lean and carries no id; fold in
     // the selected id so consumers (info panel, render, panel) can read it.
-    rd['device'].id = this._selectedRadar();
+    rd['device'].id = selected;
     // keep the values of the controls the capabilities define
     const controls = new Map<string, ControlValue>();
     const cdef = rd['capabilities']['controls'] ?? {};
@@ -241,7 +254,7 @@ export class RadarAPIService {
 
     this.app.debug(this._radar());
     this.initialised = true;
-    return this._selectedRadar();
+    return selected;
   }
 
   /** Update radar status and controls */

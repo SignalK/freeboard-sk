@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of, Subject, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RadarAPIService } from './radar-api.service';
@@ -49,6 +49,8 @@ describe('RadarAPIService init() (#755)', () => {
 
   let radarUpdates: Subject<DeltaSignal>;
   let put: ReturnType<typeof vi.fn>;
+  // responses a test holds back, answered in order before the defaults
+  let held: Map<string, Array<Observable<unknown>>>;
   let app: {
     config: { radars: { deviceId: string } };
     skApiVersion: number;
@@ -61,6 +63,7 @@ describe('RadarAPIService init() (#755)', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined); // no WebGL in jsdom
     radarUpdates = new Subject<DeltaSignal>();
     put = vi.fn(() => of(undefined));
+    held = new Map();
     app = {
       config: { radars: { deviceId: '' } },
       skApiVersion: 2,
@@ -76,9 +79,10 @@ describe('RadarAPIService init() (#755)', () => {
           useValue: {
             api: {
               get: (_v: number, path: string) =>
-                path in responses
+                held.get(path)?.shift() ??
+                (path in responses
                   ? of(responses[path])
-                  : throwError(() => new Error(`unexpected GET ${path}`)),
+                  : throwError(() => new Error(`unexpected GET ${path}`))),
               put
             }
           }
@@ -179,6 +183,23 @@ describe('RadarAPIService init() (#755)', () => {
 
       expect(service.radar().controls.has('stray')).toBe(false);
     });
+  });
+
+  it('lets the latest radar selection win when an earlier one answers late', async () => {
+    const service = TestBed.inject(RadarAPIService);
+    await service.init();
+    const lateList = new Subject<unknown>();
+    held.set('vessels/self/radars', [lateList]);
+
+    const earlier = service.init('radar-2');
+    await service.init('radar-1');
+    lateList.next(responses['vessels/self/radars']);
+    lateList.complete();
+    await earlier;
+
+    expect(service.radarId()).toBe('radar-1');
+    expect(service.radar().device.id).toBe('radar-1');
+    expect(app.config.radars.deviceId).toBe('radar-1');
   });
 
   it('sends a control change as the PUT body', async () => {
