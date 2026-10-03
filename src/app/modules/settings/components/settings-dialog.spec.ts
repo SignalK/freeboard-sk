@@ -62,8 +62,6 @@ describe('settings dialog — note details option placement', () => {
 
     const facadeStub = {
       settings,
-      applicationList: [],
-      favouritesList: [],
       fixedPosition: [0, 0],
       resourcePathList: [],
       refresh: () => undefined,

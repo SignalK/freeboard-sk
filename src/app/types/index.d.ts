@@ -110,12 +110,6 @@ export interface IAppConfig {
     nightMode: boolean; // auto set night mode based on environment.mode
     muteSound: boolean;
     depthAlarm: { enabled: boolean; smoothing: number };
-    plugins: {
-      instruments: string;
-      startOnOpen: boolean;
-      parameters: string | null;
-      favourites: string[];
-    };
     preferInfoPanel: boolean;
     singleClickNoteDetails: boolean;
     windIndicator: WindIndicator; // glyph used to render wind direction/speed
@@ -296,7 +290,7 @@ export type PlotterExtensionWidget =
  */
 export type LegacyAppConfig = Omit<
   IAppConfig,
-  'units' | 'vessels' | 'plotterExtensions' | 'selections'
+  'units' | 'vessels' | 'plotterExtensions' | 'selections' | 'display'
 > & {
   units: Omit<IAppConfig['units'], 'depth' | 'speed' | 'distance'> & {
     depth: DepthUnitDef | 'ft'; // 'ft' -> 'foot'
@@ -321,6 +315,9 @@ export type LegacyAppConfig = Omit<
   };
   selections: IAppConfig['selections'] & {
     notes?: unknown; // legacy notes selections section; dropped
+  };
+  display: IAppConfig['display'] & {
+    plugins?: unknown; // retired instruments panel settings; dropped
   };
 };
 

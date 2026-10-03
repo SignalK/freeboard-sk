@@ -189,19 +189,10 @@ export class AppFacade extends InfoService {
   kioskMode = signal<boolean>(false); // kiosk mode flag
   hasAuthToken = signal<boolean>(false); // auth token has been presented
   isLoggedIn = signal<boolean>(false); // logged in to SK Server
-  instrumentPanelAvailable = signal<boolean>(true); // show instrument panel button
   skAuthChange = signal<string | undefined>(undefined); // Signal K cookie change event
 
   sIsFetching = signal<boolean>(false); // show progress for fetching data from server
   sTrueMagChoice = signal<string>(''); // preferred path True / Magnetic
-
-  instrumentPanel = signal<{
-    open: boolean;
-    activate: boolean;
-  }>({
-    open: false,
-    activate: false
-  });
 
   // non-persisted UIstate attributes
   uiCtrl = signal<{
@@ -369,7 +360,6 @@ export class AppFacade extends InfoService {
     this.parseLaunchUrl();
 
     /** test for launch within iframe */
-    this.instrumentPanelAvailable.update(() => this.isTopWindow());
     if (!this.isTopWindow()) {
       // listen for messages from parent
       window.addEventListener('message', (event) => {
@@ -402,11 +392,7 @@ export class AppFacade extends InfoService {
    */
   public useInfoPanel(): boolean {
     const mediaQuery = window.matchMedia('(max-width: 760px)');
-    return (
-      !mediaQuery.matches &&
-      !this.instrumentPanel().open &&
-      this.config.display.preferInfoPanel
-    );
+    return !mediaQuery.matches && this.config.display.preferInfoPanel;
   }
 
   /**
