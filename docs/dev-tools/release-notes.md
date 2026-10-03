@@ -51,8 +51,8 @@ Lists the `feat`/`perf` PRs merged since the last tag (the newest `v*` tag reach
 from `HEAD`) that have **no row** in the ledger, one per line on stdout, and exits 1
 when there are any. Any row for the PR counts, a `skip` row included. This is the
 documentation gate: every user-facing change in a release needs a ledger row, or a
-`skip` row saying why it doesn't. Run it locally on `master` to see what a release
-would be missing.
+`skip` row saying why it doesn't. `release-please.yml` runs it on the release PR (see
+below); run it locally on `master` to see what a release would be missing.
 
 ## Dry run
 
@@ -73,6 +73,15 @@ refreshes one release PR that proposes the next beta, with the merged PRs and th
 authors as its changelog; merging it tags the release. **Run workflow** on that
 workflow turns the PR into the stable release of the current beta instead, which also
 graduates the betas' ledger rows (see `stamp`).
+
+After stamping the release PR, the workflow runs `check` on it. It sets a
+**`docs/ledger`** commit status on the PR's head commit and keeps one comment on the
+PR listing any PRs without a ledger row (a comment, because release-please rewrites
+the PR body). The status is a warning, not a required check. **Merge the release PR
+only when `docs/ledger` is green.** The check runs after the ledger stamp, so a green
+status also means the stamp has landed; merging before it can ship the new rows
+unstamped, and they would then appear in the next release's notes instead. Adding the
+missing rows on `master` refreshes the PR and re-runs the check.
 
 `release.yml` (for that tag, or for a `v*` tag pushed by hand) runs
 `render <tag> --out RELEASE_NOTES.md` and passes it to `action-gh-release` via
