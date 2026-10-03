@@ -71,9 +71,6 @@ export class PipAppPopoutService {
     const height = Math.round(size.h);
     const dpip = this.alwaysOnTop ? this.documentPip() : null;
     if (dpip) {
-      // One Document PiP window per tab: the new one replaces the old.
-      const current = this.pipId();
-      if (current) this.popIn(current);
       let pip: Window;
       try {
         pip = await dpip.requestWindow({ width, height });
@@ -81,6 +78,10 @@ export class PipAppPopoutService {
         console.warn('PiP App: picture-in-picture window refused', err);
         return;
       }
+      // One Document PiP window per tab: the new one has replaced the old.
+      // Swap only now, so a refused request leaves the current one out.
+      const current = this.pipId();
+      if (current) this.popIn(current);
       if (!this.service.windows().some((w) => w.id === def.id)) {
         pip.close();
         return;
