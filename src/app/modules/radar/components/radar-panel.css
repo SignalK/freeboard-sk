@@ -1,0 +1,172 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+/* The head, range and opacity stay in place; the sections scroll under them. */
+.radar-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 0 4px;
+}
+
+.radar-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* The power button and the radar name form one lozenge, coloured by the
+   radar's power state as in the MaYaRa radar GUI. */
+.lozenge {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    border: 2px solid var(--power-color);
+    border-radius: 24px;
+    --power-color: #757575;
+    --power-icon: 255, 255, 255;
+}
+
+/* white on amber is unreadable, so the icon goes dark there */
+.lozenge.power-standby,
+.lozenge.power-preparing {
+    --power-color: #f9a825;
+    --power-icon: 0, 0, 0;
+}
+
+.lozenge.power-transmit {
+    --power-color: #2e7d32;
+}
+
+.lozenge.power-fault {
+    --power-color: #c62828;
+}
+
+.power-button {
+    flex: 0 0 auto;
+    background-color: var(--power-color);
+    color: rgba(var(--power-icon), 0.87);
+}
+
+.power-button:disabled {
+    color: rgba(var(--power-icon), 0.5);
+}
+
+.radar-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 4px 0 8px;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.radar-name:disabled {
+    cursor: default;
+}
+
+.name-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.name {
+    font-size: 10pt;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.state {
+    font-size: 8pt;
+    opacity: 0.7;
+}
+
+.caret {
+    flex: 0 0 auto;
+}
+
+.sections {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 8px;
+}
+
+.sections .mat-expansion-panel {
+    box-shadow: none;
+}
+
+.sections ::ng-deep .mat-expansion-panel-body {
+    padding: 0 8px 8px 8px;
+}
+
+.ctl {
+    display: flex;
+    flex-direction: column;
+    padding-top: 6px;
+}
+
+.ctl-disabled {
+    opacity: 0.6;
+}
+
+.ctl-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10pt;
+}
+
+.ctl-name {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ctl-auto {
+    flex: 0 0 auto;
+}
+
+.ctl-value {
+    flex: 0 0 auto;
+    max-width: 50%;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ctl-slider {
+    width: calc(100% - 16px);
+}
+
+.ctl-button {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.compact {
+    width: 100%;
+}
+
+.range {
+    margin-top: 4px;
+}
+
+.sections .compact ::ng-deep .mat-mdc-form-field-infix {
+    min-height: 36px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}

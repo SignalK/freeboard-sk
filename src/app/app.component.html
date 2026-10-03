@@ -298,8 +298,6 @@
             <info-panel (closed)="closeDrawer()">
               @if (infoPanel.item()?.type === 'radars') {
                 <radar-panel
-                  [radar]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
                   (connect)="connectRadar()"
                   (disconnect)="disconnectRadar()"
                 />

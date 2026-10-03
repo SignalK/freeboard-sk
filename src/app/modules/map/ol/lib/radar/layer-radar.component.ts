@@ -36,6 +36,8 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() visible: boolean;
   @Input() layerProperties: Record<string, unknown>;
   @Input() opacity: number = 1;
+  // the radar the overlay shows; the stream follows when another is selected
+  @Input() radarId: string;
 
   onError = output<Error>();
 
@@ -117,6 +119,14 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      if (
+        changes['radarId'] &&
+        !changes['radarId'].firstChange &&
+        !document.hidden
+      ) {
+        this.stopStream();
+        this.startStream();
+      }
       if (changes['opacity']) {
         this.layer.setOpacity(
           this.parseOpacity(changes['opacity'].currentValue)

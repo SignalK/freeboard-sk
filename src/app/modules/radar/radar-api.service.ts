@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
@@ -70,6 +70,12 @@ export interface ControlDef {
   validValues?: Array<number | string>;
   isReadOnly?: boolean;
   hasEnabled?: boolean;
+  hasAuto?: boolean;
+  /** In auto mode the radar takes an adjustment (`autoValue`) within
+   *  `autoAdjustMinValue`..`autoAdjustMaxValue` instead of a value */
+  hasAutoAdjustable?: boolean;
+  autoAdjustMinValue?: number;
+  autoAdjustMaxValue?: number;
   maxDistance?: number;
   units?: string;
 }
@@ -82,6 +88,8 @@ export interface ControlValue {
   auto?: boolean;
   autoValue?: number | string;
   enabled?: boolean;
+  /** false while the radar's current mode makes this control read-only */
+  allowed?: boolean;
   endValue?: number;
   startDistance?: number;
   endDistance?: number;
@@ -91,6 +99,9 @@ export interface ControlValue {
   y2?: number;
   width?: number;
 }
+
+// The writable part of a control value (Radar API PUT body)
+export type ControlChange = Omit<ControlValue, 'timestamp' | 'allowed'>;
 
 export interface ActiveRadar {
   device: SKRadar;
@@ -107,6 +118,9 @@ export class RadarAPIService {
   readonly radarId = this._selectedRadar.asReadonly();
   private _radar = signal<ActiveRadar>(undefined);
   readonly radar = this._radar.asReadonly();
+  // every radar the server reported on the last init(), in its order
+  private _radars = signal<SKRadar[]>([]);
+  readonly radars = this._radars.asReadonly();
   // Radar API version reported by GET /radars. Empty for pre-3.4.0 servers,
   // which return a bare array with no version envelope.
   private _apiVersion = signal<string>('');
@@ -118,13 +132,12 @@ export class RadarAPIService {
   private worker = inject(SKWorkerService);
 
   private initialised = false;
+  private initCalls = 0;
 
   constructor() {
     this._hasWebGL = this.testForWebGL();
     this.skstream.vessels$().subscribe(() => this.onVessels());
-    effect(() => {
-      this.parseRadarDelta(this.worker.radarUpdate());
-    });
+    this.worker.radar$().subscribe((msg) => this.parseRadarDelta(msg));
   }
 
   private testForWebGL(): boolean {
@@ -170,7 +183,14 @@ export class RadarAPIService {
 
   /** Initialise radar */
   public async init(id?: string): Promise<string> {
+    // Selections can overlap (another radar picked before the last one has
+    // loaded); only the latest may change the radar state.
+    const call = ++this.initCalls;
     const radars = await this.listRadars();
+    if (call !== this.initCalls) {
+      return;
+    }
+    this._radars.set(radars);
     if (!radars.length) {
       this._selectedRadar.set('');
       return;
@@ -189,7 +209,8 @@ export class RadarAPIService {
         this._selectedRadar.set(radars[0].id);
       }
     }
-    this.app.config.radars.deviceId = this._selectedRadar();
+    const selected = this._selectedRadar();
+    this.app.config.radars.deviceId = selected;
     this.app.saveConfig();
 
     // populate selected radar details
@@ -199,51 +220,65 @@ export class RadarAPIService {
       controls: Record<string, ControlValue>;
     }> = {};
     try {
-      await Promise.all([
-        (rd['device'] = await this.getRadar()),
-        (rd['capabilities'] = await this.getCapabilities()),
-        (rd['controls'] = await this.getControls())
+      [rd['device'], rd['capabilities'], rd['controls']] = await Promise.all([
+        this.getRadar(selected),
+        this.getCapabilities(selected),
+        this.getControls(selected)
       ]);
     } catch {
-      this._radar.set(undefined);
+      if (call === this.initCalls) {
+        this._radar.set(undefined);
+      }
+      return;
+    }
+    if (call !== this.initCalls) {
       return;
     }
     // Radar API 3.4.0: the discovery object is lean and carries no id; fold in
     // the selected id so consumers (info panel, render, panel) can read it.
-    rd['device'].id = this._selectedRadar();
-    // filter controls
-    const baseControls = new Map<string, ControlValue>();
-    const cdef = rd['capabilities']['controls'];
-    Object.entries(rd['controls']).forEach(([id, value]) => {
-      if (id in cdef && cdef[id].category === 'base') {
-        baseControls.set(id, value);
+    rd['device'].id = selected;
+    // keep the values of the controls the capabilities define
+    const controls = new Map<string, ControlValue>();
+    const cdef = rd['capabilities']['controls'] ?? {};
+    Object.entries(rd['controls'] ?? {}).forEach(([id, value]) => {
+      if (id in cdef) {
+        controls.set(id, value);
       }
     });
 
     this._radar.set({
       device: rd['device'],
       capabilities: rd['capabilities'],
-      controls: baseControls
+      controls
     });
 
     this.app.debug(this._radar());
     this.initialised = true;
-    return this._selectedRadar();
+    return selected;
   }
 
   /** Update radar status and controls */
   private parseRadarDelta(msg: DeltaSignal) {
     if (!msg) return;
-    const m = msg.path?.split('.');
-    if (m[2] === 'controls') {
-      this._radar.update((current) => {
-        if (current?.controls) {
-          // a radars.<id>.controls.<name> delta carries a ControlValue
-          current.controls.set(m[3], msg.value as ControlValue);
-        }
-        return current;
-      });
+    // radars.<id>.controls.<name>: the stream carries every radar's controls,
+    // and only the shown radar's belong in its panel
+    const [, radarId, kind, controlId] = msg.path?.split('.') ?? [];
+    if (kind !== 'controls') {
+      return;
     }
+    this._radar.update((current) => {
+      if (
+        current?.device?.id !== radarId ||
+        !current.controls ||
+        !current.capabilities?.controls?.[controlId]
+      ) {
+        return current;
+      }
+      // a new object, so the panel sees the change
+      const controls = new Map(current.controls);
+      controls.set(controlId, msg.value as ControlValue);
+      return { ...current, controls };
+    });
   }
 
   /** Return list of available radars */
@@ -337,19 +372,20 @@ export class RadarAPIService {
   }
 
   /**
-   * Send new control value to server.
+   * Send a control change to the server: `{ value }`, `{ auto }`,
+   * `{ auto, value }` or, for a button, `{}`.
    */
   public setControl(
     radarId: string = this._selectedRadar(),
     controlId: string,
-    value: NonNullable<ControlValue['value']>
+    change: ControlChange
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.signalk.api
         .put(
           this.app.skApiVersion,
           `${this.getPath(radarId)}/controls/${controlId}`,
-          { value: value }
+          change
         )
         .subscribe({
           next: () => resolve(),

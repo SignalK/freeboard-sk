@@ -71,6 +71,7 @@ import {
 } from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
+import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
@@ -440,6 +441,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected routeBuffers = inject(RouteBufferRegistry);
   private tidalCurrents = inject(TidalCurrentsService);
   protected trackHistory = inject(TrackHistoryService);
+  protected radarApi = inject(RadarAPIService);
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   private ngZone = inject(NgZone);
