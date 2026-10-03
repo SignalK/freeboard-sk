@@ -161,6 +161,17 @@ describe('PipAppPopoutService', () => {
     expect(popout.pipId()).toBe('a');
   });
 
+  it('ignores a pop-out while another window is still being requested', async () => {
+    const popout = create();
+    const first = popout.popOut(def('a'), { w: 400, h: 300 });
+    await popout.popOut(def('b'), { w: 400, h: 300 });
+    await first;
+    expect(requestWindow).toHaveBeenCalledTimes(1);
+    expect(popout.pipId()).toBe('a');
+    await popout.popOut(def('b'), { w: 400, h: 300 });
+    expect(popout.pipId()).toBe('b');
+  });
+
   it('falls back to a noopener popup without the API or when embedded', async () => {
     topWindow = false;
     const popout = create();
