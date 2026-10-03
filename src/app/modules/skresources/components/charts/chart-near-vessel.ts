@@ -39,12 +39,16 @@ function distanceTo(p: Position, [w, s, e, n]: number[]): number {
  * first, smallest area first (the approach or harbour chart before the
  * passage chart, and an overlay of the whole world last of them); then the
  * rest, nearest first; then charts without bounds. Charts that rank the same,
- * such as several sources for one area, keep their order in `charts`.
+ * such as several sources for one area, keep their order in `charts`, and
+ * without a usable position (e.g. an unset fixed position) all of them do.
  */
 export function chartsNearPosition(
   charts: FBCharts,
   position: Position
 ): FBCharts {
+  if (!Number.isFinite(position?.[0]) || !Number.isFinite(position?.[1])) {
+    return charts.slice();
+  }
   const rank = (chart: FBChart): [number, number] => {
     const b = boundsOf(chart);
     if (!b) {

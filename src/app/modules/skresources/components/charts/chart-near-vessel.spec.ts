@@ -91,4 +91,20 @@ describe('chartsNearPosition', () => {
       'no bounds 2'
     ]);
   });
+
+  it('keeps the order given without a usable position', () => {
+    // ranked, the chart without bounds would go last
+    const charts = [
+      chart('no bounds'),
+      chart('far', [100, 10, 101, 11]),
+      chart('harbour', [177.37, -17.78, 177.39, -17.76])
+    ];
+    [[], [NaN, NaN], [177.38], undefined].forEach((at) =>
+      expect(ids(chartsNearPosition(charts, at as Position))).toEqual([
+        'no bounds',
+        'far',
+        'harbour'
+      ])
+    );
+  });
 });
