@@ -145,10 +145,17 @@ describe('cleanConfig() legacy migration', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
 
-  it('lists charts in layer order by default', () => {
-    expect(defaultConfig().selections.chartsNearVessel).toBe(false);
+  it('lists the charts near the vessel first by default', () => {
+    expect(defaultConfig().selections.chartsNearVessel).toBe(true);
     const cfg: LegacyAppConfig = defaultConfig();
     delete cfg.selections.chartsNearVessel;
+    cleanConfig(cfg, {});
+    expect(cfg.selections.chartsNearVessel).toBe(true);
+  });
+
+  it('keeps the chart list in layer order for a user who chose it', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.selections.chartsNearVessel = false;
     cleanConfig(cfg, {});
     expect(cfg.selections.chartsNearVessel).toBe(false);
   });
