@@ -155,6 +155,8 @@ export interface DeltaSignal extends PathValue {
 export interface ResultPayload {
   self: SKVessel;
   aisTargets: Map<string, SKVessel>;
+  /** Radar (ARPA) target positions, keyed by the target's Signal K path. */
+  radarTargets: Map<string, Position>;
   aisStatus: {
     updated: AisIds;
     stale: AisIds;

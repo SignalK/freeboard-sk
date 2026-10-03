@@ -197,6 +197,7 @@ export function initVessels() {
   vessels = {
     self: new SKVessel(),
     aisTargets: new Map(),
+    radarTargets: new Map(),
     aisStatus: {
       updated: [],
       stale: [],
@@ -1108,6 +1109,7 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
       // emit immediate resource update for single path
       processResourceUpdate(v);
     } else if (v.path.startsWith('radars')) {
+      processRadarTarget(vessels.radarTargets, d.id, v);
       // emit immediate radar update for single path
       processRadarUpdate(v);
     } else if (v.path.startsWith('navigation.racing')) {
@@ -1336,6 +1338,41 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
 }
 
 // process radar messages **
+const RADAR_TARGET_PATH = /^radars\.[^.]+\.targets\.[^.]+$/;
+
+/**
+ * Keep the position of each radar (ARPA) target, keyed by its full Signal K
+ * path, so a collision alarm naming it in `data.targetRef` can be located.
+ * A lost target, one deleted (null), or one without a usable position is
+ * dropped.
+ */
+export function processRadarTarget(
+  targets: Map<string, Position>,
+  selfId: string,
+  v: PathValue
+) {
+  if (!RADAR_TARGET_PATH.test(v.path)) {
+    return;
+  }
+  const key = `${selfId}.${v.path}`;
+  const target = v.value as {
+    status?: string;
+    position?: { latitude?: unknown; longitude?: unknown };
+  } | null;
+  const { latitude, longitude } = target?.position ?? {};
+  if (
+    target?.status === 'lost' ||
+    typeof latitude !== 'number' ||
+    typeof longitude !== 'number' ||
+    !Number.isFinite(longitude) ||
+    !(Math.abs(latitude) <= 90)
+  ) {
+    targets.delete(key);
+  } else {
+    targets.set(key, [longitude, latitude]);
+  }
+}
+
 function processRadarUpdate(v: PathValue) {
   const msg: ResourceMessage = new RadarMessage();
   msg.playback = playbackMode;

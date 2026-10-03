@@ -741,6 +741,7 @@ export function initData(): FBAppData {
       self: new SKVessel(),
       aisTargets: new Map(),
       aisTracks: new Map(), // AIS targets track (tracks plugin)
+      radarTargets: new Map(), // radar (ARPA) target positions by Signal K path
       activeId: null,
       active: null,
       closest: [],

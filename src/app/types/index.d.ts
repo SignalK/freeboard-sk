@@ -354,6 +354,7 @@ export interface FBAppData {
     self: SKVessel;
     aisTargets: Map<string, SKVessel>;
     aisTracks: Map<string, MultiLineString>; // AIS targets track (tracks plugin)
+    radarTargets: Map<string, Position>; // radar (ARPA) target positions by Signal K path
     activeId: string;
     active: SKVessel;
     closest: string[];

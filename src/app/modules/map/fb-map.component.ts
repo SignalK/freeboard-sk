@@ -612,6 +612,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
             if (a.position) {
               v.push([a.position, this.app.data.vessels.self.position]);
             }
+          } else if (this.app.data.vessels.radarTargets.has(id)) {
+            v.push([
+              this.app.data.vessels.radarTargets.get(id),
+              this.app.data.vessels.self.position
+            ]);
           }
         });
       }
