@@ -71,7 +71,10 @@ describe('ChartListComponent — list ordered by chart layer order (#550)', () =
           provide: SKWorkerService,
           useValue: { resourceUpdate: signal({ path: '' }) }
         },
-        { provide: AppFacade, useValue: { mapExtent: signal(null) } },
+        {
+          provide: AppFacade,
+          useValue: { mapExtent: signal(null), config: { selections: {} } }
+        },
         { provide: MatDialog, useValue: {} },
         { provide: SKResourceGroupService, useValue: {} },
         { provide: FBMapInteractService, useValue: {} }
@@ -276,7 +279,8 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
             featureFlags: signal({ resourceGroups: false }),
             debug: vi.fn(),
             hostDef: { name: 'localhost' },
-            data: { chartBounds: { show: false, charts: [] } }
+            data: { chartBounds: { show: false, charts: [] } },
+            config: { selections: {} }
           }
         },
         { provide: MatDialog, useValue: {} },
@@ -411,7 +415,8 @@ describe('ChartListComponent — Time control on temporal rows', () => {
             featureFlags: signal({ resourceGroups: false }),
             debug: vi.fn(),
             hostDef: { name: 'localhost' },
-            data: { chartBounds: { show: false, charts: [] } }
+            data: { chartBounds: { show: false, charts: [] } },
+            config: { selections: {} }
           }
         },
         { provide: MatDialog, useValue: {} },
@@ -516,7 +521,8 @@ describe('ChartListComponent — "In view" filter does not loop on map move (#61
             // true → initItems() bails out, leaving the seeded fullList alone
             sIsFetching: signal(true),
             debug: vi.fn(),
-            data: { chartBounds: { show: false, charts: [] } }
+            data: { chartBounds: { show: false, charts: [] } },
+            config: { selections: {} }
           }
         },
         { provide: MatDialog, useValue: {} },
@@ -552,5 +558,118 @@ describe('ChartListComponent — "In view" filter does not loop on map move (#61
     fixture.detectChanges();
 
     expect(filterRuns).toBe(0);
+  });
+});
+
+/**
+ * With "Near vessel" on, the list is ordered by the vessel's position rather
+ * than by layer: the charts at the vessel first, the most detailed first, then
+ * the rest nearest first. Dragging would re-order layers the list no longer
+ * shows, so it is refused; the choice is remembered.
+ */
+describe('ChartListComponent — Near vessel order', () => {
+  let comp: ChartListComponent;
+  let config: {
+    selections: { chartsNearVessel?: boolean };
+    vessels: { fixedLocationMode: boolean };
+    map: { center: number[] };
+  };
+  let self: { position: number[]; positionReceived: boolean };
+  let saveConfig: ReturnType<typeof vi.fn>;
+
+  const bounded = (id: string, bounds: number[]): FBChart =>
+    [id, { name: id, bounds } as never, true] as FBChart;
+  const toggle = (on: boolean) =>
+    (
+      comp as unknown as { toggleNearVessel: (c: boolean) => void }
+    ).toggleNearVessel(on);
+  const canReorder = () =>
+    (comp as unknown as { canReorder: () => boolean }).canReorder();
+  const hint = () =>
+    (comp as unknown as { reorderHint: () => string }).reorderHint();
+
+  beforeEach(() => {
+    config = {
+      selections: {},
+      vessels: { fixedLocationMode: false },
+      map: { center: [0, 0] }
+    };
+    self = { position: [177.38, -17.77], positionReceived: true };
+    saveConfig = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        ChartListComponent,
+        {
+          provide: SKResourceService,
+          useValue: { arrangeChartLayers: (list: FBCharts) => [...list] }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: {
+            mapExtent: signal(null),
+            config,
+            saveConfig,
+            data: { vessels: { self } }
+          }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+    comp = TestBed.inject(ChartListComponent);
+    // base layer first: the list shows them top layer first
+    fullListOf(comp).push(
+      bounded('passage', [176, -19, 179, -16]),
+      bounded('far', [100, 10, 101, 11]),
+      bounded('harbour', [177.37, -17.78, 177.39, -17.76])
+    );
+  });
+
+  it('lists the charts at the vessel first, most detailed first, then by distance', () => {
+    doFilterOf(comp);
+    expect(idsOf(filteredSignalOf(comp)())).toEqual([
+      'harbour',
+      'far',
+      'passage'
+    ]);
+
+    toggle(true);
+
+    expect(idsOf(filteredSignalOf(comp)())).toEqual([
+      'harbour',
+      'passage',
+      'far'
+    ]);
+    expect(config.selections.chartsNearVessel).toBe(true);
+    expect(saveConfig).toHaveBeenCalled();
+  });
+
+  it('refuses to re-order the layers while listed near the vessel', () => {
+    toggle(true);
+    expect(canReorder()).toBe(false);
+    expect(hint()).toBe('(most detailed first)');
+  });
+
+  it('lists from the map centre while the vessel has no position', () => {
+    self.positionReceived = false;
+    config.map.center = [100.5, 10.5];
+    toggle(true);
+    expect(idsOf(filteredSignalOf(comp)())[0]).toBe('far');
+  });
+
+  it('goes back to layer order when turned off', () => {
+    toggle(true);
+    toggle(false);
+    expect(idsOf(filteredSignalOf(comp)())).toEqual([
+      'harbour',
+      'far',
+      'passage'
+    ]);
+    expect(canReorder()).toBe(true);
   });
 });

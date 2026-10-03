@@ -145,6 +145,14 @@ describe('cleanConfig() legacy migration', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
 
+  it('lists charts in layer order by default', () => {
+    expect(defaultConfig().selections.chartsNearVessel).toBe(false);
+    const cfg: LegacyAppConfig = defaultConfig();
+    delete cfg.selections.chartsNearVessel;
+    cleanConfig(cfg, {});
+    expect(cfg.selections.chartsNearVessel).toBe(false);
+  });
+
   it('drops the legacy selections.notes section', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});

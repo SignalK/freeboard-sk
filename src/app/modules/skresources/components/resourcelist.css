@@ -24,10 +24,13 @@
     top: 125px;
 }
 
-.resourcelist .resources.vessels,
-.resourcelist .resources.charts
- {
+.resourcelist .resources.vessels {
     top: 160px;
+}
+
+/* The chart list's toggles (Bounds, In view, Near vessel) take two rows. */
+.resourcelist .resources.charts {
+    top: 200px;
 }
 
 /* Vessel filter: inline "Filter: [Ship Type] [IMO Only]" by default. When the

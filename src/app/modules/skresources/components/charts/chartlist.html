@@ -70,7 +70,9 @@
         </div>
       </div>
     </mat-card-content>
-    <mat-card-actions>
+    <mat-card-actions
+      style="flex-wrap: wrap; row-gap: 4px; white-space: nowrap"
+    >
       <mat-slide-toggle
         [hideIcon]="true"
         [checked]="app.data.chartBounds.show"
@@ -90,6 +92,16 @@
       >
         In view
       </mat-slide-toggle>
+      <mat-slide-toggle
+        style="margin-left: 12px"
+        [hideIcon]="true"
+        [checked]="app.config.selections.chartsNearVessel"
+        (change)="toggleNearVessel($event.checked)"
+        matTooltip="List the charts at the vessel first, most detailed first, then the others by distance"
+        matTooltipPosition="above"
+      >
+        Near vessel
+      </mat-slide-toggle>
       <button
         mat-icon-button
         aria-label="Add Chart"
@@ -107,7 +119,10 @@
     <mat-progress-bar mode="query"></mat-progress-bar>
     }
     <div class="stack-caption stack-caption-top">
-      <span>Top Layer</span>
+      <span
+        >{{ app.config.selections.chartsNearVessel ? 'At the vessel' : 'Top
+        Layer' }}</span
+      >
       <span class="stack-caption-hint">{{reorderHint()}}</span>
     </div>
     <div
@@ -316,9 +331,11 @@
       </mat-card>
       }
     </div>
+    @if (!app.config.selections.chartsNearVessel) {
     <div class="stack-caption stack-caption-bottom">
       <span>Base Layer</span>
       <span class="stack-caption-hint">(e.g. World Map)</span>
     </div>
+    }
   </div>
 </div>
