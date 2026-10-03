@@ -90,6 +90,13 @@ export class PipAppService {
   }
 
   close(id: string) {
+    const closing = this.windows().find((w) => w.id === id);
+    if (closing?.popout === 'popup') {
+      // A noopener popup is out of reach; only the user can close it.
+      this.app.showMessage(
+        `${closing.title} is still open in its separate window. Close it there.`
+      );
+    }
     this.windows.update((list) => list.filter((w) => w.id !== id));
     this.zOrder.update((z) => z.filter((i) => i !== id));
     this.persist();
