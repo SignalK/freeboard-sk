@@ -142,6 +142,20 @@ describe('PipAppService', () => {
     expect(app.config.pipApps.windows[0]).not.toHaveProperty('popout');
   });
 
+  it('tells the user to close a popup Freeboard cannot reach', () => {
+    const service = create();
+    const a = service.open(wifish, 'Sounder');
+    service.close(a.id);
+    expect(app.showMessage).not.toHaveBeenCalled();
+    const b = service.open(wifish, 'Sounder');
+    service.setPopout(b.id, 'popup');
+    service.close(b.id);
+    expect(app.showMessage).toHaveBeenCalledWith(
+      expect.stringContaining('separate window')
+    );
+    expect(service.windows()).toEqual([]);
+  });
+
   it('reveals a collapsed window when it is chosen again', () => {
     const service = create();
     const a = service.open(wifish);
