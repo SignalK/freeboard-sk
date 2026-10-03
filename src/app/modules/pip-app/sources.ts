@@ -7,7 +7,10 @@ export function parseSource(input: unknown): PipAppSource | null {
   if (!input || typeof input !== 'object') return null;
   const s = input as Record<string, unknown>;
   if (s.kind === 'webapp' && typeof s.path === 'string') {
-    return s.path.startsWith('/') && !s.path.startsWith('//')
+    // URL parsing treats '\\' as '/', so '/\\host' would leave the server.
+    return s.path.startsWith('/') &&
+      !s.path.startsWith('//') &&
+      !s.path.includes('\\')
       ? { kind: 'webapp', path: s.path }
       : null;
   }
@@ -39,10 +42,13 @@ export function resolveSourceUrl(
   hostUrl: string
 ): string | null {
   try {
-    const u =
-      source.kind === 'webapp'
-        ? new URL(source.path, hostUrl)
-        : new URL(source.url);
+    if (source.kind === 'webapp') {
+      const base = new URL(hostUrl);
+      const u = new URL(source.path, base);
+      // A webapp path must stay on the Signal K server.
+      return isHttp(u) && u.origin === base.origin ? u.href : null;
+    }
+    const u = new URL(source.url);
     return isHttp(u) ? u.href : null;
   } catch {
     return null;

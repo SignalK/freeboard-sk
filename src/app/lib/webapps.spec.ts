@@ -24,6 +24,16 @@ describe('mapWebappList', () => {
     ).toEqual(['/linked', '/legacy/public/', '/plain/', '/modern/']);
   });
 
+  it('falls back to location when _location is null or empty', () => {
+    expect(
+      mapWebappList([
+        app({ name: 'a', _location: null, location: '/modern/' }),
+        app({ name: 'b', _location: '', location: '/other/' }),
+        app({ name: 'c', _location: null, location: null })
+      ]).map((x) => x.url)
+    ).toEqual(['/modern/', '/other/', '/c']);
+  });
+
   it('leaves out Freeboard itself and empty entries', () => {
     expect(
       mapWebappList([

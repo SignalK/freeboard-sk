@@ -27,18 +27,20 @@ export function mapWebappList(list: SKAppsList[]): WebappEntry[] {
       if (!i || i.name === '@signalk/freeboard-sk') {
         return null;
       }
-      if (!i._location && !i.location) {
-        return { name: i.name, description: i.description, url: `/${i.name}` };
-      }
-      if (typeof i._location !== 'undefined') {
-        const x = i._location.indexOf('/signalk-server/');
+      const legacy = typeof i._location === 'string' ? i._location : '';
+      const current = typeof i.location === 'string' ? i.location : '';
+      if (legacy) {
+        const x = legacy.indexOf('/signalk-server/');
         return {
           name: i.name,
           description: i.description,
-          url: x === -1 ? i._location : i._location.slice(15)
+          url: x === -1 ? legacy : legacy.slice(15)
         };
       }
-      return { name: i.name, description: i.description, url: i.location };
+      if (current) {
+        return { name: i.name, description: i.description, url: current };
+      }
+      return { name: i.name, description: i.description, url: `/${i.name}` };
     })
     .filter((e): e is WebappEntry => !!e);
 }
