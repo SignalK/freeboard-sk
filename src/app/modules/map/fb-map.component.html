@@ -675,6 +675,7 @@
           [canStart]="isDraftRoute()"
           (modify)="modifyFeature(); popoverClosed()"
           (save)="saveRouteFromPopover(); popoverClosed()"
+          (reverse)="reverseDraftRoute()"
           (delete)="
             deleteFeature(overlay().id, overlay().type); popoverClosed()
           "

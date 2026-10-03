@@ -92,6 +92,8 @@ export class RoutePanel {
     return !!b && !b.saved;
   });
   protected isTemporary = computed(() => isTemporaryRoute(this._route()));
+  /** REVERSE turns round the route being followed, or a draft before START. */
+  protected canReverse = computed(() => this.isDraft() || this.isActive());
   /** Whether this is the route being followed. Read from course data so it
    *  updates when the course changes. */
   /** Whether this route has edits not yet saved to the server, whose point
@@ -230,7 +232,39 @@ export class RoutePanel {
   }
 
   protected onReverse() {
-    this.course.courseReverse();
+    if (this.isDraft()) {
+      this.reverseDraft();
+    } else {
+      this.course.courseReverse();
+    }
+  }
+
+  /** Turn a draft round, point names and all, so START follows it the other
+   *  way. */
+  private reverseDraft() {
+    const buffer = this.routeBuffers.get(this.id());
+    if (!buffer) {
+      return;
+    }
+    this.routeBuffers.replace(this.id(), [...buffer.points].reverse());
+    const route = this._route();
+    const meta = route.feature.properties.coordinatesMeta;
+    this._route.set(
+      Object.assign(new SKRoute(), route, {
+        feature: {
+          ...route.feature,
+          geometry: {
+            ...route.feature.geometry,
+            coordinates: [...route.feature.geometry.coordinates].reverse()
+          },
+          properties: {
+            ...route.feature.properties,
+            ...(meta ? { coordinatesMeta: [...meta].reverse() } : {})
+          }
+        }
+      })
+    );
+    this.parsePoints();
   }
 
   protected onGoto(index?: number) {
