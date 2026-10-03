@@ -288,7 +288,10 @@ iframe. Where the two branches differ is what the host can know:
   (`popout: 'popup'`), so a reload keeps the note instead of starting a second
   copy.
 
-Closing the PiP App window ends it in either case.
+Closing the PiP App window closes its Document PiP window too. A `noopener` popup
+is out of Freeboard's reach: closing the PiP App window removes the window (so
+nothing can bring a second copy back in) but leaves the popup running, and a
+message tells the user to close it there.
 
 Facts that shape it (checked Oct 2026): supported in Chrome/Edge 130+ and current
 Firefox (shipped in 151), not Safari; **one Document PiP window per tab** (a second request closes the
@@ -305,6 +308,16 @@ mode: copy the `.app-night` filter rule into the PiP document when
   app spec pins this for the instrument iframe; add the same assertion for windows).
   No `allow-top-navigation`, `allow-popups`, `allow-modals`, matching the extension
   spec's Security section. `allow="fullscreen"` is fine.
+- **Why `allow-same-origin` stays, for every source.** It only matters for pages on
+  Freeboard's own origin, and those are served by the user's Signal K server
+  itself: the server or a webapp or plugin installed on it, code that already runs
+  with the server's trust. The instrument panel and the plotter extension iframes
+  grant the same flag for the same reason. Those apps need it: without it the
+  frame gets an opaque origin and its own REST and SSE calls to the server lose the
+  session, which breaks the motivating case (signalk-wifish). For a page on another
+  origin the flag only lets it keep that origin; it gains no access to Freeboard.
+  As the Plotter Extensions API's Security section puts it, the sandbox is fault
+  containment, not a security boundary.
 - Anything opened outside the iframe sandbox severs its opener: the "Open in new
   tab" link uses `rel="noopener noreferrer"` and the popup fallback passes
   `noopener`, so an untrusted page cannot navigate the Freeboard tab through
