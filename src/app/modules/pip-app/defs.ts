@@ -31,7 +31,8 @@ export function normalisePipApps(input: unknown): PipAppDef[] {
       source,
       rect: { ...d.rect },
       collapsed: d.collapsed === true,
-      opacity: clampOpacity(d.opacity)
+      opacity: clampOpacity(d.opacity),
+      ...(d.popout === 'popup' ? { popout: 'popup' as const } : {})
     });
   }
   return out;

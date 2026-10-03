@@ -132,6 +132,47 @@ describe('PipAppService', () => {
     expect(app.config.pipApps.windows[0]).toMatchObject({ collapsed: true });
   });
 
+  it('marks a window as out in a popup and back again, persisting both', () => {
+    const service = create();
+    const a = service.open(wifish);
+    service.setPopout(a.id, 'popup');
+    expect(app.config.pipApps.windows[0].popout).toBe('popup');
+    service.setPopout(a.id, null);
+    expect(service.windows()[0]).not.toHaveProperty('popout');
+    expect(app.config.pipApps.windows[0]).not.toHaveProperty('popout');
+  });
+
+  it('tells the user to close a popup Freeboard cannot reach', () => {
+    const service = create();
+    const a = service.open(wifish, 'Sounder');
+    service.close(a.id);
+    expect(app.showMessage).not.toHaveBeenCalled();
+    const b = service.open(wifish, 'Sounder');
+    service.setPopout(b.id, 'popup');
+    service.close(b.id);
+    expect(app.showMessage).toHaveBeenCalledWith(
+      expect.stringContaining('separate window')
+    );
+    expect(service.windows()).toEqual([]);
+  });
+
+  it('warns about every popup still open when all windows close', () => {
+    const service = create();
+    const a = service.open(wifish, 'Sounder');
+    service.open({ kind: 'url', url: 'https://example.com/' }, 'Web');
+    const c = service.open(
+      { kind: 'url', url: 'https://example.com/radar' },
+      'Radar'
+    );
+    service.setPopout(a.id, 'popup');
+    service.setPopout(c.id, 'popup');
+    service.closeAll();
+    expect(app.showMessage).toHaveBeenCalledWith(
+      'Sounder, Radar are still open in separate windows. Close them there.'
+    );
+    expect(service.windows()).toEqual([]);
+  });
+
   it('reveals a collapsed window when it is chosen again', () => {
     const service = create();
     const a = service.open(wifish);
