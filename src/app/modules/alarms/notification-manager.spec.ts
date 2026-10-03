@@ -58,7 +58,10 @@ describe('NotificationManager alert properties (#755)', () => {
   });
 
   const notification = (
-    extra: Partial<SKNotification> & { other?: string } = {}
+    extra: Partial<SKNotification> & {
+      other?: string;
+      data?: { targetRef?: string };
+    } = {}
   ): SKNotification => ({
     state: ALARM_STATE.alarm,
     method: [ALARM_METHOD.visual],
@@ -109,6 +112,40 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(app.data.vessels.closest).toEqual([
       'vessels.urn:mrn:imo:mmsi:123456789'
     ]);
+  });
+
+  it('records the target named by data.targetRef', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+      notification({
+        data: { targetRef: 'vessels.urn:mrn:imo:mmsi:123456789' }
+      })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.properties.vesselId).toBe(
+      'vessels.urn:mrn:imo:mmsi:123456789'
+    );
+    expect(app.data.vessels.closest).toEqual([
+      'vessels.urn:mrn:imo:mmsi:123456789'
+    ]);
+  });
+
+  it('prefers data.targetRef over other', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+      notification({
+        data: { targetRef: 'vessels.urn:mrn:imo:mmsi:123456789' },
+        other: 'vessels.urn:mrn:imo:mmsi:987654321'
+      })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.properties.vesselId).toBe(
+      'vessels.urn:mrn:imo:mmsi:123456789'
+    );
   });
 
   it('leaves properties empty when the notification carries neither', () => {
