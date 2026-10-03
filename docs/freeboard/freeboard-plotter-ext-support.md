@@ -38,7 +38,8 @@ package; Freeboard depends on it (`^0.13.0`) and imports its host entry point
 
 `widgets`, `panels.iframe`, `buttons`, `signalk.stream`, `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
-`nightMode`, `resourceGroups`, `background.iframe`, `ui`.
+`nightMode`, `resourceGroups`, `background.iframe`, `ui`, and the vendor
+experiment `x-freeboard-sk.windows`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -343,6 +344,60 @@ are not arrays of strings), `resourceGroups.notSupported`.
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handler and relays `applied$` as `resourceGroup.applied` |
 | `src/app/modules/skresources/components/groups/groups.service.ts` | `applyGroup()` — the shared apply path — and the `applied$` stream |
 | `src/app/modules/skresources/components/groups/group-apply.ts` | the pure three-way selection logic and document validation |
+
+## The `x-freeboard-sk.windows` capability (experimental)
+
+`x-freeboard-sk.windows` lets an extension show one of its own iframe panels, or
+another page on the Signal K server, in a **PiP App** window: a movable,
+resizable window floating over the chart (`src/app/modules/pip-app/`, design in
+[`pip-app-design.md`](pip-app-design.md)). A sonar or camera plugin can offer
+"show over the chart" at the size its content needs, instead of the fixed-width
+panel drawer. It is a vendor-prefixed experiment, per the API's open capability
+vocabulary, until the shape settles; the windows themselves are behind
+Freeboard's Experimental Features setting.
+
+### The window model
+
+A PiP App window is the user's, not the extension's: the user moves, resizes,
+collapses, pops out and closes it, and its layout persists in
+`config.pipApps`. The extension can ask for one and close the ones it opened.
+Ownership is runtime-only (a map in `PlotterExtensionService`), so after a
+reload an extension cannot close a window it opened in an earlier session.
+
+Every URL goes through `resolveAssetUrl`, so only pages on the Signal K server
+open, exactly as for drawer panels. An extension iframe is already same-origin
+with those pages, so accepting a `url` adds no reach. The window stores the page
+as a server-relative path, so it survives a change of host name.
+
+### Methods
+
+- `ui.openWindow({ panel } | { url }, title?, width?, height?)` → `{ windowId }`.
+  `panel` is an iframe panel id from the caller's own manifest; `url` is a
+  server-relative path or same-origin URL. `width`/`height` are CSS pixels,
+  given together; the window is placed at the top right, clear of the toolbar.
+  If a window already shows the same page, it is brought to the front (and
+  expanded) and its id returned.
+- `ui.closeWindow({ windowId })` → `{}`. Only for windows the caller opened.
+
+The handlers are a pure factory (`window-methods.ts`) over service accessors.
+There are no events yet: the user closing a window is not reported.
+
+### Error reasons
+
+`windows.disabled` (`HOST_ERROR`: Experimental Features is off),
+`windows.badRequest` (neither or both of `panel`/`url`, a non-string title, a
+lone or non-positive size, or a `url` off the Signal K server), `UNKNOWN_PANEL`
+(no such iframe panel, or its URL is off the server), `UNKNOWN_WINDOW` (not a
+window this caller opened, or already closed).
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/window-methods.ts` | the `ui.openWindow` / `ui.closeWindow` handlers + param validation |
+| `src/app/modules/plotterext/plotterext.service.ts` | `uiWindowMethods`: panel lookup, URL resolution, placement, ownership |
+| `src/app/modules/pip-app/pip-app.service.ts` | the PiP App window store the handlers open into |
+| `dev-tools/fsk-mcp/src/tools.js` | `fsk_open_pip_app` / `fsk_close_pip_app` |
 
 ## The `map` capability
 
