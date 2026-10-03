@@ -31,6 +31,9 @@ export class PipAppService {
   /** True while a window is being moved or resized. */
   readonly gestureActive = signal(false);
   readonly viewport = signal<ViewportSize>(this.readViewport());
+  /** Windows were opened, closed or moved since the config was last loaded. */
+  private changedSinceLoad = false;
+
   /** Installed webapps offered in the launcher menu. */
   readonly webapps = signal<WebappEntry[]>([]);
 
@@ -38,7 +41,7 @@ export class PipAppService {
     this.load();
     // A login replaces the whole config with the server copy.
     this.app.config$.subscribe((e) => {
-      if (e === 'ready') this.load();
+      if (e === 'ready') this.onConfigReady();
     });
   }
 
@@ -120,13 +123,40 @@ export class PipAppService {
     });
   }
 
+  /**
+   * Apply a freshly loaded config. Windows changed here since the last load
+   * are newer than that copy (they were opened or moved while it was being
+   * fetched), so they are kept and the stored windows added around them.
+   */
+  private onConfigReady() {
+    if (!this.changedSinceLoad) {
+      this.load();
+      return;
+    }
+    const local = this.windows();
+    const stored = normalisePipApps(this.app.config?.pipApps?.windows).filter(
+      (w) => !local.some((l) => l.id === w.id || sameSource(l.source, w.source))
+    );
+    const merged = [...local, ...stored];
+    this.windows.set(merged);
+    this.zOrder.set([
+      ...stored.map((w) => w.id),
+      ...this.zOrder().filter((id) => local.some((l) => l.id === id))
+    ]);
+    this.persist();
+    // What is shown now is what was just stored.
+    this.changedSinceLoad = false;
+  }
+
   private load() {
     const stored = normalisePipApps(this.app.config?.pipApps?.windows);
     this.windows.set(stored);
     this.zOrder.set(stored.map((w) => w.id));
+    this.changedSinceLoad = false;
   }
 
   private persist(debounced = false) {
+    this.changedSinceLoad = true;
     this.app.config.pipApps = { windows: this.windows() };
     if (debounced) {
       this.app.saveConfigDebounced();
