@@ -195,6 +195,24 @@ describe('RouteReverseService', () => {
       expect(registry.get(routeId).points).toEqual(bufferPoints());
     });
 
+    it('ignores a second REVERSE while the first write is on its way', async () => {
+      store('rte-1');
+      let finish: (ok: boolean) => void;
+      updateRouteCoords.mockImplementationOnce(
+        () => new Promise<boolean>((resolve) => (finish = resolve))
+      );
+
+      const first = service.reverse('rte-1');
+      expect(await service.reverse('rte-1')).toBe(false);
+      finish(true);
+      expect(await first).toBe(true);
+      expect(updateRouteCoords).toHaveBeenCalledOnce();
+
+      // once the write is done, the route can be turned round again
+      expect(await service.reverse('rte-1')).toBe(true);
+      expect(updateRouteCoords).toHaveBeenCalledTimes(2);
+    });
+
     it('does nothing to a read-only route that is not being followed', async () => {
       store('rte-1', true);
 
