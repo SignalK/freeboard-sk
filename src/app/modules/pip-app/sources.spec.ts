@@ -25,6 +25,14 @@ describe('sourceFromInput', () => {
     });
   });
 
+  it('rejects backslash paths that would resolve off the server', () => {
+    expect(sourceFromInput('/\\other.example/')).toBeNull();
+    expect(parseSource({ kind: 'webapp', path: '/a\\b' })).toBeNull();
+    expect(
+      resolveSourceUrl({ kind: 'webapp', path: '/\\other.example/' }, host)
+    ).toBeNull();
+  });
+
   it('rejects other schemes, protocol-relative and bare words', () => {
     expect(sourceFromInput('javascript:alert(1)')).toBeNull();
     expect(sourceFromInput('file:///etc/passwd')).toBeNull();

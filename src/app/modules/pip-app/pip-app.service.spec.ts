@@ -156,6 +156,36 @@ describe('PipAppService', () => {
     ).toBeCloseTo(0.65);
   });
 
+  it('keeps windows changed while a server config was loading', () => {
+    const fromServer: PipAppDef = {
+      id: 'server',
+      title: 'Remote',
+      source: { kind: 'url', url: 'https://example.com' },
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+      collapsed: false,
+      opacity: 1
+    };
+    const service = create();
+    const local = service.open(wifish, 'Sounder');
+    // the server copy predates the window opened above
+    app.config = {
+      pipApps: {
+        windows: [fromServer, { ...fromServer, id: 'dup', source: wifish }]
+      }
+    };
+    app.config$.next('ready');
+    expect(service.windows().map((w) => w.id)).toEqual([local.id, 'server']);
+    expect(service.zOrder().at(-1)).toBe(local.id);
+    expect(app.config.pipApps.windows.map((w) => w.id)).toEqual([
+      local.id,
+      'server'
+    ]);
+    // nothing changed since that merge: the next load replaces as usual
+    app.config = { pipApps: { windows: [] } };
+    app.config$.next('ready');
+    expect(service.windows()).toEqual([]);
+  });
+
   it('warns once the soft limit of open windows is passed', () => {
     const service = create();
     for (let i = 0; i <= PIP_APP_SOFT_LIMIT; i++) {
