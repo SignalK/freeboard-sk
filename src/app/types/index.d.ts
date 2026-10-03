@@ -200,7 +200,7 @@ export interface IAppConfig {
     aisShowTrack: boolean;
     aisTrackLength: number; // hours of track for a vessel picked with its TRACK toggle (Track API v2)
     trailSource: TrailSource; // own-vessel trail source: auto | server | local (this device)
-    trailDuration: number; // number of hours of trail to fetch from server
+    trailDuration: number; // hours of trail to fetch from server; 0 (TRAIL_DURATION_ALL) for the whole recorded track
     trailResolution: {
       // resolution of server trail at defined time horizons
       lastHour: string;

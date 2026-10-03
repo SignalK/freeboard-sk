@@ -10,7 +10,10 @@ import { legacyPanBehavior, normaliseCenterOffset } from './lib/follow-offset';
 import { SKVessel } from './modules';
 import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
 import { DEFAULT_TAP_FADE_SPEED } from './modules/map/cursor-marker';
-import { migrateTrailSource } from './modules/skstream/track-source';
+import {
+  migrateTrailSource,
+  TRAIL_DURATION_ALL
+} from './modules/skstream/track-source';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -268,7 +271,7 @@ export function cleanConfig(
       aisShowTrack: false,
       aisTrackLength: 12,
       trailSource: 'auto',
-      trailDuration: 24,
+      trailDuration: TRAIL_DURATION_ALL,
       trailResolution: {
         lastHour: '5s',
         next23: '1m',
@@ -636,7 +639,7 @@ export function defaultConfig(): IAppConfig {
       aisShowTrack: false,
       aisTrackLength: 12, // hours of track for a vessel picked with its TRACK toggle
       trailSource: 'auto',
-      trailDuration: 24, // number of hours of trail to fetch from server
+      trailDuration: TRAIL_DURATION_ALL, // hours of trail to fetch from server; TRAIL_DURATION_ALL for the whole recorded track
       trailResolution: {
         // resolution of server trail at defined time horizons
         lastHour: '5s',

@@ -2,12 +2,17 @@ import { expect, describe, it, vi, afterEach, beforeEach } from 'vitest';
 import {
   apiGet,
   applyServerAisTracks,
+  assembleTrail,
+  getVesselTrail,
+  getVesselTrailV2,
   handleStreamEvent,
   initVessels,
   processVessel,
   timedTrail
 } from './skstream.worker';
 import { SKVessel } from '../skresources/resource-classes';
+import { Position } from 'src/app/types';
+import { TRAIL_DURATION_ALL } from './track-source';
 
 // getVesselTrail() fetches the server-side "self" track with several apiGet()
 // calls fired in the same tick and awaited via Promise.all. A shared in-flight
@@ -432,5 +437,178 @@ describe('skstream.worker timedTrail — trail recording times (#821)', () => {
       ])
     ).toBeUndefined();
     expect(timedTrail([null, null])).toBeUndefined();
+  });
+});
+
+describe('skstream.worker assembleTrail — server-simplified bands', () => {
+  // a zigzag finer than the fixed tolerance older bands are thinned to
+  const zigzag = Array.from({ length: 10 }, (_, i): Position => [
+    i * 0.0001,
+    (i % 2) * 0.0001
+  ]);
+  const lastHour: Position[][] = [
+    [
+      [1, 1],
+      [1.0001, 1.0001]
+    ]
+  ];
+
+  it('thins an older band to the fixed tolerance', () => {
+    const [older] = assembleTrail([[zigzag], lastHour]);
+    expect(older.length).toBeLessThan(zigzag.length);
+  });
+
+  it('keeps the detail of a band the server simplified for the map zoom', () => {
+    const [older, newest] = assembleTrail([[zigzag], lastHour], [true, false]);
+    expect(older).toEqual(zigzag);
+    expect(newest).toEqual(lastHour[0]);
+  });
+});
+
+// With the trail length "All", a zoom change fetches the trail again while an
+// earlier fetch may still be running; a new track source can do the same.
+// Whichever answers last, only the latest request may reach the app: an
+// earlier one carries the detail of another zoom or source, and its failure
+// would ask the app to fetch again for nothing.
+describe('skstream.worker own trail — overlapping fetches', () => {
+  const tracks = 'http://h/signalk/v2/api/tracks';
+  const opt = {
+    trailDuration: TRAIL_DURATION_ALL,
+    trailResolution: { lastHour: '5s', next23: '1m', beyond24: '5m' }
+  };
+  interface Call {
+    resolve: (r: Response) => void;
+    reject: (e: Error) => void;
+  }
+  let posted: Array<{ action: string; result: unknown }>;
+  let calls: Call[];
+
+  /** Start a trail request and return its pending band fetches. */
+  const request = (): Call[] => {
+    getVesselTrailV2(tracks, opt);
+    return calls.splice(0);
+  };
+  /** Answer every band with a trail starting at `lon`. */
+  const answer = (fetches: Call[], lon: number) =>
+    fetches.forEach((c) =>
+      c.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: {
+                  type: 'MultiLineString',
+                  coordinates: [
+                    [
+                      [lon, 0],
+                      [lon + 1, 0]
+                    ]
+                  ]
+                },
+                properties: { isSelf: true, providerId: 'tracks' }
+              }
+            ]
+          })
+      } as unknown as Response)
+    );
+  /** Answer every v1 band with a trail starting at `lon`. */
+  const answerV1 = (fetches: Call[], lon: number) =>
+    fetches.forEach((c) =>
+      c.resolve({
+        json: () =>
+          Promise.resolve({
+            type: 'MultiLineString',
+            coordinates: [
+              [
+                [lon, 0],
+                [lon + 1, 0]
+              ]
+            ]
+          })
+      } as unknown as Response)
+    );
+  const fail = (fetches: Call[]) =>
+    fetches.forEach((c) => c.reject(new Error('offline')));
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+  const trails = () => posted.filter((m) => m.action === 'trail');
+
+  beforeEach(() => {
+    posted = [];
+    calls = [];
+    vi.stubGlobal(
+      'postMessage',
+      vi.fn((msg: { action: string; result: unknown }) => posted.push(msg))
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve, reject) =>
+            calls.push({ resolve, reject })
+          )
+      )
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('posts the latest trail only, even when an earlier one answers last', async () => {
+    const earlier = request();
+    const latest = request();
+    expect(latest).toHaveLength(3);
+
+    answer(latest, 10);
+    await settle();
+    answer(earlier, 20);
+    await settle();
+
+    expect(trails()).toHaveLength(1);
+    expect((trails()[0].result as Position[][])[0][0]).toEqual([10, 0]);
+  });
+
+  it('drops the failure of an earlier request but posts the latest one', async () => {
+    const earlier = request();
+    const latest = request();
+
+    fail(earlier);
+    await settle();
+    expect(trails()).toHaveLength(0);
+
+    fail(latest);
+    await settle();
+    expect(trails()).toHaveLength(1);
+    expect(trails()[0].result).toBeNull();
+  });
+
+  it('lets a request over another interface supersede one still running', async () => {
+    const v2 = request();
+    getVesselTrail(opt);
+    const v1 = calls.splice(0);
+    expect(v1).toHaveLength(3);
+
+    answerV1(v1, 30);
+    await settle();
+    answer(v2, 20);
+    await settle();
+
+    expect(trails()).toHaveLength(1);
+    expect((trails()[0].result as Position[][])[0][0]).toEqual([30, 0]);
+
+    posted.length = 0;
+    getVesselTrail(opt);
+    const staleV1 = calls.splice(0);
+    const latest = request();
+    answer(latest, 10);
+    await settle();
+    answerV1(staleV1, 30);
+    await settle();
+
+    expect(trails()).toHaveLength(1);
+    expect((trails()[0].result as Position[][])[0][0]).toEqual([10, 0]);
   });
 });

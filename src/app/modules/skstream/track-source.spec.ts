@@ -3,6 +3,7 @@ import {
   aisTracksQuery,
   createRequestGate,
   detectTrackSource,
+  metresPerPixel,
   migrateTrailSource,
   needsAisRefetch,
   padExtent,
@@ -15,6 +16,7 @@ import {
   trackApiNoticeMessage,
   TrackSource,
   trackSourceUrls,
+  TRAIL_DURATION_ALL,
   trailBands,
   trailBandUrl,
   tracksApiUrl,
@@ -115,6 +117,69 @@ describe('track-source trailBands', () => {
         '&resolution=PT5S&times=true&provider=tracks'
     );
     expect(url).not.toContain('bbox');
+  });
+
+  describe('All', () => {
+    it('reaches back to the first recorded point, simplified to the given tolerance', () => {
+      expect(trailBands(TRAIL_DURATION_ALL, res, now, 150)).toEqual([
+        { to: hoursAgo(24), resolution: 'PT5M', epsilon: 150 },
+        { from: hoursAgo(24), to: hoursAgo(1), resolution: 'PT1M' },
+        { from: hoursAgo(1), resolution: 'PT5S' }
+      ]);
+    });
+
+    it('leaves the tolerance to the provider when none is given', () => {
+      const [oldest, ...newer] = trailBands(TRAIL_DURATION_ALL, res, now);
+      expect(oldest).toEqual({
+        to: hoursAgo(24),
+        resolution: 'PT5M',
+        simplify: true
+      });
+      newer.forEach((b) => {
+        expect(b.simplify).toBeUndefined();
+        expect(b.epsilon).toBeUndefined();
+      });
+    });
+
+    it('simplifies no band of a fixed length', () => {
+      [1, 24, 96].forEach((d) =>
+        trailBands(d, res, now, 150).forEach((b) => {
+          expect(b.epsilon).toBeUndefined();
+          expect(b.simplify).toBeUndefined();
+        })
+      );
+    });
+
+    it('asks for the oldest band without from, at the tolerance', () => {
+      const tracks = 'http://h/signalk/v2/api/tracks';
+      const [oldest] = trailBands(TRAIL_DURATION_ALL, res, now, 152.5);
+      expect(trailBandUrl(tracks, oldest, 'tracks')).toBe(
+        `${tracks}?context=self&to=2026-09-23T12%3A00%3A00.000Z` +
+          '&resolution=PT5M&epsilon=152.5&times=true&provider=tracks'
+      );
+
+      const [auto] = trailBands(TRAIL_DURATION_ALL, res, now);
+      expect(trailBandUrl(tracks, auto)).toBe(
+        `${tracks}?context=self&to=2026-09-23T12%3A00%3A00.000Z` +
+          '&resolution=PT5M&simplify=true&times=true'
+      );
+    });
+  });
+});
+
+describe('track-source metresPerPixel', () => {
+  it('is the Web Mercator ground resolution at the equator', () => {
+    expect(metresPerPixel(0, 0)).toBeCloseTo(156543.034, 3);
+    expect(metresPerPixel(10, 0)).toBeCloseTo(152.874, 3);
+  });
+
+  it('halves with each zoom level', () => {
+    expect(metresPerPixel(13, 0) / metresPerPixel(14, 0)).toBeCloseTo(2, 9);
+  });
+
+  it('shrinks with latitude', () => {
+    expect(metresPerPixel(10, 60)).toBeCloseTo(metresPerPixel(10, 0) / 2, 6);
+    expect(metresPerPixel(10, -60)).toBeCloseTo(metresPerPixel(10, 60), 9);
   });
 });
 
