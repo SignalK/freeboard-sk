@@ -805,8 +805,8 @@ export function getVesselTrail(
 }
 
 /** Join trail bands (oldest first, the LAST one being the last hour) into one
- * trail. Older bands are simplified and cut into segments for OL rendering;
- * the last hour is kept as received. A null band contributes nothing. A band
+ * trail. Older bands are simplified and cut into segments for OL rendering,
+ * each recorded stretch on its own; the last hour is kept as received. A null band contributes nothing. A band
  * the server already simplified to the map's zoom (`serverSimplified`) is only
  * cut into segments: a fixed tolerance would undo its zoomed-in detail. */
 export function assembleTrail(
@@ -823,25 +823,24 @@ export function assembleTrail(
       return;
     }
     if (idx !== lastIdx) {
-      // > 1hr simplify trail
-      let coords = [];
+      // > 1hr simplify trail, each recorded stretch on its own: joined, the
+      // trail would run straight across a gap in the recording
       lines.forEach((line) => {
-        coords = coords.concat(line);
+        let coords = serverSimplified[idx]
+          ? line
+          : SimplifyAP(line as [number, number][], tolerance, highQuality);
+        // break up into segments for OL rendering
+        while (coords.length > segLen) {
+          const ls = coords.slice(0, segLen);
+          trail.push(ls);
+          coords = coords.slice(segLen - 1); // ensure segments join
+          // offset first point so OL renders
+          coords[0] = [coords[0][0] + 0.000000005, coords[0][1] + 0.000000005];
+        }
+        if (coords.length !== 0) {
+          trail.push(coords);
+        }
       });
-      if (!serverSimplified[idx]) {
-        coords = SimplifyAP(coords, tolerance, highQuality);
-      }
-      // break up into segments for OL rendering
-      while (coords.length > segLen) {
-        const ls = coords.slice(0, segLen);
-        trail.push(ls);
-        coords = coords.slice(segLen - 1); // ensure segments join
-        // offset first point so OL renders
-        coords[0] = [coords[0][0] + 0.000000005, coords[0][1] + 0.000000005];
-      }
-      if (coords.length !== 0) {
-        trail.push(coords);
-      }
     } else {
       // last Hour
       trail = trail.concat(lines);

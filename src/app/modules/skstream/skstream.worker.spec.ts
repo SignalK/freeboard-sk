@@ -458,6 +458,21 @@ describe('skstream.worker assembleTrail — server-simplified bands', () => {
     expect(older.length).toBeLessThan(zigzag.length);
   });
 
+  it('keeps a gap in the recording, simplified here or on the server', () => {
+    const before: Position[] = [
+      [177.0, -17.8],
+      [177.01, -17.8]
+    ];
+    const after: Position[] = [
+      [177.3, -17.9],
+      [177.31, -17.9]
+    ];
+    [false, true].forEach((byServer) => {
+      const trail = assembleTrail([[before, after], lastHour], [byServer]);
+      expect(trail.slice(0, 2)).toEqual([before, after]);
+    });
+  });
+
   it('keeps the detail of a band the server simplified for the map zoom', () => {
     const [older, newest] = assembleTrail([[zigzag], lastHour], [true, false]);
     expect(older).toEqual(zigzag);
