@@ -150,6 +150,17 @@ describe('PipAppPopoutService', () => {
     expect(warn).toHaveBeenCalled();
   });
 
+  it('keeps the current window out when the browser refuses another', async () => {
+    const popout = create();
+    await popout.popOut(def('a'), { w: 400, h: 300 });
+    const first = await requestWindow.mock.results[0].value;
+    requestWindow.mockRejectedValueOnce(new Error('no gesture'));
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await popout.popOut(def('b'), { w: 400, h: 300 });
+    expect(first.close).not.toHaveBeenCalled();
+    expect(popout.pipId()).toBe('a');
+  });
+
   it('falls back to a noopener popup without the API or when embedded', async () => {
     topWindow = false;
     const popout = create();
