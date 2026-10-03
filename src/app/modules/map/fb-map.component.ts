@@ -167,6 +167,7 @@ import {
 } from './ol/lib/tidal-currents.service';
 import { TRACK_HISTORY_ID } from './ol/lib/vessel/layer-track-history.component';
 import { trackTimesHiddenByVessel, trailTapTrack } from './track-time-taps';
+import { OTHER_STOP_MS, OWN_STOP_MS, trackSectionRoute } from './track-route';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
@@ -2131,7 +2132,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
           start: info && label(info.start),
           end: info && label(info.end),
           duration: info && durationLabel(info.duration),
-          at: info?.atTime !== undefined ? label(info.atTime) : undefined
+          at: info?.atTime !== undefined ? label(info.atTime) : undefined,
+          route:
+            hf.times &&
+            trackSectionRoute(
+              { lines: hf.lines, times: hf.times },
+              hf.at,
+              hf.context === 'self' ? OWN_STOP_MS : OTHER_STOP_MS
+            )
         };
         break;
       }
@@ -2281,6 +2289,27 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
     this.mapInteract.draw.features = sf;
     this.formatPopover(feature.id, feature.coord);
+  }
+
+  /** ROUTE in a track popover: the passage it shows becomes a draft route,
+   * opened as a drawn one is, to be started or saved. */
+  protected routeFromTrack() {
+    const th = this.overlay().trackHistory;
+    if (!th?.route) {
+      return;
+    }
+    const buffer = this.routeBuffers.create({
+      name: `Track of ${th.name}`,
+      points: th.route.map((position) => ({ position }))
+    });
+    if (this.app.useInfoPanel()) {
+      this.popoverClosed();
+      this.infoPanel.openWith('routes', this.bufferToFBRoute(buffer));
+    } else {
+      // the tapped track is no feature of the route: MODIFY would edit it
+      this.mapInteract.draw.features = new Collection<Feature>();
+      this.formatPopover(`route.${buffer.routeId}`, this.overlay().position);
+    }
   }
 
   /** handle popover info event */
