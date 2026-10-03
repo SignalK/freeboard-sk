@@ -177,13 +177,18 @@ export function nextPowerValue(
   return next;
 }
 
-/** The ranges the radar supports, nearest first, with the radar's own label
- *  for each where it has one. */
+/** The ranges the radar can be set to, nearest first, with the radar's own
+ *  label for each where it has one. `supportedRanges` lists every range of
+ *  every unit system; the range control's `validValues` are those of the
+ *  system the radar is set to (its Range Units), so they win. */
 export function rangeOptions(
   capabilities: CapabilityManifest | undefined
 ): ControlOption[] {
   const def = capabilities?.controls?.['range'];
-  return [...(capabilities?.supportedRanges ?? [])]
+  const values = def?.validValues?.length
+    ? def.validValues.map(Number)
+    : (capabilities?.supportedRanges ?? []);
+  return [...values]
     .sort((a, b) => a - b)
     .map((value) => ({ value, label: def?.descriptions?.[value] ?? '' }));
 }

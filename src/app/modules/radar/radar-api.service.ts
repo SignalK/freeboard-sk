@@ -266,6 +266,13 @@ export class RadarAPIService {
     if (kind !== 'controls') {
       return;
     }
+    const shown = this._radar();
+    const unitsChanged =
+      controlId === 'rangeUnits' &&
+      shown?.device?.id === radarId &&
+      shown.controls?.has(controlId) &&
+      shown.controls.get(controlId).value !==
+        (msg.value as ControlValue)?.value;
     this._radar.update((current) => {
       if (
         current?.device?.id !== radarId ||
@@ -279,6 +286,24 @@ export class RadarAPIService {
       controls.set(controlId, msg.value as ControlValue);
       return { ...current, controls };
     });
+    if (unitsChanged) {
+      this.refreshCapabilities(radarId);
+    }
+  }
+
+  /** Read the radar's capabilities again. Its range list, values and labels,
+   *  is that of the unit system its Range Units are set to, and changes with
+   *  them; the stream carries only control values, not their definitions. */
+  private async refreshCapabilities(radarId: string) {
+    let capabilities: CapabilityManifest;
+    try {
+      capabilities = await this.getCapabilities(radarId);
+    } catch {
+      return;
+    }
+    this._radar.update((current) =>
+      current?.device?.id === radarId ? { ...current, capabilities } : current
+    );
   }
 
   /** Return list of available radars */

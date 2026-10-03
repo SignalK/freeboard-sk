@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RadarAPIService } from './radar-api.service';
 import { AppFacade } from 'src/app/app.facade';
@@ -159,6 +159,72 @@ describe('RadarAPIService init() (#755)', () => {
       expect(service.radar().controls.get('gain')).toEqual({
         value: 20,
         auto: false
+      });
+    });
+
+    describe('when Range Units change', () => {
+      // The radar lists its ranges, values and labels, for the unit system its
+      // Range Units are set to, so the list changes with them.
+      const capsPath = 'vessels/self/radars/radar-1/capabilities';
+      const ctrlPath = 'vessels/self/radars/radar-1/controls';
+      const nautical = {
+        ...capabilities,
+        controls: {
+          ...capabilities.controls,
+          rangeUnits: {
+            id: 6,
+            name: 'Range Units',
+            category: 'installation',
+            dataType: 'enum'
+          }
+        }
+      };
+      const metric = { ...nautical, supportedRanges: [125, 250] };
+      const settle = () => new Promise((resolve) => setTimeout(resolve));
+
+      beforeEach(() => {
+        responses[capsPath] = nautical;
+        responses[ctrlPath] = { ...controls, rangeUnits: { value: 0 } };
+      });
+      afterEach(() => {
+        responses[capsPath] = capabilities;
+        responses[ctrlPath] = controls;
+      });
+
+      it('reads the capabilities again, so the range list follows', async () => {
+        const service = TestBed.inject(RadarAPIService);
+        await service.init();
+        responses[capsPath] = metric;
+
+        update('radars.radar-1.controls.rangeUnits', { value: 1 });
+        await settle();
+
+        expect(service.radar().capabilities).toBe(metric);
+        expect(service.radar().controls.get('rangeUnits')).toEqual({
+          value: 1
+        });
+      });
+
+      it('keeps them when the value is the one the radar had', async () => {
+        const service = TestBed.inject(RadarAPIService);
+        await service.init();
+        responses[capsPath] = metric;
+
+        update('radars.radar-1.controls.rangeUnits', { value: 0 });
+        await settle();
+
+        expect(service.radar().capabilities).toBe(nautical);
+      });
+
+      it("keeps them when another radar's Range Units change", async () => {
+        const service = TestBed.inject(RadarAPIService);
+        await service.init();
+        responses[capsPath] = metric;
+
+        update('radars.radar-2.controls.rangeUnits', { value: 1 });
+        await settle();
+
+        expect(service.radar().capabilities).toBe(nautical);
       });
     });
 

@@ -278,7 +278,25 @@ describe('radar power', () => {
 });
 
 describe('radar rangeOptions()', () => {
-  it('lists the supported ranges nearest first, with the radar labels', () => {
+  it("lists the range control's values, those of the radar's Range Units", () => {
+    // supportedRanges holds the metric and the nautical scales alike
+    const nautical = {
+      supportedRanges: [125, 250, 926, 1852],
+      controls: {
+        range: {
+          ...controls.range,
+          validValues: [1852, 926],
+          descriptions: { 926: '1/2 nm', 1852: '1 nm' }
+        }
+      }
+    } as unknown as CapabilityManifest;
+    expect(rangeOptions(nautical)).toEqual([
+      { value: 926, label: '1/2 nm' },
+      { value: 1852, label: '1 nm' }
+    ]);
+  });
+
+  it('falls back to the supported ranges, nearest first, when the range control lists none', () => {
     expect(rangeOptions(capabilities)).toEqual([
       { value: 115, label: '' },
       { value: 926, label: '1/2 nm' },
