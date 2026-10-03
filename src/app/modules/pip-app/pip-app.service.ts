@@ -3,8 +3,15 @@ import { SignalKClient } from 'signalk-client-angular';
 import * as uuid from 'uuid';
 import { AppFacade } from 'src/app/app.facade';
 import { mapWebappList, SKAppsList, WebappEntry } from 'src/app/lib/webapps';
-import { normalisePipApps } from './defs';
-import { DEFAULT_RECT, isValidRect, ViewportSize } from './geometry';
+import { clampOpacity, normalisePipApps } from './defs';
+import {
+  DEFAULT_RECT,
+  PxRect,
+  ViewportSize,
+  clampToViewport,
+  isValidRect,
+  toFractions
+} from './geometry';
 import { defaultTitle, parseSource, resolveSourceUrl } from './sources';
 import { PipAppDef, PipAppSource, PipRect } from './types';
 
@@ -60,14 +67,16 @@ export class PipAppService {
     if (!s || !this.resolveUrl(s)) return null;
     const existing = this.windows().find((w) => sameSource(w.source, s));
     if (existing) {
-      this.focus(existing.id);
+      this.reveal(existing.id);
       return existing;
     }
     const def: PipAppDef = {
       id: uuid.v4(),
       title: title?.trim() || defaultTitle(s),
       source: s,
-      rect: isValidRect(rect) ? { ...rect } : { ...DEFAULT_RECT }
+      rect: isValidRect(rect) ? { ...rect } : { ...DEFAULT_RECT },
+      collapsed: false,
+      opacity: 1
     };
     this.windows.update((list) => [...list, def]);
     this.zOrder.update((z) => [...z, def.id]);
@@ -99,6 +108,14 @@ export class PipAppService {
     this.zOrder.set([...z.filter((i) => i !== id), id]);
   }
 
+  /** Bring a window to the front and expand it if it is collapsed. */
+  reveal(id: string) {
+    this.focus(id);
+    if (this.windows().find((w) => w.id === id)?.collapsed) {
+      this.setCollapsed(id, false);
+    }
+  }
+
   /** Store a window's new position and size (viewport fractions). */
   setRect(id: string, rect: PipRect) {
     if (!isValidRect(rect)) return;
@@ -106,6 +123,20 @@ export class PipAppService {
       list.map((w) => (w.id === id ? { ...w, rect: { ...rect } } : w))
     );
     this.persist(true);
+  }
+
+  setCollapsed(id: string, collapsed: boolean) {
+    this.patch(id, { collapsed });
+  }
+
+  setOpacity(id: string, opacity: number) {
+    this.patch(id, { opacity: clampOpacity(opacity) });
+  }
+
+  /** Viewport fractions for a pixel rectangle, kept inside the viewport. */
+  rectFromPixels(r: PxRect): PipRect {
+    const vp = this.viewport();
+    return toFractions(clampToViewport(r, vp), vp);
   }
 
   updateViewport() {
@@ -118,6 +149,14 @@ export class PipAppService {
       next: (list) => this.webapps.set(mapWebappList(list as SKAppsList[])),
       error: () => this.app.debug('PiP App: could not fetch the webapps list')
     });
+  }
+
+  private patch(id: string, change: Partial<PipAppDef>) {
+    if (!this.windows().some((w) => w.id === id)) return;
+    this.windows.update((list) =>
+      list.map((w) => (w.id === id ? { ...w, ...change } : w))
+    );
+    this.persist();
   }
 
   private load() {

@@ -95,7 +95,9 @@ describe('cleanConfig() legacy migration', () => {
       id: 'a',
       title: 'Sounder',
       source: { kind: 'webapp' as const, path: '/signalk-wifish/' },
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+      collapsed: false,
+      opacity: 1
     };
     cfg.pipApps = {
       windows: [ok, { ...ok, id: 'b', source: { kind: 'url', url: 'x:y' } }]
