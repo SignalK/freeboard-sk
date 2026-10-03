@@ -377,14 +377,16 @@
                     app.config.experiments &&
                     app.config.display.plugins.instruments
                   ) {
-                    <a
+                    <button
+                      type="button"
                       mat-icon-button
                       (click)="openInstrumentsAsPipApp()"
                       matTooltip="Open as PiP App over the chart."
                       matTooltipPosition="below"
+                      aria-label="Open as PiP App"
                     >
                       <mat-icon>picture_in_picture_alt</mat-icon>
-                    </a>
+                    </button>
                   }
                   &nbsp;&nbsp;
                   <a

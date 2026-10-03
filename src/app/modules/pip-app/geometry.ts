@@ -103,13 +103,19 @@ export function boundedGesture(
     if (mode.includes('s')) dy = Math.min(dy, viewport.h - start.y - start.h);
     if (mode.includes('n')) dy = Math.max(dy, -start.y);
   }
+  // A move keeps the height on screen (a collapsed window is only its title
+  // bar); only a resize enforces the minimum size.
+  const bounds =
+    mode === 'move'
+      ? { ...limits, minH: Math.min(limits.minH, start.h) }
+      : limits;
   const r = clampToViewport(
-    applyGesture(start, mode, dx, dy, limits),
+    applyGesture(start, mode, dx, dy, bounds),
     viewport,
-    limits
+    bounds
   );
   return mode === 'move'
-    ? clampToViewport(snapToEdges(r, viewport), viewport, limits)
+    ? clampToViewport(snapToEdges(r, viewport), viewport, bounds)
     : r;
 }
 
