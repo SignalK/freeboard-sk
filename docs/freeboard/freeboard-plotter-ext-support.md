@@ -376,7 +376,8 @@ as a server-relative path, so it survives a change of host name.
   server-relative path or same-origin URL. `width`/`height` are CSS pixels,
   given together; the window is placed at the top right, clear of the toolbar.
   If a window already shows the same page, it is brought to the front (and
-  expanded) and its id returned.
+  expanded) and its id returned; it stays with whoever opened it, so the
+  caller cannot close a window the user or another extension opened.
 - `ui.closeWindow({ windowId })` → `{}`. Only for windows the caller opened.
 
 The handlers are a pure factory (`window-methods.ts`) over service accessors.

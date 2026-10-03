@@ -67,6 +67,11 @@ describe('PlotterExtensionService PiP App windows', () => {
       windows,
       rectFromPixels: vi.fn(() => ({ x: 0.4, y: 0.1, w: 0.5, h: 0.3 })),
       open: vi.fn((source, title, rect) => {
+        // Like PipAppService.open: the same page reveals its window.
+        const same = windows().find(
+          (w) => JSON.stringify(w.source) === JSON.stringify(source)
+        );
+        if (same) return same;
         const def = { id: `w${windows().length + 1}`, title, source, rect };
         windows.update((l) => [...l, def as PipAppDef]);
         return def;
@@ -176,6 +181,38 @@ describe('PlotterExtensionService PiP App windows', () => {
     await expect(
       call('a', 'ui.closeWindow', { windowId })
     ).rejects.toMatchObject({ data: { reason: 'UNKNOWN_WINDOW' } });
+  });
+
+  it('never hands over a window the caller did not open', async () => {
+    // The user already shows the same page.
+    windows.set([
+      {
+        id: 'user',
+        title: 'Sonar',
+        source: {
+          kind: 'webapp',
+          path: '/plotterext/sonar/panel.html?compact=1'
+        }
+      } as PipAppDef
+    ]);
+    const { windowId } = (await call('a', 'ui.openWindow', {
+      panel: 'sonar'
+    })) as { windowId: string };
+    expect(windowId).toBe('user');
+    await expect(
+      call('a', 'ui.closeWindow', { windowId })
+    ).rejects.toMatchObject({ data: { reason: 'UNKNOWN_WINDOW' } });
+    // Nor can a second extension take over another extension's window.
+    windows.set([]);
+    const own = (await call('a', 'ui.openWindow', { panel: 'sonar' })) as {
+      windowId: string;
+    };
+    await call('b', 'ui.openWindow', { panel: 'sonar' });
+    await expect(
+      call('b', 'ui.closeWindow', { windowId: own.windowId })
+    ).rejects.toMatchObject({ data: { reason: 'UNKNOWN_WINDOW' } });
+    await call('a', 'ui.closeWindow', { windowId: own.windowId });
+    expect(pipApps.close).toHaveBeenCalledWith(own.windowId);
   });
 
   it('refuses while PiP App is switched off', async () => {

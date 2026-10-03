@@ -407,13 +407,21 @@ export class PlotterExtensionService {
               h: size.height
             })
           : undefined;
+        // open() reveals an existing window for the same page; only a window
+        // this call created becomes the caller's, so it cannot take over (and
+        // close) one the user or another extension opened.
+        const existing = new Set(
+          pipApps()
+            .windows()
+            .map((w) => w.id)
+        );
         const def = pipApps().open(
           { kind: 'webapp', path: `${u.pathname}${u.search}${u.hash}` },
           title ?? panel?.title,
           rect
         );
         if (!def) return null;
-        this.windowOwners.set(def.id, extension);
+        if (!existing.has(def.id)) this.windowOwners.set(def.id, extension);
         return def.id;
       },
       owns: (windowId) =>
