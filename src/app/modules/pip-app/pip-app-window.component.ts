@@ -148,7 +148,7 @@ interface ActiveGesture {
     <div class="fb-pip-app__body">
       @if (isOut()) {
         <div class="fb-pip-app__out">
-          @if (popout.poppedOut()?.mode === 'popup') {
+          @if (outMode() === 'popup') {
             <p>
               Shown in a separate window. Close that window before bringing the
               app back here.
@@ -495,9 +495,8 @@ export class PipAppWindowComponent implements OnDestroy {
   }
 
   /** True while this window is shown outside the page. */
-  protected readonly isOut = computed(
-    () => this.popout.poppedOut()?.id === this.def().id
-  );
+  protected readonly outMode = computed(() => this.popout.modeOf(this.def()));
+  protected readonly isOut = computed(() => !!this.outMode());
 
   protected popOut() {
     const r = this.rect();

@@ -129,6 +129,24 @@ export class PipAppService {
     this.patch(id, { collapsed });
   }
 
+  /** Mark a window as out in a popup (or back in, with null). */
+  setPopout(id: string, popout: 'popup' | null) {
+    if (popout) {
+      this.patch(id, { popout });
+      return;
+    }
+    if (!this.windows().some((w) => w.id === id)) return;
+    this.windows.update((list) =>
+      list.map((w) => {
+        if (w.id !== id) return w;
+        const next = { ...w };
+        delete next.popout;
+        return next;
+      })
+    );
+    this.persist();
+  }
+
   setOpacity(id: string, opacity: number) {
     this.patch(id, { opacity: clampOpacity(opacity) });
   }

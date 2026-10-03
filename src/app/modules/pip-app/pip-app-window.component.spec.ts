@@ -28,9 +28,10 @@ describe('PipAppWindowComponent', () => {
   };
   let host: HTMLElement;
   let popout: {
-    poppedOut: ReturnType<
+    out: ReturnType<
       typeof signal<{ id: string; mode: 'document-pip' | 'popup' } | null>
     >;
+    modeOf: (d: PipAppDef) => 'document-pip' | 'popup' | null;
     alwaysOnTop: boolean;
     popOut: ReturnType<typeof vi.fn>;
     popIn: ReturnType<typeof vi.fn>;
@@ -73,8 +74,12 @@ describe('PipAppWindowComponent', () => {
       setCollapsed: vi.fn(),
       setOpacity: vi.fn()
     };
+    const out = signal<{ id: string; mode: 'document-pip' | 'popup' } | null>(
+      null
+    );
     popout = {
-      poppedOut: signal(null),
+      out,
+      modeOf: (d) => (out()?.id === d.id ? out().mode : null),
       alwaysOnTop: true,
       popOut: vi.fn(),
       popIn: vi.fn()
@@ -202,7 +207,7 @@ describe('PipAppWindowComponent', () => {
   });
 
   it('shows Bring back instead of the app while popped out', () => {
-    popout.poppedOut.set({ id: 'w1', mode: 'popup' });
+    popout.out.set({ id: 'w1', mode: 'popup' });
     fixture.detectChanges();
     expect(host.querySelector('iframe')).toBeNull();
     expect(host.querySelector('.fb-pip-app__out').textContent).toContain(
@@ -210,13 +215,13 @@ describe('PipAppWindowComponent', () => {
     );
     (host.querySelector('.fb-pip-app__out button') as HTMLElement).click();
     expect(popout.popIn).toHaveBeenCalledWith('w1');
-    popout.poppedOut.set(null);
+    popout.out.set(null);
     fixture.detectChanges();
     expect(host.querySelector('iframe')).not.toBeNull();
   });
 
   it('is unaffected when another window is popped out', () => {
-    popout.poppedOut.set({ id: 'other', mode: 'document-pip' });
+    popout.out.set({ id: 'other', mode: 'document-pip' });
     fixture.detectChanges();
     expect(host.querySelector('iframe')).not.toBeNull();
   });
