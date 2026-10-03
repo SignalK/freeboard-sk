@@ -94,10 +94,12 @@ export interface PipAppDef {
   rect: PipRect;
   collapsed: boolean;         // title bar only; iframe stays mounted (hidden)
   opacity: number;            // 0.3 .. 1, default 1
+  popout?: 'popup';           // out in a noopener popup until the user brings it back (§6.6)
 }
 
 // persisted:  config.pipApps: { windows: PipAppDef[] }  (every open window reopens on load)
-// runtime only (service signals, not persisted): zOrder: string[], gestureActive, poppedOut
+// runtime only (service signals, not persisted): zOrder: string[], gestureActive,
+// the window shown in the Document PiP window
 ```
 
 Why fractions: `imageAdjustPalettePos` and friends store pixels and need clamping
@@ -270,15 +272,23 @@ async popOut(def: PipAppDef) {
 }
 ```
 
-Both branches follow one lifecycle. Popping out marks the window popped out, which
-unmounts its in-app iframe so an app streaming over SSE or a WebSocket never runs
-twice. The window keeps its place on the chart as a title bar with a
-"Shown in a separate window" note and a **Bring back** button. Popping in clears
-the mark and remounts the iframe. The Document PiP branch pops in by itself on
-`pagehide`. The `noopener` fallback cannot observe its popup, so it pops in only
-from that button; closing the popup alone leaves the note in place. Closing the
-PiP App window, or popping out another one, pops in first. The popped-out mark is
-runtime state only, so a reload always starts with every window in-app.
+Both branches unmount the in-app iframe while the app is out, so an app streaming
+over SSE or a WebSocket never runs twice. The window keeps its place on the chart
+as a title bar with a note and a **Bring back** button; popping in remounts the
+iframe. Where the two branches differ is what the host can know:
+
+- **Document PiP** is observable. It pops in by itself on `pagehide`, and since a
+  tab has only one such window, popping out another window pops this one in
+  first. Its state is runtime-only: the PiP window closes with the page anyway.
+- **The `noopener` popup** is not observable. Its **Bring back** button is the
+  user's confirmation that the popup is closed, and the note says to close it
+  first. Until then the in-app iframe stays unmounted: closing the popup alone
+  changes nothing, popping out another window leaves it out (popups do not
+  replace each other), and the mark is persisted with the window
+  (`popout: 'popup'`), so a reload keeps the note instead of starting a second
+  copy.
+
+Closing the PiP App window ends it in either case.
 
 Facts that shape it (checked Oct 2026): supported in Chrome/Edge 130+ and current
 Firefox (shipped in 151), not Safari; **one Document PiP window per tab** (a second request closes the
