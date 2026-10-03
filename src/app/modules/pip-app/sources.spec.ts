@@ -92,7 +92,9 @@ describe('normalisePipApps', () => {
     id: 'a',
     title: 'Sounder',
     source: { kind: 'webapp', path: '/signalk-wifish/' },
-    rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+    rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+    collapsed: false,
+    opacity: 1
   };
 
   it('keeps valid windows and drops broken or duplicate ones', () => {
@@ -106,6 +108,20 @@ describe('normalisePipApps', () => {
       'junk'
     ]);
     expect(out).toEqual([ok]);
+  });
+
+  it('defaults and clamps the display settings', () => {
+    const { collapsed, opacity, ...bare } = ok;
+    expect([collapsed, opacity]).toEqual([false, 1]);
+    expect(normalisePipApps([bare])[0]).toEqual(ok);
+    expect(normalisePipApps([{ ...ok, opacity: 0.05 }])[0].opacity).toBe(0.3);
+    expect(normalisePipApps([{ ...ok, opacity: 7 }])[0].opacity).toBe(1);
+    expect(normalisePipApps([{ ...ok, collapsed: 'yes' }])[0].collapsed).toBe(
+      false
+    );
+    expect(normalisePipApps([{ ...ok, collapsed: true }])[0].collapsed).toBe(
+      true
+    );
   });
 
   it('defaults a missing title and tolerates a non-array', () => {

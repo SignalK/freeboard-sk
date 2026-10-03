@@ -66,10 +66,28 @@ export function applyGesture(
   return { x, y, w, h };
 }
 
+/** Distance in px within which a moved window snaps to a viewport edge. */
+export const SNAP_DISTANCE = 12;
+
+/** Snap a window flush to any viewport edge it is within `threshold` of. */
+export function snapToEdges(
+  r: PxRect,
+  viewport: ViewportSize,
+  threshold = SNAP_DISTANCE
+): PxRect {
+  let { x, y } = r;
+  if (Math.abs(x) <= threshold) x = 0;
+  else if (Math.abs(viewport.w - (x + r.w)) <= threshold) x = viewport.w - r.w;
+  if (Math.abs(y) <= threshold) y = 0;
+  else if (Math.abs(viewport.h - (y + r.h)) <= threshold) y = viewport.h - r.h;
+  return { ...r, x, y };
+}
+
 /**
  * `applyGesture` for a live pointer: resize deltas are limited so the dragged
- * edge stops at the viewport edge (the opposite edge never moves), and the
- * result is clamped with `clampToViewport`.
+ * edge stops at the viewport edge (the opposite edge never moves), a move
+ * snaps to nearby viewport edges, and the result is clamped with
+ * `clampToViewport`.
  */
 export function boundedGesture(
   start: PxRect,
@@ -85,11 +103,20 @@ export function boundedGesture(
     if (mode.includes('s')) dy = Math.min(dy, viewport.h - start.y - start.h);
     if (mode.includes('n')) dy = Math.max(dy, -start.y);
   }
-  return clampToViewport(
-    applyGesture(start, mode, dx, dy, limits),
+  // A move keeps the height on screen (a collapsed window is only its title
+  // bar); only a resize enforces the minimum size.
+  const bounds =
+    mode === 'move'
+      ? { ...limits, minH: Math.min(limits.minH, start.h) }
+      : limits;
+  const r = clampToViewport(
+    applyGesture(start, mode, dx, dy, bounds),
     viewport,
-    limits
+    bounds
   );
+  return mode === 'move'
+    ? clampToViewport(snapToEdges(r, viewport), viewport, bounds)
+    : r;
 }
 
 /**

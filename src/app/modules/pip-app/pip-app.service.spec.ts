@@ -107,7 +107,9 @@ describe('PipAppService', () => {
       id: 'kept',
       title: 'Sounder',
       source: wifish,
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+      collapsed: false,
+      opacity: 1
     };
     app.config.pipApps.windows = [stored];
     const service = create();
@@ -117,12 +119,51 @@ describe('PipAppService', () => {
     expect(service.windows()).toEqual([]);
   });
 
+  it('collapses, expands and sets opacity, persisting each change', () => {
+    const service = create();
+    const a = service.open(wifish);
+    expect([a.collapsed, a.opacity]).toEqual([false, 1]);
+    service.setCollapsed(a.id, true);
+    service.setOpacity(a.id, 0.05);
+    expect(service.windows()[0]).toMatchObject({
+      collapsed: true,
+      opacity: 0.3
+    });
+    expect(app.config.pipApps.windows[0]).toMatchObject({ collapsed: true });
+  });
+
+  it('reveals a collapsed window when it is chosen again', () => {
+    const service = create();
+    const a = service.open(wifish);
+    const b = service.open({ kind: 'url', url: 'https://example.com' });
+    service.setCollapsed(a.id, true);
+    service.open(wifish);
+    expect(service.windows()[0].collapsed).toBe(false);
+    expect(service.zOrder()).toEqual([b.id, a.id]);
+  });
+
+  it('converts a pixel rectangle into on-screen viewport fractions', () => {
+    const service = create();
+    service.viewport.set({ w: 1000, h: 800 });
+    expect(service.rectFromPixels({ x: 640, y: 60, w: 350, h: 680 })).toEqual({
+      x: 0.64,
+      y: 0.075,
+      w: 0.35,
+      h: 0.85
+    });
+    expect(
+      service.rectFromPixels({ x: 900, y: 60, w: 350, h: 680 }).x
+    ).toBeCloseTo(0.65);
+  });
+
   it('keeps windows changed while a server config was loading', () => {
     const fromServer: PipAppDef = {
       id: 'server',
       title: 'Remote',
       source: { kind: 'url', url: 'https://example.com' },
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+      collapsed: false,
+      opacity: 1
     };
     const service = create();
     const local = service.open(wifish, 'Sounder');

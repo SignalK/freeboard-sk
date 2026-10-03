@@ -6,6 +6,7 @@ import {
   clampToViewport,
   fromFractions,
   isValidRect,
+  snapToEdges,
   toFractions
 } from './geometry';
 
@@ -68,6 +69,42 @@ describe('boundedGesture', () => {
     const r = boundedGesture(start, 'move', 5000, 5000, vp);
     expect(r.x).toBe(vp.w - start.w);
     expect(r.y).toBeLessThanOrEqual(vp.h - DEFAULT_LIMITS.barH);
+  });
+});
+
+describe('snapToEdges', () => {
+  it('snaps to an edge within the threshold and leaves others alone', () => {
+    expect(snapToEdges({ x: 8, y: 300, w: 200, h: 100 }, vp)).toEqual({
+      x: 0,
+      y: 300,
+      w: 200,
+      h: 100
+    });
+    expect(snapToEdges({ x: 790, y: 690, w: 200, h: 100 }, vp)).toEqual({
+      x: 800,
+      y: 700,
+      w: 200,
+      h: 100
+    });
+    expect(snapToEdges({ x: 30, y: 30, w: 200, h: 100 }, vp)).toEqual({
+      x: 30,
+      y: 30,
+      w: 200,
+      h: 100
+    });
+  });
+
+  it('keeps a short (collapsed) window short while it moves and snaps', () => {
+    const bar = { x: 100, y: 100, w: 300, h: 34 };
+    const moved = boundedGesture(bar, 'move', 50, 5000, vp);
+    expect(moved.h).toBe(34);
+    expect(moved.y + moved.h).toBe(vp.h);
+    expect(boundedGesture(bar, 'move', 10, 20, vp).h).toBe(34);
+  });
+
+  it('snaps a dragged window but not a resize', () => {
+    expect(boundedGesture(start, 'move', -92, 0, vp).x).toBe(0);
+    expect(boundedGesture(start, 'w', -92, 0, vp).x).toBe(8);
   });
 });
 

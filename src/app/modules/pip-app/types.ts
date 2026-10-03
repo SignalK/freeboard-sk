@@ -17,7 +17,13 @@ export interface PipAppDef {
   title: string;
   source: PipAppSource;
   rect: PipRect;
+  /** Shaded to its title bar; the embedded app keeps running. */
+  collapsed: boolean;
+  /** Window opacity, PIP_APP_MIN_OPACITY..1. */
+  opacity: number;
 }
+
+export const PIP_APP_MIN_OPACITY = 0.3;
 
 /**
  * Same baseline as the instrument panel and plotter-extension iframes: fault

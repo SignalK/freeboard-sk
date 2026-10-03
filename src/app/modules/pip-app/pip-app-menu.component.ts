@@ -55,7 +55,7 @@ import { PipAppService } from './pip-app.service';
       @if (service.windows().length) {
         <mat-divider></mat-divider>
         @for (w of service.windows(); track w.id) {
-          <button mat-menu-item (click)="service.focus(w.id)">
+          <button mat-menu-item (click)="service.reveal(w.id)">
             <mat-icon>flip_to_front</mat-icon>
             <span>{{ w.title }}</span>
           </button>

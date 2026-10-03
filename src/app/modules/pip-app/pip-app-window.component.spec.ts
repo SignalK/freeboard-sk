@@ -10,7 +10,9 @@ const def: PipAppDef = {
   id: 'w1',
   title: 'Sounder',
   source: { kind: 'webapp', path: '/signalk-wifish/' },
-  rect: { x: 0.1, y: 0.1, w: 0.4, h: 0.5 }
+  rect: { x: 0.1, y: 0.1, w: 0.4, h: 0.5 },
+  collapsed: false,
+  opacity: 1
 };
 
 describe('PipAppWindowComponent', () => {
@@ -20,6 +22,8 @@ describe('PipAppWindowComponent', () => {
     gestureActive: ReturnType<typeof signal<boolean>>;
     resolveUrl: (s: PipAppDef['source']) => string;
     setRect: ReturnType<typeof vi.fn>;
+    setCollapsed: ReturnType<typeof vi.fn>;
+    setOpacity: ReturnType<typeof vi.fn>;
   };
   let host: HTMLElement;
 
@@ -56,7 +60,9 @@ describe('PipAppWindowComponent', () => {
       gestureActive: signal(false),
       resolveUrl: (s) =>
         s.kind === 'webapp' ? `http://boat.local:3000${s.path}` : s.url,
-      setRect: vi.fn()
+      setRect: vi.fn(),
+      setCollapsed: vi.fn(),
+      setOpacity: vi.fn()
     };
     TestBed.configureTestingModule({
       imports: [PipAppWindowComponent],
@@ -136,6 +142,49 @@ describe('PipAppWindowComponent', () => {
     const close = host.querySelector('button');
     pointer(bar, 'pointerdown', 200, 100, close);
     expect(service.gestureActive()).toBe(false);
+  });
+
+  it('collapses to its title bar without dropping the iframe', () => {
+    const iframe = host.querySelector('iframe');
+    fixture.componentRef.setInput('def', { ...def, collapsed: true });
+    fixture.detectChanges();
+    expect(host.classList).toContain('collapsed');
+    expect(host.style.height).toBe('34px');
+    expect(host.querySelector('iframe')).toBe(iframe);
+  });
+
+  it('moves a collapsed window but keeps the size it expands back to', () => {
+    fixture.componentRef.setInput('def', { ...def, collapsed: true });
+    fixture.detectChanges();
+    const bar = withCapture(host.querySelector('.fb-pip-app__bar'));
+    pointer(bar, 'pointerdown', 200, 100);
+    pointer(bar, 'pointermove', 300, 180);
+    pointer(bar, 'pointerup', 300, 180);
+    expect(service.setRect).toHaveBeenCalledWith('w1', {
+      x: 0.2,
+      y: 0.2,
+      w: 0.4,
+      h: 0.5
+    });
+    // the dragged rectangle stayed a title bar
+    expect(host.style.height).toBe('34px');
+  });
+
+  it('toggles collapse from its button and a double-click on the title', () => {
+    (
+      host.querySelector('button[aria-label="Collapse"]') as HTMLElement
+    ).click();
+    expect(service.setCollapsed).toHaveBeenCalledWith('w1', true);
+    host
+      .querySelector('.fb-pip-app__title')
+      .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    expect(service.setCollapsed).toHaveBeenCalledTimes(2);
+  });
+
+  it('applies its opacity', () => {
+    fixture.componentRef.setInput('def', { ...def, opacity: 0.6 });
+    fixture.detectChanges();
+    expect(host.style.opacity).toBe('0.6');
   });
 
   it('emits close with its id', () => {

@@ -12,9 +12,12 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
+  DEFAULT_LIMITS,
   GestureMode,
   PxRect,
   boundedGesture,
@@ -24,6 +27,9 @@ import {
 } from './geometry';
 import { PipAppService } from './pip-app.service';
 import { PipAppDef } from './types';
+
+/** Title bar plus the 1px top and bottom border. */
+const COLLAPSED_HEIGHT = DEFAULT_LIMITS.barH + 2;
 
 interface ActiveGesture {
   pointerId: number;
@@ -43,30 +49,44 @@ interface ActiveGesture {
  */
 @Component({
   selector: 'fb-pip-app',
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [
+    MatButtonModule,
+    MatDividerModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
       class="fb-pip-app__bar"
       [class.front]="front()"
       (pointerdown)="startGesture($event, 'move')"
+      (dblclick)="onBarDoubleClick($event)"
     >
       <span class="fb-pip-app__title" [title]="def().title">{{
         def().title
       }}</span>
-      @if (url()) {
-        <a
-          mat-icon-button
-          class="fb-pip-app__btn"
-          [href]="url()"
-          target="_blank"
-          rel="noopener noreferrer"
-          matTooltip="Open in new tab"
-          aria-label="Open in new tab"
-        >
-          <mat-icon>open_in_new</mat-icon>
-        </a>
-      }
+      <button
+        mat-icon-button
+        class="fb-pip-app__btn"
+        [matTooltip]="def().collapsed ? 'Expand' : 'Collapse'"
+        [attr.aria-label]="def().collapsed ? 'Expand' : 'Collapse'"
+        (click)="toggleCollapsed()"
+      >
+        <mat-icon>{{
+          def().collapsed ? 'expand_more' : 'expand_less'
+        }}</mat-icon>
+      </button>
+      <button
+        mat-icon-button
+        class="fb-pip-app__btn"
+        matTooltip="More"
+        aria-label="More"
+        [matMenuTriggerFor]="moremenu"
+      >
+        <mat-icon>more_vert</mat-icon>
+      </button>
       <button
         mat-icon-button
         class="fb-pip-app__btn"
@@ -77,6 +97,35 @@ interface ActiveGesture {
         <mat-icon>close</mat-icon>
       </button>
     </div>
+    <mat-menu #moremenu="matMenu" xPosition="before">
+      @if (url()) {
+        <a
+          mat-menu-item
+          [href]="url()"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <mat-icon>open_in_new</mat-icon>
+          <span>Open in new tab</span>
+        </a>
+        <mat-divider></mat-divider>
+      }
+      @for (o of opacities; track o) {
+        <button
+          mat-menu-item
+          [attr.aria-checked]="def().opacity === o"
+          role="menuitemradio"
+          (click)="setOpacity(o)"
+        >
+          <mat-icon>{{
+            def().opacity === o
+              ? 'radio_button_checked'
+              : 'radio_button_unchecked'
+          }}</mat-icon>
+          <span>Opacity {{ o * 100 }}%</span>
+        </button>
+      }
+    </mat-menu>
     <div class="fb-pip-app__body">
       @if (safeUrl(); as src) {
         <iframe
@@ -178,6 +227,15 @@ interface ActiveGesture {
       padding: 12px;
       font-size: 13px;
     }
+    :host(.collapsed) .fb-pip-app__body {
+      visibility: hidden;
+    }
+    :host(.collapsed) .fb-pip-app__bar {
+      border-radius: 6px;
+    }
+    :host(.collapsed) .fb-pip-app__handle {
+      display: none;
+    }
     .fb-pip-app__handle {
       position: absolute;
       touch-action: none;
@@ -245,7 +303,9 @@ interface ActiveGesture {
   host: {
     class: 'fb-pip-app',
     '[attr.data-pip-id]': 'def().id',
+    '[class.collapsed]': 'def().collapsed',
     '[style.z-index]': 'z()',
+    '[style.opacity]': 'def().opacity',
     '(pointerdown)': 'focused.emit(def().id)'
   }
 })
@@ -267,6 +327,8 @@ export class PipAppWindowComponent implements OnDestroy {
     'sw'
   ];
 
+  protected readonly opacities = [1, 0.8, 0.6, 0.4];
+
   private service = inject(PipAppService);
   private sanitizer = inject(DomSanitizer);
   private zone = inject(NgZone);
@@ -287,6 +349,12 @@ export class PipAppWindowComponent implements OnDestroy {
     return clampToViewport(fromFractions(this.def().rect, vp), vp);
   });
 
+  /** What is on screen: a collapsed window is only its title bar. */
+  private readonly drawn = computed(() => {
+    const r = this.rect();
+    return this.def().collapsed ? { ...r, h: COLLAPSED_HEIGHT } : r;
+  });
+
   private gesture: ActiveGesture | null = null;
   private frame = 0;
 
@@ -295,7 +363,7 @@ export class PipAppWindowComponent implements OnDestroy {
     // per frame without change detection; between gestures this effect keeps
     // it in step with the stored layout and the viewport.
     effect(() => {
-      const r = this.rect();
+      const r = this.drawn();
       if (!this.gesture) this.applyRect(r);
     });
   }
@@ -312,7 +380,7 @@ export class PipAppWindowComponent implements OnDestroy {
       return;
     }
     e.preventDefault();
-    const start = this.rect();
+    const start = this.drawn();
     this.gesture = {
       pointerId: e.pointerId,
       mode,
@@ -373,12 +441,26 @@ export class PipAppWindowComponent implements OnDestroy {
     }
     this.service.gestureActive.set(false);
     if (commit && g.current !== g.start) {
-      this.service.setRect(
-        this.def().id,
-        toFractions(g.current, this.service.viewport())
-      );
+      const vp = this.service.viewport();
+      const f = toFractions(g.current, vp);
+      // A collapsed window only moves; keep the size it expands back to.
+      const { w, h } = this.def().collapsed ? this.def().rect : f;
+      this.service.setRect(this.def().id, { x: f.x, y: f.y, w, h });
     }
-    this.applyRect(commit ? g.current : this.rect());
+    this.applyRect(commit ? g.current : this.drawn());
+  }
+
+  protected toggleCollapsed() {
+    this.service.setCollapsed(this.def().id, !this.def().collapsed);
+  }
+
+  protected setOpacity(o: number) {
+    this.service.setOpacity(this.def().id, o);
+  }
+
+  protected onBarDoubleClick(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest('a, button')) return;
+    this.toggleCollapsed();
   }
 
   private applyRect(r: PxRect) {
