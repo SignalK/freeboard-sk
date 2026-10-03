@@ -154,7 +154,7 @@ describe('RadarAPIService init() (#755)', () => {
 
       // one setting reported for both ranges of a dual-range radar
       update('radars.radar-1.controls.gain', { value: 20, auto: false });
-      update('radars.radar-2.controls.gain', { value: 20, auto: false });
+      update('radars.radar-2.controls.gain', { value: 35, auto: false });
 
       expect(service.radar().controls.get('gain')).toEqual({
         value: 20,
