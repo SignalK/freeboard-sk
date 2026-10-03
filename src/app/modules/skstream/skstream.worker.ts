@@ -34,7 +34,6 @@ import {
   AIS_PICK_DEFAULT_HOURS,
   createRequestGate,
   detectTrackSource,
-  metresPerPixel,
   needsAisRefetch,
   padExtent,
   NO_TRACK_SOURCE,
@@ -49,6 +48,7 @@ import {
   trailBandUrl
 } from './track-source';
 import {
+  historyEpsilon,
   joinStretches,
   parseHistoryTrack,
   parseTimedTracks
@@ -549,9 +549,9 @@ export function getVesselTrailV2(
   provider?: string,
   token = trailGate.begin()
 ) {
-  const epsilon = mapView
-    ? metresPerPixel(mapView.zoom, (mapView.extent[1] + mapView.extent[3]) / 2)
-    : undefined;
+  // sized as for Track history: a pixel at the deepest zoom of the level
+  const epsilon =
+    (mapView && historyEpsilon(mapView.zoom, mapView.extent)) ?? undefined;
   const bands = trailBands(
     opt.trailDuration,
     opt.trailResolution,

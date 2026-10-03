@@ -260,17 +260,6 @@ export const TRAIL_DURATION_ALL = 0;
  * is set. */
 export const TRAIL_MAX_HOURS = 96;
 
-/** Ground metres covered by one screen pixel at a Web Mercator zoom level and
- * latitude (256 px tiles). */
-export function metresPerPixel(zoom: number, latitude: number): number {
-  const EQUATOR_METRES_PER_PIXEL_AT_ZOOM_0 = 156543.03392;
-  return (
-    (EQUATOR_METRES_PER_PIXEL_AT_ZOOM_0 *
-      Math.cos((latitude * Math.PI) / 180)) /
-    2 ** zoom
-  );
-}
-
 /** Split the trail window into the same bands as the v1 request (beyond 24 h /
  * 1 → 24 h / last hour), oldest first. Adjacent bands share their boundary
  * instant, so they tile the window with no gap or overlap. The LAST band is

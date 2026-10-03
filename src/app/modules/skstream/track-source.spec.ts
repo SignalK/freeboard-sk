@@ -3,7 +3,6 @@ import {
   aisTracksQuery,
   createRequestGate,
   detectTrackSource,
-  metresPerPixel,
   migrateTrailSource,
   needsAisRefetch,
   padExtent,
@@ -164,22 +163,6 @@ describe('track-source trailBands', () => {
           '&resolution=PT5M&simplify=true&times=true'
       );
     });
-  });
-});
-
-describe('track-source metresPerPixel', () => {
-  it('is the Web Mercator ground resolution at the equator', () => {
-    expect(metresPerPixel(0, 0)).toBeCloseTo(156543.034, 3);
-    expect(metresPerPixel(10, 0)).toBeCloseTo(152.874, 3);
-  });
-
-  it('halves with each zoom level', () => {
-    expect(metresPerPixel(13, 0) / metresPerPixel(14, 0)).toBeCloseTo(2, 9);
-  });
-
-  it('shrinks with latitude', () => {
-    expect(metresPerPixel(10, 60)).toBeCloseTo(metresPerPixel(10, 0) / 2, 6);
-    expect(metresPerPixel(10, -60)).toBeCloseTo(metresPerPixel(10, 60), 9);
   });
 });
 
