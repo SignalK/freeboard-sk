@@ -14,6 +14,7 @@ dependencies; it shells out to `git`.
 ```bash
 node dev-tools/changelog/index.mjs stamp [version]      # write since values into the ledger
 node dev-tools/changelog/index.mjs render <tag> [--out <file>]   # print/write the Release body
+node dev-tools/changelog/index.mjs check                # list feat/perf PRs with no ledger row
 ```
 
 ### `stamp [version]`
@@ -43,6 +44,15 @@ The tag range's lower bound is the previous **stable** tag for a stable release 
 spans all the betas) or the previous tag of any kind for a pre-release. `render` reads
 the ledger as-is, so **stamp first** (the `version` hook does this at release; for a
 manual dry run, `stamp` then `git checkout features/changelog.json` when done).
+
+### `check`
+
+Lists the `feat`/`perf` PRs merged since the last tag (the newest `v*` tag reachable
+from `HEAD`) that have **no row** in the ledger, one per line on stdout, and exits 1
+when there are any. Any row for the PR counts, a `skip` row included. This is the
+documentation gate: every user-facing change in a release needs a ledger row, or a
+`skip` row saying why it doesn't. Run it locally on `master` to see what a release
+would be missing.
 
 ## Dry run
 

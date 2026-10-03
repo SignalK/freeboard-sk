@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 //
-// Release-notes generator CLI. Two commands:
+// Release-notes generator CLI. Three commands:
 //
 //   stamp [version]     Fill blank `since` in features/changelog.json (and, for a
 //                       stable version, graduate its pre-release rows to it).
@@ -11,6 +11,10 @@
 //   render <tag>        Print the GitHub Release body for <tag> to stdout (or to
 //     [--out <file>]    --out <file>). Pure text — never touches GitHub — so
 //                       `render <tag> > preview.md` is a safe dry run.
+//
+//   check               List the feat/perf PRs merged since the last tag that
+//                       have no row in features/changelog.json, one per line on
+//                       stdout, and exit 1 when there are any.
 //
 // All interpretation lives in lib.mjs (unit-tested); this file is only I/O.
 
@@ -24,7 +28,9 @@ import {
   renderNotes,
   parseCommitSubject,
   docSummary,
-  previousBoundary
+  previousBoundary,
+  latestTag,
+  undocumentedPRs
 } from './lib.mjs';
 
 const ROOT = process.cwd();
@@ -98,6 +104,39 @@ function renderCmd(tag, outFile) {
   }
 }
 
+function checkCmd() {
+  const tags = git(['tag', '--merged', 'HEAD', '-l', 'v*'])
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const last = latestTag(tags);
+  const commits = git([
+    'log',
+    last ? `${last}..HEAD` : 'HEAD',
+    '--no-merges',
+    '--format=%s'
+  ])
+    .split('\n')
+    .filter(Boolean)
+    .map(parseCommitSubject)
+    .filter(Boolean);
+  const missing = undocumentedPRs({ ledger: readLedger(), commits });
+  const since = last ?? 'the first commit';
+  if (!missing.length) {
+    process.stderr.write(
+      `[changelog] every feat/perf PR since ${since} has a ledger row\n`
+    );
+    return;
+  }
+  process.stdout.write(
+    missing.map((c) => `- #${c.pr} ${c.type}: ${c.title}\n`).join('')
+  );
+  process.stderr.write(
+    `[changelog] ${missing.length} feat/perf PR(s) since ${since} have no ledger row\n`
+  );
+  process.exitCode = 1;
+}
+
 const withV = (v) => (v.startsWith('v') ? v : `v${v}`);
 // Only the prerelease forms release.yml recognizes (-beta.N / -rc.N).
 const VERSION_RE = /^v\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?$/;
@@ -128,9 +167,11 @@ if (cmd === 'stamp') {
     process.exit(1);
   }
   renderCmd(requireVersion(withV(arg)), outIdx >= 0 ? rest[outIdx + 1] : null);
+} else if (cmd === 'check') {
+  checkCmd();
 } else {
   console.error(
-    'usage: changelog <stamp [version] | render <tag> [--out <file>]>'
+    'usage: changelog <stamp [version] | render <tag> [--out <file>] | check>'
   );
   process.exit(1);
 }
