@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, finalize, map, shareReplay, tap } from 'rxjs/operators';
 import { SignalKClient } from 'signalk-client-angular';
 
 export interface WeatherWindSample {
@@ -67,6 +67,14 @@ export class WeatherService {
     string,
     { at: number; value: WindValue | null }
   >();
+  // One shared request per cell while it is in flight. It runs to completion
+  // even if the caller unsubscribes (the wind layer's switchMap cancels on
+  // every new move), so a cell that was asked for still lands in the cache
+  // and the next refresh doesn't request it again. `undefined` = failed.
+  private windInflight = new Map<
+    string,
+    Observable<WindValue | null | undefined>
+  >();
 
   constructor(
     private http: HttpClient,
@@ -80,8 +88,9 @@ export class WeatherService {
    *  move of a map that follows the vessel. Points are now resolved to their
    *  0.1° lattice cell like currents: cells with a fresh cached value are
    *  served locally, and each missing cell is requested once, at its
-   *  canonical centre, so a provider-side cache can also hit. A failed
-   *  request caches nothing, so it is retried on the next refresh. */
+   *  canonical centre, so a provider-side cache can also hit. Concurrent
+   *  callers share a cell's in-flight request. A failed request caches
+   *  nothing, so it is retried on the next refresh. */
   getWindSamples(
     points: Array<{ latitude: number; longitude: number }>
   ): Observable<WeatherWindSample[]> {
@@ -91,60 +100,83 @@ export class WeatherService {
 
     const now = Date.now();
     const cellKeys = points.map((p) => this.cellKey(p));
-    const missing = new Map<string, { latitude: number; longitude: number }>();
+    // Values for this call, kept apart from the cache: storing fetched cells
+    // can evict others from a full cache, and a cell this result needs must
+    // not disappear before the samples are built.
+    const values = new Map<string, WindValue | null>();
+    const missing: string[] = [];
     cellKeys.forEach((key) => {
-      if (missing.has(key)) {
+      if (values.has(key) || missing.includes(key)) {
         return;
       }
       const entry = this.windCache.get(key);
-      if (!entry || now - entry.at >= this.windCacheTtlMs) {
-        missing.set(key, this.cellCenter(key));
+      if (entry && now - entry.at < this.windCacheTtlMs) {
+        values.set(key, entry.value);
+      } else {
+        missing.push(key);
       }
     });
 
-    if (missing.size === 0) {
-      return of(this.buildWindSamples(points, cellKeys));
+    if (missing.length === 0) {
+      return of(this.buildWindSamples(points, cellKeys, values));
     }
 
-    const requests = Array.from(missing.entries()).map(([key, center]) =>
-      this.sk.api
-        .get(
-          2,
-          `/weather/observations?lat=${center.latitude.toFixed(4)}` +
-            `&lon=${center.longitude.toFixed(4)}`
-        )
-        .pipe(
-          tap((response) => {
-            const obs: SkObservation | undefined = response?.[0] as
-              SkObservation | undefined;
-            const speed = obs?.wind?.speedTrue;
-            const direction = obs?.wind?.directionTrue;
-            this.cacheCell(
-              this.windCache,
-              key,
-              typeof speed === 'number' && typeof direction === 'number'
-                ? { speed, direction }
-                : null
-            );
-          }),
-          catchError(() => of(null))
-        )
+    return forkJoin(missing.map((key) => this.windCell(key))).pipe(
+      map((fetched) => {
+        fetched.forEach((value, i) => {
+          if (value !== undefined) {
+            values.set(missing[i], value);
+          }
+        });
+        return this.buildWindSamples(points, cellKeys, values);
+      })
     );
+  }
 
-    return forkJoin(requests).pipe(
-      map(() => this.buildWindSamples(points, cellKeys))
-    );
+  /** The wind for one lattice cell, from the in-flight request for that cell
+   *  if there is one. Emits the cell's value, `null` for no wind there, or
+   *  `undefined` when the request failed. */
+  private windCell(key: string): Observable<WindValue | null | undefined> {
+    const pending = this.windInflight.get(key);
+    if (pending) {
+      return pending;
+    }
+    const center = this.cellCenter(key);
+    const request = this.sk.api
+      .get(
+        2,
+        `/weather/observations?lat=${center.latitude.toFixed(4)}` +
+          `&lon=${center.longitude.toFixed(4)}`
+      )
+      .pipe(
+        map((response) => {
+          const obs: SkObservation | undefined = response?.[0] as
+            SkObservation | undefined;
+          const speed = obs?.wind?.speedTrue;
+          const direction = obs?.wind?.directionTrue;
+          return typeof speed === 'number' && typeof direction === 'number'
+            ? { speed, direction }
+            : null;
+        }),
+        tap((value) => this.cacheCell(this.windCache, key, value)),
+        catchError(() => of(undefined)),
+        finalize(() => this.windInflight.delete(key)),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    this.windInflight.set(key, request);
+    return request;
   }
 
   /** One sample per display point, valued from its lattice cell; points whose
    *  cell has no wind (or failed to load) yield no sample. */
   private buildWindSamples(
     points: Array<{ latitude: number; longitude: number }>,
-    cellKeys: string[]
+    cellKeys: string[],
+    values: Map<string, WindValue | null>
   ): WeatherWindSample[] {
     const samples: WeatherWindSample[] = [];
     points.forEach((point, i) => {
-      const value = this.windCache.get(cellKeys[i])?.value;
+      const value = values.get(cellKeys[i]);
       if (value) {
         samples.push({
           latitude: point.latitude,

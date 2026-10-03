@@ -5,7 +5,7 @@ import {
   provideHttpClientTesting
 } from '@angular/common/http/testing';
 import { beforeEach, afterEach, describe, it, expect } from 'vitest';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 
 import { WeatherService } from './weather.service';
 import { SignalKClient } from 'signalk-client-angular';
@@ -225,5 +225,43 @@ describe('WeatherService wind lattice cache', () => {
       .getWindSamples([CELL_A_P1, CELL_B_P1])
       .subscribe((s) => (samples = s));
     expect(samples).toEqual([{ ...CELL_A_P1, speed: 5, direction: 1 }]);
+  });
+  it('shares one in-flight request per cell between concurrent callers', () => {
+    const pending = new Subject<unknown>();
+    reply = () => pending;
+    let first;
+    let second;
+    service.getWindSamples([CELL_A_P1]).subscribe((s) => (first = s));
+    service.getWindSamples([CELL_A_P2]).subscribe((s) => (second = s));
+    expect(calls.length).toBe(1);
+    pending.next(OBS(5, 1));
+    pending.complete();
+    expect(first).toEqual([{ ...CELL_A_P1, speed: 5, direction: 1 }]);
+    expect(second).toEqual([{ ...CELL_A_P2, speed: 5, direction: 1 }]);
+  });
+
+  it('still caches a cell when the caller cancels (switchMap on a new move)', () => {
+    const pending = new Subject<unknown>();
+    reply = () => pending;
+    service.getWindSamples([CELL_A_P1]).subscribe().unsubscribe();
+    pending.next(OBS(5, 1));
+    pending.complete();
+    calls = [];
+    let samples;
+    service.getWindSamples([CELL_A_P2]).subscribe((s) => (samples = s));
+    expect(calls).toEqual([]);
+    expect(samples).toEqual([{ ...CELL_A_P2, speed: 5, direction: 1 }]);
+  });
+
+  it('keeps every cell of a result even when fetching overflows the cache', () => {
+    // 600 distinct cells in one call, more than the 512-cell cache holds.
+    const points = Array.from({ length: 600 }, (_, i) => ({
+      latitude: 10 + Math.floor(i / 30) * 0.1 + 0.05,
+      longitude: 20 + (i % 30) * 0.1 + 0.05
+    }));
+    let samples: unknown[] = [];
+    service.getWindSamples(points).subscribe((s) => (samples = s));
+    expect(calls.length).toBe(600);
+    expect(samples.length).toBe(600);
   });
 });
