@@ -47,8 +47,8 @@ A single **`fb-pip-app-host`** element, placed as a `position: fixed` sibling at
 the `.view` level with `pointer-events: none`, renders one **`fb-pip-app`** per
 definition. Each window is a title bar (drag handle + buttons) over a sandboxed
 `<iframe>`, with eight resize handles. Move/resize are hand-rolled Pointer Events
-with pointer capture plus a transparent shield over every iframe while a gesture is
-live. Geometry is stored as **viewport fractions** in `config.pipApps`, so the
+with pointer capture, and every iframe on the page stops taking pointer events
+while a gesture is live. Geometry is stored as **viewport fractions** in `config.pipApps`, so the
 same layout re-applies on a laptop and a tablet (config already syncs to the server's
 applicationData). Windows are **never re-parented** (an iframe reload would lose the
 echogram history), only transformed, so collapse/expand/z-order are all CSS. On top
@@ -70,8 +70,8 @@ wifish can offer its own "show in Freeboard" button.
 3. **"Open as PiP App" from the instrument panel.** One button in the existing instrument
    panel header turns the docked app into a PiP App window. Zero new concepts for
    existing users.
-4. **Plugins can open their own window** (`ui.openWindow`, with a preferred size and
-   aspect ratio in the manifest). wifish can declare "I want 480×240, keep 2:1".
+4. **Plugins can open their own window** (`ui.openWindow` with a preferred pixel
+   size). wifish can ask for a 480×240 window over the chart.
 5. **Source kinds are open-ended.** `webapp` (server-relative path), `url` (any
    http(s)), and room for `component` later (a second map, the autopilot console,
    an instrument dial) without touching the window chrome.
@@ -94,12 +94,10 @@ export interface PipAppDef {
   rect: PipRect;
   collapsed: boolean;         // title bar only; iframe stays mounted (hidden)
   opacity: number;            // 0.3 .. 1, default 1
-  restoreOnStart: boolean;    // re-open automatically next launch (kiosk layouts)
-  aspect?: number;            // optional w/h lock, e.g. 2 for a sounder
 }
 
-// persisted:  config.pipApps: { windows: PipAppDef[] }
-// runtime only (service signals, not persisted): zOrder: string[], activeId, poppedOut: Set<id>
+// persisted:  config.pipApps: { windows: PipAppDef[] }  (every open window reopens on load)
+// runtime only (service signals, not persisted): zOrder: string[], gestureActive, poppedOut
 ```
 
 Why fractions: `imageAdjustPalettePos` and friends store pixels and need clamping
@@ -147,10 +145,9 @@ div.view                               (position:fixed; inset:0; flex row)
 
 ```
 .fb-pip-app  (position:absolute; transform:translate(x,y); width/height px; box-shadow; border-radius)
-  .fb-pip-app__bar      title · [opacity] [collapse] [pop-out] [open-in-tab] [close]   ← drag handle
+  .fb-pip-app__bar      title · [collapse] [more: open in tab, pop out, opacity] [close]   ← drag handle
   .fb-pip-app__body
      iframe[src][sandbox="allow-scripts allow-same-origin allow-forms"][allow="fullscreen"]
-     .fb-pip-app__shield (pointer-events:none normally; auto while any gesture is live)
   .fb-pip-app__handle × 8 (n, s, e, w, ne, nw, se, sw; 10px hit area, 16px on coarse pointers)
 ```
 
@@ -182,7 +179,7 @@ one gesture, and `cdkDrag` owns the element transform; fighting it means feeding
 // src/app/modules/pip-app/geometry.ts  (pure, unit-tested without DOM)
 export type GestureMode = 'move'|'n'|'s'|'e'|'w'|'ne'|'nw'|'se'|'sw';
 export function applyGesture(start: PxRect, mode: GestureMode, dx: number, dy: number,
-                             viewport: {w:number;h:number}, opts: {minW;minH;aspect?;barH}): PxRect
+                             viewport: {w:number;h:number}, limits: {minW;minH;barH}): PxRect
 export function clampToViewport(r: PxRect, viewport, barH): PxRect
 export function toFractions(r: PxRect, viewport): PipRect / fromFractions(...)
 export function snapToEdges(r: PxRect, viewport, threshold = 12): PxRect
@@ -201,11 +198,10 @@ Gesture mechanics (`pip-app-window.component.ts`):
 **The iframe trap.** Iframes swallow pointer events. Pointer capture keeps *our*
 moves flowing even over our own iframe, but a fast drag across *another* window's
 iframe, a placed widget, the instrument drawer or the extension panel still loses
-events in some browsers. Hence the shield: while `gestureActive`, every
-`.fb-pip-app__shield` turns `pointer-events: auto`, and the host adds a class
-that sets `pointer-events: none` on `fb-plotterext-overlay iframe` and the drawer
-iframes. Cheap, and it also stops the embedded app from reacting to a drag that
-crosses it.
+events in some browsers. Hence, while `gestureActive`, the host puts a class on
+`<body>` that sets `pointer-events: none` on every iframe on the page (windows,
+widgets, drawers). Cheap, and it also stops the embedded app from reacting to a
+drag that crosses it.
 
 Touch: `touch-action: none` on bar and handles only (the iframe keeps its own
 gestures, wifish needs pinch-zoom). Handles grow to 16 px under
@@ -228,7 +224,7 @@ gestures, wifish needs pinch-zoom). Handles grow to 16 px under
   every chrome action and clicking the map re-focuses it. Window close/collapse call
   `focusMap()` too. Nothing else needed.
 - **Kiosk mode** hides the toolbars (and hence the launcher) but not the host, so
-  `restoreOnStart` windows still appear: this is how a fixed "chart + sounder" helm
+  the windows that were open still reopen: this is how a fixed "chart + sounder" helm
   layout is set up (arrange once without `?kiosk`, then launch with it).
 - **Embedded mode** (`!app.isTopWindow()`, e.g. inside KIP): the instrument panel is
   disabled there to avoid app-in-app nesting. PiP App stay enabled: they are
@@ -243,15 +239,13 @@ gestures, wifish needs pinch-zoom). Handles grow to 16 px under
    - installed webapps (from a cached `signalk.apps.list()`, same mapping as
      `SettingsFacade.getApps()`; factor that mapping into a shared helper rather than
      copying it);
-   - "Custom URL…" → small dialog: title, URL, remember on start;
+   - "Custom address…" → small dialog: address and optional title;
    - divider; currently open windows (click = bring to front, collapsed ones expand);
    - "Close all".
 2. **Instrument panel header: "Open as PiP App"** button → opens the current `instUrl()` as a
    window (same size as the drawer), closes the drawer.
-3. **Main menu entry "Windows…"** opening the same menu, for the < 800 px layouts
-   where the right toolbar button is hidden.
-4. Later (§8, phase 4): Plotter Extensions `ui.openWindow`.
-5. Optional: `?pipapp=/signalk-wifish/` URL parameter for scripted kiosk launches.
+3. Later (§8, phase 4): Plotter Extensions `ui.openWindow`.
+4. Optional: `?pipapp=/signalk-wifish/` URL parameter for scripted kiosk launches.
 
 ### 6.6 Pop-out tier (Document Picture-in-Picture)
 
@@ -324,20 +318,23 @@ mode: copy the `.app-night` filter rule into the PiP document when
 ```
 src/app/modules/pip-app/
   index.ts
-  types.ts                         PipAppDef, PipAppSource, PipRect, SANDBOX const
+  types.ts                         PipAppDef, PipAppSource, PipRect, PIP_APP_SANDBOX
   geometry.ts  (+ .spec.ts)        applyGesture, clampToViewport, to/fromFractions, snapToEdges
+  sources.ts   (+ .spec.ts)        source validation, URL resolution, default titles
+  defs.ts                          normalise stored windows (used by cleanConfig)
   pip-app.service.ts (+spec) windows/zOrder/active/gestureActive signals; open/close/
                                    focus/collapse/update; persistence; webapp list cache; url resolve
   pip-app-host.component.ts   <fb-pip-app-host> fixed layer, @for windows
-  pip-app-window.component.ts (+spec) chrome, iframe, gesture controller, shield
+  pip-app-window.component.ts (+spec) chrome, iframe, gesture controller
   pip-app-menu.component.ts   <fb-pip-app-menu> launcher mat-menu (webapps, custom, open list)
-  custom-url-dialog.ts             title + URL + restoreOnStart, protocol / mixed-content validation
+  custom-url-dialog.ts             address + title, protocol / mixed-content validation
   pip-app-popout.service.ts (+spec, API stubbed)  Document PiP + window.open fallback
 
 src/app/types/index.d.ts           IAppConfig.pipApps
 src/app/app.config.ts              defaultConfig() + cleanConfig() migration (+ app.config.spec.ts case)
 src/app/app.component.html         host element in .view; toolbar button + menu; "Open as PiP App" in instrument header
-src/app/app.component.ts           openPipAppFromInstruments(); imports
+src/app/app.component.ts           openInstrumentsAsPipApp(); imports
+src/app/lib/webapps.ts (+spec)     installed-webapps mapping shared with the settings dialog
 src/app/modules/plotterext/widget-overlay.component.ts   add .fb-pip-app to the ignore selector (+spec)
 src/app/modules/settings/settings.facade.ts              extract webapp-list mapping to a shared helper
 ```
@@ -353,11 +350,11 @@ no `features/` edits, no version bumps).
 
 | # | Scope | Done when | Effort |
 |---|---|---|---|
-| **0 Spike** | One hard-coded wifish window, move + resize + shield, no persistence, no menu | Dragging/resizing works on the helm device (touch) and on a desktop browser over the live map, with a placed widget and the instrument drawer open; collapse does not reload the echogram | ½-1 day |
-| **1 Core** (`feat(ui): PiP App windows for embedding webapps over the chart`) | §5 model, service, host, window component, geometry + specs, config migration, toolbar launcher with installed-webapp list and custom URL, widget-overlay exclusion, dark/night check. **Gated behind `config.experiments`** for the first upstream round | Specs green; a layout survives reload and a viewport change; two windows plus a widget plus the instrument panel coexist | 2-3 days |
-| **2 Polish** (same PR or `feat(ui): …` follow-up) | Collapse, opacity, edge snapping, aspect lock, "Open as PiP App" from instrument panel, main-menu entry, restoreOnStart, soft cap, kiosk behaviour, `<800px` layouts | Manual matrix in §9 passes | 1-2 days |
+| **0 Spike** | One hard-coded wifish window, move + resize over other iframes, no persistence, no menu | Dragging/resizing works on the helm device (touch) and on a desktop browser over the live map, with a placed widget and the instrument drawer open; collapse does not reload the echogram | ½-1 day |
+| **1 Core** (`feat(ui): PiP App windows for embedding webapps over the chart`) | §5 model, service, host, window component, geometry + specs, config migration, toolbar launcher with installed-webapp list and custom URL, widget-overlay exclusion, soft cap, dark/night check. **Gated behind `config.experiments`** for the first upstream round | Specs green; a layout survives reload and a viewport change; two windows plus a widget plus the instrument panel coexist | 2-3 days |
+| **2 Polish** (same PR or `feat(ui): …` follow-up) | Collapse, opacity, edge snapping, "Open as PiP App" from instrument panel | Manual matrix in §9 passes | 1-2 days |
 | **3 Pop-out** (`feat(ui): pop a PiP App window out to an always-on-top browser window`) | §6.6, feature-detected, one-at-a-time, night mode copy, popup fallback | Works in Chrome/Edge/Firefox; falls back cleanly on Safari/iPad | 1 day |
-| **4 Extension API** (`feat(plotterext): ui.openWindow host method`) | New capability id in `HOST_CAPABILITIES` (`windows` or `x-freeboard-sk.windows` while experimental), `ui.openWindow {url,title,rect?,aspect?}` / `ui.closeWindow`, spread into every `attach*` method map, events `ui.windowClosed`, docs in both API files, **matching tool in `dev-tools/fsk-mcp/src/tools.js`**, an end-to-end spec over a `MessageChannel` like `plotterext.embedding-host.spec.ts`. Same-origin only (inherits `resolveAssetUrl`), so extensions can open *their own* UI, not arbitrary pages | wifish ships a `plotterExtensions` manifest with a toolbar button that opens itself in a window at its preferred size | 1-2 days |
+| **4 Extension API** (`feat(plotterext): ui.openWindow host method`) | Vendor capability `x-freeboard-sk.windows` in `HOST_CAPABILITIES` while experimental, `ui.openWindow {panel or url, title?, width?, height?}` / `ui.closeWindow`, spread into the widget, panel and background method maps, documented in the host support doc, **matching tool in `dev-tools/fsk-mcp/src/tools.js`**, specs for the handlers and for the service wiring. Same-origin only (inherits `resolveAssetUrl`), so extensions can open their own panels and other pages on the Signal K server, never another origin | wifish ships a `plotterExtensions` manifest with a toolbar button that opens itself in a window at its preferred size | 1-2 days |
 | **5 Optional** | `?pipapp=` launch param; helper `HEAD` embed pre-check; `component` source kind (second map view, autopilot console) | Only if asked | — |
 | **6 Graduate** | Remove the experiments gate upstream after feedback; `docs(lessons):` PR with the traps found (iframe pointer capture, Document PiP one-per-tab, no re-parenting) | Maintainer decision | — |
 
@@ -369,7 +366,7 @@ generic iframe box) and should be opened as its own PR after phase 1 merges.
 
 Unit (`*.spec.ts`, run with `npm run test:ci -- --include "<spec>"`):
 
-- `geometry.spec.ts`: every gesture mode, min size, aspect lock, clamping keeps the
+- `geometry.spec.ts`: every gesture mode, min size, snapping, clamping keeps the
   bar on screen, fraction round-trip across two viewports, snapping thresholds.
 - `pip-app.service.spec.ts` (TestBed with an `AppFacade` stub, as
   `groups.service.spec.ts` does): open/close/focus/z-order, persistence writes
@@ -379,7 +376,7 @@ Unit (`*.spec.ts`, run with `npm run test:ci -- --include "<spec>"`):
   the iframe element identity is unchanged after a rect/title/collapse change
   (regression guard for "never reload"); pointer-drag using the
   `chart-time-bar.spec.ts` pattern (stub `getBoundingClientRect` and pointer capture,
-  dispatch events with `pointerId`); shield toggles with `gestureActive`.
+  dispatch events with `pointerId`); `gestureActive` is set for the gesture only.
 - `app.config.spec.ts`: `cleanConfig()` adds `pipApps` to a legacy config.
 - `widget-overlay` spec: a press on `.fb-pip-app` never starts the add-widget
   timer.
@@ -392,8 +389,8 @@ Manual matrix before the upstream PR (screenshots for the PR body):
 |---|---|
 | Desktop Chrome + Firefox | drag across a widget and the drawer, resize from all 8 handles, pop-out, dark + night |
 | iPad Safari (the common helm tablet) | touch drag/resize with 16 px handles, pinch inside wifish still zooms the echogram, popup fallback |
-| Android Chrome phone (< 800 px) | main-menu launcher, fraction layout sanity, window never off-screen |
-| `?kiosk` | restoreOnStart windows appear, no launcher |
+| Android Chrome phone (< 800 px) | toolbar launcher, fraction layout sanity, window never off-screen |
+| `?kiosk` | open windows reappear, no launcher |
 | Raspberry Pi 4 display | two windows (wifish + KIP) stay fluid |
 
 ## 10. Risks and open questions
