@@ -839,6 +839,14 @@
                   </div>
                 }
 
+                <!-- PiP App launcher -->
+                @if (app.config.experiments) {
+                  <div class="buttonPanelItem">
+                    <fb-pip-app-menu></fb-pip-app-menu>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+
                 <!-- Web audio enable -->
                 @if (audioStatus() !== 'running') {
                   <div class="buttonPanelItem">
@@ -1294,6 +1302,11 @@
 
       <!-- Plotter extension headless background runtimes (hidden iframes) -->
       <fb-plotterext-runtimes></fb-plotterext-runtimes>
+
+      <!-- PiP App windows floating over the chart -->
+      @if (app.config.experiments) {
+        <fb-pip-app-host (closed)="focusMap()"></fb-pip-app-host>
+      }
     </div>
     <!-- /content -->
   </div>

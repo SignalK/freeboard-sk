@@ -35,6 +35,7 @@ import {
 
 import { AppFacade } from './app.facade';
 import { InfoPanelFacade, InfoPanelComponent } from './modules/info-panel';
+import { PipAppHostComponent, PipAppMenuComponent } from './modules/pip-app';
 import { SignalKClient } from 'signalk-client-angular';
 import { WakeLockService } from 'src/app/lib/services';
 
@@ -151,6 +152,8 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     ETADialComponent,
     FileInputComponent,
     PiPVideoComponent,
+    PipAppHostComponent,
+    PipAppMenuComponent,
     MFBContainerComponent,
     InteractionHelpComponent,
     FBMapComponent,

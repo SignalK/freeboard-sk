@@ -286,11 +286,12 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
     // Ignore presses on dialogs, menus, or other app chrome — only presses
     // that reach the map (or empty overlay space) count. This includes the
     // overlay's own chrome: placed widget cells (.pe-cell) and the filter-chip
-    // bar (.pe-chips, which covers the chip body, label and clear button).
+    // bar (.pe-chips, which covers the chip body, label and clear button),
+    // and PiP App windows (.fb-pip-app) floating over the map.
     const target = e.target as HTMLElement | null;
     if (
       target?.closest(
-        '.cdk-overlay-container, mat-dialog-container, button, mat-toolbar, .pe-cell, .pe-chips'
+        '.cdk-overlay-container, mat-dialog-container, button, mat-toolbar, .pe-cell, .pe-chips, .fb-pip-app'
       )
     ) {
       return;

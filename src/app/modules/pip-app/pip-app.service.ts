@@ -1,0 +1,141 @@
+import { Injectable, inject, signal } from '@angular/core';
+import { SignalKClient } from 'signalk-client-angular';
+import * as uuid from 'uuid';
+import { AppFacade } from 'src/app/app.facade';
+import { mapWebappList, SKAppsList, WebappEntry } from 'src/app/lib/webapps';
+import { normalisePipApps } from './defs';
+import { DEFAULT_RECT, isValidRect, ViewportSize } from './geometry';
+import { defaultTitle, parseSource, resolveSourceUrl } from './sources';
+import { PipAppDef, PipAppSource, PipRect } from './types';
+
+/** Above this many open windows the user is warned (each one is a full app). */
+export const PIP_APP_SOFT_LIMIT = 6;
+
+const sameSource = (a: PipAppSource, b: PipAppSource) =>
+  a.kind === 'webapp' && b.kind === 'webapp'
+    ? a.path === b.path
+    : a.kind === 'url' && b.kind === 'url'
+      ? a.url === b.url
+      : false;
+
+/** Owns the PiP App windows: what is open, their stacking order and layout. */
+@Injectable({ providedIn: 'root' })
+export class PipAppService {
+  private app = inject(AppFacade);
+  private signalk = inject(SignalKClient);
+
+  /** Open windows, in the order they were opened. */
+  readonly windows = signal<PipAppDef[]>([]);
+  /** Window ids from back to front. */
+  readonly zOrder = signal<string[]>([]);
+  /** True while a window is being moved or resized. */
+  readonly gestureActive = signal(false);
+  readonly viewport = signal<ViewportSize>(this.readViewport());
+  /** Installed webapps offered in the launcher menu. */
+  readonly webapps = signal<WebappEntry[]>([]);
+
+  constructor() {
+    this.load();
+    // A login replaces the whole config with the server copy.
+    this.app.config$.subscribe((e) => {
+      if (e === 'ready') this.load();
+    });
+  }
+
+  /** Absolute URL for a source, or null when it cannot be framed. */
+  resolveUrl(source: PipAppSource): string | null {
+    return resolveSourceUrl(source, this.app.hostDef.url);
+  }
+
+  /**
+   * Open a window for `source`, or bring an already open window showing the
+   * same source to the front. Returns null for an unusable source.
+   */
+  open(
+    source: PipAppSource,
+    title?: string,
+    rect: PipRect = DEFAULT_RECT
+  ): PipAppDef | null {
+    const s = parseSource(source);
+    if (!s || !this.resolveUrl(s)) return null;
+    const existing = this.windows().find((w) => sameSource(w.source, s));
+    if (existing) {
+      this.focus(existing.id);
+      return existing;
+    }
+    const def: PipAppDef = {
+      id: uuid.v4(),
+      title: title?.trim() || defaultTitle(s),
+      source: s,
+      rect: isValidRect(rect) ? { ...rect } : { ...DEFAULT_RECT }
+    };
+    this.windows.update((list) => [...list, def]);
+    this.zOrder.update((z) => [...z, def.id]);
+    if (this.windows().length > PIP_APP_SOFT_LIMIT) {
+      this.app.showMessage(
+        `${this.windows().length} PiP App windows are open. Each one runs a full app; close those you do not need.`
+      );
+    }
+    this.persist();
+    return def;
+  }
+
+  close(id: string) {
+    this.windows.update((list) => list.filter((w) => w.id !== id));
+    this.zOrder.update((z) => z.filter((i) => i !== id));
+    this.persist();
+  }
+
+  closeAll() {
+    this.windows.set([]);
+    this.zOrder.set([]);
+    this.persist();
+  }
+
+  /** Bring a window to the front. */
+  focus(id: string) {
+    const z = this.zOrder();
+    if (!z.includes(id) || z[z.length - 1] === id) return;
+    this.zOrder.set([...z.filter((i) => i !== id), id]);
+  }
+
+  /** Store a window's new position and size (viewport fractions). */
+  setRect(id: string, rect: PipRect) {
+    if (!isValidRect(rect)) return;
+    this.windows.update((list) =>
+      list.map((w) => (w.id === id ? { ...w, rect: { ...rect } } : w))
+    );
+    this.persist(true);
+  }
+
+  updateViewport() {
+    this.viewport.set(this.readViewport());
+  }
+
+  /** Fetch the installed webapps list for the launcher. */
+  refreshWebapps() {
+    this.signalk.apps.list().subscribe({
+      next: (list) => this.webapps.set(mapWebappList(list as SKAppsList[])),
+      error: () => this.app.debug('PiP App: could not fetch the webapps list')
+    });
+  }
+
+  private load() {
+    const stored = normalisePipApps(this.app.config?.pipApps?.windows);
+    this.windows.set(stored);
+    this.zOrder.set(stored.map((w) => w.id));
+  }
+
+  private persist(debounced = false) {
+    this.app.config.pipApps = { windows: this.windows() };
+    if (debounced) {
+      this.app.saveConfigDebounced();
+    } else {
+      this.app.saveConfig();
+    }
+  }
+
+  private readViewport(): ViewportSize {
+    return { w: window.innerWidth, h: window.innerHeight };
+  }
+}
