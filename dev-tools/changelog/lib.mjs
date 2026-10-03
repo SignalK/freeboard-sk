@@ -45,6 +45,12 @@ export function previousBoundary(tags, tag) {
   return candidates.length ? candidates[candidates.length - 1] : null;
 }
 
+/** The newest of `tags` (any kind), or null when there are none. */
+export function latestTag(tags) {
+  const sorted = [...tags].sort(compareVersions);
+  return sorted.length ? sorted[sorted.length - 1] : null;
+}
+
 /**
  * Stamp the ledger for a release:
  *  - fill blank `since` rows with `version`;
@@ -128,6 +134,25 @@ export function docSummary(body) {
   const oneLine = firstPara.replace(/\s+/g, ' ');
   const sentence = oneLine.match(/^(.+?[.!?])(\s|$)/);
   return (sentence ? sentence[1] : oneLine).replace(/[*_`]/g, '').trim();
+}
+
+// The commit types a release must document in the ledger.
+const DOCUMENTED_TYPES = new Set(['feat', 'perf']);
+
+/**
+ * The merged feat/perf PRs among `commits` (parsed subjects) that have no row
+ * in the ledger. Any row for the PR counts, a `skip` row included. Each PR is
+ * listed once, in commit order.
+ */
+export function undocumentedPRs({ ledger, commits }) {
+  const documented = new Set(ledger.map((r) => r.pr));
+  const listed = new Set();
+  return commits.filter((c) => {
+    if (c.pr == null || !DOCUMENTED_TYPES.has(c.type)) return false;
+    if (documented.has(c.pr) || listed.has(c.pr)) return false;
+    listed.add(c.pr);
+    return true;
+  });
 }
 
 const TYPE_HEADINGS = { fix: '🐛 Bug Fixes' };

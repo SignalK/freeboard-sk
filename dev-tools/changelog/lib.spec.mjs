@@ -8,7 +8,9 @@ import {
   stripTypePrefix,
   parseCommitSubject,
   docSummary,
-  renderNotes
+  renderNotes,
+  latestTag,
+  undocumentedPRs
 } from './lib.mjs';
 
 describe('isPrerelease', () => {
@@ -187,5 +189,47 @@ describe('renderNotes', () => {
       tag: 'v1.0.0'
     });
     expect(body).toBe('## 🚀 New Features\n\n- **X** — The X.\n');
+  });
+});
+
+describe('latestTag', () => {
+  it('picks the newest tag of any kind', () => {
+    expect(
+      latestTag(['v3.1.0', 'v3.2.0-beta.6', 'v3.2.0', 'v3.2.0-beta.5'])
+    ).toBe('v3.2.0');
+    expect(latestTag(['v3.2.0', 'v3.2.1-beta.0'])).toBe('v3.2.1-beta.0');
+  });
+  it('returns null when there are no tags', () => {
+    expect(latestTag([])).toBeNull();
+  });
+});
+
+describe('undocumentedPRs', () => {
+  const ledger = [
+    { feature: 'notes', pr: 10, kind: 'enhanced', since: null },
+    { feature: null, pr: 11, kind: 'skip', reason: 'internal' }
+  ];
+  const commit = (type, pr, title = 'a change') => ({ type, pr, title });
+
+  it('lists feat and perf PRs with no ledger row', () => {
+    const commits = [commit('feat', 12), commit('perf', 13)];
+    expect(undocumentedPRs({ ledger, commits })).toEqual(commits);
+  });
+  it('treats any row for the PR as documented, a skip row included', () => {
+    const commits = [commit('feat', 10), commit('feat', 11)];
+    expect(undocumentedPRs({ ledger, commits })).toEqual([]);
+  });
+  it('ignores other commit types and commits without a PR', () => {
+    const commits = [
+      commit('fix', 14),
+      commit('docs', 15),
+      commit('chore', 16),
+      commit('feat', null)
+    ];
+    expect(undocumentedPRs({ ledger, commits })).toEqual([]);
+  });
+  it('lists a PR once', () => {
+    const commits = [commit('feat', 12, 'first'), commit('feat', 12, 'again')];
+    expect(undocumentedPRs({ ledger, commits })).toEqual([commits[0]]);
   });
 });

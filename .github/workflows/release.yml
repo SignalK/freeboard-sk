@@ -4,9 +4,14 @@ on:
   push:
     tags:
       - 'v*'
+  # Started by release-please.yml with --ref <tag>: tags that release-please
+  # creates do not fire the tag trigger above.
+  workflow_dispatch:
 
 jobs:
   release:
+    # A dispatch from a branch would publish that branch; only tags release.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
