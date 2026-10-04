@@ -24,20 +24,18 @@ export type WindowTarget = { panel: string } | { url: string };
 export interface WindowMethodsDeps {
   /** PiP App is switched on (it is an experimental feature). */
   enabled: () => boolean;
-  /** True when the caller's manifest has an iframe panel with this id. */
-  hasPanel: (panel: string) => boolean;
   /**
    * Open (or reveal) the target as a window. Returns the window id, or null
-   * when the target's URL is not on the Signal K server.
+   * when the panel is not one of the caller's iframe panels or the target's
+   * URL is not on the Signal K server.
    */
   open: (
     target: WindowTarget,
     title?: string,
     size?: WindowSize
   ) => string | null;
-  /** True when this caller opened the window and it is still open. */
-  owns: (windowId: string) => boolean;
-  close: (windowId: string) => void;
+  /** Close a window; false when the caller did not open it or it is gone. */
+  close: (windowId: string) => boolean;
 }
 
 /**
@@ -75,8 +73,8 @@ export function createWindowMethods(
       if (hasPanel === hasUrl) {
         throw fail('give exactly one of panel or url', 'windows.badRequest');
       }
-      if (hasPanel && (!nonEmpty(p.panel) || !deps.hasPanel(p.panel))) {
-        throw fail(`No such panel: ${String(p.panel)}`, 'UNKNOWN_PANEL');
+      if (hasPanel && !nonEmpty(p.panel)) {
+        throw fail('panel must be a non-empty string', 'UNKNOWN_PANEL');
       }
       if (hasUrl && !nonEmpty(p.url)) {
         throw fail('url must be a non-empty string', 'windows.badRequest');
@@ -104,7 +102,7 @@ export function createWindowMethods(
       const windowId = deps.open(target, p.title as string | undefined, size);
       if (!windowId) {
         throw hasPanel
-          ? fail(`Panel ${String(p.panel)} cannot be shown`, 'UNKNOWN_PANEL')
+          ? fail(`No such panel: ${String(p.panel)}`, 'UNKNOWN_PANEL')
           : fail('url must be on the Signal K server', 'windows.badRequest');
       }
       return { windowId };
@@ -112,10 +110,9 @@ export function createWindowMethods(
 
     'ui.closeWindow': async (params) => {
       const id = (params as { windowId?: unknown } | undefined)?.windowId;
-      if (typeof id !== 'string' || !deps.owns(id)) {
+      if (typeof id !== 'string' || !deps.close(id)) {
         throw fail('No such window', 'UNKNOWN_WINDOW');
       }
-      deps.close(id);
       return {};
     }
   };

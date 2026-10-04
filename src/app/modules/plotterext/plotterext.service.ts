@@ -267,17 +267,25 @@ export class PlotterExtensionService {
     () => this.openPanels().find((p) => p.visible) ?? null
   );
 
+  /**
+   * The extension's iframe panel `id`, if it has one that this host can show.
+   * A contribution targeting a newer host API than we implement is skipped.
+   */
+  private iframePanel(
+    extension: string,
+    id: string
+  ): PanelContribution | undefined {
+    const panel = this.manifests()[extension]?.panels?.find((p) => p.id === id);
+    return panel?.type === 'iframe' &&
+      panel.url &&
+      (panel.apiVersion === undefined || panel.apiVersion === HOST_API_VERSION)
+      ? panel
+      : undefined;
+  }
+
   openPanel(extension: string, panelId: string): boolean {
-    const manifest = this.manifests()[extension];
-    const panel = manifest?.panels?.find((p) => p.id === panelId);
-    if (!panel || panel.type !== 'iframe' || !panel.url) return false;
-    // Skip a contribution that targets a newer host API than we implement.
-    if (
-      panel.apiVersion !== undefined &&
-      panel.apiVersion !== HOST_API_VERSION
-    ) {
-      return false;
-    }
+    const panel = this.iframePanel(extension, panelId);
+    if (!panel) return false;
     const key = `${extension}/${panelId}`;
     this.openPanels.update((panels) => {
       // Keep the target plus any keepAlive panels; drop non-keepAlive panels
@@ -376,26 +384,19 @@ export class PlotterExtensionService {
    * extension iframe is already same-origin with them, so this adds no reach.
    */
   private uiWindowMethods(extension: string): Record<string, MethodHandler> {
+    // Resolved per call: the PiP App service only exists once a window is
+    // wanted, and the plotterext specs stub a facade without its config$.
     const pipApps = () => this.injector.get(PipAppService);
-    const panelOf = (id: string) => {
-      const panel = this.manifests()[extension]?.panels?.find(
-        (p) => p.id === id
-      );
-      return panel?.type === 'iframe' &&
-        panel.url &&
-        (panel.apiVersion === undefined ||
-          panel.apiVersion === HOST_API_VERSION)
-        ? panel
-        : undefined;
-    };
     return createWindowMethods({
       enabled: () => !!this.app.config.experiments,
-      hasPanel: (id) => !!panelOf(id),
       open: (target, title, size) => {
-        const panel = 'panel' in target ? panelOf(target.panel) : undefined;
+        const panel =
+          'panel' in target
+            ? this.iframePanel(extension, target.panel)
+            : undefined;
         const raw = 'panel' in target ? panel?.url : target.url;
-        const resolved = raw ? this.resolveAssetUrl(raw) : null;
-        if (!resolved || resolved === 'about:blank') return null;
+        const resolved = raw ? this.resolveAssetUrl(raw) : 'about:blank';
+        if (resolved === 'about:blank') return null;
         const u = new URL(resolved);
         const vp = pipApps().viewport();
         // Clear of the right-hand toolbar, below the top controls.
@@ -410,28 +411,30 @@ export class PlotterExtensionService {
         // open() reveals an existing window for the same page; only a window
         // this call created becomes the caller's, so it cannot take over (and
         // close) one the user or another extension opened.
-        const existing = new Set(
-          pipApps()
-            .windows()
-            .map((w) => w.id)
-        );
+        const before = pipApps().windows().length;
         const def = pipApps().open(
           { kind: 'webapp', path: `${u.pathname}${u.search}${u.hash}` },
           title ?? panel?.title,
           rect
         );
         if (!def) return null;
-        if (!existing.has(def.id)) this.windowOwners.set(def.id, extension);
+        if (pipApps().windows().length > before) {
+          this.windowOwners.set(def.id, extension);
+        }
         return def.id;
       },
-      owns: (windowId) =>
-        this.windowOwners.get(windowId) === extension &&
-        pipApps()
-          .windows()
-          .some((w) => w.id === windowId),
       close: (windowId) => {
+        // Ownership is only pruned here, so a window the user closed can
+        // still be in the map: check it is open as well as the caller's.
+        const owned =
+          this.windowOwners.get(windowId) === extension &&
+          pipApps()
+            .windows()
+            .some((w) => w.id === windowId);
+        if (!owned) return false;
         this.windowOwners.delete(windowId);
         pipApps().close(windowId);
+        return true;
       }
     });
   }

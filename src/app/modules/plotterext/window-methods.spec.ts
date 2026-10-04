@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RPC_ERRORS } from 'signalk-plotterext-bus/host';
-import { createWindowMethods } from './window-methods';
+import { WindowTarget, createWindowMethods } from './window-methods';
 
 function setup(over: Partial<Parameters<typeof createWindowMethods>[0]> = {}) {
   const deps = {
     enabled: vi.fn(() => true),
-    hasPanel: vi.fn((p: string) => p === 'sonar'),
-    open: vi.fn(() => 'win-1'),
-    owns: vi.fn((id: string) => id === 'win-1'),
-    close: vi.fn(),
+    // Like the service: only the caller's own 'sonar' panel can be shown.
+    open: vi.fn((t: WindowTarget) =>
+      'url' in t || t.panel === 'sonar' ? 'win-1' : null
+    ),
+    close: vi.fn((id: string) => id === 'win-1'),
     ...over
   };
   const methods = createWindowMethods(deps);
@@ -124,12 +125,13 @@ describe('ui.closeWindow', () => {
     expect(deps.close).toHaveBeenCalledWith('win-1');
   });
 
-  it('refuses windows it does not own', async () => {
+  it('refuses windows it does not own or that are malformed', async () => {
     const { deps, call } = setup();
     expect(await reason(call('ui.closeWindow', { windowId: 'other' }))).toBe(
       'UNKNOWN_WINDOW'
     );
+    expect(deps.close).toHaveBeenCalledWith('other');
     expect(await reason(call('ui.closeWindow', {}))).toBe('UNKNOWN_WINDOW');
-    expect(deps.close).not.toHaveBeenCalled();
+    expect(deps.close).toHaveBeenCalledTimes(1);
   });
 });
