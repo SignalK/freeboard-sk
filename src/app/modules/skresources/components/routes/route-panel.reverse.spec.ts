@@ -14,6 +14,7 @@ import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.se
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKRoute } from '../../resource-classes';
 import { Position } from 'src/app/types';
+import { GeoUtils } from 'src/app/lib/geoutils';
 
 /**
  * REVERSE turns a route round. The route being followed is turned round by the
@@ -112,6 +113,7 @@ describe('RoutePanel REVERSE', () => {
       canReverse: () => boolean;
       onReverse: () => Promise<void>;
       points: () => Array<{ name: string }>;
+      _route: () => SKRoute;
     };
   };
 
@@ -181,6 +183,11 @@ describe('RoutePanel REVERSE', () => {
       'Two',
       'One'
     ]);
+    // the distance is that of the edited points, not of the saved route
+    expect(panel._route().distance).toBeCloseTo(
+      GeoUtils.routeLength(edited.map((p) => p.position)),
+      3
+    );
   });
 
   it('turns the route being followed round through the course', async () => {

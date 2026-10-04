@@ -269,6 +269,7 @@ export class RoutePanel {
       return;
     }
     const route = this._route();
+    const coordinates = buffer.points.map((p) => p.position);
     const properties = { ...route.feature.properties };
     const meta = coordinatesMetaFromPoints(buffer.points);
     if (meta) {
@@ -278,12 +279,10 @@ export class RoutePanel {
     }
     this._route.set(
       Object.assign(new SKRoute(), route, {
+        distance: GeoUtils.routeLength(coordinates),
         feature: {
           ...route.feature,
-          geometry: {
-            ...route.feature.geometry,
-            coordinates: buffer.points.map((p) => p.position)
-          },
+          geometry: { ...route.feature.geometry, coordinates },
           properties
         }
       })
