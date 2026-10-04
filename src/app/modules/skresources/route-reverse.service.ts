@@ -36,7 +36,9 @@ export class RouteReverseService {
     if (this.app.data.activeRoute === id) {
       return 'course';
     }
-    const buffer = this.routeBuffers.get(id);
+    // A saved drawing's buffer stays keyed under the drawing's own id, so a
+    // stored route's id finds it through the route it is backed by.
+    const buffer = this.routeBuffers.getForRoute(id);
     if (buffer && (!buffer.saved || buffer.dirty)) {
       return 'buffer';
     }
@@ -54,8 +56,8 @@ export class RouteReverseService {
         this.course.courseReverse();
         return true;
       case 'buffer': {
-        const buffer = this.routeBuffers.get(id);
-        this.routeBuffers.replace(id, [...buffer.points].reverse());
+        const buffer = this.routeBuffers.getForRoute(id);
+        this.routeBuffers.replace(buffer.routeId, [...buffer.points].reverse());
         return true;
       }
       case 'stored':

@@ -108,6 +108,15 @@ describe('RouteReverseService', () => {
       expect(service.mode(routeId)).toBe('buffer');
     });
 
+    it("finds the edits of a saved drawing by the stored route's id", () => {
+      // a drawing keeps its own id as the key of its buffer once saved
+      store('rte-1');
+      const { routeId } = registry.create({ points: bufferPoints() });
+      registry.markSaved(routeId, 'rte-1');
+      registry.replace(routeId, bufferPoints());
+      expect(service.mode('rte-1')).toBe('buffer');
+    });
+
     it('turns a saved route round on the server', () => {
       store('rte-1');
       expect(service.mode('rte-1')).toBe('stored');
@@ -141,6 +150,20 @@ describe('RouteReverseService', () => {
       registry.replace(routeId, bufferPoints());
 
       expect(await service.reverse(routeId)).toBe(true);
+
+      const buffer = registry.get(routeId);
+      expect(buffer.points).toEqual(reversedPoints);
+      expect(buffer.dirty).toBe(true);
+      expect(updateRouteCoords).not.toHaveBeenCalled();
+    });
+
+    it("turns a saved drawing's edits round when asked by the stored route's id", async () => {
+      store('rte-1');
+      const { routeId } = registry.create({ points: bufferPoints() });
+      registry.markSaved(routeId, 'rte-1');
+      registry.replace(routeId, bufferPoints());
+
+      expect(await service.reverse('rte-1')).toBe(true);
 
       const buffer = registry.get(routeId);
       expect(buffer.points).toEqual(reversedPoints);

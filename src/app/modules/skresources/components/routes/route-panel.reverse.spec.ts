@@ -190,6 +190,36 @@ describe('RoutePanel REVERSE', () => {
     );
   });
 
+  it("turns a saved drawing's edits round when opened as the stored route", async () => {
+    // the drawing's buffer stays keyed under its own id, the panel shows the
+    // stored route by the id the drawing was saved as
+    const edited = [
+      ...coords.map((position, i) => ({ position, name: names[i] })),
+      { position: [24.96, 60.18] as Position, name: 'Four' }
+    ];
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = saved('rte-1');
+
+    await panel.onReverse();
+
+    expect(registry.get(routeId).points.map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+    expect(panel.points().map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+    expect(updateRouteCoords).not.toHaveBeenCalled();
+    expect(cached.get('rte-1').feature.geometry.coordinates).toEqual(coords);
+  });
+
   it('turns the route being followed round through the course', async () => {
     data.activeRoute = 'rte-1';
     const panel = saved('rte-1');

@@ -264,7 +264,7 @@ export class RoutePanel {
    *  unsaved edits, the panel's own copy can be the saved route without the
    *  edits, so it is not simply turned round. */
   private showBuffer() {
-    const buffer = this.routeBuffers.get(this.id());
+    const buffer = this.routeBuffers.getForRoute(this.id());
     if (!buffer) {
       return;
     }
