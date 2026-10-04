@@ -2571,6 +2571,31 @@ export class SKResourceService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
   ): Promise<boolean> {
+    // One write of a route's points at a time: each starts from what the one
+    // before left in the cache (saved, or put back after failing), and they
+    // reach the server in the order they were made.
+    const previous = this.routeCoordWrites.get(id) ?? Promise.resolve(true);
+    const write = previous.then(() =>
+      this.writeRouteCoords(id, coords, coordsMeta)
+    );
+    this.routeCoordWrites.set(id, write);
+    write.then(() => {
+      if (this.routeCoordWrites.get(id) === write) {
+        this.routeCoordWrites.delete(id);
+      }
+    });
+    return write;
+  }
+
+  // writes of a route's points in progress, by route id
+  private routeCoordWrites = new Map<string, Promise<boolean>>();
+
+  private writeRouteCoords(
+    id: string,
+    coords: Array<Position>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    coordsMeta?: Array<any>
+  ): Promise<boolean> {
     const r = this.fromCache('routes', id);
     if (!r) {
       return Promise.resolve(false);
@@ -2584,34 +2609,25 @@ export class SKResourceService {
       hadMeta: 'coordinatesMeta' in rte.feature.properties,
       coordinatesMeta: rte.feature.properties.coordinatesMeta
     };
-    const applied = GeoUtils.normaliseCoords(coords);
-    rte['feature']['geometry']['coordinates'] = applied;
+    rte['feature']['geometry']['coordinates'] =
+      GeoUtils.normaliseCoords(coords);
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
 
-    const appliedMeta = coordsMeta ? withPointNames(coordsMeta) : undefined;
-    if (appliedMeta) {
-      rte['feature']['properties']['coordinatesMeta'] = appliedMeta;
+    if (coordsMeta) {
+      rte['feature']['properties']['coordinatesMeta'] =
+        withPointNames(coordsMeta);
     }
     // Resolves true on success, false on failure (the error is surfaced here);
     // callers that only fire-and-forget can ignore the result.
     return this.putToServer('routes', id, rte)
       .then(() => true)
       .catch((err) => {
-        // Undo only this call's own change: an update that overlapped it may
-        // have replaced it since, and that one stands.
-        if (rte.feature.geometry.coordinates === applied) {
-          rte.feature.geometry.coordinates = before.coordinates;
-          rte.distance = before.distance;
-        }
-        if (
-          appliedMeta &&
-          rte.feature.properties.coordinatesMeta === appliedMeta
-        ) {
-          if (before.hadMeta) {
-            rte.feature.properties.coordinatesMeta = before.coordinatesMeta;
-          } else {
-            delete rte.feature.properties.coordinatesMeta;
-          }
+        rte.feature.geometry.coordinates = before.coordinates;
+        rte.distance = before.distance;
+        if (before.hadMeta) {
+          rte.feature.properties.coordinatesMeta = before.coordinatesMeta;
+        } else {
+          delete rte.feature.properties.coordinatesMeta;
         }
         this.app.parseHttpErrorResponse(err);
         return false;

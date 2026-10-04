@@ -42,7 +42,8 @@ describe('SKResourceService.updateRouteCoords', () => {
     Object.assign(svc as unknown as Record<string, unknown>, {
       app: { parseHttpErrorResponse, debug: vi.fn() },
       routeCacheSignal: signal([['rte-1', route, true]] as unknown as FBRoutes),
-      putToServer: vi.fn(put)
+      putToServer: vi.fn(put),
+      routeCoordWrites: new Map()
     });
     return { svc, route, parseHttpErrorResponse };
   };
@@ -77,32 +78,38 @@ describe('SKResourceService.updateRouteCoords', () => {
     expect(parseHttpErrorResponse).toHaveBeenCalledOnce();
   });
 
-  it('keeps a later update that overlapped a write that then fails', async () => {
+  it("writes a route's points one after another, the next from what the last left", async () => {
     let fail: (err: Error) => void;
     const puts = [
       () => new Promise((_resolve, reject) => (fail = reject)),
       async () => ({})
     ];
     const { svc, route } = service(() => puts.shift()());
+    const put = (svc as unknown as { putToServer: ReturnType<typeof vi.fn> })
+      .putToServer;
     const later: Position[] = [
       [24.96, 60.15],
       [24.96, 60.17]
     ];
+    const settle = () => new Promise((resolve) => setTimeout(resolve));
 
     const first = svc.updateRouteCoords('rte-1', reversed, [
       { name: 'Three' },
       { name: 'Two' },
       { name: 'One' }
     ]);
-    expect(
-      await svc.updateRouteCoords('rte-1', later, [
-        { name: 'Start' },
-        { name: 'End' }
-      ])
-    ).toBe(true);
-    fail(new Error('403'));
+    const second = svc.updateRouteCoords('rte-1', later, [
+      { name: 'Start' },
+      { name: 'End' }
+    ]);
+    await settle();
+    expect(put).toHaveBeenCalledOnce();
 
+    fail(new Error('403'));
     expect(await first).toBe(false);
+    expect(await second).toBe(true);
+
+    expect(put).toHaveBeenCalledTimes(2);
     expect(route.feature.geometry.coordinates).toEqual(later);
     expect(route.feature.properties.coordinatesMeta).toEqual([
       { name: 'Start' },
