@@ -145,9 +145,7 @@ interface ActiveGesture {
           <span>Open in new tab</span>
         </a>
         <mat-divider></mat-divider>
-      }
-      @if (url()) {
-        @if (isOut()) {
+        @if (outMode()) {
           <button mat-menu-item (click)="popIn()">
             <mat-icon>open_in_browser</mat-icon>
             <span>Bring back</span>
@@ -193,9 +191,9 @@ interface ActiveGesture {
       }
     </mat-menu>
     <div class="fb-pip-app__body">
-      @if (isOut()) {
+      @if (outMode(); as mode) {
         <div class="fb-pip-app__out">
-          @if (outMode() === 'popup') {
+          @if (mode === 'popup') {
             <p>
               If the separate window opened, close it before selecting Bring
               back. If it did not open, select Bring back to restore the app.
@@ -396,16 +394,30 @@ interface ActiveGesture {
     :host(.collapsed) .fb-pip-app__handle {
       display: none;
     }
+    /* Handles straddle the border: each letter of the mode names an edge. */
     .fb-pip-app__handle {
       position: absolute;
       z-index: 3;
       touch-action: none;
       --edge: 10px;
+      --out: calc(var(--edge) / -2);
     }
     @media (pointer: coarse) {
       .fb-pip-app__handle {
         --edge: 16px;
       }
+    }
+    .fb-pip-app__handle[data-mode*='n'] {
+      top: var(--out);
+    }
+    .fb-pip-app__handle[data-mode*='s'] {
+      bottom: var(--out);
+    }
+    .fb-pip-app__handle[data-mode*='e'] {
+      right: var(--out);
+    }
+    .fb-pip-app__handle[data-mode*='w'] {
+      left: var(--out);
     }
     .fb-pip-app__handle[data-mode='n'],
     .fb-pip-app__handle[data-mode='s'] {
@@ -421,18 +433,6 @@ interface ActiveGesture {
       width: var(--edge);
       cursor: ew-resize;
     }
-    .fb-pip-app__handle[data-mode='n'] {
-      top: calc(var(--edge) / -2);
-    }
-    .fb-pip-app__handle[data-mode='s'] {
-      bottom: calc(var(--edge) / -2);
-    }
-    .fb-pip-app__handle[data-mode='e'] {
-      right: calc(var(--edge) / -2);
-    }
-    .fb-pip-app__handle[data-mode='w'] {
-      left: calc(var(--edge) / -2);
-    }
     .fb-pip-app__handle[data-mode='ne'],
     .fb-pip-app__handle[data-mode='nw'],
     .fb-pip-app__handle[data-mode='se'],
@@ -440,24 +440,12 @@ interface ActiveGesture {
       width: calc(var(--edge) * 1.5);
       height: calc(var(--edge) * 1.5);
     }
-    .fb-pip-app__handle[data-mode='ne'] {
-      top: calc(var(--edge) / -2);
-      right: calc(var(--edge) / -2);
-      cursor: nesw-resize;
-    }
+    .fb-pip-app__handle[data-mode='ne'],
     .fb-pip-app__handle[data-mode='sw'] {
-      bottom: calc(var(--edge) / -2);
-      left: calc(var(--edge) / -2);
       cursor: nesw-resize;
     }
-    .fb-pip-app__handle[data-mode='nw'] {
-      top: calc(var(--edge) / -2);
-      left: calc(var(--edge) / -2);
-      cursor: nwse-resize;
-    }
+    .fb-pip-app__handle[data-mode='nw'],
     .fb-pip-app__handle[data-mode='se'] {
-      bottom: calc(var(--edge) / -2);
-      right: calc(var(--edge) / -2);
       cursor: nwse-resize;
     }
   `,
@@ -469,16 +457,13 @@ interface ActiveGesture {
     '[class.bar-hidden]': 'autoHide() && !barShown()',
     '[style.z-index]': 'z()',
     '[style.opacity]': 'def().opacity',
-    '(pointerdown)': 'focused.emit(def().id)',
+    '(pointerdown)': 'service.focus(def().id)',
     '(focusin)': 'onFocusIn($event)',
     '(focusout)': 'releaseBar("focus")'
   }
 })
 export class PipAppWindowComponent implements OnDestroy {
   readonly def = input.required<PipAppDef>();
-  readonly z = input(1);
-  readonly front = input(false);
-  readonly focused = output<string>();
   readonly closed = output<string>();
 
   protected readonly resizeModes: GestureMode[] = [
@@ -494,11 +479,19 @@ export class PipAppWindowComponent implements OnDestroy {
 
   protected readonly opacities = [1, 0.8, 0.6, 0.4];
 
-  private service = inject(PipAppService);
+  protected service = inject(PipAppService);
   protected popout = inject(PipAppPopoutService);
   private sanitizer = inject(DomSanitizer);
   private zone = inject(NgZone);
   private el: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
+
+  /** Stacking position, 1 = back; the front window gets the active colour. */
+  protected readonly z = computed(
+    () => this.service.zOrder().indexOf(this.def().id) + 1
+  );
+  protected readonly front = computed(
+    () => this.service.zOrder().at(-1) === this.def().id
+  );
 
   /** Absolute URL, compared by value so layout changes never reload it. */
   protected readonly url = computed(() =>
@@ -530,9 +523,12 @@ export class PipAppWindowComponent implements OnDestroy {
     () =>
       !this.def().barPinned &&
       !this.def().collapsed &&
-      !this.isOut() &&
+      !this.outMode() &&
       !!this.safeUrl()
   );
+  /** Where this window is shown outside the page, or null while in-app. */
+  protected readonly outMode = computed(() => this.popout.modeOf(this.def()));
+
   protected readonly barShown = signal(true);
   private barHolds = new Set<BarHold>();
   private barTimer: ReturnType<typeof setTimeout> | undefined;
@@ -608,13 +604,7 @@ export class PipAppWindowComponent implements OnDestroy {
   protected onFocusIn(e: FocusEvent) {
     const t = e.target as HTMLElement;
     if (!t.closest('.fb-pip-app__bar, .fb-pip-app__grip')) return;
-    let keyboard = false;
-    try {
-      keyboard = t.matches(':focus-visible');
-    } catch {
-      // :focus-visible is unknown to this engine; treat focus as from a click.
-    }
-    if (keyboard) this.holdBar('focus');
+    if (t.matches(':focus-visible')) this.holdBar('focus');
   }
 
   protected startGesture(e: PointerEvent, mode: GestureMode) {
@@ -635,7 +625,7 @@ export class PipAppWindowComponent implements OnDestroy {
       current: start,
       target
     };
-    target.setPointerCapture?.(e.pointerId);
+    target.setPointerCapture(e.pointerId);
     this.holdBar('gesture');
     this.service.gestureActive.set(true);
     this.zone.runOutsideAngular(() => {
@@ -682,7 +672,7 @@ export class PipAppWindowComponent implements OnDestroy {
     g.target.removeEventListener('pointerup', this.onEnd);
     g.target.removeEventListener('pointercancel', this.onEnd);
     g.target.removeEventListener('lostpointercapture', this.onEnd);
-    if (g.target.hasPointerCapture?.(g.pointerId)) {
+    if (g.target.hasPointerCapture(g.pointerId)) {
       g.target.releasePointerCapture(g.pointerId);
     }
     this.service.gestureActive.set(false);
@@ -696,10 +686,6 @@ export class PipAppWindowComponent implements OnDestroy {
     }
     this.applyRect(commit ? g.current : this.drawn());
   }
-
-  /** True while this window is shown outside the page. */
-  protected readonly outMode = computed(() => this.popout.modeOf(this.def()));
-  protected readonly isOut = computed(() => !!this.outMode());
 
   protected popOut() {
     const r = this.rect();

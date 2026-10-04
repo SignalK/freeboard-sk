@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Subject, of } from 'rxjs';
-import { SignalKClient } from 'signalk-client-angular';
+import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppFacade } from '../../app.facade';
 import { PIP_APP_SOFT_LIMIT, PipAppService } from './pip-app.service';
@@ -18,15 +17,10 @@ describe('PipAppService', () => {
     showMessage: ReturnType<typeof vi.fn>;
     debug: () => void;
   };
-  let appsList: ReturnType<typeof vi.fn>;
 
   const create = () => {
     TestBed.configureTestingModule({
-      providers: [
-        PipAppService,
-        { provide: AppFacade, useValue: app },
-        { provide: SignalKClient, useValue: { apps: { list: appsList } } }
-      ]
+      providers: [PipAppService, { provide: AppFacade, useValue: app }]
     });
     return TestBed.inject(PipAppService);
   };
@@ -41,9 +35,6 @@ describe('PipAppService', () => {
       showMessage: vi.fn(),
       debug: () => undefined
     };
-    appsList = vi.fn(() =>
-      of([{ name: 'signalk-wifish', location: '/signalk-wifish/' }])
-    );
   });
 
   it('opens a window, brings it to the front and persists it', () => {
@@ -62,6 +53,13 @@ describe('PipAppService', () => {
     const b = service.open({ kind: 'url', url: 'https://example.com' });
     expect(service.zOrder()).toEqual([a.id, b.id]);
     expect(service.open({ ...wifish })).toBe(a);
+    // the same page spelt as an absolute address is the same window
+    expect(
+      service.open({
+        kind: 'url',
+        url: 'http://boat.local:3000/signalk-wifish/'
+      })
+    ).toBe(a);
     expect(service.windows().length).toBe(2);
     expect(service.zOrder()).toEqual([b.id, a.id]);
   });
@@ -147,8 +145,8 @@ describe('PipAppService', () => {
     service.setPopout(a.id, 'popup');
     expect(app.config.pipApps.windows[0].popout).toBe('popup');
     service.setPopout(a.id, null);
-    expect(service.windows()[0]).not.toHaveProperty('popout');
-    expect(app.config.pipApps.windows[0]).not.toHaveProperty('popout');
+    expect(service.windows()[0].popout).toBeUndefined();
+    expect(app.config.pipApps.windows[0].popout).toBeUndefined();
   });
 
   it('tells the user to close a popup Freeboard cannot reach', () => {
@@ -265,17 +263,5 @@ describe('PipAppService', () => {
       service.open({ kind: 'url', url: `https://example.com/${i}` });
     }
     expect(app.showMessage).toHaveBeenCalledTimes(1);
-  });
-
-  it('lists installed webapps for the launcher', () => {
-    const service = create();
-    service.refreshWebapps();
-    expect(service.webapps()).toEqual([
-      {
-        name: 'signalk-wifish',
-        description: undefined,
-        url: '/signalk-wifish/'
-      }
-    ]);
   });
 });

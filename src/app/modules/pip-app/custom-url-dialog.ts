@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { isMixedContent, resolveSourceUrl, sourceFromInput } from './sources';
+import { isMixedContent, sourceFromInput } from './sources';
 import { PipAppSource } from './types';
 
 export interface CustomUrlResult {
@@ -31,8 +31,7 @@ export interface CustomUrlResult {
           matInput
           name="address"
           placeholder="/signalk-wifish/ or https://example.com"
-          [ngModel]="address()"
-          (ngModelChange)="address.set($event)"
+          [(ngModel)]="address"
           (keydown.enter)="submit()"
           cdkFocusInitial
         />
@@ -45,8 +44,7 @@ export interface CustomUrlResult {
         <input
           matInput
           name="title"
-          [ngModel]="title()"
-          (ngModelChange)="title.set($event)"
+          [(ngModel)]="title"
           (keydown.enter)="submit()"
         />
       </mat-form-field>
@@ -93,9 +91,7 @@ export class PipAppCustomUrlDialog {
   protected source = computed(() => sourceFromInput(this.address()));
   protected mixedContent = computed(() => {
     const s = this.source();
-    if (s?.kind !== 'url') return false;
-    const url = resolveSourceUrl(s, window.location.href);
-    return !!url && isMixedContent(url, window.location.protocol);
+    return s?.kind === 'url' && isMixedContent(s.url, window.location.protocol);
   });
 
   protected submit() {

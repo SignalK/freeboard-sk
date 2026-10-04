@@ -1,8 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { SignalKClient } from 'signalk-client-angular';
 import * as uuid from 'uuid';
 import { AppFacade } from 'src/app/app.facade';
-import { mapWebappList, SKAppsList, WebappEntry } from 'src/app/lib/webapps';
 import { clampOpacity, normalisePipApps } from './defs';
 import {
   DEFAULT_RECT,
@@ -18,18 +16,10 @@ import { PipAppDef, PipAppSource, PipRect } from './types';
 /** Above this many open windows the user is warned (each one is a full app). */
 export const PIP_APP_SOFT_LIMIT = 6;
 
-const sameSource = (a: PipAppSource, b: PipAppSource) =>
-  a.kind === 'webapp' && b.kind === 'webapp'
-    ? a.path === b.path
-    : a.kind === 'url' && b.kind === 'url'
-      ? a.url === b.url
-      : false;
-
 /** Owns the PiP App windows: what is open, their stacking order and layout. */
 @Injectable({ providedIn: 'root' })
 export class PipAppService {
   private app = inject(AppFacade);
-  private signalk = inject(SignalKClient);
 
   /** Open windows, in the order they were opened. */
   readonly windows = signal<PipAppDef[]>([]);
@@ -42,9 +32,6 @@ export class PipAppService {
   private changedSinceLoad = false;
   /** Ids closed since then, so a slower config load cannot bring them back. */
   private closedSinceLoad = new Set<string>();
-
-  /** Installed webapps offered in the launcher menu. */
-  readonly webapps = signal<WebappEntry[]>([]);
 
   constructor() {
     this.load();
@@ -61,7 +48,7 @@ export class PipAppService {
 
   /**
    * Open a window for `source`, or bring an already open window showing the
-   * same source to the front. Returns null for an unusable source.
+   * same page to the front. Returns null for an unusable source.
    */
   open(
     source: PipAppSource,
@@ -69,8 +56,9 @@ export class PipAppService {
     rect: PipRect = DEFAULT_RECT
   ): PipAppDef | null {
     const s = parseSource(source);
-    if (!s || !this.resolveUrl(s)) return null;
-    const existing = this.windows().find((w) => sameSource(w.source, s));
+    const url = s && this.resolveUrl(s);
+    if (!s || !url) return null;
+    const existing = this.showing(url);
     if (existing) {
       this.reveal(existing.id);
       return existing;
@@ -126,6 +114,11 @@ export class PipAppService {
     }
   }
 
+  /** The open window showing `url`, whichever way its source spells it. */
+  private showing(url: string): PipAppDef | undefined {
+    return this.windows().find((w) => this.resolveUrl(w.source) === url);
+  }
+
   /** Bring a window to the front. */
   focus(id: string) {
     const z = this.zOrder();
@@ -156,20 +149,7 @@ export class PipAppService {
 
   /** Mark a window as out in a popup (or back in, with null). */
   setPopout(id: string, popout: 'popup' | null) {
-    if (popout) {
-      this.patch(id, { popout });
-      return;
-    }
-    if (!this.windows().some((w) => w.id === id)) return;
-    this.windows.update((list) =>
-      list.map((w) => {
-        if (w.id !== id) return w;
-        const next = { ...w };
-        delete next.popout;
-        return next;
-      })
-    );
-    this.persist();
+    this.patch(id, { popout: popout ?? undefined });
   }
 
   setBarPinned(id: string, barPinned: boolean) {
@@ -188,14 +168,6 @@ export class PipAppService {
 
   updateViewport() {
     this.viewport.set(this.readViewport());
-  }
-
-  /** Fetch the installed webapps list for the launcher. */
-  refreshWebapps() {
-    this.signalk.apps.list().subscribe({
-      next: (list) => this.webapps.set(mapWebappList(list as SKAppsList[])),
-      error: () => this.app.debug('PiP App: could not fetch the webapps list')
-    });
   }
 
   /** Display settings are small and frequent: one save covers a burst. */
@@ -220,9 +192,14 @@ export class PipAppService {
     }
     const local = this.windows();
     const stored = normalisePipApps(this.app.config?.pipApps?.windows).filter(
-      (w) =>
-        !this.closedSinceLoad.has(w.id) &&
-        !local.some((l) => l.id === w.id || sameSource(l.source, w.source))
+      (w) => {
+        const url = this.resolveUrl(w.source);
+        return (
+          !this.closedSinceLoad.has(w.id) &&
+          !local.some((l) => l.id === w.id) &&
+          !(url && this.showing(url))
+        );
+      }
     );
     const merged = [...local, ...stored];
     this.windows.set(merged);

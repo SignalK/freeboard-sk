@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   DOCUMENT,
-  computed,
   effect,
   inject,
   output
@@ -23,13 +22,7 @@ export const PIP_APP_GESTURE_CLASS = 'fb-pip-app-gesture';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (w of service.windows(); track w.id) {
-      <fb-pip-app
-        [def]="w"
-        [z]="zIndex()[w.id] ?? 1"
-        [front]="frontId() === w.id"
-        (focused)="service.focus($event)"
-        (closed)="close($event)"
-      ></fb-pip-app>
+      <fb-pip-app [def]="w" (closed)="close($event)"></fb-pip-app>
     }
   `,
   styles: `
@@ -52,13 +45,6 @@ export class PipAppHostComponent {
 
   protected service = inject(PipAppService);
   private document = inject(DOCUMENT);
-
-  protected zIndex = computed(() => {
-    const z: Record<string, number> = {};
-    this.service.zOrder().forEach((id, i) => (z[id] = i + 1));
-    return z;
-  });
-  protected frontId = computed(() => this.service.zOrder().at(-1));
 
   constructor() {
     effect(() => {

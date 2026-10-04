@@ -408,14 +408,7 @@ export function cleanConfig(
       ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
     );
 
-  if (
-    !settings.pipApps ||
-    typeof settings.pipApps !== 'object' ||
-    Array.isArray(settings.pipApps)
-  ) {
-    settings.pipApps = { windows: [] };
-  }
-  settings.pipApps.windows = normalisePipApps(settings.pipApps.windows);
+  settings.pipApps = { windows: normalisePipApps(settings.pipApps?.windows) };
 
   if (typeof settings.radars === 'undefined') {
     settings.radars = {

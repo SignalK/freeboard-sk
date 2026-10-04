@@ -25,11 +25,12 @@ export function normalisePipApps(input: unknown): PipAppDef[] {
     if (typeof d.id !== 'string' || !d.id || seen.has(d.id)) continue;
     if (!source || !isValidRect(d.rect)) continue;
     seen.add(d.id);
+    const { x, y, w, h } = d.rect;
     out.push({
       id: d.id,
       title: typeof d.title === 'string' ? d.title : '',
       source,
-      rect: { ...d.rect },
+      rect: { x, y, w, h },
       collapsed: d.collapsed === true,
       opacity: clampOpacity(d.opacity),
       ...(d.barPinned === true ? { barPinned: true } : {}),

@@ -31,7 +31,7 @@ export function parseSource(input: unknown): PipAppSource | null {
 export function sourceFromInput(text: string): PipAppSource | null {
   const t = (text ?? '').trim();
   if (!t) return null;
-  return t.startsWith('/') && !t.startsWith('//')
+  return t.startsWith('/')
     ? parseSource({ kind: 'webapp', path: t })
     : parseSource({ kind: 'url', url: t });
 }

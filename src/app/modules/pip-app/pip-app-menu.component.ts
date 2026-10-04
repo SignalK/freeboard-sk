@@ -1,12 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
-import { WebappEntry } from 'src/app/lib/webapps';
+import { mapWebappList, SKAppsList, WebappEntry } from 'src/app/lib/webapps';
 import { CustomUrlResult, PipAppCustomUrlDialog } from './custom-url-dialog';
 import { PipAppService } from './pip-app.service';
 
@@ -28,12 +34,12 @@ import { PipAppService } from './pip-app.service';
       matTooltip="PiP App"
       matTooltipPosition="before"
       [matMenuTriggerFor]="pipmenu"
-      (menuOpened)="service.refreshWebapps()"
+      (menuOpened)="loadWebapps()"
     >
       <mat-icon>picture_in_picture_alt</mat-icon>
     </button>
     <mat-menu #pipmenu="matMenu" xPosition="before">
-      @for (a of service.webapps(); track a.url) {
+      @for (a of webapps(); track a.url) {
         <button
           mat-menu-item
           [title]="a.description || ''"
@@ -72,6 +78,18 @@ export class PipAppMenuComponent {
   protected service = inject(PipAppService);
   private app = inject(AppFacade);
   private dialog = inject(MatDialog);
+  private signalk = inject(SignalKClient);
+
+  /** Installed webapps, fetched the first time the menu opens. */
+  protected readonly webapps = signal<WebappEntry[]>([]);
+
+  protected loadWebapps() {
+    if (this.webapps().length) return;
+    this.signalk.apps.list().subscribe({
+      next: (list) => this.webapps.set(mapWebappList(list as SKAppsList[])),
+      error: () => this.app.debug('PiP App: could not fetch the webapps list')
+    });
+  }
 
   protected openWebapp(a: WebappEntry) {
     if (!this.service.open({ kind: 'webapp', path: a.url }, a.name)) {

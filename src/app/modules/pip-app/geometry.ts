@@ -117,9 +117,8 @@ export function boundedGesture(
     viewport,
     bounds
   );
-  return mode === 'move'
-    ? clampToViewport(snapToEdges(r, viewport), viewport, bounds)
-    : r;
+  // Snapping only ever moves a clamped window flush to an edge it fits on.
+  return mode === 'move' ? snapToEdges(r, viewport) : r;
 }
 
 /**

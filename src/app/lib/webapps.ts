@@ -23,24 +23,16 @@ export interface WebappEntry {
  */
 export function mapWebappList(list: SKAppsList[]): WebappEntry[] {
   return (list ?? [])
-    .map((i): WebappEntry | null => {
-      if (!i || i.name === '@signalk/freeboard-sk') {
-        return null;
-      }
-      const legacy = typeof i._location === 'string' ? i._location : '';
-      const current = typeof i.location === 'string' ? i.location : '';
-      if (legacy) {
-        const x = legacy.indexOf('/signalk-server/');
-        return {
-          name: i.name,
-          description: i.description,
-          url: x === -1 ? legacy : legacy.slice(15)
-        };
-      }
-      if (current) {
-        return { name: i.name, description: i.description, url: current };
-      }
-      return { name: i.name, description: i.description, url: `/${i.name}` };
-    })
-    .filter((e): e is WebappEntry => !!e);
+    .filter((i) => i && i.name !== '@signalk/freeboard-sk')
+    .map(({ name, description, _location, location }) => {
+      const legacy = typeof _location === 'string' ? _location : '';
+      const url = legacy
+        ? legacy.includes('/signalk-server/')
+          ? legacy.slice(15)
+          : legacy
+        : typeof location === 'string' && location
+          ? location
+          : `/${name}`;
+      return { name, description, url };
+    });
 }

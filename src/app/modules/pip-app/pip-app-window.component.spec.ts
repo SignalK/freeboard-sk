@@ -27,7 +27,9 @@ describe('PipAppWindowComponent', () => {
   let service: {
     viewport: ReturnType<typeof signal<{ w: number; h: number }>>;
     gestureActive: ReturnType<typeof signal<boolean>>;
+    zOrder: ReturnType<typeof signal<string[]>>;
     resolveUrl: (s: PipAppDef['source']) => string;
+    focus: ReturnType<typeof vi.fn>;
     setRect: ReturnType<typeof vi.fn>;
     setCollapsed: ReturnType<typeof vi.fn>;
     setBarPinned: ReturnType<typeof vi.fn>;
@@ -76,8 +78,10 @@ describe('PipAppWindowComponent', () => {
     service = {
       viewport: signal({ w: 1000, h: 800 }),
       gestureActive: signal(false),
+      zOrder: signal(['other', 'w1']),
       resolveUrl: (s) =>
         s.kind === 'webapp' ? `http://boat.local:3000${s.path}` : s.url,
+      focus: vi.fn(),
       setRect: vi.fn(),
       setCollapsed: vi.fn(),
       setBarPinned: vi.fn(),

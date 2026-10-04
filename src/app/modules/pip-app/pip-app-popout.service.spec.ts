@@ -54,13 +54,9 @@ describe('PipAppPopoutService', () => {
               s.kind === 'url' ? s.url : null,
             setPopout: (id: string, popout: 'popup' | null) =>
               windows.update((l) =>
-                l.map((w) => {
-                  if (w.id !== id) return w;
-                  const next = { ...w };
-                  if (popout) next.popout = popout;
-                  else delete next.popout;
-                  return next;
-                })
+                l.map((w) =>
+                  w.id === id ? { ...w, popout: popout ?? undefined } : w
+                )
               )
           }
         }
