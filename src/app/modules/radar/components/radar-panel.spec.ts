@@ -247,7 +247,7 @@ describe('RadarPanel', () => {
       .querySelector<HTMLElement>('mat-slide-toggle button')
       .click();
 
-    expect(api.setControl).toHaveBeenCalledWith(undefined, 'gain', {
+    expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'gain', {
       auto: false
     });
   });
@@ -258,7 +258,7 @@ describe('RadarPanel', () => {
       .find((b) => b.textContent.trim() === 'Clear targets')
       .click();
 
-    expect(api.setControl).toHaveBeenCalledWith(undefined, 'clearTargets', {});
+    expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'clearTargets', {});
   });
 
   it('colours the lozenge by power state and transmits from standby', () => {
@@ -268,7 +268,7 @@ describe('RadarPanel', () => {
 
     el.querySelector<HTMLElement>('.power-button').click();
 
-    expect(api.setControl).toHaveBeenCalledWith(undefined, 'power', {
+    expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'power', {
       value: 2
     });
   });

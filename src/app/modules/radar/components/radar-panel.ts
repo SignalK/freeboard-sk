@@ -168,7 +168,7 @@ export class RadarPanel {
 
   private send(controlId: string, change: ControlChange) {
     this.radarApi
-      .setControl(undefined, controlId, change)
+      .setControl(this.radar()?.device?.id, controlId, change)
       .catch((err) => this.app.parseHttpErrorResponse(err));
   }
 
