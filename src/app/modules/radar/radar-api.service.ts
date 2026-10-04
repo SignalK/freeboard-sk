@@ -187,6 +187,7 @@ export class RadarAPIService {
     // Selections can overlap (another radar picked before the last one has
     // loaded); only the latest may change the radar state.
     const call = ++this.initCalls;
+    const reads = this.capabilityReads;
     const radars = await this.listRadars();
     if (call !== this.initCalls) {
       return;
@@ -252,6 +253,12 @@ export class RadarAPIService {
       capabilities: rd['capabilities'],
       controls
     });
+
+    // A Range Units change while this loaded read the capabilities again,
+    // and this load's own answer may be the older one, so read them once more.
+    if (reads !== this.capabilityReads) {
+      this.refreshCapabilities(selected);
+    }
 
     this.app.debug(this._radar());
     this.initialised = true;

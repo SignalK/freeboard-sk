@@ -251,6 +251,25 @@ describe('RadarAPIService init() (#755)', () => {
         expect(service.radar().capabilities).toBe(reloaded);
       });
 
+      it('reads them again when they change while the radar loads', async () => {
+        const service = TestBed.inject(RadarAPIService);
+        await service.init();
+        const late = new Subject<unknown>();
+        held.set(capsPath, [late]);
+
+        const reload = service.init();
+        await settle();
+        responses[capsPath] = metric;
+        update('radars.radar-1.controls.rangeUnits', { value: 1 });
+        await settle();
+        late.next(nautical);
+        late.complete();
+        await reload;
+        await settle();
+
+        expect(service.radar().capabilities).toBe(metric);
+      });
+
       it("keeps them when another radar's Range Units change", async () => {
         const service = TestBed.inject(RadarAPIService);
         await service.init();
