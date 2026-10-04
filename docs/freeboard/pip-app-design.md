@@ -313,7 +313,7 @@ is out of Freeboard's reach: closing the PiP App window removes the window (so
 nothing can bring a second copy back in) but leaves the popup running, and a
 message tells the user to close it there.
 
-Facts that shape it (checked Oct 2026): supported in Chrome/Edge 130+ and current
+Facts that shape it (checked Oct 2026): supported in Chrome/Edge 116+ and current
 Firefox (shipped in 151), not Safari; **one Document PiP window per tab** (a second request closes the
 first, so the UI offers "Pop out" on one window at a time and labels it); it closes
 when the opener tab navigates away; it must be invoked from a user gesture; the PiP
