@@ -7,7 +7,8 @@ import {
   input,
   linkedSignal,
   output,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
 import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.service';
@@ -138,8 +139,11 @@ export class RoutePanel {
 
   constructor() {
     effect(() => {
-      this.route();
-      this.init(this.route());
+      // Only a new route re-initialises the panel. init() reads the panel's
+      // own copy, and tracked, every change to that copy (the points after
+      // REVERSE) would run init() again and put the route given back.
+      const route = this.route();
+      untracked(() => this.init(route));
     });
 
     effect(() => {

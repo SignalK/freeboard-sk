@@ -148,6 +148,16 @@ describe('RoutePanel REVERSE', () => {
     expect(courseReverse).not.toHaveBeenCalled();
   });
 
+  it('keeps the route listed turned round through change detection', async () => {
+    const id = draft();
+    const panel = open(id);
+
+    await panel.onReverse();
+    TestBed.tick();
+
+    expect(panel.points().map((p) => p.name)).toEqual([...names].reverse());
+  });
+
   it('turns it back again', async () => {
     const id = draft();
     const panel = open(id);
