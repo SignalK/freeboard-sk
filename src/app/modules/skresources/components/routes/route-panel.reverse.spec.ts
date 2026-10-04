@@ -158,6 +158,22 @@ describe('RoutePanel REVERSE', () => {
     expect(panel.points().map((p) => p.name)).toEqual([...names].reverse());
   });
 
+  it('initialises again for a new route id', async () => {
+    const notes = TestBed.inject(SKResourceService) as unknown as {
+      getRelatedNotes: (collection: string, id: string) => Promise<unknown[]>;
+    };
+    const asked = vi.spyOn(notes, 'getRelatedNotes');
+    const fixture = TestBed.createComponent(RoutePanel);
+    fixture.componentRef.setInput('id', 'rte-1');
+    fixture.componentRef.setInput('route', route());
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('id', 'rte-2');
+    fixture.detectChanges();
+
+    expect(asked).toHaveBeenCalledWith('routes', 'rte-2');
+  });
+
   it('turns it back again', async () => {
     const id = draft();
     const panel = open(id);

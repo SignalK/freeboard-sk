@@ -139,10 +139,11 @@ export class RoutePanel {
 
   constructor() {
     effect(() => {
-      // Only a new route re-initialises the panel. init() reads the panel's
-      // own copy, and tracked, every change to that copy (the points after
-      // REVERSE) would run init() again and put the route given back.
+      // Only a new route or id re-initialises the panel. init() reads the
+      // panel's own copy, and tracked, every change to that copy (the points
+      // after REVERSE) would run init() again and put the route given back.
       const route = this.route();
+      this.id();
       untracked(() => this.init(route));
     });
 
