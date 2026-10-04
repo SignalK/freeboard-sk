@@ -26,7 +26,13 @@ test('contributes no visible UI (headless bridge only)', () => {
 
 test('lists the driveable host capabilities as optional, not required', () => {
   const m = buildManifest();
-  for (const cap of ['map', 'routes', 'resources', 'resources.filter']) {
+  for (const cap of [
+    'map',
+    'routes',
+    'resources',
+    'resources.filter',
+    'x-freeboard-sk.windows'
+  ]) {
     assert.ok(m.optional.includes(cap), `expected optional capability ${cap}`);
     assert.ok(!m.requires.includes(cap), `${cap} must not be required`);
   }

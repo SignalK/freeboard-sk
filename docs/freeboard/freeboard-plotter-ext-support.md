@@ -371,7 +371,9 @@ as a server-relative path, so it survives a change of host name.
 
 ### Methods
 
-- `ui.openWindow({ panel } | { url }, title?, width?, height?)` → `{ windowId }`.
+- `ui.openWindow({ panel, title?, width?, height? })` or
+  `ui.openWindow({ url, title?, width?, height? })` → `{ windowId }`. One object,
+  with exactly one of `panel` and `url`.
   `panel` is an iframe panel id from the caller's own manifest; `url` is a
   server-relative path or same-origin URL. `width`/`height` are CSS pixels,
   given together; the window is placed at the top right, clear of the toolbar.

@@ -27,7 +27,8 @@ function buildManifest() {
       'signalk.stream',
       'signalk.put',
       'units',
-      'ui'
+      'ui',
+      'x-freeboard-sk.windows'
     ],
     background: [
       {

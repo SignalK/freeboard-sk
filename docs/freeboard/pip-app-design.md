@@ -114,9 +114,11 @@ migration** in `src/app/app.config.ts` (there is no deep merge; without the
 migration step an existing stored config simply lacks the key). Save through
 `app.saveConfigDebounced()` on drag/resize end, `app.saveConfig()` on add/remove.
 
-Boundary validation (and the only place it happens): the "Custom URL" dialog and
-`cleanConfig()` both reject anything whose parsed `protocol` is not `http:`/`https:`.
-`webapp` paths must start with `/`.
+Boundary validation happens in three places, and nowhere else: the "Custom URL"
+dialog, `cleanConfig()` (stored config) and `PipAppService.open()` (which extensions
+and the instrument panel reach without the dialog). All reject anything whose
+parsed `protocol` is not `http:`/`https:`; `webapp` paths must start with a single
+`/` and resolve to the Signal K server's origin.
 
 ## 6. Architecture and the decisions that matter
 
@@ -177,11 +179,13 @@ div.view                               (position:fixed; inset:0; flex row)
   touch users and anyone working in the app would otherwise have no way back.
   The 3 s matches the idle time of video-player controls and full-screen system
   bars: long enough to read the title and reach a button.
-- Click/pointerdown anywhere on a window brings it to the front (`zOrder` update)
-  and sets `activeId`; the active bar gets the primary colour.
-- Chrome colours come from `--mat-sys-*` tokens like the rest of the app. Lesson log
-  warning applies: component surfaces styled from those tokens can go light in dark
-  mode; test the title bar in dark theme.
+- Click/pointerdown anywhere on a window brings it to the front (`zOrder` update);
+  the front window's bar gets a tinted colour. Each window derives its stacking
+  position and front state from `zOrder` itself.
+- Chrome colours are fixed per theme (`:host-context(.dark-theme)`), not
+  `--mat-sys-*` tokens: the lessons log records component surfaces styled from
+  those tokens going light in dark mode. The front tint is indigo, independent of
+  the theme's primary palette.
 - `.app-night` is a CSS filter on the whole tree, so night mode dims the embedded
   app too. Desired.
 
@@ -239,8 +243,8 @@ gestures, wifish needs pinch-zoom). Handles grow to 16 px under
   the spike, it is the behaviour we want.
 - **Keyboard focus.** The embedded app takes focus when clicked; the map's key
   handlers are on the `ol-map` element. The app already calls `focusMap()` after
-  every chrome action and clicking the map re-focuses it. Window close/collapse call
-  `focusMap()` too. Nothing else needed.
+  every chrome action and clicking the map re-focuses it. Closing a window calls
+  `focusMap()` too (collapsing keeps the user in the window). Nothing else needed.
 - **Kiosk mode** hides the toolbars (and hence the launcher) but not the host, so
   the windows that were open still reopen: this is how a fixed "chart + sounder" helm
   layout is set up (arrange once without `?kiosk`, then launch with it).
@@ -254,9 +258,8 @@ gestures, wifish needs pinch-zoom). Handles grow to 16 px under
 
 1. **Right toolbar button** (`mat-mini-fab`, icon `picture_in_picture_alt`, next to
    the Instruments button) → `mat-menu`:
-   - installed webapps (from a cached `signalk.apps.list()`, same mapping as
-     `SettingsFacade.getApps()`; factor that mapping into a shared helper rather than
-     copying it);
+   - installed webapps (`signalk.apps.list()`, fetched once the first time the menu
+     opens, through the `mapWebappList()` helper shared with the settings dialog);
    - "Custom address…" → small dialog: address and optional title;
    - divider; currently open windows (click = bring to front, collapsed ones expand);
    - "Close all".
@@ -302,7 +305,8 @@ iframe. Where the two branches differ is what the host can know:
   changes nothing, popping out another window leaves it out (popups do not
   replace each other), and the mark is persisted with the window
   (`popout: 'popup'`), so a reload keeps the note instead of starting a second
-  copy.
+  copy. Because the config syncs through the server, another device shows the
+  same note for a popup it never had; Bring back there is one click.
 
 Closing the PiP App window closes its Document PiP window too. A `noopener` popup
 is out of Freeboard's reach: closing the PiP App window removes the window (so
@@ -361,11 +365,13 @@ src/app/modules/pip-app/
   geometry.ts  (+ .spec.ts)        applyGesture, clampToViewport, to/fromFractions, snapToEdges
   sources.ts   (+ .spec.ts)        source validation, URL resolution, default titles
   defs.ts                          normalise stored windows (used by cleanConfig)
-  pip-app.service.ts (+spec) windows/zOrder/active/gestureActive signals; open/close/
-                                   focus/collapse/update; persistence; webapp list cache; url resolve
-  pip-app-host.component.ts   <fb-pip-app-host> fixed layer, @for windows
+  pip-app.service.ts (+spec) windows/zOrder/gestureActive/viewport signals; open/close/
+                                   focus/collapse/update; persistence; url resolve
+  pip-app-host.component.ts (+spec) <fb-pip-app-host> fixed layer, @for windows, body class
   pip-app-window.component.ts (+spec) chrome, iframe, gesture controller
-  pip-app-menu.component.ts   <fb-pip-app-menu> launcher mat-menu (webapps, custom, open list)
+  pip-app-menu.component.ts   <fb-pip-app-menu> launcher mat-menu (webapps fetched once,
+                                   custom address, open list)
+  testing.ts                       spec-only fixtures: pipAppDef(), pointerEvent()
   custom-url-dialog.ts             address + title, protocol / mixed-content validation
   pip-app-popout.service.ts (+spec, API stubbed)  Document PiP + window.open fallback
 

@@ -111,6 +111,7 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_set_filter` / `fsk_clear_filter` | `resources.setFilter` / `clearFilter` | display-only resource filters                                                                                             |
 | `fsk_list_routes` / `fsk_get_route`   | `route.list` / `route.get`            | inspect the visible routes                                                                                                |
 | `fsk_apply_resource_group`            | `resourceGroup.apply`                 | apply a stored resource group to the display (same as checking it in the Resource Groups list)                            |
+| `fsk_open_pip_app` / `fsk_close_pip_app` | `ui.openWindow` / `ui.closeWindow` | show a page on the Signal K server in a PiP App window over the chart, and close windows the bridge opened (needs `x-freeboard-sk.windows` and Experimental Features on) |
 
 **Targeting a specific tab.** With more than one Freeboard tab open, pass a
 `session` id (from `fsk_list_sessions`) to any tool; omit it to use the most
