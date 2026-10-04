@@ -857,7 +857,9 @@
                 <!-- PiP App launcher -->
                 @if (app.config.experiments) {
                   <div class="buttonPanelItem">
-                    <fb-pip-app-menu></fb-pip-app-menu>
+                    @defer (on immediate) {
+                      <fb-pip-app-menu></fb-pip-app-menu>
+                    }
                     <br />&nbsp;<br />
                   </div>
                 }
@@ -1320,7 +1322,9 @@
 
       <!-- PiP App windows floating over the chart -->
       @if (app.config.experiments) {
-        <fb-pip-app-host (closed)="focusMap()"></fb-pip-app-host>
+        @defer (on immediate) {
+          <fb-pip-app-host (closed)="focusMap()"></fb-pip-app-host>
+        }
       }
     </div>
     <!-- /content -->

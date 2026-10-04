@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   inject,
+  Injector,
   signal
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -35,11 +36,9 @@ import {
 
 import { AppFacade } from './app.facade';
 import { InfoPanelFacade, InfoPanelComponent } from './modules/info-panel';
-import {
-  PipAppHostComponent,
-  PipAppMenuComponent,
-  PipAppService
-} from './modules/pip-app';
+import { PipAppHostComponent } from './modules/pip-app/pip-app-host.component';
+import { PipAppMenuComponent } from './modules/pip-app/pip-app-menu.component';
+import { PipAppService } from './modules/pip-app/pip-app.service';
 import { SignalKClient } from 'signalk-client-angular';
 import { WakeLockService } from 'src/app/lib/services';
 
@@ -280,7 +279,7 @@ export class AppComponent {
   protected skresOther = inject(FBCustomResourceService);
   protected signalk = inject(SignalKClient);
   private dom = inject(DomSanitizer);
-  private pipApps = inject(PipAppService);
+  private injector = inject(Injector);
   private overlayContainer = inject(OverlayContainer);
   private bottomSheet = inject(MatBottomSheet);
   private dialog = inject(MatDialog);
@@ -656,12 +655,15 @@ export class AppComponent {
       this.selFavourite === -1
         ? this.instrumentsPath()
         : this.app.config.display.plugins.favourites[this.selFavourite];
+    // Resolved here, not injected: the PiP App service only exists once a
+    // window is wanted, so nothing of the feature runs while it is off.
+    const pipApps = this.injector.get(PipAppService);
     // Start where the panel was: the right-hand side, full height.
-    const { w, h } = this.pipApps.viewport();
-    const opened = this.pipApps.open(
+    const { w, h } = pipApps.viewport();
+    const opened = pipApps.open(
       { kind: 'webapp', path },
       undefined,
-      this.pipApps.rectFromPixels({ x: w - 360, y: 60, w: 350, h: h - 120 })
+      pipApps.rectFromPixels({ x: w - 360, y: 60, w: 350, h: h - 120 })
     );
     if (opened) {
       this.closeInstrumentPanel();

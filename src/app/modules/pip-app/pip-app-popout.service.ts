@@ -42,12 +42,13 @@ export class PipAppPopoutService {
     // Document PiP window: close that too.
     effect(() => {
       const id = this.pipId();
-      const ids = this.service.windows().map((w) => w.id);
-      if (id && !ids.includes(id)) untracked(() => this.popIn(id));
+      if (id && !this.service.windows().some((w) => w.id === id)) {
+        untracked(() => this.popIn(id));
+      }
     });
+    // Night state is only tracked while a Document PiP window exists.
     effect(() => {
-      const night = this.isNight();
-      if (this.pipId()) untracked(() => this.applyNight(night));
+      if (this.pipId()) this.applyNight(this.isNight());
     });
   }
 
@@ -95,7 +96,6 @@ export class PipAppPopoutService {
       this.pipWindow = pip;
       this.buildDocument(pip.document, url, def.title);
       this.pipId.set(def.id);
-      this.applyNight(this.isNight());
       pip.addEventListener('pagehide', () => {
         // Ignore a late event from a window that was already replaced.
         if (this.pipWindow === pip) this.popIn(def.id);

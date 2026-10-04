@@ -194,12 +194,13 @@ export class PipAppService {
     });
   }
 
+  /** Display settings are small and frequent: one save covers a burst. */
   private patch(id: string, change: Partial<PipAppDef>) {
     if (!this.windows().some((w) => w.id === id)) return;
     this.windows.update((list) =>
       list.map((w) => (w.id === id ? { ...w, ...change } : w))
     );
-    this.persist();
+    this.persist(true);
   }
 
   /**

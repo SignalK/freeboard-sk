@@ -46,6 +46,9 @@ export const BAR_LEAVE_DELAY_MS = 1000;
 /** What keeps an auto-hiding title bar shown. */
 type BarHold = 'hover' | 'gesture' | 'menu' | 'focus';
 
+const sameRect = (a: PxRect, b: PxRect) =>
+  a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+
 interface ActiveGesture {
   pointerId: number;
   mode: GestureMode;
@@ -508,10 +511,14 @@ export class PipAppWindowComponent implements OnDestroy {
   });
 
   /** Stored layout in pixels, kept inside the current viewport. */
-  readonly rect = computed(() => {
-    const vp = this.service.viewport();
-    return clampToViewport(fromFractions(this.def().rect, vp), vp);
-  });
+  readonly rect = computed(
+    () => {
+      const vp = this.service.viewport();
+      return clampToViewport(fromFractions(this.def().rect, vp), vp);
+    },
+    // Compared by value, so a display-only change never rewrites the layout.
+    { equal: sameRect }
+  );
 
   /** What is on screen: a collapsed window is only its title bar. */
   private readonly drawn = computed(() => {

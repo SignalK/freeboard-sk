@@ -42,7 +42,7 @@ export const PIP_APP_GESTURE_CLASS = 'fb-pip-app-gesture';
     }
   `,
   host: {
-    '(window:resize)': 'service.updateViewport()',
+    '(window:resize)': 'onResize()',
     '(window:blur)': 'onWindowBlur()'
   }
 })
@@ -66,6 +66,17 @@ export class PipAppHostComponent {
         PIP_APP_GESTURE_CLASS,
         this.service.gestureActive()
       );
+    });
+  }
+
+  private resizeFrame = 0;
+
+  /** One viewport update per frame, however many resize events arrive. */
+  protected onResize() {
+    if (this.resizeFrame) return;
+    this.resizeFrame = requestAnimationFrame(() => {
+      this.resizeFrame = 0;
+      this.service.updateViewport();
     });
   }
 
