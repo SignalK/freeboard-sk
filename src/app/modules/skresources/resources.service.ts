@@ -2584,25 +2584,34 @@ export class SKResourceService {
       hadMeta: 'coordinatesMeta' in rte.feature.properties,
       coordinatesMeta: rte.feature.properties.coordinatesMeta
     };
-    rte['feature']['geometry']['coordinates'] =
-      GeoUtils.normaliseCoords(coords);
+    const applied = GeoUtils.normaliseCoords(coords);
+    rte['feature']['geometry']['coordinates'] = applied;
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
 
-    if (coordsMeta) {
-      rte['feature']['properties']['coordinatesMeta'] =
-        withPointNames(coordsMeta);
+    const appliedMeta = coordsMeta ? withPointNames(coordsMeta) : undefined;
+    if (appliedMeta) {
+      rte['feature']['properties']['coordinatesMeta'] = appliedMeta;
     }
     // Resolves true on success, false on failure (the error is surfaced here);
     // callers that only fire-and-forget can ignore the result.
     return this.putToServer('routes', id, rte)
       .then(() => true)
       .catch((err) => {
-        rte.feature.geometry.coordinates = before.coordinates;
-        rte.distance = before.distance;
-        if (before.hadMeta) {
-          rte.feature.properties.coordinatesMeta = before.coordinatesMeta;
-        } else {
-          delete rte.feature.properties.coordinatesMeta;
+        // Undo only this call's own change: an update that overlapped it may
+        // have replaced it since, and that one stands.
+        if (rte.feature.geometry.coordinates === applied) {
+          rte.feature.geometry.coordinates = before.coordinates;
+          rte.distance = before.distance;
+        }
+        if (
+          appliedMeta &&
+          rte.feature.properties.coordinatesMeta === appliedMeta
+        ) {
+          if (before.hadMeta) {
+            rte.feature.properties.coordinatesMeta = before.coordinatesMeta;
+          } else {
+            delete rte.feature.properties.coordinatesMeta;
+          }
         }
         this.app.parseHttpErrorResponse(err);
         return false;

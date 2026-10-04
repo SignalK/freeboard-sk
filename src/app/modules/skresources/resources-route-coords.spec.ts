@@ -77,6 +77,39 @@ describe('SKResourceService.updateRouteCoords', () => {
     expect(parseHttpErrorResponse).toHaveBeenCalledOnce();
   });
 
+  it('keeps a later update that overlapped a write that then fails', async () => {
+    let fail: (err: Error) => void;
+    const puts = [
+      () => new Promise((_resolve, reject) => (fail = reject)),
+      async () => ({})
+    ];
+    const { svc, route } = service(() => puts.shift()());
+    const later: Position[] = [
+      [24.96, 60.15],
+      [24.96, 60.17]
+    ];
+
+    const first = svc.updateRouteCoords('rte-1', reversed, [
+      { name: 'Three' },
+      { name: 'Two' },
+      { name: 'One' }
+    ]);
+    expect(
+      await svc.updateRouteCoords('rte-1', later, [
+        { name: 'Start' },
+        { name: 'End' }
+      ])
+    ).toBe(true);
+    fail(new Error('403'));
+
+    expect(await first).toBe(false);
+    expect(route.feature.geometry.coordinates).toEqual(later);
+    expect(route.feature.properties.coordinatesMeta).toEqual([
+      { name: 'Start' },
+      { name: 'End' }
+    ]);
+  });
+
   it('leaves a route without point names without them when the write fails', async () => {
     const { svc, route } = service(
       () => Promise.reject(new Error('403')),
