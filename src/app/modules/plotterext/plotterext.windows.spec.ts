@@ -34,6 +34,20 @@ const manifest = (name: string): PlotterExtensionManifest => ({
       title: 'Remote',
       type: 'iframe',
       url: 'https://evil.example/x'
+    },
+    {
+      id: 'native',
+      title: 'Native',
+      type: 'customElement',
+      moduleUrl: '/plotterext/sonar/native.js',
+      tagName: 'x-sonar'
+    },
+    {
+      id: 'future',
+      title: 'Future',
+      type: 'iframe',
+      url: '/plotterext/sonar/future.html',
+      apiVersion: '99'
     }
   ]
 });
@@ -162,10 +176,15 @@ describe('PlotterExtensionService PiP App windows', () => {
     expect(pipApps.open).toHaveBeenCalledTimes(1);
   });
 
-  it('never opens a panel that points at another origin', async () => {
-    await expect(
-      call('a', 'ui.openWindow', { panel: 'remote' })
-    ).rejects.toMatchObject({ data: { reason: 'UNKNOWN_PANEL' } });
+  it.each([
+    ['points at another origin', 'remote'],
+    ['is not an iframe', 'native'],
+    ['targets a newer host API', 'future'],
+    ['does not exist', 'nope']
+  ])('never opens a panel that %s', async (_case, panel) => {
+    await expect(call('a', 'ui.openWindow', { panel })).rejects.toMatchObject({
+      data: { reason: 'UNKNOWN_PANEL' }
+    });
     expect(pipApps.open).not.toHaveBeenCalled();
   });
 

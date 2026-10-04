@@ -82,9 +82,15 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels).not.toHaveProperty('headingLineSize');
   });
 
-  it('adds an empty pipApps list to a config that has none', () => {
+  it.each([
+    ['missing', undefined],
+    ['null', null],
+    ['an array', []],
+    ['a string', 'x'],
+    ['an object without windows', {}]
+  ])('adds an empty pipApps list to a config where it is %s', (_case, v) => {
     const cfg = legacyConfig();
-    delete cfg.pipApps;
+    (cfg as unknown as Record<string, unknown>).pipApps = v;
     cleanConfig(cfg, {});
     expect(cfg.pipApps).toEqual({ windows: [] });
   });

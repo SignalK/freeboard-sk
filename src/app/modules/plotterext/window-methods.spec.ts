@@ -71,32 +71,27 @@ describe('ui.openWindow', () => {
     ).toBe('windows.badRequest');
   });
 
-  it('rejects unknown panels and malformed requests', async () => {
-    const { call } = setup();
-    expect(await reason(call('ui.openWindow', {}))).toBe('windows.badRequest');
-    expect(
-      await reason(call('ui.openWindow', { panel: 'sonar', url: '/x/' }))
-    ).toBe('windows.badRequest');
-    expect(await reason(call('ui.openWindow', { url: '' }))).toBe(
+  it.each([
+    ['neither panel nor url', {}, 'windows.badRequest'],
+    [
+      'both panel and url',
+      { panel: 'sonar', url: '/x/' },
       'windows.badRequest'
-    );
-    expect(await reason(call('ui.openWindow', { panel: '' }))).toBe(
-      'UNKNOWN_PANEL'
-    );
-    expect(await reason(call('ui.openWindow', { panel: 'nope' }))).toBe(
-      'UNKNOWN_PANEL'
-    );
-    expect(
-      await reason(call('ui.openWindow', { panel: 'sonar', title: 5 }))
-    ).toBe('windows.badRequest');
-    expect(
-      await reason(call('ui.openWindow', { panel: 'sonar', width: 300 }))
-    ).toBe('windows.badRequest');
-    expect(
-      await reason(
-        call('ui.openWindow', { panel: 'sonar', width: -1, height: 200 })
-      )
-    ).toBe('windows.badRequest');
+    ],
+    ['an empty url', { url: '' }, 'windows.badRequest'],
+    ['an empty panel', { panel: '' }, 'UNKNOWN_PANEL'],
+    ['an unknown panel', { panel: 'nope' }, 'UNKNOWN_PANEL'],
+    ['a non-string title', { panel: 'sonar', title: 5 }, 'windows.badRequest'],
+    ['a lone width', { panel: 'sonar', width: 300 }, 'windows.badRequest'],
+    [
+      'a non-positive size',
+      { panel: 'sonar', width: -1, height: 200 },
+      'windows.badRequest'
+    ]
+  ])('rejects %s', async (_case, params, expected) => {
+    const { deps, call } = setup();
+    expect(await reason(call('ui.openWindow', params))).toBe(expected);
+    expect(deps.close).not.toHaveBeenCalled();
   });
 
   it('reports a panel whose page cannot be shown', async () => {
