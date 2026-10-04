@@ -236,6 +236,29 @@ describe('PipAppService', () => {
     expect(service.windows()).toEqual([]);
   });
 
+  it('does not bring back a window closed while a server config was loading', () => {
+    const stored: PipAppDef = {
+      id: 'kept',
+      title: 'Sounder',
+      source: wifish,
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+      collapsed: false,
+      opacity: 1
+    };
+    app.config.pipApps.windows = [stored];
+    const service = create();
+    service.close('kept');
+    // the server copy still has the window just closed
+    app.config = { pipApps: { windows: [stored] } };
+    app.config$.next('ready');
+    expect(service.windows()).toEqual([]);
+    expect(app.config.pipApps.windows).toEqual([]);
+    // a later load, nothing changed meanwhile, restores it as usual
+    app.config = { pipApps: { windows: [stored] } };
+    app.config$.next('ready');
+    expect(service.windows()).toEqual([stored]);
+  });
+
   it('warns once the soft limit of open windows is passed', () => {
     const service = create();
     for (let i = 0; i <= PIP_APP_SOFT_LIMIT; i++) {

@@ -20,14 +20,17 @@ export type GestureMode =
 export interface GeometryLimits {
   minW: number;
   minH: number;
-  /** Height of the title bar, which must always stay reachable. */
+  /**
+   * Height of a collapsed window: the title bar plus the window's top and
+   * bottom border. This much must always stay on screen to grab the window.
+   */
   barH: number;
 }
 
 export const DEFAULT_LIMITS: GeometryLimits = {
   minW: 160,
   minH: 120,
-  barH: 32
+  barH: 34
 };
 
 /** Size and place a new window relative to the viewport. */

@@ -40,6 +40,8 @@ export class PipAppService {
   readonly viewport = signal<ViewportSize>(this.readViewport());
   /** Windows were opened, closed or moved since the config was last loaded. */
   private changedSinceLoad = false;
+  /** Ids closed since then, so a slower config load cannot bring them back. */
+  private closedSinceLoad = new Set<string>();
 
   /** Installed webapps offered in the launcher menu. */
   readonly webapps = signal<WebappEntry[]>([]);
@@ -94,6 +96,7 @@ export class PipAppService {
 
   close(id: string) {
     this.warnOpenPopups(this.windows().filter((w) => w.id === id));
+    this.closedSinceLoad.add(id);
     this.windows.update((list) => list.filter((w) => w.id !== id));
     this.zOrder.update((z) => z.filter((i) => i !== id));
     this.persist();
@@ -101,6 +104,7 @@ export class PipAppService {
 
   closeAll() {
     this.warnOpenPopups(this.windows());
+    this.windows().forEach((w) => this.closedSinceLoad.add(w.id));
     this.windows.set([]);
     this.zOrder.set([]);
     this.persist();
@@ -205,8 +209,9 @@ export class PipAppService {
 
   /**
    * Apply a freshly loaded config. Windows changed here since the last load
-   * are newer than that copy (they were opened or moved while it was being
-   * fetched), so they are kept and the stored windows added around them.
+   * are newer than that copy (they were opened, closed or moved while it was
+   * being fetched), so they are kept and the stored windows added around
+   * them, minus any that were closed meanwhile.
    */
   private onConfigReady() {
     if (!this.changedSinceLoad) {
@@ -215,7 +220,9 @@ export class PipAppService {
     }
     const local = this.windows();
     const stored = normalisePipApps(this.app.config?.pipApps?.windows).filter(
-      (w) => !local.some((l) => l.id === w.id || sameSource(l.source, w.source))
+      (w) =>
+        !this.closedSinceLoad.has(w.id) &&
+        !local.some((l) => l.id === w.id || sameSource(l.source, w.source))
     );
     const merged = [...local, ...stored];
     this.windows.set(merged);
@@ -223,9 +230,11 @@ export class PipAppService {
       ...stored.map((w) => w.id),
       ...this.zOrder().filter((id) => local.some((l) => l.id === id))
     ]);
-    this.persist();
-    // What is shown now is what was just stored.
+    // Persisting is still suppressed while `ready` is emitted; the facade
+    // saves the config itself right after, so only the object is updated.
+    this.app.config.pipApps = { windows: merged };
     this.changedSinceLoad = false;
+    this.closedSinceLoad.clear();
   }
 
   private load() {
@@ -233,6 +242,7 @@ export class PipAppService {
     this.windows.set(stored);
     this.zOrder.set(stored.map((w) => w.id));
     this.changedSinceLoad = false;
+    this.closedSinceLoad.clear();
   }
 
   private persist(debounced = false) {

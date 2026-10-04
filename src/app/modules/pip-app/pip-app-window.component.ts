@@ -31,8 +31,7 @@ import { PipAppPopoutService } from './pip-app-popout.service';
 import { PipAppService } from './pip-app.service';
 import { PipAppDef } from './types';
 
-/** Title bar plus the 1px top and bottom border. */
-const COLLAPSED_HEIGHT = DEFAULT_LIMITS.barH + 2;
+const COLLAPSED_HEIGHT = DEFAULT_LIMITS.barH;
 
 /**
  * How long an auto-hiding title bar stays after it was last used: long enough
