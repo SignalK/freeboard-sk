@@ -202,6 +202,40 @@ describe('RoutePanel REVERSE', () => {
     );
   });
 
+  it("lists a saved drawing's edits, as they change, when opened as the stored route", () => {
+    // the buffer adds a point the stored route does not have
+    const edited = [
+      ...coords.map((position, i) => ({ position, name: names[i] })),
+      { position: [24.96, 60.18] as Position, name: 'Four' }
+    ];
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = saved('rte-1');
+
+    expect(panel.points().map((p) => p.name)).toEqual([
+      'One',
+      'Two',
+      'Three',
+      'Four'
+    ]);
+
+    registry.replace(routeId, edited.slice(1));
+    TestBed.tick();
+
+    expect(panel.points().map((p) => p.name)).toEqual(['Two', 'Three', 'Four']);
+  });
+
+  it('lists the stored route as it is once its edits are saved', () => {
+    const { routeId } = registry.create({
+      points: coords.map((position, i) => ({ position, name: names[i] }))
+    });
+    registry.markSaved(routeId, 'rte-1');
+    const panel = saved('rte-1');
+
+    expect(panel.points().map((p) => p.name)).toEqual(names);
+  });
+
   it("offers SAVE, not EDIT or START, for a saved drawing's edits shown as the stored route", () => {
     const edited = coords.map((position, i) => ({ position, name: names[i] }));
     const { routeId } = registry.create({ points: edited });

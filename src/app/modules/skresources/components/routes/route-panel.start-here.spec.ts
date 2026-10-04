@@ -50,7 +50,11 @@ describe('RoutePanel Start here', () => {
         },
         {
           provide: RouteBufferRegistry,
-          useValue: { live: signal([]), get: () => undefined }
+          useValue: {
+            live: signal([]),
+            get: () => undefined,
+            getForRoute: () => undefined
+          }
         },
         { provide: InfoPanelFacade, useValue: {} },
         {

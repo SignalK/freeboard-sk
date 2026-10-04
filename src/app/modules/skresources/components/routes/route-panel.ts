@@ -147,6 +147,14 @@ export class RoutePanel {
     });
 
     effect(() => {
+      // Follows the edits as they change; init() lists them on opening.
+      this.routeBuffers.live();
+      if (this.hasUnsavedEdits()) {
+        untracked(() => this.showBuffer());
+      }
+    });
+
+    effect(() => {
       if (this.related()?.includes('groups')) {
         this.getRelatedGroups();
       } else if (this.related()?.includes('notes')) {
@@ -175,7 +183,14 @@ export class RoutePanel {
     this.icon = getResourceIcon('routes', this._route());
     this.getRelatedNotes();
     this.getRelatedGroups();
-    this.parsePoints();
+    // A route with edits not yet saved lists the edits, as the chart shows
+    // them and SAVE and REVERSE act on them, also when the panel was opened
+    // with the stored route.
+    if (this.hasUnsavedEdits()) {
+      this.showBuffer();
+    } else {
+      this.parsePoints();
+    }
   }
 
   protected async getRelatedNotes() {
