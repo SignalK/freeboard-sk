@@ -117,6 +117,33 @@ describe('SKResourceService.updateRouteCoords', () => {
     ]);
   });
 
+  it('writes the points as they were when the write was asked for', async () => {
+    let finish: () => void;
+    const puts = [
+      () => new Promise<void>((resolve) => (finish = resolve)),
+      async () => ({})
+    ];
+    const { svc, route } = service(() => puts.shift()());
+    const later: Position[] = [
+      [24.96, 60.15],
+      [24.96, 60.17]
+    ];
+    const names = [{ name: 'Start' }, { name: 'End' }];
+
+    const first = svc.updateRouteCoords('rte-1', reversed);
+    const second = svc.updateRouteCoords('rte-1', later, names);
+    await new Promise((resolve) => setTimeout(resolve));
+    // the caller goes on to change its own arrays while the write waits
+    later[0][0] = 0;
+    names[0].name = 'Changed';
+    finish();
+    await first;
+    await second;
+
+    expect(route.feature.geometry.coordinates[0]).toEqual([24.96, 60.15]);
+    expect(route.feature.properties.coordinatesMeta[0].name).toBe('Start');
+  });
+
   it('leaves a route without point names without them when the write fails', async () => {
     const { svc, route } = service(
       () => Promise.reject(new Error('403')),

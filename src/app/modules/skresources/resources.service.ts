@@ -2574,10 +2574,11 @@ export class SKResourceService {
     // One write of a route's points at a time: each starts from what the one
     // before left in the cache (saved, or put back after failing), and they
     // reach the server in the order they were made.
+    // A queued write runs later, so it takes the points as they are now.
+    const points = coords.map((c) => [...c] as Position);
+    const meta = coordsMeta?.map((m) => ({ ...m }));
     const previous = this.routeCoordWrites.get(id) ?? Promise.resolve(true);
-    const write = previous.then(() =>
-      this.writeRouteCoords(id, coords, coordsMeta)
-    );
+    const write = previous.then(() => this.writeRouteCoords(id, points, meta));
     this.routeCoordWrites.set(id, write);
     write.then(() => {
       if (this.routeCoordWrites.get(id) === write) {
