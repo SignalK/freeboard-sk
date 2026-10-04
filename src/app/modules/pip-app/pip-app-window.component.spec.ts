@@ -11,16 +11,10 @@ import {
 } from './pip-app-window.component';
 import { PipAppPopoutService } from './pip-app-popout.service';
 import { PipAppService } from './pip-app.service';
+import { PointerEventInit, pipAppDef, pointerEvent } from './testing';
 import { PIP_APP_SANDBOX, PipAppDef } from './types';
 
-const def: PipAppDef = {
-  id: 'w1',
-  title: 'Sounder',
-  source: { kind: 'webapp', path: '/signalk-wifish/' },
-  rect: { x: 0.1, y: 0.1, w: 0.4, h: 0.5 },
-  collapsed: false,
-  opacity: 1
-};
+const def = pipAppDef();
 
 describe('PipAppWindowComponent', () => {
   let fixture: ComponentFixture<PipAppWindowComponent>;
@@ -28,7 +22,7 @@ describe('PipAppWindowComponent', () => {
     viewport: ReturnType<typeof signal<{ w: number; h: number }>>;
     gestureActive: ReturnType<typeof signal<boolean>>;
     zOrder: ReturnType<typeof signal<string[]>>;
-    resolveUrl: (s: PipAppDef['source']) => string;
+    resolveUrl: (s: PipAppDef['source']) => string | null;
     focus: ReturnType<typeof vi.fn>;
     setRect: ReturnType<typeof vi.fn>;
     setCollapsed: ReturnType<typeof vi.fn>;
@@ -47,30 +41,25 @@ describe('PipAppWindowComponent', () => {
   };
 
   const pointer = (
-    el: HTMLElement,
+    target: HTMLElement,
     type: string,
-    x: number,
-    y: number,
-    target: HTMLElement = el
-  ) => {
-    const e = new MouseEvent(type, {
-      clientX: x,
-      clientY: y,
-      bubbles: true,
-      cancelable: true,
-      button: 0
-    });
-    Object.defineProperty(e, 'pointerId', { value: 1 });
-    Object.defineProperty(e, 'pointerType', { value: 'mouse' });
-    Object.defineProperty(e, 'isPrimary', { value: true });
-    target.dispatchEvent(e);
-  };
+    x = 0,
+    y = 0,
+    init: Omit<PointerEventInit, 'x' | 'y'> = {}
+  ) => target.dispatchEvent(pointerEvent(type, { x, y, ...init }));
 
   const withCapture = (el: HTMLElement) => {
     el.setPointerCapture = vi.fn();
     el.hasPointerCapture = vi.fn(() => true);
     el.releasePointerCapture = vi.fn();
     return el;
+  };
+
+  const mount = () => {
+    fixture = TestBed.createComponent(PipAppWindowComponent);
+    fixture.componentRef.setInput('def', def);
+    fixture.detectChanges();
+    host = fixture.nativeElement as HTMLElement;
   };
 
   beforeEach(() => {
@@ -105,10 +94,7 @@ describe('PipAppWindowComponent', () => {
         { provide: PipAppPopoutService, useValue: popout }
       ]
     });
-    fixture = TestBed.createComponent(PipAppWindowComponent);
-    fixture.componentRef.setInput('def', def);
-    fixture.detectChanges();
-    host = fixture.nativeElement as HTMLElement;
+    mount();
   });
 
   afterEach(() => {
@@ -125,6 +111,15 @@ describe('PipAppWindowComponent', () => {
     return barHidden();
   };
 
+  /** A drag of the title bar that is still in progress. */
+  const startBarDrag = () => {
+    const bar = withCapture(host.querySelector('.fb-pip-app__bar'));
+    pointer(bar, 'pointerdown', 200, 100);
+    pointer(bar, 'pointermove', 300, 180);
+    expect(service.gestureActive()).toBe(true);
+    return bar;
+  };
+
   it('embeds the app in an iframe with exactly the baseline sandbox', () => {
     const iframe = host.querySelector('iframe');
     expect(iframe.getAttribute('src')).toBe(
@@ -136,30 +131,42 @@ describe('PipAppWindowComponent', () => {
     );
   });
 
-  it('places itself from the stored viewport fractions', () => {
+  it('shows an error instead of an iframe for an address that cannot be framed', () => {
+    fixture.destroy();
+    service.resolveUrl = () => null;
+    mount();
+    expect(host.querySelector('iframe')).toBeNull();
+    expect(host.textContent).toContain('This address cannot be shown.');
+    expect(host.classList).not.toContain('bar-overlay');
+  });
+
+  it('stacks by z-order, colours the front bar and takes focus on press', () => {
+    expect(host.style.zIndex).toBe('2');
+    expect(host.querySelector('.fb-pip-app__bar').classList).toContain('front');
+    pointer(host, 'pointerdown', 200, 100);
+    expect(service.focus).toHaveBeenCalledWith('w1');
+  });
+
+  it('keeps the same iframe when moved, renamed, faded or the viewport changes', () => {
     expect(host.style.transform).toBe('translate(100px, 80px)');
     expect(host.style.width).toBe('400px');
     expect(host.style.height).toBe('400px');
-  });
-
-  it('keeps the same iframe when moved, renamed or the viewport changes', () => {
     const iframe = host.querySelector('iframe');
     fixture.componentRef.setInput('def', {
       ...def,
       title: 'Echo',
+      opacity: 0.6,
       rect: { x: 0.3, y: 0.3, w: 0.2, h: 0.2 }
     });
     service.viewport.set({ w: 500, h: 400 });
     fixture.detectChanges();
     expect(host.querySelector('iframe')).toBe(iframe);
     expect(host.style.transform).toBe('translate(150px, 120px)');
+    expect(host.style.opacity).toBe('0.6');
   });
 
   it('drags the title bar and commits the new layout as fractions', () => {
-    const bar = withCapture(host.querySelector('.fb-pip-app__bar'));
-    pointer(bar, 'pointerdown', 200, 100);
-    expect(service.gestureActive()).toBe(true);
-    pointer(bar, 'pointermove', 300, 180);
+    const bar = startBarDrag();
     pointer(bar, 'pointerup', 300, 180);
     expect(service.gestureActive()).toBe(false);
     expect(service.setRect).toHaveBeenCalledWith('w1', {
@@ -168,6 +175,29 @@ describe('PipAppWindowComponent', () => {
       w: 0.4,
       h: 0.5
     });
+  });
+
+  it('commits the layout reached when the pointer is cancelled', () => {
+    const bar = startBarDrag();
+    pointer(bar, 'pointercancel', 300, 180);
+    expect(service.gestureActive()).toBe(false);
+    expect(service.setRect).toHaveBeenCalledTimes(1);
+  });
+
+  it('abandons a drag without committing when destroyed mid-gesture', () => {
+    startBarDrag();
+    fixture.destroy();
+    expect(service.gestureActive()).toBe(false);
+    expect(service.setRect).not.toHaveBeenCalled();
+  });
+
+  it.each<[string, Omit<PointerEventInit, 'x' | 'y'>]>([
+    ['a secondary mouse button', { button: 2 }],
+    ['a non-primary pointer', { pointerType: 'touch', isPrimary: false }]
+  ])('does not start a drag from %s', (_, init) => {
+    const bar = withCapture(host.querySelector('.fb-pip-app__bar'));
+    pointer(bar, 'pointerdown', 200, 100, init);
+    expect(service.gestureActive()).toBe(false);
   });
 
   it('resizes from the south-east corner', () => {
@@ -187,8 +217,10 @@ describe('PipAppWindowComponent', () => {
 
   it('does not start a drag from the title bar buttons', () => {
     const bar = withCapture(host.querySelector('.fb-pip-app__bar'));
-    const close = bar.querySelector('button');
-    pointer(bar, 'pointerdown', 200, 100, close);
+    const collapse = bar.querySelector<HTMLElement>(
+      'button[aria-label="Collapse"]'
+    );
+    pointer(collapse, 'pointerdown', 200, 100);
     expect(service.gestureActive()).toBe(false);
   });
 
@@ -204,9 +236,7 @@ describe('PipAppWindowComponent', () => {
   it('moves a collapsed window but keeps the size it expands back to', () => {
     fixture.componentRef.setInput('def', { ...def, collapsed: true });
     fixture.detectChanges();
-    const bar = withCapture(host.querySelector('.fb-pip-app__bar'));
-    pointer(bar, 'pointerdown', 200, 100);
-    pointer(bar, 'pointermove', 300, 180);
+    const bar = startBarDrag();
     pointer(bar, 'pointerup', 300, 180);
     expect(service.setRect).toHaveBeenCalledWith('w1', {
       x: 0.2,
@@ -229,13 +259,7 @@ describe('PipAppWindowComponent', () => {
     expect(service.setCollapsed).toHaveBeenCalledTimes(2);
   });
 
-  it('applies its opacity', () => {
-    fixture.componentRef.setInput('def', { ...def, opacity: 0.6 });
-    fixture.detectChanges();
-    expect(host.style.opacity).toBe('0.6');
-  });
-
-  it('shows Bring back instead of the app while popped out', () => {
+  it('shows Bring back instead of the app only while it is popped out itself', () => {
     popout.out.set({ id: 'w1', mode: 'popup' });
     fixture.detectChanges();
     expect(host.querySelector('iframe')).toBeNull();
@@ -247,12 +271,10 @@ describe('PipAppWindowComponent', () => {
     popout.out.set(null);
     fixture.detectChanges();
     expect(host.querySelector('iframe')).not.toBeNull();
-  });
-
-  it('is unaffected when another window is popped out', () => {
     popout.out.set({ id: 'other', mode: 'document-pip' });
     fixture.detectChanges();
     expect(host.querySelector('iframe')).not.toBeNull();
+    expect(host.querySelector('.fb-pip-app__out')).toBeNull();
   });
 
   it('floats the title bar over the app and hides it once idle', () => {
@@ -284,6 +306,20 @@ describe('PipAppWindowComponent', () => {
     expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
   });
 
+  it('brings the bar back from the top resize handle but not the bottom one', () => {
+    idle(BAR_HIDE_DELAY_MS);
+    pointer(
+      host.querySelector('.fb-pip-app__handle[data-mode="s"]'),
+      'pointerenter'
+    );
+    expect(barHidden()).toBe(true);
+    pointer(
+      host.querySelector('.fb-pip-app__handle[data-mode="n"]'),
+      'pointerenter'
+    );
+    expect(barHidden()).toBe(false);
+  });
+
   it('keeps the bar while hovered and hides it soon after the mouse leaves', () => {
     const bar = host.querySelector('.fb-pip-app__bar') as HTMLElement;
     pointer(bar, 'pointerenter', 200, 90);
@@ -300,6 +336,23 @@ describe('PipAppWindowComponent', () => {
     trigger.openMenu();
     expect(idle(BAR_HIDE_DELAY_MS * 3)).toBe(false);
     trigger.closeMenu();
+    expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
+  });
+
+  it('keeps the bar while keyboard focus is on one of its buttons', () => {
+    idle(BAR_HIDE_DELAY_MS);
+    const button = host.querySelector<HTMLElement>(
+      'button[aria-label="Collapse"]'
+    );
+    // jsdom decides :focus-visible from the last key or mouse event it saw,
+    // so the focus has to arrive the way keyboard focus does: by Tab.
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+    );
+    button.focus();
+    expect(button.matches(':focus-visible')).toBe(true);
+    expect(idle(BAR_HIDE_DELAY_MS * 3)).toBe(false);
+    button.blur();
     expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
   });
 

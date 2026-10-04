@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_LIMITS,
+  GestureMode,
+  PxRect,
+  SNAP_DISTANCE,
   applyGesture,
   boundedGesture,
   clampToViewport,
@@ -14,22 +17,18 @@ const start = { x: 100, y: 100, w: 300, h: 200 };
 const vp = { w: 1000, h: 800 };
 
 describe('applyGesture', () => {
-  it('moves the whole window', () => {
-    expect(applyGesture(start, 'move', 20, -30)).toEqual({
-      x: 120,
-      y: 70,
-      w: 300,
-      h: 200
-    });
-  });
-
-  it('resizes from the east and south edges without moving the origin', () => {
-    expect(applyGesture(start, 'se', 50, 40)).toEqual({
-      x: 100,
-      y: 100,
-      w: 350,
-      h: 240
-    });
+  it.each<[GestureMode, PxRect]>([
+    ['move', { x: 150, y: 140, w: 300, h: 200 }],
+    ['n', { x: 100, y: 140, w: 300, h: 160 }],
+    ['s', { x: 100, y: 100, w: 300, h: 240 }],
+    ['e', { x: 100, y: 100, w: 350, h: 200 }],
+    ['w', { x: 150, y: 100, w: 250, h: 200 }],
+    ['ne', { x: 100, y: 140, w: 350, h: 160 }],
+    ['nw', { x: 150, y: 140, w: 250, h: 160 }],
+    ['se', { x: 100, y: 100, w: 350, h: 240 }],
+    ['sw', { x: 150, y: 100, w: 250, h: 240 }]
+  ])('applies a (50, 40) delta in mode %s', (mode, expected) => {
+    expect(applyGesture(start, mode, 50, 40)).toEqual(expected);
   });
 
   it('keeps the opposite edge fixed when resizing from north or west', () => {
@@ -44,11 +43,6 @@ describe('applyGesture', () => {
     expect(shrunk.w).toBe(DEFAULT_LIMITS.minW);
     expect(shrunk.x + shrunk.w).toBe(start.x + start.w);
     expect(applyGesture(start, 'n', 0, 1000).h).toBe(DEFAULT_LIMITS.minH);
-  });
-
-  it('changes only the dragged axis for a single edge', () => {
-    expect(applyGesture(start, 'e', 30, 99)).toEqual({ ...start, w: 330 });
-    expect(applyGesture(start, 's', 99, 30)).toEqual({ ...start, h: 230 });
   });
 });
 
@@ -68,18 +62,21 @@ describe('boundedGesture', () => {
   it('keeps a moved window inside the viewport', () => {
     const r = boundedGesture(start, 'move', 5000, 5000, vp);
     expect(r.x).toBe(vp.w - start.w);
-    expect(r.y).toBeLessThanOrEqual(vp.h - DEFAULT_LIMITS.barH);
+    expect(r.y).toBe(vp.h - DEFAULT_LIMITS.barH);
   });
 });
 
 describe('snapToEdges', () => {
-  it('snaps to an edge within the threshold and leaves others alone', () => {
-    expect(snapToEdges({ x: 8, y: 300, w: 200, h: 100 }, vp)).toEqual({
-      x: 0,
-      y: 300,
-      w: 200,
-      h: 100
-    });
+  // SNAP_DISTANCE is 12 and inclusive
+  it.each([
+    [8, 0],
+    [SNAP_DISTANCE, 0],
+    [SNAP_DISTANCE + 1, SNAP_DISTANCE + 1]
+  ])('an x of %i snaps to %i', (x, snapped) => {
+    expect(snapToEdges({ x, y: 300, w: 200, h: 100 }, vp).x).toBe(snapped);
+  });
+
+  it('snaps to the far edges and leaves a window in the middle alone', () => {
     expect(snapToEdges({ x: 790, y: 690, w: 200, h: 100 }, vp)).toEqual({
       x: 800,
       y: 700,
@@ -140,12 +137,14 @@ describe('viewport fractions', () => {
     });
   });
 
-  it('validates stored rectangles', () => {
-    expect(isValidRect({ x: 0, y: 0.5, w: 1, h: 0.2 })).toBe(true);
-    expect(isValidRect({ x: -0.1, y: 0, w: 0.5, h: 0.5 })).toBe(false);
-    expect(isValidRect({ x: 0, y: 0, w: 1.5, h: 0.5 })).toBe(false);
-    expect(isValidRect({ x: 0, y: 0, w: NaN, h: 0.5 })).toBe(false);
-    expect(isValidRect({ x: 0, y: 0, w: 0.5 })).toBe(false);
-    expect(isValidRect(null)).toBe(false);
+  it.each<[string, boolean, unknown]>([
+    ['all fields in range', true, { x: 0, y: 0.5, w: 1, h: 0.2 }],
+    ['a negative field', false, { x: -0.1, y: 0, w: 0.5, h: 0.5 }],
+    ['a field above 1', false, { x: 0, y: 0, w: 1.5, h: 0.5 }],
+    ['NaN', false, { x: 0, y: 0, w: NaN, h: 0.5 }],
+    ['a missing field', false, { x: 0, y: 0, w: 0.5 }],
+    ['null', false, null]
+  ])('isValidRect: %s -> %s', (_, valid, rect) => {
+    expect(isValidRect(rect)).toBe(valid);
   });
 });

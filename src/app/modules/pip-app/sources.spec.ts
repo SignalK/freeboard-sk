@@ -7,6 +7,8 @@ import {
   resolveSourceUrl,
   sourceFromInput
 } from './sources';
+import { pipAppDef } from './testing';
+import { PipAppDef } from './types';
 
 const host = 'http://boat.local:3000';
 
@@ -33,21 +35,28 @@ describe('sourceFromInput', () => {
     ).toBeNull();
   });
 
-  it('rejects other schemes, protocol-relative and bare words', () => {
-    expect(sourceFromInput('javascript:alert(1)')).toBeNull();
-    expect(sourceFromInput('file:///etc/passwd')).toBeNull();
-    expect(sourceFromInput('//evil.example')).toBeNull();
-    expect(sourceFromInput('wifish')).toBeNull();
-    expect(sourceFromInput('')).toBeNull();
+  it.each([
+    ['another scheme', 'javascript:alert(1)'],
+    ['a file URL', 'file:///etc/passwd'],
+    ['a protocol-relative address', '//evil.example'],
+    ['a bare word', 'wifish'],
+    ['nothing', '']
+  ])('rejects %s', (_, input) => {
+    expect(sourceFromInput(input)).toBeNull();
   });
 });
 
 describe('parseSource', () => {
-  it('rejects malformed stored sources', () => {
-    expect(parseSource({ kind: 'webapp', path: 'no-slash' })).toBeNull();
-    expect(parseSource({ kind: 'url', url: 'data:text/html,x' })).toBeNull();
-    expect(parseSource({ kind: 'other' })).toBeNull();
-    expect(parseSource('x')).toBeNull();
+  it.each<[string, unknown]>([
+    [
+      'a webapp path without a leading slash',
+      { kind: 'webapp', path: 'no-slash' }
+    ],
+    ['a non-http URL', { kind: 'url', url: 'data:text/html,x' }],
+    ['an unknown kind', { kind: 'other' }],
+    ['a non-object', 'x']
+  ])('rejects %s', (_, input) => {
+    expect(parseSource(input)).toBeNull();
   });
 });
 
@@ -88,14 +97,7 @@ describe('defaultTitle', () => {
 });
 
 describe('normalisePipApps', () => {
-  const ok = {
-    id: 'a',
-    title: 'Sounder',
-    source: { kind: 'webapp', path: '/signalk-wifish/' },
-    rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
-    collapsed: false,
-    opacity: 1
-  };
+  const ok = pipAppDef({ id: 'a', rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 } });
 
   it('keeps valid windows and drops broken or duplicate ones', () => {
     const out = normalisePipApps([
@@ -110,34 +112,44 @@ describe('normalisePipApps', () => {
     expect(out).toEqual([ok]);
   });
 
-  it('defaults and clamps the display settings', () => {
-    const { collapsed, opacity, ...bare } = ok;
-    expect([collapsed, opacity]).toEqual([false, 1]);
-    expect(normalisePipApps([bare])[0]).toEqual(ok);
-    expect(normalisePipApps([{ ...ok, opacity: 0.05 }])[0].opacity).toBe(0.3);
-    expect(normalisePipApps([{ ...ok, opacity: 7 }])[0].opacity).toBe(1);
-    expect(normalisePipApps([{ ...ok, collapsed: 'yes' }])[0].collapsed).toBe(
-      false
-    );
-    expect(normalisePipApps([{ ...ok, collapsed: true }])[0].collapsed).toBe(
-      true
-    );
-    expect(normalisePipApps([{ ...ok, popout: 'popup' }])[0].popout).toBe(
-      'popup'
-    );
-    expect(normalisePipApps([{ ...ok, popout: 'tab' }])[0]).not.toHaveProperty(
-      'popout'
-    );
-    expect(normalisePipApps([{ ...ok, barPinned: true }])[0].barPinned).toBe(
-      true
-    );
-    expect(
-      normalisePipApps([{ ...ok, barPinned: 'yes' }])[0]
-    ).not.toHaveProperty('barPinned');
+  it('restores a window missing its display settings with the defaults', () => {
+    const { id, title, source, rect } = ok;
+    expect(normalisePipApps([{ id, title, source, rect }])[0]).toEqual(ok);
   });
 
-  it('defaults a missing title and tolerates a non-array', () => {
-    expect(normalisePipApps([{ ...ok, title: 5 }])[0].title).toBe('');
+  it.each<[string, Record<string, unknown>, keyof PipAppDef, unknown]>([
+    ['clamps a too-low opacity up', { opacity: 0.05 }, 'opacity', 0.3],
+    ['clamps a too-high opacity down', { opacity: 7 }, 'opacity', 1],
+    [
+      'treats a non-boolean collapsed as expanded',
+      { collapsed: 'yes' },
+      'collapsed',
+      false
+    ],
+    ['keeps collapsed', { collapsed: true }, 'collapsed', true],
+    ['keeps a popup mark', { popout: 'popup' }, 'popout', 'popup'],
+    ['drops an unknown popout mode', { popout: 'tab' }, 'popout', undefined],
+    ['keeps a pinned bar', { barPinned: true }, 'barPinned', true],
+    [
+      'drops a non-boolean barPinned',
+      { barPinned: 'yes' },
+      'barPinned',
+      undefined
+    ],
+    ['defaults a non-string title', { title: 5 }, 'title', ''],
+    [
+      'copies only x, y, w and h of the rect',
+      { rect: { ...ok.rect, extra: 1 } },
+      'rect',
+      ok.rect
+    ]
+  ])('%s', (_, stored, field, expected) => {
+    expect(normalisePipApps([{ ...ok, ...stored }])[0][field]).toEqual(
+      expected
+    );
+  });
+
+  it('tolerates a non-array', () => {
     expect(normalisePipApps(undefined)).toEqual([]);
     expect(normalisePipApps({})).toEqual([]);
   });

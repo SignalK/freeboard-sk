@@ -3,6 +3,7 @@ import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppFacade } from '../../app.facade';
 import { PIP_APP_SOFT_LIMIT, PipAppService } from './pip-app.service';
+import { pipAppDef } from './testing';
 import { PipAppDef } from './types';
 
 const wifish = { kind: 'webapp' as const, path: '/signalk-wifish/' };
@@ -76,13 +77,25 @@ describe('PipAppService', () => {
   it('closes one window or all of them', () => {
     const service = create();
     const a = service.open(wifish);
-    service.open({ kind: 'url', url: 'https://example.com' });
+    const b = service.open({ kind: 'url', url: 'https://example.com' });
     service.close(a.id);
     expect(service.windows().map((w) => w.title)).toEqual(['example.com']);
+    expect(service.zOrder()).toEqual([b.id]);
     service.closeAll();
     expect(service.windows()).toEqual([]);
     expect(service.zOrder()).toEqual([]);
     expect(app.config.pipApps.windows).toEqual([]);
+  });
+
+  it('brings a window to the front, ignoring unknown and already-front ids', () => {
+    const service = create();
+    const a = service.open(wifish);
+    const b = service.open({ kind: 'url', url: 'https://example.com' });
+    service.focus('nope');
+    service.focus(b.id);
+    expect(service.zOrder()).toEqual([a.id, b.id]);
+    service.focus(a.id);
+    expect(service.zOrder()).toEqual([b.id, a.id]);
   });
 
   it('stores a new layout with a debounced save and ignores bad values', () => {
@@ -101,14 +114,10 @@ describe('PipAppService', () => {
   });
 
   it('restores stored windows and reloads them when the config is replaced', () => {
-    const stored: PipAppDef = {
+    const stored = pipAppDef({
       id: 'kept',
-      title: 'Sounder',
-      source: wifish,
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
-      collapsed: false,
-      opacity: 1
-    };
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+    });
     app.config.pipApps.windows = [stored];
     const service = create();
     expect(service.windows()).toEqual([stored]);
@@ -205,14 +214,12 @@ describe('PipAppService', () => {
   });
 
   it('keeps windows changed while a server config was loading', () => {
-    const fromServer: PipAppDef = {
+    const fromServer = pipAppDef({
       id: 'server',
       title: 'Remote',
       source: { kind: 'url', url: 'https://example.com' },
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
-      collapsed: false,
-      opacity: 1
-    };
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+    });
     const service = create();
     const local = service.open(wifish, 'Sounder');
     // the server copy predates the window opened above
@@ -235,14 +242,10 @@ describe('PipAppService', () => {
   });
 
   it('does not bring back a window closed while a server config was loading', () => {
-    const stored: PipAppDef = {
+    const stored = pipAppDef({
       id: 'kept',
-      title: 'Sounder',
-      source: wifish,
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
-      collapsed: false,
-      opacity: 1
-    };
+      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+    });
     app.config.pipApps.windows = [stored];
     const service = create();
     service.close('kept');

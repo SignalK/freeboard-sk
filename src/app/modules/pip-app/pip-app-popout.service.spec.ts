@@ -5,16 +5,16 @@ import { AppFacade } from '../../app.facade';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 import { PipAppPopoutService } from './pip-app-popout.service';
 import { PipAppService } from './pip-app.service';
+import { pipAppDef } from './testing';
 import { PIP_APP_SANDBOX, PipAppDef } from './types';
 
-const def = (id: string): PipAppDef => ({
-  id,
-  title: `App ${id}`,
-  source: { kind: 'url', url: `https://example.com/${id}` },
-  rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
-  collapsed: false,
-  opacity: 1
-});
+const def = (id: string): PipAppDef =>
+  pipAppDef({
+    id,
+    title: `App ${id}`,
+    source: { kind: 'url', url: `https://example.com/${id}` },
+    rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+  });
 
 /** A stand-in for the window documentPictureInPicture.requestWindow returns. */
 const fakePipWindow = () => {
@@ -168,8 +168,40 @@ describe('PipAppPopoutService', () => {
     expect(popout.pipId()).toBe('b');
   });
 
-  it('falls back to a noopener popup without the API or when embedded', async () => {
-    topWindow = false;
+  it('closes a window granted after its PiP App window was removed', async () => {
+    let grant: (pip: ReturnType<typeof fakePipWindow>) => void;
+    requestWindow.mockReturnValueOnce(
+      new Promise((resolve) => (grant = resolve))
+    );
+    const popout = create();
+    const request = popout.popOut(def('a'), { w: 400, h: 300 });
+    windows.set([def('b')]);
+    const pip = fakePipWindow();
+    grant(pip);
+    await request;
+    expect(pip.close).toHaveBeenCalled();
+    expect(popout.pipId()).toBeNull();
+  });
+
+  it('requests one window when the same window pops out twice', async () => {
+    const popout = create();
+    const first = popout.popOut(def('a'), { w: 400, h: 300 });
+    await popout.popOut(def('a'), { w: 400, h: 300 });
+    await first;
+    expect(requestWindow).toHaveBeenCalledTimes(1);
+    await popout.popOut(def('a'), { w: 400, h: 300 });
+    expect(requestWindow).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['the API is absent', { api: false, top: true }],
+    ['Freeboard is embedded', { api: true, top: false }]
+  ])('falls back to a noopener popup when %s', async (_, c) => {
+    topWindow = c.top;
+    if (!c.api) {
+      delete (window as unknown as Record<string, unknown>)
+        .documentPictureInPicture;
+    }
     const popout = create();
     expect(popout.alwaysOnTop).toBe(false);
     await popout.popOut(def('a'), { w: 400, h: 300 });
