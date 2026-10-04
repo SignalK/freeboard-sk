@@ -155,6 +155,34 @@ describe('RoutePanel REVERSE', () => {
     expect(panel.points().map((p) => p.name)).toEqual(names);
   });
 
+  it('lists the edited points turned round for a saved route with unsaved edits', async () => {
+    // the panel still shows the saved route; the buffer holds an edit that
+    // added a point
+    const edited = [
+      ...coords.map((position, i) => ({ position, name: names[i] })),
+      { position: [24.96, 60.18] as Position, name: 'Four' }
+    ];
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = open(routeId);
+
+    await panel.onReverse();
+
+    expect(registry.get(routeId).points.map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+    expect(panel.points().map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+  });
+
   it('turns the route being followed round through the course', async () => {
     data.activeRoute = 'rte-1';
     const panel = saved('rte-1');

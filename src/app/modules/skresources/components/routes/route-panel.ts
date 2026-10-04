@@ -39,7 +39,10 @@ import { CourseService } from 'src/app/modules/course';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { MatStepperModule } from '@angular/material/stepper';
 import { ActiveResourcePropertiesModal } from '../active-resource-dialog';
-import { editsRouteBuffer } from '../route-reorder.util';
+import {
+  coordinatesMetaFromPoints,
+  editsRouteBuffer
+} from '../route-reorder.util';
 import { RouteReverseService } from '../../route-reverse.service';
 import { routePointsMeta } from '../route-points-meta.util';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -240,7 +243,7 @@ export class RoutePanel {
       return;
     }
     if (mode === 'buffer') {
-      this.showReversed();
+      this.showBuffer();
     } else if (mode === 'stored') {
       this.showStored();
     }
@@ -257,23 +260,31 @@ export class RoutePanel {
     }
   }
 
-  /** Turn the panel's own copy of a buffered route round, point names and
-   *  all, so the list follows straight away. */
-  private showReversed() {
+  /** Show the route as its edit buffer now has it. For a saved route with
+   *  unsaved edits, the panel's own copy can be the saved route without the
+   *  edits, so it is not simply turned round. */
+  private showBuffer() {
+    const buffer = this.routeBuffers.get(this.id());
+    if (!buffer) {
+      return;
+    }
     const route = this._route();
-    const meta = route.feature.properties.coordinatesMeta;
+    const properties = { ...route.feature.properties };
+    const meta = coordinatesMetaFromPoints(buffer.points);
+    if (meta) {
+      properties.coordinatesMeta = meta;
+    } else {
+      delete properties.coordinatesMeta;
+    }
     this._route.set(
       Object.assign(new SKRoute(), route, {
         feature: {
           ...route.feature,
           geometry: {
             ...route.feature.geometry,
-            coordinates: [...route.feature.geometry.coordinates].reverse()
+            coordinates: buffer.points.map((p) => p.position)
           },
-          properties: {
-            ...route.feature.properties,
-            ...(meta ? { coordinatesMeta: [...meta].reverse() } : {})
-          }
+          properties
         }
       })
     );
