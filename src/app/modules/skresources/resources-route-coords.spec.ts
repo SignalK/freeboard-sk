@@ -144,6 +144,25 @@ describe('SKResourceService.updateRouteCoords', () => {
     expect(route.feature.properties.coordinatesMeta[0].name).toBe('Start');
   });
 
+  it('publishes the change to the chart, and its undo when the write fails', async () => {
+    let fail: (err: Error) => void;
+    const { svc } = service(
+      () => new Promise((_resolve, reject) => (fail = reject))
+    );
+    const cache = (svc as unknown as { routeCacheSignal: () => unknown })
+      .routeCacheSignal;
+    const before = cache();
+
+    const write = svc.updateRouteCoords('rte-1', reversed);
+    await new Promise((resolve) => setTimeout(resolve));
+    const changed = cache();
+    fail(new Error('403'));
+    await write;
+
+    expect(changed).not.toBe(before);
+    expect(cache()).not.toBe(changed);
+  });
+
   it('leaves a route without point names without them when the write fails', async () => {
     const { svc, route } = service(
       () => Promise.reject(new Error('403')),

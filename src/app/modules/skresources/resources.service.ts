@@ -2618,6 +2618,9 @@ export class SKResourceService {
       rte['feature']['properties']['coordinatesMeta'] =
         withPointNames(coordsMeta);
     }
+    // The chart redraws when the route cache signal changes, not when a cached
+    // route is changed in place, so the change (and any undo) is published.
+    this.routeCacheSignal.update((routes) => [...routes]);
     // Resolves true on success, false on failure (the error is surfaced here);
     // callers that only fire-and-forget can ignore the result.
     return this.putToServer('routes', id, rte)
@@ -2630,6 +2633,7 @@ export class SKResourceService {
         } else {
           delete rte.feature.properties.coordinatesMeta;
         }
+        this.routeCacheSignal.update((routes) => [...routes]);
         this.app.parseHttpErrorResponse(err);
         return false;
       });
