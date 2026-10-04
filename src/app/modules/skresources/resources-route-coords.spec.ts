@@ -1,0 +1,94 @@
+import { describe, expect, it, vi } from 'vitest';
+import { signal } from '@angular/core';
+
+import { SKResourceService } from './resources.service';
+import { FBRoutes, Position } from 'src/app/types';
+
+/**
+ * updateRouteCoords() writes a route's points (reordered, reversed, edited) to
+ * the server. It changes the cached route first, so when the write fails the
+ * cached route goes back to what the server still has, rather than showing
+ * points that were never saved. Exercised on a bare prototype instance with
+ * the server call stubbed, as in resources-route-hide.spec.ts.
+ */
+describe('SKResourceService.updateRouteCoords', () => {
+  const coords: Position[] = [
+    [24.95, 60.15],
+    [24.955, 60.16],
+    [24.95, 60.17]
+  ];
+  const reversed = [...coords].reverse();
+
+  const service = (put: () => Promise<unknown>, withMeta = true) => {
+    const route = {
+      name: 'Harbour run',
+      distance: 2000,
+      feature: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [...coords] },
+        properties: withMeta
+          ? {
+              coordinatesMeta: [
+                { name: 'One' },
+                { name: 'Two' },
+                { name: 'Three' }
+              ]
+            }
+          : {}
+      }
+    };
+    const svc = Object.create(SKResourceService.prototype) as SKResourceService;
+    const parseHttpErrorResponse = vi.fn();
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      app: { parseHttpErrorResponse, debug: vi.fn() },
+      routeCacheSignal: signal([['rte-1', route, true]] as unknown as FBRoutes),
+      putToServer: vi.fn(put)
+    });
+    return { svc, route, parseHttpErrorResponse };
+  };
+
+  it('keeps the new points when the server takes them', async () => {
+    const { svc, route } = service(async () => ({}));
+
+    expect(await svc.updateRouteCoords('rte-1', reversed)).toBe(true);
+
+    expect(route.feature.geometry.coordinates).toEqual(reversed);
+  });
+
+  it('puts the points, their names and the distance back when the write fails', async () => {
+    const { svc, route, parseHttpErrorResponse } = service(() =>
+      Promise.reject(new Error('403'))
+    );
+
+    const ok = await svc.updateRouteCoords('rte-1', reversed, [
+      { name: 'Three' },
+      { name: 'Two' },
+      { name: 'One' }
+    ]);
+
+    expect(ok).toBe(false);
+    expect(route.feature.geometry.coordinates).toEqual(coords);
+    expect(route.feature.properties.coordinatesMeta).toEqual([
+      { name: 'One' },
+      { name: 'Two' },
+      { name: 'Three' }
+    ]);
+    expect(route.distance).toBe(2000);
+    expect(parseHttpErrorResponse).toHaveBeenCalledOnce();
+  });
+
+  it('leaves a route without point names without them when the write fails', async () => {
+    const { svc, route } = service(
+      () => Promise.reject(new Error('403')),
+      false
+    );
+
+    await svc.updateRouteCoords('rte-1', reversed, [
+      { name: 'Three' },
+      { name: 'Two' },
+      { name: 'One' }
+    ]);
+
+    expect('coordinatesMeta' in route.feature.properties).toBe(false);
+  });
+});

@@ -2576,6 +2576,14 @@ export class SKResourceService {
       return Promise.resolve(false);
     }
     const rte = r[1];
+    // The cached route is changed before the write, so a failed write puts it
+    // back: the chart must not show points the server never got.
+    const before = {
+      coordinates: rte.feature.geometry.coordinates,
+      distance: rte.distance,
+      hadMeta: 'coordinatesMeta' in rte.feature.properties,
+      coordinatesMeta: rte.feature.properties.coordinatesMeta
+    };
     rte['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(coords);
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
@@ -2589,6 +2597,13 @@ export class SKResourceService {
     return this.putToServer('routes', id, rte)
       .then(() => true)
       .catch((err) => {
+        rte.feature.geometry.coordinates = before.coordinates;
+        rte.distance = before.distance;
+        if (before.hadMeta) {
+          rte.feature.properties.coordinatesMeta = before.coordinatesMeta;
+        } else {
+          delete rte.feature.properties.coordinatesMeta;
+        }
         this.app.parseHttpErrorResponse(err);
         return false;
       });
