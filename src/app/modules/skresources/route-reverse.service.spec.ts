@@ -172,27 +172,11 @@ describe('RouteReverseService', () => {
       );
     });
 
-    it("turns a saved route's clean edit buffer round too, still clean", async () => {
+    it('reports a write the server refused', async () => {
       store('rte-1');
-      const { routeId } = registry.create({ points: bufferPoints() });
-      registry.markSaved(routeId, 'rte-1');
-
-      await service.reverse('rte-1');
-
-      const buffer = registry.get(routeId);
-      expect(buffer.points).toEqual(reversedPoints);
-      expect(buffer.dirty).toBe(false);
-    });
-
-    it('leaves the edit buffer alone when the server write fails', async () => {
-      store('rte-1');
-      const { routeId } = registry.create({ points: bufferPoints() });
-      registry.markSaved(routeId, 'rte-1');
       updateRouteCoords.mockResolvedValue(false);
 
       expect(await service.reverse('rte-1')).toBe(false);
-
-      expect(registry.get(routeId).points).toEqual(bufferPoints());
     });
 
     it('ignores a second REVERSE while the first write is on its way', async () => {

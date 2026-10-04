@@ -76,20 +76,11 @@ export class RouteReverseService {
     try {
       const route = this.skres.fromCache('routes', id)[1];
       const meta = route.feature.properties?.coordinatesMeta;
-      const saved = await this.skres.updateRouteCoords(
+      return await this.skres.updateRouteCoords(
         id,
         [...route.feature.geometry.coordinates].reverse(),
         meta ? [...meta].reverse() : undefined
       );
-      // MODIFY starts from a saved route's edit buffer when it still has one,
-      // so a clean buffer turns round too, or the next edit would save the
-      // old order back.
-      const buffer = this.routeBuffers.getForRoute(id);
-      if (saved && buffer?.saved && !buffer.dirty) {
-        this.routeBuffers.replace(buffer.routeId, [...buffer.points].reverse());
-        this.routeBuffers.markSaved(buffer.routeId);
-      }
-      return saved;
     } finally {
       this.writing.delete(id);
     }
