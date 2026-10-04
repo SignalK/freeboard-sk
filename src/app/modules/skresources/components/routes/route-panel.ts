@@ -82,13 +82,10 @@ export class RoutePanel {
   /** True when this id refers to a route with pending unsaved changes — a
    *  never-saved draft or a stored route edited but not yet re-saved: the panel
    *  shows "Save" instead of "Edit" and acts locally. A saved + clean buffer is
-   *  treated as a normal stored route (shows "Edit"). */
-  protected isUnsaved = computed(() => {
-    // Read the live() signal (not the plain get() Map lookup) so the Save/Edit
-    // label re-evaluates when the buffer's saved/dirty state changes.
-    const b = this.routeBuffers.live().find((x) => x.routeId === this.id());
-    return !!b && (!b.saved || b.dirty);
-  });
+   *  treated as a normal stored route (shows "Edit"). The same test as
+   *  hasUnsavedEdits(), which also finds a saved drawing's buffer, still keyed
+   *  under the drawing's id, by the id of the route it was saved as. */
+  protected isUnsaved = computed(() => this.hasUnsavedEdits());
   /** True for a drawn route that was never saved: START follows it as a
    *  temporary route. */
   protected isDraft = computed(() => {

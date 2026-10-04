@@ -111,6 +111,8 @@ describe('RoutePanel REVERSE', () => {
     fixture.detectChanges();
     return fixture.componentInstance as unknown as {
       canReverse: () => boolean;
+      isUnsaved: () => boolean;
+      isDraft: () => boolean;
       onReverse: () => Promise<void>;
       points: () => Array<{ name: string }>;
       _route: () => SKRoute;
@@ -188,6 +190,18 @@ describe('RoutePanel REVERSE', () => {
       GeoUtils.routeLength(edited.map((p) => p.position)),
       3
     );
+  });
+
+  it("offers SAVE, not EDIT or START, for a saved drawing's edits shown as the stored route", () => {
+    const edited = coords.map((position, i) => ({ position, name: names[i] }));
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = saved('rte-1');
+
+    // SAVE replaces EDIT, and START is off for unsaved edits of a saved route
+    expect(panel.isUnsaved()).toBe(true);
+    expect(panel.isDraft()).toBe(false);
   });
 
   it("turns a saved drawing's edits round when opened as the stored route", async () => {

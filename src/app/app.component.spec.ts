@@ -8,6 +8,8 @@ import { By } from '@angular/platform-browser';
 import { WritableSignal } from '@angular/core';
 import { RadarAPIService } from './modules/radar/radar-api.service';
 import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
+import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
+import { Position } from './types';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -184,6 +186,37 @@ describe('AppComponent', () => {
       expect(activate).not.toHaveBeenCalled();
     });
   });
+  describe('SAVE in the route panel', () => {
+    type Internals = {
+      onRouteInfoEdit: (id: string) => void;
+      saveRouteBuffer: (id: string) => Promise<void>;
+      routeBuffers: RouteBufferRegistry;
+      skres: { editRouteInfo: (id: string) => void };
+    };
+
+    it("saves a saved drawing's edits when the panel shows its stored route", () => {
+      const c = TestBed.createComponent(AppComponent)
+        .componentInstance as unknown as Internals;
+      const save = vi.spyOn(c, 'saveRouteBuffer').mockResolvedValue(undefined);
+      const details = vi
+        .spyOn(c.skres, 'editRouteInfo')
+        .mockImplementation(() => undefined);
+      const points = [
+        { position: [24.95, 60.15] as Position, name: 'One' },
+        { position: [24.95, 60.17] as Position, name: 'Two' }
+      ];
+      // the drawing keeps its own id as the key of its buffer once saved
+      const { routeId } = c.routeBuffers.create({ points });
+      c.routeBuffers.markSaved(routeId, 'rte-1');
+      c.routeBuffers.replace(routeId, points);
+
+      c.onRouteInfoEdit('rte-1');
+
+      expect(save).toHaveBeenCalledWith(routeId);
+      expect(details).not.toHaveBeenCalled();
+    });
+  });
+
   it('closes the autopilot console with the Autopilot button that opened it', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = TestBed.inject(AppFacade);
