@@ -373,6 +373,13 @@ export class SKStreamFacade {
         path: [{ path: '*', period: 1000 }]
       }
     });
+    this.worker.postMessage({
+      cmd: 'subscribe',
+      options: {
+        context: 'targets.*',
+        path: [{ path: '*', period: 1000 }]
+      }
+    });
   }
 
   /** Send config to stream worker
@@ -528,6 +535,9 @@ export class SKStreamFacade {
 
       // process Aircraft
       this.app.data.aircraft = result.aircraft;
+
+      // process sensor targets
+      this.app.data.targets = msg.result.targets;
 
       // update AIS Lifecycle signal
       this.aisLifecycle.update(() => {
