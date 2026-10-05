@@ -21,7 +21,7 @@ import { TimerButtonComponent } from './timer-button.component';
 import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
 import { AppIconDef } from '../../icons';
-import { ALARM_STATE, SKPosition } from 'src/app/types';
+import { ALARM_STATE, CpaPositions, SKPosition } from 'src/app/types';
 import { CourseService } from '../../course';
 
 /** Extra data carried by the notification that raised the alert. */
@@ -29,6 +29,8 @@ export interface AlertProperties {
   position?: SKPosition;
   /** Vessel context of the other party (closest approach alerts). */
   vesselId?: string;
+  /** Where own vessel and the other party will be at closest approach. */
+  cpaPositions?: CpaPositions;
 }
 
 export interface AlertData {

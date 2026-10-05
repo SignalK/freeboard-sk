@@ -816,7 +816,7 @@
     </fb-anchor-alarm>
   }
   @if (dfeat.closest.length !== 0) {
-    <fb-cpa-alarms [cpaLines]="dfeat.closest" [zIndex]="350"> </fb-cpa-alarms>
+    <fb-cpa-alarms [cpaTargets]="dfeat.closest" [zIndex]="350"> </fb-cpa-alarms>
   }
 
   <!-- MOB alarms: above the AIS vessel/target layers (900-985) so a survival-craft

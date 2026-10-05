@@ -14,6 +14,7 @@ import {
   NotificationMessage,
   SKNotification
 } from 'src/app/types/stream';
+import { CpaPositions } from 'src/app/types';
 
 /**
  * Drives NotificationManager through the worker's notification stream and
@@ -28,7 +29,9 @@ describe('NotificationManager alert properties (#755)', () => {
     config: {
       display: { depthAlarm: { enabled: boolean }; muteSound: boolean };
     };
-    data: { vessels: { closest: string[] } };
+    data: {
+      vessels: { closest: string[]; cpaPositions: Map<string, CpaPositions> };
+    };
     debug: () => void;
     showMessage: () => void;
   };
@@ -39,7 +42,7 @@ describe('NotificationManager alert properties (#755)', () => {
     app = {
       featureFlags: signal({ notificationApi: true }),
       config: { display: { depthAlarm: { enabled: true }, muteSound: true } },
-      data: { vessels: { closest: [] } },
+      data: { vessels: { closest: [], cpaPositions: new Map() } },
       debug: () => undefined,
       showMessage: () => undefined
     };
@@ -58,10 +61,7 @@ describe('NotificationManager alert properties (#755)', () => {
   });
 
   const notification = (
-    extra: Partial<SKNotification> & {
-      other?: string;
-      data?: { targetRef?: string };
-    } = {}
+    extra: Partial<SKNotification> & { other?: string; data?: unknown } = {}
   ): SKNotification => ({
     state: ALARM_STATE.alarm,
     method: [ALARM_METHOD.visual],
@@ -146,6 +146,47 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(alert.properties.vesselId).toBe(
       'vessels.urn:mrn:imo:mmsi:123456789'
     );
+  });
+
+  it('takes the other vessel and the CPA positions from the alarm data', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.radar:nav1-17',
+      notification({
+        data: {
+          targetRef: 'targets.radar:nav1-17',
+          cpaPositions: {
+            self: { latitude: 52.1, longitude: 4.2 },
+            target: { latitude: 52.11, longitude: 4.21 }
+          }
+        }
+      })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.properties.vesselId).toBe('targets.radar:nav1-17');
+    expect(app.data.vessels.closest).toEqual(['targets.radar:nav1-17']);
+    expect(app.data.vessels.cpaPositions.get('targets.radar:nav1-17')).toEqual({
+      self: [4.2, 52.1],
+      target: [4.21, 52.11]
+    });
+  });
+
+  it('ignores CPA positions that are not valid positions', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.radar:nav1-17',
+      notification({
+        data: {
+          targetRef: 'targets.radar:nav1-17',
+          cpaPositions: { self: { latitude: 52.1, longitude: 4.2 } }
+        }
+      })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.properties.cpaPositions).toBeUndefined();
+    expect(app.data.vessels.cpaPositions.size).toBe(0);
   });
 
   it('leaves properties empty when the notification carries neither', () => {
