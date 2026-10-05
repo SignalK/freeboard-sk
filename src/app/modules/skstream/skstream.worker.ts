@@ -1091,7 +1091,12 @@ function parseStreamMessage(data: SKStreamMessage) {
           case 'targets': // radar, camera and other sensor targets
             if (
               targetFilter?.signalk.vessels &&
-              !processSensorTarget(vessels.targets, data.context, v)
+              !processSensorTarget(
+                vessels.targets,
+                data.context,
+                v,
+                vesselPrefs.aisCogLine
+              )
             ) {
               targetStatus.expired[data.context] = true;
               break;
