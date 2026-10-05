@@ -54,12 +54,22 @@ describe('processSensorTarget', () => {
 
     const t = targets.get(RADAR);
     expect(t.position).toEqual([4.2, 52.1]);
+    expect(t.cog).toBe(1.5);
     expect(t.orientation).toBe(1.5);
     expect(t.sog).toBe(4);
     expect(t.name).toBe('Nordic Star');
     expect(t.mmsi).toBe('244060000');
     expect(t.type.name).toBe('Radar target');
     expect(t.sameAs).toBeNull();
+  });
+
+  it('leaves the course unset until the sensor reports one', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    processSensorTarget(targets, RADAR, {
+      path: 'navigation.speedOverGround',
+      value: 4
+    });
+    expect(targets.get(RADAR).cog).toBeUndefined();
   });
 
   it('records and withdraws the link to another context', () => {
@@ -119,6 +129,30 @@ describe('unlinkedTargets', () => {
     expect([...shown.keys()]).toEqual([]);
   });
 
+  it('leaves out a target linked to own vessel', () => {
+    const self = vessel('vessels.urn:mrn:imo:mmsi:211000000');
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, self.id);
+    target(targets, CAMERA, 'vessels.self');
+    expect([...unlinkedTargets(targets, new Map(), self).keys()]).toEqual([]);
+  });
+
+  it('draws a target whose linked vessel has no position', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    const unplaced = vessel(VESSEL);
+    unplaced.position = null;
+    const shown = unlinkedTargets(targets, new Map([[VESSEL, unplaced]]));
+    expect([...shown.keys()]).toEqual([RADAR]);
+  });
+
+  it('draws a target whose linked target has no position', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    processSensorTarget(targets, RADAR, { path: 'name', value: 'echo' });
+    target(targets, CAMERA, RADAR);
+    expect([...unlinkedTargets(targets, new Map()).keys()]).toContain(CAMERA);
+  });
+
   it('draws one of the targets whose links form a loop', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, CAMERA);
@@ -140,6 +174,16 @@ describe('locateTarget', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
     expect(locateTarget(VESSEL, new Map(), targets)).toEqual([4.2, 52.1]);
+  });
+
+  it('locates a vessel without a position through a target linked to it', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    const unplaced = vessel(VESSEL);
+    unplaced.position = null;
+    expect(
+      locateTarget(VESSEL, new Map([[VESSEL, unplaced]]), targets)
+    ).toEqual([4.2, 52.1]);
   });
 
   it('returns undefined for a context it does not know', () => {
