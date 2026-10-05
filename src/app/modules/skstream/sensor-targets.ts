@@ -64,7 +64,8 @@ export function processSensorTarget(
       d.positionUpdatedAt = Date.now();
       break;
     case 'navigation.courseOverGroundTrue':
-      d.orientation = v.value as number;
+      d.cog = v.value as number;
+      d.orientation = d.cog;
       break;
     case 'navigation.speedOverGround':
       d.sog = v.value as number;
@@ -75,17 +76,26 @@ export function processSensorTarget(
 
 /**
  * The targets to draw: each boat once. A target linked to a vessel on the
- * chart is left out, and targets linked to each other are drawn as the one
- * they lead to. A link to a context that is gone, such as a vessel whose AIS
- * expired, is ignored, so the sensor's view of the boat stays on the chart.
+ * chart, own vessel included, is left out, and targets linked to each other
+ * are drawn as the one they lead to. A link to a context that is gone or has
+ * no position yet, such as a vessel whose AIS expired, is ignored, so the
+ * sensor's view of the boat stays on the chart.
  */
 export function unlinkedTargets(
   targets: Map<string, SKSensorTarget>,
-  vessels: Map<string, SKVessel>
+  vessels: Map<string, SKVessel>,
+  self?: SKVessel
 ): Map<string, SKSensorTarget> {
+  const charted = (context: string): boolean => {
+    const vessel =
+      context === 'vessels.self' || context === self?.id
+        ? self
+        : vessels.get(context);
+    return Boolean(vessel?.position);
+  };
   const shown = new Map<string, SKSensorTarget>();
   targets.forEach((target, id) => {
-    if (rootOf(id, targets, vessels) === id) {
+    if (rootOf(id, targets, charted) === id) {
       shown.set(id, target);
     }
   });
@@ -94,23 +104,24 @@ export function unlinkedTargets(
 
 /**
  * The context that stands for a target's object: links are followed to a
- * vessel on the chart or to a target without a usable link. Targets linked in
- * a loop agree on the first of them by id.
+ * vessel on the chart or to a target without a usable link. A target without
+ * a position is not a usable link. Targets linked in a loop agree on the
+ * first of them by id.
  */
 function rootOf(
   id: string,
   targets: Map<string, SKSensorTarget>,
-  vessels: Map<string, SKVessel>
+  charted: (context: string) => boolean
 ): string {
   const visited: string[] = [];
   let current = id;
   for (;;) {
     visited.push(current);
     const next = targets.get(current).sameAs;
-    if (next !== null && vessels.has(next)) {
+    if (next !== null && charted(next)) {
       return next;
     }
-    if (next === null || !targets.has(next)) {
+    if (next === null || !targets.get(next)?.position) {
       return current;
     }
     const loop = visited.indexOf(next);
@@ -131,11 +142,12 @@ export function locateTarget(
   vessels: Map<string, SKVessel>,
   targets: Map<string, SKSensorTarget>
 ): Position | undefined {
-  const located =
-    vessels.get(id) ??
-    targets.get(id) ??
-    [...targets.values()].find((t) => t.sameAs === id && t.position);
-  return located?.position ?? undefined;
+  const candidates = [
+    vessels.get(id),
+    targets.get(id),
+    ...[...targets.values()].filter((t) => t.sameAs === id)
+  ];
+  return candidates.find((c) => c?.position)?.position ?? undefined;
 }
 
 function isLonLat(value: unknown): boolean {
