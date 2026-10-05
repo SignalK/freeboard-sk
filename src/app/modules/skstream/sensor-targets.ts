@@ -15,12 +15,15 @@ import { PathValue, Position } from 'src/app/types';
 /**
  * Apply one delta value to the target with context `id`. A null position means
  * the sensor lost the track, so the target is dropped.
+ * @param cogLineMinutes length of the course line, in minutes of travel at
+ * the target's speed, as for AIS vessels
  * @returns false when the target was dropped
  */
 export function processSensorTarget(
   targets: Map<string, SKSensorTarget>,
   id: string,
-  v: PathValue
+  v: PathValue,
+  cogLineMinutes: number
 ): boolean {
   if (v.path === 'navigation.position' && !isLonLat(v.value)) {
     targets.delete(id);
@@ -70,6 +73,16 @@ export function processSensorTarget(
     case 'navigation.speedOverGround':
       d.sog = v.value as number;
       break;
+  }
+  if (d.cog !== undefined && d.position) {
+    d.vectors.cog = [
+      d.position,
+      GeoUtils.rhumbDestination(
+        d.position,
+        d.cog,
+        (d.sog ?? 0) * cogLineMinutes * 60
+      )
+    ];
   }
   return true;
 }
