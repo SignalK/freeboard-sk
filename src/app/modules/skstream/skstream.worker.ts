@@ -20,6 +20,7 @@ import {
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
 import { magneticToTrue } from 'src/app/lib/true-bearing';
+import { processSensorTarget } from './sensor-targets';
 import { IAppConfig, PathValue, Position } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
@@ -215,7 +216,8 @@ export function initVessels() {
     atons: new Map(),
     aircraft: new Map(),
     sar: new Map(),
-    meteo: new Map()
+    meteo: new Map(),
+    targets: new Map()
   };
   // flag to indicate at least one position data message received
   vessels.self.positionReceived = false;
@@ -992,6 +994,21 @@ function parseStreamMessage(data) {
             );
             break;
 
+          case 'targets': // radar, camera and other sensor targets
+            if (
+              targetFilter?.signalk.vessels &&
+              !processSensorTarget(vessels.targets, data.context, v)
+            ) {
+              targetStatus.expired[data.context] = true;
+              break;
+            }
+            filterContext(
+              data.context,
+              vessels.targets,
+              targetFilter?.signalk.vessels
+            );
+            break;
+
           case 'vessels': // vessels
             if (stream.isSelf(data)) {
               // self
@@ -1461,6 +1478,14 @@ function processAISStatus() {
       vessels.sar.delete(k);
     } else if (v.lastUpdated.valueOf() < now - aisMgr.staleAge) {
       //if stale then mark inactive
+      targetStatus.stale[k] = true;
+    }
+  });
+  vessels.targets.forEach((v, k) => {
+    if (v.lastUpdated.valueOf() < now - aisMgr.maxAge) {
+      targetStatus.expired[k] = true;
+      vessels.targets.delete(k);
+    } else if (v.lastUpdated.valueOf() < now - aisMgr.staleAge) {
       targetStatus.stale[k] = true;
     }
   });

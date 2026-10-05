@@ -7,6 +7,7 @@ import {
   SKSaR,
   SKAtoN,
   SKAircraft,
+  SKSensorTarget,
   SKVessel
 } from '../modules/skresources/resource-classes';
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
@@ -378,6 +379,7 @@ export interface FBAppData {
   atons: Map<string, SKAtoN>; // received AIS AtoN data
   sar: Map<string, SKSaR>; // received AIS SaR data
   meteo: Map<string, SKMeteo>; // received AIS Meteo data
+  targets: Map<string, SKSensorTarget>; // radar, camera and other sensor targets
   racing: {
     startLine: LineString;
   };

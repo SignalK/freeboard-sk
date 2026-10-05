@@ -106,3 +106,25 @@ describe('AISTargetsLayerComponent arrow indicator (#513)', () => {
     expect(c.buildLabel({ name: 'Buoy' } as SKTarget)).toBe('Buoy');
   });
 });
+
+// A sensor target linked to a boat already on the chart leaves the set the map
+// draws while its sensor keeps updating it; its feature has to go.
+describe('AISTargetsLayerComponent.onUpdateTargets', () => {
+  it('removes the feature of an updated target no longer in the set', () => {
+    const feature = {};
+    const removed: unknown[] = [];
+    const c = Object.create(
+      AISTargetsLayerComponent.prototype
+    ) as AISTargetsLayerComponent;
+    Object.assign(c, {
+      targetContext: 'targets',
+      targets: new Map(),
+      source: {
+        getFeatureById: () => feature,
+        removeFeature: (f: unknown) => removed.push(f)
+      }
+    });
+    c.onUpdateTargets(['targets.radar:nav1-17']);
+    expect(removed).toEqual([feature]);
+  });
+});

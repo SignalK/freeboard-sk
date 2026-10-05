@@ -481,6 +481,24 @@
     </sk-ais-targets>
   }
 
+  <!-- Radar, camera and other sensor targets -->
+  @if (app.config.ui.showAisTargets) {
+    <sk-ais-targets
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="dfeat.targets"
+      [targetStyles]="featureStyles.sensorTarget"
+      targetContext="targets"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
+      [zIndex]="970"
+    >
+    </sk-ais-targets>
+  }
+
   <!-- SAR targets -->
   @if (app.config.ui.showAisTargets) {
     <sk-ais-targets

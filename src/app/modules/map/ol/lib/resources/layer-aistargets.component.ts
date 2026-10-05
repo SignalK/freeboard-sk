@@ -85,6 +85,9 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
             } else {
               this.addTargetWithId(id);
             }
+          } else if (f) {
+            // a sensor target leaves the set once linked to a boat on the chart
+            this.source.removeFeature(f);
           }
         } else {
           this.source.removeFeature(f);
