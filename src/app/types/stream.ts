@@ -154,7 +154,8 @@ import {
   SKAtoN,
   SKAircraft,
   SKSaR,
-  SKMeteo
+  SKMeteo,
+  SKSensorTarget
 } from 'src/app/modules/skresources/resource-classes';
 
 type AisIds = Array<string>;
@@ -186,6 +187,8 @@ export interface ResultPayload {
   aircraft: Map<string, SKAircraft>;
   sar: Map<string, SKSaR>;
   meteo: Map<string, SKMeteo>;
+  /** Radar, camera and other sensor targets, by `targets.*` context. */
+  targets: Map<string, SKSensorTarget>;
 }
 
 export class NotificationMessage implements WorkerMessageBase<DeltaSignal> {
