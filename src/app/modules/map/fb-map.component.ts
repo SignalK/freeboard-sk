@@ -687,7 +687,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.dfeat.atons = this.app.data.atons;
     this.dfeat.targets = unlinkedTargets(
       this.app.data.targets,
-      this.app.data.vessels.aisTargets
+      this.app.data.vessels.aisTargets,
+      this.app.data.vessels.self
     );
     this.dfeat.active = this.app.data.vessels.active;
     this.dfeat.navData.position = this.course.courseData().position;

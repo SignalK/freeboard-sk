@@ -76,11 +76,13 @@ import { AppIconDef } from '../../icons';
             }}
           </div>
         </div>
+      }
+      @if (isTarget && aton().cog !== undefined) {
         <div style="display:flex;">
           <div style="font-weight:bold;">COG:</div>
           <div style="flex: 1 1 auto;text-align:right;">
             {{
-              app.formatValueForDisplay(aton().orientation, 'rad', {
+              app.formatValueForDisplay(aton().cog, 'rad', {
                 path: 'navigation.courseOverGroundTrue'
               })
             }}
@@ -135,7 +137,7 @@ export class AtoNPopoverComponent {
   aton = input<
     SKAtoN &
       Partial<Pick<SKMeteo, 'twd' | 'tws' | 'temperature'>> &
-      Partial<Pick<SKSensorTarget, 'sog'>>
+      Partial<Pick<SKSensorTarget, 'sog' | 'cog'>>
   >();
   canClose = input<boolean>();
   info = output<string>();
