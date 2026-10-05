@@ -8,12 +8,25 @@ import {
   OnInit,
   SimpleChanges
 } from '@angular/core';
-import { Style } from 'ol/style';
+import { Feature } from 'ol';
+import { Style, Fill, Stroke, Circle } from 'ol/style';
+import { Point, LineString } from 'ol/geom';
+import { Coordinate } from 'ol/coordinate';
 import { MapComponent } from '../map.component';
-import { SKAircraft, SKAtoN, SKSaR, SKVessel, SKMeteo } from 'src/app/modules';
+import {
+  SKAircraft,
+  SKAtoN,
+  SKSaR,
+  SKVessel,
+  SKMeteo,
+  SKSensorTarget
+} from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
+import { fromLonLatArray } from '../util';
+import { Position } from 'src/app/types';
 
-export type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
+export type SKTarget =
+  SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo | SKSensorTarget;
 
 // ** Signal K AIS Target Base Compnent  **
 @Component({
@@ -37,6 +50,8 @@ export class AISBaseLayerComponent
   @Input() updateIds: Array<string> = [];
   @Input() staleIds: Array<string> = [];
   @Input() removeIds: Array<string> = [];
+  // course line length in minutes of travel; 0 hides course lines
+  @Input() cogLineLength = 0;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -53,6 +68,9 @@ export class AISBaseLayerComponent
 
   override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
+    if ('cogLineLength' in changes) {
+      this.cogLineLength = changes['cogLineLength'].currentValue ?? 0;
+    }
     if (this.layer) {
       const keys = Object.keys(changes);
       if (
@@ -75,7 +93,11 @@ export class AISBaseLayerComponent
         if (
           (keys.includes('targetStyles') &&
             !changes['targetStyles'].firstChange) ||
-          keys.some((k) => ['focusId', 'filterIds', 'inactiveTime'].includes(k))
+          keys.some((k) =>
+            ['focusId', 'filterIds', 'inactiveTime', 'cogLineLength'].includes(
+              k
+            )
+          )
         ) {
           this.updateTargetIds(this.extractKeys(this.targets));
         }
@@ -208,4 +230,109 @@ export class AISBaseLayerComponent
   protected onRemoveTargets(_ids: Array<string>) {
     // overloadable
   }
+
+  // label zoom threshold crossed
+  override onLabelZoomThreshold(entered: boolean) {
+    super.updateLabels();
+    this.toggleCogLines(entered);
+  }
+
+  // add update COG vector
+  protected parseCogLine(id: string, target: SKTarget) {
+    const vector = cogVector(target);
+    if (!this.source || !vector) {
+      return;
+    }
+
+    let cf = this.source.getFeatureById('cog-' + id) as Feature;
+    if (
+      !this.okToRenderCogLines() ||
+      !this.okToRenderTarget(id) ||
+      !target.position
+    ) {
+      if (cf) {
+        this.source.removeFeature(cf);
+      }
+      return;
+    }
+
+    if (cf) {
+      // update vector
+      cf.setGeometry(new LineString(fromLonLatArray(vector)));
+      cf.setStyle(this.buildCogLineStyle(id, cf));
+    } else {
+      // create vector
+      cf = new Feature(new LineString(fromLonLatArray(vector)));
+      cf.setId('cog-' + id);
+      cf.setStyle(this.buildCogLineStyle(id, cf));
+      this.source.addFeature(cf);
+    }
+  }
+
+  protected removeCogLine(id: string) {
+    const f = this.source.getFeatureById('cog-' + id) as Feature;
+    if (f) {
+      this.source.removeFeature(f);
+    }
+  }
+
+  // show / hide cog vector
+  protected toggleCogLines(show: boolean) {
+    if (show) {
+      this.targets.forEach((v: SKTarget, k) => {
+        this.parseCogLine(k, v);
+      });
+    } else {
+      this.source.forEachFeature((cl: Feature<LineString>) => {
+        if ((cl.getId() as string).includes('cog-')) {
+          this.source.removeFeature(cl);
+        }
+      });
+    }
+  }
+
+  // build COG vector style
+  protected buildCogLineStyle(id: string, feature: Feature) {
+    const opacity =
+      this.okToRenderTarget(id) && this.okToRenderCogLines() ? 0.7 : 0;
+    const geometry = feature.getGeometry() as LineString;
+    const color = `rgba(0,0,0, ${opacity})`;
+    const styles = [];
+    styles.push(
+      new Style({
+        stroke: new Stroke({
+          color: color,
+          width: 1,
+          lineDash: [5, 5]
+        })
+      })
+    );
+    geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
+      styles.push(
+        new Style({
+          geometry: new Point(end),
+          image: new Circle({
+            radius: 2,
+            stroke: new Stroke({
+              color: color,
+              width: 1
+            }),
+            fill: new Fill({ color: 'transparent' })
+          })
+        })
+      );
+    });
+    return styles;
+  }
+
+  // ok to show cog lines
+  protected okToRenderCogLines() {
+    return this.cogLineLength !== 0 && this.mapZoom >= this.labelMinZoom;
+  }
+}
+
+/** The course line of a target that reports one: AIS vessels and sensor
+ * targets. */
+function cogVector(target: SKTarget): Position[] | undefined {
+  return 'vectors' in target ? (target.vectors.cog ?? undefined) : undefined;
 }

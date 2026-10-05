@@ -12,6 +12,7 @@ import {
 const RADAR = 'targets.radar:nav1-17';
 const CAMERA = 'targets.camera:bow-7';
 const VESSEL = 'vessels.urn:mrn:imo:mmsi:244060000';
+const COG_LINE = 10;
 
 function vessel(id: string): SKVessel {
   const v = new SKVessel();
@@ -25,32 +26,57 @@ function target(
   id: string,
   sameAs: string | null = null
 ) {
-  processSensorTarget(targets, id, {
-    path: 'navigation.position',
-    value: { latitude: 52.1, longitude: 4.2 }
-  });
-  processSensorTarget(targets, id, { path: 'sameAs', value: sameAs });
+  processSensorTarget(
+    targets,
+    id,
+    {
+      path: 'navigation.position',
+      value: { latitude: 52.1, longitude: 4.2 }
+    },
+    COG_LINE
+  );
+  processSensorTarget(targets, id, { path: 'sameAs', value: sameAs }, COG_LINE);
 }
 
 describe('processSensorTarget', () => {
   it('builds a target from its navigation and identity values', () => {
     const targets = new Map<string, SKSensorTarget>();
-    processSensorTarget(targets, RADAR, {
-      path: 'navigation.position',
-      value: { latitude: 52.1, longitude: 4.2 }
-    });
-    processSensorTarget(targets, RADAR, {
-      path: 'navigation.courseOverGroundTrue',
-      value: 1.5
-    });
-    processSensorTarget(targets, RADAR, {
-      path: 'navigation.speedOverGround',
-      value: 4
-    });
-    processSensorTarget(targets, RADAR, {
-      path: '',
-      value: { name: 'Nordic Star', mmsi: '244060000' }
-    });
+    processSensorTarget(
+      targets,
+      RADAR,
+      {
+        path: 'navigation.position',
+        value: { latitude: 52.1, longitude: 4.2 }
+      },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      {
+        path: 'navigation.courseOverGroundTrue',
+        value: 1.5
+      },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      {
+        path: 'navigation.speedOverGround',
+        value: 4
+      },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      {
+        path: '',
+        value: { name: 'Nordic Star', mmsi: '244060000' }
+      },
+      COG_LINE
+    );
 
     const t = targets.get(RADAR);
     expect(t.position).toEqual([4.2, 52.1]);
@@ -63,12 +89,45 @@ describe('processSensorTarget', () => {
     expect(t.sameAs).toBeNull();
   });
 
+  it('draws a course line as long as AIS vessels have', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.position', value: { latitude: 0, longitude: 0 } },
+      COG_LINE
+    );
+    expect(targets.get(RADAR).vectors.cog).toBeNull();
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.speedOverGround', value: 5 },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.courseOverGroundTrue', value: Math.PI / 2 },
+      COG_LINE
+    );
+    const [start, end] = targets.get(RADAR).vectors.cog;
+    expect(start).toEqual([0, 0]);
+    // 5 m/s for 10 minutes due east: 3000 m, about 0.027 degrees at the equator
+    expect(end[0]).toBeCloseTo(0.02698, 4);
+    expect(end[1]).toBeCloseTo(0, 6);
+  });
+
   it('leaves the course unset until the sensor reports one', () => {
     const targets = new Map<string, SKSensorTarget>();
-    processSensorTarget(targets, RADAR, {
-      path: 'navigation.speedOverGround',
-      value: 4
-    });
+    processSensorTarget(
+      targets,
+      RADAR,
+      {
+        path: 'navigation.speedOverGround',
+        value: 4
+      },
+      COG_LINE
+    );
     expect(targets.get(RADAR).cog).toBeUndefined();
   });
 
@@ -76,7 +135,12 @@ describe('processSensorTarget', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
     expect(targets.get(RADAR).sameAs).toBe(VESSEL);
-    processSensorTarget(targets, RADAR, { path: 'sameAs', value: null });
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'sameAs', value: null },
+      COG_LINE
+    );
     expect(targets.get(RADAR).sameAs).toBeNull();
   });
 
@@ -90,10 +154,15 @@ describe('processSensorTarget', () => {
       const targets = new Map<string, SKSensorTarget>();
       target(targets, RADAR);
       expect(
-        processSensorTarget(targets, RADAR, {
-          path: 'navigation.position',
-          value
-        })
+        processSensorTarget(
+          targets,
+          RADAR,
+          {
+            path: 'navigation.position',
+            value
+          },
+          COG_LINE
+        )
       ).toBe(false);
       expect(targets.has(RADAR)).toBe(false);
     }
@@ -148,7 +217,12 @@ describe('unlinkedTargets', () => {
 
   it('draws a target whose linked target has no position', () => {
     const targets = new Map<string, SKSensorTarget>();
-    processSensorTarget(targets, RADAR, { path: 'name', value: 'echo' });
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'name', value: 'echo' },
+      COG_LINE
+    );
     target(targets, CAMERA, RADAR);
     expect([...unlinkedTargets(targets, new Map()).keys()]).toContain(CAMERA);
   });
