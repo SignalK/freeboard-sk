@@ -117,6 +117,39 @@ describe('processSensorTarget', () => {
     expect(end[1]).toBeCloseTo(0, 6);
   });
 
+  it('drops the course and its line when the sensor stops reporting one', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.position', value: { latitude: 0, longitude: 0 } },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.courseOverGroundTrue', value: 1 },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.courseOverGroundTrue', value: null },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.speedOverGround', value: 'fast' },
+      COG_LINE
+    );
+    const t = targets.get(RADAR);
+    expect(t.cog).toBeUndefined();
+    expect(t.orientation).toBe(0);
+    expect(t.vectors.cog).toBeNull();
+    expect(t.sog).toBeUndefined();
+  });
+
   it('leaves the course unset until the sensor reports one', () => {
     const targets = new Map<string, SKSensorTarget>();
     processSensorTarget(

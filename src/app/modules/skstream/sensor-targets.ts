@@ -67,14 +67,16 @@ export function processSensorTarget(
       d.positionUpdatedAt = Date.now();
       break;
     case 'navigation.courseOverGroundTrue':
-      d.cog = v.value as number;
-      d.orientation = d.cog;
+      d.cog = finiteOrUndefined(v.value);
+      d.orientation = d.cog ?? 0;
       break;
     case 'navigation.speedOverGround':
-      d.sog = v.value as number;
+      d.sog = finiteOrUndefined(v.value);
       break;
   }
-  if (d.cog !== undefined && d.position) {
+  if (d.cog === undefined) {
+    d.vectors.cog = null;
+  } else if (d.position) {
     d.vectors.cog = [
       d.position,
       GeoUtils.rhumbDestination(
@@ -161,6 +163,12 @@ export function locateTarget(
     ...[...targets.values()].filter((t) => t.sameAs === id)
   ];
   return candidates.find((c) => c?.position)?.position ?? undefined;
+}
+
+function finiteOrUndefined(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function isLonLat(value: unknown): boolean {

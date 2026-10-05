@@ -132,3 +132,30 @@ describe('AISTargetsLayerComponent.onUpdateTargets', () => {
     expect(removed).toEqual([features.get(id), features.get('cog-' + id)]);
   });
 });
+
+describe('AISTargetsLayerComponent course line', () => {
+  it('removes the course line of a target that stopped reporting a course', () => {
+    const id = 'targets.radar:nav1-17';
+    const line = { name: 'course line' };
+    const removed: unknown[] = [];
+    const c = Object.create(
+      AISTargetsLayerComponent.prototype
+    ) as AISTargetsLayerComponent;
+    Object.assign(c, {
+      targetContext: 'targets',
+      source: {
+        getFeatureById: (fid: string) =>
+          fid === 'cog-' + id ? line : undefined,
+        removeFeature: (f: unknown) => removed.push(f)
+      }
+    });
+    const parseCogLine = (
+      c as unknown as { parseCogLine: (id: string, t: SKTarget) => void }
+    ).parseCogLine.bind(c);
+    parseCogLine(id, {
+      position: [4.2, 52.1],
+      vectors: { cog: null }
+    } as unknown as SKTarget);
+    expect(removed).toEqual([line]);
+  });
+});

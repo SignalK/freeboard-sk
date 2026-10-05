@@ -240,12 +240,13 @@ export class AISBaseLayerComponent
   // add update COG vector
   protected parseCogLine(id: string, target: SKTarget) {
     const vector = cogVector(target);
-    if (!this.source || !vector) {
+    if (!this.source) {
       return;
     }
 
     let cf = this.source.getFeatureById('cog-' + id) as Feature;
     if (
+      !vector ||
       !this.okToRenderCogLines() ||
       !this.okToRenderTarget(id) ||
       !target.position
