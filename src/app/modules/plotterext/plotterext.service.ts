@@ -31,6 +31,7 @@ import { FIT_MAX_ZOOM, fitBbox, type LonLatBox } from 'src/app/lib/map-fit';
 import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
   type BusPort,
+  type HandshakeContext,
   HostConnection,
   type MapView,
   MethodHandler,
@@ -1546,41 +1547,76 @@ export class PlotterExtensionService {
   }
 
   /**
+   * Connect one extension context to the bus. Every kind gets the shared host
+   * API; `methods` adds its kind-specific ones and wins over a shared entry of
+   * the same name. `stateInstance` is the instance `state.*` defaults to (null:
+   * the extension scope). Returns a detach function.
+   */
+  private attachContext(opts: {
+    port: BusPort;
+    extension: string;
+    context: HandshakeContext;
+    stateInstance: string | null;
+    methods?: Record<string, MethodHandler>;
+    adoptCallerId?: boolean;
+  }): () => void {
+    const ctx: LiveContext = {
+      extension: opts.extension,
+      conn: null as unknown as HostConnection,
+      skSubs: new Map(),
+      skSubSeq: 0
+    };
+    ctx.conn = new HostConnection({
+      port: opts.port,
+      hostInfo: this.hostInfo(),
+      adoptCallerId: opts.adoptCallerId,
+      context: opts.context,
+      methods: {
+        ...this.stateMethods(opts.extension, opts.stateInstance),
+        ...this.signalkMethods(ctx),
+        ...this.unitsMethods(),
+        ...this.resourcesMethods(opts.extension),
+        ...this.mapMethods(),
+        ...this.routeMethods(),
+        ...this.chartMethods(),
+        ...this.nightModeMethods(),
+        ...this.resourceGroupMethods(),
+        ...this.uiPanelMethods(opts.extension),
+        ...opts.methods
+      },
+      onError: (err) =>
+        console.warn(`plotterext ${opts.context.kind} error`, err)
+    });
+    this.contexts.add(ctx);
+    return () => this.detach(ctx);
+  }
+
+  /** The host end of an extension iframe, pinned to its asset's origin. */
+  private iframePort(iframe: HTMLIFrameElement, url: string): BusPort {
+    return windowPort(iframe.contentWindow as Window, {
+      origin: this.assetOrigin(url)
+    });
+  }
+
+  /**
    * Attach a widget iframe to the host. Returns a detach function.
    * Call once the iframe element exists (the connection handles the
    * extension's bus.ready retries, so load-order does not matter).
    */
   attachWidget(iframe: HTMLIFrameElement, placed: PlacedWidget): () => void {
-    const ctx: LiveContext = {
-      extension: placed.extension,
-      conn: null as unknown as HostConnection,
-      skSubs: new Map(),
-      skSubSeq: 0
-    };
     const widgetUrl =
       this.widgetDef(placed.extension, placed.widget)?.url ?? '';
-    ctx.conn = new HostConnection({
-      port: windowPort(iframe.contentWindow as Window, {
-        origin: this.assetOrigin(widgetUrl)
-      }),
-      hostInfo: this.hostInfo(),
+    return this.attachContext({
+      port: this.iframePort(iframe, widgetUrl),
+      extension: placed.extension,
       context: {
         kind: 'widget',
         id: placed.widget,
         instanceId: placed.instanceId,
         targetInstance: null
       },
+      stateInstance: placed.instanceId,
       methods: {
-        ...this.stateMethods(placed.extension, placed.instanceId),
-        ...this.signalkMethods(ctx),
-        ...this.unitsMethods(),
-        ...this.resourcesMethods(placed.extension),
-        ...this.mapMethods(),
-        ...this.routeMethods(),
-        ...this.chartMethods(),
-        ...this.nightModeMethods(),
-        ...this.resourceGroupMethods(),
-        ...this.uiPanelMethods(placed.extension),
         'ui.openConfigPanel': async () => {
           this.openConfigPanel(placed);
           return {};
@@ -1589,11 +1625,8 @@ export class PlotterExtensionService {
           this.toggleConfigPanel(placed);
           return {};
         }
-      },
-      onError: (err) => console.warn('plotterext widget error', err)
+      }
     });
-    this.contexts.add(ctx);
-    return () => this.detach(ctx);
   }
 
   /**
@@ -1610,17 +1643,9 @@ export class PlotterExtensionService {
       close: () => void;
     }
   ): () => void {
-    const ctx: LiveContext = {
+    return this.attachContext({
+      port: this.iframePort(iframe, opts.panel.url ?? ''),
       extension: opts.extension,
-      conn: null as unknown as HostConnection,
-      skSubs: new Map(),
-      skSubSeq: 0
-    };
-    ctx.conn = new HostConnection({
-      port: windowPort(iframe.contentWindow as Window, {
-        origin: this.assetOrigin(opts.panel.url ?? '')
-      }),
-      hostInfo: this.hostInfo(),
       context: {
         kind: 'panel',
         id: opts.panel.id,
@@ -1628,26 +1653,14 @@ export class PlotterExtensionService {
         targetInstance: opts.targetInstance ?? null,
         targetWidget: opts.targetWidget ?? null
       },
+      stateInstance: opts.targetInstance ?? null,
       methods: {
-        ...this.stateMethods(opts.extension, opts.targetInstance ?? null),
-        ...this.signalkMethods(ctx),
-        ...this.unitsMethods(),
-        ...this.resourcesMethods(opts.extension),
-        ...this.mapMethods(),
-        ...this.routeMethods(),
-        ...this.chartMethods(),
-        ...this.nightModeMethods(),
-        ...this.resourceGroupMethods(),
-        ...this.uiPanelMethods(opts.extension),
         'ui.closePanel': async () => {
           opts.close();
           return {};
         }
-      },
-      onError: (err) => console.warn('plotterext panel error', err)
+      }
     });
-    this.contexts.add(ctx);
-    return () => this.detach(ctx);
   }
 
   /**
@@ -1660,38 +1673,12 @@ export class PlotterExtensionService {
     iframe: HTMLIFrameElement,
     opts: { extension: string; runtime: BackgroundContribution }
   ): () => void {
-    const ctx: LiveContext = {
+    return this.attachContext({
+      port: this.iframePort(iframe, opts.runtime.url),
       extension: opts.extension,
-      conn: null as unknown as HostConnection,
-      skSubs: new Map(),
-      skSubSeq: 0
-    };
-    ctx.conn = new HostConnection({
-      port: windowPort(iframe.contentWindow as Window, {
-        origin: this.assetOrigin(opts.runtime.url)
-      }),
-      hostInfo: this.hostInfo(),
-      context: {
-        kind: 'background',
-        id: opts.runtime.id,
-        instanceId: null
-      },
-      methods: {
-        ...this.stateMethods(opts.extension, null),
-        ...this.signalkMethods(ctx),
-        ...this.unitsMethods(),
-        ...this.resourcesMethods(opts.extension),
-        ...this.mapMethods(),
-        ...this.routeMethods(),
-        ...this.chartMethods(),
-        ...this.nightModeMethods(),
-        ...this.resourceGroupMethods(),
-        ...this.uiPanelMethods(opts.extension)
-      },
-      onError: (err) => console.warn('plotterext background error', err)
+      context: { kind: 'background', id: opts.runtime.id, instanceId: null },
+      stateInstance: null
     });
-    this.contexts.add(ctx);
-    return () => this.detach(ctx);
   }
 
   /**
@@ -1711,38 +1698,17 @@ export class PlotterExtensionService {
       origin: window.location.origin
     })
   ): () => void {
-    const id = EMBEDDING_HOST_ID;
-    const ctx: LiveContext = {
-      extension: id,
-      conn: null as unknown as HostConnection,
-      skSubs: new Map(),
-      skSubSeq: 0
-    };
-    ctx.conn = new HostConnection({
+    return this.attachContext({
       port,
-      hostInfo: this.hostInfo(),
-      adoptCallerId: true,
+      extension: EMBEDDING_HOST_ID,
       context: {
         kind: 'embedding-host',
-        id,
+        id: EMBEDDING_HOST_ID,
         instanceId: null
       },
-      methods: {
-        ...this.stateMethods(id, null),
-        ...this.signalkMethods(ctx),
-        ...this.unitsMethods(),
-        ...this.resourcesMethods(id),
-        ...this.mapMethods(),
-        ...this.routeMethods(),
-        ...this.chartMethods(),
-        ...this.nightModeMethods(),
-        ...this.resourceGroupMethods(),
-        ...this.uiPanelMethods(id)
-      },
-      onError: (err) => console.warn('plotterext embedding-host error', err)
+      stateInstance: null,
+      adoptCallerId: true
     });
-    this.contexts.add(ctx);
-    return () => this.detach(ctx);
   }
 
   /**
