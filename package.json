@@ -25,6 +25,7 @@
     "recommends": [
       "signalk-charts-provider-simple",
       "@signalk/tracks-plugin",
+      "signalk-buddylist-plugin",
       "signalk-instrument-widgets",
       "signalk-symbol-manager",
       "@signalk/open-meteo-provider",
