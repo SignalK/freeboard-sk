@@ -1006,6 +1006,23 @@ export class AppComponent {
     this.showTrackApiNotice(source);
   }
 
+  /** Back in view after the page was hidden. Meanwhile the browser held back
+   * the timer that extends the local trail, or froze the page, so the trail
+   * would run straight from where it stopped to the vessel. The server trail
+   * has the points in between: fetch it again. Not in history playback,
+   * whose trail is drawn from the positions played back. */
+  @HostListener('document:visibilitychange')
+  protected onVisibilityChange() {
+    if (
+      document.visibilityState === 'visible' &&
+      this.mode === SKSTREAM_MODE.REALTIME &&
+      this.app.config.vessels.trail &&
+      this.app.serverTrailWanted()
+    ) {
+      this.stream.requestTrailFromServer();
+    }
+  }
+
   /** While tracks come from the v1 fallback, say once per session that the
    * interface is going away, until the user ticks "Don't show this message
    * again" (remembered on this device). */
