@@ -1,17 +1,38 @@
-import { PipAppDef } from './types';
+import { ExtWindow } from './types';
 
 /**
- * Test helpers shared by the PiP App specs. No test-runner imports here, so
+ * Test helpers shared by the window specs. No test-runner imports here, so
  * the file compiles under the app tsconfig; it is only ever imported by specs.
  */
 
-/** A well-formed window definition, with any field overridden. */
-export function pipAppDef(overrides: Partial<PipAppDef> = {}): PipAppDef {
+/**
+ * A well-formed window, with any field overridden. In a 1000x800 window area
+ * it sits at (100, 80) and is 400x400.
+ */
+export function extWindow(overrides: Partial<ExtWindow> = {}): ExtWindow {
   return {
     id: 'w1',
+    extension: 'ext-a',
+    panel: {
+      id: 'viewer',
+      title: 'Viewer',
+      type: 'iframe',
+      url: '/plotterext/ext-a/viewer.html'
+    },
+    params: {},
     title: 'Sounder',
-    source: { kind: 'webapp', path: '/signalk-wifish/' },
-    rect: { x: 0.1, y: 0.1, w: 0.4, h: 0.5 },
+    geometry: {
+      anchor: 'top-left',
+      offset: { x: 100, y: 80 },
+      width: 400,
+      height: 400
+    },
+    modal: false,
+    resizable: true,
+    movable: true,
+    titleBar: 'autoHide',
+    userClose: 'close',
+    visible: true,
     collapsed: false,
     opacity: 1,
     ...overrides

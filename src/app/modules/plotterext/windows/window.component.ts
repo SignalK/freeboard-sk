@@ -4,32 +4,29 @@ import {
   ElementRef,
   NgZone,
   OnDestroy,
+  OnInit,
+  ViewChild,
   computed,
   effect,
   inject,
   input,
-  output,
   signal,
   untracked
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { PlotterExtensionService } from '../plotterext.service';
 import {
   DEFAULT_LIMITS,
   GestureMode,
   PxRect,
-  boundedGesture,
-  clampToViewport,
-  fromFractions,
-  toFractions
+  boundedGesture
 } from './geometry';
-import { PipAppPopoutService } from './pip-app-popout.service';
-import { PipAppService } from './pip-app.service';
-import { PipAppDef } from './types';
+import { ExtWindowService } from './window.service';
+import { ExtWindow } from './types';
 
 const COLLAPSED_HEIGHT = DEFAULT_LIMITS.barH;
 
@@ -45,9 +42,6 @@ export const BAR_LEAVE_DELAY_MS = 1000;
 /** What keeps an auto-hiding title bar shown. */
 type BarHold = 'hover' | 'gesture' | 'menu' | 'focus';
 
-const sameRect = (a: PxRect, b: PxRect) =>
-  a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
-
 interface ActiveGesture {
   pointerId: number;
   mode: GestureMode;
@@ -59,30 +53,25 @@ interface ActiveGesture {
 }
 
 /**
- * One PiP App window: a title bar to drag, eight resize handles and the
- * embedded app. Unless pinned, the title bar floats over the app and fades out
- * when idle so the app gets the whole window; a grip at the top brings it back
- * (hover, tap or drag). The iframe keeps its size either way, so hiding and
- * showing the bar never reflows the embedded app.
+ * One extension window: a title bar the host owns, the extension's panel as a
+ * bus-connected `window` context, and eight resize handles. The close control
+ * always works, whatever the extension does, so a broken extension can still
+ * be closed (or hidden, when it asked for `userClose: 'hide'`). With
+ * `titleBar: 'autoHide'` the bar floats over the panel and fades when idle; a
+ * grip at the top brings it back.
  *
- * The iframe is created once per source and never re-parented
- * or re-bound while the window moves, resizes or restacks, so the embedded
- * app keeps running (and keeps its state) throughout.
+ * The iframe is created once and never re-parented or re-bound while the
+ * window moves, resizes, restacks, collapses or hides, so the panel keeps
+ * running (and keeps its state) throughout.
  */
 @Component({
-  selector: 'fb-pip-app',
-  imports: [
-    MatButtonModule,
-    MatDividerModule,
-    MatIconModule,
-    MatMenuModule,
-    MatTooltipModule
-  ],
+  selector: 'fb-pe-window',
+  imports: [MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (autoHide()) {
       <button
-        class="fb-pip-app__grip"
+        class="fb-pe-window__grip"
         aria-label="Show title bar"
         [attr.tabindex]="barShown() ? -1 : 0"
         (pointerenter)="onHoverReveal($event)"
@@ -91,95 +80,57 @@ interface ActiveGesture {
       ></button>
     }
     <div
-      class="fb-pip-app__bar"
+      class="fb-pe-window__bar"
       [class.front]="front()"
       (pointerenter)="onBarEnter($event)"
       (pointerleave)="onBarLeave($event)"
       (pointerdown)="revealBar(); startGesture($event, 'move')"
       (dblclick)="onBarDoubleClick($event)"
     >
-      <span class="fb-pip-app__title" [title]="def().title">{{
+      <span class="fb-pe-window__title" [title]="def().title">{{
         def().title
       }}</span>
+      @if (!def().modal) {
+        <button
+          mat-icon-button
+          class="fb-pe-window__btn"
+          [matTooltip]="def().collapsed ? 'Expand' : 'Collapse'"
+          [attr.aria-label]="def().collapsed ? 'Expand' : 'Collapse'"
+          (click)="toggleCollapsed()"
+        >
+          <mat-icon>{{
+            def().collapsed ? 'expand_more' : 'expand_less'
+          }}</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          class="fb-pe-window__btn"
+          matTooltip="More"
+          aria-label="More"
+          [matMenuTriggerFor]="moremenu"
+          (menuOpened)="holdBar('menu')"
+          (menuClosed)="releaseBar('menu')"
+        >
+          <mat-icon>more_vert</mat-icon>
+        </button>
+      }
       <button
         mat-icon-button
-        class="fb-pip-app__btn"
-        [matTooltip]="def().collapsed ? 'Expand' : 'Collapse'"
-        [attr.aria-label]="def().collapsed ? 'Expand' : 'Collapse'"
-        (click)="toggleCollapsed()"
+        class="fb-pe-window__btn"
+        [matTooltip]="hides() ? 'Hide' : 'Close'"
+        [attr.aria-label]="hides() ? 'Hide' : 'Close'"
+        (click)="windows.userClose(def().id)"
       >
-        <mat-icon>{{
-          def().collapsed ? 'expand_more' : 'expand_less'
-        }}</mat-icon>
-      </button>
-      <button
-        mat-icon-button
-        class="fb-pip-app__btn"
-        matTooltip="More"
-        aria-label="More"
-        [matMenuTriggerFor]="moremenu"
-        (menuOpened)="holdBar('menu')"
-        (menuClosed)="releaseBar('menu')"
-      >
-        <mat-icon>more_vert</mat-icon>
-      </button>
-      <button
-        mat-icon-button
-        class="fb-pip-app__btn"
-        matTooltip="Close"
-        aria-label="Close"
-        (click)="closed.emit(def().id)"
-      >
-        <mat-icon>close</mat-icon>
+        <mat-icon>{{ hides() ? 'remove' : 'close' }}</mat-icon>
       </button>
     </div>
     <mat-menu #moremenu="matMenu" xPosition="before">
-      @if (url()) {
-        <a
-          mat-menu-item
-          [href]="url()"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <mat-icon>open_in_new</mat-icon>
-          <span>Open in new tab</span>
-        </a>
-        <mat-divider></mat-divider>
-        @if (outMode()) {
-          <button mat-menu-item (click)="popIn()">
-            <mat-icon>open_in_browser</mat-icon>
-            <span>Bring back</span>
-          </button>
-        } @else {
-          <button mat-menu-item (click)="popOut()">
-            <mat-icon>launch</mat-icon>
-            <span>{{
-              popout.alwaysOnTop
-                ? 'Pop out, always on top'
-                : 'Pop out to a window'
-            }}</span>
-          </button>
-        }
-        <mat-divider></mat-divider>
-      }
-      <button
-        mat-menu-item
-        role="menuitemcheckbox"
-        [attr.aria-checked]="!def().barPinned"
-        (click)="toggleBarPinned()"
-      >
-        <mat-icon>{{
-          def().barPinned ? 'check_box_outline_blank' : 'check_box'
-        }}</mat-icon>
-        <span>Auto-hide title bar</span>
-      </button>
-      <mat-divider></mat-divider>
       @for (o of opacities; track o) {
         <button
           mat-menu-item
           [attr.aria-checked]="def().opacity === o"
           role="menuitemradio"
-          (click)="setOpacity(o)"
+          (click)="windows.setOpacity(def().id, o)"
         >
           <mat-icon>{{
             def().opacity === o
@@ -190,37 +141,23 @@ interface ActiveGesture {
         </button>
       }
     </mat-menu>
-    <div class="fb-pip-app__body">
-      @if (outMode(); as mode) {
-        <div class="fb-pip-app__out">
-          @if (mode === 'popup') {
-            <p>
-              If the separate window opened, close it before selecting Bring
-              back. If it did not open, select Bring back to restore the app.
-            </p>
-          } @else {
-            <p>Shown in a picture-in-picture window.</p>
-          }
-          <button mat-stroked-button (click)="popIn()">Bring back</button>
-        </div>
-      } @else if (safeUrl(); as src) {
-        <iframe
-          [src]="src"
-          [title]="def().title"
-          sandbox="allow-scripts allow-same-origin allow-forms"
-          allow="fullscreen"
-        ></iframe>
-      } @else {
-        <div class="fb-pip-app__error">This address cannot be shown.</div>
-      }
+    <div class="fb-pe-window__body">
+      <iframe
+        #frame
+        [src]="src"
+        [title]="def().title"
+        sandbox="allow-scripts allow-same-origin allow-forms"
+      ></iframe>
     </div>
-    @for (m of resizeModes; track m) {
-      <div
-        class="fb-pip-app__handle"
-        [attr.data-mode]="m"
-        (pointerenter)="m.includes('n') && onHoverReveal($event)"
-        (pointerdown)="startGesture($event, m)"
-      ></div>
+    @if (resizable()) {
+      @for (m of resizeModes; track m) {
+        <div
+          class="fb-pe-window__handle"
+          [attr.data-mode]="m"
+          (pointerenter)="m.includes('n') && onHoverReveal($event)"
+          (pointerdown)="startGesture($event, m)"
+        ></div>
+      }
     }
   `,
   styles: `
@@ -242,7 +179,7 @@ interface ActiveGesture {
       background: #303030;
       border-color: rgba(255, 255, 255, 0.25);
     }
-    .fb-pip-app__bar {
+    .fb-pe-window__bar {
       flex: 0 0 32px;
       height: 32px;
       display: flex;
@@ -256,17 +193,17 @@ interface ActiveGesture {
       background: #e0e0e0;
       color: rgba(0, 0, 0, 0.87);
     }
-    .fb-pip-app__bar.front {
+    .fb-pe-window__bar.front {
       background: #c5cae9;
     }
-    :host-context(.dark-theme) .fb-pip-app__bar {
+    :host-context(.dark-theme) .fb-pe-window__bar {
       background: #424242;
       color: #fff;
     }
-    :host-context(.dark-theme) .fb-pip-app__bar.front {
+    :host-context(.dark-theme) .fb-pe-window__bar.front {
       background: #3949ab;
     }
-    .fb-pip-app__title {
+    .fb-pe-window__title {
       flex: 1 1 auto;
       overflow: hidden;
       white-space: nowrap;
@@ -274,49 +211,33 @@ interface ActiveGesture {
       font-size: 13px;
       font-weight: 500;
     }
-    .fb-pip-app__btn {
+    .fb-pe-window__btn {
       --mat-icon-button-state-layer-size: 28px;
       width: 28px;
       height: 28px;
       padding: 2px;
       cursor: pointer;
     }
-    .fb-pip-app__btn mat-icon {
+    .fb-pe-window__btn mat-icon {
       font-size: 18px;
       width: 18px;
       height: 18px;
     }
-    .fb-pip-app__body {
+    .fb-pe-window__body {
       position: relative;
       flex: 1 1 auto;
       min-height: 0;
       border-radius: 0 0 6px 6px;
       overflow: hidden;
     }
-    .fb-pip-app__body iframe {
+    .fb-pe-window__body iframe {
       display: block;
       width: 100%;
       height: 100%;
       border: 0;
       background: #fff;
     }
-    .fb-pip-app__out {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px;
-      box-sizing: border-box;
-      text-align: center;
-      font-size: 13px;
-    }
-    .fb-pip-app__error {
-      padding: 12px;
-      font-size: 13px;
-    }
-    :host(.bar-overlay) .fb-pip-app__bar {
+    :host(.bar-overlay) .fb-pe-window__bar {
       position: absolute;
       top: 0;
       left: 0;
@@ -326,10 +247,10 @@ interface ActiveGesture {
         opacity 150ms ease-out,
         transform 150ms ease-out;
     }
-    :host(.bar-overlay) .fb-pip-app__body {
+    :host(.bar-overlay) .fb-pe-window__body {
       border-radius: 6px;
     }
-    :host(.bar-hidden) .fb-pip-app__bar {
+    :host(.bar-hidden) .fb-pe-window__bar {
       opacity: 0;
       transform: translateY(-6px);
       visibility: hidden;
@@ -338,7 +259,7 @@ interface ActiveGesture {
         transform 300ms ease-in,
         visibility 0s linear 300ms;
     }
-    .fb-pip-app__grip {
+    .fb-pe-window__grip {
       position: absolute;
       top: 0;
       left: 50%;
@@ -353,7 +274,7 @@ interface ActiveGesture {
       touch-action: none;
       transition: opacity 150ms ease-out;
     }
-    .fb-pip-app__grip::before {
+    .fb-pe-window__grip::before {
       content: '';
       position: absolute;
       top: 5px;
@@ -364,38 +285,38 @@ interface ActiveGesture {
       background: rgba(0, 0, 0, 0.45);
       box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
     }
-    :host(:not(.bar-hidden)) .fb-pip-app__grip {
+    :host(:not(.bar-hidden)) .fb-pe-window__grip {
       opacity: 0;
     }
     @media (pointer: coarse) {
-      .fb-pip-app__grip {
+      .fb-pe-window__grip {
         width: 96px;
         height: 24px;
         margin-left: -48px;
       }
-      .fb-pip-app__grip::before {
+      .fb-pe-window__grip::before {
         top: 9px;
         left: 24px;
         right: 24px;
       }
     }
     @media (prefers-reduced-motion: reduce) {
-      .fb-pip-app__bar,
-      .fb-pip-app__grip {
+      .fb-pe-window__bar,
+      .fb-pe-window__grip {
         transition: none !important;
       }
     }
-    :host(.collapsed) .fb-pip-app__body {
+    :host(.collapsed) .fb-pe-window__body {
       visibility: hidden;
     }
-    :host(.collapsed) .fb-pip-app__bar {
+    :host(.collapsed) .fb-pe-window__bar {
       border-radius: 6px;
     }
-    :host(.collapsed) .fb-pip-app__handle {
+    :host(.collapsed) .fb-pe-window__handle {
       display: none;
     }
     /* Handles straddle the border: each letter of the mode names an edge. */
-    .fb-pip-app__handle {
+    .fb-pe-window__handle {
       position: absolute;
       z-index: 3;
       touch-action: none;
@@ -403,68 +324,92 @@ interface ActiveGesture {
       --out: calc(var(--edge) / -2);
     }
     @media (pointer: coarse) {
-      .fb-pip-app__handle {
+      .fb-pe-window__handle {
         --edge: 16px;
       }
     }
-    .fb-pip-app__handle[data-mode*='n'] {
+    .fb-pe-window__handle[data-mode*='n'] {
       top: var(--out);
     }
-    .fb-pip-app__handle[data-mode*='s'] {
+    .fb-pe-window__handle[data-mode*='s'] {
       bottom: var(--out);
     }
-    .fb-pip-app__handle[data-mode*='e'] {
+    .fb-pe-window__handle[data-mode*='e'] {
       right: var(--out);
     }
-    .fb-pip-app__handle[data-mode*='w'] {
+    .fb-pe-window__handle[data-mode*='w'] {
       left: var(--out);
     }
-    .fb-pip-app__handle[data-mode='n'],
-    .fb-pip-app__handle[data-mode='s'] {
+    .fb-pe-window__handle[data-mode='n'],
+    .fb-pe-window__handle[data-mode='s'] {
       left: var(--edge);
       right: var(--edge);
       height: var(--edge);
       cursor: ns-resize;
     }
-    .fb-pip-app__handle[data-mode='e'],
-    .fb-pip-app__handle[data-mode='w'] {
+    .fb-pe-window__handle[data-mode='e'],
+    .fb-pe-window__handle[data-mode='w'] {
       top: var(--edge);
       bottom: var(--edge);
       width: var(--edge);
       cursor: ew-resize;
     }
-    .fb-pip-app__handle[data-mode='ne'],
-    .fb-pip-app__handle[data-mode='nw'],
-    .fb-pip-app__handle[data-mode='se'],
-    .fb-pip-app__handle[data-mode='sw'] {
+    .fb-pe-window__handle[data-mode='ne'],
+    .fb-pe-window__handle[data-mode='nw'],
+    .fb-pe-window__handle[data-mode='se'],
+    .fb-pe-window__handle[data-mode='sw'] {
       width: calc(var(--edge) * 1.5);
       height: calc(var(--edge) * 1.5);
     }
-    .fb-pip-app__handle[data-mode='ne'],
-    .fb-pip-app__handle[data-mode='sw'] {
+    .fb-pe-window__handle[data-mode='ne'],
+    .fb-pe-window__handle[data-mode='sw'] {
       cursor: nesw-resize;
     }
-    .fb-pip-app__handle[data-mode='nw'],
-    .fb-pip-app__handle[data-mode='se'] {
+    .fb-pe-window__handle[data-mode='nw'],
+    .fb-pe-window__handle[data-mode='se'] {
       cursor: nwse-resize;
+    }
+    :host(.hidden) {
+      display: none;
+    }
+    :host(.sheet),
+    :host(.fullscreen) {
+      border-radius: 0;
+    }
+    :host(.sheet) .fb-pe-window__bar,
+    :host(.fullscreen) .fb-pe-window__bar,
+    :host(.sheet) .fb-pe-window__body,
+    :host(.fullscreen) .fb-pe-window__body {
+      border-radius: 0;
+      cursor: default;
+    }
+    :host(.fixed-place) .fb-pe-window__bar {
+      cursor: default;
     }
   `,
   host: {
-    class: 'fb-pip-app',
-    '[attr.data-pip-id]': 'def().id',
+    class: 'fb-pe-window',
+    '[attr.data-window-id]': 'def().id',
     '[class.collapsed]': 'def().collapsed',
+    '[class.hidden]': '!def().visible',
+    '[class.modal]': 'def().modal',
+    '[class.sheet]': "presentation() === 'sheet'",
+    '[class.fullscreen]': "presentation() === 'fullscreen'",
+    '[class.fixed-place]': '!movable()',
     '[class.bar-overlay]': 'autoHide()',
     '[class.bar-hidden]': 'autoHide() && !barShown()',
     '[style.z-index]': 'z()',
     '[style.opacity]': 'def().opacity',
-    '(pointerdown)': 'service.focus(def().id)',
+    '(pointerdown)': 'windows.focus(def().id)',
     '(focusin)': 'onFocusIn($event)',
     '(focusout)': 'releaseBar("focus")'
   }
 })
-export class PipAppWindowComponent implements OnDestroy {
-  readonly def = input.required<PipAppDef>();
-  readonly closed = output<string>();
+export class ExtWindowComponent implements OnInit, OnDestroy {
+  readonly def = input.required<ExtWindow>();
+
+  @ViewChild('frame', { static: true })
+  private frame: ElementRef<HTMLIFrameElement>;
 
   protected readonly resizeModes: GestureMode[] = [
     'n',
@@ -476,40 +421,47 @@ export class PipAppWindowComponent implements OnDestroy {
     'se',
     'sw'
   ];
-
   protected readonly opacities = [1, 0.8, 0.6, 0.4];
 
-  protected service = inject(PipAppService);
-  protected popout = inject(PipAppPopoutService);
+  protected windows = inject(ExtWindowService);
+  private host = inject(PlotterExtensionService);
   private sanitizer = inject(DomSanitizer);
   private zone = inject(NgZone);
   private el: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
 
-  /** Stacking position, 1 = back; the front window gets the active colour. */
+  protected src: SafeResourceUrl;
+  private detach: (() => void) | null = null;
+
+  /**
+   * Stacking position: even numbers from 2 at the back, leaving the odd one
+   * below each window for a modal backdrop. The front window gets the active
+   * colour.
+   */
   protected readonly z = computed(
-    () => this.service.zOrder().indexOf(this.def().id) + 1
+    () => (this.windows.zOrder().indexOf(this.def().id) + 1) * 2
   );
   protected readonly front = computed(
-    () => this.service.zOrder().at(-1) === this.def().id
+    () => this.windows.zOrder().at(-1) === this.def().id
+  );
+  protected readonly presentation = computed(() =>
+    this.windows.presentation(this.def(), this.windows.area())
+  );
+  private readonly floating = computed(
+    () => this.presentation() === 'floating'
+  );
+  protected readonly movable = computed(
+    () => this.floating() && this.def().movable
+  );
+  protected readonly resizable = computed(
+    () => this.floating() && this.def().resizable && !this.def().collapsed
+  );
+  protected readonly hides = computed(
+    () => this.def().userClose === 'hide' && !this.def().modal
   );
 
-  /** Absolute URL, compared by value so layout changes never reload it. */
-  protected readonly url = computed(() =>
-    this.service.resolveUrl(this.def().source)
-  );
-  protected readonly safeUrl = computed<SafeResourceUrl | null>(() => {
-    const u = this.url();
-    return u ? this.sanitizer.bypassSecurityTrustResourceUrl(u) : null;
-  });
-
-  /** Stored layout in pixels, kept inside the current viewport. */
-  readonly rect = computed(
-    () => {
-      const vp = this.service.viewport();
-      return clampToViewport(fromFractions(this.def().rect, vp), vp);
-    },
-    // Compared by value, so a display-only change never rewrites the layout.
-    { equal: sameRect }
+  /** Where the window is, in px of the window area. */
+  readonly rect = computed(() =>
+    this.windows.rectOf(this.def(), this.windows.area())
   );
 
   /** What is on screen: a collapsed window is only its title bar. */
@@ -518,43 +470,50 @@ export class PipAppWindowComponent implements OnDestroy {
     return this.def().collapsed ? { ...r, h: COLLAPSED_HEIGHT } : r;
   });
 
-  /** Hide the title bar when idle: only while the app itself is shown. */
+  /** Hide the title bar when idle: only while the panel itself is shown. */
   protected readonly autoHide = computed(
     () =>
-      !this.def().barPinned &&
+      this.def().titleBar === 'autoHide' &&
       !this.def().collapsed &&
-      !this.outMode() &&
-      !!this.safeUrl()
+      this.floating()
   );
-  /** Where this window is shown outside the page, or null while in-app. */
-  protected readonly outMode = computed(() => this.popout.modeOf(this.def()));
 
   protected readonly barShown = signal(true);
   private barHolds = new Set<BarHold>();
   private barTimer: ReturnType<typeof setTimeout> | undefined;
 
   private gesture: ActiveGesture | null = null;
-  private frame = 0;
+  private frameReq = 0;
 
   constructor() {
-    // Show the bar whenever auto-hide starts (a window opens, expands or is
-    // brought back), so the user sees it before it gets out of the way.
+    // Show the bar whenever auto-hide starts (a window opens or expands), so
+    // the user sees it before it gets out of the way.
     effect(() => {
       if (this.autoHide()) untracked(() => this.revealBar());
     });
 
     // Layout is written straight to the element so a gesture can update it
     // per frame without change detection; between gestures this effect keeps
-    // it in step with the stored layout and the viewport.
+    // it in step with the window's geometry and the window area.
     effect(() => {
       const r = this.drawn();
       if (!this.gesture) this.applyRect(r);
     });
   }
 
+  ngOnInit() {
+    const url = this.def().panel.url;
+    this.src = this.sanitizer.bypassSecurityTrustResourceUrl(
+      url ? this.host.resolveAssetUrl(url) : 'about:blank'
+    );
+    this.detach = this.host.attachWindow(this.frame.nativeElement, this.def());
+  }
+
   ngOnDestroy() {
     this.endGesture();
     clearTimeout(this.barTimer);
+    this.detach?.();
+    this.detach = null;
   }
 
   /** Show the title bar, then hide it again once it has been idle a while. */
@@ -603,13 +562,14 @@ export class PipAppWindowComponent implements OnDestroy {
    */
   protected onFocusIn(e: FocusEvent) {
     const t = e.target as HTMLElement;
-    if (!t.closest('.fb-pip-app__bar, .fb-pip-app__grip')) return;
+    if (!t.closest('.fb-pe-window__bar, .fb-pe-window__grip')) return;
     if (t.matches(':focus-visible')) this.holdBar('focus');
   }
 
   protected startGesture(e: PointerEvent, mode: GestureMode) {
     if (this.gesture) return;
     if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if (mode === 'move' ? !this.movable() : !this.resizable()) return;
     const target = e.currentTarget as HTMLElement;
     // A press on a bar button is a click; the grip is a button that drags.
     const control = (e.target as HTMLElement).closest('a, button');
@@ -627,7 +587,7 @@ export class PipAppWindowComponent implements OnDestroy {
     };
     target.setPointerCapture(e.pointerId);
     this.holdBar('gesture');
-    this.service.gestureActive.set(true);
+    this.windows.gestureActive.set(true);
     this.zone.runOutsideAngular(() => {
       target.addEventListener('pointermove', this.onMove);
       target.addEventListener('pointerup', this.onEnd);
@@ -644,11 +604,11 @@ export class PipAppWindowComponent implements OnDestroy {
       g.mode,
       e.clientX - g.startX,
       e.clientY - g.startY,
-      this.service.viewport()
+      this.windows.area()
     );
-    if (!this.frame) {
-      this.frame = requestAnimationFrame(() => {
-        this.frame = 0;
+    if (!this.frameReq) {
+      this.frameReq = requestAnimationFrame(() => {
+        this.frameReq = 0;
         if (this.gesture) this.applyRect(this.gesture.current);
       });
     }
@@ -664,9 +624,9 @@ export class PipAppWindowComponent implements OnDestroy {
     const g = this.gesture;
     if (!g) return;
     this.gesture = null;
-    if (this.frame) {
-      cancelAnimationFrame(this.frame);
-      this.frame = 0;
+    if (this.frameReq) {
+      cancelAnimationFrame(this.frameReq);
+      this.frameReq = 0;
     }
     g.target.removeEventListener('pointermove', this.onMove);
     g.target.removeEventListener('pointerup', this.onEnd);
@@ -675,40 +635,27 @@ export class PipAppWindowComponent implements OnDestroy {
     if (g.target.hasPointerCapture(g.pointerId)) {
       g.target.releasePointerCapture(g.pointerId);
     }
-    this.service.gestureActive.set(false);
+    this.windows.gestureActive.set(false);
     this.releaseBar('gesture');
     if (commit && g.current !== g.start) {
-      const vp = this.service.viewport();
-      const f = toFractions(g.current, vp);
       // A collapsed window only moves; keep the size it expands back to.
-      const { w, h } = this.def().collapsed ? this.def().rect : f;
-      this.service.setRect(this.def().id, { x: f.x, y: f.y, w, h });
+      const { w, h } = this.def().collapsed ? this.rect() : g.current;
+      this.windows.setRectFromGesture(this.def().id, {
+        x: g.current.x,
+        y: g.current.y,
+        w,
+        h
+      });
     }
     this.applyRect(commit ? g.current : this.drawn());
   }
 
-  protected popOut() {
-    const r = this.rect();
-    this.popout.popOut(this.def(), { w: r.w, h: r.h });
-  }
-
-  protected popIn() {
-    this.popout.popIn(this.def().id);
-  }
-
   protected toggleCollapsed() {
-    this.service.setCollapsed(this.def().id, !this.def().collapsed);
-  }
-
-  protected toggleBarPinned() {
-    this.service.setBarPinned(this.def().id, !this.def().barPinned);
-  }
-
-  protected setOpacity(o: number) {
-    this.service.setOpacity(this.def().id, o);
+    this.windows.setCollapsed(this.def().id, !this.def().collapsed);
   }
 
   protected onBarDoubleClick(e: MouseEvent) {
+    if (this.def().modal) return;
     if ((e.target as HTMLElement).closest('a, button')) return;
     this.toggleCollapsed();
   }

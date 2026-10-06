@@ -1024,6 +1024,14 @@
                     <br />&nbsp;<br />
                   </div>
                 }
+
+                <!-- open plotter extension windows -->
+                @if (extWindows.windows().length) {
+                  <div class="buttonPanelItem">
+                    <fb-pe-window-list></fb-pe-window-list>
+                    <br />&nbsp;<br />
+                  </div>
+                }
               </div>
             }
             <!-- /right button bar -->
@@ -1064,6 +1072,9 @@
 
           <!-- Plotter extension widget overlay -->
           <fb-plotterext-overlay></fb-plotterext-overlay>
+
+          <!-- Plotter extension windows floating over the chart -->
+          <fb-pe-window-layer></fb-pe-window-layer>
 
           <!-- North Arrow -->
           <div style="position: absolute; top: 60px; left: 56px; width: 50px">

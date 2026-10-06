@@ -24,7 +24,8 @@ export const HOST_CAPABILITIES = [
   'nightMode',
   'resourceGroups',
   'background.iframe',
-  'ui'
+  'ui',
+  'windows'
 ];
 
 export type WidgetSize = '1x1' | '2x1' | '1x2' | '2x2';
@@ -113,12 +114,20 @@ export interface ButtonContribution {
   symbol?: string;
   /**
    * Button action. `openPanel`/`togglePanel` target a `panel` from the same
-   * manifest. `sendMessage` publishes `topic` (with optional `params`) onto
+   * manifest; `openWindow`/`toggleWindow` show that panel in a window (capability
+   * `windows`). `sendMessage` publishes `topic` (with optional `params`) onto
    * the host message bus, delivered to every live extension context
    * subscribed to that topic (typically the extension's own background
    * runtime).
    */
-  action?: { type: string; panel?: string; topic?: string; params?: unknown };
+  action?: {
+    type: string;
+    panel?: string;
+    topic?: string;
+    params?: unknown;
+    /** `openWindow` / `toggleWindow`: any `ui.openWindow` option. */
+    [option: string]: unknown;
+  };
   apiVersion?: string;
 }
 

@@ -1,270 +1,238 @@
 import { TestBed } from '@angular/core/testing';
-import { Subject } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppFacade } from '../../app.facade';
-import { PIP_APP_SOFT_LIMIT, PipAppService } from './pip-app.service';
-import { pipAppDef } from './testing';
-import { PipAppDef } from './types';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { PanelContribution } from '../types';
+import {
+  ExtWindowService,
+  MAX_WINDOWS,
+  WINDOW_GEOMETRY_KEY
+} from './window.service';
+import { ExtWindow, WindowChange } from './types';
 
-const wifish = { kind: 'webapp' as const, path: '/signalk-wifish/' };
+const panel: PanelContribution = {
+  id: 'viewer',
+  title: 'Viewer',
+  type: 'iframe',
+  url: '/plotterext/ext-a/viewer.html'
+};
 
-describe('PipAppService', () => {
-  let app: {
-    config: { pipApps: { windows: PipAppDef[] } };
-    config$: Subject<string>;
-    hostDef: { url: string };
-    saveConfig: ReturnType<typeof vi.fn>;
-    saveConfigDebounced: ReturnType<typeof vi.fn>;
-    showMessage: ReturnType<typeof vi.fn>;
-    debug: () => void;
-  };
+describe('ExtWindowService', () => {
+  let service: ExtWindowService;
+  let changes: WindowChange[];
 
-  const create = () => {
-    TestBed.configureTestingModule({
-      providers: [PipAppService, { provide: AppFacade, useValue: app }]
-    });
-    return TestBed.inject(PipAppService);
+  const open = (req = {}, extension = 'ext-a') => {
+    const w = service.open(extension, panel, req);
+    if (typeof w === 'string') throw new Error(w);
+    return w;
   };
 
   beforeEach(() => {
-    app = {
-      config: { pipApps: { windows: [] } },
-      config$: new Subject<string>(),
-      hostDef: { url: 'http://boat.local:3000' },
-      saveConfig: vi.fn(),
-      saveConfigDebounced: vi.fn(),
-      showMessage: vi.fn(),
-      debug: () => undefined
-    };
+    localStorage.clear();
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(ExtWindowService);
+    service.area.set({ w: 1000, h: 800 });
+    changes = [];
+    service.changes.subscribe((c) => changes.push(c));
   });
 
-  it('opens a window, brings it to the front and persists it', () => {
-    const service = create();
-    const def = service.open(wifish, 'Sounder');
-    expect(def.title).toBe('Sounder');
-    expect(service.windows()).toEqual([def]);
-    expect(service.zOrder()).toEqual([def.id]);
-    expect(app.config.pipApps.windows).toEqual([def]);
-    expect(app.saveConfig).toHaveBeenCalled();
+  it('opens a window with the spec defaults, at the top right', () => {
+    const w = open();
+    expect(w).toMatchObject<Partial<ExtWindow>>({
+      extension: 'ext-a',
+      title: 'Viewer',
+      params: {},
+      modal: false,
+      resizable: true,
+      movable: true,
+      titleBar: 'fixed',
+      userClose: 'close',
+      visible: true,
+      collapsed: false,
+      opacity: 1
+    });
+    const s = service.stateOf(w);
+    expect(s).toMatchObject({
+      windowId: w.id,
+      panel: 'viewer',
+      presentation: 'floating',
+      area: { width: 1000, height: 800 },
+      poppedOut: false
+    });
+    // 35% of the area, 16px in from the top-right corner
+    expect(s.bounds).toEqual({ x: 634, y: 16, width: 350, height: 280 });
+    expect(service.zOrder()).toEqual([w.id]);
+    expect(changes).toEqual([]);
   });
 
-  it('focuses the open window instead of opening the same source twice', () => {
-    const service = create();
-    const a = service.open(wifish);
-    const b = service.open({ kind: 'url', url: 'https://example.com' });
-    expect(service.zOrder()).toEqual([a.id, b.id]);
-    expect(service.open({ ...wifish })).toBe(a);
-    // the same page spelt as an absolute address is the same window
-    expect(
-      service.open({
-        kind: 'url',
-        url: 'http://boat.local:3000/signalk-wifish/'
-      })
-    ).toBe(a);
-    expect(service.windows().length).toBe(2);
-    expect(service.zOrder()).toEqual([b.id, a.id]);
+  it('centres a modal window with no geometry', () => {
+    const w = open({ modal: true });
+    expect(service.stateOf(w).bounds).toEqual({
+      x: 250,
+      y: 200,
+      width: 500,
+      height: 400
+    });
   });
 
-  it('refuses sources that cannot be framed', () => {
-    const service = create();
-    expect(
-      service.open({ kind: 'url', url: 'javascript:alert(1)' })
-    ).toBeNull();
-    expect(service.open({ kind: 'webapp', path: 'relative' })).toBeNull();
-    expect(service.windows()).toEqual([]);
+  it('refuses more than MAX_WINDOWS windows, and a second modal one', () => {
+    open({ modal: true });
+    expect(service.open('ext-a', panel, { modal: true })).toBe('modalOpen');
+    for (let i = 1; i < MAX_WINDOWS; i++) open();
+    expect(service.open('ext-a', panel, {})).toBe('limit');
   });
 
-  it('closes one window or all of them', () => {
-    const service = create();
-    const a = service.open(wifish);
-    const b = service.open({ kind: 'url', url: 'https://example.com' });
-    service.close(a.id);
-    expect(service.windows().map((w) => w.title)).toEqual(['example.com']);
-    expect(service.zOrder()).toEqual([b.id]);
-    service.closeAll();
-    expect(service.windows()).toEqual([]);
-    expect(service.zOrder()).toEqual([]);
-    expect(app.config.pipApps.windows).toEqual([]);
-  });
-
-  it('brings a window to the front, ignoring unknown and already-front ids', () => {
-    const service = create();
-    const a = service.open(wifish);
-    const b = service.open({ kind: 'url', url: 'https://example.com' });
-    service.focus('nope');
-    service.focus(b.id);
-    expect(service.zOrder()).toEqual([a.id, b.id]);
+  it('keeps a modal window above windows opened or raised after it', () => {
+    const a = open();
+    const m = open({ modal: true });
+    const b = open();
+    expect(service.zOrder()).toEqual([a.id, b.id, m.id]);
     service.focus(a.id);
-    expect(service.zOrder()).toEqual([b.id, a.id]);
+    expect(service.zOrder()).toEqual([b.id, a.id, m.id]);
+    expect(service.activeModal()?.id).toBe(m.id);
   });
 
-  it('stores a new layout with a debounced save and ignores bad values', () => {
-    const service = create();
-    const a = service.open(wifish);
-    service.setRect(a.id, { x: 0.2, y: 0.3, w: 0.4, h: 0.5 });
-    expect(service.windows()[0].rect).toEqual({
-      x: 0.2,
-      y: 0.3,
-      w: 0.4,
-      h: 0.5
-    });
-    expect(app.saveConfigDebounced).toHaveBeenCalled();
-    service.setRect(a.id, { x: 2, y: 0, w: 0.4, h: 0.5 });
-    expect(service.windows()[0].rect.x).toBe(0.2);
-  });
-
-  it('restores stored windows and reloads them when the config is replaced', () => {
-    const stored = pipAppDef({
-      id: 'kept',
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
-    });
-    app.config.pipApps.windows = [stored];
-    const service = create();
-    expect(service.windows()).toEqual([stored]);
-    app.config = { pipApps: { windows: [] } };
-    app.config$.next('ready');
-    expect(service.windows()).toEqual([]);
-  });
-
-  it('collapses, expands, sets opacity and pins the bar, persisting each change', () => {
-    const service = create();
-    const a = service.open(wifish);
-    expect([a.collapsed, a.opacity, a.barPinned]).toEqual([
-      false,
-      1,
-      undefined
-    ]);
-    service.setCollapsed(a.id, true);
-    service.setOpacity(a.id, 0.05);
-    service.setBarPinned(a.id, true);
-    expect(service.windows()[0]).toMatchObject({
-      collapsed: true,
-      opacity: 0.3,
-      barPinned: true
-    });
-    expect(app.config.pipApps.windows[0]).toMatchObject({
-      collapsed: true,
-      barPinned: true
-    });
-  });
-
-  it('marks a window as out in a popup and back again, persisting both', () => {
-    const service = create();
-    const a = service.open(wifish);
-    service.setPopout(a.id, 'popup');
-    expect(app.config.pipApps.windows[0].popout).toBe('popup');
-    service.setPopout(a.id, null);
-    expect(service.windows()[0].popout).toBeUndefined();
-    expect(app.config.pipApps.windows[0].popout).toBeUndefined();
-  });
-
-  it('tells the user to close a popup Freeboard cannot reach', () => {
-    const service = create();
-    const a = service.open(wifish, 'Sounder');
-    service.close(a.id);
-    expect(app.showMessage).not.toHaveBeenCalled();
-    const b = service.open(wifish, 'Sounder');
-    service.setPopout(b.id, 'popup');
-    service.close(b.id);
-    expect(app.showMessage).toHaveBeenCalledWith(
-      expect.stringContaining('separate window')
-    );
-    expect(service.windows()).toEqual([]);
-  });
-
-  it('warns about every popup still open when all windows close', () => {
-    const service = create();
-    const a = service.open(wifish, 'Sounder');
-    service.open({ kind: 'url', url: 'https://example.com/' }, 'Web');
-    const c = service.open(
-      { kind: 'url', url: 'https://example.com/radar' },
-      'Radar'
-    );
-    service.setPopout(a.id, 'popup');
-    service.setPopout(c.id, 'popup');
-    service.closeAll();
-    expect(app.showMessage).toHaveBeenCalledWith(
-      'Sounder, Radar are still open in separate windows. Close them there.'
-    );
-    expect(service.windows()).toEqual([]);
-  });
-
-  it('reveals a collapsed window when it is chosen again', () => {
-    const service = create();
-    const a = service.open(wifish);
-    const b = service.open({ kind: 'url', url: 'https://example.com' });
-    service.setCollapsed(a.id, true);
-    service.open(wifish);
-    expect(service.windows()[0].collapsed).toBe(false);
-    expect(service.zOrder()).toEqual([b.id, a.id]);
-  });
-
-  it('converts a pixel rectangle into on-screen viewport fractions', () => {
-    const service = create();
-    service.viewport.set({ w: 1000, h: 800 });
-    expect(service.rectFromPixels({ x: 640, y: 60, w: 350, h: 680 })).toEqual({
-      x: 0.64,
-      y: 0.075,
-      w: 0.35,
-      h: 0.85
-    });
-    expect(
-      service.rectFromPixels({ x: 900, y: 60, w: 350, h: 680 }).x
-    ).toBeCloseTo(0.65);
-  });
-
-  it('keeps windows changed while a server config was loading', () => {
-    const fromServer = pipAppDef({
-      id: 'server',
-      title: 'Remote',
-      source: { kind: 'url', url: 'https://example.com' },
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
-    });
-    const service = create();
-    const local = service.open(wifish, 'Sounder');
-    // the server copy predates the window opened above
-    app.config = {
-      pipApps: {
-        windows: [fromServer, { ...fromServer, id: 'dup', source: wifish }]
+  it('reports a visibility change as window.state and showing raises the window', () => {
+    const a = open();
+    const b = open();
+    service.update(a.id, { visible: false });
+    expect(changes).toEqual([
+      {
+        extension: 'ext-a',
+        event: 'window.state',
+        payload: expect.objectContaining({ windowId: a.id, visible: false })
       }
-    };
-    app.config$.next('ready');
-    expect(service.windows().map((w) => w.id)).toEqual([local.id, 'server']);
-    expect(service.zOrder().at(-1)).toBe(local.id);
-    expect(app.config.pipApps.windows.map((w) => w.id)).toEqual([
-      local.id,
-      'server'
     ]);
-    // nothing changed since that merge: the next load replaces as usual
-    app.config = { pipApps: { windows: [] } };
-    app.config$.next('ready');
-    expect(service.windows()).toEqual([]);
+    service.update(a.id, { visible: true });
+    expect(service.zOrder()).toEqual([b.id, a.id]);
   });
 
-  it('does not bring back a window closed while a server config was loading', () => {
-    const stored = pipAppDef({
-      id: 'kept',
-      rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }
+  it('reports a geometry change as window.bounds, once', () => {
+    const w = open();
+    service.update(w.id, { geometry: { width: 500 } });
+    service.update(w.id, { geometry: { width: 500 } });
+    expect(changes).toEqual([
+      {
+        extension: 'ext-a',
+        event: 'window.bounds',
+        payload: {
+          windowId: w.id,
+          bounds: { x: 484, y: 16, width: 500, height: 280 },
+          area: { width: 1000, height: 800 }
+        }
+      }
+    ]);
+  });
+
+  it('re-resolves windows when the area changes, keeping them anchored', () => {
+    const w = open({
+      geometry: { anchor: 'bottom-right', width: 200, height: 150 }
     });
-    app.config.pipApps.windows = [stored];
-    const service = create();
-    service.close('kept');
-    // the server copy still has the window just closed
-    app.config = { pipApps: { windows: [stored] } };
-    app.config$.next('ready');
-    expect(service.windows()).toEqual([]);
-    expect(app.config.pipApps.windows).toEqual([]);
-    // a later load, nothing changed meanwhile, restores it as usual
-    app.config = { pipApps: { windows: [stored] } };
-    app.config$.next('ready');
-    expect(service.windows()).toEqual([stored]);
+    service.setArea({ w: 800, h: 600 });
+    expect(service.stateOf(w).bounds).toEqual({
+      x: 600,
+      y: 450,
+      width: 200,
+      height: 150
+    });
+    expect(changes.map((c) => c.event)).toEqual(['window.bounds']);
   });
 
-  it('warns once the soft limit of open windows is passed', () => {
-    const service = create();
-    for (let i = 0; i <= PIP_APP_SOFT_LIMIT; i++) {
-      service.open({ kind: 'url', url: `https://example.com/${i}` });
-    }
-    expect(app.showMessage).toHaveBeenCalledTimes(1);
+  it('shows windows as sheets, and modal ones full screen, on a narrow area', () => {
+    const w = open({ geometry: { width: 300, height: 300 } });
+    const m = open({ modal: true });
+    service.setArea({ w: 400, h: 800 });
+    expect(service.stateOf(w)).toMatchObject({
+      presentation: 'sheet',
+      bounds: { x: 0, y: 500, width: 400, height: 300 }
+    });
+    expect(service.stateOf(m)).toMatchObject({
+      presentation: 'fullscreen',
+      bounds: { x: 0, y: 0, width: 400, height: 800 }
+    });
+    expect(changes.filter((c) => c.event === 'window.state').length).toBe(2);
+  });
+
+  it('closes or hides from the user control, as the window asked', () => {
+    const c = open();
+    const h = open({ userClose: 'hide' });
+    service.userClose(h.id);
+    expect(service.get(h.id)?.visible).toBe(false);
+    service.userClose(c.id);
+    expect(service.get(c.id)).toBeUndefined();
+    expect(changes.at(-1)).toEqual({
+      extension: 'ext-a',
+      event: 'window.closed',
+      payload: { windowId: c.id, reason: 'user' }
+    });
+  });
+
+  it("closes a departed extension's windows without a word", () => {
+    open({}, 'ext-a');
+    const b = open({}, 'ext-b');
+    service.closeExtension('ext-a');
+    expect(service.windows().map((w) => w.id)).toEqual([b.id]);
+    expect(changes).toEqual([]);
+  });
+
+  it('closes windows whose panel left the manifest, as reason host', () => {
+    const w = open();
+    service.closeMissingPanels('ext-a', new Set(['other']));
+    expect(changes).toEqual([
+      {
+        extension: 'ext-a',
+        event: 'window.closed',
+        payload: { windowId: w.id, reason: 'host' }
+      }
+    ]);
+  });
+
+  it('anchors a user-moved window to its nearest edges and reports it', () => {
+    const w = open();
+    service.setRectFromGesture(w.id, { x: 20, y: 600, w: 300, h: 180 });
+    expect(service.get(w.id)?.geometry).toEqual({
+      anchor: 'bottom-left',
+      offset: { x: 20, y: 20 },
+      width: 300,
+      height: 180
+    });
+    expect(changes.map((c) => c.event)).toEqual(['window.bounds']);
+  });
+
+  it('remembers geometry per device under a restoreKey and reopens there', () => {
+    const w = open({ restoreKey: 'sounder' });
+    service.setRectFromGesture(w.id, { x: 20, y: 600, w: 300, h: 180 });
+    expect(
+      JSON.parse(localStorage.getItem(WINDOW_GEOMETRY_KEY) ?? '{}')
+    ).toEqual({
+      'ext-a': {
+        sounder: {
+          anchor: 'bottom-left',
+          offset: { x: 20, y: 20 },
+          width: 300,
+          height: 180
+        }
+      }
+    });
+    service.close(w.id, 'user');
+    const again = open({
+      restoreKey: 'sounder',
+      geometry: { anchor: 'center', width: 100, height: 100 }
+    });
+    expect(service.stateOf(again).bounds).toEqual({
+      x: 20,
+      y: 600,
+      width: 300,
+      height: 180
+    });
+    // a different extension's key of the same name is its own
+    const other = open({ restoreKey: 'sounder' }, 'ext-b');
+    expect(service.stateOf(other).bounds.x).toBe(634);
+  });
+
+  it('clamps opacity to the allowed range', () => {
+    const w = open();
+    service.setOpacity(w.id, 0.1);
+    expect(service.get(w.id)?.opacity).toBe(0.3);
+    service.setOpacity(w.id, Number.NaN);
+    expect(service.get(w.id)?.opacity).toBe(1);
   });
 });

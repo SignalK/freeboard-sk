@@ -1,6 +1,10 @@
-import { PipRect } from './types';
+import type {
+  WindowAnchor,
+  WindowGeometry,
+  WindowLength
+} from 'signalk-plotterext-bus/host';
 
-/** A window rectangle in CSS pixels, relative to the viewport. */
+/** A window rectangle in CSS pixels, relative to the window area. */
 export interface PxRect {
   x: number;
   y: number;
@@ -33,8 +37,20 @@ export const DEFAULT_LIMITS: GeometryLimits = {
   barH: 34
 };
 
-/** Size and place a new window relative to the viewport. */
-export const DEFAULT_RECT: PipRect = { x: 0.55, y: 0.12, w: 0.35, h: 0.35 };
+/** Where a window opens when the extension asks for no geometry. */
+export const DEFAULT_GEOMETRY: WindowGeometry = {
+  anchor: 'top-right',
+  offset: { x: 16, y: 16 },
+  width: '35%',
+  height: '35%'
+};
+
+/** A modal window with no geometry: centred, half the area. */
+export const MODAL_GEOMETRY: WindowGeometry = {
+  anchor: 'center',
+  width: '50%',
+  height: '50%'
+};
 
 /**
  * Apply a pointer delta to the rectangle a gesture started from. Resizing from
@@ -141,36 +157,164 @@ export function clampToViewport(
   return { x, y, w, h };
 }
 
-export function toFractions(r: PxRect, viewport: ViewportSize): PipRect {
-  if (viewport.w <= 0 || viewport.h <= 0) {
-    return { ...DEFAULT_RECT };
+export const WINDOW_ANCHORS: readonly WindowAnchor[] = [
+  'top-left',
+  'top-center',
+  'top-right',
+  'center-left',
+  'center',
+  'center-right',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right'
+];
+
+type Side = 'start' | 'center' | 'end';
+
+/** The anchor as a [vertical, horizontal] pair of sides. */
+function anchorSides(anchor: WindowAnchor): [Side, Side] {
+  if (anchor === 'center') return ['center', 'center'];
+  const [v, h] = anchor.split('-');
+  const side = (t: string): Side =>
+    t === 'top' || t === 'left' ? 'start' : t === 'center' ? 'center' : 'end';
+  return [side(v), side(h)];
+}
+
+const PERCENT = /^(-?\d+(?:\.\d+)?)%$/;
+
+/** True for a CSS-pixel number or a percentage string such as "40%". */
+export function isWindowLength(
+  v: unknown,
+  allowNegative = false
+): v is WindowLength {
+  const n =
+    typeof v === 'number'
+      ? v
+      : typeof v === 'string' && PERCENT.test(v)
+        ? parseFloat(v)
+        : NaN;
+  return Number.isFinite(n) && (allowNegative || n >= 0);
+}
+
+/** A length in pixels: CSS pixels as given, or a percentage of `total`. */
+export function lengthPx(
+  v: WindowLength | undefined,
+  total: number
+): number | undefined {
+  if (v === undefined) return undefined;
+  return typeof v === 'number' ? v : (parseFloat(v) / 100) * total;
+}
+
+/**
+ * A structurally valid geometry request: a known anchor, and lengths that are
+ * numbers or percentage strings (offsets may be negative, sizes may not).
+ */
+export function isValidGeometry(g: unknown): g is WindowGeometry {
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return false;
+  const o = g as Record<string, unknown>;
+  if (
+    o.anchor !== undefined &&
+    !WINDOW_ANCHORS.includes(o.anchor as WindowAnchor)
+  ) {
+    return false;
   }
-  return {
-    x: r.x / viewport.w,
-    y: r.y / viewport.h,
-    w: r.w / viewport.w,
-    h: r.h / viewport.h
-  };
+  for (const k of [
+    'width',
+    'height',
+    'minWidth',
+    'minHeight',
+    'maxWidth',
+    'maxHeight'
+  ]) {
+    if (o[k] !== undefined && !isWindowLength(o[k])) return false;
+  }
+  if (o.offset !== undefined) {
+    if (!o.offset || typeof o.offset !== 'object') return false;
+    const off = o.offset as Record<string, unknown>;
+    for (const k of ['x', 'y']) {
+      if (off[k] !== undefined && !isWindowLength(off[k], true)) return false;
+    }
+  }
+  return true;
 }
 
-export function fromFractions(r: PipRect, viewport: ViewportSize): PxRect {
-  return {
-    x: r.x * viewport.w,
-    y: r.y * viewport.h,
-    w: r.w * viewport.w,
-    h: r.h * viewport.h
+/**
+ * Resolve a geometry request against the window area: sizes clamped to the
+ * request's min/max and the host's minimum, the window placed by its anchor
+ * and inward offset, and the result kept usable inside the area.
+ */
+export function resolveGeometry(
+  g: WindowGeometry,
+  area: ViewportSize,
+  limits: GeometryLimits = DEFAULT_LIMITS
+): PxRect {
+  const size = (
+    v: WindowLength | undefined,
+    min: WindowLength | undefined,
+    max: WindowLength | undefined,
+    hostMin: number,
+    total: number,
+    fallback: number
+  ) => {
+    const lo = Math.max(hostMin, lengthPx(min, total) ?? 0);
+    const hi = Math.min(total, lengthPx(max, total) ?? Infinity);
+    return Math.min(Math.max(lengthPx(v, total) ?? fallback * total, lo), hi);
   };
+  const w = size(g.width, g.minWidth, g.maxWidth, limits.minW, area.w, 0.35);
+  const h = size(g.height, g.minHeight, g.maxHeight, limits.minH, area.h, 0.35);
+  const [v, hz] = anchorSides(g.anchor ?? 'top-right');
+  const place = (side: Side, len: number, total: number, off: number) =>
+    side === 'start'
+      ? off
+      : side === 'end'
+        ? total - len - off
+        : (total - len) / 2 + off;
+  const x = place(hz, w, area.w, lengthPx(g.offset?.x, area.w) ?? 0);
+  const y = place(v, h, area.h, lengthPx(g.offset?.y, area.h) ?? 0);
+  return clampToViewport({ x, y, w, h }, area, limits);
 }
 
-/** True when every field is a finite number within the 0..1 range. */
-export function isValidRect(r: unknown): r is PipRect {
-  if (!r || typeof r !== 'object') return false;
-  const o = r as Record<string, unknown>;
-  return ['x', 'y', 'w', 'h'].every(
-    (k) =>
-      typeof o[k] === 'number' &&
-      Number.isFinite(o[k]) &&
-      (o[k] as number) >= 0 &&
-      (o[k] as number) <= 1
-  );
+/**
+ * The geometry that reproduces a window the user just moved or resized:
+ * anchored to the nearest edges (by which third of the area its centre is in)
+ * with pixel offsets and size, so it keeps its place when the area changes.
+ * The request's min/max limits carry over.
+ */
+export function anchoredGeometry(
+  r: PxRect,
+  area: ViewportSize,
+  previous: WindowGeometry = {}
+): WindowGeometry {
+  const pick = (start: number, len: number, total: number): Side => {
+    const c = start + len / 2;
+    return c < total / 3 ? 'start' : c > (2 * total) / 3 ? 'end' : 'center';
+  };
+  const hz = pick(r.x, r.w, area.w);
+  const v = pick(r.y, r.h, area.h);
+  const offset = (side: Side, start: number, len: number, total: number) =>
+    Math.round(
+      side === 'start'
+        ? start
+        : side === 'end'
+          ? total - start - len
+          : start - (total - len) / 2
+    );
+  const name = (s: Side, a: 'top' | 'left', b: 'bottom' | 'right') =>
+    s === 'start' ? a : s === 'end' ? b : 'center';
+  const vn = name(v, 'top', 'bottom');
+  const hn = name(hz, 'left', 'right');
+  const anchor = (
+    vn === 'center' && hn === 'center' ? 'center' : `${vn}-${hn}`
+  ) as WindowAnchor;
+  const { minWidth, minHeight, maxWidth, maxHeight } = previous;
+  return {
+    anchor,
+    offset: { x: offset(hz, r.x, r.w, area.w), y: offset(v, r.y, r.h, area.h) },
+    width: Math.round(r.w),
+    height: Math.round(r.h),
+    ...(minWidth !== undefined ? { minWidth } : {}),
+    ...(minHeight !== undefined ? { minHeight } : {}),
+    ...(maxWidth !== undefined ? { maxWidth } : {}),
+    ...(maxHeight !== undefined ? { maxHeight } : {})
+  };
 }

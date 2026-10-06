@@ -6,11 +6,11 @@ import {
   SNAP_DISTANCE,
   applyGesture,
   boundedGesture,
+  anchoredGeometry,
   clampToViewport,
-  fromFractions,
-  isValidRect,
-  snapToEdges,
-  toFractions
+  isValidGeometry,
+  resolveGeometry,
+  snapToEdges
 } from './geometry';
 
 const start = { x: 100, y: 100, w: 300, h: 200 };
@@ -124,27 +124,132 @@ describe('clampToViewport', () => {
   });
 });
 
-describe('viewport fractions', () => {
-  it('round-trips through fractions and scales to another viewport', () => {
-    const f = toFractions(start, vp);
-    expect(f).toEqual({ x: 0.1, y: 0.125, w: 0.3, h: 0.25 });
-    expect(fromFractions(f, vp)).toEqual(start);
-    expect(fromFractions(f, { w: 500, h: 400 })).toEqual({
-      x: 50,
-      y: 50,
-      w: 150,
-      h: 100
+describe('resolveGeometry', () => {
+  it.each<[string, PxRect]>([
+    ['top-left', { x: 10, y: 20, w: 200, h: 150 }],
+    ['top-center', { x: 410, y: 20, w: 200, h: 150 }],
+    ['top-right', { x: 790, y: 20, w: 200, h: 150 }],
+    ['center-left', { x: 10, y: 345, w: 200, h: 150 }],
+    ['center', { x: 410, y: 345, w: 200, h: 150 }],
+    ['bottom-right', { x: 790, y: 630, w: 200, h: 150 }]
+  ])('places a %s window by its inward offset', (anchor, rect) => {
+    expect(
+      resolveGeometry(
+        {
+          anchor: anchor as never,
+          offset: { x: 10, y: 20 },
+          width: 200,
+          height: 150
+        },
+        vp
+      )
+    ).toEqual(rect);
+  });
+
+  it('takes sizes and offsets as percentages of the area', () => {
+    expect(
+      resolveGeometry(
+        {
+          anchor: 'top-left',
+          offset: { x: '10%', y: '5%' },
+          width: '40%',
+          height: '25%'
+        },
+        vp
+      )
+    ).toEqual({ x: 100, y: 40, w: 400, h: 200 });
+  });
+
+  it('honours min and max sizes, and never goes below the host minimum', () => {
+    expect(
+      resolveGeometry(
+        { width: 900, maxWidth: '50%', height: 50, minHeight: 300 },
+        vp
+      )
+    ).toMatchObject({ w: 500, h: 300 });
+    expect(resolveGeometry({ width: 10, height: 10 }, vp)).toMatchObject({
+      w: DEFAULT_LIMITS.minW,
+      h: DEFAULT_LIMITS.minH
     });
   });
 
+  it('keeps a window that asks to be off-screen usable inside the area', () => {
+    expect(
+      resolveGeometry(
+        {
+          anchor: 'top-left',
+          offset: { x: 2000, y: -500 },
+          width: 300,
+          height: 200
+        },
+        vp
+      )
+    ).toEqual({ x: 700, y: 0, w: 300, h: 200 });
+  });
+
+  it('never makes a window larger than the area', () => {
+    expect(resolveGeometry({ width: 5000, height: 5000 }, vp)).toMatchObject({
+      w: 1000,
+      h: 800
+    });
+  });
+});
+
+describe('anchoredGeometry', () => {
+  it.each<[string, PxRect, string, { x: number; y: number }]>([
+    [
+      'the top-left',
+      { x: 30, y: 40, w: 200, h: 150 },
+      'top-left',
+      { x: 30, y: 40 }
+    ],
+    [
+      'the middle',
+      { x: 400, y: 325, w: 200, h: 150 },
+      'center',
+      { x: 0, y: 0 }
+    ],
+    [
+      'the bottom-right',
+      { x: 760, y: 610, w: 200, h: 150 },
+      'bottom-right',
+      { x: 40, y: 40 }
+    ],
+    [
+      'the top middle',
+      { x: 420, y: 10, w: 200, h: 150 },
+      'top-center',
+      { x: 20, y: 10 }
+    ]
+  ])('anchors a window in %s to its nearest edges', (_, r, anchor, offset) => {
+    const g = anchoredGeometry(r, vp);
+    expect(g).toMatchObject({ anchor, offset, width: r.w, height: r.h });
+    expect(resolveGeometry(g, vp)).toEqual(r);
+  });
+
+  it('keeps the request limits', () => {
+    expect(
+      anchoredGeometry({ x: 0, y: 0, w: 300, h: 200 }, vp, {
+        minWidth: 240,
+        maxHeight: '80%'
+      })
+    ).toMatchObject({ minWidth: 240, maxHeight: '80%' });
+  });
+});
+
+describe('isValidGeometry', () => {
   it.each<[string, boolean, unknown]>([
-    ['all fields in range', true, { x: 0, y: 0.5, w: 1, h: 0.2 }],
-    ['a negative field', false, { x: -0.1, y: 0, w: 0.5, h: 0.5 }],
-    ['a field above 1', false, { x: 0, y: 0, w: 1.5, h: 0.5 }],
-    ['NaN', false, { x: 0, y: 0, w: NaN, h: 0.5 }],
-    ['a missing field', false, { x: 0, y: 0, w: 0.5 }],
+    ['an empty request', true, {}],
+    ['px and % lengths', true, { anchor: 'center', width: 300, height: '40%' }],
+    ['negative offsets', true, { offset: { x: -10, y: '-5%' } }],
+    ['an unknown anchor', false, { anchor: 'middle' }],
+    ['a negative size', false, { width: -1 }],
+    ['a size that is not a length', false, { width: '300px' }],
+    ['NaN', false, { height: NaN }],
+    ['a malformed offset', false, { offset: 5 }],
+    ['an array', false, []],
     ['null', false, null]
-  ])('isValidRect: %s -> %s', (_, valid, rect) => {
-    expect(isValidRect(rect)).toBe(valid);
+  ])('%s -> %s', (_, valid, g) => {
+    expect(isValidGeometry(g)).toBe(valid);
   });
 });

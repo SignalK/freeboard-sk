@@ -18,7 +18,14 @@
 //
 // Map/resource host APIs (buttons, filters, map.*) belong to phase 3.
 
-import { Injectable, computed, effect, isDevMode, signal } from '@angular/core';
+import {
+  Injectable,
+  computed,
+  effect,
+  inject,
+  isDevMode,
+  signal
+} from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
@@ -33,6 +40,7 @@ import {
   type BusPort,
   type HandshakeContext,
   HostConnection,
+  type WindowState,
   type MapView,
   MethodHandler,
   type NightModeState,
@@ -71,6 +79,9 @@ import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
 import { createNightModeMethods } from './nightmode-methods';
 import { createResourceGroupMethods } from './resourcegroup-methods';
+import { createWindowMethods, parseOpenWindow } from './window-methods';
+import { ExtWindowService } from './windows/window.service';
+import { ExtWindow } from './windows/types';
 import { SKResourceGroupService } from 'src/app/modules/skresources/components/groups/groups.service';
 import {
   buildRoutePoints,
@@ -258,17 +269,30 @@ export class PlotterExtensionService {
     () => this.openPanels().find((p) => p.visible) ?? null
   );
 
-  openPanel(extension: string, panelId: string): boolean {
-    const manifest = this.manifests()[extension];
-    const panel = manifest?.panels?.find((p) => p.id === panelId);
-    if (!panel || panel.type !== 'iframe' || !panel.url) return false;
-    // Skip a contribution that targets a newer host API than we implement.
+  /**
+   * The extension's iframe panel `panelId`, if it has one this host can show.
+   * A contribution that targets a newer host API than we implement is skipped.
+   */
+  private iframePanel(
+    extension: string,
+    panelId: string
+  ): PanelContribution | undefined {
+    const panel = this.manifests()[extension]?.panels?.find(
+      (p) => p.id === panelId
+    );
+    if (!panel || panel.type !== 'iframe' || !panel.url) return undefined;
     if (
       panel.apiVersion !== undefined &&
       panel.apiVersion !== HOST_API_VERSION
     ) {
-      return false;
+      return undefined;
     }
+    return panel;
+  }
+
+  openPanel(extension: string, panelId: string): boolean {
+    const panel = this.iframePanel(extension, panelId);
+    if (!panel) return false;
     const key = `${extension}/${panelId}`;
     this.openPanels.update((panels) => {
       // Keep the target plus any keepAlive panels; drop non-keepAlive panels
@@ -359,9 +383,111 @@ export class PlotterExtensionService {
     };
   }
 
+  // ---------- windows ----------
+
+  /** The window each `openWindow` / `toggleWindow` button opened. */
+  private buttonWindows = new Map<string, string>();
+
+  /** A window's state, if `extension` owns it and it is open. */
+  private ownedWindow(
+    extension: string,
+    windowId: string
+  ): WindowState | undefined {
+    const w = this.windows.get(windowId);
+    return w && w.extension === extension ? this.windows.stateOf(w) : undefined;
+  }
+
+  /**
+   * The `ui.*Window` methods (capability `windows`) for one context. `self` is
+   * the calling window's id when the context is itself a window.
+   */
+  private windowMethods(
+    extension: string,
+    self: string | null
+  ): Record<string, MethodHandler> {
+    return createWindowMethods({
+      self,
+      panel: (id) => this.iframePanel(extension, id),
+      open: (panel, req) => {
+        const w = this.windows.open(extension, panel, req);
+        return typeof w === 'string' ? w : this.windows.stateOf(w);
+      },
+      owned: (id) => this.ownedWindow(extension, id),
+      openOf: (panel) =>
+        this.windows.ofExtension(extension).find((w) => w.panel.id === panel)
+          ?.id,
+      update: (id, change) => {
+        this.windows.update(id, change);
+        return this.ownedWindow(extension, id) as WindowState;
+      },
+      focus: (id) => this.windows.focus(id),
+      close: (id) => this.windows.close(id, 'extension'),
+      list: () =>
+        this.windows.ofExtension(extension).map((w) => this.windows.stateOf(w))
+    });
+  }
+
+  /**
+   * An `openWindow` / `toggleWindow` button. The button tracks the window it
+   * opened: pressing it again shows and raises that window, or for
+   * `toggleWindow` hides or closes it the way its own close control would.
+   */
+  private handleWindowButton(extension: string, button: ButtonContribution) {
+    const key = `${extension}/${button.id}`;
+    const tracked = this.buttonWindows.get(key);
+    const open = tracked ? this.windows.get(tracked) : undefined;
+    if (open) {
+      if (button.action?.type === 'toggleWindow' && open.visible) {
+        this.windows.userClose(open.id);
+      } else {
+        this.windows.update(open.id, { visible: true });
+        this.windows.focus(open.id);
+      }
+      return;
+    }
+    try {
+      const { panel: panelId, req } = parseOpenWindow(button.action);
+      const panel = this.iframePanel(extension, panelId);
+      if (!panel) return;
+      const w = this.windows.open(extension, panel, req);
+      if (typeof w !== 'string') this.buttonWindows.set(key, w.id);
+    } catch (err) {
+      console.warn('plotterext: unusable window button', button.id, err);
+    }
+  }
+
+  /**
+   * Keep windows in step with the collection: an extension that left takes
+   * its windows with it, and a window whose panel left its manifest closes.
+   */
+  private syncWindows() {
+    const manifests = this.manifests();
+    for (const extension of new Set(
+      this.windows.windows().map((w) => w.extension)
+    )) {
+      const manifest = manifests[extension];
+      if (!manifest || !this.isCompatible(manifest)) {
+        this.windows.closeExtension(extension);
+      } else {
+        this.windows.closeMissingPanels(
+          extension,
+          new Set(
+            (manifest.panels ?? [])
+              .filter((p) => this.iframePanel(extension, p.id))
+              .map((p) => p.id)
+          )
+        );
+      }
+    }
+  }
+
   handleButtonAction(extension: string, button: ButtonContribution) {
     const action = button.action;
     if (!action) return;
+    if (action.type === 'openWindow' || action.type === 'toggleWindow') {
+      this.handleWindowButton(extension, button);
+      return;
+    }
     if (action.type === 'sendMessage') {
       // Fire-and-forget: publish a custom event onto the bus. Delivery is
       // subscription-gated (publish() only reaches contexts that subscribed
@@ -574,6 +700,7 @@ export class PlotterExtensionService {
   }
 
   private contexts = new Set<LiveContext>();
+  private windows = inject(ExtWindowService);
   // Detach handle for the embedding-host connection, if one was stood up.
   private embeddingHostDetach: (() => void) | null = null;
 
@@ -604,6 +731,11 @@ export class PlotterExtensionService {
       this.viewportTick.update((n) => n + 1)
     );
     this.bridgeRouteEvents();
+    // Relay window changes (`window.bounds` / `window.state` / `window.closed`)
+    // to the extension that owns the window. App-lifetime singleton.
+    this.windows.changes.subscribe((c) =>
+      this.publishToExtension(c.extension, c.event, c.payload)
+    );
     // Relay every group apply — the user's Resource Groups checkbox or an
     // extension's resourceGroup.apply — as `resourceGroup.applied`
     // (origin-transparent). App-lifetime singleton: lives for the session.
@@ -1206,6 +1338,7 @@ export class PlotterExtensionService {
       this.manifests.set({});
     }
     this.refreshActiveWidgets();
+    this.syncWindows();
     this.initialized.set(true);
     this.attachEmbeddingHostOnce();
   }
@@ -1582,6 +1715,12 @@ export class PlotterExtensionService {
         ...this.nightModeMethods(),
         ...this.resourceGroupMethods(),
         ...this.uiPanelMethods(opts.extension),
+        ...this.windowMethods(
+          opts.extension,
+          opts.context.kind === 'window'
+            ? (opts.context.windowId ?? null)
+            : null
+        ),
         ...opts.methods
       },
       onError: (err) =>
@@ -1677,6 +1816,27 @@ export class PlotterExtensionService {
       port: this.iframePort(iframe, opts.runtime.url),
       extension: opts.extension,
       context: { kind: 'background', id: opts.runtime.id, instanceId: null },
+      stateInstance: null
+    });
+  }
+
+  /**
+   * Attach a window iframe (capability `windows`): one of the extension's
+   * panels shown floating over the chart. Same host API surface as a panel,
+   * except that it closes itself with `ui.closeWindow` (no `ui.closePanel`).
+   * It has no widget instance, so `state.*` defaults to the extension scope.
+   */
+  attachWindow(iframe: HTMLIFrameElement, w: ExtWindow): () => void {
+    return this.attachContext({
+      port: this.iframePort(iframe, w.panel.url ?? ''),
+      extension: w.extension,
+      context: {
+        kind: 'window',
+        id: w.panel.id,
+        instanceId: null,
+        windowId: w.id,
+        params: w.params
+      },
       stateInstance: null
     });
   }
