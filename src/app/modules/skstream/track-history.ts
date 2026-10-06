@@ -794,3 +794,25 @@ export function clampPaletteOffset(
     y: Math.max(-opensAt.top, Math.min(offset.y, maxY))
   };
 }
+
+/** The own-trail bands as recorded, each point with its time, or undefined
+ * when the provider sent no times. Kept apart from the drawn trail because the
+ * worker's assembleTrail() simplifies and re-splits the older bands. Bands
+ * that follow on in time are joined, so a tapped stretch reports when the
+ * passage began, not the band. */
+export function timedTrail(
+  bands: unknown[],
+  provider?: string
+): { lines: Position[][]; times: string[][] } | undefined {
+  let timed = { lines: [] as Position[][], times: [] as string[][] };
+  for (const fc of bands) {
+    const t = parseHistoryTrack('self', fc, provider);
+    if (t && !t.times) {
+      return undefined;
+    }
+    if (t) {
+      timed = joinStretches(timed, { lines: t.lines, times: t.times });
+    }
+  }
+  return timed.lines.length ? timed : undefined;
+}

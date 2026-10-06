@@ -7,9 +7,9 @@ import {
   getVesselTrailV2,
   handleStreamEvent,
   initVessels,
-  processVessel,
-  timedTrail
+  processVessel
 } from './skstream.worker';
+import { timedTrail } from './track-history';
 import { SKVessel } from '../skresources/resource-classes';
 import { Position } from 'src/app/types';
 import { TRAIL_DURATION_ALL } from './track-source';
