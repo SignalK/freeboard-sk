@@ -43,7 +43,15 @@ export interface TrackHistoryGhost {
   /** AIS ship type, for the vessel's icon; undefined for the own vessel. */
   typeId?: number;
 }
-import { needsAisRefetch, padExtent, viewportBbox } from './track-source';
+import { map, Observable } from 'rxjs';
+import {
+  AIS_TRACK_MAX_POINTS,
+  AIS_TRACK_WINDOW,
+  needsAisRefetch,
+  padExtent,
+  queryString,
+  viewportBbox
+} from './track-source';
 
 /** Share of the viewport added on each side of the history box, so small pans
  * and a heading-up map's rotations don't refetch (see `needsAisRefetch`). */
@@ -351,6 +359,43 @@ export class TrackHistoryService {
       this.spans().get(context)?.name ||
       v?.mmsi ||
       context.split(':').pop()
+    );
+  }
+
+  /** A tapped vessel's track as drawn, but asked for by vessel rather than by
+   * map box. The Track API clips what it returns to a `bbox`, so a track
+   * fetched for the view is cut where it leaves the fetched box, and a passage
+   * read from it would stop there too. Undefined where the drawn track was
+   * not fetched by box: AIS tracks of vessels picked one by one. */
+  wholeTrack(
+    source: 'history' | 'ais',
+    context: string
+  ): Observable<HistoryTrack | undefined> | undefined {
+    const provider = this.provider();
+    let query: string;
+    if (source === 'history') {
+      query = historyQuery({
+        context,
+        bbox: null,
+        epsilon: this.view
+          ? historyEpsilon(this.view.zoom, this.view.extent)
+          : null,
+        range: this.range(),
+        provider
+      });
+    } else if (this.app.config.vessels.aisShowTrack) {
+      query = queryString({
+        contexts: context,
+        duration: AIS_TRACK_WINDOW,
+        maxPoints: AIS_TRACK_MAX_POINTS,
+        times: 'true',
+        provider
+      });
+    } else {
+      return undefined;
+    }
+    return this.get(`/tracks?${query}`)?.pipe(
+      map((fc) => parseHistoryTrack(context, fc, provider))
     );
   }
 

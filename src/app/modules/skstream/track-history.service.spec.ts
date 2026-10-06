@@ -387,6 +387,44 @@ describe('TrackHistoryService', () => {
     expect(service.tracks().size).toBe(0);
   });
 
+  describe('the whole track of a tapped vessel', () => {
+    const showTrack = (on: boolean) => {
+      const config = TestBed.inject(AppFacade).config as unknown as {
+        vessels: { aisShowTrack: boolean };
+      };
+      config.vessels = { aisShowTrack: on };
+    };
+
+    it('asks for the history by vessel, not by box, at the drawn detail', () => {
+      service.wholeTrack('history', 'self').subscribe();
+
+      const p = params(historyCalls().pop());
+      expect(p.context).toBe('self');
+      expect(p.bbox).toBeUndefined();
+      expect(p.epsilon).toBeDefined();
+      expect(p.times).toBe('true');
+    });
+
+    it('asks for an AIS track by vessel while Show Track is on', () => {
+      showTrack(true);
+
+      let track: unknown;
+      service.wholeTrack('ais', AIS).subscribe((t) => (track = t));
+
+      const p = params(historyCalls().pop());
+      expect(p.contexts).toBe(AIS);
+      expect(p.bbox).toBeUndefined();
+      expect(p.duration).toBe('PT2H');
+      expect(track).toMatchObject({ context: AIS });
+    });
+
+    it('has nothing to add for AIS tracks picked by vessel', () => {
+      showTrack(false);
+
+      expect(service.wholeTrack('ais', AIS)).toBeUndefined();
+    });
+  });
+
   describe('zoom to a recorded track (#842)', () => {
     const noTrack = () => of({ type: 'FeatureCollection', features: [] });
     const metaWith = (bbox: number[] | undefined) =>

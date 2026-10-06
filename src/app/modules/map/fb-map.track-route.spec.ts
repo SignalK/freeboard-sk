@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { Collection, Feature } from 'ol';
+import { Subject } from 'rxjs';
 
 import { FBMapComponent } from './fb-map.component';
 import { RouteBufferRegistry } from '../plotterext/route-buffer.registry';
@@ -50,7 +51,7 @@ const bareComponent = () => {
   cmp.overlay = signal({ show: false });
   cmp.mapInteract = { draw: { features: null } };
   cmp.clickWorldOffset = 0;
-  cmp.trackHistory = { label: () => 'FERRY' };
+  cmp.trackHistory = { label: () => 'FERRY', wholeTrack: () => undefined };
   cmp.trackHistoryFeatures = {};
   cmp.routeBuffers = new RouteBufferRegistry();
   cmp.infoPanel = { openWith: vi.fn() };
@@ -150,5 +151,76 @@ describe('FBMapComponent — a route from a recorded track', () => {
     expect(cmp.infoPanel.openWith).not.toHaveBeenCalled();
     // nothing selected for the draft's MODIFY to edit in place of the route
     expect(selectedAtOpen).toBe(0);
+  });
+
+  describe('a track drawn clipped to the view', () => {
+    const HISTORY_ID = 'trackhistory.self.0';
+
+    /** The passage with only its middle drawn, as a track clipped to a view
+     * between the two anchorages comes back. */
+    const clipped = (track: ReturnType<typeof passage>) => ({
+      ...track,
+      lines: [track.lines[0].slice(125, 160)],
+      times: [track.times[0].slice(125, 160)]
+    });
+
+    const withWholeTrack = () => {
+      const cmp = bareComponent();
+      const answer = new Subject<unknown>();
+      cmp.trackHistory.wholeTrack = vi.fn(() => answer);
+      return { cmp, answer };
+    };
+
+    it('answers again from the whole track, so the route reaches the anchorages', () => {
+      const track = passage(0);
+      const { cmp, answer } = withWholeTrack();
+
+      const drawn = tap(cmp, HISTORY_ID, 'self', clipped(track));
+      expect(near(drawn.route[0], A)).toBe(false);
+
+      answer.next({ context: 'self', lines: track.lines, times: track.times });
+
+      expect(cmp.trackHistory.wholeTrack).toHaveBeenCalledWith(
+        'history',
+        'self'
+      );
+      const th = cmp.overlay().trackHistory;
+      expect(near(th.route[0], A)).toBe(true);
+      expect(near(th.route[th.route.length - 1], track.end)).toBe(true);
+      expect(th.start).not.toBe(drawn.start);
+    });
+
+    it('asks for the whole AIS track by vessel', () => {
+      const { cmp } = withWholeTrack();
+      tap(
+        cmp,
+        'track-vessels.vessels.urn:mrn:imo:mmsi:520000001',
+        'vessels.urn:mrn:imo:mmsi:520000001',
+        passage(0)
+      );
+
+      expect(cmp.trackHistory.wholeTrack).toHaveBeenCalledWith(
+        'ais',
+        'vessels.urn:mrn:imo:mmsi:520000001'
+      );
+    });
+
+    it('leaves the own trail as drawn', () => {
+      const { cmp } = withWholeTrack();
+      tap(cmp, 'trail.self.server', 'self', passage(0));
+
+      expect(cmp.trackHistory.wholeTrack).not.toHaveBeenCalled();
+    });
+
+    it('drops an answer for a popover no longer open', () => {
+      const track = passage(0);
+      const { cmp, answer } = withWholeTrack();
+      const drawn = tap(cmp, HISTORY_ID, 'self', clipped(track));
+      cmp.formatPopover(null, null);
+
+      answer.next({ context: 'self', lines: track.lines, times: track.times });
+
+      expect(cmp.overlay().trackHistory).toEqual(drawn);
+    });
   });
 });

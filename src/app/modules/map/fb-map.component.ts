@@ -168,6 +168,7 @@ import {
 import { TRACK_HISTORY_ID } from './ol/lib/vessel/layer-track-history.component';
 import { trackTimesHiddenByVessel, trailTapTrack } from './track-time-taps';
 import { OTHER_STOP_MS, OWN_STOP_MS, trackSectionRoute } from './track-route';
+import { Subscription } from 'rxjs';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
@@ -203,6 +204,14 @@ interface IFeatureData {
   active: SKVessel; // focussed vessel
   navData: { position: Position; startPosition: Position };
   closest: Array<LineString>;
+}
+
+/** A tapped recorded track, as its popover is answered from. */
+interface TrackHistoryFeature {
+  context: string;
+  lines: Position[][];
+  times?: PointTime[][];
+  at: Position;
 }
 
 enum INTERACTION_MODE {
@@ -1948,15 +1957,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private s57Features: Record<string, Record<string, string | number>> = {};
-  private trackHistoryFeatures: Record<
-    string,
-    {
-      context: string;
-      lines: Position[][];
-      times?: PointTime[][];
-      at: Position;
-    }
-  > = {};
+  private trackHistoryFeatures: Record<string, TrackHistoryFeature> = {};
+  private wholeTrackSub?: Subscription;
   private tidalFeatures: Record<
     string,
     Pick<GridSample, 'speedKn' | 'direction'>
@@ -2119,29 +2121,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (!hf) {
           return;
         }
-        const info = trackTimeInfo(hf.lines, hf.times, hf.at);
-        const label = (t: number) =>
-          chartTimeShortLabel(new Date(t).toISOString());
         poData.id = id;
         poData.type = TRACK_HISTORY_ID;
         poData.position = coord;
         poData.show = true;
         poData.readOnly = true;
-        poData.trackHistory = {
-          name: this.trackHistory.label(hf.context),
-          start: info && label(info.start),
-          end: info && label(info.end),
-          duration: info && durationLabel(info.duration),
-          at: info?.atTime !== undefined ? label(info.atTime) : undefined,
-          route:
-            hf.times &&
-            trackSectionRoute(
-              { lines: hf.lines, times: hf.times },
-              hf.at,
-              hf.context === 'self' ? OWN_STOP_MS : OTHER_STOP_MS
-            )
-        };
-        break;
+        poData.trackHistory = this.trackPopover(hf);
+        this.overlay.set(poData);
+        this.loadWholeTrack(id, t[0], hf);
+        return;
       }
       case 'tidal': {
         const tf = this.tidalFeatures[id];
@@ -2289,6 +2277,56 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
     this.mapInteract.draw.features = sf;
     this.formatPopover(feature.id, feature.coord);
+  }
+
+  /** What a track popover shows for a tap on `hf`. */
+  private trackPopover(hf: TrackHistoryFeature): IPopover['trackHistory'] {
+    const info = trackTimeInfo(hf.lines, hf.times, hf.at);
+    const label = (t: number) => chartTimeShortLabel(new Date(t).toISOString());
+    return {
+      name: this.trackHistory.label(hf.context),
+      start: info && label(info.start),
+      end: info && label(info.end),
+      duration: info && durationLabel(info.duration),
+      at: info?.atTime !== undefined ? label(info.atTime) : undefined,
+      route:
+        hf.times &&
+        trackSectionRoute(
+          { lines: hf.lines, times: hf.times },
+          hf.at,
+          hf.context === 'self' ? OWN_STOP_MS : OTHER_STOP_MS
+        )
+    };
+  }
+
+  /** A track fetched for the map view is clipped to it, so the popover opened
+   * from it is answered again from the vessel's whole track: the passage, its
+   * times and its route then run on past the edge of the view. */
+  private loadWholeTrack(id: string, layer: string, hf: TrackHistoryFeature) {
+    this.wholeTrackSub?.unsubscribe();
+    const source =
+      layer === TRACK_HISTORY_ID
+        ? 'history'
+        : layer === 'track-vessels'
+          ? 'ais'
+          : undefined;
+    this.wholeTrackSub = (
+      source && this.trackHistory.wholeTrack(source, hf.context)
+    )?.subscribe({
+      next: (track) => {
+        if (!track?.times || this.overlay().id !== id || !this.overlay().show) {
+          return;
+        }
+        const trackHistory = this.trackPopover({
+          ...hf,
+          lines: track.lines,
+          times: track.times
+        });
+        this.overlay.update((o) => ({ ...o, trackHistory }));
+      },
+      // the popover already shows the drawn track
+      error: () => undefined
+    });
   }
 
   /** MAKE ROUTE in a track popover: the passage it shows becomes a draft

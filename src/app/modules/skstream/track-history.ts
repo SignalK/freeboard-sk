@@ -4,7 +4,8 @@
  * The v2 Track API keeps the own vessel's track indefinitely (tracks-plugin v3
  * default) and other vessels' for 30 days. A single-context query may omit the
  * time window, which returns that vessel's whole history; a `bbox` then
- * *selects* passages touching the viewport (it never clips them). Detail is
+ * selects passages touching the viewport, and on a server that clips
+ * (SignalK/signalk-server#3081) returns only their part in it. Detail is
  * set by an explicit `epsilon` of about one screen pixel's ground distance, so
  * zooming in refetches at finer detail. Providers don't size a tolerance to the
  * box themselves (SignalK/signalk-server#3081), and `simplify` alone derives
