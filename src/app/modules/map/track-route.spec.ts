@@ -179,6 +179,26 @@ describe('trackSectionRoute', () => {
     expect(distM(route[route.length - 1], lastBeforeGap)).toBeLessThan(1);
   });
 
+  it('ends the passage at a gap as long as a stop, even with no move across it', () => {
+    const rec = new Recorder(A).stay(120).sail(4000, 0, 30);
+    const lastBeforeGap = rec.pos;
+    rec.gap(180, 0, 0).sail(3000, 0, 30).stay(120);
+    const route = trackSectionRoute(rec.track, at(A, 2000, 0), OWN_STOP_MS);
+
+    expect(distM(route[0], A)).toBeLessThan(30);
+    expect(distM(route[route.length - 1], lastBeforeGap)).toBeLessThan(60);
+  });
+
+  it('carries on across a short dropout the vessel barely moved over', () => {
+    const rec = new Recorder(A).stay(120).sail(4000, 0, 30);
+    rec.gap(1, 100, 0).sail(3000, 0, 30).stay(120);
+    const end = rec.pos;
+    const route = trackSectionRoute(rec.track, at(A, 2000, 0), OWN_STOP_MS);
+
+    expect(distM(route[0], A)).toBeLessThan(30);
+    expect(distM(route[route.length - 1], end)).toBeLessThan(30);
+  });
+
   it('treats a gap while at anchor as part of the stop', () => {
     // swinging wide, the recording resumes across the circle from where it
     // paused: further apart than a vessel moves while stopped
