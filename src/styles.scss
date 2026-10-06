@@ -93,6 +93,15 @@ remark th {
     background: var(--mat-sys-surface-container, rgba(127, 127, 127, 0.12));
 }
 
+/* While a PiP App window is moved or resized, no iframe may swallow the
+   pointer, or the gesture stalls whenever it crosses one. */
+body.fb-pip-app-gesture iframe {
+    pointer-events: none;
+}
+body.fb-pip-app-gesture {
+    user-select: none;
+}
+
 /*xs*/
 @media only screen and (max-width: 599px) {
     .weather-data .mat-horizontal-content-container {
