@@ -43,7 +43,8 @@ export interface TrackHistoryGhost {
   /** AIS ship type, for the vessel's icon; undefined for the own vessel. */
   typeId?: number;
 }
-import { map, Observable } from 'rxjs';
+import { filter, map, Observable } from 'rxjs';
+import { ROUTE_TOLERANCE_M } from 'src/app/modules/map/track-route';
 import {
   AIS_TRACK_MAX_POINTS,
   AIS_TRACK_WINDOW,
@@ -365,22 +366,24 @@ export class TrackHistoryService {
   /** A tapped vessel's track as drawn, but asked for by vessel rather than by
    * map box. The Track API clips what it returns to a `bbox`, so a track
    * fetched for the view is cut where it leaves the fetched box, and a passage
-   * read from it would stop there too. Undefined where the drawn track was
-   * not fetched by box: AIS tracks of vessels picked one by one. */
+   * read from it would stop there too. It is asked for at route detail
+   * whatever the zoom, as a route is made from it. An answer that arrives
+   * after the history range or provider has changed is dropped. Undefined
+   * where the drawn track was not fetched by box: AIS tracks of vessels
+   * picked one by one. */
   wholeTrack(
     source: 'history' | 'ais',
     context: string
   ): Observable<HistoryTrack | undefined> | undefined {
     const provider = this.provider();
+    const range = this.range();
     let query: string;
     if (source === 'history') {
       query = historyQuery({
         context,
         bbox: null,
-        epsilon: this.view
-          ? historyEpsilon(this.view.zoom, this.view.extent)
-          : null,
-        range: this.range(),
+        epsilon: ROUTE_TOLERANCE_M,
+        range,
         provider
       });
     } else if (this.app.config.vessels.aisShowTrack) {
@@ -395,6 +398,12 @@ export class TrackHistoryService {
       return undefined;
     }
     return this.get(`/tracks?${query}`)?.pipe(
+      filter(
+        () =>
+          this.provider() === provider &&
+          (source === 'ais' ||
+            (this.range().from === range.from && this.range().to === range.to))
+      ),
       map((fc) => parseHistoryTrack(context, fc, provider))
     );
   }

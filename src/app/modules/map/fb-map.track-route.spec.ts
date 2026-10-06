@@ -176,7 +176,8 @@ describe('FBMapComponent — a route from a recorded track', () => {
       const { cmp, answer } = withWholeTrack();
 
       const drawn = tap(cmp, HISTORY_ID, 'self', clipped(track));
-      expect(near(drawn.route[0], A)).toBe(false);
+      // a route read from the clipped track would start at the view's edge
+      expect(drawn.route).toBeUndefined();
 
       answer.next({ context: 'self', lines: track.lines, times: track.times });
 
@@ -210,6 +211,53 @@ describe('FBMapComponent — a route from a recorded track', () => {
       tap(cmp, 'trail.self.server', 'self', passage(0));
 
       expect(cmp.trackHistory.wholeTrack).not.toHaveBeenCalled();
+    });
+
+    it('offers no route when the whole track cannot be had', () => {
+      const { cmp, answer } = withWholeTrack();
+      const drawn = tap(cmp, HISTORY_ID, 'self', clipped(passage(0)));
+
+      answer.error(new Error('offline'));
+
+      expect(cmp.overlay().trackHistory).toEqual(drawn);
+      expect(drawn.route).toBeUndefined();
+      expect(drawn.start).toBeDefined();
+    });
+
+    it('keeps to the voyage tapped where the vessel crossed its own track', () => {
+      // out east to E, then back west a few metres to the north, to anchor
+      // at A again
+      const line: Position[] = [];
+      const times: string[] = [];
+      let t = T0;
+      const add = (p: Position) => {
+        line.push(p);
+        times.push(new Date(t).toISOString());
+        t += MIN;
+      };
+      const BACK = 0.0001;
+      const E: Position = [A[0] + 30 * STEP, A[1]];
+      for (let i = 0; i < 120; i++) add(A);
+      for (let i = 1; i <= 30; i++) add([A[0] + i * STEP, A[1]]);
+      for (let i = 0; i < 120; i++) add(E);
+      for (let i = 29; i >= 0; i--) add([A[0] + i * STEP, A[1] + BACK]);
+      for (let i = 0; i < 120; i++) add([A[0], A[1] + BACK]);
+      const { cmp, answer } = withWholeTrack();
+      // the tap, nearer the way back, was on the way out: only that is drawn
+      const at: Position = [A[0] + 15 * STEP, A[1] + BACK * 0.8];
+      cmp.trackHistoryFeatures[HISTORY_ID] = {
+        context: 'self',
+        lines: [line.slice(125, 145)],
+        times: [times.slice(125, 145)],
+        at
+      };
+      cmp.formatPopover(HISTORY_ID, at);
+
+      answer.next({ context: 'self', lines: [line], times: [times] });
+
+      const th = cmp.overlay().trackHistory;
+      expect(near(th.route[0], A)).toBe(true);
+      expect(near(th.route[th.route.length - 1], E)).toBe(true);
     });
 
     it('drops an answer for a popover no longer open', () => {

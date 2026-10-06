@@ -395,14 +395,54 @@ describe('TrackHistoryService', () => {
       config.vessels = { aisShowTrack: on };
     };
 
-    it('asks for the history by vessel, not by box, at the drawn detail', () => {
+    it('asks for the history by vessel, not by box, at route detail', () => {
+      service.setView([-120, -60, 120, 60], 3);
       service.wholeTrack('history', 'self').subscribe();
 
       const p = params(historyCalls().pop());
       expect(p.context).toBe('self');
       expect(p.bbox).toBeUndefined();
-      expect(p.epsilon).toBeDefined();
+      expect(p.epsilon).toBe('10');
       expect(p.times).toBe('true');
+    });
+
+    it('drops an answer that arrives after the range changed', () => {
+      const reply = new Subject<unknown>();
+      answer = () => reply;
+      let track: unknown = 'none';
+      service.wholeTrack('history', 'self').subscribe((t) => (track = t));
+
+      service.setPreset('7d');
+      reply.next(
+        trackFc([
+          [
+            [-81.9, 24.5],
+            [-81.8, 24.5]
+          ]
+        ])
+      );
+
+      expect(track).toBe('none');
+    });
+
+    it('drops an answer that arrives after the provider changed', () => {
+      showTrack(true);
+      const reply = new Subject<unknown>();
+      answer = () => reply;
+      let track: unknown = 'none';
+      service.wholeTrack('ais', AIS).subscribe((t) => (track = t));
+
+      trackSource.set({ api: 'v2', provider: 'other' });
+      reply.next(
+        trackFc([
+          [
+            [-81.9, 24.5],
+            [-81.8, 24.5]
+          ]
+        ])
+      );
+
+      expect(track).toBe('none');
     });
 
     it('asks for an AIS track by vessel while Show Track is on', () => {

@@ -168,12 +168,14 @@ import {
 import { TRACK_HISTORY_ID } from './ol/lib/vessel/layer-track-history.component';
 import { trackTimesHiddenByVessel, trailTapTrack } from './track-time-taps';
 import { OTHER_STOP_MS, OWN_STOP_MS, trackSectionRoute } from './track-route';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
   durationLabel,
+  HistoryTrack,
   PointTime,
+  poseAt,
   trackTimeInfo
 } from 'src/app/modules/skstream/track-history';
 import { chartTimeShortLabel } from 'src/app/lib/components/dialogs/chart-time-dialog';
@@ -2126,9 +2128,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.position = coord;
         poData.show = true;
         poData.readOnly = true;
-        poData.trackHistory = this.trackPopover(hf);
+        const whole = this.wholeTrackOf(t[0], hf.context);
+        const trackHistory = this.trackPopover(hf);
+        // a route read from a clipped track could stop at the edge of the
+        // view, so it waits for the whole track
+        poData.trackHistory = whole
+          ? { ...trackHistory, route: undefined }
+          : trackHistory;
         this.overlay.set(poData);
-        this.loadWholeTrack(id, t[0], hf);
+        this.loadWholeTrack(id, whole, hf);
         return;
       }
       case 'tidal': {
@@ -2299,32 +2307,55 @@ export class FBMapComponent implements OnInit, OnDestroy {
     };
   }
 
-  /** A track fetched for the map view is clipped to it, so the popover opened
-   * from it is answered again from the vessel's whole track: the passage, its
-   * times and its route then run on past the edge of the view. */
-  private loadWholeTrack(id: string, layer: string, hf: TrackHistoryFeature) {
-    this.wholeTrackSub?.unsubscribe();
+  /** The whole track of a vessel whose track on `layer` was fetched for the
+   * map view, and so clipped to it; undefined where there is none to ask for. */
+  private wholeTrackOf(
+    layer: string,
+    context: string
+  ): Observable<HistoryTrack | undefined> | undefined {
     const source =
       layer === TRACK_HISTORY_ID
         ? 'history'
         : layer === 'track-vessels'
           ? 'ais'
           : undefined;
-    this.wholeTrackSub = (
-      source && this.trackHistory.wholeTrack(source, hf.context)
-    )?.subscribe({
+    return source && this.trackHistory.wholeTrack(source, context);
+  }
+
+  /** The popover opened from a clipped track is answered again from the
+   * vessel's whole track: the passage, its times and its route then run on
+   * past the edge of the view. The tapped point is carried over by its time,
+   * since a vessel that crossed its own track would put another voyage
+   * nearest the tapped position. */
+  private loadWholeTrack(
+    id: string,
+    whole: Observable<HistoryTrack | undefined> | undefined,
+    hf: TrackHistoryFeature
+  ) {
+    this.wholeTrackSub?.unsubscribe();
+    if (!whole) {
+      return;
+    }
+    const atTime = trackTimeInfo(hf.lines, hf.times, hf.at)?.atTime;
+    this.wholeTrackSub = whole.subscribe({
       next: (track) => {
         if (!track?.times || this.overlay().id !== id || !this.overlay().show) {
           return;
         }
+        const at =
+          (atTime !== undefined &&
+            poseAt(track.lines, track.times, atTime)?.position) ||
+          hf.at;
         const trackHistory = this.trackPopover({
           ...hf,
           lines: track.lines,
-          times: track.times
+          times: track.times,
+          at
         });
         this.overlay.update((o) => ({ ...o, trackHistory }));
       },
-      // the popover already shows the drawn track
+      // without the whole track the popover keeps what the drawn one shows,
+      // and offers no route that could stop at the edge of the view
       error: () => undefined
     });
   }
