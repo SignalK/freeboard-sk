@@ -202,6 +202,10 @@ describe('extentFromBounds', () => {
   it('accepts bounds just inside the edges', () => {
     expect(extentFromBounds([-179.99, -89.99, 179.99, 89.99])).toBeDefined();
   });
+
+  it('returns undefined for bounds that cross the antimeridian (west > east)', () => {
+    expect(extentFromBounds([174.6, -21.9, -178.2, -11.2])).toBe(undefined);
+  });
 });
 
 describe('isChartInView', () => {
@@ -260,6 +264,35 @@ describe('isChartInView', () => {
       expect(isChartInView([-178, 42, -172, 58], worldView)).toBe(true);
       expect(isChartInView([0, 42, 10, 58], worldView)).toBe(true);
       expect(isChartInView([172, 42, 178, 58], worldView)).toBe(true);
+    });
+  });
+
+  describe('chart bounds crossing the antimeridian (west > east)', () => {
+    const crossing = [175, 40, -175, 50];
+
+    it('keeps the chart in a view west of the dateline', () => {
+      expect(isChartInView(crossing, [176, 42, 178, 48])).toBe(true);
+    });
+
+    it('keeps the chart in a view east of the dateline', () => {
+      expect(isChartInView(crossing, [-178, 42, -176, 48])).toBe(true);
+    });
+
+    it('keeps the chart in a view that crosses the dateline', () => {
+      expect(isChartInView(crossing, [170, 40, 190, 60])).toBe(true);
+      expect(isChartInView(crossing, [-190, 40, -170, 60])).toBe(true);
+    });
+
+    it('drops the chart from a view elsewhere', () => {
+      expect(isChartInView(crossing, [0, 42, 10, 48])).toBe(false);
+    });
+
+    it('drops the chart from a view that spans most longitudes but not the dateline', () => {
+      expect(isChartInView(crossing, [-170, 42, 170, 48])).toBe(false);
+    });
+
+    it('drops the chart from a view at its longitude but outside its latitude', () => {
+      expect(isChartInView(crossing, [176, 0, 178, 20])).toBe(false);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Extent, intersects } from 'ol/extent';
+import { Extent } from 'ol/extent';
 import { equivalent, get as getProjection, transformExtent } from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import RenderEvent from 'ol/render/Event';
@@ -28,6 +28,7 @@ import {
   chartRefreshIntervalMs,
   chartTimeTileUrl
 } from 'src/app/lib/chart-time';
+import { bboxInView, LonLatBox } from 'src/app/lib/map-fit';
 
 /**
  * Build a CSS canvas `filter` string from a chart's image adjustment, or `''`
@@ -169,7 +170,10 @@ export function resolveLayerMaxZoom(
 
 /**
  * Convert bounds in  chart metadata [minLon, minLat, maxLon, maxLat] to an EPSG:3857 extent
- * @returns undefined if bounds are invalid or missing
+ * @returns undefined if bounds are invalid or missing, touch the +/-180 / +/-90
+ * edges, or cross the antimeridian (west > east, RFC 7946 §5.2). A layer
+ * extent is a single box, and one unwrapped past 180 would hide the chart when
+ * the map shows it from the other side of the antimeridian.
  */
 export function extentFromBounds(bounds?: number[]): Extent | undefined {
   if (!Array.isArray(bounds) || bounds.length < 4) return undefined;
@@ -177,7 +181,8 @@ export function extentFromBounds(bounds?: number[]): Extent | undefined {
     bounds[0] <= -180 ||
     bounds[1] <= -90 ||
     bounds[2] >= 180 ||
-    bounds[3] >= 90
+    bounds[3] >= 90 ||
+    bounds[0] > bounds[2]
   ) {
     return undefined;
   }
@@ -191,18 +196,16 @@ export function extentFromBounds(bounds?: number[]): Extent | undefined {
  * Charts without valid bounds metadata are treated as global (not tied to a
  * region) and are always kept. Both `bounds` and `extent` are EPSG:4326
  * [minLon, minLat, maxLon, maxLat], so they are compared directly without
- * re-projection.
- *
- * A viewport that crosses the antimeridian (+/-180 longitude) is reported by
- * OpenLayers with a longitude range that runs past the dateline (e.g. a view
- * straddling +/-180 arrives as minLon=170, maxLon=190). Chart bounds are always
- * normalised to [-180, 180], so such a view is split into its two normalised
- * longitude ranges and the chart is kept if it overlaps either.
+ * re-projection. `bboxInView` does the comparison: it reads bounds that cross
+ * the antimeridian (west > east, RFC 7946 §5.2) the short way round, and
+ * handles a view that OpenLayers reports with longitudes past the dateline
+ * (e.g. a view straddling +/-180 arrives as minLon=170, maxLon=190).
  *
  * Example:
  *   bounds=[10, 40, 20, 50],   extent=[15, 45, 30, 60]  -> true  (overlap)
  *   bounds=[10, 40, 20, 50],   extent=[30, 45, 40, 60]  -> false (disjoint)
  *   bounds=[-178, 40, -170, 50], extent=[170, 40, 190, 60] -> true (dateline)
+ *   bounds=[175, 40, -175, 50], extent=[-178, 40, -176, 50] -> true (crossing chart)
  *   bounds=undefined,          extent=[...]             -> true  (global chart)
  */
 export function isChartInView(
@@ -212,46 +215,7 @@ export function isChartInView(
   if (!Array.isArray(bounds) || bounds.length !== 4) {
     return true;
   }
-  const [minLon, , maxLon] = extent;
-  if (maxLon > 180 || minLon < -180) {
-    return splitExtentAtAntimeridian(extent).some((range) =>
-      intersects(bounds, range)
-    );
-  }
-  return intersects(bounds, extent);
-}
-
-/**
- * Split a map extent that crosses the antimeridian into normalised longitude
- * ranges within [-180, 180].
- *
- * OpenLayers reports a dateline-crossing viewport with a longitude that runs
- * past the antimeridian; the wrapped portion has to be brought back into range
- * before it can be compared with chart bounds, which are always normalised.
- *
- * Input:  [170, 40, 190, 60]
- * Output: [[170, 40, 180, 60], [-180, 40, -170, 60]]
- */
-function splitExtentAtAntimeridian(extent: Extent): Extent[] {
-  const [minLon, minLat, maxLon, maxLat] = extent;
-  // A span of a full turn or more means the whole world is longitudinally
-  // visible, so there is nothing to exclude on longitude.
-  if (maxLon - minLon >= 360) {
-    return [[-180, minLat, 180, maxLat]];
-  }
-  // Normalise both edges to [-180, 180). Input:  190 -> Output: -170
-  const wrap = (lon: number) => ((((lon + 180) % 360) + 360) % 360) - 180;
-  const west = wrap(minLon);
-  const east = wrap(maxLon);
-  // When the view genuinely crosses the dateline the normalised west edge sits
-  // east of the normalised east edge; emit the two pieces either side of it.
-  if (west > east) {
-    return [
-      [west, minLat, 180, maxLat],
-      [-180, minLat, east, maxLat]
-    ];
-  }
-  return [[west, minLat, east, maxLat]];
+  return bboxInView(bounds as LonLatBox, extent);
 }
 
 /**
