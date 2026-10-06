@@ -284,8 +284,9 @@ required and optional capabilities and lists your contributions. A real one
 - **Panel:** `id`, `title`, `type: 'iframe'`, `url`, optional `lifecycle`.
 - **Button:** `id`, `title`, `slot` (`mapToolbar` is the well-known slot),
   `icon` (Material icon name), `action` — one of
-  `{ type: 'togglePanel'|'openPanel', panel }` or
-  `{ type: 'sendMessage', topic, params? }`.
+  `{ type: 'togglePanel'|'openPanel', panel }`,
+  `{ type: 'openWindow'|'toggleWindow', panel, …window options }` (capability
+  `windows`; see *Windows* below) or `{ type: 'sendMessage', topic, params? }`.
 - **Background:** `id`, `title?`, `type: 'iframe'`, `url`.
 
 **Lifecycle** controls when the host loads a context's iframe:
@@ -309,6 +310,7 @@ import { connectExtension } from 'signalk-plotterext-bus/extension'
 const client = await connectExtension() // resolves after the host handshake
 
 client.context // { kind, id, instanceId, targetInstance, targetWidget }
+// (a window context also carries windowId and params)
 client.hasCapability('map') // is an optional capability available?
 
 await client.call('method', params) // call any host API method (table in spec)
@@ -641,6 +643,95 @@ losing it and reattach on reopen. To poke a runtime, give a button a
 `client.subscribe`; results flow back through the normal events
 (`state.changed`, `filters.changed`). A runtime drives the host, not the other
 way around, in this version.
+
+## Windows
+
+With the `windows` capability, any of your iframe panels can also open in a
+**floating window** over the chart, instead of in the host's drawer. Your code
+opens it at runtime with `ui.openWindow`, positions and sizes it, and can open
+the same panel several times with different `params`. The host owns the frame,
+the title bar and the close control; your page fills the rest. The full
+contract is in the spec's [Windows section](./plotter-extensions-api.md#windows).
+
+The simplest way in needs no code at all: a toolbar button whose action is
+`toggleWindow` opens the panel in a window, and pressing it again hides or
+closes it:
+
+```json
+{
+  "id": "show-sounder",
+  "title": "Echo sounder",
+  "slot": "mapToolbar",
+  "icon": "waves",
+  "action": {
+    "type": "toggleWindow",
+    "panel": "viewer",
+    "params": { "app": "/signalk-wifish/" },
+    "geometry": { "anchor": "bottom-right", "width": 480, "height": 240 },
+    "userClose": "hide",
+    "restoreKey": "sounder"
+  }
+}
+```
+
+For anything more (several windows, reopening them at startup, reacting to the
+user closing one), drive windows from code. Here a background runtime keeps an
+echo sounder webapp running in a window that the user can hide and bring back
+without losing its history:
+
+```js
+import { connectExtension } from 'signalk-plotterext-bus/extension'
+
+const client = await connectExtension() // a background runtime
+if (!client.hasCapability('windows')) {
+  // No windows on this host: fall back to the drawer, or do nothing.
+}
+
+const sounder = await client.call('ui.openWindow', {
+  panel: 'viewer', // an iframe panel in this manifest
+  params: { app: '/signalk-wifish/' },
+  title: 'Echo sounder',
+  geometry: { anchor: 'bottom-right', offset: { x: 16, y: 16 }, width: 480, height: 240 },
+  userClose: 'hide', // the user's close control hides it; it keeps running
+  restoreKey: 'sounder' // reopen where the user last left it
+})
+
+// The toolbar button sends this topic (a `sendMessage` button action).
+await client.subscribe(['my-ext:toggle-sounder'], async () => {
+  const { windows } = await client.call('ui.listWindows')
+  const w = windows.find((x) => x.windowId === sounder.windowId)
+  await client.call('ui.updateWindow', {
+    windowId: sounder.windowId,
+    visible: !w?.visible
+  })
+})
+```
+
+The `viewer` panel reads what to show from its handshake:
+
+```js
+const client = await connectExtension()
+client.context // { kind: 'window', id: 'viewer', windowId, params: { app } }
+document.querySelector('iframe').src = client.context.params.app
+```
+
+Things to know:
+
+- **What you ask for is a request.** The host clamps every window to its window
+  area and may show it as a full-width `sheet` or `fullscreen` (on a phone, for
+  example). Read the actual geometry from the returned state, and subscribe to
+  `window.bounds` / `window.state` if you need to follow it.
+- **The user is always in control.** They can close any window, including a
+  hidden one; listen for `window.closed` and do not reopen a window the user
+  just closed (`reason: 'user'`) unless they ask for it.
+- **Windows end with the page.** They do not survive a reload, and the host
+  never reopens them by itself; reopen them from a background runtime, with a
+  `restoreKey` so they come back where the user put them.
+- **Hidden windows keep running**, but the browser may throttle their drawing.
+  Use them for state you cannot rebuild cheaply, not as a free place to park
+  work.
+- **`modal: true`** is for something the user must answer now. Only one modal
+  window can be open at a time, and it cannot be hidden.
 
 ## Reference implementations
 

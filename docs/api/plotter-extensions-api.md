@@ -124,6 +124,7 @@ extension id (the providing plugin's id is the recommended key):
 | `resourceGroups`    | Host can apply a stored resource group (`resourceGroup.apply`) — show the group's routes, waypoints, regions and charts — and emits `resourceGroup.applied`. |
 | `nightMode`         | Host implements the `nightMode.*` methods (read/force the night-vision display state, follow the server's `environment.mode`) and emits `nightMode.changed`. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
+| `windows`           | Host can show an extension's iframe panels as floating windows (`ui.openWindow` and the other `ui.*Window` methods) and emits `window.*` events. See *Windows*. |
 
 The vocabulary is open-ended: future versions add ids (buttons, resource
 filters, map control), and hosts may expose vendor-specific experiments
@@ -203,6 +204,9 @@ the panel if it is already the active one, otherwise open it. The reference
 host shows general panels in a right-side drawer that pushes the chart
 aside, and configuration panels in a dialog.
 
+With the `windows` capability, an extension can also show any of its iframe
+panels in a floating window over the chart, several at once; see *Windows*.
+
 ---
 
 ## Background Runtimes
@@ -238,7 +242,8 @@ A runtime speaks the same bus protocol as widgets and panels; its handshake
 `context.kind` is `background`. It may call the host API — `state.*`
 (extension scope by default, as it has no widget instance), `signalk.*`,
 `resources.*` including `resources.setFilter`, `route.*`, `chart.*`, `units.get`,
-`map.*`, and `ui.openPanel`/`ui.togglePanel`. It has no `ui.closePanel` or
+`map.*`, `ui.openPanel`/`ui.togglePanel`, and the window methods
+(`ui.openWindow` and the rest; see *Windows*). It has no `ui.closePanel` or
 `ui.*ConfigPanel` (those are panel/widget affordances). The typical use is a
 client-side service that holds session state and keeps work alive so a panel
 can **close itself** (`ui.closePanel`) without losing that state, then
@@ -286,6 +291,39 @@ An extension may contribute buttons to host-defined UI slots:
     it if it is already the active panel (recommended; matches the host's
     built-in panel-button behavior).
   - `openPanel` — always open (or switch to) the named `panel`.
+  - `openWindow` — open the named `panel` in a floating window (capability
+    `windows`). The action may carry any `ui.openWindow` option besides
+    `panel` (`params`, `title`, `geometry`, `modal`, `userClose`,
+    `restoreKey`, …). A button keeps track of the window it opened: while that
+    window is open, pressing the button again shows and raises it instead of
+    opening another.
+
+    ```json
+    {
+      "id": "show-sounder",
+      "title": "Echo sounder",
+      "slot": "mapToolbar",
+      "icon": "waves",
+      "action": {
+        "type": "openWindow",
+        "panel": "viewer",
+        "params": { "app": "/signalk-wifish/" },
+        "geometry": { "anchor": "bottom-right", "width": 480, "height": 240 },
+        "userClose": "hide",
+        "restoreKey": "sounder"
+      }
+    }
+    ```
+
+  - `toggleWindow` — like `openWindow`, except that pressing the button while
+    its window is shown does what the window's own close control does: hides
+    it with `userClose: "hide"`, closes it otherwise.
+
+    A window a button opened is an ordinary window of the extension: its
+    contexts see it in `ui.listWindows` and receive its `window.*` events. A
+    host that supports `buttons` but not `windows` treats `openWindow` and
+    `toggleWindow` as `openPanel` and `togglePanel` of the same `panel`.
+
   - `sendMessage` — publish a message onto the host bus. The button carries a
     `topic` (the event name) and optional `params`; the host publishes it as
     a bus event delivered to every live extension context that subscribed to
@@ -376,10 +414,11 @@ inside a routing envelope over `postMessage`**:
 }
 ```
 
-`context.kind` is `widget`, `panel`, `background` or `embedding-host` (this
-version). For a configuration panel, `targetInstance`/`targetWidget` identify
-the widget being configured; a `background` runtime and an `embedding-host`
-carry neither. An `embedding-host` context describes the **caller** — the
+`context.kind` is `widget`, `panel`, `window`, `background` or
+`embedding-host` (this version). For a configuration panel,
+`targetInstance`/`targetWidget` identify the widget being configured; a
+`background` runtime and an `embedding-host` carry neither. A `window` context
+adds `windowId` and `params` (see *Windows*). An `embedding-host` context describes the **caller** — the
 application embedding the plotter — while the plotter remains the API host;
 see *Embedding Hosts*.
 
@@ -475,6 +514,11 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `ui.openConfigPanel`    | — (widget contexts)                            | `{}`                       |
 | `ui.toggleConfigPanel`  | — (widget contexts)                            | `{}`                       |
 | `ui.closePanel`         | — (panel contexts)                             | `{}`                       |
+| `ui.openWindow`         | `{ panel, params?, title?, geometry?, modal?, resizable?, movable?, titleBar?, userClose?, visible?, single?, restoreKey? }` | window state |
+| `ui.updateWindow`       | `{ windowId?, title?, geometry?, visible? }`   | window state               |
+| `ui.focusWindow`        | `{ windowId? }`                                | `{}`                       |
+| `ui.closeWindow`        | `{ windowId? }`                                | `{}`                       |
+| `ui.listWindows`        | —                                              | `{ windows }`              |
 
 **Host events**
 
@@ -486,7 +530,7 @@ capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
 (`route.*`) with `routes`; chart events (`chart.*`) with `charts` (`chart.time` with `charts.time`);
 `resourceGroup.applied` with `resourceGroups`; `map.view` with `map`;
-`nightMode.changed` with `nightMode`. The
+`nightMode.changed` with `nightMode`; `window.*` with `windows`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -550,6 +594,13 @@ handled by the protocol layer, not subscribed to.
   *every* change, whether an extension called `nightMode.set`, the user toggled
   the host's own night-mode control, or the server's `environment.mode` flipped
   while `auto` is on. See *Night mode*.
+- `window.bounds` — `{ windowId, bounds, area }`: a window's actual geometry
+  changed (a user move or resize ended, `ui.updateWindow`, or the host re-clamped
+  it). Delivered only to the owning extension's contexts. See *Windows*.
+- `window.state` — the full window state, when a window's visibility, collapse,
+  pop-out, presentation or title changed. Owning extension only.
+- `window.closed` — `{ windowId, reason }`: a window closed (`reason` is `user`,
+  `extension` or `host`). Owning extension only.
 
 ### Resource queries and display filters
 
@@ -1194,6 +1245,264 @@ reads it once with `nightMode.get`.
 (invalid params — e.g. a non-boolean `enabled`/`auto`, or neither field present),
 `nightMode.notSupported` (host lacks `nightMode`).
 
+### Windows
+
+A **window** shows one of an extension's iframe panels floating over the chart,
+instead of in the host's panel drawer: a sonar trace beside the chart, a camera
+feed in a corner, a confirmation over everything. The capability is `windows`.
+
+A window is opened by the extension's code with `ui.openWindow`, or by one of
+its toolbar buttons with an `openWindow` / `toggleWindow` action (see
+*Buttons*). Unlike a drawer panel, a window can be open **several times at
+once** (each window is its own context, with its own
+parameters), and is **positioned and sized** by the extension, the user, or
+both. The host still owns the window: its frame, its title bar, its close
+control and where it may go. What the extension sends is a request; what the
+host reports back is the truth.
+
+#### Opening a window
+
+**`ui.openWindow`** opens one of the caller's own iframe panels (a `panels`
+entry in its manifest) in a new window and returns its state:
+
+```json
+{
+  "panel": "sounder",
+  "params": { "app": "/signalk-wifish/" },
+  "title": "Echo sounder",
+  "geometry": {
+    "anchor": "bottom-right",
+    "offset": { "x": 16, "y": 16 },
+    "width": 480,
+    "height": 240
+  },
+  "restoreKey": "sounder"
+}
+```
+
+| Field        | Default              | Meaning |
+| ------------ | -------------------- | ------- |
+| `panel`      | (required)           | Id of an iframe panel in the caller's manifest. A window shows only the extension's own panels, never an arbitrary URL. To show another page, the panel embeds it. |
+| `params`     | `{}`                 | A plain JSON object handed to the window in its handshake (`context.params`), so one panel can serve many windows. |
+| `title`      | the panel's `title`  | Text for the title bar. |
+| `geometry`   | host's choice        | Requested size and position (see *Geometry*). |
+| `modal`      | `false`              | A modal window blocks the chart and every other window until it closes (see *Modal windows*). |
+| `resizable`  | `true`               | Whether the **user** may resize the window. |
+| `movable`    | `true`               | Whether the **user** may move the window. |
+| `titleBar`   | `"fixed"`            | `"fixed"` or `"autoHide"`: the title bar hides when idle and the host keeps a visible way to bring it back. |
+| `userClose`  | `"close"`            | What the user's close control does: `"close"` closes the window, `"hide"` hides it (see *Hidden windows*). The host decides how the control looks in each mode. |
+| `visible`    | `true`               | `false` opens the window hidden: loaded and running, not shown. |
+| `single`     | `false`              | If a window of this panel is already open for the extension, return that window (shown and raised) instead of opening another. `params` and `geometry` of the call are then ignored. |
+| `restoreKey` | none                 | Remember this window's geometry under this key, per extension (see *Remembered geometry*). |
+
+`resizable` and `movable` limit the **user** only. The extension can always
+move and resize its own windows with `ui.updateWindow`.
+
+#### Geometry
+
+```json
+{
+  "anchor": "top-right",
+  "offset": { "x": 16, "y": 64 },
+  "width": "40%",
+  "height": 300,
+  "minWidth": 240,
+  "minHeight": 160,
+  "maxWidth": 800,
+  "maxHeight": "80%"
+}
+```
+
+- **Window area.** All geometry is relative to the **window area**: the part of
+  the host's screen it makes available to windows. The host defines it, it may
+  exclude the host's own controls and docked panels, and it may change at any
+  time (a drawer opens, the device rotates).
+- **Sizes** (`width`, `height`, and the `min*`/`max*` limits) are either a
+  number of CSS pixels or a percentage string of the window area (`"40%"`).
+  Pixels suit content with a natural size; percentages suit "a third of the
+  screen".
+- **Position** is an `anchor` plus an `offset`. The anchors are `top-left`,
+  `top-center`, `top-right`, `center-left`, `center`, `center-right`,
+  `bottom-left`, `bottom-center` and `bottom-right`. `offset` (pixels or
+  percentages, default `0`) is measured **inward** from the anchored edges; on a
+  centered axis a positive offset moves right or down. An absolute position is
+  `top-left` with an offset. Anchoring keeps a window where it belongs when the
+  window area changes size: a `bottom-right` window stays in the bottom-right.
+- **The host clamps.** It keeps every window inside the window area and within
+  its own minimum usable size, and may ignore a request it cannot honor. The
+  window's **actual** position and size are always in its state (`bounds`).
+
+#### Window state
+
+`ui.openWindow`, `ui.updateWindow`, `ui.listWindows` and the `window.state`
+event all describe a window the same way:
+
+```json
+{
+  "windowId": "w-7f3a",
+  "panel": "sounder",
+  "title": "Echo sounder",
+  "presentation": "floating",
+  "bounds": { "x": 1424, "y": 776, "width": 480, "height": 240 },
+  "area": { "width": 1920, "height": 1032 },
+  "visible": true,
+  "collapsed": false,
+  "poppedOut": false,
+  "modal": false
+}
+```
+
+- `bounds` — the actual position and size, in CSS pixels from the top-left of
+  the window area; `area` is the window area's current size.
+- `presentation` — how the host is showing the window: `floating` (a free
+  window), `sheet` (docked full-width along an edge) or `fullscreen`. A host may
+  choose `sheet` or `fullscreen` whenever a floating window would not fit, for
+  example on a phone, and switch back when it does. `resizable`, `movable` and
+  `geometry` apply to `floating` windows; in the other presentations the host
+  ignores them, and `bounds` still reports what is on screen.
+- `collapsed`, `poppedOut` — optional host features (see *Host window
+  features*); always `false` on a host without them.
+
+#### Managing windows
+
+Windows belong to the **extension**, not to the context that opened them: any
+of the extension's contexts may update, focus, list and close them, and they
+outlive the context that opened them (a panel can open a window and close
+itself). Another extension's windows are invisible to the caller.
+
+- **`ui.updateWindow({ windowId, title?, geometry?, visible? })`** changes a
+  window and returns its new state. `geometry` fields given replace the current
+  ones; fields left out keep their current values.
+- **`ui.focusWindow({ windowId })`** raises a window above the other windows. It
+  is a request: a host may keep its own stacking rules, and focusing does not
+  show a hidden window.
+- **`ui.closeWindow({ windowId })`** closes a window; its page unloads.
+- **`ui.listWindows`** returns `{ windows }`, the state of every open window of
+  the caller's extension, hidden ones included.
+
+In a `window` context, `windowId` may be left out of `updateWindow`,
+`focusWindow` and `closeWindow` to mean the window itself, so a window can
+close itself (the counterpart of `ui.closePanel`).
+
+#### The window context
+
+A window's iframe is a context of kind `window`. Its handshake carries the
+panel id, the window's id and the `params` it was opened with:
+
+```json
+"context": {
+  "kind": "window",
+  "id": "sounder",
+  "instanceId": null,
+  "windowId": "w-7f3a",
+  "params": { "app": "/signalk-wifish/" }
+}
+```
+
+A window context may call everything a panel context may, except
+`ui.closePanel`; it closes itself with `ui.closeWindow`. It has no widget
+instance, so `state.*` defaults to the `extension` scope. A window's id lasts
+only as long as the window: windows do not survive a reload of the host, and
+the host never reopens an extension's windows by itself. An extension that
+wants its windows back opens them again, typically from a background runtime
+at startup, with `restoreKey` to put them where the user left them.
+
+Every window loads its panel's page when it opens and unloads it when it
+closes. The panel's `lifecycle` value does not apply to windows; a window that
+should keep running while out of sight is hidden instead.
+
+#### Hidden windows
+
+A hidden window (`visible: false`) is out of sight but **still running**: its
+page, its bus connection and its event subscriptions stay alive, so a sounder
+keeps its history while hidden. Show it again with
+`ui.updateWindow({ windowId, visible: true })`.
+
+- Browsers may throttle rendering in a hidden iframe (for example
+  `requestAnimationFrame`); timers and network connections keep running. Do
+  not rely on drawing while hidden.
+- With `userClose: "hide"`, the user's close control hides the window instead
+  of closing it, so a toolbar button can bring it back as it was.
+- The host **must** give the user a way to find and close every window,
+  including hidden ones (for example a list of open windows). Hiding never
+  takes a window out of the user's control.
+- The host may close a hidden window to reclaim resources, reporting
+  `window.closed` with reason `host`. Hidden windows count toward the host's
+  window limit.
+- Hiding a popped-out window returns it to the host first.
+
+#### Modal windows
+
+A modal window (`modal: true`) sits above everything the extension can put on
+screen and blocks the chart and every other window until it closes. Use it for
+something the user must answer now.
+
+- Only one modal window may be open at a time.
+- It cannot be hidden: `visible: false` and `userClose: "hide"` are rejected.
+- With no `geometry`, it is centered.
+- It never covers the host's own safety UI (alarms, alerts, man-overboard).
+  Those stay above it and usable.
+- The user can always dismiss it: its close control, and the Escape key where
+  there is a keyboard, close it.
+
+#### The user's control
+
+- **The host owns the title bar.** It shows the title and a close control the
+  extension cannot remove or disable, so a broken or hung extension can always
+  be closed.
+- The user may move and resize a `floating` window (unless `movable` /
+  `resizable` say otherwise), and may raise it by interacting with it.
+
+#### Host window features
+
+A host may add its own window features, such as collapsing a window to its
+title bar (`collapsed`), changing its opacity, or popping it out into a separate
+always-on-top browser window (`poppedOut`). They are the host's to offer and
+only ever started by the user. A collapsed window keeps running, like a hidden
+one. A host may reload a window's page when popping it in or out: the page then
+handshakes again with the same `windowId` and `params`.
+
+#### Remembered geometry
+
+With a `restoreKey`, the host remembers the window's last geometry under that
+key for the extension and uses it **instead of** the requested `geometry` the
+next time the extension opens a window with the same key. The user drags the
+sounder to the top-left once, and it opens there from then on. A host should
+remember it per device, since a layout that suits a laptop rarely suits a
+phone. An extension that needs a fresh position calls `ui.updateWindow` after
+opening.
+
+#### Events
+
+Window events go to the contexts of the **extension that owns the window**
+(including the window itself) that subscribed to them:
+
+- `window.bounds` — `{ windowId, bounds, area }`: the window's actual geometry
+  changed: the user finished a move or resize, the extension called
+  `ui.updateWindow`, or the host re-clamped it after the window area changed.
+  Sent once per change, not continuously during a drag.
+- `window.state` — the full window state, when `visible`, `collapsed`,
+  `poppedOut`, `presentation` or `title` changed.
+- `window.closed` — `{ windowId, reason }`: the window closed and its page
+  unloaded. `reason` is `user` (the user closed it), `extension`
+  (`ui.closeWindow`) or `host` (the host closed it: to reclaim resources, or
+  because the window's panel left the manifest).
+
+When an extension leaves the collection (its plugin disabled), the host closes
+all its windows; no event is sent, since none of its contexts remain.
+
+#### Errors
+
+Errors use the standard `error.data.reason` convention: `windows.badRequest`
+(invalid params — e.g. a malformed `geometry`, an unknown `anchor`, or a modal
+window asked to hide), `UNKNOWN_PANEL` (no iframe panel with that id in the
+caller's manifest, as for `ui.openPanel`), `windows.unknownId` (no open window
+with that id belongs to the caller), `windows.limit` (the host will not open
+more windows), `windows.modalOpen` (another modal window is already open),
+`windows.notSupported` (host lacks `windows`).
+
+An `embedding-host` context has no manifest, so it cannot open windows.
+
 ---
 
 ## Providing an Extension
@@ -1250,6 +1559,11 @@ adversarial boundary**:
   security boundary; its value is lifecycle isolation, CSS/DOM separation
   and crash containment. `allow-top-navigation`, `allow-popups` and
   `allow-modals` are withheld to prevent accidents.
+- Windows (capability `windows`) show only an extension's own manifest
+  panels, never an arbitrary URL, under the same sandbox. The host owns each
+  window's frame and close control, gives the user a way to close every
+  window including hidden ones, and keeps its own safety UI (alarms, alerts)
+  above any extension window, modal ones included.
 - The host API validates arguments and applies call timeouts; one broken
   extension must not prevent the host from loading.
 - Extension contexts are same-origin with the Signal K server and may call
