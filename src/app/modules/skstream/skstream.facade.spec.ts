@@ -172,6 +172,13 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
     expect(trailRequests()).toBe(1);
   });
 
+  it('fetches it again when the view leaves the box it was fetched for', () => {
+    const { facade, trailRequests } = facadeWith();
+    facade.postMapView(extent, 10.2);
+    facade.postMapView([1, 50, 3, 51], 10.2);
+    expect(trailRequests()).toBe(2);
+  });
+
   it('counts a fetch made for another reason as made for the current zoom', () => {
     const { facade, trailRequests } = facadeWith();
     facade.postMapView(extent, 10.2);

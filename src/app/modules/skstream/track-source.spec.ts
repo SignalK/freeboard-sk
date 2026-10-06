@@ -149,6 +149,27 @@ describe('track-source trailBands', () => {
       );
     });
 
+    it('asks for the oldest band only in the given box', () => {
+      const box: [number, number, number, number] = [-1.5, 49.5, 1.5, 51.5];
+      const [oldest, ...newer] = trailBands(
+        TRAIL_DURATION_ALL,
+        res,
+        now,
+        150,
+        box
+      );
+      expect(oldest.bbox).toEqual(box);
+      newer.forEach((b) => expect(b.bbox).toBeUndefined());
+      expect(trailBandUrl('http://h/tracks', oldest)).toContain(
+        '&bbox=-1.5%2C49.5%2C1.5%2C51.5&'
+      );
+      [24, 96].forEach((d) =>
+        trailBands(d, res, now, 150, box).forEach((b) =>
+          expect(b.bbox).toBeUndefined()
+        )
+      );
+    });
+
     it('asks for the oldest band without from, at the tolerance', () => {
       const tracks = 'http://h/signalk/v2/api/tracks';
       const [oldest] = trailBands(TRAIL_DURATION_ALL, res, now, 152.5);

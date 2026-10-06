@@ -42,10 +42,12 @@ import {
   TrackSource,
   trackSourceUrls,
   tracksApiUrl,
+  TRAIL_BBOX_PAD,
   TRAIL_DURATION_ALL,
   TRAIL_MAX_HOURS,
   trailBands,
-  trailBandUrl
+  trailBandUrl,
+  viewportBbox
 } from './track-source';
 import {
   historyEpsilon,
@@ -541,7 +543,8 @@ function requestVesselTrail() {
 
 /** Fetch the own-vessel trail from the v2 Track API: the same three bands as
  * v1, as absolute from/to, from the default provider only. With "All" the
- * oldest band is simplified by the server to a pixel at the map's zoom.
+ * oldest band is simplified by the server to a pixel at the map's zoom, and
+ * asked for only in the padded map view.
  * `token` is the request's trailGate token; it answers only while current. */
 export function getVesselTrailV2(
   url: string,
@@ -552,11 +555,15 @@ export function getVesselTrailV2(
   // sized as for Track history: a pixel at the deepest zoom of the level
   const epsilon =
     (mapView && historyEpsilon(mapView.zoom, mapView.extent)) ?? undefined;
+  const bbox =
+    (mapView && viewportBbox(padExtent(mapView.extent, TRAIL_BBOX_PAD))) ??
+    undefined;
   const bands = trailBands(
     opt.trailDuration,
     opt.trailResolution,
     Date.now(),
-    epsilon
+    epsilon,
+    bbox
   );
   const msg = new TrailMessage();
   msg.playback = playbackMode;

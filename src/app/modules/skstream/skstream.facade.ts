@@ -15,7 +15,13 @@ import {
   IAppConfig,
   SKPosition
 } from 'src/app/types';
-import { TRAIL_DURATION_ALL, TrackSource } from './track-source';
+import {
+  needsAisRefetch,
+  padExtent,
+  TRAIL_BBOX_PAD,
+  TRAIL_DURATION_ALL,
+  TrackSource
+} from './track-source';
 import { magneticToTrue } from 'src/app/lib/true-bearing';
 
 export enum SKSTREAM_MODE {
@@ -100,10 +106,10 @@ export class SKStreamFacade {
   private watchDogAlarmSignal = signal<boolean>(false);
   readonly watchDogAlarm = this.watchDogAlarmSignal.asReadonly();
 
-  // Integer zoom of the map view, and of the view the trail was last fetched
-  // for (see postMapView()).
-  private viewZoomLevel?: number;
-  private trailZoomLevel?: number;
+  // The map view, and the padded box and zoom the trail was last fetched for
+  // (see postMapView()).
+  private view: { extent: number[]; zoom: number } | null = null;
+  private trailFetched: { extent: number[]; zoom: number } | null = null;
 
   private positionStaleSignal = signal<boolean>(false);
   /** True when self position has not been updated for
@@ -337,7 +343,10 @@ export class SKStreamFacade {
    * Send command message to fetch vessel trail from server
    * Trail message handler => this.parseSelfTrail() */
   requestTrailFromServer() {
-    this.trailZoomLevel = this.viewZoomLevel;
+    this.trailFetched = this.view && {
+      extent: padExtent(this.view.extent, TRAIL_BBOX_PAD),
+      zoom: this.view.zoom
+    };
     this.worker.postMessage({
       cmd: 'trail',
       options: {
@@ -349,17 +358,18 @@ export class SKStreamFacade {
 
   /** Tell the worker the map viewport (lon/lat) and zoom, which scope the AIS
    * tracks it fetches from the Track API. With the trail length set to "All",
-   * the Track API simplifies the older trail to the zoom it was fetched for,
-   * so it is fetched again when the zoom level changes. */
+   * the older trail is simplified to the zoom it was fetched for and asked for
+   * only in a padded box around the view, so it is fetched again when the zoom
+   * level changes or the view leaves that box. */
   postMapView(extent: number[], zoom: number) {
     this.worker.postMessage({ cmd: 'view', options: { extent, zoom } });
-    this.viewZoomLevel = Math.floor(zoom);
+    this.view = { extent, zoom };
     if (
       this.app.config.vessels.trail &&
       this.app.config.vessels.trailDuration === TRAIL_DURATION_ALL &&
       this.app.serverTrailWanted() &&
       this.app.trackSource()?.api === 'v2' &&
-      this.trailZoomLevel !== this.viewZoomLevel
+      needsAisRefetch(this.trailFetched, this.view)
     ) {
       this.requestTrailFromServer();
     }
@@ -401,8 +411,8 @@ export class SKStreamFacade {
       console.warn('Unable to fetch vessel trail from server.');
       this.app.data.serverTrail = false;
       this.app.selfTrailTimed.set(null);
-      // nothing was fetched for this zoom: the next view change tries again
-      this.trailZoomLevel = undefined;
+      // nothing was fetched for this view: the next view change tries again
+      this.trailFetched = null;
     }
   }
 
