@@ -1548,8 +1548,9 @@ export class PlotterExtensionService {
 
   /**
    * Connect one extension context to the bus. Every kind gets the shared host
-   * API; `methods` adds its kind-specific ones. `stateInstance` is the instance
-   * `state.*` defaults to (null: the extension scope). Returns a detach function.
+   * API; `methods` adds its kind-specific ones and wins over a shared entry of
+   * the same name. `stateInstance` is the instance `state.*` defaults to (null:
+   * the extension scope). Returns a detach function.
    */
   private attachContext(opts: {
     port: BusPort;

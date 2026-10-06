@@ -19,7 +19,8 @@ import { SKStreamFacade } from '../skstream/skstream.facade';
 
 // Each iframe context kind (widget, panel, background) gets the shared host API
 // plus its own handshake context, state scope and kind-specific methods. These
-// drive a real extension client through the public attach* methods.
+// drive a real extension client through the public attach* methods. The
+// embedding-host kind is covered by plotterext.embedding-host.spec.ts.
 describe('PlotterExtensionService iframe contexts', () => {
   let service: PlotterExtensionService;
   const detachers: Array<() => void> = [];
@@ -196,16 +197,43 @@ describe('PlotterExtensionService iframe contexts', () => {
     );
   });
 
-  it('serves the shared host API to every kind', async () => {
-    const client = await connect((iframe) =>
-      service.attachBackground(iframe, {
-        extension: 'ext-a',
-        runtime: { id: 'svc', title: 'Service', type: 'iframe', url: '' }
-      })
-    );
+  it.each([
+    [
+      'widget',
+      (iframe: HTMLIFrameElement) =>
+        service.attachWidget(iframe, {
+          extension: 'ext-a',
+          widget: 'gauge',
+          instanceId: 'inst-1'
+        } as Parameters<PlotterExtensionService['attachWidget']>[1])
+    ],
+    [
+      'panel',
+      (iframe: HTMLIFrameElement) =>
+        service.attachPanel(iframe, {
+          extension: 'ext-a',
+          panel: { id: 'cfg', title: 'Config', type: 'iframe', url: '' },
+          close: () => {}
+        })
+    ],
+    [
+      'background',
+      (iframe: HTMLIFrameElement) =>
+        service.attachBackground(iframe, {
+          extension: 'ext-a',
+          runtime: { id: 'svc', title: 'Service', type: 'iframe', url: '' }
+        })
+    ]
+  ])('serves the shared host API to a %s', async (_kind, attach) => {
+    const client = await connect(attach);
     await expect(client.call('nightMode.get')).resolves.toEqual({
       enabled: false,
       auto: expect.any(Boolean)
+    });
+    await expect(
+      client.call('ui.openPanel', { panel: 'nope' })
+    ).rejects.toMatchObject({
+      reason: 'UNKNOWN_PANEL'
     });
   });
 
