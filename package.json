@@ -31,7 +31,7 @@
       "@signalk/open-meteo-provider",
       "signalk-basic-tide-widgets",
       "signalk-restricted-areas",
-      "@marineyachtradar/signalk-plugin"
+      "@marineyachtradar/signalk-plugin",
       "signalk-flags"
     ]
   },
