@@ -177,6 +177,22 @@ describe('processSensorTarget', () => {
     expect(targets.get(RADAR).sameAs).toBeNull();
   });
 
+  it('keeps a lost target dropped while its remaining null values arrive', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    for (const path of [
+      'navigation.position',
+      'navigation.courseOverGroundTrue',
+      'navigation.speedOverGround',
+      'sameAs'
+    ]) {
+      expect(
+        processSensorTarget(targets, RADAR, { path, value: null }, COG_LINE)
+      ).toBe(false);
+    }
+    expect(targets.has(RADAR)).toBe(false);
+  });
+
   it('drops a target whose track was lost or has no usable position', () => {
     for (const value of [
       null,

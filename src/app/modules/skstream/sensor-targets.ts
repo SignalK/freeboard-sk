@@ -14,7 +14,9 @@ import { PathValue, Position } from 'src/app/types';
 
 /**
  * Apply one delta value to the target with context `id`. A null position means
- * the sensor lost the track, so the target is dropped.
+ * the sensor lost the track, so the target is dropped. A lost track stays in
+ * the server's data model with null values, which a null value for a target
+ * not held here must not bring back.
  * @param cogLineMinutes length of the course line, in minutes of travel at
  * the target's speed, as for AIS vessels
  * @returns false when the target was dropped
@@ -27,6 +29,9 @@ export function processSensorTarget(
 ): boolean {
   if (v.path === 'navigation.position' && !isLonLat(v.value)) {
     targets.delete(id);
+    return false;
+  }
+  if (v.value === null && !targets.has(id)) {
     return false;
   }
   let d = targets.get(id);
