@@ -146,6 +146,21 @@ describe('ExtWindowService', () => {
     expect(changes.map((c) => c.event)).toEqual(['window.bounds']);
   });
 
+  it('does not re-send bounds for a window the area change did not move', () => {
+    open({ geometry: { anchor: 'top-left', width: 200, height: 150 } });
+    service.setArea({ w: 900, h: 700 });
+    expect(changes).toEqual([]);
+  });
+
+  it('ignores a remembered geometry that is not valid', () => {
+    localStorage.setItem(
+      WINDOW_GEOMETRY_KEY,
+      JSON.stringify({ 'ext-a': { k: { anchor: 'nowhere', width: -3 } } })
+    );
+    const w = open({ restoreKey: 'k' });
+    expect(service.stateOf(w).bounds.x).toBe(634);
+  });
+
   it('shows windows as sheets, and modal ones full screen, on a narrow area', () => {
     const w = open({ geometry: { width: 300, height: 300 } });
     const m = open({ modal: true });

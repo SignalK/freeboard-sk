@@ -209,6 +209,27 @@ describe('createWindowMethods', () => {
     });
   });
 
+  it('treats a window updating itself with no params as a no-op', async () => {
+    build('w1');
+    await expect(call('ui.updateWindow')).resolves.toEqual(state('w1'));
+    expect(deps.update).toHaveBeenCalledWith('w1', {});
+  });
+
+  it('keeps only the geometry fields the spec defines', async () => {
+    await call('ui.openWindow', {
+      panel: 'viewer',
+      geometry: { width: 300, blob: 'x', offset: { x: 1, junk: 2 } }
+    });
+    expect(deps.open).toHaveBeenCalledWith(panel, {
+      geometry: { width: 300, offset: { x: 1 } }
+    });
+    build('w1');
+    await call('ui.updateWindow', { geometry: { height: 200, extra: true } });
+    expect(deps.update).toHaveBeenCalledWith('w1', {
+      geometry: { height: 200 }
+    });
+  });
+
   it("ui.listWindows lists the caller's extension's windows", async () => {
     await expect(call('ui.listWindows')).resolves.toEqual({
       windows: [state('w1')]

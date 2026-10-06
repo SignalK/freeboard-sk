@@ -6,7 +6,7 @@ import {
   type WindowState
 } from 'signalk-plotterext-bus/host';
 import { PanelContribution } from './types';
-import { isValidGeometry } from './windows/geometry';
+import { cleanGeometry, isValidGeometry } from './windows/geometry';
 import type { OpenFailure, WindowRequest } from './windows/window.service';
 
 /** What the window handlers need from the host, scoped to one caller. */
@@ -119,6 +119,7 @@ export function parseOpenWindow(params: unknown): {
       (req as Record<string, unknown>)[k] = p[k];
     }
   }
+  if (req.geometry) req.geometry = cleanGeometry(req.geometry);
   return { panel: p.panel, single: p.single === true, req };
 }
 
@@ -184,7 +185,7 @@ export function createWindowMethods(
 
     'ui.updateWindow': async (params) => {
       const id = target(params);
-      const p = params as Record<string, unknown>;
+      const p = isPlainObject(params) ? params : {};
       if (p.title !== undefined && typeof p.title !== 'string') {
         throw bad('title must be a string');
       }
@@ -198,7 +199,7 @@ export function createWindowMethods(
       return deps.update(id, {
         ...(p.title !== undefined ? { title: p.title as string } : {}),
         ...(p.geometry !== undefined
-          ? { geometry: p.geometry as WindowGeometry }
+          ? { geometry: cleanGeometry(p.geometry as WindowGeometry) }
           : {}),
         ...(p.visible !== undefined ? { visible: p.visible as boolean } : {})
       });

@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.13.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.16.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -329,11 +329,14 @@ back after a reload opens them again (typically from a background runtime).
 
 The window layer (`fb-pe-window-layer`) is absolutely positioned inside the
 chart's `mat-sidenav-content`, so the **window area is the chart area**: it
-excludes the extension panel drawer, and every window stays inside the chart's
-stacking context at z-index 4850 — above the map and status bar, **below** the
-map buttons, nav data, alarm/bottom-sheet (4902) and alert list (6100). That is
-how the spec's rule that host safety UI stays above every extension window,
-modal ones included, is met. Windows stack at even z-indexes within the layer,
+excludes the extension panel drawer, and whenever Freeboard shows its controls
+(not kiosk mode) it is inset 54 px left and right, clear of the toolbar columns
+(`.buttonPanel`, z-index 4800). Inside the chart's stacking context the layer
+sits at z-index 4850, above the map, and **below** the map buttons, nav data,
+alarm/bottom-sheet (4902), FAB (5000) and alert list (6100). So no window, sheet
+or modal backdrop can cover the toolbars (including the Alarms button) or the
+alarm UI: the spec's rule that host safety UI stays above and usable with every
+extension window, modal ones included. Windows stack at even z-indexes within the layer,
 leaving the odd one below the active modal window for its backdrop.
 
 The widget overlay's press-and-hold handler ignores presses on `.fb-pe-window`

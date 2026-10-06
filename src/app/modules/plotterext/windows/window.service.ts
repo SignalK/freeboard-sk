@@ -14,6 +14,7 @@ import {
   PxRect,
   ViewportSize,
   anchoredGeometry,
+  isValidGeometry,
   resolveGeometry
 } from './geometry';
 import {
@@ -308,7 +309,7 @@ export class ExtWindowService {
   private snapshot(w: ExtWindow): Snapshot {
     const s = this.stateOf(w);
     return {
-      bounds: JSON.stringify([s.bounds, s.area]),
+      bounds: JSON.stringify(s.bounds),
       flags: JSON.stringify([
         s.visible,
         s.collapsed,
@@ -358,7 +359,8 @@ export class ExtWindowService {
     extension: string,
     key: string
   ): WindowGeometry | undefined {
-    return this.readStore()[extension]?.[key];
+    const g = this.readStore()[extension]?.[key];
+    return isValidGeometry(g) ? g : undefined;
   }
 
   private remember(id: string) {

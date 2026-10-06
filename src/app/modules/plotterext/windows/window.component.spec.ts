@@ -381,6 +381,25 @@ describe('ExtWindowComponent', () => {
     expect(service.userClose).toHaveBeenCalledTimes(2);
   });
 
+  it('closes a modal window on Escape pressed inside its panel, but not a modeless one', () => {
+    const close = vi
+      .spyOn(service, 'close')
+      .mockImplementation(() => undefined);
+    const escapeInPanel = () => {
+      const iframe = host.querySelector('iframe');
+      iframe.dispatchEvent(new Event('load'));
+      iframe.contentWindow.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape' })
+      );
+    };
+    escapeInPanel();
+    expect(close).not.toHaveBeenCalled();
+    fixture.destroy();
+    mount(extWindow({ modal: true }));
+    escapeInPanel();
+    expect(close).toHaveBeenCalledWith('w1', 'user');
+  });
+
   it('keeps a modal window to a title and a close control', () => {
     fixture.componentRef.setInput('def', {
       ...def,

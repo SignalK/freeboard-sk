@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { PlotterExtensionService } from '../plotterext.service';
 import {
   ExtWindowLayerComponent,
@@ -106,6 +107,25 @@ describe('ExtWindowLayerComponent', () => {
       payload: { windowId: 'm', reason: 'user' }
     });
     expect(host.querySelector('.fb-pe-window-backdrop')).toBeNull();
+  });
+
+  it('keeps the toolbar columns out of the window area', () => {
+    fixture.componentRef.setInput('inset', 54);
+    fixture.detectChanges();
+    expect(host.style.left).toBe('54px');
+    expect(host.style.right).toBe('54px');
+  });
+
+  it("leaves a modal window open when Escape is meant for the host's own menu", () => {
+    const m = extWindow({ id: 'm', modal: true });
+    service.windows.set([a, b, m]);
+    service.zOrder.set(['b', 'a', 'm']);
+    const pane = document.createElement('div');
+    pane.className = 'cdk-overlay-pane';
+    TestBed.inject(OverlayContainer).getContainerElement().appendChild(pane);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    pane.remove();
+    expect(service.get('m')).toBeDefined();
   });
 
   it('leaves Escape alone when no modal window is open', () => {

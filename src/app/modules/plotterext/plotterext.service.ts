@@ -448,9 +448,16 @@ export class PlotterExtensionService {
     try {
       const { panel: panelId, req } = parseOpenWindow(button.action);
       const panel = this.iframePanel(extension, panelId);
-      if (!panel) return;
+      if (!panel) {
+        console.warn('plotterext: window button names no panel', button.id);
+        return;
+      }
       const w = this.windows.open(extension, panel, req);
-      if (typeof w !== 'string') this.buttonWindows.set(key, w.id);
+      if (typeof w === 'string') {
+        console.warn('plotterext: window button could not open', button.id, w);
+      } else {
+        this.buttonWindows.set(key, w.id);
+      }
     } catch (err) {
       console.warn('plotterext: unusable window button', button.id, err);
     }

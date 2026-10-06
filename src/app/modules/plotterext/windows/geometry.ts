@@ -239,6 +239,31 @@ export function isValidGeometry(g: unknown): g is WindowGeometry {
 }
 
 /**
+ * A copy of a valid geometry request with only the fields the spec defines,
+ * so nothing else an extension sends is kept (or remembered).
+ */
+export function cleanGeometry(g: WindowGeometry): WindowGeometry {
+  const out: WindowGeometry = {};
+  if (g.anchor !== undefined) out.anchor = g.anchor;
+  if (g.offset !== undefined) {
+    out.offset = {};
+    if (g.offset.x !== undefined) out.offset.x = g.offset.x;
+    if (g.offset.y !== undefined) out.offset.y = g.offset.y;
+  }
+  for (const k of [
+    'width',
+    'height',
+    'minWidth',
+    'minHeight',
+    'maxWidth',
+    'maxHeight'
+  ] as const) {
+    if (g[k] !== undefined) out[k] = g[k];
+  }
+  return out;
+}
+
+/**
  * Resolve a geometry request against the window area: sizes clamped to the
  * request's min/max and the host's minimum, the window placed by its anchor
  * and inward offset, and the result kept usable inside the area.
