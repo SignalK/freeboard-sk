@@ -8,11 +8,9 @@ features — what each does, how to use it, and which release it last changed in
 
 It is backed by a small **feature corpus** that ships with the package, designed as a
 **single source of truth with more than one consumer**. Document a feature once and it
-serves:
-
-- the **Feature Browser** (this dialog), and
-- the **[release-notes generator](../dev-tools/release-notes.md)** (renders GitHub
-  Release notes from the same ledger).
+serves the **Feature Browser** (this dialog). Release notes are not built from it:
+release-please lists the merged PR titles (see
+[Releases and release notes](../dev-tools/release-notes.md)).
 
 A future "What's New" indicator and an in-app help/search agent are further consumers of
 the same corpus. The rule of thumb: *write the feature's documentation once, in the
@@ -134,8 +132,7 @@ the PR that changed it):
 
 The browser reads `feature`, `kind`, `since` (the newest event per feature drives its
 **Status**/**Since** columns) and lists each feature's `date`/`pr`/`title` rows,
-newest-first, in the details pane. `title` (prefix stripped) also feeds the release-notes
-generator.
+newest-first, in the details pane.
 
 ## Decisions & guidance
 
@@ -155,8 +152,7 @@ These are the judgement calls the model is built around — read them before aut
 
 - **More than one feature per PR** is supported (multiple rows sharing a `pr`). Prefer
   *one feature per PR* — but use it when a PR genuinely delivers two distinct user-facing
-  features, or when backfilling old PRs. Note the release-notes generator emits one line
-  per feature row, so a 2-feature PR appears as two changelog lines.
+  features, or when backfilling old PRs.
 
 - **A row records a *change to* a feature, not a *use of* one** (producer vs consumer).
   Example: a PR that lets **wind-barbs** use the existing custom-symbols capability is a
@@ -222,5 +218,5 @@ guess at.
    "reason": "…" }` row.
 
 In all three cases the row is added **after the PR merges**, when its number and final
-title are known. Take `title` from the merged PR verbatim — it is what the release-notes
-generator emits.
+title are known. Take `title` from the merged PR verbatim. Leave `since` blank: the
+release PR stamps it (see [Releases and release notes](../dev-tools/release-notes.md)).
