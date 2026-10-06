@@ -14,6 +14,9 @@ import { getAlertIcon } from '../icons';
 import { SignalKClient } from 'signalk-client-angular';
 import { AlertPropertiesModal } from './components/alert-properties-modal';
 
+/** How long a buddy's message stays up: long enough to press LOCATE. */
+const BUDDY_MESSAGE_MS = 10000;
+
 type AlertItems = Array<[string, AlertData]>;
 
 type AlertFlag = 'acknowledged' | 'silenced';
@@ -210,11 +213,7 @@ export class NotificationManager {
     }
 
     if (['buddy'].includes(alertType)) {
-      // show toast message
-      this.app.showMessage(
-        alert.message,
-        !this.app.config.display.muteSound && alert.sound
-      );
+      this.showBuddyMessage(msg.path, alert);
       return;
     } else {
       // alert
@@ -224,6 +223,34 @@ export class NotificationManager {
       this.alertMap.set(alert.path, alert);
       this.emitSignals();
     }
+  }
+
+  /**
+   * A buddy's notification is shown as a passing message, not an alert. Where
+   * Freeboard has the buddy's position, it offers LOCATE, which centres the
+   * map on the buddy.
+   */
+  private showBuddyMessage(path: string, alert: AlertData) {
+    // the buddy list plugin notifies on notifications.buddy.<vessel urn>
+    const id = `vessels.${path.split('.').slice(2).join('.')}`;
+    const position = () => {
+      const buddy = this.app.data.vessels.aisTargets.get(id);
+      return buddy?.positionReceived ? buddy.position : undefined;
+    };
+    this.app
+      .showMessage(
+        alert.message,
+        !this.app.config.display.muteSound && alert.sound,
+        BUDDY_MESSAGE_MS,
+        position() ? 'LOCATE' : undefined
+      )
+      .onAction()
+      .subscribe(() => {
+        const at = position();
+        if (at) {
+          this.app.mapMoveRequest.set({ center: at });
+        }
+      });
   }
 
   /**
