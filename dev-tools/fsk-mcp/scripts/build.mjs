@@ -17,7 +17,10 @@ const pub = join(root, 'public');
 mkdirSync(join(pub, 'js'), { recursive: true });
 
 await build({
-  entryPoints: [join(root, 'src/web/runtime.js')],
+  entryPoints: [
+    join(root, 'src/web/runtime.js'),
+    join(root, 'src/web/window-probe.js')
+  ],
   bundle: true,
   format: 'iife',
   outdir: join(pub, 'js'),
@@ -43,4 +46,31 @@ writeFileSync(
 `
 );
 
-console.error('fsk-mcp: public/ runtime built');
+writeFileSync(
+  join(pub, 'window-probe.html'),
+  `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>fsk-mcp window probe</title>
+<style>
+  body { margin: 0; font: 12px/1.4 system-ui, sans-serif; display: flex;
+         flex-direction: column; height: 100vh; }
+  header { display: flex; justify-content: space-between; align-items: start;
+           gap: 8px; padding: 6px 8px; }
+  pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
+  body.embed pre { max-height: 4.5em; overflow: auto; }
+  iframe { flex: 1 1 auto; border: 0; border-top: 1px solid #ccc; }
+</style>
+</head>
+<body>
+<!-- A window panel for agents: shows its window context, and embeds
+     params.url (a page on the Signal K server) when given. -->
+<header><pre id="context"></pre><button id="close">Close</button></header>
+<script src="js/window-probe.js"></script>
+</body>
+</html>
+`
+);
+
+console.error('fsk-mcp: public/ runtime and window probe built');

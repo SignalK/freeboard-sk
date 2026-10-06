@@ -38,7 +38,7 @@ package; Freeboard depends on it (`^0.13.0`) and imports its host entry point
 
 `widgets`, `panels.iframe`, `buttons`, `signalk.stream`, `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
-`nightMode`, `resourceGroups`, `background.iframe`, `ui`.
+`nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -288,6 +288,87 @@ neither field present), `nightMode.notSupported`.
 | `src/app/modules/plotterext/nightmode-methods.ts` | the `nightMode.*` handlers + param validation |
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers (`readNightMode`/`applyNightMode`) and emits `nightMode.changed` (`emitNightModeChange`) |
 | `src/app/modules/skstream/skstream.facade.ts` | `selfNightMode` signal + `refreshSelfNightMode()` |
+
+## The `windows` capability
+
+`windows` shows an extension's iframe panels as windows floating over the chart
+(spec: *Windows* in the API doc). The frame — move and resize from eight
+handles, collapse, opacity, an auto-hiding title bar — came from Karl-Erik
+Gustafsson's PiP App work (#913) and lives in `src/app/modules/plotterext/windows/`.
+
+### The window model
+
+`ExtWindowService` is the store: the open windows (`ExtWindow`), their stacking
+order and the **window area** they float in. Windows exist only for the life of
+the page and are never written to `config`; an extension that wants its windows
+back after a reload opens them again (typically from a background runtime).
+
+- **Geometry is the spec's request**, kept as given (`anchor` + inward `offset`,
+  px or `%` sizes, min/max) and re-resolved by `resolveGeometry` whenever the
+  window or the area changes, so an anchored window keeps its place. A user move
+  or resize is turned back into a request anchored to the nearest edges
+  (`anchoredGeometry`).
+- **Presentation.** Below `SHEET_BREAKPOINT` (600 px of window area) a window
+  becomes a full-width bottom `sheet`, and a modal one `fullscreen`; the user
+  cannot move or resize either.
+- **Ownership.** A window belongs to its extension (`ExtWindow.extension`): any
+  of the extension's contexts can manage it, and no other extension can see it.
+  When an extension leaves the collection its windows close without an event
+  (`syncWindows`); a window whose panel left the manifest closes with reason
+  `host`.
+- **The user's control.** The title bar and its close control are Freeboard's;
+  `userClose: 'hide'` turns the control into a hide. A toolbar button
+  (`ExtWindowListComponent`, shown while any window is open) lists every window,
+  hidden ones included, with **Show** and **Close** — a real close, whatever the
+  window asked for. Escape closes the active modal window.
+- **Remembered geometry** (`restoreKey`) is stored per device in localStorage
+  (`fb-plotterext-windows`), not in the synced config: a layout that suits a
+  laptop rarely suits a phone.
+
+### Layering
+
+The window layer (`fb-pe-window-layer`) is absolutely positioned inside the
+chart's `mat-sidenav-content`, so the **window area is the chart area**: it
+excludes the extension panel drawer, and every window stays inside the chart's
+stacking context at z-index 4850 — above the map and status bar, **below** the
+map buttons, nav data, alarm/bottom-sheet (4902) and alert list (6100). That is
+how the spec's rule that host safety UI stays above every extension window,
+modal ones included, is met. Windows stack at even z-indexes within the layer,
+leaving the odd one below the active modal window for its backdrop.
+
+The widget overlay's press-and-hold handler ignores presses on `.fb-pe-window`
+and `.fb-pe-window-backdrop`, and while a window is moved or resized
+`body.fb-pe-window-gesture` stops every iframe taking the pointer
+(`styles.scss`).
+
+### Methods, events, buttons
+
+The `ui.*Window` handlers are a pure factory (`window-methods.ts`) added to
+every context's shared method table; a `window` context gets the panel surface
+minus `ui.closePanel`, and a left-out `windowId` addresses the calling window.
+`attachWindow` connects a window's iframe as a `window` context carrying its
+`windowId` and `params`. `window.bounds` / `window.state` / `window.closed` come
+from `ExtWindowService.changes` and go to the owning extension only
+(`publishToExtension`). `openWindow` / `toggleWindow` button actions take the
+same options as `ui.openWindow`; each button remembers the window it opened.
+
+### Error reasons
+
+`windows.badRequest`, `UNKNOWN_PANEL`, `windows.unknownId`, `windows.limit`
+(`MAX_WINDOWS` = 12 across all extensions), `windows.modalOpen`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/window-methods.ts` | the `ui.*Window` handlers + param validation |
+| `src/app/modules/plotterext/plotterext.service.ts` | `windowMethods`, `attachWindow`, window buttons, `syncWindows`, event relay |
+| `src/app/modules/plotterext/windows/window.service.ts` | the window store, presentation, events, remembered geometry |
+| `src/app/modules/plotterext/windows/geometry.ts` | request resolution, gestures, clamping, snapping |
+| `src/app/modules/plotterext/windows/window.component.ts` | one window: title bar, gestures, the bus-connected iframe |
+| `src/app/modules/plotterext/windows/window-layer.component.ts` | the window area, modal backdrop, Escape |
+| `src/app/modules/plotterext/windows/window-list.component.ts` | the user's list of open windows |
+| `dev-tools/fsk-mcp/src/tools.js` | `fsk_open_window` / `fsk_update_window` / `fsk_list_windows` / `fsk_close_window` |
 
 ## The `resourceGroups` capability
 

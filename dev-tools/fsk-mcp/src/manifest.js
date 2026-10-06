@@ -4,7 +4,10 @@
 // It declares one headless background runtime and requires only
 // `background.iframe`; every host capability the runtime might drive is
 // `optional`, so the bridge mounts on any conforming host and simply reports a
-// capability error if the agent calls a method the host doesn't implement.
+// capability error if the agent calls a method the host doesn't implement. Its
+// one panel, the window probe, is never shown by the host on its own: it is
+// what the agent opens in a window (capability `windows`), since an extension
+// can only show its own panels in windows.
 
 const pkg = require('../package.json');
 
@@ -27,7 +30,17 @@ function buildManifest() {
       'signalk.stream',
       'signalk.put',
       'units',
-      'ui'
+      'ui',
+      'windows'
+    ],
+    panels: [
+      {
+        id: 'window-probe',
+        title: 'FSK MCP window probe',
+        type: 'iframe',
+        url: `${ASSET_BASE}/window-probe.html`,
+        lifecycle: 'onOpen'
+      }
     ],
     background: [
       {
