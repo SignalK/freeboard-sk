@@ -6,10 +6,10 @@ import { FBMapComponent } from './fb-map.component';
 import { RouteBufferRegistry } from '../plotterext/route-buffer.registry';
 import { Position } from 'src/app/types';
 
-// A tap on a recorded track offers the passage through it as a route (ROUTE),
-// which opens as a draft, as a drawn route does. Exercised on a bare prototype
-// instance, as in fb-map.pointer-down.spec.ts: a TestBed fixture would import
-// the whole map template graph.
+// A tap on a recorded track offers the passage through it as a route (MAKE
+// ROUTE), which opens as a draft, as a drawn route does. Exercised on a bare
+// prototype instance, as in fb-map.pointer-down.spec.ts: a TestBed fixture
+// would import the whole map template graph.
 
 const T0 = Date.UTC(2026, 9, 1, 6, 0, 0);
 const MIN = 60000;

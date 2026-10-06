@@ -2291,8 +2291,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.formatPopover(feature.id, feature.coord);
   }
 
-  /** ROUTE in a track popover: the passage it shows becomes a draft route,
-   * opened as a drawn one is, to be started or saved. */
+  /** MAKE ROUTE in a track popover: the passage it shows becomes a draft
+   * route, opened as a drawn one is, to be started or saved. */
   protected routeFromTrack() {
     const th = this.overlay().trackHistory;
     if (!th?.route) {
