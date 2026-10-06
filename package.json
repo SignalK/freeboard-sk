@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "3.2.0-beta.6",
+  "version": "3.2.0",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -25,12 +25,14 @@
     "recommends": [
       "signalk-charts-provider-simple",
       "@signalk/tracks-plugin",
+      "signalk-buddylist-plugin",
       "signalk-instrument-widgets",
       "signalk-symbol-manager",
       "@signalk/open-meteo-provider",
       "signalk-basic-tide-widgets",
       "signalk-restricted-areas",
       "@marineyachtradar/signalk-plugin"
+      "signalk-flags"
     ]
   },
   "engines": {

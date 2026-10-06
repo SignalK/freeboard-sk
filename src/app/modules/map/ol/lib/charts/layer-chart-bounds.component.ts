@@ -10,7 +10,7 @@ import { Feature } from 'ol';
 import { Style, Stroke, Fill, Text } from 'ol/style';
 import { Polygon, Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray } from '../util';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBCharts } from 'src/app/types';
 
@@ -133,7 +133,9 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
     ];
   }
 
-  // mapify and transform bounds to polygon
+  // Transform bounds to a polygon. Bounds whose west edge lies east of their
+  // east edge cross the antimeridian (RFC 7946 §5.2), so the box runs east from
+  // the west edge across 180; any other box runs from west to east as given.
   parseBoundsCoordinates(bounds: Array<number>) {
     if (
       !Array.isArray(bounds) ||
@@ -144,13 +146,16 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
         bounds[3] === 90)
     )
       return [];
-    const rect = mapifyCoords([
-      [bounds[0], bounds[1]],
-      [bounds[2], bounds[1]],
-      [bounds[2], bounds[3]],
-      [bounds[0], bounds[3]],
-      [bounds[0], bounds[1]]
-    ]);
-    return [fromLonLatArray(rect)];
+    const [west, south, , north] = bounds;
+    const east = bounds[2] < west ? bounds[2] + 360 : bounds[2];
+    return [
+      fromLonLatArray([
+        [west, south],
+        [east, south],
+        [east, north],
+        [west, north],
+        [west, south]
+      ])
+    ];
   }
 }

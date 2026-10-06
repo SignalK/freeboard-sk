@@ -5,6 +5,7 @@ import {
   provideHttpClientTesting
 } from '@angular/common/http/testing';
 import { beforeEach, afterEach, describe, it, expect } from 'vitest';
+import { Observable, of, Subject, throwError } from 'rxjs';
 
 import { WeatherService } from './weather.service';
 import { SignalKClient } from 'signalk-client-angular';
@@ -130,5 +131,137 @@ describe('WeatherService ocean-current lattice proxy (#522)', () => {
       .flush('rate limited', { status: 429, statusText: 'Too Many Requests' });
 
     expect(samples).toEqual([{ ...CELL_A_P1, velocity: 0.5, direction: 90 }]);
+  });
+});
+
+describe('WeatherService wind lattice cache', () => {
+  let service: WeatherService;
+  let calls: string[];
+  let reply: (path: string) => Observable<unknown>;
+
+  const OBS = (speedTrue: number, directionTrue: number) => [
+    { wind: { speedTrue, directionTrue } }
+  ];
+
+  beforeEach(() => {
+    calls = [];
+    reply = () => of(OBS(5, 1));
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        WeatherService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: SignalKClient,
+          useValue: {
+            api: {
+              get: (_version: number, path: string) => {
+                calls.push(path);
+                return reply(path);
+              }
+            }
+          }
+        }
+      ]
+    });
+    service = TestBed.inject(WeatherService);
+  });
+
+  it('asks once per lattice cell, at its centre, and values every point in it', () => {
+    let samples;
+    service
+      .getWindSamples([CELL_A_P1, CELL_A_P2, CELL_A_P3])
+      .subscribe((s) => (samples = s));
+    expect(calls).toEqual(['/weather/observations?lat=25.0500&lon=-80.2500']);
+    expect(samples).toEqual([
+      { ...CELL_A_P1, speed: 5, direction: 1 },
+      { ...CELL_A_P2, speed: 5, direction: 1 },
+      { ...CELL_A_P3, speed: 5, direction: 1 }
+    ]);
+  });
+
+  it('serves a later pan from cache and only fetches the new cells', () => {
+    service.getWindSamples([CELL_A_P1]).subscribe();
+    calls = [];
+    let samples;
+    service
+      .getWindSamples([CELL_A_P2, CELL_B_P1])
+      .subscribe((s) => (samples = s));
+    expect(calls).toEqual(['/weather/observations?lat=25.1500&lon=-80.2500']);
+    expect(samples).toEqual([
+      { ...CELL_A_P2, speed: 5, direction: 1 },
+      { ...CELL_B_P1, speed: 5, direction: 1 }
+    ]);
+  });
+
+  it('negative-caches a cell whose observation has no wind', () => {
+    reply = () => of([{}]);
+    let first;
+    service.getWindSamples([CELL_A_P1]).subscribe((s) => (first = s));
+    expect(first).toEqual([]);
+    calls = [];
+    service.getWindSamples([CELL_A_P2]).subscribe();
+    expect(calls).toEqual([]);
+  });
+
+  it('does not cache a failed request, so the next refresh retries it', () => {
+    reply = () => throwError(() => new Error('Open-Meteo HTTP 429'));
+    let first;
+    service.getWindSamples([CELL_A_P1]).subscribe((s) => (first = s));
+    expect(first).toEqual([]);
+    reply = () => of(OBS(7, 2));
+    let second;
+    service.getWindSamples([CELL_A_P1]).subscribe((s) => (second = s));
+    expect(calls.length).toBe(2);
+    expect(second).toEqual([{ ...CELL_A_P1, speed: 7, direction: 2 }]);
+  });
+
+  it('still renders cached cells when the missing ones fail', () => {
+    service.getWindSamples([CELL_A_P1]).subscribe();
+    reply = () => throwError(() => new Error('Open-Meteo HTTP 429'));
+    let samples;
+    service
+      .getWindSamples([CELL_A_P1, CELL_B_P1])
+      .subscribe((s) => (samples = s));
+    expect(samples).toEqual([{ ...CELL_A_P1, speed: 5, direction: 1 }]);
+  });
+  it('shares one in-flight request per cell between concurrent callers', () => {
+    const pending = new Subject<unknown>();
+    reply = () => pending;
+    let first;
+    let second;
+    service.getWindSamples([CELL_A_P1]).subscribe((s) => (first = s));
+    service.getWindSamples([CELL_A_P2]).subscribe((s) => (second = s));
+    expect(calls.length).toBe(1);
+    pending.next(OBS(5, 1));
+    pending.complete();
+    expect(first).toEqual([{ ...CELL_A_P1, speed: 5, direction: 1 }]);
+    expect(second).toEqual([{ ...CELL_A_P2, speed: 5, direction: 1 }]);
+  });
+
+  it('still caches a cell when the caller cancels (switchMap on a new move)', () => {
+    const pending = new Subject<unknown>();
+    reply = () => pending;
+    service.getWindSamples([CELL_A_P1]).subscribe().unsubscribe();
+    pending.next(OBS(5, 1));
+    pending.complete();
+    calls = [];
+    let samples;
+    service.getWindSamples([CELL_A_P2]).subscribe((s) => (samples = s));
+    expect(calls).toEqual([]);
+    expect(samples).toEqual([{ ...CELL_A_P2, speed: 5, direction: 1 }]);
+  });
+
+  it('keeps every cell of a result even when fetching overflows the cache', () => {
+    // 600 distinct cells in one call, more than the 512-cell cache holds.
+    const points = Array.from({ length: 600 }, (_, i) => ({
+      latitude: 10 + Math.floor(i / 30) * 0.1 + 0.05,
+      longitude: 20 + (i % 30) * 0.1 + 0.05
+    }));
+    let samples: unknown[] = [];
+    service.getWindSamples(points).subscribe((s) => (samples = s));
+    expect(calls.length).toBe(600);
+    expect(samples.length).toBe(600);
   });
 });
