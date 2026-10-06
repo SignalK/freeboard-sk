@@ -1,0 +1,216 @@
+name: Release Please
+
+# Every push to master refreshes one release PR proposing the next beta
+# (3.2.0-beta.5 -> 3.2.0-beta.6, 3.2.0 -> 3.3.0-beta.0). Merging that PR is the
+# release: release-please tags it and release.yml publishes it.
+#
+# "Run workflow" on this workflow turns the release PR into the stable release
+# of the current beta (3.2.0-beta.6 -> 3.2.0) instead.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions: {}
+
+# A dispatch and a push must not rewrite the release PR at the same time.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  # release-please only opens a PR when there are commits since the last
+  # release, and the stable release of a tested beta usually has none. This
+  # empty commit gives it one, and its Release-As footer fixes the version for
+  # every later run until that release is made.
+  promote:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'SignalK/freeboard-sk'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the beta's tag and every commit since
+
+      - name: Mark the current beta for a stable release
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/master ]; then
+            echo "::error::Run this workflow from master."
+            exit 1
+          fi
+          current=$(jq -r '."."' .release-please-manifest.json)
+          stable="${current%%-*}"
+          if [ "$current" = "$stable" ]; then
+            echo "::error::$current is already a stable release; there is no beta to promote."
+            exit 1
+          fi
+          # The stable release is master as it is now, so a fix or feature
+          # merged after the beta would ship without ever being in one. Docs,
+          # chores and dependency updates may follow the beta.
+          untested=$(git log "v$current..HEAD" --no-merges --format=%s \
+            | grep -E '^(feat|fix|perf)(\([^)]*\))?!?:' || true)
+          if [ -n "$untested" ]; then
+            echo "::error::master has changes since v$current that were never in a beta. Release a beta first, or push a Release-As commit by hand."
+            {
+              echo "### Not promoted: changes since v$current"
+              echo
+              printf '%s\n' "$untested" | sed 's/^/- /'
+            } >> "$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$untested"
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty -m "chore: promote $current to $stable" -m "Release-As: $stable"
+          git push origin HEAD:master
+
+  release-please:
+    needs: promote
+    # Runs after promote on a dispatch, and on its own on a push (promote skipped).
+    if: ${{ !cancelled() && needs.promote.result != 'failure' && github.repository == 'SignalK/freeboard-sk' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      pr: ${{ steps.release.outputs.pr }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+
+  # npm version runs the ledger stamp from the `version` lifecycle hook;
+  # release-please bumps the version without npm, so the release PR gets the
+  # same stamp here. always-update rebuilds the PR from master on every run,
+  # which drops this commit, so it is re-applied each time.
+  stamp-ledger:
+    needs: release-please
+    # A skipped promote skips every job below it unless the condition names a
+    # status itself, even though release-please ran.
+    if: ${{ !cancelled() && needs.release-please.result == 'success' && needs.release-please.outputs.pr != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+
+      - name: Stamp the feature ledger with the release version
+        run: |
+          node dev-tools/changelog/index.mjs stamp
+          if git diff --quiet -- features/changelog.json; then
+            exit 0
+          fi
+          version=$(node -p "require('./package.json').version")
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "chore: stamp the feature ledger for v$version" -- features/changelog.json
+          git push
+
+  # A release is where every feat/perf PR since the last tag must have a row in
+  # the feature ledger, and a merge button would skip that check. So it runs on
+  # the release PR: a docs/ledger status on its head commit and one comment
+  # listing what is missing. It is a warning, not a required check. Running
+  # after stamp-ledger, a green status also means the stamp has landed; a docs
+  # PR merged to master re-runs it.
+  doc-gate:
+    needs: [release-please, stamp-ledger]
+    if: ${{ !cancelled() && needs.stamp-ledger.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+          fetch-depth: 0 # the last tag and every commit since
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+
+      - name: Check the feature ledger
+        id: check
+        run: |
+          set +e
+          node dev-tools/changelog/index.mjs check > missing.md
+          code=$?
+          set -e
+          # Exit 1 with a list means rows are missing; anything else is a fault.
+          if [ "$code" -ne 0 ] && [ ! -s missing.md ]; then
+            exit "$code"
+          fi
+          if [ -s missing.md ]; then
+            echo "state=failure" >> "$GITHUB_OUTPUT"
+            echo "description=$(grep -c . missing.md) feat/perf PR(s) without a ledger row" >> "$GITHUB_OUTPUT"
+          else
+            echo "state=success" >> "$GITHUB_OUTPUT"
+            echo "description=Every feat/perf PR since the last release has a ledger row" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report on the release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ fromJSON(needs.release-please.outputs.pr).number }}
+          STATE: ${{ steps.check.outputs.state }}
+          DESCRIPTION: ${{ steps.check.outputs.description }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$(git rev-parse HEAD)" \
+            -f state="$STATE" -f context=docs/ledger \
+            -f description="$DESCRIPTION" -f target_url="$RUN_URL"
+
+          # One comment, kept up to date: release-please rewrites the PR body.
+          marker='<!-- docs/ledger -->'
+          {
+            echo "$marker"
+            if [ "$STATE" = success ]; then
+              cat <<'EOF'
+          **docs/ledger:** every feat/perf PR since the last release has a row in `features/changelog.json`.
+          EOF
+            else
+              cat <<'EOF'
+          **docs/ledger:** these feat/perf PRs since the last release have no row in `features/changelog.json`. Add their rows (or a `skip` row) on master; this check runs again on the next push.
+
+          EOF
+              cat missing.md
+            fi
+          } > comment.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" \
+            | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@comment.md > /dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md > /dev/null
+          fi
+
+  # A tag pushed with the workflow token starts no workflows, so release.yml's
+  # tag trigger never sees release-please's tags. A dispatch is the one event
+  # that token can start.
+  publish:
+    needs: release-please
+    # No result check: release-please sets release_created before it refreshes
+    # the release PR, and a failed refresh must not leave the new tag
+    # unpublished. A rerun finds the release done and would not dispatch.
+    if: ${{ !cancelled() && needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Run release.yml for the new tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"

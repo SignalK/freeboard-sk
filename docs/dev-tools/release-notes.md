@@ -14,6 +14,7 @@ dependencies; it shells out to `git`.
 ```bash
 node dev-tools/changelog/index.mjs stamp [version]      # write since values into the ledger
 node dev-tools/changelog/index.mjs render <tag> [--out <file>]   # print/write the Release body
+node dev-tools/changelog/index.mjs check                # list feat/perf PRs with no ledger row
 ```
 
 ### `stamp [version]`
@@ -26,7 +27,8 @@ landed across its betas. A pre-release version only fills blanks.
 
 It runs automatically from the **`version` npm lifecycle hook**, which re-stages the
 stamped `features/changelog.json` into the version-bump commit — so `npm version …`
-stamps with no manual step.
+stamps with no manual step. release-please bumps the version without npm, so
+`release-please.yml` runs the same stamp on every release PR.
 
 ### `render <tag>`
 
@@ -43,6 +45,15 @@ spans all the betas) or the previous tag of any kind for a pre-release. `render`
 the ledger as-is, so **stamp first** (the `version` hook does this at release; for a
 manual dry run, `stamp` then `git checkout features/changelog.json` when done).
 
+### `check`
+
+Lists the `feat`/`perf` PRs merged since the last tag (the newest `v*` tag reachable
+from `HEAD`) that have **no row** in the ledger, one per line on stdout, and exits 1
+when there are any. Any row for the PR counts, a `skip` row included. This is the
+documentation gate: every user-facing change in a release needs a ledger row, or a
+`skip` row saying why it doesn't. `release-please.yml` runs it on the release PR (see
+below); run it locally on `master` to see what a release would be missing.
+
 ## Dry run
 
 ```bash
@@ -57,10 +68,49 @@ git checkout features/changelog.json                # discard the dry-run stamp
 
 ## Release wiring
 
-`release.yml` (on a `v*` tag push) runs `render <tag> --out RELEASE_NOTES.md` and passes
-it to `action-gh-release` via `body_path`. `generate_release_notes` stays **off** so
-features aren't listed twice. A bad render is never stuck — the Release body is freely
-editable after publish and is independent of the (immutable) npm publish.
+Releases go through release-please (`release-please.yml`). Every push to `master`
+refreshes one release PR that proposes the next beta, with the merged PRs and their
+authors as its changelog; merging it tags the release. **Run workflow** on that
+workflow turns the PR into the stable release of the current beta instead, which also
+graduates the betas' ledger rows (see `stamp`). It refuses when a `feat`, `fix` or
+`perf` PR has been merged since that beta, because the stable release is `master` as
+it is now and those changes were never in a beta: release another beta first. Docs,
+chores and dependency updates don't block it. To promote anyway, push an empty commit
+with a `Release-As: X.Y.Z` footer to `master` by hand.
+
+After stamping the release PR, the workflow runs `check` on it. It sets a
+**`docs/ledger`** commit status on the PR's head commit and keeps one comment on the
+PR listing any PRs without a ledger row (a comment, because release-please rewrites
+the PR body). The status is a warning, not a required check. **Merge the release PR
+only when `docs/ledger` is green.** The check runs after the ledger stamp, so a green
+status also means the stamp has landed; merging before it can ship the new rows
+unstamped, and they would then appear in the next release's notes instead. Adding the
+missing rows on `master` refreshes the PR and re-runs the check.
+
+`release.yml` (for that tag, or for a `v*` tag pushed by hand) runs
+`render <tag> --out RELEASE_NOTES.md` and passes it to `action-gh-release` via
+`body_path`. `generate_release_notes` stays **off** so features aren't listed twice. A
+bad render is never stuck — the Release body is freely editable after publish and is
+independent of the (immutable) npm publish.
+
+### When the tag and Release exist but npm has no package
+
+The npm publish is the last step and can fail on its own: the `publish` job of
+`release-please.yml` might not have dispatched `release.yml`, or `release.yml`'s own
+`publish` job might have failed. To recover:
+
+1. Check what npm has:
+   `npm view @signalk/freeboard-sk@X.Y.Z version` (empty or E404 = not published) and
+   `npm view @signalk/freeboard-sk dist-tags` (`beta` for a beta, `latest` for a
+   stable release).
+2. If the version is missing, run `release.yml` on the tag: **Actions → Release → Run
+   workflow → Use workflow from → Tags → vX.Y.Z**, or
+   `gh workflow run release.yml --ref vX.Y.Z`. It regenerates the Release body
+   (updating the existing Release) and publishes. If the run that failed is still
+   there, **Re-run failed jobs** on it does the same.
+3. If the version is there but a dist-tag is wrong, fix the tag rather than
+   republishing (a published version can't be published again):
+   `npm dist-tag add @signalk/freeboard-sk@X.Y.Z latest`.
 
 ## Tests
 
