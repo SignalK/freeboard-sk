@@ -1296,6 +1296,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     return !!b && (!b.saved || b.dirty);
   }
 
+  /** REVERSE in a draft route's popover: turn it round before START. The
+   *  popover stays open, to START it straight away. */
+  protected reverseDraftRoute() {
+    const b = this.routeBuffers.get(this.overlay().id);
+    if (b && !b.saved) {
+      this.routeBuffers.replace(b.routeId, [...b.points].reverse());
+    }
+  }
+
   /** True when the popover's route was drawn and never saved. */
   protected isDraftRoute(): boolean {
     if (this.overlay().type !== 'route') {

@@ -63,6 +63,7 @@ function popover(
       showPointsButton: false,
       showNotesButton: false,
       showSaveButton: false,
+      showReverseButton: false,
       canActivate: false,
       isActive: false,
       activeText: 'ACTIVE',
@@ -77,6 +78,7 @@ function popover(
       showSaveButton: boolean;
       showHideButton: boolean;
       showPointsButton: boolean;
+      showReverseButton: boolean;
       canActivate: boolean;
       isActive: boolean;
     };
@@ -174,6 +176,29 @@ describe('ResourcePopoverComponent — route Start for unsaved routes', () => {
     const c = popover(true, false, undefined, false);
     expect(c.ctrl.showSaveButton).toBe(true);
     expect(c.ctrl.canActivate).toBe(false);
+  });
+});
+
+/**
+ * A drawn route that was never saved is turned round in its popover before
+ * START follows it. The route being followed is turned round from the route
+ * panel, through the course.
+ */
+describe('ResourcePopoverComponent — route Reverse for drafts', () => {
+  it('offers REVERSE for a drawn route that was never saved', () => {
+    expect(popover(true, false, undefined, true).ctrl.showReverseButton).toBe(
+      true
+    );
+  });
+
+  it('does not offer REVERSE for a saved route with pending edits', () => {
+    expect(popover(true, false, undefined, false).ctrl.showReverseButton).toBe(
+      false
+    );
+  });
+
+  it('does not offer REVERSE for a saved route', () => {
+    expect(popover(false).ctrl.showReverseButton).toBe(false);
   });
 });
 
