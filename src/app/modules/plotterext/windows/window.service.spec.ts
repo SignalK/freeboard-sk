@@ -73,6 +73,16 @@ describe('ExtWindowService', () => {
     });
   });
 
+  it('centres a modal window whose geometry names no anchor', () => {
+    const w = open({ modal: true, geometry: { width: 360, height: 200 } });
+    expect(service.stateOf(w).bounds).toEqual({
+      x: 320,
+      y: 300,
+      width: 360,
+      height: 200
+    });
+  });
+
   it('refuses more than MAX_WINDOWS windows, and a second modal one', () => {
     open({ modal: true });
     expect(service.open('ext-a', panel, { modal: true })).toBe('modalOpen');

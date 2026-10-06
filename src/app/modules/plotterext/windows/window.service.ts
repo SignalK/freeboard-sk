@@ -162,7 +162,13 @@ export class ExtWindowService {
       params: req.params ?? {},
       title: req.title?.trim() || panel.title,
       geometry:
-        restored ?? req.geometry ?? (modal ? MODAL_GEOMETRY : DEFAULT_GEOMETRY),
+        restored ??
+        (req.geometry
+          ? // A modal window that names no anchor is centred, like a dialog.
+            { ...(modal ? { anchor: 'center' as const } : {}), ...req.geometry }
+          : modal
+            ? MODAL_GEOMETRY
+            : DEFAULT_GEOMETRY),
       modal,
       resizable: req.resizable ?? true,
       movable: req.movable ?? true,

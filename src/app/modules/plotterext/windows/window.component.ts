@@ -507,7 +507,26 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
       url ? this.host.resolveAssetUrl(url) : 'about:blank'
     );
     this.detach = this.host.attachWindow(this.frame.nativeElement, this.def());
+    // Escape dismisses a modal window even while focus is inside its panel,
+    // where the key never reaches the host document. Panels are same-origin,
+    // so the host can listen in each page the frame loads.
+    this.frame.nativeElement.addEventListener('load', this.watchEscape);
   }
+
+  private watchEscape = () => {
+    try {
+      this.frame.nativeElement.contentWindow?.addEventListener(
+        'keydown',
+        (e: KeyboardEvent) => {
+          if (e.key === 'Escape' && this.def().modal) {
+            this.zone.run(() => this.windows.close(this.def().id, 'user'));
+          }
+        }
+      );
+    } catch {
+      // A page that is not same-origin: Escape works from the host only.
+    }
+  };
 
   ngOnDestroy() {
     this.endGesture();
