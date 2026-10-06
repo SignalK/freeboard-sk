@@ -4,6 +4,8 @@ import {
   SKVessel
 } from 'src/app/modules/skresources/resource-classes';
 import {
+  fusedVessels,
+  isSilent,
   locateTarget,
   processSensorTarget,
   unlinkedTargets
@@ -311,5 +313,46 @@ describe('locateTarget', () => {
 
   it('returns undefined for a context it does not know', () => {
     expect(locateTarget(VESSEL, new Map(), new Map())).toBeUndefined();
+  });
+});
+
+describe('fusedVessels', () => {
+  it('places a vessel at a linked target that reported after its AIS', () => {
+    const v = vessel(VESSEL);
+    v.positionUpdatedAt = 1000;
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    targets.get(RADAR).positionUpdatedAt = 2000;
+    const vessels = new Map([[VESSEL, v]]);
+    const fused = fusedVessels(vessels, targets).get(VESSEL);
+    expect(fused.position).toEqual(targets.get(RADAR).position);
+    expect(fused).toBeInstanceOf(SKVessel);
+    expect(v.position).toEqual([4.21, 52.11]);
+  });
+
+  it('keeps a vessel whose AIS reported after the linked target', () => {
+    const v = vessel(VESSEL);
+    v.positionUpdatedAt = 3000;
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    targets.get(RADAR).positionUpdatedAt = 2000;
+    const vessels = new Map([[VESSEL, v]]);
+    expect(fusedVessels(vessels, targets)).toBe(vessels);
+  });
+});
+
+describe('isSilent', () => {
+  it('drops a target a minute after its last position', () => {
+    const t = new SKSensorTarget();
+    t.positionUpdatedAt = 1000;
+    expect(isSilent(t, 1000 + 60_000)).toBe(false);
+    expect(isSilent(t, 1001 + 60_000)).toBe(true);
+  });
+
+  it('times a target without a position from its last value', () => {
+    const t = new SKSensorTarget();
+    t.lastUpdated = new Date(5000);
+    expect(isSilent(t, 5000 + 60_000)).toBe(false);
+    expect(isSilent(t, 5001 + 60_000)).toBe(true);
   });
 });

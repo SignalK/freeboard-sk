@@ -13,6 +13,23 @@ import { PathValue, Position } from 'src/app/types';
  */
 
 /**
+ * A target its sensor stopped updating is dropped after this long, well
+ * before the AIS age: a radar or camera that still sees a boat reports it
+ * every few seconds.
+ */
+export const TARGET_MAX_AGE_MS = 60_000;
+
+/**
+ * Whether the target's sensor has stopped reporting it. A target that has no
+ * position yet counts from its last value of any kind, so a link that
+ * arrives before the position is not lost.
+ */
+export function isSilent(target: SKSensorTarget, now: number): boolean {
+  const seen = target.positionUpdatedAt || target.lastUpdated.valueOf();
+  return now - seen > TARGET_MAX_AGE_MS;
+}
+
+/**
  * Apply one delta value to the target with context `id`. A null position means
  * the sensor lost the track, so the target is dropped. A lost track stays in
  * the server's data model with null values, which a null value for a target
@@ -150,6 +167,47 @@ function rootOf(
     }
     current = next;
   }
+}
+
+/**
+ * The vessels as drawn: a vessel that a sensor target is linked to is placed
+ * at whichever of them reported its position last, with that one's course
+ * line, so a boat whose AIS fell silent follows the radar still tracking it.
+ * The others are returned as they are.
+ */
+export function fusedVessels(
+  vessels: Map<string, SKVessel>,
+  targets: Map<string, SKSensorTarget>
+): Map<string, SKVessel> {
+  const freshest = new Map<string, SKSensorTarget>();
+  targets.forEach((target) => {
+    const vessel = target.sameAs ? vessels.get(target.sameAs) : undefined;
+    if (
+      vessel &&
+      target.position &&
+      target.positionUpdatedAt > vessel.positionUpdatedAt &&
+      target.positionUpdatedAt >
+        (freshest.get(target.sameAs)?.positionUpdatedAt ?? 0)
+    ) {
+      freshest.set(target.sameAs, target);
+    }
+  });
+  if (freshest.size === 0) {
+    return vessels;
+  }
+  const fused = new Map(vessels);
+  freshest.forEach((target, id) => {
+    const vessel = vessels.get(id);
+    fused.set(
+      id,
+      Object.assign(Object.create(Object.getPrototypeOf(vessel)), vessel, {
+        position: target.position,
+        positionUpdatedAt: target.positionUpdatedAt,
+        vectors: { ...vessel.vectors, cog: target.vectors.cog }
+      })
+    );
+  });
+  return fused;
 }
 
 /**
