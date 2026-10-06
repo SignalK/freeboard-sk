@@ -260,6 +260,43 @@ describe('FBMapComponent — a route from a recorded track', () => {
       expect(near(th.route[th.route.length - 1], E)).toBe(true);
     });
 
+    it('asks again for the passage alone when the whole track came thinned', () => {
+      const track = passage(0);
+      const cmp = bareComponent();
+      const whole = new Subject<unknown>();
+      const detail = new Subject<unknown>();
+      cmp.trackHistory.wholeTrack = vi.fn((_s, _c, within) =>
+        within ? detail : whole
+      );
+      tap(cmp, HISTORY_ID, 'self', clipped(track));
+      // every other point: the anchorages still show, the turn does not
+      const thin = (a: unknown[]) => a.filter((_, i) => i % 2 === 0);
+      const thinned = {
+        context: 'self',
+        lines: [thin(track.lines[0])],
+        times: [thin(track.times[0])],
+        resolution: 'PT2M'
+      };
+
+      whole.next(thinned);
+
+      const th = cmp.overlay().trackHistory;
+      expect(th.route).toBeUndefined();
+      expect(th.start).toBeDefined();
+      const [, , within] = cmp.trackHistory.wholeTrack.mock.calls[1];
+      expect(within.from).toBeLessThanOrEqual(Date.parse(track.times[0][0]));
+      expect(within.to).toBeGreaterThanOrEqual(
+        Date.parse(track.times[0][track.times[0].length - 1])
+      );
+
+      detail.next({ context: 'self', lines: track.lines, times: track.times });
+
+      const route = cmp.overlay().trackHistory.route;
+      expect(near(route[0], A)).toBe(true);
+      expect(near(route[route.length - 1], track.end)).toBe(true);
+      expect(cmp.overlay().trackHistory.start).toBe(th.start);
+    });
+
     it('drops an answer for a popover no longer open', () => {
       const track = passage(0);
       const { cmp, answer } = withWholeTrack();

@@ -167,7 +167,13 @@ import {
 } from './ol/lib/tidal-currents.service';
 import { TRACK_HISTORY_ID } from './ol/lib/vessel/layer-track-history.component';
 import { trackTimesHiddenByVessel, trailTapTrack } from './track-time-taps';
-import { OTHER_STOP_MS, OWN_STOP_MS, trackSectionRoute } from './track-route';
+import {
+  OTHER_STOP_MS,
+  OWN_STOP_MS,
+  ROUTE_TOLERANCE_M,
+  trackSectionRoute,
+  trackSectionSpan
+} from './track-route';
 import { Observable, Subscription } from 'rxjs';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
@@ -215,6 +221,10 @@ interface TrackHistoryFeature {
   times?: PointTime[][];
   at: Position;
 }
+
+/** How long a vessel stays put where a passage of its track ends. */
+const stopMs = (context: string) =>
+  context === 'self' ? OWN_STOP_MS : OTHER_STOP_MS;
 
 enum INTERACTION_MODE {
   MEASURE,
@@ -1961,6 +1971,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private s57Features: Record<string, Record<string, string | number>> = {};
   private trackHistoryFeatures: Record<string, TrackHistoryFeature> = {};
   private wholeTrackSub?: Subscription;
+  private passageSub?: Subscription;
   private tidalFeatures: Record<
     string,
     Pick<GridSample, 'speedKn' | 'direction'>
@@ -2128,7 +2139,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.position = coord;
         poData.show = true;
         poData.readOnly = true;
-        const whole = this.wholeTrackOf(t[0], hf.context);
+        const source = this.wholeTrackSource(t[0]);
+        const whole =
+          source && this.trackHistory.wholeTrack(source, hf.context);
         const trackHistory = this.trackPopover(hf);
         // a route read from a clipped track could stop at the edge of the
         // view, so it waits for the whole track
@@ -2136,7 +2149,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           ? { ...trackHistory, route: undefined }
           : trackHistory;
         this.overlay.set(poData);
-        this.loadWholeTrack(id, whole, hf);
+        this.loadWholeTrack(id, source, whole, hf);
         return;
       }
       case 'tidal': {
@@ -2302,57 +2315,97 @@ export class FBMapComponent implements OnInit, OnDestroy {
         trackSectionRoute(
           { lines: hf.lines, times: hf.times },
           hf.at,
-          hf.context === 'self' ? OWN_STOP_MS : OTHER_STOP_MS
+          stopMs(hf.context)
         )
     };
   }
 
-  /** The whole track of a vessel whose track on `layer` was fetched for the
-   * map view, and so clipped to it; undefined where there is none to ask for. */
-  private wholeTrackOf(
-    layer: string,
-    context: string
-  ): Observable<HistoryTrack | undefined> | undefined {
-    const source =
-      layer === TRACK_HISTORY_ID
-        ? 'history'
-        : layer === 'track-vessels'
-          ? 'ais'
-          : undefined;
-    return source && this.trackHistory.wholeTrack(source, context);
+  /** Where the whole track of a vessel tapped on `layer` comes from: a
+   * track fetched for the map view is clipped to it. Undefined for the own
+   * trail, which is never clipped. */
+  private wholeTrackSource(layer: string): 'history' | 'ais' | undefined {
+    return layer === TRACK_HISTORY_ID
+      ? 'history'
+      : layer === 'track-vessels'
+        ? 'ais'
+        : undefined;
   }
 
   /** The popover opened from a clipped track is answered again from the
    * vessel's whole track: the passage, its times and its route then run on
    * past the edge of the view. The tapped point is carried over by its time,
    * since a vessel that crossed its own track would put another voyage
-   * nearest the tapped position. */
+   * nearest the tapped position. A history range too long to come at route
+   * detail is thinned by the provider; the route then waits for the passage
+   * alone, asked for again. */
   private loadWholeTrack(
     id: string,
+    source: 'history' | 'ais' | undefined,
     whole: Observable<HistoryTrack | undefined> | undefined,
     hf: TrackHistoryFeature
   ) {
     this.wholeTrackSub?.unsubscribe();
+    this.passageSub?.unsubscribe();
     if (!whole) {
       return;
     }
     const atTime = trackTimeInfo(hf.lines, hf.times, hf.at)?.atTime;
+    const onTrack = (
+      track: HistoryTrack | undefined
+    ): TrackHistoryFeature | undefined => {
+      if (!track?.times || this.overlay().id !== id || !this.overlay().show) {
+        return undefined;
+      }
+      const at =
+        (atTime !== undefined &&
+          poseAt(track.lines, track.times, atTime)?.position) ||
+        hf.at;
+      return { ...hf, lines: track.lines, times: track.times, at };
+    };
     this.wholeTrackSub = whole.subscribe({
       next: (track) => {
-        if (!track?.times || this.overlay().id !== id || !this.overlay().show) {
+        const tapped = onTrack(track);
+        if (!tapped) {
           return;
         }
-        const at =
-          (atTime !== undefined &&
-            poseAt(track.lines, track.times, atTime)?.position) ||
-          hf.at;
-        const trackHistory = this.trackPopover({
-          ...hf,
-          lines: track.lines,
-          times: track.times,
-          at
+        const trackHistory = this.trackPopover(tapped);
+        const thinned =
+          track.resolution !== undefined ||
+          (track.epsilon ?? 0) > ROUTE_TOLERANCE_M;
+        const span =
+          source === 'history' && thinned && trackHistory.route
+            ? trackSectionSpan(
+                { lines: tapped.lines, times: tapped.times },
+                tapped.at,
+                stopMs(hf.context)
+              )
+            : undefined;
+        const passage = span
+          ? this.trackHistory.wholeTrack('history', hf.context, {
+              // the stops either side may lie a little beyond the thinned points
+              from: span.from - stopMs(hf.context),
+              to: span.to + stopMs(hf.context)
+            })
+          : undefined;
+        this.overlay.update((o) => ({
+          ...o,
+          trackHistory: passage
+            ? { ...trackHistory, route: undefined }
+            : trackHistory
+        }));
+        this.passageSub = passage?.subscribe({
+          next: (detail) => {
+            const tappedPassage = onTrack(detail);
+            if (tappedPassage) {
+              const { route } = this.trackPopover(tappedPassage);
+              this.overlay.update((o) => ({
+                ...o,
+                trackHistory: { ...o.trackHistory, route }
+              }));
+            }
+          },
+          error: () => undefined
         });
-        this.overlay.update((o) => ({ ...o, trackHistory }));
       },
       // without the whole track the popover keeps what the drawn one shows,
       // and offers no route that could stop at the edge of the view

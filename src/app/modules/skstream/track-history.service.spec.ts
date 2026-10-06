@@ -406,6 +406,18 @@ describe('TrackHistoryService', () => {
       expect(p.times).toBe('true');
     });
 
+    it('narrows the history to a passage, within the range shown', () => {
+      service.setRange({ from: Date.UTC(2026, 8, 1), to: null });
+      service.wholeTrack('history', 'self', {
+        from: Date.UTC(2026, 7, 30),
+        to: Date.UTC(2026, 8, 3)
+      });
+
+      const p = params(historyCalls().pop());
+      expect(p.from).toBe('2026-09-01T00:00:00.000Z');
+      expect(p.to).toBe('2026-09-03T00:00:00.000Z');
+    });
+
     it('drops an answer that arrives after the range changed', () => {
       const reply = new Subject<unknown>();
       answer = () => reply;

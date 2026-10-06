@@ -7,7 +7,8 @@ import {
   OWN_STOP_MS,
   ROUTE_TOLERANCE_M,
   STOP_RADIUS_M,
-  trackSectionRoute
+  trackSectionRoute,
+  trackSectionSpan
 } from './track-route';
 
 const M = 111320;
@@ -246,5 +247,24 @@ describe('trackSectionRoute', () => {
     expect(trackSectionRoute(untimed, at(A, 5000, 0), OWN_STOP_MS)).toBe(
       undefined
     );
+  });
+});
+
+describe('trackSectionSpan', () => {
+  it('spans the passage with the stops either side', () => {
+    // anchored at A 06:00-08:00, to B by 09:00, anchored there until 11:00,
+    // on to C by 12:00, anchored until 14:00
+    const track = new Recorder(A)
+      .stay(120)
+      .sail(10000, 0, 60)
+      .stay(120)
+      .sail(0, 10000, 60)
+      .stay(120).track;
+
+    const span = trackSectionSpan(track, at(B, 0, 5000), OWN_STOP_MS);
+
+    // the anchorages begin as the vessel comes within the swing circle
+    expect(Math.abs(span.from - (T0 + 180 * MIN))).toBeLessThanOrEqual(2 * MIN);
+    expect(span.to).toBe(T0 + 479 * MIN);
   });
 });

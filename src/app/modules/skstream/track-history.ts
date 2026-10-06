@@ -169,6 +169,10 @@ export interface HistoryTrack {
   context: string;
   lines: Position[][];
   times?: string[][];
+  /** Thinning the provider reports it applied: the spacing in time (ISO 8601
+   * duration) and the simplification tolerance in metres. */
+  resolution?: string;
+  epsilon?: number;
 }
 
 interface HistoryFeatureLike {
@@ -181,6 +185,8 @@ interface HistoryFeatureLike {
     to?: string;
     bbox?: unknown;
     pointCount?: number;
+    resolution?: string;
+    epsilon?: number;
     coordTimes?: string[][];
   };
 }
@@ -215,7 +221,15 @@ export function parseHistoryTrack(
   const lines: Position[][] = [];
   const times: string[][] = [];
   let timesAligned = true;
+  let resolution: string | undefined;
+  let epsilon: number | undefined;
   oneProvider(featuresOf(fc), preferredProvider).forEach((f) => {
+    if (typeof f.properties?.resolution === 'string') {
+      resolution = f.properties.resolution;
+    }
+    if (typeof f.properties?.epsilon === 'number') {
+      epsilon = Math.max(epsilon ?? 0, f.properties.epsilon);
+    }
     const coords =
       f.geometry?.type === 'MultiLineString' &&
       Array.isArray(f.geometry.coordinates)
@@ -238,7 +252,13 @@ export function parseHistoryTrack(
   if (lines.length === 0) {
     return undefined;
   }
-  return timesAligned ? { context, lines, times } : { context, lines };
+  return {
+    context,
+    lines,
+    ...(timesAligned && { times }),
+    ...(resolution !== undefined && { resolution }),
+    ...(epsilon !== undefined && { epsilon })
+  };
 }
 
 /** The tracks of a multi-context response with their recording times, keyed

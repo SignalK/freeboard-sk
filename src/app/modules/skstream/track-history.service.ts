@@ -67,6 +67,18 @@ const PALETTE_TOP = 70;
 const PALETTE_HEADER = 40;
 const PALETTE_RIGHT_MARGIN = 70;
 
+/** The part of `range` that also lies within `within`. */
+const narrowRange = (range: HistoryRange, within: HistoryRange) => {
+  const later = (a: number | null, b: number | null) =>
+    a === null ? b : b === null ? a : Math.max(a, b);
+  const earlier = (a: number | null, b: number | null) =>
+    a === null ? b : b === null ? a : Math.min(a, b);
+  return {
+    from: later(range.from, within.from),
+    to: earlier(range.to, within.to)
+  };
+};
+
 /** The extent a span answer gives: `null` when nothing was recorded, and
  * undefined (unknown) when the provider sent no box. */
 const extentOf = (span: HistorySpan | undefined) => (span ? span.bbox : null);
@@ -370,10 +382,13 @@ export class TrackHistoryService {
    * whatever the zoom, as a route is made from it. An answer that arrives
    * after the history range or provider has changed is dropped. Undefined
    * where the drawn track was not fetched by box: AIS tracks of vessels
-   * picked one by one. */
+   * picked one by one. A history track can be narrowed to the time `within`,
+   * inside the range shown, for a passage the whole range holds too many
+   * points to give at route detail. */
   wholeTrack(
     source: 'history' | 'ais',
-    context: string
+    context: string,
+    within?: HistoryRange
   ): Observable<HistoryTrack | undefined> | undefined {
     const provider = this.provider();
     const range = this.range();
@@ -383,7 +398,7 @@ export class TrackHistoryService {
         context,
         bbox: null,
         epsilon: ROUTE_TOLERANCE_M,
-        range,
+        range: within ? narrowRange(range, within) : range,
         provider
       });
     } else if (this.app.config.vessels.aisShowTrack) {

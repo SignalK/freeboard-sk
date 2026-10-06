@@ -117,22 +117,22 @@ function simplifyM(path: Position[]): Position[] {
   return SimplifyAP(xy, ROUTE_TOLERANCE_M, true).map((q) => path[index.get(q)]);
 }
 
-/**
- * The route along the passage of `track` that passes `at`: from the stop
- * before it to the stop after it, in the order it was recorded. A stop is a
- * place the vessel stayed put for `stopMs` (OWN_STOP_MS for the own vessel,
- * OTHER_STOP_MS for another) and the route starts or ends at its centre.
- * Without a stop on one side, the passage reaches the end of the track there,
- * or a gap in the recording that the vessel moved across. A tap on a stop
- * gives the passage leaving it, or the one arriving where the track ends
- * there. Only points with a recording time count.
- * Undefined when the passage holds fewer than two points.
- */
-export function trackSectionRoute(
+/** The passage through a tapped point, as indices into the timed points. */
+interface Passage {
+  pts: TimedPoint[];
+  start: number;
+  end: number;
+  startStop?: [number, number];
+  endStop?: [number, number];
+}
+
+/** The passage of `track` that passes `at`, as {@link trackSectionRoute}
+ * describes it. */
+function findPassage(
   track: TimedTrack,
   at: Position,
   stopMs: number
-): Position[] | undefined {
+): Passage | undefined {
   const pts: TimedPoint[] = [];
   const lines: Position[][] = [];
   track.lines.forEach((line, i) => {
@@ -201,10 +201,52 @@ export function trackSectionRoute(
     }
   }
 
+  return { pts, start, end, startStop, endStop };
+}
+
+/**
+ * The route along the passage of `track` that passes `at`: from the stop
+ * before it to the stop after it, in the order it was recorded. A stop is a
+ * place the vessel stayed put for `stopMs` (OWN_STOP_MS for the own vessel,
+ * OTHER_STOP_MS for another) and the route starts or ends at its centre.
+ * Without a stop on one side, the passage reaches the end of the track there,
+ * or a gap in the recording that the vessel moved across. A tap on a stop
+ * gives the passage leaving it, or the one arriving where the track ends
+ * there. Only points with a recording time count.
+ * Undefined when the passage holds fewer than two points.
+ */
+export function trackSectionRoute(
+  track: TimedTrack,
+  at: Position,
+  stopMs: number
+): Position[] | undefined {
+  const passage = findPassage(track, at, stopMs);
+  if (!passage) {
+    return undefined;
+  }
+  const { pts, start, end, startStop, endStop } = passage;
   const path = [
     ...(startStop ? [centre(pts, startStop)] : []),
     ...collapsePauses(pts, start, end),
     ...(endStop ? [centre(pts, endStop)] : [])
   ];
   return path.length < 2 ? undefined : simplifyM(path);
+}
+
+/** When the passage {@link trackSectionRoute} makes a route of began and
+ * ended, its stops either side included, in ms since the epoch. */
+export function trackSectionSpan(
+  track: TimedTrack,
+  at: Position,
+  stopMs: number
+): { from: number; to: number } | undefined {
+  const passage = findPassage(track, at, stopMs);
+  if (!passage) {
+    return undefined;
+  }
+  const { pts, start, end, startStop, endStop } = passage;
+  return {
+    from: pts[startStop ? startStop[0] : start].t,
+    to: pts[endStop ? endStop[1] : end].t
+  };
 }
