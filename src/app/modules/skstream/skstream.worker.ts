@@ -20,7 +20,7 @@ import {
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
 import { magneticToTrue } from 'src/app/lib/true-bearing';
-import { processSensorTarget } from './sensor-targets';
+import { isSilent, processSensorTarget } from './sensor-targets';
 import { IAppConfig, PathValue, Position } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
@@ -994,7 +994,14 @@ function parseStreamMessage(data) {
             );
             break;
 
-          case 'targets': // radar, camera and other sensor targets
+          case 'targets': {
+            // radar, camera and other sensor targets
+            // A vessel a target is linked to is drawn at the fresher of the
+            // two positions, so it is redrawn when the target moves.
+            const linkedTo = vessels.targets.get(data.context)?.sameAs;
+            if (linkedTo && vessels.aisTargets.has(linkedTo)) {
+              targetStatus.updated[linkedTo] = true;
+            }
             if (
               targetFilter?.signalk.vessels &&
               !processSensorTarget(
@@ -1013,6 +1020,7 @@ function parseStreamMessage(data) {
               targetFilter?.signalk.vessels
             );
             break;
+          }
 
           case 'vessels': // vessels
             if (stream.isSelf(data)) {
@@ -1487,11 +1495,12 @@ function processAISStatus() {
     }
   });
   vessels.targets.forEach((v, k) => {
-    if (v.lastUpdated.valueOf() < now - aisMgr.maxAge) {
+    if (isSilent(v, now)) {
       targetStatus.expired[k] = true;
       vessels.targets.delete(k);
-    } else if (v.lastUpdated.valueOf() < now - aisMgr.staleAge) {
-      targetStatus.stale[k] = true;
+      if (v.sameAs && vessels.aisTargets.has(v.sameAs)) {
+        targetStatus.updated[v.sameAs] = true;
+      }
     }
   });
 }
