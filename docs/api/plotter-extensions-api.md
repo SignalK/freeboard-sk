@@ -174,6 +174,11 @@ not trigger the tap action. A widget with **no** `configPanel` still gets a
 configuration dialog on long-press so it can be removed (the reference host
 shows a remove-only dialog).
 
+**Lifecycle.** A widget instance is loaded while it is placed and its
+extension is available, and unloaded when the user removes it or the extension
+leaves. `whileEnabled` is the only widget lifecycle and is implied; a host
+ignores any other value.
+
 **Widget fields:** `id`, `title`, `type` (`iframe`), `url`, `size`,
 `configPanel?`, `lifecycle?`, `apiVersion?`.
 
@@ -191,11 +196,14 @@ by the providing plugin.
 
 **Lifecycle values**
 
-- `onOpen` — load when opened, unload when closed.
+- `onOpen` (the default) — load when opened, unload when closed.
 - `keepAlive` — load on first open, keep running (hidden) while available;
   panel state survives close/reopen.
-- `whileEnabled` — load while the extension is available, independent of
-  visibility (the expected default for placed widgets).
+
+A host treats an absent or unrecognized panel `lifecycle` — `whileEnabled`
+included — as `onOpen`: a panel is never loaded before it is first opened.
+Work that must run from the moment the extension is available, with no user
+interaction, belongs in a background runtime (see *Background Runtimes*).
 
 Panels are opened by toolbar buttons, by the host methods `ui.openPanel` /
 `ui.togglePanel` (e.g. a widget tap), or — for configuration panels — by

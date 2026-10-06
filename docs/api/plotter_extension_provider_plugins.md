@@ -291,11 +291,18 @@ required and optional capabilities and lists your contributions. A real one
 
 **Lifecycle** controls when the host loads a context's iframe:
 
-- `onOpen` — load when shown, unload when closed (good for config panels).
-- `keepAlive` — load on first open, keep running hidden; state survives
-  close/reopen.
-- `whileEnabled` — load while the extension is available regardless of
-  visibility (the norm for placed widgets).
+- **Panels** take `onOpen` or `keepAlive`:
+  - `onOpen` (the default) — load when shown, unload when closed (good for
+    config panels).
+  - `keepAlive` — load on first open, keep running hidden; state survives
+    close/reopen.
+
+  A panel never loads before it is first opened; any other value is treated
+  as `onOpen`. For work that must run as soon as the extension is available,
+  declare a `background` runtime instead.
+- **Widgets and background runtimes** are `whileEnabled` — loaded while the
+  extension is available (a widget, while it is also placed). It is implied,
+  so `lifecycle` can be left out.
 
 ## Inside an extension iframe
 
