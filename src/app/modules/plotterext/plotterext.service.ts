@@ -79,6 +79,11 @@ import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
 import { createNightModeMethods } from './nightmode-methods';
+import {
+  createEventsMethods,
+  type EventsMethodsDeps,
+  publishEvent
+} from './events-methods';
 import { createResourceGroupMethods } from './resourcegroup-methods';
 import { createWindowMethods, parseOpenWindow } from './window-methods';
 import { ExtWindowService } from './windows/window.service';
@@ -497,12 +502,22 @@ export class PlotterExtensionService {
       this.handleWindowButton(extension, button);
       return;
     }
-    if (action.type === 'sendMessage') {
-      // Fire-and-forget: publish a custom event onto the bus. Delivery is
-      // subscription-gated (publish() only reaches contexts that subscribed
-      // to the topic), so this reaches the extension's own background runtime
-      // and, by convention with a shared topic, other extensions too.
-      if (action.topic) this.broadcastMessage(action.topic, action.params);
+    if (action.type === 'publish' || action.type === 'sendMessage') {
+      // Fire-and-forget: publish onto the bus exactly as events.publish would
+      // for this extension. `sendMessage` is the permanent deprecated alias;
+      // with no `scope` both reach every subscribed context (scope 'all').
+      try {
+        publishEvent(this.eventsDeps, extension, {
+          topic: action.topic,
+          params: action.params,
+          scope: action.scope
+        });
+      } catch (err) {
+        console.warn(
+          `plotterext ${extension}: button "${button.id}" not published`,
+          err
+        );
+      }
       return;
     }
     const panel = action.panel;
@@ -930,6 +945,13 @@ export class PlotterExtensionService {
       applyGroup: (id, group) => this.skgroups.applyGroup(id, group)
     });
   }
+
+  /** Subscription-gated delivery used by `events.publish` and publish buttons. */
+  private readonly eventsDeps: EventsMethodsDeps = {
+    broadcast: (event, params) => this.broadcastMessage(event, params),
+    publishToExtension: (extension, event, params) =>
+      this.publishToExtension(extension, event, params)
+  };
 
   /** Host API handlers for the `nightMode` capability. */
   private nightModeMethods(): Record<string, MethodHandler> {
@@ -1727,6 +1749,7 @@ export class PlotterExtensionService {
         ...this.chartMethods(),
         ...this.nightModeMethods(),
         ...this.resourceGroupMethods(),
+        ...createEventsMethods(this.eventsDeps, opts.extension),
         ...this.uiPanelMethods(opts.extension),
         ...this.windowMethods(
           opts.extension,
@@ -2088,9 +2111,9 @@ export class PlotterExtensionService {
    * Broadcast a custom event to every live extension context (any extension).
    * Like publishToExtension, delivery is subscription-gated — publish() only
    * reaches a context that subscribed to the topic — so this is a shared,
-   * opt-in message bus, not a spam channel. Used by `sendMessage` buttons; the
-   * cross-extension reach is what lets a federation of plugins talk over
-   * namespaced topics.
+   * opt-in message bus, not a spam channel. It is the `scope: 'all'` route for
+   * `events.publish` and `publish`/`sendMessage` buttons; the cross-extension
+   * reach is what lets a federation of plugins talk over namespaced topics.
    */
   private broadcastMessage(event: string, params: unknown) {
     for (const ctx of this.contexts) {

@@ -12,6 +12,7 @@ export const HOST_CAPABILITIES = [
   'widgets',
   'panels.iframe',
   'buttons',
+  'events.publish',
   'signalk.stream',
   'signalk.put',
   'units',
@@ -115,16 +116,19 @@ export interface ButtonContribution {
   /**
    * Button action. `openPanel`/`togglePanel` target a `panel` from the same
    * manifest; `openWindow`/`toggleWindow` show that panel in a window (capability
-   * `windows`). `sendMessage` publishes `topic` (with optional `params`) onto
-   * the host message bus, delivered to every live extension context
-   * subscribed to that topic (typically the extension's own background
-   * runtime).
+   * `windows`). `publish` (deprecated alias `sendMessage`) publishes `topic`
+   * (with optional `params`) onto the host message bus, exactly as
+   * `events.publish` would for this extension: `scope` `'all'` (default)
+   * reaches every subscribed context in any extension, `'extension'` only this
+   * extension's own (typically its background runtime).
    */
   action?: {
     type: string;
     panel?: string;
     topic?: string;
     params?: unknown;
+    /** `publish` / `sendMessage`: who may receive it. Default `'all'`. */
+    scope?: 'all' | 'extension';
     /** `openWindow` / `toggleWindow`: any `ui.openWindow` option. */
     [option: string]: unknown;
   };

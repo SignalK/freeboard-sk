@@ -23,6 +23,7 @@ function buildManifest() {
     apiVersion: '1',
     requires: ['background.iframe'],
     optional: [
+      'events.publish',
       'map',
       'routes',
       'resources',
