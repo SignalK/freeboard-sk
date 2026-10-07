@@ -44,6 +44,7 @@ Node `>=18`. Install with `npm i`. Angular `21`.
 | `npm run test:ci` | run unit tests once and **exit** (what CI runs — see below); add `-- --include "<spec>"` to run a single file |
 | `npm test` | `ng test` in watch mode (local dev only — does not exit) |
 | `npm run format` | Prettier over `src/` (and `format:all` for `helper/` too) |
+| `npm run lint` | ESLint over the repo (CI's separate Lint job) |
 
 > **Why `build:web` / `test:ci` exist (important).** Angular's esbuild-based
 > `ng build` / `ng test` complete successfully but then **fail to terminate** — a
@@ -146,9 +147,11 @@ PR that stops at step 6 will not be merged.
 2. As you enter each phase — reading, coding, testing, building — skim the matching
    section of the lessons log (see *Hard-won knowledge* below).
 3. Do the work: one logical change, tests for new behaviour, no version bump.
-4. Before every push run, in this order: `npm run format` → `npm run build:all` →
-   `npm run test:ci`. CI runs `format:check` as a gate, so unformatted code fails on
-   the very first push.
+4. Before every push run, in this order: `npm run format` → `npm run lint` →
+   `npm run build:all` → `npm run test:ci`. CI runs `format:check` and, in its own
+   Lint job, ESLint as gates, so unformatted or lint-failing code fails on the very
+   first push. A clean build and passing tests do not mean lint is clean: an unused
+   variable in a spec builds and passes and still fails CI.
 5. Commit as `type(scope): subject` (same convention as PR titles, below), one
    meaningful step per commit, with a message that says *why*. Keep every commit.
 6. Open the PR against `SignalK/freeboard-sk:master` with the template filled in:
