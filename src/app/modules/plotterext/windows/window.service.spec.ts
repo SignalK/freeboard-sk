@@ -98,6 +98,14 @@ describe('ExtWindowService', () => {
     });
   });
 
+  it('does not reclaim a hidden window for an open that fails anyway', () => {
+    open({ modal: true });
+    const hidden = open({ visible: false });
+    for (let i = 2; i < MAX_WINDOWS; i++) open();
+    expect(service.open('ext-a', panel, { modal: true })).toBe('modalOpen');
+    expect(service.get(hidden.id)).toBeDefined();
+  });
+
   it('refuses more than MAX_WINDOWS windows, and a second modal one', () => {
     open({ modal: true });
     expect(service.open('ext-a', panel, { modal: true })).toBe('modalOpen');

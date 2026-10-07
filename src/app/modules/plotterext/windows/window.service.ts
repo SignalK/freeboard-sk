@@ -151,11 +151,12 @@ export class ExtWindowService {
     panel: PanelContribution,
     req: WindowRequest
   ): ExtWindow | OpenFailure {
+    const modal = req.modal === true;
+    if (modal && this.windows().some((w) => w.modal)) return 'modalOpen';
+    // Reclaim only once the open is otherwise sure to succeed.
     if (this.windows().length >= MAX_WINDOWS && !this.reclaimHidden()) {
       return 'limit';
     }
-    const modal = req.modal === true;
-    if (modal && this.windows().some((w) => w.modal)) return 'modalOpen';
     const restored = req.restoreKey
       ? this.restoredGeometry(extension, req.restoreKey)
       : undefined;
