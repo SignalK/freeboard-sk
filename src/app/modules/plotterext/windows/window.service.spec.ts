@@ -152,6 +152,15 @@ describe('ExtWindowService', () => {
     expect(changes).toEqual([]);
   });
 
+  it('keeps only spec fields from a remembered geometry', () => {
+    localStorage.setItem(
+      WINDOW_GEOMETRY_KEY,
+      JSON.stringify({ 'ext-a': { k: { width: 300, blob: 'x' } } })
+    );
+    const w = open({ restoreKey: 'k' });
+    expect(w.geometry).toEqual({ width: 300 });
+  });
+
   it('ignores a remembered geometry that is not valid', () => {
     localStorage.setItem(
       WINDOW_GEOMETRY_KEY,

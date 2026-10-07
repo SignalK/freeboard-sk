@@ -164,7 +164,13 @@ export function createWindowMethods(
       if (single) {
         const existing = deps.openOf(panelId);
         if (existing) {
-          deps.update(existing, { visible: true });
+          // params and geometry are ignored on reuse, but a new title applies
+          deps.update(existing, {
+            ...(req.title !== undefined
+              ? { title: req.title.trim() || panel.title }
+              : {}),
+            visible: true
+          });
           deps.focus(existing);
           return deps.owned(existing);
         }

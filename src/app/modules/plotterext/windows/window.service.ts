@@ -14,6 +14,7 @@ import {
   PxRect,
   ViewportSize,
   anchoredGeometry,
+  cleanGeometry,
   isValidGeometry,
   resolveGeometry
 } from './geometry';
@@ -360,7 +361,7 @@ export class ExtWindowService {
     key: string
   ): WindowGeometry | undefined {
     const g = this.readStore()[extension]?.[key];
-    return isValidGeometry(g) ? g : undefined;
+    return isValidGeometry(g) ? cleanGeometry(g) : undefined;
   }
 
   private remember(id: string) {

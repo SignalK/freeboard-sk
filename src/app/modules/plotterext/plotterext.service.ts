@@ -436,6 +436,7 @@ export class PlotterExtensionService {
     const key = `${extension}/${button.id}`;
     const tracked = this.buttonWindows.get(key);
     const open = tracked ? this.windows.get(tracked) : undefined;
+    if (tracked && !open) this.buttonWindows.delete(key);
     if (open) {
       if (button.action?.type === 'toggleWindow' && open.visible) {
         this.windows.userClose(open.id);

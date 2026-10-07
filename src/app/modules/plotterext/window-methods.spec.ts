@@ -79,7 +79,8 @@ describe('createWindowMethods', () => {
       await expect(call('ui.openWindow', params)).resolves.toEqual(
         state('new')
       );
-      const { panel: _p, ...req } = params;
+      const req: Record<string, unknown> = { ...params };
+      delete req.panel;
       expect(deps.open).toHaveBeenCalledWith(panel, req);
     });
 
@@ -129,6 +130,20 @@ describe('createWindowMethods', () => {
       expect(
         await reason(call('ui.openWindow', { panel: 'viewer', modal: true }))
       ).toBe('windows.modalOpen');
+    });
+
+    it('with single, gives the reused window the new title if one is asked for', async () => {
+      deps.openOf = vi.fn(() => 'w1');
+      build();
+      await call('ui.openWindow', {
+        panel: 'viewer',
+        single: true,
+        title: 'Sonar'
+      });
+      expect(deps.update).toHaveBeenCalledWith('w1', {
+        title: 'Sonar',
+        visible: true
+      });
     });
 
     it('with single, shows and raises an open window of the panel instead', async () => {
