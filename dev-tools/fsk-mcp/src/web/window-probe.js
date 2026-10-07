@@ -2,6 +2,7 @@
 // window (capability `windows`) to exercise the host's windows. It shows the
 // window context it was opened with and, given `params.url` (a page on the
 // Signal K server), embeds that page so a real webapp can be tried in a window.
+// With `params.bare` it shows only that page, as a real extension window would.
 
 import { connectExtension } from 'signalk-plotterext-bus/extension';
 
@@ -9,6 +10,7 @@ import { connectExtension } from 'signalk-plotterext-bus/extension';
   const client = await connectExtension();
   const ctx = client.context;
   const params = ctx.params ?? {};
+  if (params.bare === true) document.body.classList.add('bare');
 
   document.getElementById('context').textContent = JSON.stringify(
     { kind: ctx.kind, windowId: ctx.windowId, params },

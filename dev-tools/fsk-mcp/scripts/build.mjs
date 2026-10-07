@@ -60,6 +60,7 @@ writeFileSync(
            gap: 8px; padding: 6px 8px; }
   pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
   body.embed pre { max-height: 4.5em; overflow: auto; }
+  body.bare header { display: none; }
   iframe { flex: 1 1 auto; border: 0; border-top: 1px solid #ccc; }
 </style>
 </head>

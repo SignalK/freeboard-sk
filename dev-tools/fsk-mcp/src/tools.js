@@ -354,6 +354,11 @@ const TOOLS = [
         description:
           "A page on the Signal K server for the probe to embed (server-relative, starting with '/'). Optional."
       },
+      bare: {
+        type: 'boolean',
+        description:
+          "Show only the `url` page, without the probe's context readout and Close button: what a real extension window looks like."
+      },
       title: { type: 'string', description: 'Title-bar text.' },
       geometry: GEOMETRY_SCHEMA,
       modal: {
@@ -381,7 +386,12 @@ const TOOLS = [
     }),
     run: (hub, a) => {
       const params = { panel: 'window-probe' };
-      if (a.url) params.params = { url: a.url };
+      if (a.url || a.bare) {
+        params.params = {
+          ...(a.url ? { url: a.url } : {}),
+          ...(a.bare ? { bare: true } : {})
+        };
+      }
       for (const k of [
         'title',
         'geometry',
