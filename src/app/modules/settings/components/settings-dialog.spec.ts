@@ -207,6 +207,7 @@ describe('settings dialog — note details option placement', () => {
     });
 
     it('reads All for the whole recorded trail', async () => {
+      settings.vessels.trailDuration = TRAIL_DURATION_ALL;
       await selectTab('Vessels');
       expect(lengthLabel()).toBe('All');
     });

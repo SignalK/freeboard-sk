@@ -146,15 +146,15 @@ describe('cleanConfig() legacy migration', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
 
-  it('shows the whole recorded trail by default', () => {
-    expect(defaultConfig().vessels.trailDuration).toBe(TRAIL_DURATION_ALL);
+  it('shows the last 24 hours of trail by default', () => {
+    expect(defaultConfig().vessels.trailDuration).toBe(24);
   });
 
   it('keeps a trail length the user already chose', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    cfg.vessels.trailDuration = 24;
+    cfg.vessels.trailDuration = TRAIL_DURATION_ALL;
     cleanConfig(cfg, {});
-    expect(cfg.vessels.trailDuration).toBe(24);
+    expect(cfg.vessels.trailDuration).toBe(TRAIL_DURATION_ALL);
   });
 
   it('drops the legacy selections.notes section', () => {

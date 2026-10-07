@@ -248,8 +248,9 @@ export interface TrailBand {
   /** Server simplification at a tolerance the provider picks, for when no
    * zoom is known yet to size `epsilon` to. */
   simplify?: boolean;
-  /** Map box `[w, s, e, n]` the band is asked for; the Track API returns only
-   * the part of the trail in it. */
+  /** Map box `[w, s, e, n]` the band is asked for. A Track API that clips to
+   * it (signalk-server#3081) returns only the part of the trail in the box;
+   * one that doesn't returns the whole trail when any of it lies there. */
   bbox?: [number, number, number, number];
 }
 
@@ -275,8 +276,9 @@ export const TRAIL_MAX_HOURS = 96;
  * zoom), so a long history stays light on a zoomed-out chart and keeps its
  * turns on a zoomed-in one; without an `epsilon` the provider picks the
  * tolerance. With a `bbox` that band is asked for only where the map shows
- * it: years of history zoomed in on one harbour would otherwise arrive in
- * full detail. The newer bands are a day at most, and stay whole. */
+ * it, so on a server that clips, years of history zoomed in on one harbour do
+ * not arrive in full detail. The newer bands are a day at most, and stay
+ * whole. */
 export function trailBands(
   durationHrs: number,
   resolution: { lastHour: string; next23: string; beyond24: string },
