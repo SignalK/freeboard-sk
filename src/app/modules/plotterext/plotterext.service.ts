@@ -2082,11 +2082,11 @@ export class PlotterExtensionService {
       this.configDialogInstance = placed.instanceId;
       // A dialog without an iframe panel (remove-only) loads no panel.
       const configId = panel ? ++this.configPanelSeq : null;
-      if (panel) {
+      if (panel && configId !== null) {
         this.configPanels.update((list) => [
           ...list,
           {
-            id: configId as number,
+            id: configId,
             extension: placed.extension,
             panel: panel.id,
             targetInstance: placed.instanceId

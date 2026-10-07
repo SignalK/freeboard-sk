@@ -32,6 +32,13 @@ const manifest = (id: string): PlotterExtensionManifest =>
         lifecycle: 'keepAlive'
       },
       {
+        id: 'kept2',
+        title: 'Kept 2',
+        type: 'iframe',
+        url: `/plotterext/${id}/kept2.html`,
+        lifecycle: 'keepAlive'
+      },
+      {
         id: 'other',
         title: 'Other',
         type: 'iframe',
@@ -299,6 +306,47 @@ describe('PlotterExtensionService panel state', () => {
     service.openPanel('ext-a', 'other');
     await settle();
     expect(a.seen).toEqual([state('other', true)]);
+  });
+
+  it('reports the hidden panel before the shown one on a switch', async () => {
+    const a = await follower('ext-a');
+    service.openPanel('ext-a', 'kept');
+    await settle();
+    service.openPanel('ext-a', 'kept2');
+    await settle();
+    a.seen.length = 0;
+    // `kept` precedes `kept2` in the registry, so this needs the ordering
+    service.openPanel('ext-a', 'kept');
+    await settle();
+    expect(a.seen).toEqual([state('kept2', false), state('kept', true)]);
+  });
+
+  it('reports a panel that closes itself with ui.closePanel', async () => {
+    const a = await follower('ext-a');
+    service.openPanel('ext-a', 'kept');
+    await settle();
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    frames.push(iframe);
+    const kept = service
+      .manifests()
+      ['ext-a'].panels!.find((p) => p.id === 'kept')!;
+    detachers.push(
+      service.attachPanel(iframe, {
+        extension: 'ext-a',
+        panel: kept,
+        close: () => service.closePanel('ext-a/kept')
+      })
+    );
+    const panel = await connectExtension({
+      port: extensionPort(iframe),
+      timeoutMs: 2000,
+      onError: () => {}
+    });
+    clients.push(panel);
+    await panel.call('ui.closePanel');
+    await settle();
+    expect(a.seen).toEqual([state('kept', true), state('kept', false)]);
   });
 
   it('reports an onOpen panel replaced by another as hidden, then unlists it', async () => {
