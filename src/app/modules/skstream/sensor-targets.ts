@@ -114,9 +114,10 @@ export function processSensorTarget(
 /**
  * The targets to draw: each boat once. A target linked to a vessel on the
  * chart, own vessel included, is left out, and targets linked to each other
- * are drawn as the one they lead to. A link to a context that is gone or has
- * no position yet, such as a vessel whose AIS expired, is ignored, so the
- * sensor's view of the boat stays on the chart.
+ * are drawn as the one they lead to, placed at whichever of them reported its
+ * position last. A link to a context that is gone or has no position yet,
+ * such as a vessel whose AIS expired, is ignored, so the sensor's view of the
+ * boat stays on the chart.
  */
 export function unlinkedTargets(
   targets: Map<string, SKSensorTarget>,
@@ -131,9 +132,23 @@ export function unlinkedTargets(
     return Boolean(vessel?.position);
   };
   const shown = new Map<string, SKSensorTarget>();
+  const freshest = new Map<string, SKSensorTarget>();
   targets.forEach((target, id) => {
-    if (rootOf(id, targets, charted) === id) {
+    const root = rootOf(id, targets, charted);
+    if (root === id) {
       shown.set(id, target);
+    }
+    if (
+      targets.has(root) &&
+      target.position &&
+      target.positionUpdatedAt > (freshest.get(root)?.positionUpdatedAt ?? 0)
+    ) {
+      freshest.set(root, target);
+    }
+  });
+  freshest.forEach((target, root) => {
+    if (target.id !== root) {
+      shown.set(root, placedAt(shown.get(root), target));
     }
   });
   return shown;
@@ -197,17 +212,21 @@ export function fusedVessels(
   }
   const fused = new Map(vessels);
   freshest.forEach((target, id) => {
-    const vessel = vessels.get(id);
-    fused.set(
-      id,
-      Object.assign(Object.create(Object.getPrototypeOf(vessel)), vessel, {
-        position: target.position,
-        positionUpdatedAt: target.positionUpdatedAt,
-        vectors: { ...vessel.vectors, cog: target.vectors.cog }
-      })
-    );
+    fused.set(id, placedAt(vessels.get(id), target));
   });
   return fused;
+}
+
+/** A copy of `item` at the position and on the course line of `target`. */
+function placedAt<T extends SKVessel | SKSensorTarget>(
+  item: T,
+  target: SKSensorTarget
+): T {
+  return Object.assign(Object.create(Object.getPrototypeOf(item)), item, {
+    position: target.position,
+    positionUpdatedAt: target.positionUpdatedAt,
+    vectors: { ...item.vectors, cog: target.vectors.cog }
+  });
 }
 
 /**
