@@ -111,6 +111,8 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_set_filter` / `fsk_clear_filter` | `resources.setFilter` / `clearFilter` | display-only resource filters                                                                                             |
 | `fsk_list_routes` / `fsk_get_route`   | `route.list` / `route.get`            | inspect the visible routes                                                                                                |
 | `fsk_apply_resource_group`            | `resourceGroup.apply`                 | apply a stored resource group to the display (same as checking it in the Resource Groups list)                            |
+| `fsk_open_window` / `fsk_update_window` | `ui.openWindow` / `ui.updateWindow` | open the bridge's **window probe** in a window over the chart (pass `url` to embed a page from the server, e.g. a webapp), then move, resize, show or hide it |
+| `fsk_list_windows` / `fsk_close_window` | `ui.listWindows` / `ui.closeWindow` | list and close the windows the bridge opened |
 
 **Targeting a specific tab.** With more than one Freeboard tab open, pass a
 `session` id (from `fsk_list_sessions`) to any tool; omit it to use the most

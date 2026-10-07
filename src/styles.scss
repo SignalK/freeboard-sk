@@ -93,6 +93,15 @@ remark th {
     background: var(--mat-sys-surface-container, rgba(127, 127, 127, 0.12));
 }
 
+/* While an extension window is moved or resized, no iframe may swallow the
+   pointer, or the gesture stalls whenever it crosses one. */
+body.fb-pe-window-gesture iframe {
+    pointer-events: none;
+}
+body.fb-pe-window-gesture {
+    user-select: none;
+}
+
 /*xs*/
 @media only screen and (max-width: 599px) {
     .weather-data .mat-horizontal-content-container {

@@ -1065,6 +1065,13 @@
           <!-- Plotter extension widget overlay -->
           <fb-plotterext-overlay></fb-plotterext-overlay>
 
+          <!-- Plotter extension windows floating over the chart -->
+          <fb-pe-window-layer
+            [inset]="
+              !app.kioskMode() && !app.uiCtrl().suppressContextMenu ? 54 : 0
+            "
+          ></fb-pe-window-layer>
+
           <!-- North Arrow -->
           <div style="position: absolute; top: 60px; left: 56px; width: 50px">
             <img

@@ -118,6 +118,7 @@ import { TemporaryRouteService } from './modules/course/temporary-route.service'
 import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.component';
 import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
 import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
+import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
 import {
   RoutePanel,
   SKResourceType,
@@ -178,6 +179,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     PlotterExtensionOverlay,
     PlotterBackgroundHost,
     PlotterPanelDrawer,
+    ExtWindowLayerComponent,
     WeatherListComponent
   ]
 })

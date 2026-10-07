@@ -17,11 +17,20 @@ test('declares a version-1 background-runtime extension', () => {
   assert.ok(runtime.url.endsWith('.html'));
 });
 
-test('contributes no visible UI (headless bridge only)', () => {
+test('contributes no visible UI of its own (headless bridge only)', () => {
   const m = buildManifest();
   assert.strictEqual(m.widgets, undefined);
-  assert.strictEqual(m.panels, undefined);
   assert.strictEqual(m.buttons, undefined);
+});
+
+test('offers one panel, the window probe, for agents to open in windows', () => {
+  const m = buildManifest();
+  assert.strictEqual(m.panels.length, 1);
+  const probe = m.panels[0];
+  assert.strictEqual(probe.id, 'window-probe');
+  assert.strictEqual(probe.type, 'iframe');
+  assert.ok(probe.url.startsWith('/plotterext/fsk-mcp/'));
+  assert.ok(m.optional.includes('windows'));
 });
 
 test('lists the driveable host capabilities as optional, not required', () => {

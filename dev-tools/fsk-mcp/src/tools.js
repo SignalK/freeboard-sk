@@ -32,6 +32,13 @@ function withSession(properties = {}, required = []) {
   };
 }
 
+// A Plotter Extensions window geometry request (capability `windows`).
+const GEOMETRY_SCHEMA = {
+  type: 'object',
+  description:
+    'Requested size and position, relative to the window area: { anchor?, offset?: { x?, y? }, width?, height?, minWidth?, minHeight?, maxWidth?, maxHeight? }. anchor is top-left | top-center | top-right | center-left | center | center-right | bottom-left | bottom-center | bottom-right; offset is measured inward from the anchored edges; lengths are CSS px numbers or percentage strings such as "40%". The host clamps it and reports the actual bounds.'
+};
+
 const TOOLS = [
   {
     name: 'fsk_list_sessions',
@@ -336,6 +343,108 @@ const TOOLS = [
     ),
     run: (hub, a) =>
       hub.call('resourceGroup.apply', { id: a.id }, { session: a.session })
+  },
+  {
+    name: 'fsk_open_window',
+    description:
+      "Open a Plotter Extensions window floating over the Freeboard-SK chart (capability `windows`). An extension can only show its own panels in windows, so this opens the bridge's own panel, the window probe, which shows its window context and, given `url`, embeds that page from the Signal K server (e.g. '/signalk-wifish/' or '/@signalk/instrumentpanel/'). Returns the window state: { windowId, presentation, bounds, area, visible, collapsed, modal, … }.",
+    inputSchema: withSession({
+      url: {
+        type: 'string',
+        description:
+          "A page on the Signal K server for the probe to embed (server-relative, starting with '/'). Optional."
+      },
+      bare: {
+        type: 'boolean',
+        description:
+          "Show only the `url` page, without the probe's context readout and Close button: what a real extension window looks like."
+      },
+      title: { type: 'string', description: 'Title-bar text.' },
+      geometry: GEOMETRY_SCHEMA,
+      modal: {
+        type: 'boolean',
+        description:
+          'Block the chart and every other window until closed (Escape closes it).'
+      },
+      resizable: { type: 'boolean', description: 'Whether the user may resize it (default true).' },
+      movable: { type: 'boolean', description: 'Whether the user may move it (default true).' },
+      titleBar: {
+        type: 'string',
+        enum: ['fixed', 'autoHide'],
+        description: 'autoHide fades the title bar when idle.'
+      },
+      userClose: {
+        type: 'string',
+        enum: ['close', 'hide'],
+        description: "What the window's own close control does (default close)."
+      },
+      visible: { type: 'boolean', description: 'false opens it hidden but running.' },
+      restoreKey: {
+        type: 'string',
+        description: 'Remember the geometry the user gives it under this key (per device).'
+      }
+    }),
+    run: (hub, a) => {
+      const params = { panel: 'window-probe' };
+      if (a.url || a.bare) {
+        params.params = {
+          ...(a.url ? { url: a.url } : {}),
+          ...(a.bare ? { bare: true } : {})
+        };
+      }
+      for (const k of [
+        'title',
+        'geometry',
+        'modal',
+        'resizable',
+        'movable',
+        'titleBar',
+        'userClose',
+        'visible',
+        'restoreKey'
+      ]) {
+        if (a[k] !== undefined) params[k] = a[k];
+      }
+      return hub.call('ui.openWindow', params, { session: a.session });
+    }
+  },
+  {
+    name: 'fsk_update_window',
+    description:
+      'Change a window the bridge opened: retitle it, move or resize it (geometry fields given replace the current ones), or show / hide it (`visible`). Returns its new state.',
+    inputSchema: withSession(
+      {
+        windowId: { type: 'string', description: 'From fsk_open_window or fsk_list_windows.' },
+        title: { type: 'string' },
+        geometry: GEOMETRY_SCHEMA,
+        visible: { type: 'boolean' }
+      },
+      ['windowId']
+    ),
+    run: (hub, a) => {
+      const params = { windowId: a.windowId };
+      for (const k of ['title', 'geometry', 'visible']) {
+        if (a[k] !== undefined) params[k] = a[k];
+      }
+      return hub.call('ui.updateWindow', params, { session: a.session });
+    }
+  },
+  {
+    name: 'fsk_list_windows',
+    description:
+      'List the windows the bridge has open in Freeboard-SK, hidden ones included, with their actual bounds and state.',
+    inputSchema: withSession(),
+    run: (hub, a) => hub.call('ui.listWindows', {}, { session: a.session })
+  },
+  {
+    name: 'fsk_close_window',
+    description: 'Close a window the bridge opened.',
+    inputSchema: withSession(
+      { windowId: { type: 'string', description: 'From fsk_open_window or fsk_list_windows.' } },
+      ['windowId']
+    ),
+    run: (hub, a) =>
+      hub.call('ui.closeWindow', { windowId: a.windowId }, { session: a.session })
   }
 ];
 
