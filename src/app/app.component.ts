@@ -119,8 +119,6 @@ import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.com
 import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
 import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
-import { ExtWindowListComponent } from './modules/plotterext/windows/window-list.component';
-import { ExtWindowService } from './modules/plotterext/windows/window.service';
 import {
   RoutePanel,
   SKResourceType,
@@ -182,7 +180,6 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     PlotterBackgroundHost,
     PlotterPanelDrawer,
     ExtWindowLayerComponent,
-    ExtWindowListComponent,
     WeatherListComponent
   ]
 })
@@ -288,7 +285,6 @@ export class AppComponent {
   private symbols = inject(SymbolService);
   protected routeBuffers = inject(RouteBufferRegistry);
   protected plotterExt = inject(PlotterExtensionService);
-  protected extWindows = inject(ExtWindowService);
   private temporaryRoutes = inject(TemporaryRouteService);
   protected whatsNew = inject(WhatsNewService);
 

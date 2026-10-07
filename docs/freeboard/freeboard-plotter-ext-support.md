@@ -316,11 +316,11 @@ back after a reload opens them again (typically from a background runtime).
   When an extension leaves the collection its windows close without an event
   (`syncWindows`); a window whose panel left the manifest closes with reason
   `host`.
-- **The user's control.** The title bar and its close control are Freeboard's;
-  `userClose: 'hide'` turns the control into a hide. A toolbar button
-  (`ExtWindowListComponent`, shown while any window is open) lists every window,
-  hidden ones included, with **Show** and **Close** — a real close, whatever the
-  window asked for. Escape closes the active modal window.
+- **The user's control.** The title bar and its close control are Freeboard's,
+  so a window the extension fails to manage can always be closed from its own
+  frame; `userClose: 'hide'` turns the control into a hide. Escape closes the
+  active modal window. Freeboard has no list of windows: bringing a hidden window
+  back is the extension's job.
 - **Remembered geometry** (`restoreKey`) is stored per device in localStorage
   (`fb-plotterext-windows`), not in the synced config: a layout that suits a
   laptop rarely suits a phone.
@@ -370,7 +370,6 @@ same options as `ui.openWindow`; each button remembers the window it opened.
 | `src/app/modules/plotterext/windows/geometry.ts` | request resolution, gestures, clamping, snapping |
 | `src/app/modules/plotterext/windows/window.component.ts` | one window: title bar, gestures, the bus-connected iframe |
 | `src/app/modules/plotterext/windows/window-layer.component.ts` | the window area, modal backdrop, Escape |
-| `src/app/modules/plotterext/windows/window-list.component.ts` | the user's list of open windows |
 | `dev-tools/fsk-mcp/src/tools.js` | `fsk_open_window` / `fsk_update_window` / `fsk_list_windows` / `fsk_close_window` |
 
 ## The `resourceGroups` capability
