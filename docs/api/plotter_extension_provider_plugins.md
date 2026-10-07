@@ -25,9 +25,9 @@ it powerful is what that iframe is plugged into:
   live Signal K values, filter resource queries, listen for and react to events.
 - **A publish/subscribe message bus.** Every context (widget, panel,
   background runtime) and the host share an event bus. The host emits contract
-  events (`state.changed`, `sk.<path>`, `filters.changed`); a button can
-  publish a topic; contexts from the _same or different_ plugins can coordinate
-  over it.
+  events (`state.changed`, `sk.<path>`, `filters.changed`); your code
+  (`client.publish`) or a button can publish a topic; contexts from the _same
+  or different_ plugins can coordinate over it.
 - **Headless background runtimes.** A hidden iframe that runs while your plugin
   is enabled — a client-side service that holds session state and reacts to
   events, so a panel can close without losing work.
@@ -264,6 +264,7 @@ required and optional capabilities and lists your contributions. A real one
 | `widgets`           | Contribute chart-overlay widgets (and config panels)          |
 | `panels.iframe`     | Contribute iframe panels                                      |
 | `buttons`           | Add toolbar buttons                                           |
+| `events.publish`    | Publish your own events onto the bus (`client.publish`)       |
 | `signalk.stream`    | Subscribe to live SK path values (`client.signalk.subscribe`) |
 | `signalk.put`       | Send SK PUT requests (`client.signalk.put`)                   |
 | `resources`         | Run resource queries (`resources.list`)                       |
@@ -286,7 +287,9 @@ required and optional capabilities and lists your contributions. A real one
   `icon` (Material icon name), `action` — one of
   `{ type: 'togglePanel'|'openPanel', panel }`,
   `{ type: 'openWindow'|'toggleWindow', panel, …window options }` (capability
-  `windows`; see *Windows* below) or `{ type: 'sendMessage', topic, params? }`.
+  `windows`; see *Windows* below) or
+  `{ type: 'publish', topic, params?, scope? }` (see *Publishing your own
+  events* below; `sendMessage` is its deprecated alias).
 - **Background:** `id`, `title?`, `type: 'iframe'`, `url`.
 
 **Lifecycle** controls when the host loads a context's iframe:
@@ -332,6 +335,8 @@ await client.subscribe(['event.name'], (name, params) => {}) // bus events
 - `client.signalk.subscribe(paths, ev => …)` — live SK values; the callback
   gets `{ path, value, … }`. Returns an unsubscribe function.
 - `client.signalk.put(path, value)` — a SK PUT through the user's session.
+- `client.publish(topic, params?, scope?)` — publish your own event onto the
+  bus (capability `events.publish`; see *Publishing your own events* below).
 
 The full host method list and the contract events (`state.changed`,
 `sk.<path>`, `filters.changed`) are in the
@@ -646,10 +651,62 @@ of any panel or widget being open. It speaks the same bus protocol; its
 The canonical pattern: a panel does its real work in a runtime that holds the
 session state, so the panel can **close itself** (`ui.closePanel`) without
 losing it and reattach on reopen. To poke a runtime, give a button a
-`sendMessage` action publishing a topic the runtime subscribed to with
-`client.subscribe`; results flow back through the normal events
-(`state.changed`, `filters.changed`). A runtime drives the host, not the other
-way around, in this version.
+`publish` action, or call `client.publish` from a panel, with a topic the
+runtime subscribed to with `client.subscribe`; results flow back through the
+normal events (`state.changed`, `filters.changed`) or a topic the runtime
+publishes in return. A runtime drives the host, not the other way around, in
+this version.
+
+## Publishing your own events
+
+With the `events.publish` capability your contexts can publish events as well
+as subscribe to them. Any subscriber whose pattern matches receives it, exactly
+as it would a host event:
+
+```js
+// Panel: tell the background runtime to re-run, and keep it in the family.
+await client.publish('poi-search.refresh', { radius: 20 }, 'extension')
+
+// Background runtime: listen, then broadcast the result to anyone interested.
+await client.subscribe(['poi-search.refresh'], async (_name, { radius }) => {
+  const count = await runSearch(radius)
+  await client.publish('poi-search.results', { count }) // scope defaults to 'all'
+})
+```
+
+- **Scope.** `'all'` (the default) reaches every subscribed context, in any
+  extension. `'extension'` reaches only your own extension's contexts.
+- **You hear yourself.** A context that subscribed to the topic it publishes
+  receives its own event too.
+- **No sender, no reply.** The event carries only the topic and `params`, so
+  include anything receivers need (e.g. who sent it) in `params`. Nothing comes
+  back; `client.publish` resolves once the host has delivered it.
+- **Namespace your topics with dots** (`<extension-id>.<name>`), so one
+  `client.subscribe(['poi-search.*'], …)` catches them all; wildcards match
+  whole dot-separated segments, so a colon-joined `poi-search:refresh` can only
+  be subscribed to by its full name (it still works). Traffic you publish with
+  `'extension'` scope never reaches other extensions, so collisions matter less
+  there, but your subscriptions still hear other extensions' `'all'` events of
+  the same name. Publishing a host event name (e.g. `route.saved` after you
+  changed a route on the server yourself) is allowed and deliberate: other
+  contexts react as if the host had sent it.
+
+The same thing from a toolbar button, with no code:
+
+```json
+{
+  "id": "refresh-pois",
+  "title": "Refresh nearby POIs",
+  "slot": "mapToolbar",
+  "icon": "refresh",
+  "action": { "type": "publish", "topic": "poi-search.refresh", "scope": "extension" }
+}
+```
+
+On a host without `events.publish`, `client.publish` fails and a `publish`
+button does nothing. A manifest that must still work there uses the deprecated
+`sendMessage` action type without a `scope`; it reaches every subscribed
+context.
 
 ## Windows
 
@@ -703,8 +760,8 @@ const sounder = await client.call('ui.openWindow', {
   restoreKey: 'sounder' // reopen where the user last left it
 })
 
-// The toolbar button sends this topic (a `sendMessage` button action).
-await client.subscribe(['my-ext:toggle-sounder'], async () => {
+// The toolbar button publishes this topic (a `publish` button action).
+await client.subscribe(['my-ext.toggle-sounder'], async () => {
   const { windows } = await client.call('ui.listWindows')
   const w = windows.find((x) => x.windowId === sounder.windowId)
   await client.call('ui.updateWindow', {

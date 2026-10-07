@@ -112,6 +112,7 @@ extension id (the providing plugin's id is the recommended key):
 | `panels.iframe`     | Host supports iframe panels.                                                                                                      |
 | `background.iframe` | Host supports headless background-runtime iframes (no UI, loaded while the extension is present).                                 |
 | `buttons`           | Host renders extension toolbar buttons in at least one slot.                                                                      |
+| `events.publish`    | Host implements `events.publish` (extension-originated events) and the `scope` option on the `publish` button action. See *Publishing events*. |
 | `signalk.stream`    | Host streams Signal K path values to extension contexts over the message bus.                                                     |
 | `signalk.put`       | Host relays Signal K PUT requests from extension contexts.                                                                        |
 | `units`             | Host exposes the user's preferred display units (`units.get`).                                                                    |
@@ -261,7 +262,8 @@ reattach to the runtime's state when reopened.
 the host does not unload a runtime on its own while the extension is present.
 
 To **trigger** a runtime, the runtime subscribes to a topic with
-`events.subscribe` and a `sendMessage` button (see Buttons) publishes that
+`events.subscribe` and a `publish` button (see Buttons) or another of the
+extension's contexts (`events.publish`, see *Publishing events*) publishes that
 topic — fire-and-forget, the direction this version supports.
 
 **Background fields:** `id`, `title?`, `type` (`iframe`), `url`,
@@ -332,10 +334,11 @@ An extension may contribute buttons to host-defined UI slots:
     host that supports `buttons` but not `windows` treats `openWindow` and
     `toggleWindow` as `openPanel` and `togglePanel` of the same `panel`.
 
-  - `sendMessage` — publish a message onto the host bus. The button carries a
-    `topic` (the event name) and optional `params`; the host publishes it as
-    a bus event delivered to every live extension context that subscribed to
-    that topic via `events.subscribe`. This is fire-and-forget — no reply.
+  - `publish` — publish a message onto the host bus. The button carries a
+    `topic` (the event name), optional `params`, and an optional `scope`
+    (`"all"`, the default, or `"extension"`); the host publishes it exactly as
+    `events.publish` would on behalf of the button's extension (see
+    *Publishing events*). This is fire-and-forget — no reply.
 
     ```json
     {
@@ -343,7 +346,11 @@ An extension may contribute buttons to host-defined UI slots:
       "title": "Refresh nearby POIs",
       "slot": "mapToolbar",
       "icon": "refresh",
-      "action": { "type": "sendMessage", "topic": "poi-search:refresh" }
+      "action": {
+        "type": "publish",
+        "topic": "poi-search.refresh",
+        "scope": "extension"
+      }
     }
     ```
 
@@ -351,17 +358,17 @@ An extension may contribute buttons to host-defined UI slots:
     runtime** — a button poke that a kept-alive headless context handles
     (re-run a search, recompute a filter, etc.), with any visible result
     flowing back through the normal event loop (`state.changed`,
-    `filters.changed`, …). But it is a general message: the host delivers a
-    topic to _any_ subscribed context, so it can also drive a panel or, across
-    extensions, let a federation of plugins coordinate and even build ad-hoc
-    service discovery over nothing but this messaging infrastructure.
+    `filters.changed`, …). With the default `scope: "all"` it is a general
+    message: the host delivers the topic to _any_ subscribed context, so it can
+    also drive a panel or, across extensions, let a federation of plugins
+    coordinate. `scope: "extension"` keeps it to the button's own extension.
 
-    Delivery is subscription-gated — a context receives a topic only if it
-    subscribed — so an unheard message simply does nothing. Topics **should**
-    be namespaced (e.g. `<extension-id>:<name>` or an `ext.*` prefix) to avoid
-    colliding with host events (`state.changed`, `sk.*`, `filters.changed`) or
-    with another extension's topics. This is a **convention, not an enforced
-    requirement**; the host does not validate topic names.
+  - `sendMessage` — **deprecated** alias of `publish`, kept permanently for
+    manifests written before `publish` existed. A host that supports `buttons`
+    **MUST** accept it and treat it exactly as `publish`. New manifests
+    **SHOULD** use `publish`; one that must also work on a host without the
+    `events.publish` capability uses `sendMessage` and omits `scope` (such a
+    host delivers to every subscribed context, i.e. `scope: "all"`).
 
 ---
 
@@ -382,6 +389,8 @@ inside a routing envelope over `postMessage`**:
   dot-separated event name. Hosts only forward events a context subscribed
   to via `events.subscribe`; subscription patterns support
   eventemitter2-style wildcards (`*` one segment, `**` any remainder).
+  Events originate with the host or, through `events.publish`, with an
+  extension context; both arrive the same way.
 - **Connection**: the **caller** repeats the `bus.ready` notification until
   the **host** answers with `bus.handshake`. In the standard topology the
   caller is an extension iframe posting to its parent host; in the
@@ -489,6 +498,7 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | ----------------------- | ---------------------------------------------- | -------------------------- |
 | `events.subscribe`      | `{ patterns: string[] }`                       | `{ subscriptionId }`       |
 | `events.unsubscribe`    | `{ subscriptionId }`                           | `{}`                       |
+| `events.publish`        | `{ topic, params?, scope? }`                   | `{}`                       |
 | `state.get`             | `{ scope?, keys? }`                            | `{ values }`               |
 | `state.set`             | `{ scope?, values }`                           | `{}`                       |
 | `signalk.subscribe`     | `{ paths: string[] }` (literal paths)          | `{ subscriptionId }`       |
@@ -609,6 +619,68 @@ handled by the protocol layer, not subscribed to.
   pop-out, presentation or title changed. Owning extension only.
 - `window.closed` — `{ windowId, reason }`: a window closed (`reason` is `user`,
   `extension` or `host`). Owning extension only.
+
+### Publishing events
+
+`events.publish` (capability `events.publish`) lets an extension context put
+an event of its own onto the bus — the publish half of the pub/sub that
+`events.subscribe` already provides. A panel can notify the extension's
+background runtime, several widget instances can keep each other in sync, and
+cooperating extensions can coordinate over shared topics.
+
+```json
+{ "topic": "poi-search.results", "params": { "count": 12 }, "scope": "extension" }
+```
+
+- **`topic`** — the event name, delivered as the notification's `method`.
+  It is a literal name: it **MUST** be a non-empty string and **MUST NOT**
+  contain the wildcard character `*` (it belongs to subscription patterns).
+- **`params`** — optional payload, delivered as the notification's `params`
+  unchanged. It must be structured-cloneable (it crosses `postMessage`).
+- **`scope`** — who may receive it:
+  - `"all"` (default) — every live context on the host's bus that subscribed
+    to a matching pattern, in any extension, including an embedding host.
+  - `"extension"` — only the publishing extension's own subscribed contexts
+    (its widgets, panels, windows and background runtime). For an embedding
+    host, its own connection is its extension.
+
+The host delivers the event to every context in scope whose subscriptions
+match — **including the publishing context itself** if it subscribed — and
+then returns `{}`. Delivery is fire-and-forget: there is no reply from
+receivers, the result does not say whether anyone heard it, and an unheard
+topic simply does nothing.
+
+A published event is **indistinguishable from a host event**: it carries no
+sender identity, and the host does not reserve or validate topic names beyond
+the rules above. That is deliberate — an extension that changes something
+through the server directly (say, edits a stored route) may publish the
+matching host event (`route.saved`) so other contexts react as if the host had
+emitted it. The flip side is that receivers cannot tell who published a topic.
+A publisher that needs to identify itself puts that in `params`.
+
+Topics of an extension's own **should** be namespaced with a dotted prefix,
+`<extension-id>.<name>` (e.g. `poi-search.refresh`). Because wildcards match
+whole dot-separated segments, one subscription to `poi-search.*` then catches
+every topic of the extension; a colon-joined name such as `poi-search:refresh`
+is a single segment that no prefix pattern matches. Colon-joined names remain
+valid topics and hosts **MUST** accept them — this is a **convention, not an
+enforced requirement**.
+
+`scope: "extension"` makes collisions matter less than they would on a shared
+bus: such a publish never reaches another extension, whatever its name. A
+namespace still protects the receiving side, since a context's subscriptions
+also match `scope: "all"` events that other extensions publish under the same
+name, and keeps an extension's own topics clear of host event names.
+
+The `bus.*` names (`bus.ready`, `bus.handshake`) belong to the connection
+protocol and are not published through this method.
+
+The `publish` button action (see *Buttons*) is the same operation, triggered by
+the user instead of by code, on behalf of the button's extension.
+
+**Errors** use the standard `error.data.reason` convention: `events.badRequest`
+(missing or empty `topic`, a `topic` containing `*` or in the `bus.*`
+namespace, an unknown `scope`).
 
 ### Resource queries and display filters
 
@@ -1615,6 +1687,11 @@ This version deliberately does not specify:
   `resources.setFilter`. Filters declared _statically in the manifest_ and
   evaluated by the host on every resource fetch are out of scope for this
   version.
+- **Publisher-filtered subscriptions.** `events.subscribe` matches on the
+  event name only; a context cannot limit a subscription to events its own
+  extension published. Dotted `<extension-id>.<name>` topics (see *Publishing
+  events*) keep extensions' traffic apart. An optional subscription `scope`
+  could be added later without breaking existing subscribers.
 - **Host-into-runtime calls (`callRuntime`).** Background runtimes drive the
   host — they call host methods and react to host events; the host does not
   call into a runtime. The reverse call direction is out of scope for this
