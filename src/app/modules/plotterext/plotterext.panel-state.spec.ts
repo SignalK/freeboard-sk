@@ -328,9 +328,8 @@ describe('PlotterExtensionService panel state', () => {
     const iframe = document.createElement('iframe');
     document.body.appendChild(iframe);
     frames.push(iframe);
-    const kept = service
-      .manifests()
-      ['ext-a'].panels!.find((p) => p.id === 'kept')!;
+    const extA = service.manifests()['ext-a'];
+    const kept = extA.panels!.find((p) => p.id === 'kept')!;
     detachers.push(
       service.attachPanel(iframe, {
         extension: 'ext-a',
