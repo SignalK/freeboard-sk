@@ -728,9 +728,11 @@ Things to know:
   area and may show it as a full-width `sheet` or `fullscreen` (on a phone, for
   example). Read the actual geometry from the returned state, and subscribe to
   `window.bounds` / `window.state` if you need to follow it.
-- **The user is always in control.** They can close any window, including a
-  hidden one; listen for `window.closed` and do not reopen a window the user
-  just closed (`reason: 'user'`) unless they ask for it.
+- **The user can always close a window on screen** from its title bar; listen
+  for `window.closed` and do not reopen a window the user just closed
+  (`reason: 'user'`) unless they ask for it. **A window you hide is yours to
+  bring back:** hosts are not required to offer one, so give the user a way back,
+  such as a `toggleWindow` button.
 - **Windows end with the page.** They do not survive a reload, and the host
   never reopens them by itself; reopen them from a background runtime, with a
   `restoreKey` so they come back where the user put them.

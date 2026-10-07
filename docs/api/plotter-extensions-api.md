@@ -1431,9 +1431,10 @@ keeps its history while hidden. Show it again with
   not rely on drawing while hidden.
 - With `userClose: "hide"`, the user's close control hides the window instead
   of closing it, so a toolbar button can bring it back as it was.
-- The host **must** give the user a way to find and close every window,
-  including hidden ones (for example a list of open windows). Hiding never
-  takes a window out of the user's control.
+- A hidden window is the extension's to show or close again; the host offers
+  no control over a window that is not on screen. An extension that hides a
+  window should give the user a way back to it, such as a `toggleWindow`
+  button.
 - The host may close a hidden window to reclaim resources, reporting
   `window.closed` with reason `host`. Hidden windows count toward the host's
   window limit.
@@ -1456,8 +1457,8 @@ something the user must answer now.
 #### The user's control
 
 - **The host owns the title bar.** It shows the title and a close control the
-  extension cannot remove or disable, so a broken or hung extension can always
-  be closed.
+  extension cannot remove or disable, so every window on screen can be closed
+  even when its extension is broken or hung.
 - The user may move and resize a `floating` window (unless `movable` /
   `resizable` say otherwise), and may raise it by interacting with it.
 
@@ -1569,9 +1570,9 @@ adversarial boundary**:
   `allow-modals` are withheld to prevent accidents.
 - Windows (capability `windows`) show only an extension's own manifest
   panels, never an arbitrary URL, under the same sandbox. The host owns each
-  window's frame and close control, gives the user a way to close every
-  window including hidden ones, and keeps its own safety UI (alarms, alerts)
-  above any extension window, modal ones included.
+  window's frame and its close control, so any window on screen can be
+  closed, and keeps its own safety UI (alarms, alerts) above any extension
+  window, modal ones included.
 - The host API validates arguments and applies call timeouts; one broken
   extension must not prevent the host from loading.
 - Extension contexts are same-origin with the Signal K server and may call
