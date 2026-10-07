@@ -7,7 +7,8 @@ import { SimplifyAP } from 'simplify-ts';
 import { Position } from 'src/app/types';
 import {
   nearestOnLine,
-  TimedTrack
+  TimedTrack,
+  TRAIL_JOIN_GAP_MS
 } from 'src/app/modules/skstream/track-history';
 
 /** How far a vessel may move and still count as stopped: an anchored boat
@@ -73,6 +74,33 @@ function stationaryRuns(pts: TimedPoint[], minMs: number): [number, number][] {
   return runs;
 }
 
+/** Where a passage can begin or end: the points `a..b` of one stationary run,
+ * or of several back to back. Runs back to back are a vessel creeping along
+ * too slowly to count as under way, or swinging wider than STOP_RADIUS_M at
+ * anchor, so they make one stop rather than a passage between each pair. A
+ * passage leaves from the centre of the stop's `last` run and arrives at the
+ * centre of its `first`, where the vessel stopped creeping. */
+interface Stop {
+  a: number;
+  b: number;
+  first: [number, number];
+  last: [number, number];
+}
+
+function stopsOf(pts: TimedPoint[], minMs: number): Stop[] {
+  const stops: Stop[] = [];
+  for (const run of stationaryRuns(pts, minMs)) {
+    const prev = stops[stops.length - 1];
+    if (prev && prev.b + 1 === run[0]) {
+      prev.b = run[1];
+      prev.last = run;
+    } else {
+      stops.push({ a: run[0], b: run[1], first: run, last: run });
+    }
+  }
+  return stops;
+}
+
 /** Where the vessel lay during a run: the mean of its positions, which for a
  * boat at anchor is near the anchor. */
 function centre(pts: TimedPoint[], [a, b]: [number, number]): Position {
@@ -122,8 +150,8 @@ interface Passage {
   pts: TimedPoint[];
   start: number;
   end: number;
-  startStop?: [number, number];
-  endStop?: [number, number];
+  startStop?: Stop;
+  endStop?: Stop;
 }
 
 /** The passage of `track` that passes `at`, as {@link trackSectionRoute}
@@ -165,29 +193,33 @@ function findPassage(
     offset += line.length;
   });
 
-  const stops = stationaryRuns(pts, stopMs);
-  const stopAt = (i: number) => stops.find(([a, b]) => a <= i && i <= b);
+  const stops = stopsOf(pts, stopMs);
+  const stopAt = (i: number) => stops.find(({ a, b }) => a <= i && i <= b);
   let onStop = stopAt(k);
-  if (onStop && onStop[1] === pts.length - 1 && onStop[0] > 0) {
+  if (onStop && onStop.b === pts.length - 1 && onStop.a > 0) {
     // no passage leaves the stop the track ends at: take the one arriving
-    k = onStop[0] - 1;
+    k = onStop.a - 1;
     onStop = stopAt(k);
   }
-  let startStop: [number, number] | undefined =
-    onStop ?? stops.filter(([, b]) => b < k).pop();
-  let endStop: [number, number] | undefined = stops.find(
-    ([a]) => a > (onStop ? onStop[1] : k)
+  let startStop: Stop | undefined =
+    onStop ?? stops.filter(({ b }) => b < k).pop();
+  let endStop: Stop | undefined = stops.find(
+    ({ a }) => a > (onStop ? onStop.b : k)
   );
-  let start = startStop ? startStop[1] + 1 : 0;
-  let end = endStop ? endStop[0] - 1 : pts.length - 1;
+  let start = startStop ? startStop.b + 1 : 0;
+  let end = endStop ? endStop.a - 1 : pts.length - 1;
 
   // a gap in the recording that the vessel moved across: what it did in
-  // between is unknown, so the passage stops short of it. Only gaps between
-  // the stops count; a tap on a stop stands for the start of the passage.
+  // between is unknown, so the passage stops short of it. A gap is where the
+  // recording broke into a new line, or, within one line (the local trail is
+  // a single one), went quiet for longer than a stretch of it is joined
+  // across. Only gaps between the stops count; a tap on a stop stands for
+  // the start of the passage.
   const tapped = Math.min(Math.max(k, start), end);
   for (let g = Math.max(start, 1); g <= end + 1 && g < pts.length; g++) {
     if (
-      pts[g].line !== pts[g - 1].line &&
+      (pts[g].line !== pts[g - 1].line ||
+        pts[g].t - pts[g - 1].t > TRAIL_JOIN_GAP_MS) &&
       distM(pts[g - 1].p, pts[g].p) > STOP_RADIUS_M
     ) {
       if (g <= tapped) {
@@ -226,9 +258,9 @@ export function trackSectionRoute(
   }
   const { pts, start, end, startStop, endStop } = passage;
   const path = [
-    ...(startStop ? [centre(pts, startStop)] : []),
+    ...(startStop ? [centre(pts, startStop.last)] : []),
     ...collapsePauses(pts, start, end),
-    ...(endStop ? [centre(pts, endStop)] : [])
+    ...(endStop ? [centre(pts, endStop.first)] : [])
   ];
   return path.length < 2 ? undefined : simplifyM(path);
 }
@@ -246,7 +278,7 @@ export function trackSectionSpan(
   }
   const { pts, start, end, startStop, endStop } = passage;
   return {
-    from: pts[startStop ? startStop[0] : start].t,
-    to: pts[endStop ? endStop[1] : end].t
+    from: pts[startStop ? startStop.last[0] : start].t,
+    to: pts[endStop ? endStop.first[1] : end].t
   };
 }

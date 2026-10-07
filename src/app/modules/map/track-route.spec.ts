@@ -199,6 +199,81 @@ describe('trackSectionRoute', () => {
     expect(distM(route[route.length - 1], end)).toBeLessThan(30);
   });
 
+  describe('a gap inside one recorded line, as in the local trail', () => {
+    const oneLine = (rec: Recorder): TimedTrack => ({
+      lines: [rec.lines.flat()],
+      times: [rec.times.flat()]
+    });
+    const rec = new Recorder(A).stay(120).sail(4000, 0, 30);
+    const lastBeforeGap = rec.pos;
+    rec.gap(120, 3000, 0).sail(3000, 0, 30);
+    const firstAfterGap = rec.lines[1][0];
+    rec.stay(120);
+    const end = rec.pos;
+
+    it('ends the passage before it', () => {
+      const route = trackSectionRoute(
+        oneLine(rec),
+        at(A, 2000, 0),
+        OWN_STOP_MS
+      );
+
+      expect(distM(route[0], A)).toBeLessThan(30);
+      expect(distM(route[route.length - 1], lastBeforeGap)).toBeLessThan(1);
+    });
+
+    it('starts the passage after it', () => {
+      const route = trackSectionRoute(
+        oneLine(rec),
+        at(firstAfterGap, 1500, 0),
+        OWN_STOP_MS
+      );
+
+      expect(distM(route[0], firstAfterGap)).toBeLessThan(1);
+      expect(distM(route[route.length - 1], end)).toBeLessThan(30);
+    });
+
+    it('spans only its own side of it', () => {
+      const span = trackSectionSpan(oneLine(rec), at(A, 2000, 0), OWN_STOP_MS);
+
+      expect(span.to).toBe(T0 + 149 * MIN);
+    });
+  });
+
+  describe('a vessel creeping along too slowly to be under way', () => {
+    // 0.3 kn: 200 m takes 22 minutes, longer than another vessel's stop
+    const CREEP_M_PER_MIN = 9.26;
+    const creeping = () => {
+      const rec = new Recorder(A).stay(30).sail(4000, 0, 20);
+      const creepStart = rec.pos;
+      rec.sail(CREEP_M_PER_MIN * 120, 0, 120);
+      const creepEnd = rec.pos;
+      rec.sail(4000, 0, 20).stay(30);
+      return { rec, creepStart, creepEnd, end: rec.pos };
+    };
+
+    it('ends the passage arriving where the creeping starts', () => {
+      const { rec, creepStart } = creeping();
+      const route = trackSectionRoute(rec.track, at(A, 2000, 0), OTHER_STOP_MS);
+
+      expect(distM(route[0], A)).toBeLessThan(30);
+      expect(distM(route[route.length - 1], creepStart)).toBeLessThan(150);
+    });
+
+    it('gives the passage leaving it for a tap on it, as for any stop', () => {
+      const { rec, creepEnd, end } = creeping();
+      const route = trackSectionRoute(
+        rec.track,
+        at(A, 4000 + CREEP_M_PER_MIN * 60, 0),
+        OTHER_STOP_MS
+      );
+
+      // from the centre of the last 200 m run of the creep, not a slice of it
+      expect(distM(route[0], creepEnd)).toBeLessThan(STOP_RADIUS_M + 50);
+      expect(distM(route[route.length - 1], end)).toBeLessThan(30);
+    });
+  });
+
   it('treats a gap while at anchor as part of the stop', () => {
     // swinging wide, the recording resumes across the circle from where it
     // paused: further apart than a vessel moves while stopped
