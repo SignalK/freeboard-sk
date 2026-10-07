@@ -121,4 +121,9 @@ describe('PlotterExtensionService embedding host (reverse embedding, #507)', () 
     await client.state.set({ demo: 42 });
     await expect(client.state.get(['demo'])).resolves.toEqual({ demo: 42 });
   });
+
+  it('lists no panels: an embedder has no manifest', async () => {
+    const client = await connect('kip');
+    await expect(client.panels.list()).resolves.toEqual([]);
+  });
 });
