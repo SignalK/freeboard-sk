@@ -317,10 +317,13 @@ back after a reload opens them again (typically from a background runtime).
   (`syncWindows`); a window whose panel left the manifest closes with reason
   `host`.
 - **The user's control.** The title bar and its close control are Freeboard's,
-  so a window the extension fails to manage can always be closed from its own
-  frame; `userClose: 'hide'` turns the control into a hide. Escape closes the
-  active modal window. Freeboard has no list of windows: bringing a hidden window
-  back is the extension's job.
+  so any window on screen can be closed from its own frame, whatever its
+  extension does; `userClose: 'hide'` turns the control into a hide. Escape
+  closes the active modal window. A hidden window has no frame to close, and
+  Freeboard has no list of windows: bringing it back is the extension's job
+  (spec *Hidden windows*). So that hidden windows nobody returns to cannot use
+  up `MAX_WINDOWS`, opening a window at the limit first closes the oldest
+  hidden one (reason `host`).
 - **Remembered geometry** (`restoreKey`) is stored per device in localStorage
   (`fb-plotterext-windows`), not in the synced config: a layout that suits a
   laptop rarely suits a phone.
@@ -358,7 +361,8 @@ same options as `ui.openWindow`; each button remembers the window it opened.
 ### Error reasons
 
 `windows.badRequest`, `UNKNOWN_PANEL`, `windows.unknownId`, `windows.limit`
-(`MAX_WINDOWS` = 12 across all extensions), `windows.modalOpen`.
+(`MAX_WINDOWS` = 12 across all extensions, and none hidden to reclaim),
+`windows.modalOpen`.
 
 ### Key files
 

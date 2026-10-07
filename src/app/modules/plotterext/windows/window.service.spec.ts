@@ -83,6 +83,21 @@ describe('ExtWindowService', () => {
     });
   });
 
+  it('at the limit, closes the oldest hidden window to make room', () => {
+    const first = open();
+    const hidden = open({ visible: false });
+    for (let i = 2; i < MAX_WINDOWS; i++) open();
+    const late = service.open('ext-b', panel, {});
+    expect(typeof late).not.toBe('string');
+    expect(service.get(hidden.id)).toBeUndefined();
+    expect(service.get(first.id)).toBeDefined();
+    expect(changes).toContainEqual({
+      extension: 'ext-a',
+      event: 'window.closed',
+      payload: { windowId: hidden.id, reason: 'host' }
+    });
+  });
+
   it('refuses more than MAX_WINDOWS windows, and a second modal one', () => {
     open({ modal: true });
     expect(service.open('ext-a', panel, { modal: true })).toBe('modalOpen');

@@ -151,7 +151,9 @@ export class ExtWindowService {
     panel: PanelContribution,
     req: WindowRequest
   ): ExtWindow | OpenFailure {
-    if (this.windows().length >= MAX_WINDOWS) return 'limit';
+    if (this.windows().length >= MAX_WINDOWS && !this.reclaimHidden()) {
+      return 'limit';
+    }
     const modal = req.modal === true;
     if (modal && this.windows().some((w) => w.modal)) return 'modalOpen';
     const restored = req.restoreKey
@@ -196,6 +198,18 @@ export class ExtWindowService {
       event: 'window.closed',
       payload: { windowId: id, reason }
     });
+  }
+
+  /**
+   * Make room by closing the oldest hidden window (reason `host`), so windows
+   * an extension hid and never came back for cannot use up the limit for
+   * everyone. False when no window is hidden.
+   */
+  private reclaimHidden(): boolean {
+    const oldest = this.windows().find((w) => !w.visible);
+    if (!oldest) return false;
+    this.close(oldest.id, 'host');
+    return true;
   }
 
   /** The title-bar close control: hides or closes, as the window asked. */
