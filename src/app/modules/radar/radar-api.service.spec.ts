@@ -322,6 +322,33 @@ describe('RadarAPIService init() (#755)', () => {
     expect(app.config.radars.deviceId).toBe('radar-1');
   });
 
+  it('keeps the shown radar when another fails to load', async () => {
+    const service = TestBed.inject(RadarAPIService);
+    await service.init();
+    const saveConfig = vi.spyOn(app, 'saveConfig');
+
+    // radar-2's device, capabilities and controls are not served
+    await service.init('radar-2');
+
+    expect(service.radarId()).toBe('radar-1');
+    expect(service.radar().device.id).toBe('radar-1');
+    expect(app.config.radars.deviceId).toBe('radar-1');
+    expect(saveConfig).not.toHaveBeenCalled();
+  });
+
+  it('saves no selection when the first radar fails to load', async () => {
+    delete responses['vessels/self/radars/radar-1/controls'];
+    try {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      expect(service.radar()).toBeUndefined();
+      expect(app.config.radars.deviceId).toBe('');
+    } finally {
+      responses['vessels/self/radars/radar-1/controls'] = controls;
+    }
+  });
+
   it('sends a control change as the PUT body', async () => {
     const service = TestBed.inject(RadarAPIService);
     await service.init();

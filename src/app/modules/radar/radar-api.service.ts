@@ -212,8 +212,7 @@ export class RadarAPIService {
       }
     }
     const selected = this._selectedRadar();
-    this.app.config.radars.deviceId = selected;
-    this.app.saveConfig();
+    const previous = this._radar()?.device?.id;
 
     // populate selected radar details
     const rd: Partial<{
@@ -228,14 +227,21 @@ export class RadarAPIService {
         this.getControls(selected)
       ]);
     } catch {
+      // Keep the radar that works, so the panel and its radar menu stay up.
       if (call === this.initCalls) {
-        this._radar.set(undefined);
+        if (previous && previous !== selected) {
+          this._selectedRadar.set(previous);
+        } else {
+          this._radar.set(undefined);
+        }
       }
       return;
     }
     if (call !== this.initCalls) {
       return;
     }
+    this.app.config.radars.deviceId = selected;
+    this.app.saveConfig();
     // Radar API 3.4.0: the discovery object is lean and carries no id; fold in
     // the selected id so consumers (info panel, render, panel) can read it.
     rd['device'].id = selected;
