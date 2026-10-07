@@ -3,6 +3,9 @@ name: Dev Tools
 # The dev-tools/ Node utilities and the helper/ server plugin aren't part of
 # the Angular app, so the shared plugin-ci workflow (build:all + test:ci)
 # doesn't cover their unit tests. This runs them when they change.
+#
+# dev-tools/fsk-mcp has its own package.json and lockfile (dev-tools is not an
+# npm workspace), so it gets its own job: a root `npm ci` never installs it.
 
 on:
   pull_request:
@@ -35,3 +38,21 @@ jobs:
       - run: npm ci
       - run: npm run test:tools
       - run: npm run test:helper
+
+  test-fsk-mcp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dev-tools/fsk-mcp
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false # don't expose the token to PR-controlled npm scripts
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+          cache-dependency-path: dev-tools/fsk-mcp/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
