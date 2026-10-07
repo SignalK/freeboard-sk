@@ -110,6 +110,7 @@ extension id (the providing plugin's id is the recommended key):
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `widgets`           | Host supports the widget grid described below (including the configuration-panel methods `ui.openConfigPanel` / `ui.closePanel`). |
 | `panels.iframe`     | Host supports iframe panels.                                                                                                      |
+| `panels.state`      | Host reports whether each loaded panel is on screen (`ui.listPanels`) and emits `panel.state` when that changes. See *Panel state*. |
 | `background.iframe` | Host supports headless background-runtime iframes (no UI, loaded while the extension is present).                                 |
 | `buttons`           | Host renders extension toolbar buttons in at least one slot.                                                                      |
 | `events.publish`    | Host implements `events.publish` (extension-originated events) and the `scope` option on the `publish` button action. See *Publishing events*. |
@@ -215,6 +216,9 @@ aside, and configuration panels in a dialog.
 
 With the `windows` capability, an extension can also show any of its iframe
 panels in a floating window over the chart, several at once; see *Windows*.
+With `panels.state`, an extension can follow whether each of its loaded panels
+is on screen, for example to pause a hidden `keepAlive` panel; see *Panel
+state*.
 
 ---
 
@@ -251,8 +255,8 @@ A runtime speaks the same bus protocol as widgets and panels; its handshake
 `context.kind` is `background`. It may call the host API — `state.*`
 (extension scope by default, as it has no widget instance), `signalk.*`,
 `resources.*` including `resources.setFilter`, `route.*`, `chart.*`, `units.get`,
-`map.*`, `ui.openPanel`/`ui.togglePanel`, and the window methods
-(`ui.openWindow` and the rest; see *Windows*). It has no `ui.closePanel` or
+`map.*`, `ui.openPanel`/`ui.togglePanel`, `ui.listPanels` (see *Panel
+state*), and the window methods (`ui.openWindow` and the rest; see *Windows*). It has no `ui.closePanel` or
 `ui.*ConfigPanel` (those are panel/widget affordances). The typical use is a
 client-side service that holds session state and keeps work alive so a panel
 can **close itself** (`ui.closePanel`) without losing that state, then
@@ -532,6 +536,7 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `ui.openConfigPanel`    | — (widget contexts)                            | `{}`                       |
 | `ui.toggleConfigPanel`  | — (widget contexts)                            | `{}`                       |
 | `ui.closePanel`         | — (panel contexts)                             | `{}`                       |
+| `ui.listPanels`         | —                                              | `{ panels }`               |
 | `ui.openWindow`         | `{ panel, params?, title?, geometry?, modal?, resizable?, movable?, titleBar?, userClose?, visible?, single?, restoreKey? }` | window state |
 | `ui.updateWindow`       | `{ windowId?, title?, geometry?, visible? }`   | window state               |
 | `ui.focusWindow`        | `{ windowId? }`                                | `{}`                       |
@@ -548,7 +553,8 @@ capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
 (`route.*`) with `routes`; chart events (`chart.*`) with `charts` (`chart.time` with `charts.time`);
 `resourceGroup.applied` with `resourceGroups`; `map.view` with `map`;
-`nightMode.changed` with `nightMode`; `window.*` with `windows`. The
+`nightMode.changed` with `nightMode`; `panel.state` with `panels.state`;
+`window.*` with `windows`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -612,6 +618,10 @@ handled by the protocol layer, not subscribed to.
   *every* change, whether an extension called `nightMode.set`, the user toggled
   the host's own night-mode control, or the server's `environment.mode` flipped
   while `auto` is on. See *Night mode*.
+- `panel.state` — `{ panel, visible, collapsed, targetInstance? }`: one of the
+  extension's loaded panels was shown or hidden, or collapsed or expanded.
+  Origin-transparent, and delivered only to the owning extension's contexts.
+  See *Panel state*.
 - `window.bounds` — `{ windowId, bounds, area }`: a window's actual geometry
   changed (a user move or resize ended, `ui.updateWindow`, or the host re-clamped
   it). Delivered only to the owning extension's contexts. See *Windows*.
@@ -1324,6 +1334,64 @@ reads it once with `nightMode.get`.
 **Errors** use the standard `error.data.reason` convention: `nightMode.badRequest`
 (invalid params — e.g. a non-boolean `enabled`/`auto`, or neither field present),
 `nightMode.notSupported` (host lacks `nightMode`).
+
+### Panel state
+
+A loaded panel is not always on screen. A `keepAlive` panel stays loaded when
+the user closes it or opens another panel in its place, and a host may let the
+user collapse a panel to its header. The `panels.state` capability lets an
+extension follow this: a panel can pause work nobody can see (a video feed, an
+embedded webapp), and a background runtime can tell whether its panels are
+showing.
+
+A panel's state:
+
+```json
+{ "panel": "sounder-view", "visible": true, "collapsed": false }
+```
+
+- **`panel`** — the panel's manifest id.
+- **`visible`** — whether the host is presenting the panel in its UI: its
+  drawer is showing it, its dialog is open. `false` while the panel is loaded
+  but not presented.
+- **`collapsed`** — whether the host shows the panel reduced to its header, its
+  content out of sight. A collapsed panel stays `visible`, as a collapsed window
+  does. Collapsing is an optional host feature; a host without it always
+  reports `false`.
+- **`targetInstance`** — present only for a configuration panel opened for a
+  widget instance: the instance it configures (its `context.targetInstance`).
+
+`visible` describes the host's presentation only. It does not change when the
+browser tab is hidden (inside the iframe, `document.visibilityState` reports
+that), nor when a window or other overlay covers part of the panel.
+
+**`ui.listPanels`** returns `{ panels }`: the state of every loaded panel of
+the caller's extension. A panel that is not loaded is not listed. Windows are
+not listed either: a panel shown in a window is a `window` context, whose state
+`ui.listWindows` and `window.state` report (see *Windows*). An `embedding-host`
+context has no manifest, so its list is always empty.
+
+**`panel.state`** (see *Host events*) carries the same state and is emitted
+whenever a loaded panel of the extension becomes visible or hidden, or
+collapses or expands. It is delivered to the extension's contexts that
+subscribed, the panel itself included, and never to another extension. Like
+`nightMode.changed` it is **origin-transparent**: the user closing the drawer
+or switching panels, and any extension's `ui.openPanel`, `ui.togglePanel` or
+`ui.closePanel`, all produce it.
+
+- **Opening** a panel loads it if needed and reports `visible: true`. A panel
+  that has just loaded cannot have subscribed yet, so it reads its own state:
+  subscribe to `panel.state` first, then call `ui.listPanels` and find its
+  entry by `context.id` (and `context.targetInstance` for a configuration
+  panel).
+- **Closing** a panel that unloads when hidden (`lifecycle: "onOpen"`) still
+  reports `visible: false` to the extension's other contexts; the panel itself
+  is already unloading.
+- Events describe transitions only: a host sends no `panel.state` for a panel
+  whose state did not change.
+
+**Errors** use the standard `error.data.reason` convention:
+`panels.notSupported` (host lacks `panels.state`).
 
 ### Windows
 
