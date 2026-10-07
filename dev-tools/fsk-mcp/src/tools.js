@@ -73,6 +73,34 @@ const TOOLS = [
     run: (hub, a) => hub.call(a.method, a.params ?? {}, { session: a.session })
   },
   {
+    name: 'fsk_publish',
+    description:
+      "Publish an event onto the Freeboard-SK extension bus (capability `events.publish`), e.g. to poke an extension's background runtime the way its toolbar button would. Subscribers receive it exactly like a host event. It is published as the bridge's own extension (fsk-mcp), so use scope 'all' (the default) to reach other extensions; scope 'extension' would reach only the bridge itself. Topics are literal names (no '*', not bus.*), conventionally '<extension-id>.<name>'.",
+    inputSchema: withSession(
+      {
+        topic: {
+          type: 'string',
+          description: 'Event name to publish, e.g. "poi-search.refresh".'
+        },
+        params: {
+          description: 'Optional payload, delivered unchanged as the event params.'
+        },
+        scope: {
+          type: 'string',
+          enum: ['all', 'extension'],
+          description: "Who may receive it. Default 'all' (every subscribed context)."
+        }
+      },
+      ['topic']
+    ),
+    run: (hub, a) => {
+      const params = { topic: a.topic };
+      if (a.params !== undefined) params.params = a.params;
+      if (a.scope) params.scope = a.scope;
+      return hub.call('events.publish', params, { session: a.session });
+    }
+  },
+  {
     name: 'fsk_get_view',
     description:
       'Read the current map view (center [lon,lat], zoom, and bounds [west,south,east,north]) from Freeboard-SK. Longitudes are in [-180,180]; a view across the antimeridian has west > east. Handy for verifying the effect of a fsk_set_view / fsk_fit_bounds call.',

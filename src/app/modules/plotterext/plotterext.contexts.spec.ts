@@ -237,6 +237,107 @@ describe('PlotterExtensionService iframe contexts', () => {
     });
   });
 
+  describe('events.publish and publish buttons', () => {
+    const background = (extension: string) => (iframe: HTMLIFrameElement) =>
+      service.attachBackground(iframe, {
+        extension,
+        runtime: { id: 'svc', title: 'Service', type: 'iframe', url: '' }
+      });
+    const settle = () => new Promise((r) => setTimeout(r, 20));
+
+    // Three live contexts across two extensions, each subscribed to `topic`.
+    async function family(topic: string) {
+      const seen: string[] = [];
+      const panel = await connect((iframe) =>
+        service.attachPanel(iframe, {
+          extension: 'ext-a',
+          panel: { id: 'p', title: 'P', type: 'iframe', url: '' },
+          close: () => {}
+        })
+      );
+      const runtimeA = await connect(background('ext-a'));
+      const runtimeB = await connect(background('ext-b'));
+      for (const [label, c] of [
+        ['a-panel', panel],
+        ['a-runtime', runtimeA],
+        ['b-runtime', runtimeB]
+      ] as const) {
+        await c.subscribe([topic], (_name, params) =>
+          seen.push(`${label}:${JSON.stringify(params)}`)
+        );
+      }
+      return { panel, seen };
+    }
+
+    it('advertises the events.publish capability', async () => {
+      const client = await connect(background('ext-a'));
+      expect(client.hasCapability('events.publish')).toBe(true);
+    });
+
+    it('scope all reaches every extension, the publisher included', async () => {
+      const { panel, seen } = await family('ext-a.refresh');
+      await panel.publish('ext-a.refresh', { n: 1 });
+      await settle();
+      expect(seen.sort()).toEqual([
+        'a-panel:{"n":1}',
+        'a-runtime:{"n":1}',
+        'b-runtime:{"n":1}'
+      ]);
+    });
+
+    it("scope extension stays within the publisher's extension", async () => {
+      const { panel, seen } = await family('ext-a.refresh');
+      await panel.publish('ext-a.refresh', { n: 2 }, 'extension');
+      await settle();
+      expect(seen.sort()).toEqual(['a-panel:{"n":2}', 'a-runtime:{"n":2}']);
+    });
+
+    it('rejects a wildcard topic with events.badRequest', async () => {
+      const client = await connect(background('ext-a'));
+      await expect(client.publish('ext-a.*')).rejects.toMatchObject({
+        reason: 'events.badRequest'
+      });
+    });
+
+    it('a publish button with scope extension reaches only its extension', async () => {
+      const { seen } = await family('ext-a.refresh');
+      service.handleButtonAction('ext-a', {
+        id: 'b',
+        title: 'B',
+        action: { type: 'publish', topic: 'ext-a.refresh', scope: 'extension' }
+      });
+      await settle();
+      expect(seen.sort()).toEqual(['a-panel:undefined', 'a-runtime:undefined']);
+    });
+
+    it('sendMessage is an alias of publish and defaults to every extension', async () => {
+      const { seen } = await family('ext-a.refresh');
+      service.handleButtonAction('ext-a', {
+        id: 'b',
+        title: 'B',
+        action: { type: 'sendMessage', topic: 'ext-a.refresh', params: 7 }
+      });
+      await settle();
+      expect(seen.sort()).toEqual(['a-panel:7', 'a-runtime:7', 'b-runtime:7']);
+    });
+
+    it('warns instead of throwing for a button with an invalid topic', async () => {
+      const { seen } = await family('ext-a.refresh');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(() =>
+        service.handleButtonAction('ext-a', {
+          id: 'b',
+          title: 'B',
+          action: { type: 'publish' }
+        })
+      ).not.toThrow();
+      expect(warn).toHaveBeenCalled();
+      warn.mockRestore();
+      await settle();
+      expect(seen).toEqual([]);
+    });
+  });
+
   it('closes the connection on detach', async () => {
     const client = await connect((iframe) =>
       service.attachBackground(iframe, {

@@ -36,7 +36,8 @@ package; Freeboard depends on it (`^0.16.0`) and imports its host entry point
 
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
-`widgets`, `panels.iframe`, `buttons`, `signalk.stream`, `signalk.put`, `units`,
+`widgets`, `panels.iframe`, `buttons`, `events.publish`, `signalk.stream`,
+`signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`.
 
@@ -63,6 +64,47 @@ usual topology. See the API spec's *Embedding Hosts* section for the contract.
   `embedding-host` scope (one embedder per server in practice).
 - The legacy parent-`postMessage` night-mode bridge in `app.facade.ts`
   (`parseMessageFromParent`) is retained for backward compatibility.
+
+## The `events.publish` capability
+
+`events.publish` lets an extension context publish an event of its own onto the
+bus, and the `publish` toolbar button action (deprecated alias `sendMessage`) is
+the same operation triggered by the user. See the API spec's *Publishing events*.
+
+### Delivery
+
+Freeboard already had both routes a published event needs, the same ones its own
+host events use. Both are subscription-gated through `HostConnection.publish()`:
+
+- **`scope: "all"`** (default) → `broadcastMessage()`, every live context in any
+  extension, the embedding host included.
+- **`scope: "extension"`** → `publishToExtension()`, the contexts whose
+  `extension` is the publisher's. The embedding host is its own extension
+  (`embedding-host`).
+
+The publisher receives its own event if it subscribed, and nothing marks the
+event as extension-published. Validation (`*`, `bus.*`, scope) is the bus's
+`parsePublishParams()`, so it matches every other host.
+
+### Methods and buttons
+
+The handler is a pure factory (`events-methods.ts`), spread into every context's
+method table with the context's extension. Its `publishEvent()` is also what
+`handleButtonAction` calls for a `publish` or `sendMessage` button, on behalf of
+the button's extension. A button with an invalid `topic` or `scope` is logged
+with `console.warn` and does nothing; a button press never throws.
+
+### Error reasons
+
+`events.badRequest` (missing or empty `topic`, a `topic` containing `*` or in
+the `bus.*` namespace, an unknown `scope`).
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/events-methods.ts` | the `events.publish` handler and `publishEvent()` routing |
+| `src/app/modules/plotterext/plotterext.service.ts` | binds it (`eventsDeps`), `broadcastMessage` / `publishToExtension`, the `publish` / `sendMessage` button |
 
 ## The `routes` capability
 
