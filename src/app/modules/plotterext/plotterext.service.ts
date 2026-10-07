@@ -2111,9 +2111,9 @@ export class PlotterExtensionService {
    * Broadcast a custom event to every live extension context (any extension).
    * Like publishToExtension, delivery is subscription-gated — publish() only
    * reaches a context that subscribed to the topic — so this is a shared,
-   * opt-in message bus, not a spam channel. Used by `sendMessage` buttons; the
-   * cross-extension reach is what lets a federation of plugins talk over
-   * namespaced topics.
+   * opt-in message bus, not a spam channel. It is the `scope: 'all'` route for
+   * `events.publish` and `publish`/`sendMessage` buttons; the cross-extension
+   * reach is what lets a federation of plugins talk over namespaced topics.
    */
   private broadcastMessage(event: string, params: unknown) {
     for (const ctx of this.contexts) {

@@ -148,6 +148,7 @@ test('MCP relays tool calls through the bridge to a runtime', async (t) => {
   const names = list.body.result.tools.map((tool) => tool.name);
   assert.ok(names.includes('fsk_call'));
   assert.ok(names.includes('fsk_get_view'));
+  assert.ok(names.includes('fsk_publish'));
 
   // Poll until the runtime's async hello has registered, rather than sleeping.
   let sessions = [];

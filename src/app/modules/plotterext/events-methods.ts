@@ -33,7 +33,7 @@ export interface EventsMethodsDeps {
 export function publishEvent(
   deps: EventsMethodsDeps,
   extension: string,
-  request: { topic?: unknown; params?: unknown; scope?: unknown }
+  request: unknown
 ): void {
   const { topic, params, scope } = parsePublishParams(request);
   if (scope === 'extension') {
@@ -49,7 +49,7 @@ export function createEventsMethods(
 ): Record<string, MethodHandler> {
   return {
     'events.publish': async (params) => {
-      publishEvent(deps, extension, (params ?? {}) as object);
+      publishEvent(deps, extension, params);
       return {};
     }
   };

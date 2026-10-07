@@ -83,12 +83,14 @@ const TOOLS = [
           description: 'Event name to publish, e.g. "poi-search.refresh".'
         },
         params: {
-          description: 'Optional payload, delivered unchanged as the event params.'
+          description:
+            'Optional payload, delivered unchanged as the event params.'
         },
         scope: {
           type: 'string',
           enum: ['all', 'extension'],
-          description: "Who may receive it. Default 'all' (every subscribed context)."
+          description:
+            "Who may receive it. Default 'all' (every subscribed context)."
         }
       },
       ['topic']

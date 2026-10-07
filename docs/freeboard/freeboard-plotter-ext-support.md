@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.16.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.17.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works

@@ -310,6 +310,17 @@ describe('PlotterExtensionService iframe contexts', () => {
       expect(seen.sort()).toEqual(['a-panel:undefined', 'a-runtime:undefined']);
     });
 
+    it('a publish button with no scope reaches every extension', async () => {
+      const { seen } = await family('ext-a.refresh');
+      service.handleButtonAction('ext-a', {
+        id: 'b',
+        title: 'B',
+        action: { type: 'publish', topic: 'ext-a.refresh', params: 5 }
+      });
+      await settle();
+      expect(seen.sort()).toEqual(['a-panel:5', 'a-runtime:5', 'b-runtime:5']);
+    });
+
     it('sendMessage is an alias of publish and defaults to every extension', async () => {
       const { seen } = await family('ext-a.refresh');
       service.handleButtonAction('ext-a', {
