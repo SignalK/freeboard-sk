@@ -263,6 +263,7 @@ required and optional capabilities and lists your contributions. A real one
 | ------------------- | ------------------------------------------------------------- |
 | `widgets`           | Contribute chart-overlay widgets (and config panels)          |
 | `panels.iframe`     | Contribute iframe panels                                      |
+| `panels.state`      | Know when your panels are on screen (`ui.listPanels`, `panel.state` event) |
 | `buttons`           | Add toolbar buttons                                           |
 | `events.publish`    | Publish your own events onto the bus (`client.publish`)       |
 | `signalk.stream`    | Subscribe to live SK path values (`client.signalk.subscribe`) |
@@ -707,6 +708,48 @@ On a host without `events.publish`, `client.publish` fails and a `publish`
 button does nothing. A manifest that must still work there uses the deprecated
 `sendMessage` action type without a `scope`; it reaches every subscribed
 context.
+
+## Knowing when your panel is on screen
+
+A `keepAlive` panel stays loaded when the user closes it or opens another panel
+in its place, so it keeps running out of sight. With the `panels.state`
+capability (list it under `optional`) it can tell, and stop work nobody can
+see: here a panel showing a camera feed drops the stream while hidden.
+
+```js
+const client = await connectExtension() // a keepAlive panel
+const self = client.context.id
+
+function apply({ visible }) {
+  if (visible) startStream()
+  else stopStream()
+}
+
+if (client.hasCapability('panels.state')) {
+  // Subscribe first, then read the current state, so no change is missed.
+  await client.subscribe(['panel.state'], (_name, state) => {
+    if (state.panel === self) apply(state)
+  })
+  const { panels } = await client.call('ui.listPanels')
+  apply(panels.find((p) => p.panel === self) ?? { visible: true })
+} else {
+  startStream() // no visibility reports: behave as before
+}
+```
+
+Things to know:
+
+- **Every context of your extension gets the event**, not only the panel it is
+  about, so a background runtime can follow whether its panels are showing.
+  Filter on `panel` (and `targetInstance` for a configuration panel).
+- **`visible` is the host's presentation**, not the browser tab: a hidden tab
+  leaves it `true`. Combine it with `document.visibilityState` if you care
+  about both.
+- **`collapsed`** means the host shows the panel reduced to its header. The
+  panel is still `visible`; decide for yourself whether that counts as out of
+  sight. Hosts without the feature always report `false`.
+- A panel in a floating window is a `window` context: follow it with
+  `window.state` instead (see *Windows* below).
 
 ## Windows
 
