@@ -241,6 +241,29 @@ describe('unlinkedTargets', () => {
     expect([...unlinkedTargets(targets, new Map()).keys()]).toEqual([RADAR]);
   });
 
+  it('places linked targets at the one that reported last', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR);
+    target(targets, CAMERA, RADAR);
+    targets.get(RADAR).positionUpdatedAt = 1000;
+    targets.get(CAMERA).positionUpdatedAt = 2000;
+    targets.get(CAMERA).position = [4.3, 52.2];
+    const shown = unlinkedTargets(targets, new Map()).get(RADAR);
+    expect(shown.position).toEqual([4.3, 52.2]);
+    expect(shown).toBeInstanceOf(SKSensorTarget);
+    expect(targets.get(RADAR).position).toEqual([4.2, 52.1]);
+  });
+
+  it('keeps a target that reported after the targets linked to it', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR);
+    target(targets, CAMERA, RADAR);
+    targets.get(RADAR).positionUpdatedAt = 3000;
+    targets.get(CAMERA).positionUpdatedAt = 2000;
+    const shown = unlinkedTargets(targets, new Map());
+    expect(shown.get(RADAR)).toBe(targets.get(RADAR));
+  });
+
   it('follows a chain of links to the vessel at its end', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);

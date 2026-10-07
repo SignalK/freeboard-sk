@@ -1090,10 +1090,15 @@ function parseStreamMessage(data: SKStreamMessage) {
 
           case 'targets': {
             // radar, camera and other sensor targets
-            // A vessel a target is linked to is drawn at the fresher of the
-            // two positions, so it is redrawn when the target moves.
+            // A vessel or target a target is linked to is drawn at the
+            // freshest of their positions, so it is redrawn when the target
+            // moves.
             const linkedTo = vessels.targets.get(data.context)?.sameAs;
-            if (linkedTo && vessels.aisTargets.has(linkedTo)) {
+            if (
+              linkedTo &&
+              (vessels.aisTargets.has(linkedTo) ||
+                vessels.targets.has(linkedTo))
+            ) {
               targetStatus.updated[linkedTo] = true;
             }
             if (
@@ -1106,6 +1111,14 @@ function parseStreamMessage(data: SKStreamMessage) {
               )
             ) {
               targetStatus.expired[data.context] = true;
+              break;
+            }
+            // The radius filter waits for the first position, so a link
+            // that arrives before it is kept.
+            if (
+              targetFilter?.signalk.vessels &&
+              !vessels.targets.get(data.context)?.positionReceived
+            ) {
               break;
             }
             filterContext(
@@ -1608,7 +1621,10 @@ function processAISStatus() {
     if (isSilent(v, now)) {
       targetStatus.expired[k] = true;
       vessels.targets.delete(k);
-      if (v.sameAs && vessels.aisTargets.has(v.sameAs)) {
+      if (
+        v.sameAs &&
+        (vessels.aisTargets.has(v.sameAs) || vessels.targets.has(v.sameAs))
+      ) {
         targetStatus.updated[v.sameAs] = true;
       }
     }
