@@ -921,6 +921,53 @@ that state through the resource list's **select-all** toggle, which calls
 an all-inclusive array behind, which still counts as filtered and silently masks
 the bug. Confirm the config value before concluding anything from a manual repro.
 
+### End-to-end testing a host API feature no extension uses yet: a throwaway probe plugin
+
+**The trap.** A new Plotter Extensions host capability usually lands before any
+extension uses it, so there is nothing in the running app to exercise it with.
+The obvious substitutes don't test the real thing:
+
+- The specs (e.g. `plotterext.contexts.spec.ts`) drive real bus clients, but
+  through jsdom iframes with a hand-built transport. No manifest discovery, no
+  served assets, no toolbar.
+- `fsk-mcp` is a single extension (`fsk-mcp`). It can't show anything that
+  depends on *which* extension sent or received a message, such as per-extension
+  scoping. For many host bugs, reading the result back over the same API is also
+  circular (see *Verifying a host-vs-extension bug through the extension API is
+  circular* above).
+
+**What to do instead.** Write a throwaway probe plugin and link it into the
+`node_modules` of the config directory of a Signal K server you own (not a shared
+one). The plugin needs three things:
+
+1. **Register a `plotterExtensions` resource provider.** Return one manifest per
+   extension you need, for example `probe-a` and `probe-b` to test scoping.
+2. **Give each manifest a background runtime,** plus any toolbar `buttons` you
+   want to click. Serve the runtime page with `express.static` under a path such
+   as `/plotterext/<probe>/`.
+3. **In the runtime,** bundle the bus client with esbuild, `connectExtension()`,
+   subscribe to the topics under test, and record what arrives on
+   `window.__probe`, including a `publish` (or other) function to trigger.
+
+Freeboard's extension iframes are **same-origin** (`sandbox="allow-scripts
+allow-same-origin allow-forms"`). So from the Freeboard page (devtools, or an
+agent's JavaScript tool) you can reach each probe through
+`iframe.contentWindow.__probe`, read its log and call its functions. You don't
+need a server endpoint or a log-collection channel. Clicking the probe's toolbar
+buttons in the UI then tests the button path for real.
+
+Two snags:
+
+- **A linked plugin can't `require('express')`.** Node resolves modules from the
+  plugin's *real* path, which is outside the server's tree. Require it by the
+  server's absolute path (`<server>/node_modules/express`), or give the probe its
+  own dependency.
+- **Nothing loads before sign-in** on a server with security on. The
+  `plotterExtensions` resource answers 401, so Freeboard discovers no extensions.
+  Sign in before looking for the probe iframes.
+
+Delete the probe when you're done. It is a test fixture, not something to commit.
+
 ### Driving Freeboard through `fsk-mcp`: target your own tab — a move sent to a background tab lands later
 
 **The trap.** `fsk_list_sessions` lists **every** connected Freeboard tab: the
