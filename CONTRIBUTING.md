@@ -60,6 +60,7 @@ Before you open a PR (full detail in [`AGENTS.md`](AGENTS.md)):
 4. Add or extend tests for new behaviour, and run them:
    ```sh
    npm run format
+   npm run lint         # CI runs ESLint as its own gate
    npm run build:all
    npm run test:ci      # runs tests once and exits (not `npm test`, which watches)
    ```
