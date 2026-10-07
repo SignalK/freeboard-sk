@@ -11,6 +11,7 @@ export const HOST_API_VERSION = '1';
 export const HOST_CAPABILITIES = [
   'widgets',
   'panels.iframe',
+  'panels.state',
   'buttons',
   'events.publish',
   'signalk.stream',

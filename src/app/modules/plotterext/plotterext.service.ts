@@ -7,7 +7,7 @@
 //   - one HostConnection (signalk-plotterext-bus) per live iframe context
 //   - host API methods: state.get/set, signalk.subscribe/unsubscribe/put,
 //     ui.openPanel/togglePanel, ui.openConfigPanel/toggleConfigPanel,
-//     ui.closePanel
+//     ui.closePanel, ui.listPanels (+ the panel.state event)
 //   - a single multiplexed delta WebSocket relaying subscribed Signal K paths
 //     to widget contexts as sk.<path> events
 //
@@ -46,6 +46,7 @@ import {
   MethodHandler,
   type NightModeState,
   normalizeBounds,
+  type PanelState,
   RoutePoint,
   RpcError,
   RPC_ERRORS,
@@ -353,7 +354,83 @@ export class PlotterExtensionService {
     return this.openPanel(extension, panelId);
   }
 
-  /** `ui.openPanel` / `ui.togglePanel` for an extension context. */
+  // ---------- panel state (capability `panels.state`) ----------
+
+  /**
+   * Every loaded panel's state, keyed: drawer panels (visible while the drawer
+   * shows them) and open configuration dialogs (always visible while open).
+   * Freeboard has no panel collapse, so `collapsed` is always false.
+   */
+  private readonly panelStates = computed(() => {
+    const states = new Map<string, { extension: string; state: PanelState }>();
+    for (const p of this.openPanels()) {
+      states.set(`drawer:${p.key}`, {
+        extension: p.extension,
+        state: { panel: p.panel.id, visible: p.visible, collapsed: false }
+      });
+    }
+    for (const c of this.configPanels()) {
+      states.set(`config:${c.id}`, {
+        extension: c.extension,
+        state: {
+          panel: c.panel,
+          visible: true,
+          collapsed: false,
+          targetInstance: c.targetInstance
+        }
+      });
+    }
+    return states;
+  });
+
+  /** `ui.listPanels`: the loaded panels of one extension. */
+  listPanels(extension: string): PanelState[] {
+    return [...this.panelStates().values()]
+      .filter((s) => s.extension === extension)
+      .map((s) => s.state);
+  }
+
+  /** Panel states last reported, for diffing into `panel.state` events. */
+  private prevPanelStates = new Map<
+    string,
+    { extension: string; state: PanelState }
+  >();
+
+  /**
+   * Emit `panel.state` to the owning extension for each panel whose visibility
+   * changed since the last run, whatever changed it (origin-transparent). A
+   * panel that left the registry while visible — an `onOpen` panel dropped, a
+   * config dialog closed — reports `visible: false`; one already hidden is
+   * silent, as is any panel whose state did not change. Hides go out before
+   * shows, so a switch never looks like two panels on screen at once.
+   */
+  private emitPanelStates(
+    states: Map<string, { extension: string; state: PanelState }>
+  ): void {
+    const prev = this.prevPanelStates;
+    this.prevPanelStates = states;
+    const changed: Array<{ extension: string; state: PanelState }> = [];
+    for (const [key, old] of prev) {
+      if (!states.has(key) && old.state.visible) {
+        changed.push({
+          extension: old.extension,
+          state: { ...old.state, visible: false }
+        });
+      }
+    }
+    for (const [key, cur] of states) {
+      // a panel not loaded before counts as hidden: loading it hidden is no change
+      if ((prev.get(key)?.state.visible ?? false) !== cur.state.visible) {
+        changed.push(cur);
+      }
+    }
+    changed.sort((x, y) => Number(x.state.visible) - Number(y.state.visible));
+    for (const c of changed) {
+      this.publishToExtension(c.extension, 'panel.state', c.state);
+    }
+  }
+
+  /** `ui.openPanel` / `ui.togglePanel` / `ui.listPanels` for an extension context. */
   private uiPanelMethods(extension: string): Record<string, MethodHandler> {
     const requirePanel = (params: unknown): string => {
       const panel = (params as { panel?: string } | undefined)?.panel;
@@ -385,7 +462,8 @@ export class PlotterExtensionService {
           });
         }
         return {};
-      }
+      },
+      'ui.listPanels': async () => ({ panels: this.listPanels(extension) })
     };
   }
 
@@ -789,6 +867,14 @@ export class PlotterExtensionService {
     // map.fitBounds (origin-transparent). mapExtent is written once per OL
     // moveend, so the effect fires per settled change, not per frame.
     effect(() => this.emitMapViewChange(this.mapView()));
+    // Emit `panel.state` whenever a loaded panel is shown or hidden — the
+    // drawer's close button, a panel switch, any extension's ui.* call, a
+    // config dialog opening or closing (origin-transparent). The registry
+    // signals are the trigger; publishing is not.
+    effect(() => {
+      const states = this.panelStates();
+      untracked(() => this.emitPanelStates(states));
+    });
   }
 
   /**
@@ -1942,6 +2028,21 @@ export class PlotterExtensionService {
   private configDialogRef: MatDialogRef<unknown> | null = null;
   private configDialogInstance: string | null = null;
 
+  /**
+   * Configuration panels loaded in an open dialog, for `panels.state`. A list,
+   * not one slot: an extension can open a second widget's dialog over the
+   * first, and each must report its own close.
+   */
+  private readonly configPanels = signal<
+    Array<{
+      id: number;
+      extension: string;
+      panel: string;
+      targetInstance: string;
+    }>
+  >([]);
+  private configPanelSeq = 0;
+
   /** Whether a placed widget has a usable iframe configuration panel. */
   widgetHasConfigPanel(placed: PlacedWidget): boolean {
     const manifest = this.manifests()[placed.extension];
@@ -1979,10 +2080,28 @@ export class PlotterExtensionService {
       });
       this.configDialogRef = ref;
       this.configDialogInstance = placed.instanceId;
+      // A dialog without an iframe panel (remove-only) loads no panel.
+      const configId = panel ? ++this.configPanelSeq : null;
+      if (panel) {
+        this.configPanels.update((list) => [
+          ...list,
+          {
+            id: configId as number,
+            extension: placed.extension,
+            panel: panel.id,
+            targetInstance: placed.instanceId
+          }
+        ]);
+      }
       ref.afterClosed().subscribe(() => {
         if (this.configDialogRef === ref) {
           this.configDialogRef = null;
           this.configDialogInstance = null;
+        }
+        if (configId !== null) {
+          this.configPanels.update((list) =>
+            list.filter((c) => c.id !== configId)
+          );
         }
       });
     });

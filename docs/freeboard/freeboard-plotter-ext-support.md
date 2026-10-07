@@ -36,7 +36,7 @@ package; Freeboard depends on it (`^0.17.0`) and imports its host entry point
 
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
-`widgets`, `panels.iframe`, `buttons`, `events.publish`, `signalk.stream`,
+`widgets`, `panels.iframe`, `panels.state`, `buttons`, `events.publish`, `signalk.stream`,
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`.
@@ -330,6 +330,62 @@ neither field present), `nightMode.notSupported`.
 | `src/app/modules/plotterext/nightmode-methods.ts` | the `nightMode.*` handlers + param validation |
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers (`readNightMode`/`applyNightMode`) and emits `nightMode.changed` (`emitNightModeChange`) |
 | `src/app/modules/skstream/skstream.facade.ts` | `selfNightMode` signal + `refreshSelfNightMode()` |
+
+## The `panels.state` capability
+
+`panels.state` lets an extension follow whether each of its loaded panels is on
+screen: `ui.listPanels` returns them, and the `panel.state` event reports each
+change. Its first user is a `keepAlive` panel hosting webapps that must unload
+the moment the panel leaves the screen. See the API spec's *Panel state*.
+
+### What counts as visible in Freeboard
+
+- **Drawer panels.** The drawer shows one panel at a time; a panel is `visible`
+  while it is that one. A `keepAlive` panel that was closed or switched away from
+  stays loaded and is listed with `visible: false`. An `onOpen` panel is
+  destroyed when hidden, so it leaves the list.
+- **Configuration panels.** Visible while their dialog is open, with
+  `targetInstance` set to the widget instance being configured. Closing the
+  dialog unloads the panel. A dialog for a widget with no usable config panel
+  (the remove-only dialog) loads no panel and is not listed.
+- **`collapsed` is always `false`.** Freeboard has no panel collapse.
+- **Windows are not panels here.** A panel shown in a window is a `window`
+  context, reported by `ui.listWindows` / `window.state`.
+- **The embedding host** has no manifest, so its list is always empty.
+
+### Methods and events
+
+`ui.listPanels` → `{ panels }` is in every context's method table (beside
+`ui.openPanel` / `ui.togglePanel`) and is built from one `panelStates` computed
+over the drawer registry (`openPanels`) and the open config dialogs
+(`configPanels`).
+
+`panel.state` comes from an `effect` on that computed, which diffs it against
+the last reported states (`emitPanelStates`). Because it watches the registry
+rather than the code paths that change it, every origin is covered: the drawer's
+close button, a panel switch, a toolbar button, and any extension's `ui.*` call.
+It is sent with `publishToExtension`, so only the owning extension's subscribed
+contexts receive it. Details:
+
+- **Transitions only.** A panel whose `visible` did not change sends nothing,
+  and changes inside one effect run collapse to their net result: a panel opened
+  and replaced before the effect runs sends nothing for the first panel.
+- **Hides before shows.** A switch reports the old panel hidden before the new
+  one shown.
+- **Unloading while visible** (an `onOpen` panel replaced or closed, a config
+  dialog closed) reports `visible: false` to the extension's other contexts.
+
+### Error reasons
+
+None in Freeboard. `ui.listPanels` takes no parameters and cannot fail, and
+`panels.notSupported` is the spec's reason for a host without the capability.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/plotterext.service.ts` | `panelStates`, `listPanels`, `emitPanelStates`, the `ui.listPanels` handler, `configPanels` tracking in `openConfigPanel` |
+| `src/app/modules/plotterext/plotterext.panel-state.spec.ts` | the capability end to end over real bus clients |
 
 ## The `windows` capability
 
