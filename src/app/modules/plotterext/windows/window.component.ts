@@ -529,6 +529,7 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
   };
 
   ngOnDestroy() {
+    this.frame.nativeElement.removeEventListener('load', this.watchEscape);
     this.endGesture();
     clearTimeout(this.barTimer);
     this.detach?.();

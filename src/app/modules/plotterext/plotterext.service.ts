@@ -24,7 +24,8 @@ import {
   effect,
   inject,
   isDevMode,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -744,6 +745,11 @@ export class PlotterExtensionService {
     this.windows.changes.subscribe((c) =>
       this.publishToExtension(c.extension, c.event, c.payload)
     );
+    // Keep windows in step with the collection, whoever updates it.
+    effect(() => {
+      this.manifests();
+      untracked(() => this.syncWindows());
+    });
     // Relay every group apply — the user's Resource Groups checkbox or an
     // extension's resourceGroup.apply — as `resourceGroup.applied`
     // (origin-transparent). App-lifetime singleton: lives for the session.
@@ -1346,7 +1352,6 @@ export class PlotterExtensionService {
       this.manifests.set({});
     }
     this.refreshActiveWidgets();
-    this.syncWindows();
     this.initialized.set(true);
     this.attachEmbeddingHostOnce();
   }

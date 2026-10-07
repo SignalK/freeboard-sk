@@ -243,7 +243,7 @@ describe('PlotterExtensionService windows', () => {
       panel: 'viewer'
     })) as WindowState;
     service.manifests.set({ 'ext-b': manifest('ext-b') });
-    (service as unknown as { syncWindows(): void }).syncWindows();
+    TestBed.tick();
     expect(windows.get(w.windowId)).toBeUndefined();
   });
 
