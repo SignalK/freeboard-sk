@@ -284,6 +284,7 @@ export interface IAppConfig {
     weatherWindEnabled: boolean;
     oceanCurrentsEnabled: boolean;
     tidalCurrentsEnabled: boolean;
+    chartsInViewOnly: boolean; // chart list shows only charts in the map view
   };
 }
 

@@ -118,6 +118,7 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   ngOnInit() {
+    this.inViewOnly = this.app.config.selections.chartsInViewOnly;
     this.app.data.chartBounds.show = false;
     this.app.data.chartBounds.charts = [];
     this.initItems();
@@ -434,10 +435,13 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   /**
-   * @description Toggle filtering of the chart list to the current map view.
+   * @description Toggle filtering of the chart list to the current map view,
+   * remembering the choice for the next time the list opens.
    */
   protected toggleInViewOnly(checked: boolean) {
     this.inViewOnly = checked;
+    this.app.config.selections.chartsInViewOnly = checked;
+    this.app.saveConfig();
     this.doFilter();
   }
 

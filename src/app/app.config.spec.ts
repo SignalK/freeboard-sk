@@ -192,6 +192,25 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels.trailResolution.beyond24).toBe('5m');
   });
 
+  it('limits the chart list to charts in view by default', () => {
+    expect(defaultConfig().selections.chartsInViewOnly).toBe(true);
+  });
+
+  it('turns the chart list in-view filter on for a config saved without it', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    delete (cfg.selections as Partial<IAppConfig['selections']>)
+      .chartsInViewOnly;
+    cleanConfig(cfg, {});
+    expect(cfg.selections.chartsInViewOnly).toBe(true);
+  });
+
+  it('keeps the chart list in-view filter off once the user turned it off', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.selections.chartsInViewOnly = false;
+    cleanConfig(cfg, {});
+    expect(cfg.selections.chartsInViewOnly).toBe(false);
+  });
+
   it('drops the legacy selections.notes section', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});
