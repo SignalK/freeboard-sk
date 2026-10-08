@@ -673,9 +673,10 @@
           [units]="scaleUnits()"
           [canSave]="isUnsavedRoute()"
           [canStart]="isDraftRoute()"
+          [canReverse]="canReverseRoute()"
           (modify)="modifyFeature(); popoverClosed()"
           (save)="saveRouteFromPopover(); popoverClosed()"
-          (reverse)="reverseDraftRoute()"
+          (reverse)="reverseRoute()"
           (delete)="
             deleteFeature(overlay().id, overlay().type); popoverClosed()
           "

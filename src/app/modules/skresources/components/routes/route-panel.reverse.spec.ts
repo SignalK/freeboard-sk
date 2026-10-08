@@ -14,11 +14,13 @@ import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.se
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKRoute } from '../../resource-classes';
 import { Position } from 'src/app/types';
+import { GeoUtils } from 'src/app/lib/geoutils';
 
 /**
  * REVERSE turns a route round. The route being followed is turned round by the
  * Course API; a drawn route that was never saved (a draft) has no course yet,
- * so its points are turned round before START follows it.
+ * so its points are turned round before START follows it; a saved route is
+ * turned round on the server.
  */
 describe('RoutePanel REVERSE', () => {
   const coords: Position[] = [
@@ -30,12 +32,27 @@ describe('RoutePanel REVERSE', () => {
   let registry: RouteBufferRegistry;
   let courseReverse: ReturnType<typeof vi.fn>;
   let data: { activeRoute: string | null; activeRouteReversed: boolean };
+  // the route cache, by id
+  let cached: Map<string, SKRoute>;
+  let updateRouteCoords: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     registry = new RouteBufferRegistry();
     courseReverse = vi.fn();
     data = { activeRoute: null, activeRouteReversed: false };
+    cached = new Map();
+    // like the real one: rewrites the cached route in place
+    updateRouteCoords = vi.fn(
+      async (id: string, c: Position[], meta?: Array<{ name: string }>) => {
+        const route = cached.get(id);
+        route.feature.geometry.coordinates = c;
+        if (meta) {
+          route.feature.properties.coordinatesMeta = meta;
+        }
+        return true;
+      }
+    );
     TestBed.overrideComponent(RoutePanel, {
       set: { template: '', imports: [] }
     });
@@ -55,7 +72,9 @@ describe('RoutePanel REVERSE', () => {
           provide: SKResourceService,
           useValue: {
             getRelatedNotes: async () => [],
-            fromCache: () => undefined
+            fromCache: (_c: string, id: string) =>
+              cached.has(id) ? [id, cached.get(id), true] : undefined,
+            updateRouteCoords
           }
         },
         { provide: RouteBufferRegistry, useValue: registry },
@@ -72,26 +91,39 @@ describe('RoutePanel REVERSE', () => {
     });
   });
 
-  const open = (id: string) => {
+  const route = (readOnly = false) =>
+    new SKRoute({
+      name: 'Harbour run',
+      feature: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [...coords] },
+        properties: {
+          coordinatesMeta: names.map((name) => ({ name })),
+          ...(readOnly ? { readOnly } : {})
+        }
+      }
+    });
+
+  const open = (id: string, shown: SKRoute = route()) => {
     const fixture = TestBed.createComponent(RoutePanel);
     fixture.componentRef.setInput('id', id);
-    fixture.componentRef.setInput(
-      'route',
-      new SKRoute({
-        name: 'Harbour run',
-        feature: {
-          type: 'Feature',
-          geometry: { type: 'LineString', coordinates: coords },
-          properties: { coordinatesMeta: names.map((name) => ({ name })) }
-        }
-      })
-    );
+    fixture.componentRef.setInput('route', shown);
     fixture.detectChanges();
     return fixture.componentInstance as unknown as {
       canReverse: () => boolean;
-      onReverse: () => void;
+      isUnsaved: () => boolean;
+      isDraft: () => boolean;
+      onReverse: () => Promise<void>;
       points: () => Array<{ name: string }>;
+      _route: () => SKRoute;
     };
+  };
+
+  /** A saved route, shown in the panel as the very object the cache holds. */
+  const saved = (id: string, readOnly = false) => {
+    const r = route(readOnly);
+    cached.set(id, r);
+    return open(id, r);
   };
 
   const draft = () =>
@@ -99,12 +131,12 @@ describe('RoutePanel REVERSE', () => {
       points: coords.map((position, i) => ({ position, name: names[i] }))
     }).routeId;
 
-  it('turns a draft round, its points and their names, before it is started', () => {
+  it('turns a draft round, its points and their names, before it is started', async () => {
     const id = draft();
     const panel = open(id);
 
     expect(panel.canReverse()).toBe(true);
-    panel.onReverse();
+    await panel.onReverse();
 
     expect(registry.get(id).points.map((p) => p.position)).toEqual(
       [...coords].reverse()
@@ -116,29 +148,181 @@ describe('RoutePanel REVERSE', () => {
     expect(courseReverse).not.toHaveBeenCalled();
   });
 
-  it('turns it back again', () => {
+  it('keeps the route listed turned round through change detection', async () => {
     const id = draft();
     const panel = open(id);
 
-    panel.onReverse();
-    panel.onReverse();
+    await panel.onReverse();
+    TestBed.tick();
+
+    expect(panel.points().map((p) => p.name)).toEqual([...names].reverse());
+  });
+
+  it('initialises again for a new route id', async () => {
+    const notes = TestBed.inject(SKResourceService) as unknown as {
+      getRelatedNotes: (collection: string, id: string) => Promise<unknown[]>;
+    };
+    const asked = vi.spyOn(notes, 'getRelatedNotes');
+    const fixture = TestBed.createComponent(RoutePanel);
+    fixture.componentRef.setInput('id', 'rte-1');
+    fixture.componentRef.setInput('route', route());
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('id', 'rte-2');
+    fixture.detectChanges();
+
+    expect(asked).toHaveBeenCalledWith('routes', 'rte-2');
+  });
+
+  it('turns it back again', async () => {
+    const id = draft();
+    const panel = open(id);
+
+    await panel.onReverse();
+    await panel.onReverse();
 
     expect(registry.get(id).points.map((p) => p.position)).toEqual(coords);
     expect(panel.points().map((p) => p.name)).toEqual(names);
   });
 
-  it('turns the route being followed round through the course', () => {
-    data.activeRoute = 'rte-1';
-    const panel = open('rte-1');
+  it('lists the edited points turned round for a saved route with unsaved edits', async () => {
+    // the panel still shows the saved route; the buffer holds an edit that
+    // added a point
+    const edited = [
+      ...coords.map((position, i) => ({ position, name: names[i] })),
+      { position: [24.96, 60.18] as Position, name: 'Four' }
+    ];
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = open(routeId);
 
-    expect(panel.canReverse()).toBe(true);
-    panel.onReverse();
+    await panel.onReverse();
 
-    expect(courseReverse).toHaveBeenCalledOnce();
+    expect(registry.get(routeId).points.map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+    expect(panel.points().map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+    // the distance is that of the edited points, not of the saved route
+    expect(panel._route().distance).toBeCloseTo(
+      GeoUtils.routeLength(edited.map((p) => p.position)),
+      3
+    );
   });
 
-  it('is not offered for a stored route that is not being followed', () => {
+  it("lists a saved drawing's edits, as they change, when opened as the stored route", () => {
+    // the buffer adds a point the stored route does not have
+    const edited = [
+      ...coords.map((position, i) => ({ position, name: names[i] })),
+      { position: [24.96, 60.18] as Position, name: 'Four' }
+    ];
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = saved('rte-1');
+
+    expect(panel.points().map((p) => p.name)).toEqual([
+      'One',
+      'Two',
+      'Three',
+      'Four'
+    ]);
+
+    registry.replace(routeId, edited.slice(1));
+    TestBed.tick();
+
+    expect(panel.points().map((p) => p.name)).toEqual(['Two', 'Three', 'Four']);
+  });
+
+  it('lists the stored route as it is once its edits are saved', () => {
+    const { routeId } = registry.create({
+      points: coords.map((position, i) => ({ position, name: names[i] }))
+    });
+    registry.markSaved(routeId, 'rte-1');
+    const panel = saved('rte-1');
+
+    expect(panel.points().map((p) => p.name)).toEqual(names);
+  });
+
+  it("offers SAVE, not EDIT or START, for a saved drawing's edits shown as the stored route", () => {
+    const edited = coords.map((position, i) => ({ position, name: names[i] }));
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = saved('rte-1');
+
+    // SAVE replaces EDIT, and START is off for unsaved edits of a saved route
+    expect(panel.isUnsaved()).toBe(true);
+    expect(panel.isDraft()).toBe(false);
+  });
+
+  it("turns a saved drawing's edits round when opened as the stored route", async () => {
+    // the drawing's buffer stays keyed under its own id, the panel shows the
+    // stored route by the id the drawing was saved as
+    const edited = [
+      ...coords.map((position, i) => ({ position, name: names[i] })),
+      { position: [24.96, 60.18] as Position, name: 'Four' }
+    ];
+    const { routeId } = registry.create({ points: edited });
+    registry.markSaved(routeId, 'rte-1');
+    registry.replace(routeId, edited);
+    const panel = saved('rte-1');
+
+    await panel.onReverse();
+
+    expect(registry.get(routeId).points.map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+    expect(panel.points().map((p) => p.name)).toEqual([
+      'Four',
+      'Three',
+      'Two',
+      'One'
+    ]);
+    expect(updateRouteCoords).not.toHaveBeenCalled();
+    expect(cached.get('rte-1').feature.geometry.coordinates).toEqual(coords);
+  });
+
+  it('turns the route being followed round through the course', async () => {
+    data.activeRoute = 'rte-1';
+    const panel = saved('rte-1');
+
+    expect(panel.canReverse()).toBe(true);
+    await panel.onReverse();
+
+    expect(courseReverse).toHaveBeenCalledOnce();
+    expect(updateRouteCoords).not.toHaveBeenCalled();
+  });
+
+  it('turns a saved route round on the server, its points and their names', async () => {
     data.activeRoute = 'rte-other';
-    expect(open('rte-1').canReverse()).toBe(false);
+    const panel = saved('rte-1');
+
+    expect(panel.canReverse()).toBe(true);
+    await panel.onReverse();
+
+    expect(updateRouteCoords).toHaveBeenCalledWith(
+      'rte-1',
+      [...coords].reverse(),
+      [...names].reverse().map((name) => ({ name }))
+    );
+    expect(panel.points().map((p) => p.name)).toEqual([...names].reverse());
+    expect(courseReverse).not.toHaveBeenCalled();
+  });
+
+  it('is not offered for a read-only route that is not being followed', () => {
+    data.activeRoute = 'rte-other';
+    expect(saved('rte-1', true).canReverse()).toBe(false);
   });
 });

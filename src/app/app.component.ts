@@ -1949,10 +1949,11 @@ export class AppComponent {
   protected onRouteInfoEdit(id: string) {
     // The registry also mirrors clean saved routes, so route only an unsaved
     // draft / pending-edit buffer to the save flow; a clean saved route uses the
-    // normal route-details edit path.
-    const b = this.routeBuffers.get(id);
+    // normal route-details edit path. A saved drawing's buffer stays keyed
+    // under the drawing's id, so the stored route's id finds it by its href.
+    const b = this.routeBuffers.getForRoute(id);
     if (b && (!b.saved || b.dirty)) {
-      this.saveRouteBuffer(id);
+      this.saveRouteBuffer(b.routeId);
     } else {
       this.skres.editRouteInfo(id);
     }

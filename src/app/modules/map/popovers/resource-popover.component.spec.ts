@@ -38,7 +38,8 @@ function popover(
   canSave: boolean,
   readOnly = false,
   active?: string,
-  canStart = false
+  canStart = false,
+  canReverse = false
 ) {
   const c = Object.create(
     ResourcePopoverComponent.prototype
@@ -50,6 +51,7 @@ function popover(
     featureCount: () => 2,
     canSave: () => canSave,
     canStart: () => canStart,
+    canReverse: () => canReverse,
     app: appStub,
     _title: { set: () => undefined },
     hasMarkdown: { set: () => undefined },
@@ -180,25 +182,25 @@ describe('ResourcePopoverComponent — route Start for unsaved routes', () => {
 });
 
 /**
- * A drawn route that was never saved is turned round in its popover before
- * START follows it. The route being followed is turned round from the route
- * panel, through the course.
+ * The map decides whether REVERSE can turn a route round (RouteReverseService);
+ * the popover offers it on that word, for a draft, a saved route and the route
+ * being followed alike.
  */
-describe('ResourcePopoverComponent — route Reverse for drafts', () => {
-  it('offers REVERSE for a drawn route that was never saved', () => {
-    expect(popover(true, false, undefined, true).ctrl.showReverseButton).toBe(
-      true
-    );
+describe('ResourcePopoverComponent — route Reverse', () => {
+  it('offers REVERSE for a draft the map can turn round', () => {
+    expect(
+      popover(true, false, undefined, true, true).ctrl.showReverseButton
+    ).toBe(true);
   });
 
-  it('does not offer REVERSE for a saved route with pending edits', () => {
-    expect(popover(true, false, undefined, false).ctrl.showReverseButton).toBe(
-      false
-    );
+  it('offers REVERSE for a saved route the map can turn round', () => {
+    expect(
+      popover(false, false, undefined, false, true).ctrl.showReverseButton
+    ).toBe(true);
   });
 
-  it('does not offer REVERSE for a saved route', () => {
-    expect(popover(false).ctrl.showReverseButton).toBe(false);
+  it('does not offer REVERSE when the map cannot turn the route round', () => {
+    expect(popover(false, true).ctrl.showReverseButton).toBe(false);
   });
 });
 

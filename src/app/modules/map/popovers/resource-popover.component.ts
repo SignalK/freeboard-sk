@@ -325,6 +325,8 @@ export class ResourcePopoverComponent {
   /** Host-set: this unsaved route was drawn and never saved → Start follows it
    *  as a temporary route. */
   canStart = input<boolean>(false);
+  /** Host-set: REVERSE can turn this route round (see RouteReverseService). */
+  canReverse = input<boolean>(false);
   modify = output<void>();
   save = output<void>();
   delete = output<void>();
@@ -337,7 +339,7 @@ export class ResourcePopoverComponent {
   closed = output<void>();
   points = output<void>();
   notes = output<void>();
-  /** Turn a draft round, before START follows it. */
+  /** Turn the route round. */
   reverse = output<void>();
 
   protected _title = linkedSignal(() => this.title());
@@ -381,9 +383,7 @@ export class ResourcePopoverComponent {
       this.type() === 'route' || this.type() === 'region' ? 'MODIFY' : 'MOVE';
     // Save shortcut: only for an unsaved route (host-decided via canSave).
     this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
-    // A draft is turned round before START follows it; the route being
-    // followed is turned round from the route panel, through the course.
-    this.ctrl.showReverseButton = this.ctrl.showSaveButton && this.canStart();
+    this.ctrl.showReverseButton = this.type() === 'route' && this.canReverse();
     if (this.ctrl.showSaveButton) {
       // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
       // the actions that only work against a stored resource — Show Notes and

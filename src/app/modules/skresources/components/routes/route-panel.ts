@@ -7,7 +7,8 @@ import {
   input,
   linkedSignal,
   output,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
 import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.service';
@@ -39,7 +40,11 @@ import { CourseService } from 'src/app/modules/course';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { MatStepperModule } from '@angular/material/stepper';
 import { ActiveResourcePropertiesModal } from '../active-resource-dialog';
-import { editsRouteBuffer } from '../route-reorder.util';
+import {
+  coordinatesMetaFromPoints,
+  editsRouteBuffer
+} from '../route-reorder.util';
+import { RouteReverseService } from '../../route-reverse.service';
 import { routePointsMeta } from '../route-points-meta.util';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -78,13 +83,10 @@ export class RoutePanel {
   /** True when this id refers to a route with pending unsaved changes — a
    *  never-saved draft or a stored route edited but not yet re-saved: the panel
    *  shows "Save" instead of "Edit" and acts locally. A saved + clean buffer is
-   *  treated as a normal stored route (shows "Edit"). */
-  protected isUnsaved = computed(() => {
-    // Read the live() signal (not the plain get() Map lookup) so the Save/Edit
-    // label re-evaluates when the buffer's saved/dirty state changes.
-    const b = this.routeBuffers.live().find((x) => x.routeId === this.id());
-    return !!b && (!b.saved || b.dirty);
-  });
+   *  treated as a normal stored route (shows "Edit"). The same test as
+   *  hasUnsavedEdits(), which also finds a saved drawing's buffer, still keyed
+   *  under the drawing's id, by the id of the route it was saved as. */
+  protected isUnsaved = computed(() => this.hasUnsavedEdits());
   /** True for a drawn route that was never saved: START follows it as a
    *  temporary route. */
   protected isDraft = computed(() => {
@@ -92,8 +94,9 @@ export class RoutePanel {
     return !!b && !b.saved;
   });
   protected isTemporary = computed(() => isTemporaryRoute(this._route()));
-  /** REVERSE turns round the route being followed, or a draft before START. */
-  protected canReverse = computed(() => this.isDraft() || this.isActive());
+  /** How REVERSE turns this route round (see RouteReverseService). */
+  private reverseMode = computed(() => this.routeReverse.mode(this.id()));
+  protected canReverse = computed(() => this.reverseMode() !== null);
   /** Whether this is the route being followed. Read from course data so it
    *  updates when the course changes. */
   /** Whether this route has edits not yet saved to the server, whose point
@@ -125,6 +128,7 @@ export class RoutePanel {
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
   private routeBuffers = inject(RouteBufferRegistry);
+  private routeReverse = inject(RouteReverseService);
   private infoPanel = inject(InfoPanelFacade);
   protected course = inject(CourseService);
   private temporaryRoutes = inject(TemporaryRouteService);
@@ -135,8 +139,20 @@ export class RoutePanel {
 
   constructor() {
     effect(() => {
-      this.route();
-      this.init(this.route());
+      // Only a new route or id re-initialises the panel. init() reads the
+      // panel's own copy, and tracked, every change to that copy (the points
+      // after REVERSE) would run init() again and put the route given back.
+      const route = this.route();
+      this.id();
+      untracked(() => this.init(route));
+    });
+
+    effect(() => {
+      // Follows the edits as they change; init() lists them on opening.
+      this.routeBuffers.live();
+      if (this.hasUnsavedEdits()) {
+        untracked(() => this.showBuffer());
+      }
     });
 
     effect(() => {
@@ -168,7 +184,14 @@ export class RoutePanel {
     this.icon = getResourceIcon('routes', this._route());
     this.getRelatedNotes();
     this.getRelatedGroups();
-    this.parsePoints();
+    // A route with edits not yet saved lists the edits, as the chart shows
+    // them and SAVE and REVERSE act on them, also when the panel was opened
+    // with the stored route.
+    if (this.hasUnsavedEdits()) {
+      this.showBuffer();
+    } else {
+      this.parsePoints();
+    }
   }
 
   protected async getRelatedNotes() {
@@ -231,36 +254,53 @@ export class RoutePanel {
     this.edit.emit(this.id());
   }
 
-  protected onReverse() {
-    if (this.isDraft()) {
-      this.reverseDraft();
-    } else {
-      this.course.courseReverse();
+  protected async onReverse() {
+    const mode = this.reverseMode();
+    if (!(await this.routeReverse.reverse(this.id()))) {
+      return;
+    }
+    if (mode === 'buffer') {
+      this.showBuffer();
+    } else if (mode === 'stored') {
+      this.showStored();
     }
   }
 
-  /** Turn a draft round, point names and all, so START follows it the other
-   *  way. */
-  private reverseDraft() {
-    const buffer = this.routeBuffers.get(this.id());
+  /** Show the stored route as the server now has it. The write updates the
+   *  cached route in place, which may be the object this panel shows, so it
+   *  is read back rather than turned round a second time. */
+  private showStored() {
+    const stored = this.skres.fromCache('routes', this.id())?.[1];
+    if (stored) {
+      this._route.set(Object.assign(new SKRoute(), stored));
+      this.parsePoints();
+    }
+  }
+
+  /** Show the route as its edit buffer now has it. For a saved route with
+   *  unsaved edits, the panel's own copy can be the saved route without the
+   *  edits, so it is not simply turned round. */
+  private showBuffer() {
+    const buffer = this.routeBuffers.getForRoute(this.id());
     if (!buffer) {
       return;
     }
-    this.routeBuffers.replace(this.id(), [...buffer.points].reverse());
     const route = this._route();
-    const meta = route.feature.properties.coordinatesMeta;
+    const coordinates = buffer.points.map((p) => p.position);
+    const properties = { ...route.feature.properties };
+    const meta = coordinatesMetaFromPoints(buffer.points);
+    if (meta) {
+      properties.coordinatesMeta = meta;
+    } else {
+      delete properties.coordinatesMeta;
+    }
     this._route.set(
       Object.assign(new SKRoute(), route, {
+        distance: GeoUtils.routeLength(coordinates),
         feature: {
           ...route.feature,
-          geometry: {
-            ...route.feature.geometry,
-            coordinates: [...route.feature.geometry.coordinates].reverse()
-          },
-          properties: {
-            ...route.feature.properties,
-            ...(meta ? { coordinatesMeta: [...meta].reverse() } : {})
-          }
+          geometry: { ...route.feature.geometry, coordinates },
+          properties
         }
       })
     );
