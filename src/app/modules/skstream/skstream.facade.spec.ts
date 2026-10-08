@@ -133,25 +133,27 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
       worker: { postMessage: (msg: Msg) => void };
       postMapView: (extent: number[], zoom: number) => void;
       requestTrailFromServer: () => void;
+      refreshAllTrail: () => void;
       parseSelfTrail: (msg: { result: unknown }) => void;
     };
     facade.worker = { postMessage: (msg) => posted.push(msg) };
+    const config = {
+      vessels: {
+        trail: true,
+        trailDuration: TRAIL_DURATION_ALL,
+        trailResolution: { lastHour: '5s', next23: '1m', beyond24: '5m' },
+        ...vessels
+      }
+    };
     facade.app = {
-      config: {
-        vessels: {
-          trail: true,
-          trailDuration: TRAIL_DURATION_ALL,
-          trailResolution: { lastHour: '5s', next23: '1m', beyond24: '5m' },
-          ...vessels
-        }
-      },
+      config,
       serverTrailWanted: () => serverTrailWanted,
       trackSource: () => ({ api }),
       data: { serverTrail: true },
       selfTrailTimed: { set: () => undefined }
     };
     const trailRequests = () => posted.filter((m) => m.cmd === 'trail').length;
-    return { facade, trailRequests };
+    return { facade, trailRequests, vessels: config.vessels };
   };
 
   it('fetches the trail again when the zoom level changes', () => {
@@ -195,6 +197,19 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
     facade.postMapView([0, 50, 2, 51], 10.2);
     expect(trailRequests()).toBe(2);
     vi.restoreAllMocks();
+  });
+
+  it('fetches it again when the length is changed to All in the same view', () => {
+    const { facade, trailRequests, vessels } = facadeWith({
+      trailDuration: 24
+    });
+    facade.postMapView(extent, 10.2);
+    facade.requestTrailFromServer();
+    vessels.trailDuration = TRAIL_DURATION_ALL;
+    facade.refreshAllTrail();
+    expect(trailRequests()).toBe(2);
+    facade.refreshAllTrail();
+    expect(trailRequests()).toBe(2);
   });
 
   it('leaves a trail of a fixed length alone', () => {

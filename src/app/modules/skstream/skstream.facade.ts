@@ -106,10 +106,14 @@ export class SKStreamFacade {
   private watchDogAlarmSignal = signal<boolean>(false);
   readonly watchDogAlarm = this.watchDogAlarmSignal.asReadonly();
 
-  // The map view, and the padded box and zoom the trail was last fetched for
-  // (see postMapView()).
+  // The map view, and the padded box, zoom and trail length the trail was
+  // last fetched for (see postMapView()).
   private view: { extent: number[]; zoom: number } | null = null;
-  private trailFetched: { extent: number[]; zoom: number } | null = null;
+  private trailFetched: {
+    extent: number[];
+    zoom: number;
+    duration: number;
+  } | null = null;
 
   private positionStaleSignal = signal<boolean>(false);
   /** True when self position has not been updated for
@@ -174,7 +178,10 @@ export class SKStreamFacade {
     );
 
     // ** Handle app.config$ / settings.change$ events
-    this.settings.change$.subscribe(() => this.sendConfig());
+    this.settings.change$.subscribe(() => {
+      this.sendConfig();
+      this.refreshAllTrail();
+    });
     this.app.config$.subscribe((value: string) => {
       if (value === 'ready') {
         this.sendConfig();
@@ -345,7 +352,8 @@ export class SKStreamFacade {
   requestTrailFromServer() {
     this.trailFetched = this.view && {
       extent: padExtent(this.view.extent, TRAIL_BBOX_PAD),
-      zoom: this.view.zoom
+      zoom: this.view.zoom,
+      duration: this.app.config.vessels.trailDuration
     };
     this.worker.postMessage({
       cmd: 'trail',
@@ -364,12 +372,20 @@ export class SKStreamFacade {
   postMapView(extent: number[], zoom: number) {
     this.worker.postMessage({ cmd: 'view', options: { extent, zoom } });
     this.view = { extent, zoom };
+    this.refreshAllTrail();
+  }
+
+  /** With the trail length set to "All", fetch the trail again unless it was
+   * fetched as All for this zoom level and a box still around the view. */
+  private refreshAllTrail() {
     if (
+      this.view &&
       this.app.config.vessels.trail &&
       this.app.config.vessels.trailDuration === TRAIL_DURATION_ALL &&
       this.app.serverTrailWanted() &&
       this.app.trackSource()?.api === 'v2' &&
-      needsAisRefetch(this.trailFetched, this.view)
+      (this.trailFetched?.duration !== TRAIL_DURATION_ALL ||
+        needsAisRefetch(this.trailFetched, this.view))
     ) {
       this.requestTrailFromServer();
     }
