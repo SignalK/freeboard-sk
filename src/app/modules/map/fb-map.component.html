@@ -623,6 +623,22 @@
           } @else {
             <div style="opacity: 0.7">No recording times available</div>
           }
+          @if (th?.route) {
+            <div style="display: flex; flex-wrap: wrap">
+              <div style="flex: 1 1 auto">&nbsp;</div>
+              <div class="popover-action-button">
+                <button
+                  mat-button
+                  (click)="routeFromTrack()"
+                  matTooltip="Make a route of this passage, between the stops either side"
+                  matTooltipPosition="after"
+                >
+                  <mat-icon>insights</mat-icon>
+                  MAKE ROUTE
+                </button>
+              </div>
+            </div>
+          }
         </ap-popover>
       }
       @if (this.overlay().type === 'tidal') {

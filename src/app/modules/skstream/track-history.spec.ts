@@ -182,6 +182,22 @@ describe('track-history queries', () => {
 });
 
 describe('track-history parseHistoryTrack', () => {
+  it('keeps the thinning the provider reports', () => {
+    const fc = {
+      features: [
+        {
+          geometry: { type: 'MultiLineString', coordinates: [[[1, 1]]] },
+          properties: { resolution: 'PT30S', epsilon: 25 }
+        }
+      ]
+    };
+
+    expect(parseHistoryTrack('self', fc)).toMatchObject({
+      resolution: 'PT30S',
+      epsilon: 25
+    });
+  });
+
   const feature = (providerId: string, coords, coordTimes?) => ({
     type: 'Feature',
     geometry: { type: 'MultiLineString', coordinates: coords },

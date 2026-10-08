@@ -43,7 +43,16 @@ export interface TrackHistoryGhost {
   /** AIS ship type, for the vessel's icon; undefined for the own vessel. */
   typeId?: number;
 }
-import { needsAisRefetch, padExtent, viewportBbox } from './track-source';
+import { filter, map, Observable } from 'rxjs';
+import { ROUTE_TOLERANCE_M } from 'src/app/modules/map/track-route';
+import {
+  AIS_TRACK_MAX_POINTS,
+  AIS_TRACK_WINDOW,
+  needsAisRefetch,
+  padExtent,
+  queryString,
+  viewportBbox
+} from './track-source';
 
 /** Share of the viewport added on each side of the history box, so small pans
  * and a heading-up map's rotations don't refetch (see `needsAisRefetch`). */
@@ -57,6 +66,18 @@ const PALETTE_WIDTH = 320;
 const PALETTE_TOP = 70;
 const PALETTE_HEADER = 40;
 const PALETTE_RIGHT_MARGIN = 70;
+
+/** The part of `range` that also lies within `within`. */
+const narrowRange = (range: HistoryRange, within: HistoryRange) => {
+  const later = (a: number | null, b: number | null) =>
+    a === null ? b : b === null ? a : Math.max(a, b);
+  const earlier = (a: number | null, b: number | null) =>
+    a === null ? b : b === null ? a : Math.min(a, b);
+  return {
+    from: later(range.from, within.from),
+    to: earlier(range.to, within.to)
+  };
+};
 
 /** The extent a span answer gives: `null` when nothing was recorded, and
  * undefined (unknown) when the provider sent no box. */
@@ -351,6 +372,54 @@ export class TrackHistoryService {
       this.spans().get(context)?.name ||
       v?.mmsi ||
       context.split(':').pop()
+    );
+  }
+
+  /** A tapped vessel's track as drawn, but asked for by vessel rather than by
+   * map box. The Track API clips what it returns to a `bbox`, so a track
+   * fetched for the view is cut where it leaves the fetched box, and a passage
+   * read from it would stop there too. It is asked for at route detail
+   * whatever the zoom, as a route is made from it. An answer that arrives
+   * after the history range or provider has changed is dropped. Undefined
+   * where the drawn track was not fetched by box: AIS tracks of vessels
+   * picked one by one. A history track can be narrowed to the time `within`,
+   * inside the range shown, for a passage the whole range holds too many
+   * points to give at route detail. */
+  wholeTrack(
+    source: 'history' | 'ais',
+    context: string,
+    within?: HistoryRange
+  ): Observable<HistoryTrack | undefined> | undefined {
+    const provider = this.provider();
+    const range = this.range();
+    let query: string;
+    if (source === 'history') {
+      query = historyQuery({
+        context,
+        bbox: null,
+        epsilon: ROUTE_TOLERANCE_M,
+        range: within ? narrowRange(range, within) : range,
+        provider
+      });
+    } else if (this.app.config.vessels.aisShowTrack) {
+      query = queryString({
+        contexts: context,
+        duration: AIS_TRACK_WINDOW,
+        maxPoints: AIS_TRACK_MAX_POINTS,
+        times: 'true',
+        provider
+      });
+    } else {
+      return undefined;
+    }
+    return this.get(`/tracks?${query}`)?.pipe(
+      filter(
+        () =>
+          this.provider() === provider &&
+          (source === 'ais' ||
+            (this.range().from === range.from && this.range().to === range.to))
+      ),
+      map((fc) => parseHistoryTrack(context, fc, provider))
     );
   }
 
