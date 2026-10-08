@@ -26,8 +26,13 @@ interface PendingAction {
   state: AlertData['priority'];
 }
 
-/** `navigation.closestApproach` notification: also names the other vessel */
+/**
+ * `navigation.closestApproach` notification. The other vessel is named by
+ * `data.targetRef` (the shared collision alarm shape); `other` is the older,
+ * non-standard field some producers still send.
+ */
 interface CpaNotification extends SKNotification {
+  data?: { targetRef?: string };
   other?: string;
 }
 
@@ -517,7 +522,7 @@ export class NotificationManager {
   // parse ClosestApproach message data
   private parseCpa(msg: CpaNotification): AlertProperties {
     return {
-      vesselId: msg.other ?? undefined
+      vesselId: msg.data?.targetRef ?? msg.other ?? undefined
     };
   }
 }
