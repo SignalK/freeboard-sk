@@ -84,6 +84,36 @@ describe('RadarComponent spoke stream', () => {
     expect(render.createRadarSource).toHaveBeenCalledTimes(2);
   });
 
+  it('moves the stream to another radar when one is selected', async () => {
+    const fixture = TestBed.createComponent(RadarComponent);
+    fixture.componentRef.setInput('radarId', 'nav1034A');
+    fixture.detectChanges();
+    await flush();
+    expect(render.connect).toHaveBeenCalledTimes(1);
+
+    fixture.componentRef.setInput('radarId', 'nav1034B');
+    fixture.detectChanges();
+    await flush();
+
+    expect(render.disconnect).toHaveBeenCalledTimes(1);
+    expect(render.connect).toHaveBeenCalledTimes(2);
+    expect(render.createRadarSource).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves the stream closed when a radar is selected on a hidden page', async () => {
+    const fixture = TestBed.createComponent(RadarComponent);
+    fixture.componentRef.setInput('radarId', 'nav1034A');
+    fixture.detectChanges();
+    await flush();
+    setHidden(true);
+
+    fixture.componentRef.setInput('radarId', 'nav1034B');
+    fixture.detectChanges();
+    await flush();
+
+    expect(render.connect).toHaveBeenCalledTimes(1);
+  });
+
   it('closes the stream when the overlay is turned off', async () => {
     const fixture = TestBed.createComponent(RadarComponent);
     fixture.detectChanges();

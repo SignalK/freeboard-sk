@@ -23,8 +23,10 @@ export class SKWorkerService {
   });
   public readonly resourceUpdate = this.resourceDeltaSignal.asReadonly();
 
-  private radarDeltaSignal = signal<DeltaSignal>(undefined);
-  public readonly radarUpdate = this.radarDeltaSignal.asReadonly();
+  // A stream rather than a signal: change detection is coalesced, so a
+  // signal would hand a reader only the last of several deltas that arrive
+  // together, such as one setting reported for both ranges of a radar.
+  private radarUpdatesSource = new Subject<DeltaSignal>();
 
   constructor() {
     this.worker = new Worker(new URL('./skstream.worker', import.meta.url));
@@ -43,6 +45,10 @@ export class SKWorkerService {
 
   notification$() {
     return this.notificationSource.asObservable();
+  }
+
+  radar$() {
+    return this.radarUpdatesSource.asObservable();
   }
 
   // ************ Worker Functions *********************
@@ -83,7 +89,7 @@ export class SKWorkerService {
     } else if (msg.action === 'resource') {
       this.resourceDeltaSignal.set(msg.result);
     } else if (msg.action === 'radar') {
-      this.radarDeltaSignal.set(msg.result);
+      this.radarUpdatesSource.next(msg.result);
     } else {
       if (
         msg.action === 'update' &&
