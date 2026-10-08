@@ -636,7 +636,7 @@ export function defaultConfig(): IAppConfig {
       aisShowTrack: false,
       aisTrackLength: 12, // hours of track for a vessel picked with its TRACK toggle
       trailSource: 'auto',
-      trailDuration: 24, // number of hours of trail to fetch from server
+      trailDuration: 24, // hours of trail to fetch from server; TRAIL_DURATION_ALL for the whole recorded track
       trailResolution: {
         // resolution of server trail at defined time horizons
         lastHour: '5s',

@@ -239,26 +239,68 @@ export function resolutionToIso(res: string | undefined): string | undefined {
 }
 
 export interface TrailBand {
-  from: string; // ISO 8601 instant
+  from?: string; // ISO 8601 instant; absent reaches back to the first recorded point
   to?: string; // ISO 8601 instant; absent leaves the band open to the server's now
   resolution?: string; // ISO 8601 duration
+  /** Simplification tolerance in metres, applied by the server: the band's
+   * detail then follows the zoom it was fetched for. */
+  epsilon?: number;
+  /** Server simplification at a tolerance the provider picks, for when no
+   * zoom is known yet to size `epsilon` to. */
+  simplify?: boolean;
+  /** Map box `[w, s, e, n]` the band is asked for. A Track API that clips to
+   * it (signalk-server#3081) returns only the part of the trail in the box;
+   * one that doesn't returns the whole trail when any of it lies there. */
+  bbox?: [number, number, number, number];
 }
 
 const HOUR = 3600000;
+
+/** `vessels.trailDuration` value for the whole recorded track ("All"). */
+export const TRAIL_DURATION_ALL = 0;
+
+/** The longest trail length offered in hours; "All" follows it. The v1
+ * interface, which has no open-ended query, is asked for this much when "All"
+ * is set. */
+export const TRAIL_MAX_HOURS = 96;
 
 /** Split the trail window into the same bands as the v1 request (beyond 24 h /
  * 1 → 24 h / last hour), oldest first. Adjacent bands share their boundary
  * instant, so they tile the window with no gap or overlap. The LAST band is
  * always the last hour, and has no `to`: the server closes it at its own now,
- * where the device's clock, if behind, would cut off the newest points. */
+ * where the device's clock, if behind, would cut off the newest points.
+ *
+ * With TRAIL_DURATION_ALL the oldest band has no `from`, so it reaches back to
+ * the first recorded point; the Track API allows that for a single vessel. It
+ * is simplified by the server to `epsilon` metres (about a pixel at the map's
+ * zoom), so a long history stays light on a zoomed-out chart and keeps its
+ * turns on a zoomed-in one; without an `epsilon` the provider picks the
+ * tolerance. With a `bbox` that band is asked for only where the map shows
+ * it, so on a server that clips, years of history zoomed in on one harbour do
+ * not arrive in full detail. The newer bands are a day at most, and stay
+ * whole. */
 export function trailBands(
   durationHrs: number,
   resolution: { lastHour: string; next23: string; beyond24: string },
-  now: number
+  now: number,
+  epsilon?: number,
+  bbox?: [number, number, number, number]
 ): TrailBand[] {
   const iso = (t: number) => new Date(t).toISOString();
   const bands: TrailBand[] = [];
-  if (durationHrs > 24) {
+  if (durationHrs === TRAIL_DURATION_ALL) {
+    bands.push({
+      to: iso(now - 24 * HOUR),
+      resolution: resolutionToIso(resolution.beyond24),
+      ...(epsilon === undefined ? { simplify: true } : { epsilon }),
+      ...(bbox ? { bbox } : {})
+    });
+    bands.push({
+      from: iso(now - 24 * HOUR),
+      to: iso(now - HOUR),
+      resolution: resolutionToIso(resolution.next23)
+    });
+  } else if (durationHrs > 24) {
     bands.push({
       from: iso(now - durationHrs * HOUR),
       to: iso(now - 24 * HOUR),
@@ -293,8 +335,8 @@ export function queryString(
     .join('&');
 }
 
-/** URL for one own-vessel trail band. No `bbox`: the own vessel is a single
- * context, and a bbox would only hide the trail when the map is panned away.
+/** URL for one own-vessel trail band, asked for by `bbox` only where the band
+ * carries one (see trailBands()).
  * `times` carries each point's recording time, which a tap on the trail is
  * answered from. */
 export function trailBandUrl(
@@ -307,6 +349,9 @@ export function trailBandUrl(
     from: band.from,
     to: band.to,
     resolution: band.resolution,
+    epsilon: band.epsilon,
+    simplify: band.simplify ? 'true' : undefined,
+    bbox: band.bbox?.join(','),
     times: 'true',
     provider
   })}`;
@@ -480,6 +525,10 @@ export function aisTracksQuery(req: AisTracksRequest): string | null {
 /** Share of the viewport's width / height added on each side of the AIS
  * tracks box, so small pans and a heading-up map's rotations stay inside it. */
 export const AIS_TRACK_BBOX_PAD = 0.5;
+
+/** Share of the viewport added on each side of the box the older own trail is
+ * fetched for, as for AIS tracks. */
+export const TRAIL_BBOX_PAD = 0.5;
 
 /** Grow an extent by `factor` of its width / height on each side. */
 export function padExtent(

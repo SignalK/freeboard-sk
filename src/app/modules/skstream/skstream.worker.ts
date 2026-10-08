@@ -42,10 +42,15 @@ import {
   TrackSource,
   trackSourceUrls,
   tracksApiUrl,
+  TRAIL_BBOX_PAD,
+  TRAIL_DURATION_ALL,
+  TRAIL_MAX_HOURS,
   trailBands,
-  trailBandUrl
+  trailBandUrl,
+  viewportBbox
 } from './track-source';
 import {
+  historyEpsilon,
   joinStretches,
   parseHistoryTrack,
   parseTimedTracks
@@ -70,7 +75,7 @@ interface WorkerSettings {
 }
 
 interface VesselTrailConfig {
-  trailDuration: number; // number of hours of trail to fetch from server
+  trailDuration: number; // hours of trail to fetch from server; TRAIL_DURATION_ALL for the whole recorded track
   trailResolution: {
     // resolution at defined time horizons e.g. '5s', '1m', '5m'
     lastHour: string;
@@ -134,7 +139,7 @@ let apiUrl: string; // path to Signal K api
 let trackSource: TrackSource = NO_TRACK_SOURCE;
 let trackSourceReady: Promise<TrackSource> = Promise.resolve(NO_TRACK_SOURCE);
 // map viewport (lon/lat extent) + zoom, posted by the app on move-end
-let aisView: { extent: Extent; zoom: number } | null = null;
+let mapView: { extent: Extent; zoom: number } | null = null;
 // the view box (padded viewport) and zoom of the last AIS tracks request
 let aisFetched: { extent: number[]; zoom: number } | null = null;
 // AIS targets picked with the per-vessel TRACK toggle (session-only)
@@ -149,6 +154,9 @@ const AIS_TRACK_DEBOUNCE = 1000;
 const serverTracked = new Set<string>();
 // AIS track requests overlap (poll, move-end, picks); only the latest applies
 const aisTracksGate = createRequestGate();
+// own-trail requests overlap (a zoom change with the trail length "All", a
+// new track source); only the latest answers
+const trailGate = createRequestGate();
 const SERVER_TRACK_TAIL_CAP = 5000;
 
 // ** AIS target management **
@@ -380,9 +388,9 @@ function handleCommand(data: MsgFromApp) {
     //** { cmd: 'view', options: {extent: Extent, zoom: number} }
     case 'view':
       if (data.options?.extent) {
-        aisView = { extent: data.options.extent, zoom: data.options.zoom };
+        mapView = { extent: data.options.extent, zoom: data.options.zoom };
         // picked vessels are fetched by context, whatever the view
-        if (aisShowTrack && needsAisRefetch(aisFetched, aisView)) {
+        if (aisShowTrack && needsAisRefetch(aisFetched, mapView)) {
           scheduleAisTracks();
         }
       }
@@ -518,12 +526,13 @@ function refreshTrackSource() {
  * With none, answer with an empty result so the app falls back to its local
  * trail. */
 function requestVesselTrail() {
+  const token = trailGate.begin();
   trackSourceReady.then((source) => {
     if (source.api === 'v2') {
-      getVesselTrailV2(trailMgr, source.provider);
+      getVesselTrailV2(tracksApiUrl(apiUrl), trailMgr, source.provider, token);
     } else if (source.api === 'v1' && source.v1SelfTrack) {
-      getVesselTrail(trailMgr);
-    } else {
+      getVesselTrail(trailMgr, token);
+    } else if (trailGate.isCurrent(token)) {
       const msg = new TrailMessage();
       msg.playback = playbackMode;
       msg.result = null;
@@ -533,19 +542,47 @@ function requestVesselTrail() {
 }
 
 /** Fetch the own-vessel trail from the v2 Track API: the same three bands as
- * v1, as absolute from/to, from the default provider only. */
-function getVesselTrailV2(opt: VesselTrailConfig, provider?: string) {
-  const url = tracksApiUrl(apiUrl);
-  const bands = trailBands(opt.trailDuration, opt.trailResolution, Date.now());
+ * v1, as absolute from/to, from the default provider only. With "All" the
+ * oldest band is simplified by the server to a pixel at the map's zoom, and
+ * asked for only in the padded map view.
+ * `token` is the request's trailGate token; it answers only while current. */
+export function getVesselTrailV2(
+  url: string,
+  opt: VesselTrailConfig,
+  provider?: string,
+  token = trailGate.begin()
+) {
+  // sized as for Track history: a pixel at the deepest zoom of the level
+  const epsilon =
+    (mapView && historyEpsilon(mapView.zoom, mapView.extent)) ?? undefined;
+  const bbox =
+    (mapView && viewportBbox(padExtent(mapView.extent, TRAIL_BBOX_PAD))) ??
+    undefined;
+  const bands = trailBands(
+    opt.trailDuration,
+    opt.trailResolution,
+    Date.now(),
+    epsilon,
+    bbox
+  );
   const msg = new TrailMessage();
   msg.playback = playbackMode;
   Promise.all(bands.map((b) => trackApiGet(trailBandUrl(url, b, provider))))
     .then((fcs) => {
-      msg.result = assembleTrail(fcs.map((fc) => parseSelfTrail(fc) ?? null));
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
+      msg.result = assembleTrail(
+        fcs.map((fc) => parseSelfTrail(fc) ?? null),
+        bands.map((b) => b.epsilon !== undefined || b.simplify === true)
+      );
       msg.timed = timedTrail(fcs, provider);
       postMessage(msg);
     })
     .catch(() => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       msg.result = null;
       postMessage(msg);
     });
@@ -604,9 +641,9 @@ function pollAisTracks() {
  * the vessels picked with the per-vessel TRACK toggle. Nothing is fetched
  * below the zoom at which the track layer draws. */
 function getAISTracksV2(provider?: string) {
-  const view = aisView && {
-    extent: padExtent(aisView.extent, AIS_TRACK_BBOX_PAD),
-    zoom: aisView.zoom
+  const view = mapView && {
+    extent: padExtent(mapView.extent, AIS_TRACK_BBOX_PAD),
+    zoom: mapView.zoom
   };
   aisFetched = view;
   const query = aisTracksQuery({
@@ -703,17 +740,26 @@ function getAISTracks() {
     });
 }
 
-// fetch vessel trail from server
-function getVesselTrail(opt: VesselTrailConfig) {
+/** Fetch the own-vessel trail from the v1 interface. `token` is the request's
+ * trailGate token; it answers only while current. */
+export function getVesselTrail(
+  opt: VesselTrailConfig,
+  token = trailGate.begin()
+) {
   //console.info('Worker: Fetching vessel trail from server', opt);
   const url = apiUrl + '/self/track?';
+  // v1 has no open-ended query: "All" asks for its longest length
+  const hours =
+    opt.trailDuration === TRAIL_DURATION_ALL
+      ? TRAIL_MAX_HOURS
+      : opt.trailDuration;
   const req = [];
   // set up fetch requests
-  if (opt.trailDuration > 24) {
+  if (hours > 24) {
     // beyond last 24hrs
     req.push(
       apiGet(
-        `${url}timespan=${opt.trailDuration - 24}h&resolution=${
+        `${url}timespan=${hours - 24}h&resolution=${
           opt.trailResolution.beyond24
         }&timespanOffset=24`
       )
@@ -724,11 +770,11 @@ function getVesselTrail(opt: VesselTrailConfig) {
       )
     );
   }
-  if (opt.trailDuration > 1 && opt.trailDuration < 25) {
+  if (hours > 1 && hours < 25) {
     // last 24hrs
     req.push(
       apiGet(
-        `${url}timespan=${opt.trailDuration - 1}h&resolution=${
+        `${url}timespan=${hours - 1}h&resolution=${
           opt.trailResolution.next23
         }&timespanOffset=1`
       )
@@ -744,6 +790,9 @@ function getVesselTrail(opt: VesselTrailConfig) {
 
   Promise.all(req)
     .then((res) => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       msg.result = assembleTrail(
         res.map((r) =>
           r?.type === 'MultiLineString' && Array.isArray(r.coordinates)
@@ -754,15 +803,23 @@ function getVesselTrail(opt: VesselTrailConfig) {
       postMessage(msg);
     })
     .catch(() => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       msg.result = null;
       postMessage(msg);
     });
 }
 
 /** Join trail bands (oldest first, the LAST one being the last hour) into one
- * trail. Older bands are simplified and cut into segments for OL rendering;
- * the last hour is kept as received. A null band contributes nothing. */
-function assembleTrail(bands: Array<Position[][] | null>) {
+ * trail. Older bands are simplified and cut into segments for OL rendering,
+ * each recorded stretch on its own; the last hour is kept as received. A null band contributes nothing. A band
+ * the server already simplified to the map's zoom (`serverSimplified`) is only
+ * cut into segments: a fixed tolerance would undo its zoomed-in detail. */
+export function assembleTrail(
+  bands: Array<Position[][] | null>,
+  serverSimplified: boolean[] = []
+) {
   const tolerance = 0.0005; //0.0001
   const highQuality = true;
   const segLen = 60; // max line segment length (OL rendering treatment)
@@ -773,23 +830,24 @@ function assembleTrail(bands: Array<Position[][] | null>) {
       return;
     }
     if (idx !== lastIdx) {
-      // > 1hr simplify trail
-      let coords = [];
+      // > 1hr simplify trail, each recorded stretch on its own: joined, the
+      // trail would run straight across a gap in the recording
       lines.forEach((line) => {
-        coords = coords.concat(line);
+        let coords = serverSimplified[idx]
+          ? line
+          : SimplifyAP(line as [number, number][], tolerance, highQuality);
+        // break up into segments for OL rendering
+        while (coords.length > segLen) {
+          const ls = coords.slice(0, segLen);
+          trail.push(ls);
+          coords = coords.slice(segLen - 1); // ensure segments join
+          // offset first point so OL renders
+          coords[0] = [coords[0][0] + 0.000000005, coords[0][1] + 0.000000005];
+        }
+        if (coords.length !== 0) {
+          trail.push(coords);
+        }
       });
-      coords = SimplifyAP(coords, tolerance, highQuality);
-      // break up into segments for OL rendering
-      while (coords.length > segLen) {
-        const ls = coords.slice(0, segLen);
-        trail.push(ls);
-        coords = coords.slice(segLen - 1); // ensure segments join
-        // offset first point so OL renders
-        coords[0] = [coords[0][0] + 0.000000005, coords[0][1] + 0.000000005];
-      }
-      if (coords.length !== 0) {
-        trail.push(coords);
-      }
     } else {
       // last Hour
       trail = trail.concat(lines);

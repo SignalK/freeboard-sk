@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { cleanConfig, defaultConfig } from './app.config';
+import { TRAIL_DURATION_ALL } from './modules/skstream/track-source';
 import { IAppConfig, LegacyAppConfig } from './types';
 
 /**
@@ -143,6 +144,17 @@ describe('cleanConfig() legacy migration', () => {
 
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
+  });
+
+  it('shows the last 24 hours of trail by default', () => {
+    expect(defaultConfig().vessels.trailDuration).toBe(24);
+  });
+
+  it('keeps a trail length the user already chose', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.vessels.trailDuration = TRAIL_DURATION_ALL;
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.trailDuration).toBe(TRAIL_DURATION_ALL);
   });
 
   it('drops the legacy selections.notes section', () => {
