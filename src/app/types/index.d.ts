@@ -323,7 +323,8 @@ export type LegacyAppConfig = Omit<
       }
     >;
   };
-  selections: IAppConfig['selections'] & {
+  selections: Omit<IAppConfig['selections'], 'chartsInViewOnly'> & {
+    chartsInViewOnly?: IAppConfig['selections']['chartsInViewOnly']; // added with default true
     notes?: unknown; // legacy notes selections section; dropped
   };
 };

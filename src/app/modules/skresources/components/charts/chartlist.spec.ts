@@ -615,6 +615,29 @@ describe('ChartListComponent — "In view" filter is remembered', () => {
     expect(inViewOnlyOf(open())).toBe(false);
   });
 
+  it('lists only the charts in view once the charts have loaded', async () => {
+    const inView = chart('inview', 'Here');
+    inView[1].bounds = [0, 0, 1, 1];
+    const away = chart('away', 'Elsewhere');
+    away[1].bounds = [100, 50, 101, 51];
+    app.sIsFetching.set(false);
+    TestBed.overrideProvider(SKResourceService, {
+      useValue: {
+        arrangeChartLayers: (list: FBCharts) => [...list],
+        listChartsFromServer: () => Promise.resolve([inView, away]),
+        appendOSM: (list: FBCharts) => list,
+        selectionClean: vi.fn()
+      }
+    });
+
+    const comp = open();
+    await vi.waitFor(() =>
+      expect(filteredSignalOf(comp)().length).toBeGreaterThan(0)
+    );
+
+    expect(idsOf(filteredSignalOf(comp)())).toEqual(['inview']);
+  });
+
   it('saves the choice when the user switches the filter', () => {
     const comp = open();
     (

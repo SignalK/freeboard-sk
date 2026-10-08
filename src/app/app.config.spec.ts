@@ -198,8 +198,7 @@ describe('cleanConfig() legacy migration', () => {
 
   it('turns the chart list in-view filter on for a config saved without it', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    delete (cfg.selections as Partial<IAppConfig['selections']>)
-      .chartsInViewOnly;
+    delete cfg.selections.chartsInViewOnly;
     cleanConfig(cfg, {});
     expect(cfg.selections.chartsInViewOnly).toBe(true);
   });
