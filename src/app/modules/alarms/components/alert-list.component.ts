@@ -18,7 +18,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { CdkDrag } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { AppFacade } from 'src/app/app.facade';
 import { getAlertIcon } from '../../icons';
 import { AlertData } from './alert.component';
@@ -35,7 +35,8 @@ import { NotificationManager } from '../notification-manager';
     MatMenuModule,
     MatSlideToggleModule,
     FormsModule,
-    CdkDrag
+    CdkDrag,
+    CdkDragHandle
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./alert-list.component.css'],
