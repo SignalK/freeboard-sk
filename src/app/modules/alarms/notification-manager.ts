@@ -545,13 +545,17 @@ export class NotificationManager {
 /** A Signal K `{ latitude, longitude }` as a [lon, lat] map position. */
 function toPosition(value: unknown): Position | undefined {
   const p = value as { latitude?: unknown; longitude?: unknown } | null;
+  const latitude = p?.latitude;
+  const longitude = p?.longitude;
   if (
-    typeof p?.latitude !== 'number' ||
-    typeof p.longitude !== 'number' ||
-    Math.abs(p.latitude) > 90 ||
-    Math.abs(p.longitude) > 180
+    typeof latitude !== 'number' ||
+    typeof longitude !== 'number' ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
   ) {
     return undefined;
   }
-  return [p.longitude, p.latitude];
+  return [longitude, latitude];
 }

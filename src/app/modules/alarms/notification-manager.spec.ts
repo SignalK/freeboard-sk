@@ -151,10 +151,10 @@ describe('NotificationManager alert properties (#755)', () => {
   it('takes the other vessel and the CPA positions from the alarm data', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit(
-      'notifications.navigation.closestApproach.radar:nav1-17',
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
       notification({
         data: {
-          targetRef: 'targets.radar:nav1-17',
+          targetRef: 'vessels.urn:mrn:imo:mmsi:123456789',
           cpaPositions: {
             self: { latitude: 52.1, longitude: 4.2 },
             target: { latitude: 52.11, longitude: 4.21 }
@@ -164,21 +164,27 @@ describe('NotificationManager alert properties (#755)', () => {
     );
 
     const [[, alert]] = mgr.alerts();
-    expect(alert.properties.vesselId).toBe('targets.radar:nav1-17');
-    expect(app.data.vessels.closest).toEqual(['targets.radar:nav1-17']);
-    expect(app.data.vessels.cpaPositions.get('targets.radar:nav1-17')).toEqual({
+    expect(alert.properties.vesselId).toBe(
+      'vessels.urn:mrn:imo:mmsi:123456789'
+    );
+    expect(app.data.vessels.closest).toEqual([
+      'vessels.urn:mrn:imo:mmsi:123456789'
+    ]);
+    expect(
+      app.data.vessels.cpaPositions.get('vessels.urn:mrn:imo:mmsi:123456789')
+    ).toEqual({
       self: [4.2, 52.1],
       target: [4.21, 52.11]
     });
   });
 
-  it('ignores CPA positions that are not valid positions', () => {
+  it('ignores CPA positions when one of the two is missing', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit(
-      'notifications.navigation.closestApproach.radar:nav1-17',
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
       notification({
         data: {
-          targetRef: 'targets.radar:nav1-17',
+          targetRef: 'vessels.urn:mrn:imo:mmsi:123456789',
           cpaPositions: { self: { latitude: 52.1, longitude: 4.2 } }
         }
       })
@@ -187,6 +193,28 @@ describe('NotificationManager alert properties (#755)', () => {
     const [[, alert]] = mgr.alerts();
     expect(alert.properties.cpaPositions).toBeUndefined();
     expect(app.data.vessels.cpaPositions.size).toBe(0);
+  });
+
+  it('ignores CPA positions out of range or not finite', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    for (const target of [
+      { latitude: 95, longitude: 4.21 },
+      { latitude: 52.11, longitude: 181 },
+      { latitude: 52.11, longitude: Infinity },
+      { latitude: NaN, longitude: 4.21 }
+    ]) {
+      emit(
+        'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+        notification({
+          data: {
+            targetRef: 'vessels.urn:mrn:imo:mmsi:123456789',
+            cpaPositions: { self: { latitude: 52.1, longitude: 4.2 }, target }
+          }
+        })
+      );
+      const [[, alert]] = mgr.alerts();
+      expect(alert.properties.cpaPositions).toBeUndefined();
+    }
   });
 
   it('leaves properties empty when the notification carries neither', () => {
