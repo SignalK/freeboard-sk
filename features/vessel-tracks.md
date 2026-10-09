@@ -41,7 +41,8 @@ track into a route.
 
 Tap your trail to see when that stretch was recorded, **From** and **To**,
 how long it lasted, and when you were at the spot you tapped (**Here at**).
-Tapping the boat itself still opens its usual popover.
+**Make Route** in the same popover turns that passage into a route; see
+*Route Planning*. Tapping the boat itself still opens its usual popover.
 
 ## Other vessels' tracks
 
@@ -67,7 +68,8 @@ The per-vessel picker and its length setting are only available while
 there's nothing to pick.
 
 Tap another vessel's track to see when it was recorded and when the vessel
-was at that spot, just as for your own trail.
+was at that spot, just as for your own trail, and make a route of that passage
+with **Make Route**.
 
 Vessels hidden by **Hide Moored** or **Hide Anchored** don't have their tracks
 drawn either.
