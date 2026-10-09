@@ -106,5 +106,7 @@
   { "feature": "route-planning", "pr": 897, "kind": "enhanced", "date": "2026-10-06", "title": "feat(routes): reverse a draft route before starting it" },
   { "feature": "route-planning", "pr": 911, "kind": "enhanced", "date": "2026-10-08", "title": "feat(routes): reverse a saved route from its popover" },
   { "feature": "route-planning", "pr": 896, "kind": "enhanced", "date": "2026-10-08", "title": "feat(routes): make a route from a passage of a recorded track" },
-  { "feature": "vessel-tracks", "pr": 895, "kind": "enhanced", "date": "2026-10-08", "title": "feat(vessels): option to show the whole recorded own-vessel trail" }
+  { "feature": "vessel-tracks", "pr": 895, "kind": "enhanced", "date": "2026-10-08", "title": "feat(vessels): option to show the whole recorded own-vessel trail" },
+  { "feature": "buddy-list", "pr": 900, "kind": "enhanced", "date": "2026-10-06", "title": "feat(alarms): locate a buddy from its \"is near\" message" },
+  { "feature": "buddy-list", "kind": "new", "since": "v2.13.1", "date": "2025-02-09", "title": "Buddy List support #229" }
 ]
