@@ -118,6 +118,7 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   ngOnInit() {
+    this.inViewOnly = this.app.config.selections.chartsInViewOnly;
     this.app.data.chartBounds.show = false;
     this.app.data.chartBounds.charts = [];
     this.initItems();
@@ -138,8 +139,14 @@ export class ChartListComponent extends ResourceListBase {
    * handles are absent. Without it a filtered list just loses its handles.
    */
   protected reorderHint(): string {
-    return this.canReorder()
-      ? '(drag to re-order)'
+    if (this.canReorder()) {
+      return '(drag to re-order)';
+    }
+    if (this.inViewOnly && this.filterText) {
+      return '(turn off In view and clear the filter to re-order)';
+    }
+    return this.inViewOnly
+      ? '(turn off In view to re-order)'
       : '(clear the filter to re-order)';
   }
 
@@ -434,10 +441,13 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   /**
-   * @description Toggle filtering of the chart list to the current map view.
+   * @description Toggle filtering of the chart list to the current map view,
+   * remembering the choice for the next time the list opens.
    */
   protected toggleInViewOnly(checked: boolean) {
     this.inViewOnly = checked;
+    this.app.config.selections.chartsInViewOnly = checked;
+    this.app.saveConfig();
     this.doFilter();
   }
 

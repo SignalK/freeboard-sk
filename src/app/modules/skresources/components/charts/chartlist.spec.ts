@@ -276,7 +276,9 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
             featureFlags: signal({ resourceGroups: false }),
             debug: vi.fn(),
             hostDef: { name: 'localhost' },
-            data: { chartBounds: { show: false, charts: [] } }
+            data: { chartBounds: { show: false, charts: [] } },
+            config: { selections: { chartsInViewOnly: false } },
+            saveConfig: vi.fn()
           }
         },
         { provide: MatDialog, useValue: {} },
@@ -343,6 +345,56 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
     expect(
       fixture.nativeElement.querySelector('.stack-caption-hint').textContent
     ).toContain('clear the filter');
+  });
+
+  it('names the In view switch when that is what hides the handles', () => {
+    const { fixture, comp } = makeFixture();
+    (comp as unknown as { inViewOnly: boolean }).inViewOnly = true;
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('turn off In view');
+  });
+
+  it('names both filters when both hide the handles', () => {
+    const { fixture, comp } = makeFixture();
+    (comp as unknown as { inViewOnly: boolean }).inViewOnly = true;
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('turn off In view and clear the filter');
+  });
+
+  it('saves the choice when the user flips the In view switch', () => {
+    const { fixture } = makeFixture();
+    const app = TestBed.inject(AppFacade) as unknown as {
+      config: { selections: { chartsInViewOnly: boolean } };
+      saveConfig: ReturnType<typeof vi.fn>;
+    };
+    const inViewSwitch = fixture.debugElement
+      .queryAll(By.css('mat-slide-toggle'))
+      .find((t) => t.nativeElement.textContent.includes('In view'));
+
+    inViewSwitch.nativeElement.querySelector('button[role="switch"]').click();
+    fixture.detectChanges();
+
+    expect(app.config.selections.chartsInViewOnly).toBe(true);
+    expect(app.saveConfig).toHaveBeenCalledTimes(1);
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('turn off In view');
+
+    const reopened = TestBed.createComponent(ChartListComponent);
+    reopened.detectChanges();
+    expect(
+      (reopened.componentInstance as unknown as { inViewOnly: boolean })
+        .inViewOnly
+    ).toBe(true);
   });
 });
 
@@ -411,7 +463,8 @@ describe('ChartListComponent — Time control on temporal rows', () => {
             featureFlags: signal({ resourceGroups: false }),
             debug: vi.fn(),
             hostDef: { name: 'localhost' },
-            data: { chartBounds: { show: false, charts: [] } }
+            data: { chartBounds: { show: false, charts: [] } },
+            config: { selections: { chartsInViewOnly: false } }
           }
         },
         { provide: MatDialog, useValue: {} },
@@ -516,7 +569,9 @@ describe('ChartListComponent — "In view" filter does not loop on map move (#61
             // true → initItems() bails out, leaving the seeded fullList alone
             sIsFetching: signal(true),
             debug: vi.fn(),
-            data: { chartBounds: { show: false, charts: [] } }
+            data: { chartBounds: { show: false, charts: [] } },
+            config: { selections: { chartsInViewOnly: false } },
+            saveConfig: vi.fn()
           }
         },
         { provide: MatDialog, useValue: {} },
@@ -552,5 +607,85 @@ describe('ChartListComponent — "In view" filter does not loop on map move (#61
     fixture.detectChanges();
 
     expect(filterRuns).toBe(0);
+  });
+});
+
+describe('ChartListComponent — "In view" filter is remembered', () => {
+  let app: {
+    mapExtent: WritableSignal<number[]>;
+    sIsFetching: WritableSignal<boolean>;
+    debug: ReturnType<typeof vi.fn>;
+    data: { chartBounds: { show: boolean; charts: FBCharts } };
+    config: { selections: { chartsInViewOnly: boolean } };
+    saveConfig: ReturnType<typeof vi.fn>;
+  };
+
+  const inViewOnlyOf = (c: ChartListComponent) =>
+    (c as unknown as { inViewOnly: boolean }).inViewOnly;
+
+  const open = () => {
+    const fixture = TestBed.createComponent(ChartListComponent);
+    fixture.componentRef.setInput('selectedCharts', []);
+    fixture.detectChanges();
+    return fixture.componentInstance;
+  };
+
+  beforeEach(() => {
+    app = {
+      mapExtent: signal<number[]>([0, 0, 1, 1]),
+      // true → initItems() bails out; the list content is not under test
+      sIsFetching: signal(true),
+      debug: vi.fn(),
+      data: { chartBounds: { show: false, charts: [] } },
+      config: { selections: { chartsInViewOnly: true } },
+      saveConfig: vi.fn()
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SKResourceService,
+          useValue: { arrangeChartLayers: (list: FBCharts) => [...list] }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        { provide: AppFacade, useValue: app },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+    TestBed.overrideComponent(ChartListComponent, { set: { template: '' } });
+  });
+
+  it('opens with the filter as last saved', () => {
+    expect(inViewOnlyOf(open())).toBe(true);
+
+    app.config.selections.chartsInViewOnly = false;
+    expect(inViewOnlyOf(open())).toBe(false);
+  });
+
+  it('lists only the charts in view once the charts have loaded', async () => {
+    const inView = chart('inview', 'Here');
+    inView[1].bounds = [0, 0, 1, 1];
+    const away = chart('away', 'Elsewhere');
+    away[1].bounds = [100, 50, 101, 51];
+    app.sIsFetching.set(false);
+    TestBed.overrideProvider(SKResourceService, {
+      useValue: {
+        arrangeChartLayers: (list: FBCharts) => [...list],
+        listChartsFromServer: () => Promise.resolve([inView, away]),
+        appendOSM: (list: FBCharts) => list,
+        selectionClean: vi.fn()
+      }
+    });
+
+    const comp = open();
+    await vi.waitFor(() =>
+      expect(filteredSignalOf(comp)().length).toBeGreaterThan(0)
+    );
+
+    expect(idsOf(filteredSignalOf(comp)())).toEqual(['inview']);
   });
 });

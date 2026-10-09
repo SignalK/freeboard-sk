@@ -284,6 +284,7 @@ export interface IAppConfig {
     weatherWindEnabled: boolean;
     oceanCurrentsEnabled: boolean;
     tidalCurrentsEnabled: boolean;
+    chartsInViewOnly: boolean; // chart list shows only charts in the map view
   };
 }
 
@@ -322,7 +323,8 @@ export type LegacyAppConfig = Omit<
       }
     >;
   };
-  selections: IAppConfig['selections'] & {
+  selections: Omit<IAppConfig['selections'], 'chartsInViewOnly'> & {
+    chartsInViewOnly?: IAppConfig['selections']['chartsInViewOnly']; // added later; filled in as false
     notes?: unknown; // legacy notes selections section; dropped
   };
 };
