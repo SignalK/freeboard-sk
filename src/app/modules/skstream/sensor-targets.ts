@@ -19,6 +19,11 @@ import { PathValue, Position } from 'src/app/types';
  */
 export const TARGET_MAX_AGE_MS = 60_000;
 
+const CREATED_BY_MOTION_PATHS = new Set([
+  'navigation.courseOverGroundTrue',
+  'navigation.speedOverGround'
+]);
+
 /**
  * Whether the target's sensor has stopped reporting it. A target that has no
  * position yet counts from its last value of any kind, so a link that
@@ -51,6 +56,11 @@ export function processSensorTarget(
   if (v.value === null && !targets.has(id)) {
     return false;
   }
+  // Course and speed repeat every second, so they would bring back a target
+  // the radius filter just removed, without a position.
+  if (!targets.has(id) && CREATED_BY_MOTION_PATHS.has(v.path)) {
+    return true;
+  }
   let d = targets.get(id);
   if (!d) {
     d = new SKSensorTarget();
@@ -81,6 +91,7 @@ export function processSensorTarget(
       d.sameAs = typeof v.value === 'string' ? v.value : null;
       break;
     case 'navigation.position':
+      // mayara does not wrap the longitude of a target across the antimeridian
       d.position = GeoUtils.normaliseCoords([
         value.longitude as number,
         value.latitude as number
@@ -113,11 +124,12 @@ export function processSensorTarget(
 
 /**
  * The targets to draw: each boat once. A target linked to a vessel on the
- * chart, own vessel included, is left out, and targets linked to each other
- * are drawn as the one they lead to, placed at whichever of them reported its
- * position last. A link to a context that is gone or has no position yet,
- * such as a vessel whose AIS expired, is ignored, so the sensor's view of the
- * boat stays on the chart.
+ * chart, own vessel included, is left out (`fusedVessels` draws a vessel that
+ * has no position yet at the target), and targets linked to each other are
+ * drawn as the one they lead to, placed at whichever of them reported its
+ * position last. A link to a vessel that is gone, such as one whose AIS
+ * expired, or to a target without a position is ignored, so the sensor's view
+ * of the boat stays on the chart.
  */
 export function unlinkedTargets(
   targets: Map<string, SKSensorTarget>,
@@ -148,7 +160,15 @@ export function unlinkedTargets(
   });
   freshest.forEach((target, root) => {
     if (target.id !== root) {
-      shown.set(root, placedAt(shown.get(root), target));
+      // shown with the course and speed of the target whose line it draws
+      shown.set(
+        root,
+        Object.assign(placedAt(shown.get(root), target), {
+          cog: target.cog,
+          sog: target.sog,
+          orientation: target.orientation
+        })
+      );
     }
   });
   return shown;
@@ -217,7 +237,11 @@ export function fusedVessels(
   return fused;
 }
 
-/** A copy of `item` at the position and on the course line of `target`. */
+/**
+ * A copy of `item` at the position and on the course line of `target`, and as
+ * recently updated as the fresher of the two, so a boat the sensor still
+ * tracks is not drawn as inactive.
+ */
 function placedAt<T extends SKVessel | SKSensorTarget>(
   item: T,
   target: SKSensorTarget
@@ -225,6 +249,10 @@ function placedAt<T extends SKVessel | SKSensorTarget>(
   return Object.assign(Object.create(Object.getPrototypeOf(item)), item, {
     position: target.position,
     positionUpdatedAt: target.positionUpdatedAt,
+    lastUpdated:
+      target.lastUpdated > item.lastUpdated
+        ? target.lastUpdated
+        : item.lastUpdated,
     vectors: { ...item.vectors, cog: target.vectors.cog }
   });
 }
@@ -244,7 +272,10 @@ export function locateTarget(
     targets.get(id),
     ...[...targets.values()].filter((t) => t.sameAs === id)
   ];
-  return candidates.find((c) => c?.position)?.position ?? undefined;
+  return (
+    candidates.find((c) => c?.positionReceived && c.position)?.position ??
+    undefined
+  );
 }
 
 function finiteOrUndefined(value: unknown): number | undefined {
@@ -258,7 +289,6 @@ function isLonLat(value: unknown): boolean {
   return (
     typeof p?.latitude === 'number' &&
     typeof p.longitude === 'number' &&
-    Math.abs(p.latitude) <= 90 &&
-    Math.abs(p.longitude) <= 180
+    Math.abs(p.latitude) <= 90
   );
 }
