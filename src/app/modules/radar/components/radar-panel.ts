@@ -85,11 +85,6 @@ export class RadarPanel {
     this.app.saveConfig();
   }
 
-  /**
-   * Toggle range ring visibility and request a configuration save.
-   * Local serialization or storage errors propagate after the toggle; server
-   * save failures are handled by the application facade.
-   */
   protected toggleRings() {
     this.app.config.radars.rings = !this.app.config.radars.rings;
     this.app.saveConfig();

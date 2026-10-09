@@ -24,15 +24,7 @@ export function validateConfig(settings: IAppConfig): boolean {
   return result;
 }
 
-/**
- * Migrate loaded settings in place, fill missing defaults, and remove obsolete fields.
- * Expects the required legacy sections, including `units` and `map`, to exist.
- *
- * @param hostParams URL overrides: `northup` and `movemap` are false only for
- * the string `'0'`; a parseable `zoom` is clamped to 1–28. Invalid zoom values
- * leave the configured zoom unchanged.
- * @throws {TypeError} If required settings sections are missing or malformed.
- */
+// clean loaded app config (migrates legacy shapes in place)
 export function cleanConfig(
   settings: LegacyAppConfig,
   hostParams: { [key: string]: unknown }
@@ -543,7 +535,7 @@ export function cleanConfig(
   }
 }
 
-/** Return the initial application settings, including enabled radar range rings. */
+// initialise default configuration
 export function defaultConfig(): IAppConfig {
   return {
     ui: {
