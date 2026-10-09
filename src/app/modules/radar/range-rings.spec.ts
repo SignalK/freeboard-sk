@@ -26,7 +26,7 @@ const radar = (controls: Record<string, object>): ActiveRadar => ({
 
 describe('isRoundDistance', () => {
   it('accepts whole and half leading digits', () => {
-    [0.25, 0.5, 1, 1.5, 3, 7.5, 500, 2500].forEach((v) =>
+    [0.25, 0.5, 1, 1.5, 3, 7.5, 16, 500, 2500].forEach((v) =>
       expect(isRoundDistance(v)).toBe(true)
     );
   });
@@ -57,6 +57,32 @@ describe('rangeRingScale', () => {
     expect(scale?.unit).toBe('naut-mile');
     expectDistances(scale.distances.map(toNm), [0.1, 0.2, 0.3, 0.4, 0.5]);
     expect(rangeRingScale(1500, 'naut-mile')?.unit).toBe('kilometer');
+  });
+
+  it('reads a range reported in whole metres as the range set', () => {
+    // 1/8 NM, which radars report as 231 or 232 m
+    [231, 232].forEach((range) => {
+      const scale = rangeRingScale(range, 'kilometer');
+      expect(scale?.unit).toBe('naut-mile');
+      expect(scale.distances.map((d) => ringLabel(d, scale.unit))).toEqual([
+        '0.025nmi',
+        '0.05nmi',
+        '0.075nmi',
+        '0.1nmi',
+        '0.125nmi'
+      ]);
+    });
+  });
+
+  it('spaces in the unit the range was set in, not one it merely matches', () => {
+    // 250 m is 0.135 NM, three rings of 0.045 NM, but was set in km
+    const scale = rangeRingScale(250, 'naut-mile');
+    expect(scale?.unit).toBe('kilometer');
+    expectDistances(scale.distances.map(toKm), [0.05, 0.1, 0.15, 0.2, 0.25]);
+  });
+
+  it('accepts whole-number spacings', () => {
+    expectDistances(distances(64000, 'kilometer').map(toKm), [16, 32, 48, 64]);
   });
 
   it('falls back to four rings in the user unit', () => {
