@@ -30,6 +30,21 @@
     </div>
     <button
       mat-icon-button
+      class="rings-button"
+      [class.rings-off]="!app.config.radars.rings"
+      [matTooltip]="
+        app.config.radars.rings ? 'Hide range rings' : 'Show range rings'
+      "
+      [attr.aria-label]="
+        app.config.radars.rings ? 'Hide range rings' : 'Show range rings'
+      "
+      [attr.aria-pressed]="app.config.radars.rings"
+      (click)="toggleRings()"
+    >
+      <mat-icon>track_changes</mat-icon>
+    </button>
+    <button
+      mat-icon-button
       [matTooltip]="
           app.uiCtrl().radarLayer ? 'Hide radar on chart' : 'Show radar on chart'
         "
