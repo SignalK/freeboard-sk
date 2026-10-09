@@ -66,11 +66,15 @@ export class RadarPanel {
   protected radarApi = inject(RadarAPIService);
   protected zoneEdit = inject(GuardZoneEditService);
 
-  protected readonly zoneFields: Array<{ key: ZoneField; label: string }> = [
-    { key: 'startAngle', label: 'From bearing' },
-    { key: 'endAngle', label: 'To bearing' },
-    { key: 'startDistance', label: 'Inner distance' },
-    { key: 'endDistance', label: 'Outer distance' }
+  protected readonly zoneFields: Array<{
+    key: ZoneField;
+    label: string;
+    name: string;
+  }> = [
+    { key: 'startAngle', label: 'From', name: 'From bearing' },
+    { key: 'endAngle', label: 'To', name: 'To bearing' },
+    { key: 'startDistance', label: 'Inner', name: 'Inner distance' },
+    { key: 'endDistance', label: 'Outer', name: 'Outer distance' }
   ];
 
   protected radar = this.radarApi.radar;
