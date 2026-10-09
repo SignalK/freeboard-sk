@@ -238,6 +238,23 @@ export function resolutionToIso(res: string | undefined): string | undefined {
   return m ? `PT${Number(m[1])}${m[2].toUpperCase()}` : undefined;
 }
 
+/** The v1 interface has no server simplification and sends every point at
+ * the resolution asked for, so the fine defaults that suit the Track API
+ * would download the older bands at many times the points the client keeps.
+ * On v1 those defaults fall back to the coarse steps they replaced; a
+ * resolution the user chose is sent as it is. */
+export function v1TrailResolution(resolution: {
+  lastHour: string;
+  next23: string;
+  beyond24: string;
+}): { lastHour: string; next23: string; beyond24: string } {
+  return {
+    lastHour: resolution.lastHour,
+    next23: resolution.next23 === '5s' ? '1m' : resolution.next23,
+    beyond24: resolution.beyond24 === '10s' ? '5m' : resolution.beyond24
+  };
+}
+
 export interface TrailBand {
   from?: string; // ISO 8601 instant; absent reaches back to the first recorded point
   to?: string; // ISO 8601 instant; absent leaves the band open to the server's now
@@ -271,14 +288,15 @@ export const TRAIL_MAX_HOURS = 96;
  * where the device's clock, if behind, would cut off the newest points.
  *
  * With TRAIL_DURATION_ALL the oldest band has no `from`, so it reaches back to
- * the first recorded point; the Track API allows that for a single vessel. It
- * is simplified by the server to `epsilon` metres (about a pixel at the map's
- * zoom), so a long history stays light on a zoomed-out chart and keeps its
- * turns on a zoomed-in one; without an `epsilon` the provider picks the
- * tolerance. With a `bbox` that band is asked for only where the map shows
- * it, so on a server that clips, years of history zoomed in on one harbour do
- * not arrive in full detail. The newer bands are a day at most, and stay
- * whole. */
+ * the first recorded point; the Track API allows that for a single vessel.
+ * With a `bbox` that band is asked for only where the map shows it, so on a
+ * server that clips, years of history zoomed in on one harbour do not arrive
+ * in full detail. The newer bands are a day at most, and stay whole.
+ *
+ * Every band but the last hour is simplified by the server to `epsilon`
+ * metres (about a pixel at the map's zoom), so the older trail can be sampled
+ * finely yet stays light on a zoomed-out chart and keeps its turns on a
+ * zoomed-in one; without an `epsilon` the provider picks the tolerance. */
 export function trailBands(
   durationHrs: number,
   resolution: { lastHour: string; next23: string; beyond24: string },
@@ -287,35 +305,30 @@ export function trailBands(
   bbox?: [number, number, number, number]
 ): TrailBand[] {
   const iso = (t: number) => new Date(t).toISOString();
+  const simplified = epsilon === undefined ? { simplify: true } : { epsilon };
   const bands: TrailBand[] = [];
-  if (durationHrs === TRAIL_DURATION_ALL) {
+  if (durationHrs === TRAIL_DURATION_ALL || durationHrs > 24) {
     bands.push({
+      ...(durationHrs === TRAIL_DURATION_ALL
+        ? {}
+        : { from: iso(now - durationHrs * HOUR) }),
       to: iso(now - 24 * HOUR),
       resolution: resolutionToIso(resolution.beyond24),
-      ...(epsilon === undefined ? { simplify: true } : { epsilon }),
-      ...(bbox ? { bbox } : {})
+      ...simplified,
+      ...(durationHrs === TRAIL_DURATION_ALL && bbox ? { bbox } : {})
     });
     bands.push({
       from: iso(now - 24 * HOUR),
       to: iso(now - HOUR),
-      resolution: resolutionToIso(resolution.next23)
-    });
-  } else if (durationHrs > 24) {
-    bands.push({
-      from: iso(now - durationHrs * HOUR),
-      to: iso(now - 24 * HOUR),
-      resolution: resolutionToIso(resolution.beyond24)
-    });
-    bands.push({
-      from: iso(now - 24 * HOUR),
-      to: iso(now - HOUR),
-      resolution: resolutionToIso(resolution.next23)
+      resolution: resolutionToIso(resolution.next23),
+      ...simplified
     });
   } else if (durationHrs > 1) {
     bands.push({
       from: iso(now - durationHrs * HOUR),
       to: iso(now - HOUR),
-      resolution: resolutionToIso(resolution.next23)
+      resolution: resolutionToIso(resolution.next23),
+      ...simplified
     });
   }
   bands.push({

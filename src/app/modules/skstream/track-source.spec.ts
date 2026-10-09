@@ -19,6 +19,7 @@ import {
   trailBands,
   trailBandUrl,
   tracksApiUrl,
+  v1TrailResolution,
   viewportBbox
 } from './track-source';
 
@@ -39,18 +40,67 @@ describe('track-source resolutionToIso', () => {
   });
 });
 
+describe('track-source v1TrailResolution', () => {
+  it('asks v1 for the coarse steps in place of the fine defaults', () => {
+    expect(
+      v1TrailResolution({ lastHour: '5s', next23: '5s', beyond24: '10s' })
+    ).toEqual({ lastHour: '5s', next23: '1m', beyond24: '5m' });
+  });
+
+  it('sends a resolution the user chose as it is', () => {
+    const chosen = { lastHour: '10s', next23: '30s', beyond24: '1m' };
+    expect(v1TrailResolution(chosen)).toEqual(chosen);
+  });
+});
+
 describe('track-source trailBands', () => {
   const res = { lastHour: '5s', next23: '1m', beyond24: '5m' };
   const now = Date.UTC(2026, 8, 24, 12, 0, 0);
   const hoursAgo = (h: number) => new Date(now - h * 3600000).toISOString();
 
   it('tiles a window longer than 24 h into three contiguous bands', () => {
-    const bands = trailBands(48, res, now);
+    const bands = trailBands(48, res, now, 150);
     expect(bands).toEqual([
-      { from: hoursAgo(48), to: hoursAgo(24), resolution: 'PT5M' },
-      { from: hoursAgo(24), to: hoursAgo(1), resolution: 'PT1M' },
+      {
+        from: hoursAgo(48),
+        to: hoursAgo(24),
+        resolution: 'PT5M',
+        epsilon: 150
+      },
+      {
+        from: hoursAgo(24),
+        to: hoursAgo(1),
+        resolution: 'PT1M',
+        epsilon: 150
+      },
       { from: hoursAgo(1), resolution: 'PT5S' }
     ]);
+  });
+
+  // The server simplifies the older bands to the map's zoom, so they can be
+  // sampled finely without drawing more than the screen shows; the last hour
+  // is drawn as recorded.
+  it('simplifies every band but the last hour, whatever the length', () => {
+    [2, 24, 96, TRAIL_DURATION_ALL].forEach((d) => {
+      const bands = trailBands(d, res, now, 150);
+      bands.slice(0, -1).forEach((b) => expect(b.epsilon).toBe(150));
+      expect(bands[bands.length - 1].epsilon).toBeUndefined();
+      expect(bands[bands.length - 1].simplify).toBeUndefined();
+    });
+    expect(trailBands(1, res, now, 150)).toEqual([
+      { from: hoursAgo(1), resolution: 'PT5S' }
+    ]);
+  });
+
+  it('leaves the tolerance to the provider before the map has a zoom', () => {
+    const [older, lastHour] = trailBands(12, res, now);
+    expect(older).toEqual({
+      from: hoursAgo(12),
+      to: hoursAgo(1),
+      resolution: 'PT1M',
+      simplify: true
+    });
+    expect(lastHour.simplify).toBeUndefined();
   });
 
   it('uses two bands for a window between 1 h and 24 h', () => {
@@ -122,7 +172,12 @@ describe('track-source trailBands', () => {
     it('reaches back to the first recorded point, simplified to the given tolerance', () => {
       expect(trailBands(TRAIL_DURATION_ALL, res, now, 150)).toEqual([
         { to: hoursAgo(24), resolution: 'PT5M', epsilon: 150 },
-        { from: hoursAgo(24), to: hoursAgo(1), resolution: 'PT1M' },
+        {
+          from: hoursAgo(24),
+          to: hoursAgo(1),
+          resolution: 'PT1M',
+          epsilon: 150
+        },
         { from: hoursAgo(1), resolution: 'PT5S' }
       ]);
     });
@@ -134,19 +189,8 @@ describe('track-source trailBands', () => {
         resolution: 'PT5M',
         simplify: true
       });
-      newer.forEach((b) => {
-        expect(b.simplify).toBeUndefined();
-        expect(b.epsilon).toBeUndefined();
-      });
-    });
-
-    it('simplifies no band of a fixed length', () => {
-      [1, 24, 96].forEach((d) =>
-        trailBands(d, res, now, 150).forEach((b) => {
-          expect(b.epsilon).toBeUndefined();
-          expect(b.simplify).toBeUndefined();
-        })
-      );
+      expect(newer[0].simplify).toBe(true);
+      expect(newer[1].simplify).toBeUndefined();
     });
 
     it('asks for the oldest band only in the given box', () => {

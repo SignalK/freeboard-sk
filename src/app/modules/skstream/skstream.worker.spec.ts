@@ -627,3 +627,24 @@ describe('skstream.worker own trail — overlapping fetches', () => {
     expect((trails()[0].result as Position[][])[0][0]).toEqual([10, 0]);
   });
 });
+
+describe('skstream.worker own trail — v1 resolution', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('asks v1 for the coarse steps in place of the fine defaults', () => {
+    const fetch = vi.fn(() => new Promise<Response>(() => undefined));
+    vi.stubGlobal('fetch', fetch);
+    getVesselTrail({
+      trailDuration: 48,
+      trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
+    });
+    const urls = fetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(urls).toHaveLength(3);
+    expect(urls[0]).toContain('timespanOffset=24');
+    expect(urls[0]).toContain('resolution=5m');
+    expect(urls[1]).toContain('resolution=1m');
+    expect(urls[2]).toContain('resolution=5s');
+  });
+});

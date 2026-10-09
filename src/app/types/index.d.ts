@@ -207,6 +207,9 @@ export interface IAppConfig {
       next23: string;
       beyond24: string;
     };
+    /** One-time marker for the move off the old 1 min / 5 min trail
+     * resolution defaults. */
+    trailResolutionApplied: boolean;
   };
   resources: {
     // ** resource options

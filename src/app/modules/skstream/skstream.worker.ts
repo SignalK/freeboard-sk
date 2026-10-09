@@ -47,6 +47,7 @@ import {
   TRAIL_MAX_HOURS,
   trailBands,
   trailBandUrl,
+  v1TrailResolution,
   viewportBbox
 } from './track-source';
 import {
@@ -378,9 +379,9 @@ function handleCommand(data: MsgFromApp) {
           trailMgr.trailResolution.lastHour =
             data.options.trailResolution.lastHour ?? '5s';
           trailMgr.trailResolution.next23 =
-            data.options.trailResolution.next23 ?? '1m';
+            data.options.trailResolution.next23 ?? '5s';
           trailMgr.trailResolution.beyond24 =
-            data.options.trailResolution.beyond24 ?? '5m';
+            data.options.trailResolution.beyond24 ?? '10s';
         }
       }
       requestVesselTrail();
@@ -542,9 +543,9 @@ function requestVesselTrail() {
 }
 
 /** Fetch the own-vessel trail from the v2 Track API: the same three bands as
- * v1, as absolute from/to, from the default provider only. With "All" the
- * oldest band is simplified by the server to a pixel at the map's zoom, and
- * asked for only in the padded map view.
+ * v1, as absolute from/to, from the default provider only. Every band but the
+ * last hour is simplified by the server to a pixel at the map's zoom; with
+ * "All" the oldest band is asked for only in the padded map view.
  * `token` is the request's trailGate token; it answers only while current. */
 export function getVesselTrailV2(
   url: string,
@@ -748,6 +749,7 @@ export function getVesselTrail(
 ) {
   //console.info('Worker: Fetching vessel trail from server', opt);
   const url = apiUrl + '/self/track?';
+  const resolution = v1TrailResolution(opt.trailResolution);
   // v1 has no open-ended query: "All" asks for its longest length
   const hours =
     opt.trailDuration === TRAIL_DURATION_ALL
@@ -760,13 +762,13 @@ export function getVesselTrail(
     req.push(
       apiGet(
         `${url}timespan=${hours - 24}h&resolution=${
-          opt.trailResolution.beyond24
+          resolution.beyond24
         }&timespanOffset=24`
       )
     );
     req.push(
       apiGet(
-        `${url}timespan=23h&resolution=${opt.trailResolution.next23}&timespanOffset=1`
+        `${url}timespan=23h&resolution=${resolution.next23}&timespanOffset=1`
       )
     );
   }
@@ -775,15 +777,13 @@ export function getVesselTrail(
     req.push(
       apiGet(
         `${url}timespan=${hours - 1}h&resolution=${
-          opt.trailResolution.next23
+          resolution.next23
         }&timespanOffset=1`
       )
     );
   }
   // lastHour
-  req.push(
-    apiGet(`${url}timespan=1h&resolution=${opt.trailResolution.lastHour}`)
-  );
+  req.push(apiGet(`${url}timespan=1h&resolution=${resolution.lastHour}`));
 
   const msg = new TrailMessage();
   msg.playback = playbackMode;
