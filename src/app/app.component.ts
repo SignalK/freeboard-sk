@@ -887,7 +887,11 @@ export class AppComponent {
             ff.anchorApi = true;
             hasPlugin.anchorAlarm = true;
           }
-          if (p.id === 'hoekens-anchor-alarm') {
+          // 2.12.0 moves the anchor through setZone, which Anchor Watch uses.
+          if (
+            p.id === 'hoekens-anchor-alarm' &&
+            semver.satisfies(p.version, '>=2.12.0')
+          ) {
             this.app.debug('*** found hoekens-anchor-alarm plugin');
             ff.anchorApi = true;
             hasPlugin.hoekensAnchorAlarm = true;
