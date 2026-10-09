@@ -234,7 +234,7 @@
         !this.app.instrumentPanel().open &&
         this.app.data.vessels.showSelf
       ) {
-        <a mat-menu-item (click)="showRadarPanel()">
+        <a mat-menu-item (click)="toggleRadarOverlay()">
           @if (app.uiCtrl().radarLayer) {
             <mat-icon class="icon-accent">check_box</mat-icon>
           } @else {

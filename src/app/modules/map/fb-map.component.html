@@ -221,16 +221,18 @@
 
   <!-- Radar Overlay -->
   @if (app.uiCtrl().radarLayer) {
-    <fb-radar
-      [position]="dfeat.self.position"
-      [heading]="dfeat.self.orientation"
-      [mapZoom]="mapZoomLevel()"
-      [zIndex]="99"
-      [opacity]="app.config.radars.opacity"
-      [radarId]="radarApi.radar()?.device?.id"
-      (onError)="handleRadarError($event)"
-    >
-    </fb-radar>
+    @if (radarImage()) {
+      <fb-radar
+        [position]="dfeat.self.position"
+        [heading]="dfeat.self.orientation"
+        [mapZoom]="mapZoomLevel()"
+        [zIndex]="99"
+        [opacity]="app.config.radars.opacity"
+        [radarId]="radarApi.radar()?.device?.id"
+        (onError)="handleRadarError($event)"
+      >
+      </fb-radar>
+    }
     <fb-radar-zones
       [zones]="radarZones()"
       [position]="dfeat.self.position"

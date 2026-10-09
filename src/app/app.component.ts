@@ -505,6 +505,16 @@ export class AppComponent {
     }
   }
 
+  /** The Radar Overlay menu item: hides the radar on this screen when it is
+   *  shown, otherwise shows it and opens the radar panel. */
+  protected toggleRadarOverlay() {
+    if (this.app.uiCtrl().radarLayer) {
+      this.disconnectRadar();
+    } else {
+      this.showRadarPanel();
+    }
+  }
+
   protected disconnectRadar() {
     if (this.app.uiCtrl().radarLayer) {
       this.app.uiCtrl.update((current) => {

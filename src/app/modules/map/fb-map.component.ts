@@ -73,6 +73,7 @@ import {
 import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { radarGuardZones } from 'src/app/modules/radar/guard-zones';
+import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
@@ -468,6 +469,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trackHistory = inject(TrackHistoryService);
   protected radarApi = inject(RadarAPIService);
   protected radarZones = computed(() => radarGuardZones(this.radarApi.radar()));
+  // without an image to draw, dropping the spoke stream lets the provider
+  // rest the radar
+  protected radarImage = computed(() => {
+    const radar = this.radarApi.radar();
+    return sendsImage(
+      powerState(
+        radar?.capabilities?.controls?.['power'],
+        radar?.controls?.get('power')?.value
+      )
+    );
+  });
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   private ngZone = inject(NgZone);

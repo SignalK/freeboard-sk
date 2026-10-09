@@ -7,7 +7,8 @@ import {
   controlWidget,
   nextPowerValue,
   powerState,
-  rangeOptions
+  rangeOptions,
+  sendsImage
 } from './radar-controls';
 
 // Control definitions as a Furuno DRS4D-NXT reports them through MaYaRa
@@ -302,5 +303,19 @@ describe('radar rangeOptions()', () => {
       { value: 926, label: '1/2 nm' },
       { value: 1852, label: '1 nm' }
     ]);
+  });
+});
+
+describe('sendsImage', () => {
+  it('is false in standby, off and fault', () => {
+    expect(sendsImage('standby')).toBe(false);
+    expect(sendsImage('off')).toBe(false);
+    expect(sendsImage('fault')).toBe(false);
+  });
+
+  it('is true while transmitting, warming up or in an unknown state', () => {
+    expect(sendsImage('transmit')).toBe(true);
+    expect(sendsImage('preparing')).toBe(true);
+    expect(sendsImage('unknown')).toBe(true);
   });
 });
