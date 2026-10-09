@@ -143,6 +143,10 @@ describe('AISTargetsLayerComponent course line', () => {
     ) as AISTargetsLayerComponent;
     Object.assign(c, {
       targetContext: 'targets',
+      // course lines on, so only the missing course removes it
+      cogLineLength: 10,
+      mapZoom: 15,
+      labelMinZoom: 10,
       source: {
         getFeatureById: (fid: string) =>
           fid === 'cog-' + id ? line : undefined,

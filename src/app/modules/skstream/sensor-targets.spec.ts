@@ -20,6 +20,7 @@ function vessel(id: string): SKVessel {
   const v = new SKVessel();
   v.id = id;
   v.position = [4.21, 52.11];
+  v.positionReceived = true;
   return v;
 }
 
@@ -41,6 +42,35 @@ function target(
 }
 
 describe('processSensorTarget', () => {
+  it('wraps a position reported past the antimeridian', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    processSensorTarget(
+      targets,
+      RADAR,
+      {
+        path: 'navigation.position',
+        value: { latitude: -17.5, longitude: 180.03 }
+      },
+      COG_LINE
+    );
+    const [lon, lat] = targets.get(RADAR).position;
+    expect(lon).toBeCloseTo(-179.97);
+    expect(lat).toBe(-17.5);
+  });
+
+  it('does not bring back a removed target from its course or speed', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    expect(
+      processSensorTarget(
+        targets,
+        RADAR,
+        { path: 'navigation.speedOverGround', value: 3 },
+        COG_LINE
+      )
+    ).toBe(true);
+    expect(targets.has(RADAR)).toBe(false);
+  });
+
   it('builds a target from its navigation and identity values', () => {
     const targets = new Map<string, SKSensorTarget>();
     processSensorTarget(
@@ -154,6 +184,7 @@ describe('processSensorTarget', () => {
 
   it('leaves the course unset until the sensor reports one', () => {
     const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR);
     processSensorTarget(
       targets,
       RADAR,
@@ -199,7 +230,6 @@ describe('processSensorTarget', () => {
     for (const value of [
       null,
       { latitude: 91, longitude: 4.2 },
-      { latitude: 52.1, longitude: 200 },
       { latitude: 'x', longitude: 4.2 }
     ]) {
       const targets = new Map<string, SKSensorTarget>();
@@ -280,13 +310,41 @@ describe('unlinkedTargets', () => {
     expect([...unlinkedTargets(targets, new Map(), self).keys()]).toEqual([]);
   });
 
-  it('draws a target whose linked vessel has no position', () => {
+  it('draws a vessel without a position yet at the target linked to it', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
-    const unplaced = vessel(VESSEL);
-    unplaced.position = null;
-    const shown = unlinkedTargets(targets, new Map([[VESSEL, unplaced]]));
-    expect([...shown.keys()]).toEqual([RADAR]);
+    const unplaced = new SKVessel();
+    unplaced.id = VESSEL;
+    const vessels = new Map([[VESSEL, unplaced]]);
+    expect([...unlinkedTargets(targets, vessels).keys()]).toEqual([]);
+    expect(fusedVessels(vessels, targets).get(VESSEL).position).toEqual([
+      4.2, 52.1
+    ]);
+  });
+
+  it('shows a linked group with the course and speed it is drawn with', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, CAMERA);
+    target(targets, RADAR, CAMERA);
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.courseOverGroundTrue', value: 1.5 },
+      COG_LINE
+    );
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.speedOverGround', value: 3 },
+      COG_LINE
+    );
+    targets.get(CAMERA).positionUpdatedAt = 1000;
+    targets.get(RADAR).positionUpdatedAt = 2000;
+    const shown = unlinkedTargets(targets, new Map()).get(CAMERA);
+    expect(shown).toBeInstanceOf(SKSensorTarget);
+    expect(shown.cog).toBe(1.5);
+    expect(shown.sog).toBe(3);
+    expect(shown.vectors.cog).toEqual(targets.get(RADAR).vectors.cog);
   });
 
   it('draws a target whose linked target has no position', () => {
@@ -327,8 +385,8 @@ describe('locateTarget', () => {
   it('locates a vessel without a position through a target linked to it', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
-    const unplaced = vessel(VESSEL);
-    unplaced.position = null;
+    const unplaced = new SKVessel();
+    unplaced.id = VESSEL;
     expect(
       locateTarget(VESSEL, new Map([[VESSEL, unplaced]]), targets)
     ).toEqual([4.2, 52.1]);
@@ -351,6 +409,17 @@ describe('fusedVessels', () => {
     expect(fused.position).toEqual(targets.get(RADAR).position);
     expect(fused).toBeInstanceOf(SKVessel);
     expect(v.position).toEqual([4.21, 52.11]);
+  });
+
+  it('marks a vessel the linked target still tracks as recently updated', () => {
+    const v = vessel(VESSEL);
+    v.positionUpdatedAt = 1000;
+    v.lastUpdated = new Date(1000);
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    targets.get(RADAR).positionUpdatedAt = 2000;
+    const fused = fusedVessels(new Map([[VESSEL, v]]), targets).get(VESSEL);
+    expect(fused.lastUpdated).toBe(targets.get(RADAR).lastUpdated);
   });
 
   it('keeps a vessel whose AIS reported after the linked target', () => {
