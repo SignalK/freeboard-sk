@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   OnInit,
@@ -93,7 +94,8 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    private ngZone: NgZone
   ) {
     this.changeDetectorRef.detach();
   }
@@ -112,7 +114,11 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
-    this.flashTimer = setInterval(() => this.flash(), FLASH_MS);
+    // Flashing only restyles map features, so it runs outside the Angular zone
+    // rather than triggering an app-wide change detection on every tick.
+    this.ngZone.runOutsideAngular(() => {
+      this.flashTimer = setInterval(() => this.flash(), FLASH_MS);
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -162,9 +168,9 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
     };
     this.cpaTargets.forEach((t) => {
       const shapes = cpaShapes(t);
-      shapes.courseLines.forEach((c) => line(c, this.courseStyle()));
+      shapes.courseLines.forEach((c) => line(c, COURSE_STYLE));
       if (shapes.cpaLine) {
-        line(shapes.cpaLine, this.cpaStyle());
+        line(shapes.cpaLine, CPA_STYLE);
       }
       if (shapes.rangeLine) {
         line(shapes.rangeLine, this.buildStyle());
@@ -173,7 +179,7 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
         const ring = new Feature({
           geometry: new Point(fromLonLat(shapes.ring as Coordinate))
         });
-        ring.setStyle(this.flashOn ? this.ringStyle() : HIDDEN);
+        ring.setStyle(this.flashOn ? RING_STYLE : HIDDEN);
         rings.push(ring);
         fa.push(ring);
       }
@@ -184,7 +190,7 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
 
   private flash() {
     this.flashOn = !this.flashOn;
-    const style = this.flashOn ? this.ringStyle() : HIDDEN;
+    const style = this.flashOn ? RING_STYLE : HIDDEN;
     this.rings.forEach((r) => r.setStyle(style));
   }
 
@@ -205,39 +211,32 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
     }
     return cs;
   }
-
-  private ringStyle(): Style {
-    return new Style({
-      image: new Circle({
-        radius: 14,
-        stroke: new Stroke({ width: 3, color: 'red' }),
-        fill: new Fill({ color: 'rgba(255,0,0,.3)' })
-      })
-    });
-  }
-
-  private courseStyle(): Style {
-    return new Style({
-      stroke: new Stroke({ width: 2, color: 'red', lineDash: [8, 6] })
-    });
-  }
-
-  // the line between the two vessels at closest approach, with its ends marked
-  private cpaStyle(): Style[] {
-    const end = new Circle({
-      radius: 4,
-      stroke: new Stroke({ width: 2, color: 'red' }),
-      fill: new Fill({ color: 'white' })
-    });
-    return [
-      new Style({ stroke: new Stroke({ width: 2, color: 'red' }) }),
-      new Style({
-        image: end,
-        geometry: (f) =>
-          new MultiPoint((f.getGeometry() as LineString).getCoordinates())
-      })
-    ];
-  }
 }
 
 const HIDDEN = new Style({});
+
+const RING_STYLE = new Style({
+  image: new Circle({
+    radius: 14,
+    stroke: new Stroke({ width: 3, color: 'red' }),
+    fill: new Fill({ color: 'rgba(255,0,0,.3)' })
+  })
+});
+
+const COURSE_STYLE = new Style({
+  stroke: new Stroke({ width: 2, color: 'red', lineDash: [8, 6] })
+});
+
+// the line between the two vessels at closest approach, with its ends marked
+const CPA_STYLE = [
+  new Style({ stroke: new Stroke({ width: 2, color: 'red' }) }),
+  new Style({
+    image: new Circle({
+      radius: 4,
+      stroke: new Stroke({ width: 2, color: 'red' }),
+      fill: new Fill({ color: 'white' })
+    }),
+    geometry: (f) =>
+      new MultiPoint((f.getGeometry() as LineString).getCoordinates())
+  })
+];
