@@ -13,6 +13,7 @@ import {
   CdkDragDrop,
   moveItemInArray,
   CdkDrag,
+  CdkDragHandle,
   CdkDropList
 } from '@angular/cdk/drag-drop';
 import { Position } from 'src/app/types';
@@ -38,6 +39,7 @@ import { followedPointIndex } from '../../map/route-point-pick';
     MatButtonModule,
     MatToolbarModule,
     CdkDrag,
+    CdkDragHandle,
     CdkDropList
   ],
   template: `

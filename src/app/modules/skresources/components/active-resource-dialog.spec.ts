@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import { beforeEach, describe, it, expect } from 'vitest';
 import {
   MatBottomSheetRef,
@@ -199,5 +201,73 @@ describe('ActiveResourcePropertiesModal point names', () => {
       { name: 'Three' }
     ]);
     expect(points.map((p) => p.name)).toEqual(['One', 'RtePt-002', 'Three']);
+  });
+});
+
+/**
+ * A swipe over the route points has to scroll the list. Each point is a
+ * `cdkDrag`; without a live handle a drag starts anywhere on the point and
+ * claims the gesture, so on a touchscreen a swipe re-ordered points instead of
+ * scrolling. Only the drag indicator may start a re-order.
+ */
+describe('ActiveResourcePropertiesModal re-order handles', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  it('re-orders a point only from its drag indicator', () => {
+    const coordinates = [
+      [24.95, 60.15],
+      [24.955, 60.16],
+      [24.95, 60.17]
+    ];
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            data: {
+              activeRoute: null,
+              vessels: { self: { position: [24.95, 60.1712], heading: 0 } }
+            },
+            formatValueForDisplay: () => ''
+          }
+        },
+        { provide: CourseService, useValue: {} },
+        { provide: SKResourceService, useValue: {} },
+        { provide: RouteBufferRegistry, useValue: {} },
+        { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
+        {
+          provide: MAT_BOTTOM_SHEET_DATA,
+          useValue: {
+            title: 'Route Properties',
+            type: 'route',
+            resource: [
+              'rte-1',
+              {
+                name: 'Handles',
+                feature: {
+                  type: 'Feature',
+                  geometry: { type: 'LineString', coordinates },
+                  properties: {
+                    coordinatesMeta: coordinates.map((_, i) => ({
+                      name: `P${i}`
+                    }))
+                  }
+                }
+              },
+              false
+            ],
+            noButtons: true
+          }
+        }
+      ]
+    });
+    const fixture = TestBed.createComponent(ActiveResourcePropertiesModal);
+    fixture.detectChanges();
+
+    const handles = fixture.debugElement.queryAll(By.directive(CdkDragHandle));
+    expect(handles).toHaveLength(coordinates.length);
+    for (const h of handles) {
+      expect(h.nativeElement.textContent).toContain('drag_indicator');
+    }
   });
 });
