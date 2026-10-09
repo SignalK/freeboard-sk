@@ -89,4 +89,5 @@ time has no ghost. **NOW** puts the ghosts away and returns to the present.
 Tap a history line to see when that stretch was recorded, **From** and
 **To**, how long it lasted, and when the vessel was at the spot you tapped
 (**Here at**). The same works on your own trail and on other vessels' tracks;
-see **Vessel Tracks**.
+see **Vessel Tracks**. **Make Route** in the same popover turns the passage into
+a route; see **Route Planning**.
