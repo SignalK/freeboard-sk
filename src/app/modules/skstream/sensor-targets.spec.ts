@@ -230,6 +230,7 @@ describe('processSensorTarget', () => {
     for (const value of [
       null,
       { latitude: 91, longitude: 4.2 },
+      { latitude: 52.1, longitude: Infinity },
       { latitude: 'x', longitude: 4.2 }
     ]) {
       const targets = new Map<string, SKSensorTarget>();
