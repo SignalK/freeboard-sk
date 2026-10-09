@@ -22,27 +22,36 @@ export interface RadarGuardZone {
 export type LonLat = [number, number];
 
 const GUARD_ZONE_PREFIX = 'guardZone';
-// a sector whose ends are closer than this is the full ring
+// a sector whose ends are closer than this (radians) is the full ring; the
+// same tolerance as the MaYaRa radar's ZONE_ANGLE_EPSILON, so the chart
+// draws the zone its ARPA detector applies
 const FULL_RING_TOLERANCE = 0.001;
+const FULL_TURN = 2 * Math.PI;
 // the longest arc step drawn as one straight segment
 const MAX_ARC_STEP = (2 * Math.PI) / 180;
+
+const isFiniteNumber = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isFinite(v);
 
 /** The zone a `zone` control value describes, or undefined when it has none
  *  (a zone never set reports no outer distance). */
 export function guardZoneFromControl(
   value: ControlValue | undefined
 ): GuardZone | undefined {
+  const startDistance = value?.startDistance ?? 0;
   if (
-    typeof value?.value !== 'number' ||
-    typeof value.endValue !== 'number' ||
-    !(value.endDistance > 0)
+    !isFiniteNumber(value?.value) ||
+    !isFiniteNumber(value.endValue) ||
+    !isFiniteNumber(value.endDistance) ||
+    !(value.endDistance > 0) ||
+    !isFiniteNumber(startDistance)
   ) {
     return undefined;
   }
   return {
     startAngle: value.value,
     endAngle: value.endValue,
-    startDistance: Math.max(0, value.startDistance ?? 0),
+    startDistance: Math.max(0, startDistance),
     endDistance: value.endDistance,
     enabled: value.enabled === true
   };
@@ -64,9 +73,11 @@ export function radarGuardZones(
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** True when the zone covers every bearing. */
+/** True when the zone covers every bearing: its ends coincide, or it
+ *  sweeps a whole turn. */
 export function isFullRing(zone: GuardZone): boolean {
-  return Math.abs(zone.endAngle - zone.startAngle) < FULL_RING_TOLERANCE;
+  const span = Math.abs(zone.endAngle - zone.startAngle);
+  return span < FULL_RING_TOLERANCE || span >= FULL_TURN;
 }
 
 /**
@@ -102,16 +113,14 @@ export function guardZoneRings(
   };
 
   if (isFullRing(zone)) {
-    const outer = arc(0, 2 * Math.PI, zone.endDistance);
+    const outer = arc(0, FULL_TURN, zone.endDistance);
     return zone.startDistance > 0
-      ? [outer, arc(0, -2 * Math.PI, zone.startDistance)]
+      ? [outer, arc(0, -FULL_TURN, zone.startDistance)]
       : [outer];
   }
 
-  let sweep = zone.endAngle - zone.startAngle;
-  while (sweep <= 0) {
-    sweep += 2 * Math.PI;
-  }
+  const sweep =
+    (((zone.endAngle - zone.startAngle) % FULL_TURN) + FULL_TURN) % FULL_TURN;
   const ring = arc(zone.startAngle, sweep, zone.endDistance);
   if (zone.startDistance > 0) {
     ring.push(...arc(zone.endAngle, -sweep, zone.startDistance));

@@ -9,7 +9,8 @@ import {
 import {
   ActiveRadar,
   CapabilityManifest,
-  ControlDef
+  ControlDef,
+  ControlValue
 } from './radar-api.service';
 
 const deg = (d: number) => (d * Math.PI) / 180;
@@ -31,7 +32,7 @@ const zoneDef = (id: number): ControlDef => ({
 
 const radar = (
   controls: Record<string, ControlDef>,
-  values: Record<string, object>
+  values: Record<string, ControlValue>
 ): ActiveRadar => ({
   device: { id: 'fur6424A', name: 'Furuno', brand: 'Furuno' },
   capabilities: { controls } as unknown as CapabilityManifest,
@@ -69,6 +70,18 @@ describe('guardZoneFromControl', () => {
     ).toBeUndefined();
     expect(guardZoneFromControl({})).toBeUndefined();
     expect(guardZoneFromControl(undefined)).toBeUndefined();
+  });
+
+  it('has no zone for values that are not finite', () => {
+    const zone = { value: 0, endValue: 1, startDistance: 0, endDistance: 500 };
+    expect(guardZoneFromControl({ ...zone, value: Infinity })).toBeUndefined();
+    expect(guardZoneFromControl({ ...zone, endValue: NaN })).toBeUndefined();
+    expect(
+      guardZoneFromControl({ ...zone, endDistance: Infinity })
+    ).toBeUndefined();
+    expect(
+      guardZoneFromControl({ ...zone, startDistance: -Infinity })
+    ).toBeUndefined();
   });
 
   it('treats a missing enabled flag as switched off', () => {
@@ -167,6 +180,28 @@ describe('guardZoneRings', () => {
     expect(rings).toHaveLength(2);
     rings[0].forEach((p) => expect(distanceTo(p)).toBeCloseTo(1000, -1));
     rings[1].forEach((p) => expect(distanceTo(p)).toBeCloseTo(200, -1));
+  });
+
+  it('keeps a sector just wider than the full-ring tolerance', () => {
+    const rings = guardZoneRings(POSITION, 0, {
+      ...sector,
+      startAngle: 0,
+      endAngle: 0.002
+    });
+    expect(rings).toHaveLength(1);
+    rings[0]
+      .filter((p) => distanceTo(p) > 900)
+      .forEach((p) => expect(bearingTo(p)).toBeLessThan(0.5));
+  });
+
+  it('draws a sweep of a whole turn as a full ring', () => {
+    expect(
+      guardZoneRings(POSITION, 0, {
+        ...sector,
+        startAngle: 0,
+        endAngle: 2 * Math.PI
+      })
+    ).toHaveLength(2);
   });
 
   it('draws a full ring without an inner distance as a disc', () => {
