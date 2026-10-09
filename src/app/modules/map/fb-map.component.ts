@@ -73,17 +73,17 @@ import {
 import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { radarGuardZones } from 'src/app/modules/radar/guard-zones';
+import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
+import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import {
   radarRange,
   rangeRingScale,
   ringLabel
 } from 'src/app/modules/radar/range-rings';
-import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import {
   RangeRing,
   sameRings
 } from 'src/app/modules/map/ol/lib/navigation/layer-range-circles.component';
-import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
   SKResourceService,
@@ -478,6 +478,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trackHistory = inject(TrackHistoryService);
   protected radarApi = inject(RadarAPIService);
   protected radarZones = computed(() => radarGuardZones(this.radarApi.radar()));
+  // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
+  protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
+  private ngZone = inject(NgZone);
   // range circles at the radar range, while the radar shows on this screen
   // and transmits
   protected radarRings = computed<RangeRing[]>(
@@ -505,9 +508,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     },
     { equal: sameRings }
   );
-  // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
-  protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
-  private ngZone = inject(NgZone);
 
   constructor() {
     effect(() => {

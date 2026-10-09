@@ -315,6 +315,21 @@ describe('RadarPanel', () => {
     );
   });
 
+  it('switches the range rings with the rings button and saves the choice', () => {
+    const fixture = open();
+    const app = TestBed.inject(AppFacade);
+    const save = vi.spyOn(app, 'saveConfig');
+    const rings = () =>
+      fixture.nativeElement.querySelector('.rings-button') as HTMLElement;
+
+    rings().click();
+    expect(app.config.radars.rings).toBe(false);
+    expect(save).toHaveBeenCalledTimes(1);
+
+    rings().click();
+    expect(app.config.radars.rings).toBe(true);
+  });
+
   it('hides and shows the overlay with the eye button', () => {
     const fixture = open();
     const disconnect = vi.fn();
@@ -333,20 +348,5 @@ describe('RadarPanel', () => {
     fixture.componentRef.changeDetectorRef.markForCheck();
     eye().click();
     expect(connect).toHaveBeenCalledTimes(1);
-  });
-
-  it('switches the range rings with the rings button and saves the choice', () => {
-    const fixture = open();
-    const app = TestBed.inject(AppFacade);
-    const save = vi.spyOn(app, 'saveConfig');
-    const rings = () =>
-      fixture.nativeElement.querySelector('.rings-button') as HTMLElement;
-
-    rings().click();
-    expect(app.config.radars.rings).toBe(false);
-    expect(save).toHaveBeenCalledTimes(1);
-
-    rings().click();
-    expect(app.config.radars.rings).toBe(true);
   });
 });
