@@ -29,14 +29,21 @@ boat's recent track behind it. It is on by default.
 
 When the track comes from the server, **Length** sets how much of it to show:
 1 to 96 hours (24 by default), or **All**, the slider's last stop, for the
-whole track the server has recorded. With **All**, the older part of the track
-is drawn lighter when zoomed out and in more detail as you zoom in. The last
-24 hours are always drawn in full. On a server with only the older track
+whole track the server has recorded. On a server with only the older track
 interface, **All** shows the last 96 hours.
 
-The three **Resolution** settings trade detail for speed. They set how closely
-spaced the points are for the last hour, for 1 to 24 hours ago, and for
-anything older.
+The last hour of the track is always drawn as recorded. Anything older is
+drawn to suit the zoom: zoomed out, it is simplified to what the screen can
+show, so a long stay at anchor doesn't draw as a cloud of points. As you zoom
+in, the turns and harbour manoeuvres come back, down to the detail the server
+recorded.
+
+The three **Resolution** settings set the finest spacing of points asked of
+the server for the last hour, for 1 to 24 hours ago, and for anything older.
+Finer spacing keeps more detail for when you zoom in, at the cost of more work
+for the server. On a server with only the older track interface, the older
+track is not refined as you zoom, and it is fetched more coarsely unless you
+choose otherwise.
 
 In the chart's context menu (right-click, or long-press on a touch screen),
 **Refresh Trail** reloads a server track. For a track kept on this device, the
