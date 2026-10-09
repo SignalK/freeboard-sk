@@ -487,7 +487,7 @@ export class AppComponent {
   }
 
   /** Open the radar panel, or close it when it is already showing. Closing it
-   *  leaves the radar overlay on; it shows while the radar transmits. */
+   *  leaves the radar overlay on; the overlay is switched off in the panel. */
   protected toggleRadarPanel() {
     if (this.infoPanel.item()?.type === 'radars') {
       this.infoPanel.close();
@@ -501,6 +501,14 @@ export class AppComponent {
     if (!this.app.uiCtrl().radarLayer) {
       this.app.uiCtrl.update((current) => {
         return Object.assign({}, current, { radarLayer: true });
+      });
+    }
+  }
+
+  protected disconnectRadar() {
+    if (this.app.uiCtrl().radarLayer) {
+      this.app.uiCtrl.update((current) => {
+        return Object.assign({}, current, { radarLayer: false });
       });
     }
   }

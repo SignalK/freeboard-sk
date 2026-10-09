@@ -1549,7 +1549,7 @@
                     <mat-label>Radar Devices</mat-label>
                     <mat-select
                       #radarlist
-                      [disabled]="!radarList().length"
+                      [disabled]="!radarList().length || this.app.uiCtrl().radarLayer"
                       [(ngModel)]="facade.settings.radars.deviceId"
                       (selectionChange)="doRadar()"
                       matToolTip="Select radar device"
@@ -1575,7 +1575,7 @@
                     (change)="persistModel()"
                     label="after"
                   >
-                    Show range rings around the radar
+                    Draw range circles at the radar range while it transmits
                   </mat-checkbox>
                 </div>
               </div>

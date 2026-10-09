@@ -79,7 +79,10 @@ import {
   radarRange,
   rangeRingDistances
 } from 'src/app/modules/radar/range-rings';
-import { RangeRing } from 'src/app/modules/map/ol/lib/radar/layer-radar-rings.component';
+import {
+  RangeRing,
+  sameRings
+} from 'src/app/modules/map/ol/lib/navigation/layer-range-circles.component';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
@@ -475,26 +478,28 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trackHistory = inject(TrackHistoryService);
   protected radarApi = inject(RadarAPIService);
   protected radarZones = computed(() => radarGuardZones(this.radarApi.radar()));
-  // a radar in standby sends no image, and dropping its spoke stream lets
-  // the provider rest it
-  protected radarImage = computed(
-    () => !isRadarInStandby(this.radarApi.radar())
-  );
-  protected radarRings = computed<RangeRing[]>(() => {
-    // the scale units input follows the distance unit, so a unit change
-    // redraws the rings
-    const unit = (this.scaleUnits() ||
-      this.app.config.units.distance) as TARGET_UNIT;
-    const toUnit = (m: number) => Convert.transform(m, 'm', unit);
-    return rangeRingDistances(radarRange(this.radarApi.radar()), toUnit).map(
-      (distance) => ({
+  // range circles at the radar range, while the radar shows on this screen
+  // and transmits
+  protected radarRings = computed<RangeRing[]>(
+    () => {
+      const radar = this.radarApi.radar();
+      if (!this.app.uiCtrl().radarLayer || isRadarInStandby(radar)) {
+        return [];
+      }
+      // the scale units input follows the distance unit, so a unit change
+      // redraws the rings
+      const unit = (this.scaleUnits() ||
+        this.app.config.units.distance) as TARGET_UNIT;
+      const toUnit = (m: number) => Convert.transform(m, 'm', unit);
+      return rangeRingDistances(radarRange(radar), toUnit).map((distance) => ({
         distance,
         label: this.app.formatValueForDisplay(distance, 'm', {
           precision: labelDecimals(toUnit(distance))
         })
-      })
-    );
-  });
+      }));
+    },
+    { equal: sameRings }
+  );
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   private ngZone = inject(NgZone);

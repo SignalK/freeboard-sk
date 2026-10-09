@@ -295,15 +295,20 @@ describe('AppComponent', () => {
       // matters here is whether it is switched on or off.
       const overlay = fixture.componentInstance as unknown as {
         connectRadar: () => void;
+        disconnectRadar: () => void;
       };
       const connect = vi
         .spyOn(overlay, 'connectRadar')
+        .mockImplementation(() => undefined);
+      const disconnect = vi
+        .spyOn(overlay, 'disconnectRadar')
         .mockImplementation(() => undefined);
       fixture.detectChanges();
       return {
         fixture,
         infoPanel: TestBed.inject(InfoPanelFacade),
-        connect
+        connect,
+        disconnect
       };
     };
 
@@ -313,7 +318,7 @@ describe('AppComponent', () => {
     ] as const)(
       'closes the radar panel with the %s button that opened it',
       (_, fab, selector) => {
-        const { fixture, infoPanel, connect } = setup(fab);
+        const { fixture, infoPanel, connect, disconnect } = setup(fab);
         const panelShown = () => infoPanel.item()?.type === 'radars';
         const press = () => {
           fixture.debugElement.query(By.css(selector)).nativeElement.click();
@@ -329,6 +334,7 @@ describe('AppComponent', () => {
 
         press();
         expect(panelShown()).toBe(true);
+        expect(disconnect).not.toHaveBeenCalled();
       }
     );
   });

@@ -297,7 +297,10 @@
           @if (this.infoPanel.item && !app.instrumentPanel().open) {
             <info-panel (closed)="closeDrawer()">
               @if (infoPanel.item()?.type === 'radars') {
-                <radar-panel />
+                <radar-panel
+                  (connect)="connectRadar()"
+                  (disconnect)="disconnectRadar()"
+                />
               }
               @if (infoPanel.item()?.type === 'notes') {
                 <note-panel

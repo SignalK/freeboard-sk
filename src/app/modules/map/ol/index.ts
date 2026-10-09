@@ -55,7 +55,6 @@ import { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
 import { ChartBoundsLayerComponent } from './lib/charts/layer-chart-bounds.component';
 import { RadarComponent } from './lib/radar/layer-radar.component';
 import { RadarZonesComponent } from './lib/radar/layer-radar-zones.component';
-import { RadarRingsComponent } from './lib/radar/layer-radar-rings.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -118,7 +117,6 @@ export { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
 export { ChartBoundsLayerComponent } from './lib/charts/layer-chart-bounds.component';
 export { RadarComponent } from './lib/radar/layer-radar.component';
 export { RadarZonesComponent } from './lib/radar/layer-radar-zones.component';
-export { RadarRingsComponent } from './lib/radar/layer-radar-rings.component';
 export { TidalCurrentsLayerComponent } from './lib/resources/tidal-currents-layer.component';
 
 const declarations = [
@@ -166,7 +164,6 @@ const declarations = [
   WindLinesComponent,
   RadarComponent,
   RadarZonesComponent,
-  RadarRingsComponent,
   RasterChartLayerComponent,
   VectorChartLayerComponent,
   WmsChartLayerComponent,

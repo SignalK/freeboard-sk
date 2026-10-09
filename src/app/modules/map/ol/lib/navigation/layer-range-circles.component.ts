@@ -26,6 +26,20 @@ import { computeDestinationPoint } from 'geolib';
 import { DarkTheme } from '../themes';
 import { circular } from 'ol/geom/Polygon';
 
+/** A range circle at a set distance, as drawn around a transmitting radar. */
+export interface RangeRing {
+  /** metres */
+  distance: number;
+  label: string;
+}
+
+export function sameRings(a: RangeRing[], b: RangeRing[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((r, i) => r.distance === b[i].distance && r.label === b[i].label)
+  );
+}
+
 const LightTheme = {
   labelText: {
     color: 'rgba(26, 26, 1, 1)'
@@ -48,6 +62,8 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   protected darkMode = input<boolean>(false);
   protected fixedMode = input<boolean>(false);
   protected fixedDistance = input<number>(1000);
+  // when set, these circles are drawn instead of the zoom or fixed ones
+  protected rings = input<RangeRing[] | undefined>(undefined);
 
   /**
    * This event is triggered after the layer is initialized
@@ -82,6 +98,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     effect(() => {
       this.fixedMode();
       this.fixedDistance();
+      this.rings();
       this.processChange();
     });
   }
@@ -134,6 +151,14 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
+    const rings = this.rings();
+    if (rings) {
+      const st = this.buildCircleStyle();
+      this.features = rings.flatMap((r) =>
+        this.buildCircle(r.distance, r.label, st)
+      );
+      return;
+    }
     let range: number;
     if (!this.fixedMode()) {
       const map = this.mapComponent.getMap();
@@ -168,21 +193,24 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;
-        const geodesicCircle = circular(this.position, d, 1024);
-        geodesicCircle.transform('EPSG:4326', 'EPSG:3857'); // Transform from ol default projection (EPSG:4326) to map projection (EPSG:3857)
-        const f = new Feature({ geometry: geodesicCircle });
-        f.setStyle(st);
-        fa.push(f);
-        // point for text display
-        const tp = computeDestinationPoint(this.position, d, 180);
-        const p = new Feature({
-          geometry: new Point(fromLonLat([tp.longitude, tp.latitude]))
-        });
-        p.setStyle(this.buildTextStyle(d));
-        fa.push(p);
+        fa.push(...this.buildCircle(d, this.formatLabel(d), st));
       }
     }
     this.features = fa;
+  }
+
+  private buildCircle(distance: number, label: string, style: Style) {
+    const geodesicCircle = circular(this.position, distance, 1024);
+    geodesicCircle.transform('EPSG:4326', 'EPSG:3857'); // Transform from ol default projection (EPSG:4326) to map projection (EPSG:3857)
+    const circle = new Feature({ geometry: geodesicCircle });
+    circle.setStyle(style);
+    // point for text display
+    const tp = computeDestinationPoint(this.position, distance, 180);
+    const text = new Feature({
+      geometry: new Point(fromLonLat([tp.longitude, tp.latitude]))
+    });
+    text.setStyle(this.buildTextStyle(label));
+    return [circle, text];
   }
 
   processChange() {
@@ -212,12 +240,12 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     return cs;
   }
 
-  buildTextStyle(value: number) {
+  buildTextStyle(label: string) {
     return new Style({
       fill: new Fill({ color: 'rgba(255, 255, 255, 0)' }),
       stroke: new Stroke({ color: 'rgba(255, 255, 255, 0)' }),
       text: new Text({
-        text: value ? this.formatLabel(value) : '',
+        text: label,
         offsetX: 0,
         offsetY: 0,
         fill: new Fill({ color: this.theme.labelText.color })

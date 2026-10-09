@@ -221,27 +221,16 @@
 
   <!-- Radar Overlay -->
   @if (app.uiCtrl().radarLayer) {
-    @if (radarImage()) {
-      <fb-radar
-        [position]="dfeat.self.position"
-        [heading]="dfeat.self.orientation"
-        [mapZoom]="mapZoomLevel()"
-        [zIndex]="99"
-        [opacity]="app.config.radars.opacity"
-        [radarId]="radarApi.radar()?.device?.id"
-        (onError)="handleRadarError($event)"
-      >
-      </fb-radar>
-    }
-    @if (app.config.radars.rings) {
-      <fb-radar-rings
-        [rings]="radarRings()"
-        [position]="dfeat.self.position"
-        [darkMode]="app.uiConfig().invertColor"
-        [zIndex]="100"
-      >
-      </fb-radar-rings>
-    }
+    <fb-radar
+      [position]="dfeat.self.position"
+      [heading]="dfeat.self.orientation"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="99"
+      [opacity]="app.config.radars.opacity"
+      [radarId]="radarApi.radar()?.device?.id"
+      (onError)="handleRadarError($event)"
+    >
+    </fb-radar>
     <fb-radar-zones
       [zones]="radarZones()"
       [position]="dfeat.self.position"
@@ -894,9 +883,11 @@
       </fb-arrival-circle>
     }
   }
-  @if (app.config.vessels.rangeCircles) {
+  @let showRadarRings = app.config.radars.rings && radarRings().length > 0;
+  @if (app.config.vessels.rangeCircles || showRadarRings) {
     <fb-range-circles
-      [position]="dfeat.active.position"
+      [position]="showRadarRings ? dfeat.self.position : dfeat.active.position"
+      [rings]="showRadarRings ? radarRings() : undefined"
       [maxCircles]="this.app.config.vessels.rangeCircleCount"
       [fixedMode]="this.app.config.vessels.rangeCirclesFixed"
       [fixedDistance]="this.app.config.vessels.rangeCirclesDistance"
