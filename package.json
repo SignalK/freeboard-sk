@@ -32,7 +32,8 @@
       "signalk-basic-tide-widgets",
       "signalk-restricted-areas",
       "@marineyachtradar/signalk-plugin",
-      "signalk-flags"
+      "signalk-flags",
+      "hoekens-anchor-alarm"
     ]
   },
   "engines": {
