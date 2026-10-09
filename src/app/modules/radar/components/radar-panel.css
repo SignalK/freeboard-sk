@@ -193,6 +193,12 @@
     gap: 6px;
 }
 
+/* Full height, unlike .compact: a filled field needs the top padding to
+   hold its label above the value. */
+.zone-fields mat-form-field {
+    width: 100%;
+}
+
 .zone-buttons {
     display: flex;
     flex-wrap: wrap;

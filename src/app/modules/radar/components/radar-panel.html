@@ -212,11 +212,7 @@
           @if (edit.zone; as z) {
           <div class="zone-fields">
             @for (f of zoneFields; track f.key) {
-            <mat-form-field
-              class="compact"
-              subscriptSizing="dynamic"
-              floatLabel="always"
-            >
+            <mat-form-field subscriptSizing="dynamic" floatLabel="always">
               <mat-label>{{ f.label }} ({{ zoneUnit(f.key) }})</mat-label>
               <input
                 matInput
