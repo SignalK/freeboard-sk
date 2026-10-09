@@ -289,6 +289,8 @@ function isLonLat(value: unknown): boolean {
   return (
     typeof p?.latitude === 'number' &&
     typeof p.longitude === 'number' &&
+    Number.isFinite(p.latitude) &&
+    Number.isFinite(p.longitude) &&
     Math.abs(p.latitude) <= 90
   );
 }
