@@ -822,7 +822,7 @@
   </fb-alarms>
 
   <!-- Vessel / destination -->
-  @if (anchor.raised() && dfeat.navData.position) {
+  @if (dfeat.navData.position) {
     @if (dfeat.navData.startPosition) {
       <fb-xte-path
         [color]=""
