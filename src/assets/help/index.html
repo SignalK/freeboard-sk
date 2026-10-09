@@ -2597,20 +2597,24 @@
                   the whole recorded track. Time is relative to the current
                   time.<br />
 
-                  The <b>Resolution</b> settings define the spacing of track
-                  points returned by the server for the following time windows:
+                  The <b>Resolution</b> settings set the finest spacing of track
+                  points requested from the server for the following time
+                  windows:
                   <ul>
                     <li>Last hour (default = 5 secs)</li>
-                    <li>1 hour -> 24 hours (default = 1 min)</li>
-                    <li>> 24 hours (default = 5 min)</li>
+                    <li>1 hour -> 24 hours (default = 5 secs)</li>
+                    <li>> 24 hours (default = 10 secs)</li>
                   </ul>
                   <span style="color: red"
                     ><b>Note:</b> Selections will determine the volume of data
                     transferred from the server which may impact performance. </span
                   ><br />
-                  Trail data received from the server undergoes temporal
-                  simplification to minimize the data used to display the trail
-                  while maintaining integrity.
+                  With a Track API (v2) server, the trail older than an hour is
+                  simplified by the server to suit the map's zoom, and fetched
+                  again when the zoom level changes. With the older track
+                  interface, Freeboard simplifies the trail itself, and the two
+                  older windows use 1 min and 5 min while left at their
+                  defaults.
                 </li>
               </ul>
             </li>
