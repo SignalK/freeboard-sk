@@ -875,7 +875,9 @@ export class AppComponent {
         // detect plugins
         const hasPlugin = {
           charts: false,
-          pmTiles: false
+          pmTiles: false,
+          anchorAlarm: false,
+          hoekensAnchorAlarm: false
         };
 
         res.plugins.forEach((p: { id: string; version: string }) => {
@@ -883,6 +885,12 @@ export class AppComponent {
           if (p.id === 'anchoralarm') {
             this.app.debug('*** found anchoralarm plugin');
             ff.anchorApi = true;
+            hasPlugin.anchorAlarm = true;
+          }
+          if (p.id === 'hoekens-anchor-alarm') {
+            this.app.debug('*** found hoekens-anchor-alarm plugin');
+            ff.anchorApi = true;
+            hasPlugin.hoekensAnchorAlarm = true;
           }
           // buddy list
           if (p.id === 'signalk-buddylist-plugin') {
@@ -900,6 +908,12 @@ export class AppComponent {
             ff.tidalApi = true;
           }
         });
+        // With both installed, keep the plugin Anchor Watch was built on.
+        this.anchor.setPlugin(
+          hasPlugin.hoekensAnchorAlarm && !hasPlugin.anchorAlarm
+            ? 'hoekens-anchor-alarm'
+            : 'anchoralarm'
+        );
         this.app.featureFlags.update((current) => {
           return Object.assign({}, current, ff);
         });
