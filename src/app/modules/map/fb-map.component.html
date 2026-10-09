@@ -231,6 +231,13 @@
       (onError)="handleRadarError($event)"
     >
     </fb-radar>
+    <fb-radar-zones
+      [zones]="radarZones()"
+      [position]="dfeat.self.position"
+      [heading]="dfeat.self.orientation"
+      [zIndex]="100"
+    >
+    </fb-radar-zones>
   }
 
   <!-- Tracks -->
