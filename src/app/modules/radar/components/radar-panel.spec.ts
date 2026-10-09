@@ -3,6 +3,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RadarPanel } from './radar-panel';
+import { GuardZoneEditService } from '../guard-zone-edit.service';
 import { AppFacade } from 'src/app/app.facade';
 import {
   ActiveRadar,
@@ -117,7 +118,10 @@ describe('RadarPanel', () => {
         {
           provide: AppFacade,
           useValue: {
-            config: { radars: { opacity: 1, rings: true } },
+            config: {
+              radars: { opacity: 1, rings: true },
+              units: { length: 'm' }
+            },
             uiCtrl: () => ({ radarLayer }),
             formatValueForDisplay: (v: number) => `${v}`,
             saveConfig: () => undefined,
@@ -348,5 +352,101 @@ describe('RadarPanel', () => {
     fixture.componentRef.changeDetectorRef.markForCheck();
     eye().click();
     expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  describe('guard zones', () => {
+    const withZone = (value: ControlValue) =>
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          ...r.capabilities,
+          controls: {
+            ...r.capabilities.controls,
+            guardZone1: {
+              id: 16,
+              name: 'Guard zone 1',
+              description: 'Guard zone',
+              category: 'guardZones',
+              dataType: 'zone',
+              hasEnabled: true
+            }
+          }
+        } as unknown as CapabilityManifest,
+        controls: new Map(r.controls).set('guardZone1', value)
+      }));
+    const zoneBlock = (el: HTMLElement) =>
+      control(el, 'Guard zone 1').querySelector<HTMLElement>('.zone-edit');
+    const button = (el: HTMLElement, label: string) =>
+      Array.from(
+        zoneBlock(el).querySelectorAll<HTMLButtonElement>('button')
+      ).find((b) => b.textContent.trim() === label);
+    const zone: ControlValue = {
+      value: 0,
+      endValue: Math.PI / 2,
+      startDistance: 100,
+      endDistance: 800,
+      enabled: true
+    };
+
+    it('offers drawing a zone the radar does not hold yet', () => {
+      withZone({ value: 0, endValue: 0, startDistance: 0, endDistance: 0 });
+      const el: HTMLElement = open().nativeElement;
+      expect(button(el, 'Draw').disabled).toBe(false);
+      expect(button(el, 'Edit').disabled).toBe(true);
+      expect(button(el, 'Clear').disabled).toBe(true);
+    });
+
+    it('draws a zone from the panel', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Draw').click();
+      fixture.detectChanges();
+      expect(TestBed.inject(GuardZoneEditService).edit().mode).toBe('draw');
+      expect(zoneBlock(el).querySelector('.zone-hint').textContent).toContain(
+        'Drag across the chart'
+      );
+    });
+
+    it('edits a zone in numbers and saves it in one change', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Edit').click();
+      fixture.detectChanges();
+
+      const field = (label: string) =>
+        zoneBlock(el).querySelector<HTMLInputElement>(
+          `input[aria-label="${label}"]`
+        );
+      expect(field('To bearing').value).toBe('90');
+      expect(field('Outer distance').value).toBe('800');
+
+      field('Outer distance').value = '1500';
+      field('Outer distance').dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      button(el, 'Save').click();
+
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'guardZone1', {
+        value: 0,
+        endValue: Math.PI / 2,
+        startDistance: 100,
+        endDistance: 1500,
+        enabled: true
+      });
+    });
+
+    it('switches a zone off as the radar holds it', () => {
+      withZone(zone);
+      const el: HTMLElement = open().nativeElement;
+      zoneBlock(el)
+        .querySelector<HTMLElement>('mat-slide-toggle button')
+        .click();
+      expect(api.setControl).toHaveBeenCalledWith(
+        'fur6424A',
+        'guardZone1',
+        expect.objectContaining({ endDistance: 800, enabled: false })
+      );
+    });
   });
 });

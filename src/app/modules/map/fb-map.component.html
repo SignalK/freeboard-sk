@@ -234,12 +234,23 @@
       </fb-radar>
     }
     <fb-radar-zones
-      [zones]="radarZones()"
+      [zones]="zoneEdit.zones()"
       [position]="dfeat.self.position"
       [heading]="dfeat.self.orientation"
       [zIndex]="100"
     >
     </fb-radar-zones>
+    @if (zoneEdit.edit(); as edit) {
+      <fb-radar-zone-editor
+        [edit]="edit"
+        [position]="dfeat.self.position"
+        [heading]="dfeat.self.orientation"
+        [zIndex]="101"
+        (zoneChange)="zoneEdit.update($event)"
+        (zoneDrawn)="zoneEdit.drawn($event)"
+      >
+      </fb-radar-zone-editor>
+    }
   }
 
   <!-- Tracks -->

@@ -200,7 +200,82 @@
             (change)="setNumber(c, $event)"
           />
         </mat-form-field>
-        } @case ('string') {
+        } @case ('area') { @if (isGuardZone(c)) { @let edit = zoneEdit.edit();
+        @let editing = edit?.controlId === c.id;
+        <div class="zone-edit">
+          @if (editing) {
+          <span class="zone-hint"
+            >{{ edit.mode === 'draw' ? 'Drag across the chart from one corner of
+            the zone to the other.' : 'Drag the handles on the chart to adjust
+            the zone.' }}</span
+          >
+          @if (edit.zone; as z) {
+          <div class="zone-fields">
+            @for (f of zoneFields; track f.key) {
+            <mat-form-field class="compact" subscriptSizing="dynamic">
+              <mat-label>{{ f.label }} ({{ zoneUnit(f.key) }})</mat-label>
+              <input
+                matInput
+                type="number"
+                [attr.aria-label]="f.label"
+                [value]="zoneField(z, f.key)"
+                (change)="setZoneField(f.key, $event)"
+              />
+            </mat-form-field>
+            }
+          </div>
+          }
+          <div class="zone-buttons">
+            <button
+              mat-stroked-button
+              [disabled]="edit.mode === 'draw'"
+              (click)="zoneEdit.draw(c.id)"
+            >
+              Draw
+            </button>
+            <button
+              mat-flat-button
+              [disabled]="!edit.zone"
+              (click)="saveZone()"
+            >
+              Save
+            </button>
+            <button mat-button (click)="zoneEdit.cancel()">Cancel</button>
+          </div>
+          } @else {
+          <div class="zone-buttons">
+            <mat-slide-toggle
+              [aria-label]="c.def.name + ' on'"
+              [checked]="cv?.enabled === true"
+              [disabled]="disabled || !hasZone(c)"
+              (change)="setZoneEnabled(c, $event.checked)"
+              >On</mat-slide-toggle
+            >
+            <button
+              mat-stroked-button
+              [disabled]="disabled || !!edit"
+              (click)="zoneEdit.draw(c.id)"
+            >
+              Draw
+            </button>
+            <button
+              mat-stroked-button
+              [disabled]="disabled || !!edit || !hasZone(c)"
+              (click)="zoneEdit.editZone(c.id)"
+            >
+              Edit
+            </button>
+            <button
+              mat-button
+              [disabled]="disabled || !!edit || !hasZone(c)"
+              (click)="clearZone(c)"
+            >
+              Clear
+            </button>
+          </div>
+          }
+        </div>
+        } } @case ('string') {
         <mat-form-field class="compact" subscriptSizing="dynamic">
           <input
             matInput

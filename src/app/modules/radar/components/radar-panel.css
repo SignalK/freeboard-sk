@@ -174,3 +174,28 @@
     padding-top: 6px;
     padding-bottom: 6px;
 }
+
+.zone-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 4px;
+}
+
+.zone-hint {
+    font-size: 9pt;
+    opacity: 0.8;
+}
+
+.zone-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.zone-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
