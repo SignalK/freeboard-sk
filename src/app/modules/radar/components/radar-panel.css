@@ -170,3 +170,7 @@
     padding-top: 6px;
     padding-bottom: 6px;
 }
+
+.rings-off mat-icon {
+    opacity: 0.4;
+}

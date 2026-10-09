@@ -241,6 +241,7 @@ export interface IAppConfig {
   radars: {
     deviceId: string;
     opacity: number;
+    rings: boolean; // show range rings around the radar
   };
   experiments: boolean;
   plotterExtensions: {

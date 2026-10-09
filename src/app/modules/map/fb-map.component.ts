@@ -73,6 +73,13 @@ import {
 import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { radarGuardZones } from 'src/app/modules/radar/guard-zones';
+import {
+  isRadarInStandby,
+  labelDecimals,
+  radarRange,
+  rangeRingDistances
+} from 'src/app/modules/radar/range-rings';
+import { RangeRing } from 'src/app/modules/map/ol/lib/radar/layer-radar-rings.component';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
@@ -468,6 +475,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trackHistory = inject(TrackHistoryService);
   protected radarApi = inject(RadarAPIService);
   protected radarZones = computed(() => radarGuardZones(this.radarApi.radar()));
+  // a radar in standby sends no image, and dropping its spoke stream lets
+  // the provider rest it
+  protected radarImage = computed(
+    () => !isRadarInStandby(this.radarApi.radar())
+  );
+  protected radarRings = computed<RangeRing[]>(() => {
+    const toUnit = (m: number) =>
+      Convert.transform(m, 'm', this.app.config.units.distance as TARGET_UNIT);
+    return rangeRingDistances(radarRange(this.radarApi.radar()), toUnit).map(
+      (distance) => ({
+        distance,
+        label: this.app.formatValueForDisplay(distance, 'm', {
+          precision: labelDecimals(toUnit(distance))
+        })
+      })
+    );
+  });
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   private ngZone = inject(NgZone);

@@ -1,4 +1,4 @@
-import { Component, computed, inject, output } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -47,9 +47,6 @@ const AREA_TYPES = ['sector', 'zone', 'rect'];
   styleUrl: `radar-panel.css`
 })
 export class RadarPanel {
-  connect = output<void>();
-  disconnect = output<void>();
-
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);
 
@@ -88,12 +85,9 @@ export class RadarPanel {
     this.app.saveConfig();
   }
 
-  protected toggleOverlay() {
-    if (this.app.uiCtrl().radarLayer) {
-      this.disconnect.emit();
-    } else {
-      this.connect.emit();
-    }
+  protected toggleRings() {
+    this.app.config.radars.rings = !this.app.config.radars.rings;
+    this.app.saveConfig();
   }
 
   protected selectRadar(id: string) {

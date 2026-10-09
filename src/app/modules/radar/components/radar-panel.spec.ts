@@ -77,7 +77,8 @@ describe('RadarPanel', () => {
   } as unknown as CapabilityManifest;
 
   let radar: WritableSignal<ActiveRadar>;
-  let radarLayer: boolean;
+  let config: { radars: { opacity: number; rings: boolean } };
+  let saveConfig: ReturnType<typeof vi.fn>;
   let api: {
     radar: WritableSignal<ActiveRadar>;
     radars: WritableSignal<Array<{ id: string; name: string }>>;
@@ -90,7 +91,8 @@ describe('RadarPanel', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    radarLayer = true;
+    config = { radars: { opacity: 1, rings: true } };
+    saveConfig = vi.fn();
     radar = signal({
       device: { id: 'fur6424A', name: 'DRS4D-NXT 6424', brand: 'Furuno' },
       capabilities,
@@ -117,10 +119,9 @@ describe('RadarPanel', () => {
         {
           provide: AppFacade,
           useValue: {
-            config: { radars: { opacity: 1 } },
-            uiCtrl: () => ({ radarLayer }),
+            config,
             formatValueForDisplay: (v: number) => `${v}`,
-            saveConfig: () => undefined,
+            saveConfig,
             parseHttpErrorResponse: () => undefined
           }
         },
@@ -315,23 +316,21 @@ describe('RadarPanel', () => {
     );
   });
 
-  it('hides and shows the overlay with the eye button', () => {
+  it('switches the range rings with the rings button', () => {
     const fixture = open();
-    const disconnect = vi.fn();
-    const connect = vi.fn();
-    fixture.componentInstance.disconnect.subscribe(disconnect);
-    fixture.componentInstance.connect.subscribe(connect);
-    const eye = () =>
+    const rings = () =>
       Array.from(
         fixture.nativeElement.querySelectorAll('.radar-head > button')
       ).at(-1) as HTMLElement;
 
-    eye().click();
-    expect(disconnect).toHaveBeenCalledTimes(1);
+    rings().click();
+    expect(config.radars.rings).toBe(false);
+    expect(saveConfig).toHaveBeenCalled();
 
-    radarLayer = false;
     fixture.componentRef.changeDetectorRef.markForCheck();
-    eye().click();
-    expect(connect).toHaveBeenCalledTimes(1);
+    fixture.detectChanges();
+    expect(rings().getAttribute('aria-label')).toBe('Show range rings');
+    rings().click();
+    expect(config.radars.rings).toBe(true);
   });
 });
