@@ -139,8 +139,11 @@ export class ChartListComponent extends ResourceListBase {
    * handles are absent. Without it a filtered list just loses its handles.
    */
   protected reorderHint(): string {
-    return this.canReorder()
-      ? '(drag to re-order)'
+    if (this.canReorder()) {
+      return '(drag to re-order)';
+    }
+    return this.inViewOnly
+      ? '(turn off In view to re-order)'
       : '(clear the filter to re-order)';
   }
 

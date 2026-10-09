@@ -345,6 +345,17 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
       fixture.nativeElement.querySelector('.stack-caption-hint').textContent
     ).toContain('clear the filter');
   });
+
+  it('names the In view switch when that is what hides the handles', () => {
+    const { fixture, comp } = makeFixture();
+    (comp as unknown as { inViewOnly: boolean }).inViewOnly = true;
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('turn off In view');
+  });
 });
 
 /**
