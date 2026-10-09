@@ -883,9 +883,11 @@
       </fb-arrival-circle>
     }
   }
-  @if (app.config.vessels.rangeCircles) {
+  @let showRadarRings = app.config.radars.rings && radarRings().length > 0;
+  @if (app.config.vessels.rangeCircles || showRadarRings) {
     <fb-range-circles
-      [position]="dfeat.active.position"
+      [position]="showRadarRings ? dfeat.self.position : dfeat.active.position"
+      [rings]="showRadarRings ? radarRings() : undefined"
       [maxCircles]="this.app.config.vessels.rangeCircleCount"
       [fixedMode]="this.app.config.vessels.rangeCirclesFixed"
       [fixedDistance]="this.app.config.vessels.rangeCirclesDistance"

@@ -96,6 +96,11 @@ export class RadarPanel {
     }
   }
 
+  protected toggleRings() {
+    this.app.config.radars.rings = !this.app.config.radars.rings;
+    this.app.saveConfig();
+  }
+
   protected selectRadar(id: string) {
     if (id !== this.radar()?.device?.id) {
       this.radarApi.init(id);

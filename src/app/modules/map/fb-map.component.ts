@@ -73,7 +73,17 @@ import {
 import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { radarGuardZones } from 'src/app/modules/radar/guard-zones';
+import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import {
+  radarRange,
+  rangeRingScale,
+  ringLabel
+} from 'src/app/modules/radar/range-rings';
+import {
+  RangeRing,
+  sameRings
+} from 'src/app/modules/map/ol/lib/navigation/layer-range-circles.component';
 
 import {
   SKResourceService,
@@ -471,6 +481,33 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   private ngZone = inject(NgZone);
+  // range circles at the radar range, while the radar shows on this screen
+  // and transmits
+  protected radarRings = computed<RangeRing[]>(
+    () => {
+      const radar = this.radarApi.radar();
+      const transmitting = sendsImage(
+        powerState(
+          radar?.capabilities?.controls?.['power'],
+          radar?.controls?.get('power')?.value
+        )
+      );
+      if (!this.app.uiCtrl().radarLayer || !transmitting) {
+        return [];
+      }
+      // the scale units input follows the distance unit, so a unit change
+      // redraws the rings
+      const scale = rangeRingScale(
+        radarRange(radar),
+        (this.scaleUnits() || this.app.config.units.distance) as TARGET_UNIT
+      );
+      return (scale?.distances ?? []).map((distance) => ({
+        distance,
+        label: ringLabel(distance, scale.unit)
+      }));
+    },
+    { equal: sameRings }
+  );
 
   constructor() {
     effect(() => {

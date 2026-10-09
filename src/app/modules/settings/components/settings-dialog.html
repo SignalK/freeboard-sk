@@ -1568,6 +1568,17 @@
                   </button>
                 </div>
               </div>
+              <div class="setting-card-row">
+                <div class="setting-card-row-item">
+                  <mat-checkbox
+                    [(ngModel)]="facade.settings.radars.rings"
+                    (change)="persistModel()"
+                    label="after"
+                  >
+                    Draw range circles at the radar range while it transmits
+                  </mat-checkbox>
+                </div>
+              </div>
             </mat-card>
           </div>
         </div>

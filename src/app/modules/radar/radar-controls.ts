@@ -157,6 +157,13 @@ export function powerState(
   return states[Number(value)] ?? 'unknown';
 }
 
+/** False for a radar in standby, off or in fault, which sends no image. A
+ *  radar warming up counts as sending, so its picture appears as soon as it
+ *  is ready, and so does one whose power state is unknown. */
+export function sendsImage(state: PowerState): boolean {
+  return state !== 'standby' && state !== 'off' && state !== 'fault';
+}
+
 /** The power value the power button sets: Transmit from Off or Standby,
  *  Standby from Transmit. It never switches the radar Off: like the MaYaRa
  *  GUI, powering a radar down stays a deliberate act elsewhere. Undefined

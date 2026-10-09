@@ -19,6 +19,10 @@
     gap: 4px;
 }
 
+.rings-off mat-icon {
+    opacity: 0.4;
+}
+
 /* The power button and the radar name form one lozenge, coloured by the
    radar's power state as in the MaYaRa radar GUI. */
 .lozenge {
