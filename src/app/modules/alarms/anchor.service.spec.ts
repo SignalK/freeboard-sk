@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from '../../app.facade';
 import { SKStreamFacade } from '../skstream/skstream.facade';
@@ -68,20 +68,28 @@ describe('AnchorService plugin commands', () => {
       ]);
     });
 
-    it('sets the radius as a circular zone', () => {
-      service.setRadius(45);
+    it('changes the radius of the current zone, keeping its shape', async () => {
+      await firstValueFrom(service.setRadius(45));
       expect(post).toHaveBeenCalledWith(
         '/plugins/hoekens-anchor-alarm/setZone',
-        {
-          zone: { type: 'circle', radius: 45 }
-        }
+        { zone: { type: 'sector', radius: 45 } }
       );
     });
 
-    it("measures the vessel's distance from the anchor when no radius is given", () => {
+    it('refuses a radius for a polygon zone', async () => {
+      get.mockReturnValue(of({ value: { type: 'polygon', vertices: [] } }));
+      await expect(firstValueFrom(service.setRadius(45))).rejects.toMatchObject(
+        {
+          status: 400
+        }
+      );
+      expect(post).not.toHaveBeenCalled();
+    });
+
+    it("measures the vessel's distance from the anchor when no radius is given", async () => {
       // About 50 m south of the vessel.
       dropAnchorAt([178.0, -17.80045]);
-      service.setRadius();
+      await firstValueFrom(service.setRadius());
       const radius = post.mock.calls[0][1].zone.radius;
       expect(Number.isInteger(radius)).toBe(true);
       expect(radius).toBeGreaterThanOrEqual(50);

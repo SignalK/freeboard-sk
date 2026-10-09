@@ -2,7 +2,7 @@
  * ************************************/
 import { effect, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, switchMap } from 'rxjs';
+import { map, Observable, switchMap, throwError } from 'rxjs';
 import { getDistance } from 'geolib';
 
 import { AppFacade } from 'src/app/app.facade';
@@ -20,7 +20,10 @@ interface AnchorStatusResponse {
 /** The anchor alarm plugins Anchor Watch can drive, by plugin id. */
 export type AnchorPlugin = 'anchoralarm' | 'hoekens-anchor-alarm';
 
-/** Hoeken's watch zone: the shape around the anchor, without its position. */
+/**
+ * Hoeken's watch zone: the shape around the anchor, without its position.
+ * Circles and sectors have a radius; polygons only have vertices.
+ */
 interface WatchZone {
   type: string;
   radius?: number;
@@ -57,6 +60,13 @@ export class AnchorService {
    */
   public setRaisedSignal(value: boolean) {
     this.raisedSignal.set(value);
+  }
+
+  /** Hoeken's current watch zone, which its setZone route takes whole. */
+  private watchZone(): Observable<WatchZone | undefined> {
+    return this.signalk.api
+      .get('/vessels/self/navigation/anchor/watchZone')
+      .pipe(map((zone: { value?: WatchZone }) => zone.value));
   }
 
   /**
@@ -118,7 +128,22 @@ export class AnchorService {
           )
         );
       }
-      return this.post('setZone', { zone: { type: 'circle', radius } });
+      const newRadius = radius;
+      return this.watchZone().pipe(
+        switchMap((zone) =>
+          typeof zone?.radius === 'number'
+            ? this.post('setZone', { zone: { ...zone, radius: newRadius } })
+            : throwError(
+                () =>
+                  new HttpErrorResponse({
+                    status: 400,
+                    error: {
+                      message: `A ${zone?.type ?? 'missing'} watch zone has no radius to change.`
+                    }
+                  })
+              )
+        )
+      );
     }
     return this.post(
       'setRadius',
@@ -149,13 +174,11 @@ export class AnchorService {
     // anchoring session and needs the zone sent back with the new position.
     const request =
       this.plugin() === 'hoekens-anchor-alarm'
-        ? this.signalk.api
-            .get('/vessels/self/navigation/anchor/watchZone')
-            .pipe(
-              switchMap((zone: { value?: WatchZone }) =>
-                this.post('setZone', { zone: zone.value, position: latLon })
-              )
+        ? this.watchZone().pipe(
+            switchMap((zone) =>
+              this.post('setZone', { zone: zone, position: latLon })
             )
+          )
         : this.post('setAnchorPosition', { position: latLon });
     return new Promise((resolve, reject) => {
       request.subscribe({
