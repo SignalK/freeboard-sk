@@ -456,7 +456,7 @@ export function cleanConfig(
       weatherWindEnabled: false,
       oceanCurrentsEnabled: false,
       tidalCurrentsEnabled: false,
-      chartsInViewOnly: true
+      chartsInViewOnly: false
     };
   }
 
@@ -508,7 +508,7 @@ export function cleanConfig(
     settings.selections.tidalCurrentsEnabled = false;
   }
   if (typeof settings.selections.chartsInViewOnly === 'undefined') {
-    settings.selections.chartsInViewOnly = true;
+    settings.selections.chartsInViewOnly = false;
   }
 
   // ensure legacy notes selections section is removed
@@ -727,7 +727,7 @@ export function defaultConfig(): IAppConfig {
       weatherWindEnabled: false,
       oceanCurrentsEnabled: false,
       tidalCurrentsEnabled: false,
-      chartsInViewOnly: true
+      chartsInViewOnly: false
     }
   };
 }
