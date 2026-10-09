@@ -277,7 +277,8 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
             debug: vi.fn(),
             hostDef: { name: 'localhost' },
             data: { chartBounds: { show: false, charts: [] } },
-            config: { selections: { chartsInViewOnly: false } }
+            config: { selections: { chartsInViewOnly: false } },
+            saveConfig: vi.fn()
           }
         },
         { provide: MatDialog, useValue: {} },
@@ -367,6 +368,33 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
     expect(
       fixture.nativeElement.querySelector('.stack-caption-hint').textContent
     ).toContain('turn off In view and clear the filter');
+  });
+
+  it('saves the choice when the user flips the In view switch', () => {
+    const { fixture } = makeFixture();
+    const app = TestBed.inject(AppFacade) as unknown as {
+      config: { selections: { chartsInViewOnly: boolean } };
+      saveConfig: ReturnType<typeof vi.fn>;
+    };
+    const inViewSwitch = fixture.debugElement
+      .queryAll(By.css('mat-slide-toggle'))
+      .find((t) => t.nativeElement.textContent.includes('In view'));
+
+    inViewSwitch.nativeElement.querySelector('button[role="switch"]').click();
+    fixture.detectChanges();
+
+    expect(app.config.selections.chartsInViewOnly).toBe(true);
+    expect(app.saveConfig).toHaveBeenCalledTimes(1);
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('turn off In view');
+
+    const reopened = TestBed.createComponent(ChartListComponent);
+    reopened.detectChanges();
+    expect(
+      (reopened.componentInstance as unknown as { inViewOnly: boolean })
+        .inViewOnly
+    ).toBe(true);
   });
 });
 
@@ -659,16 +687,5 @@ describe('ChartListComponent — "In view" filter is remembered', () => {
     );
 
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['inview']);
-  });
-
-  it('saves the choice when the user switches the filter', () => {
-    const comp = open();
-    (
-      comp as unknown as { toggleInViewOnly: (c: boolean) => void }
-    ).toggleInViewOnly(false);
-
-    expect(app.config.selections.chartsInViewOnly).toBe(false);
-    expect(app.saveConfig).toHaveBeenCalledTimes(1);
-    expect(inViewOnlyOf(open())).toBe(false);
   });
 });
