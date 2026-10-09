@@ -142,6 +142,9 @@ export class ChartListComponent extends ResourceListBase {
     if (this.canReorder()) {
       return '(drag to re-order)';
     }
+    if (this.inViewOnly && this.filterText) {
+      return '(turn off In view and clear the filter to re-order)';
+    }
     return this.inViewOnly
       ? '(turn off In view to re-order)'
       : '(clear the filter to re-order)';

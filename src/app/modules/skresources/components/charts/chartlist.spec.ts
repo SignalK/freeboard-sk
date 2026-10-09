@@ -356,6 +356,18 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
       fixture.nativeElement.querySelector('.stack-caption-hint').textContent
     ).toContain('turn off In view');
   });
+
+  it('names both filters when both hide the handles', () => {
+    const { fixture, comp } = makeFixture();
+    (comp as unknown as { inViewOnly: boolean }).inViewOnly = true;
+    (comp as unknown as { filterText: string }).filterText = 'a';
+    doFilterOf(comp);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.stack-caption-hint').textContent
+    ).toContain('turn off In view and clear the filter');
+  });
 });
 
 /**
