@@ -84,6 +84,17 @@ describe('guardZoneFromControl', () => {
     ).toBeUndefined();
   });
 
+  it('has no zone whose inner distance lies beyond its outer one', () => {
+    expect(
+      guardZoneFromControl({
+        value: 0,
+        endValue: 1,
+        startDistance: 600,
+        endDistance: 500
+      })
+    ).toBeUndefined();
+  });
+
   it('treats a missing enabled flag as switched off', () => {
     expect(
       guardZoneFromControl({ value: 0, endValue: 1, endDistance: 500 }).enabled

@@ -34,7 +34,8 @@ const isFiniteNumber = (v: unknown): v is number =>
   typeof v === 'number' && Number.isFinite(v);
 
 /** The zone a `zone` control value describes, or undefined when it has none
- *  (a zone never set reports no outer distance). */
+ *  (a zone never set reports no outer distance) or its inner distance lies
+ *  beyond its outer one. */
 export function guardZoneFromControl(
   value: ControlValue | undefined
 ): GuardZone | undefined {
@@ -44,7 +45,8 @@ export function guardZoneFromControl(
     !isFiniteNumber(value.endValue) ||
     !isFiniteNumber(value.endDistance) ||
     !(value.endDistance > 0) ||
-    !isFiniteNumber(startDistance)
+    !isFiniteNumber(startDistance) ||
+    startDistance > value.endDistance
   ) {
     return undefined;
   }
