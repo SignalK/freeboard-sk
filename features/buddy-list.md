@@ -19,3 +19,11 @@ tap the **Is Buddy** button. Tap it again to remove the mark.
 on the **Buddies Only** toggle in the filter row. The list narrows to the
 vessels you've marked. Buddies Only can be combined with the list's other
 filters — Ship Type and IMO Only — to narrow things down further.
+
+**When a buddy comes near**, the buddy list plugin sends a notification and
+Freeboard shows it as a message at the bottom of the screen, for example
+*"Your buddy Mako is near"*. You set how close counts as near in the plugin's
+settings. If Freeboard has received a position for that buddy, the message
+has a **LOCATE** button: tap it to center the chart on where the buddy is
+right now. If the map was following your own vessel, following stops so the
+view stays on the buddy. The message clears itself after 10 seconds.
