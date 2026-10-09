@@ -26,7 +26,13 @@ const radar = (controls: Record<string, object>): ActiveRadar => ({
         description: '',
         category: 'base',
         dataType: 'number',
-        descriptions: { 0: 'Off', 1: 'Standby', 2: 'Transmit' }
+        descriptions: {
+          0: 'Off',
+          1: 'Standby',
+          2: 'Transmit',
+          3: 'Preparing',
+          4: 'Fault'
+        }
       }
     }
   } as unknown as CapabilityManifest,
@@ -91,13 +97,15 @@ describe('radarRange', () => {
 });
 
 describe('isRadarInStandby', () => {
-  it('is true in standby and off', () => {
+  it('is true in standby, off and on a fault', () => {
     expect(isRadarInStandby(radar({ power: { value: 1 } }))).toBe(true);
     expect(isRadarInStandby(radar({ power: { value: 0 } }))).toBe(true);
+    expect(isRadarInStandby(radar({ power: { value: 4 } }))).toBe(true);
   });
 
-  it('is false while transmitting or when the power state is unknown', () => {
+  it('is false while transmitting, warming up or in an unknown state', () => {
     expect(isRadarInStandby(radar({ power: { value: 2 } }))).toBe(false);
+    expect(isRadarInStandby(radar({ power: { value: 3 } }))).toBe(false);
     expect(isRadarInStandby(radar({}))).toBe(false);
     expect(isRadarInStandby(undefined)).toBe(false);
   });

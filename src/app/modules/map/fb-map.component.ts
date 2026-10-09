@@ -481,8 +481,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     () => !isRadarInStandby(this.radarApi.radar())
   );
   protected radarRings = computed<RangeRing[]>(() => {
-    const toUnit = (m: number) =>
-      Convert.transform(m, 'm', this.app.config.units.distance as TARGET_UNIT);
+    // the scale units input follows the distance unit, so a unit change
+    // redraws the rings
+    const unit = (this.scaleUnits() ||
+      this.app.config.units.distance) as TARGET_UNIT;
+    const toUnit = (m: number) => Convert.transform(m, 'm', unit);
     return rangeRingDistances(radarRange(this.radarApi.radar()), toUnit).map(
       (distance) => ({
         distance,

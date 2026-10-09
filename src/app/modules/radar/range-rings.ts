@@ -55,12 +55,13 @@ export function radarRange(radar: ActiveRadar | undefined): number | undefined {
   return typeof value === 'number' ? value : undefined;
 }
 
-/** True when the radar reports standby or off, so it sends no image. A radar
- *  whose power state is unknown counts as transmitting. */
+/** True when the radar reports standby, off or a fault, so it sends no
+ *  image. A radar warming up counts as transmitting, so its picture appears
+ *  as soon as it is ready, and so does one whose power state is unknown. */
 export function isRadarInStandby(radar: ActiveRadar | undefined): boolean {
   const state = powerState(
     radar?.capabilities?.controls?.['power'],
     radar?.controls?.get('power')?.value
   );
-  return state === 'standby' || state === 'off';
+  return state === 'standby' || state === 'off' || state === 'fault';
 }
