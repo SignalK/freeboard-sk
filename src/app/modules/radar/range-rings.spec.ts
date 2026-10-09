@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
-  isRadarInStandby,
   isRoundDistance,
   labelDecimals,
   radarRange,
-  rangeRingDistances
+  rangeRingScale,
+  ringLabel
 } from './range-rings';
 import { ActiveRadar, CapabilityManifest } from './radar-api.service';
 
 const NM = 1852;
 const toNm = (m: number) => m / NM;
 const toKm = (m: number) => m / 1000;
+const distances = (range: number, unit: 'naut-mile' | 'kilometer') =>
+  rangeRingScale(range, unit)?.distances ?? [];
 const expectDistances = (actual: number[], expected: number[]) => {
   expect(actual).toHaveLength(expected.length);
   actual.forEach((v, i) => expect(v).toBeCloseTo(expected[i], 6));
@@ -18,24 +20,7 @@ const expectDistances = (actual: number[], expected: number[]) => {
 
 const radar = (controls: Record<string, object>): ActiveRadar => ({
   device: { id: 'fur6424A', name: 'Furuno', brand: 'Furuno' },
-  capabilities: {
-    controls: {
-      power: {
-        id: 0,
-        name: 'Power',
-        description: '',
-        category: 'base',
-        dataType: 'number',
-        descriptions: {
-          0: 'Off',
-          1: 'Standby',
-          2: 'Transmit',
-          3: 'Preparing',
-          4: 'Fault'
-        }
-      }
-    }
-  } as unknown as CapabilityManifest,
+  capabilities: { controls: {} } as unknown as CapabilityManifest,
   controls: new Map(Object.entries(controls))
 });
 
@@ -53,29 +38,45 @@ describe('isRoundDistance', () => {
   });
 });
 
-describe('rangeRingDistances', () => {
+describe('rangeRingScale', () => {
   it('puts the outer ring on the radar range', () => {
-    const rings = rangeRingDistances(3 * NM, toNm);
+    const rings = distances(3 * NM, 'naut-mile');
     expect(rings[rings.length - 1]).toBeCloseTo(3 * NM);
   });
 
   it('spaces the rings at round values in the user unit', () => {
-    expectDistances(rangeRingDistances(12 * NM, toNm).map(toNm), [3, 6, 9, 12]);
+    expectDistances(distances(12 * NM, 'naut-mile').map(toNm), [3, 6, 9, 12]);
     // a quarter of 1.5 NM is 0.375, so three rings of 0.5 NM instead
-    expectDistances(
-      rangeRingDistances(1.5 * NM, toNm).map(toNm),
-      [0.5, 1, 1.5]
-    );
-    expectDistances(rangeRingDistances(1500, toKm).map(toKm), [0.5, 1, 1.5]);
+    expectDistances(distances(1.5 * NM, 'naut-mile').map(toNm), [0.5, 1, 1.5]);
+    expectDistances(distances(1500, 'kilometer').map(toKm), [0.5, 1, 1.5]);
+    expect(rangeRingScale(1500, 'kilometer')?.unit).toBe('kilometer');
   });
 
-  it('falls back to four rings', () => {
-    expect(rangeRingDistances(1234, toKm)).toHaveLength(4);
+  it("uses the radar's unit when the user unit gives no round spacing", () => {
+    const scale = rangeRingScale(0.5 * NM, 'kilometer');
+    expect(scale?.unit).toBe('naut-mile');
+    expectDistances(scale.distances.map(toNm), [0.1, 0.2, 0.3, 0.4, 0.5]);
+    expect(rangeRingScale(1500, 'naut-mile')?.unit).toBe('kilometer');
+  });
+
+  it('falls back to four rings in the user unit', () => {
+    const scale = rangeRingScale(1234, 'kilometer');
+    expect(scale?.unit).toBe('kilometer');
+    expect(scale?.distances).toHaveLength(4);
   });
 
   it('has no rings without a range', () => {
-    expect(rangeRingDistances(0, toNm)).toEqual([]);
-    expect(rangeRingDistances(undefined, toNm)).toEqual([]);
+    expect(rangeRingScale(0, 'naut-mile')).toBeUndefined();
+    expect(rangeRingScale(undefined, 'naut-mile')).toBeUndefined();
+  });
+});
+
+describe('ringLabel', () => {
+  it('labels every ring in the unit the rings are spaced in', () => {
+    expect(ringLabel(0.1 * NM, 'naut-mile')).toBe('0.1nmi');
+    expect(ringLabel(0.25 * NM, 'naut-mile')).toBe('0.25nmi');
+    expect(ringLabel(3 * NM, 'naut-mile')).toBe('3nmi');
+    expect(ringLabel(500, 'kilometer')).toBe('0.5km');
   });
 });
 
@@ -84,7 +85,8 @@ describe('labelDecimals', () => {
     expect(labelDecimals(3)).toBe(0);
     expect(labelDecimals(1.5)).toBe(1);
     expect(labelDecimals(0.75)).toBe(2);
-    expect(labelDecimals(1 / 3)).toBe(2);
+    expect(labelDecimals(0.025)).toBe(3);
+    expect(labelDecimals(1 / 3)).toBe(3);
   });
 });
 
@@ -93,20 +95,5 @@ describe('radarRange', () => {
     expect(radarRange(radar({ range: { value: 1852 } }))).toBe(1852);
     expect(radarRange(radar({}))).toBeUndefined();
     expect(radarRange(undefined)).toBeUndefined();
-  });
-});
-
-describe('isRadarInStandby', () => {
-  it('is true in standby, off and on a fault', () => {
-    expect(isRadarInStandby(radar({ power: { value: 1 } }))).toBe(true);
-    expect(isRadarInStandby(radar({ power: { value: 0 } }))).toBe(true);
-    expect(isRadarInStandby(radar({ power: { value: 4 } }))).toBe(true);
-  });
-
-  it('is false while transmitting, warming up or in an unknown state', () => {
-    expect(isRadarInStandby(radar({ power: { value: 2 } }))).toBe(false);
-    expect(isRadarInStandby(radar({ power: { value: 3 } }))).toBe(false);
-    expect(isRadarInStandby(radar({}))).toBe(false);
-    expect(isRadarInStandby(undefined)).toBe(false);
   });
 });

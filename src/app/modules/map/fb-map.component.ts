@@ -74,11 +74,11 @@ import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { radarGuardZones } from 'src/app/modules/radar/guard-zones';
 import {
-  isRadarInStandby,
-  labelDecimals,
   radarRange,
-  rangeRingDistances
+  rangeRingScale,
+  ringLabel
 } from 'src/app/modules/radar/range-rings';
+import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import {
   RangeRing,
   sameRings
@@ -483,19 +483,24 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected radarRings = computed<RangeRing[]>(
     () => {
       const radar = this.radarApi.radar();
-      if (!this.app.uiCtrl().radarLayer || isRadarInStandby(radar)) {
+      const transmitting = sendsImage(
+        powerState(
+          radar?.capabilities?.controls?.['power'],
+          radar?.controls?.get('power')?.value
+        )
+      );
+      if (!this.app.uiCtrl().radarLayer || !transmitting) {
         return [];
       }
       // the scale units input follows the distance unit, so a unit change
       // redraws the rings
-      const unit = (this.scaleUnits() ||
-        this.app.config.units.distance) as TARGET_UNIT;
-      const toUnit = (m: number) => Convert.transform(m, 'm', unit);
-      return rangeRingDistances(radarRange(radar), toUnit).map((distance) => ({
+      const scale = rangeRingScale(
+        radarRange(radar),
+        (this.scaleUnits() || this.app.config.units.distance) as TARGET_UNIT
+      );
+      return (scale?.distances ?? []).map((distance) => ({
         distance,
-        label: this.app.formatValueForDisplay(distance, 'm', {
-          precision: labelDecimals(toUnit(distance))
-        })
+        label: ringLabel(distance, scale.unit)
       }));
     },
     { equal: sameRings }

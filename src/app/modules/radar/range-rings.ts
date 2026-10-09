@@ -1,5 +1,5 @@
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { ActiveRadar } from './radar-api.service';
-import { powerState } from './radar-controls';
 
 // Ring counts tried in turn: the first that puts the rings at round distances
 // wins, as on a radar display. Four is the fallback.
@@ -18,27 +18,44 @@ export function isRoundDistance(value: number): boolean {
   return Math.abs(halves - Math.round(halves)) < ROUNDING_TOLERANCE;
 }
 
-/**
- * The distances (m) of range rings for a radar range (m): evenly spaced, the
- * outer ring on the range itself, at round values in the unit `toUnit`
- * converts metres to.
- */
-export function rangeRingDistances(
-  range: number,
-  toUnit: (metres: number) => number
-): number[] {
-  if (!(range > 0)) {
-    return [];
-  }
-  const count =
-    RING_COUNTS.find((n) => isRoundDistance(toUnit(range / n))) ??
-    DEFAULT_RING_COUNT;
-  return Array.from({ length: count }, (_, i) => (range * (i + 1)) / count);
+// Tried after the user's unit: radar ranges step in nautical miles or in
+// kilometres, and a radar display labels its rings in the range's unit.
+const RADAR_UNITS: TARGET_UNIT[] = ['naut-mile', 'kilometer'];
+
+export interface RangeRingScale {
+  /** the unit the rings are spaced and labelled in */
+  unit: TARGET_UNIT;
+  /** metres, the outer ring on the range */
+  distances: number[];
 }
 
-const MAX_LABEL_DECIMALS = 2;
+/**
+ * Range rings for a radar range (m): evenly spaced at round values in the
+ * user's unit, or else in the first radar unit that divides the range into
+ * round values, with the outer ring on the range itself.
+ */
+export function rangeRingScale(
+  range: number | undefined,
+  userUnit: TARGET_UNIT
+): RangeRingScale | undefined {
+  if (!(range > 0)) {
+    return undefined;
+  }
+  const ringsOf = (count: number) =>
+    Array.from({ length: count }, (_, i) => (range * (i + 1)) / count);
+  for (const unit of [userUnit, ...RADAR_UNITS]) {
+    const inUnit = Convert.transform(range, 'm', unit);
+    const count = RING_COUNTS.find((n) => isRoundDistance(inUnit / n));
+    if (count) {
+      return { unit, distances: ringsOf(count) };
+    }
+  }
+  return { unit: userUnit, distances: ringsOf(DEFAULT_RING_COUNT) };
+}
 
-/** The decimals a ring distance in the user unit needs, e.g. 2 for 0.75. */
+const MAX_LABEL_DECIMALS = 3;
+
+/** The decimals a ring distance needs, e.g. 2 for 0.75. */
 export function labelDecimals(value: number): number {
   for (let p = 0; p < MAX_LABEL_DECIMALS; p++) {
     const scaled = value * Math.pow(10, p);
@@ -49,19 +66,16 @@ export function labelDecimals(value: number): number {
   return MAX_LABEL_DECIMALS;
 }
 
+/** A ring's label in the unit its rings are spaced in, so a set of rings
+ *  reads 0.1, 0.2 … 0.5 nmi rather than switching to metres for the short
+ *  ones as formatValueForDisplay() does. */
+export function ringLabel(distance: number, unit: TARGET_UNIT): string {
+  const value = Convert.transform(distance, 'm', unit);
+  return `${value.toFixed(labelDecimals(value))}${Convert.getSymbol(unit)}`;
+}
+
 /** The radar's range (m), or undefined when it has not reported one. */
 export function radarRange(radar: ActiveRadar | undefined): number | undefined {
   const value = radar?.controls?.get('range')?.value;
   return typeof value === 'number' ? value : undefined;
-}
-
-/** True when the radar reports standby, off or a fault, so it sends no
- *  image. A radar warming up counts as transmitting, so its picture appears
- *  as soon as it is ready, and so does one whose power state is unknown. */
-export function isRadarInStandby(radar: ActiveRadar | undefined): boolean {
-  const state = powerState(
-    radar?.capabilities?.controls?.['power'],
-    radar?.controls?.get('power')?.value
-  );
-  return state === 'standby' || state === 'off' || state === 'fault';
 }
