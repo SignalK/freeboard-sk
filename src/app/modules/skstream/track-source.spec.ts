@@ -19,6 +19,7 @@ import {
   trailBands,
   trailBandUrl,
   tracksApiUrl,
+  v1TrailResolution,
   viewportBbox
 } from './track-source';
 
@@ -36,6 +37,19 @@ describe('track-source resolutionToIso', () => {
     expect(resolutionToIso('PT10S')).toBe('PT10S');
     expect(resolutionToIso('fast')).toBeUndefined();
     expect(resolutionToIso(undefined)).toBeUndefined();
+  });
+});
+
+describe('track-source v1TrailResolution', () => {
+  it('asks v1 for the coarse steps in place of the fine defaults', () => {
+    expect(
+      v1TrailResolution({ lastHour: '5s', next23: '5s', beyond24: '10s' })
+    ).toEqual({ lastHour: '5s', next23: '1m', beyond24: '5m' });
+  });
+
+  it('sends a resolution the user chose as it is', () => {
+    const chosen = { lastHour: '10s', next23: '30s', beyond24: '1m' };
+    expect(v1TrailResolution(chosen)).toEqual(chosen);
   });
 });
 

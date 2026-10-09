@@ -238,6 +238,23 @@ export function resolutionToIso(res: string | undefined): string | undefined {
   return m ? `PT${Number(m[1])}${m[2].toUpperCase()}` : undefined;
 }
 
+/** The v1 interface has no server simplification and sends every point at
+ * the resolution asked for, so the fine defaults that suit the Track API
+ * would download the older bands at many times the points the client keeps.
+ * On v1 those defaults fall back to the coarse steps they replaced; a
+ * resolution the user chose is sent as it is. */
+export function v1TrailResolution(resolution: {
+  lastHour: string;
+  next23: string;
+  beyond24: string;
+}): { lastHour: string; next23: string; beyond24: string } {
+  return {
+    lastHour: resolution.lastHour,
+    next23: resolution.next23 === '5s' ? '1m' : resolution.next23,
+    beyond24: resolution.beyond24 === '10s' ? '5m' : resolution.beyond24
+  };
+}
+
 export interface TrailBand {
   from?: string; // ISO 8601 instant; absent reaches back to the first recorded point
   to?: string; // ISO 8601 instant; absent leaves the band open to the server's now
