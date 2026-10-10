@@ -1050,9 +1050,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       this.extendRouteInModify(e);
     } else if (
-      //not interacting
+      //not interacting, a guard zone edit included
       !this.mapInteract.isDrawing() &&
-      !this.mapInteract.isModifying()
+      !this.mapInteract.isModifying() &&
+      !this.zoneEdit.edit()
     ) {
       if (!this.app.config.map.popoverMulti) {
         this.overlay.update((current) => {
