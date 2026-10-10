@@ -63,6 +63,9 @@ export class GuardZoneEditService {
   readonly edit = this._edit.asReadonly();
   private pending = signal<PendingZone | undefined>(undefined);
   private pendingTimer: ReturnType<typeof setTimeout>;
+  // the latest change sent or cleared: a failure that comes back after a
+  // newer change leaves the newer change's state alone
+  private latestChange = 0;
 
   /** The zones to draw: the radar's, with the edited or just saved zone in
    *  place of its stored value. */
@@ -164,11 +167,12 @@ export class GuardZoneEditService {
       return;
     }
     this._edit.set(undefined);
+    const change = ++this.latestChange;
     try {
-      await this.send(edit.radarId, edit.controlId, edit.zone);
+      await this.send(edit.radarId, edit.controlId, edit.zone, change);
     } catch (err) {
       // the radar kept its old zone, so the user's edit is still unsaved
-      if (!this._edit()) {
+      if (change === this.latestChange && !this._edit()) {
         this._edit.set(edit);
       }
       throw err;
@@ -181,7 +185,12 @@ export class GuardZoneEditService {
     const zone =
       this.pendingZone(radarId, controlId) ?? this.storedZone(controlId);
     if (radarId && zone) {
-      await this.send(radarId, controlId, { ...zone, enabled });
+      await this.send(
+        radarId,
+        controlId,
+        { ...zone, enabled },
+        ++this.latestChange
+      );
     }
   }
 
@@ -192,6 +201,7 @@ export class GuardZoneEditService {
     if (!radarId) {
       return;
     }
+    ++this.latestChange;
     if (this._edit()?.controlId === controlId) {
       this._edit.set(undefined);
     }
@@ -205,7 +215,12 @@ export class GuardZoneEditService {
     );
   }
 
-  private async send(radarId: string, controlId: string, zone: GuardZone) {
+  private async send(
+    radarId: string,
+    controlId: string,
+    zone: GuardZone,
+    change: number
+  ) {
     const def = this.radarApi.radar()?.capabilities?.controls?.[controlId];
     const value = limitZone(zone, def?.maxDistance);
     this.setPending({ radarId, controlId, zone: value });
@@ -216,7 +231,9 @@ export class GuardZoneEditService {
         zoneControlValue(value)
       );
     } catch (err) {
-      this.clearPending();
+      if (change === this.latestChange) {
+        this.clearPending();
+      }
       throw err;
     }
   }

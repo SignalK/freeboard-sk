@@ -150,6 +150,22 @@ describe('GuardZoneEditService', () => {
     expect(shown('guardZone1')).toEqual(drawn);
   });
 
+  it('lets a change made while a save is on its way outlast the save failing', async () => {
+    let reject: (err: Error) => void;
+    setControl.mockImplementationOnce(
+      () => new Promise((_, r) => (reject = r))
+    );
+    service.editZone('guardZone1');
+    service.update(drawn);
+    const saving = service.save();
+    await service.setEnabled('guardZone1', true);
+    reject(new Error('rejected'));
+    await expect(saving).rejects.toThrow('rejected');
+
+    expect(service.edit()).toBeUndefined();
+    expect(shown('guardZone1')).toEqual({ ...drawn, enabled: true });
+  });
+
   it('arms and disarms the stored zone', async () => {
     await service.setEnabled('guardZone1', false);
     expect(setControl).toHaveBeenCalledWith('fur6424A', 'guardZone1', {
