@@ -31,7 +31,9 @@ ways to narrow the list. They combine, so you can use them together.
   covers where. Clicking an outline brings up the charts at that spot and lets you switch
   one on directly, without finding it in the list.
 
-**In view** and **Bounds** both start off each time you open the list — they're a way to
+**In view** stays the way you left it. On a server with many regional charts, switch it
+on once and the list opens showing only the charts for where you are, every time, until
+you switch it off. **Bounds** starts off each time you open the list — it's a way to
 search, not a setting to leave set.
 
 ## Chart order
@@ -51,8 +53,10 @@ once you drag anything, your order wins.
 
 Filtering the list withdraws the handles, whether you filter by typing or with **In view**.
 A filtered list is only part of the stack, so dropping a row inside it says nothing about
-where the charts hidden between belong. The caption beside **Top Layer** says so — it
-changes from *(drag to re-order)* to *(clear the filter to re-order)*.
+where the charts hidden between belong. The caption beside **Top Layer** says so, and
+names what to undo: *(clear the filter to re-order)*, *(turn off In view to re-order)*, or
+both. Because **In view** is remembered, it's the likely reason if you open the list and
+find the handles missing.
 
 ## Per-chart actions
 
