@@ -218,6 +218,7 @@
                 matInput
                 type="number"
                 [attr.aria-label]="f.name"
+                [step]="f.step"
                 [value]="zoneField(z, f.key)"
                 (change)="setZoneField(f.key, $event)"
               />

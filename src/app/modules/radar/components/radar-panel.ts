@@ -40,6 +40,9 @@ const FIELD_HANDLES: Record<ZoneField, ZoneHandle> = {
 };
 
 const AREA_TYPES = ['sector', 'zone', 'rect'];
+// hundredths of a mile or kilometre: 10 to 20 m, as fine as a zone needs
+const DISTANCE_DECIMALS = 2;
+const DISTANCE_STEP = 10 ** -DISTANCE_DECIMALS;
 
 @Component({
   selector: 'radar-panel',
@@ -70,11 +73,22 @@ export class RadarPanel {
     key: ZoneField;
     label: string;
     name: string;
+    step: number;
   }> = [
-    { key: 'startAngle', label: 'From', name: 'From bearing' },
-    { key: 'endAngle', label: 'To', name: 'To bearing' },
-    { key: 'startDistance', label: 'Inner', name: 'Inner distance' },
-    { key: 'endDistance', label: 'Outer', name: 'Outer distance' }
+    { key: 'startAngle', label: 'From', name: 'From bearing', step: 1 },
+    { key: 'endAngle', label: 'To', name: 'To bearing', step: 1 },
+    {
+      key: 'startDistance',
+      label: 'Inner',
+      name: 'Inner distance',
+      step: DISTANCE_STEP
+    },
+    {
+      key: 'endDistance',
+      label: 'Outer',
+      name: 'Outer distance',
+      step: DISTANCE_STEP
+    }
   ];
 
   protected radar = this.radarApi.radar;
@@ -231,18 +245,22 @@ export class RadarPanel {
     this.zoneEdit.save().catch((err) => this.app.parseHttpErrorResponse(err));
   }
 
-  /** Bearings in degrees relative to the bow, distances in the user's length
-   *  unit: a zone is metres to a few miles from the boat. */
+  /** Bearings in degrees relative to the bow, distances in the user's
+   *  distance unit, as the range selector and the range rings show them. */
   protected zoneUnit(field: ZoneField): string {
     return field.endsWith('Angle')
       ? Convert.getSymbol('degree')
-      : Convert.getSymbol(this.lengthUnit());
+      : Convert.getSymbol(this.distanceUnit());
   }
 
   protected zoneField(zone: GuardZone, field: ZoneField): number {
     return field.endsWith('Angle')
       ? Math.round(Convert.radiansToDegrees(zone[field]))
-      : Math.round(Convert.transform(zone[field], 'm', this.lengthUnit()));
+      : Number(
+          Convert.transform(zone[field], 'm', this.distanceUnit()).toFixed(
+            DISTANCE_DECIMALS
+          )
+        );
   }
 
   protected setZoneField(field: ZoneField, e: Event) {
@@ -260,7 +278,7 @@ export class RadarPanel {
         })
       : dragHandle(zone, FIELD_HANDLES[field], {
           angle: 0,
-          distance: input / Convert.transform(1, 'm', this.lengthUnit())
+          distance: input / Convert.transform(1, 'm', this.distanceUnit())
         });
     this.zoneEdit.update(next);
     // when the rules hold the zone where it was, the binding does not change
@@ -268,8 +286,8 @@ export class RadarPanel {
     el.value = String(this.zoneField(next, field));
   }
 
-  private lengthUnit(): TARGET_UNIT {
-    return (this.app.config.units?.length ?? 'm') as TARGET_UNIT;
+  private distanceUnit(): TARGET_UNIT {
+    return this.app.config.units?.distance ?? 'naut-mile';
   }
 
   private send(controlId: string, change: ControlChange) {
@@ -372,8 +390,18 @@ export class RadarPanel {
     }
     const angles = `${this.formatNumber(cv.value, 'rad')} to ${this.formatNumber(cv.endValue, 'rad')}`;
     return def.dataType === 'zone'
-      ? `${angles}, ${this.formatNumber(cv.startDistance, 'm')} to ${this.formatNumber(cv.endDistance, 'm')}`
+      ? `${angles}, ${this.zoneDistance(cv.startDistance)} to ${this.zoneDistance(cv.endDistance)}`
       : angles;
+  }
+
+  /** In the user's distance unit like the zone fields, or metres or feet
+   *  close to the boat, as the range selector shows a range. */
+  private zoneDistance(value: number | undefined): string {
+    return typeof value === 'number'
+      ? this.app.formatValueForDisplay(value, 'm', {
+          precision: DISTANCE_DECIMALS
+        })
+      : '—';
   }
 
   private formatNumber(

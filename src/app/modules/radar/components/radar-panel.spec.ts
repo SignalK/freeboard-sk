@@ -120,7 +120,7 @@ describe('RadarPanel', () => {
           useValue: {
             config: {
               radars: { opacity: 1, rings: true },
-              units: { length: 'm' }
+              units: { distance: 'kilometer' }
             },
             uiCtrl: () => ui(),
             formatValueForDisplay: (v: number) => `${v}`,
@@ -420,9 +420,9 @@ describe('RadarPanel', () => {
           `input[aria-label="${label}"]`
         );
       expect(field('To bearing').value).toBe('90');
-      expect(field('Outer distance').value).toBe('800');
+      expect(field('Outer distance').value).toBe('0.8');
 
-      field('Outer distance').value = '1500';
+      field('Outer distance').value = '1.5';
       field('Outer distance').dispatchEvent(new Event('change'));
       fixture.detectChanges();
       button(el, 'Save').click();
@@ -449,10 +449,10 @@ describe('RadarPanel', () => {
       // the inner distance stays a zone depth inside the outer one, also
       // when the same refused value is typed again
       for (let i = 0; i < 2; i++) {
-        inner.value = '2000';
+        inner.value = '2';
         inner.dispatchEvent(new Event('change'));
         fixture.detectChanges();
-        expect(inner.value).toBe('750');
+        expect(inner.value).toBe('0.75');
       }
     });
 
