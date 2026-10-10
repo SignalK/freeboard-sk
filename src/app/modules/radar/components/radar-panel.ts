@@ -1,4 +1,4 @@
-import { Component, computed, inject, output } from '@angular/core';
+import { Component, computed, effect, inject, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -108,7 +108,19 @@ export class RadarPanel {
   protected rangeDef = computed(() => this.capabilities()?.controls?.['range']);
   protected rangeValue = computed(() => this.values().get('range')?.value);
 
+  constructor() {
+    // the zone is drawn and edited on the radar layer, so hiding it ends the
+    // edit rather than leaving an unsaved zone with no editor
+    effect(() => {
+      if (!this.app.uiCtrl().radarLayer) {
+        this.zoneEdit.cancel();
+      }
+    });
+  }
+
   ngOnDestroy() {
+    // the Save and Cancel buttons go with the panel, so must the edit
+    this.zoneEdit.cancel();
     this.app.saveConfig();
   }
 

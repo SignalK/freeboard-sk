@@ -253,14 +253,16 @@
             >
             <button
               mat-stroked-button
-              [disabled]="disabled || !!edit"
+              [disabled]="disabled || !!edit || !app.uiCtrl().radarLayer"
               (click)="zoneEdit.draw(c.id)"
             >
               Draw
             </button>
             <button
               mat-stroked-button
-              [disabled]="disabled || !!edit || !hasZone(c)"
+              [disabled]="
+                disabled || !!edit || !hasZone(c) || !app.uiCtrl().radarLayer
+              "
               (click)="zoneEdit.editZone(c.id)"
             >
               Edit

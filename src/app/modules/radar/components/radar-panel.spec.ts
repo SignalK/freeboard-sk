@@ -78,7 +78,7 @@ describe('RadarPanel', () => {
   } as unknown as CapabilityManifest;
 
   let radar: WritableSignal<ActiveRadar>;
-  let radarLayer: boolean;
+  let ui: WritableSignal<{ radarLayer: boolean }>;
   let api: {
     radar: WritableSignal<ActiveRadar>;
     radars: WritableSignal<Array<{ id: string; name: string }>>;
@@ -91,7 +91,7 @@ describe('RadarPanel', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    radarLayer = true;
+    ui = signal({ radarLayer: true });
     radar = signal({
       device: { id: 'fur6424A', name: 'DRS4D-NXT 6424', brand: 'Furuno' },
       capabilities,
@@ -122,7 +122,7 @@ describe('RadarPanel', () => {
               radars: { opacity: 1, rings: true },
               units: { length: 'm' }
             },
-            uiCtrl: () => ({ radarLayer }),
+            uiCtrl: () => ui(),
             formatValueForDisplay: (v: number) => `${v}`,
             saveConfig: () => undefined,
             parseHttpErrorResponse: () => undefined
@@ -348,7 +348,7 @@ describe('RadarPanel', () => {
     eye().click();
     expect(disconnect).toHaveBeenCalledTimes(1);
 
-    radarLayer = false;
+    ui.set({ radarLayer: false });
     fixture.componentRef.changeDetectorRef.markForCheck();
     eye().click();
     expect(connect).toHaveBeenCalledTimes(1);
@@ -434,6 +434,27 @@ describe('RadarPanel', () => {
         endDistance: 1500,
         enabled: true
       });
+    });
+
+    it('ends the edit when the panel closes', () => {
+      withZone(zone);
+      const fixture = open();
+      button(fixture.nativeElement, 'Edit').click();
+      fixture.destroy();
+      expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
+    });
+
+    it('ends the edit and offers no drawing while the radar is hidden', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Draw').click();
+      ui.set({ radarLayer: false });
+      fixture.detectChanges();
+
+      expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
+      expect(button(el, 'Draw').disabled).toBe(true);
+      expect(button(el, 'Edit').disabled).toBe(true);
     });
 
     it('switches a zone off as the radar holds it', () => {
