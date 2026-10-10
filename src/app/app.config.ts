@@ -74,12 +74,6 @@ export function cleanConfig(
         enabled: false,
         smoothing: 10000
       },
-      plugins: {
-        instruments: '/@signalk/instrumentpanel',
-        startOnOpen: true,
-        parameters: null,
-        favourites: []
-      },
       preferInfoPanel: true,
       singleClickNoteDetails: false,
       windIndicator: 'barb',
@@ -517,6 +511,8 @@ export function cleanConfig(
 
   // ensure legacy notes selections section is removed
   delete settings.selections.notes;
+  // ensure the settings of the retired instruments panel are removed
+  delete settings.display.plugins;
 
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {
@@ -563,12 +559,6 @@ export function defaultConfig(): IAppConfig {
       nightMode: false, // auto set night mode based on environment.mode
       muteSound: false,
       depthAlarm: { enabled: false, smoothing: 10000 },
-      plugins: {
-        instruments: '/@signalk/instrumentpanel',
-        startOnOpen: true,
-        parameters: null,
-        favourites: []
-      },
       preferInfoPanel: true,
       singleClickNoteDetails: false,
       windIndicator: 'barb',
