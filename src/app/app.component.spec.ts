@@ -337,5 +337,25 @@ describe('AppComponent', () => {
         expect(disconnect).not.toHaveBeenCalled();
       }
     );
+
+    it('hides the radar from the Radar Overlay menu item while it shows', () => {
+      const { fixture, infoPanel, connect, disconnect } = setup('wpt');
+      const app = TestBed.inject(AppFacade);
+      const menu = fixture.componentInstance as unknown as {
+        toggleRadarOverlay: () => void;
+      };
+      const showOverlay = (radarLayer: boolean) =>
+        app.uiCtrl.update((c) => Object.assign({}, c, { radarLayer }));
+
+      showOverlay(true);
+      menu.toggleRadarOverlay();
+      expect(disconnect).toHaveBeenCalledTimes(1);
+      expect(infoPanel.item()?.type).not.toBe('radars');
+
+      showOverlay(false);
+      menu.toggleRadarOverlay();
+      expect(connect).toHaveBeenCalledTimes(1);
+      expect(infoPanel.item()?.type).toBe('radars');
+    });
   });
 });
