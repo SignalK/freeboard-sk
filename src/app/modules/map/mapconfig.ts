@@ -247,6 +247,26 @@ export const aircraftStyles = {
 };
 
 // ***********
+// Radar and camera targets: the ring radar plotters draw around a tracked echo
+const sensorTargetStyle = (color: string) =>
+  new Style({
+    image: new Circle({
+      radius: 8,
+      stroke: new Stroke({ color, width: 2 }),
+      fill: new Fill({ color: 'rgba(0, 0, 0, 0)' })
+    }),
+    text: new Text({
+      text: '',
+      offsetY: -16
+    })
+  });
+
+export const sensorTargetStyles = {
+  default: sensorTargetStyle('#ff6f00'),
+  inactive: sensorTargetStyle('#9e9e9e')
+};
+
+// ***********
 const sarIcon = new Icon({
   src: './assets/img/sar_active.png',
   rotateWithView: false,

@@ -106,3 +106,60 @@ describe('AISTargetsLayerComponent arrow indicator (#513)', () => {
     expect(c.buildLabel({ name: 'Buoy' } as SKTarget)).toBe('Buoy');
   });
 });
+
+// A sensor target linked to a boat already on the chart leaves the set the map
+// draws while its sensor keeps updating it; its feature has to go.
+describe('AISTargetsLayerComponent.onUpdateTargets', () => {
+  it('removes the feature and course line of an updated target no longer in the set', () => {
+    const id = 'targets.radar:nav1-17';
+    const features = new Map([
+      [id, { name: 'target' }],
+      ['cog-' + id, { name: 'course line' }]
+    ]);
+    const removed: unknown[] = [];
+    const c = Object.create(
+      AISTargetsLayerComponent.prototype
+    ) as AISTargetsLayerComponent;
+    Object.assign(c, {
+      targetContext: 'targets',
+      targets: new Map(),
+      source: {
+        getFeatureById: (fid: string) => features.get(fid),
+        removeFeature: (f: unknown) => removed.push(f)
+      }
+    });
+    c.onUpdateTargets([id]);
+    expect(removed).toEqual([features.get(id), features.get('cog-' + id)]);
+  });
+});
+
+describe('AISTargetsLayerComponent course line', () => {
+  it('removes the course line of a target that stopped reporting a course', () => {
+    const id = 'targets.radar:nav1-17';
+    const line = { name: 'course line' };
+    const removed: unknown[] = [];
+    const c = Object.create(
+      AISTargetsLayerComponent.prototype
+    ) as AISTargetsLayerComponent;
+    Object.assign(c, {
+      targetContext: 'targets',
+      // course lines on, so only the missing course removes it
+      cogLineLength: 10,
+      mapZoom: 15,
+      labelMinZoom: 10,
+      source: {
+        getFeatureById: (fid: string) =>
+          fid === 'cog-' + id ? line : undefined,
+        removeFeature: (f: unknown) => removed.push(f)
+      }
+    });
+    const parseCogLine = (
+      c as unknown as { parseCogLine: (id: string, t: SKTarget) => void }
+    ).parseCogLine.bind(c);
+    parseCogLine(id, {
+      position: [4.2, 52.1],
+      vectors: { cog: null }
+    } as unknown as SKTarget);
+    expect(removed).toEqual([line]);
+  });
+});

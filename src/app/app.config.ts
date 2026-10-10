@@ -779,6 +779,7 @@ export function initData(): FBAppData {
     atons: new Map(), // received AIS AtoN data
     sar: new Map(), // received AIS SaR data
     meteo: new Map(), // received AIS Meteo data
+    targets: new Map(), // radar, camera and other sensor targets
     racing: {
       startLine: []
     }

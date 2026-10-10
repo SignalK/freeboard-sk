@@ -340,6 +340,21 @@ export class SKAircraft extends SKTargetBase {
   }
 }
 
+// ** Sensor target class: a `targets.<type>:<id>` context (radar, camera) **
+export class SKSensorTarget extends SKTargetBase {
+  sog: number;
+  /** Course over ground; undefined until the sensor reports one. */
+  cog: number;
+  /** Course line from the target's position; null until it reports a course. */
+  vectors: { cog: Position[] } = { cog: null };
+  /** Context this target is the same object as (an AIS vessel or another
+   * target), set by a fusion plugin; `null` when it stands on its own. */
+  sameAs: string = null;
+  constructor() {
+    super();
+  }
+}
+
 // ** AtoN class **
 export class SKAtoN extends SKTargetBase {
   constructor() {
