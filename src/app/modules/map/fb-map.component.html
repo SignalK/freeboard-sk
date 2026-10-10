@@ -241,11 +241,13 @@
     >
     </fb-radar-zones>
     @if (zoneEdit.edit(); as edit) {
+      <!-- the handles sit above every other layer, the own vessel included,
+           so none of them hides under a target or a track -->
       <fb-radar-zone-editor
         [edit]="edit"
         [position]="dfeat.self.position"
         [heading]="dfeat.self.orientation"
-        [zIndex]="101"
+        [zIndex]="1000"
         (zoneChange)="zoneEdit.update($event)"
         (zoneDrawn)="zoneEdit.drawn($event)"
       >
