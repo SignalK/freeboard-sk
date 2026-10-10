@@ -161,6 +161,28 @@ describe('GuardZoneEditService', () => {
     });
   });
 
+  it('arms and disarms a saved zone the radar has not reported yet', async () => {
+    service.editZone('guardZone1');
+    service.update(drawn);
+    await service.save();
+    await service.setEnabled('guardZone1', true);
+    expect(setControl).toHaveBeenLastCalledWith('fur6424A', 'guardZone1', {
+      value: -0.5,
+      endValue: 0.5,
+      startDistance: 200,
+      endDistance: 1200,
+      enabled: true
+    });
+  });
+
+  it('stops showing a saved zone that is cleared', async () => {
+    service.editZone('guardZone2');
+    service.update(drawn);
+    await service.save();
+    await service.clear('guardZone2');
+    expect(shown('guardZone2')).toBeUndefined();
+  });
+
   it('clears a zone to the value of a zone never set', async () => {
     await service.clear('guardZone1');
     expect(setControl).toHaveBeenCalledWith('fur6424A', 'guardZone1', {

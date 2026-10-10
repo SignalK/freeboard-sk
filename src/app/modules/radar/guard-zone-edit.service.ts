@@ -175,10 +175,11 @@ export class GuardZoneEditService {
     }
   }
 
-  /** Arm or disarm a zone as the radar holds it. */
+  /** Arm or disarm a zone as the radar holds it, or as it was just saved. */
   async setEnabled(controlId: string, enabled: boolean): Promise<void> {
     const radarId = this.radarApi.radar()?.device?.id;
-    const zone = this.storedZone(controlId);
+    const zone =
+      this.pendingZone(radarId, controlId) ?? this.storedZone(controlId);
     if (radarId && zone) {
       await this.send(radarId, controlId, { ...zone, enabled });
     }
@@ -193,6 +194,9 @@ export class GuardZoneEditService {
     }
     if (this._edit()?.controlId === controlId) {
       this._edit.set(undefined);
+    }
+    if (this.pendingZone(radarId, controlId)) {
+      this.clearPending();
     }
     await this.radarApi.setControl(
       radarId,
@@ -215,6 +219,16 @@ export class GuardZoneEditService {
       this.clearPending();
       throw err;
     }
+  }
+
+  private pendingZone(
+    radarId: string,
+    controlId: string
+  ): GuardZone | undefined {
+    const pending = this.pending();
+    return pending?.radarId === radarId && pending.controlId === controlId
+      ? pending.zone
+      : undefined;
   }
 
   private setPending(pending: PendingZone) {
