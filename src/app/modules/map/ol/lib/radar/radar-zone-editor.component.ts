@@ -53,6 +53,10 @@ function pointerLonLat(coordinate: number[]): number[] {
   return [normalizeAngle((lon * Math.PI) / 180) * (180 / Math.PI), lat];
 }
 
+function pointerIdOf(e: MapBrowserEvent): number {
+  return (e.originalEvent as PointerEvent).pointerId;
+}
+
 // ** Freeboard radar guard zone editor component **
 // Draws a zone by dragging from one corner to the opposite one, and edits it
 // through handles for each bearing and each distance, as in the MaYaRa radar
@@ -83,6 +87,9 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   private drawing: GuardZone;
   private dragging: ZoneHandle;
   private dragged: GuardZone;
+  // the finger that started the gesture, and the zone it started from
+  private pointerId: number;
+  private original: GuardZone;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -97,7 +104,7 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     this.interaction = new PointerInteraction({
       handleDownEvent: (e) => this.onDown(e),
       handleDragEvent: (e) => this.onDrag(e),
-      handleUpEvent: () => this.onUp()
+      handleUpEvent: (e) => this.onUp(e)
     });
     const map = this.mapComponent.getMap();
     map?.addLayer(this.layer);
@@ -136,6 +143,8 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.edit || !Array.isArray(this.position)) {
       return false;
     }
+    this.pointerId = pointerIdOf(e);
+    this.original = this.edit.zone;
     if (this.edit.mode === 'draw') {
       this.drawStart = { polar: this.polarAt(e), pixel: e.pixel };
       this.drawing = undefined;
@@ -158,6 +167,10 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private onDrag(e: MapBrowserEvent) {
+    if (pointerIdOf(e) !== this.pointerId) {
+      this.abort();
+      return;
+    }
     if (this.drawStart) {
       const [x0, y0] = this.drawStart.pixel;
       if (
@@ -174,15 +187,30 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private onUp(): boolean {
-    if (this.drawing) {
+  private onUp(e: MapBrowserEvent): boolean {
+    if (pointerIdOf(e) !== this.pointerId) {
+      this.abort();
+    } else if (this.drawing) {
       this.zoneDrawn.emit(this.drawing);
     }
+    this.reset();
+    return false;
+  }
+
+  /** A second finger means a pinch or a slip, not the shape the user meant:
+   *  the zone goes back to where the gesture started. */
+  private abort() {
+    if (this.drawing || this.dragging) {
+      this.zoneChange.emit(this.original);
+    }
+    this.reset();
+  }
+
+  private reset() {
     this.drawStart = undefined;
     this.drawing = undefined;
     this.dragging = undefined;
     this.dragged = undefined;
-    return false;
   }
 
   private buildHandles(): Feature[] {

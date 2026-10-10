@@ -116,6 +116,18 @@ describe('RadarZoneEditorComponent', () => {
       expect(changes).toEqual([]);
       expect(drawn).toEqual([]);
     });
+
+    it('puts the zone back when a second finger joins', () => {
+      open(edit);
+      pointer('pointerdown', -0.2, 300, [100, 100]);
+      pointer('pointerdrag', 0.2, 900, [180, 20]);
+      pointer('pointerdrag', 0.4, 700, [220, 40], 2);
+      pointer('pointerdrag', 0.3, 950, [190, 10]);
+      pointer('pointerup', 0.3, 950, [190, 10]);
+
+      expect(changes.at(-1)).toBe(stored);
+      expect(drawn).toEqual([]);
+    });
   });
 
   describe('editing', () => {
@@ -144,6 +156,16 @@ describe('RadarZoneEditorComponent', () => {
       expect(changes[0].endDistance).toBeCloseTo(1500, 0);
       expect(changes[0].startDistance).toBe(stored.startDistance);
       expect(drawn).toEqual([]);
+    });
+
+    it('puts the zone back when a second finger joins', () => {
+      open(edit);
+      handleAtPointer = 'outerDist';
+      pointer('pointerdown', 0, 1000, [100, 100]);
+      pointer('pointerdrag', 0, 1500, [100, 40]);
+      pointer('pointerup', 0.4, 700, [220, 40], 2);
+
+      expect(changes.at(-1)).toBe(stored);
     });
   });
 });
