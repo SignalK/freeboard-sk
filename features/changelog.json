@@ -117,5 +117,10 @@
   { "feature": "anchor-watch", "pr": 955, "kind": "enhanced", "date": "2026-10-10", "title": "feat(alarms): drive Anchor Watch with Hoeken's anchor alarm" },
   { "feature": "collision-alarm-display", "kind": "new", "since": "v1.8.0-rc1", "date": "2019-07-26", "title": "Show the vessel in a closest approach alarm on the map" },
   { "feature": "collision-alarm-display", "kind": "enhanced", "since": "v2.14.0", "date": "2025-03-22", "title": "Show every vessel in a collision alarm, not only the closest" },
-  { "feature": "collision-alarm-display", "pr": 959, "kind": "enhanced", "date": "2026-10-10", "title": "feat(map): show collision danger like a chart plotter" }
+  { "feature": "collision-alarm-display", "pr": 959, "kind": "enhanced", "date": "2026-10-10", "title": "feat(map): show collision danger like a chart plotter" },
+  { "feature": "radar-overlay", "pr": 901, "kind": "enhanced", "date": "2026-10-08", "title": "feat(radar): rebuild the radar panel after the MaYaRa radar GUI" },
+  { "feature": "radar-guard-zones", "pr": 941, "kind": "new", "date": "2026-10-09", "title": "feat(radar): show the radar's guard zones on the chart" },
+  { "feature": "radar-overlay", "pr": 942, "kind": "enhanced", "date": "2026-10-09", "title": "feat(radar): draw range circles at the radar range while it transmits" },
+  { "feature": "radar-overlay", "pr": 954, "kind": "enhanced", "date": "2026-10-10", "title": "feat(radar): show the radar image only while the radar transmits" },
+  { "feature": "radar-guard-zones", "pr": 943, "kind": "enhanced", "date": "2026-10-10", "title": "feat(radar): draw and edit guard zones on the chart" }
 ]
