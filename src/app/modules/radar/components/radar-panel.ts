@@ -1,4 +1,4 @@
-import { Component, computed, inject, output } from '@angular/core';
+import { Component, computed, effect, inject, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -26,8 +26,23 @@ import {
   rangeOptions,
   SectionControl
 } from '../radar-controls';
+import { GuardZone, guardZoneFromControl } from '../guard-zones';
+import { GuardZoneEditService } from '../guard-zone-edit.service';
+import { dragHandle, ZoneHandle } from '../guard-zone-edit';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
+
+type ZoneField = 'startAngle' | 'endAngle' | 'startDistance' | 'endDistance';
+const FIELD_HANDLES: Record<ZoneField, ZoneHandle> = {
+  startAngle: 'startAngle',
+  endAngle: 'endAngle',
+  startDistance: 'innerDist',
+  endDistance: 'outerDist'
+};
 
 const AREA_TYPES = ['sector', 'zone', 'rect'];
+// hundredths of a mile or kilometre: 10 to 20 m, as fine as a zone needs
+const DISTANCE_DECIMALS = 2;
+const DISTANCE_STEP = 10 ** -DISTANCE_DECIMALS;
 
 @Component({
   selector: 'radar-panel',
@@ -52,6 +67,29 @@ export class RadarPanel {
 
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);
+  protected zoneEdit = inject(GuardZoneEditService);
+
+  protected readonly zoneFields: Array<{
+    key: ZoneField;
+    label: string;
+    name: string;
+    step: number;
+  }> = [
+    { key: 'startAngle', label: 'From', name: 'From bearing', step: 1 },
+    { key: 'endAngle', label: 'To', name: 'To bearing', step: 1 },
+    {
+      key: 'startDistance',
+      label: 'Inner',
+      name: 'Inner distance',
+      step: DISTANCE_STEP
+    },
+    {
+      key: 'endDistance',
+      label: 'Outer',
+      name: 'Outer distance',
+      step: DISTANCE_STEP
+    }
+  ];
 
   protected radar = this.radarApi.radar;
   // the capabilities only change when another radar is selected, so the
@@ -84,7 +122,19 @@ export class RadarPanel {
   protected rangeDef = computed(() => this.capabilities()?.controls?.['range']);
   protected rangeValue = computed(() => this.values().get('range')?.value);
 
+  constructor() {
+    // the zone is drawn and edited on the radar layer, so hiding it ends the
+    // edit rather than leaving an unsaved zone with no editor
+    effect(() => {
+      if (!this.app.uiCtrl().radarLayer) {
+        this.zoneEdit.cancel();
+      }
+    });
+  }
+
   ngOnDestroy() {
+    // the Save and Cancel buttons go with the panel, so must the edit
+    this.zoneEdit.cancel();
     this.app.saveConfig();
   }
 
@@ -169,6 +219,75 @@ export class RadarPanel {
 
   protected press(c: SectionControl) {
     this.send(c.id, {});
+  }
+
+  protected isGuardZone(c: SectionControl): boolean {
+    return c.def.dataType === 'zone' && c.id.startsWith('guardZone');
+  }
+
+  protected hasZone(c: SectionControl): boolean {
+    return guardZoneFromControl(this.values().get(c.id)) !== undefined;
+  }
+
+  protected setZoneEnabled(c: SectionControl, enabled: boolean) {
+    this.zoneEdit
+      .setEnabled(c.id, enabled)
+      .catch((err) => this.app.parseHttpErrorResponse(err));
+  }
+
+  protected clearZone(c: SectionControl) {
+    this.zoneEdit
+      .clear(c.id)
+      .catch((err) => this.app.parseHttpErrorResponse(err));
+  }
+
+  protected saveZone() {
+    this.zoneEdit.save().catch((err) => this.app.parseHttpErrorResponse(err));
+  }
+
+  /** Bearings in degrees relative to the bow, distances in the user's
+   *  distance unit, as the range selector and the range rings show them. */
+  protected zoneUnit(field: ZoneField): string {
+    return field.endsWith('Angle')
+      ? Convert.getSymbol('degree')
+      : Convert.getSymbol(this.distanceUnit());
+  }
+
+  protected zoneField(zone: GuardZone, field: ZoneField): number {
+    return field.endsWith('Angle')
+      ? Math.round(Convert.radiansToDegrees(zone[field]))
+      : Number(
+          Convert.transform(zone[field], 'm', this.distanceUnit()).toFixed(
+            DISTANCE_DECIMALS
+          )
+        );
+  }
+
+  protected setZoneField(field: ZoneField, e: Event) {
+    const zone = this.zoneEdit.edit()?.zone;
+    const el = e.target as HTMLInputElement;
+    const input = el.valueAsNumber;
+    if (!zone || !Number.isFinite(input)) {
+      return;
+    }
+    // typed values follow the same rules as a dragged handle
+    const next = field.endsWith('Angle')
+      ? dragHandle(zone, FIELD_HANDLES[field], {
+          angle: Convert.degreesToRadians(input),
+          distance: 0
+        })
+      : dragHandle(zone, FIELD_HANDLES[field], {
+          angle: 0,
+          distance: input / Convert.transform(1, 'm', this.distanceUnit())
+        });
+    this.zoneEdit.update(next);
+    // when the rules hold the zone where it was, the binding does not change
+    // and the field would go on showing the value that was refused
+    el.value = String(this.zoneField(next, field));
+  }
+
+  private distanceUnit(): TARGET_UNIT {
+    return this.app.config.units?.distance ?? 'naut-mile';
   }
 
   private send(controlId: string, change: ControlChange) {
@@ -271,8 +390,18 @@ export class RadarPanel {
     }
     const angles = `${this.formatNumber(cv.value, 'rad')} to ${this.formatNumber(cv.endValue, 'rad')}`;
     return def.dataType === 'zone'
-      ? `${angles}, ${this.formatNumber(cv.startDistance, 'm')} to ${this.formatNumber(cv.endDistance, 'm')}`
+      ? `${angles}, ${this.zoneDistance(cv.startDistance)} to ${this.zoneDistance(cv.endDistance)}`
       : angles;
+  }
+
+  /** In the user's distance unit like the zone fields, or metres or feet
+   *  close to the boat, as the range selector shows a range. */
+  private zoneDistance(value: number | undefined): string {
+    return typeof value === 'number'
+      ? this.app.formatValueForDisplay(value, 'm', {
+          precision: DISTANCE_DECIMALS
+        })
+      : '—';
   }
 
   private formatNumber(

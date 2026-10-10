@@ -73,7 +73,7 @@ import {
 
 import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
-import { radarGuardZones } from 'src/app/modules/radar/guard-zones';
+import { GuardZoneEditService } from 'src/app/modules/radar/guard-zone-edit.service';
 import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import {
@@ -478,7 +478,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private tidalCurrents = inject(TidalCurrentsService);
   protected trackHistory = inject(TrackHistoryService);
   protected radarApi = inject(RadarAPIService);
-  protected radarZones = computed(() => radarGuardZones(this.radarApi.radar()));
+  protected zoneEdit = inject(GuardZoneEditService);
   // without an image to draw, dropping the spoke stream lets the provider
   // rest the radar
   protected radarImage = computed(() => {
@@ -1056,9 +1056,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       this.extendRouteInModify(e);
     } else if (
-      //not interacting
+      //not interacting, a guard zone edit included
       !this.mapInteract.isDrawing() &&
-      !this.mapInteract.isModifying()
+      !this.mapInteract.isModifying() &&
+      !this.zoneEdit.edit()
     ) {
       if (!this.app.config.map.popoverMulti) {
         this.overlay.update((current) => {

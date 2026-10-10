@@ -3,6 +3,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RadarPanel } from './radar-panel';
+import { GuardZoneEditService } from '../guard-zone-edit.service';
 import { AppFacade } from 'src/app/app.facade';
 import {
   ActiveRadar,
@@ -77,7 +78,7 @@ describe('RadarPanel', () => {
   } as unknown as CapabilityManifest;
 
   let radar: WritableSignal<ActiveRadar>;
-  let radarLayer: boolean;
+  let ui: WritableSignal<{ radarLayer: boolean }>;
   let api: {
     radar: WritableSignal<ActiveRadar>;
     radars: WritableSignal<Array<{ id: string; name: string }>>;
@@ -90,7 +91,7 @@ describe('RadarPanel', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    radarLayer = true;
+    ui = signal({ radarLayer: true });
     radar = signal({
       device: { id: 'fur6424A', name: 'DRS4D-NXT 6424', brand: 'Furuno' },
       capabilities,
@@ -117,8 +118,11 @@ describe('RadarPanel', () => {
         {
           provide: AppFacade,
           useValue: {
-            config: { radars: { opacity: 1, rings: true } },
-            uiCtrl: () => ({ radarLayer }),
+            config: {
+              radars: { opacity: 1, rings: true },
+              units: { distance: 'kilometer' }
+            },
+            uiCtrl: () => ui(),
             formatValueForDisplay: (v: number) => `${v}`,
             saveConfig: () => undefined,
             parseHttpErrorResponse: () => undefined
@@ -344,9 +348,146 @@ describe('RadarPanel', () => {
     eye().click();
     expect(disconnect).toHaveBeenCalledTimes(1);
 
-    radarLayer = false;
+    ui.set({ radarLayer: false });
     fixture.componentRef.changeDetectorRef.markForCheck();
     eye().click();
     expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  describe('guard zones', () => {
+    const withZone = (value: ControlValue) =>
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          ...r.capabilities,
+          controls: {
+            ...r.capabilities.controls,
+            guardZone1: {
+              id: 16,
+              name: 'Guard zone 1',
+              description: 'Guard zone',
+              category: 'guardZones',
+              dataType: 'zone',
+              hasEnabled: true
+            }
+          }
+        } as unknown as CapabilityManifest,
+        controls: new Map(r.controls).set('guardZone1', value)
+      }));
+    const zoneBlock = (el: HTMLElement) =>
+      control(el, 'Guard zone 1').querySelector<HTMLElement>('.zone-edit');
+    const button = (el: HTMLElement, label: string) =>
+      Array.from(
+        zoneBlock(el).querySelectorAll<HTMLButtonElement>('button')
+      ).find((b) => b.textContent.trim() === label);
+    const zone: ControlValue = {
+      value: 0,
+      endValue: Math.PI / 2,
+      startDistance: 100,
+      endDistance: 800,
+      enabled: true
+    };
+
+    it('offers drawing a zone the radar does not hold yet', () => {
+      withZone({ value: 0, endValue: 0, startDistance: 0, endDistance: 0 });
+      const el: HTMLElement = open().nativeElement;
+      expect(button(el, 'Draw').disabled).toBe(false);
+      expect(button(el, 'Edit').disabled).toBe(true);
+      expect(button(el, 'Clear').disabled).toBe(true);
+    });
+
+    it('draws a zone from the panel', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Draw').click();
+      fixture.detectChanges();
+      expect(TestBed.inject(GuardZoneEditService).edit().mode).toBe('draw');
+      expect(zoneBlock(el).querySelector('.zone-hint').textContent).toContain(
+        'Drag across the chart'
+      );
+    });
+
+    it('edits a zone in numbers and saves it in one change', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Edit').click();
+      fixture.detectChanges();
+
+      const field = (label: string) =>
+        zoneBlock(el).querySelector<HTMLInputElement>(
+          `input[aria-label="${label}"]`
+        );
+      expect(field('To bearing').value).toBe('90');
+      expect(field('Outer distance').value).toBe('0.8');
+
+      field('Outer distance').value = '1.5';
+      field('Outer distance').dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      button(el, 'Save').click();
+
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'guardZone1', {
+        value: 0,
+        endValue: Math.PI / 2,
+        startDistance: 100,
+        endDistance: 1500,
+        enabled: true
+      });
+    });
+
+    it('shows a typed distance as the zone rules limit it', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Edit').click();
+      fixture.detectChanges();
+
+      const inner = zoneBlock(el).querySelector<HTMLInputElement>(
+        'input[aria-label="Inner distance"]'
+      );
+      // the inner distance stays a zone depth inside the outer one, also
+      // when the same refused value is typed again
+      for (let i = 0; i < 2; i++) {
+        inner.value = '2';
+        inner.dispatchEvent(new Event('change'));
+        fixture.detectChanges();
+        expect(inner.value).toBe('0.75');
+      }
+    });
+
+    it('ends the edit when the panel closes', () => {
+      withZone(zone);
+      const fixture = open();
+      button(fixture.nativeElement, 'Edit').click();
+      fixture.destroy();
+      expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
+    });
+
+    it('ends the edit and offers no drawing while the radar is hidden', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Draw').click();
+      ui.set({ radarLayer: false });
+      fixture.detectChanges();
+
+      expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
+      expect(button(el, 'Draw').disabled).toBe(true);
+      expect(button(el, 'Edit').disabled).toBe(true);
+    });
+
+    it('switches a zone off as the radar holds it', () => {
+      withZone(zone);
+      const el: HTMLElement = open().nativeElement;
+      zoneBlock(el)
+        .querySelector<HTMLElement>('mat-slide-toggle button')
+        .click();
+      expect(api.setControl).toHaveBeenCalledWith(
+        'fur6424A',
+        'guardZone1',
+        expect.objectContaining({ endDistance: 800, enabled: false })
+      );
+    });
   });
 });
