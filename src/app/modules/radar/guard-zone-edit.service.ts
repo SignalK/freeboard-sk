@@ -164,7 +164,15 @@ export class GuardZoneEditService {
       return;
     }
     this._edit.set(undefined);
-    await this.send(edit.radarId, edit.controlId, edit.zone);
+    try {
+      await this.send(edit.radarId, edit.controlId, edit.zone);
+    } catch (err) {
+      // the radar kept its old zone, so the user's edit is still unsaved
+      if (!this._edit()) {
+        this._edit.set(edit);
+      }
+      throw err;
+    }
   }
 
   /** Arm or disarm a zone as the radar holds it. */

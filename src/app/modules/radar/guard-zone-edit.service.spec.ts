@@ -137,12 +137,17 @@ describe('GuardZoneEditService', () => {
     expect(shown('guardZone1').endDistance).toBe(800);
   });
 
-  it('shows the stored zone again when saving fails', async () => {
+  it('keeps the edit when saving fails', async () => {
     setControl.mockRejectedValueOnce(new Error('rejected'));
     service.editZone('guardZone1');
     service.update(drawn);
     await expect(service.save()).rejects.toThrow('rejected');
-    expect(shown('guardZone1').endDistance).toBe(800);
+    expect(service.edit()).toMatchObject({
+      controlId: 'guardZone1',
+      mode: 'edit',
+      zone: drawn
+    });
+    expect(shown('guardZone1')).toEqual(drawn);
   });
 
   it('arms and disarms the stored zone', async () => {
