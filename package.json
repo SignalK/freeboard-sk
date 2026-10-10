@@ -33,7 +33,8 @@
       "signalk-restricted-areas",
       "@marineyachtradar/signalk-plugin",
       "signalk-flags",
-      "hoekens-anchor-alarm"
+      "hoekens-anchor-alarm",
+      "signalk-collision-alerts"
     ]
   },
   "engines": {
