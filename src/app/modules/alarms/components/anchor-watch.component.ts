@@ -39,7 +39,6 @@ import { computeDestinationPoint } from 'geolib';
 
 import { AnchorService } from '../anchor.service';
 import { AppFacade } from 'src/app/app.facade';
-import { SignalKClient } from 'signalk-client-angular';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 
@@ -87,7 +86,6 @@ export class AnchorWatchComponent {
 
   private anchor = inject(AnchorService);
   protected app = inject(AppFacade);
-  private signalk = inject(SignalKClient);
   private destroyRef = inject(DestroyRef);
 
   protected radiusValue = signal<number>(0); // incoming alarm radius
@@ -99,12 +97,16 @@ export class AnchorWatchComponent {
     }
   });
   protected displayRadius = signal<string>('--');
+  protected manualSetSupported = computed(() =>
+    this.anchor.supportsManualSet()
+  );
 
   constructor() {}
 
   ngOnInit() {
     this.useDefaultRadius = this.app.config.anchor.setRadius;
-    this.useSetManual = this.app.config.anchor.manualSet;
+    this.useSetManual =
+      this.app.config.anchor.manualSet && this.anchor.supportsManualSet();
     this.defaultRodeLength.update(() => {
       return Math.round(this.transformValue(this.app.config.anchor.rodeLength));
     });
@@ -219,11 +221,8 @@ export class AnchorWatchComponent {
     this.rodeOut = true;
     this.displayRadius.update(() => this.formatTransformedValue(value));
     if (!this.raised) {
-      this.signalk
-        .post(
-          '/plugins/anchoralarm/setRadius',
-          typeof value === 'number' ? { radius: value } : {}
-        )
+      this.anchor
+        .setRadius(value)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: () => {
@@ -252,10 +251,8 @@ export class AnchorWatchComponent {
         'm' as TARGET_UNIT
       )
     );
-    this.signalk
-      .post('/plugins/anchoralarm/setManualAnchor', {
-        rodeLength: this.app.config.anchor.rodeLength
-      })
+    this.anchor
+      .setManualAnchor(this.app.config.anchor.rodeLength)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -288,11 +285,8 @@ export class AnchorWatchComponent {
   dropAnchor(radius?: number) {
     this.app.config.anchor.radius = radius;
     this.anchor.setRaisedSignal(false);
-    this.signalk
-      .post(
-        '/plugins/anchoralarm/dropAnchor',
-        typeof radius === 'number' ? { radius: radius } : {}
-      )
+    this.anchor
+      .drop(radius)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -309,8 +303,8 @@ export class AnchorWatchComponent {
    * @description Raise the Anchor
    */
   raiseAnchor() {
-    this.signalk
-      .post('/plugins/anchoralarm/raiseAnchor', {})
+    this.anchor
+      .raise()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => undefined,

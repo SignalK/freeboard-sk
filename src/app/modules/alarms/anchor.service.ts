@@ -2,6 +2,8 @@
  * ************************************/
 import { effect, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { map, Observable, switchMap, throwError } from 'rxjs';
+import { getDistance } from 'geolib';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
@@ -15,6 +17,18 @@ interface AnchorStatusResponse {
   currentRadius?: { value?: number };
 }
 
+/** The anchor alarm plugins Anchor Watch can drive, by plugin id. */
+export type AnchorPlugin = 'anchoralarm' | 'hoekens-anchor-alarm';
+
+/**
+ * Hoeken's watch zone: the shape around the anchor, without its position.
+ * Circles and sectors have a radius; polygons only have vertices.
+ */
+interface WatchZone {
+  type: string;
+  radius?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AnchorService {
   // **************** ATTRIBUTES ***************************
@@ -24,6 +38,8 @@ export class AnchorService {
   readonly position = this.positionSignal.asReadonly();
   private radiusSignal = signal<number>(0);
   readonly radius = this.radiusSignal.asReadonly();
+  private pluginSignal = signal<AnchorPlugin>('anchoralarm');
+  readonly plugin = this.pluginSignal.asReadonly();
   // *******************************************************
 
   constructor(
@@ -46,6 +62,104 @@ export class AnchorService {
     this.raisedSignal.set(value);
   }
 
+  /** Hoeken's current watch zone, which its setZone route takes whole. */
+  private watchZone(): Observable<WatchZone | undefined> {
+    return this.signalk.api
+      .get('/vessels/self/navigation/anchor/watchZone')
+      .pipe(map((zone: { value?: WatchZone }) => zone.value));
+  }
+
+  /**
+   * @description Set the anchor alarm plugin the commands go to
+   * @param id Plugin id
+   */
+  public setPlugin(id: AnchorPlugin) {
+    this.pluginSignal.set(id);
+  }
+
+  /** Only signalk-anchoralarm-plugin can place the anchor from a rode length. */
+  public supportsManualSet(): boolean {
+    return this.plugin() === 'anchoralarm';
+  }
+
+  private post(route: string, body: object): Observable<unknown> {
+    return this.signalk.post(`/plugins/${this.plugin()}/${route}`, body);
+  }
+
+  /**
+   * @description Drop the anchor at the vessel position
+   * @param radius Alarm radius in meters; the plugin's own when not given
+   */
+  public drop(radius?: number): Observable<unknown> {
+    if (this.plugin() === 'hoekens-anchor-alarm') {
+      return this.post(
+        'dropAnchor',
+        typeof radius === 'number' ? { zone: { type: 'circle', radius } } : {}
+      );
+    }
+    return this.post(
+      'dropAnchor',
+      typeof radius === 'number' ? { radius: radius } : {}
+    );
+  }
+
+  /** @description Raise the anchor */
+  public raise(): Observable<unknown> {
+    return this.post('raiseAnchor', {});
+  }
+
+  /**
+   * @description Set the alarm radius
+   * @param radius Alarm radius in meters; the vessel's distance from the
+   * anchor when not given
+   */
+  public setRadius(radius?: number): Observable<unknown> {
+    if (this.plugin() === 'hoekens-anchor-alarm') {
+      // Hoeken's plugin needs the radius itself; signalk-anchoralarm-plugin
+      // measures it when none is given.
+      if (typeof radius !== 'number') {
+        const vessel = this.app.data.vessels.self.position;
+        const anchor = this.position();
+        radius = Math.ceil(
+          getDistance(
+            { longitude: vessel[0], latitude: vessel[1] },
+            { longitude: anchor[0], latitude: anchor[1] },
+            0.01
+          )
+        );
+      }
+      const newRadius = radius;
+      return this.watchZone().pipe(
+        switchMap((zone) =>
+          typeof zone?.radius === 'number'
+            ? this.post('setZone', { zone: { ...zone, radius: newRadius } })
+            : throwError(
+                () =>
+                  new HttpErrorResponse({
+                    status: 400,
+                    error: {
+                      message: `A ${zone?.type ?? 'missing'} watch zone has no radius to change.`
+                    }
+                  })
+              )
+        )
+      );
+    }
+    return this.post(
+      'setRadius',
+      typeof radius === 'number' ? { radius: radius } : {}
+    );
+  }
+
+  /**
+   * @description Place the anchor from the length of rode let out
+   * (signalk-anchoralarm-plugin only)
+   * @param rodeLength Rode length in meters
+   */
+  public setManualAnchor(rodeLength: number): Observable<unknown> {
+    return this.post('setManualAnchor', { rodeLength: rodeLength });
+  }
+
   /**
    * @description Set anchor position
    * @param position
@@ -55,20 +169,24 @@ export class AnchorService {
     if (!position) {
       return;
     }
+    const latLon = { latitude: position[1], longitude: position[0] };
+    // Hoeken's plugin moves the anchor through setZone, which keeps the
+    // anchoring session and needs the zone sent back with the new position.
+    const request =
+      this.plugin() === 'hoekens-anchor-alarm'
+        ? this.watchZone().pipe(
+            switchMap((zone) =>
+              this.post('setZone', { zone: zone, position: latLon })
+            )
+          )
+        : this.post('setAnchorPosition', { position: latLon });
     return new Promise((resolve, reject) => {
-      this.signalk
-        .post('/plugins/anchoralarm/setAnchorPosition', {
-          position: {
-            latitude: position[1],
-            longitude: position[0]
-          }
-        })
-        .subscribe({
-          next: () => resolve(true),
-          error: (err: HttpErrorResponse) => {
-            reject(err);
-          }
-        });
+      request.subscribe({
+        next: () => resolve(true),
+        error: (err: HttpErrorResponse) => {
+          reject(err);
+        }
+      });
     });
   }
 

@@ -215,7 +215,7 @@ The following features require that the Signal K server have plugins / providers
 The following plugins are recommended for installation on the Signal K Server to enable full functionality:
 
 - Charts: `@signalk/charts-plugin`, `signalk-chart-provider-simple`, `signalk-pmtiles-plugin`, etc.
-- Anchor Watch: `signalk-anchoralarm-plugin`
+- Anchor Watch: `signalk-anchoralarm-plugin` or `hoekens-anchor-alarm`
 - Weather Forcasts: `signalk-openweather-provider`
 - Display RADAR overlay: `signalk-container` & `@marineyachtradar/signalk-plugin`
 

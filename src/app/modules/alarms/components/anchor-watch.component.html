@@ -95,7 +95,7 @@
           </div>
         </div>
 
-        <div [style.display]="raised ? 'flex' : 'none'">
+        <div [style.display]="raised && manualSetSupported() ? 'flex' : 'none'">
           <div>
             <mat-checkbox
               #chkSetManual
