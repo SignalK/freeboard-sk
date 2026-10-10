@@ -114,5 +114,8 @@
   { "feature": "anchor-watch", "kind": "new", "since": "v0.0.2", "date": "2015-05-08", "title": "Enable anchor watch" },
   { "feature": "anchor-watch", "kind": "enhanced", "since": "v2.4.0", "date": "2023-12-15", "title": "Adjust anchor position (closes #129)" },
   { "feature": "anchor-watch", "kind": "enhanced", "since": "v2.13.2", "date": "2025-03-08", "title": "Additional operating modes for anchor watch" },
-  { "feature": "anchor-watch", "pr": 955, "kind": "enhanced", "date": "2026-10-10", "title": "feat(alarms): drive Anchor Watch with Hoeken's anchor alarm" }
+  { "feature": "anchor-watch", "pr": 955, "kind": "enhanced", "date": "2026-10-10", "title": "feat(alarms): drive Anchor Watch with Hoeken's anchor alarm" },
+  { "feature": "collision-alarm-display", "kind": "new", "since": "v1.8.0-rc1", "date": "2019-07-26", "title": "Show the vessel in a closest approach alarm on the map" },
+  { "feature": "collision-alarm-display", "kind": "enhanced", "since": "v2.14.0", "date": "2025-03-22", "title": "Show every vessel in a collision alarm, not only the closest" },
+  { "feature": "collision-alarm-display", "pr": 959, "kind": "enhanced", "date": "2026-10-10", "title": "feat(map): show collision danger like a chart plotter" }
 ]
