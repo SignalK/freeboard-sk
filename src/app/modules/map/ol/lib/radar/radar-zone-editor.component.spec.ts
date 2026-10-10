@@ -24,7 +24,9 @@ describe('RadarZoneEditorComponent', () => {
   let changes: GuardZone[];
   let drawn: GuardZone[];
 
+  const target = document.createElement('div');
   const map = {
+    getTargetElement: () => target,
     addLayer: vi.fn(),
     removeLayer: vi.fn(),
     addInteraction: (i: PointerInteraction) => (interaction = i),
@@ -45,6 +47,7 @@ describe('RadarZoneEditorComponent', () => {
     fixture.componentInstance.zoneChange.subscribe((z) => changes.push(z));
     fixture.componentInstance.zoneDrawn.subscribe((z) => drawn.push(z));
     fixture.detectChanges();
+    return fixture;
   }
 
   /** A pointer event at a bearing from the bow and a distance in metres,
@@ -86,6 +89,18 @@ describe('RadarZoneEditorComponent', () => {
       mode: 'draw',
       zone: stored
     };
+
+    it('shows a crosshair over the chart until the drawing ends', () => {
+      const fixture = open(edit);
+      expect(target.style.cursor).toBe('crosshair');
+      fixture.componentRef.setInput('edit', { ...edit, mode: 'edit' });
+      fixture.detectChanges();
+      expect(target.style.cursor).toBe('');
+      fixture.componentRef.setInput('edit', edit);
+      fixture.detectChanges();
+      fixture.destroy();
+      expect(target.style.cursor).toBe('');
+    });
 
     it('takes the drag from the map, so the chart does not pan', () => {
       open(edit);

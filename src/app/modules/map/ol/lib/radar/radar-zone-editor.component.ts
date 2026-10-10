@@ -109,6 +109,7 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     const map = this.mapComponent.getMap();
     map?.addLayer(this.layer);
     map?.addInteraction(this.interaction);
+    this.setCursor();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -117,6 +118,9 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['zIndex']) {
       this.layer.setZIndex(this.zIndex);
+    }
+    if (changes['edit']) {
+      this.setCursor();
     }
     if (changes['edit'] || changes['position'] || changes['heading']) {
       this.source.clear();
@@ -129,6 +133,16 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     map?.removeInteraction(this.interaction);
     map?.removeLayer(this.layer);
     this.layer = null;
+    this.setCursor();
+  }
+
+  /** A crosshair while the chart is a drawing surface, so it reads as one. */
+  private setCursor() {
+    const target = this.mapComponent.getMap()?.getTargetElement();
+    if (target) {
+      target.style.cursor =
+        this.layer && this.edit?.mode === 'draw' ? 'crosshair' : '';
+    }
   }
 
   private polarAt(e: MapBrowserEvent): RadarPolar {
