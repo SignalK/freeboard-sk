@@ -78,11 +78,12 @@ export class RadarRenderService {
     };
   }
 
+  /** Closes the spoke stream. Freeboard closes it whenever the radar stops
+   *  transmitting or is hidden, so this is no news to the user. */
   public async disconnect() {
     this.shipStateSubscription?.unsubscribe();
     this.worker?.terminate();
     this.worker = undefined;
-    this.app.showMessage(`Radar connection closed`);
   }
 
   public createRadarSource(

@@ -208,6 +208,10 @@ addEventListener('message', (event) => {
     const vertices = new Float32Array(maxVertices * 3);
     const verticeColors = new Float32Array(maxVertices * 4);
 
+    // The stream opens every time the radar starts transmitting, so only a
+    // reconnect after a lost connection is worth telling the user about.
+    let connectionLost = false;
+
     function connect() {
       let lastRange = 0;
 
@@ -270,10 +274,14 @@ addEventListener('message', (event) => {
       };
 
       socket.onopen = () => {
-        postMessage({ msg: `Radar ${radar.name} connected` });
+        if (connectionLost) {
+          connectionLost = false;
+          postMessage({ msg: `Radar ${radar.name} connected` });
+        }
       };
 
       socket.onclose = () => {
+        connectionLost = true;
         postMessage({
           msg: `Radar ${radar.name} disconnected retry in 3 seconds`
         });
