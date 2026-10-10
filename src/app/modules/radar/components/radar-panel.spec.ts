@@ -436,6 +436,26 @@ describe('RadarPanel', () => {
       });
     });
 
+    it('shows a typed distance as the zone rules limit it', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Edit').click();
+      fixture.detectChanges();
+
+      const inner = zoneBlock(el).querySelector<HTMLInputElement>(
+        'input[aria-label="Inner distance"]'
+      );
+      // the inner distance stays a zone depth inside the outer one, also
+      // when the same refused value is typed again
+      for (let i = 0; i < 2; i++) {
+        inner.value = '2000';
+        inner.dispatchEvent(new Event('change'));
+        fixture.detectChanges();
+        expect(inner.value).toBe('750');
+      }
+    });
+
     it('ends the edit when the panel closes', () => {
       withZone(zone);
       const fixture = open();

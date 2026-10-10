@@ -247,22 +247,25 @@ export class RadarPanel {
 
   protected setZoneField(field: ZoneField, e: Event) {
     const zone = this.zoneEdit.edit()?.zone;
-    const input = (e.target as HTMLInputElement).valueAsNumber;
+    const el = e.target as HTMLInputElement;
+    const input = el.valueAsNumber;
     if (!zone || !Number.isFinite(input)) {
       return;
     }
     // typed values follow the same rules as a dragged handle
-    this.zoneEdit.update(
-      field.endsWith('Angle')
-        ? dragHandle(zone, FIELD_HANDLES[field], {
-            angle: Convert.degreesToRadians(input),
-            distance: 0
-          })
-        : dragHandle(zone, FIELD_HANDLES[field], {
-            angle: 0,
-            distance: input / Convert.transform(1, 'm', this.lengthUnit())
-          })
-    );
+    const next = field.endsWith('Angle')
+      ? dragHandle(zone, FIELD_HANDLES[field], {
+          angle: Convert.degreesToRadians(input),
+          distance: 0
+        })
+      : dragHandle(zone, FIELD_HANDLES[field], {
+          angle: 0,
+          distance: input / Convert.transform(1, 'm', this.lengthUnit())
+        });
+    this.zoneEdit.update(next);
+    // when the rules hold the zone where it was, the binding does not change
+    // and the field would go on showing the value that was refused
+    el.value = String(this.zoneField(next, field));
   }
 
   private lengthUnit(): TARGET_UNIT {
