@@ -178,6 +178,32 @@ describe('NotificationManager alert properties (#755)', () => {
     });
   });
 
+  it('draws the most urgent CPA positions when two alarms name one vessel', () => {
+    const vessel = 'vessels.urn:mrn:imo:mmsi:123456789';
+    const alarm = (latitude: number, state: ALARM_STATE): SKNotification =>
+      notification({
+        state,
+        data: {
+          targetRef: vessel,
+          cpaPositions: {
+            self: { latitude, longitude: 4.2 },
+            target: { latitude, longitude: 4.21 }
+          }
+        }
+      });
+    TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.radar:nav1-17',
+      alarm(52.2, ALARM_STATE.alarm)
+    );
+    emit(
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+      alarm(52.1, ALARM_STATE.warn)
+    );
+
+    expect(app.data.vessels.cpaPositions.get(vessel).self).toEqual([4.2, 52.2]);
+  });
+
   it('ignores CPA positions when one of the two is missing', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit(

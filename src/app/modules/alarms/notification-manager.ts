@@ -7,7 +7,7 @@ import {
   PathValue,
   SKNotification
 } from '../../types/stream';
-import { Position } from 'src/app/types';
+import { CpaPositions, Position } from 'src/app/types';
 import { AppFacade } from 'src/app/app.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { AlertData, AlertProperties } from './components/alert.component';
@@ -117,13 +117,16 @@ export class NotificationManager {
     this.app.data.vessels.closest = cpaAlerts.map(
       (i) => i[1].properties?.vesselId
     );
-    this.app.data.vessels.cpaPositions = new Map(
-      cpaAlerts
-        .filter(
-          (i) => i[1].properties?.vesselId && i[1].properties.cpaPositions
-        )
-        .map((i) => [i[1].properties.vesselId, i[1].properties.cpaPositions])
-    );
+    // alerts are sorted most urgent first, so that one's positions are drawn
+    // when several alarms name the same vessel
+    const cpaPositions = new Map<string, CpaPositions>();
+    cpaAlerts.forEach(([, alert]) => {
+      const { vesselId, cpaPositions: positions } = alert.properties ?? {};
+      if (vesselId && positions && !cpaPositions.has(vesselId)) {
+        cpaPositions.set(vesselId, positions);
+      }
+    });
+    this.app.data.vessels.cpaPositions = cpaPositions;
   }
 
   /**
