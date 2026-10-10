@@ -470,6 +470,76 @@ describe('TrackHistoryService', () => {
       expect(track).toMatchObject({ context: AIS });
     });
 
+    it('asks for every band of an All own trail, none of them by box', () => {
+      const config = TestBed.inject(AppFacade).config as unknown as {
+        vessels: object;
+      };
+      config.vessels = {
+        trailDuration: 0,
+        trailResolution: { lastHour: '5s', next23: '1m', beyond24: '5m' }
+      };
+      answer = () =>
+        of(
+          trackFc(
+            [
+              [
+                [-81.9, 24.5],
+                [-81.8, 24.5]
+              ]
+            ],
+            [['2026-09-17T00:00:00Z', '2026-09-17T00:01:00Z']]
+          )
+        );
+
+      let track: unknown;
+      service.wholeTrack('trail', 'self').subscribe((t) => (track = t));
+
+      const bands = historyCalls().slice(-3).map(params);
+      expect(bands.map((b) => b.context)).toEqual(['self', 'self', 'self']);
+      bands.forEach((b) => expect(b.bbox).toBeUndefined());
+      expect(bands[0].epsilon).toBe('10');
+      expect(track).toMatchObject({ context: 'self' });
+    });
+
+    it('drops an own-trail answer once the trail length has changed', () => {
+      const config = TestBed.inject(AppFacade).config as unknown as {
+        vessels: { trailDuration: number; trailResolution?: object };
+      };
+      config.vessels = {
+        trailDuration: 0,
+        trailResolution: { lastHour: '5s', next23: '1m', beyond24: '5m' }
+      };
+      const bands = new Subject<unknown>();
+      answer = () => bands;
+
+      let track: unknown = 'pending';
+      service.wholeTrack('trail', 'self').subscribe((t) => (track = t));
+      config.vessels.trailDuration = 24;
+      bands.next(
+        trackFc(
+          [
+            [
+              [-81.9, 24.5],
+              [-81.8, 24.5]
+            ]
+          ],
+          [['2026-09-17T00:00:00Z', '2026-09-17T00:01:00Z']]
+        )
+      );
+      bands.complete();
+
+      expect(track).toBeUndefined();
+    });
+
+    it('has nothing to add for an own trail of a fixed length', () => {
+      const config = TestBed.inject(AppFacade).config as unknown as {
+        vessels: object;
+      };
+      config.vessels = { trailDuration: 24 };
+
+      expect(service.wholeTrack('trail', 'self')).toBeUndefined();
+    });
+
     it('has nothing to add for AIS tracks picked by vessel', () => {
       showTrack(false);
 
