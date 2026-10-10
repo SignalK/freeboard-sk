@@ -180,6 +180,9 @@ export function limitZone(zone: GuardZone, maxDistance?: number): GuardZone {
   return {
     ...zone,
     endDistance,
-    startDistance: Math.min(zone.startDistance, endDistance - MIN_ZONE_DEPTH)
+    startDistance: Math.max(
+      0,
+      Math.min(zone.startDistance, endDistance - MIN_ZONE_DEPTH)
+    )
   };
 }

@@ -142,6 +142,13 @@ describe('limitZone', () => {
     expect(z.startDistance).toBe(920 - MIN_ZONE_DEPTH);
   });
 
+  it('never sends a negative inner distance', () => {
+    // a zone shallower than the minimum depth, as a radar may hold one
+    const z = limitZone({ ...zone, startDistance: 0, endDistance: 30 }, 920);
+    expect(z.startDistance).toBe(0);
+    expect(z.endDistance).toBe(30);
+  });
+
   it('leaves the zone alone without a reach', () => {
     expect(limitZone(zone, undefined)).toBe(zone);
   });
