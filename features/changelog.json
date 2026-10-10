@@ -122,5 +122,8 @@
   { "feature": "radar-guard-zones", "pr": 941, "kind": "new", "date": "2026-10-09", "title": "feat(radar): show the radar's guard zones on the chart" },
   { "feature": "radar-overlay", "pr": 942, "kind": "enhanced", "date": "2026-10-09", "title": "feat(radar): draw range circles at the radar range while it transmits" },
   { "feature": "radar-overlay", "pr": 954, "kind": "enhanced", "date": "2026-10-10", "title": "feat(radar): show the radar image only while the radar transmits" },
-  { "feature": "radar-guard-zones", "pr": 943, "kind": "enhanced", "date": "2026-10-10", "title": "feat(radar): draw and edit guard zones on the chart" }
+  { "feature": "radar-guard-zones", "pr": 943, "kind": "enhanced", "date": "2026-10-10", "title": "feat(radar): draw and edit guard zones on the chart" },
+  { "feature": "extension-panels", "pr": 924, "kind": "enhanced", "date": "2026-10-07", "title": "feat(plotterext): add floating windows capability" },
+  { "feature": null, "pr": 934, "kind": "skip", "reason": "implements the events.publish capability of the Plotter Extensions API for extension plugins (and a publish button action); no end-user surface" },
+  { "feature": null, "pr": 938, "kind": "skip", "reason": "implements the panels.state capability of the Plotter Extensions API so extensions can tell when their panels are on screen; no end-user surface" }
 ]
