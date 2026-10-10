@@ -14,6 +14,7 @@ import {
   NotificationMessage,
   SKNotification
 } from 'src/app/types/stream';
+import { CpaPositions } from 'src/app/types';
 
 /**
  * Drives NotificationManager through the worker's notification stream and
@@ -28,7 +29,9 @@ describe('NotificationManager alert properties (#755)', () => {
     config: {
       display: { depthAlarm: { enabled: boolean }; muteSound: boolean };
     };
-    data: { vessels: { closest: string[] } };
+    data: {
+      vessels: { closest: string[]; cpaPositions: Map<string, CpaPositions> };
+    };
     debug: () => void;
     showMessage: () => void;
   };
@@ -39,7 +42,7 @@ describe('NotificationManager alert properties (#755)', () => {
     app = {
       featureFlags: signal({ notificationApi: true }),
       config: { display: { depthAlarm: { enabled: true }, muteSound: true } },
-      data: { vessels: { closest: [] } },
+      data: { vessels: { closest: [], cpaPositions: new Map() } },
       debug: () => undefined,
       showMessage: () => undefined
     };
@@ -58,10 +61,7 @@ describe('NotificationManager alert properties (#755)', () => {
   });
 
   const notification = (
-    extra: Partial<SKNotification> & {
-      other?: string;
-      data?: { targetRef?: string };
-    } = {}
+    extra: Partial<SKNotification> & { other?: string; data?: unknown } = {}
   ): SKNotification => ({
     state: ALARM_STATE.alarm,
     method: [ALARM_METHOD.visual],
@@ -146,6 +146,101 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(alert.properties.vesselId).toBe(
       'vessels.urn:mrn:imo:mmsi:123456789'
     );
+  });
+
+  it('takes the other vessel and the CPA positions from the alarm data', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+      notification({
+        data: {
+          targetRef: 'vessels.urn:mrn:imo:mmsi:123456789',
+          cpaPositions: {
+            self: { latitude: 52.1, longitude: 4.2 },
+            target: { latitude: 52.11, longitude: 4.21 }
+          }
+        }
+      })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.properties.vesselId).toBe(
+      'vessels.urn:mrn:imo:mmsi:123456789'
+    );
+    expect(app.data.vessels.closest).toEqual([
+      'vessels.urn:mrn:imo:mmsi:123456789'
+    ]);
+    expect(
+      app.data.vessels.cpaPositions.get('vessels.urn:mrn:imo:mmsi:123456789')
+    ).toEqual({
+      self: [4.2, 52.1],
+      target: [4.21, 52.11]
+    });
+  });
+
+  it('draws the most urgent CPA positions when two alarms name one vessel', () => {
+    const vessel = 'vessels.urn:mrn:imo:mmsi:123456789';
+    const alarm = (latitude: number, state: ALARM_STATE): SKNotification =>
+      notification({
+        state,
+        data: {
+          targetRef: vessel,
+          cpaPositions: {
+            self: { latitude, longitude: 4.2 },
+            target: { latitude, longitude: 4.21 }
+          }
+        }
+      });
+    TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.radar:nav1-17',
+      alarm(52.2, ALARM_STATE.alarm)
+    );
+    emit(
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+      alarm(52.1, ALARM_STATE.warn)
+    );
+
+    expect(app.data.vessels.cpaPositions.get(vessel).self).toEqual([4.2, 52.2]);
+  });
+
+  it('ignores CPA positions when one of the two is missing', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+      notification({
+        data: {
+          targetRef: 'vessels.urn:mrn:imo:mmsi:123456789',
+          cpaPositions: { self: { latitude: 52.1, longitude: 4.2 } }
+        }
+      })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.properties.cpaPositions).toBeUndefined();
+    expect(app.data.vessels.cpaPositions.size).toBe(0);
+  });
+
+  it('ignores CPA positions out of range or not finite', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    for (const target of [
+      { latitude: 95, longitude: 4.21 },
+      { latitude: 52.11, longitude: 181 },
+      { latitude: 52.11, longitude: Infinity },
+      { latitude: NaN, longitude: 4.21 }
+    ]) {
+      emit(
+        'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789',
+        notification({
+          data: {
+            targetRef: 'vessels.urn:mrn:imo:mmsi:123456789',
+            cpaPositions: { self: { latitude: 52.1, longitude: 4.2 }, target }
+          }
+        })
+      );
+      const [[, alert]] = mgr.alerts();
+      expect(alert.properties.cpaPositions).toBeUndefined();
+    }
   });
 
   it('leaves properties empty when the notification carries neither', () => {

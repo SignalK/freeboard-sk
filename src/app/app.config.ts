@@ -770,6 +770,7 @@ export function initData(): FBAppData {
       activeId: null,
       active: null,
       closest: [],
+      cpaPositions: new Map(),
       prefAvailablePaths: {}, // preference paths available from source,
       flagged: [], // flagged ais targets
       showTrack: [] // ais targets to display track for (session-only)

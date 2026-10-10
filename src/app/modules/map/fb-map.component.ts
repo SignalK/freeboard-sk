@@ -40,6 +40,7 @@ import {
   S57_NAMES
 } from './popovers';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
+import { CpaTarget } from 'src/app/modules/map/ol/lib/alarms/layer-cpa-alarm.component';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { getGreatCircleBearing } from 'geolib';
@@ -224,7 +225,7 @@ interface IFeatureData {
   ais: Map<string, SKVessel>; // other vessels
   active: SKVessel; // focussed vessel
   navData: { position: Position; startPosition: Position };
-  closest: Array<LineString>;
+  closest: Array<CpaTarget>;
 }
 
 /** A tapped recorded track, as its popover is answered from. */
@@ -680,14 +681,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.dfeat.navData.startPosition = this.course.courseData().startPosition;
     // calculate CPA lines
     const parseClosest = () => {
-      const v = [];
-      if (this.app.data.vessels.self.position) {
+      const v: CpaTarget[] = [];
+      const self = this.app.data.vessels.self.position;
+      if (self) {
         this.app.data.vessels.closest.forEach((id: string) => {
-          if (this.app.data.vessels.aisTargets.has(id)) {
-            const a = this.app.data.vessels.aisTargets.get(id);
-            if (a.position) {
-              v.push([a.position, this.app.data.vessels.self.position]);
-            }
+          const target = this.app.data.vessels.aisTargets.get(id)?.position;
+          const cpa = this.app.data.vessels.cpaPositions.get(id);
+          if (target || cpa) {
+            v.push({
+              self,
+              target,
+              selfAtCpa: cpa?.self,
+              targetAtCpa: cpa?.target
+            });
           }
         });
       }

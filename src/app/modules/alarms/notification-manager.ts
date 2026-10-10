@@ -7,6 +7,7 @@ import {
   PathValue,
   SKNotification
 } from '../../types/stream';
+import { CpaPositions, Position } from 'src/app/types';
 import { AppFacade } from 'src/app/app.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { AlertData, AlertProperties } from './components/alert.component';
@@ -32,7 +33,10 @@ interface PendingAction {
  * non-standard field some producers still send.
  */
 interface CpaNotification extends SKNotification {
-  data?: { targetRef?: string };
+  data?: {
+    targetRef?: string;
+    cpaPositions?: { self?: unknown; target?: unknown };
+  };
   other?: string;
 }
 
@@ -109,9 +113,20 @@ export class NotificationManager {
     });
 
     // update closest vessel ids
-    this.app.data.vessels.closest = alerts
-      .filter((i) => i[1].type === 'cpa')
-      .map((i) => i[1].properties?.vesselId);
+    const cpaAlerts = alerts.filter((i) => i[1].type === 'cpa');
+    this.app.data.vessels.closest = cpaAlerts.map(
+      (i) => i[1].properties?.vesselId
+    );
+    // alerts are sorted most urgent first, so that one's positions are drawn
+    // when several alarms name the same vessel
+    const cpaPositions = new Map<string, CpaPositions>();
+    cpaAlerts.forEach(([, alert]) => {
+      const { vesselId, cpaPositions: positions } = alert.properties ?? {};
+      if (vesselId && positions && !cpaPositions.has(vesselId)) {
+        cpaPositions.set(vesselId, positions);
+      }
+    });
+    this.app.data.vessels.cpaPositions = cpaPositions;
   }
 
   /**
@@ -521,8 +536,29 @@ export class NotificationManager {
 
   // parse ClosestApproach message data
   private parseCpa(msg: CpaNotification): AlertProperties {
+    const self = toPosition(msg.data?.cpaPositions?.self);
+    const target = toPosition(msg.data?.cpaPositions?.target);
     return {
-      vesselId: msg.data?.targetRef ?? msg.other ?? undefined
+      vesselId: msg.data?.targetRef ?? msg.other ?? undefined,
+      cpaPositions: self && target ? { self, target } : undefined
     };
   }
+}
+
+/** A Signal K `{ latitude, longitude }` as a [lon, lat] map position. */
+function toPosition(value: unknown): Position | undefined {
+  const p = value as { latitude?: unknown; longitude?: unknown } | null;
+  const latitude = p?.latitude;
+  const longitude = p?.longitude;
+  if (
+    typeof latitude !== 'number' ||
+    typeof longitude !== 'number' ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
+    return undefined;
+  }
+  return [longitude, latitude];
 }
