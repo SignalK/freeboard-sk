@@ -538,6 +538,35 @@ picker built on it is covered. Two things follow: validate the file by its
 **content**, not the extension, since iOS will now hand over any file the user
 picks; and test a new picker on an actual iPhone or iPad.
 
+### A `matTooltip` inside a scrolling list stops touch scrolling
+
+**The trap.** On iOS and Android, `MatTooltip` sets `touch-action: none` on its host
+element, so the browser won't start a scroll from it. It does this for the default
+`matTooltipTouchGestures="auto"` too, not only for `"on"`
+(`_disableNativeGesturesIfNecessary()` in Material's tooltip). Put a tooltip on each
+row of a scrolling list (a full-name tooltip on a cut-off label is the usual case)
+and a swipe that starts on that element doesn't scroll. It looks like the drag-and-drop
+problem from #946/#947, and fixing the drag handles alone doesn't cure it: in the Build
+Route lists (#948) the handles were fixed and a swipe on a waypoint name still didn't
+scroll. A unit test won't show it either, because jsdom isn't a touch platform and the
+tooltip never applies the style there.
+
+**What to do instead.** Give a tooltip inside scrolling content
+`matTooltipTouchGestures="off"`. That also turns off the long-press that showed it,
+so if touch users need the text (a name the column cuts off), show it on tap instead:
+
+```html
+<div
+  [matTooltip]="item.name"
+  matTooltipTouchGestures="off"
+  #nameTip="matTooltip"
+  (click)="nameTip.toggle()"
+>
+```
+
+Tooltips on small buttons are fine as they are. A swipe rarely starts on one, and a
+button doesn't need to scroll.
+
 ---
 
 ## When testing
