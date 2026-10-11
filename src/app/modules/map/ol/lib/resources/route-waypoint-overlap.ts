@@ -5,6 +5,7 @@ import { unByKey } from 'ol/Observable';
 import { get as getProjection } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import { worldCopyOffset } from '../util';
+import type { DrawnWaypoint } from '../waypoint-snap';
 
 /**
  * Where a route point is linked to a waypoint drawn on the same spot, only one
@@ -98,10 +99,8 @@ export function isWaypointSource(map: OlMap, source: unknown): boolean {
 }
 
 /** Every waypoint drawn on `map`: its id and rendered position. */
-export function drawnWaypoints(
-  map: OlMap
-): Array<{ id: string; coordinate: number[] }> {
-  const drawn: Array<{ id: string; coordinate: number[] }> = [];
+export function drawnWaypoints(map: OlMap): DrawnWaypoint[] {
+  const drawn: DrawnWaypoint[] = [];
   for (const s of sourcesOf(map).waypoints) {
     for (const f of s.getFeatures()) {
       const geom = f.getGeometry();

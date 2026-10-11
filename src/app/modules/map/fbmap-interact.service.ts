@@ -111,7 +111,7 @@ export interface DrawFeatureSaveInfo {
    */
   coords: Position | Position[] | Position[][] | null;
   /** Per-point route metadata, kept aligned with `coords`. */
-  coordsMetadata?: Array<{ name?: string; description?: string }>;
+  coordsMetadata?: PointMeta[];
 }
 
 export interface DrawFeatureInfo {
@@ -144,7 +144,7 @@ export interface DrawFeatureInfo {
  */
 export interface ModifyUndoSnapshot {
   coordinates: Position[];
-  coordsMetadata?: Array<{ name?: string; description?: string }>;
+  coordsMetadata?: PointMeta[];
 }
 
 @Injectable({ providedIn: 'root' })
