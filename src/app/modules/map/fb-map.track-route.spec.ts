@@ -55,7 +55,7 @@ const bareComponent = () => {
   cmp.trackHistoryFeatures = {};
   cmp.routeBuffers = new RouteBufferRegistry();
   cmp.infoPanel = { openWith: vi.fn() };
-  cmp.app = { useInfoPanel: () => true };
+  cmp.app = { useInfoPanel: () => true, serverTrailWanted: () => false };
   return cmp;
 };
 
@@ -132,7 +132,7 @@ describe('FBMapComponent — a route from a recorded track', () => {
 
   it('opens the draft’s popover where the route panel is off', () => {
     const cmp = bareComponent();
-    cmp.app = { useInfoPanel: () => false };
+    cmp.app = { useInfoPanel: () => false, serverTrailWanted: () => false };
     tap(cmp, 'trail.self.server', 'self', passage(0));
     const at = cmp.overlay().position;
     // the tap selected the track
@@ -206,9 +206,28 @@ describe('FBMapComponent — a route from a recorded track', () => {
       );
     });
 
-    it('leaves the own trail as drawn', () => {
+    it('answers the own trail from the whole trail and the local one', () => {
+      const track = passage(0);
+      const { cmp, answer } = withWholeTrack();
+      cmp.app = {
+        useInfoPanel: () => true,
+        serverTrailWanted: () => true,
+        localTrailTimed: () => ({ lines: [], times: [] })
+      };
+      tap(cmp, 'trail.self.server', 'self', clipped(track));
+
+      answer.next({ context: 'self', lines: track.lines, times: track.times });
+
+      expect(cmp.trackHistory.wholeTrack).toHaveBeenCalledWith('trail', 'self');
+      const th = cmp.overlay().trackHistory;
+      expect(near(th.route[0], A)).toBe(true);
+      expect(near(th.route[th.route.length - 1], track.end)).toBe(true);
+    });
+
+    it('keeps a trail recorded only on this device to itself', () => {
       const { cmp } = withWholeTrack();
-      tap(cmp, 'trail.self.server', 'self', passage(0));
+      cmp.app = { useInfoPanel: () => true, serverTrailWanted: () => false };
+      tap(cmp, 'trail.self.local', 'self', passage(0));
 
       expect(cmp.trackHistory.wholeTrack).not.toHaveBeenCalled();
     });
@@ -295,6 +314,41 @@ describe('FBMapComponent — a route from a recorded track', () => {
       expect(near(route[0], A)).toBe(true);
       expect(near(route[route.length - 1], track.end)).toBe(true);
       expect(cmp.overlay().trackHistory.start).toBe(th.start);
+    });
+
+    it('asks again for a passage of the own trail when the whole trail came thinned', () => {
+      const track = passage(0);
+      const cmp = bareComponent();
+      cmp.app = {
+        useInfoPanel: () => true,
+        serverTrailWanted: () => true,
+        localTrailTimed: () => ({ lines: [], times: [] })
+      };
+      const whole = new Subject<unknown>();
+      const detail = new Subject<unknown>();
+      cmp.trackHistory.wholeTrack = vi.fn((_s, _c, within) =>
+        within ? detail : whole
+      );
+      tap(cmp, 'trail.self.server', 'self', clipped(track));
+      const thin = (a: unknown[]) => a.filter((_, i) => i % 2 === 0);
+
+      whole.next({
+        context: 'self',
+        lines: [thin(track.lines[0])],
+        times: [thin(track.times[0])],
+        resolution: 'PT5M'
+      });
+
+      expect(cmp.overlay().trackHistory.route).toBeUndefined();
+      const [source, , within] = cmp.trackHistory.wholeTrack.mock.calls[1];
+      expect(source).toBe('trail');
+      expect(within.from).toBeLessThanOrEqual(Date.parse(track.times[0][0]));
+
+      detail.next({ context: 'self', lines: track.lines, times: track.times });
+
+      const route = cmp.overlay().trackHistory.route;
+      expect(near(route[0], A)).toBe(true);
+      expect(near(route[route.length - 1], track.end)).toBe(true);
     });
 
     it('drops an answer for a popover no longer open', () => {

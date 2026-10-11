@@ -51,6 +51,7 @@ import {
   needsAisRefetch,
   padExtent,
   queryString,
+  TRAIL_DURATION_ALL,
   viewportBbox
 } from './track-source';
 
@@ -382,15 +383,18 @@ export class TrackHistoryService {
    * whatever the zoom, as a route is made from it. An answer that arrives
    * after the history range or provider has changed is dropped. Undefined
    * where the drawn track was not fetched by box: AIS tracks of vessels
-   * picked one by one. A history track can be narrowed to the time `within`,
+   * picked one by one, and an own trail shorter than "All". A history track can be narrowed to the time `within`,
    * inside the range shown, for a passage the whole range holds too many
    * points to give at route detail. */
   wholeTrack(
-    source: 'history' | 'ais',
+    source: 'history' | 'ais' | 'trail',
     context: string,
     within?: HistoryRange
   ): Observable<HistoryTrack | undefined> | undefined {
     const provider = this.provider();
+    if (source === 'trail') {
+      return this.wholeTrail(provider, within);
+    }
     const range = this.range();
     let query: string;
     if (source === 'history') {
@@ -420,6 +424,36 @@ export class TrackHistoryService {
             (this.range().from === range.from && this.range().to === range.to))
       ),
       map((fc) => parseHistoryTrack(context, fc, provider))
+    );
+  }
+
+  /** The own trail's whole record, asked for as Track history asks for a
+   * range: by vessel, at route detail and within the point budget, so a long
+   * record comes thinned rather than in full. `within` narrows it to one
+   * passage, asked for again at route detail when the whole came thinned. */
+  private wholeTrail(
+    provider: string | undefined,
+    within?: HistoryRange
+  ): Observable<HistoryTrack | undefined> | undefined {
+    if (this.app.config.vessels.trailDuration !== TRAIL_DURATION_ALL) {
+      return undefined;
+    }
+    const query = historyQuery({
+      context: 'self',
+      bbox: null,
+      epsilon: ROUTE_TOLERANCE_M,
+      range: within ?? HISTORY_ALL,
+      provider
+    });
+    return this.get(`/tracks?${query}`)?.pipe(
+      // the trail length or provider changed while this was in flight: the
+      // answer no longer describes what is drawn
+      filter(
+        () =>
+          this.app.config.vessels.trailDuration === TRAIL_DURATION_ALL &&
+          this.provider() === provider
+      ),
+      map((fc) => parseHistoryTrack('self', fc, provider))
     );
   }
 

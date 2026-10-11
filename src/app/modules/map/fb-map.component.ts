@@ -2397,14 +2397,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Where the whole track of a vessel tapped on `layer` comes from: a
-   * track fetched for the map view is clipped to it. Undefined for the own
-   * trail, which is never clipped. */
-  private wholeTrackSource(layer: string): 'history' | 'ais' | undefined {
+   * track fetched for the map view is clipped to it. Undefined for an own
+   * trail kept only on this device. */
+  private wholeTrackSource(
+    layer: string
+  ): 'history' | 'ais' | 'trail' | undefined {
     return layer === TRACK_HISTORY_ID
       ? 'history'
       : layer === 'track-vessels'
         ? 'ais'
-        : undefined;
+        : layer === 'trail' && this.app.serverTrailWanted()
+          ? 'trail'
+          : undefined;
   }
 
   /** The popover opened from a clipped track is answered again from the
@@ -2416,7 +2420,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * alone, asked for again. */
   private loadWholeTrack(
     id: string,
-    source: 'history' | 'ais' | undefined,
+    source: 'history' | 'ais' | 'trail' | undefined,
     whole: Observable<HistoryTrack | undefined> | undefined,
     hf: TrackHistoryFeature
   ) {
@@ -2432,11 +2436,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (!track?.times || this.overlay().id !== id || !this.overlay().show) {
         return undefined;
       }
+      // the local trail carries on from the server trail, as when drawn
+      const timed =
+        source === 'trail'
+          ? trailTapTrack(
+              { lines: track.lines, times: track.times },
+              true,
+              this.app.localTrailTimed()
+            )
+          : { lines: track.lines, times: track.times };
       const at =
         (atTime !== undefined &&
-          poseAt(track.lines, track.times, atTime)?.position) ||
+          poseAt(timed.lines, timed.times, atTime)?.position) ||
         hf.at;
-      return { ...hf, lines: track.lines, times: track.times, at };
+      return { ...hf, lines: timed.lines, times: timed.times, at };
     };
     this.wholeTrackSub = whole.subscribe({
       next: (track) => {
@@ -2449,7 +2462,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
           track.resolution !== undefined ||
           (track.epsilon ?? 0) > ROUTE_TOLERANCE_M;
         const span =
-          source === 'history' && thinned && trackHistory.route
+          (source === 'history' || source === 'trail') &&
+          thinned &&
+          trackHistory.route
             ? trackSectionSpan(
                 { lines: tapped.lines, times: tapped.times },
                 tapped.at,
@@ -2457,7 +2472,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               )
             : undefined;
         const passage = span
-          ? this.trackHistory.wholeTrack('history', hf.context, {
+          ? this.trackHistory.wholeTrack(source, hf.context, {
               // the stops either side may lie a little beyond the thinned points
               from: span.from - stopMs(hf.context),
               to: span.to + stopMs(hf.context)
