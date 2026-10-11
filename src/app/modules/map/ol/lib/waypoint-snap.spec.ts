@@ -72,6 +72,8 @@ const handlers = (m: Modify) => m as unknown as PointerHandlers;
 // `markerAt` stands in for hit detection: the features whose drawn marker is
 // under a pixel, with the layer source each belongs to.
 const RES = 10;
+// How far the map has panned since the gesture began, in pixels.
+let pan = [0, 0];
 type MarkerHit = { feature: Feature; source: unknown };
 let markerAt: (pixel: number[], tolerance: number) => MarkerHit[] = () => [];
 function stubMap() {
@@ -91,8 +93,14 @@ function stubMap() {
         }
       }
     },
-    getCoordinateFromPixel: (p: number[]) => [p[0] * RES, p[1] * RES],
-    getPixelFromCoordinate: (c: number[]) => [c[0] / RES, c[1] / RES],
+    getCoordinateFromPixel: (p: number[]) => [
+      (p[0] - pan[0]) * RES,
+      (p[1] - pan[1]) * RES
+    ],
+    getPixelFromCoordinate: (c: number[]) => [
+      c[0] / RES + pan[0],
+      c[1] / RES + pan[1]
+    ],
     // Events built from a raw browser event (Draw's long-press timer) read
     // their pixel from it.
     getEventPixel: (e: PointerEvent) => [e.clientX, e.clientY]
@@ -130,6 +138,7 @@ describe('snapping map events onto drawn waypoints', () => {
   afterEach(() => {
     leave();
     markerAt = () => [];
+    pan = [0, 0];
     vi.restoreAllMocks();
   });
 
@@ -189,8 +198,11 @@ describe('snapping map events onto drawn waypoints', () => {
 
   describe('a real route Draw, press to release', () => {
     // A pin icon 30 px tall standing on the waypoint, as in the test above.
-    const onIcon = (p: number[], tol: number) =>
-      Math.abs(p[0] - 100) <= 8 + tol && p[1] >= 20 - tol && p[1] <= 50 + tol;
+    const onIcon = (p: number[], tol: number) => {
+      // The pin moves on screen with the map as it pans.
+      const [x, y] = [p[0] - pan[0], p[1] - pan[1]];
+      return Math.abs(x - 100) <= 8 + tol && y >= 20 - tol && y <= 50 + tol;
+    };
 
     // A real pointer gesture: Draw tracks pointers by id and reads modifiers.
     function gesture(type: string, pixel: number[], pointerType = 'touch') {
@@ -261,6 +273,30 @@ describe('snapping map events onto drawn waypoints', () => {
       const start = startedAt(draw);
       draw.handleEvent(gesture('pointerdown', [100, 22]));
       draw.handleEvent(gesture('pointerup', [100, 17]));
+      expect(start).toHaveBeenCalledWith([1000, 500]);
+    });
+
+    it('keeps a tap whose slip pans the map', () => {
+      // DragPan moves the map with a slipping finger, so the waypoint's
+      // screen position moves too; the slip must count once, not twice.
+      const draw = new WaypointSnappingDraw({ type: 'LineString' });
+      const start = startedAt(draw);
+      draw.handleEvent(gesture('pointerdown', [100, 40]));
+      pan = [0, 4];
+      draw.handleEvent(gesture('pointerup', [100, 44]));
+      expect(start).toHaveBeenCalledWith([1000, 500]);
+    });
+
+    it('snaps a long-press drag from open water onto a waypoint', () => {
+      // A finger has no hover: holding, then dragging, previews and places
+      // the point, and it must land on the waypoint it is released on.
+      const draw = new WaypointSnappingDraw({ type: 'LineString' });
+      const start = startedAt(draw);
+      draw.handleEvent(gesture('pointerdown', [160, 50]));
+      vi.advanceTimersByTime(600);
+      draw.handleEvent(gesture('pointerdrag', [130, 50]));
+      draw.handleEvent(gesture('pointerdrag', [103, 49]));
+      draw.handleEvent(gesture('pointerup', [103, 49]));
       expect(start).toHaveBeenCalledWith([1000, 500]);
     });
 

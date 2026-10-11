@@ -12,8 +12,8 @@ import { DrawEvent, Options as DrawOptions } from 'ol/interaction/Draw';
 import { StyleLike } from 'ol/style/Style';
 import { MapComponent } from '../map.component';
 import {
-  eventWaypointSnap,
   SnapPress,
+  snapPress,
   withPressSnap,
   withWaypointSnap
 } from '../waypoint-snap';
@@ -50,9 +50,12 @@ type DrawInternals = {
 export class WaypointSnappingDraw extends Draw {
   private press: SnapPress | null = null;
   private snapping = false;
+  /** The distance Draw takes a press-and-release as a click within. */
+  private readonly clickTolerance: number;
 
   constructor(options: DrawOptions) {
     super(options);
+    this.clickTolerance = options.clickTolerance ?? DRAW_CLICK_TOLERANCE;
     const internals = this as unknown as DrawInternals;
     const move = internals.handlePointerMove_.bind(this);
     internals.handlePointerMove_ = (event) =>
@@ -64,7 +67,7 @@ export class WaypointSnappingDraw extends Draw {
       return super.handleEvent(event);
     }
     if (event.type === 'pointerdown') {
-      this.press = { pixel: event.pixel, snap: eventWaypointSnap(event) };
+      this.press = snapPress(event);
     }
     try {
       return this.snapped(event, () => super.handleEvent(event));
@@ -83,7 +86,7 @@ export class WaypointSnappingDraw extends Draw {
     this.snapping = true;
     try {
       return this.press
-        ? withPressSnap(event, this.press, DRAW_CLICK_TOLERANCE, handle)
+        ? withPressSnap(event, this.press, this.clickTolerance, handle)
         : withWaypointSnap(event, handle);
     } finally {
       this.snapping = false;

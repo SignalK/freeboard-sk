@@ -195,10 +195,32 @@ export function withWaypointSnap<T>(
     : handle();
 }
 
-/** Where a press landed, and the waypoint it snapped to (null for none). */
+/** A press, and how the gesture it begins is snapped. */
 export interface SnapPress {
+  /** Where the press landed. */
   pixel: number[];
+  /** The waypoint it snapped to, or null. */
   snap: DrawnWaypoint | null;
+  /**
+   * The snap's pixel offset, fixed at the press: a slip pans the map under the
+   * gesture, so recomputing it later would add the pan to the slip.
+   */
+  offset: number[];
+}
+
+/** The press `evt` makes: where it landed and how it snaps. */
+export function snapPress(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  evt: MapBrowserEvent<any>
+): SnapPress {
+  const pixel = evt.pixel;
+  const snap = eventWaypointSnap(evt);
+  const snapPx = snap ? evt.map.getPixelFromCoordinate(snap.coordinate) : pixel;
+  return {
+    pixel,
+    snap,
+    offset: [snapPx[0] - pixel[0], snapPx[1] - pixel[1]]
+  };
 }
 
 /**
@@ -210,9 +232,14 @@ export interface SnapPress {
  * every pixel of the gesture is shifted by the press's snap offset, never
  * snapped on its own: a release snapped while its press was not (or the
  * reverse), or a press replayed unsnapped, would look like a drag and the
- * click would be lost. A release within `clickTolerance` of the press is a
- * click on the press's waypoint and lands exactly on it; further away, the
- * pointer snaps as it would anywhere.
+ * click would be lost.
+ *
+ * The coordinate is what gets placed. A release within `clickTolerance` of the
+ * press is a click, landing exactly on the press's waypoint (or where it was
+ * clicked, when the press snapped to none); further away, the pointer snaps as
+ * it would anywhere. The pixel then stays shifted by the press's offset, so a
+ * long-press drag that began on a waypoint icon tests for finishing the route
+ * that far from the pointer.
  */
 export function withPressSnap<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -221,20 +248,13 @@ export function withPressSnap<T>(
   clickTolerance: number,
   handle: () => T
 ): T {
-  if (!press.snap) {
-    return handle();
-  }
   const raw = evt.pixel;
-  const snapPx = evt.map.getPixelFromCoordinate(press.snap.coordinate);
-  const pixel = [
-    raw[0] + snapPx[0] - press.pixel[0],
-    raw[1] + snapPx[1] - press.pixel[1]
-  ];
+  const pixel = [raw[0] + press.offset[0], raw[1] + press.offset[1]];
   const isClick =
     Math.hypot(raw[0] - press.pixel[0], raw[1] - press.pixel[1]) <=
     clickTolerance;
   const coordinate = isClick
-    ? press.snap.coordinate
+    ? (press.snap?.coordinate ?? evt.coordinate)
     : (eventWaypointSnap(evt)?.coordinate ?? evt.coordinate);
   return withEventAt(evt, coordinate, pixel, handle);
 }
