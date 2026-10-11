@@ -406,9 +406,13 @@ back after a reload opens them again (typically from a background runtime).
   window or the area changes, so an anchored window keeps its place. A user move
   or resize is turned back into a request anchored to the nearest edges
   (`anchoredGeometry`).
-- **Presentation.** Below `SHEET_BREAKPOINT` (600 px of window area) a window
+- **Presentation.** At or above `SHEET_BREAKPOINT` (600 px of window area) every
+  window floats. Below it a window still floats if the size it asks for (with
+  the host minimum applied) fits in the area (`fitsArea`), so a small window on a
+  phone can be moved, resized and auto-hide its title bar. One that does not fit
   becomes a full-width bottom `sheet`, and a modal one `fullscreen`; the user
-  cannot move or resize either.
+  cannot move or resize either. The choice is re-made whenever the area changes,
+  so a rotation can turn a floating window into a sheet and back.
 - **Ownership.** A window belongs to its extension (`ExtWindow.extension`): any
   of the extension's contexts can manage it, and no other extension can see it.
   When an extension leaves the collection its windows close without an event

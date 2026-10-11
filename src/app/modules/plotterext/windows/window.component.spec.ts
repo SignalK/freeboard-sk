@@ -414,11 +414,19 @@ describe('ExtWindowComponent', () => {
     expect(host.querySelector('button[aria-label="Close"]')).not.toBeNull();
   });
 
-  it('becomes a full-width sheet on a narrow area, with no move or resize', () => {
-    service.area.set({ w: 400, h: 800 });
+  it('stays floating, movable and resizable on a narrow area it fits', () => {
+    service.area.set({ w: 420, h: 800 });
+    fixture.detectChanges();
+    expect(host.classList).not.toContain('sheet');
+    expect(host.style.width).toBe('400px');
+    expect(host.querySelectorAll('.fb-pe-window__handle').length).toBe(8);
+  });
+
+  it('becomes a full-width sheet on an area too narrow for it, with no move or resize', () => {
+    service.area.set({ w: 360, h: 800 });
     fixture.detectChanges();
     expect(host.classList).toContain('sheet');
-    expect(host.style.width).toBe('400px');
+    expect(host.style.width).toBe('360px');
     expect(host.style.transform).toBe('translate(0px, 400px)');
     expect(host.querySelector('.fb-pe-window__handle')).toBeNull();
     const bar = withCapture(host.querySelector('.fb-pe-window__bar'));

@@ -15,6 +15,7 @@ import {
   ViewportSize,
   anchoredGeometry,
   cleanGeometry,
+  fitsArea,
   isValidGeometry,
   resolveGeometry
 } from './geometry';
@@ -27,7 +28,10 @@ import {
 
 /** The most windows open at once, across all extensions (`windows.limit`). */
 export const MAX_WINDOWS = 12;
-/** Below this window-area width a window is shown as a sheet, not floating. */
+/**
+ * At or above this window-area width every window floats. Below it a window
+ * floats only if it fits, and is otherwise shown as a sheet (or full screen).
+ */
 export const SHEET_BREAKPOINT = 600;
 /** A sheet takes at most this share of the area's height. */
 const SHEET_MAX_HEIGHT = 0.6;
@@ -101,7 +105,9 @@ export class ExtWindowService {
   }
 
   presentation(w: ExtWindow, area = this.area()): WindowPresentation {
-    if (area.w >= SHEET_BREAKPOINT) return 'floating';
+    if (area.w >= SHEET_BREAKPOINT || fitsArea(w.geometry, area)) {
+      return 'floating';
+    }
     return w.modal ? 'fullscreen' : 'sheet';
   }
 

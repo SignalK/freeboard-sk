@@ -8,6 +8,7 @@ import {
   boundedGesture,
   anchoredGeometry,
   clampToViewport,
+  fitsArea,
   isValidGeometry,
   resolveGeometry,
   snapToEdges
@@ -192,6 +193,42 @@ describe('resolveGeometry', () => {
       w: 1000,
       h: 800
     });
+  });
+});
+
+describe('fitsArea', () => {
+  const phone = { w: 375, h: 667 };
+
+  it('fits a window whose requested size is inside the area', () => {
+    expect(fitsArea({ width: 200, height: 150 }, phone)).toBe(true);
+    expect(fitsArea({ width: '100%', height: '100%' }, phone)).toBe(true);
+    // with no size it takes 35% of the area, raised to the host minimum
+    expect(fitsArea({}, phone)).toBe(true);
+  });
+
+  it('ignores the offset: a window placed off the edge is moved back in', () => {
+    expect(
+      fitsArea({ anchor: 'top-left', offset: { x: 300 }, width: 200 }, phone)
+    ).toBe(true);
+  });
+
+  it('does not fit a window larger than the area in either direction', () => {
+    expect(fitsArea({ width: 400, height: 150 }, phone)).toBe(false);
+    expect(fitsArea({ width: 200, height: 700 }, phone)).toBe(false);
+    expect(fitsArea({ width: 200, minWidth: 400 }, phone)).toBe(false);
+  });
+
+  it('applies the request maximum before deciding', () => {
+    expect(fitsArea({ width: 900, maxWidth: '80%' }, phone)).toBe(true);
+  });
+
+  it('does not fit any window in an area below the host minimum', () => {
+    expect(
+      fitsArea(
+        { width: 10, height: 10 },
+        { w: DEFAULT_LIMITS.minW - 1, h: 600 }
+      )
+    ).toBe(false);
   });
 });
 
