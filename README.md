@@ -35,7 +35,7 @@ Charts are sourced from the `/resources/charts` path on the Signal K server and 
 
 - Image tiles _(XYZ)_
 - Vector Tiles _(MVT / PBF)_
-- [S57 ENC's converted to vector tiles](#S57-charts) _(MVT / PBF)_
+- [S57 ENC's](#s57-charts) _(converted to vector tiles)_
 - WMS _(Web Map Server)_
 - WMTS _(Web Map Tile Server)_
 - PMTiles _(ProtoMap files)_
@@ -161,14 +161,15 @@ Your layout is remembered, so the widgets you place are still there the next tim
 
 ### S57 Charts
 
-Freeboard-SK is able to display S57 ENC charts that have been converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler). _(See the [README](https://github.com/wdantuma/s57-tiler) for instructions how to create the vector tiles from downloaded S57 ENC's.)_
+Freeboard-SK displays S57 ENC charts as vector tiles, rendered with S-52 style symbology.
+
+The recommended way to get them is the [signalk-charts-provider-simple](https://github.com/dirkwa/signalk-charts-provider-simple) plugin, which converts S57 ENC's to vector tiles for you. Download charts from its built-in catalogs (e.g. NOAA ENC's) or upload a ZIP of your own `.000` files, and the converted charts appear in Freeboard-SK's chart list. Conversion runs in a container, so it also needs the `signalk-container` plugin and Docker or Podman on the server.
 
 See [Open CPN chart sources](https://opencpn.org/OpenCPN/info/chartsource.html) for a list of locations to source charts.
 
 _Note: Only unencrypted ENC's are supported (no S63 support)._
 
-**_Requires: @signalk/charts-plugin_**
-
+**_Requires: signalk-charts-provider-simple_**
 
 ![S57 chart](https://github.com/SignalK/freeboard-sk/assets/38519157/a93b3889-d1c8-4df7-9f6f-97a1666fbf77)
 
