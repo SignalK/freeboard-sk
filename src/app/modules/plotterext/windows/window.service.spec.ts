@@ -222,13 +222,13 @@ describe('ExtWindowService', () => {
     });
   });
 
-  it('shows windows too large for a narrow area as sheets, and modal ones full screen', () => {
+  it('shrinks windows too large for a narrow area to fit, still floating; modal ones go full screen', () => {
     service.setArea({ w: 375, h: 667 });
     const w = open({ geometry: { width: 500, height: 300 } });
     const m = open({ modal: true, geometry: { minWidth: 400 } });
     expect(service.stateOf(w)).toMatchObject({
-      presentation: 'sheet',
-      bounds: { x: 0, y: 367, width: 375, height: 300 }
+      presentation: 'floating',
+      bounds: { x: 0, y: 0, width: 375, height: 225 }
     });
     expect(service.stateOf(m)).toMatchObject({
       presentation: 'fullscreen',
@@ -247,22 +247,37 @@ describe('ExtWindowService', () => {
     expect(moved && service.presentation(moved)).toBe('floating');
   });
 
-  it('turns a window into a sheet when the area stops fitting it, and back', () => {
+  it('keeps a window floating when the area stops fitting it; only a modal one goes full screen and back', () => {
     const w = open({ geometry: { width: 300, height: 300 } });
     const m = open({ modal: true, geometry: { width: 300, height: 300 } });
     service.setArea({ w: 280, h: 800 });
-    expect(service.stateOf(w).presentation).toBe('sheet');
+    expect(service.stateOf(w)).toMatchObject({
+      presentation: 'floating',
+      bounds: { width: 280, height: 280 }
+    });
     expect(service.stateOf(m).presentation).toBe('fullscreen');
     service.setArea({ w: 400, h: 800 });
-    expect(service.stateOf(w).presentation).toBe('floating');
+    expect(service.stateOf(w)).toMatchObject({
+      presentation: 'floating',
+      bounds: { width: 300, height: 300 }
+    });
     expect(service.stateOf(m).presentation).toBe('floating');
     const states = changes.filter((c) => c.event === 'window.state');
-    expect(states.map((c) => (c.payload as WindowState).presentation)).toEqual([
-      'sheet',
-      'fullscreen',
-      'floating',
-      'floating'
+    expect(
+      states.map((c) => [
+        c.payload.windowId,
+        (c.payload as WindowState).presentation
+      ])
+    ).toEqual([
+      [m.id, 'fullscreen'],
+      [m.id, 'floating']
     ]);
+    // the shrunk window reported its new size instead
+    expect(
+      changes.filter(
+        (c) => c.event === 'window.bounds' && c.payload.windowId === w.id
+      )
+    ).toHaveLength(2);
   });
 
   it('closes or hides from the user control, as the window asked', () => {

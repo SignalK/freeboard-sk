@@ -406,13 +406,17 @@ back after a reload opens them again (typically from a background runtime).
   window or the area changes, so an anchored window keeps its place. A user move
   or resize is turned back into a request anchored to the nearest edges
   (`anchoredGeometry`).
-- **Presentation.** At or above `SHEET_BREAKPOINT` (600 px of window area) every
-  window floats. Below it a window still floats if the size it asks for (with
-  the host minimum applied) fits in the area (`fitsArea`), so a small window on a
-  phone can be moved, resized and auto-hide its title bar. One that does not fit
-  becomes a full-width bottom `sheet`, and a modal one `fullscreen`; the user
-  cannot move or resize either. The choice is re-made whenever the area changes,
-  so a rotation can turn a floating window into a sheet and back.
+- **Presentation.** Every non-modal window floats at every area size, so on a
+  phone too the user can move and resize it and its title bar can auto-hide.
+  A window whose requested size (with the host minimum applied) does not fit
+  the area (`fitsArea`) is drawn shrunk to fit with its shape kept, the way a
+  picture-in-picture video scales (`resolveGeometry`): a 480×360 window on a
+  390 px-wide phone is drawn 390×293, not squashed to 390×360. The request
+  itself is kept, so the window grows back on a larger area or after a
+  rotation; a user move or resize there stores the new size as usual. Freeboard
+  never uses `sheet`. Only a modal window that does not fit an area narrower
+  than `MODAL_FULLSCREEN_BREAKPOINT` (600 px) goes `fullscreen`, as a dialog
+  would; the choice is re-made whenever the area changes.
 - **Ownership.** A window belongs to its extension (`ExtWindow.extension`): any
   of the extension's contexts can manage it, and no other extension can see it.
   When an extension leaves the collection its windows close without an event

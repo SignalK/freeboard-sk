@@ -422,15 +422,27 @@ describe('ExtWindowComponent', () => {
     expect(host.querySelectorAll('.fb-pe-window__handle').length).toBe(8);
   });
 
-  it('becomes a full-width sheet on an area too narrow for it, with no move or resize', () => {
+  it('stays floating on an area too narrow for it: shrunk to fit, movable, resizable and auto-hiding', () => {
     service.area.set({ w: 360, h: 800 });
     fixture.detectChanges();
-    expect(host.classList).toContain('sheet');
     expect(host.style.width).toBe('360px');
-    expect(host.style.transform).toBe('translate(0px, 400px)');
-    expect(host.querySelector('.fb-pe-window__handle')).toBeNull();
-    const bar = withCapture(host.querySelector('.fb-pe-window__bar'));
-    pointer(bar, 'pointerdown', 200, 420);
-    expect(service.gestureActive()).toBe(false);
+    expect(host.style.height).toBe('360px');
+    expect(host.style.transform).toBe('translate(0px, 80px)');
+    expect(host.querySelectorAll('.fb-pe-window__handle').length).toBe(8);
+    expect(host.classList).toContain('bar-overlay');
+    expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
+    const grip = withCapture(host.querySelector('.fb-pe-window__grip'));
+    pointer(grip, 'pointerdown', 180, 85, { pointerType: 'touch' });
+    expect(service.gestureActive()).toBe(true);
+    expect(barHidden()).toBe(false);
+  });
+
+  it('auto-hides the title bar of a modal window shown full screen', () => {
+    service.area.set({ w: 360, h: 800 });
+    fixture.componentRef.setInput('def', { ...def, modal: true });
+    fixture.detectChanges();
+    expect(host.classList).toContain('fullscreen');
+    expect(host.classList).toContain('bar-overlay');
+    expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
   });
 });
