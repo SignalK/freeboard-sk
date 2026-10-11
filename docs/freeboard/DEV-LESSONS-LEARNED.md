@@ -455,6 +455,26 @@ not moving, so spurious `moveend`s are not the cause" — but centre and zoom ar
 exactly the two quantities a rotation does *not* change. The measurement excluded
 the thing being measured.
 
+### A label that follows the pointer swallows the click it is labelling
+
+**The trap.** A live readout drawn at the cursor (a measure label, a distance
+popover) is an `ol-overlay`, and OpenLayers overlays stop events by default: their
+element sits in the overlay container OL excludes from map interactions, so a press
+that lands on it never reaches the map. A label anchored at the pointer sits right
+next to it: a `top-center` popover's arrow covers the pixels just above the anchor.
+So a mouse that drifts even a pixel upwards before the click puts the press on the
+label, and the click meant for the map — "place the end point here" — silently does
+nothing. It reproduces only some of the time, and **never on touch**: a finger has no
+hover, so nothing follows it to get in the way. That combination reads as a flaky
+mouse, not a layout bug. (#977, the Bearing & Distance tool.)
+
+**What to do instead.** While a label follows the pointer, make it click-through —
+`[style.pointer-events]="following ? 'none' : null"` on the popover host (the value
+is inherited) — and restore it once the label is fixed and has buttons to press.
+Check a suspect pixel with `document.elementFromPoint(x, y)` in the console: a
+`DIV.arrow` or popover element where you expected the map's `CANVAS` is this trap.
+Remember that the overlay's anchor, not the popover box, is where the pointer is.
+
 ### A file input's `accept` filter can grey out the very files it names on iOS
 
 **The trap.** Desktop browsers filter an `<input type="file">` picker by extension,
@@ -1329,6 +1349,31 @@ Prettier being run somewhere CI never looks.
 **What to do instead.** Edit `.css` and `.md` by hand in each file's existing style;
 don't run Prettier on them, and don't treat a `--check` warning on one as something to
 fix. Only `ts`/`html` go through Prettier (`npm run format`).
+
+### A few old files have CRLF endings — editing one rewrites the whole file
+
+**The trap.** `.gitattributes` sets `* text=auto eol=lf`, but about two dozen
+files were committed with Windows line endings before that rule existed (e.g.
+`src/app/modules/map/popovers/popover.component.scss` and other stylesheets). Git
+leaves them alone until you touch one; then it renormalises the whole file to LF in
+your commit. A two-line edit shows up as a 376-line rewrite: CodeRabbit spends a
+rate-limited review on it, and a reviewer cannot find your change. Editors and
+scripts that rewrite the file in text mode (Python's default `open()`, for one)
+convert it too, so it can happen even when you meant to preserve the endings.
+
+**What to do instead.** Before editing a file that hasn't been touched in a while,
+check it:
+
+```bash
+git ls-files --eol <path>     # i/crlf = it will be renormalised when you commit it
+```
+
+If it is `i/crlf`, prefer to make the change somewhere else (an inline style or
+template binding instead of the stylesheet, say). If the edit genuinely belongs in
+that file, do the renormalisation as its own commit or PR
+(`git add --renormalize <path>`) so the real change stays reviewable. Check the
+size of your diff (`git diff --stat`) before you push: a line count far bigger than
+the change you made is the tell.
 
 ---
 
