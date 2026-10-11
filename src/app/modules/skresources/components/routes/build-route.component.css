@@ -62,7 +62,11 @@
     align-items: center;
     justify-content: space-between;
     box-sizing: border-box;
-    cursor: move;
+  }
+
+  .wpt-handle {
+    width: 40px;
+    cursor: grab;
   }
 
   .wpt-text {
