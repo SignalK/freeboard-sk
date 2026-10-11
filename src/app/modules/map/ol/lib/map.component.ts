@@ -162,7 +162,7 @@ export class MapComponent implements OnInit, OnDestroy {
   // thin route line lands in the common case (#548).
   @Input() touchHitTolerance = 15;
 
-  private _pointerDown = signal<MouseEvent>(undefined);
+  private _pointerDown = signal<FBPointerDownEvent | undefined>(undefined);
   public pointerDownSignal = this._pointerDown.asReadonly();
 
   protected changeDetectorRef = inject(ChangeDetectorRef);
