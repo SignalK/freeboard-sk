@@ -81,14 +81,7 @@ measure: boolean= measure mode;
               &nbsp;{{ title }}
             }
           </div>
-          @if (canClose) {
-            <div style="">
-              <button mat-icon-button (click)="handleClose()">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          }
-          @if (!canClose && navTo) {
+          @if (navTo) {
             <div style="">
               <button
                 mat-icon-button
@@ -96,6 +89,13 @@ measure: boolean= measure mode;
                 (click)="handleNavTo()"
               >
                 <mat-icon>near_me</mat-icon>
+              </button>
+            </div>
+          }
+          @if (canClose) {
+            <div style="">
+              <button mat-icon-button (click)="handleClose()">
+                <mat-icon>close</mat-icon>
               </button>
             </div>
           }

@@ -92,3 +92,115 @@ describe('FBMapInteractService.stopDrawing', () => {
     });
   });
 });
+
+describe('FBMapInteractService Bearing & Distance (#905)', () => {
+  let service: FBMapInteractService;
+  let uiCtrl: ReturnType<typeof signal<{ suppressContextMenu: boolean }>>;
+
+  beforeEach(() => {
+    uiCtrl = signal({ suppressContextMenu: false });
+    TestBed.configureTestingModule({
+      providers: [
+        FBMapInteractService,
+        {
+          provide: AppFacade,
+          useValue: { debug: () => undefined, uiCtrl }
+        }
+      ]
+    });
+    service = TestBed.inject(FBMapInteractService);
+    service.startMeasuring('BearingDistance');
+  });
+
+  it('sets the origin on the first click and keeps measuring', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+
+    expect(service.bearingDistance()).toEqual({
+      origin: [-80.1, 25.7],
+      target: null,
+      fixed: false,
+      worldOffset: 0
+    });
+    expect(service.isMeasuring()).toBe(true);
+  });
+
+  it('follows the pointer once the origin is set, not before', () => {
+    service.followBearingDistance([-80.0, 25.8]);
+    expect(service.bearingDistance()).toBeNull();
+
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.followBearingDistance([-80.0, 25.8], 40075016);
+
+    expect(service.bearingDistance().target).toEqual([-80.0, 25.8]);
+    expect(service.bearingDistance().worldOffset).toBe(40075016);
+    expect(service.bearingDistance().fixed).toBe(false);
+  });
+
+  it('places the target on the second click, ends the interaction and keeps the measurement', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.placeBearingDistancePoint([-80.0, 25.8]);
+
+    expect(service.bearingDistance()).toEqual({
+      origin: [-80.1, 25.7],
+      target: [-80.0, 25.8],
+      fixed: true,
+      worldOffset: 0
+    });
+    expect(service.isMeasuring()).toBe(false);
+    expect(uiCtrl().suppressContextMenu).toBe(false);
+  });
+
+  it('ignores a second click on the origin itself', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+
+    expect(service.bearingDistance().fixed).toBe(false);
+    expect(service.isMeasuring()).toBe(true);
+  });
+
+  it('a placed target no longer follows the pointer', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.placeBearingDistancePoint([-80.0, 25.8]);
+    service.followBearingDistance([-79.0, 26.0]);
+
+    expect(service.bearingDistance().target).toEqual([-80.0, 25.8]);
+  });
+
+  it('cancelling before the target is placed discards the measurement', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.stopMeasuring();
+
+    expect(service.bearingDistance()).toBeNull();
+  });
+
+  it('a placed measurement survives other interactions until cleared', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.placeBearingDistancePoint([-80.0, 25.8]);
+    service.startMeasuring('LineString');
+    service.stopMeasuring();
+
+    expect(service.bearingDistance()?.fixed).toBe(true);
+
+    service.clearBearingDistance();
+    expect(service.bearingDistance()).toBeNull();
+  });
+
+  it('starting a new Bearing & Distance replaces the placed one', () => {
+    service.showBearingDistanceFromVessel([-80.0, 25.8]);
+    service.startMeasuring('BearingDistance');
+
+    expect(service.bearingDistance()).toBeNull();
+  });
+
+  it('measures from the vessel with the target placed at once', () => {
+    service.stopMeasuring();
+    service.showBearingDistanceFromVessel([-80.0, 25.8], 40075016);
+
+    expect(service.bearingDistance()).toEqual({
+      origin: null,
+      target: [-80.0, 25.8],
+      fixed: true,
+      worldOffset: 40075016
+    });
+  });
+});

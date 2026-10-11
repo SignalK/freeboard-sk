@@ -104,7 +104,12 @@ import { PopoverComponent } from 'src/app/modules/map/popovers/popover.component
           <div class="mat-app-background measurePanel">
             <div>
               <span style="font-weight: bold; padding: 5px">
-                <mat-icon>{{ mode.iconName }}</mat-icon> {{ mode.iconText }}
+                @if (mode.svgIcon) {
+                  <mat-icon [svgIcon]="mode.svgIcon"></mat-icon>
+                } @else {
+                  <mat-icon>{{ mode.iconName }}</mat-icon>
+                }
+                {{ mode.iconText }}
               </span>
               @if (mode.description.length !== 0) {
                 <div style="padding: 5px">
@@ -232,7 +237,13 @@ export class InteractionHelpComponent {
    *  modifying). */
   protected canFinish: Signal<boolean>;
 
-  protected mode = {
+  protected mode: {
+    iconName: string;
+    svgIcon?: string;
+    iconText: string;
+    description: string;
+    steps: string[];
+  } = {
     iconName: '',
     iconText: '',
     description: '',
@@ -250,7 +261,7 @@ export class InteractionHelpComponent {
         this.mapInteract.isModifying() ||
         this.mapInteract.isBoxSelecting() ||
         (this.mapInteract.isMeasuring() &&
-          this.mapInteract.measureGeometryType === 'Circle')
+          this.mapInteract.measureGeometryType === 'BearingDistance')
       );
     });
 
@@ -342,15 +353,16 @@ export class InteractionHelpComponent {
         };
       } else if (
         this.mapInteract.isMeasuring() &&
-        this.mapInteract.measureGeometryType === 'Circle'
+        this.mapInteract.measureGeometryType === 'BearingDistance'
       ) {
         this.mode = {
-          iconName: 'straighten',
-          iconText: 'Measure',
+          iconName: '',
+          svgIcon: 'bearing-distance',
+          iconText: 'Bearing & Distance',
           description: '',
           steps: [
-            'Click on the Map to start.',
-            'On touch devices, press and hold then move.'
+            'Click / tap the map to set the start point.',
+            'Click / tap again to set the end point.'
           ]
         };
       }

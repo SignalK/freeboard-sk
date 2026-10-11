@@ -20,6 +20,8 @@ import { Style, Stroke, Fill, Circle, Text } from 'ol/style';
 import { StyleLike } from 'ol/style/Style';
 import { LineString, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
+import { GeoUtils } from 'src/app/lib/geoutils';
+import { bearingDistanceRing } from '../../../bearing-distance';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
@@ -46,6 +48,10 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   protected vesselPosition = input<Coordinate>();
   protected markerPosition = input<Coordinate>();
   protected showMarker = input<boolean>();
+  /** draw a marker at the origin (when it is not the vessel, already drawn) */
+  protected showOrigin = input<boolean>(false);
+  /** draw the range ring: points as far from the origin as the marker */
+  protected showRing = input<boolean>(false);
   protected labelMinZoom = input<number>(10);
   protected markerName = input<string>('');
 
@@ -73,6 +79,8 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       this.markerPosition();
       this.vesselPosition();
       this.showMarker();
+      this.showOrigin();
+      this.showRing();
       this.parseValues();
       if (this.source) {
         this.source.clear();
@@ -133,6 +141,14 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   parseValues() {
     const fa: Feature[] = [];
+    if (this.showOrigin() && Array.isArray(this.vesselPosition())) {
+      const fo = new Feature({
+        geometry: new Point(fromLonLat(this.vesselPosition()))
+      });
+      fo.setId('origin.point');
+      fo.setStyle(this.buildStyle('marker'));
+      fa.push(fo);
+    }
     if (
       Array.isArray(this.vesselPosition()) &&
       Array.isArray(this.markerPosition())
@@ -153,7 +169,23 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       fp.setStyle(this.buildStyle('line'));
       this.updateLabel(fp);
       fa.push(fp);
-      if (this.showMarker) {
+      if (this.showRing()) {
+        const d = GeoUtils.distanceTo(
+          this.vesselPosition(),
+          this.markerPosition()
+        );
+        if (d > 0) {
+          const fr = new Feature({
+            geometry: bearingDistanceRing(this.vesselPosition(), d).transform(
+              'EPSG:4326',
+              'EPSG:3857'
+            )
+          });
+          fr.setStyle(this.buildStyle('ring'));
+          fa.push(fr);
+        }
+      }
+      if (this.showMarker()) {
         fp = new Feature({
           geometry: new Point(fromLonLat(this.markerPosition()))
         });

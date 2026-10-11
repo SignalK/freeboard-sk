@@ -118,6 +118,8 @@
 
 .popover.measure {
     min-width: 100px;
+    /* a one-line readout: size to it rather than wrap or overflow */
+    max-width: none;
     background-color: #3399CC;
 }
 
