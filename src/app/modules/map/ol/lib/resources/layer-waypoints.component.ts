@@ -14,6 +14,18 @@ import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBWaypoints } from 'src/app/types';
 import { SKWaypoint } from 'src/app/modules/skresources';
 import { MapImageRegistry } from '../map-image-registry.service';
+import { isRouteEndAt, joinOverlap } from './route-waypoint-overlap';
+
+/**
+ * Drawn in place of the icon at a route's start or end: invisible (OL still
+ * hit-detects a transparent fill), so the waypoint stays clickable there.
+ */
+export const ROUTE_END_HIT_TARGET = new Circle({
+  radius: 12,
+  fill: new Fill({ color: 'rgba(0,0,0,0)' })
+});
+/** Label offset sized to a route start/end marker rather than an icon. */
+const ROUTE_END_LABEL_OFFSET_Y = -12;
 
 // ** Freeboard resource collection format **
 @Component({
@@ -27,6 +39,8 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() activeWaypoint: string;
   @Input() waypoints: FBWaypoints = [];
 
+  private leaveOverlap: () => void;
+
   constructor(
     protected override mapComponent: MapComponent,
     protected override changeDetectorRef: ChangeDetectorRef,
@@ -38,7 +52,17 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['waypoint'];
+    this.leaveOverlap = joinOverlap(
+      this.mapComponent.getMap(),
+      'waypoints',
+      this.source
+    );
     this.parseFBWaypoints(this.waypoints);
+  }
+
+  override ngOnDestroy() {
+    this.leaveOverlap?.();
+    super.ngOnDestroy();
   }
 
   override ngOnChanges(changes: SimpleChanges) {
@@ -55,6 +79,33 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
     }
   }
 
+  /**
+   * The waypoint's style at `resolution`: without its icon where a drawn route
+   * starts or ends on it, so the route's start/end marker shows instead.
+   */
+  private styleAt(feature: Feature, resolution: number): Style {
+    const style = feature.get('baseStyle') as Style;
+    const id = (feature.getId() as string).slice('waypoint.'.length);
+    const pos = (feature.getGeometry() as Point).getCoordinates();
+    if (!isRouteEndAt(this.mapComponent.getMap(), id, pos, resolution)) {
+      return style;
+    }
+    const text = style.getText()?.clone();
+    text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
+    return new Style({ image: ROUTE_END_HIT_TARGET, text });
+  }
+
+  /** Labels live on each feature's base style; its style is a function. */
+  override updateLabels() {
+    if (!this.source) {
+      return;
+    }
+    for (const f of this.source.getFeatures()) {
+      this.setTextLabel(f.get('baseStyle'), f.get('name'));
+    }
+    this.source.changed();
+  }
+
   reloadWaypoints() {
     this.parseFBWaypoints(this.waypoints);
   }
@@ -69,7 +120,10 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
           name: w[1].name
         });
         f.setId('waypoint.' + w[0]);
-        f.setStyle(this.buildStyle(w[0], w[1]).clone());
+        f.set('baseStyle', this.buildStyle(w[0], w[1]).clone());
+        f.setStyle((feat, resolution) =>
+          this.styleAt(feat as Feature, resolution)
+        );
         fa.push(f);
       }
     }

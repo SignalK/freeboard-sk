@@ -16,6 +16,13 @@ import { GeolibInputCoordinates } from 'geolib/es/types';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBRoutes } from 'src/app/types';
 import { MapImageRegistry } from '../map-image-registry.service';
+import {
+  drawnTogether,
+  drawnWaypointPosition,
+  joinOverlap,
+  linkedWaypointId,
+  PointLink
+} from './route-waypoint-overlap';
 
 /** Symbol ids used to override the default route marker shapes. */
 export const ROUTE_MARKER_START = 'route-start';
@@ -34,6 +41,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   @Input() activeRoute: string;
   @Input() routes: FBRoutes = [];
 
+  private leaveOverlap: () => void;
+
   constructor(
     protected override mapComponent: MapComponent,
     protected override changeDetectorRef: ChangeDetectorRef,
@@ -45,7 +54,17 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['route'];
+    this.leaveOverlap = joinOverlap(
+      this.mapComponent.getMap(),
+      'routes',
+      this.source
+    );
     this.parseFBRoutes(this.routes);
+  }
+
+  override ngOnDestroy() {
+    this.leaveOverlap?.();
+    super.ngOnDestroy();
   }
 
   override ngOnChanges(changes: SimpleChanges) {
@@ -58,6 +77,26 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         this.onActivateRoute();
       }
     }
+  }
+
+  /**
+   * True when route point `index` links to a waypoint that is drawn on top of
+   * it. The position test (not just the link) keeps the marker when the
+   * waypoint has moved since the route was built, when a vertex is dragged off
+   * it, and while a Modify drag has inserted a vertex the metadata does not
+   * reflect yet.
+   */
+  private isCoveredByWaypoint(
+    meta: PointLink[] | null,
+    index: number,
+    coord: number[],
+    resolution: number
+  ): boolean {
+    const wpt = drawnWaypointPosition(
+      this.mapComponent.getMap(),
+      linkedWaypointId(meta?.[index])
+    );
+    return !!wpt && drawnTogether(coord, wpt, resolution);
   }
 
   onActivateRoute() {
@@ -81,7 +120,9 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         // geometries are derived from the line in buildStyle, re-evaluate as the
         // geometry changes during a Modify drag — otherwise they stay frozen at
         // the original vertex positions until the edit finishes.
-        f.setStyle((feat) => this.buildStyle(feat as Feature));
+        f.setStyle((feat, resolution) =>
+          this.buildStyle(feat as Feature, resolution)
+        );
         fa.push(f);
       }
     }
@@ -90,7 +131,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   }
 
   // Route style function
-  buildStyle(feature: Feature) {
+  buildStyle(feature: Feature, resolution?: number) {
     const geometry = feature.getGeometry() as LineString;
     const styles = [];
     const id = (feature.getId() as string).split('.').slice(-1)[0];
@@ -136,11 +177,12 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     const endSym = this.mapImages.getExternalSymbol(ROUTE_MARKER_END);
 
     // point styles
+    const meta = feature.get('pointMetadata') as PointLink[] | null;
     let idx = 0;
     const l = geometry.getCoordinates().length;
     geometry.forEachSegment((start, end) => {
-      // start point
       if (idx === 0) {
+        // start point
         styles.push(
           new Style({
             geometry: new Point(start),
@@ -156,7 +198,9 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
               })
           })
         );
-      } else {
+      } else if (!this.isCoveredByWaypoint(meta, idx, start, resolution)) {
+        // An intermediate point a waypoint icon covers gets no marker. Start
+        // and end markers are always drawn; the waypoint layer gives way there.
         if (wptSym) {
           // Clone the cached icon so each segment can carry its own bearing
           // rotation without mutating the shared instance.

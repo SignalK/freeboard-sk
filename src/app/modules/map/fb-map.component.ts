@@ -1518,6 +1518,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         c,
         this.mapInteract.draw.forSave.coordsMetadata
       );
+      // The metadata is the feature's own pointMetadata, changed in place, so
+      // nothing re-renders for it: the route and waypoint layers both style
+      // from it (#991).
+      f.changed();
     }
     let pc;
     if (fid.split('.')[0] === 'route') {
