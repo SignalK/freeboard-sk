@@ -23,6 +23,7 @@ import {
 import { GeoJSONFeature } from 'ol/format/GeoJSON';
 import { AlertData } from '../alarms';
 import { ActiveRoutePoint } from './route-point-pick';
+import type { PointMeta } from '../skresources/components/route-reorder.util';
 
 export interface IPopover {
   id: string;
@@ -110,7 +111,7 @@ export interface DrawFeatureSaveInfo {
    */
   coords: Position | Position[] | Position[][] | null;
   /** Per-point route metadata, kept aligned with `coords`. */
-  coordsMetadata?: Array<{ name?: string; description?: string }>;
+  coordsMetadata?: PointMeta[];
 }
 
 export interface DrawFeatureInfo {
@@ -124,6 +125,11 @@ export interface DrawFeatureInfo {
   /** Features under the last map click; the set a Modify session edits. */
   features: Collection<Feature> | null;
   forSave: DrawFeatureSaveInfo | null;
+  /**
+   * Per-point metadata of a completed route draw, aligned with `coordinates`:
+   * the links of points snapped onto waypoints. Undefined when none was.
+   */
+  coordsMetadata?: PointMeta[];
   /** Properties carried onto the new resource (e.g. the note group). */
   properties: { group?: string };
   style?: StyleLike; // feature draw style
@@ -138,7 +144,7 @@ export interface DrawFeatureInfo {
  */
 export interface ModifyUndoSnapshot {
   coordinates: Position[];
-  coordsMetadata?: Array<{ name?: string; description?: string }>;
+  coordsMetadata?: PointMeta[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -362,6 +368,7 @@ export class FBMapInteractService {
     this.app.debug(`startDrawing()...`);
     this.isDrawing.set(true);
     this.draw.name = undefined;
+    this.draw.coordsMetadata = undefined;
     this.draw.resourceType = resType;
     this.draw.featureType =
       resType === 'route'

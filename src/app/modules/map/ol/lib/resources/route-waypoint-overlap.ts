@@ -5,6 +5,7 @@ import { unByKey } from 'ol/Observable';
 import { get as getProjection } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import { worldCopyOffset } from '../util';
+import type { DrawnWaypoint } from '../waypoint-snap';
 
 /**
  * Where a route point is linked to a waypoint drawn on the same spot, only one
@@ -90,6 +91,29 @@ export function joinOverlap(
     sources[kind].delete(source);
     redrawOther();
   };
+}
+
+/** True when `source` is a waypoint layer's source on `map`. */
+export function isWaypointSource(map: OlMap, source: unknown): boolean {
+  return sourcesOf(map).waypoints.has(source as VectorSource);
+}
+
+/** Every waypoint drawn on `map`: its id and rendered position. */
+export function drawnWaypoints(map: OlMap): DrawnWaypoint[] {
+  const drawn: DrawnWaypoint[] = [];
+  for (const s of sourcesOf(map).waypoints) {
+    for (const f of s.getFeatures()) {
+      const geom = f.getGeometry();
+      const fid = f.getId();
+      if (geom instanceof Point && typeof fid === 'string') {
+        drawn.push({
+          id: fid.slice('waypoint.'.length),
+          coordinate: geom.getCoordinates()
+        });
+      }
+    }
+  }
+  return drawn;
 }
 
 /** Rendered position of waypoint `id`, or undefined when it isn't drawn. */

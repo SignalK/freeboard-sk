@@ -6,11 +6,93 @@ import {
   Input,
   EventEmitter
 } from '@angular/core';
-import { Map } from 'ol';
+import { Map, MapBrowserEvent } from 'ol';
 import { Draw } from 'ol/interaction';
-import { DrawEvent } from 'ol/interaction/Draw';
+import { DrawEvent, Options as DrawOptions } from 'ol/interaction/Draw';
 import { StyleLike } from 'ol/style/Style';
 import { MapComponent } from '../map.component';
+import {
+  SnapPress,
+  snapPress,
+  withPressSnap,
+  withWaypointSnap
+} from '../waypoint-snap';
+
+/** Draw's own `clickTolerance` default, in pixels. */
+const DRAW_CLICK_TOLERANCE = 6;
+
+/** The events Draw places or previews a point from. */
+const SNAPPED_EVENTS = new Set([
+  'pointermove',
+  'pointerdown',
+  'pointerdrag',
+  'pointerup'
+]);
+
+/** Draw's private pointer-move handler, which its long-press timer calls. */
+type DrawInternals = {
+  handlePointerMove_: (event: MapBrowserEvent<PointerEvent>) => void;
+};
+
+/**
+ * `Draw` that places points on a nearby waypoint (#881). The pointer is
+ * snapped while it hovers, so the sketch's cursor point jumps onto the
+ * waypoint before the click and shows the user where the point will go.
+ *
+ * From a press until its release, events are snapped the way the press was
+ * (`withPressSnap`), keeping Draw's click-or-drag test intact. That includes
+ * the move event Draw's long-press timer (`dragVertexDelay`) builds from the
+ * raw press and hands straight to its private `handlePointerMove_`, bypassing
+ * `handleEvent`; so that handler is wrapped too. The spec asserts it exists,
+ * so an OL upgrade that renames it fails the suite rather than silently
+ * dropping held clicks on a waypoint.
+ */
+export class WaypointSnappingDraw extends Draw {
+  private press: SnapPress | null = null;
+  private snapping = false;
+  /** The distance Draw takes a press-and-release as a click within. */
+  private readonly clickTolerance: number;
+
+  constructor(options: DrawOptions) {
+    super(options);
+    this.clickTolerance = options.clickTolerance ?? DRAW_CLICK_TOLERANCE;
+    const internals = this as unknown as DrawInternals;
+    const move = internals.handlePointerMove_.bind(this);
+    internals.handlePointerMove_ = (event) =>
+      this.snapped(event, () => move(event));
+  }
+
+  override handleEvent(event: MapBrowserEvent<PointerEvent>): boolean {
+    if (!SNAPPED_EVENTS.has(event.type)) {
+      return super.handleEvent(event);
+    }
+    if (event.type === 'pointerdown') {
+      this.press = snapPress(event);
+    }
+    try {
+      return this.snapped(event, () => super.handleEvent(event));
+    } finally {
+      if (event.type === 'pointerup') {
+        this.press = null;
+      }
+    }
+  }
+
+  /** Run `handle` with `event` snapped, unless an outer call already did. */
+  private snapped<T>(event: MapBrowserEvent<PointerEvent>, handle: () => T): T {
+    if (this.snapping) {
+      return handle();
+    }
+    this.snapping = true;
+    try {
+      return this.press
+        ? withPressSnap(event, this.press, this.clickTolerance, handle)
+        : withWaypointSnap(event, handle);
+    } finally {
+      this.snapping = false;
+    }
+  }
+}
 
 @Component({
   selector: 'ol-map > ol-draw',
@@ -29,6 +111,8 @@ export class InteractionDrawComponent {
   @Input() type = 'LineString';
   @Input() style: StyleLike;
   @Input() stopClick: boolean;
+  /** Snap drawn points to the waypoints shown on the map. */
+  @Input() snapToWaypoints = false;
 
   @Output() change: EventEmitter<DrawEvent> = new EventEmitter();
   @Output() drawStart: EventEmitter<DrawEvent> = new EventEmitter();
@@ -62,7 +146,9 @@ export class InteractionDrawComponent {
       if (this.style) {
         opt.style = this.style;
       }
-      this.interaction = new Draw(opt);
+      this.interaction = this.snapToWaypoints
+        ? new WaypointSnappingDraw(opt)
+        : new Draw(opt);
       this.interaction.on('change', this.emitChangeEvent);
       this.interaction.on('drawstart', this.emitDrawStartEvent);
       this.interaction.on('drawend', this.emitDrawEndEvent);

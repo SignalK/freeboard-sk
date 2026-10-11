@@ -163,6 +163,14 @@ import {
 import { vertexDeleted } from './ol/lib/vertex-delete';
 import { modifiedLegIndex } from './route-modify-leg';
 import {
+  drawnRouteMeta,
+  linkPointOnWaypoint,
+  touchedVertex,
+  WaypointLookup
+} from './route-waypoint-links';
+import { waypointSnapAt } from './ol/lib/waypoint-snap';
+import { drawnWaypoints } from './ol/lib/resources/route-waypoint-overlap';
+import {
   ActiveRoutePoint,
   followedPointIndex,
   pickRoutePoints,
@@ -1326,6 +1334,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle OL interaction end event */
   protected onDrawEnd(e: { feature: Feature }) {
+    // Link the points snapped onto waypoints while the sketch is still in
+    // render space, where a snapped point lies exactly on its waypoint (#881).
+    const geom = e.feature?.getGeometry();
+    if (
+      this.mapInteract.draw.resourceType === 'route' &&
+      geom instanceof OLLineString
+    ) {
+      this.mapInteract.draw.coordsMetadata = drawnRouteMeta(
+        geom.getCoordinates() as Position[],
+        drawnWaypoints(this.olMap.getMap()),
+        this.waypointLookup
+      );
+    }
     // OL dispatches drawend synchronously from the map's viewport pointer
     // handlers, which run outside the Angular zone (see MapComponent). Re-enter
     // the zone so the save prompt / live-edit draft opened via
@@ -1518,6 +1539,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         c,
         this.mapInteract.draw.forSave.coordsMetadata
       );
+      if (fid.split('.')[0] === 'route') {
+        this.linkModifiedPoint(
+          f,
+          this.mapInteract.draw.coordinates as Position[],
+          c
+        );
+      }
       // The metadata is the feature's own pointMetadata, changed in place, so
       // nothing re-renders for it: the route and waypoint layers both style
       // from it (#991).
@@ -1618,13 +1646,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
       meta = Array.isArray(fm) ? fm : undefined;
     }
 
+    // A click near a waypoint appends the waypoint itself (#881).
+    const snap = waypointSnapAt(
+      this.olMap.getMap(),
+      e.pixel,
+      e.originalEvent?.pointerType
+    );
     const ext = line.getExtent();
     const result = extendRouteAtClick(
       line.getCoordinates() as Position[],
       meta,
-      fromLonLat(e.lonlat) as Position,
+      (snap?.coordinate ?? fromLonLat(e.lonlat)) as Position,
       ext[0],
       ext[2]
+    );
+    result.meta = linkPointOnWaypoint(
+      result.after,
+      result.after.length - 1,
+      result.meta,
+      drawnWaypoints(this.olMap.getMap()),
+      this.waypointLookup
     );
 
     // Snapshot the pre-append state so the extension can be undone within the
@@ -1655,6 +1696,33 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.mapInteract.draw.forSave.id.indexOf(this.app.data.activeRoute) !==
         -1;
     this.app.data.editingId = this.mapInteract.draw.forSave.id;
+  }
+
+  /** Name and description of a waypoint shown on the map. */
+  private waypointLookup: WaypointLookup = (id) =>
+    this.skres.fromCache('waypoints', id)?.[1];
+
+  /**
+   * Link the point a Modify operation moved or inserted to the waypoint it was
+   * dropped on (#881). `before` and `after` are the route's render-space
+   * geometry either side of the operation.
+   */
+  private linkModifiedPoint(f: Feature, before: Position[], after: Position[]) {
+    const meta = this.mapInteract.draw.forSave.coordsMetadata as
+      RoutePointMeta[] | undefined;
+    const linked = linkPointOnWaypoint(
+      after,
+      touchedVertex(before, after),
+      meta,
+      drawnWaypoints(this.olMap.getMap()),
+      this.waypointLookup
+    );
+    if (linked !== meta) {
+      // The route had no metadata: keep the new array on the feature too, so
+      // the next modifystart reads it back.
+      this.mapInteract.draw.forSave.coordsMetadata = linked;
+      f.set('pointMetadata', linked);
+    }
   }
 
   /** The active route's point `index`, counted in the order it is followed. */

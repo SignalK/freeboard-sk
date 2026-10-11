@@ -13,6 +13,7 @@ import { ModifyEvent } from 'ol/interaction/Modify';
 import { MapComponent } from '../map.component';
 import { hitToleranceForPointer } from '../util';
 import { markVertexDeleted } from '../vertex-delete';
+import { withWaypointSnap } from '../waypoint-snap';
 
 /**
  * Decides whether a map event should delete the grabbed route vertex.
@@ -83,6 +84,19 @@ export class PointerAwareModify extends Modify {
   }
 }
 
+/**
+ * `PointerAwareModify` that drops a dragged vertex onto a nearby waypoint
+ * (#881). Only the drag is snapped: the press must still grab the vertex or
+ * segment under the pointer, not whatever lies next to a waypoint.
+ */
+export class WaypointSnappingModify extends PointerAwareModify {
+  protected override handleDragEvent(
+    event: MapBrowserEvent<PointerEvent>
+  ): void {
+    withWaypointSnap(event, () => super.handleDragEvent(event));
+  }
+}
+
 @Component({
   selector: 'ol-map > ol-modify',
   template: '<ng-content></ng-content>',
@@ -98,6 +112,8 @@ export class InteractionModifyComponent {
   }
 
   @Input() features: Collection<Feature<Geometry>>;
+  /** Snap dragged vertices to the waypoints shown on the map. */
+  @Input() snapToWaypoints = false;
 
   @Output() change: EventEmitter<ModifyEvent> = new EventEmitter();
   @Output() modifyStart: EventEmitter<ModifyEvent> = new EventEmitter();
@@ -121,11 +137,14 @@ export class InteractionModifyComponent {
 
   addModifyInteraction() {
     if (undefined !== this.map) {
-      this.interaction = new PointerAwareModify({
+      const opt = {
         features: this.features,
         deleteCondition: vertexDeleteCondition,
         pixelTolerance: MOUSE_VERTEX_TOLERANCE
-      });
+      };
+      this.interaction = this.snapToWaypoints
+        ? new WaypointSnappingModify(opt)
+        : new PointerAwareModify(opt);
       this.interaction.on('change', this.emitChangeEvent);
       this.interaction.on('modifystart', this.emitModifyStartEvent);
       this.interaction.on('modifyend', this.emitModifyEndEvent);
