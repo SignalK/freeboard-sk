@@ -35,6 +35,7 @@ import {
   startPointerGesture,
   tryDeleteHeldVertexOnHold
 } from './vertex-delete';
+import { isHandleDrag } from './handle-drag';
 import {
   completeVertexDeleteIndicator,
   hideVertexDeleteIndicator,
@@ -342,7 +343,7 @@ export class MapComponent implements OnInit, OnDestroy {
       // Destroyed before the timer fired.
       return;
     }
-    if (Object.keys(this.evCache).length !== 1) {
+    if (Object.keys(this.evCache).length !== 1 || isHandleDrag(this.map)) {
       return;
     }
     const src = Object.values(this.evCache)[0];
@@ -441,6 +442,14 @@ export class MapComponent implements OnInit, OnDestroy {
     ) {
       this.showDeleteIndicator();
       event.preventDefault();
+      return;
+    }
+    // A finger resting on a drag handle is starting a drag, not asking for
+    // the chart menu. Stop it here too, before it reaches the map's host
+    // element, which would open the menu from its own listener.
+    if (event.type === 'contextmenu' && isHandleDrag(this.map)) {
+      event.preventDefault();
+      event.stopPropagation();
       return;
     }
     this.clearTouchTimer();

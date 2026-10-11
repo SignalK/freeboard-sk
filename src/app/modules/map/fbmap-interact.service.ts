@@ -333,6 +333,15 @@ export class FBMapInteractService {
     this.bearingDistance.set({ ...bd, target: pt, worldOffset });
   }
 
+  /** Move the target of a placed Bearing & Distance (dragged by the user). */
+  moveBearingDistanceTarget(pt: Position, worldOffset = 0) {
+    const bd = this.bearingDistance();
+    if (!bd?.fixed) {
+      return;
+    }
+    this.bearingDistance.set({ ...bd, target: pt, worldOffset });
+  }
+
   /** Show a placed Bearing & Distance from the own vessel to `target`. */
   showBearingDistanceFromVessel(target: Position, worldOffset = 0) {
     this.bearingDistance.set({

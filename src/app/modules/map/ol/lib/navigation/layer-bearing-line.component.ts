@@ -10,22 +10,41 @@ import {
   SimpleChanges,
   SimpleChange,
   input,
+  output,
   effect
 } from '@angular/core';
 import { Layer } from 'ol/layer';
-import { Feature } from 'ol';
+import { Feature, MapBrowserEvent } from 'ol';
+import PointerInteraction from 'ol/interaction/Pointer';
+import { primaryAction } from 'ol/events/condition';
+import { getWidth } from 'ol/extent';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill, Circle, Text } from 'ol/style';
 import { StyleLike } from 'ol/style/Style';
 import { LineString, Point } from 'ol/geom';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, get as getProjection, toLonLat } from 'ol/proj';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { bearingDistanceRing } from '../../../bearing-distance';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import {
+  fromLonLatArray,
+  hitToleranceForPointer,
+  mapifyCoords,
+  worldCopyOffset
+} from '../util';
+import { Position } from 'src/app/types';
+import { setHandleDrag } from '../handle-drag';
 import { AsyncSubject } from 'rxjs';
+
+const WORLD_WIDTH = getWidth(getProjection('EPSG:3857').getExtent());
+
+/** Where a dragged marker is: canonical lon/lat, plus the world copy (#572). */
+export interface MarkerDragEvent {
+  position: Position;
+  worldOffset: number;
+}
 
 // ** Freeboard Bearing line component **
 @Component({
@@ -52,6 +71,11 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   protected showOrigin = input<boolean>(false);
   /** draw the range ring: points as far from the origin as the marker */
   protected showRing = input<boolean>(false);
+  /** let the user drag the marker to a new position */
+  protected markerDraggable = input<boolean>(false);
+
+  /** the marker while it is dragged */
+  markerDrag = output<MarkerDragEvent>();
   protected labelMinZoom = input<number>(10);
   protected markerName = input<string>('');
 
@@ -69,6 +93,12 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   public mapifiedRadius = 0;
   public mapifiedLine: Array<Coordinate> = [];
+
+  private interaction: PointerInteraction;
+  // the finger that grabbed the marker, and where the marker was before
+  private dragPointerId: number;
+  private dragOrigin: MarkerDragEvent;
+  private cursorSet = false;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -104,6 +134,13 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     );
 
     const map = this.mapComponent.getMap();
+    this.interaction = new PointerInteraction({
+      handleDownEvent: (e) => this.onDown(e),
+      handleDragEvent: (e) => this.onDrag(e),
+      handleUpEvent: () => this.onUp(),
+      handleMoveEvent: (e) => this.onMove(e)
+    });
+    map?.addInteraction(this.interaction);
     if (this.layer && map) {
       map.addLayer(this.layer);
       map.render();
@@ -132,6 +169,8 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy() {
     const map = this.mapComponent.getMap();
+    map?.removeInteraction(this.interaction);
+    this.endDrag();
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
@@ -146,7 +185,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
         geometry: new Point(fromLonLat(this.vesselPosition()))
       });
       fo.setId('origin.point');
-      fo.setStyle(this.buildStyle('marker'));
+      fo.setStyle(this.buildStyle('origin'));
       fa.push(fo);
     }
     if (
@@ -195,6 +234,89 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
     this.features = fa;
+  }
+
+  private markerAt(e: MapBrowserEvent): boolean {
+    if (!this.markerDraggable() || !this.layer) {
+      return false;
+    }
+    const pointerType = (e.originalEvent as PointerEvent)?.pointerType;
+    return !!e.map.forEachFeatureAtPixel(
+      e.pixel,
+      (f) => f.getId() === 'dest.point',
+      {
+        layerFilter: (l) => l === this.layer,
+        hitTolerance: hitToleranceForPointer(pointerType, 6, 14)
+      }
+    );
+  }
+
+  private onMove(e: MapBrowserEvent) {
+    if (this.dragPointerId === undefined) {
+      this.setCursor(this.markerAt(e) ? 'grab' : '');
+    }
+  }
+
+  private onDown(e: MapBrowserEvent): boolean {
+    // the primary button or first finger only: a right-click on the marker
+    // still opens the chart menu
+    if (!primaryAction(e) || !this.markerAt(e)) {
+      return false;
+    }
+    this.dragPointerId = (e.originalEvent as PointerEvent).pointerId;
+    this.dragOrigin = {
+      position: this.markerPosition() as Position,
+      worldOffset: worldCopyOffset(e.coordinate[0], WORLD_WIDTH)
+    };
+    setHandleDrag(e.map, this.dragPointerId);
+    this.setCursor('grabbing');
+    // true: this gesture is the drag, so the chart does not pan
+    return true;
+  }
+
+  private onDrag(e: MapBrowserEvent) {
+    // After an abort OpenLayers keeps sending this gesture's drags until the
+    // fingers lift; there is nothing left to move.
+    if (this.dragPointerId === undefined) {
+      return;
+    }
+    if ((e.originalEvent as PointerEvent).pointerId !== this.dragPointerId) {
+      // a second finger: a pinch or a slip, so put the marker back
+      this.markerDrag.emit(this.dragOrigin);
+      this.endDrag();
+      return;
+    }
+    this.markerDrag.emit({
+      position: GeoUtils.normaliseCoords(toLonLat(e.coordinate) as Position),
+      worldOffset: worldCopyOffset(e.coordinate[0], WORLD_WIDTH)
+    });
+  }
+
+  private onUp(): boolean {
+    this.endDrag();
+    return false;
+  }
+
+  private endDrag() {
+    if (this.dragPointerId !== undefined) {
+      const map = this.mapComponent.getMap();
+      if (map) {
+        setHandleDrag(map, null);
+      }
+    }
+    this.dragPointerId = undefined;
+    this.dragOrigin = undefined;
+    this.setCursor('');
+  }
+
+  /** Only clear a cursor this layer set, so another tool's stays. */
+  private setCursor(cursor: string) {
+    const target = this.mapComponent.getMap()?.getTargetElement();
+    if (!target || (!cursor && !this.cursorSet)) {
+      return;
+    }
+    target.style.cursor = cursor;
+    this.cursorSet = !!cursor;
   }
 
   // build target style

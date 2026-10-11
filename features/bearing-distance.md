@@ -32,6 +32,8 @@ the chart underneath stays readable, and it's drawn as a true equal-distance
 circle, so it stays accurate at high latitudes where a flat circle on the chart
 would be distorted.
 
+Drag the end-point handle to move it; the line, ring and readout follow.
+
 A placed measurement stays on the chart until you close it with **✕**. The **➤**
 button on the label starts navigating to the end point.
 

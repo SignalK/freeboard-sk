@@ -553,6 +553,13 @@
       [showMarker]="true"
       [showOrigin]="!!bd.origin"
       [showRing]="true"
+      [markerDraggable]="bd.fixed"
+      (markerDrag)="
+        mapInteract.moveBearingDistanceTarget(
+          $event.position,
+          $event.worldOffset
+        )
+      "
       [markerName]=""
       [bearingStyles]="featureStyles.bearingDistance"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
