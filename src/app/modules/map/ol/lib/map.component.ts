@@ -76,6 +76,10 @@ export interface FBPointerEvent extends MapBrowserEvent<PointerEvent> {
  */
 export type FBPointerDownEvent = PointerEvent & {
   lonlat: Coordinate;
+  /** Render-space (EPSG:3857, world-copy-aware) coordinate of the press. */
+  coordinate: Coordinate;
+  /** Viewport pixel of the press. */
+  pixel: number[];
   /** EPSG:3857-metre offset of the pointer's world copy from the primary world. */
   worldOffset: number;
 };
@@ -420,6 +424,8 @@ export class MapComponent implements OnInit, OnDestroy {
       const c = toLonLat(rawCoord);
       const e: FBPointerDownEvent = Object.assign(event, {
         lonlat: c,
+        coordinate: rawCoord,
+        pixel: this.map.getEventPixel(event),
         worldOffset: this.worldOffsetOf(rawCoord)
       });
       this.mapService.clearFeatureUrls();
