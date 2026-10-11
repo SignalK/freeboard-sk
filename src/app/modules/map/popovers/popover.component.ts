@@ -47,6 +47,7 @@ measure: boolean= measure mode;
       [class.top]="placement() === 'top'"
       [class.bottom]="placement() === 'bottom'"
       [ngClass]="{ measure: measure, compact: compact, docked: docked }"
+      [style.max-width]="measure ? 'none' : null"
     >
       @if (title || icon || mmsi || canClose || navTo) {
         <div class="popover-title">
