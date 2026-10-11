@@ -41,7 +41,20 @@ export const bearingDistanceStyle = {
       })
     })
   ],
+  // the end point: a handle big enough to grab with a finger and drag
   marker: new Style({
+    image: new Circle({
+      radius: 7,
+      stroke: new Stroke({
+        width: 2.5,
+        color: '#3399CC'
+      }),
+      fill: new Fill({
+        color: 'rgba(255, 255, 255, 0.9)'
+      })
+    })
+  }),
+  origin: new Style({
     image: new Circle({
       radius: 3,
       stroke: new Stroke({

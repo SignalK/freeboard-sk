@@ -192,6 +192,28 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     expect(service.bearingDistance()).toBeNull();
   });
 
+  it('moves a placed target, keeping its world copy unless given one', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.placeBearingDistancePoint([-80.0, 25.8], 40075016);
+
+    service.moveBearingDistanceTarget([-79.9, 25.9]);
+    expect(service.bearingDistance().target).toEqual([-79.9, 25.9]);
+    expect(service.bearingDistance().worldOffset).toBe(40075016);
+
+    service.moveBearingDistanceTarget([-79.8, 26.0], 0);
+    expect(service.bearingDistance().worldOffset).toBe(0);
+    expect(service.bearingDistance().origin).toEqual([-80.1, 25.7]);
+    expect(service.bearingDistance().fixed).toBe(true);
+  });
+
+  it('does not move a target that is still following the pointer', () => {
+    service.placeBearingDistancePoint([-80.1, 25.7]);
+    service.followBearingDistance([-80.0, 25.8]);
+    service.moveBearingDistanceTarget([-79.9, 25.9]);
+
+    expect(service.bearingDistance().target).toEqual([-80.0, 25.8]);
+  });
+
   it('measures from the vessel with the target placed at once', () => {
     service.stopMeasuring();
     service.showBearingDistanceFromVessel([-80.0, 25.8], 40075016);
