@@ -96,6 +96,7 @@ import {
                       class="wpt-handle"
                       cdkDragHandle
                       matTooltip="Drag to add to the route"
+                      matTooltipTouchGestures="off"
                     >
                       <mat-icon>drag_indicator</mat-icon>
                     </div>
@@ -126,6 +127,7 @@ import {
                       class="wpt-handle"
                       cdkDragHandle
                       matTooltip="Drag to re-order points"
+                      matTooltipTouchGestures="off"
                     >
                       <mat-icon>drag_indicator</mat-icon>
                     </div>
