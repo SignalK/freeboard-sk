@@ -475,6 +475,45 @@ Check a suspect pixel with `document.elementFromPoint(x, y)` in the console: a
 `DIV.arrow` or popover element where you expected the map's `CANVAS` is this trap.
 Remember that the overlay's anchor, not the popover box, is where the pointer is.
 
+### Adding a draggable handle to the map — three things a `PointerInteraction` won't do for you
+
+**The trap.** The pattern for a handle the user drags on the chart is an OL
+`PointerInteraction` whose `handleDownEvent` hit-tests the handle and returns `true`,
+which claims the gesture so the chart doesn't pan (the radar guard-zone editor and
+the Bearing & Distance end point both do this). It works with a mouse on the first
+try, and then fails in three ways that tests and a desktop won't show:
+
+- **A finger resting on the handle opens the chart menu.** A touch that pauses
+  about half a second before it moves is a long-press. The browser fires a native
+  `contextmenu` at the OS long-press timeout, and the map component runs its own
+  500 ms hold timer that is only cancelled after the finger has moved 15 px. Either
+  one opens the chart menu on top of the drag. On an iPhone this happened about half
+  the time, depending on how long the finger paused.
+- **Any mouse button grabs it.** `PointerInteraction` has no button condition, so a
+  right-click on the handle claims the press. Where `contextmenu` fires on press
+  (macOS, Linux) the chart menu then never opens; on Windows it opens after the
+  release. The behaviour differs by platform and is hard to spot.
+- **An aborted drag keeps receiving drags.** If you cancel the drag yourself (say a
+  second finger joins, so you put the handle back), OL still considers the gesture
+  in progress until a `pointerup`, and keeps calling `handleDragEvent` for every
+  move of either finger. If the handler's state was cleared by the abort, each of
+  those calls runs against `undefined`.
+
+**What to do instead.**
+
+- Set the shared held-handle flag while the handle is held:
+  `setHandleDrag(map, pointerId)` on grab, `setHandleDrag(map, null)` on release,
+  abort and destroy (`ol/lib/handle-drag.ts`). The map component drops both the
+  native `contextmenu` and its own hold for as long as it is set.
+- Grab only the primary action:
+  `if (!primaryAction(e) || !onHandle(e)) return false;` (`primaryAction` from
+  `ol/events/condition`).
+- Return early from `handleDragEvent` once the drag has been aborted, and test
+  that with more than one drag after the abort: a single drag passes either way.
+
+`ol/lib/navigation/layer-bearing-line.component.ts` and its spec show all three.
+(#980)
+
 ### A file input's `accept` filter can grey out the very files it names on iOS
 
 **The trap.** Desktop browsers filter an `<input type="file">` picker by extension,
