@@ -37,6 +37,8 @@ const olMapComponent = () => {
       getInteractions: () => ({ getArray: () => [] }),
       getEventCoordinate: () => fromLonLat([-80.1, 25.7]),
       getEventPixel: () => [120, 45],
+      getPixelFromCoordinateInternal: () => [120, 45],
+      getFeaturesAtPixel: () => [],
       getView: () => ({
         getProjection: () => ({
           getExtent: () => [
@@ -87,20 +89,15 @@ describe('FBMapComponent long-press before any pointer move (#979)', () => {
   afterEach(() => {
     (ol as unknown as { clearTouchTimer: () => void })?.clearTouchTimer();
     backdrop?.remove();
+    vi.useRealTimers();
   });
 
   it('opens the chart menu when the first gesture is a long-press', () => {
     // A finger raises no pointer moves until it drags, so on a fresh load the
-    // press is the only position the component has seen.
+    // press is the only position the component has seen. Drive the real hold
+    // timer so the menu is reached the way a finger reaches it.
+    vi.useFakeTimers();
     ol = olMapComponent();
-    let emitted: FBPointerDownEvent;
-    ol.mapPointerDown.subscribe((e) => (emitted = e));
-    (
-      ol as unknown as { pointerDownHandler: (e: Event) => void }
-    ).pointerDownHandler(
-      new MouseEvent('pointerdown', { clientX: 120, clientY: 45 })
-    );
-
     const cmp = bareComponent();
     cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
     const openMenu = vi.fn();
@@ -116,15 +113,22 @@ describe('FBMapComponent long-press before any pointer move (#979)', () => {
       modifyMode: false,
       contextMenu: { menuData: null, openMenu, closeMenu: () => undefined }
     });
+    ol.mapPointerDown.subscribe((e) => cmp.onMapPointerDown(e));
+    ol.mapContextMenu.subscribe((e) => cmp.onMapContextMenu(e));
     // openMenu() would create the overlay backdrop the handler then listens on.
     backdrop = document.createElement('div');
     backdrop.className = 'cdk-overlay-backdrop';
     document.body.appendChild(backdrop);
 
-    cmp.onMapPointerDown(emitted);
-    cmp.onContextMenu(
-      new MouseEvent('contextmenu', { clientX: 120, clientY: 45 })
+    (
+      ol as unknown as { pointerDownHandler: (e: Event) => void }
+    ).pointerDownHandler(
+      new MouseEvent('pointerdown', { clientX: 120, clientY: 45 })
     );
+    expect(cmp.mouse().pixel).toEqual([120, 45]);
+    expect(cmp.mouse().xy).toEqual(fromLonLat([-80.1, 25.7]));
+
+    vi.advanceTimersByTime(500);
 
     expect(openMenu).toHaveBeenCalledOnce();
     const [lon, lat] = cmp.contextMenu.menuData.item;
