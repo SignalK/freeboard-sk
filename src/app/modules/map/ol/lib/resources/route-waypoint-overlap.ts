@@ -1,5 +1,6 @@
 import { getWidth } from 'ol/extent';
 import { LineString, Point } from 'ol/geom';
+import OlMap from 'ol/Map';
 import { unByKey } from 'ol/Observable';
 import { get as getProjection } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
@@ -51,9 +52,9 @@ type Kind = 'routes' | 'waypoints';
 type MapSources = Record<Kind, Set<VectorSource>>;
 
 // Keyed by the OL map, so a second map (e.g. a dialog's) never sees these.
-const registry = new WeakMap<object, MapSources>();
+const registry = new WeakMap<OlMap, MapSources>();
 
-function sourcesOf(map: object): MapSources {
+function sourcesOf(map: OlMap): MapSources {
   let s = registry.get(map);
   if (!s) {
     s = { routes: new Set(), waypoints: new Set() };
@@ -69,7 +70,7 @@ function sourcesOf(map: object): MapSources {
  * the change. Returns the function that unregisters it.
  */
 export function joinOverlap(
-  map: object,
+  map: OlMap,
   kind: Kind,
   source: VectorSource
 ): () => void {
@@ -93,7 +94,7 @@ export function joinOverlap(
 
 /** Rendered position of waypoint `id`, or undefined when it isn't drawn. */
 export function drawnWaypointPosition(
-  map: object,
+  map: OlMap,
   id: string | undefined
 ): number[] | undefined {
   if (!id) {
@@ -113,7 +114,7 @@ export function drawnWaypointPosition(
  * the waypoint's position `pos` at `resolution`.
  */
 export function isRouteEndAt(
-  map: object,
+  map: OlMap,
   id: string,
   pos: number[],
   resolution: number
@@ -121,21 +122,28 @@ export function isRouteEndAt(
   for (const s of sourcesOf(map).routes) {
     for (const f of s.getFeatures()) {
       const geom = f.getGeometry();
-      if (!(geom instanceof LineString)) {
-        continue;
-      }
-      const coords = geom.getCoordinates();
-      if (coords.length < 2) {
+      if (
+        !(geom instanceof LineString) ||
+        geom.getFlatCoordinates().length < 2 * geom.getStride()
+      ) {
         continue;
       }
       const meta = f.get('pointMetadata') as PointLink[] | null;
-      for (const i of [0, coords.length - 1]) {
-        if (
-          linkedWaypointId(meta?.[i]) === id &&
-          drawnTogether(coords[i], pos, resolution)
-        ) {
-          return true;
-        }
+      // The end's link is the last metadata entry, not the one at the last
+      // vertex index: mid-drag, OL Modify has already inserted a vertex that
+      // the metadata gains only at modifyend (always between two vertices).
+      const ends: Array<[PointLink, number[]]> = [
+        [meta?.[0], geom.getFirstCoordinate()],
+        [meta?.[meta.length - 1], geom.getLastCoordinate()]
+      ];
+      if (
+        ends.some(
+          ([link, coord]) =>
+            linkedWaypointId(link) === id &&
+            drawnTogether(coord, pos, resolution)
+        )
+      ) {
+        return true;
       }
     }
   }

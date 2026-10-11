@@ -3,11 +3,15 @@ import { AsyncSubject } from 'rxjs';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { LineString, Point } from 'ol/geom';
-import { Circle, Style, Stroke } from 'ol/style';
+import OlMap from 'ol/Map';
+import { Style, Stroke } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
 import { FBRoutes, FBWaypoints } from 'src/app/types';
 import { FreeboardRouteLayerComponent } from './layer-routes.component';
-import { FreeboardWaypointLayerComponent } from './layer-waypoints.component';
+import {
+  FreeboardWaypointLayerComponent,
+  ROUTE_END_HIT_TARGET
+} from './layer-waypoints.component';
 import { drawnTogether, linkedWaypointId } from './route-waypoint-overlap';
 
 /**
@@ -75,15 +79,15 @@ function waypoint(
   ] as unknown as FBWaypoints[number];
 }
 
-function stubMap() {
+function stubMap(): OlMap {
   return {
     addLayer: () => undefined,
     removeLayer: () => undefined,
     render: () => undefined
-  };
+  } as unknown as OlMap;
 }
 
-function routeLayer(map: object, routes: FBRoutes): RouteLayer {
+function routeLayer(map: OlMap, routes: FBRoutes): RouteLayer {
   const c = Object.create(
     FreeboardRouteLayerComponent.prototype
   ) as FreeboardRouteLayerComponent;
@@ -103,7 +107,7 @@ function routeLayer(map: object, routes: FBRoutes): RouteLayer {
   return c as RouteLayer;
 }
 
-function waypointLayer(map: object, waypoints: FBWaypoints): WaypointLayer {
+function waypointLayer(map: OlMap, waypoints: FBWaypoints): WaypointLayer {
   const c = Object.create(
     FreeboardWaypointLayerComponent.prototype
   ) as FreeboardWaypointLayerComponent;
@@ -152,8 +156,8 @@ function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
 
 /** Whether waypoint `id` shows a visible icon (not just its hit target). */
 function iconShown(layer: WaypointLayer, id: string, resolution = 10) {
-  const img = waypointStyle(layer, id, resolution).getImage() as Circle;
-  return !!img && img.getFill()?.getColor() !== 'rgba(0,0,0,0)';
+  const img = waypointStyle(layer, id, resolution).getImage();
+  return !!img && img !== ROUTE_END_HIT_TARGET;
 }
 
 function routeGeometry(layer: RouteLayer, id = 'r1') {
@@ -382,5 +386,25 @@ describe('one marker per point while editing, before anything is saved (#991)', 
     (wf.getGeometry() as Point).setCoordinates(at(D)); // what Modify does
     expect(s.routes.source.getRevision()).toBeGreaterThan(before);
     expect(routeMarkers(s.routes)).toEqual([at(A), at(B), at(C)]);
+  });
+
+  it('keeps one marker at a route end while a vertex is inserted, and after', () => {
+    const s = scene(
+      [route('r1', [A, C], linkAll('wa', 'wc'))],
+      [waypoint('wc', C)]
+    );
+    const f = s.routes.source.getFeatureById('route.r1') as Feature;
+    // mid-drag: Modify has inserted a vertex, the metadata has not caught up
+    routeGeometry(s.routes).setCoordinates([at(A), at(B), at(C)]);
+    expect(iconShown(s.waypoints, 'wc')).toBe(false);
+    expect(routeMarkers(s.routes)).toEqual([at(A), at(B), at(C)]);
+
+    // modifyend: the metadata is realigned in place, then the feature is
+    // marked changed so the waypoint layer re-renders
+    const before = s.waypoints.source.getRevision();
+    (f.get('pointMetadata') as object[]).splice(1, 0, {});
+    f.changed();
+    expect(s.waypoints.source.getRevision()).toBeGreaterThan(before);
+    expect(iconShown(s.waypoints, 'wc')).toBe(false);
   });
 });

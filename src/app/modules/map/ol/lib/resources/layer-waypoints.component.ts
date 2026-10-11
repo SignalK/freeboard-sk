@@ -20,7 +20,7 @@ import { isRouteEndAt, joinOverlap } from './route-waypoint-overlap';
  * Drawn in place of the icon at a route's start or end: invisible (OL still
  * hit-detects a transparent fill), so the waypoint stays clickable there.
  */
-const ROUTE_END_HIT_TARGET = new Circle({
+export const ROUTE_END_HIT_TARGET = new Circle({
   radius: 12,
   fill: new Fill({ color: 'rgba(0,0,0,0)' })
 });
