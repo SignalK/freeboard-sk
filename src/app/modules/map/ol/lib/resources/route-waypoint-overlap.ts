@@ -92,6 +92,31 @@ export function joinOverlap(
   };
 }
 
+/** True when `source` is a waypoint layer's source on `map`. */
+export function isWaypointSource(map: OlMap, source: unknown): boolean {
+  return sourcesOf(map).waypoints.has(source as VectorSource);
+}
+
+/** Every waypoint drawn on `map`: its id and rendered position. */
+export function drawnWaypoints(
+  map: OlMap
+): Array<{ id: string; coordinate: number[] }> {
+  const drawn: Array<{ id: string; coordinate: number[] }> = [];
+  for (const s of sourcesOf(map).waypoints) {
+    for (const f of s.getFeatures()) {
+      const geom = f.getGeometry();
+      const fid = f.getId();
+      if (geom instanceof Point && typeof fid === 'string') {
+        drawn.push({
+          id: fid.slice('waypoint.'.length),
+          coordinate: geom.getCoordinates()
+        });
+      }
+    }
+  }
+  return drawn;
+}
+
 /** Rendered position of waypoint `id`, or undefined when it isn't drawn. */
 export function drawnWaypointPosition(
   map: OlMap,

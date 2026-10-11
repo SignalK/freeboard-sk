@@ -56,6 +56,7 @@
       #routeDraw
       [type]="mapInteract.draw.featureType"
       [stopClick]="mapInteract.draw.resourceType === 'route' ? false : true"
+      [snapToWaypoints]="mapInteract.draw.resourceType === 'route'"
       [style]="mapInteract.draw.style"
       (drawEnd)="onDrawEnd($event)"
     >
@@ -64,6 +65,7 @@
   @if (mapInteract.isModifying() && mapInteract.draw.features) {
     <ol-modify
       [features]="mapInteract.draw.features"
+      [snapToWaypoints]="mapInteract.draw.resourceType === 'route'"
       (modifyStart)="onModifyStart($event)"
       (modifyEnd)="onModifyEnd($event)"
     >

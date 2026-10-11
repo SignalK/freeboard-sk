@@ -2037,9 +2037,10 @@ export class AppComponent {
         // the user decides to persist it. Saving a buffer to a stored route
         // (route.save) is a later slice.
         this.routeBuffers.create({
-          points: (e.coordinates as LineString).map((position) => ({
-            position
-          }))
+          points: buildRoutePoints(
+            e.coordinates as LineString,
+            e.coordsMetadata
+          )
         });
         break;
       case 'region': {

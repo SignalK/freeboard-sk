@@ -6,11 +6,23 @@ import {
   Input,
   EventEmitter
 } from '@angular/core';
-import { Map } from 'ol';
+import { Map, MapBrowserEvent } from 'ol';
 import { Draw } from 'ol/interaction';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { StyleLike } from 'ol/style/Style';
 import { MapComponent } from '../map.component';
+import { withWaypointSnap } from '../waypoint-snap';
+
+/**
+ * `Draw` that places points on a nearby waypoint (#881). Every pointer event is
+ * snapped, not only the click, so the sketch's cursor point jumps onto the
+ * waypoint before the click and shows the user where the point will go.
+ */
+export class WaypointSnappingDraw extends Draw {
+  override handleEvent(event: MapBrowserEvent<PointerEvent>): boolean {
+    return withWaypointSnap(event, () => super.handleEvent(event));
+  }
+}
 
 @Component({
   selector: 'ol-map > ol-draw',
@@ -29,6 +41,8 @@ export class InteractionDrawComponent {
   @Input() type = 'LineString';
   @Input() style: StyleLike;
   @Input() stopClick: boolean;
+  /** Snap drawn points to the waypoints shown on the map. */
+  @Input() snapToWaypoints = false;
 
   @Output() change: EventEmitter<DrawEvent> = new EventEmitter();
   @Output() drawStart: EventEmitter<DrawEvent> = new EventEmitter();
@@ -62,7 +76,9 @@ export class InteractionDrawComponent {
       if (this.style) {
         opt.style = this.style;
       }
-      this.interaction = new Draw(opt);
+      this.interaction = this.snapToWaypoints
+        ? new WaypointSnappingDraw(opt)
+        : new Draw(opt);
       this.interaction.on('change', this.emitChangeEvent);
       this.interaction.on('drawstart', this.emitDrawStartEvent);
       this.interaction.on('drawend', this.emitDrawEndEvent);
