@@ -68,6 +68,17 @@ export interface FBPointerEvent extends MapBrowserEvent<PointerEvent> {
   worldOffset: number;
 }
 
+/**
+ * A map press. Unlike drag/move, this comes from a raw DOM `pointerdown`
+ * listener on the viewport, not from OpenLayers, so it is the DOM event itself:
+ * the pointer position is `clientX`/`clientY`, and there is no `originalEvent`.
+ */
+export type FBPointerDownEvent = PointerEvent & {
+  lonlat: Coordinate;
+  /** EPSG:3857-metre offset of the pointer's world copy from the primary world. */
+  worldOffset: number;
+};
+
 // used for wind vector scaling
 export const zoomOffsetLevel = [
   1, 1000000, 550000, 290000, 140000, 70000, 38000, 17000, 7600, 3900, 1900,
@@ -129,8 +140,8 @@ export class MapComponent implements OnInit, OnDestroy {
     new EventEmitter<FBPointerEvent>();
   @Output() mapPointerMove: EventEmitter<FBPointerEvent> =
     new EventEmitter<FBPointerEvent>();
-  @Output() mapPointerDown: EventEmitter<FBPointerEvent> =
-    new EventEmitter<FBPointerEvent>();
+  @Output() mapPointerDown: EventEmitter<FBPointerDownEvent> =
+    new EventEmitter<FBPointerDownEvent>();
   @Output() mapPostCompose: EventEmitter<RenderEvent> =
     new EventEmitter<RenderEvent>();
   @Output() mapPostRender: EventEmitter<MapEvent> =
@@ -375,7 +386,7 @@ export class MapComponent implements OnInit, OnDestroy {
     );
     this.indicatorShown = true;
   };
-  private pointerDownHandler = (event) => {
+  private pointerDownHandler = (event: PointerEvent) => {
     // Re-enter the Angular zone: schedules the long-press timer in-zone (so the
     // context menu / vertex-delete it triggers gets change detection) and emits
     // to consumers that update Angular state. The map was created in
@@ -406,7 +417,7 @@ export class MapComponent implements OnInit, OnDestroy {
       }
       const rawCoord = this.map.getEventCoordinate(event);
       const c = toLonLat(rawCoord);
-      const e = Object.assign(event, {
+      const e: FBPointerDownEvent = Object.assign(event, {
         lonlat: c,
         worldOffset: this.worldOffsetOf(rawCoord)
       });

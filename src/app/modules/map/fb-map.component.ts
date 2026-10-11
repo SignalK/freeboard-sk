@@ -133,6 +133,7 @@ import { Coordinate } from 'ol/coordinate';
 import {
   FBClickEvent,
   FBMapEvent,
+  FBPointerDownEvent,
   FBPointerEvent,
   zoomOffsetLevel,
   MapComponent
@@ -1019,16 +1020,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.updateCursorInfo(position, true);
   }
 
-  protected onMapPointerDown(e: FBPointerEvent) {
+  protected onMapPointerDown(e: FBPointerDownEvent) {
     this.pointerDownAt = Date.now();
     this.mouse.update((m) => ({
       ...m,
       coords: GeoUtils.normaliseCoords(e.lonlat as Position)
     }));
-    // The pointer position lives on the DOM event OL wraps, not on the
-    // MapBrowserEvent itself.
-    this.contextMenuPosition.x = e.originalEvent.clientX + 'px';
-    this.contextMenuPosition.y = e.originalEvent.clientY + 'px';
+    // A map press is the raw DOM pointerdown event, not an OL MapBrowserEvent,
+    // so the pointer position is on the event itself.
+    this.contextMenuPosition.x = e.clientX + 'px';
+    this.contextMenuPosition.y = e.clientY + 'px';
   }
 
   protected onMapSingleClick(e) {
