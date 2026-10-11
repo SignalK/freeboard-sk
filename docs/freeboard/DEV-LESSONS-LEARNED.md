@@ -603,6 +603,62 @@ matching for the length of the drag.
 
 #993 is the worked example (`route-waypoint-overlap.ts`).
 
+### Targeting a waypoint on the map: hit-test the drawn marker, not its position
+
+**The trap.** A feature that acts on "the waypoint the user pointed at" invites a
+distance test: is the pointer within N pixels of the waypoint's position? It passes
+every spec and fails in use. A waypoint's icon is a pin whose *tip* marks the
+position, so the icon stands above the point, and a user aiming at a waypoint aims at
+the icon's body. Those clicks land 10–20 px from the position, outside any sensible
+radius around it. In #995, route-point snapping built on the distance test missed
+two waypoints in a row at zoom 13, even though both clicks were on the markers.
+
+**What to do instead.** Hit-test the markers as drawn, as map clicks do:
+`map.forEachFeatureAtPixel(pixel, cb, { hitTolerance, layerFilter })`, with the
+filter limited to the waypoint layer. `isWaypointSource()` in
+`ol/lib/resources/route-waypoint-overlap.ts` recognises that layer's source. Keep a
+distance test as a fallback only, for a marker whose icon hasn't rendered yet. Note
+that hit detection includes the name label, so a click on a label counts as a click
+on its waypoint. That matches what a map click does.
+
+### Changing the coordinates of events an OL `Draw` sees — keep each gesture consistent
+
+**The trap.** Snapping (or any other adjustment of the pointer) is naturally written
+as "rewrite `evt.coordinate` and `evt.pixel` on each event, then call `Draw`". It
+works for a quick mouse click and silently drops clicks otherwise, because Draw
+decides "click or drag?" by comparing the pixel it stored at the press (`downPx_`)
+with later pixels against `clickTolerance` (6 px). Three cases break that test:
+
+- **A held press.** `Draw.handleDownEvent` arms a `dragVertexDelay` timer (500 ms).
+  When it fires, it builds a *fresh* `MapBrowserEvent` from the raw browser event and
+  passes it straight to the private `handlePointerMove_`, bypassing `handleEvent`, so
+  your adjustment never sees it. The snapped press pixel and the raw replayed pixel
+  differ by more than 6 px, Draw concludes it was a drag, and the release adds
+  nothing. A finger resting half a second on a waypoint did exactly that.
+- **One end snapped, the other not.** A release just outside the snap area, after a
+  press inside it, puts the two pixels more than 6 px apart. The same happens the
+  other way round.
+- **An offset recomputed during the gesture.** A slipping finger pans the map
+  (DragPan still gets the gesture), which moves the snap target's screen position
+  along with the finger. Recompute the target's pixel at release and the slip counts
+  twice: a 4 px slip reads as 8 px.
+
+It can also go the other way: if both ends snap to the same target, a short drag
+starting and ending on one marker reads as a click and adds a point.
+
+**What to do instead.** Decide the adjustment once, at `pointerdown`, and fix its
+pixel offset there. Shift *every* pixel of that gesture by the same offset, so Draw's
+click test sees exactly the raw distances. Place the point by changing the
+*coordinate*: a release within `clickTolerance` of the press lands exactly on the
+press's target. Wrap Draw's private `handlePointerMove_` as well, so the timer's
+event gets the same treatment, and have a spec assert that the field exists so an OL
+upgrade that renames it fails the suite. `WaypointSnappingDraw` and `withPressSnap`
+(`ol/lib/interactions/interaction-draw.component.ts`, `ol/lib/waypoint-snap.ts`) are
+the worked example, and their spec drives a real `Draw` through held, slipped, panned
+and dragged gestures. A `Modify` vertex drag is simpler: snap only in
+`handleDragEvent`, never the press, so the press still grabs the vertex under the
+pointer.
+
 ---
 
 ## When testing
