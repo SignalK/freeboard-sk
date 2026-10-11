@@ -235,7 +235,7 @@ function mountRoutePoints() {
           resource: [
             'rte-1',
             {
-              name: 'Handles',
+              name: 'Route points',
               feature: {
                 type: 'Feature',
                 geometry: { type: 'LineString', coordinates: routeCoordinates },
