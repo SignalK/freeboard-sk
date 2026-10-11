@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChangeDetectorRef, ElementRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { fromLonLat } from 'ol/proj';
@@ -36,6 +36,9 @@ const olMapComponent = () => {
       set: (k: string, v: unknown) => props.set(k, v),
       getInteractions: () => ({ getArray: () => [] }),
       getEventCoordinate: () => fromLonLat([-80.1, 25.7]),
+      getEventPixel: () => [120, 45],
+      getPixelFromCoordinateInternal: () => [120, 45],
+      getFeaturesAtPixel: () => [],
       getView: () => ({
         getProjection: () => ({
           getExtent: () => [
@@ -74,6 +77,61 @@ describe('FBMapComponent.onMapPointerDown', () => {
     expect(() => cmp.onMapPointerDown(emitted)).not.toThrow();
     expect(cmp.contextMenuPosition).toEqual({ x: '120px', y: '45px' });
     const [lon, lat] = cmp.mouse().coords;
+    expect(lon).toBeCloseTo(-80.1);
+    expect(lat).toBeCloseTo(25.7);
+  });
+});
+
+describe('FBMapComponent long-press before any pointer move (#979)', () => {
+  let ol: MapComponent;
+  let backdrop: HTMLElement;
+
+  afterEach(() => {
+    (ol as unknown as { clearTouchTimer: () => void })?.clearTouchTimer();
+    backdrop?.remove();
+    vi.useRealTimers();
+  });
+
+  it('opens the chart menu when the first gesture is a long-press', () => {
+    // A finger raises no pointer moves until it drags, so on a fresh load the
+    // press is the only position the component has seen. Drive the real hold
+    // timer so the menu is reached the way a finger reaches it.
+    vi.useFakeTimers();
+    ol = olMapComponent();
+    const cmp = bareComponent();
+    cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
+    const openMenu = vi.fn();
+    Object.assign(cmp, {
+      app: {
+        debug: () => undefined,
+        data: { map: { atClick: null } },
+        uiCtrl: () => ({ suppressContextMenu: false })
+      },
+      overlay: () => ({ show: false }),
+      plotterExt: { addableCellAt: () => null },
+      mapInteract: { isMeasuring: () => false },
+      modifyMode: false,
+      contextMenu: { menuData: null, openMenu, closeMenu: () => undefined }
+    });
+    ol.mapPointerDown.subscribe((e) => cmp.onMapPointerDown(e));
+    ol.mapContextMenu.subscribe((e) => cmp.onMapContextMenu(e));
+    // openMenu() would create the overlay backdrop the handler then listens on.
+    backdrop = document.createElement('div');
+    backdrop.className = 'cdk-overlay-backdrop';
+    document.body.appendChild(backdrop);
+
+    (
+      ol as unknown as { pointerDownHandler: (e: Event) => void }
+    ).pointerDownHandler(
+      new MouseEvent('pointerdown', { clientX: 120, clientY: 45 })
+    );
+    expect(cmp.mouse().pixel).toEqual([120, 45]);
+    expect(cmp.mouse().xy).toEqual(fromLonLat([-80.1, 25.7]));
+
+    vi.advanceTimersByTime(500);
+
+    expect(openMenu).toHaveBeenCalledOnce();
+    const [lon, lat] = cmp.contextMenu.menuData.item;
     expect(lon).toBeCloseTo(-80.1);
     expect(lat).toBeCloseTo(25.7);
   });

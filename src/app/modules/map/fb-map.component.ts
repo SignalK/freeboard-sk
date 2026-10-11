@@ -1017,10 +1017,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   protected onMapPointerDown(e: FBPointerDownEvent) {
     this.pointerDownAt = Date.now();
-    this.mouse.update((m) => ({
-      ...m,
+    // A finger raises no pointer moves before it drags, so the press is the
+    // only position a long-press has: record all of it, as a move would.
+    this.mouse.set({
+      pixel: e.pixel,
+      xy: e.coordinate,
       coords: GeoUtils.normaliseCoords(e.lonlat as Position)
-    }));
+    });
     // A map press is the raw DOM pointerdown event, not an OL MapBrowserEvent,
     // so the pointer position is on the event itself.
     this.contextMenuPosition.x = e.clientX + 'px';
