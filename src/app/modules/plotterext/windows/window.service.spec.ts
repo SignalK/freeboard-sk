@@ -6,6 +6,7 @@ import {
   MAX_WINDOWS,
   WINDOW_GEOMETRY_KEY
 } from './window.service';
+import type { WindowState } from 'signalk-plotterext-bus/host';
 import { ExtWindow, WindowChange } from './types';
 
 const panel: PanelContribution = {
@@ -193,19 +194,75 @@ describe('ExtWindowService', () => {
     expect(service.stateOf(w).bounds.x).toBe(634);
   });
 
-  it('shows windows as sheets, and modal ones full screen, on a narrow area', () => {
-    const w = open({ geometry: { width: 300, height: 300 } });
+  it('keeps windows that fit floating on a narrow area', () => {
+    service.setArea({ w: 375, h: 667 });
+    const w = open({
+      geometry: {
+        anchor: 'bottom-left',
+        offset: { x: 8, y: 8 },
+        width: 200,
+        height: 150
+      }
+    });
+    const d = open();
     const m = open({ modal: true });
-    service.setArea({ w: 400, h: 800 });
+    expect(service.stateOf(w)).toMatchObject({
+      presentation: 'floating',
+      bounds: { x: 8, y: 509, width: 200, height: 150 }
+    });
+    // 35% of 375px is below the host minimum, which still fits
+    expect(service.stateOf(d)).toMatchObject({
+      presentation: 'floating',
+      bounds: { width: 160 }
+    });
+    // a modal window that fits stays a centred dialog
+    expect(service.stateOf(m)).toMatchObject({
+      presentation: 'floating',
+      bounds: { x: 94, y: 167, width: 188, height: 334 }
+    });
+  });
+
+  it('shows windows too large for a narrow area as sheets, and modal ones full screen', () => {
+    service.setArea({ w: 375, h: 667 });
+    const w = open({ geometry: { width: 500, height: 300 } });
+    const m = open({ modal: true, geometry: { minWidth: 400 } });
     expect(service.stateOf(w)).toMatchObject({
       presentation: 'sheet',
-      bounds: { x: 0, y: 500, width: 400, height: 300 }
+      bounds: { x: 0, y: 367, width: 375, height: 300 }
     });
     expect(service.stateOf(m)).toMatchObject({
       presentation: 'fullscreen',
-      bounds: { x: 0, y: 0, width: 400, height: 800 }
+      bounds: { x: 0, y: 0, width: 375, height: 667 }
     });
-    expect(changes.filter((c) => c.event === 'window.state').length).toBe(2);
+  });
+
+  it('keeps a window the user dragged to the full width of a fractional area floating', () => {
+    service.setArea({ w: 392.73, h: 700.4 });
+    const w = open({
+      geometry: { anchor: 'bottom-left', width: '100%', height: '30%' }
+    });
+    service.setRectFromGesture(w.id, { ...service.rectOf(w), y: 100 });
+    const moved = service.get(w.id);
+    expect(moved?.geometry.width).toBe(393);
+    expect(moved && service.presentation(moved)).toBe('floating');
+  });
+
+  it('turns a window into a sheet when the area stops fitting it, and back', () => {
+    const w = open({ geometry: { width: 300, height: 300 } });
+    const m = open({ modal: true, geometry: { width: 300, height: 300 } });
+    service.setArea({ w: 280, h: 800 });
+    expect(service.stateOf(w).presentation).toBe('sheet');
+    expect(service.stateOf(m).presentation).toBe('fullscreen');
+    service.setArea({ w: 400, h: 800 });
+    expect(service.stateOf(w).presentation).toBe('floating');
+    expect(service.stateOf(m).presentation).toBe('floating');
+    const states = changes.filter((c) => c.event === 'window.state');
+    expect(states.map((c) => (c.payload as WindowState).presentation)).toEqual([
+      'sheet',
+      'fullscreen',
+      'floating',
+      'floating'
+    ]);
   });
 
   it('closes or hides from the user control, as the window asked', () => {

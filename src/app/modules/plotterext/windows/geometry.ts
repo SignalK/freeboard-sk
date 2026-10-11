@@ -264,6 +264,50 @@ export function cleanGeometry(g: WindowGeometry): WindowGeometry {
 }
 
 /**
+ * The size a geometry request asks for in the window area: clamped to the
+ * request's min/max and the host's minimum, but not yet to the area itself,
+ * so it can be larger than the area.
+ */
+function requestedSize(
+  g: WindowGeometry,
+  area: ViewportSize,
+  limits: GeometryLimits
+): ViewportSize {
+  const size = (
+    v: WindowLength | undefined,
+    min: WindowLength | undefined,
+    max: WindowLength | undefined,
+    hostMin: number,
+    total: number
+  ) => {
+    const lo = Math.max(hostMin, lengthPx(min, total) ?? 0);
+    const hi = lengthPx(max, total) ?? Infinity;
+    return Math.min(Math.max(lengthPx(v, total) ?? 0.35 * total, lo), hi);
+  };
+  return {
+    w: size(g.width, g.minWidth, g.maxWidth, limits.minW, area.w),
+    h: size(g.height, g.minHeight, g.maxHeight, limits.minH, area.h)
+  };
+}
+
+/**
+ * True when the size a window asks for, with the host's minimum applied, fits
+ * in the area without being cut down. The area is measured in fractional
+ * pixels but a user gesture stores whole ones (`anchoredGeometry`), so a
+ * window dragged to the full width of a 392.73px area asks for 393px. Up to
+ * a pixel over still fits, or that drag would turn it into a sheet the user
+ * could no longer move or resize.
+ */
+export function fitsArea(
+  g: WindowGeometry,
+  area: ViewportSize,
+  limits: GeometryLimits = DEFAULT_LIMITS
+): boolean {
+  const s = requestedSize(g, area, limits);
+  return s.w <= Math.ceil(area.w) && s.h <= Math.ceil(area.h);
+}
+
+/**
  * Resolve a geometry request against the window area: sizes clamped to the
  * request's min/max and the host's minimum, the window placed by its anchor
  * and inward offset, and the result kept usable inside the area.
@@ -273,20 +317,9 @@ export function resolveGeometry(
   area: ViewportSize,
   limits: GeometryLimits = DEFAULT_LIMITS
 ): PxRect {
-  const size = (
-    v: WindowLength | undefined,
-    min: WindowLength | undefined,
-    max: WindowLength | undefined,
-    hostMin: number,
-    total: number,
-    fallback: number
-  ) => {
-    const lo = Math.max(hostMin, lengthPx(min, total) ?? 0);
-    const hi = Math.min(total, lengthPx(max, total) ?? Infinity);
-    return Math.min(Math.max(lengthPx(v, total) ?? fallback * total, lo), hi);
-  };
-  const w = size(g.width, g.minWidth, g.maxWidth, limits.minW, area.w, 0.35);
-  const h = size(g.height, g.minHeight, g.maxHeight, limits.minH, area.h, 0.35);
+  const req = requestedSize(g, area, limits);
+  const w = Math.min(req.w, area.w);
+  const h = Math.min(req.h, area.h);
   const [v, hz] = anchorSides(g.anchor ?? 'top-right');
   const place = (side: Side, len: number, total: number, off: number) =>
     side === 'start'
