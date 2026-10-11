@@ -333,20 +333,13 @@ export class FBMapInteractService {
     this.bearingDistance.set({ ...bd, target: pt, worldOffset });
   }
 
-  /**
-   * Move the target of a placed Bearing & Distance (dragged by the user).
-   * Without a `worldOffset` the label stays in the world copy it is in.
-   */
-  moveBearingDistanceTarget(pt: Position, worldOffset?: number) {
+  /** Move the target of a placed Bearing & Distance (dragged by the user). */
+  moveBearingDistanceTarget(pt: Position, worldOffset = 0) {
     const bd = this.bearingDistance();
     if (!bd?.fixed) {
       return;
     }
-    this.bearingDistance.set({
-      ...bd,
-      target: pt,
-      worldOffset: worldOffset ?? bd.worldOffset
-    });
+    this.bearingDistance.set({ ...bd, target: pt, worldOffset });
   }
 
   /** Show a placed Bearing & Distance from the own vessel to `target`. */

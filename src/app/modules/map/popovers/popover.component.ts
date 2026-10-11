@@ -106,7 +106,13 @@ measure: boolean= measure mode;
         <ng-content></ng-content>
       </div>
 
-      <div class="arrow" style="left:50%;"></div>
+      <!-- A measure label's arrow sits on the point it labels, which may be a
+           drag handle: let presses through to the map. -->
+      <div
+        class="arrow"
+        style="left:50%;"
+        [style.pointer-events]="measure ? 'none' : null"
+      ></div>
     </div>
   `,
   styleUrls: ['./popover.component.scss']

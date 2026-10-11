@@ -16,6 +16,7 @@ import {
 import { Layer } from 'ol/layer';
 import { Feature, MapBrowserEvent } from 'ol';
 import PointerInteraction from 'ol/interaction/Pointer';
+import { primaryAction } from 'ol/events/condition';
 import { getWidth } from 'ol/extent';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -42,8 +43,7 @@ const WORLD_WIDTH = getWidth(getProjection('EPSG:3857').getExtent());
 /** Where a dragged marker is: canonical lon/lat, plus the world copy (#572). */
 export interface MarkerDragEvent {
   position: Position;
-  /** absent when the marker is put back where it was */
-  worldOffset?: number;
+  worldOffset: number;
 }
 
 // ** Freeboard Bearing line component **
@@ -97,7 +97,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   private interaction: PointerInteraction;
   // the finger that grabbed the marker, and where the marker was before
   private dragPointerId: number;
-  private dragOrigin: Position;
+  private dragOrigin: MarkerDragEvent;
   private cursorSet = false;
 
   constructor(
@@ -258,11 +258,16 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private onDown(e: MapBrowserEvent): boolean {
-    if (!this.markerAt(e)) {
+    // the primary button or first finger only: a right-click on the marker
+    // still opens the chart menu
+    if (!primaryAction(e) || !this.markerAt(e)) {
       return false;
     }
     this.dragPointerId = (e.originalEvent as PointerEvent).pointerId;
-    this.dragOrigin = this.markerPosition() as Position;
+    this.dragOrigin = {
+      position: this.markerPosition() as Position,
+      worldOffset: worldCopyOffset(e.coordinate[0], WORLD_WIDTH)
+    };
     setHandleDrag(e.map, this.dragPointerId);
     this.setCursor('grabbing');
     // true: this gesture is the drag, so the chart does not pan
@@ -270,9 +275,14 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private onDrag(e: MapBrowserEvent) {
+    // After an abort OpenLayers keeps sending this gesture's drags until the
+    // fingers lift; there is nothing left to move.
+    if (this.dragPointerId === undefined) {
+      return;
+    }
     if ((e.originalEvent as PointerEvent).pointerId !== this.dragPointerId) {
       // a second finger: a pinch or a slip, so put the marker back
-      this.markerDrag.emit({ position: this.dragOrigin });
+      this.markerDrag.emit(this.dragOrigin);
       this.endDrag();
       return;
     }

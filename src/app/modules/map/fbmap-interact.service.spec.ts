@@ -192,16 +192,13 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     expect(service.bearingDistance()).toBeNull();
   });
 
-  it('moves a placed target, keeping its world copy unless given one', () => {
+  it('moves a placed target into the world copy it was dragged to', () => {
     service.placeBearingDistancePoint([-80.1, 25.7]);
-    service.placeBearingDistancePoint([-80.0, 25.8], 40075016);
+    service.placeBearingDistancePoint([-80.0, 25.8]);
 
-    service.moveBearingDistanceTarget([-79.9, 25.9]);
+    service.moveBearingDistanceTarget([-79.9, 25.9], 40075016);
     expect(service.bearingDistance().target).toEqual([-79.9, 25.9]);
     expect(service.bearingDistance().worldOffset).toBe(40075016);
-
-    service.moveBearingDistanceTarget([-79.8, 26.0], 0);
-    expect(service.bearingDistance().worldOffset).toBe(0);
     expect(service.bearingDistance().origin).toEqual([-80.1, 25.7]);
     expect(service.bearingDistance().fixed).toBe(true);
   });

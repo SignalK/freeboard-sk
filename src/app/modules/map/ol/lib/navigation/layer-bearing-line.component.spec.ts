@@ -53,7 +53,8 @@ describe('BearingLineComponent marker drag', () => {
     type: 'pointerdown' | 'pointerdrag' | 'pointerup' | 'pointermove',
     lonlat: number[],
     pointerId = 1,
-    worldShift = 0
+    worldShift = 0,
+    button = 0
   ): boolean {
     const c = fromLonLat(lonlat);
     const e = {
@@ -64,6 +65,8 @@ describe('BearingLineComponent marker drag', () => {
       originalEvent: {
         pointerId,
         pointerType: 'mouse',
+        isPrimary: pointerId === 1,
+        button,
         preventDefault: () => undefined
       }
     } as unknown as MapBrowserEvent;
@@ -157,7 +160,37 @@ describe('BearingLineComponent marker drag', () => {
     pointer('pointerdrag', [-80.35, 25.15], 1);
     pointer('pointerdrag', [-80.3, 25.2], 2);
 
-    expect(drags.at(-1)).toEqual({ position: marker });
+    expect(drags.at(-1).position).toEqual(marker);
+    expect(drags.at(-1).worldOffset).toBeCloseTo(0, 6);
+  });
+
+  it('puts the marker back in the world copy it was grabbed in', () => {
+    open(true);
+    markerUnderPointer = true;
+    pointer('pointerdown', marker, 1, WORLD);
+    pointer('pointerdrag', [-80.35, 25.15], 1, 2 * WORLD);
+    pointer('pointerdrag', [-80.3, 25.2], 2, 2 * WORLD);
+
+    expect(drags.at(-1).worldOffset).toBeCloseTo(WORLD, 3);
+  });
+
+  it('ignores the rest of a pinch once the marker is put back', () => {
+    open(true);
+    markerUnderPointer = true;
+    pointer('pointerdown', marker, 1);
+    pointer('pointerdrag', [-80.3, 25.2], 2);
+    const afterAbort = drags.length;
+    pointer('pointerdrag', [-80.2, 25.3], 1);
+    pointer('pointerdrag', [-80.1, 25.4], 2);
+
+    expect(drags).toHaveLength(afterAbort);
+  });
+
+  it('leaves a right-button press on the marker to the chart menu', () => {
+    open(true);
+    markerUnderPointer = true;
+    expect(pointer('pointerdown', marker, 1, 0, 2)).toBe(true);
+    expect(isHandleDrag(map)).toBe(false);
   });
 
   it('shows a grab cursor over the marker and clears only its own cursor', () => {
