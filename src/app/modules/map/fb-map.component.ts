@@ -2461,7 +2461,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
           track.resolution !== undefined ||
           (track.epsilon ?? 0) > ROUTE_TOLERANCE_M;
         const span =
-          source === 'history' && thinned && trackHistory.route
+          (source === 'history' || source === 'trail') &&
+          thinned &&
+          trackHistory.route
             ? trackSectionSpan(
                 { lines: tapped.lines, times: tapped.times },
                 tapped.at,
@@ -2469,7 +2471,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               )
             : undefined;
         const passage = span
-          ? this.trackHistory.wholeTrack('history', hf.context, {
+          ? this.trackHistory.wholeTrack(source, hf.context, {
               // the stops either side may lie a little beyond the thinned points
               from: span.from - stopMs(hf.context),
               to: span.to + stopMs(hf.context)

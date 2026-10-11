@@ -30,7 +30,6 @@ import {
   parseHistoryTrack,
   poseAt,
   presetRange,
-  timedTrail,
   unionBboxes
 } from './track-history';
 import { Position } from 'src/app/types';
@@ -44,7 +43,7 @@ export interface TrackHistoryGhost {
   /** AIS ship type, for the vessel's icon; undefined for the own vessel. */
   typeId?: number;
 }
-import { filter, forkJoin, map, Observable } from 'rxjs';
+import { filter, map, Observable } from 'rxjs';
 import { ROUTE_TOLERANCE_M } from 'src/app/modules/map/track-route';
 import {
   AIS_TRACK_MAX_POINTS,
@@ -53,8 +52,6 @@ import {
   padExtent,
   queryString,
   TRAIL_DURATION_ALL,
-  trailBands,
-  trailBandUrl,
   viewportBbox
 } from './track-source';
 
@@ -396,7 +393,7 @@ export class TrackHistoryService {
   ): Observable<HistoryTrack | undefined> | undefined {
     const provider = this.provider();
     if (source === 'trail') {
-      return this.wholeTrail(provider);
+      return this.wholeTrail(provider, within);
     }
     const range = this.range();
     let query: string;
@@ -430,37 +427,33 @@ export class TrackHistoryService {
     );
   }
 
-  /** The own trail's bands as the worker fetches them, with none of them
-   * asked for by box. */
+  /** The own trail's whole record, asked for as Track history asks for a
+   * range: by vessel, at route detail and within the point budget, so a long
+   * record comes thinned rather than in full. `within` narrows it to one
+   * passage, asked for again at route detail when the whole came thinned. */
   private wholeTrail(
-    provider: string | undefined
+    provider: string | undefined,
+    within?: HistoryRange
   ): Observable<HistoryTrack | undefined> | undefined {
-    const vessels = this.app.config.vessels;
-    if (vessels.trailDuration !== TRAIL_DURATION_ALL) {
+    if (this.app.config.vessels.trailDuration !== TRAIL_DURATION_ALL) {
       return undefined;
     }
-    const requests = trailBands(
-      TRAIL_DURATION_ALL,
-      vessels.trailResolution,
-      Date.now(),
-      ROUTE_TOLERANCE_M
-    ).map((band) => this.get(trailBandUrl('/tracks', band, provider)));
-    if (requests.some((r) => !r)) {
-      return undefined;
-    }
-    return forkJoin(requests).pipe(
-      map((fcs) => {
-        // the trail length or provider changed while this was in flight: the
-        // bands no longer describe what is drawn
-        if (
-          this.app.config.vessels.trailDuration !== TRAIL_DURATION_ALL ||
-          this.provider() !== provider
-        ) {
-          return undefined;
-        }
-        const trail = timedTrail(fcs, provider);
-        return trail && { context: 'self', ...trail };
-      })
+    const query = historyQuery({
+      context: 'self',
+      bbox: null,
+      epsilon: ROUTE_TOLERANCE_M,
+      range: within ?? HISTORY_ALL,
+      provider
+    });
+    return this.get(`/tracks?${query}`)?.pipe(
+      // the trail length or provider changed while this was in flight: the
+      // answer no longer describes what is drawn
+      filter(
+        () =>
+          this.app.config.vessels.trailDuration === TRAIL_DURATION_ALL &&
+          this.provider() === provider
+      ),
+      map((fc) => parseHistoryTrack('self', fc, provider))
     );
   }
 
