@@ -97,4 +97,22 @@ describe('BuildRouteComponent — drag handles', () => {
       expect(n.injector.get(MatTooltip).touchGestures).toBe('off');
     }
   });
+
+  // With touch gestures off, a tap is the only way a touch user can read a
+  // name the column cuts off.
+  it('shows and hides a waypoint name tooltip on tap', async () => {
+    const fixture = await render();
+    const name = fixture.debugElement
+      .queryAll(By.directive(MatTooltip))
+      .find((d) => d.nativeElement.classList.contains('wpt-text'));
+    const tooltip = name.injector.get(MatTooltip);
+
+    name.nativeElement.click();
+    await new Promise((r) => setTimeout(r));
+    expect(tooltip._isTooltipVisible()).toBe(true);
+
+    name.nativeElement.click();
+    await new Promise((r) => setTimeout(r));
+    expect(tooltip._isTooltipVisible()).toBe(false);
+  });
 });

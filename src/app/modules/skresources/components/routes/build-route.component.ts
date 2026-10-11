@@ -104,6 +104,8 @@ import {
                       class="wpt-text"
                       [matTooltip]="item.name"
                       matTooltipTouchGestures="off"
+                      #nameTip="matTooltip"
+                      (click)="nameTip.toggle()"
                     >
                       {{ item.name }}
                     </div>
@@ -135,6 +137,8 @@ import {
                       class="wpt-text"
                       [matTooltip]="item.name"
                       matTooltipTouchGestures="off"
+                      #nameTip="matTooltip"
+                      (click)="nameTip.toggle()"
                     >
                       {{ item.name }}
                     </div>
