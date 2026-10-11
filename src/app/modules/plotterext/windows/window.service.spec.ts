@@ -236,6 +236,17 @@ describe('ExtWindowService', () => {
     });
   });
 
+  it('keeps a window the user dragged to the full width of a fractional area floating', () => {
+    service.setArea({ w: 392.73, h: 700.4 });
+    const w = open({
+      geometry: { anchor: 'bottom-left', width: '100%', height: '30%' }
+    });
+    service.setRectFromGesture(w.id, { ...service.rectOf(w), y: 100 });
+    const moved = service.get(w.id);
+    expect(moved?.geometry.width).toBe(393);
+    expect(moved && service.presentation(moved)).toBe('floating');
+  });
+
   it('turns a window into a sheet when the area stops fitting it, and back', () => {
     const w = open({ geometry: { width: 300, height: 300 } });
     const m = open({ modal: true, geometry: { width: 300, height: 300 } });

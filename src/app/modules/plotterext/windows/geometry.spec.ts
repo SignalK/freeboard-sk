@@ -222,6 +222,12 @@ describe('fitsArea', () => {
     expect(fitsArea({ width: 900, maxWidth: '80%' }, phone)).toBe(true);
   });
 
+  it('fits a whole-pixel size stored from a gesture on a fractional area', () => {
+    const area = { w: 392.73, h: 700.4 };
+    expect(fitsArea({ width: 393, height: 701 }, area)).toBe(true);
+    expect(fitsArea({ width: 394, height: 200 }, area)).toBe(false);
+  });
+
   it('does not fit any window in an area below the host minimum', () => {
     expect(
       fitsArea(

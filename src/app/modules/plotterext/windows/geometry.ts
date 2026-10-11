@@ -292,7 +292,11 @@ function requestedSize(
 
 /**
  * True when the size a window asks for, with the host's minimum applied, fits
- * in the area without being cut down.
+ * in the area without being cut down. The area is measured in fractional
+ * pixels but a user gesture stores whole ones (`anchoredGeometry`), so a
+ * window dragged to the full width of a 392.73px area asks for 393px. Up to
+ * a pixel over still fits, or that drag would turn it into a sheet the user
+ * could no longer move or resize.
  */
 export function fitsArea(
   g: WindowGeometry,
@@ -300,7 +304,7 @@ export function fitsArea(
   limits: GeometryLimits = DEFAULT_LIMITS
 ): boolean {
   const s = requestedSize(g, area, limits);
-  return s.w <= area.w && s.h <= area.h;
+  return s.w <= Math.ceil(area.w) && s.h <= Math.ceil(area.h);
 }
 
 /**
