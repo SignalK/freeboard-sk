@@ -212,12 +212,7 @@ The following features require that the Signal K server have plugins / providers
 
 ### Recommended Plugins:
 
-The following plugins are recommended for installation on the Signal K Server to enable full functionality:
-
-- Charts: `@signalk/charts-plugin`, `signalk-chart-provider-simple`, `signalk-pmtiles-plugin`, etc.
-- Anchor Watch: `signalk-anchoralarm-plugin` or `hoekens-anchor-alarm`
-- Weather Forcasts: `signalk-openweather-provider`
-- Display RADAR overlay: `signalk-container` & `@marineyachtradar/signalk-plugin`
+The plugins that add to Freeboard-SK (charts, tracks, weather, anchor alarm, radar, collision alerts and more) are listed as recommended on Freeboard-SK's page in the Signal K App Store, where they can be installed together.
 
 ---
 
