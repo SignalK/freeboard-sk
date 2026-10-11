@@ -92,7 +92,10 @@ function stubMap() {
       }
     },
     getCoordinateFromPixel: (p: number[]) => [p[0] * RES, p[1] * RES],
-    getPixelFromCoordinate: (c: number[]) => [c[0] / RES, c[1] / RES]
+    getPixelFromCoordinate: (c: number[]) => [c[0] / RES, c[1] / RES],
+    // Events built from a raw browser event (Draw's long-press timer) read
+    // their pixel from it.
+    getEventPixel: (e: PointerEvent) => [e.clientX, e.clientY]
   } as unknown as OlMap;
 }
 
@@ -182,6 +185,92 @@ describe('snapping map events onto drawn waypoints', () => {
     const draw = new WaypointSnappingDraw({ type: 'LineString' });
     draw.handleEvent(pointerEvent(map, 'pointerup', [105, 50]));
     expect(seen).toEqual([1000, 500]);
+  });
+
+  describe('a real route Draw, press to release', () => {
+    // A pin icon 30 px tall standing on the waypoint, as in the test above.
+    const onIcon = (p: number[], tol: number) =>
+      Math.abs(p[0] - 100) <= 8 + tol && p[1] >= 20 - tol && p[1] <= 50 + tol;
+
+    // A real pointer gesture: Draw tracks pointers by id and reads modifiers.
+    function gesture(type: string, pixel: number[], pointerType = 'touch') {
+      const original = {
+        type,
+        pointerId: 1,
+        pointerType,
+        button: 0,
+        isPrimary: true,
+        clientX: pixel[0],
+        clientY: pixel[1],
+        preventDefault: () => undefined
+      } as unknown as PointerEvent;
+      // Pointers still down after the event: none once it is released.
+      const active = type === 'pointerup' ? [] : [original];
+      const evt = new MapBrowserEvent(
+        type,
+        map,
+        original,
+        false,
+        undefined,
+        active
+      );
+      evt.pixel = pixel;
+      return evt;
+    }
+
+    // The point a click starts the route at: Draw's private startDrawing_,
+    // which needs a real map to build the sketch, so it is stubbed here.
+    function startedAt(draw: WaypointSnappingDraw) {
+      return vi
+        .spyOn(
+          draw as unknown as { startDrawing_: () => void },
+          'startDrawing_'
+        )
+        .mockImplementation(() => undefined);
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      markerAt = (p, tol) => (onIcon(p, tol) ? [{ feature: wpt, source }] : []);
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    it('wraps a pointer-move handler Draw still has', () => {
+      // WaypointSnappingDraw wraps this private handler: if an OL upgrade
+      // renames it, held clicks on a waypoint would silently stop working.
+      const internals = new Draw({ type: 'LineString' }) as unknown as {
+        handlePointerMove_?: unknown;
+      };
+      expect(typeof internals.handlePointerMove_).toBe('function');
+    });
+
+    it('adds a point on the waypoint for a press held on its icon', () => {
+      // Draw's long-press timer replays the press unsnapped; the click must
+      // survive it rather than read as a drag.
+      const draw = new WaypointSnappingDraw({ type: 'LineString' });
+      const start = startedAt(draw);
+      draw.handleEvent(gesture('pointerdown', [102, 30]));
+      vi.advanceTimersByTime(600);
+      draw.handleEvent(gesture('pointerup', [102, 30]));
+      expect(start).toHaveBeenCalledWith([1000, 500]);
+    });
+
+    it('adds a point on the waypoint when the release slips off the icon', () => {
+      const draw = new WaypointSnappingDraw({ type: 'LineString' });
+      const start = startedAt(draw);
+      draw.handleEvent(gesture('pointerdown', [100, 22]));
+      draw.handleEvent(gesture('pointerup', [100, 17]));
+      expect(start).toHaveBeenCalledWith([1000, 500]);
+    });
+
+    it('adds no point for a drag that starts and ends on the icon', () => {
+      const draw = new WaypointSnappingDraw({ type: 'LineString' });
+      const start = startedAt(draw);
+      draw.handleEvent(gesture('pointerdown', [100, 48]));
+      draw.handleEvent(gesture('pointerup', [100, 25]));
+      expect(start).not.toHaveBeenCalled();
+    });
   });
 
   it('snaps a vertex dragged by a route Modify', () => {

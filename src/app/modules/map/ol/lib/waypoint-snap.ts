@@ -1,7 +1,6 @@
-import { getWidth } from 'ol/extent';
 import OlMap from 'ol/Map';
 import MapBrowserEvent from 'ol/MapBrowserEvent';
-import { get as getProjection } from 'ol/proj';
+import { WORLD_WIDTH_3857 as WORLD_WIDTH } from '../../route-extend';
 import {
   drawnWaypoints,
   isWaypointSource
@@ -12,15 +11,16 @@ import { hitToleranceForPointer, worldCopyOffset } from './util';
  * Snapping route points to the waypoints drawn on the map (#881).
  *
  * A route point drawn, dragged or appended on a waypoint's marker, within the
- * pointer's hit tolerance, takes the waypoint's position. That point is then linked to
- * the waypoint wherever its vertex lies exactly on one (`waypointAt`), so the
- * link follows the geometry: undoing a snapped point, or dragging it off the
- * waypoint, leaves nothing to clean up.
+ * pointer's hit tolerance, takes the waypoint's position. That point is then
+ * linked to the waypoint wherever its vertex lies exactly on one
+ * (`waypointAt`), so the link follows the geometry: undoing a snapped point,
+ * or dragging it off the waypoint, leaves nothing to clean up.
  */
 
-const WORLD_WIDTH = getWidth(getProjection('EPSG:3857').getExtent());
-
-/** Snap radius in pixels: the tolerance map clicks already use. */
+/**
+ * Snap radius in pixels: the radius route editing already uses (Modify's vertex
+ * tolerance and the route-extend guard), wider than a map click's.
+ */
 export const SNAP_MOUSE_TOLERANCE = 10;
 export const SNAP_TOUCH_TOLERANCE = 15;
 
@@ -139,33 +139,102 @@ export function waypointSnapAt(
   );
 }
 
+/** The drawn waypoint to snap `evt` to, or null. */
+export function eventWaypointSnap(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  evt: MapBrowserEvent<any>
+): DrawnWaypoint | null {
+  const pointerType = (evt.originalEvent as PointerEvent | undefined)
+    ?.pointerType;
+  return evt.map && evt.pixel
+    ? waypointSnapAt(evt.map, evt.pixel, pointerType)
+    : null;
+}
+
+/**
+ * Run `handle` with `evt` at `coordinate` and `pixel`, then restore the event
+ * for the interactions that see it next. The coordinate and pixel are
+ * replaced, never mutated in place, so whatever `handle` kept of them stays as
+ * it was.
+ */
+function withEventAt<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  evt: MapBrowserEvent<any>,
+  coordinate: number[],
+  pixel: number[],
+  handle: () => T
+): T {
+  const original = { coordinate: evt.coordinate, pixel: evt.pixel };
+  evt.coordinate = coordinate;
+  evt.pixel = pixel;
+  try {
+    return handle();
+  } finally {
+    evt.coordinate = original.coordinate;
+    evt.pixel = original.pixel;
+  }
+}
+
 /**
  * Run `handle` with `evt` moved onto the nearest drawn waypoint, if one is in
- * snap range, then restore the event for the interactions that see it next.
- * The coordinate and pixel are replaced, never mutated in place, so whatever
- * `handle` kept of the snapped ones stays as it was.
+ * snap range.
  */
 export function withWaypointSnap<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   evt: MapBrowserEvent<any>,
   handle: () => T
 ): T {
-  const pointerType = (evt.originalEvent as PointerEvent | undefined)
-    ?.pointerType;
-  const snap =
-    evt.map && evt.pixel
-      ? waypointSnapAt(evt.map, evt.pixel, pointerType)
-      : null;
-  if (!snap) {
+  const snap = eventWaypointSnap(evt);
+  return snap
+    ? withEventAt(
+        evt,
+        snap.coordinate,
+        evt.map.getPixelFromCoordinate(snap.coordinate),
+        handle
+      )
+    : handle();
+}
+
+/** Where a press landed, and the waypoint it snapped to (null for none). */
+export interface SnapPress {
+  pixel: number[];
+  snap: DrawnWaypoint | null;
+}
+
+/**
+ * Run `handle` with an event of the gesture `press` began, snapped the way the
+ * press was.
+ *
+ * An interaction that tells a click from a drag by how far the pointer moved
+ * since the press must see the same distances it would without snapping. So
+ * every pixel of the gesture is shifted by the press's snap offset, never
+ * snapped on its own: a release snapped while its press was not (or the
+ * reverse), or a press replayed unsnapped, would look like a drag and the
+ * click would be lost. A release within `clickTolerance` of the press is a
+ * click on the press's waypoint and lands exactly on it; further away, the
+ * pointer snaps as it would anywhere.
+ */
+export function withPressSnap<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  evt: MapBrowserEvent<any>,
+  press: SnapPress,
+  clickTolerance: number,
+  handle: () => T
+): T {
+  if (!press.snap) {
     return handle();
   }
-  const { coordinate, pixel } = evt;
-  evt.coordinate = snap.coordinate;
-  evt.pixel = evt.map.getPixelFromCoordinate(snap.coordinate);
-  try {
-    return handle();
-  } finally {
-    evt.coordinate = coordinate;
-    evt.pixel = pixel;
-  }
+  const raw = evt.pixel;
+  const snapPx = evt.map.getPixelFromCoordinate(press.snap.coordinate);
+  const pixel = [
+    raw[0] + snapPx[0] - press.pixel[0],
+    raw[1] + snapPx[1] - press.pixel[1]
+  ];
+  const isClick =
+    Math.hypot(raw[0] - press.pixel[0], raw[1] - press.pixel[1]) <=
+    clickTolerance;
+  const coordinate = isClick
+    ? press.snap.coordinate
+    : (eventWaypointSnap(evt)?.coordinate ?? evt.coordinate);
+  return withEventAt(evt, coordinate, pixel, handle);
 }
