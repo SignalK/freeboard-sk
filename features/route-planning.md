@@ -19,6 +19,15 @@ Ctrl-Z / ⌘-Z) removes the last point, again and again back to the first.
 Your new route appears on the chart in amber to show it hasn't been saved
 yet.
 
+**Routing through your waypoints.** While you draw, move the pointer over a
+waypoint on the chart and the next point jumps onto it, so you see where it
+will go before you tap. Tap there and the route point sits exactly on the
+waypoint and is linked to it: the route uses the waypoint's name for that
+point, and the link is saved with the route. A tap away from any waypoint
+places an ordinary point, as before. Only waypoints shown on the chart can be
+snapped to. To route through a hidden one, show it in the Waypoints list
+first.
+
 **Unsaved and saved routes work the same way.** Tap any route on the
 chart — freshly drawn or previously saved — to bring up its actions:
 **Modify** to reshape it, **Points** to reorder its point list,
@@ -38,7 +47,10 @@ press-and-hold. Both delete gestures work the same with a mouse, a
 touchscreen or a pen; a press that turns into a drag moves the point instead
 of deleting it. To **extend the route**, click open water past its end: the
 route grows by a new end point, the same way you drew it, without leaving
-Modify.
+Modify. Dragging a point onto a waypoint snaps and links it the same way, and
+so does clicking a waypoint past the route's end to extend it. A linked point
+stays on its waypoint through a small nudge; drag it clearly away to unlink
+it.
 **Undo** steps back through your edits one at a time. The card's commit
 action saves your changes — labeled **Save** for a route that isn't stored
 yet, **Finish** for one that is — and **Cancel** (or the ✕) discards them,
