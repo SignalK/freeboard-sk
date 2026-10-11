@@ -567,6 +567,42 @@ so if touch users need the text (a name the column cuts off), show it on tap ins
 Tooltips on small buttons are fine as they are. A swipe rarely starts on one, and a
 button doesn't need to scroll.
 
+### Styling one map layer from another: read the live features, and mark in-place edits changed
+
+**The trap.** Sooner or later one map layer has to style itself from another's state.
+In #991, a route point hides its marker where a waypoint's icon already covers it, and
+a waypoint hides its icon at a route's start or end. The obvious source is the other
+layer's `@Input` data (`skres.routes()`, `skres.waypoints()`). It looks right and passes
+every static test, but it is wrong for as long as an edit is in progress. OL `Modify`
+moves the rendered features themselves, and nothing reaches the resource data until the
+edit is saved. So the two layers disagree mid-edit: a route end dragged off its waypoint
+still hides the waypoint's icon, and extending a route past a linked end hides both
+markers.
+
+A second trap sits under the first. `onModifyStart` (`fb-map.component.ts`) hands the
+route feature's own `pointMetadata` array to `mapInteract.draw.forSave.coordsMetadata`.
+`updateCoordsMeta` then rewrites that array **in place** at `modifyend`: it inserts and
+removes entries, and its MOVE branch unlinks a moved point from its waypoint. Mutating an
+array fires no feature event. The canvas vector renderer reuses its cached replay until
+the source revision or the resolution changes, so any style that reads `pointMetadata`
+shows the pre-edit state until the next zoom. Mid-drag, the metadata also lags the
+geometry: Modify inserts a vertex on pointerdown, but the vertex's metadata entry only
+arrives at `modifyend`, so index `i` in the geometry and index `i` in the metadata stop
+matching for the length of the drag.
+
+**What to do instead.**
+
+- Have each layer's style function read the other layer's **features** on the same OL
+  map, not its inputs. Re-render the other layer on this layer's feature events
+  (`addfeature`, `removefeature`, `changefeature`, `clear`). Never listen for `change`:
+  calling the other source's `changed()` fires `change`, so the two would ping-pong.
+- After changing `pointMetadata` in place, call `feature.changed()`. `applyModifyEnd` now
+  does this.
+- When you need a route's end point mid-drag, read its link from the last metadata entry,
+  not the entry at the last vertex index. Modify only ever inserts between two vertices.
+
+#993 is the worked example (`route-waypoint-overlap.ts`).
+
 ---
 
 ## When testing
