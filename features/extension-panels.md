@@ -54,8 +54,10 @@ A **modal** window dims the chart behind it until you dismiss it, with its
 **✕** or the Escape key.
 
 Windows never cover the toolbars, the Alarms button or alarm messages. On a
-narrow screen such as a phone, a window opens as a sheet along the bottom of
-the screen instead, and a modal window fills the screen.
+narrow screen such as a phone, a window that fits still floats, and you can
+move and resize it as usual. A window too big for the screen opens as a sheet
+along the bottom instead, and a modal one fills the screen. Turning the phone
+can switch a window between the two.
 
 Freeboard does not reopen windows after a reload; the plugin reopens them if
 it wants to. Some plugins remember where you left a window and how big it was,
