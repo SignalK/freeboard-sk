@@ -128,5 +128,6 @@
   { "feature": null, "pr": 938, "kind": "skip", "reason": "implements the panels.state capability of the Plotter Extensions API so extensions can tell when their panels are on screen; no end-user surface" },
   { "feature": "bearing-distance", "kind": "new", "since": "v2.19.1", "date": "2025-11-05", "title": "Added option to `Measure Radius` from a selected point." },
   { "feature": "bearing-distance", "kind": "enhanced", "since": "v2.19.5", "date": "2026-01-03", "title": "Bearing & Distance context menu option." },
-  { "feature": "bearing-distance", "pr": 977, "kind": "enhanced", "date": "2026-10-11", "title": "feat(map): unify bearing & distance measuring" }
+  { "feature": "bearing-distance", "pr": 977, "kind": "enhanced", "date": "2026-10-11", "title": "feat(map): unify bearing & distance measuring" },
+  { "feature": "bearing-distance", "kind": "enhanced", "date": "2026-10-11", "title": "feat(map): drag the bearing & distance end point to move it" }
 ]
