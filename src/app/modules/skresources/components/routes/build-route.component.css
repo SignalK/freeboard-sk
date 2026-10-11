@@ -62,7 +62,17 @@
     align-items: center;
     justify-content: space-between;
     box-sizing: border-box;
-    cursor: move;
+  }
+
+  /* Span the row's vertical padding so the grip is a full-height touch target. */
+  .wpt-handle {
+    width: 40px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    margin: -15px 0;
+    padding: 15px 0;
+    cursor: grab;
   }
 
   .wpt-text {

@@ -19,6 +19,7 @@ import {
   moveItemInArray,
   copyArrayItem,
   CdkDrag,
+  CdkDragHandle,
   CdkDropList
 } from '@angular/cdk/drag-drop';
 import { SKResourceService } from '../../resources.service';
@@ -34,6 +35,7 @@ import {
   imports: [
     MatTooltipModule,
     CdkDrag,
+    CdkDragHandle,
     CdkDropList,
     MatButtonModule,
     MatCardModule,
@@ -90,10 +92,21 @@ import {
               >
                 @for (item of wpts(); track item) {
                   <div class="wpt-box" cdkDrag>
-                    <div style="width:40px;">
-                      <mat-icon>room</mat-icon>
+                    <div
+                      class="wpt-handle"
+                      cdkDragHandle
+                      matTooltip="Drag to add to the route"
+                      matTooltipTouchGestures="off"
+                    >
+                      <mat-icon>drag_indicator</mat-icon>
                     </div>
-                    <div class="wpt-text" [matTooltip]="item.name">
+                    <div
+                      class="wpt-text"
+                      [matTooltip]="item.name"
+                      matTooltipTouchGestures="off"
+                      #nameTip="matTooltip"
+                      (click)="nameTip.toggle()"
+                    >
                       {{ item.name }}
                     </div>
                   </div>
@@ -112,10 +125,21 @@ import {
               >
                 @for (item of rtepts; track item; let idx = $index) {
                   <div class="wpt-box" mat-background cdkDrag>
-                    <div style="width:40px;">
-                      <mat-icon>room</mat-icon>
+                    <div
+                      class="wpt-handle"
+                      cdkDragHandle
+                      matTooltip="Drag to re-order points"
+                      matTooltipTouchGestures="off"
+                    >
+                      <mat-icon>drag_indicator</mat-icon>
                     </div>
-                    <div class="wpt-text" [matTooltip]="item.name">
+                    <div
+                      class="wpt-text"
+                      [matTooltip]="item.name"
+                      matTooltipTouchGestures="off"
+                      #nameTip="matTooltip"
+                      (click)="nameTip.toggle()"
+                    >
                       {{ item.name }}
                     </div>
                     <div style="width:40px;">
