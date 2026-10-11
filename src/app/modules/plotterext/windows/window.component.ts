@@ -372,13 +372,10 @@ interface ActiveGesture {
     :host(.hidden) {
       display: none;
     }
-    :host(.sheet),
     :host(.fullscreen) {
       border-radius: 0;
     }
-    :host(.sheet) .fb-pe-window__bar,
     :host(.fullscreen) .fb-pe-window__bar,
-    :host(.sheet) .fb-pe-window__body,
     :host(.fullscreen) .fb-pe-window__body {
       border-radius: 0;
       cursor: default;
@@ -393,7 +390,6 @@ interface ActiveGesture {
     '[class.collapsed]': 'def().collapsed',
     '[class.hidden]': '!def().visible',
     '[class.modal]': 'def().modal',
-    '[class.sheet]': "presentation() === 'sheet'",
     '[class.fullscreen]': "presentation() === 'fullscreen'",
     '[class.fixed-place]': '!movable()',
     '[class.bar-overlay]': 'autoHide()',
@@ -470,12 +466,12 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
     return this.def().collapsed ? { ...r, h: COLLAPSED_HEIGHT } : r;
   });
 
-  /** Hide the title bar when idle: only while the panel itself is shown. */
+  /**
+   * Hide the title bar when idle, whenever the panel itself is shown: at any
+   * area size, and full screen too, where the grip still brings it back.
+   */
   protected readonly autoHide = computed(
-    () =>
-      this.def().titleBar === 'autoHide' &&
-      !this.def().collapsed &&
-      this.floating()
+    () => this.def().titleBar === 'autoHide' && !this.def().collapsed
   );
 
   protected readonly barShown = signal(true);

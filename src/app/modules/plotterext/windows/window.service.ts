@@ -29,12 +29,11 @@ import {
 /** The most windows open at once, across all extensions (`windows.limit`). */
 export const MAX_WINDOWS = 12;
 /**
- * At or above this window-area width every window floats. Below it a window
- * floats only if it fits, and is otherwise shown as a sheet (or full screen).
+ * Below this window-area width a modal window that does not fit is shown full
+ * screen, as a dialog would be on a phone. Every other window always floats
+ * (see `presentation`).
  */
-export const SHEET_BREAKPOINT = 600;
-/** A sheet takes at most this share of the area's height. */
-const SHEET_MAX_HEIGHT = 0.6;
+export const MODAL_FULLSCREEN_BREAKPOINT = 600;
 /** Device-local store of remembered geometry: extension -> restoreKey -> geometry. */
 export const WINDOW_GEOMETRY_KEY = 'fb-plotterext-windows';
 
@@ -104,24 +103,29 @@ export class ExtWindowService {
     return this.windows().filter((w) => w.extension === extension);
   }
 
+  /**
+   * A window floats at every area size, so the user can always move and
+   * resize it and its title bar can auto-hide: on a phone, one too large for
+   * the area is shrunk to fit, keeping its shape (`resolveGeometry`), rather
+   * than docked as a sheet. Only a modal window that does not fit a narrow
+   * area goes full screen; it blocks everything anyway.
+   */
   presentation(w: ExtWindow, area = this.area()): WindowPresentation {
-    if (area.w >= SHEET_BREAKPOINT || fitsArea(w.geometry, area)) {
+    if (
+      !w.modal ||
+      area.w >= MODAL_FULLSCREEN_BREAKPOINT ||
+      fitsArea(w.geometry, area)
+    ) {
       return 'floating';
     }
-    return w.modal ? 'fullscreen' : 'sheet';
+    return 'fullscreen';
   }
 
   /** Where the window is on screen, in px from the window area's top-left. */
   rectOf(w: ExtWindow, area = this.area()): PxRect {
-    const presentation = this.presentation(w, area);
-    if (presentation === 'fullscreen')
+    if (this.presentation(w, area) === 'fullscreen')
       return { x: 0, y: 0, w: area.w, h: area.h };
-    const r = resolveGeometry(w.geometry, area, DEFAULT_LIMITS);
-    if (presentation === 'sheet') {
-      const h = Math.min(r.h, area.h * SHEET_MAX_HEIGHT);
-      return { x: 0, y: area.h - h, w: area.w, h };
-    }
-    return r;
+    return resolveGeometry(w.geometry, area, DEFAULT_LIMITS);
   }
 
   stateOf(w: ExtWindow): WindowState {
