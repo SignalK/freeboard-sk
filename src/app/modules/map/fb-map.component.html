@@ -38,7 +38,10 @@
     >
     </ol-dragbox>
   }
-  @if (mapInteract.isMeasuring()) {
+  @if (
+    mapInteract.isMeasuring() &&
+    mapInteract.measureGeometryType === 'LineString'
+  ) {
     <ol-draw
       [type]="mapInteract.measureGeometryType"
       (drawStart)="onMeasureStart($event)"
@@ -542,28 +545,14 @@
   }
 
   <!-- Distance & Bearing to -->
-  @if (overlay().show && overlay().type === 'bearing_dist') {
-    <ol-overlay
-      [position]="overlay().position"
-      [worldOffset]="overlay().worldOffset ?? 0"
-      [positioning]="'top-center'"
-    >
-      <ap-popover
-        [title]="overlay().title"
-        [canClose]="false"
-        [measure]="true"
-        [navTo]="true"
-        (closed)="popoverClosed()"
-        (navigateTo)="
-          onContextMenuAction('nav_to', overlay().position); popoverClosed()
-        "
-      >
-      </ap-popover>
-    </ol-overlay>
+  @if (mapInteract.bearingDistance(); as bd) {
+    <!-- Bearing & Distance (#905): from a picked origin, or the vessel. -->
     <fb-bearing-line
-      [markerPosition]="overlay().position"
-      [vesselPosition]="dfeat.active.position"
-      [showMarker]="false"
+      [vesselPosition]="bd.origin ?? dfeat.self.position"
+      [markerPosition]="bd.target"
+      [showMarker]="true"
+      [showOrigin]="!!bd.origin"
+      [showRing]="true"
       [markerName]=""
       [bearingStyles]="featureStyles.bearingDistance"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -571,6 +560,31 @@
       [zIndex]="335"
     >
     </fb-bearing-line>
+    @if (bd.target) {
+      <ol-overlay
+        [position]="bd.target"
+        [worldOffset]="bd.worldOffset"
+        [positioning]="'top-center'"
+      >
+        <!-- While it follows the pointer the label sits under it, so let the
+             click that places the target through to the map. -->
+        <ap-popover
+          [style.pointer-events]="bd.fixed ? null : 'none'"
+          [title]="
+            bearingDistanceTitle(bd.origin ?? dfeat.self.position, bd.target)
+          "
+          [canClose]="bd.fixed"
+          [measure]="true"
+          [navTo]="bd.fixed"
+          (closed)="mapInteract.clearBearingDistance()"
+          (navigateTo)="
+            onContextMenuAction('nav_to', bd.target);
+            mapInteract.clearBearingDistance()
+          "
+        >
+        </ap-popover>
+      </ol-overlay>
+    }
   }
 
   <!-- Popovers -->
@@ -1080,7 +1094,7 @@
         (contextmenu)="$event.preventDefault()"
         (click)="onContextMenuAction('bearing_dist', item)"
       >
-        <mat-icon>arrow_right_alt</mat-icon>
+        <mat-icon svgIcon="bearing-distance"></mat-icon>
         Bearing & Distance
       </button>
     }

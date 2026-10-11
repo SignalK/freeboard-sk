@@ -47,6 +47,7 @@ measure: boolean= measure mode;
       [class.top]="placement() === 'top'"
       [class.bottom]="placement() === 'bottom'"
       [ngClass]="{ measure: measure, compact: compact, docked: docked }"
+      [style.max-width]="measure ? 'none' : null"
     >
       @if (title || icon || mmsi || canClose || navTo) {
         <div class="popover-title">
@@ -81,14 +82,7 @@ measure: boolean= measure mode;
               &nbsp;{{ title }}
             }
           </div>
-          @if (canClose) {
-            <div style="">
-              <button mat-icon-button (click)="handleClose()">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          }
-          @if (!canClose && navTo) {
+          @if (navTo) {
             <div style="">
               <button
                 mat-icon-button
@@ -96,6 +90,13 @@ measure: boolean= measure mode;
                 (click)="handleNavTo()"
               >
                 <mat-icon>near_me</mat-icon>
+              </button>
+            </div>
+          }
+          @if (canClose) {
+            <div style="">
+              <button mat-icon-button (click)="handleClose()">
+                <mat-icon>close</mat-icon>
               </button>
             </div>
           }

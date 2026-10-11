@@ -67,9 +67,24 @@ export interface IPopover {
 export interface MeasurementDef {
   coords?: Array<Position>;
   index?: number;
-  center?: Position;
-  radius?: number;
 }
+
+/** A Bearing & Distance measurement (#905). */
+export interface BearingDistanceDef {
+  /** where it is measured from; null = the own vessel, tracked as it moves */
+  origin: Position | null;
+  /** null until the pointer first gives one */
+  target: Position | null;
+  /** the target is placed: the measurement stays on the map until dismissed */
+  fixed: boolean;
+  /**
+   * Render-space offset of the world copy the target is in (#572), so its
+   * popover is drawn where the user is looking. Never applied to `target`.
+   */
+  worldOffset: number;
+}
+
+export type MeasureType = 'LineString' | 'BearingDistance';
 
 export type SelectionModeDef = 'seedChart';
 
@@ -136,17 +151,17 @@ export class FBMapInteractService {
 
   readonly measurement = signal<MeasurementDef>({
     coords: [],
-    index: -1,
-    center: null,
-    radius: 0
+    index: -1
   });
+
+  readonly bearingDistance = signal<BearingDistanceDef | null>(null);
 
   readonly selection = signal<SelectionResultDef>({
     mode: null
   });
 
   private selectionResult: SelectionResultDef;
-  public measureGeometryType: 'LineString' | 'Circle' = 'LineString';
+  public measureGeometryType: MeasureType = 'LineString';
 
   /** draw interaction data */
   public draw: DrawFeatureInfo = {
@@ -227,20 +242,6 @@ export class FBMapInteractService {
     });
   }
 
-  /** set center position in measurment data */
-  set measurementCenter(value: Position) {
-    this.measurement.update((current) => {
-      return Object.assign({}, current, { center: value });
-    });
-  }
-
-  /** set radius in measurment data */
-  set measurementRadius(value: number) {
-    this.measurement.update((current) => {
-      return Object.assign({}, current, { radius: value });
-    });
-  }
-
   /**
    * add coordinate to measurment data
    * @param pt location to add
@@ -279,31 +280,72 @@ export class FBMapInteractService {
     }
   }
 
-  /**
-   * Returns distance to measurment.center
-   * @param pt measure cursor location
-   * @returns distance in meters
-   */
-  distanceFromCenter(pt: Position): number {
-    if (!pt || !this.measurement().center) {
-      return 0;
-    }
-    return GeoUtils.distanceTo(this.measurement().center, pt);
-  }
-
   /** Start measuring mode */
-  startMeasuring(geometryType?: 'LineString' | 'Circle') {
+  startMeasuring(geometryType?: MeasureType) {
     this.measureGeometryType = geometryType ?? 'LineString';
     this.app.debug(`startMeasuring()...`);
+    if (this.measureGeometryType === 'BearingDistance') {
+      this.bearingDistance.set(null);
+    }
     this.isMeasuring.set(true);
     this.interactionStarted();
   }
 
-  /** Exit measuring mode */
+  /** Exit measuring mode. A Bearing & Distance not yet placed is discarded. */
   stopMeasuring() {
     this.app.debug(`stopMeasuring()...`);
+    if (this.bearingDistance() && !this.bearingDistance().fixed) {
+      this.bearingDistance.set(null);
+    }
     this.isMeasuring.set(false);
     this.interactionEnded();
+  }
+
+  /**
+   * A click / tap while picking a Bearing & Distance: the first sets the
+   * origin, the next places the target and ends the interaction, leaving the
+   * measurement on the map.
+   */
+  placeBearingDistancePoint(pt: Position, worldOffset = 0) {
+    const bd = this.bearingDistance();
+    if (!bd?.origin) {
+      this.bearingDistance.set({
+        origin: pt,
+        target: null,
+        fixed: false,
+        worldOffset
+      });
+      return;
+    }
+    if (pt[0] === bd.origin[0] && pt[1] === bd.origin[1]) {
+      return;
+    }
+    this.bearingDistance.set({ ...bd, target: pt, fixed: true, worldOffset });
+    this.stopMeasuring();
+  }
+
+  /** Move the target of a Bearing & Distance that is following the pointer. */
+  followBearingDistance(pt: Position, worldOffset = 0) {
+    const bd = this.bearingDistance();
+    if (!bd?.origin || bd.fixed) {
+      return;
+    }
+    this.bearingDistance.set({ ...bd, target: pt, worldOffset });
+  }
+
+  /** Show a placed Bearing & Distance from the own vessel to `target`. */
+  showBearingDistanceFromVessel(target: Position, worldOffset = 0) {
+    this.bearingDistance.set({
+      origin: null,
+      target,
+      fixed: true,
+      worldOffset
+    });
+  }
+
+  /** Remove the Bearing & Distance measurement from the map. */
+  clearBearingDistance() {
+    this.bearingDistance.set(null);
   }
 
   /** Start drawing mode */
@@ -432,9 +474,7 @@ export class FBMapInteractService {
     this.clearUndo();
     this.measurement.set({
       coords: [],
-      index: -1,
-      center: null,
-      radius: 0
+      index: -1
     });
     this.app.uiCtrl.update((current) => {
       return Object.assign({}, current, { suppressContextMenu: true });
@@ -450,9 +490,7 @@ export class FBMapInteractService {
     });
     this.measurement.set({
       coords: [],
-      index: -1,
-      center: null,
-      radius: 0
+      index: -1
     });
   }
 }

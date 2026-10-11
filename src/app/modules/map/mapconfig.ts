@@ -52,7 +52,23 @@ export const bearingDistanceStyle = {
         color: '#3399CC'
       })
     })
-  })
+  }),
+  // Unfilled and light: only the circumference matters, and the chart under
+  // it must stay readable.
+  ring: [
+    new Style({
+      stroke: new Stroke({
+        color: 'rgba(255, 255, 255, 0.7)',
+        width: 3
+      })
+    }),
+    new Style({
+      stroke: new Stroke({
+        color: '#3399CC',
+        width: 1.5
+      })
+    })
+  ]
 };
 
 export const raceCourseStyles = {
@@ -371,30 +387,6 @@ export const drawStyles = {
         fill: new Fill({
           color: 'purple'
         })
-      })
-    })
-  ],
-  radius: [
-    new Style({
-      image: new Circle({
-        radius: 6,
-        stroke: new Stroke({
-          width: 2,
-          color: 'white'
-        }),
-        fill: new Fill({
-          color: 'rgba(25, 183, 211, 0.4)'
-        })
-      })
-    }),
-    new Style({
-      fill: new Fill({
-        color: 'rgba(25, 183, 211, 0.4)'
-      }),
-      stroke: new Stroke({
-        color: 'white',
-        width: 3,
-        lineDash: [5, 5]
       })
     })
   ]

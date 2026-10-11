@@ -44,12 +44,13 @@ import { CpaTarget } from 'src/app/modules/map/ol/lib/alarms/layer-cpa-alarm.com
 import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { getGreatCircleBearing } from 'geolib';
+import { bearingDistanceReadout } from './bearing-distance';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
-import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
+import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import {
   computeLaylines,
@@ -151,7 +152,7 @@ import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
 import { hitToleranceForPointer, worldCopyOffset } from './ol/lib/util';
-import { Circle as OLCircle, LineString as OLLineString } from 'ol/geom';
+import { LineString as OLLineString } from 'ol/geom';
 import {
   extendRouteAtClick,
   RoutePointMeta,
@@ -799,7 +800,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
         break;
       case 'bearing_dist':
-        this.formatPopover('bearing_dist', pos);
+        this.mapInteract.showBearingDistanceFromVessel(
+          pos,
+          this.clickWorldOffset
+        );
         break;
       case 'weather_forecast':
         this.bottomSheet.open(WeatherForecastModal, {
@@ -921,24 +925,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
             )} ${this.app.formatValueForDisplay(b, 'deg')}`
           });
         });
-      } else if (this.mapInteract.measureGeometryType === 'Circle') {
-        const c = e.lonlat;
-        const lm = this.mapInteract.distanceFromCenter(c as Position);
-        const b = getGreatCircleBearing(
-          this.mapInteract.measurement().center ?? (c as Position),
-          c as Position
+      } else if (
+        this.mapInteract.measureGeometryType === 'BearingDistance' &&
+        // A finger only moves to pan; on touch the target is placed by a tap.
+        e.originalEvent?.pointerType !== 'touch'
+      ) {
+        this.mapInteract.followBearingDistance(
+          GeoUtils.normaliseCoords(e.lonlat as Position),
+          e.worldOffset ?? 0
         );
-        this.overlay.update((current) => {
-          return Object.assign({}, current, {
-            position: c,
-            // Keep the live measure label in the pointer's world copy (#572).
-            worldOffset: e.worldOffset ?? 0,
-            title: `${this.app.formatValueForDisplay(
-              lm,
-              'm'
-            )} ${this.app.formatValueForDisplay(b, 'deg')}`
-          });
-        });
       }
     }
   }
@@ -1043,7 +1038,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     };
     if (this.mapInteract.isMeasuring()) {
       // measuring
-      this.parseClickInMeasureMode(e.lonlat);
+      if (this.mapInteract.measureGeometryType === 'BearingDistance') {
+        this.mapInteract.placeBearingDistancePoint(
+          GeoUtils.normaliseCoords(e.lonlat as Position),
+          this.clickWorldOffset
+        );
+      } else {
+        this.parseClickInMeasureMode(e.lonlat);
+      }
     } else if (
       // drawing
       this.mapInteract.isDrawing() &&
@@ -1168,23 +1170,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Handle OL interaction start event */
   protected onMeasureStart(e: DrawEvent) {
     this.app.debug(`onMeasureStart()...`, this.mapInteract.measureGeometryType);
-    let ovPosition: Position | LineString;
-    if (this.mapInteract.measureGeometryType === 'LineString') {
-      let c = (e.feature.getGeometry() as OLLineString)
-        .getCoordinates()
-        .map((c) => toLonLat(c) as Position);
-      c = c.slice(0, c.length - 1);
-      this.mapInteract.measurementCoords = c;
-      ovPosition = c;
-    } else {
-      const g = e.feature.getGeometry() as OLCircle;
-      const center = toLonLat(g.getCenter());
-      const radius = g.getRadius();
-      this.mapInteract.measurementCenter = center as Position;
-      this.mapInteract.measurementRadius = radius;
-      ovPosition = this.mapInteract.measurementCenter;
-      this.app.debug(this.mapInteract.measurement);
-    }
+    let c = (e.feature.getGeometry() as OLLineString)
+      .getCoordinates()
+      .map((c) => toLonLat(c) as Position);
+    c = c.slice(0, c.length - 1);
+    this.mapInteract.measurementCoords = c;
+    const ovPosition: LineString = c;
     this.formatPopover(null, null);
     this.overlay.update((current) => {
       return Object.assign({}, current, {
@@ -2106,18 +2097,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'anchor':
         this.modifyFeature('anchor');
         return;
-      case 'bearing_dist': {
-        const d =
-          GeoUtils.distanceTo(this.app.data.vessels.self.position, coord) ?? 0;
-        const b =
-          getGreatCircleBearing(this.app.data.vessels.self.position, coord) ??
-          0;
-        poData.type = t[0];
-        poData.title = `${this.app.formatValueForDisplay(d, 'm')} ${this.app.formatValueForDisplay(b, 'deg')}`;
-        poData.position = coord;
-        poData.show = true;
-        break;
-      }
       case 'list':
         poData.type = t[0];
         poData.title = 'Features';
@@ -2545,6 +2524,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Popover title for the Bearing & Distance measurement (#905). */
+  protected bearingDistanceTitle(origin: Position, target: Position): string {
+    const r = bearingDistanceReadout(origin, target);
+    const fmt = (v: number, unit: SI_BASE_UNIT) =>
+      this.app.formatValueForDisplay(v, unit);
+    return `${fmt(r.distance, 'm')} ${fmt(r.bearing, 'deg')} (${fmt(r.reciprocal, 'deg')} recip)`;
+  }
+
   /** handle popover closed event */
   protected popoverClosed() {
     this.overlay.update((current) => {
@@ -2870,9 +2857,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
     if (mode === INTERACTION_MODE.MEASURE) {
       this.mapInteract.draw.style = value
-        ? this.mapInteract.measureGeometryType === 'Circle'
-          ? drawStyles.radius
-          : drawStyles.measure
+        ? drawStyles.measure
         : drawStyles.default;
     }
     if (mode === INTERACTION_MODE.DRAW) {

@@ -761,6 +761,14 @@ export class AppFacade extends InfoService {
         this.dom.bypassSecurityTrustResourceUrl(s.path)
       );
     });
+    // UI icons: registered here, not in getSvgList(), which is also the set of
+    // built-in map symbols.
+    this.iconReg.addSvgIcon(
+      'bearing-distance',
+      this.dom.bypassSecurityTrustResourceUrl(
+        './assets/img/bearing-distance.svg'
+      )
+    );
   }
 
   /**
