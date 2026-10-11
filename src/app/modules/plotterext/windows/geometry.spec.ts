@@ -188,11 +188,34 @@ describe('resolveGeometry', () => {
     ).toEqual({ x: 700, y: 0, w: 300, h: 200 });
   });
 
-  it('never makes a window larger than the area', () => {
+  it('shrinks a window larger than the area to fit, keeping its shape', () => {
     expect(resolveGeometry({ width: 5000, height: 5000 }, vp)).toMatchObject({
-      w: 1000,
+      w: 800,
       h: 800
     });
+    // a 4:3 window on a portrait phone stays 4:3, at the full width
+    expect(
+      resolveGeometry({ width: 480, height: 360 }, { w: 390, h: 844 })
+    ).toMatchObject({ w: 390, h: 292.5 });
+  });
+
+  it('keeps the minimums while shrinking, and still never exceeds the area', () => {
+    const phone = { w: 390, h: 844 };
+    expect(
+      resolveGeometry({ width: 480, height: 360, minHeight: 320 }, phone)
+    ).toMatchObject({ w: 390, h: 320 });
+    expect(
+      resolveGeometry({ width: 2000, height: 100 }, { w: 400, h: 300 })
+    ).toMatchObject({ w: 400, h: DEFAULT_LIMITS.minH });
+    expect(
+      resolveGeometry({ width: 400, height: 400 }, { w: 100, h: 100 })
+    ).toMatchObject({ w: 100, h: 100 });
+  });
+
+  it('does not shrink a whole-pixel size stored from a gesture on a fractional area', () => {
+    expect(
+      resolveGeometry({ width: 393, height: 200 }, { w: 392.73, h: 700.4 })
+    ).toMatchObject({ w: 392.73, h: 200 });
   });
 });
 

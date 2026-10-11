@@ -295,8 +295,8 @@ function requestedSize(
  * in the area without being cut down. The area is measured in fractional
  * pixels but a user gesture stores whole ones (`anchoredGeometry`), so a
  * window dragged to the full width of a 392.73px area asks for 393px. Up to
- * a pixel over still fits, or that drag would turn it into a sheet the user
- * could no longer move or resize.
+ * a pixel over still fits, or that drag would shrink the window the user just
+ * sized (see `drawnSize`).
  */
 export function fitsArea(
   g: WindowGeometry,
@@ -308,18 +308,48 @@ export function fitsArea(
 }
 
 /**
+ * The size a window is drawn at. One that fits (`fitsArea`) keeps its
+ * requested size, cut to the area by at most the pixel `fitsArea` allows. One
+ * that does not is scaled down evenly until it fits, keeping its shape the way
+ * a picture-in-picture video does instead of being squashed in one direction:
+ * a 480x360 window on a 390px-wide phone becomes 390x293, not 390x360. The
+ * host and request minimums still apply, and the area always caps the result.
+ */
+function drawnSize(
+  g: WindowGeometry,
+  area: ViewportSize,
+  limits: GeometryLimits
+): ViewportSize {
+  const req = requestedSize(g, area, limits);
+  if (fitsArea(g, area, limits)) {
+    return { w: Math.min(req.w, area.w), h: Math.min(req.h, area.h) };
+  }
+  const scale = Math.min(area.w / req.w, area.h / req.h);
+  const shrunk = (
+    len: number,
+    min: WindowLength | undefined,
+    hostMin: number,
+    total: number
+  ) =>
+    Math.min(Math.max(len * scale, hostMin, lengthPx(min, total) ?? 0), total);
+  return {
+    w: shrunk(req.w, g.minWidth, limits.minW, area.w),
+    h: shrunk(req.h, g.minHeight, limits.minH, area.h)
+  };
+}
+
+/**
  * Resolve a geometry request against the window area: sizes clamped to the
- * request's min/max and the host's minimum, the window placed by its anchor
- * and inward offset, and the result kept usable inside the area.
+ * request's min/max and the host's minimum (and shrunk to fit, see
+ * `drawnSize`), the window placed by its anchor and inward offset, and the
+ * result kept usable inside the area.
  */
 export function resolveGeometry(
   g: WindowGeometry,
   area: ViewportSize,
   limits: GeometryLimits = DEFAULT_LIMITS
 ): PxRect {
-  const req = requestedSize(g, area, limits);
-  const w = Math.min(req.w, area.w);
-  const h = Math.min(req.h, area.h);
+  const { w, h } = drawnSize(g, area, limits);
   const [v, hz] = anchorSides(g.anchor ?? 'top-right');
   const place = (side: Side, len: number, total: number, off: number) =>
     side === 'start'
