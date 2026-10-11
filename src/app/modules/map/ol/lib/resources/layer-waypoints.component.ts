@@ -10,12 +10,22 @@ import { Style, Text, Circle, Fill, Stroke } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { Coordinate } from '../models';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBRoutes, FBWaypoints } from 'src/app/types';
+import { FBWaypoints } from 'src/app/types';
 import { SKWaypoint } from 'src/app/modules/skresources';
 import { MapImageRegistry } from '../map-image-registry.service';
-import { drawnTogether, linkedWaypointId } from './route-waypoint-overlap';
+import { isRouteEndAt, joinOverlap } from './route-waypoint-overlap';
+
+/**
+ * Drawn in place of the icon at a route's start or end: invisible (OL still
+ * hit-detects a transparent fill), so the waypoint stays clickable there.
+ */
+const ROUTE_END_HIT_TARGET = new Circle({
+  radius: 12,
+  fill: new Fill({ color: 'rgba(0,0,0,0)' })
+});
+/** Label offset sized to a route start/end marker rather than an icon. */
+const ROUTE_END_LABEL_OFFSET_Y = -12;
 
 // ** Freeboard resource collection format **
 @Component({
@@ -28,14 +38,8 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() waypointStyles: { [key: string]: Style };
   @Input() activeWaypoint: string;
   @Input() waypoints: FBWaypoints = [];
-  /**
-   * The routes drawn on the map (saved and draft; entries flagged selected).
-   * A waypoint at a route's start or end gives way to the route's marker.
-   */
-  @Input() routes: FBRoutes = [];
 
-  /** Render-space start/end positions of drawn routes, by linked waypoint. */
-  private routeEnds = new Map<string, Coordinate[]>();
+  private leaveOverlap: () => void;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -48,7 +52,17 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['waypoint'];
+    this.leaveOverlap = joinOverlap(
+      this.mapComponent.getMap(),
+      'waypoints',
+      this.source
+    );
     this.parseFBWaypoints(this.waypoints);
+  }
+
+  override ngOnDestroy() {
+    this.leaveOverlap?.();
+    super.ngOnDestroy();
   }
 
   override ngOnChanges(changes: SimpleChanges) {
@@ -63,30 +77,6 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
         this.reloadWaypoints();
       }
     }
-    if ('routes' in changes) {
-      this.indexRouteEnds(changes['routes'].currentValue);
-      // Re-run the style functions so icons hide or reappear.
-      this.source?.changed();
-    }
-  }
-
-  private indexRouteEnds(routes: FBRoutes = []) {
-    this.routeEnds.clear();
-    for (const r of routes ?? []) {
-      const coords = r[1].feature.geometry.coordinates;
-      if (!r[2] || coords.length < 2) {
-        continue;
-      }
-      const meta = r[1].feature.properties?.coordinatesMeta;
-      for (const i of [0, coords.length - 1]) {
-        const id = linkedWaypointId(meta?.[i]);
-        if (id) {
-          const ends = this.routeEnds.get(id) ?? [];
-          ends.push(fromLonLat(coords[i]) as Coordinate);
-          this.routeEnds.set(id, ends);
-        }
-      }
-    }
   }
 
   /**
@@ -97,10 +87,12 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
     const style = feature.get('baseStyle') as Style;
     const id = (feature.getId() as string).slice('waypoint.'.length);
     const pos = (feature.getGeometry() as Point).getCoordinates();
-    const atRouteEnd = this.routeEnds
-      .get(id)
-      ?.some((end) => drawnTogether(pos, end, resolution));
-    return atRouteEnd ? new Style({ text: style.getText() }) : style;
+    if (!isRouteEndAt(this.mapComponent.getMap(), id, pos, resolution)) {
+      return style;
+    }
+    const text = style.getText()?.clone();
+    text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
+    return new Style({ image: ROUTE_END_HIT_TARGET, text });
   }
 
   /** Labels live on each feature's base style; its style is a function. */

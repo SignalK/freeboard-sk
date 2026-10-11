@@ -8,17 +8,18 @@ import {
 import { Feature } from 'ol';
 import { Style, Stroke, Fill, Circle, RegularShape } from 'ol/style';
 import { LineString, Point } from 'ol/geom';
-import { fromLonLat, toLonLat } from 'ol/proj';
+import { toLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { getRhumbLineBearing } from 'geolib';
 import { GeolibInputCoordinates } from 'geolib/es/types';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBRoutes, FBWaypoints } from 'src/app/types';
+import { FBRoutes } from 'src/app/types';
 import { MapImageRegistry } from '../map-image-registry.service';
 import {
   drawnTogether,
+  drawnWaypointPosition,
+  joinOverlap,
   linkedWaypointId,
   PointLink
 } from './route-waypoint-overlap';
@@ -39,11 +40,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   @Input() routeStyles: { [key: string]: Style };
   @Input() activeRoute: string;
   @Input() routes: FBRoutes = [];
-  /** The waypoint collection; entries flagged selected are the ones drawn. */
-  @Input() waypoints: FBWaypoints = [];
 
-  /** Render-space positions of the drawn waypoints, by waypoint id. */
-  private drawnWaypoints = new Map<string, Coordinate>();
+  private leaveOverlap: () => void;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -56,34 +54,27 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['route'];
+    this.leaveOverlap = joinOverlap(
+      this.mapComponent.getMap(),
+      'routes',
+      this.source
+    );
     this.parseFBRoutes(this.routes);
+  }
+
+  override ngOnDestroy() {
+    this.leaveOverlap?.();
+    super.ngOnDestroy();
   }
 
   override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
-    if ('waypoints' in changes) {
-      this.indexDrawnWaypoints(changes['waypoints'].currentValue);
-      // Re-run the style functions so markers hide or reappear.
-      this.source?.changed();
-    }
     if (this.source && ('routes' in changes || 'activeRoute' in changes)) {
       this.source.clear();
       if ('routes' in changes) {
         this.parseFBRoutes(changes['routes'].currentValue);
       } else if ('activeRoute' in changes) {
         this.onActivateRoute();
-      }
-    }
-  }
-
-  private indexDrawnWaypoints(waypoints: FBWaypoints = []) {
-    this.drawnWaypoints.clear();
-    for (const w of waypoints ?? []) {
-      if (w[2]) {
-        this.drawnWaypoints.set(
-          w[0],
-          fromLonLat(w[1].feature.geometry.coordinates) as Coordinate
-        );
       }
     }
   }
@@ -101,7 +92,10 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     coord: number[],
     resolution: number
   ): boolean {
-    const wpt = this.drawnWaypoints.get(linkedWaypointId(meta?.[index]));
+    const wpt = drawnWaypointPosition(
+      this.mapComponent.getMap(),
+      linkedWaypointId(meta?.[index])
+    );
     return !!wpt && drawnTogether(coord, wpt, resolution);
   }
 
@@ -204,10 +198,9 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
               })
           })
         );
-      } else if (this.isCoveredByWaypoint(meta, idx, start, resolution)) {
-        // An intermediate point: the waypoint's icon marks it. Start and end
-        // markers are always drawn; the waypoint layer gives way to them.
-      } else {
+      } else if (!this.isCoveredByWaypoint(meta, idx, start, resolution)) {
+        // An intermediate point a waypoint icon covers gets no marker. Start
+        // and end markers are always drawn; the waypoint layer gives way there.
         if (wptSym) {
           // Clone the cached icon so each segment can carry its own bearing
           // rotation without mutating the shared instance.
