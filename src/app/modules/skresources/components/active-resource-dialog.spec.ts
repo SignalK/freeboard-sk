@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { CdkDragHandle } from '@angular/cdk/drag-drop';
+import { CdkDragHandle, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 import { beforeEach, describe, it, expect } from 'vitest';
 import {
   MatBottomSheetRef,
@@ -204,6 +204,60 @@ describe('ActiveResourcePropertiesModal point names', () => {
   });
 });
 
+const routeCoordinates = [
+  [24.95, 60.15],
+  [24.955, 60.16],
+  [24.95, 60.17]
+];
+
+function mountRoutePoints() {
+  TestBed.configureTestingModule({
+    providers: [
+      {
+        provide: AppFacade,
+        useValue: {
+          data: {
+            activeRoute: null,
+            vessels: { self: { position: [24.95, 60.1712], heading: 0 } }
+          },
+          formatValueForDisplay: () => ''
+        }
+      },
+      { provide: CourseService, useValue: {} },
+      { provide: SKResourceService, useValue: {} },
+      { provide: RouteBufferRegistry, useValue: {} },
+      { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
+      {
+        provide: MAT_BOTTOM_SHEET_DATA,
+        useValue: {
+          title: 'Route Properties',
+          type: 'route',
+          resource: [
+            'rte-1',
+            {
+              name: 'Handles',
+              feature: {
+                type: 'Feature',
+                geometry: { type: 'LineString', coordinates: routeCoordinates },
+                properties: {
+                  coordinatesMeta: routeCoordinates.map((_, i) => ({
+                    name: `P${i}`
+                  }))
+                }
+              }
+            },
+            false
+          ],
+          noButtons: true
+        }
+      }
+    ]
+  });
+  const fixture = TestBed.createComponent(ActiveResourcePropertiesModal);
+  fixture.detectChanges();
+  return fixture;
+}
+
 /**
  * A swipe over the route points has to scroll the list. Each point is a
  * `cdkDrag`; without a live handle a drag starts anywhere on the point and
@@ -214,60 +268,39 @@ describe('ActiveResourcePropertiesModal re-order handles', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
   it('re-orders a point only from its drag indicator', () => {
-    const coordinates = [
-      [24.95, 60.15],
-      [24.955, 60.16],
-      [24.95, 60.17]
-    ];
-    TestBed.configureTestingModule({
-      providers: [
-        {
-          provide: AppFacade,
-          useValue: {
-            data: {
-              activeRoute: null,
-              vessels: { self: { position: [24.95, 60.1712], heading: 0 } }
-            },
-            formatValueForDisplay: () => ''
-          }
-        },
-        { provide: CourseService, useValue: {} },
-        { provide: SKResourceService, useValue: {} },
-        { provide: RouteBufferRegistry, useValue: {} },
-        { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
-        {
-          provide: MAT_BOTTOM_SHEET_DATA,
-          useValue: {
-            title: 'Route Properties',
-            type: 'route',
-            resource: [
-              'rte-1',
-              {
-                name: 'Handles',
-                feature: {
-                  type: 'Feature',
-                  geometry: { type: 'LineString', coordinates },
-                  properties: {
-                    coordinatesMeta: coordinates.map((_, i) => ({
-                      name: `P${i}`
-                    }))
-                  }
-                }
-              },
-              false
-            ],
-            noButtons: true
-          }
-        }
-      ]
-    });
-    const fixture = TestBed.createComponent(ActiveResourcePropertiesModal);
-    fixture.detectChanges();
+    const fixture = mountRoutePoints();
 
     const handles = fixture.debugElement.queryAll(By.directive(CdkDragHandle));
-    expect(handles).toHaveLength(coordinates.length);
+    expect(handles).toHaveLength(routeCoordinates.length);
     for (const h of handles) {
       expect(h.nativeElement.textContent).toContain('drag_indicator');
+    }
+  });
+});
+
+/**
+ * While a point is dragged, the gap it will drop into is drawn as the styled
+ * `.point-drop-placeholder` box. Without a live `*cdkDragPlaceholder` the CDK
+ * falls back to cloning the dragged card, so the point shows twice (#990).
+ */
+describe('ActiveResourcePropertiesModal drop placeholder', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  it('gives each point the styled drop placeholder', () => {
+    const fixture = mountRoutePoints();
+
+    const placeholders = fixture.debugElement
+      .queryAllNodes(By.directive(CdkDragPlaceholder))
+      .map((n) => n.injector.get(CdkDragPlaceholder));
+    expect(placeholders).toHaveLength(routeCoordinates.length);
+    for (const p of placeholders) {
+      const view = p.templateRef.createEmbeddedView(null);
+      expect(
+        (view.rootNodes[0] as HTMLElement).classList.contains(
+          'point-drop-placeholder'
+        )
+      ).toBe(true);
+      view.destroy();
     }
   });
 });
