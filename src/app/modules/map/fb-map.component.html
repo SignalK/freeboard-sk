@@ -326,6 +326,7 @@
   <fb-routes
     [routes]="skres.routes()"
     [routeStyles]="featureStyles.route"
+    [waypoints]="skres.waypoints()"
     [activeRoute]="activeRoute"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -338,6 +339,7 @@
   <fb-routes
     [routes]="bufferRoutes()"
     [routeStyles]="draftRouteStyles"
+    [waypoints]="skres.waypoints()"
     [activeRoute]="activeRoute"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -361,6 +363,7 @@
   <fb-waypoints
     [darkMode]="app.uiConfig().invertColor"
     [waypoints]="skres.waypoints()"
+    [routes]="drawnRoutes()"
     [activeWaypoint]="app.data.activeWaypoint"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"

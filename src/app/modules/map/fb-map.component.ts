@@ -373,6 +373,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       .filter((b) => !b.saved || b.dirty)
       .map((b) => this.bufferToFBRoute(b))
   );
+  // Every route on the map, saved and draft — the waypoint layer gives way to
+  // their start/end markers.
+  protected drawnRoutes = computed<FBRoutes>(() => [
+    ...this.skres.routes(),
+    ...this.bufferRoutes()
+  ]);
 
   // ** map feature data
   protected dfeat: IFeatureData = {
