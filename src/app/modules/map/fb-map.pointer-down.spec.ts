@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ChangeDetectorRef, ElementRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { fromLonLat } from 'ol/proj';
 
 import { FBMapComponent } from './fb-map.component';
 import { FBPointerDownEvent, MapComponent } from './ol/lib/map.component';
@@ -34,7 +35,7 @@ const olMapComponent = () => {
       get: (k: string) => props.get(k),
       set: (k: string, v: unknown) => props.set(k, v),
       getInteractions: () => ({ getArray: () => [] }),
-      getEventCoordinate: () => [0, 0],
+      getEventCoordinate: () => fromLonLat([-80.1, 25.7]),
       getView: () => ({
         getProjection: () => ({
           getExtent: () => [
@@ -72,6 +73,8 @@ describe('FBMapComponent.onMapPointerDown', () => {
     const cmp = bareComponent();
     expect(() => cmp.onMapPointerDown(emitted)).not.toThrow();
     expect(cmp.contextMenuPosition).toEqual({ x: '120px', y: '45px' });
-    expect(cmp.mouse().coords).toEqual([0, 0]);
+    const [lon, lat] = cmp.mouse().coords;
+    expect(lon).toBeCloseTo(-80.1);
+    expect(lat).toBeCloseTo(25.7);
   });
 });
