@@ -33,6 +33,13 @@ describe('ratioFromPointer', () => {
     expect(ratioFromPointer(rect, 999, 290, true)).toBeCloseTo(0.4);
   });
 
+  it('gives no ratio while the panel has no size along the divider axis', () => {
+    expect(ratioFromPointer({ ...rect, width: 0 }, 600, 290, false)).toBeNull();
+    expect(ratioFromPointer({ ...rect, height: 0 }, 600, 290, true)).toBeNull();
+    // only the axis the divider moves along matters
+    expect(ratioFromPointer({ ...rect, height: 0 }, 600, 999, false)).toBe(0.5);
+  });
+
   it('never lets either pane collapse', () => {
     expect(ratioFromPointer(rect, 100, 0, false)).toBe(SPLIT_RATIO_MIN);
     expect(ratioFromPointer(rect, 1100, 0, false)).toBe(SPLIT_RATIO_MAX);

@@ -155,9 +155,15 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     if (!this.gripRect) {
       return;
     }
-    this.split.setRatio(
-      ratioFromPointer(this.gripRect, ev.clientX, ev.clientY, this.gripStacked)
+    const ratio = ratioFromPointer(
+      this.gripRect,
+      ev.clientX,
+      ev.clientY,
+      this.gripStacked
     );
+    if (ratio !== null) {
+      this.split.setRatio(ratio);
+    }
   }
 
   protected gripUp() {
