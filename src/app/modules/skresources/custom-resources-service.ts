@@ -36,16 +36,17 @@ export class FBCustomResourceService {
 
   /**
    * @description Check status and initialise custom resource paths required for Freeboard features
+   * @param noCreate Collections only checked for, not created when missing
    * @returns object items to be added to this.app.featureFlags
    */
-  public async initCustomCollections() {
+  public async initCustomCollections(noCreate: string[] = []) {
     const rcs: Record<string, boolean> = {};
     await Promise.all(
       this.app.CUSTOM_RESOURCES.map(async (cr) => {
         rcs[cr.featureKey] = await this.checkCustomCollection(
           cr.name,
           cr.description,
-          cr.createIfMissing ?? true
+          (cr.createIfMissing ?? true) && !noCreate.includes(cr.name)
         );
       })
     );

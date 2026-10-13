@@ -230,7 +230,7 @@
   }
 
   <!-- Tracks -->
-  @if (app.featureFlags().resourceTracks) {
+  @if (app.tracksAvailable()) {
     <fb-tracks
       [darkMode]="app.uiConfig().invertColor"
       [tracks]="skres.tracks()"

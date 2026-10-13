@@ -118,13 +118,14 @@
             <div style="flex: 1 1 auto">
               <button
                 mat-icon-button
-                (click)="itemDelete(r[0])"
+                (click)="itemDelete(r)"
                 matTooltip="Delete Track"
                 matTooltipPosition="above"
               >
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
+            @if (!isStored(r)) {
             <div>
               <button
                 mat-icon-button
@@ -135,6 +136,7 @@
                 <mat-icon>edit</mat-icon>
               </button>
             </div>
+            }
             <div>
               <button
                 mat-icon-button

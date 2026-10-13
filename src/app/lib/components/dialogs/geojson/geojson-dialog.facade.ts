@@ -9,8 +9,7 @@ import {
   SKResourceService,
   SKRoute,
   SKWaypoint,
-  SKRegion,
-  SKTrack
+  SKRegion
 } from 'src/app/modules';
 import {
   LineStringFeature,
@@ -211,26 +210,20 @@ export class GeoJSONLoadFacade {
         ? (f.properties.description ?? '')
         : 'GeoJSON import';
 
-    const r = new SKTrack({ feature: f });
+    // a GeoJSON track carries its point times, if any, as properties.coordTimes
     this.subCount++;
-    this.signalk.api
-      .post(this.app.skApiVersion, `/resources/tracks`, r)
-      .subscribe(
-        (r: SKApiResponse) => {
-          this.subCount--;
-          if (r.state === 'COMPLETED') {
-            this.app.debug('SUCCESS: GeoJSON Track added.');
-          } else {
-            this.errorCount++;
-          }
-          this.checkComplete();
-        },
-        () => {
-          this.errorCount++;
-          this.subCount--;
-          this.checkComplete();
-        }
-      );
+    this.skres.importTrack(f).then(
+      () => {
+        this.subCount--;
+        this.app.debug('SUCCESS: GeoJSON Track added.');
+        this.checkComplete();
+      },
+      () => {
+        this.errorCount++;
+        this.subCount--;
+        this.checkComplete();
+      }
+    );
   }
 
   // ** transform and upload region

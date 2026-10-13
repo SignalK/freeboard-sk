@@ -4,7 +4,8 @@ import {
   signal,
   effect,
   output,
-  inject
+  inject,
+  untracked
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -18,7 +19,8 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SKResourceService, SKResourceType } from 'src/app/modules/skresources';
+import { SKResourceService } from 'src/app/modules/skresources';
+import { isStoredTrack } from '../../track-store';
 import { FBTrack, FBTracks, Position } from 'src/app/types';
 import { SKWorkerService } from 'src/app/modules';
 import { ResourceListBase } from '../resource-list-baseclass';
@@ -62,7 +64,18 @@ export class TrackListComponent extends ResourceListBase {
         this.initItems(true);
       }
     });
+    // the Track API store sends no resource deltas
+    let storeVersion = this.skres.trackStoreVersion();
+    effect(() => {
+      const v = this.skres.trackStoreVersion();
+      if (v !== storeVersion) {
+        storeVersion = v;
+        untracked(() => this.initItems(true));
+      }
+    });
   }
+
+  protected readonly isStored = (r: FBTrack) => isStoredTrack(r[1].feature);
 
   ngOnInit() {
     this.initItems();
@@ -85,9 +98,7 @@ export class TrackListComponent extends ResourceListBase {
     }
     this.app.sIsFetching.set(!(silent ?? false));
     try {
-      this.fullList = await this.skres.listFromServer<FBTrack>(
-        this.collection as SKResourceType
-      );
+      this.fullList = await this.skres.listTracks();
       this.app.sIsFetching.set(false);
       this.doFilter();
       this.skres.selectionClean(
@@ -141,10 +152,10 @@ export class TrackListComponent extends ResourceListBase {
 
   /**
    * @description Show delete track dialog
-   * @param id track identifier
+   * @param r track entry
    */
-  protected itemDelete(id: string) {
-    this.skres.deleteTrack(id);
+  protected itemDelete(r: FBTrack) {
+    this.skres.deleteTrack(r[0], this.isStored(r));
   }
 
   /**
