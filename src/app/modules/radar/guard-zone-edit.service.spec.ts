@@ -215,6 +215,36 @@ describe('GuardZoneEditService', () => {
     expect(service.zones()).toEqual([]);
   });
 
+  it('draws no zones while the radar sends no picture', () => {
+    const inState = (value: number) =>
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          controls: {
+            ...r.capabilities.controls,
+            power: {
+              id: 0,
+              name: 'Power',
+              description: '',
+              category: 'base',
+              dataType: 'enum',
+              descriptions: { 0: 'Off', 1: 'Standby', 2: 'Transmit' }
+            }
+          }
+        } as unknown as CapabilityManifest,
+        controls: new Map(r.controls).set('power', { value })
+      }));
+
+    inState(2);
+    expect(shown('guardZone1')).toBeDefined();
+    inState(1);
+    expect(service.zones()).toEqual([]);
+    inState(0);
+    expect(service.zones()).toEqual([]);
+    inState(2);
+    expect(shown('guardZone1')).toBeDefined();
+  });
+
   it('ends the edit when another radar is picked', () => {
     service.editZone('guardZone1');
     radar.set(makeRadar('fur6424B', { guardZone1: stored }));

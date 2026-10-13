@@ -319,7 +319,14 @@ describe('RadarPanel', () => {
     );
   });
 
+  const transmit = () =>
+    radar.update((r) => ({
+      ...r,
+      controls: new Map(r.controls).set('power', { value: 2 })
+    }));
+
   it('switches the range rings with the rings button and saves the choice', () => {
+    transmit();
     const fixture = open();
     const app = TestBed.inject(AppFacade);
     const save = vi.spyOn(app, 'saveConfig');
@@ -332,6 +339,31 @@ describe('RadarPanel', () => {
 
     rings().click();
     expect(app.config.radars.rings).toBe(true);
+  });
+
+  it('offers no range rings while the radar sends no picture', () => {
+    const fixture = open();
+    const app = TestBed.inject(AppFacade);
+    const rings = () =>
+      fixture.nativeElement.querySelector('.rings-button') as HTMLElement;
+
+    // in standby
+    rings().click();
+    expect(app.config.radars.rings).toBe(true);
+    expect(rings().getAttribute('aria-label')).toBe(
+      'Range rings show with the radar picture on the chart'
+    );
+
+    // transmitting, with the overlay hidden
+    transmit();
+    ui.set({ radarLayer: false });
+    fixture.detectChanges();
+    rings().click();
+    expect(app.config.radars.rings).toBe(true);
+
+    ui.set({ radarLayer: true });
+    fixture.detectChanges();
+    expect(rings().getAttribute('aria-label')).toBe('Hide range rings');
   });
 
   it('hides and shows the overlay with the eye button', () => {
@@ -380,6 +412,8 @@ describe('RadarPanel', () => {
       Array.from(
         zoneBlock(el).querySelectorAll<HTMLButtonElement>('button')
       ).find((b) => b.textContent.trim() === label);
+    beforeEach(() => transmit());
+
     const zone: ControlValue = {
       value: 0,
       endValue: Math.PI / 2,
@@ -470,6 +504,22 @@ describe('RadarPanel', () => {
       const el: HTMLElement = fixture.nativeElement;
       button(el, 'Draw').click();
       ui.set({ radarLayer: false });
+      fixture.detectChanges();
+
+      expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
+      expect(button(el, 'Draw').disabled).toBe(true);
+      expect(button(el, 'Edit').disabled).toBe(true);
+    });
+
+    it('ends the edit and offers no drawing while the radar is in standby', () => {
+      withZone(zone);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Edit').click();
+      radar.update((r) => ({
+        ...r,
+        controls: new Map(r.controls).set('power', { value: 1 })
+      }));
       fixture.detectChanges();
 
       expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
