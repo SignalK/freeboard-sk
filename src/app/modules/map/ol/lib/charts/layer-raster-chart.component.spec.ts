@@ -181,3 +181,44 @@ describe('RasterChartLayerComponent — time-varying chart', () => {
     expect(src.getKey()).toBe(key);
   });
 });
+
+/**
+ * OpenLayers loads no tiles mid-gesture on a slow device, so a pan over a
+ * raster chart shows only what is already loaded. Keeping the next lower zoom
+ * loaded gives the exposed area a blurred placeholder instead of blank map.
+ */
+describe('RasterChartLayerComponent — lower-zoom placeholder', () => {
+  const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
+
+  const renderedLayer = (url: string): TileLayer => {
+    const chart = new SKChart({
+      name: 'Chart',
+      url,
+      type: 'tilelayer',
+      format: 'png'
+    });
+    const fixture = TestBed.createComponent(RasterChartLayerComponent);
+    fixture.componentRef.setInput('chart', ['chart', chart, true]);
+    fixture.componentRef.setInput('zIndex', 10);
+    fixture.detectChanges();
+    return map.addLayer.mock.calls[0][0] as TileLayer;
+  };
+
+  beforeEach(async () => {
+    map.addLayer.mockReset();
+    await TestBed.configureTestingModule({
+      declarations: [RasterChartLayerComponent],
+      providers: [{ provide: MapComponent, useValue: { getMap: () => map } }]
+    }).compileComponents();
+  });
+
+  it('preloads one lower zoom for an XYZ chart', () => {
+    const layer = renderedLayer('https://c.test/{z}/{x}/{y}.png');
+    expect(layer.getPreload()).toBe(1);
+  });
+
+  it('preloads one lower zoom for a raster PMTiles chart', () => {
+    const layer = renderedLayer('https://c.test/chart.pmtiles');
+    expect(layer.getPreload()).toBe(1);
+  });
+});

@@ -105,7 +105,10 @@ export class RasterChartLayerComponent implements OnDestroy {
               maxZoom: chart[1].maxZoom,
               tileSize: chart[1].tileSize ?? 256
             }),
-            preload: 0,
+            // OL loads no tiles mid-gesture on a slow device, so a pan exposes
+            // blank map. The next lower zoom, loaded while idle and reaching
+            // past the viewport edge, fills that in blurred instead.
+            preload: 1,
             zIndex: this.zIndex(),
             minZoom: zoom.min,
             maxZoom: zoom.max,
