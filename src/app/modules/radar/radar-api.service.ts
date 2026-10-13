@@ -6,6 +6,10 @@ import { SKStreamFacade } from '../skstream/skstream.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { DeltaSignal } from 'src/app/types';
 
+// While no radar is listed, vessel updates look for one at most this often:
+// the radar provider (a plugin or its container) can start after Freeboard.
+export const RADAR_RETRY_MS = 10000;
+
 // SignalK server-api definitions
 export interface SKRadarLegendEntry {
   type: string;
@@ -132,6 +136,8 @@ export class RadarAPIService {
   private worker = inject(SKWorkerService);
 
   private initialised = false;
+  private probing = false;
+  private lastProbe = 0;
   private initCalls = 0;
   private capabilityReads = 0;
 
@@ -158,10 +164,17 @@ export class RadarAPIService {
   }
 
   private onVessels() {
-    if (this.initialised && !this._selectedRadar()) {
-      this.app.debug('Radar now online....', 'Initialising....');
-      this.init();
+    if (!this.initialised || this._selectedRadar() || this.probing) {
+      return;
     }
+    const now = Date.now();
+    if (now - this.lastProbe < RADAR_RETRY_MS) {
+      return;
+    }
+    this.lastProbe = now;
+    this.probing = true;
+    this.app.debug('Looking for a radar....');
+    this.init().finally(() => (this.probing = false));
   }
 
   /** return API path for radar device
@@ -192,6 +205,9 @@ export class RadarAPIService {
     if (call !== this.initCalls) {
       return;
     }
+    // Set on the first answer, radars or not: an empty list at start-up must
+    // still let onVessels() look again once the radar provider comes up.
+    this.initialised = true;
     this._radars.set(radars);
     if (!radars.length) {
       this._selectedRadar.set('');
@@ -267,7 +283,6 @@ export class RadarAPIService {
     }
 
     this.app.debug(this._radar());
-    this.initialised = true;
     return selected;
   }
 

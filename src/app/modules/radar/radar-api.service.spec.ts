@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RadarAPIService } from './radar-api.service';
+import { RADAR_RETRY_MS, RadarAPIService } from './radar-api.service';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamFacade } from '../skstream/skstream.facade';
@@ -48,6 +48,9 @@ describe('RadarAPIService init() (#755)', () => {
   };
 
   let radarUpdates: Subject<DeltaSignal>;
+  let vesselUpdates: Subject<void>;
+  // every GET path, in order
+  let gets: string[];
   let put: ReturnType<typeof vi.fn>;
   // responses a test holds back, answered in order before the defaults
   let held: Map<string, Array<Observable<unknown>>>;
@@ -62,6 +65,8 @@ describe('RadarAPIService init() (#755)', () => {
     TestBed.resetTestingModule();
     vi.spyOn(console, 'warn').mockImplementation(() => undefined); // no WebGL in jsdom
     radarUpdates = new Subject<DeltaSignal>();
+    vesselUpdates = new Subject<void>();
+    gets = [];
     put = vi.fn(() => of(undefined));
     held = new Map();
     app = {
@@ -78,18 +83,22 @@ describe('RadarAPIService init() (#755)', () => {
           provide: SignalKClient,
           useValue: {
             api: {
-              get: (_v: number, path: string) =>
-                held.get(path)?.shift() ??
-                (path in responses
-                  ? of(responses[path])
-                  : throwError(() => new Error(`unexpected GET ${path}`))),
+              get: (_v: number, path: string) => {
+                gets.push(path);
+                return (
+                  held.get(path)?.shift() ??
+                  (path in responses
+                    ? of(responses[path])
+                    : throwError(() => new Error(`unexpected GET ${path}`)))
+                );
+              },
               put
             }
           }
         },
         {
           provide: SKStreamFacade,
-          useValue: { vessels$: () => new Subject().asObservable() }
+          useValue: { vessels$: () => vesselUpdates.asObservable() }
         },
         {
           provide: SKWorkerService,
@@ -120,6 +129,55 @@ describe('RadarAPIService init() (#755)', () => {
       timestamp: 't',
       value: 50,
       auto: true
+    });
+  });
+
+  describe('a radar that comes up after Freeboard', () => {
+    const none = () => of({ version: '3.4.0', radars: {} });
+    const listCalls = () =>
+      gets.filter((p) => p === 'vessels/self/radars').length;
+    const settle = () => new Promise((r) => setTimeout(r, 0));
+
+    it('is found by a later vessel update', async () => {
+      held.set('vessels/self/radars', [none()]);
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      expect(service.radarId()).toBe('');
+
+      vesselUpdates.next();
+      await vi.waitFor(() => expect(service.radarId()).toBe('radar-1'));
+      expect(service.radar().device.id).toBe('radar-1');
+    });
+
+    it('is looked for at most once per RADAR_RETRY_MS', async () => {
+      held.set('vessels/self/radars', [none(), none()]);
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      const start = Date.now();
+      const now = vi.spyOn(Date, 'now').mockReturnValue(start);
+      vesselUpdates.next();
+      await settle();
+      vesselUpdates.next();
+      vesselUpdates.next();
+      await settle();
+      expect(listCalls()).toBe(2);
+      expect(service.radarId()).toBe('');
+
+      now.mockReturnValue(start + RADAR_RETRY_MS);
+      vesselUpdates.next();
+      await vi.waitFor(() => expect(service.radarId()).toBe('radar-1'));
+      expect(listCalls()).toBe(3);
+    });
+
+    it('is not looked for again once one is selected', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      const before = gets.length;
+
+      vesselUpdates.next();
+      await settle();
+      expect(gets.length).toBe(before);
     });
   });
 
