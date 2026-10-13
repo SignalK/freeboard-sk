@@ -119,6 +119,8 @@ import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.com
 import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
 import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
+import { SplitMapComponent } from './modules/map/split-view/split-map.component';
+import { SplitViewService } from './modules/map/split-view/split-view.service';
 import {
   RoutePanel,
   SKResourceType,
@@ -180,6 +182,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     PlotterBackgroundHost,
     PlotterPanelDrawer,
     ExtWindowLayerComponent,
+    SplitMapComponent,
     WeatherListComponent
   ]
 })
@@ -264,6 +267,7 @@ export class AppComponent {
   });
 
   protected app = inject(AppFacade);
+  protected splitView = inject(SplitViewService);
   protected infoPanel = inject(InfoPanelFacade);
   protected mapInteract = inject(FBMapInteractService);
   protected anchor = inject(AnchorService);
@@ -553,6 +557,11 @@ export class AppComponent {
       });
     });
     this.focusMap();
+  }
+
+  /** The split view is an experiment: it shows only while experiments are on. */
+  protected splitActive(): boolean {
+    return !!this.app.config.experiments && this.splitView.enabled();
   }
 
   protected toggleConstrainMapZoom() {

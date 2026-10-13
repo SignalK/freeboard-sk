@@ -1,0 +1,208 @@
+<ol-map
+  class="split-ol-map"
+  [secondary]="true"
+  [logo]="false"
+  [olInteractions]="olInteractions"
+  [olControls]="olControls"
+  (mapReady)="onMapReady($event)"
+  (mapMoveEnd)="onMoveEnd($event)"
+  (mapPointerDrag)="onDrag()"
+  olView
+  [zoom]="zoom()"
+  [center]="center()"
+  [rotation]="rotation()"
+  [minZoom]="app.MAP_ZOOM_EXTENT.min"
+  [maxZoom]="app.MAP_ZOOM_EXTENT.max"
+  [enableAnimation]="false"
+>
+  <!-- Charts: the same list, order and settings as the main chart -->
+  @for (c of skres.charts(); track c[0]; let idx = $index) {
+    @if (c[1].type?.toLowerCase() === 's-57') {
+      <fb-s57-chart [zIndex]="10 + idx" [chart]="c"> </fb-s57-chart>
+    } @else if (c[1].type?.toLowerCase() === 'mapstylejson') {
+      <fb-mapstylejson-chart [zIndex]="10 + idx" [chart]="c">
+      </fb-mapstylejson-chart>
+    } @else if (c[1].type?.toLowerCase() === 'tilejson') {
+      <fb-tilejson-chart
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="app.config.map.overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-tilejson-chart>
+    } @else if (c[1].type?.toLowerCase() === 'wms') {
+      <fb-wms-chart
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="app.config.map.overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-wms-chart>
+    } @else if (c[1].type?.toLowerCase() === 'wmts') {
+      <fb-wmts-chart
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="app.config.map.overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-wmts-chart>
+    } @else if (
+      c[1].type?.toLowerCase() === 'tilelayer' &&
+      (c[1].format?.toLowerCase() === 'pbf' ||
+        c[1].format?.toLowerCase() === 'mvt')
+    ) {
+      <fb-tilelayer-vector
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="app.config.map.overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-tilelayer-vector>
+    } @else if (
+      c[0] === 'openstreetmap' ||
+      c[1].type?.toLowerCase() === 'tilelayer' ||
+      !c[1]?.type
+    ) {
+      <fb-tilelayer-raster
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="app.config.map.overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-tilelayer-raster>
+    }
+  }
+
+  <fb-routes
+    [routes]="skres.routes()"
+    [routeStyles]="routeStyles"
+    [activeRoute]="app.data.activeRoute"
+    [darkMode]="app.uiConfig().invertColor"
+    [labelMinZoom]="app.config.map.labelsMinZoom"
+    [mapZoom]="zoom()"
+    [zIndex]="500"
+  >
+  </fb-routes>
+
+  <fb-waypoints
+    [darkMode]="app.uiConfig().invertColor"
+    [waypoints]="skres.waypoints()"
+    [activeWaypoint]="app.data.activeWaypoint"
+    [labelMinZoom]="app.config.map.labelsMinZoom"
+    [mapZoom]="zoom()"
+    [zIndex]="600"
+  >
+  </fb-waypoints>
+
+  @if (app.config.ui.showAisTargets) {
+    <sk-ais-vessels
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="app.data.vessels.aisTargets"
+      targetContext="vessels"
+      [labelMinZoom]="app.config.map.labelsMinZoom"
+      [mapZoom]="zoom()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
+      [zIndex]="980"
+      [focusId]="app.data.vessels.activeId"
+      [filterIds]="app.config.selections.aisTargets"
+      [filterByShipType]="app.config.selections.aisFilterByShipType"
+      [filterShipTypes]="app.config.selections.aisTargetTypes"
+      [cogLineLength]="app.config.vessels.aisCogLine"
+    >
+    </sk-ais-vessels>
+  }
+
+  <!-- What the main chart is showing -->
+  <fb-view-footprint [ring]="footprint()" [zIndex]="950"></fb-view-footprint>
+
+  <fb-vessel
+    [position]="selfPosition()"
+    [heading]="heading()"
+    [id]="'' + app.data.selfId"
+    [activeId]="app.data.vessels.activeId"
+    [iconScale]="app.config.vessels.iconScale"
+    [fixedLocation]="app.config.vessels.fixedLocationMode"
+    [stale]="
+      skstream.selfPositionStale() && !app.config.vessels.fixedLocationMode
+    "
+    [zIndex]="999"
+  >
+  </fb-vessel>
+</ol-map>
+
+<div class="split-chip">
+  <button
+    mat-mini-fab
+    [class.button-primary]="!split.northUp()"
+    [class.button-toolbar]="split.northUp()"
+    (click)="toggleNorthUp()"
+    [attr.aria-label]="split.northUp() ? 'Show Heading Up' : 'Show North Up'"
+    [matTooltip]="split.northUp() ? 'Show Heading Up' : 'Show North Up'"
+  >
+    <mat-icon
+      class="ob"
+      [svgIcon]="split.northUp() ? 'heading-n-up' : 'heading-h-up'"
+    ></mat-icon>
+  </button>
+  <button
+    mat-mini-fab
+    [class.button-primary]="split.follow()"
+    [class.button-toolbar]="!split.follow()"
+    (click)="toggleFollow()"
+    [disabled]="!app.data.vessels.showSelf"
+    [attr.aria-label]="
+      split.follow() ? 'Turn off Follow Vessel' : 'Center & Follow Vessel'
+    "
+    [matTooltip]="
+      split.follow() ? 'Turn off Follow Vessel' : 'Center & Follow Vessel'
+    "
+  >
+    <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
+  </button>
+  <button
+    class="button-toolbar"
+    mat-mini-fab
+    (click)="zoomBy(-1)"
+    [disabled]="zoom() <= app.MAP_ZOOM_EXTENT.min"
+    aria-label="Zoom out"
+    matTooltip="Zoom out"
+  >
+    <mat-icon>remove</mat-icon>
+  </button>
+  <button
+    class="button-toolbar"
+    mat-mini-fab
+    (click)="zoomBy(1)"
+    [disabled]="zoom() >= app.MAP_ZOOM_EXTENT.max"
+    aria-label="Zoom in"
+    matTooltip="Zoom in"
+  >
+    <mat-icon>add</mat-icon>
+  </button>
+  <button
+    class="button-toolbar"
+    mat-mini-fab
+    (click)="close()"
+    aria-label="Close split view"
+    matTooltip="Close split view"
+  >
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<button
+  class="split-grip"
+  type="button"
+  aria-label="Resize the split view"
+  matTooltip="Drag to resize"
+  (pointerdown)="gripDown($event)"
+  (pointermove)="gripMove($event)"
+  (pointerup)="gripUp()"
+  (pointercancel)="gripUp()"
+  (keydown)="gripKey($event)"
+>
+  <mat-icon>drag_indicator</mat-icon>
+</button>

@@ -918,6 +918,29 @@
                   <br />&nbsp;<br />
                 </div>
 
+                <!-- Split view (experiment) -->
+                @if (app.config.experiments) {
+                  <div class="buttonPanelItem">
+                    <button
+                      mat-mini-fab
+                      [ngClass]="{
+                        'button-primary': splitView.enabled(),
+                        'button-toolbar': !splitView.enabled()
+                      }"
+                      (click)="splitView.toggle()"
+                      [matTooltip]="
+                        splitView.enabled()
+                          ? 'Close split view'
+                          : 'Split view: a second chart'
+                      "
+                      matTooltipPosition="before"
+                    >
+                      <mat-icon>vertical_split</mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+
                 <!-- Experiments -->
                 @if (app.config.experiments) {
                   <div class="buttonPanelItem">
@@ -1028,35 +1051,46 @@
           }
           <!--map panel-->
           <div
-            style="display: relative; width: 100%; height: 100%"
+            class="mapPanel"
+            [class.split]="splitActive()"
             (dragover)="mapDragOver($event)"
             (drop)="mapDrop($event)"
           >
-            <!-- MAP -->
-            <fb-map
-              #fbMap
-              [scaleUnits]="app.config.units.distance"
-              [setFocus]="mapSetFocus()"
-              [mapCenter]="mapCenter()"
-              [mapZoom]="app.config.map.zoomLevel"
-              [northUp]="app.uiConfig().mapNorthUp"
-              [movingMap]="app.uiConfig().mapMove"
-              [vesselTrail]="app.selfTrail()"
-              [activeRoute]="app.data.activeRoute"
-              [dblClickZoom]="app.config.map.doubleClickZoom"
-              [overZoomTiles]="app.config.map.overZoomTiles"
-              [measureMode]="mapInteract.isMeasuring()"
-              [drawMode]="mapInteract.isDrawing()"
-              (drawEnded)="handleDrawEnded($event)"
-              (activate)="activateRoute($event)"
-              (deactivate)="clearDestination()"
-              (exitMovingMap)="toggleMoveMap($event)"
-              (resumeMovingMap)="resumeMoveMap()"
-              (focusVessel)="switchActiveVessel($event)"
-              (info)="featureProperties($event)"
-              (menuItemSelected)="handleContextMenuSelection($event)"
+            <div
+              class="mapMain"
+              [style.flex-basis.%]="
+                splitActive() ? splitView.ratio() * 100 : 100
+              "
             >
-            </fb-map>
+              <!-- MAP -->
+              <fb-map
+                #fbMap
+                [scaleUnits]="app.config.units.distance"
+                [setFocus]="mapSetFocus()"
+                [mapCenter]="mapCenter()"
+                [mapZoom]="app.config.map.zoomLevel"
+                [northUp]="app.uiConfig().mapNorthUp"
+                [movingMap]="app.uiConfig().mapMove"
+                [vesselTrail]="app.selfTrail()"
+                [activeRoute]="app.data.activeRoute"
+                [dblClickZoom]="app.config.map.doubleClickZoom"
+                [overZoomTiles]="app.config.map.overZoomTiles"
+                [measureMode]="mapInteract.isMeasuring()"
+                [drawMode]="mapInteract.isDrawing()"
+                (drawEnded)="handleDrawEnded($event)"
+                (activate)="activateRoute($event)"
+                (deactivate)="clearDestination()"
+                (exitMovingMap)="toggleMoveMap($event)"
+                (resumeMovingMap)="resumeMoveMap()"
+                (focusVessel)="switchActiveVessel($event)"
+                (info)="featureProperties($event)"
+                (menuItemSelected)="handleContextMenuSelection($event)"
+              >
+              </fb-map>
+            </div>
+            @if (splitActive()) {
+              <fb-split-map></fb-split-map>
+            }
           </div>
           <!--/map panel-->
 
