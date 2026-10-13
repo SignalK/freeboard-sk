@@ -12,21 +12,33 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Map as OlMap } from 'ol';
 import { Coordinate } from 'ol/coordinate';
+import { getWidth } from 'ol/extent';
+import { toLonLat } from 'ol/proj';
 import { Subscription } from 'rxjs';
 import { AppFacade } from 'src/app/app.facade';
-import { SKResourceService, SKStreamFacade } from 'src/app/modules';
-import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
-import { FBMapEvent } from 'src/app/modules/map/ol/lib/map.component';
+import { SKStreamFacade } from 'src/app/modules';
+import {
+  FreeboardOpenlayersModule,
+  hitToleranceForPointer,
+  worldCopyOffset
+} from 'src/app/modules/map/ol';
+import {
+  FBClickEvent,
+  FBMapEvent
+} from 'src/app/modules/map/ol/lib/map.component';
 import { MapReadyEvent } from 'src/app/modules/map/ol/lib/models';
 import { Position } from 'src/app/types';
-import { mapControls, routeStyles } from '../mapconfig';
+import { FBMapInteractService } from '../fbmap-interact.service';
+import { mapControls } from '../mapconfig';
+import { mirrorLayers } from './layer-mirror';
 import { ratioFromPointer, viewFootprint } from './split-view';
 import { SplitViewService } from './split-view.service';
 
 /**
- * The second chart pane of the split view: the same charts, routes, waypoints,
- * AIS targets and vessel as the main chart, with a view of its own. The main
- * chart's viewport is outlined on it.
+ * The second chart pane of the split view: everything the main chart shows,
+ * with a view of its own and the main chart's viewport outlined on it. Its
+ * layers mirror the main chart's (see layer-mirror), and its taps are handled
+ * by the main chart, so popovers and menus work the same in both panes.
  */
 @Component({
   selector: 'fb-split-map',
@@ -41,9 +53,9 @@ import { SplitViewService } from './split-view.service';
 })
 export class SplitMapComponent implements OnInit, OnDestroy {
   protected app = inject(AppFacade);
-  protected skres = inject(SKResourceService);
   protected skstream = inject(SKStreamFacade);
   protected split = inject(SplitViewService);
+  private mapInteract = inject(FBMapInteractService);
   private host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   // The main chart's set, minus pinch-rotate: rotation is the orientation
@@ -57,7 +69,6 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     { name: 'doubleclickzoom' }
   ];
   protected readonly olControls = mapControls;
-  protected readonly routeStyles = routeStyles;
 
   protected zoom = signal<number>(10);
   protected center = signal<Position>([0, 0]);
@@ -68,7 +79,9 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   );
   protected footprint = signal<Coordinate[] | null>(null);
 
+  private map: OlMap | undefined;
   private mainMap: OlMap | undefined;
+  private stopMirror: (() => void) | undefined;
   private vessels: Subscription;
   private gripRect: DOMRect | null = null;
   private gripStacked = false;
@@ -94,16 +107,66 @@ export class SplitMapComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.vessels?.unsubscribe();
+    this.stopMirror?.();
     this.mainMap?.un('moveend', this.updateFootprint);
     this.mainMap?.un('change:size', this.updateFootprint);
+    this.split.setSecondaryMap(null);
   }
 
   protected onMapReady(e: MapReadyEvent) {
+    this.map = e.map;
     // Both maps are registered by now; the main chart is the one that isn't ours.
     this.mainMap = e.mapService.getMaps().find((m) => m !== e.map);
-    this.mainMap?.on('moveend', this.updateFootprint);
-    this.mainMap?.on('change:size', this.updateFootprint);
+    if (this.mainMap) {
+      this.stopMirror = mirrorLayers(this.mainMap, e.map);
+      this.mainMap.on('moveend', this.updateFootprint);
+      this.mainMap.on('change:size', this.updateFootprint);
+    }
     this.updateFootprint();
+    this.split.setSecondaryMap(e.map);
+  }
+
+  // ---------- taps ----------
+
+  /** Drawing, measuring and editing happen on the main chart only. */
+  private interacting(): boolean {
+    return (
+      this.mapInteract.isDrawing() ||
+      this.mapInteract.isModifying() ||
+      this.mapInteract.isMeasuring() ||
+      this.mapInteract.isBoxSelecting()
+    );
+  }
+
+  protected onTap(e: FBClickEvent) {
+    if (this.map && !this.interacting()) {
+      this.split.forwardTap({ kind: 'click', event: e, map: this.map });
+    }
+  }
+
+  /** Right click, or a long press on a touch screen: the chart menu. */
+  protected onContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    const map = this.map;
+    if (!map || this.interacting()) {
+      return;
+    }
+    const coordinate = map.getEventCoordinate(e);
+    const worldWidth = getWidth(map.getView().getProjection().getExtent());
+    this.split.forwardTap({
+      kind: 'contextmenu',
+      event: e,
+      features: map.getFeaturesAtPixel(map.getEventPixel(e), {
+        hitTolerance: hitToleranceForPointer(
+          (e as PointerEvent).pointerType,
+          5,
+          15
+        )
+      }),
+      lonlat: toLonLat(coordinate),
+      worldOffset: worldCopyOffset(coordinate[0], worldWidth),
+      map
+    });
   }
 
   protected onMoveEnd(e: FBMapEvent) {

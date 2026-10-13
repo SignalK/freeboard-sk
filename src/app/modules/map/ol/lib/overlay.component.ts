@@ -9,6 +9,7 @@ import {
   OnInit,
   SimpleChanges
 } from '@angular/core';
+import { Map as OlMap } from 'ol';
 import Overlay, { Options, PanIntoViewOptions } from 'ol/Overlay';
 import { fromLonLat } from 'ol/proj';
 import { EventsKey } from 'ol/events';
@@ -41,6 +42,11 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() positioning: string;
   @Input() stopEvent: boolean;
   @Input() insertFirst: boolean;
+  /**
+   * The map to show the overlay on, when not the one it is declared in: a
+   * popover for a tap on the split view's second pane opens in that pane.
+   */
+  @Input() targetMap: OlMap | undefined;
 
   /**
    * Emits when the overlay may have moved on screen: after it is moved to a
@@ -50,6 +56,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
    */
   readonly repositioned = new Subject<void>();
   private moveEndKey: EventsKey;
+  private shownOn: OlMap;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -69,13 +76,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
     if (this.elementRef.nativeElement) {
       this.element = this.elementRef.nativeElement;
       this.overlay = new Overlay(this as Options);
-      this.mapComponent.getMap().addOverlay(this.overlay);
-      // moveend is dispatched before postrender, and the overlay only moves
-      // to its new screen position on postrender, so signal after that.
-      const map = this.mapComponent.getMap();
-      this.moveEndKey = map.on('moveend', () =>
-        map.once('postrender', () => this.repositioned.next())
-      );
+      this.showOn(this.targetMap ?? this.mapComponent.getMap());
       if (this.position) {
         this.overlay.setPosition(this.toWorldPosition(this.position));
       }
@@ -86,12 +87,31 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
     unByKey(this.moveEndKey);
     this.repositioned.complete();
     if (this.overlay) {
-      this.mapComponent.getMap().removeOverlay(this.overlay);
+      this.shownOn?.removeOverlay(this.overlay);
       this.overlay = null;
     }
   }
 
+  private showOn(map: OlMap) {
+    unByKey(this.moveEndKey);
+    this.shownOn?.removeOverlay(this.overlay);
+    this.shownOn = map;
+    map.addOverlay(this.overlay);
+    // moveend is dispatched before postrender, and the overlay only moves
+    // to its new screen position on postrender, so signal after that.
+    this.moveEndKey = map.on('moveend', () =>
+      map.once('postrender', () => this.repositioned.next())
+    );
+  }
+
   ngOnChanges(changes: SimpleChanges) {
+    if (this.overlay && changes.targetMap) {
+      const map = this.targetMap ?? this.mapComponent.getMap();
+      if (map !== this.shownOn) {
+        this.showOn(map);
+        this.repositioned.next();
+      }
+    }
     // Re-place on a change to either the canonical position or the target world.
     if (this.overlay && (changes.position || changes.worldOffset)) {
       if (this.position) {

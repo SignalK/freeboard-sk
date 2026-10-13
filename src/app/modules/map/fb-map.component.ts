@@ -47,7 +47,7 @@ import { getGreatCircleBearing } from 'geolib';
 import { bearingDistanceReadout } from './bearing-distance';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
-import { Collection, Feature } from 'ol';
+import { Collection, Feature, Map as OlMap } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
@@ -77,6 +77,10 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { GuardZoneEditService } from 'src/app/modules/radar/guard-zone-edit.service';
 import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import {
+  SecondaryTap,
+  SplitViewService
+} from './split-view/split-view.service';
 import {
   radarRange,
   rangeRingScale,
@@ -458,6 +462,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const m = this.cursorPin.marker();
     return m ? [m] : [];
   });
+  /**
+   * The split view's second pane, when the latest tap landed there: its
+   * popover and tap marker open in that pane. Undefined for the main chart,
+   * and again as soon as the second pane closes.
+   */
+  private tapMap = signal<OlMap | undefined>(undefined);
+  protected tapPane(): OlMap | undefined {
+    const map = this.tapMap();
+    return map && map === this.splitView.secondaryMap() ? map : undefined;
+  }
   /** When the gesture in flight pressed down — a tap is a short press. */
   private pointerDownAt = 0;
   contextMenuPosition = { x: '0px', y: '0px' };
@@ -481,6 +495,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private routeReverse = inject(RouteReverseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
+  private splitView = inject(SplitViewService);
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
@@ -552,6 +567,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // STREAM VESSELS update event
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
+    );
+    // Taps on the split view's second pane, which shows this chart's features
+    this.obsList.push(
+      this.splitView.taps$.subscribe((tap) => this.onSecondaryTap(tap))
     );
     // SETTINGS settings.change$ event
     this.obsList.push(
@@ -1038,7 +1057,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.contextMenuPosition.y = e.clientY + 'px';
   }
 
-  protected onMapSingleClick(e) {
+  protected onMapSingleClick(e, map?: OlMap) {
+    this.tapMap.set(map);
     // Remember which world copy this click landed in so any popover it opens is
     // drawn there, and the raw world-aware x so a route edit aligns with it (#572).
     this.clickWorldOffset = e.worldOffset ?? 0;
@@ -1088,11 +1108,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Handle right click / touch hold */
-  protected onMapRightClick(e: {
-    features: FeatureLike[];
-    lonlat: Coordinate;
-    worldOffset?: number;
-  }) {
+  protected onMapRightClick(
+    e: {
+      features: FeatureLike[];
+      lonlat: Coordinate;
+      worldOffset?: number;
+    },
+    map?: OlMap
+  ) {
+    this.tapMap.set(map);
     // toLonLat() gives [lon, lat]
     const lonlat = e.lonlat as Position;
     this.clickWorldOffset = e.worldOffset ?? 0;
@@ -1110,8 +1134,28 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.onContextMenu(e);
   }
 
-  /** Handle ol-map container context menu event */
-  protected onContextMenu(e: PointerEvent) {
+  /**
+   * A tap or menu request on the split view's second pane. Its layers mirror
+   * this chart's, so its features are this chart's own and are handled here.
+   */
+  private onSecondaryTap(tap: SecondaryTap) {
+    if (tap.kind === 'click') {
+      this.onMapSingleClick(tap.event, tap.map);
+    } else {
+      this.onMapRightClick(tap, tap.map);
+      this.onContextMenu(
+        tap.event,
+        GeoUtils.normaliseCoords(tap.lonlat as Position)
+      );
+    }
+  }
+
+  /**
+   * Handle ol-map container context menu event
+   * @param at Where the menu acts, when not where the pointer is over this
+   * chart (a long press on the split view's second pane)
+   */
+  protected onContextMenu(e: MouseEvent, at?: Position) {
     this.app.debug(`onContextMenu()`, this.app.data.map.atClick);
     if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
       return;
@@ -1125,12 +1169,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       e.clientX,
       e.clientY
     );
-    this.contextMenu.menuData = { item: this.mouse().coords };
+    this.contextMenu.menuData = { item: at ?? this.mouse().coords };
     if (this.mapInteract.isMeasuring()) {
       // The measure point is added by onMapRightClick, which fires alongside
       // this handler with a valid lonlat; just suppress the context menu here.
     } else if (!this.modifyMode) {
-      if (!this.mouse().xy) {
+      if (!at && !this.mouse().xy) {
         return;
       }
       this.contextMenu.openMenu();
@@ -1438,6 +1482,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected modifyFeature(featureType?: string) {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
+    }
+    if (this.tapPane()) {
+      // Picked on the split view's second pane, but editing happens on this
+      // chart: bring it to the feature first.
+      if (this.movingMap) {
+        this.exitMovingMap.emit(true);
+      }
+      this.mapCenterPositon.set([...this.overlay().position] as Position);
     }
     // Align the edit feature with the world copy the user is looking at, so OL
     // Modify (which hit-tests raw geometry in view-space, ignoring wrapX) matches
@@ -2609,6 +2661,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** handle popover closed event */
   protected popoverClosed() {
+    this.tapMap.set(undefined);
     this.overlay.update((current) => {
       return Object.assign({}, current, { show: false });
     });

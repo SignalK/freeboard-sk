@@ -628,6 +628,7 @@
       [position]="overlay().position"
       [worldOffset]="overlay().worldOffset ?? 0"
       [positioning]="'top-center'"
+      [targetMap]="tapPane()"
     >
       @if (mapInteract.isMeasuring()) {
         <ap-popover
@@ -1054,6 +1055,7 @@
       [worldOffset]="m.worldOffset"
       [positioning]="'center-center'"
       [stopEvent]="false"
+      [targetMap]="tapPane()"
     >
       <div
         class="cursor-marker"

@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FBMapComponent } from './fb-map.component';
@@ -20,6 +21,7 @@ const bareComponent = (editing: boolean) => {
       editing ? { controlId: 'guardZone1', mode: 'draw' } : undefined
   };
   cmp.overlay = { update: vi.fn() };
+  cmp.tapMap = signal(undefined);
   cmp.processMapClick = vi.fn();
   cmp.pinCursorAtTap = vi.fn();
   return cmp;
