@@ -1233,11 +1233,37 @@ export class AppComponent {
     // Get unit preferences from the signal k server
     this.app.fetchUnitPrefsFromSKServer();
 
+    // Tracks go to the Track API when it can hold them; /resources/tracks is
+    // then only read, to move what it still holds.
+    const trackStore = await this.skres.detectTrackStore();
     // Check for custom resource collections
-    const rcs = await this.skresOther.initCustomCollections();
+    const rcs = await this.skresOther.initCustomCollections(
+      trackStore ? ['tracks'] : []
+    );
     this.app.featureFlags.update((current) => {
-      return Object.assign({}, current, rcs);
+      return Object.assign({}, current, rcs, { trackStore });
     });
+    if (trackStore) {
+      if (this.app.featureFlags().resourceTracks) {
+        await this.moveResourceTracks();
+      }
+      this.skres.refreshTracks();
+    }
+  }
+
+  /** Move Freeboard's tracks from /resources/tracks into the Track API. */
+  private async moveResourceTracks() {
+    try {
+      const moved = await this.skres.migrateResourceTracks();
+      if (moved !== 0) {
+        this.app.saveConfig();
+        this.app.showMessage(
+          `Moved ${moved} track${moved === 1 ? '' : 's'} to the Track API.`
+        );
+      }
+    } catch (err) {
+      console.warn('Tracks not moved to the Track API:', err);
+    }
   }
 
   // ** start trail / AIS timers

@@ -178,7 +178,7 @@
     }
 
     <!-- Tracks -->
-    @if(gpxData.tracks.length!=0 && app.featureFlags().resourceTracks) {
+    @if(gpxData.tracks.length!=0 && app.tracksAvailable()) {
     <div class="card-group">
       <mat-expansion-panel
         [expanded]="display.expand.tracks"

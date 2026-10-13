@@ -1,0 +1,124 @@
+import { describe, expect, it } from 'vitest';
+import {
+  coordTimesOf,
+  isStoredTrack,
+  storeTrackBody,
+  toTrackFeature,
+  trackStoreItemPath
+} from './track-store';
+import { MultiLineStringFeature } from 'src/app/types';
+
+const at = (iso?: string) => ({ datetime: iso ? new Date(iso) : undefined });
+
+describe('coordTimesOf', () => {
+  it('nests the point times to match the segments', () => {
+    expect(
+      coordTimesOf([
+        [at('2026-10-01T08:00:00Z'), at('2026-10-01T08:01:00Z')],
+        [at('2026-10-01T09:00:00Z')]
+      ])
+    ).toEqual([
+      ['2026-10-01T08:00:00.000Z', '2026-10-01T08:01:00.000Z'],
+      ['2026-10-01T09:00:00.000Z']
+    ]);
+  });
+
+  it('gives no times when any point has none', () => {
+    expect(
+      coordTimesOf([[at('2026-10-01T08:00:00Z'), at(undefined)]])
+    ).toBeUndefined();
+    expect(coordTimesOf([[{ datetime: new Date('nope') }]])).toBeUndefined();
+  });
+});
+
+describe('storeTrackBody', () => {
+  const feature: MultiLineStringFeature = {
+    type: 'Feature',
+    id: 'old',
+    geometry: {
+      type: 'MultiLineString',
+      coordinates: [
+        [
+          [177.4, -17.6, 3],
+          [177.5, -17.7]
+        ]
+      ]
+    },
+    properties: {
+      name: 'Friend',
+      description: 'Shared GPX',
+      bbox: [0, 0, 1, 1],
+      pointCount: 2,
+      providerId: 'tracks',
+      id: 'tracks:imported:x',
+      imported: true,
+      src: null
+    }
+  };
+
+  it('keeps the metadata and drops what the provider derives', () => {
+    expect(storeTrackBody(feature)).toEqual({
+      type: 'Feature',
+      geometry: {
+        type: 'MultiLineString',
+        coordinates: [
+          [
+            [177.4, -17.6],
+            [177.5, -17.7]
+          ]
+        ]
+      },
+      properties: { name: 'Friend', description: 'Shared GPX' }
+    });
+  });
+
+  it('adds the point times when given', () => {
+    const times = [['2026-10-01T08:00:00Z', '2026-10-01T08:01:00Z']];
+    expect(storeTrackBody(feature, times).properties.coordTimes).toBe(times);
+  });
+});
+
+describe('stored tracks', () => {
+  it('turns a listed track into a drawable feature keyed by its id', () => {
+    const f = toTrackFeature({
+      type: 'Feature',
+      geometry: { type: 'MultiLineString', coordinates: [[[1, 2]]] },
+      properties: { id: 'tracks:imported:x', imported: true, name: 'A' }
+    });
+    expect(f?.id).toBe('tracks:imported:x');
+    expect(isStoredTrack(f)).toBe(true);
+  });
+
+  it('skips a listed track without an id or geometry', () => {
+    expect(
+      toTrackFeature({
+        type: 'Feature',
+        geometry: null,
+        properties: { id: 'a' }
+      })
+    ).toBeUndefined();
+    expect(
+      toTrackFeature({
+        type: 'Feature',
+        geometry: { type: 'MultiLineString', coordinates: [] },
+        properties: {}
+      })
+    ).toBeUndefined();
+  });
+
+  it('tells a /resources/tracks track from a stored one', () => {
+    expect(
+      isStoredTrack({
+        type: 'Feature',
+        geometry: { type: 'MultiLineString', coordinates: [] },
+        properties: { name: 'old' }
+      })
+    ).toBe(false);
+  });
+
+  it('encodes the provider-qualified id as one path segment', () => {
+    expect(trackStoreItemPath('tracks:imported:a/b')).toBe(
+      '/tracks/tracks%3Aimported%3Aa%2Fb'
+    );
+  });
+});
