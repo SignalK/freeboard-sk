@@ -259,6 +259,22 @@ describe('track-history parseHistoryTrack', () => {
     expect(t.times).toBeUndefined();
   });
 
+  it('leaves an imported track out of the recording', () => {
+    const imported = feature('tracks', [[[9, 9]]], [['2020-01-01T00:00:00Z']]);
+    imported.properties['imported'] = true;
+    const fc = {
+      features: [
+        feature('tracks', [[[1, 1]]], [['2026-09-01T00:00:00Z']]),
+        imported
+      ]
+    };
+    expect(parseHistoryTrack('self', fc)).toEqual({
+      context: 'self',
+      lines: [[[1, 1]]],
+      times: [['2026-09-01T00:00:00Z']]
+    });
+  });
+
   it('draws one provider only, preferring the default', () => {
     const fc = {
       features: [feature('parquet', [[[9, 9]]]), feature('tracks', [[[1, 1]]])]

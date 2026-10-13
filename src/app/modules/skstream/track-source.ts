@@ -374,12 +374,21 @@ export function trailBandUrl(
 
 interface TrackFeatureLike {
   geometry?: { type?: string; coordinates?: Position[][] };
-  properties?: { context?: string; isSelf?: boolean; providerId?: string };
+  properties?: {
+    context?: string;
+    isSelf?: boolean;
+    providerId?: string;
+    imported?: boolean;
+  };
 }
 
+/** The recorded features of a response: an imported track is listed beside
+ * the vessel's recording and is not part of its trail. */
 const featuresOf = (fc: unknown): TrackFeatureLike[] => {
   const f = (fc as { features?: unknown })?.features;
-  return Array.isArray(f) ? (f as TrackFeatureLike[]) : [];
+  return Array.isArray(f)
+    ? (f as TrackFeatureLike[]).filter((t) => t?.properties?.imported !== true)
+    : [];
 };
 
 const linesOf = (f: TrackFeatureLike): Position[][] | undefined =>

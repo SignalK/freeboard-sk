@@ -537,6 +537,30 @@ describe('track-source response parsing', () => {
     ).toEqual(selfA.geometry.coordinates);
   });
 
+  it('leaves an imported own-vessel track out of the trail', () => {
+    const imported = {
+      ...selfB,
+      properties: { ...selfA.properties, imported: true }
+    };
+    expect(
+      parseSelfTrail({ type: 'FeatureCollection', features: [imported, selfA] })
+    ).toEqual(selfA.geometry.coordinates);
+  });
+
+  it("never draws an imported track as a vessel's AIS track", () => {
+    const imported = {
+      ...aisB,
+      properties: { ...aisA.properties, imported: true }
+    };
+    const m = parseAisTracks({
+      type: 'FeatureCollection',
+      features: [imported, aisA]
+    });
+    expect(m.get('vessels.urn:mrn:imo:mmsi:2')).toEqual(
+      aisA.geometry.coordinates
+    );
+  });
+
   it('returns undefined with no own-vessel feature or a malformed body', () => {
     expect(parseSelfTrail({ type: 'FeatureCollection', features: [] })).toBe(
       undefined

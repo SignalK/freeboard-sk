@@ -179,6 +179,7 @@ interface HistoryFeatureLike {
   geometry?: { type?: string; coordinates?: Position[][] } | null;
   properties?: {
     context?: string;
+    imported?: boolean;
     providerId?: string;
     contextName?: string;
     from?: string;
@@ -191,9 +192,16 @@ interface HistoryFeatureLike {
   };
 }
 
+/** The recorded features of a response. A track a client imported is listed
+ * beside the vessel's recording, and joined to it would splice another
+ * passage, with its times, into what the vessel recorded. */
 const featuresOf = (fc: unknown): HistoryFeatureLike[] => {
   const f = (fc as { features?: unknown })?.features;
-  return Array.isArray(f) ? (f as HistoryFeatureLike[]) : [];
+  return Array.isArray(f)
+    ? (f as HistoryFeatureLike[]).filter(
+        (t) => t?.properties?.imported !== true
+      )
+    : [];
 };
 
 /** The features of one provider: the preferred one when it answered, else the
