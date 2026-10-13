@@ -515,23 +515,19 @@
                   <button
                     mat-mini-fab
                     [ngClass]="{
-                      'button-primary': !app.uiConfig().mapNorthUp,
-                      'button-toolbar': app.uiConfig().mapNorthUp
+                      'button-primary': !viewNorthUp(),
+                      'button-toolbar': viewNorthUp()
                     }"
                     (click)="toggleNorthUp()"
                     [matTooltip]="
-                      app.uiConfig().mapNorthUp
-                        ? 'Show Heading Up'
-                        : 'Show North Up'
+                      viewNorthUp() ? 'Show Heading Up' : 'Show North Up'
                     "
                     matTooltipPosition="right"
                   >
                     <mat-icon
                       class="ob"
                       [svgIcon]="
-                        app.uiConfig().mapNorthUp
-                          ? 'heading-n-up'
-                          : 'heading-h-up'
+                        viewNorthUp() ? 'heading-n-up' : 'heading-h-up'
                       "
                     >
                     </mat-icon>
@@ -541,13 +537,13 @@
                   <button
                     mat-mini-fab
                     [ngClass]="{
-                      'button-primary': app.uiConfig().mapMove,
-                      'button-toolbar': !app.uiConfig().mapMove
+                      'button-primary': viewFollow(),
+                      'button-toolbar': !viewFollow()
                     }"
-                    (click)="toggleMoveMap()"
+                    (click)="toggleFollow()"
                     [disabled]="!app.data.vessels.showSelf"
                     [matTooltip]="
-                      app.uiConfig().mapMove
+                      viewFollow()
                         ? 'Turn off Follow Vessel'
                         : 'Center & Follow Vessel'
                     "
@@ -1058,6 +1054,9 @@
           >
             <div
               class="mapMain"
+              [class.active-pane]="
+                splitActive() && !splitView.secondaryActive()
+              "
               [style.flex-basis.%]="
                 splitActive() ? splitView.ratio() * 100 : 100
               "

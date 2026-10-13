@@ -28,21 +28,39 @@ export type SecondaryTap =
       map: OlMap;
     };
 
+/** The two chart panes. The shared map buttons act on the active one. */
+export type SplitPane = 'main' | 'secondary';
+
+/** A shared map button's action, for the second pane to apply to its view. */
+export type PaneCommand =
+  | { kind: 'zoom'; step: number }
+  | { kind: 'center'; position: Position; zoom?: number };
+
 /** Whether the chart is split in two, and how the second pane is set up. */
 @Injectable({ providedIn: 'root' })
 export class SplitViewService {
   private state = signal<SplitViewState>(this.read());
   private secondary = signal<OlMap | null>(null);
   private taps = new Subject<SecondaryTap>();
+  private active = signal<SplitPane>('main');
+  private commands = new Subject<PaneCommand>();
 
   /** The second pane's map while the pane is open. */
   readonly secondaryMap = this.secondary.asReadonly();
   readonly taps$ = this.taps.asObservable();
+  readonly commands$ = this.commands.asObservable();
 
   readonly enabled = computed(() => this.state().enabled);
   readonly ratio = computed(() => this.state().ratio);
   readonly northUp = computed(() => this.state().northUp);
   readonly follow = computed(() => this.state().follow);
+  /** The second pane's zoom as last reported by its map. */
+  readonly zoom = computed(() => this.state().zoom);
+
+  /** True while the shared map buttons act on the second pane. */
+  readonly secondaryActive = computed(
+    () => this.active() === 'secondary' && this.secondary() !== null
+  );
 
   /** The second pane's last view, for reopening it where it was left. */
   lastView(): Pick<SplitViewState, 'zoom' | 'center'> {
@@ -51,7 +69,14 @@ export class SplitViewService {
   }
 
   toggle() {
-    this.update({ enabled: !this.state().enabled });
+    const enabled = !this.state().enabled;
+    // A pane that has just opened is the one the user is about to set up.
+    this.active.set(enabled ? 'secondary' : 'main');
+    this.update({ enabled });
+  }
+
+  activate(pane: SplitPane) {
+    this.active.set(pane);
   }
 
   setRatio(ratio: number) {
@@ -76,6 +101,14 @@ export class SplitViewService {
 
   forwardTap(tap: SecondaryTap) {
     this.taps.next(tap);
+  }
+
+  zoomBy(step: number) {
+    this.commands.next({ kind: 'zoom', step });
+  }
+
+  centerOn(position: Position, zoom?: number) {
+    this.commands.next({ kind: 'center', position, zoom });
   }
 
   private update(patch: Partial<SplitViewState>) {

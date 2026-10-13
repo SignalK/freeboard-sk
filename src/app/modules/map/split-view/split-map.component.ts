@@ -1,13 +1,14 @@
 import {
   Component,
   computed,
+  effect,
   ElementRef,
   inject,
   OnDestroy,
   OnInit,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Map as OlMap } from 'ol';
@@ -32,24 +33,22 @@ import { FBMapInteractService } from '../fbmap-interact.service';
 import { mapControls } from '../mapconfig';
 import { mirrorLayers } from './layer-mirror';
 import { ratioFromPointer, viewFootprint } from './split-view';
-import { SplitViewService } from './split-view.service';
+import { PaneCommand, SplitPane, SplitViewService } from './split-view.service';
 
 /**
  * The second chart pane of the split view: everything the main chart shows,
  * with a view of its own and the main chart's viewport outlined on it. Its
  * layers mirror the main chart's (see layer-mirror), and its taps are handled
- * by the main chart, so popovers and menus work the same in both panes.
+ * by the main chart, so popovers and menus work the same in both panes. It has
+ * no buttons of its own: pressing a pane makes it the active one, and the
+ * shared map buttons act on the active pane.
  */
 @Component({
   selector: 'fb-split-map',
-  imports: [
-    FreeboardOpenlayersModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule
-  ],
+  imports: [FreeboardOpenlayersModule, MatIconModule, MatTooltipModule],
   templateUrl: './split-map.component.html',
-  styleUrls: ['./split-map.component.css']
+  styleUrls: ['./split-map.component.css'],
+  host: { '[class.active-pane]': 'split.secondaryActive()' }
 })
 export class SplitMapComponent implements OnInit, OnDestroy {
   protected app = inject(AppFacade);
@@ -72,7 +71,6 @@ export class SplitMapComponent implements OnInit, OnDestroy {
 
   protected zoom = signal<number>(10);
   protected center = signal<Position>([0, 0]);
-  protected selfPosition = signal<Position>([0, 0]);
   protected heading = signal<number>(0);
   protected rotation = computed(() =>
     this.split.northUp() ? 0 : 0 - this.heading()
@@ -82,32 +80,43 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   private map: OlMap | undefined;
   private mainMap: OlMap | undefined;
   private stopMirror: (() => void) | undefined;
+  private stopPressWatch: (() => void)[] = [];
   private vessels: Subscription;
+  private commands: Subscription;
   private gripRect: DOMRect | null = null;
   private gripStacked = false;
 
+  constructor() {
+    effect(() => {
+      if (this.split.follow()) {
+        untracked(() => this.centerOnVessel());
+      }
+    });
+  }
+
   ngOnInit() {
-    const self = this.app.data.vessels.self;
-    if (Array.isArray(self.position)) {
-      this.selfPosition.set(self.position);
-    }
-    this.heading.set(self.orientation ?? 0);
+    this.heading.set(this.app.data.vessels.self.orientation ?? 0);
 
     const { min } = this.app.MAP_ZOOM_EXTENT;
     const last = this.split.lastView();
     this.zoom.set(
       last.zoom ?? Math.max(min, this.app.config.map.zoomLevel - 3)
     );
-    this.center.set(
-      this.split.follow() || !last.center ? this.selfPosition() : last.center
-    );
+    if (this.split.follow() || !last.center) {
+      this.centerOnVessel();
+    } else {
+      this.center.set(last.center);
+    }
 
     this.vessels = this.skstream.vessels$().subscribe(() => this.onVessels());
+    this.commands = this.split.commands$.subscribe((c) => this.onCommand(c));
   }
 
   ngOnDestroy() {
     this.vessels?.unsubscribe();
+    this.commands?.unsubscribe();
     this.stopMirror?.();
+    this.stopPressWatch.forEach((stop) => stop());
     this.mainMap?.un('moveend', this.updateFootprint);
     this.mainMap?.un('change:size', this.updateFootprint);
     this.split.setSecondaryMap(null);
@@ -121,9 +130,27 @@ export class SplitMapComponent implements OnInit, OnDestroy {
       this.stopMirror = mirrorLayers(this.mainMap, e.map);
       this.mainMap.on('moveend', this.updateFootprint);
       this.mainMap.on('change:size', this.updateFootprint);
+      this.stopPressWatch.push(this.activateOnPress(this.mainMap, 'main'));
     }
+    this.stopPressWatch.push(this.activateOnPress(e.map, 'secondary'));
     this.updateFootprint();
     this.split.setSecondaryMap(e.map);
+  }
+
+  /**
+   * A press on a pane's chart makes that pane the active one. Presses on its
+   * controls and popovers don't count: the zoom buttons sit on the main chart,
+   * and pressing them must not take them away from the second pane.
+   */
+  private activateOnPress(map: OlMap, pane: SplitPane): () => void {
+    const viewport = map.getViewport();
+    const onPress = (e: PointerEvent) => {
+      if (!map.getOverlayContainerStopEvent().contains(e.target as Node)) {
+        this.split.activate(pane);
+      }
+    };
+    viewport.addEventListener('pointerdown', onPress);
+    return () => viewport.removeEventListener('pointerdown', onPress);
   }
 
   // ---------- taps ----------
@@ -180,25 +207,30 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected toggleNorthUp() {
-    this.split.setNorthUp(!this.split.northUp());
-  }
+  // ---------- shared map buttons ----------
 
-  protected toggleFollow() {
-    const follow = !this.split.follow();
-    this.split.setFollow(follow);
-    if (follow) {
-      this.center.set([...this.selfPosition()] as Position);
+  private onCommand(c: PaneCommand) {
+    const { min, max } = this.app.MAP_ZOOM_EXTENT;
+    const clampZoom = (z: number) => Math.min(max, Math.max(min, z));
+    if (c.kind === 'zoom') {
+      this.zoom.set(clampZoom(Math.round(this.zoom()) + c.step));
+      return;
+    }
+    // Following would pull the view straight back to the vessel.
+    if (this.split.follow()) {
+      this.split.setFollow(false);
+    }
+    this.center.set([...c.position] as Position);
+    if (typeof c.zoom === 'number') {
+      this.zoom.set(clampZoom(c.zoom));
     }
   }
 
-  protected zoomBy(step: number) {
-    const { min, max } = this.app.MAP_ZOOM_EXTENT;
-    this.zoom.set(Math.min(max, Math.max(min, Math.round(this.zoom()) + step)));
-  }
-
-  protected close() {
-    this.split.toggle();
+  private centerOnVessel() {
+    const position = this.app.data.vessels.self.position;
+    if (Array.isArray(position)) {
+      this.center.set([...position] as Position);
+    }
   }
 
   // ---------- divider ----------
@@ -255,13 +287,10 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   // ---------- data ----------
 
   private onVessels() {
-    const self = this.app.data.vessels.self;
-    if (Array.isArray(self.position)) {
-      this.selfPosition.set(self.position);
-      if (this.split.follow()) {
-        this.center.set([...self.position] as Position);
-      }
+    if (this.split.follow()) {
+      this.centerOnVessel();
     }
+    const self = this.app.data.vessels.self;
     if (typeof self.orientation === 'number') {
       this.heading.set(self.orientation);
     }

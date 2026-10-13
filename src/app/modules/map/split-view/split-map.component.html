@@ -23,66 +23,6 @@
   <fb-view-footprint [ring]="footprint()" [zIndex]="950"></fb-view-footprint>
 </ol-map>
 
-<div class="split-chip">
-  <button
-    mat-mini-fab
-    [class.button-primary]="!split.northUp()"
-    [class.button-toolbar]="split.northUp()"
-    (click)="toggleNorthUp()"
-    [attr.aria-label]="split.northUp() ? 'Show Heading Up' : 'Show North Up'"
-    [matTooltip]="split.northUp() ? 'Show Heading Up' : 'Show North Up'"
-  >
-    <mat-icon
-      class="ob"
-      [svgIcon]="split.northUp() ? 'heading-n-up' : 'heading-h-up'"
-    ></mat-icon>
-  </button>
-  <button
-    mat-mini-fab
-    [class.button-primary]="split.follow()"
-    [class.button-toolbar]="!split.follow()"
-    (click)="toggleFollow()"
-    [disabled]="!app.data.vessels.showSelf"
-    [attr.aria-label]="
-      split.follow() ? 'Turn off Follow Vessel' : 'Center & Follow Vessel'
-    "
-    [matTooltip]="
-      split.follow() ? 'Turn off Follow Vessel' : 'Center & Follow Vessel'
-    "
-  >
-    <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
-  </button>
-  <button
-    class="button-toolbar"
-    mat-mini-fab
-    (click)="zoomBy(-1)"
-    [disabled]="zoom() <= app.MAP_ZOOM_EXTENT.min"
-    aria-label="Zoom out"
-    matTooltip="Zoom out"
-  >
-    <mat-icon>remove</mat-icon>
-  </button>
-  <button
-    class="button-toolbar"
-    mat-mini-fab
-    (click)="zoomBy(1)"
-    [disabled]="zoom() >= app.MAP_ZOOM_EXTENT.max"
-    aria-label="Zoom in"
-    matTooltip="Zoom in"
-  >
-    <mat-icon>add</mat-icon>
-  </button>
-  <button
-    class="button-toolbar"
-    mat-mini-fab
-    (click)="close()"
-    aria-label="Close split view"
-    matTooltip="Close split view"
-  >
-    <mat-icon>close</mat-icon>
-  </button>
-</div>
-
 <button
   class="split-grip"
   type="button"

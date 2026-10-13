@@ -268,6 +268,17 @@ export class AppComponent {
 
   protected app = inject(AppFacade);
   protected splitView = inject(SplitViewService);
+  // The North up and Follow buttons show the state of the pane they act on.
+  protected viewNorthUp = computed(() =>
+    this.splitView.secondaryActive()
+      ? this.splitView.northUp()
+      : this.app.uiConfig().mapNorthUp
+  );
+  protected viewFollow = computed(() =>
+    this.splitView.secondaryActive()
+      ? this.splitView.follow()
+      : this.app.uiConfig().mapMove
+  );
   protected infoPanel = inject(InfoPanelFacade);
   protected mapInteract = inject(FBMapInteractService);
   protected anchor = inject(AnchorService);
@@ -339,7 +350,8 @@ export class AppComponent {
         this.app.uiConfig.update((c) =>
           c.mapMove ? { ...c, mapMove: false } : c
         );
-        this.centerAndZoom(req.center, req.zoom);
+        // Extensions move the main chart; they don't know about the split.
+        this.centerMainChart(req.center, req.zoom);
       }
     });
   }
@@ -543,7 +555,20 @@ export class AppComponent {
     this.focusMap();
   }
 
+  /** The Follow button: the active pane follows the vessel, or stops. */
+  protected toggleFollow() {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.setFollow(!this.splitView.follow());
+      return;
+    }
+    this.toggleMoveMap();
+  }
+
   protected toggleNorthUp() {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.setNorthUp(!this.splitView.northUp());
+      return;
+    }
     this.app.uiConfig.update((current) => {
       return Object.assign({}, current, { mapNorthUp: !current.mapNorthUp });
     });
@@ -1587,11 +1612,19 @@ export class AppComponent {
   // ***** OPTIONS MENU ACTONS *******
 
   /**
-   * Center and zoom the map
+   * Center and zoom the active chart pane
    * @param position Location to center the map
    * @param zoomTo Zoom level to apply
    */
   protected centerAndZoom(position: Position, zoomTo?: number) {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.centerOn(position, zoomTo);
+      return;
+    }
+    this.centerMainChart(position, zoomTo);
+  }
+
+  private centerMainChart(position: Position, zoomTo?: number) {
     this.mapCenter.update(() => position);
     if (typeof zoomTo === 'number') {
       this.app.config.map.zoomLevel = zoomTo;

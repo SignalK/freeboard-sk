@@ -64,6 +64,17 @@ b { font-weight: 500; }
     min-height: 0;
 }
 
+/* While the chart is split, the active pane is outlined; the shared map
+   buttons act on it. The second pane draws its own outline. */
+.mapMain.active-pane::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 3px rgb(54, 122, 190);
+}
+
 @media (orientation: portrait) {
     .mapPanel.split {
         flex-direction: column;

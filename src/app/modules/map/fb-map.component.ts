@@ -354,6 +354,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
   protected mapZoomText = computed(() => zoomDisplayText(this.mapZoomLevel()));
+  /** The zoom of the pane the zoom buttons act on. */
+  protected viewZoom = computed(() =>
+    this.splitView.secondaryActive()
+      ? (this.splitView.zoom() ?? this.mapZoomLevel())
+      : this.mapZoomLevel()
+  );
   protected mapCenterPositon = signal<Position>([0, 0]);
   protected mapRotation = signal<number>(0);
 
@@ -2740,6 +2746,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // handle map zoom controls
   protected zoomMap(zoomIn: boolean) {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.zoomBy(zoomIn ? 1 : -1);
+      return;
+    }
     const { min, max } = this.app.MAP_ZOOM_EXTENT;
     const current = this.app.config.map.zoomLevel;
     const next = zoomIn

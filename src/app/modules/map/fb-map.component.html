@@ -80,7 +80,7 @@
           class="button-accent"
           mat-mini-fab
           (click)="zoomMap(false)"
-          [disabled]="mapZoomLevel() <= app.MAP_ZOOM_EXTENT.min"
+          [disabled]="viewZoom() <= app.MAP_ZOOM_EXTENT.min"
           matTooltip="Zoom out"
         >
           <mat-icon>remove</mat-icon>
@@ -90,7 +90,7 @@
           class="button-accent"
           mat-mini-fab
           (click)="zoomMap(true)"
-          [disabled]="mapZoomLevel() >= app.MAP_ZOOM_EXTENT.max"
+          [disabled]="viewZoom() >= app.MAP_ZOOM_EXTENT.max"
           matTooltip="Zoom in"
         >
           <mat-icon>add</mat-icon>
