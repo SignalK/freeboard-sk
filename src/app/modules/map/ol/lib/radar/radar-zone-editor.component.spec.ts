@@ -5,6 +5,7 @@ import PointerInteraction from 'ol/interaction/Pointer';
 import { fromLonLat } from 'ol/proj';
 import { RadarZoneEditorComponent } from './radar-zone-editor.component';
 import { MapComponent } from '../map.component';
+import { isHandleDrag } from '../handle-drag';
 import { GuardZone } from 'src/app/modules/radar/guard-zones';
 import { fromRadarPolar } from 'src/app/modules/radar/guard-zone-edit';
 import { ZoneEdit } from 'src/app/modules/radar/guard-zone-edit.service';
@@ -25,7 +26,10 @@ describe('RadarZoneEditorComponent', () => {
   let drawn: GuardZone[];
 
   const target = document.createElement('div');
+  const props = new Map<string, unknown>();
   const map = {
+    get: (key: string) => props.get(key),
+    set: (key: string, value: unknown) => props.set(key, value),
     getTargetElement: () => target,
     addLayer: vi.fn(),
     removeLayer: vi.fn(),
@@ -57,7 +61,8 @@ describe('RadarZoneEditorComponent', () => {
     angle: number,
     distance: number,
     pixel: number[],
-    pointerId = 1
+    pointerId = 1,
+    button = 0
   ): boolean {
     const e = {
       type,
@@ -66,13 +71,19 @@ describe('RadarZoneEditorComponent', () => {
       coordinate: fromLonLat(
         fromRadarPolar(position, 0, { angle, distance }) as number[]
       ),
-      originalEvent: { pointerId, preventDefault: () => undefined }
+      originalEvent: {
+        pointerId,
+        isPrimary: pointerId === 1,
+        button,
+        preventDefault: () => undefined
+      }
     } as unknown as MapBrowserEvent;
     // false: the event goes no further, so the map does not pan
     return interaction.handleEvent(e);
   }
 
   beforeEach(async () => {
+    props.clear();
     handleAtPointer = undefined;
     changes = [];
     drawn = [];
@@ -105,6 +116,14 @@ describe('RadarZoneEditorComponent', () => {
     it('takes the drag from the map, so the chart does not pan', () => {
       open(edit);
       expect(pointer('pointerdown', -0.2, 300, [100, 100])).toBe(false);
+    });
+
+    it('keeps the chart menu shut while a finger rests before drawing', () => {
+      const fixture = open(edit);
+      pointer('pointerdown', -0.2, 300, [100, 100]);
+      expect(isHandleDrag(map)).toBe(true);
+      fixture.destroy();
+      expect(isHandleDrag(map)).toBe(false);
     });
 
     it('draws a zone from corner to corner, reported once', () => {
@@ -171,6 +190,22 @@ describe('RadarZoneEditorComponent', () => {
       expect(changes[0].endDistance).toBeCloseTo(1500, 0);
       expect(changes[0].startDistance).toBe(stored.startDistance);
       expect(drawn).toEqual([]);
+    });
+
+    it('keeps the chart menu shut while a handle is held', () => {
+      open(edit);
+      handleAtPointer = 'outerDist';
+      pointer('pointerdown', 0, 1000, [100, 100]);
+      expect(isHandleDrag(map)).toBe(true);
+      pointer('pointerup', 0, 1000, [100, 100]);
+      expect(isHandleDrag(map)).toBe(false);
+    });
+
+    it('leaves a right-click on a handle to the chart menu', () => {
+      open(edit);
+      handleAtPointer = 'outerDist';
+      expect(pointer('pointerdown', 0, 1000, [100, 100], 1, 2)).toBe(true);
+      expect(isHandleDrag(map)).toBe(false);
     });
 
     it('puts the zone back when a second finger joins', () => {

@@ -13,10 +13,12 @@ import { Feature, MapBrowserEvent } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import PointerInteraction from 'ol/interaction/Pointer';
+import { primaryAction } from 'ol/events/condition';
 import { Point } from 'ol/geom';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { Circle, Fill, Stroke, Style } from 'ol/style';
 import { MapComponent } from '../map.component';
+import { setHandleDrag } from '../handle-drag';
 import { Coordinate } from '../models';
 import { GuardZone } from 'src/app/modules/radar/guard-zones';
 import {
@@ -129,6 +131,7 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.reset();
     const map = this.mapComponent.getMap();
     map?.removeInteraction(this.interaction);
     map?.removeLayer(this.layer);
@@ -154,7 +157,9 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private onDown(e: MapBrowserEvent): boolean {
-    if (!this.edit || !Array.isArray(this.position)) {
+    // the primary button or first finger only: a right-click still opens the
+    // chart menu
+    if (!this.edit || !Array.isArray(this.position) || !primaryAction(e)) {
       return false;
     }
     this.pointerId = pointerIdOf(e);
@@ -162,6 +167,7 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     if (this.edit.mode === 'draw') {
       this.drawStart = { polar: this.polarAt(e), pixel: e.pixel };
       this.drawing = undefined;
+      setHandleDrag(e.map, this.pointerId);
       return true;
     }
     const handle = e.map.forEachFeatureAtPixel(
@@ -175,6 +181,7 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     if (handle && this.edit.zone) {
       this.dragging = handle;
       this.dragged = this.edit.zone;
+      setHandleDrag(e.map, this.pointerId);
       return true;
     }
     return false;
@@ -221,6 +228,12 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private reset() {
+    // a finger held still while drawing or on a handle is a long-press; the
+    // chart menu stays shut until it lets go
+    const map = this.mapComponent.getMap();
+    if (map && (this.drawStart || this.dragging)) {
+      setHandleDrag(map, null);
+    }
     this.drawStart = undefined;
     this.drawing = undefined;
     this.dragging = undefined;
