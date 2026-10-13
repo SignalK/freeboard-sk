@@ -18,6 +18,7 @@ export interface FeatureUrl {
 })
 export class MapService {
   maps: Map[];
+  private secondaryMaps = new WeakSet<Map>();
 
   private _featureInfo = signal<FeatureUrl[]>([]);
   public readonly featureUrls = this._featureInfo.asReadonly();
@@ -59,8 +60,29 @@ export class MapService {
     return tl;
   }
 
-  addMap(map: Map): void {
-    this.maps.push(map);
+  /**
+   * Registers a map. A `secondary` map (the split view's second pane) is kept
+   * after every other map, so the main chart stays at `getMaps()[0]` whichever
+   * of them starts first.
+   */
+  addMap(map: Map, secondary = false): void {
+    if (secondary) {
+      this.secondaryMaps.add(map);
+      this.maps.push(map);
+      return;
+    }
+    const firstSecondary = this.maps.findIndex((m) =>
+      this.secondaryMaps.has(m)
+    );
+    if (firstSecondary < 0) {
+      this.maps.push(map);
+    } else {
+      this.maps.splice(firstSecondary, 0, map);
+    }
+  }
+
+  removeMap(map: Map): void {
+    this.maps = this.maps.filter((m) => m !== map);
   }
 
   updateSize() {

@@ -166,6 +166,8 @@ export class MapComponent implements OnInit, OnDestroy {
   // Touch pointers get a larger radius than the mouse so a deliberate tap on a
   // thin route line lands in the common case (#548).
   @Input() touchHitTolerance = 15;
+  /** A second chart beside the main one (the split view); see MapService.addMap. */
+  @Input() secondary = false;
 
   private _pointerDown = signal<FBPointerDownEvent | undefined>(undefined);
   public pointerDownSignal = this._pointerDown.asReadonly();
@@ -192,7 +194,7 @@ export class MapComponent implements OnInit, OnDestroy {
       this.map.setTarget(target);
       this.map.setProperties(this.properties, true);
       // register the map in the injectable mapService
-      this.mapService.addMap(this.map);
+      this.mapService.addMap(this.map, this.secondary);
 
       this.map.once('postrender', () => {
         this.afterMapReady();
@@ -230,6 +232,9 @@ export class MapComponent implements OnInit, OnDestroy {
     window.removeEventListener('resize', this.updateSizeThrottle);
     window.removeEventListener('orientationchange', this.updateSizeThrottle);
 
+    // A second map (the split view) comes and goes at runtime; leaving it
+    // registered would keep a dead map in every getMaps() lookup.
+    this.mapService.removeMap(this.map);
     this.map.setTarget(null);
     this.map = null;
   }
