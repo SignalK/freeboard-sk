@@ -131,3 +131,40 @@ describe('GPX.parse — metadata bounds', () => {
     });
   });
 });
+
+describe('GPX track point times', () => {
+  beforeEach(() => vi.stubGlobal('Worker', StubWorker));
+  afterEach(() => vi.unstubAllGlobals());
+
+  const pointsOf = async (times: Array<string | undefined>) => {
+    StubWorker.reply = {
+      gpx: {
+        trk: [
+          {
+            trkseg: [
+              {
+                trkpt: times.map((t) => ({
+                  $: { lat: '-17.6', lon: '177.4' },
+                  ...(t !== undefined ? { time: [t] } : {})
+                }))
+              }
+            ]
+          }
+        ]
+      }
+    };
+    const gpx = new GPX();
+    expect(await gpx.parse('<gpx></gpx>')).not.toBe(false);
+    return gpx.trk[0].trkseg[0].trkpt;
+  };
+
+  it('reads the time of each point', async () => {
+    const [pt] = await pointsOf(['2026-10-01T08:00:00Z']);
+    expect(pt.datetime?.toISOString()).toBe('2026-10-01T08:00:00.000Z');
+  });
+
+  it('leaves out a missing or unreadable time', async () => {
+    const pts = await pointsOf([undefined, 'yesterday']);
+    expect(pts.map((p) => p.datetime)).toEqual([undefined, undefined]);
+  });
+});
