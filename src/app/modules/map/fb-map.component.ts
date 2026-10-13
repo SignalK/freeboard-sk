@@ -71,6 +71,7 @@ import { CursorPin, tapFadeMs, TAP_MAX_DURATION } from './cursor-marker';
 import {
   FBRoute,
   FBRoutes,
+  FBTrack,
   LineString,
   MultiLineString,
   Position
@@ -260,6 +261,8 @@ interface IFeatureData {
 /** A tapped recorded track, as its popover is answered from. */
 interface TrackHistoryFeature {
   context: string;
+  /** Shown instead of the context's label, for a stored track. */
+  name?: string;
   lines: Position[][];
   times?: PointTime[][];
   at: Position;
@@ -2164,6 +2167,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
               at: e.lonlat
             };
             break;
+          case 'track': {
+            // a stored track (a GPX import): its own name, and its point
+            // times when it was stored with them
+            const trk = this.skres.fromCache('tracks', t[1]) as
+              FBTrack | undefined;
+            if (trk) {
+              const coordTimes = trk[1].feature.properties?.coordTimes;
+              addToFeatureList = true;
+              icon = { name: 'timeline', svgIcon: undefined };
+              text = trk[1].name || 'Track';
+              this.trackHistoryFeatures[id] = {
+                context: 'track',
+                name: text,
+                lines: trk[1].feature.geometry.coordinates,
+                times: Array.isArray(coordTimes) ? coordTimes : undefined,
+                at: e.lonlat
+              };
+            }
+            break;
+          }
           case 'track-vessels': {
             // an AIS track from the v2 Track API says when the vessel was there
             const context = id.slice('track-'.length);
@@ -2429,6 +2452,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.show = true;
         break;
       case 'trail':
+      case 'track':
       case 'track-vessels':
       case TRACK_HISTORY_ID: {
         const hf = this.trackHistoryFeatures[id];
@@ -2629,7 +2653,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const info = trackTimeInfo(hf.lines, hf.times, hf.at);
     const label = (t: number) => chartTimeShortLabel(new Date(t).toISOString());
     return {
-      name: this.trackHistory.label(hf.context),
+      name: hf.name ?? this.trackHistory.label(hf.context),
       start: info && label(info.start),
       end: info && label(info.end),
       duration: info && durationLabel(info.duration),
