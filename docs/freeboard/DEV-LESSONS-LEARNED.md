@@ -659,6 +659,33 @@ and dragged gestures. A `Modify` vertex drag is simpler: snap only in
 `handleDragEvent`, never the press, so the press still grabs the vertex under the
 pointer.
 
+### A float texture is not filterable without `OES_texture_float_linear`
+
+**The trap.** The LiveDepth canvas samples an `R32F` depth texture. It looked
+correct on one desktop (Chrome, NVIDIA GPU) but on another browser/machine
+(Firefox, Intel GPU) the surface never drew and *every* control appeared to do
+nothing. The console had the cause verbatim: `TEXTURE_2D at unit 0 is
+incomplete: Minification or magnification filtering is not NEAREST …, and the
+texture's format is not "texture-filterable"`. Float (and half-float) textures
+are only linearly filterable with `OES_texture_float_linear`, an **optional**
+extension many GPUs/drivers do not expose. Set `TEXTURE_MIN/MAG_FILTER` to
+`LINEAR` on an unfilterable format and the texture silently becomes
+*incomplete*: every `texture()` sample returns nothing. Worse, because the
+sample is then constant, the shader still runs and draws whatever does *not*
+depend on it, so it reads as a rendering bug rather than a texture one — and
+moving the sliders changes nothing. Different browsers commonly pick different
+GPUs, so the same code can pass on your machine and fail on the next.
+
+**What to do instead.** Don't depend on the filter extension: sample with
+`NEAREST` and interpolate by hand in the shader — fetch the four texels around
+the fragment and `mix()` them by the fractional texel coordinate
+(`sampleDepth()` in `src/app/modules/map/ol/lib/depth/live-depth-shaders.ts`;
+three extra taps, equal output everywhere). If you want hardware filtering
+anyway, gate it on `gl.getExtension('OES_texture_float_linear')` and fall back
+to `NEAREST`. And when a WebGL layer looks wrong or ignores its data, **read the
+console first** — the "incomplete … not texture-filterable" warning names the
+cause exactly, and it is easy to misread as a shading bug.
+
 ---
 
 ## When testing

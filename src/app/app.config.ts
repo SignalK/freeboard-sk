@@ -154,6 +154,60 @@ export function cleanConfig(
     }
   }
 
+  if (typeof settings.map.liveDepth === 'undefined') {
+    settings.map.liveDepth = {
+      enabled: false,
+      mode: 'history',
+      source: 'environment.depth.belowTransducer',
+      historyWindow: 1,
+      historyResolution: 1,
+      safetyDepth: 3,
+      shadeLimit: 10,
+      contourInterval: 1,
+      maxDepth: 100,
+      cellPx: 24,
+      opacity: 0.85,
+      mergeTolerance: 15
+    };
+  } else {
+    if (typeof settings.map.liveDepth.enabled === 'undefined') {
+      settings.map.liveDepth.enabled = false;
+    }
+    if (typeof settings.map.liveDepth.mode === 'undefined') {
+      settings.map.liveDepth.mode = 'history';
+    }
+    if (typeof settings.map.liveDepth.source === 'undefined') {
+      settings.map.liveDepth.source = 'environment.depth.belowTransducer';
+    }
+    if (typeof settings.map.liveDepth.historyWindow === 'undefined') {
+      settings.map.liveDepth.historyWindow = 1;
+    }
+    if (typeof settings.map.liveDepth.historyResolution === 'undefined') {
+      settings.map.liveDepth.historyResolution = 1;
+    }
+    if (typeof settings.map.liveDepth.safetyDepth === 'undefined') {
+      settings.map.liveDepth.safetyDepth = 3;
+    }
+    if (typeof settings.map.liveDepth.shadeLimit === 'undefined') {
+      settings.map.liveDepth.shadeLimit = 10;
+    }
+    if (typeof settings.map.liveDepth.contourInterval === 'undefined') {
+      settings.map.liveDepth.contourInterval = 1;
+    }
+    if (typeof settings.map.liveDepth.maxDepth === 'undefined') {
+      settings.map.liveDepth.maxDepth = 100;
+    }
+    if (typeof settings.map.liveDepth.cellPx === 'undefined') {
+      settings.map.liveDepth.cellPx = 24;
+    }
+    if (typeof settings.map.liveDepth.opacity === 'undefined') {
+      settings.map.liveDepth.opacity = 0.85;
+    }
+    if (typeof settings.map.liveDepth.mergeTolerance === 'undefined') {
+      settings.map.liveDepth.mergeTolerance = 15;
+    }
+  }
+
   if (typeof settings.map.labelsMinZoom === 'undefined') {
     settings.map.labelsMinZoom = 8;
   }
@@ -617,7 +671,21 @@ export function defaultConfig(): IAppConfig {
         otherLayers: DefaultOptions.otherLayers,
         depthUnit: 'm'
       },
-      popoverMulti: false // close popovers using cose button
+      popoverMulti: false, // close popovers using cose button
+      liveDepth: {
+        enabled: false,
+        mode: 'history',
+        source: 'environment.depth.belowTransducer',
+        historyWindow: 1,
+        historyResolution: 1,
+        safetyDepth: 3,
+        shadeLimit: 10,
+        contourInterval: 1,
+        maxDepth: 100,
+        cellPx: 24,
+        opacity: 0.85,
+        mergeTolerance: 15
+      }
     },
     course: {
       autoNextPointOnArrival: false,

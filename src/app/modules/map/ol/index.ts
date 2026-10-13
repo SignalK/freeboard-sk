@@ -35,6 +35,7 @@ import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 import { TrackHistoryLayerComponent } from './lib/vessel/layer-track-history.component';
 import { TrackHistoryGhostLayerComponent } from './lib/vessel/layer-track-history-ghosts.component';
+import { LiveDepthLayerComponent } from './lib/depth/layer-live-depth.component';
 import { FBFeatureLayerComponent } from './lib/sk-feature.component';
 import { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
 import { AISFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
@@ -98,6 +99,7 @@ export {
   TrackHistoryLayerComponent,
   TRACK_HISTORY_ID
 } from './lib/vessel/layer-track-history.component';
+export { LiveDepthLayerComponent } from './lib/depth/layer-live-depth.component';
 export { FBFeatureLayerComponent } from './lib/sk-feature.component';
 export { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
 export { AISFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
@@ -153,6 +155,7 @@ const declarations = [
   VesselTrailComponent,
   TrackHistoryLayerComponent,
   TrackHistoryGhostLayerComponent,
+  LiveDepthLayerComponent,
   DirectionOfTravelComponent,
   FBFeatureLayerComponent,
   RacingStartLineLayerComponent,

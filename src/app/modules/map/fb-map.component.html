@@ -277,6 +277,25 @@
     <fb-track-history [tracks]="trackHistory.tracks()" [zIndex]="105">
     </fb-track-history>
   }
+
+  <!-- live depth layer -->
+  @if (liveDepth.enabled()) {
+    <fb-live-depth
+      [samples]="liveDepth.samples()"
+      [cellPx]="liveDepth.cellPx()"
+      [safetyDepthMetres]="liveDepth.safetyDepthMetres()"
+      [shadeLimitMetres]="liveDepth.shadeLimitMetres()"
+      [contourIntervalMetres]="liveDepth.contourIntervalMetres()"
+      [maxDepthMetres]="liveDepth.maxDepthMetres()"
+      [mergeTolerance]="liveDepth.mergeTolerance()"
+      [depthPath]="liveDepth.effectiveDepthPath()"
+      [opacity]="liveDepth.opacity()"
+      [revision]="liveDepth.revision()"
+      [zIndex]="58"
+    >
+    </fb-live-depth>
+  }
+
   @if (trackHistory.ghosts().length > 0) {
     <fb-track-history-ghosts
       [ghosts]="trackHistory.ghosts()"

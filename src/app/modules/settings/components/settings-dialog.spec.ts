@@ -19,6 +19,7 @@ import {
   TrackSource,
   TRAIL_DURATION_ALL
 } from 'src/app/modules/skstream/track-source';
+import { Convert } from 'src/app/lib/convert';
 
 /**
  * "Single Click for Note Details" configures how a note responds to a tap, so it
@@ -83,6 +84,7 @@ describe('settings dialog — note details option placement', () => {
       uiCtrl: () => ({ radarLayer: false }),
       serverConfig: { unitPreferences: () => ({}) },
       alignUnitPrefs: () => undefined,
+      formatValueForDisplay: (v: number) => `${v} m`,
       lineDashMap: new Map([['none', 'none']]),
       formatLineDashArray: () => null
     } as unknown as AppFacade;
@@ -144,6 +146,40 @@ describe('settings dialog — note details option placement', () => {
 
     expect(settings.display.singleClickNoteDetails).toBe(true);
     expect(applied).toBeGreaterThan(before);
+  });
+
+  describe('live depth settings use the user depth unit', () => {
+    /** The component's protected depth getters/setters, for the test. */
+    const depth = () =>
+      fixture.componentInstance as unknown as {
+        depthSafetyDepth: number;
+        depthMaxDepth: number;
+        depthShadeLimit: number;
+        depthContourInterval: number;
+        depthUnitSymbol: string;
+      };
+
+    it('shows the stored metres in the chosen unit', () => {
+      settings.units.depth = 'foot';
+      settings.map.liveDepth.safetyDepth = 3;
+      settings.map.liveDepth.maxDepth = 100;
+      settings.map.liveDepth.shadeLimit = 10;
+      settings.map.liveDepth.contourInterval = 1;
+
+      expect(depth().depthSafetyDepth).toBeCloseTo(9.8, 1);
+      expect(depth().depthMaxDepth).toBeCloseTo(328.1, 1);
+      expect(depth().depthShadeLimit).toBeCloseTo(32.8, 1);
+      expect(depth().depthContourInterval).toBeCloseTo(3.28, 2);
+      expect(depth().depthUnitSymbol).toBe(Convert.getSymbol('foot'));
+    });
+
+    it('writes a depth setting back to metres', () => {
+      settings.units.depth = 'foot';
+      depth().depthSafetyDepth = 10; // 10 ft
+      depth().depthMaxDepth = 100; // 100 ft
+      expect(settings.map.liveDepth.safetyDepth).toBeCloseTo(3.048, 3);
+      expect(settings.map.liveDepth.maxDepth).toBeCloseTo(30.48, 2);
+    });
   });
 
   describe('vessel track source (#820)', () => {

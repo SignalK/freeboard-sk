@@ -200,6 +200,7 @@ import {
 } from './track-route';
 import { Observable, Subscription } from 'rxjs';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
+import { LiveDepthService } from 'src/app/modules/skstream/live-depth.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
   durationLabel,
@@ -487,6 +488,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected routeBuffers = inject(RouteBufferRegistry);
   private tidalCurrents = inject(TidalCurrentsService);
   protected trackHistory = inject(TrackHistoryService);
+  protected liveDepth = inject(LiveDepthService);
   protected radarApi = inject(RadarAPIService);
   protected zoneEdit = inject(GuardZoneEditService);
   // without an image to draw, dropping the spoke stream lets the provider
@@ -553,10 +555,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
     );
+    // apply persisted LiveDepth settings before the first view
+    this.liveDepth.applyConfig(this.app.config.map.liveDepth);
     // SETTINGS settings.change$ event
     this.obsList.push(
       this.settings.change$.subscribe((r: string[]) => {
         this.renderMapContents(r.includes('fetchNotes'));
+        if (r.includes('liveDepth')) {
+          this.liveDepth.applyConfig(this.app.config.map.liveDepth);
+        }
         if (r.includes(`trailSource`)) {
           if (!this.app.serverTrailWanted()) {
             this.app.selfTrailFromServer.update(() => {

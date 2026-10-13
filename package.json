@@ -84,6 +84,7 @@
     "google-protobuf": "^4.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
+    "signalk-livedepth-tiles": "^0.2.1",
     "signalk-plotterext-bus": "^0.18.0",
     "tslib": "^2.0.0",
     "unified": "^11.0.5",

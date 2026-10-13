@@ -219,6 +219,12 @@ export class SKStreamFacade {
     return this.vesselsUpdate.asObservable();
   }
 
+  /** The current own-vessel data, kept up to date as stream messages arrive
+   * (position and, since `environment.depth.*` is subscribed, depth). */
+  get selfVessel(): SKVessel | undefined {
+    return this.app.data.vessels?.self;
+  }
+
   terminate() {
     this.worker.terminate();
   }
@@ -275,6 +281,8 @@ export class SKStreamFacade {
           { path: 'port', period: 1000, policy: 'fixed' },
           { path: 'flag', period: 1000, policy: 'fixed' },
           { path: 'navigation.*', period: 1000, policy: 'fixed' },
+          // own-vessel depth, for the LiveDepth layer's live tile extension
+          { path: 'environment.depth.*', period: 1000, policy: 'fixed' },
           // The ship type colours a target on the chart. It is sent as a path
           // delta, not inside the empty-path identity object, and the server
           // matches subscriptions exactly — so without it here no target is

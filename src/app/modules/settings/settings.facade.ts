@@ -94,6 +94,17 @@ export class SettingsOptions {
       ['exit', 'Exit Follow Mode'],
       ['none', 'Do nothing']
     ]),
+    liveDepth: {
+      mode: new Map([
+        ['history', 'Your track (History API)'],
+        ['tiles', 'LiveDepth tiles (server)']
+      ]),
+      source: new Map([
+        ['environment.depth.belowTransducer', 'Below transducer'],
+        ['environment.depth.belowSurface', 'Below surface'],
+        ['environment.depth.belowKeel', 'Below keel']
+      ])
+    },
     refollowDelay: new Map<number, string>([
       [0, 'Never'],
       [5, '5 secs'],

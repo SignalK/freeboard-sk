@@ -165,6 +165,21 @@ export interface IAppConfig {
     centerOffset: MapCenterOffset; // screen-fixed map-centre offset from the vessel
     s57Options: Options; // S57 chart Options
     popoverMulti: boolean; // close popovers using cose button
+    liveDepth: {
+      // ** LiveDepth layer (recorded depth at position, v2 Track API)
+      enabled: boolean;
+      mode: 'history' | 'tiles'; // 'history' = own track via History API; 'tiles' = LiveDepth tiles
+      source: string; // Signal K depth path (e.g. environment.depth.belowTransducer)
+      historyWindow: number; // hours of history to fetch
+      historyResolution: number; // sample interval in seconds (fractional allowed)
+      safetyDepth: number; // metres; samples at or below are marked individually
+      shadeLimit: number; // metres; shading runs from the surface to here
+      contourInterval: number; // metres; an isobar is drawn at each multiple
+      maxDepth: number; // metres; samples deeper are not drawn
+      cellPx: number; // grid cell / max circle size, screen pixels
+      opacity: number; // 0-1
+      mergeTolerance: number; // percent; adjacent depths within this merge into one circle
+    };
   };
   course: {
     autoNextPointOnArrival: boolean;

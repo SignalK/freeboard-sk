@@ -50,6 +50,7 @@ import {
 import { RadarAPIService, SKRadar } from '../../radar/radar-api.service';
 import { CourseService } from 'src/app/modules/course/course.service';
 import { IAppConfig } from 'src/app/types';
+import { depthColor } from 'src/app/modules/skstream/live-depth';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -269,6 +270,25 @@ export class SettingsDialog implements OnInit {
   }
 
   /**
+   * Clamp a LiveDepth number entry to the input's declared range and notify the
+   * map so it picks the value up. Bound to `ngModelChange` (not `change`) so the
+   * model is already written when the map reads it — otherwise the layer is
+   * handed the previous value. The template's `min`/`max` only mark the control
+   * invalid; they don't stop this handler persisting the value, so clamp here.
+   */
+  protected onLiveDepthNumber(e: NgModel, min = 0, max = Infinity) {
+    if (typeof e.model !== 'number' || !Number.isFinite(e.model)) {
+      return;
+    }
+    const clamped = Math.min(max, Math.max(min, e.model));
+    if (clamped !== e.model) {
+      e.reset(clamped);
+      return;
+    }
+    this.persistModel('liveDepth');
+  }
+
+  /**
    * Parse entered number value and fall back to default if null.
    * Resultant number value is always positive unless allowNegative = true.
    */
@@ -379,6 +399,101 @@ export class SettingsDialog implements OnInit {
 
   protected get speedUnitSymbol(): string {
     return Convert.getSymbol(this.facade.settings.units.speed);
+  }
+
+  /** Legend swatches for the LiveDepth shading, from the surface (shallowest)
+   * to the shade limit, in the user's depth units. */
+  protected get depthLegend(): Array<{ color: string; label: string }> {
+    const limit = this.facade.settings.map.liveDepth.shadeLimit;
+    const steps = 6;
+    return Array.from({ length: steps }, (_, i) => {
+      const depth = (i / (steps - 1)) * limit;
+      const [r, g, b] = depthColor(depth, limit);
+      return {
+        color: `rgb(${r},${g},${b})`,
+        label: this.app.formatValueForDisplay(depth, 'm', {
+          category: 'depth',
+          precision: 0,
+          noSymbol: true
+        })
+      };
+    });
+  }
+
+  protected get depthUnitSymbol(): string {
+    return Convert.getSymbol(this.facade.settings.units.depth);
+  }
+
+  /** Stored metres → the user's depth unit, rounded to `decimals`. */
+  private depthToDisplay(metres: number, decimals: number): number {
+    const v = Convert.transform(
+      metres,
+      'm',
+      this.facade.settings.units.depth as TARGET_UNIT
+    );
+    const f = Math.pow(10, decimals);
+    return Math.round(v * f) / f;
+  }
+
+  /** A value in the user's depth unit → stored metres. Convert only goes
+   * SI → display, so invert it. */
+  private depthFromDisplay(value: number): number {
+    const factor =
+      Convert.transform(
+        1,
+        'm',
+        this.facade.settings.units.depth as TARGET_UNIT
+      ) || 1;
+    return (typeof value === 'number' ? value : 0) / factor;
+  }
+
+  /** The shade limit, in the user's depth unit. */
+  protected get depthShadeLimit(): number {
+    return this.depthToDisplay(
+      this.facade.settings.map.liveDepth.shadeLimit,
+      1
+    );
+  }
+
+  protected set depthShadeLimit(value: number) {
+    this.facade.settings.map.liveDepth.shadeLimit =
+      this.depthFromDisplay(value);
+  }
+
+  /** The safety depth, in the user's depth unit. */
+  protected get depthSafetyDepth(): number {
+    return this.depthToDisplay(
+      this.facade.settings.map.liveDepth.safetyDepth,
+      1
+    );
+  }
+
+  protected set depthSafetyDepth(value: number) {
+    this.facade.settings.map.liveDepth.safetyDepth =
+      this.depthFromDisplay(value);
+  }
+
+  /** The max depth, in the user's depth unit. */
+  protected get depthMaxDepth(): number {
+    return this.depthToDisplay(this.facade.settings.map.liveDepth.maxDepth, 1);
+  }
+
+  protected set depthMaxDepth(value: number) {
+    this.facade.settings.map.liveDepth.maxDepth = this.depthFromDisplay(value);
+  }
+
+  /** The contour interval, in the user's depth unit. Fractional values are
+   * allowed (e.g. 0.1), so this must not round to a whole number. */
+  protected get depthContourInterval(): number {
+    return this.depthToDisplay(
+      this.facade.settings.map.liveDepth.contourInterval,
+      2
+    );
+  }
+
+  protected set depthContourInterval(value: number) {
+    const m = this.depthFromDisplay(value);
+    this.facade.settings.map.liveDepth.contourInterval = m > 0 ? m : 0.1;
   }
 
   /**

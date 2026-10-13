@@ -1168,7 +1168,11 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
     } else if (v.path.startsWith('radars')) {
       // emit immediate radar update for single path
       processRadarUpdate(v);
-    } else if (v.path.startsWith('navigation.racing')) {
+    } else if (
+      v.path.startsWith('navigation.racing') ||
+      // depth is kept for the LiveDepth layer's live tile extension
+      v.path.startsWith('environment.depth.')
+    ) {
       d.properties[v.path] = value;
     } else if (v.path === 'performance.beatAngle') {
       d.performance.beatAngle = value;

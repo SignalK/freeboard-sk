@@ -588,6 +588,237 @@
                 </div>
               </mat-card-content>
             </mat-card>
+            <div class="setting-group-title">LIVE DEPTH</div>
+            <mat-card>
+              <mat-card-content>
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
+                    <mat-slide-toggle
+                      [(ngModel)]="facade.settings.map.liveDepth.enabled"
+                      (ngModelChange)="persistModel('liveDepth')"
+                      matTooltip="Draw the depth recorded along your track, shaded from dark blue (shallow) to white (deep). Needs a History API provider, or the LiveDepth plugin for tile mode, on the server."
+                    >
+                      Show depth layer
+                    </mat-slide-toggle>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Data source</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.map.liveDepth.mode"
+                        (ngModelChange)="persistModel('liveDepth')"
+                        matTooltip="Where the depth comes from. 'Your track' reads your own recorded position+depth from the server's History API. 'LiveDepth tiles' reads the LiveDepth plugin's gridded store for the area (built from the whole record) and extends it live from the stream."
+                      >
+                        @for(i of options.map.liveDepth.mode; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Depth source</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.map.liveDepth.source"
+                        (ngModelChange)="persistModel('liveDepth')"
+                        [disabled]="facade.settings.map.liveDepth.mode === 'tiles'"
+                        matTooltip="Which depth measurement to plot. In tile mode the LiveDepth plugin decides this, so this setting only applies to your own track."
+                      >
+                        @for(i of options.map.liveDepth.source; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  @if (facade.settings.map.liveDepth.mode === 'history') {
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>History window</mat-label>
+                      <input
+                        matInput
+                        step="any"
+                        type="number"
+                        #ldWin="ngModel"
+                        required
+                        min="0.1"
+                        [(ngModel)]="facade.settings.map.liveDepth.historyWindow"
+                        (ngModelChange)="onLiveDepthNumber(ldWin, 0.1)"
+                        matTooltip="How far back to fetch depth. A longer window returns more data."
+                      />
+                      <span matSuffix>h</span>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Sample interval</mat-label>
+                      <input
+                        matInput
+                        step="any"
+                        type="number"
+                        #ldRes="ngModel"
+                        required
+                        min="0.01"
+                        [(ngModel)]="facade.settings.map.liveDepth.historyResolution"
+                        (ngModelChange)="onLiveDepthNumber(ldRes, 0.01)"
+                        matTooltip="Seconds between depth samples. Smaller is finer (the recorder logs about every 0.1 s). Longer windows are coarsened to keep the response bounded."
+                      />
+                      <span matSuffix>s</span>
+                    </mat-form-field>
+                  </div>
+                  }
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Safety depth</mat-label>
+                      <input
+                        matInput
+                        step="any"
+                        type="number"
+                        #ldSafety="ngModel"
+                        required
+                        min="0"
+                        [(ngModel)]="depthSafetyDepth"
+                        (ngModelChange)="onLiveDepthNumber(ldSafety)"
+                        matTooltip="Samples at or below this depth are drawn individually, never merged into a larger circle."
+                      />
+                      <span matSuffix>{{ depthUnitSymbol }}</span>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Shade to</mat-label>
+                      <input
+                        matInput
+                        step="any"
+                        type="number"
+                        #ldShade="ngModel"
+                        required
+                        min="0"
+                        [(ngModel)]="depthShadeLimit"
+                        (ngModelChange)="onLiveDepthNumber(ldShade)"
+                        matTooltip="Shading runs from the surface up to this depth; deeper water is left to the chart."
+                      />
+                      <span matSuffix>{{ depthUnitSymbol }}</span>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Contour interval</mat-label>
+                      <input
+                        matInput
+                        step="any"
+                        type="number"
+                        #ldContour="ngModel"
+                        required
+                        min="0"
+                        [(ngModel)]="depthContourInterval"
+                        (ngModelChange)="onLiveDepthNumber(ldContour)"
+                        matTooltip="An isobar is drawn at every multiple of this depth, across all the data (not only the shaded shallows)."
+                      />
+                      <span matSuffix>{{ depthUnitSymbol }}</span>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Max depth</mat-label>
+                      <input
+                        matInput
+                        step="any"
+                        type="number"
+                        #ldMax="ngModel"
+                        required
+                        min="1"
+                        [(ngModel)]="depthMaxDepth"
+                        (ngModelChange)="onLiveDepthNumber(ldMax, 1)"
+                        matTooltip="Samples deeper than this are not drawn."
+                      />
+                      <span matSuffix>{{ depthUnitSymbol }}</span>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Circle size</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        #ldCell="ngModel"
+                        required
+                        min="4"
+                        [(ngModel)]="facade.settings.map.liveDepth.cellPx"
+                        (ngModelChange)="onLiveDepthNumber(ldCell, 4)"
+                        matTooltip="Diameter of an unmerged circle, in screen pixels."
+                      />
+                      <span matSuffix>px</span>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Merge band</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        #ldMerge="ngModel"
+                        required
+                        min="0"
+                        max="50"
+                        [(ngModel)]="facade.settings.map.liveDepth.mergeTolerance"
+                        (ngModelChange)="onLiveDepthNumber(ldMerge, 0, 50)"
+                        matTooltip="Adjacent positions whose depths are within this percentage of each other are drawn as one circle."
+                      />
+                      <span matSuffix>%</span>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item setting-card-row-stack">
+                    <div class="setting-field-group-title">
+                      Opacity {{ facade.settings.map.liveDepth.opacity }}
+                    </div>
+                    <mat-slider
+                      discrete
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      style="width: 100%"
+                    >
+                      <input
+                        matSliderThumb
+                        [(ngModel)]="facade.settings.map.liveDepth.opacity"
+                        (ngModelChange)="persistModel('liveDepth')"
+                      />
+                    </mat-slider>
+                  </div>
+                </div>
+                <div class="setting-card-row">
+                  <div class="setting-card-row-item" style="width: 100%">
+                    <div class="setting-field-group-title">
+                      Depth shading ({{ depthUnitSymbol }})
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px 14px;
+                        align-items: center;
+                      "
+                    >
+                      @for(b of depthLegend; track b.label) {
+                      <div style="display: flex; align-items: center; gap: 5px">
+                        <span
+                          [style.background]="b.color"
+                          style="
+                            width: 14px;
+                            height: 14px;
+                            border-radius: 50%;
+                            display: inline-block;
+                            border: 1px solid rgba(0, 0, 0, 0.25);
+                          "
+                        ></span>
+                        <span style="font-size: 12px">{{ b.label }}</span>
+                      </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
             <div class="setting-group-title">VECTOR CHARTS</div>
             <mat-card>
               <mat-card-content>

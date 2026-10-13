@@ -110,6 +110,7 @@ describe('settings dialog — arrival circle', () => {
             uiCtrl: () => ({ radarLayer: false }),
             serverConfig: { unitPreferences: () => ({}) },
             alignUnitPrefs: () => undefined,
+            formatValueForDisplay: (v: number) => `${v} m`,
             lineDashMap: new Map([['none', 'none']]),
             formatLineDashArray: () => null
           }
