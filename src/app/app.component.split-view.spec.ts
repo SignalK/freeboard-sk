@@ -94,6 +94,24 @@ describe('AppComponent: map buttons with the chart split', () => {
   });
 });
 
+describe('AppComponent: keyboard focus with the chart split', () => {
+  it('hands focus back to the active pane', () => {
+    const cmp = component(true);
+    const target = document.createElement('div');
+    target.tabIndex = -1;
+    document.body.append(target);
+    cmp.splitView.secondaryMap = () => ({ getTargetElement: () => target });
+    cmp.mapSetFocus = signal(0);
+    delete cmp.focusMap;
+
+    cmp.focusMap();
+
+    expect(document.activeElement).toBe(target);
+    expect(cmp.mapSetFocus()).toBe(0);
+    target.remove();
+  });
+});
+
 describe('AppComponent: when the split shows', () => {
   const shown = (kiosk: boolean) => {
     const cmp = Object.create(AppComponent.prototype);

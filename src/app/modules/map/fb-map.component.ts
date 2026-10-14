@@ -2861,8 +2861,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   //   pointerdrag, so apply the pan behaviour here or the "Map Pan When
   //   Following" setting is bypassed (#725).
   protected onMapKeydown(e: KeyboardEvent) {
-    // Keys go to the chart that has focus, so it becomes the active pane.
-    this.splitView.activate('main');
+    // Keys go to the chart that has focus, so it becomes the active pane; not
+    // keys on its controls, as the zoom buttons act on the active pane.
+    const controls = this.olMap?.getMap()?.getOverlayContainerStopEvent();
+    if (!controls?.contains(e.target as Node)) {
+      this.splitView.activate('main');
+    }
     const direction = zoomKeyDirection(e);
     if (direction) {
       e.preventDefault();

@@ -55,6 +55,13 @@
   touch-action: none;
 }
 
+/* A bigger target for a finger than the grip shows. */
+.split-grip::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
 .split-grip:focus-visible {
   outline: 3px solid rgb(54, 122, 190);
   outline-offset: 2px;

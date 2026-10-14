@@ -11,6 +11,7 @@ import {
   signal,
   untracked
 } from '@angular/core';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Map as OlMap } from 'ol';
@@ -127,8 +128,6 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private panelSize: ResizeObserver | undefined;
   private gripFrame = 0;
   private gripRatio: number | null = null;
-  protected readonly ratioMin = Math.round(SPLIT_RATIO_MIN * 100);
-  protected readonly ratioMax = Math.round(SPLIT_RATIO_MAX * 100);
   private vessels: Subscription;
   private commands: Subscription;
   private pressedAt = 0;
@@ -141,13 +140,29 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private overscans: Overscan[] = [];
   private endDrag: (() => void) | null = null;
   private zone = inject(NgZone);
+  private announcer = inject(LiveAnnouncer);
   protected dragging = signal(false);
+  /** Whether focus was last moved by the user with Tab, not by the app. */
+  private tabbed = false;
+  private documentListeners: [string, (e: Event) => void][] = [];
 
   constructor() {
     effect(() => {
       if (this.split.follow()) {
         untracked(() => this.centerOnVessel());
       }
+    });
+    // Which chart the shared buttons act on is shown by an outline; a screen
+    // reader is told.
+    let wasSecond: boolean | undefined;
+    effect(() => {
+      const second = this.split.secondaryActive();
+      if (wasSecond !== undefined && second !== wasSecond) {
+        this.announcer.announce(
+          second ? 'Second chart active' : 'Main chart active'
+        );
+      }
+      wasSecond = second;
     });
   }
 
@@ -171,6 +186,15 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    this.documentListeners = [
+      ['keydown', (e) => this.onDocumentKey(e as KeyboardEvent)],
+      ['pointerdown', () => this.onDocumentPress()]
+    ];
+    this.zone.runOutsideAngular(() =>
+      this.documentListeners.forEach(([type, fn]) =>
+        document.addEventListener(type, fn, true)
+      )
+    );
     // The panel's own shape decides whether the panes stack, and its length
     // along the split how far the divider may go.
     const panel = this.host.nativeElement.parentElement;
@@ -190,6 +214,9 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.documentListeners.forEach(([type, fn]) =>
+      document.removeEventListener(type, fn, true)
+    );
     this.vessels?.unsubscribe();
     this.commands?.unsubscribe();
     this.panelSize?.disconnect();
@@ -208,9 +235,15 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.mainMap) {
       this.stopMirror = mirrorLayers(this.mainMap, e.map);
       this.mainMap.on('moveend', this.onMainMoved);
-      this.stopUseWatch.push(this.activateOnUse(this.mainMap, 'main'));
+      this.stopUseWatch.push(
+        this.activateOnUse(this.mainMap, 'main'),
+        this.nameChart(this.mainMap, 'Main chart')
+      );
     }
-    this.stopUseWatch.push(this.activateOnUse(e.map, 'secondary'));
+    this.stopUseWatch.push(
+      this.activateOnUse(e.map, 'secondary'),
+      this.nameChart(e.map, 'Second chart')
+    );
     this.updateFootprint();
     this.split.setSecondaryMap(e.map);
   }
@@ -220,7 +253,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
    * pane the active one. Its controls and popovers don't count: the zoom
    * buttons sit on the main chart, and pressing them must not take them away
    * from the second pane. Nor does focus the app moves there itself after a
-   * toolbar click; only focus the user moved by keyboard (:focus-visible).
+   * toolbar action; only focus the user moved with Tab.
    */
   private activateOnUse(map: OlMap, pane: SplitPane): () => void {
     const viewport = map.getViewport();
@@ -232,7 +265,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     };
     const onFocus = (e: FocusEvent) => {
-      if (onChart(e) && (e.target as Element).matches?.(':focus-visible')) {
+      if (onChart(e) && this.tabbed) {
         this.split.activate(pane);
       }
     };
@@ -241,6 +274,34 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     return () => {
       viewport.removeEventListener('pointerdown', onPress);
       map.getTargetElement()?.removeEventListener('focusin', onFocus);
+    };
+  }
+
+  private onDocumentKey(e: KeyboardEvent) {
+    this.tabbed = e.key === 'Tab';
+  }
+
+  private onDocumentPress() {
+    this.tabbed = false;
+  }
+
+  /**
+   * While the split is open both charts are in the tab order, named, so the
+   * keyboard can reach either and a screen reader tells them apart.
+   */
+  private nameChart(map: OlMap, name: string): () => void {
+    const target = map.getTargetElement();
+    if (!target) {
+      return () => undefined;
+    }
+    const tabIndex = target.tabIndex;
+    target.tabIndex = 0;
+    target.setAttribute('role', 'region');
+    target.setAttribute('aria-label', name);
+    return () => {
+      target.tabIndex = tabIndex;
+      target.removeAttribute('role');
+      target.removeAttribute('aria-label');
     };
   }
 
@@ -378,7 +439,11 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** The main chart's share of the panel, as the divider reports it. */
   protected splitPercent(): number {
-    return Math.round(this.split.shownRatio() * 100);
+    return this.percent(this.split.shownRatio());
+  }
+
+  protected percent(share: number): number {
+    return Math.round(share * 100);
   }
 
   /**

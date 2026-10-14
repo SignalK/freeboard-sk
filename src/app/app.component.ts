@@ -1209,6 +1209,14 @@ export class AppComponent {
 
   // ** trigger focus of the map so keyboard controls work
   protected focusMap() {
+    // Keys go to the chart with focus: the active pane of the split view.
+    const pane = this.splitView.secondaryActive()
+      ? this.splitView.secondaryMap()
+      : null;
+    if (pane) {
+      pane.getTargetElement()?.focus();
+      return;
+    }
     this.mapSetFocus.update(() => Date().valueOf());
   }
 

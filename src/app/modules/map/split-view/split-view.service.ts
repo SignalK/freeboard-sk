@@ -10,6 +10,8 @@ import {
   fitRatio,
   parseSplitViewState,
   SplitViewState,
+  SPLIT_RATIO_MAX,
+  SPLIT_RATIO_MIN,
   SPLIT_VIEW_STORAGE_KEY
 } from './split-view';
 
@@ -90,6 +92,19 @@ export class SplitViewService {
       return this.ratio();
     }
     return fitRatio(this.ratio(), this.stacked() ? panel.height : panel.width);
+  });
+
+  /** The shares the main chart can be shown at, as the divider can reach. */
+  readonly shownRange = computed(() => {
+    const panel = this.panel();
+    if (!panel) {
+      return { min: SPLIT_RATIO_MIN, max: SPLIT_RATIO_MAX };
+    }
+    const size = this.stacked() ? panel.height : panel.width;
+    return {
+      min: fitRatio(SPLIT_RATIO_MIN, size),
+      max: fitRatio(SPLIT_RATIO_MAX, size)
+    };
   });
 
   /** True while the shared map buttons act on the second pane. */

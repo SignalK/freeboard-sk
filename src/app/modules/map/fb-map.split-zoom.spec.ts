@@ -49,6 +49,21 @@ describe('FBMapComponent: keys with the chart split', () => {
 
     expect(cmp.splitView.activate).toHaveBeenCalledWith('main');
   });
+
+  it('leave the active pane alone on its controls, as the zoom buttons', () => {
+    const cmp = bareComponent(true);
+    const map = new OlMap();
+    cmp.olMap = { getMap: () => map };
+    const button = document.createElement('button');
+    map.getOverlayContainerStopEvent().append(button);
+
+    cmp.onMapKeydown({
+      key: 'Enter',
+      target: button
+    } as unknown as KeyboardEvent);
+
+    expect(cmp.splitView.activate).not.toHaveBeenCalled();
+  });
 });
 
 describe('FBMapComponent: the view while the split divider is dragged', () => {

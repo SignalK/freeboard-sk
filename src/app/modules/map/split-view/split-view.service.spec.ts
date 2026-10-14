@@ -98,6 +98,16 @@ describe('SplitViewService: layout and saving', () => {
     expect((1 - split.shownRatio()) * 560).toBeCloseTo(MIN_PANE_PX);
   });
 
+  it('tells the divider how far it can go on the panel it has', () => {
+    const split = new SplitViewService();
+    expect(split.shownRange()).toEqual({ min: 0.3, max: 0.7 });
+
+    // 560 px: each pane keeps its 200 px.
+    split.setPanelSize(560, 340);
+    expect(split.shownRange().min * 560).toBeCloseTo(MIN_PANE_PX);
+    expect((1 - split.shownRange().max) * 560).toBeCloseTo(MIN_PANE_PX);
+  });
+
   it('leaves a phone the divider to drag', () => {
     // A phone held upright, in a browser: about 390 x 664.
     const split = new SplitViewService();

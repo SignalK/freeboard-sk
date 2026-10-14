@@ -407,6 +407,7 @@ describe('SplitMapComponent: the divider', () => {
     it('gives the main chart back its pane if the split closes mid-drag', () => {
       const { cmp, at, main, pane } = dragged();
       cmp.stopUseWatch = [];
+      cmp.documentListeners = [];
       cmp.onMainMoved = () => undefined;
       cmp.split.setSecondaryMap = vi.fn();
       at('pointermove', 620);
@@ -523,23 +524,56 @@ describe('SplitMapComponent: the divider', () => {
 });
 
 describe('SplitMapComponent: keyboard focus', () => {
-  it('makes a pane active when the keyboard moves focus onto its chart', () => {
+  const watched = () => {
     const cmp = bareComponent();
     const map = new OlMap();
     const target = document.createElement('div');
     target.appendChild(map.getViewport());
     map.getTargetElement = () => target;
     cmp.activateOnUse(map, 'secondary');
-    const focused = (visible: boolean) => {
-      const viewport = map.getViewport();
-      viewport.matches = (q: string) => q === ':focus-visible' && visible;
-      viewport.dispatchEvent(new Event('focusin', { bubbles: true }));
-    };
+    const focused = () =>
+      map.getViewport().dispatchEvent(new Event('focusin', { bubbles: true }));
+    return { cmp, focused, target };
+  };
 
-    focused(false);
-    expect(cmp.split.activate).not.toHaveBeenCalled();
-    focused(true);
+  it('makes a pane active when Tab moves focus onto its chart', () => {
+    const { cmp, focused } = watched();
+
+    cmp.onDocumentKey({ key: 'Tab' } as KeyboardEvent);
+    focused();
+
     expect(cmp.split.activate).toHaveBeenCalledWith('secondary');
+  });
+
+  it('leaves the active pane when the app moves focus after a key or press', () => {
+    const { cmp, focused } = watched();
+
+    // Enter on a toolbar button, which then hands focus back to a chart.
+    cmp.onDocumentKey({ key: 'Enter' } as KeyboardEvent);
+    focused();
+    cmp.onDocumentKey({ key: 'Tab' } as KeyboardEvent);
+    cmp.onDocumentPress();
+    focused();
+
+    expect(cmp.split.activate).not.toHaveBeenCalled();
+  });
+
+  it('puts both charts in the tab order, named, while the split is open', () => {
+    const cmp = bareComponent();
+    const map = new OlMap();
+    const target = document.createElement('div');
+    target.tabIndex = -1;
+    map.getTargetElement = () => target;
+
+    const restore = cmp.nameChart(map, 'Main chart');
+    expect(target.tabIndex).toBe(0);
+    expect(target.getAttribute('aria-label')).toBe('Main chart');
+    expect(target.getAttribute('role')).toBe('region');
+
+    restore();
+    expect(target.tabIndex).toBe(-1);
+    expect(target.hasAttribute('aria-label')).toBe(false);
+    expect(target.hasAttribute('role')).toBe(false);
   });
 });
 
