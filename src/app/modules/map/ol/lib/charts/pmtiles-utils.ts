@@ -87,8 +87,6 @@ export function initPMTilesXYZLayer(
       maxZoom: chart.maxZoom,
       minZoom: chart.minZoom
     }),
-    // A lower-zoom placeholder for a pan, as for XYZ raster charts.
-    preload: 1,
     zIndex: zIndex,
     opacity: chart.defaultOpacity ?? 1,
     className

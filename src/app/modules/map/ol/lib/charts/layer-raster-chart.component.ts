@@ -27,6 +27,16 @@ import {
 import { resolveChartTime } from 'src/app/lib/chart-time';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
 
+/**
+ * OL loads no tiles mid-gesture on a slow device, so a pan exposes blank map.
+ * The next lower zoom, loaded while idle and reaching past the viewport edge,
+ * fills that in blurred instead. A time-varying or auto-refreshed chart would
+ * refetch those extra tiles from its remote server on every refresh tick and
+ * time step, so it keeps none.
+ */
+const placeholderPreload = (chart: FBChart): number =>
+  chart[1].time || chart[1].refreshInterval ? 0 : 1;
+
 // ** Freeboard Raster TileLayer Chart **
 @Component({
   selector: 'ol-map > fb-tilelayer-raster',
@@ -105,10 +115,6 @@ export class RasterChartLayerComponent implements OnDestroy {
               maxZoom: chart[1].maxZoom,
               tileSize: chart[1].tileSize ?? 256
             }),
-            // OL loads no tiles mid-gesture on a slow device, so a pan exposes
-            // blank map. The next lower zoom, loaded while idle and reaching
-            // past the viewport edge, fills that in blurred instead.
-            preload: 1,
             zIndex: this.zIndex(),
             minZoom: zoom.min,
             maxZoom: zoom.max,
@@ -149,6 +155,9 @@ export class RasterChartLayerComponent implements OnDestroy {
     // pmtiles (WebGL) layers are static local files, so neither the time
     // dimension nor auto-refresh applies to them.
     if (this.layer instanceof TileLayer) {
+      if (chart[0] !== 'openstreetmap') {
+        this.layer.setPreload(placeholderPreload(chart));
+      }
       this.applyTime(chart);
       // Auto-refresh time-varying charts (radar/satellite) non-destructively.
       // A historical frame does not change, so the timer is suspended while an

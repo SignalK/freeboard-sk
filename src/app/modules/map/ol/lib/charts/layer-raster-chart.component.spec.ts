@@ -7,7 +7,7 @@ import { RasterChartLayerComponent } from './layer-raster-chart.component';
 import { MapComponent } from '../map.component';
 import { MIN_CHART_REFRESH_INTERVAL_MS } from './chart-utils';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
-import { FBChart } from 'src/app/types';
+import { ChartResource, FBChart } from 'src/app/types';
 
 /**
  * A time-varying raster chart shows the instant selected on its cache entry
@@ -186,22 +186,41 @@ describe('RasterChartLayerComponent — time-varying chart', () => {
  * OpenLayers loads no tiles mid-gesture on a slow device, so a pan over a
  * raster chart shows only what is already loaded. Keeping the next lower zoom
  * loaded gives the exposed area a blurred placeholder instead of blank map.
+ * A time-varying or auto-refreshed chart would refetch that extra zoom from
+ * its remote server on every refresh tick and time step, so it keeps none.
  */
 describe('RasterChartLayerComponent — lower-zoom placeholder', () => {
   const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
 
-  const renderedLayer = (url: string): TileLayer => {
-    const chart = new SKChart({
+  const chart = (url: string, extra: Partial<ChartResource> = {}): FBChart => [
+    'chart',
+    new SKChart({
       name: 'Chart',
       url,
       type: 'tilelayer',
-      format: 'png'
-    });
+      format: 'png',
+      ...extra
+    }),
+    true
+  ];
+
+  const render = (c: FBChart) => {
     const fixture = TestBed.createComponent(RasterChartLayerComponent);
-    fixture.componentRef.setInput('chart', ['chart', chart, true]);
+    fixture.componentRef.setInput('chart', c);
     fixture.componentRef.setInput('zIndex', 10);
     fixture.detectChanges();
-    return map.addLayer.mock.calls[0][0] as TileLayer;
+    return fixture;
+  };
+  const layer = () => map.addLayer.mock.calls[0][0] as TileLayer;
+
+  const timeVarying = {
+    time: {
+      url: 'https://r.test/{z}/{x}/{y}.png?t={time}',
+      current: true,
+      from: '2026-09-18T12:00:00.000Z',
+      to: '2026-09-18T15:00:00.000Z',
+      step: 300000
+    }
   };
 
   beforeEach(async () => {
@@ -213,12 +232,37 @@ describe('RasterChartLayerComponent — lower-zoom placeholder', () => {
   });
 
   it('preloads one lower zoom for an XYZ chart', () => {
-    const layer = renderedLayer('https://c.test/{z}/{x}/{y}.png');
-    expect(layer.getPreload()).toBe(1);
+    render(chart('https://c.test/{z}/{x}/{y}.png'));
+    expect(layer().getPreload()).toBe(1);
   });
 
   it('preloads one lower zoom for a raster PMTiles chart', () => {
-    const layer = renderedLayer('https://c.test/chart.pmtiles');
-    expect(layer.getPreload()).toBe(1);
+    render(chart('https://c.test/chart.pmtiles'));
+    expect(layer().getPreload()).toBe(1);
+  });
+
+  it('preloads nothing for a time-varying chart', () => {
+    render(chart('https://r.test/{z}/{x}/{y}.png', timeVarying));
+    expect(layer().getPreload()).toBe(0);
+  });
+
+  it('preloads nothing for an auto-refreshed chart', () => {
+    render(
+      chart('https://r.test/{z}/{x}/{y}.png', {
+        refreshInterval: 2 * MIN_CHART_REFRESH_INTERVAL_MS
+      })
+    );
+    expect(layer().getPreload()).toBe(0);
+  });
+
+  it('follows the chart when it gains or loses its time dimension', () => {
+    const url = 'https://r.test/{z}/{x}/{y}.png';
+    const fixture = render(chart(url));
+    fixture.componentRef.setInput('chart', chart(url, timeVarying));
+    fixture.detectChanges();
+    expect(layer().getPreload()).toBe(0);
+    fixture.componentRef.setInput('chart', chart(url));
+    fixture.detectChanges();
+    expect(layer().getPreload()).toBe(1);
   });
 });
