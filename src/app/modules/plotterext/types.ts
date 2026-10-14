@@ -27,7 +27,8 @@ export const HOST_CAPABILITIES = [
   'resourceGroups',
   'background.iframe',
   'ui',
-  'windows'
+  'windows',
+  'overlays.image'
 ];
 
 export type WidgetSize = '1x1' | '2x1' | '1x2' | '2x2';
@@ -180,6 +181,29 @@ export interface BackgroundContribution {
   apiVersion?: string;
 }
 
+/** Where an image overlay sits relative to Freeboard's own map content. */
+export type OverlayBand = 'aboveCharts' | 'aboveResources';
+
+/**
+ * An image map overlay (capability `overlays.image`): a map layer whose pixels
+ * the named background runtime draws on request.
+ */
+export interface OverlayContribution {
+  id: string;
+  title: string;
+  type: 'image';
+  /** Id of the background runtime (same manifest) that draws it. */
+  runtime: string;
+  band?: OverlayBand;
+  /** Initial visibility, before the user chooses. */
+  visible?: boolean;
+  /** Initial opacity, 0..1. */
+  opacity?: number;
+  minZoom?: number;
+  maxZoom?: number;
+  apiVersion?: string;
+}
+
 export interface PanelContribution {
   id: string;
   title: string;
@@ -202,6 +226,7 @@ export interface PlotterExtensionManifest {
   panels?: PanelContribution[];
   buttons?: ButtonContribution[];
   background?: BackgroundContribution[];
+  overlays?: OverlayContribution[];
   // Future contribution sections (buttons, background, resourceFilters) are
   // tolerated but not consumed by this build.
   [key: string]: unknown;

@@ -254,6 +254,8 @@ export interface IAppConfig {
     // ** plotter extension host (plotterExtensions resource type).
     // No enabled list: extension availability is controlled on the server
     // (plugin install/enable); presence in the resources response = enabled.
+    // user's show/fade choice per image overlay, keyed `<extension>/<overlay id>`
+    overlays?: Record<string, { visible: boolean; opacity: number }>;
     widgets: Array<{
       instanceId: string; // host-assigned GUID for this placement
       extension: string; // extension (resource) id

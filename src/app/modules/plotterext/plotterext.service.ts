@@ -43,6 +43,7 @@ import {
   HostConnection,
   type WindowState,
   type MapView,
+  matchesAny,
   MethodHandler,
   type NightModeState,
   normalizeBounds,
@@ -79,6 +80,12 @@ import {
 import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
 import { createChartMethods } from './chart-methods';
+import { createOverlayMethods } from './overlay-methods';
+import {
+  OverlayRegistry,
+  type OverlayDefinition,
+  type OverlayEntry
+} from './overlay-registry';
 import { createNightModeMethods } from './nightmode-methods';
 import {
   createEventsMethods,
@@ -137,6 +144,10 @@ interface ExtensionStateStore {
 
 interface LiveContext {
   extension: string;
+  /** Background-runtime id, for a `background` context; otherwise null. */
+  runtime: string | null;
+  /** Whether the context is subscribed to `overlay.request` (for replay). */
+  overlayRequestSubscribed?: boolean;
   conn: HostConnection;
   /** signalk.subscribe subscriptionId -> paths */
   skSubs: Map<string, string[]>;
@@ -255,6 +266,123 @@ export class PlotterExtensionService {
     }
     return result;
   });
+
+  // ---------- image map overlays (capability `overlays.image`) ----------
+
+  /**
+   * Image overlays: their definitions, the user's show/fade choices (persisted
+   * in config), the active-overlay budget and frame bookkeeping. The map draws
+   * `overlays.active()`; the chart list shows `overlays.entries()`.
+   */
+  readonly overlays = inject(OverlayRegistry);
+
+  /**
+   * Overlays contributed by compatible extensions whose named runtime is one of
+   * this host's background runtimes. An overlay of an unknown `type`, or one
+   * naming no runtime of its own manifest, is omitted.
+   */
+  private readonly overlayDefinitions = computed<OverlayDefinition[]>(() => {
+    const runtimes = new Set(this.backgroundRuntimes().map((r) => r.key));
+    const result: OverlayDefinition[] = [];
+    for (const [extension, manifest] of Object.entries(this.manifests())) {
+      if (!this.isCompatible(manifest)) continue;
+      const seen = new Set<string>();
+      for (const def of manifest.overlays ?? []) {
+        if (
+          def?.type !== 'image' ||
+          typeof def.id !== 'string' ||
+          typeof def.title !== 'string' ||
+          typeof def.runtime !== 'string' ||
+          seen.has(def.id) ||
+          !runtimes.has(`${extension}/${def.runtime}`) ||
+          (def.apiVersion !== undefined && def.apiVersion !== HOST_API_VERSION)
+        ) {
+          continue;
+        }
+        seen.add(def.id);
+        result.push({ extension, extensionName: manifest.name, def });
+      }
+    }
+    return result;
+  });
+
+  /**
+   * Ask an overlay's runtime for a frame of the given view (called by the
+   * overlay's map layer). `worldOffset` is the render-space shift of the
+   * world copy on screen; frames answering this request are drawn there.
+   */
+  requestOverlayFrame(
+    key: string,
+    view: Parameters<OverlayRegistry['newRequest']>[1],
+    worldOffset: number
+  ) {
+    const entry = this.overlays.entry(key);
+    const request = this.overlays.newRequest(key, view, worldOffset);
+    if (entry && request) {
+      this.publishToRuntime(
+        entry.extension,
+        entry.runtime,
+        'overlay.request',
+        request
+      );
+    }
+  }
+
+  /** Overlay states last reported, for diffing into `overlay.state` events. */
+  private lastOverlayStates = new Map<string, string>();
+
+  /**
+   * Emit `overlay.state` to the owning extension for each overlay whose
+   * visibility, opacity or suspension changed — whoever changed it. The first
+   * report of an overlay seeds silently; a runtime reads the starting state
+   * with `overlay.list`.
+   */
+  private emitOverlayStates(entries: OverlayEntry[]) {
+    const next = new Map<string, string>();
+    for (const e of entries) {
+      const state = {
+        overlayId: e.id,
+        visible: e.visible,
+        opacity: e.opacity,
+        suspended: e.suspended
+      };
+      const sig = JSON.stringify(state);
+      next.set(e.key, sig);
+      const prev = this.lastOverlayStates.get(e.key);
+      if (prev !== undefined && prev !== sig) {
+        this.publishToExtension(e.extension, 'overlay.state', state);
+      }
+      if (!e.visible || e.suspended) {
+        this.overlays.clearRequest(e.key);
+      }
+    }
+    this.lastOverlayStates = next;
+  }
+
+  /**
+   * A runtime has just subscribed to `overlay.request`: send it the latest
+   * request of each of its overlays, which the map layer may have made before
+   * the runtime's iframe had loaded. Only on the transition — the hook fires
+   * for every subscription change, and a runtime's later subscriptions (to
+   * `overlay.state`, Signal K paths) must not resend requests it already has.
+   * Deferred one tick so it lands after the `events.subscribe` call resolves.
+   */
+  private replayOverlayRequests(ctx: LiveContext, patterns: string[]) {
+    const subscribed = matchesAny(patterns, 'overlay.request');
+    const newly = subscribed && !ctx.overlayRequestSubscribed;
+    ctx.overlayRequestSubscribed = subscribed;
+    if (!ctx.runtime || !newly) return;
+    const runtime = ctx.runtime;
+    setTimeout(() => {
+      if (!this.contexts.has(ctx)) return;
+      for (const request of this.overlays.latestRequestsFor(
+        ctx.extension,
+        runtime
+      )) {
+        ctx.conn.publish('overlay.request', request);
+      }
+    }, 0);
+  }
 
   // ---------- extension panels (button-opened, ui.openPanel) ----------
 
@@ -874,6 +1002,21 @@ export class PlotterExtensionService {
     effect(() => {
       const states = this.panelStates();
       untracked(() => this.emitPanelStates(states));
+    });
+    // Image overlays: follow the collection, load the user's saved choices,
+    // and emit `overlay.state` for every change (origin-transparent).
+    this.overlays.setPersist((settings) => {
+      this.app.config.plotterExtensions.overlays = settings;
+      this.app.saveConfig();
+    });
+    this.overlays.loadSettings(this.app.config.plotterExtensions?.overlays);
+    effect(() => {
+      const defs = this.overlayDefinitions();
+      untracked(() => this.overlays.setDefinitions(defs));
+    });
+    effect(() => {
+      const entries = this.overlays.entries();
+      untracked(() => this.emitOverlayStates(entries));
     });
   }
 
@@ -1813,9 +1956,11 @@ export class PlotterExtensionService {
     stateInstance: string | null;
     methods?: Record<string, MethodHandler>;
     adoptCallerId?: boolean;
+    runtime?: string;
   }): () => void {
     const ctx: LiveContext = {
       extension: opts.extension,
+      runtime: opts.runtime ?? null,
       conn: null as unknown as HostConnection,
       skSubs: new Map(),
       skSubSeq: 0
@@ -1825,6 +1970,8 @@ export class PlotterExtensionService {
       hostInfo: this.hostInfo(),
       adoptCallerId: opts.adoptCallerId,
       context: opts.context,
+      onSubscriptionsChanged: (patterns) =>
+        this.replayOverlayRequests(ctx, patterns),
       methods: {
         ...this.stateMethods(opts.extension, opts.stateInstance),
         ...this.signalkMethods(ctx),
@@ -1835,6 +1982,7 @@ export class PlotterExtensionService {
         ...this.chartMethods(),
         ...this.nightModeMethods(),
         ...this.resourceGroupMethods(),
+        ...createOverlayMethods(this.overlays, opts.extension, ctx.runtime),
         ...createEventsMethods(this.eventsDeps, opts.extension),
         ...this.uiPanelMethods(opts.extension),
         ...this.windowMethods(
@@ -1938,7 +2086,8 @@ export class PlotterExtensionService {
       port: this.iframePort(iframe, opts.runtime.url),
       extension: opts.extension,
       context: { kind: 'background', id: opts.runtime.id, instanceId: null },
-      stateInstance: null
+      stateInstance: null,
+      runtime: opts.runtime.id
     });
   }
 
@@ -2221,6 +2370,20 @@ export class PlotterExtensionService {
   ) {
     for (const ctx of this.contexts) {
       if (ctx.extension === extension) {
+        ctx.conn.publish(event, params);
+      }
+    }
+  }
+
+  /** Publish to one background runtime of an extension (subscription-gated). */
+  private publishToRuntime(
+    extension: string,
+    runtime: string,
+    event: string,
+    params: unknown
+  ) {
+    for (const ctx of this.contexts) {
+      if (ctx.extension === extension && ctx.runtime === runtime) {
         ctx.conn.publish(event, params);
       }
     }
