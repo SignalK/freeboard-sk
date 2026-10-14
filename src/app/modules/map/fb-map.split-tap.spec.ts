@@ -30,7 +30,12 @@ const bareComponent = (secondPane: OlMap | null) => {
   cmp.pinMap = signal(undefined);
   cmp.bearingMap = signal(undefined);
   cmp.menuZoom = signal(0);
-  cmp.splitView = { secondaryMap: signal(secondPane) };
+  cmp.splitView = {
+    secondaryMap: signal(secondPane),
+    activate: vi.fn(),
+    zoom: () => null
+  };
+  cmp.mapZoomLevel = signal(10);
   // Stands in for a tap on a feature: it opens that feature's popover.
   cmp.processMapClick = vi.fn(() => cmp.formatPopover('s57.x', [23.5, 60.1]));
   cmp.pinCursorAtTap = vi.fn();
@@ -91,6 +96,76 @@ describe('FBMapComponent: taps on the split view second pane', () => {
     cmp.splitView.secondaryMap.set(null);
 
     expect(cmp.popoverPane()).toBeUndefined();
+  });
+
+  it('opens the Measure label on the main chart once a pane popover is hidden', () => {
+    const pane = new OlMap();
+    const cmp = bareComponent(pane);
+    cmp.onSecondaryTap(paneTap(pane));
+    // A tap in open water on the main chart hides the popover.
+    cmp.processMapClick = vi.fn();
+    cmp.onMapSingleClick(tap);
+    expect(cmp.overlay().show).toBe(false);
+
+    cmp.onMeasureStart({
+      feature: new Feature(
+        new LineString([fromLonLat([23.5, 60.1]), fromLonLat([23.6, 60.1])])
+      )
+    });
+
+    expect(cmp.overlay()).toMatchObject({ show: true, type: 'measure' });
+    expect(cmp.popoverPane()).toBeUndefined();
+  });
+
+  it('leaves the tap where it was when the pane menu cannot open', () => {
+    const pane = new OlMap();
+    const cmp = bareComponent(pane);
+    cmp.contextMenu = { openMenu: vi.fn() };
+    cmp.overlay.set({ show: true });
+
+    cmp.onSecondaryTap({
+      kind: 'contextmenu',
+      event: { clientX: 300, clientY: 200, preventDefault: vi.fn() },
+      features: [],
+      lonlat: [23.5, 60.1],
+      worldOffset: WORLD_WIDTH_3857,
+      map: pane,
+      zoom: 15
+    });
+
+    expect(cmp.contextMenu.openMenu).not.toHaveBeenCalled();
+    // A popover picked next from the open list still opens on the main chart.
+    cmp.formatPopover('s57.x', [23.5, 60.1]);
+    expect(cmp.popoverPane()).toBeUndefined();
+  });
+
+  it('lets go of everything it showed on the pane when the pane closes', () => {
+    const pane = new OlMap();
+    const cmp = bareComponent(pane);
+    cmp.cursorPin = { release: vi.fn() };
+    cmp.olMap = {
+      getMap: () => ({ getView: () => ({ getCenter: () => [1000, 0] }) })
+    };
+    cmp.mapInteract.bearingDistance = signal({
+      origin: [23.4, 60.1],
+      target: [23.5, 60.1],
+      fixed: true,
+      worldOffset: WORLD_WIDTH_3857
+    });
+    cmp.onSecondaryTap(paneTap(pane));
+    cmp.pinMap.set(pane);
+    cmp.bearingMap.set(pane);
+
+    cmp.onPaneChanged(null);
+
+    expect(cmp.overlay().show).toBe(false);
+    expect(cmp.popoverPane()).toBeUndefined();
+    expect(cmp.pinMap()).toBeUndefined();
+    expect(cmp.cursorPin.release).toHaveBeenCalled();
+    expect(cmp.bearingMap()).toBeUndefined();
+    // Into the world copy the main chart shows, not the one the pane did.
+    expect(cmp.mapInteract.bearingDistance().worldOffset).toBe(0);
+    expect(cmp.clickMap).toBeUndefined();
   });
 
   it('times the tap from the press on the pane', () => {
@@ -185,6 +260,18 @@ describe('FBMapComponent: Modify picked on the second pane', () => {
     expect(feature.getGeometry().getExtent()).toEqual(before);
   });
 
+  it('makes the main chart active, at least as close in as the pane', () => {
+    const { cmp } = editable(new OlMap(), 0);
+    cmp.app.config.map.zoomLevel = 10;
+    cmp.splitView.zoom = () => 15;
+
+    cmp.modifyFeature();
+
+    expect(cmp.splitView.activate).toHaveBeenCalledWith('main');
+    expect(cmp.mapZoomLevel()).toBe(15);
+    expect(cmp.app.config.map.zoomLevel).toBe(15);
+  });
+
   it('centres on the tapped point for a feature with no popover', () => {
     const pane = new OlMap();
     const { cmp } = editable(pane, 0);
@@ -225,6 +312,7 @@ describe('FBMapComponent: the position readout with the split view open', () => 
   it('follows the pointer over the second pane, keeping its own for the menu', () => {
     const cmp = bareComponent(new OlMap());
     cmp.mouse = signal({ pixel: [10, 20], xy: [1000, 2000], coords: [23, 60] });
+    cmp.updateCursorInfo = vi.fn();
 
     // a pointer over a world copy east of the primary world
     cmp.onSecondaryPointer([383.5, 60.1]);
@@ -234,5 +322,7 @@ describe('FBMapComponent: the position readout with the split view open', () => 
       xy: [1000, 2000],
       coords: [23.5, 60.1]
     });
+    // Bearing, distance and ETA go with the position shown.
+    expect(cmp.updateCursorInfo).toHaveBeenCalledWith([23.5, 60.1]);
   });
 });

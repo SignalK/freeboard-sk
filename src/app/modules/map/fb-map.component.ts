@@ -517,6 +517,37 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected bearingPane(): OlMap | undefined {
     return this.inPane(this.bearingMap());
   }
+  /**
+   * The split view's second pane opened or closed. Overlays left on a closed
+   * pane would move to this chart, into the world copy the pane showed; an
+   * open popover would also block the chart menu. And its map is let go.
+   */
+  private onPaneChanged(pane: OlMap | null) {
+    const gone = (map: OlMap | undefined) => !!map && map !== pane;
+    if (gone(this.popoverMap())) {
+      this.popoverClosed();
+    }
+    if (gone(this.pinMap())) {
+      this.pinMap.set(undefined);
+      this.cursorPin.release();
+    }
+    if (gone(this.bearingMap())) {
+      this.bearingMap.set(undefined);
+      const worldOffset = this.viewWorldOffset();
+      this.mapInteract.bearingDistance.update(
+        (bd) => bd && { ...bd, worldOffset }
+      );
+    }
+    if (gone(this.clickMap)) {
+      this.clickMap = undefined;
+    }
+  }
+
+  /** The world copy this chart is looking at, as an x offset. */
+  private viewWorldOffset(): number {
+    const center = this.olMap?.getMap()?.getView().getCenter();
+    return center ? worldCopyOffset(center[0], WORLD_WIDTH_3857) : 0;
+  }
   private inPane(map: OlMap | undefined): OlMap | undefined {
     return map && map === this.splitView.secondaryMap() ? map : undefined;
   }
@@ -601,16 +632,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     });
     this.toggleDblClickZoom(); // init olMapinterations
-    // A popover left open on the second pane would move to this chart when the
-    // pane closes, out of view, and its open state blocks the chart menu.
     effect(() => {
       const pane = this.splitView.secondaryMap();
-      untracked(() => {
-        const shownOn = this.popoverMap();
-        if (shownOn && shownOn !== pane) {
-          this.popoverClosed();
-        }
-      });
+      untracked(() => this.onPaneChanged(pane));
     });
   }
 
@@ -1154,11 +1178,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       !this.zoneEdit.edit()
     ) {
       if (!this.app.config.map.popoverMulti) {
-        this.overlay.update((current) => {
-          return Object.assign({}, current, {
-            show: false
-          });
-        });
+        this.popoverClosed();
       }
       this.processMapClick(e);
       this.pinCursorAtTap(e.lonlat as Position, e.worldOffset ?? 0);
@@ -1193,25 +1213,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * The pointer over the second pane moves the position readout and its
+   * bearing and distance: the pixel and map coordinate stay this chart's, for
+   * its own menu.
+   */
+  private onSecondaryPointer(lonlat: Position) {
+    const coords = GeoUtils.normaliseCoords(lonlat);
+    this.mouse.update((mouse) => ({ ...mouse, coords }));
+    this.updateCursorInfo(coords);
+  }
+
+  /**
    * A tap or menu request on the split view's second pane. Its layers mirror
    * this chart's, so its features are this chart's own and are handled here.
    */
-  /**
-   * The pointer over the second pane moves the position readout only: the
-   * pixel and map coordinate stay this chart's, for its own menu.
-   */
-  private onSecondaryPointer(lonlat: Position) {
-    this.mouse.update((mouse) => ({
-      ...mouse,
-      coords: GeoUtils.normaliseCoords(lonlat)
-    }));
-  }
-
   private onSecondaryTap(tap: SecondaryTap) {
     if (tap.kind === 'click') {
       this.pointerDownAt = tap.pressedAt;
       this.onMapSingleClick(tap.event, tap.map);
     } else {
+      // No menu opens over an open popover: leave the tap where it was.
+      if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
+        return;
+      }
       this.onMapRightClick(tap, tap.map);
       this.onContextMenu(
         tap.event,
@@ -1345,11 +1369,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Handle OL interaction start event */
   protected onMeasureEnd() {
     this.app.debug(`onMeasureEnd()...`);
-    this.overlay.update((current) => {
-      return Object.assign({}, current, {
-        show: false
-      });
-    });
+    this.popoverClosed();
     this.mapInteract.stopMeasuring();
   }
 
@@ -1565,6 +1585,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // primary world, so align the edit with that world, not the pane's copy.
       if (this.movingMap) {
         this.exitMovingMap.emit(true);
+      }
+      // The buttons and keys now act on the chart being edited, close enough
+      // in to show the feature as the pane did.
+      this.splitView.activate('main');
+      const paneZoom = this.splitView.zoom();
+      if (typeof paneZoom === 'number' && paneZoom > this.mapZoomLevel()) {
+        this.mapZoomLevel.set(paneZoom);
+        this.app.config.map.zoomLevel = paneZoom;
       }
       this.mapCenterPositon.set([...(at ?? this.overlay().position)]);
       this.clickMercX -= this.clickWorldOffset;
@@ -2266,9 +2294,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     featureList?: Map<string, FeatureListEntry>
   ) {
     if (!id) {
-      this.overlay.update((current) => {
-        return Object.assign({}, current, { show: false });
-      });
+      this.popoverClosed();
       return;
     }
 
@@ -2764,7 +2790,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mapInteract.moveBearingDistanceTarget(position, worldOffset);
   }
 
-  /** handle popover closed event */
+  /**
+   * Hides the popover. The next one shown opens on this chart unless a tap on
+   * the second pane opens it there.
+   */
   protected popoverClosed() {
     this.popoverMap.set(undefined);
     this.overlay.update((current) => {
@@ -3091,9 +3120,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Apply the selected Interaction mode */
   private applyInteractionMode(mode: INTERACTION_MODE, value: boolean) {
-    this.overlay.update((current) => {
-      return Object.assign({}, current, { show: false });
-    });
+    this.popoverClosed();
     if (mode === INTERACTION_MODE.MEASURE) {
       this.mapInteract.draw.style = value
         ? drawStyles.measure
