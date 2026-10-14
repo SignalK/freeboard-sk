@@ -736,8 +736,8 @@ reports the skips as `skippedLayers`. A layer is drawn only when:
 - its source exists, is usable and is the type that layer needs (else
   `source`). Usable means `raster-dem` / `raster` / `vector` with `tiles` (a
   TileJSON `url` and `scheme: "tms"` are refused) whose URLs all resolve the same
-  way, or `geojson` with inline data or a resolvable URL (`cluster` and a source
-  `filter` are refused);
+  way and use no placeholder but `{z}`, `{x}`, `{y}`, or `geojson` with inline
+  data or a resolvable URL (`cluster` and a source `filter` are refused);
 - the Style Spec validator (`validateStyleMin`, on a one-layer style with a dummy
   `glyphs`) accepts it, and it uses only properties its drawing path reproduces
   (`DRAWN`), any other at its Style Spec default, and none of the `image`,
@@ -781,8 +781,16 @@ drawn layers become OL layers in style order:
   `global-state` (it evaluates with only zoom and distance-from-centre), so
   Freeboard **pre-resolves** it: `resolveLayer` replaces each `["global-state",
   name]` with `["literal", value]` (always `literal`, so a filter never turns
-  into a legacy one) and the run is re-styled on every `overlay.setState`. Text
-  is drawn in Roboto with the requested weight (`fskFonts`). Symbol runs
+  into a legacy one) and every vector layer is re-styled on `overlay.setState`.
+  A literal is type-checked when it compiles, where `global-state` is checked
+  only at runtime, so a value of the wrong type (or an unset variable) would
+  become a compile error that ol-mapbox-style throws from the render loop.
+  `olStyleLayer` drops such a property instead (with one `console.warn`), which
+  draws its default, as MapLibre does on the runtime error. All vector layers
+  share one style object per build, set on the group as `mapbox-style`, and
+  changes go through ol-mapbox-style's `updateMapboxLayer`: a new style object
+  per change would grow its module-level caches without bound. Text is drawn
+  in Roboto with the requested weight and style (`fskFonts`). Symbol runs
   declutter among the overlay's own layers.
 
 Layer `minzoom` / `maxzoom` are MapLibre zooms (512-px world); OL resolutions are
@@ -800,17 +808,20 @@ The methods are a pure factory over the registry (`overlay-methods.ts`); each
 changes the `DataOverlayModel`, which emits a change the component applies.
 
 - **`overlay.refresh`.** Tiles are fetched with `fetch`, not `<img>`, by one
-  `TileFetcher` per source, which keeps up to 256 tiles' bytes in memory. A
-  refresh marks the tiles stale in the model (`needsReload`: fetched next with
-  `cache: 'reload'`), drops them from the fetcher and bumps the OL source key.
-  OL then asks for every visible tile again — keeping the old ones on screen
-  until the new ones load — but only the refreshed ones go to the network.
+  `TileFetcher` per source, which keeps up to 256 tiles' bytes and 32 decoded
+  bitmaps in memory. A refresh marks the tiles stale in the model
+  (`needsReload`: fetched next with `cache: 'reload'`), drops them from the
+  fetcher and, once per animation frame for a burst of refreshes, bumps the OL
+  source key. OL then asks for every visible tile again — keeping the old ones
+  on screen until the new ones load — but only the refreshed ones are fetched
+  and decoded.
   Vector tiles carry a per-tile revision in their OL tile key so the source
   reuses every unrefreshed source tile. A whole-source refresh drops them all. A
   geojson URL is fetched again with `cache: 'reload'`.
 - **`overlay.setData`** replaces or upserts/removes features of a geojson source
   in the model; the component mirrors it into the OL `VectorSource`. Changes to
-  a URL source that has not loaded yet are applied when it does.
+  a URL source that has not loaded yet, or is reloading, are applied to the
+  data that load brings.
 - **`overlay.setLayer`** merges into the model's copy of the layer and re-runs
   `analyzeLayer`; a result it would skip is refused with `overlays.unsupported`
   and the layer is left alone. The component re-styles the affected OL layer, or
