@@ -268,16 +268,11 @@ export class AppComponent {
 
   protected app = inject(AppFacade);
   protected splitView = inject(SplitViewService);
-  // The North up and Follow buttons show the state of the pane they act on.
+  // The North up button shows the setting of the pane it acts on.
   protected viewNorthUp = computed(() =>
     this.splitView.secondaryActive()
       ? this.splitView.northUp()
       : this.app.uiConfig().mapNorthUp
-  );
-  protected viewFollow = computed(() =>
-    this.splitView.secondaryActive()
-      ? this.splitView.follow()
-      : this.app.uiConfig().mapMove
   );
   protected infoPanel = inject(InfoPanelFacade);
   protected mapInteract = inject(FBMapInteractService);

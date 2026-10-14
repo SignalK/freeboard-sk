@@ -2,7 +2,7 @@
   class="split-ol-map"
   [secondary]="true"
   [logo]="false"
-  [olInteractions]="olInteractions"
+  [olInteractions]="interactions()"
   [olControls]="olControls"
   (mapReady)="onMapReady($event)"
   (mapMoveEnd)="onMoveEnd($event)"
@@ -11,6 +11,7 @@
   (mapSingleClick)="onTap($event)"
   (mapContextMenu)="onContextMenu($event)"
   (contextmenu)="onContextMenu($event)"
+  (keydown)="onKeydown($event)"
   olView
   [zoom]="zoom()"
   [center]="center()"

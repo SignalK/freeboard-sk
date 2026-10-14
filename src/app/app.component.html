@@ -537,13 +537,13 @@
                   <button
                     mat-mini-fab
                     [ngClass]="{
-                      'button-primary': viewFollow(),
-                      'button-toolbar': !viewFollow()
+                      'button-primary': app.activePaneFollows(),
+                      'button-toolbar': !app.activePaneFollows()
                     }"
                     (click)="toggleFollow()"
                     [disabled]="!app.data.vessels.showSelf"
                     [matTooltip]="
-                      viewFollow()
+                      app.activePaneFollows()
                         ? 'Turn off Follow Vessel'
                         : 'Center & Follow Vessel'
                     "

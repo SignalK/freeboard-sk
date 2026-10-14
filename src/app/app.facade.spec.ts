@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { of } from 'rxjs';
 import '@vitest/web-worker';
+import { Map as OlMap } from 'ol';
 import { AppFacade } from './app.facade';
+import { SplitViewService } from './modules/map/split-view/split-view.service';
+import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
 import { SignalKClient } from 'signalk-client-angular';
 import { version as PACKAGE_VERSION } from '../../package.json';
 
@@ -384,5 +387,24 @@ describe('AppFacade auth token scoping (GHSA-p766-mg92-xc8g)', () => {
     app.setAuthToken(null);
     expect(document.cookie).not.toContain('sktoken=');
     expect(app.getFBToken()).toBeUndefined();
+  });
+});
+
+describe('AppFacade.activePaneFollows', () => {
+  it('follows the setting of the chart the map buttons act on', () => {
+    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
+    TestBed.configureTestingModule({});
+    const app = TestBed.inject(AppFacade);
+    const split = TestBed.inject(SplitViewService);
+    app.uiConfig.update((c) => ({ ...c, mapMove: true }));
+    expect(app.activePaneFollows()).toBe(true);
+
+    split.toggle();
+    split.setSecondaryMap(new OlMap());
+    expect(app.activePaneFollows()).toBe(false);
+
+    split.activate('main');
+    expect(app.activePaneFollows()).toBe(true);
+    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
   });
 });

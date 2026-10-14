@@ -30,7 +30,9 @@ import {
 import { MapReadyEvent } from 'src/app/modules/map/ol/lib/models';
 import { Position } from 'src/app/types';
 import { FBMapInteractService } from '../fbmap-interact.service';
-import { mapControls } from '../mapconfig';
+import { mapControls, mapInteractions } from '../mapconfig';
+import { isPanKey } from 'src/app/lib/pan-keys';
+import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
 import { ratioFromPointer, viewFootprint } from './split-view';
 import { PaneCommand, SplitPane, SplitViewService } from './split-view.service';
@@ -57,16 +59,8 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   private mapInteract = inject(FBMapInteractService);
   private host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  // The main chart's set, minus pinch-rotate: rotation is the orientation
-  // button's job.
-  protected readonly olInteractions = [
-    { name: 'dragpan' },
-    { name: 'dragzoom' },
-    { name: 'keyboardpan' },
-    { name: 'mousewheelzoom' },
-    { name: 'pinchzoom' },
-    { name: 'doubleclickzoom' }
-  ];
+  private interactionList: { name: string }[] = [];
+  private interactionsFor: boolean | undefined;
   protected readonly olControls = mapControls;
 
   protected zoom = signal<number>(10);
@@ -218,13 +212,40 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * The main chart's interactions, double-click zoom included only when the
+   * user has turned it on. The list is rebuilt only when that setting changes,
+   * as a new list resets the map's interactions.
+   */
+  protected interactions(): { name: string }[] {
+    const doubleClickZoom = !!this.app.config.map.doubleClickZoom;
+    if (doubleClickZoom !== this.interactionsFor) {
+      this.interactionsFor = doubleClickZoom;
+      this.interactionList = mapInteractions(doubleClickZoom);
+    }
+    return this.interactionList;
+  }
+
+  /** Keys act on the chart that has focus, as on the main chart. */
+  protected onKeydown(e: KeyboardEvent) {
+    this.split.activate('secondary');
+    const direction = zoomKeyDirection(e);
+    if (direction) {
+      e.preventDefault();
+      this.onCommand({ kind: 'zoom', step: direction === 'in' ? 1 : -1 });
+    } else if (isPanKey(e)) {
+      // Following would pull the view straight back, as a drag does.
+      this.onDrag();
+    }
+  }
+
   // ---------- shared map buttons ----------
 
   private onCommand(c: PaneCommand) {
     const { min, max } = this.app.MAP_ZOOM_EXTENT;
     const clampZoom = (z: number) => Math.min(max, Math.max(min, z));
     if (c.kind === 'zoom') {
-      this.zoom.set(clampZoom(Math.round(this.zoom()) + c.step));
+      this.zoom.set(clampZoom(this.zoom() + c.step));
       return;
     }
     // Following would pull the view straight back to the vessel.
@@ -232,7 +253,9 @@ export class SplitMapComponent implements OnInit, OnDestroy {
       this.split.setFollow(false);
     }
     this.center.set([...c.position] as Position);
-    if (typeof c.zoom === 'number') {
+    // A zoom that comes with a place is the least it needs to show (a note
+    // shows only from the notes zoom on): it never zooms the pane out.
+    if (typeof c.zoom === 'number' && c.zoom > this.zoom()) {
       this.zoom.set(clampZoom(c.zoom));
     }
   }

@@ -18,11 +18,11 @@ const bareComponent = (follow = false) => {
 };
 
 describe('SplitMapComponent: the shared map buttons', () => {
-  it('zooms by whole steps, within the map zoom range', () => {
+  it('zooms one level per step, within the map zoom range', () => {
     const cmp = bareComponent();
     cmp.zoom.set(9.6);
     cmp.onCommand({ kind: 'zoom', step: 1 });
-    expect(cmp.zoom()).toBe(11);
+    expect(cmp.zoom()).toBe(10.6);
 
     cmp.zoom.set(24);
     cmp.onCommand({ kind: 'zoom', step: 1 });
@@ -37,6 +37,15 @@ describe('SplitMapComponent: the shared map buttons', () => {
     expect(cmp.split.setFollow).toHaveBeenCalledWith(false);
     expect(cmp.center()).toEqual([23.5, 60.1]);
     expect(cmp.zoom()).toBe(14);
+  });
+
+  it('never zooms out to show a place', () => {
+    const cmp = bareComponent();
+    cmp.zoom.set(12);
+
+    cmp.onCommand({ kind: 'center', position: [23.5, 60.1], zoom: 9 });
+
+    expect(cmp.zoom()).toBe(12);
   });
 
   it('keeps the zoom when a place comes without one', () => {
@@ -125,5 +134,39 @@ describe('SplitMapComponent: where the pane opens', () => {
     expect(
       opened({ fix: true, follow: false, stored: [22, 59] }).center()
     ).toEqual([22, 59]);
+  });
+});
+
+describe('SplitMapComponent: double-click and keys', () => {
+  const key = (k: string) =>
+    ({ key: k, preventDefault: vi.fn() }) as unknown as KeyboardEvent;
+
+  it('zooms on double-click only when the user has turned that on', () => {
+    const cmp = bareComponent();
+    cmp.app.config = { map: { doubleClickZoom: false } };
+    const off = cmp.interactions();
+    expect(off.map((i) => i.name)).not.toContain('doubleclickzoom');
+    expect(cmp.interactions()).toBe(off);
+
+    cmp.app.config.map.doubleClickZoom = true;
+
+    expect(cmp.interactions().map((i) => i.name)).toContain('doubleclickzoom');
+  });
+
+  it('becomes the active pane and zooms with + and -', () => {
+    const cmp = bareComponent();
+
+    cmp.onKeydown(key('+'));
+
+    expect(cmp.split.activate).toHaveBeenCalledWith('secondary');
+    expect(cmp.zoom()).toBe(11);
+  });
+
+  it('stops following when the keys pan it', () => {
+    const cmp = bareComponent(true);
+
+    cmp.onKeydown(key('ArrowLeft'));
+
+    expect(cmp.split.setFollow).toHaveBeenCalledWith(false);
   });
 });

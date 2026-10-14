@@ -12,7 +12,11 @@ const bareComponent = (secondaryActive: boolean) => {
     config: { map: { zoomLevel: 10 } }
   };
   cmp.mapZoomLevel = signal(10);
-  cmp.splitView = { secondaryActive: () => secondaryActive, zoomBy: vi.fn() };
+  cmp.splitView = {
+    secondaryActive: () => secondaryActive,
+    zoomBy: vi.fn(),
+    activate: vi.fn()
+  };
   return cmp;
 };
 
@@ -31,5 +35,15 @@ describe('FBMapComponent: zoom buttons with the chart split', () => {
     expect(cmp.splitView.zoomBy).not.toHaveBeenCalled();
     expect(cmp.mapZoomLevel()).toBe(11);
     expect(cmp.app.config.map.zoomLevel).toBe(11);
+  });
+});
+
+describe('FBMapComponent: keys with the chart split', () => {
+  it('make the main chart the active pane, as it has focus', () => {
+    const cmp = bareComponent(true);
+
+    cmp.onMapKeydown({ key: 'a' } as KeyboardEvent);
+
+    expect(cmp.splitView.activate).toHaveBeenCalledWith('main');
   });
 });

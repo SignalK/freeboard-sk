@@ -113,6 +113,7 @@ import {
 } from 'src/app/modules';
 import {
   mapControls,
+  mapInteractions,
   aircraftStyles,
   sarStyles,
   regionStyles,
@@ -354,7 +355,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
-  protected mapZoomText = computed(() => zoomDisplayText(this.mapZoomLevel()));
+  // Matches the zoom buttons: the active pane's zoom.
+  protected mapZoomText = computed(() => zoomDisplayText(this.viewZoom()));
   /** The zoom of the pane the zoom buttons act on. */
   protected viewZoom = computed(() =>
     this.splitView.secondaryActive()
@@ -821,22 +823,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ********** MAP EVENT HANDLERS *****************
 
   private toggleDblClickZoom(set?: boolean) {
-    const olInteractions = [
-      { name: 'dragpan' },
-      { name: 'dragzoom' },
-      { name: 'keyboardpan' },
-      // keyboardzoom is handled by onMapKeydown so +/- preserves the follow
-      // offset, the same as the on-screen zoom buttons.
-      { name: 'mousewheelzoom' },
-      { name: 'pinchzoom' }
-    ];
-
-    this.olMapInteractions.update(() => {
-      const i = set
-        ? [{ name: 'doubleclickzoom' }].concat(olInteractions)
-        : [].concat(olInteractions);
-      return i;
-    });
+    // keyboardzoom is left out: onMapKeydown handles +/- so it preserves the
+    // follow offset, the same as the on-screen zoom buttons.
+    this.olMapInteractions.set(mapInteractions(!!set));
   }
 
   // ** handle context menu choices **
@@ -2776,6 +2765,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   //   pointerdrag, so apply the pan behaviour here or the "Map Pan When
   //   Following" setting is bypassed (#725).
   protected onMapKeydown(e: KeyboardEvent) {
+    // Keys go to the chart that has focus, so it becomes the active pane.
+    this.splitView.activate('main');
     const direction = zoomKeyDirection(e);
     if (direction) {
       e.preventDefault();
