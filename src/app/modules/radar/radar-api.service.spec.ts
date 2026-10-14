@@ -2,7 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RADAR_RETRY_MS, RadarAPIService } from './radar-api.service';
+import {
+  RADAR_RETRY_MAX_MS,
+  RADAR_RETRY_MS,
+  RadarAPIService
+} from './radar-api.service';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamFacade } from '../skstream/skstream.facade';
@@ -137,6 +141,19 @@ describe('RadarAPIService init() (#755)', () => {
     const listCalls = () =>
       gets.filter((p) => p === 'vessels/self/radars').length;
     const settle = () => new Promise((r) => setTimeout(r, 0));
+    let clock: number;
+    // a vessel update this long after start-up
+    const updateAt = async (ms: number) => {
+      clock = ms;
+      vesselUpdates.next();
+      await settle();
+    };
+
+    beforeEach(() => {
+      clock = 0;
+      vi.spyOn(Date, 'now').mockImplementation(() => clock);
+    });
+    afterEach(() => vi.restoreAllMocks());
 
     it('is found by a later vessel update', async () => {
       held.set('vessels/self/radars', [none()]);
@@ -144,30 +161,52 @@ describe('RadarAPIService init() (#755)', () => {
       await service.init();
       expect(service.radarId()).toBe('');
 
-      vesselUpdates.next();
+      await updateAt(RADAR_RETRY_MS);
       await vi.waitFor(() => expect(service.radarId()).toBe('radar-1'));
       expect(service.radar().device.id).toBe('radar-1');
     });
 
-    it('is looked for at most once per RADAR_RETRY_MS', async () => {
-      held.set('vessels/self/radars', [none(), none()]);
+    it('is looked for RADAR_RETRY_MS after start-up, then ever less often', async () => {
+      held.set('vessels/self/radars', Array.from({ length: 12 }, none));
       const service = TestBed.inject(RadarAPIService);
       await service.init();
 
-      const start = Date.now();
-      const now = vi.spyOn(Date, 'now').mockReturnValue(start);
-      vesselUpdates.next();
-      await settle();
-      vesselUpdates.next();
-      vesselUpdates.next();
-      await settle();
-      expect(listCalls()).toBe(2);
-      expect(service.radarId()).toBe('');
+      await updateAt(1);
+      await updateAt(RADAR_RETRY_MS - 1);
+      expect(listCalls()).toBe(1);
 
-      now.mockReturnValue(start + RADAR_RETRY_MS);
-      vesselUpdates.next();
-      await vi.waitFor(() => expect(service.radarId()).toBe('radar-1'));
+      // each wait doubles the last, up to RADAR_RETRY_MAX_MS
+      let at = 0;
+      let wait = RADAR_RETRY_MS;
+      for (let call = 2; call <= 10; call++) {
+        at += wait;
+        await updateAt(at - 1);
+        expect(listCalls()).toBe(call - 1);
+        await updateAt(at);
+        expect(listCalls()).toBe(call);
+        wait = Math.min(wait * 2, RADAR_RETRY_MAX_MS);
+      }
+      expect(wait).toBe(RADAR_RETRY_MAX_MS);
+      expect(service.radarId()).toBe('');
+    });
+
+    it('is looked for every RADAR_RETRY_MS again once one has been seen', async () => {
+      held.set('vessels/self/radars', [none(), none(), none()]);
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      await updateAt(RADAR_RETRY_MS);
+      await updateAt(3 * RADAR_RETRY_MS);
       expect(listCalls()).toBe(3);
+
+      // listed, then gone again: the wait starts over
+      await service.init();
+      expect(service.radarId()).toBe('radar-1');
+      held.set('vessels/self/radars', [none()]);
+      await service.init();
+      expect(service.radarId()).toBe('');
+      const calls = listCalls();
+      await updateAt(4 * RADAR_RETRY_MS);
+      expect(listCalls()).toBe(calls + 1);
     });
 
     it('is looked for again when it is listed before it can be read', async () => {
@@ -178,7 +217,7 @@ describe('RadarAPIService init() (#755)', () => {
       expect(service.radar()).toBeUndefined();
       expect(service.radarId()).toBe('');
 
-      vesselUpdates.next();
+      await updateAt(RADAR_RETRY_MS);
       await vi.waitFor(() =>
         expect(service.radar()?.device.id).toBe('radar-1')
       );
@@ -189,8 +228,7 @@ describe('RadarAPIService init() (#755)', () => {
       await service.init();
       const before = gets.length;
 
-      vesselUpdates.next();
-      await settle();
+      await updateAt(RADAR_RETRY_MAX_MS);
       expect(gets.length).toBe(before);
     });
   });

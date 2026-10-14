@@ -6,9 +6,12 @@ import { SKStreamFacade } from '../skstream/skstream.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { DeltaSignal } from 'src/app/types';
 
-// While no radar is listed, vessel updates look for one at most this often:
-// the radar provider (a plugin or its container) can start after Freeboard.
+// While no radar is listed, vessel updates look for one again: the radar
+// provider (a plugin or its container) can start after Freeboard. The wait
+// starts at RADAR_RETRY_MS and doubles up to RADAR_RETRY_MAX_MS, so a boat
+// without a radar costs one lookup every few minutes.
 export const RADAR_RETRY_MS = 10000;
+export const RADAR_RETRY_MAX_MS = 5 * 60 * 1000;
 
 // SignalK server-api definitions
 export interface SKRadarLegendEntry {
@@ -138,6 +141,7 @@ export class RadarAPIService {
   private initialised = false;
   private probing = false;
   private lastProbe = 0;
+  private retryDelay = RADAR_RETRY_MS;
   private initCalls = 0;
   private capabilityReads = 0;
 
@@ -168,13 +172,18 @@ export class RadarAPIService {
       return;
     }
     const now = Date.now();
-    if (now - this.lastProbe < RADAR_RETRY_MS) {
+    if (now - this.lastProbe < this.retryDelay) {
       return;
     }
     this.lastProbe = now;
     this.probing = true;
     this.app.debug('Looking for a radar....');
-    this.init().finally(() => (this.probing = false));
+    this.init().finally(() => {
+      this.probing = false;
+      if (!this._selectedRadar()) {
+        this.retryDelay = Math.min(this.retryDelay * 2, RADAR_RETRY_MAX_MS);
+      }
+    });
   }
 
   /** return API path for radar device
@@ -208,11 +217,13 @@ export class RadarAPIService {
     // Set on the first answer, radars or not: an empty list at start-up must
     // still let onVessels() look again once the radar provider comes up.
     this.initialised = true;
+    this.lastProbe = Date.now();
     this._radars.set(radars);
     if (!radars.length) {
       this._selectedRadar.set('');
       return;
     }
+    this.retryDelay = RADAR_RETRY_MS;
     const keys = radars.map((r) => r.id);
 
     if (id) {
