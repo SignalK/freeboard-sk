@@ -460,6 +460,99 @@ const TOOLS = [
     }
   },
   {
+    name: 'fsk_list_overlays',
+    description:
+      "List the bridge's own map overlays: { id, title, type, band, visible, opacity, suspended } and, for a data overlay, `skippedLayers` — the style layers the host could not draw, each { id, reason: layerType | property | source, detail? }. The overlay methods reach only the caller's own overlays, so this lists the bridge's scratch layer (id `scratch`), a data overlay whose style draws any GeoJSON you give it.",
+    inputSchema: withSession(),
+    run: (hub, a) => hub.call('overlay.list', {}, { session: a.session })
+  },
+  {
+    name: 'fsk_set_overlay_data',
+    description:
+      "Draw GeoJSON on the chart through the bridge's scratch layer (overlayId `scratch`, source `scratch`). Pass `data` to replace every feature, or `upsert` (features, each with a top-level `id`) and/or `remove` (ids) to change some. Points draw as circles, lines and polygon outlines as lines, polygons filled; a feature's `color` and `label` properties set its colour and label.",
+    inputSchema: withSession({
+      overlayId: { type: 'string', description: 'Default `scratch`.' },
+      source: { type: 'string', description: 'Default `scratch`.' },
+      data: {
+        type: 'object',
+        description: 'A GeoJSON object (usually a FeatureCollection).'
+      },
+      upsert: {
+        type: 'array',
+        items: { type: 'object' },
+        description: 'Features to add or replace by `id`.'
+      },
+      remove: {
+        type: 'array',
+        items: { type: ['string', 'number'] },
+        description: 'Ids of features to remove.'
+      }
+    }),
+    run: (hub, a) =>
+      hub.call(
+        'overlay.setData',
+        {
+          overlayId: a.overlayId ?? 'scratch',
+          source: a.source ?? 'scratch',
+          ...(a.data !== undefined ? { data: a.data } : {}),
+          ...(a.upsert !== undefined ? { upsert: a.upsert } : {}),
+          ...(a.remove !== undefined ? { remove: a.remove } : {})
+        },
+        { session: a.session }
+      )
+  },
+  {
+    name: 'fsk_set_overlay_state',
+    description:
+      "Set `global-state` variables of one of the bridge's data overlays (overlay.setState); null restores a variable's default. The scratch layer reads `color`, the colour of features without their own.",
+    inputSchema: withSession(
+      {
+        overlayId: { type: 'string', description: 'Default `scratch`.' },
+        values: {
+          type: 'object',
+          description: 'Variable name → value, e.g. { "color": "#00c853" }.'
+        }
+      },
+      ['values']
+    ),
+    run: (hub, a) =>
+      hub.call(
+        'overlay.setState',
+        { overlayId: a.overlayId ?? 'scratch', values: a.values },
+        { session: a.session }
+      )
+  },
+  {
+    name: 'fsk_set_overlay_layer',
+    description:
+      "Change one layer of one of the bridge's data overlays (overlay.setLayer): each named paint or layout property replaces the current one (null restores the style's), `filter` replaces the filter (null removes it). A change the host cannot draw fails with overlays.unsupported and the layer is left as it was. Scratch layers: areas, lines, points, labels.",
+    inputSchema: withSession(
+      {
+        overlayId: { type: 'string', description: 'Default `scratch`.' },
+        layer: { type: 'string', description: 'The style layer id.' },
+        paint: { type: 'object', description: 'Paint properties to set.' },
+        layout: { type: 'object', description: 'Layout properties to set.' },
+        filter: {
+          type: ['array', 'null'],
+          description: 'A filter expression, or null to remove the filter.'
+        }
+      },
+      ['layer']
+    ),
+    run: (hub, a) =>
+      hub.call(
+        'overlay.setLayer',
+        {
+          overlayId: a.overlayId ?? 'scratch',
+          layer: a.layer,
+          ...(a.paint !== undefined ? { paint: a.paint } : {}),
+          ...(a.layout !== undefined ? { layout: a.layout } : {}),
+          ...(a.filter !== undefined ? { filter: a.filter } : {})
+        },
+        { session: a.session }
+      )
+  },
+  {
     name: 'fsk_list_windows',
     description:
       'List the windows the bridge has open in Freeboard-SK, hidden ones included, with their actual bounds and state.',
