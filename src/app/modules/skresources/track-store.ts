@@ -26,7 +26,8 @@ export interface StoredTrackFeature {
   geometry: { type: 'MultiLineString'; coordinates: MultiLineString } | null;
   properties: {
     id?: string;
-    imported?: true;
+    /** When a client stored it; tracks plugin releases before that set `true`. */
+    imported?: string | true;
     name?: string;
     description?: string;
     coordTimes?: string[][];
@@ -45,7 +46,8 @@ export interface StoreTrackBody {
 /** Whether a track came from the Track API store rather than from
  * `/resources/tracks`: only the store marks its tracks `imported`. */
 export function isStoredTrack(feature: MultiLineStringFeature): boolean {
-  return feature?.properties?.imported === true;
+  const imported = feature?.properties?.imported;
+  return imported !== undefined && imported !== false;
 }
 
 /** Point times nested to match the segments, or undefined unless every point
@@ -123,6 +125,6 @@ export function toTrackFeature(
     type: 'Feature',
     id,
     geometry: { type: 'MultiLineString', coordinates: f.geometry.coordinates },
-    properties: { ...f.properties, imported: true }
+    properties: { ...f.properties, imported: f.properties.imported ?? true }
   };
 }
