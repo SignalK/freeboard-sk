@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.18.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.19.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -605,9 +605,15 @@ and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
 `visible` / `opacity` apply until the user changes them.
 
 - **Placement.** Bands map to z-indices: `aboveCharts` from 60 (above charts
-  `10+n` and the weather/current layers at 50–56, below radar at 99),
-  `aboveResources` from 700 (above waypoints at 600, below AIS at 900+, the
-  vessel and alarms). Within a band, manifest order; not re-orderable in v1.
+  `10+n` and the weather/current layers at 50–56, below radar at 99).
+  `aboveResources` is clamped, as the spec allows: Freeboard draws its routes
+  (500+) and waypoints (600) *above* its own alarm rings (anchor 300, CPA 350),
+  own-vessel lines (330–350) and AIS AtoN/base-station targets (200–220), so no
+  z-index is both above the former and below the latter. The spec's hard rule —
+  never cover the vessel, alarm indications or AIS targets — wins: the band sits
+  at 190–199, above radar, tracks and resource sets, below everything from AIS
+  targets up. Within a band, manifest order; not re-orderable in v1. With more
+  than 50 charts shown, chart z-indices (`10+n`) reach the `aboveCharts` band.
 - **Budget.** At most `MAX_ACTIVE_OVERLAYS` (4) shown overlays draw at once; the
   rest are reported `suspended`. A frame is drawn at a pixel ratio of at most 2,
   and lower when the box would exceed `MAX_OVERLAY_PIXELS` (8 M pixels, about
@@ -623,14 +629,18 @@ and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
 Each shown, unsuspended overlay gets a `<fb-plugin-overlay>` layer
 (`layer-plugin-overlay.component.ts`), the radar pattern: an OL `ImageLayer` over
 an `ImageSource` with `createLoader` and a mutable `imageExtent`, drawn from a
-canvas. On `moveend` and map resize it asks `needsNewFrame()` whether the view
-changed enough — a pan, zoom or resize, or a rotation past 5°. A heading-up
-chart re-rotates on every heading change (see the `moveend` lesson in the
-lessons log), so small rotations alone are ignored and OL rotates the last
-frame. `overlayView()` turns the view into the request: the north-up box
-covering the rotated viewport (`View.calculateExtent`), moved into the primary
+canvas. `overlayView()` turns the view into the request: the north-up box
+covering the rotated viewport (`View.calculateExtent`), padded by 10% per side
+(and at least by how far a corner swings in a 5° turn), moved into the primary
 world with the render-space `worldOffset` kept aside, at most one world wide,
-clipped to the Mercator latitude limit. `requestOverlayFrame()` records it and
+clipped to the Mercator latitude limit. On `moveend` and map resize,
+`needsNewFrame()` asks for a new frame only when the zoom or map size changed,
+the rotation moved past 5°, or the view left the last requested box. A
+heading-up chart re-rotates on every heading change and a followed vessel
+recentres the map on every fix (see the `moveend` lesson in the lessons log);
+inside the box OL just moves and rotates the last frame. The layer gates its
+own zoom range (`minZoom` inclusive) rather than using OL's, whose `minZoom` is
+exclusive. `requestOverlayFrame()` records it and
 emits `overlay.request` to that overlay's runtime only (`publishToRuntime`).
 
 An accepted `overlay.frame` is drawn into the layer's canvas and placed at the
