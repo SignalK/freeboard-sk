@@ -213,6 +213,14 @@ describe('OverlayRegistry frames', () => {
       accepted: false,
       reason: 'overlays.superseded'
     });
+    // a live frame matching neither size is a sizing bug, not a race
+    expect(() =>
+      r.acceptFrame('ext-a', 'renderer', {
+        overlayId: 'a',
+        extent: VIEW.extent,
+        image: fakeImage(77, 33)
+      })
+    ).toThrow(expect.objectContaining({ reason: 'overlays.badRequest' }));
   });
 
   it('only the overlay’s own runtime may send its frames', () => {

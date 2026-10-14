@@ -91,6 +91,8 @@ interface PendingRequest {
   request: OverlayRequestEvent;
   /** Render-space shift of the world copy the request was made for. */
   worldOffset: number;
+  /** Pixel size of the request before this one, to recognise a racing live frame. */
+  previousSize?: [number, number];
 }
 
 export class OverlayRefusal extends Error {
@@ -284,7 +286,12 @@ export class OverlayRegistry {
       requestId: `r-${++this.requestSeq}`,
       ...view
     };
-    this.latest.set(key, { request, worldOffset });
+    const before = this.latest.get(key)?.request;
+    this.latest.set(key, {
+      request,
+      worldOffset,
+      previousSize: before ? [before.width, before.height] : undefined
+    });
     return request;
   }
 
@@ -341,10 +348,17 @@ export class OverlayRegistry {
     const sizeMatches =
       frame.image.width === pending.request.width &&
       frame.image.height === pending.request.height;
+    // a live frame of the previous request's size raced the new request; any
+    // other size is a sizing bug in the runtime, reported as badRequest below
+    const racedLive =
+      frame.requestId === undefined &&
+      !sizeMatches &&
+      frame.image.width === pending.previousSize?.[0] &&
+      frame.image.height === pending.previousSize?.[1];
     if (
       (frame.requestId !== undefined &&
         frame.requestId !== pending.request.requestId) ||
-      (frame.requestId === undefined && !sizeMatches)
+      racedLive
     ) {
       frame.image.close();
       return { accepted: false, reason: 'overlays.superseded' };
