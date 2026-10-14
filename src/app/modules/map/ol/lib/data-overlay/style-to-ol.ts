@@ -1,8 +1,11 @@
 import { expression, latest } from '@maplibre/maplibre-gl-style-spec';
-import type {
-  DemEncoding,
-  ReliefRamp
+import {
+  resolveLayer,
+  type DemEncoding,
+  type ReliefRamp,
+  type StyleLayer
 } from 'src/app/modules/plotterext/data-overlay-style';
+import { isUnevaluableByOl } from '../charts/chart-utils';
 
 /**
  * Translating the parts of a data overlay's MapLibre style that Freeboard
@@ -96,6 +99,12 @@ export function reliefColorExpression(
   return ['case', ['>', ['band', 4], 0], colour, [0, 0, 0, 0]];
 }
 
+/** Compiled opacity expressions by value: they are re-evaluated on every `moveend`. */
+const compiledPaint = new WeakMap<
+  object,
+  Map<string, ReturnType<typeof expression.createPropertyExpression>>
+>();
+
 /**
  * Evaluate a numeric paint property (`raster-opacity`,
  * `color-relief-opacity`) at a MapLibre zoom with the overlay's global state.
@@ -114,10 +123,20 @@ export function evaluatePaintNumber(
   const fallback = spec?.default ?? 1;
   if (value === undefined) return fallback;
   if (typeof value === 'number') return value;
-  const compiled = expression.createPropertyExpression(
-    value,
-    spec as Parameters<typeof expression.createPropertyExpression>[1]
-  );
+  if (typeof value !== 'object' || value === null) return fallback;
+  let byProperty = compiledPaint.get(value);
+  if (!byProperty) {
+    byProperty = new Map();
+    compiledPaint.set(value, byProperty);
+  }
+  let compiled = byProperty.get(property);
+  if (!compiled) {
+    compiled = expression.createPropertyExpression(
+      value,
+      spec as Parameters<typeof expression.createPropertyExpression>[1]
+    );
+    byProperty.set(property, compiled);
+  }
   if (compiled.result !== 'success') return fallback;
   const v = compiled.value.evaluate({ zoom, globalState } as never);
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
@@ -126,8 +145,41 @@ export function evaluatePaintNumber(
 /** Freeboard's own font, with the weight and style the layer asked for. */
 export function fskFonts(fonts: string[]): string[] {
   const m =
-    /\b(Thin|Light|Regular|Medium|Semibold|Bold|Black)( Italic)?$/i.exec(
+    /\b(?:(Thin|Light|Regular|Medium|Semibold|Bold|Black)(?: (Italic))?|(Italic))$/i.exec(
       fonts?.[0] ?? ''
     );
-  return [`Roboto ${m ? m[0] : 'Regular'}`];
+  const weight = m?.[1] ?? 'Regular';
+  const italic = m?.[2] ?? m?.[3];
+  return [`Roboto ${weight}${italic ? ' Italic' : ''}`];
+}
+
+/**
+ * A vector layer as ol-mapbox-style gets it: `global-state` resolved to the
+ * current values, minus any paint or layout property that no longer compiles
+ * with them. `global-state` is typed only at runtime, so a value of the wrong
+ * type (or an unset variable, null) is a runtime error in MapLibre, which then
+ * draws the property's default. Resolved to a literal it becomes a compile
+ * error, which ol-mapbox-style throws from inside the render loop, freezing the
+ * map. Dropping the property draws its default too. `dropped` lists them.
+ */
+export function olStyleLayer(
+  layer: StyleLayer,
+  state: Record<string, unknown>
+): { layer: StyleLayer; dropped: string[] } {
+  const resolved = resolveLayer(layer, state);
+  const dropped: string[] = [];
+  for (const part of ['paint', 'layout'] as const) {
+    const props = resolved[part];
+    if (!props) continue;
+    for (const [name, value] of Object.entries(props)) {
+      if (
+        JSON.stringify(layer[part]?.[name]).includes('"global-state"') &&
+        isUnevaluableByOl(part, layer.type, name, value)
+      ) {
+        delete props[name];
+        dropped.push(name);
+      }
+    }
+  }
+  return { layer: resolved, dropped };
 }

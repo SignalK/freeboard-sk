@@ -10,6 +10,13 @@ type TiledPlan = Extract<SourcePlan, { tiles: string[] }>;
 const MEMO_SIZE = 256;
 
 /**
+ * Decoded image tiles kept, so a re-render does not decode them again: about
+ * a screenful, as each is up to 1 MB. An evicted bitmap is not closed, since a
+ * tile on screen may still draw it; it is collected once nothing does.
+ */
+const DECODED_SIZE = 32;
+
+/**
  * Fetches the tiles of one tiled source of a data overlay, shared by every
  * map layer drawing it.
  *
@@ -21,6 +28,7 @@ const MEMO_SIZE = 256;
  */
 export class TileFetcher {
   private readonly memo = new Map<string, Blob | null>();
+  private readonly decoded = new Map<string, ImageBitmap | null>();
   private readonly inflight = new Map<string, Promise<Blob | null>>();
   /** Bumped by {@link invalidate} (all tiles, and per tile), so a fetch begun before it is not memoised. */
   private generation = 0;
@@ -54,6 +62,38 @@ export class TileFetcher {
       pending = p;
     }
     return pending;
+  }
+
+  /**
+   * A raster or raster-dem tile decoded, or null for a tile with no data. DEM
+   * pixels are numbers, so they are decoded exactly as served: no premultiplied
+   * alpha and no colour management.
+   */
+  async image(z: number, x: number, y: number): Promise<ImageBitmap | null> {
+    const key = `${z}/${x}/${y}`;
+    if (this.decoded.has(key)) {
+      const bitmap = this.decoded.get(key) as ImageBitmap | null;
+      this.decoded.delete(key);
+      this.decoded.set(key, bitmap);
+      return bitmap;
+    }
+    const generation = this.generationOf(key);
+    const blob = await this.fetch(z, x, y);
+    const bitmap = blob
+      ? await createImageBitmap(
+          blob,
+          this.plan.type === 'raster-dem'
+            ? { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }
+            : {}
+        )
+      : null;
+    if (generation === this.generationOf(key)) {
+      this.decoded.set(key, bitmap);
+      if (this.decoded.size > DECODED_SIZE) {
+        this.decoded.delete(this.decoded.keys().next().value as string);
+      }
+    }
+    return bitmap;
   }
 
   private async load(z: number, x: number, y: number): Promise<Blob | null> {
@@ -91,6 +131,7 @@ export class TileFetcher {
       this.tileGeneration.clear();
       this.inflight.clear();
       this.memo.clear();
+      this.decoded.clear();
       return;
     }
     for (const [z, x, y] of tiles) {
@@ -98,6 +139,7 @@ export class TileFetcher {
       this.tileGeneration.set(key, (this.tileGeneration.get(key) ?? 0) + 1);
       this.inflight.delete(key);
       this.memo.delete(key);
+      this.decoded.delete(key);
     }
   }
 

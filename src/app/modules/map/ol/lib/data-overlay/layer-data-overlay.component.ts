@@ -26,7 +26,7 @@ import TileState from 'ol/TileState';
 import GeoJSON from 'ol/format/GeoJSON';
 import MVT from 'ol/format/MVT';
 import { createXYZ } from 'ol/tilegrid';
-import { stylefunction } from 'ol-mapbox-style';
+import { stylefunction, updateMapboxLayer } from 'ol-mapbox-style';
 import type { OverlayFeature } from 'signalk-plotterext-bus/host';
 import { MapComponent } from '../map.component';
 import type {
@@ -35,7 +35,6 @@ import type {
 } from 'src/app/modules/plotterext/data-overlay-model';
 import {
   parseReliefRamp,
-  resolveLayer,
   type ReliefRamp,
   type SourcePlan,
   type StyleLayer
@@ -44,6 +43,7 @@ import {
   evaluatePaintNumber,
   fskFonts,
   mapLibreZoom,
+  olStyleLayer,
   reliefColorExpression,
   resolutionRange
 } from './style-to-ol';
@@ -126,6 +126,22 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
   private group: LayerGroup | null = null;
   private parts: Part[] = [];
   private drawnSignature = '';
+  /**
+   * The vector layers as ol-mapbox-style draws them, one object per build.
+   * Changes go through `updateMapboxLayer`, which replaces a layer in it and
+   * clears only that layer's compiled expressions: a new style object per
+   * change would leave ol-mapbox-style's module-level caches growing for good.
+   */
+  private glStyle: {
+    version: 8;
+    sources: Record<string, unknown>;
+    layers: StyleLayer[];
+  } | null = null;
+  /** Properties already reported as dropped, so each is warned about once. */
+  private readonly warned = new Set<string>();
+  /** Tiled sources whose OL key is bumped on the next frame. */
+  private readonly rekey = new Set<string>();
+  private rekeyFrame: number | null = null;
   private readonly fetchers = new Map<string, TileFetcher>();
   private readonly geojsonSources = new Map<string, VectorSource>();
   private readonly vectorTileSources = new Map<string, VectorTileSource>();
@@ -181,7 +197,11 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     this.unsubscribe = null;
     unByKey(this.listenerKeys);
     this.listenerKeys = [];
+    if (this.rekeyFrame !== null) cancelAnimationFrame(this.rekeyFrame);
+    this.rekeyFrame = null;
+    this.rekey.clear();
     this.clearParts();
+    this.glStyle = null;
     const map = this.mapComponent.getMap();
     if (this.group && map) {
       map.removeLayer(this.group);
@@ -239,9 +259,30 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
       const part = this.createPart(layer);
       if (part) this.parts.push(part);
     }
+    const vectorParts = this.parts.filter((p) => p.kind === 'vector');
+    this.glStyle = {
+      version: 8,
+      sources: Object.fromEntries(
+        vectorParts.map((p) => [p.source, this.model.style.sources[p.source]])
+      ),
+      layers: vectorParts.flatMap((p) =>
+        p.layerIds.map((id) => this.olLayer(id))
+      )
+    };
+    this.group?.set('mapbox-style', this.glStyle);
     for (const part of this.parts) {
       this.group?.getLayers().push(part.olLayer);
-      this.applyPart(part);
+      if (part.kind === 'vector') {
+        stylefunction(
+          part.olLayer as VectorLayer | VectorTileLayer,
+          this.glStyle,
+          part.layerIds,
+          undefined,
+          undefined,
+          undefined,
+          fskFonts
+        );
+      } else this.applyPart(part);
     }
   }
 
@@ -267,8 +308,7 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
       const tileSource = this.imageSource(
         source,
         plan as TiledPlan,
-        interpolate,
-        layer.type === 'color-relief'
+        interpolate
       );
       const olLayer =
         layer.type === 'color-relief'
@@ -318,20 +358,13 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
   private imageSource(
     sourceId: string,
     plan: TiledPlan,
-    interpolate: boolean,
-    dem: boolean
+    interpolate: boolean
   ): ImageTileSource {
     const fetcher = this.fetcher(sourceId, plan);
     const tileSize = (plan as DemPlan).tileSize;
-    // DEM pixels are numbers: decode them exactly as served
-    const decode: ImageBitmapOptions = dem
-      ? { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }
-      : {};
     const source = new ImageTileSource({
-      loader: async (z, x, y) => {
-        const blob = await fetcher.fetch(z, x, y);
-        return blob ? createImageBitmap(blob, decode) : emptyTile(tileSize);
-      },
+      loader: async (z, x, y) =>
+        (await fetcher.image(z, x, y)) ?? emptyTile(tileSize),
       tileSize,
       maxZoom: plan.maxzoom,
       projection: 'EPSG:3857',
@@ -415,7 +448,7 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
 
   private applyPart(part: Part) {
     if (part.kind === 'vector') {
-      this.applyVectorStyle(part);
+      for (const id of part.layerIds) this.restyleVector(id);
       return;
     }
     const layer = this.model.layer(part.layerIds[0]) as StyleLayer;
@@ -463,24 +496,25 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     for (const part of this.parts) this.applyOpacity(part);
   }
 
-  private applyVectorStyle(part: Part) {
-    const state = this.model.globalState();
-    const glStyle = {
-      version: 8,
-      sources: { [part.source]: this.model.style.sources[part.source] },
-      layers: part.layerIds.map((id) =>
-        resolveLayer(this.model.layer(id) as StyleLayer, state)
-      )
-    };
-    stylefunction(
-      part.olLayer as VectorLayer | VectorTileLayer,
-      glStyle,
-      part.layerIds,
-      undefined,
-      undefined,
-      undefined,
-      fskFonts
+  /** A vector layer resolved for ol-mapbox-style, warning once per dropped property. */
+  private olLayer(id: string): StyleLayer {
+    const { layer, dropped } = olStyleLayer(
+      this.model.layer(id) as StyleLayer,
+      this.model.globalState()
     );
+    for (const name of dropped) {
+      if (this.warned.has(`${id} ${name}`)) continue;
+      this.warned.add(`${id} ${name}`);
+      console.warn(
+        `[plotterext] ${this.overlayKey}: layer "${id}" draws ${name} at its default; ` +
+          'a global-state value does not fit it'
+      );
+    }
+    return layer;
+  }
+
+  private restyleVector(id: string) {
+    if (this.group) updateMapboxLayer(this.group, this.olLayer(id));
   }
 
   // ---------- live changes ----------
@@ -492,7 +526,7 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
         break;
       case 'state':
         for (const part of this.parts) {
-          if (part.kind === 'vector') this.applyVectorStyle(part);
+          if (part.kind === 'vector') this.applyPart(part);
         }
         this.applyOpacities();
         break;
@@ -559,14 +593,25 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
       revisions.all++;
       revisions.tiles.clear();
     }
-    const key = String((this.sourceKeys.get(sourceId) ?? 0) + 1);
-    this.sourceKeys.set(sourceId, Number(key));
-    const vts = this.vectorTileSources.get(sourceId);
-    if (vts) setSourceKey(vts, key);
-    for (const part of this.parts) {
-      if (part.kind !== 'vector' && part.source === sourceId) {
-        setSourceKey((part.olLayer as TileLayer).getSource(), key);
+    // a burst of refreshes re-renders once
+    this.rekey.add(sourceId);
+    this.rekeyFrame ??= requestAnimationFrame(() => this.applyRekeys());
+  }
+
+  /** Bump the OL key of every refreshed source, so OL asks for its tiles again. */
+  private applyRekeys() {
+    this.rekeyFrame = null;
+    for (const sourceId of this.rekey) {
+      const key = String((this.sourceKeys.get(sourceId) ?? 0) + 1);
+      this.sourceKeys.set(sourceId, Number(key));
+      const vts = this.vectorTileSources.get(sourceId);
+      if (vts) setSourceKey(vts, key);
+      for (const part of this.parts) {
+        if (part.kind !== 'vector' && part.source === sourceId) {
+          setSourceKey((part.olLayer as TileLayer).getSource(), key);
+        }
       }
     }
+    this.rekey.clear();
   }
 }

@@ -117,3 +117,47 @@ describe('TileFetcher', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('TileFetcher decoded tiles', () => {
+  let decode: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(new Blob(['png']), { status: 200 }))
+    );
+    decode = vi.fn(async () => ({ width: 256, height: 256 }) as ImageBitmap);
+    vi.stubGlobal('createImageBitmap', decode);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('decodes a DEM tile exactly as served, once, until it is refreshed', async () => {
+    const { model, fetcher } = setup({
+      type: 'raster-dem',
+      tiles: ['/p/{z}/{x}/{y}.png']
+    });
+    const a = await fetcher.image(3, 2, 1);
+    expect(await fetcher.image(3, 2, 1)).toBe(a);
+    expect(decode).toHaveBeenCalledTimes(1);
+    expect(decode).toHaveBeenCalledWith(expect.any(Blob), {
+      premultiplyAlpha: 'none',
+      colorSpaceConversion: 'none'
+    });
+    model.refresh({ source: 's', tiles: [[3, 2, 1]] });
+    fetcher.invalidate([[3, 2, 1]]);
+    await fetcher.image(3, 2, 1);
+    expect(decode).toHaveBeenCalledTimes(2);
+  });
+
+  it('decodes a raster tile with the browser defaults, and an empty tile not at all', async () => {
+    const { fetcher } = setup({
+      type: 'raster',
+      tiles: ['/p/{z}/{x}/{y}.png']
+    });
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 404 }));
+    expect(await fetcher.image(1, 0, 0)).toBeNull();
+    await fetcher.image(1, 1, 0);
+    expect(decode).toHaveBeenCalledTimes(1);
+    expect(decode).toHaveBeenCalledWith(expect.any(Blob), {});
+  });
+});

@@ -5,6 +5,7 @@ import {
   evaluatePaintNumber,
   fskFonts,
   mapLibreZoom,
+  olStyleLayer,
   reliefColorExpression,
   resolutionAt,
   resolutionRange
@@ -178,5 +179,56 @@ describe('fskFonts', () => {
       'Roboto Semibold Italic'
     ]);
     expect(fskFonts(['Metropolis'])).toEqual(['Roboto Regular']);
+    expect(fskFonts(['Open Sans Italic'])).toEqual(['Roboto Regular Italic']);
+  });
+});
+
+describe('olStyleLayer', () => {
+  const layer = {
+    id: 'labels',
+    type: 'symbol',
+    source: 's',
+    filter: ['<', ['get', 'depth'], ['global-state', 'safety']],
+    layout: {
+      'text-field': [
+        'number-format',
+        ['*', ['get', 'depth'], ['global-state', 'factor']],
+        {}
+      ],
+      'text-size': ['global-state', 'size']
+    },
+    paint: { 'text-color': ['global-state', 'colour'], 'text-halo-width': 1 }
+  };
+
+  it('resolves global-state and keeps properties that fit their values', () => {
+    const { layer: out, dropped } = olStyleLayer(layer, {
+      safety: 3,
+      factor: 3.28,
+      size: 12,
+      colour: 'red'
+    });
+    expect(dropped).toEqual([]);
+    expect(out.filter).toEqual(['<', ['get', 'depth'], ['literal', 3]]);
+    expect(out.paint?.['text-color']).toEqual(['literal', 'red']);
+  });
+
+  it('drops a property whose value no longer compiles, so it draws its default', () => {
+    // null: a variable with no default; a string where a number is wanted
+    const { layer: out, dropped } = olStyleLayer(layer, {
+      factor: null,
+      size: '12',
+      colour: 5
+    });
+    expect(dropped.sort()).toEqual(['text-color', 'text-field', 'text-size']);
+    expect(out.layout).toEqual({});
+    expect(out.paint).toEqual({ 'text-halo-width': 1 });
+  });
+
+  it('leaves properties without global-state to the style analysis', () => {
+    const { dropped } = olStyleLayer(
+      { id: 'x', type: 'line', source: 's', paint: { 'line-width': 2 } },
+      {}
+    );
+    expect(dropped).toEqual([]);
   });
 });
