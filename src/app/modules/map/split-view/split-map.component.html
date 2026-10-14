@@ -6,6 +6,7 @@
   [olControls]="olControls"
   (mapReady)="onMapReady($event)"
   (mapMoveEnd)="onMoveEnd($event)"
+  (mapPointerDown)="onPress()"
   (mapPointerDrag)="onDrag()"
   (mapSingleClick)="onTap($event)"
   (mapContextMenu)="onContextMenu($event)"

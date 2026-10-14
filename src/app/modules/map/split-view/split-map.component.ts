@@ -83,6 +83,7 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   private stopPressWatch: (() => void)[] = [];
   private vessels: Subscription;
   private commands: Subscription;
+  private pressedAt = 0;
   private gripRect: DOMRect | null = null;
   private gripStacked = false;
 
@@ -166,9 +167,18 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     );
   }
 
+  protected onPress() {
+    this.pressedAt = Date.now();
+  }
+
   protected onTap(e: FBClickEvent) {
     if (this.map && !this.interacting()) {
-      this.split.forwardTap({ kind: 'click', event: e, map: this.map });
+      this.split.forwardTap({
+        kind: 'click',
+        event: e,
+        map: this.map,
+        pressedAt: this.pressedAt
+      });
     }
   }
 

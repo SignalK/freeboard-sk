@@ -12,7 +12,8 @@ import {
   input,
   effect,
   inject,
-  NgZone
+  NgZone,
+  untracked
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -469,13 +470,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
     return m ? [m] : [];
   });
   /**
-   * The split view's second pane, when the latest tap landed there: its
-   * popover and tap marker open in that pane. Undefined for the main chart,
-   * and again as soon as the second pane closes.
+   * The split view's second pane when the latest tap landed there, undefined
+   * for this chart. An overlay opened by a tap (a popover, the tap marker, a
+   * Bearing & Distance label) keeps the map it opened on, and is drawn there
+   * while that map is the second pane.
    */
-  private tapMap = signal<OlMap | undefined>(undefined);
-  protected tapPane(): OlMap | undefined {
-    const map = this.tapMap();
+  private clickMap: OlMap | undefined;
+  private popoverMap = signal<OlMap | undefined>(undefined);
+  private pinMap = signal<OlMap | undefined>(undefined);
+  private bearingMap = signal<OlMap | undefined>(undefined);
+  protected popoverPane(): OlMap | undefined {
+    return this.inPane(this.popoverMap());
+  }
+  protected pinPane(): OlMap | undefined {
+    return this.inPane(this.pinMap());
+  }
+  protected bearingPane(): OlMap | undefined {
+    return this.inPane(this.bearingMap());
+  }
+  private inPane(map: OlMap | undefined): OlMap | undefined {
     return map && map === this.splitView.secondaryMap() ? map : undefined;
   }
   /** When the gesture in flight pressed down — a tap is a short press. */
@@ -559,6 +572,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     });
     this.toggleDblClickZoom(); // init olMapinterations
+    // A popover left open on the second pane would move to this chart when the
+    // pane closes, out of view, and its open state blocks the chart menu.
+    effect(() => {
+      const pane = this.splitView.secondaryMap();
+      untracked(() => {
+        const shownOn = this.popoverMap();
+        if (shownOn && shownOn !== pane) {
+          this.popoverClosed();
+        }
+      });
+    });
   }
 
   ngAfterViewInit() {
@@ -833,6 +857,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
         break;
       case 'bearing_dist':
+        this.bearingMap.set(this.clickMap);
         this.mapInteract.showBearingDistanceFromVessel(
           pos,
           this.clickWorldOffset
@@ -1040,6 +1065,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       return;
     }
+    this.pinMap.set(this.clickMap);
     this.cursorPin.pin(
       position,
       worldOffset,
@@ -1064,7 +1090,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   protected onMapSingleClick(e, map?: OlMap) {
-    this.tapMap.set(map);
+    this.clickMap = map;
     // Remember which world copy this click landed in so any popover it opens is
     // drawn there, and the raw world-aware x so a route edit aligns with it (#572).
     this.clickWorldOffset = e.worldOffset ?? 0;
@@ -1076,6 +1102,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.mapInteract.isMeasuring()) {
       // measuring
       if (this.mapInteract.measureGeometryType === 'BearingDistance') {
+        this.bearingMap.set(map);
         this.mapInteract.placeBearingDistancePoint(
           GeoUtils.normaliseCoords(e.lonlat as Position),
           this.clickWorldOffset
@@ -1122,7 +1149,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     },
     map?: OlMap
   ) {
-    this.tapMap.set(map);
+    this.clickMap = map;
     // toLonLat() gives [lon, lat]
     const lonlat = e.lonlat as Position;
     this.clickWorldOffset = e.worldOffset ?? 0;
@@ -1146,6 +1173,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   private onSecondaryTap(tap: SecondaryTap) {
     if (tap.kind === 'click') {
+      this.pointerDownAt = tap.pressedAt;
       this.onMapSingleClick(tap.event, tap.map);
     } else {
       this.onMapRightClick(tap, tap.map);
@@ -1485,17 +1513,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected modifyFeature(featureType?: string) {
+  /**
+   * @param at Where the feature was tapped, when no popover was opened for it
+   * (a tap straight on the anchor)
+   */
+  protected modifyFeature(featureType?: string, at?: Position) {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
     }
-    if (this.tapPane()) {
+    if (at ? this.inPane(this.clickMap) : this.popoverPane()) {
       // Picked on the split view's second pane, but editing happens on this
-      // chart: bring it to the feature first.
+      // chart: bring it to the feature first. The chart is centred in the
+      // primary world, so align the edit with that world, not the pane's copy.
       if (this.movingMap) {
         this.exitMovingMap.emit(true);
       }
-      this.mapCenterPositon.set([...this.overlay().position] as Position);
+      this.mapCenterPositon.set([...(at ?? this.overlay().position)]);
+      this.clickMercX -= this.clickWorldOffset;
+      this.clickWorldOffset = 0;
+      this.clickMap = undefined;
     }
     // Align the edit feature with the world copy the user is looking at, so OL
     // Modify (which hit-tests raw geometry in view-space, ignoring wrapX) matches
@@ -2198,6 +2234,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.popoverMap.set(this.clickMap);
     const poData: IPopover = {
       show: false,
       content: [],
@@ -2228,7 +2265,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.readOnly = true;
         break;
       case 'anchor':
-        this.modifyFeature('anchor');
+        this.modifyFeature('anchor', coord);
         return;
       case 'list':
         poData.type = t[0];
@@ -2665,9 +2702,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     return `${fmt(r.distance, 'm')} ${fmt(r.bearing, 'deg')} (${fmt(r.reciprocal, 'deg')} recip)`;
   }
 
+  /** The placed Bearing & Distance target, dragged on this chart. */
+  protected onBearingTargetDrag(position: Position, worldOffset: number) {
+    this.bearingMap.set(undefined);
+    this.mapInteract.moveBearingDistanceTarget(position, worldOffset);
+  }
+
   /** handle popover closed event */
   protected popoverClosed() {
-    this.tapMap.set(undefined);
+    this.popoverMap.set(undefined);
     this.overlay.update((current) => {
       return Object.assign({}, current, { show: false });
     });

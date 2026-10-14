@@ -49,7 +49,9 @@ const near = (a: Position, b: Position) =>
 const bareComponent = () => {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.overlay = signal({ show: false });
-  cmp.tapMap = signal(undefined);
+  cmp.popoverMap = signal(undefined);
+  cmp.pinMap = signal(undefined);
+  cmp.bearingMap = signal(undefined);
   cmp.mapInteract = { draw: { features: null } };
   cmp.clickWorldOffset = 0;
   cmp.trackHistory = { label: () => 'FERRY', wholeTrack: () => undefined };

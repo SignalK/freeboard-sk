@@ -582,12 +582,7 @@
       [showOrigin]="!!bd.origin"
       [showRing]="true"
       [markerDraggable]="bd.fixed"
-      (markerDrag)="
-        mapInteract.moveBearingDistanceTarget(
-          $event.position,
-          $event.worldOffset
-        )
-      "
+      (markerDrag)="onBearingTargetDrag($event.position, $event.worldOffset)"
       [markerName]=""
       [bearingStyles]="featureStyles.bearingDistance"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -599,6 +594,7 @@
       <ol-overlay
         [position]="bd.target"
         [worldOffset]="bd.worldOffset"
+        [targetMap]="bearingPane()"
         [positioning]="'top-center'"
       >
         <!-- While it follows the pointer the label sits under it, so let the
@@ -628,7 +624,7 @@
       [position]="overlay().position"
       [worldOffset]="overlay().worldOffset ?? 0"
       [positioning]="'top-center'"
-      [targetMap]="tapPane()"
+      [targetMap]="popoverPane()"
     >
       @if (mapInteract.isMeasuring()) {
         <ap-popover
@@ -1055,7 +1051,7 @@
       [worldOffset]="m.worldOffset"
       [positioning]="'center-center'"
       [stopEvent]="false"
-      [targetMap]="tapPane()"
+      [targetMap]="pinPane()"
     >
       <div
         class="cursor-marker"

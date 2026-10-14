@@ -18,7 +18,13 @@ import {
  * the same popovers and actions apply.
  */
 export type SecondaryTap =
-  | { kind: 'click'; event: FBClickEvent; map: OlMap }
+  | {
+      kind: 'click';
+      event: FBClickEvent;
+      map: OlMap;
+      /** When the tap pressed down (Date.now()), to tell a tap from a hold. */
+      pressedAt: number;
+    }
   | {
       kind: 'contextmenu';
       event: MouseEvent;
