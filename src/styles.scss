@@ -89,6 +89,12 @@ b { font-weight: 500; }
     flex-direction: column;
 }
 
+/* Stacked, the divider grip reaches 10px up into the main chart; keep the
+   main chart's position readout clear of it. */
+.mapPanel.split.stacked .mapMain .ol-mouse-position {
+    bottom: 14px;
+}
+
 .transparent-backdrop {
     background: transparent !important;
 }

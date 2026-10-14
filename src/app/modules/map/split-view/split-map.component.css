@@ -59,7 +59,8 @@
 }
 
 /* Stacked panes (the panel is taller than wide). The grip sits right of
-   centre, clear of the main chart's position readout above it. */
+   centre; the main chart's position readout above it is lifted clear of it
+   (styles.scss). */
 :host(.stacked) {
   border-left: 0;
   border-top: 8px solid #2b3846;
