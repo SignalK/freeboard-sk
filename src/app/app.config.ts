@@ -40,7 +40,7 @@ export function cleanConfig(
       showCourseData: true,
       showAisTargets: true,
       showNotes: true,
-      autoNightMode: false
+      autoNightMode: true
     };
   } else {
     if (typeof settings.ui.showCourseData === 'undefined') {
@@ -68,7 +68,7 @@ export function cleanConfig(
       fab: 'wpt',
       disableWakelock: false,
       darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
-      nightMode: false, // auto set night mode based on environment.mode
+      nightMode: true, // auto set night mode based on environment.mode
       muteSound: false,
       depthAlarm: {
         enabled: false,
@@ -551,7 +551,7 @@ export function defaultConfig(): IAppConfig {
       showCourseData: true, // show/hide course data
       showAisTargets: true, // show/hide ais targets
       showNotes: true, // show/hide notes
-      autoNightMode: false
+      autoNightMode: true
     },
     imageAdjustPalettePos: null,
     timePalettePos: null,
@@ -560,7 +560,7 @@ export function defaultConfig(): IAppConfig {
       fab: 'wpt', // default FAB button
       disableWakelock: false,
       darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
-      nightMode: false, // auto set night mode based on environment.mode
+      nightMode: true, // auto set night mode based on environment.mode
       muteSound: false,
       depthAlarm: { enabled: false, smoothing: 10000 },
       plugins: {

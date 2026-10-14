@@ -142,6 +142,12 @@ describe('cleanConfig() legacy migration', () => {
     expect(defaultConfig().vessels.trailSource).toBe('auto');
   });
 
+  it("follows the server's day/night mode by default", () => {
+    const cfg = defaultConfig();
+    expect(cfg.display.nightMode).toBe(true);
+    expect(cfg.ui.autoNightMode).toBe(true);
+  });
+
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });

@@ -240,7 +240,7 @@ export class AppFacade extends InfoService {
     showCourseData: true,
     showAisTargets: true,
     showNotes: true,
-    autoNightMode: false
+    autoNightMode: true
   });
 
   // Signal K server feature flags
