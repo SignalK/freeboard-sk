@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  computed,
   effect,
   signal,
   input,
@@ -50,6 +51,10 @@ import {
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  OverlayRegistry,
+  type OverlayEntry
+} from 'src/app/modules/plotterext/overlay-registry';
 
 @Component({
   selector: 'chart-list',
@@ -86,6 +91,16 @@ export class ChartListComponent extends ResourceListBase {
   private skgroups = inject(SKResourceGroupService);
   private mapInteract = inject(FBMapInteractService);
   private destroyRef = inject(DestroyRef);
+  private overlays = inject(OverlayRegistry);
+
+  /**
+   * Image map overlays contributed by extensions, top layer first like the
+   * charts below them: every overlay draws above every chart. One row each,
+   * shown/faded individually; not re-orderable.
+   */
+  protected pluginLayers = computed(() =>
+    [...this.overlays.entries()].reverse()
+  );
 
   constructor(protected override skres: SKResourceService) {
     super('charts', skres);
@@ -285,6 +300,49 @@ export class ChartListComponent extends ResourceListBase {
    */
   protected itemDelete(id: string) {
     this.skres.deleteChart(id);
+  }
+
+  /** Whether a plugin layer row passes the text filter. */
+  protected pluginLayerMatches(layer: OverlayEntry): boolean {
+    const text = this.filterText?.toLowerCase() ?? '';
+    return (
+      !text ||
+      layer.title.toLowerCase().includes(text) ||
+      layer.extensionName.toLowerCase().includes(text)
+    );
+  }
+
+  protected pluginLayerSelect(checked: boolean, layer: OverlayEntry) {
+    this.overlays.setVisibility([layer.key], checked);
+  }
+
+  protected pluginLayerOpacity(layer: OverlayEntry) {
+    const original = layer.opacity;
+    this.dialog
+      .open(SliderInputDialog, {
+        disableClose: true,
+        backdropClass: 'transparent-backdrop',
+        data: {
+          resId: layer.key,
+          title: 'Set Opacity',
+          text: layer.title,
+          value: Math.round(original * 100),
+          onChange: (value: number) =>
+            this.overlays.setOpacity(
+              [layer.key],
+              Math.min(100, Math.max(0, Math.round(value))) / 100,
+              false
+            )
+        }
+      })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: SliderInputDialogResult) => {
+        const value = result?.apply
+          ? Math.min(100, Math.max(0, Math.round(result.value))) / 100
+          : original;
+        this.overlays.setOpacity([layer.key], value);
+      });
   }
 
   protected itemOpacity(chart: FBChart) {

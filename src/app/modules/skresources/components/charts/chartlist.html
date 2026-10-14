@@ -117,7 +117,75 @@
       [cdkDropListDisabled]="!canReorder()"
       (cdkDropListDropped)="drop($event)"
     >
-      @for (r of filteredList(); track r[0]; let i = $index) {
+      @if (pluginLayers().length) {
+      <div class="plugin-layers">
+        <div class="plugin-layers-caption">Plugin layers</div>
+        @for (pl of pluginLayers(); track pl.key) { @if (pluginLayerMatches(pl))
+        {
+        <mat-card
+          style="border-bottom: silver 1px outset; border-radius: unset"
+        >
+          <mat-card-content>
+            <div style="display: flex">
+              <div style="flex: 1 1 auto; width: 215px">
+                <div
+                  style="
+                    text-overflow: ellipsis;
+                    overflow-x: hidden;
+                    white-space: pre;
+                  "
+                >
+                  <mat-icon>layers</mat-icon>
+                  &nbsp;<b>{{pl.title}}</b>
+                </div>
+                <div
+                  style="
+                    text-overflow: ellipsis;
+                    overflow-x: hidden;
+                    white-space: pre;
+                  "
+                >
+                  {{pl.extensionName}}
+                </div>
+                @if (pl.suspended) {
+                <div
+                  style="font-size: 11px; opacity: 0.75; font-style: italic"
+                  matTooltip="Too many plugin layers are shown at once. Hide another to draw this one."
+                  matTooltipPosition="right"
+                >
+                  Paused &mdash; too many plugin layers
+                </div>
+                }
+              </div>
+              <div style="display: flex; align-items: center">
+                <mat-checkbox
+                  [checked]="pl.visible"
+                  (change)="pluginLayerSelect($event.checked, pl)"
+                  matTooltip="Show in Map"
+                  matTooltipPosition="left"
+                >
+                </mat-checkbox>
+              </div>
+            </div>
+          </mat-card-content>
+          <mat-card-actions>
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                [disabled]="!pl.visible"
+                (click)="pluginLayerOpacity(pl)"
+                matTooltip="Set Opacity"
+                matTooltipPosition="above"
+              >
+                <mat-icon>opacity</mat-icon>
+              </button>
+            </div>
+          </mat-card-actions>
+        </mat-card>
+        } }
+        <div class="plugin-layers-caption">Charts</div>
+      </div>
+      } @for (r of filteredList(); track r[0]; let i = $index) {
       <mat-card
         cdkDrag
         [cdkDragDisabled]="!canReorder()"
