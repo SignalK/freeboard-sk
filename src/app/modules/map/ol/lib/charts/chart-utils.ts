@@ -123,6 +123,11 @@ export function chartLayerClassName(id: string): string {
  */
 const MIN_ZOOM_EPSILON = 1e-6;
 
+/** The layer `minZoom` that shows a layer from `zoom` on, `zoom` included. */
+export function shownFromZoom(zoom: number): number {
+  return zoom - MIN_ZOOM_EPSILON;
+}
+
 /**
  * Layer min/max zoom for a chart, combining its declared range (what tiles
  * exist), the user's display minimum (the lowest zoom they want it drawn at)

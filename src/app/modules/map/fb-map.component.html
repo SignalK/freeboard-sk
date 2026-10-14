@@ -444,8 +444,9 @@
   <!-- AIS Vessel targets -->
   @if (app.config.ui.showAisTargets) {
     <div>
-      @if (mapZoomLevel() >= app.config.vessels.aisWindMinZoom) {
+      @if (paneZoomMax() >= app.config.vessels.aisWindMinZoom) {
         <sk-ais-wind
+          [layerProperties]="shownFrom(app.config.vessels.aisWindMinZoom)"
           [targetContext]="'vessels'"
           [targets]="dfeat.ais"
           [vectorApparent]="app.config.vessels.aisWindApparent"
@@ -564,8 +565,13 @@
   </fb-regions>
 
   <!-- Notes (display-filtered by plotter extensions) -->
-  @if (showNoteslayer()) {
-    <fb-notes [notes]="plotterExt.visibleNotes()" [zIndex]="450"> </fb-notes>
+  @if (notesShown()) {
+    <fb-notes
+      [notes]="plotterExt.visibleNotes()"
+      [zIndex]="450"
+      [layerProperties]="shownFrom(app.config.resources.notes.minZoom)"
+    >
+    </fb-notes>
   }
 
   <!-- Distance & Bearing to -->
@@ -1107,7 +1113,7 @@
       Add Waypoint here
     </button>
 
-    @if (mapZoomLevel() >= app.config.resources.notes.minZoom) {
+    @if (menuZoom() >= app.config.resources.notes.minZoom) {
       <button
         mat-menu-item
         (click)="onContextMenuAction('add_note', item)"

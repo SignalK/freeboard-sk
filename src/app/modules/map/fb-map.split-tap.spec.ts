@@ -29,6 +29,7 @@ const bareComponent = (secondPane: OlMap | null) => {
   cmp.popoverMap = signal(undefined);
   cmp.pinMap = signal(undefined);
   cmp.bearingMap = signal(undefined);
+  cmp.menuZoom = signal(0);
   cmp.splitView = { secondaryMap: signal(secondPane) };
   // Stands in for a tap on a feature: it opens that feature's popover.
   cmp.processMapClick = vi.fn(() => cmp.formatPopover('s57.x', [23.5, 60.1]));
@@ -121,10 +122,13 @@ describe('FBMapComponent: taps on the split view second pane', () => {
       features: [],
       lonlat: [23.5, 60.1],
       worldOffset: 0,
-      map: pane
+      map: pane,
+      zoom: 15
     });
 
     expect(cmp.contextMenu.openMenu).toHaveBeenCalled();
+    // "Add Note here" goes by the zoom of the pane the menu opened on.
+    expect(cmp.menuZoom()).toBe(15);
     expect(cmp.contextMenu.menuData).toEqual({ item: [23.5, 60.1] });
     expect(cmp.contextMenuPosition).toEqual({ x: '300px', y: '200px' });
     expect(cmp.app.data.map.atClick.lonlat).toEqual([23.5, 60.1]);
@@ -189,5 +193,30 @@ describe('FBMapComponent: Modify picked on the second pane', () => {
     cmp.modifyFeature('anchor', [23.55, 60.12]);
 
     expect(cmp.mapCenterPositon()).toEqual([23.55, 60.12]);
+  });
+});
+
+describe('FBMapComponent: layers shown from some zoom on, with the chart split', () => {
+  it('keeps the notes layer while either pane is zoomed in for notes', () => {
+    const cmp = bareComponent(new OlMap());
+    cmp.app.config.ui = { showNotes: true };
+    cmp.app.config.resources = { notes: { minZoom: 12 } };
+
+    cmp.paneZoomMax = () => 13;
+    expect(cmp.notesShown()).toBe(true);
+    cmp.paneZoomMax = () => 11;
+    expect(cmp.notesShown()).toBe(false);
+  });
+
+  it('hides such a layer below its zoom on each map, that zoom included', () => {
+    const cmp = bareComponent(null);
+    cmp.zoomGates = new Map();
+
+    const gate = cmp.shownFrom(12);
+
+    expect(gate.minZoom).toBeLessThan(12);
+    expect(gate.minZoom).toBeGreaterThan(11.99);
+    // The same object every time, so the layer is not updated on every check.
+    expect(cmp.shownFrom(12)).toBe(gate);
   });
 });

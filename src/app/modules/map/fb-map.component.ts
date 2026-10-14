@@ -61,6 +61,7 @@ import {
 import { trueWindDirection } from 'src/app/lib/true-bearing';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { isPanKey } from 'src/app/lib/pan-keys';
+import { shownFromZoom } from './ol/lib/charts/chart-utils';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
 import { isRefollowActivity, RefollowTimer } from 'src/app/lib/refollow-timer';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
@@ -365,6 +366,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
       ? 0
       : this.plotterExt.statusBarLift()
   );
+  /**
+   * The higher zoom of the panes on screen. Layers shown only from some zoom
+   * on exist while either pane is that far in; each map then hides them at
+   * its own zoom through the layer's minZoom.
+   */
+  protected paneZoomMax = computed(() =>
+    Math.max(
+      this.mapZoomLevel(),
+      (this.splitView.secondaryMap() && this.splitView.zoom()) || 0
+    )
+  );
+  /** Zoom the chart menu was opened at, on whichever pane. */
+  protected menuZoom = signal(0);
+  private zoomGates = new Map<number, { minZoom: number }>();
   // Matches the zoom buttons: the active pane's zoom.
   protected mapZoomText = computed(() => zoomDisplayText(this.viewZoom()));
   /** The zoom of the pane the zoom buttons act on. */
@@ -375,8 +390,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
   );
   protected mapCenterPositon = signal<Position>([0, 0]);
   protected mapRotation = signal<number>(0);
-
-  protected showNoteslayer = signal<boolean>(false); //control notes layer display
 
   // ** map feature styles
   protected featureStyles = {
@@ -1178,7 +1191,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.onMapRightClick(tap, tap.map);
       this.onContextMenu(
         tap.event,
-        GeoUtils.normaliseCoords(tap.lonlat as Position)
+        GeoUtils.normaliseCoords(tap.lonlat as Position),
+        tap.zoom
       );
     }
   }
@@ -1188,8 +1202,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @param at Where the menu acts, when not where the pointer is over this
    * chart (a long press on the split view's second pane)
    */
-  protected onContextMenu(e: MouseEvent, at?: Position) {
+  protected onContextMenu(e: MouseEvent, at?: Position, zoom?: number) {
     this.app.debug(`onContextMenu()`, this.app.data.map.atClick);
+    this.menuZoom.set(zoom ?? this.mapZoomLevel());
     if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
       return;
     }
@@ -2701,6 +2716,24 @@ export class FBMapComponent implements OnInit, OnDestroy {
     return `${fmt(r.distance, 'm')} ${fmt(r.bearing, 'deg')} (${fmt(r.reciprocal, 'deg')} recip)`;
   }
 
+  /** Whether the notes layer is on, and either pane is zoomed in for notes. */
+  protected notesShown(): boolean {
+    return (
+      this.app.config.ui.showNotes &&
+      this.paneZoomMax() >= this.app.config.resources.notes.minZoom
+    );
+  }
+
+  /** Layer properties that show a layer from `zoom` on, on each map. */
+  protected shownFrom(zoom: number): { minZoom: number } {
+    let gate = this.zoomGates.get(zoom);
+    if (!gate) {
+      gate = { minZoom: shownFromZoom(zoom) };
+      this.zoomGates.set(zoom, gate);
+    }
+    return gate;
+  }
+
   /** The placed Bearing & Distance target, dragged on this chart. */
   protected onBearingTargetDrag(position: Position, worldOffset: number) {
     this.bearingMap.set(undefined);
@@ -3144,12 +3177,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @returns true if skres.refreshNotes() should be called
    */
   private shouldFetchNotes(zoomChanged: boolean) {
-    this.showNoteslayer.update(
-      () =>
-        this.app.config.ui.showNotes &&
-        this.app.config.map.zoomLevel >= this.app.config.resources.notes.minZoom
-    );
-
     this.app.debug(`lastGet: ${this.app.data.lastGet}`);
     this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
 

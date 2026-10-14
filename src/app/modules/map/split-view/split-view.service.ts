@@ -33,6 +33,8 @@ export type SecondaryTap =
       lonlat: Coordinate;
       worldOffset: number;
       map: OlMap;
+      /** The pane's zoom: menu items that need a zoom go by it. */
+      zoom: number;
     };
 
 /** The two chart panes. The shared map buttons act on the active one. */

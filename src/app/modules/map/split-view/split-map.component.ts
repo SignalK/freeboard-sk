@@ -237,7 +237,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       }),
       lonlat: toLonLat(coordinate),
       worldOffset: worldCopyOffset(coordinate[0], worldWidth),
-      map
+      map,
+      zoom: map.getView().getZoom() ?? this.zoom()
     });
   }
 
