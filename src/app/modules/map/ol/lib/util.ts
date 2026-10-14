@@ -136,3 +136,10 @@ export function mapifyRadius(radius: number, position: Coordinate): number {
  */
 export const ON_TWIN = 'onTwin';
 export type OnTwin = (twin: Layer) => () => void;
+
+/**
+ * Map property, true while the map is drawn larger than it shows (the split
+ * view's divider being dragged). Its view changes then are not settled ones:
+ * the move-end that follows when it is drawn at its real size again is.
+ */
+export const RESIZING = 'resizing';

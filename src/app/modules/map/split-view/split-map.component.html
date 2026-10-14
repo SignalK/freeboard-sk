@@ -38,6 +38,7 @@
   matTooltip="Drag to resize"
   [matTooltipDisabled]="dragging()"
   (pointerdown)="gripDown($event)"
+  (contextmenu)="$event.preventDefault()"
   (keydown)="gripKey($event)"
 >
   <mat-icon>drag_indicator</mat-icon>

@@ -1,7 +1,10 @@
 import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { Map as OlMap } from 'ol';
 import { FBMapComponent } from './fb-map.component';
+import { FBMapEvent } from './ol/lib/map.component';
+import { RESIZING } from './ol/lib/util';
 
 // The zoom buttons sit on the main chart but act on the active pane of the
 // split view. A bare prototype instance, as in fb-map.split-tap.spec.ts.
@@ -45,5 +48,17 @@ describe('FBMapComponent: keys with the chart split', () => {
     cmp.onMapKeydown({ key: 'a' } as KeyboardEvent);
 
     expect(cmp.splitView.activate).toHaveBeenCalledWith('main');
+  });
+});
+
+describe('FBMapComponent: the view while the split divider is dragged', () => {
+  it('keeps no view the chart passes through drawn larger than it shows', () => {
+    const cmp = bareComponent(false);
+    const map = new OlMap();
+    map.set(RESIZING, true);
+
+    cmp.onMapMoveEnd({ map, zoom: 14 } as unknown as FBMapEvent);
+
+    expect(cmp.app.config.map.zoomLevel).toBe(10);
   });
 });

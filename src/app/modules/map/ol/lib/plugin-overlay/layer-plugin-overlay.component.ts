@@ -17,7 +17,7 @@ import ImageSource from 'ol/source/Image';
 import type CanvasImageLayerRenderer from 'ol/renderer/canvas/ImageLayer';
 import { get as getProjection } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { ON_TWIN, OnTwin } from '../util';
+import { ON_TWIN, OnTwin, RESIZING } from '../util';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import type { OverlayFrameDelivery } from 'src/app/modules/plotterext/overlay-registry';
 import {
@@ -96,9 +96,16 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       this.overlayKey,
       (frame) => this.draw(frame)
     );
+    // Not for a view the map only passes through while drawn larger than it
+    // shows (the split view's divider being dragged).
+    const viewChanged = () => {
+      if (!map.get(RESIZING)) {
+        this.requestIfNeeded();
+      }
+    };
     this.listenerKeys.push(
-      map.on('moveend', () => this.requestIfNeeded()),
-      map.on('change:size', () => this.requestIfNeeded())
+      map.on('moveend', viewChanged),
+      map.on('change:size', viewChanged)
     );
     this.requestIfNeeded();
   }

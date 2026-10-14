@@ -23,6 +23,7 @@ import { SKStreamFacade } from 'src/app/modules';
 import {
   FreeboardOpenlayersModule,
   hitToleranceForPointer,
+  RESIZING,
   worldCopyOffset
 } from 'src/app/modules/map/ol';
 import {
@@ -46,6 +47,9 @@ import {
   viewFootprint
 } from './split-view';
 import { PaneCommand, SplitPane, SplitViewService } from './split-view.service';
+
+/** The stretch over which a control's anchoring is measured, in px. */
+const OVERSCAN_PROBE_PX = 100;
 
 /** A chart drawn bigger than its pane while the divider is dragged. */
 interface Overscan {
@@ -129,8 +133,11 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private commands: Subscription;
   private pressedAt = 0;
   private gripRect: DOMRect | null = null;
+  private gripPanel: [number, number] | null = null;
   private gripStacked = false;
   private gripStart = 0;
+  /** How far along the split from the divider the grip was pressed. */
+  private gripOffset = 0;
   private overscans: Overscan[] = [];
   private endDrag: (() => void) | null = null;
   private zone = inject(NgZone);
@@ -168,9 +175,16 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     // along the split how far the divider may go.
     const panel = this.host.nativeElement.parentElement;
     if (panel) {
-      this.panelSize = new ResizeObserver(() =>
-        this.split.setPanelSize(panel.clientWidth, panel.clientHeight)
-      );
+      this.panelSize = new ResizeObserver(() => {
+        const [width, height] = [panel.clientWidth, panel.clientHeight];
+        this.split.setPanelSize(width, height);
+        // A drag is laid out for the panel it began on: one that changes
+        // under it (a side panel opening, the screen turned) ends it there.
+        const at = this.gripPanel;
+        if (at && (at[0] !== width || at[1] !== height)) {
+          this.zone.run(() => this.gripUp());
+        }
+      });
       this.panelSize.observe(panel);
     }
   }
@@ -184,7 +198,6 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.stopMirror?.();
     this.stopUseWatch.forEach((stop) => stop());
     this.mainMap?.un('moveend', this.onMainMoved);
-    this.mainMap?.un('change:size', this.onMainMoved);
     this.split.setSecondaryMap(null);
   }
 
@@ -195,7 +208,6 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.mainMap) {
       this.stopMirror = mirrorLayers(this.mainMap, e.map);
       this.mainMap.on('moveend', this.onMainMoved);
-      this.mainMap.on('change:size', this.onMainMoved);
       this.stopUseWatch.push(this.activateOnUse(this.mainMap, 'main'));
     }
     this.stopUseWatch.push(this.activateOnUse(e.map, 'secondary'));
@@ -379,10 +391,13 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   protected gripDown(ev: PointerEvent) {
     const panel = this.host.nativeElement.parentElement;
-    if (!panel) {
+    // One drag at a time, by the primary button: a second finger, a pen or a
+    // right click must not start another over charts already drawn oversized.
+    if (!panel || this.endDrag || !ev.isPrimary || ev.button !== 0) {
       return;
     }
     this.gripRect = panel.getBoundingClientRect();
+    this.gripPanel = [panel.clientWidth, panel.clientHeight];
     this.gripStacked = this.split.stacked();
     this.gripRatio = null;
     const grip = ev.currentTarget as HTMLElement;
@@ -392,18 +407,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const size = this.gripStacked ? this.gripRect.height : this.gripRect.width;
     const start = this.split.shownRatio();
     this.gripStart = start;
-    this.overscans = [
-      this.overscan(
-        this.mainMap,
-        (fitRatio(SPLIT_RATIO_MAX, size) - start) * size,
-        1
-      ),
-      this.overscan(
-        this.map,
-        (start - fitRatio(SPLIT_RATIO_MIN, size)) * size,
-        -1
-      )
-    ].filter((o): o is Overscan => o !== null);
+    // The divider keeps its place under the pointer instead of jumping to it.
+    this.gripOffset = this.gripStacked
+      ? ev.clientY - (this.gripRect.top + start * size)
+      : ev.clientX - (this.gripRect.left + start * size);
     // Moves come at pointer rate: outside Angular they set a few style
     // properties and run no change detection.
     this.zone.runOutsideAngular(() => {
@@ -423,6 +430,16 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
         panel.style.removeProperty(SPLIT_SHARE_VAR);
       };
     });
+    this.overscan(
+      this.mainMap,
+      (fitRatio(SPLIT_RATIO_MAX, size) - start) * size,
+      1
+    );
+    this.overscan(
+      this.map,
+      (start - fitRatio(SPLIT_RATIO_MIN, size)) * size,
+      -1
+    );
   }
 
   /**
@@ -437,8 +454,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     const ratio = ratioFromPointer(
       this.gripRect,
-      ev.clientX,
-      ev.clientY,
+      ev.clientX - (this.gripStacked ? 0 : this.gripOffset),
+      ev.clientY - (this.gripStacked ? this.gripOffset : 0),
       this.gripStacked
     );
     if (ratio === null) {
@@ -457,11 +474,20 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Sets and saves where the divider was let go, and ends the drag. */
   protected gripUp() {
-    if (!this.gripRect) {
+    const rect = this.gripRect;
+    if (!rect) {
       return;
     }
     this.gripRect = null;
+    this.gripPanel = null;
     if (this.gripRatio !== null) {
+      // The last move may not have been drawn yet. Its share goes on now, so
+      // the charts are drawn at the size they keep.
+      const size = this.gripStacked ? rect.height : rect.width;
+      this.host.nativeElement.parentElement?.style.setProperty(
+        SPLIT_SHARE_VAR,
+        `${fitRatio(this.gripRatio, size) * 100}%`
+      );
       this.split.setRatio(this.gripRatio);
       this.gripRatio = null;
     }
@@ -475,14 +501,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
    * Draws `map` `growth` px longer along the split than its pane, now, so the
    * pane can grow that much without the chart being drawn again.
    */
-  private overscan(
-    map: OlMap | undefined,
-    growth: number,
-    grows: 1 | -1
-  ): Overscan | null {
+  private overscan(map: OlMap | undefined, growth: number, grows: 1 | -1) {
     const target = map?.getTargetElement();
     if (!map || !target) {
-      return null;
+      return;
     }
     const axis = this.gripStacked ? 'height' : 'width';
     const shown = target.getBoundingClientRect()[axis];
@@ -495,7 +517,13 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       const r = el.getBoundingClientRect();
       return this.gripStacked ? r.top + r.height / 2 : r.left + r.width / 2;
     };
+    // How each control follows its pane's size, measured over a fixed
+    // stretch: a pane already at its largest is not drawn any bigger.
     const before = controls.map(middle);
+    target.style[axis] = `${shown + OVERSCAN_PROBE_PX}px`;
+    const k = controls.map(
+      (el, i) => (middle(el) - before[i]) / OVERSCAN_PROBE_PX
+    );
     target.style[axis] = `${max}px`;
     const o: Overscan = {
       map,
@@ -503,18 +531,16 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       shown,
       max,
       grows,
-      controls: controls.map((el, i) => ({
-        el,
-        k: max > shown ? (middle(el) - before[i]) / (max - shown) : 0
-      })),
+      controls: controls.map((el, i) => ({ el, k: k[i] })),
       style: { width, height, transform, willChange }
     };
+    this.overscans.push(o);
     target.style.willChange = 'transform';
     this.shift(o, shown);
+    map.set(RESIZING, true);
     // Drawn now, before the frame is painted, so it never shows misplaced.
     map.updateSize();
     map.renderSync();
-    return o;
   }
 
   /**
@@ -536,8 +562,12 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private release(o: Overscan) {
     Object.assign(o.target.style, o.style);
     o.controls.forEach(({ el }) => (el.style.translate = ''));
-    o.map.updateSize();
-    o.map.renderSync();
+    o.map.set(RESIZING, false);
+    // The second pane's map has no target left when the split closes mid-drag.
+    if (o.map.getTargetElement()) {
+      o.map.updateSize();
+      o.map.renderSync();
+    }
   }
 
   /** The divider as a window splitter: arrows move it, Home and End to the ends. */

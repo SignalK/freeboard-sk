@@ -9,6 +9,7 @@ import { MapComponent } from '../ol/lib/map.component';
 import { PluginOverlayComponent } from '../ol/lib/plugin-overlay/layer-plugin-overlay.component';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import type { OverlayFrameDelivery } from 'src/app/modules/plotterext/overlay-registry';
+import { RESIZING } from '../ol/lib/util';
 import { mirrorLayers } from './layer-mirror';
 
 /*
@@ -45,9 +46,11 @@ const renderer = (layer: BaseLayer) => {
 describe('A plugin image overlay in the split view', () => {
   let main: OlMap;
   let deliver: (frame: OverlayFrameDelivery) => void;
+  let requested: unknown[][];
 
   beforeEach(() => {
     main = new OlMap({ view: new View({ center: [0, 0], zoom: 10 }) });
+    requested = [];
     TestBed.configureTestingModule({
       providers: [
         { provide: ChangeDetectorRef, useValue: { detach: () => undefined } },
@@ -65,7 +68,7 @@ describe('A plugin image overlay in the split view', () => {
               },
               clearRequest: () => undefined
             },
-            requestOverlayFrame: () => undefined
+            requestOverlayFrame: (...args: unknown[]) => requested.push(args)
           }
         }
       ]
@@ -144,5 +147,20 @@ describe('A plugin image overlay in the split view', () => {
     expect(
       (second.getLayers().item(0) as LayerGroup).getLayers().getLength()
     ).toBe(0);
+  });
+
+  it('asks for no frame for a view the chart only passes through while resized', () => {
+    openSplit();
+    main.setSize([400, 300]);
+    const asked = requested.length;
+    expect(asked).toBeGreaterThan(0);
+
+    main.set(RESIZING, true);
+    main.setSize([700, 300]);
+    expect(requested.length).toBe(asked);
+
+    main.set(RESIZING, false);
+    main.setSize([400, 200]);
+    expect(requested.length).toBe(asked + 1);
   });
 });

@@ -158,7 +158,11 @@ import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
-import { hitToleranceForPointer, worldCopyOffset } from './ol/lib/util';
+import {
+  hitToleranceForPointer,
+  RESIZING,
+  worldCopyOffset
+} from './ol/lib/util';
 import { LineString as OLLineString } from 'ol/geom';
 import {
   extendRouteAtClick,
@@ -921,6 +925,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // handle map move / zoom
   protected onMapMoveEnd(e: FBMapEvent) {
+    // Drawn larger than it shows while the split view's divider is dragged;
+    // the move-end when it is drawn at its real size again is the one to keep.
+    if (e.map?.get(RESIZING)) {
+      return;
+    }
     this.app.config.map.zoomLevel = e.zoom;
     this.app.mapZoom.set(e.zoom);
 
