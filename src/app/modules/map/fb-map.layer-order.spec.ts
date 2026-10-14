@@ -25,6 +25,12 @@ describe('fb-map layer order', () => {
   const z = (tag: string): number[] => {
     const found = layers.get(tag);
     expect(found, `no [zIndex] found for <${tag}>`).toBeDefined();
+    // a second element the pattern can't read would otherwise drop out
+    // silently; the lookahead keeps <fb-vessel from counting <fb-vessel-trail
+    const elements = template.match(new RegExp(`<${tag}(?=[\\s/>])`, 'g'));
+    expect(found, `not every <${tag}> has a numeric [zIndex]`).toHaveLength(
+      elements.length
+    );
     return found;
   };
   const cpa = () => z('fb-cpa-alarms')[0];
