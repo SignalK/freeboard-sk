@@ -19,8 +19,12 @@ export interface SplitViewState {
 export const SPLIT_VIEW_STORAGE_KEY = 'fb-split-view';
 export const SPLIT_RATIO_MIN = 0.3;
 export const SPLIT_RATIO_MAX = 0.7;
-/** The least a pane needs along the split: room for a popover and toolbar. */
-export const MIN_PANE_PX = 340;
+/**
+ * The least a pane keeps along the split, so neither collapses to a strip.
+ * Small enough that a phone (about 650 px along the split) still has nearly
+ * the whole ratio range to drag the divider through.
+ */
+export const MIN_PANE_PX = 200;
 
 export const DEFAULT_SPLIT_VIEW: SplitViewState = {
   enabled: false,

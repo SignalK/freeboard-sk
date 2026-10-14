@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap } from 'ol';
 
-import { SPLIT_VIEW_STORAGE_KEY } from './split-view';
+import { MIN_PANE_PX, SPLIT_VIEW_STORAGE_KEY } from './split-view';
 import { PaneCommand, SplitViewService } from './split-view.service';
 
 describe('SplitViewService: the active pane', () => {
@@ -89,21 +89,32 @@ describe('SplitViewService: layout and saving', () => {
     expect(split.stacked()).toBe(true);
   });
 
-  it('keeps both panes wide enough for a popover', () => {
+  it('keeps a pane from collapsing on a small panel', () => {
     const split = new SplitViewService();
     split.setRatio(0.7);
-    split.setPanelSize(844, 340);
+    split.setPanelSize(560, 340);
 
     expect(split.ratio()).toBe(0.7);
-    expect((1 - split.shownRatio()) * 844).toBeGreaterThanOrEqual(339.9);
+    expect((1 - split.shownRatio()) * 560).toBeCloseTo(MIN_PANE_PX);
   });
 
-  it('saves a dragged divider once, when asked', () => {
+  it('leaves a phone the divider to drag', () => {
+    // A phone held upright, in a browser: about 390 x 664.
     const split = new SplitViewService();
-    split.setRatio(0.4, false);
-    expect(stored()).toBeNull();
+    split.setPanelSize(390, 664);
 
-    split.save();
+    split.setRatio(0.3);
+    const top = split.shownRatio();
+    split.setRatio(0.7);
+    const bottom = split.shownRatio();
+
+    expect(bottom - top).toBeGreaterThan(0.35);
+  });
+
+  it('saves the divider as soon as it is set', () => {
+    const split = new SplitViewService();
+
+    split.setRatio(0.4);
 
     expect(stored().ratio).toBe(0.4);
   });
