@@ -201,6 +201,10 @@ export interface OverlayContribution {
   opacity?: number;
   minZoom?: number;
   maxZoom?: number;
+  /** Id of an iframe panel (same manifest) holding the overlay's settings. */
+  configPanel?: string;
+  /** Pixel density the overlay looks right at, used instead of the screen's. */
+  preferredPixelRatio?: number;
   apiVersion?: string;
 }
 

@@ -12,6 +12,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
 import type { FBChart, FBCharts } from 'src/app/types';
+import { OverlayRegistry } from 'src/app/modules/plotterext/overlay-registry';
 
 /**
  * The main chart list presents charts in the user-chosen layer order — top layer
@@ -687,5 +688,95 @@ describe('ChartListComponent — "In view" filter is remembered', () => {
     );
 
     expect(idsOf(filteredSignalOf(comp)())).toEqual(['inview']);
+  });
+});
+
+describe('ChartListComponent — plugin layer settings button', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SKResourceService,
+          useValue: {
+            arrangeChartLayers: (list: FBCharts) => [...list],
+            charts: signal([]),
+            chartIsTemporal: () => false
+          }
+        },
+        {
+          provide: SKWorkerService,
+          useValue: { resourceUpdate: signal({ path: '' }) }
+        },
+        {
+          provide: AppFacade,
+          useValue: {
+            mapExtent: signal(null),
+            sIsFetching: signal(true),
+            featureFlags: signal({ resourceGroups: false }),
+            debug: vi.fn(),
+            hostDef: { name: 'localhost' },
+            data: { chartBounds: { show: false, charts: [] } },
+            config: { selections: { chartsInViewOnly: false } },
+            saveConfig: vi.fn()
+          }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: SKResourceGroupService, useValue: {} },
+        { provide: FBMapInteractService, useValue: {} }
+      ]
+    });
+    const panel = {
+      id: 'cfg',
+      title: 'Settings',
+      type: 'iframe' as const,
+      url: '/cfg.html'
+    };
+    TestBed.inject(OverlayRegistry).setDefinitions(
+      ['with', 'without'].map((id) => ({
+        extension: 'ext-a',
+        extensionName: 'Ext A',
+        def: {
+          id,
+          title: id,
+          type: 'image' as const,
+          runtime: 'renderer',
+          ...(id === 'with' ? { configPanel: 'cfg' } : {})
+        },
+        panels: [panel]
+      }))
+    );
+  });
+
+  const rows = (fixture: ReturnType<typeof render>) =>
+    [...fixture.nativeElement.querySelectorAll('.plugin-layers mat-card')].map(
+      (card: Element) => ({
+        title: card.querySelector('b')?.textContent,
+        settings: card.querySelector('.plugin-layer-settings')
+      })
+    );
+
+  const render = () => {
+    const fixture = TestBed.createComponent(ChartListComponent);
+    fixture.detectChanges();
+    return fixture;
+  };
+
+  it('shows a settings button only for a layer with a usable config panel', () => {
+    // rows list the top layer first
+    expect(rows(render()).map((r) => [r.title, r.settings !== null])).toEqual([
+      ['without', false],
+      ['with', true]
+    ]);
+  });
+
+  it('opens the layer’s config panel through the extension host', () => {
+    const opener = vi.fn();
+    TestBed.inject(OverlayRegistry).setConfigOpener(opener);
+    const fixture = render();
+    const row = rows(fixture).find((r) => r.title === 'with')!;
+    (row.settings as HTMLElement).click();
+    expect(opener).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'ext-a/with', configPanel: 'cfg' })
+    );
   });
 });

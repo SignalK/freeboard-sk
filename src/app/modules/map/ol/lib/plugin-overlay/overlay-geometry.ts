@@ -40,6 +40,11 @@ export interface OverlayViewInput {
   rotation: number;
   zoom: number;
   devicePixelRatio: number;
+  /**
+   * The overlay's `preferredPixelRatio`, used instead of `devicePixelRatio`
+   * when present; still clamped by the same caps.
+   */
+  preferredPixelRatio?: number;
 }
 
 /** The request body (minus ids) plus the world copy it was made for. */
@@ -102,7 +107,7 @@ export function overlayView(input: OverlayViewInput): OverlayView | null {
   const cssW = (x1 - x0) / input.resolution;
   const cssH = (y1 - y0) / input.resolution;
   let pixelRatio = Math.min(
-    Math.max(input.devicePixelRatio || 1, 0.1),
+    Math.max(input.preferredPixelRatio || input.devicePixelRatio || 1, 0.1),
     MAX_OVERLAY_PIXEL_RATIO
   );
   if (cssW * cssH * pixelRatio * pixelRatio > MAX_OVERLAY_PIXELS) {

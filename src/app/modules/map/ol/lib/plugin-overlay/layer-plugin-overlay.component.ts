@@ -52,6 +52,7 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() opacity = 1;
   @Input() minZoom: number | undefined;
   @Input() maxZoom: number | undefined;
+  @Input() preferredPixelRatio: number | undefined;
 
   private plotterExt = inject(PlotterExtensionService);
   private mapComponent = inject(MapComponent);
@@ -103,7 +104,11 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     if (changes['zIndex']) {
       this.layer.setZIndex(this.zIndex);
     }
-    if (changes['minZoom'] || changes['maxZoom']) {
+    if (
+      changes['minZoom'] ||
+      changes['maxZoom'] ||
+      changes['preferredPixelRatio']
+    ) {
       this.lastRequested = null;
       this.requestIfNeeded();
     }
@@ -162,7 +167,8 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       resolution: next.resolution,
       rotation: next.rotation,
       zoom: zoom as number,
-      devicePixelRatio: window.devicePixelRatio
+      devicePixelRatio: window.devicePixelRatio,
+      preferredPixelRatio: this.preferredPixelRatio
     });
     if (!req) return;
     const [x0, y0, x1, y1] = req.view.extent;

@@ -179,6 +179,17 @@
               >
                 <mat-icon>opacity</mat-icon>
               </button>
+              @if (pl.configPanel) {
+              <button
+                mat-icon-button
+                class="plugin-layer-settings"
+                (click)="pluginLayerSettings(pl)"
+                matTooltip="Layer settings"
+                matTooltipPosition="above"
+              >
+                <mat-icon>tune</mat-icon>
+              </button>
+              }
             </div>
           </mat-card-actions>
         </mat-card>

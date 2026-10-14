@@ -88,12 +88,14 @@ const placed = (widget: string, instanceId: string): PlacedWidget => ({
 const state = (
   panel: string,
   visible: boolean,
-  targetInstance?: string
+  targetInstance?: string,
+  targetOverlay?: string
 ): PanelState => ({
   panel,
   visible,
   collapsed: false,
-  ...(targetInstance ? { targetInstance } : {})
+  ...(targetInstance ? { targetInstance } : {}),
+  ...(targetOverlay ? { targetOverlay } : {})
 });
 
 // The panels.state capability end to end: real extension clients over the bus,
@@ -380,6 +382,77 @@ describe('PlotterExtensionService panel state', () => {
       state('cfg', false, 'inst-1')
     ]);
     await expect(a.client.panels.list()).resolves.toEqual([]);
+  });
+
+  it('reports an overlay config panel with its target overlay, in a dialog with no Remove', async () => {
+    service.manifests.set({
+      'ext-a': {
+        ...manifest('ext-a'),
+        overlays: [
+          {
+            id: 'depth',
+            title: 'Depth',
+            type: 'image',
+            runtime: 'runtime',
+            configPanel: 'cfg'
+          }
+        ]
+      }
+    });
+    TestBed.tick();
+    const open = vi.spyOn(TestBed.inject(MatDialog), 'open');
+    const a = await follower('ext-a');
+    const entry = service.overlays.entry('ext-a/depth')!;
+    expect(entry.configPanel).toBe('cfg');
+    service.overlays.openConfigPanel(entry.key);
+    await vi.waitFor(() => expect(dialogs.length).toBe(1));
+    expect(open.mock.calls[0][1]?.data).toMatchObject({
+      extension: 'ext-a',
+      panel: { id: 'cfg' },
+      targetOverlay: 'depth'
+    });
+    // the Remove button shows only for a widget instance
+    expect(open.mock.calls[0][1]?.data).not.toHaveProperty('targetInstance');
+    await settle();
+    expect(a.seen).toEqual([state('cfg', true, undefined, 'depth')]);
+    await expect(a.client.panels.list()).resolves.toEqual([
+      state('cfg', true, undefined, 'depth')
+    ]);
+    dialogs[0].close();
+    await settle();
+    expect(a.seen).toEqual([
+      state('cfg', true, undefined, 'depth'),
+      state('cfg', false, undefined, 'depth')
+    ]);
+  });
+
+  it('opens one overlay config dialog however often it is asked, until it closes', async () => {
+    service.manifests.set({
+      'ext-a': {
+        ...manifest('ext-a'),
+        overlays: [
+          {
+            id: 'depth',
+            title: 'Depth',
+            type: 'image',
+            runtime: 'runtime',
+            configPanel: 'cfg'
+          }
+        ]
+      }
+    });
+    TestBed.tick();
+    // a double tap lands before the lazily imported dialog has opened
+    service.overlays.openConfigPanel('ext-a/depth');
+    service.overlays.openConfigPanel('ext-a/depth');
+    await vi.waitFor(() => expect(dialogs.length).toBe(1));
+    await new Promise((r) => setTimeout(r, 20));
+    service.overlays.openConfigPanel('ext-a/depth');
+    await new Promise((r) => setTimeout(r, 20));
+    expect(dialogs.length).toBe(1);
+    dialogs[0].close();
+    service.overlays.openConfigPanel('ext-a/depth');
+    await vi.waitFor(() => expect(dialogs.length).toBe(2));
   });
 
   it('lists no panel for a config dialog without an iframe panel', async () => {
