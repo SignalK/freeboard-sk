@@ -470,7 +470,7 @@ describe('global-state', () => {
     ).toEqual([
       '*',
       ['get', 'd'],
-      ['literal', 2],
+      ['get', 'f', ['literal', { f: 2 }]],
       ['literal', ['global-state', 'f']]
     ]);
   });
@@ -481,13 +481,14 @@ describe('global-state', () => {
       resolveGlobalState(['==', ['global-state', 'mode'], 'a'], {
         mode: 'night'
       })
-    ).toEqual(['==', ['literal', 'night'], 'a']);
+    ).toEqual(['==', ['get', 'mode', ['literal', { mode: 'night' }]], 'a']);
   });
 
   it('resolves an unset variable to null', () => {
     expect(resolveGlobalState(['global-state', 'x'], {})).toEqual([
-      'literal',
-      null
+      'get',
+      'x',
+      ['literal', { x: null }]
     ]);
   });
 
@@ -508,12 +509,20 @@ describe('global-state', () => {
       },
       { s: 3, c: 'red', l: 'fr' }
     );
-    expect(resolved.filter).toEqual(['<', ['get', 'd'], ['literal', 3]]);
-    expect(resolved.paint?.['text-color']).toEqual(['literal', 'red']);
+    expect(resolved.filter).toEqual([
+      '<',
+      ['get', 'd'],
+      ['get', 's', ['literal', { s: 3 }]]
+    ]);
+    expect(resolved.paint?.['text-color']).toEqual([
+      'get',
+      'c',
+      ['literal', { c: 'red' }]
+    ]);
     expect(resolved.layout?.['text-field']).toEqual([
       'number-format',
       ['get', 'd'],
-      { locale: ['literal', 'fr'] }
+      { locale: ['get', 'l', ['literal', { l: 'fr' }]] }
     ]);
   });
 });

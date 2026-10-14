@@ -415,13 +415,17 @@ export class DataOverlayModel {
       .then((json) => geojsonFeatures(json) ?? [])
       .catch((err) => {
         console.warn(`[plotterext] could not load ${url.url}:`, err);
-        return [] as OverlayFeature[];
+        return null;
       })
       .then((features) => {
         // replaced or refreshed meanwhile: answer with what superseded it
         if (state.generation !== generation) return this.features(source);
         state.loading = undefined;
-        const map = this.index(features);
+        // a failed reload keeps what was drawn, with the changes made meanwhile
+        const map =
+          features === null && state.features
+            ? new Map(state.features)
+            : this.index(features ?? []);
         for (const diff of state.pending) this.applyDiff(map, diff);
         state.pending = [];
         const first = !state.features;

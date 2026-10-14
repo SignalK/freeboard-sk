@@ -375,6 +375,32 @@ describe('DataOverlayModel refresh', () => {
     ]);
   });
 
+  it('keeps the drawn features when a reload fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const load = vi
+      .fn<FetchJson>()
+      .mockResolvedValueOnce({
+        type: 'FeatureCollection',
+        features: [point('x', 1)]
+      })
+      .mockRejectedValueOnce(new Error('offline'));
+    const { model, changes } = setup(load);
+    await model.features('remote');
+    model.refresh({ source: 'remote' });
+    model.setData({ source: 'remote', upsert: [point('live', 2)] });
+    await vi.waitFor(() =>
+      expect(
+        changes.some((c) => c.kind === 'data' && 'replace' in c && c.replace)
+      ).toBe(true)
+    );
+    expect(warn).toHaveBeenCalled();
+    expect((await model.features('remote')).map((f) => f.id)).toEqual([
+      'x',
+      'live'
+    ]);
+    warn.mockRestore();
+  });
+
   it.each([
     ['an unknown source', { source: 'nope' }],
     ['a source it does not draw', { source: 'broken' }],

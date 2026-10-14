@@ -133,12 +133,17 @@ export function globalStateValues(
 }
 
 /**
- * Replace every `["global-state", name]` in an expression with its value as a
- * literal. ol-mapbox-style evaluates expressions without global state, so the
- * host resolves it first and re-applies the style whenever a value changes.
- * The value is always wrapped in `literal`, so a filter such as
- * `["==", ["global-state", "mode"], "a"]` stays an expression filter rather
- * than reading as a legacy `["==", key, value]` one.
+ * Replace every `["global-state", name]` in an expression with its value.
+ * ol-mapbox-style evaluates expressions without global state, so the host
+ * resolves it first and re-applies the style whenever a value changes.
+ *
+ * The value is read as `["get", name, ["literal", { name: value }]]`, not a
+ * bare `["literal", value]`: `get` is typed `value` like `global-state`, so the
+ * parser coerces it exactly as MapLibre would (a number for `text-field` reads
+ * as text), where a literal's own type would make that a compile error. It is
+ * also always an expression, so a filter such as
+ * `["==", ["global-state", "mode"], "a"]` never reads as a legacy
+ * `["==", key, value]` one.
  */
 export function resolveGlobalState(
   value: unknown,
@@ -147,7 +152,8 @@ export function resolveGlobalState(
   if (Array.isArray(value)) {
     if (value[0] === 'literal') return value;
     if (value[0] === 'global-state' && typeof value[1] === 'string') {
-      return ['literal', state[value[1]] ?? null];
+      const name = value[1];
+      return ['get', name, ['literal', { [name]: state[name] ?? null }]];
     }
     return value.map((v) => resolveGlobalState(v, state));
   }
