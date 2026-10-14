@@ -254,7 +254,8 @@ required and optional capabilities and lists your contributions. A real one
 - `optional` — capabilities you _use when present_. Absence must not stop your
   extension running; check at runtime with `client.hasCapability(id)` and
   degrade gracefully.
-- Contribution arrays — `widgets`, `panels`, `buttons`, `background`. Include
+- Contribution arrays — `widgets`, `panels`, `buttons`, `background`,
+  `overlays`. Include
   only the ones you provide.
 
 **Capabilities you will reach for** (full list in the spec):
@@ -277,6 +278,7 @@ required and optional capabilities and lists your contributions. A real one
 | `nightMode`         | Read/set the host's night-vision display state (`nightMode.*`) |
 | `resourceGroups`    | Apply a stored resource group to the display (`resourceGroup.apply`) |
 | `background.iframe` | Run a headless background runtime                             |
+| `overlays.image`    | Draw a map layer the host composites (`overlay.*`)            |
 
 **Contribution fields**
 
@@ -841,6 +843,68 @@ Things to know:
   work.
 - **`modal: true`** is for something the user must answer now. Only one modal
   window can be open at a time, and it cannot be hidden.
+
+## Drawing a map layer
+
+With `overlays.image`, your plugin draws a layer **on the chart** — a depth
+survey, a radar picture, a heatmap — and the host stacks it with its own
+layers. You do not bring a map library: the host tells you exactly which box to
+draw, at what size, and you hand back a transparent image.
+
+```jsonc
+{
+  "requires": ["background.iframe", "overlays.image"],
+  "background": [{ "id": "renderer", "type": "iframe", "url": "/plotterext/my-plugin/renderer.html" }],
+  "overlays": [{ "id": "depth", "title": "Live depth", "type": "image",
+                 "runtime": "renderer", "band": "aboveCharts", "opacity": 0.85 }]
+}
+```
+
+The runtime answers each `overlay.request` with one frame. Do the drawing in a
+Worker, so a heavy render never stalls the chart:
+
+```js
+// renderer.html — the background runtime
+const client = await connectExtension()
+const worker = new Worker('./render-worker.js') // draws into an OffscreenCanvas
+let latest = null   // the newest request
+let busy = false    // one frame in flight
+
+async function draw() {
+  if (busy || !latest) return
+  busy = true
+  const req = latest
+  // the worker renders req.extent at req.width x req.height and replies with
+  // canvas.transferToImageBitmap()
+  const image = await renderInWorker(worker, req)
+  const res = await client.call(
+    'overlay.frame',
+    { overlayId: req.overlayId, requestId: req.requestId, extent: req.extent, image },
+    { transfer: [image] }
+  )
+  busy = false
+  if (!res.accepted || latest !== req) draw() // a newer request arrived meanwhile
+}
+
+await client.subscribe(['overlay.request'], (_name, req) => { latest = req; draw() })
+await client.subscribe(['overlay.state'], (_name, st) => {
+  if (!st.visible || st.suspended) worker.postMessage({ release: true }) // free the GPU
+})
+```
+
+Things to know:
+
+- **Draw north-up, in Web Mercator.** The image is an axis-aligned box in
+  EPSG:3857 metres, pixels spaced evenly in Mercator — not evenly in latitude.
+  The host rotates it with the map. Use the advisory `rotation` only to keep
+  text and symbols upright.
+- **Live data:** when your data changes, send a frame **without** a `requestId`
+  for the extent of the last request. The host may drop some to keep pace.
+- **Respect the budget.** Draw exactly `width` × `height`; the host chose
+  `pixelRatio` to fit the device's memory. Release your WebGL context while the
+  overlay is hidden or suspended.
+- The user shows, hides and fades the layer in the host's own layer controls;
+  your manifest's `visible` and `opacity` are only the starting point.
 
 ## Reference implementations
 

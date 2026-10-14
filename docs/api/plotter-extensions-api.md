@@ -24,7 +24,8 @@ the existing Signal K plugin/app-store flow.
 > extensions (`signalk-instrument-widgets`, `signalk-poi-search`): widgets,
 > panels, toolbar buttons, state storage, Signal K data relay, unit
 > preferences, resource display filters, map control, live route editing,
-> chart-layer management and headless background runtimes. Manifest-declared
+> chart-layer management and headless background runtimes. Image map overlays
+> (`overlays.image`) are specified ahead of the reference host. Manifest-declared
 > filter chains and host-into-runtime calls are out of scope for this version
 > (see Non-Goals).
 
@@ -37,7 +38,9 @@ the existing Signal K plugin/app-store flow.
    at runtime; extensions declare what they need.
 2. **Framework-neutral.** The baseline integration unit is a sandboxed
    iframe plus a plain-JSON message protocol. Extensions need no particular
-   UI framework and no TypeScript.
+   UI framework and no TypeScript. The one exception is an image overlay
+   frame, which carries an `ImageBitmap` in the `postMessage` transfer list
+   (see *Map overlays*).
 3. **Capability negotiation, not version lockstep.** An extension declares
    required and optional capabilities; a host only offers extensions whose
    requirements it can meet.
@@ -98,8 +101,8 @@ extension id (the providing plugin's id is the recommended key):
   offered at all.
 - `optional` — capability ids the extension uses when present; absence must
   not prevent it from running.
-- Contribution sections: `widgets`, `panels`, `buttons`, `background` (this
-  version). Hosts must ignore unknown sections and fields.
+- Contribution sections: `widgets`, `panels`, `buttons`, `background`,
+  `overlays` (this version). Hosts must ignore unknown sections and fields.
 - Any individual contribution entry may declare its own `apiVersion` when
   it needs a newer host API than the manifest baseline; hosts silently omit
   contributions they cannot satisfy while keeping the rest.
@@ -127,6 +130,7 @@ extension id (the providing plugin's id is the recommended key):
 | `nightMode`         | Host implements the `nightMode.*` methods (read/force the night-vision display state, follow the server's `environment.mode`) and emits `nightMode.changed`. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 | `windows`           | Host can show an extension's iframe panels as floating windows (`ui.openWindow` and the other `ui.*Window` methods) and emits `window.*` events. See *Windows*. |
+| `overlays.image`    | Host composites map layers whose pixels an extension's background runtime draws (`overlay.*` methods, `overlay.request` / `overlay.state` events). Requires `background.iframe`. See *Map overlays*. |
 
 The vocabulary is open-ended: future versions add ids (buttons, resource
 filters, map control), and hosts may expose vendor-specific experiments
@@ -256,7 +260,9 @@ A runtime speaks the same bus protocol as widgets and panels; its handshake
 (extension scope by default, as it has no widget instance), `signalk.*`,
 `resources.*` including `resources.setFilter`, `route.*`, `chart.*`, `units.get`,
 `map.*`, `ui.openPanel`/`ui.togglePanel`, `ui.listPanels` (see *Panel
-state*), and the window methods (`ui.openWindow` and the rest; see *Windows*). It has no `ui.closePanel` or
+state*), the window methods (`ui.openWindow` and the rest; see *Windows*), and
+`overlay.*` (see *Map overlays*); it is the only context that receives
+`overlay.request`. It has no `ui.closePanel` or
 `ui.*ConfigPanel` (those are panel/widget affordances). The typical use is a
 client-side service that holds session state and keeps work alive so a panel
 can **close itself** (`ui.closePanel`) without losing that state, then
@@ -542,6 +548,10 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `ui.focusWindow`        | `{ windowId? }`                                | `{}`                       |
 | `ui.closeWindow`        | `{ windowId? }`                                | `{}`                       |
 | `ui.listWindows`        | —                                              | `{ windows }`              |
+| `overlay.list`          | —                                              | `{ overlays }` (own extension's) |
+| `overlay.setVisibility` | `{ ids: string[], visible: boolean }`          | `{}`                       |
+| `overlay.setOpacity`    | `{ ids: string[], opacity: number }`           | `{}`                       |
+| `overlay.frame`         | `{ overlayId, requestId?, extent, image }` (`image` transferred) | `{ accepted, reason? }` |
 
 **Host events**
 
@@ -554,7 +564,8 @@ capability is supported: `state.changed` always; `sk.<path>` with
 (`route.*`) with `routes`; chart events (`chart.*`) with `charts` (`chart.time` with `charts.time`);
 `resourceGroup.applied` with `resourceGroups`; `map.view` with `map`;
 `nightMode.changed` with `nightMode`; `panel.state` with `panels.state`;
-`window.*` with `windows`. The
+`window.*` with `windows`; `overlay.request` and `overlay.state` with
+`overlays.image`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -629,6 +640,13 @@ handled by the protocol layer, not subscribed to.
   pop-out, presentation or title changed. Owning extension only.
 - `window.closed` — `{ windowId, reason }`: a window closed (`reason` is `user`,
   `extension` or `host`). Owning extension only.
+- `overlay.request` — `{ overlayId, requestId, extent, bounds, width, height,
+  pixelRatio, resolution, zoom, rotation }`: the host wants a new frame for a
+  visible overlay. Delivered only to the background runtime named by the
+  overlay. See *Map overlays*.
+- `overlay.state` — `{ overlayId, visible, opacity, suspended }`: an overlay was
+  shown, hidden, faded, suspended or resumed. Origin-transparent; owning
+  extension only. See *Map overlays*.
 
 ### Publishing events
 
@@ -1252,6 +1270,187 @@ longitude), treating a box 360 or more degrees wide as `[-180, south, 180,
 north]`; and can pass `map.fitBounds` a crossing box in the unwrapped form,
 which the reference host has always fitted correctly.
 
+### Map overlays
+
+An **image overlay** is a map layer whose pixels an extension draws. The host
+decides *where* and *when*; the extension decides *what*. The host places the
+overlay in its own layer stack, asks the extension for a frame whenever the view
+needs one, and composites the image it gets back — a live depth survey, a radar
+picture, a heatmap. Capability: **`overlays.image`**.
+
+An overlay is drawn by one of the extension's **background runtimes** (see
+*Background Runtimes*), so an extension that contributes one requires
+`background.iframe` as well. The host draws the map; the runtime only turns its
+own data into an image for the box the host asks for. It needs no map library of
+its own.
+
+#### Declaring an overlay
+
+Overlays are declared in an `overlays` manifest section:
+
+```jsonc
+{
+  "requires": ["background.iframe", "overlays.image"],
+  "background": [
+    { "id": "renderer", "type": "iframe",
+      "url": "/plotterext/signalk-livedepth-plugin/renderer.html" }
+  ],
+  "overlays": [
+    {
+      "id": "depth",
+      "title": "Live depth",
+      "type": "image",
+      "runtime": "renderer",     // the background runtime that draws it
+      "band": "aboveCharts",     // aboveCharts | aboveResources
+      "visible": true,           // initial visibility, before the user chooses
+      "opacity": 0.85,           // initial opacity, 0..1
+      "minZoom": 10,             // optional: no requests below this zoom
+      "maxZoom": 22              // optional: no requests above this zoom
+    }
+  ]
+}
+```
+
+`id`, `title`, `type` and `runtime` are required; `runtime` must name an entry in
+the same manifest's `background` section, or the host omits the overlay.
+`type` is `"image"` in this version — hosts omit overlays of a type they do not
+support.
+
+The host lists each overlay in its own layer controls, where the user shows,
+hides and fades it like any other layer. Those choices belong to the user and
+the host persists them; `visible` and `opacity` are only the starting point.
+Overlays are their own managed set — they are not charts and do not appear in
+`chart.list`.
+
+#### Placement
+
+`band` says where the overlay sits relative to the host's own content. The host
+honours it within its own constraints, as with `chart.setOrder`:
+
+| Band | Above | Below |
+|---|---|---|
+| `aboveCharts` | every chart, and the host's weather and current layers | the host's radar, routes, waypoints and other resources |
+| `aboveResources` | routes, waypoints, notes and regions | the own vessel, AIS targets and alarms |
+
+An overlay never covers the own vessel or alarm indications. Several overlays in
+one band stack in an order the host chooses.
+
+#### The frame cycle
+
+The host drives. A runtime subscribes to `overlay.request` (and usually
+`overlay.state`) with `events.subscribe`. While an overlay is visible, the host
+emits **`overlay.request`** to the overlay's runtime whenever it needs a new
+frame: the view settled after a pan or zoom, the map was resized, the overlay
+became visible, or the view rotated past a threshold the host chooses. The
+runtime draws and answers with **`overlay.frame`**.
+
+```jsonc
+// event overlay.request (host → the overlay's runtime)
+{
+  "overlayId": "depth",
+  "requestId": "r-41",
+  "extent": [-8928500.2, 2971100.7, -8921300.9, 2976050.1], // EPSG:3857 metres
+  "bounds": [-80.205, 25.771, -80.140, 25.811],              // the same box, lon/lat
+  "width": 1600,                   // pixels to draw
+  "height": 1100,
+  "pixelRatio": 1,                 // image pixels per CSS pixel, chosen by the host
+  "resolution": 4.5,               // metres per image pixel
+  "zoom": 15.2,
+  "rotation": 0.35                 // radians clockwise — advisory, see Rotation
+}
+```
+
+```js
+// runtime → host
+const res = await client.call(
+  'overlay.frame',
+  { overlayId: 'depth', requestId: req.requestId, extent: req.extent, image },
+  { transfer: [image] }
+)
+// res → { accepted: true }  or  { accepted: false, reason: 'overlays.superseded' }
+```
+
+**The image** is an `ImageBitmap` of `width` × `height` pixels with
+premultiplied alpha, transparent wherever the overlay has nothing to show. It is
+**transferred**, not copied: after the call the runtime no longer owns it, and
+the host closes it when it is replaced. A frame whose size does not match its
+request is refused with `overlays.badRequest`.
+
+**The geometry.** The image covers a **north-up, axis-aligned box in Web
+Mercator (EPSG:3857)**, with its pixels spaced **evenly in Mercator metres**:
+row 0 is the north edge (`extent[3]`), column 0 the west edge (`extent[0]`), and
+`resolution` is `(extent[2] - extent[0]) / width`. An image whose rows are
+spaced evenly in *latitude* is wrong — it drifts visibly over a large box.
+`bounds` (in the convention of *Bounding boxes*) is supplied only as a
+convenience for looking data up.
+
+**Across the antimeridian** the host sends one continuous box: `extent` may run
+past ±20037508.34 m, and `bounds` then has `west` greater than `east`. The
+runtime draws it as one image and wraps its own longitude lookups. Which copy of
+the world is on screen is the host's concern; the runtime never sees it.
+
+**One frame in flight.** `overlay.frame` resolves once the host has taken the
+frame, so a runtime awaits each result before sending the next. When a newer
+request has replaced the one a frame answers, the host may refuse it
+(`accepted: false`, `overlays.superseded`); the runtime simply draws the newer
+request.
+
+**Live updates.** A runtime whose data changes — a new sounding, a new radar
+sweep — may send a frame **without** a `requestId` at any time, for the extent
+of the most recent request it received. The host may drop live frames to keep
+its own pace (`accepted: false`, `overlays.throttled`).
+
+**Between frames** the host keeps showing the last accepted frame, moved and
+scaled with the map during a gesture, so the overlay never blanks while the
+runtime draws.
+
+#### Rotation
+
+The runtime always draws **north-up**; the host rotates the image with the map.
+When the map is rotated (heading-up, course-up) the host requests the north-up
+box that contains the whole rotated screen, so the image is larger than the
+screen — about 1.6× the pixels on average and 2× at 45°.
+
+`rotation` is **advisory**. A runtime that draws text or symbols can use it to
+turn each label back to horizontal around its anchor, so labels read upright on
+screen; anything else ignores it. The host re-requests only once rotation has
+moved past its threshold, not on every degree of yaw.
+
+#### Visibility and the host's budget
+
+- **`overlay.state`** — `{ overlayId, visible, opacity, suspended }` — is emitted
+  when the overlay is shown, hidden or faded (by the user or by
+  `overlay.setVisibility` / `overlay.setOpacity`), and when the host suspends or
+  resumes it. While `visible` is false or `suspended` is true the host sends no
+  requests; the runtime should stop drawing and **release its graphics
+  resources** (for WebGL, lose its context).
+- **The host owns the budget.** It chooses `pixelRatio` — it may draw overlays
+  below the screen's native density to save memory — and may cap how many image
+  overlays are active at once, suspending the rest.
+- **Draw off the main thread.** On several engines an extension iframe shares
+  the host page's main thread, so heavy drawing in the runtime stalls the whole
+  plotter. Render in a Web Worker (`OffscreenCanvas`, then
+  `transferToImageBitmap()`) and transfer the result.
+
+#### Methods
+
+- `overlay.list` → `{ overlays }`: this extension's overlays, each
+  `{ id, title, band, visible, opacity, suspended }`.
+- `overlay.setVisibility({ ids, visible })` and `overlay.setOpacity({ ids,
+  opacity })` — the same batch shape as the chart methods; each change emits
+  `overlay.state`.
+- `overlay.frame({ overlayId, requestId?, extent, image })` → `{ accepted,
+  reason? }`, with `image` in the transfer list.
+
+An extension sees and controls **only its own overlays**: an `overlay.*` id that
+names another extension's overlay is `overlays.unknownId`.
+
+**Errors** use the standard `error.data.reason` convention:
+`overlays.unknownId`, `overlays.badRequest` (missing or invalid params, an
+`image` that is not an `ImageBitmap`, or a size that does not match its
+request), `overlays.notSupported` (host lacks `overlays.image`). A refused frame
+is a result, not an error: `overlays.superseded` or `overlays.throttled`.
+
 ### State storage
 
 `state.get`/`state.set` give an extension small host-persisted key/value
@@ -1750,6 +1949,10 @@ adversarial boundary**:
 
 This version deliberately does not specify:
 
+- **Host-drawn data overlays.** An image overlay hands the host finished
+  pixels. A tier in which an extension hands the host *data plus a style*
+  (for example the MapLibre Style Spec) and the host draws it is planned as a
+  separate capability.
 - **Manifest-declared filter chains.** Display filtering here is imperative:
   running extension code pushes an id set or `match` predicate via
   `resources.setFilter`. Filters declared _statically in the manifest_ and
