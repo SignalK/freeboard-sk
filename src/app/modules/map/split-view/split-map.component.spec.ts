@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap } from 'ol';
 import { Subject } from 'rxjs';
 import { WORLD_WIDTH_3857 } from '../route-extend';
@@ -191,6 +191,47 @@ describe('SplitMapComponent: the divider', () => {
     const stacked = withDivider(true);
     stacked.gripKey(key('ArrowUp'));
     expect(stacked.split.setRatio).toHaveBeenCalledWith(0.45);
+  });
+
+  describe('dragged', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('saves where it was let go, even before the move was drawn', () => {
+      const frames: (() => void)[] = [];
+      vi.stubGlobal('requestAnimationFrame', (fn: () => void) =>
+        frames.push(fn)
+      );
+      vi.stubGlobal('cancelAnimationFrame', () => undefined);
+      const cmp = withDivider(false);
+      cmp.split.save = vi.fn();
+      cmp.gripRect = { left: 0, top: 0, width: 1000, height: 600 };
+      cmp.gripStacked = false;
+
+      cmp.gripMove({ clientX: 620, clientY: 300 } as PointerEvent);
+      cmp.gripUp();
+
+      // The final position is set and saved (save defaults to true).
+      expect(cmp.split.setRatio).toHaveBeenCalledWith(0.62);
+      expect(cmp.split.setRatio.mock.calls[0]).toHaveLength(1);
+    });
+
+    it('saves once when the last move was already drawn', () => {
+      vi.stubGlobal('requestAnimationFrame', (fn: () => void) => {
+        fn();
+        return 1;
+      });
+      vi.stubGlobal('cancelAnimationFrame', () => undefined);
+      const cmp = withDivider(false);
+      cmp.split.save = vi.fn();
+      cmp.gripRect = { left: 0, top: 0, width: 1000, height: 600 };
+      cmp.gripStacked = false;
+
+      cmp.gripMove({ clientX: 620, clientY: 300 } as PointerEvent);
+      cmp.gripUp();
+
+      expect(cmp.split.setRatio).toHaveBeenCalledWith(0.62, false);
+      expect(cmp.split.save).toHaveBeenCalledOnce();
+    });
   });
 
   it('goes to either end with Home and End', () => {

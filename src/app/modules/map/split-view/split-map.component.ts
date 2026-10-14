@@ -86,6 +86,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private stopUseWatch: (() => void)[] = [];
   private panelSize: ResizeObserver | undefined;
   private gripFrame = 0;
+  private gripRatio: number | null = null;
   protected readonly ratioMin = Math.round(SPLIT_RATIO_MIN * 100);
   protected readonly ratioMax = Math.round(SPLIT_RATIO_MAX * 100);
   private vessels: Subscription;
@@ -349,15 +350,25 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (ratio === null) {
       return;
     }
+    this.gripRatio = ratio;
     cancelAnimationFrame(this.gripFrame);
-    this.gripFrame = requestAnimationFrame(() =>
-      this.split.setRatio(ratio, false)
-    );
+    this.gripFrame = requestAnimationFrame(() => {
+      this.gripRatio = null;
+      this.split.setRatio(ratio, false);
+    });
   }
 
+  /** Applies a move still waiting for its frame, then saves the divider. */
   protected gripUp() {
-    if (this.gripRect) {
-      this.gripRect = null;
+    if (!this.gripRect) {
+      return;
+    }
+    this.gripRect = null;
+    cancelAnimationFrame(this.gripFrame);
+    if (this.gripRatio !== null) {
+      this.split.setRatio(this.gripRatio);
+      this.gripRatio = null;
+    } else {
       this.split.save();
     }
   }
