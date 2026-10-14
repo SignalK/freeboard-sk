@@ -13,7 +13,7 @@ import type { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import ImageLayer from 'ol/layer/Image';
 import ImageSource from 'ol/source/Image';
-import { createLoader } from 'ol/source/static';
+import type CanvasImageLayerRenderer from 'ol/renderer/canvas/ImageLayer';
 import { get as getProjection } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
@@ -24,6 +24,7 @@ import {
   RequestedView,
   ViewState
 } from './overlay-geometry';
+import { FrameBitmaps, frameSource } from './frame-bitmaps';
 
 /**
  * One image map overlay (capability `overlays.image`): an OL image layer whose
@@ -34,11 +35,9 @@ import {
  * one with the map.
  *
  * Each frame gets its own static `ImageSource` whose image is the transferred
- * `ImageBitmap` itself (no copy). A static source computes its resolution once,
- * on first load, and `refresh()` never reloads it — so one long-lived source
- * with a mutable extent (the radar pattern) shows a frame drawn at another zoom
- * at the old scale. OL keeps drawing the previous image until the new one has
- * loaded, so swapping sources does not flicker.
+ * `ImageBitmap` itself (see {@link frameSource}). OL keeps drawing the previous
+ * image until the new one has loaded, so swapping sources does not flicker;
+ * {@link FrameBitmaps} closes bitmaps by what the renderer actually draws.
  */
 @Component({
   selector: 'ol-map > fb-plugin-overlay',
@@ -59,9 +58,7 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
 
   private layer: ImageLayer<ImageSource> | null = null;
   private projection = getProjection('EPSG:3857');
-  /** The bitmap on screen, and one still drawn until its successor loads. */
-  private shown: ImageBitmap | null = null;
-  private outgoing: ImageBitmap[] = [];
+  private readonly bitmaps = new FrameBitmaps();
   private lastRequested: RequestedView | null = null;
   private hasFrame = false;
   private listenerKeys: EventsKey[] = [];
@@ -82,6 +79,11 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       visible: false
     });
     map.addLayer(this.layer);
+    this.listenerKeys.push(
+      this.layer.on('postrender', () =>
+        this.bitmaps.rendered(this.drawnBitmap())
+      )
+    );
     this.unregisterSink = this.plotterExt.overlays.registerSink(
       this.overlayKey,
       (frame) => this.draw(frame)
@@ -119,10 +121,14 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     }
     this.layer = null;
     // release the bitmaps now rather than at GC (iOS canvas budget)
-    this.shown?.close();
-    this.shown = null;
-    this.outgoing.forEach((b) => b.close());
-    this.outgoing = [];
+    this.bitmaps.clear();
+  }
+
+  /** The bitmap OL's renderer is drawing for this layer, if any. */
+  private drawnBitmap(): unknown {
+    const renderer = this.layer?.getRenderer() as
+      CanvasImageLayerRenderer | undefined;
+    return renderer?.getImage() ?? null;
   }
 
   private clampOpacity(v: number) {
@@ -174,36 +180,18 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private draw(frame: OverlayFrameDelivery) {
-    if (!this.layer) {
+    const zoom = this.mapComponent.getMap()?.getView().getZoom();
+    // a hidden layer is not rendered, so its frames would never be drawn
+    if (!this.layer || !this.inZoomRange(zoom)) {
       frame.image.close();
       return;
     }
-    const image = frame.image;
-    const source = new ImageSource({
-      projection: this.projection,
-      loader: createLoader({
-        imageExtent: frame.extent.slice(),
-        url: '',
-        load: () => Promise.resolve(image)
-      })
-    });
-    // OL keeps drawing the previous bitmap until this one has loaded, so the
-    // outgoing ones are closed only once the source still attached has loaded
-    // (a frame arriving before then supersedes this one and cleans up itself),
-    // and a render later, when OL can no longer be drawing them.
-    if (this.shown) this.outgoing.push(this.shown);
-    this.shown = image;
-    source.once('imageloadend', () => {
-      if (this.layer?.getSource() !== source) return;
-      const done = this.outgoing;
-      this.outgoing = [];
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => done.forEach((b) => b.close()))
-      );
-    });
-    this.layer.setSource(source);
+    this.bitmaps.add(frame.image, this.drawnBitmap());
+    this.layer.setSource(
+      frameSource(frame.image, frame.extent, this.projection)
+    );
     this.hasFrame = true;
-    this.updateVisibility(this.mapComponent.getMap()?.getView().getZoom());
+    this.updateVisibility(zoom);
   }
 
   /** Shown once a frame has arrived, and only within the zoom range. */
