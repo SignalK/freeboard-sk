@@ -1,6 +1,12 @@
 // ** Freeboard Map configuration **
 
 import { Style, Icon, Text, Stroke, Fill, Circle } from 'ol/style';
+import { Units } from 'ol/control/ScaleLine';
+
+/** The scale bar's units for the user's distance unit. */
+export function scaleLineUnits(distance: string): Units {
+  return ['kilometer', 'm'].includes(distance) ? 'metric' : 'nautical';
+}
 
 /**
  * A chart's map interactions. Keyboard zoom is left out: the chart handles

@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap, View } from 'ol';
+import { ScaleLine } from 'ol/control';
 import { Subject } from 'rxjs';
 import { WORLD_WIDTH_3857 } from '../route-extend';
 import { SPLIT_SHARE_VAR } from './split-view';
@@ -410,6 +411,7 @@ describe('SplitMapComponent: the divider', () => {
       cmp.documentListeners = [];
       cmp.onMainMoved = () => undefined;
       cmp.split.setSecondaryMap = vi.fn();
+      cmp.split.flush = vi.fn();
       at('pointermove', 620);
       // The pane's own map goes first, as Angular destroys child views first.
       pane.map.setTarget(undefined);
@@ -574,6 +576,56 @@ describe('SplitMapComponent: keyboard focus', () => {
     expect(target.tabIndex).toBe(-1);
     expect(target.hasAttribute('aria-label')).toBe(false);
     expect(target.hasAttribute('role')).toBe(false);
+  });
+});
+
+describe("SplitMapComponent: the pane's own view", () => {
+  const moved = (follow: boolean, zoom: number, resizing = false) => {
+    const cmp = bareComponent(follow);
+    cmp.split.zoom = () => 12;
+    cmp.split.rememberView = vi.fn();
+    const map = new OlMap();
+    map.set(RESIZING, resizing);
+    cmp.onMoveEnd({ map, zoom, lonlat: [23.5, 60.1] });
+    return cmp.split.rememberView;
+  };
+
+  it('remembers where the pane was left', () => {
+    expect(moved(false, 12)).toHaveBeenCalledWith(12, [23.5, 60.1]);
+  });
+
+  it('writes no centre down that moves with each fix while following', () => {
+    expect(moved(true, 12)).not.toHaveBeenCalled();
+    // A new zoom is still worth keeping.
+    expect(moved(true, 13)).toHaveBeenCalledWith(13, [23.5, 60.1]);
+  });
+
+  it('keeps no view it only passes through while the divider is dragged', () => {
+    expect(moved(false, 12, true)).not.toHaveBeenCalled();
+  });
+
+  it('opens within the map zoom range, whatever was stored', () => {
+    const cmp = bareComponent();
+    cmp.app.data = { vessels: { active: { orientation: 0 } } };
+    cmp.app.config = { map: { zoomLevel: 10, center: [23, 60] } };
+    cmp.heading = signal(0);
+    cmp.split.lastView = () => ({ zoom: 40, center: [23.5, 60.1] });
+    cmp.skstream = { vessels$: () => new Subject() };
+    cmp.split.commands$ = new Subject();
+
+    cmp.ngOnInit();
+
+    expect(cmp.zoom()).toBe(24);
+  });
+
+  it("draws its scale bar in the user's distance unit", () => {
+    const cmp = bareComponent();
+    const scale = new ScaleLine({ units: 'nautical' });
+    cmp.map = new OlMap({ controls: [scale] });
+
+    cmp.setScaleUnits('kilometer');
+
+    expect(scale.getUnits()).toBe('metric');
   });
 });
 

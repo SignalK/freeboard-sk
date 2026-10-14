@@ -8,7 +8,7 @@ import {
   OnInit,
   SimpleChanges
 } from '@angular/core';
-import { Feature } from 'ol';
+import { Feature, Map as OlMap } from 'ol';
 import { Coordinate } from 'ol/coordinate';
 import { Polygon } from 'ol/geom';
 import VectorLayer from 'ol/layer/Vector';
@@ -33,14 +33,17 @@ const footprintStyle = new Style({
 })
 export class ViewFootprintComponent implements OnInit, OnChanges, OnDestroy {
   /**
-   * Closed ring in EPSG:3857 render space, world offset included, so it lands
-   * in the world copy the other map is looking at. Drawn only, never stored.
+   * Closed ring in EPSG:3857 render space, in whichever world copy the caller
+   * puts it (the split view: the primary world, which its pane's wrapped copies
+   * repeat). Drawn only, never stored.
    */
   @Input() ring: Coordinate[] | null = null;
   @Input() zIndex: number;
 
   private layer: VectorLayer<VectorSource>;
   private feature = new Feature();
+  /** Kept: the map is gone from its component by the time this one goes. */
+  private map: OlMap | null = null;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -56,7 +59,8 @@ export class ViewFootprintComponent implements OnInit, OnChanges, OnDestroy {
       style: footprintStyle,
       zIndex: this.zIndex
     });
-    this.mapComponent.getMap()?.addLayer(this.layer);
+    this.map = this.mapComponent.getMap() ?? null;
+    this.map?.addLayer(this.layer);
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -70,9 +74,11 @@ export class ViewFootprintComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnDestroy() {
     if (this.layer) {
-      this.mapComponent.getMap()?.removeLayer(this.layer);
+      this.map?.removeLayer(this.layer);
+      this.layer.dispose();
       this.layer = null;
     }
+    this.map = null;
   }
 
   private applyRing() {

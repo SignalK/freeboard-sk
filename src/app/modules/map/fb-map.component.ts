@@ -127,7 +127,8 @@ import {
   routeDraftStyles,
   targetAngleStyle,
   raceCourseStyles,
-  bearingDistanceStyle
+  bearingDistanceStyle,
+  scaleLineUnits
 } from './mapconfig';
 import { SKRoute } from 'src/app/modules/skresources/resource-classes';
 import { RouteReverseService } from 'src/app/modules/skresources/route-reverse.service';
@@ -154,7 +155,6 @@ import {
   IPopover
 } from './fbmap-interact.service';
 import { ScaleLine } from 'ol/control';
-import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
@@ -742,11 +742,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // set map scale units
   private setScaleUnits() {
     try {
-      const u: Units = ['kilometer', 'm'].includes(this.scaleUnits())
-        ? 'metric'
-        : 'nautical';
       const c = this.olMap.getMap().getControls().getArray();
-      (c[0] as ScaleLine).setUnits(u);
+      (c[0] as ScaleLine).setUnits(scaleLineUnits(this.scaleUnits()));
     } catch {
       // no map or scale control
     }

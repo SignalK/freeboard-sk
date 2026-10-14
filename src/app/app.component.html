@@ -1088,7 +1088,9 @@
               </fb-map>
             </div>
             @if (splitActive()) {
-              <fb-split-map></fb-split-map>
+              <fb-split-map
+                [scaleUnits]="app.config.units.distance"
+              ></fb-split-map>
             }
           </div>
           <!--/map panel-->

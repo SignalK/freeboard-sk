@@ -59,6 +59,12 @@ export class SplitViewService {
   private panel = signal<{ width: number; height: number } | null>(null);
   private saveTimer: ReturnType<typeof setTimeout> | undefined;
 
+  constructor() {
+    // A view still waiting to be written goes with a page that is closed or
+    // reloaded.
+    window.addEventListener('pagehide', () => this.flush());
+  }
+
   /** The second pane's map while the pane is open. */
   readonly secondaryMap = this.secondary.asReadonly();
   readonly taps$ = this.taps.asObservable();
@@ -184,8 +190,16 @@ export class SplitViewService {
   }
 
   /** Writes the current state to storage. */
+  /** Writes a view still waiting for the pane's moves to settle. */
+  flush() {
+    if (this.saveTimer !== undefined) {
+      this.save();
+    }
+  }
+
   save() {
     clearTimeout(this.saveTimer);
+    this.saveTimer = undefined;
     try {
       localStorage.setItem(
         SPLIT_VIEW_STORAGE_KEY,

@@ -129,6 +129,18 @@ describe('SplitViewService: layout and saving', () => {
     expect(stored().ratio).toBe(0.4);
   });
 
+  it('writes a view still waiting to be saved when told to', () => {
+    vi.useFakeTimers();
+    const split = new SplitViewService();
+    split.flush();
+    expect(stored()).toBeNull();
+
+    split.rememberView(11, [23.5, 60.1]);
+    split.flush();
+
+    expect(stored()).toMatchObject({ zoom: 11, center: [23.5, 60.1] });
+  });
+
   it('saves the pane view once its moves settle', () => {
     vi.useFakeTimers();
     const split = new SplitViewService();

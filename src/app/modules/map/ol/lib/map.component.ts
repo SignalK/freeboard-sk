@@ -203,6 +203,9 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    // The resize throttle's timer dereferences this.map; a map can now be
+    // destroyed at runtime (the split view's second pane).
+    clearTimeout(this.timeoutId);
     if (!this.map) {
       return;
     }

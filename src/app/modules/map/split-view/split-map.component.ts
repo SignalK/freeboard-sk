@@ -5,6 +5,7 @@ import {
   effect,
   ElementRef,
   inject,
+  input,
   NgZone,
   OnDestroy,
   OnInit,
@@ -35,7 +36,8 @@ import {
 import { MapReadyEvent } from 'src/app/modules/map/ol/lib/models';
 import { Position } from 'src/app/types';
 import { FBMapInteractService } from '../fbmap-interact.service';
-import { mapControls, mapInteractions } from '../mapconfig';
+import { mapControls, mapInteractions, scaleLineUnits } from '../mapconfig';
+import { ScaleLine } from 'ol/control';
 import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
@@ -112,6 +114,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private interactionList: { name: string }[] = [];
   private interactionsFor: boolean | undefined;
   protected readonly olControls = mapControls;
+  /** The user's distance unit, for the scale bar. */
+  readonly scaleUnits = input<string>('');
 
   protected zoom = signal<number>(10);
   protected center = signal<Position>([0, 0]);
@@ -152,6 +156,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
         untracked(() => this.centerOnVessel());
       }
     });
+    effect(() => {
+      const units = this.scaleUnits();
+      untracked(() => this.setScaleUnits(units));
+    });
     // Which chart the shared buttons act on is shown by an outline; a screen
     // reader is told.
     let wasSecond: boolean | undefined;
@@ -169,10 +177,13 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     this.heading.set(this.app.data.vessels.active.orientation ?? 0);
 
-    const { min } = this.app.MAP_ZOOM_EXTENT;
+    const { min, max } = this.app.MAP_ZOOM_EXTENT;
     const last = this.split.lastView();
     this.zoom.set(
-      last.zoom ?? Math.max(min, this.app.config.map.zoomLevel - 3)
+      Math.min(
+        max,
+        Math.max(min, last.zoom ?? this.app.config.map.zoomLevel - 3)
+      )
     );
     if (!this.split.follow() && last.center) {
       this.center.set(last.center);
@@ -219,6 +230,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.vessels?.unsubscribe();
     this.commands?.unsubscribe();
+    this.split.flush();
     this.panelSize?.disconnect();
     cancelAnimationFrame(this.gripFrame);
     this.endDrag?.();
@@ -245,6 +257,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.nameChart(e.map, 'Second chart')
     );
     this.updateFootprint();
+    this.setScaleUnits(this.scaleUnits());
     this.split.setSecondaryMap(e.map);
   }
 
@@ -365,7 +378,24 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected onMoveEnd(e: FBMapEvent) {
     this.zoom.set(e.zoom);
+    // Not worth writing down: a view the pane only passes through while the
+    // divider is dragged, or a centre that moves with every fix while it
+    // follows the vessel (it opens centred on the vessel then anyway).
+    if (
+      e.map?.get(RESIZING) ||
+      (this.split.follow() && e.zoom === this.split.zoom())
+    ) {
+      return;
+    }
     this.split.rememberView(e.zoom, [e.lonlat[0], e.lonlat[1]]);
+  }
+
+  private setScaleUnits(units: string) {
+    const scale = this.map
+      ?.getControls()
+      .getArray()
+      .find((c) => c instanceof ScaleLine);
+    (scale as ScaleLine | undefined)?.setUnits(scaleLineUnits(units));
   }
 
   protected onDrag() {
