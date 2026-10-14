@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap, View } from 'ol';
 import { ScaleLine } from 'ol/control';
+import MapEvent from 'ol/MapEvent';
 import { fromLonLat } from 'ol/proj';
 import { Subject } from 'rxjs';
 import { WORLD_WIDTH_3857 } from '../route-extend';
@@ -506,6 +507,33 @@ describe('SplitMapComponent: the divider', () => {
       expect(cmp.split.setRatio.mock.calls).toEqual([[0.62]]);
     });
 
+    it('reports a settled view when let go at the size it was drawn at', () => {
+      // From half way to the main chart's 70 %: the size it was drawn at.
+      const { at, main } = dragged();
+      at('pointermove', 700);
+      const settled = vi.fn();
+      main.map.on('moveend', settled);
+
+      at('pointerup', 700);
+
+      expect(settled).toHaveBeenCalledTimes(1);
+      expect(main.map.get(RESIZING)).toBe(false);
+    });
+
+    it('reports it once when drawing the chart reported it already', () => {
+      const { at, main } = dragged();
+      at('pointermove', 600);
+      vi.mocked(main.map.renderSync).mockImplementation(() => {
+        main.map.dispatchEvent(new MapEvent('moveend', main.map));
+      });
+      const settled = vi.fn();
+      main.map.on('moveend', settled);
+
+      at('pointerup', 600);
+
+      expect(settled).toHaveBeenCalledTimes(1);
+    });
+
     it('marks both charts as resizing until they are drawn at their size', () => {
       const { at, main, pane } = dragged();
       expect(main.map.get(RESIZING)).toBe(true);
@@ -592,13 +620,13 @@ describe("SplitMapComponent: the pane's own view", () => {
   };
 
   it('remembers where the pane was left', () => {
-    expect(moved(false, 12)).toHaveBeenCalledWith(12, [23.5, 60.1]);
+    expect(moved(false, 12)).toHaveBeenCalledWith(12, [23.5, 60.1], true);
   });
 
-  it('writes no centre down that moves with each fix while following', () => {
-    expect(moved(true, 12)).not.toHaveBeenCalled();
-    // A new zoom is still worth keeping.
-    expect(moved(true, 13)).toHaveBeenCalledWith(13, [23.5, 60.1]);
+  it('keeps a centre that moves with each fix while following, unwritten', () => {
+    expect(moved(true, 12)).toHaveBeenCalledWith(12, [23.5, 60.1], false);
+    // A new zoom is written down.
+    expect(moved(true, 13)).toHaveBeenCalledWith(13, [23.5, 60.1], true);
   });
 
   it('keeps no view it only passes through while the divider is dragged', () => {

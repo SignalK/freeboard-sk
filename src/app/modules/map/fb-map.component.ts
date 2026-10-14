@@ -2583,6 +2583,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     });
     this.mapInteract.draw.features = sf;
+    // The feature's popover takes the list's place: on the pane the list was
+    // opened on and in its world copy, whatever has been tapped since.
+    const list = this.overlay();
+    this.clickMap = this.popoverMap();
+    this.clickWorldOffset = list.worldOffset ?? 0;
+    this.clickMercX =
+      fromLonLat(list.position as Position)[0] + this.clickWorldOffset;
     this.formatPopover(feature.id, feature.coord);
   }
 

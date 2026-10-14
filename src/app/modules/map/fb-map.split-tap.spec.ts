@@ -88,6 +88,24 @@ describe('FBMapComponent: taps on the split view second pane', () => {
     expect(cmp.popoverPane()).toBe(pane);
   });
 
+  it('opens a feature picked from a list where the list was, after other taps', () => {
+    const pane = new OlMap();
+    const cmp = bareComponent(pane);
+    cmp.app.config.map.popoverMulti = true;
+    // The list opens on the pane, in its copy of the world one to the east.
+    cmp.onSecondaryTap(
+      paneTap(pane, { ...tap, worldOffset: WORLD_WIDTH_3857 })
+    );
+    // A tap in open water on the main chart leaves the list open.
+    cmp.processMapClick = vi.fn();
+    cmp.onMapSingleClick(tap);
+
+    cmp.featureListSelection({ id: 's57.y', coord: [23.6, 60.1] });
+
+    expect(cmp.popoverPane()).toBe(pane);
+    expect(cmp.overlay().worldOffset).toBe(WORLD_WIDTH_3857);
+  });
+
   it('opens popovers on the main chart again once the pane has closed', () => {
     const pane = new OlMap();
     const cmp = bareComponent(pane);

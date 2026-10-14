@@ -18,6 +18,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Map as OlMap } from 'ol';
 import { Coordinate } from 'ol/coordinate';
 import { getWidth } from 'ol/extent';
+import MapEvent from 'ol/MapEvent';
+import { unByKey } from 'ol/Observable';
 import { toLonLat } from 'ol/proj';
 import { Subscription } from 'rxjs';
 import { AppFacade } from 'src/app/app.facade';
@@ -378,16 +380,15 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected onMoveEnd(e: FBMapEvent) {
     this.zoom.set(e.zoom);
-    // Not worth writing down: a view the pane only passes through while the
-    // divider is dragged, or a centre that moves with every fix while it
-    // follows the vessel (it opens centred on the vessel then anyway).
-    if (
-      e.map?.get(RESIZING) ||
-      (this.split.follow() && e.zoom === this.split.zoom())
-    ) {
+    // A view the pane only passes through while the divider is dragged is not
+    // kept. A centre that moves with every fix while it follows the vessel is
+    // kept but not written each time: it goes with the next save, as when
+    // following stops (and the pane opens centred on the vessel anyway).
+    if (e.map?.get(RESIZING)) {
       return;
     }
-    this.split.rememberView(e.zoom, [e.lonlat[0], e.lonlat[1]]);
+    const following = this.split.follow() && e.zoom === this.split.zoom();
+    this.split.rememberView(e.zoom, [e.lonlat[0], e.lonlat[1]], !following);
   }
 
   private setScaleUnits(units: string) {
@@ -653,15 +654,28 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  /** Back to filling its pane, drawn at that size before the next paint. */
+  /**
+   * Back to filling its pane, drawn at that size before the next paint, and
+   * its view reported as settled.
+   */
   private release(o: Overscan) {
     Object.assign(o.target.style, o.style);
     o.controls.forEach(({ el }) => (el.style.translate = ''));
     o.map.set(RESIZING, false);
     // The second pane's map has no target left when the split closes mid-drag.
-    if (o.map.getTargetElement()) {
-      o.map.updateSize();
-      o.map.renderSync();
+    if (!o.map.getTargetElement()) {
+      return;
+    }
+    let settled = false;
+    const key = o.map.once('moveend', () => (settled = true));
+    o.map.updateSize();
+    o.map.renderSync();
+    unByKey(key);
+    // A pane let go at the size it was drawn at (at the end of its range)
+    // shows the same extent, so OL reports no move: the one it reported when
+    // the drag began was passed over as a view in passing.
+    if (!settled) {
+      o.map.dispatchEvent(new MapEvent('moveend', o.map));
     }
   }
 

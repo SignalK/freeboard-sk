@@ -141,6 +141,24 @@ describe('SplitViewService: layout and saving', () => {
     expect(stored()).toMatchObject({ zoom: 11, center: [23.5, 60.1] });
   });
 
+  it('saves where a pane following the vessel was when it stops following', () => {
+    const split = new SplitViewService();
+    split.setFollow(true);
+    // Fixes move the pane; its centre is kept, not written each time.
+    split.rememberView(12, [23.5, 60.1], false);
+    split.rememberView(12, [23.6, 60.2], false);
+    expect(stored().center).toBeNull();
+
+    split.setFollow(false);
+    split.toggle();
+
+    // Opened again, it is where following stopped.
+    expect(new SplitViewService().lastView()).toEqual({
+      zoom: 12,
+      center: [23.6, 60.2]
+    });
+  });
+
   it('saves the pane view once its moves settle', () => {
     vi.useFakeTimers();
     const split = new SplitViewService();

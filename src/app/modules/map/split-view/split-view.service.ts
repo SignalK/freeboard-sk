@@ -156,8 +156,11 @@ export class SplitViewService {
    * Called on every move of the second pane's map, which a divider drag
    * fires per frame: the write to storage waits for the moves to settle.
    */
-  rememberView(zoom: number, center: Position) {
+  rememberView(zoom: number, center: Position, write = true) {
     this.update({ zoom, center }, false);
+    if (!write) {
+      return;
+    }
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.save(), 500);
   }
