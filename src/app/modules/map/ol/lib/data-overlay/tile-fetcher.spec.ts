@@ -5,6 +5,17 @@ import { TileFetcher } from './tile-fetcher';
 
 const ORIGIN = 'http://sk.local:3000';
 
+/**
+ * Just what TileFetcher reads of a fetch Response. A real `Response` can't
+ * wrap jsdom's `Blob` on Node 22 ("object.stream is not a function").
+ */
+const tileResponse = (status: number) =>
+  ({
+    status,
+    ok: status >= 200 && status < 300,
+    blob: async () => new Blob(['png'])
+  }) as unknown as Response;
+
 function setup(source: Record<string, unknown>) {
   const model = new DataOverlayModel(
     {
@@ -24,9 +35,7 @@ describe('TileFetcher', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    fetchMock = vi.fn(
-      async () => new Response(new Blob(['png']), { status: 200 })
-    );
+    fetchMock = vi.fn(async () => tileResponse(200));
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -93,15 +102,15 @@ describe('TileFetcher', () => {
 
   it('treats 404 and 204 as a tile with no data', async () => {
     const { fetcher } = setup({ type: 'raster', tiles: ['/p/{z}/{x}/{y}'] });
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }));
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    fetchMock.mockResolvedValueOnce(tileResponse(404));
+    fetchMock.mockResolvedValueOnce(tileResponse(204));
     expect(await fetcher.fetch(1, 0, 0)).toBeNull();
     expect(await fetcher.fetch(1, 1, 0)).toBeNull();
   });
 
   it('fails on any other error', async () => {
     const { fetcher } = setup({ type: 'raster', tiles: ['/p/{z}/{x}/{y}'] });
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
+    fetchMock.mockResolvedValueOnce(tileResponse(500));
     await expect(fetcher.fetch(1, 0, 0)).rejects.toThrow('HTTP 500');
   });
 
@@ -124,7 +133,7 @@ describe('TileFetcher decoded tiles', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => new Response(new Blob(['png']), { status: 200 }))
+      vi.fn(async () => tileResponse(200))
     );
     decode = vi.fn(async () => ({ width: 256, height: 256 }) as ImageBitmap);
     vi.stubGlobal('createImageBitmap', decode);
@@ -154,7 +163,7 @@ describe('TileFetcher decoded tiles', () => {
       type: 'raster',
       tiles: ['/p/{z}/{x}/{y}.png']
     });
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 404 }));
+    vi.mocked(fetch).mockResolvedValueOnce(tileResponse(404));
     expect(await fetcher.image(1, 0, 0)).toBeNull();
     await fetcher.image(1, 1, 0);
     expect(decode).toHaveBeenCalledTimes(1);
