@@ -443,7 +443,8 @@ inside a routing envelope over `postMessage`**:
 
 `context.kind` is `widget`, `panel`, `window`, `background` or
 `embedding-host` (this version). For a configuration panel,
-`targetInstance`/`targetWidget` identify the widget being configured; a
+`targetInstance`/`targetWidget` identify the widget being configured, or
+`targetOverlay` the image overlay being configured (see *Map overlays*); a
 `background` runtime and an `embedding-host` carry neither. A `window` context
 adds `windowId` and `params` (see *Windows*). An `embedding-host` context describes the **caller** — the
 application embedding the plotter — while the plotter remains the API host;
@@ -629,7 +630,7 @@ handled by the protocol layer, not subscribed to.
   *every* change, whether an extension called `nightMode.set`, the user toggled
   the host's own night-mode control, or the server's `environment.mode` flipped
   while `auto` is on. See *Night mode*.
-- `panel.state` — `{ panel, visible, collapsed, targetInstance? }`: one of the
+- `panel.state` — `{ panel, visible, collapsed, targetInstance?, targetOverlay? }`: one of the
   extension's loaded panels was shown or hidden, or collapsed or expanded.
   Origin-transparent, and delivered only to the owning extension's contexts.
   See *Panel state*.
@@ -641,7 +642,7 @@ handled by the protocol layer, not subscribed to.
 - `window.closed` — `{ windowId, reason }`: a window closed (`reason` is `user`,
   `extension` or `host`). Owning extension only.
 - `overlay.request` — `{ overlayId, requestId, extent, bounds, width, height,
-  pixelRatio, resolution, zoom, rotation }`: the host wants a new frame for a
+  pixelRatio, resolution, zoom, rotation, liveInterval? }`: the host wants a new frame for a
   visible overlay. Delivered only to the background runtime named by the
   overlay. See *Map overlays*.
 - `overlay.state` — `{ overlayId, visible, opacity, suspended }`: an overlay was
@@ -1305,7 +1306,9 @@ Overlays are declared in an `overlays` manifest section:
       "visible": true,           // initial visibility, before the user chooses
       "opacity": 0.85,           // initial opacity, 0..1
       "minZoom": 10,             // optional: no requests below this zoom
-      "maxZoom": 22              // optional: no requests above this zoom
+      "maxZoom": 22,             // optional: no requests above this zoom
+      "configPanel": "depth-settings", // optional: a panel of this manifest
+      "preferredPixelRatio": 2   // optional: the density it looks right at
     }
   ]
 }
@@ -1315,6 +1318,23 @@ Overlays are declared in an `overlays` manifest section:
 the same manifest's `background` section, or the host omits the overlay.
 `type` is `"image"` in this version — hosts omit overlays of a type they do not
 support.
+
+**Configuration.** An overlay may name a panel from the same manifest via
+`configPanel`, for the settings that shape what it draws (a depth source, a
+colour range, a contour interval). The host offers it from the overlay's own
+entry in its layer controls — next to show, hide and fade — so the settings sit
+with the layer the user is looking at. It opens the named panel with
+`context.targetOverlay` set to the overlay's id; `targetInstance` and
+`targetWidget` are null, and the panel's `state.*` defaults to the extension
+scope, since an overlay has no instance. An overlay is hidden, never removed, so
+unlike a widget's configuration dialog this one carries no remove affordance.
+A `configPanel` that names no iframe panel of the manifest is ignored.
+
+**Density.** `preferredPixelRatio` is the pixel density the overlay looks right
+at — `2` for sharp contour lines, `1` for smooth shading that need not cost the
+memory. A host uses it instead of the screen's density, still within its own
+budget (see *Visibility and the host's budget*), so a request may still come at
+a lower ratio. Without it the host chooses.
 
 The host lists each overlay in its own layer controls, where the user shows,
 hides and fades it like any other layer. Those choices belong to the user and
@@ -1332,8 +1352,12 @@ honours it within its own constraints, as with `chart.setOrder`:
 | `aboveCharts` | every chart, and the host's weather and current layers | the host's radar, routes, waypoints and other resources |
 | `aboveResources` | routes, waypoints, notes and regions | the own vessel, AIS targets and alarms |
 
-An overlay never covers the own vessel or alarm indications. Several overlays in
-one band stack in an order the host chooses.
+An overlay never covers the own vessel, alarm indications or AIS targets — that
+rule outranks the table. A host whose own stacking cannot satisfy both rows (its
+alarm or vessel layers sit below its routes and waypoints, say) keeps the rule
+and places the overlay lower; the reference host does this for
+`aboveResources`. Several overlays in one band stack in an order the host
+chooses.
 
 #### The frame cycle
 
@@ -1356,7 +1380,8 @@ runtime draws and answers with **`overlay.frame`**.
   "pixelRatio": 1,                 // image pixels per CSS pixel, chosen by the host
   "resolution": 4.5,               // metres per image pixel
   "zoom": 15.2,
-  "rotation": 0.35                 // radians clockwise — advisory, see Rotation
+  "rotation": 0.35,                // radians clockwise — advisory, see Rotation
+  "liveInterval": 200              // optional: least ms between accepted live frames
 }
 ```
 
@@ -1398,7 +1423,10 @@ request.
 **Live updates.** A runtime whose data changes — a new sounding, a new radar
 sweep — may send a frame **without** a `requestId` at any time, for the extent
 of the most recent request it received. The host may drop live frames to keep
-its own pace (`accepted: false`, `overlays.throttled`).
+its own pace (`accepted: false`, `overlays.throttled`). A host that knows its
+pace says so in each request's `liveInterval`: the least time, in
+milliseconds, it leaves between live frames it accepts, so a runtime can pace
+itself instead of learning from refusals. Absent means the host does not say.
 
 **Between frames** the host keeps showing the last accepted frame, moved and
 scaled with the map during a gesture, so the overlay never blanks while the
@@ -1424,9 +1452,10 @@ moved past its threshold, not on every degree of yaw.
   resumes it. While `visible` is false or `suspended` is true the host sends no
   requests; the runtime should stop drawing and **release its graphics
   resources** (for WebGL, lose its context).
-- **The host owns the budget.** It chooses `pixelRatio` — it may draw overlays
-  below the screen's native density to save memory — and may cap how many image
-  overlays are active at once, suspending the rest.
+- **The host owns the budget.** It chooses `pixelRatio` — following the
+  overlay's `preferredPixelRatio` where it can, or the screen's density, and
+  lower when needed to save memory — and may cap how many image overlays are
+  active at once, suspending the rest.
 - **Draw off the main thread.** On several engines an extension iframe shares
   the host page's main thread, so heavy drawing in the runtime stalls the whole
   plotter. Render in a Web Worker (`OffscreenCanvas`, then
@@ -1559,6 +1588,8 @@ A panel's state:
   reports `false`.
 - **`targetInstance`** — present only for a configuration panel opened for a
   widget instance: the instance it configures (its `context.targetInstance`).
+- **`targetOverlay`** — present only for a configuration panel opened for an
+  image overlay: the overlay it configures (its `context.targetOverlay`).
 
 `visible` describes the host's presentation only. It does not change when the
 browser tab is hidden (inside the iframe, `document.visibilityState` reports
