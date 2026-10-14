@@ -254,6 +254,10 @@ function tileUrls(
   if (def['scheme'] === 'tms') return 'scheme "tms" is not supported';
   const tiles = def['tiles'];
   if (!Array.isArray(tiles) || tiles.length === 0) return 'no tiles';
+  const other = tiles
+    .map((t) => (typeof t === 'string' ? /\{(?![zxy]\})[^}]*\}/.exec(t) : null))
+    .find((m) => m);
+  if (other) return `tile placeholder ${other[0]} is not supported`;
   const resolved = tiles.map((t) => resolveOverlayUrl(t, origin));
   if (resolved.some((r) => r === null)) {
     return 'a tile URL is neither server-relative nor https';

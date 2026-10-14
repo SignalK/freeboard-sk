@@ -327,7 +327,16 @@ export class PlotterExtensionService {
 
   private fetchDataStyles(urls: Map<string, ResolvedUrl | null>) {
     for (const [key, url] of urls) {
-      if (!url || this.styleFetches.has(`${key} ${url.url}`)) continue;
+      if (!url) {
+        if (!this.styleFetches.has(`${key} refused`)) {
+          this.styleFetches.add(`${key} refused`);
+          console.warn(
+            `[plotterext] overlay ${key} omitted: its style URL is neither server-relative nor https`
+          );
+        }
+        continue;
+      }
+      if (this.styleFetches.has(`${key} ${url.url}`)) continue;
       this.styleFetches.add(`${key} ${url.url}`);
       this.fetchOverlayJson(url, false)
         .then((json) => parseOverlayStyle(json))

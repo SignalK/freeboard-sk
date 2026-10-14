@@ -350,6 +350,31 @@ describe('DataOverlayModel refresh', () => {
     expect((await model.features('remote')).map((f) => f.id)).toEqual(['v2']);
   });
 
+  it('keeps a change made while a geojson URL reloads', async () => {
+    let resolveReload: (v: unknown) => void = () => undefined;
+    const load = vi
+      .fn<FetchJson>()
+      .mockResolvedValueOnce({
+        type: 'FeatureCollection',
+        features: [point('x', 1)]
+      })
+      .mockImplementationOnce(() => new Promise((r) => (resolveReload = r)));
+    const { model, changes } = setup(load);
+    await model.features('remote');
+    model.refresh({ source: 'remote' });
+    model.setData({ source: 'remote', upsert: [point('live', 2)] });
+    resolveReload({ type: 'FeatureCollection', features: [point('y', 3)] });
+    await vi.waitFor(() =>
+      expect(
+        changes.some((c) => c.kind === 'data' && 'replace' in c && c.replace)
+      ).toBe(true)
+    );
+    expect((await model.features('remote')).map((f) => f.id)).toEqual([
+      'y',
+      'live'
+    ]);
+  });
+
   it.each([
     ['an unknown source', { source: 'nope' }],
     ['a source it does not draw', { source: 'broken' }],

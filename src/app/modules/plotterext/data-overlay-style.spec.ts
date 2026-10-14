@@ -200,6 +200,8 @@ describe('planSource', () => {
 
   it.each([
     [{ type: 'vector', url: '/tiles.json' }, 'TileJSON'],
+    [{ type: 'raster', tiles: ['/t/{quadkey}.png'] }, '{quadkey}'],
+    [{ type: 'raster', tiles: ['/t/{z}/{x}/{y}{ratio}.png'] }, '{ratio}'],
     [{ type: 'raster', tiles: ['/t/{z}/{x}/{y}'], scheme: 'tms' }, 'tms'],
     [{ type: 'raster', tiles: ['http://x/{z}/{x}/{y}'] }, 'neither'],
     [

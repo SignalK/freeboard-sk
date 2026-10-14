@@ -116,8 +116,7 @@ interface PendingRequest {
 
 export class OverlayRefusal extends Error {
   constructor(
-    readonly reason:
-      'overlays.unknownId' | 'overlays.badRequest' | 'overlays.unsupported',
+    readonly reason: 'overlays.unknownId' | 'overlays.badRequest',
     message: string
   ) {
     super(message);

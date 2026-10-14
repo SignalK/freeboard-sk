@@ -376,10 +376,9 @@ export class DataOverlayModel {
       upsert: clone(upsert as OverlayFeature[]),
       remove: remove as (string | number)[]
     };
-    if (!state.features) {
-      state.pending.push(diff);
-      return;
-    }
+    // a load (or reload) to come would replace them: replay them on its data
+    if (state.loading || !state.features) state.pending.push(diff);
+    if (!state.features) return;
     this.applyDiff(state.features, diff);
     this.emit({ kind: 'data', source, ...diff });
   }
