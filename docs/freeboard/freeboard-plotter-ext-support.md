@@ -346,7 +346,8 @@ the moment the panel leaves the screen. See the API spec's *Panel state*.
   stays loaded and is listed with `visible: false`. An `onOpen` panel is
   destroyed when hidden, so it leaves the list.
 - **Configuration panels.** Visible while their dialog is open, with
-  `targetInstance` set to the widget instance being configured. Closing the
+  `targetInstance` set to the widget instance being configured, or
+  `targetOverlay` to the image overlay being configured. Closing the
   dialog unloads the panel. A dialog for a widget with no usable config panel
   (the remove-only dialog) loads no panel and is not listed.
 - **`collapsed` is always `false`.** Freeboard has no panel collapse.
@@ -609,20 +610,30 @@ and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
   `aboveResources` is clamped, as the spec allows: Freeboard draws its routes
   (500+) and waypoints (600) *above* its own alarm rings (anchor 300, CPA 350),
   own-vessel lines (330–350) and AIS AtoN/base-station targets (200–220), so no
-  z-index is both above the former and below the latter. The spec's hard rule —
-  never cover the vessel, alarm indications or AIS targets — wins: the band sits
-  at 190–199, above radar, tracks and resource sets, below everything from AIS
+  z-index is both above the former and below the latter. The spec says its rule
+  — never cover the vessel, alarm indications or AIS targets — outranks the band
+  table, and a host whose stacking can't satisfy both places the overlay lower
+  (API spec, *Map overlays → Placement*). So the band sits at 190–199, above radar, tracks and resource sets, below everything from AIS
   targets up. Within a band, manifest order; not re-orderable in v1. With more
   than 50 charts shown, chart z-indices (`10+n`) reach the `aboveCharts` band.
 - **Budget.** At most `MAX_ACTIVE_OVERLAYS` (4) shown overlays draw at once; the
-  rest are reported `suspended`. A frame is drawn at a pixel ratio of at most 2,
-  and lower when the box would exceed `MAX_OVERLAY_PIXELS` (8 M pixels, about
-  32 MB) — a rotated view or a large screen is drawn below native density rather
-  than risk the iOS canvas budget. Live (unrequested) frames are accepted at most
-  every 200 ms per overlay (`overlays.throttled`).
+  rest are reported `suspended`. A frame is drawn at the overlay's
+  `preferredPixelRatio` when it declares one, otherwise the screen's
+  `devicePixelRatio`, clamped either way to at most 2, and lower when the box
+  would exceed `MAX_OVERLAY_PIXELS` (8 M pixels, about 32 MB) — a rotated view
+  or a large screen is drawn below native density rather than risk the iOS
+  canvas budget. Live (unrequested) frames are accepted at most every
+  `LIVE_FRAME_MIN_INTERVAL_MS` (200 ms) per overlay (`overlays.throttled`), and
+  every `overlay.request` states that pace as `liveInterval`.
 - **User controls.** The Chart list shows one row per overlay above the chart
   rows (every overlay draws above every chart), with its own *Show in Map*
-  checkbox and *Set Opacity* slider. Shown-but-suspended overlays say so.
+  checkbox and *Set Opacity* slider. Shown-but-suspended overlays say so. An
+  overlay whose `configPanel` names an iframe panel of its manifest (with an
+  `apiVersion` this host supports; otherwise it is ignored) also gets a *Layer
+  settings* button, which opens that panel in the widget-configuration dialog
+  (`openOverlayConfigPanel`) with no *Remove* button. The panel's context has
+  `targetOverlay` set and `targetInstance`/`targetWidget` null, and its
+  `state.*` defaults to the extension scope.
 
 ### The frame cycle
 
