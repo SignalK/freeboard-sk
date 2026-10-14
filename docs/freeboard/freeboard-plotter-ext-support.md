@@ -780,17 +780,22 @@ drawn layers become OL layers in style order:
   source, styled by ol-mapbox-style's `stylefunction`. It cannot evaluate
   `global-state` (it evaluates with only zoom and distance-from-centre), so
   Freeboard **pre-resolves** it: `resolveLayer` replaces each `["global-state",
-  name]` with `["literal", value]` (always `literal`, so a filter never turns
-  into a legacy one) and every vector layer is re-styled on `overlay.setState`.
-  A literal is type-checked when it compiles, where `global-state` is checked
-  only at runtime, so a value of the wrong type (or an unset variable) would
-  become a compile error that ol-mapbox-style throws from the render loop.
+  name]` with `["get", name, ["literal", { name: value }]]` and every vector
+  layer is re-styled on `overlay.setState`. `get` is typed `value` like
+  `global-state`, so the parser coerces the value as MapLibre would (a number
+  in `text-field` reads as text), and it is always an expression, so a filter
+  never turns into a legacy one. A constant like this is still checked when it
+  compiles, so a value of the wrong type (or an unset variable) would become a
+  compile error that ol-mapbox-style throws from the render loop.
   `olStyleLayer` drops such a property instead (with one `console.warn`), which
   draws its default, as MapLibre does on the runtime error. All vector layers
-  share one style object per build, set on the group as `mapbox-style`, and
-  changes go through ol-mapbox-style's `updateMapboxLayer`: a new style object
-  per change would grow its module-level caches without bound. Text is drawn
-  in Roboto with the requested weight and style (`fskFonts`). Symbol runs
+  share one style object per build, set on the group as `mapbox-style` with an
+  id of its own, and changes go through ol-mapbox-style's `updateMapboxLayer`:
+  a new style object per change would grow its module-level caches with every
+  change rather than once per build. (The explicit id matters: ol-mapbox-style
+  numbers the first style it sees 0, then treats it as unnumbered, and loses
+  the setup `updateMapboxLayer` needs to restyle it.) Text is drawn in Roboto
+  with the requested weight and style (`fskFonts`). Symbol runs
   declutter among the overlay's own layers.
 
 Layer `minzoom` / `maxzoom` are MapLibre zooms (512-px world); OL resolutions are
@@ -821,7 +826,7 @@ changes the `DataOverlayModel`, which emits a change the component applies.
 - **`overlay.setData`** replaces or upserts/removes features of a geojson source
   in the model; the component mirrors it into the OL `VectorSource`. Changes to
   a URL source that has not loaded yet, or is reloading, are applied to the
-  data that load brings.
+  data that load brings. A reload that fails keeps the features drawn.
 - **`overlay.setLayer`** merges into the model's copy of the layer and re-runs
   `analyzeLayer`; a result it would skip is refused with `overlays.unsupported`
   and the layer is left alone. The component re-styles the affected OL layer, or
