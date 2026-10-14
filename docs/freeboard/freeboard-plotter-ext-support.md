@@ -627,9 +627,12 @@ and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
 ### The frame cycle
 
 Each shown, unsuspended overlay gets a `<fb-plugin-overlay>` layer
-(`layer-plugin-overlay.component.ts`), the radar pattern: an OL `ImageLayer` over
-an `ImageSource` with `createLoader` and a mutable `imageExtent`, drawn from a
-canvas. `overlayView()` turns the view into the request: the north-up box
+(`layer-plugin-overlay.component.ts`): an OL `ImageLayer` that gets a fresh
+static `ImageSource` per accepted frame, whose image is the transferred
+`ImageBitmap` itself (no copy). Not the radar pattern of one long-lived source
+with a mutable `imageExtent`: a static source computes its resolution once, on
+first load, and `refresh()` never reloads it, so a frame drawn at another zoom
+would be placed at the old scale. `overlayView()` turns the view into the request: the north-up box
 covering the rotated viewport (`View.calculateExtent`), padded by 10% per side
 (and at least by how far a corner swings in a 5° turn), moved into the primary
 world with the render-space `worldOffset` kept aside, at most one world wide,
@@ -643,9 +646,11 @@ own zoom range (`minZoom` inclusive) rather than using OL's, whose `minZoom` is
 exclusive. `requestOverlayFrame()` records it and
 emits `overlay.request` to that overlay's runtime only (`publishToRuntime`).
 
-An accepted `overlay.frame` is drawn into the layer's canvas and placed at the
-frame's extent plus the request's `worldOffset`, so it lands in the world copy on
-screen; the bitmap is then closed. Refused frames are closed by the registry.
+An accepted `overlay.frame` is placed at the frame's extent plus the request's
+`worldOffset`, so it lands in the world copy on screen. OL keeps drawing the
+previous bitmap until the new source has loaded, so the swap does not flicker;
+the previous bitmap is closed a render after that. Refused frames are closed by
+the registry.
 Image sources do not wrap, so at a zoom showing several world copies the overlay
 appears in the copy the request was made for.
 
