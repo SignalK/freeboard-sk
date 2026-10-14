@@ -117,7 +117,7 @@
       [cdkDropListDisabled]="!canReorder()"
       (cdkDropListDropped)="drop($event)"
     >
-      @if (pluginLayers().length) {
+      @if (anyPluginLayerMatches()) {
       <div class="plugin-layers">
         <div class="plugin-layers-caption">Plugin layers</div>
         @for (pl of pluginLayers(); track pl.key) { @if (pluginLayerMatches(pl))

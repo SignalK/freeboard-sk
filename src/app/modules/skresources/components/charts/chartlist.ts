@@ -302,6 +302,11 @@ export class ChartListComponent extends ResourceListBase {
     this.skres.deleteChart(id);
   }
 
+  /** Whether any plugin layer row passes the text filter. */
+  protected anyPluginLayerMatches(): boolean {
+    return this.pluginLayers().some((l) => this.pluginLayerMatches(l));
+  }
+
   /** Whether a plugin layer row passes the text filter. */
   protected pluginLayerMatches(layer: OverlayEntry): boolean {
     const text = this.filterText?.toLowerCase() ?? '';
@@ -338,10 +343,15 @@ export class ChartListComponent extends ResourceListBase {
       .afterClosed()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result: SliderInputDialogResult) => {
-        const value = result?.apply
-          ? Math.min(100, Math.max(0, Math.round(result.value))) / 100
-          : original;
-        this.overlays.setOpacity([layer.key], value);
+        if (result?.apply) {
+          this.overlays.setOpacity(
+            [layer.key],
+            Math.min(100, Math.max(0, Math.round(result.value))) / 100
+          );
+        } else {
+          // cancelled: undo the preview; nothing changed, so nothing to save
+          this.overlays.setOpacity([layer.key], original, false);
+        }
       });
   }
 
