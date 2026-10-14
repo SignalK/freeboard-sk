@@ -52,6 +52,9 @@ export function cleanConfig(
     if (typeof settings.ui.showNotes === 'undefined') {
       settings.ui.showNotes = true;
     }
+    if (typeof settings.ui.autoNightMode === 'undefined') {
+      settings.ui.autoNightMode = true;
+    }
   }
   if (typeof settings.imageAdjustPalettePos === 'undefined') {
     settings.imageAdjustPalettePos = null;
@@ -90,6 +93,9 @@ export function cleanConfig(
       }
     };
   } else {
+    if (typeof settings.display.nightMode === 'undefined') {
+      settings.display.nightMode = true;
+    }
     if (typeof settings.display.preferInfoPanel === 'undefined') {
       settings.display.preferInfoPanel = true;
     }

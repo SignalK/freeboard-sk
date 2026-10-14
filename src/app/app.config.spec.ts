@@ -148,6 +148,24 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.ui.autoNightMode).toBe(true);
   });
 
+  it('follows the server night mode for a config saved without the setting', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    delete cfg.display.nightMode;
+    delete cfg.ui.autoNightMode;
+    cleanConfig(cfg, {});
+    expect(cfg.display.nightMode).toBe(true);
+    expect(cfg.ui.autoNightMode).toBe(true);
+  });
+
+  it('keeps night mode off once the user turned it off', () => {
+    const cfg = defaultConfig();
+    cfg.display.nightMode = false;
+    cfg.ui.autoNightMode = false;
+    cleanConfig(cfg, {});
+    expect(cfg.display.nightMode).toBe(false);
+    expect(cfg.ui.autoNightMode).toBe(false);
+  });
+
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
