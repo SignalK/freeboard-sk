@@ -10,6 +10,10 @@ import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import XYZ from 'ol/source/XYZ';
+import RasterSource from 'ol/source/Raster';
+import CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
+import Tile from 'ol/Tile';
+import Disposable from 'ol/Disposable';
 import { FrameState } from 'ol/Map';
 import { Style } from 'ol/style';
 import {
@@ -236,6 +240,45 @@ describe('mirrorLayers', () => {
     expect(forget).toHaveBeenCalledTimes(1);
   });
 
+  it('redraws a twin whenever its original is redrawn', () => {
+    // A style's sprite sheet arriving redraws the layer with the same style.
+    const main = new OlMap();
+    const routes = vectorLayer('routes');
+    const tiles = new TileLayer({ source: new XYZ({ url: 'x/{z}/{x}/{y}' }) });
+    main.addLayer(routes);
+    main.addLayer(tiles);
+    const second = new OlMap();
+    mirrorLayers(main, second);
+    const twins = twinsOn(second);
+    const revisions = twins.map((t) => t.getRevision());
+
+    routes.changed();
+    tiles.changed();
+
+    twins.forEach((t, i) =>
+      expect(t.getRevision()).toBeGreaterThan(revisions[i])
+    );
+  });
+
+  it('lets go of the tiles a twin kept when its layer goes', () => {
+    const main = new OlMap();
+    const tiles = new TileLayer({ source: new XYZ({ url: 'x/{z}/{x}/{y}' }) });
+    main.addLayer(tiles);
+    const second = new OlMap();
+    mirrorLayers(main, second);
+    const renderer = (twinsOn(second)[0] as TileLayer<XYZ>).getRenderer();
+    expect(renderer).toBeInstanceOf(CanvasTileLayerRenderer);
+    const kept = new Disposable();
+    const dispose = vi.spyOn(kept, 'dispose');
+    (renderer as CanvasTileLayerRenderer)
+      .getTileCache()
+      .set('0/0/0', kept as unknown as Tile);
+
+    main.removeLayer(tiles);
+
+    expect(dispose).toHaveBeenCalled();
+  });
+
   describe('a layer it cannot show', () => {
     afterEach(() => vi.restoreAllMocks());
 
@@ -254,6 +297,22 @@ describe('mirrorLayers', () => {
 
       expect(twinsOn(second).map((l) => l.get('id'))).toEqual(['routes']);
       expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves out an image computed for one view, as hillshading is', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const main = new OlMap();
+      main.addLayer(
+        new ImageLayer({
+          source: new RasterSource({ sources: [], operation: (p) => p[0] })
+        })
+      );
+      main.addLayer(vectorLayer('routes'));
+      const second = new OlMap();
+
+      mirrorLayers(main, second);
+
+      expect(twinsOn(second).map((l) => l.get('id'))).toEqual(['routes']);
     });
   });
 });

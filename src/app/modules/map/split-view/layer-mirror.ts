@@ -13,6 +13,8 @@ import WebGLTileLayer from 'ol/layer/WebGLTile';
 import { ObjectEvent } from 'ol/Object';
 import { unByKey } from 'ol/Observable';
 import { FrameState } from 'ol/Map';
+import CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
+import RasterSource from 'ol/source/Raster';
 import { followImageFilter } from '../ol/lib/charts/chart-utils';
 import { ON_TWIN, OnTwin } from '../ol/lib/util';
 
@@ -20,8 +22,10 @@ import { ON_TWIN, OnTwin } from '../ol/lib/util';
  * The split view's second pane shows the main chart's layers through twins:
  * a layer of the same kind with the same source and properties. Sharing the
  * source means both panes draw the very same features (so a tap on either hits
- * the same Feature objects) and tiles are fetched once. Each twin follows its
- * original as layers come and go and as their properties and styles change.
+ * the same Feature objects) and vector tiles are fetched and decoded once;
+ * raster tiles are kept by each pane, the browser's cache serving the second.
+ * Each twin follows its original as layers come and go and as their
+ * properties and styles change.
  */
 
 /**
@@ -103,6 +107,11 @@ function createTwin(
     return { twin: new TileLayer({ className, preload: layer.getPreload() }) };
   }
   if (layer instanceof ImageLayer) {
+    // A raster source (a MapStyle chart's hillshading) computes one image for
+    // one view: two maps would each throw away the other's, endlessly.
+    if (layer.getSource() instanceof RasterSource) {
+      return null;
+    }
     return { twin: new ImageLayer({ className }) };
   }
   // Only a plain Layer: a subclass draws through a renderer of its own.
@@ -153,14 +162,22 @@ function twinOf(layer: BaseLayer): Twin | null {
   if (twin instanceof Layer) {
     keys.push(...followImageFilter(twin));
     forget = (layer.get(ON_TWIN) as OnTwin | undefined)?.(twin);
-  }
-  if (layer instanceof BaseVectorLayer && twin instanceof BaseVectorLayer) {
-    twin.setStyle(layer.getStyle());
-    // setStyle() is not a property change; it only signals 'change'.
+    if (layer instanceof BaseVectorLayer && twin instanceof BaseVectorLayer) {
+      twin.setStyle(layer.getStyle());
+    }
+    // A new style is not a property change, and a layer redrawn with the same
+    // style (a style's sprite sheet arriving, a new wind indicator) signals
+    // only 'change'; the twin is redrawn with it.
     keys.push(
       layer.on('change', () => {
-        if (twin.getStyle() !== layer.getStyle()) {
+        if (
+          layer instanceof BaseVectorLayer &&
+          twin instanceof BaseVectorLayer &&
+          twin.getStyle() !== layer.getStyle()
+        ) {
           twin.setStyle(layer.getStyle());
+        } else {
+          twin.changed();
         }
       })
     );
@@ -208,6 +225,16 @@ export function mirrorCollection(
     }
     to.remove(twin.layer);
     twin.stop();
+    // A tile left in the twin's cache keeps its decoded vector tile in the
+    // shared source, and its canvas, for as long as the chart is shown.
+    const renderer =
+      twin.layer instanceof Layer && twin.layer.hasRenderer()
+        ? twin.layer.getRenderer()
+        : null;
+    if (renderer instanceof CanvasTileLayerRenderer) {
+      renderer.getTileCache().clear();
+      renderer.getSourceTileCache()?.clear();
+    }
     // Drops the twin's renderer (and its canvas or WebGL context) and its
     // listener on the shared source, which would otherwise keep it alive.
     twin.layer.dispose();
