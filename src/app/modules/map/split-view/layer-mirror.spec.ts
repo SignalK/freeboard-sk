@@ -1,13 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Feature, Map as OlMap } from 'ol';
+import BaseEvent from 'ol/events/Event';
 import { Point } from 'ol/geom';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
+import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import XYZ from 'ol/source/XYZ';
+import { FrameState } from 'ol/Map';
 import { Style } from 'ol/style';
+import {
+  attachImageAdjustmentFilter,
+  chartLayerClassName,
+  IMAGE_FILTER
+} from '../ol/lib/charts/chart-utils';
 import { mirrorLayers } from './layer-mirror';
 
 const vectorLayer = (id: string, zIndex = 0) => {
@@ -119,5 +127,95 @@ describe('mirrorLayers', () => {
 
     expect(second.getLayers().getLength()).toBe(0);
     expect(twin.getVisible()).toBe(true);
+  });
+
+  it('lets go of the shared sources when stopped', () => {
+    const main = new OlMap();
+    const routes = vectorLayer('routes');
+    main.addLayer(routes);
+    const source = routes.getSource();
+    const before = source.getListeners('change')?.length ?? 0;
+    const second = new OlMap();
+
+    const stop = mirrorLayers(main, second);
+    expect(source.getListeners('change')?.length).toBeGreaterThan(before);
+    stop();
+
+    expect(source.getListeners('change')?.length ?? 0).toBe(before);
+  });
+
+  it("keeps a chart's own canvas and its brightness and contrast", () => {
+    const main = new OlMap();
+    const chart = new TileLayer({
+      className: chartLayerClassName('osm'),
+      source: new XYZ({ url: 'x/{z}/{x}/{y}' })
+    });
+    const setAdjustment = attachImageAdjustmentFilter(chart);
+    main.addLayer(chart);
+    const second = new OlMap();
+    mirrorLayers(main, second);
+    const twin = twinsOn(second)[0] as TileLayer<XYZ>;
+
+    setAdjustment({ brightness: 0.3, contrast: 1 });
+    const canvas = document.createElement('canvas');
+    twin.dispatchEvent({
+      type: 'postrender',
+      context: { canvas }
+    } as unknown as BaseEvent);
+
+    expect(twin.getClassName()).toBe(chart.getClassName());
+    expect(twin.get(IMAGE_FILTER)).toBe('brightness(0.3) contrast(1)');
+    expect(canvas.style.filter).toBe('brightness(0.3) contrast(1)');
+  });
+
+  it('draws a layer with its own element into an element of its own', () => {
+    // A MapStyle chart's background: a plain layer that returns a div.
+    const div = document.createElement('div');
+    div.className = 'ol-mapbox-style-background';
+    const background = new Layer({
+      render: (frameState: FrameState) => {
+        div.style.backgroundColor =
+          frameState.viewState.resolution > 100 ? 'blue' : 'white';
+        return div;
+      }
+    });
+    const main = new OlMap();
+    main.addLayer(background);
+    const second = new OlMap();
+    mirrorLayers(main, second);
+    const twin = twinsOn(second)[0] as Layer;
+    const frame = (resolution: number) =>
+      ({ viewState: { resolution } }) as unknown as FrameState;
+
+    twin.render(frame(1000), null);
+    background.render(frame(10), null);
+    const drawn = twin.render(frame(1000), null);
+
+    expect(drawn).not.toBe(div);
+    expect(drawn.className).toBe('ol-mapbox-style-background');
+    expect(drawn.style.backgroundColor).toBe('blue');
+    // The main chart's own element is left as the main chart drew it.
+    expect(div.style.backgroundColor).toBe('white');
+  });
+
+  describe('a layer it cannot show', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('is left out with one warning, however often the split opens', () => {
+      class OwnRenderer extends Layer {}
+      const main = new OlMap();
+      main.addLayer(new OwnRenderer({}));
+      main.addLayer(vectorLayer('routes'));
+      const warn = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      mirrorLayers(main, new OlMap())();
+      const second = new OlMap();
+      mirrorLayers(main, second);
+
+      expect(twinsOn(second).map((l) => l.get('id'))).toEqual(['routes']);
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
   });
 });

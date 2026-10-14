@@ -5,12 +5,15 @@ import BaseLayer from 'ol/layer/Base';
 import BaseVectorLayer from 'ol/layer/BaseVector';
 import LayerGroup from 'ol/layer/Group';
 import ImageLayer from 'ol/layer/Image';
+import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
 import { ObjectEvent } from 'ol/Object';
 import { unByKey } from 'ol/Observable';
+import { FrameState } from 'ol/Map';
+import { followImageFilter } from '../ol/lib/charts/chart-utils';
 
 /*
  * The split view's second pane shows the main chart's layers through twins:
@@ -28,6 +31,38 @@ interface Twin {
   stop: () => void;
 }
 
+/** Layers already reported as not shown in the second pane. */
+const unmirrored = new WeakSet<BaseLayer>();
+
+/**
+ * A twin for a layer that draws its own element instead of using a renderer,
+ * such as the background of a MapStyle chart. Its element can be in only one
+ * map, so the twin copies the original's output into an element of its own,
+ * then puts the original's element back as its own map drew it. (The twin
+ * meets that element on its first frame, so only from then on; opening the
+ * split resizes, and so redraws, the main chart anyway.)
+ */
+function elementTwin(layer: Layer): Layer {
+  const own = document.createElement('div');
+  let theirs: HTMLElement | null = null;
+  return new Layer({
+    source: layer.getSource(),
+    render: (frameState: FrameState) => {
+      const before = theirs?.style.cssText;
+      const drawn = layer.render(frameState, null);
+      if (drawn instanceof HTMLElement) {
+        theirs = drawn;
+        own.className = drawn.className;
+        own.style.cssText = drawn.style.cssText;
+        if (before !== undefined) {
+          drawn.style.cssText = before;
+        }
+      }
+      return own;
+    }
+  });
+}
+
 function createTwin(
   layer: BaseLayer
 ): { twin: BaseLayer; stopChildren?: () => void } | null {
@@ -38,25 +73,37 @@ function createTwin(
       stopChildren: mirrorCollection(layer.getLayers(), twin.getLayers())
     };
   }
+  // The class name gives a chart its own canvas, as on the main chart, so a
+  // chart's brightness and contrast filter applies to that chart alone.
+  const className = layer.getClassName();
   if (layer instanceof VectorTileLayer) {
     return {
       twin: new VectorTileLayer({
+        className,
         declutter: layer.getDeclutter(),
         renderMode: layer.getRenderMode()
       })
     };
   }
   if (layer instanceof VectorLayer) {
-    return { twin: new VectorLayer({ declutter: layer.getDeclutter() }) };
+    return {
+      twin: new VectorLayer({ className, declutter: layer.getDeclutter() })
+    };
   }
   if (layer instanceof WebGLTileLayer) {
-    return { twin: new WebGLTileLayer({ source: layer.getSource() }) };
+    return {
+      twin: new WebGLTileLayer({ className, source: layer.getSource() })
+    };
   }
   if (layer instanceof TileLayer) {
-    return { twin: new TileLayer({ preload: layer.getPreload() }) };
+    return { twin: new TileLayer({ className, preload: layer.getPreload() }) };
   }
   if (layer instanceof ImageLayer) {
-    return { twin: new ImageLayer({}) };
+    return { twin: new ImageLayer({ className }) };
+  }
+  // Only a plain Layer: a subclass draws through a renderer of its own.
+  if (Object.getPrototypeOf(layer) === Layer.prototype) {
+    return { twin: elementTwin(layer as Layer) };
   }
   return null;
 }
@@ -76,10 +123,21 @@ function twinOf(layer: BaseLayer): Twin | null {
     return null;
   }
   if (!made) {
+    if (!unmirrored.has(layer)) {
+      unmirrored.add(layer);
+      console.warn(
+        'Split view: a layer of this kind is not shown in the second pane',
+        layer
+      );
+    }
     return null;
   }
   const { twin, stopChildren } = made;
   copyProperties(layer, twin);
+  const background = layer.getBackground();
+  if (background) {
+    twin.setBackground(background);
+  }
   const keys: EventsKey[] = [
     layer.on('propertychange', (e: ObjectEvent) => {
       if (!NOT_COPIED.has(e.key)) {
@@ -87,6 +145,9 @@ function twinOf(layer: BaseLayer): Twin | null {
       }
     })
   ];
+  if (twin instanceof Layer) {
+    keys.push(...followImageFilter(twin));
+  }
   if (layer instanceof BaseVectorLayer && twin instanceof BaseVectorLayer) {
     twin.setStyle(layer.getStyle());
     // setStyle() is not a property change; it only signals 'change'.
@@ -140,6 +201,9 @@ export function mirrorCollection(
     }
     twin.stop();
     to.remove(twin.layer);
+    // Drops the twin's renderer (and its canvas or WebGL context) and its
+    // listener on the shared source, which would otherwise keep it alive.
+    twin.layer.dispose();
     twins.delete(layer);
   };
 
@@ -165,5 +229,6 @@ export function mirrorLayers(source: OlMap, target: OlMap): () => void {
   return () => {
     stop();
     target.removeLayer(group);
+    group.dispose();
   };
 }
