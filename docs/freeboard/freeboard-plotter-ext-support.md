@@ -649,8 +649,10 @@ emits `overlay.request` to that overlay's runtime only (`publishToRuntime`).
 An accepted `overlay.frame` is placed at the frame's extent plus the request's
 `worldOffset`, so it lands in the world copy on screen. OL keeps drawing the
 previous bitmap until the new source has loaded, so the swap does not flicker;
-the previous bitmap is closed a render after that. Refused frames are closed by
-the registry.
+`FrameBitmaps` keeps at most two bitmaps (the one the renderer draws and the
+newest) and closes the older once the newest is drawn, even while the layer is
+hidden, mid-gesture or in a background tab, when OL loads nothing. Refused
+frames are closed by the registry.
 Image sources do not wrap, so at a zoom showing several world copies the overlay
 appears in the copy the request was made for.
 
@@ -684,6 +686,7 @@ request, the overlay hidden or not yet requested) and `overlays.throttled`.
 | `src/app/modules/plotterext/overlay-methods.ts` | the `overlay.*` handlers + param validation + error mapping |
 | `src/app/modules/plotterext/plotterext.service.ts` | manifest definitions, `requestOverlayFrame`, `overlay.state`, request replay |
 | `src/app/modules/map/ol/lib/plugin-overlay/layer-plugin-overlay.component.ts` | the OL layer: requests frames, draws accepted ones |
+| `src/app/modules/map/ol/lib/plugin-overlay/frame-bitmaps.ts` | `frameSource()` (a static source per frame) and `FrameBitmaps` (at most two bitmaps held: the drawn one and the newest) |
 | `src/app/modules/map/ol/lib/plugin-overlay/overlay-geometry.ts` | `overlayView()` / `needsNewFrame()` — request geometry and the re-request rule |
 | `src/app/modules/skresources/components/charts/chartlist.html` | the *Plugin layers* rows |
 
