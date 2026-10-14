@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap, View } from 'ol';
 import { ScaleLine } from 'ol/control';
+import { fromLonLat } from 'ol/proj';
 import { Subject } from 'rxjs';
 import { WORLD_WIDTH_3857 } from '../route-extend';
 import { SPLIT_SHARE_VAR } from './split-view';
@@ -650,6 +651,67 @@ describe('SplitMapComponent: the main chart outline', () => {
 
     expect(cmp.footprint()[0]).toEqual([0, -0]);
     expect(cmp.footprint()[2]).toEqual([100, -50]);
+  });
+});
+
+describe('SplitMapComponent: taps and the chart menu', () => {
+  const pane = (interacting = false) => {
+    const cmp = bareComponent();
+    cmp.split.forwardTap = vi.fn();
+    cmp.mapInteract = {
+      isDrawing: () => interacting,
+      isModifying: () => false,
+      isMeasuring: () => false,
+      isBoxSelecting: () => false
+    };
+    const map = new OlMap({ view: new View({ center: [0, 0], zoom: 9 }) });
+    cmp.map = map;
+    return { cmp, map };
+  };
+
+  it("hands a tap to the main chart, with the pane's map", () => {
+    const { cmp, map } = pane();
+    cmp.pressedAt = 123;
+
+    cmp.onTap({ lonlat: [23.5, 60.1] });
+
+    expect(cmp.split.forwardTap).toHaveBeenCalledWith({
+      kind: 'click',
+      event: { lonlat: [23.5, 60.1] },
+      map,
+      pressedAt: 123
+    });
+  });
+
+  it('hands on nothing while drawing, measuring or editing', () => {
+    const { cmp } = pane(true);
+    cmp.onTap({ lonlat: [23.5, 60.1] });
+    cmp.onContextMenu({ preventDefault: () => undefined } as MouseEvent);
+    expect(cmp.split.forwardTap).not.toHaveBeenCalled();
+  });
+
+  it('opens the menu for the pressed point in data space, keeping its world copy', () => {
+    const { cmp, map } = pane();
+    // The pane looking at the world copy one east of the primary world.
+    const at = [
+      WORLD_WIDTH_3857 + fromLonLat([23.5, 60.1])[0],
+      fromLonLat([23.5, 60.1])[1]
+    ];
+    map.getEventCoordinate = () => at;
+    map.getEventPixel = () => [10, 20];
+    map.getFeaturesAtPixel = () => [];
+    const event = { preventDefault: vi.fn() } as unknown as MouseEvent;
+
+    cmp.onContextMenu(event);
+
+    const tap = cmp.split.forwardTap.mock.calls[0][0];
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(tap.kind).toBe('contextmenu');
+    expect(tap.lonlat[0]).toBeCloseTo(23.5);
+    expect(tap.lonlat[1]).toBeCloseTo(60.1);
+    expect(tap.worldOffset).toBe(WORLD_WIDTH_3857);
+    expect(tap.zoom).toBe(9);
+    expect(tap.map).toBe(map);
   });
 });
 
