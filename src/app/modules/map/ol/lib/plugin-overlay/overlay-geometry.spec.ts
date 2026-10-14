@@ -3,10 +3,12 @@ import {
   MAX_OVERLAY_PIXEL_RATIO,
   MAX_OVERLAY_PIXELS,
   MERC_HALF_WORLD,
+  OVERLAY_MARGIN,
   OVERLAY_ROTATION_THRESHOLD,
   WORLD_WIDTH,
   needsNewFrame,
-  overlayView
+  overlayView,
+  type RequestedView
 } from './overlay-geometry';
 
 const base = {
@@ -17,20 +19,29 @@ const base = {
 };
 
 describe('overlayView', () => {
-  it('asks for the view box at the screen’s pixel ratio', () => {
+  it('asks for the view plus its margin at the screen’s pixel ratio', () => {
     const v = overlayView({
       ...base,
-      extent: [0, 0, 16000, 9000],
+      extent: [0, 0, 8000, 4500],
       devicePixelRatio: 2
     })!;
+    // the swing of a 5° turn (~400 m) is smaller than the 10% margin here
+    const padX = OVERLAY_MARGIN * 8000;
+    const padY = OVERLAY_MARGIN * 4500;
     expect(v.worldOffset).toBe(0);
-    expect(v.view.extent).toEqual([0, 0, 16000, 9000]);
-    expect(v.view.width).toBe(3200);
-    expect(v.view.height).toBe(1800);
+    expect(v.view.extent).toEqual([-padX, -padY, 8000 + padX, 4500 + padY]);
+    expect(v.view.width).toBe(Math.round(((8000 + 2 * padX) / 10) * 2));
     expect(v.view.pixelRatio).toBe(2);
-    expect(v.view.resolution).toBe(5);
-    expect(v.view.bounds[0]).toBeCloseTo(0, 6);
-    expect(v.view.bounds[2]).toBeCloseTo((16000 / MERC_HALF_WORLD) * 180, 6);
+    expect(v.view.resolution).toBeCloseTo(5, 6);
+    expect(v.view.bounds[0]).toBeCloseTo((-padX / MERC_HALF_WORLD) * 180, 6);
+  });
+
+  it('pads a narrow view by at least the corner swing of a threshold turn', () => {
+    const v = overlayView({ ...base, extent: [0, 0, 30000, 1000] })!;
+    const swing =
+      0.5 * Math.hypot(30000, 1000) * Math.sin(OVERLAY_ROTATION_THRESHOLD);
+    expect(v.view.extent[1]).toBeCloseTo(-swing, 6);
+    expect(v.view.extent[3]).toBeCloseTo(1000 + swing, 6);
   });
 
   it(`caps the pixel ratio at ${MAX_OVERLAY_PIXEL_RATIO}`, () => {
@@ -58,11 +69,11 @@ describe('overlayView', () => {
   it('moves a view in another world copy into the primary world', () => {
     const v = overlayView({
       ...base,
-      extent: [WORLD_WIDTH + 100, 0, WORLD_WIDTH + 200, 100]
+      extent: [WORLD_WIDTH + 1000, 0, WORLD_WIDTH + 2000, 1000]
     })!;
     expect(v.worldOffset).toBe(WORLD_WIDTH);
-    expect(v.view.extent[0]).toBeCloseTo(100, 6);
-    expect(v.view.extent[2]).toBeCloseTo(200, 6);
+    const cx = (v.view.extent[0] + v.view.extent[2]) / 2;
+    expect(cx).toBeCloseTo(1500, 6);
   });
 
   it('sends a view across the antimeridian as one continuous box', () => {
@@ -119,21 +130,31 @@ describe('needsNewFrame', () => {
     resolution: 10,
     rotation: 0
   };
+  // what overlayView asked for: the view padded by 100 m all round
+  const requested: RequestedView = {
+    box: [-100, -100, 1100, 600],
+    size: [100, 50],
+    resolution: 10,
+    rotation: 0
+  };
 
   it('always asks for the first frame', () => {
     expect(needsNewFrame(null, view)).toBe(true);
   });
 
-  it('asks again after a pan, a zoom or a resize', () => {
-    expect(needsNewFrame(view, { ...view, extent: [100, 0, 1100, 500] })).toBe(
-      true
-    );
-    expect(needsNewFrame(view, { ...view, resolution: 5 })).toBe(true);
-    expect(needsNewFrame(view, { ...view, size: [120, 50] })).toBe(true);
+  it('does not ask again for a pan that stays inside the requested box', () => {
+    expect(needsNewFrame(requested, { ...view })).toBe(false);
+    expect(
+      needsNewFrame(requested, { ...view, extent: [80, -60, 1080, 440] })
+    ).toBe(false);
   });
 
-  it('does not ask again for a repeat of the same view', () => {
-    expect(needsNewFrame(view, { ...view })).toBe(false);
+  it('asks again once the view leaves the box, or after a zoom or a resize', () => {
+    expect(
+      needsNewFrame(requested, { ...view, extent: [150, 0, 1150, 500] })
+    ).toBe(true);
+    expect(needsNewFrame(requested, { ...view, resolution: 5 })).toBe(true);
+    expect(needsNewFrame(requested, { ...view, size: [120, 50] })).toBe(true);
   });
 
   it('ignores a small rotation alone (heading-up yaw), but not a large one', () => {
@@ -143,18 +164,39 @@ describe('needsNewFrame', () => {
       extent: [-50, -50, 1050, 550],
       rotation: r
     });
-    expect(needsNewFrame(view, turned(OVERLAY_ROTATION_THRESHOLD * 0.9))).toBe(
-      false
-    );
-    expect(needsNewFrame(view, turned(OVERLAY_ROTATION_THRESHOLD * 1.1))).toBe(
-      true
-    );
+    expect(
+      needsNewFrame(requested, turned(OVERLAY_ROTATION_THRESHOLD * 0.9))
+    ).toBe(false);
+    expect(
+      needsNewFrame(requested, turned(OVERLAY_ROTATION_THRESHOLD * 1.1))
+    ).toBe(true);
     // across ±π the shorter way round counts
     expect(
       needsNewFrame(
-        { ...view, rotation: Math.PI - 0.01 },
+        { ...requested, rotation: Math.PI - 0.01 },
         turned(-Math.PI + 0.01)
       )
     ).toBe(false);
+  });
+
+  it('a whole-world view inside a one-world box does not re-request forever', () => {
+    const wide = {
+      extent: [-2 * WORLD_WIDTH, -WORLD_WIDTH, 2 * WORLD_WIDTH, WORLD_WIDTH],
+      size: [1000, 800],
+      resolution: 100000,
+      rotation: 0
+    };
+    const box: RequestedView = {
+      box: [
+        -MERC_HALF_WORLD,
+        -MERC_HALF_WORLD,
+        MERC_HALF_WORLD,
+        MERC_HALF_WORLD
+      ],
+      size: [1000, 800],
+      resolution: 100000,
+      rotation: 0
+    };
+    expect(needsNewFrame(box, wide)).toBe(false);
   });
 });

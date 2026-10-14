@@ -19,7 +19,12 @@ import { get as getProjection } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import type { OverlayFrameDelivery } from 'src/app/modules/plotterext/overlay-registry';
-import { needsNewFrame, overlayView, RequestedView } from './overlay-geometry';
+import {
+  needsNewFrame,
+  overlayView,
+  RequestedView,
+  ViewState
+} from './overlay-geometry';
 
 /**
  * One image map overlay (capability `overlays.image`): an OL image layer whose
@@ -54,6 +59,7 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   private canvas: HTMLCanvasElement | null = null;
   private readonly imageExtent = createEmpty();
   private lastRequested: RequestedView | null = null;
+  private hasFrame = false;
   private listenerKeys: EventsKey[] = [];
   private unregisterSink: (() => void) | null = null;
 
@@ -78,10 +84,9 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       source: this.source,
       zIndex: this.zIndex,
       opacity: this.clampOpacity(this.opacity),
-      // nothing to show until the first frame arrives
-      visible: false,
-      minZoom: this.minZoom,
-      maxZoom: this.maxZoom
+      // nothing to show until the first frame arrives; the zoom range is gated
+      // here rather than by OL, whose minZoom is exclusive
+      visible: false
     });
     map.addLayer(this.layer);
     this.unregisterSink = this.plotterExt.overlays.registerSink(
@@ -102,12 +107,6 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['zIndex']) {
       this.layer.setZIndex(this.zIndex);
-    }
-    if (changes['minZoom']) {
-      this.layer.setMinZoom(this.minZoom ?? -Infinity);
-    }
-    if (changes['maxZoom']) {
-      this.layer.setMaxZoom(this.maxZoom ?? Infinity);
     }
     if (changes['minZoom'] || changes['maxZoom']) {
       this.lastRequested = null;
@@ -152,8 +151,9 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     const size = map?.getSize();
     if (!view || !size || !(size[0] > 0 && size[1] > 0)) return;
     const zoom = view.getZoom();
+    this.updateVisibility(zoom);
     if (!this.inZoomRange(zoom)) return;
-    const next: RequestedView = {
+    const next: ViewState = {
       extent: view.calculateExtent(size),
       size,
       resolution: view.getResolution() ?? NaN,
@@ -168,7 +168,13 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       devicePixelRatio: window.devicePixelRatio
     });
     if (!req) return;
-    this.lastRequested = next;
+    const [x0, y0, x1, y1] = req.view.extent;
+    this.lastRequested = {
+      box: [x0 + req.worldOffset, y0, x1 + req.worldOffset, y1],
+      size: next.size,
+      resolution: next.resolution,
+      rotation: next.rotation
+    };
     this.plotterExt.requestOverlayFrame(
       this.overlayKey,
       req.view,
@@ -194,7 +200,13 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     this.imageExtent[1] = extent[1];
     this.imageExtent[2] = extent[2];
     this.imageExtent[3] = extent[3];
-    this.layer.setVisible(true);
+    this.hasFrame = true;
+    this.updateVisibility(this.mapComponent.getMap()?.getView().getZoom());
     this.source.refresh();
+  }
+
+  /** Shown once a frame has arrived, and only within the zoom range. */
+  private updateVisibility(zoom: number | undefined) {
+    this.layer?.setVisible(this.hasFrame && this.inZoomRange(zoom));
   }
 }
