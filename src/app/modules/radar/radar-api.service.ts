@@ -248,7 +248,9 @@ export class RadarAPIService {
         if (previous && previous !== selected) {
           this._selectedRadar.set(previous);
         } else {
+          // nothing loaded: drop the selection too, so onVessels() looks again
           this._radar.set(undefined);
+          this._selectedRadar.set('');
         }
       }
       return;

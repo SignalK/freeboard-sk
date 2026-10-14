@@ -170,6 +170,20 @@ describe('RadarAPIService init() (#755)', () => {
       expect(listCalls()).toBe(3);
     });
 
+    it('is looked for again when it is listed before it can be read', async () => {
+      const capsPath = 'vessels/self/radars/radar-1/capabilities';
+      held.set(capsPath, [throwError(() => new Error('not ready'))]);
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      expect(service.radar()).toBeUndefined();
+      expect(service.radarId()).toBe('');
+
+      vesselUpdates.next();
+      await vi.waitFor(() =>
+        expect(service.radar()?.device.id).toBe('radar-1')
+      );
+    });
+
     it('is not looked for again once one is selected', async () => {
       const service = TestBed.inject(RadarAPIService);
       await service.init();
