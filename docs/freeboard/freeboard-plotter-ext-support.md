@@ -613,8 +613,8 @@ and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
   z-index is both above the former and below the latter. The spec says its rule
   — never cover the vessel, alarm indications or AIS targets — outranks the band
   table, and a host whose stacking can't satisfy both places the overlay lower
-  (API spec, *Map overlays → Placement*). So the band sits at 190–199, above radar, tracks and resource sets, below everything from AIS
-  targets up. Within a band, manifest order; not re-orderable in v1. With more
+  (API spec, *Map overlays → Placement*). So the band sits at 190–199, above
+  radar, tracks and resource sets, below everything from AIS targets up. Within a band, manifest order; not re-orderable in v1. With more
   than 50 charts shown, chart z-indices (`10+n`) reach the `aboveCharts` band.
 - **Budget.** At most `MAX_ACTIVE_OVERLAYS` (4) shown overlays draw at once; the
   rest are reported `suspended`. A frame is drawn at the overlay's
