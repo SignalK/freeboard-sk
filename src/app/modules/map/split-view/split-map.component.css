@@ -31,13 +31,19 @@
     outline: 3px solid Highlight;
     outline-offset: -3px;
   }
+
+  .split-ghost {
+    forced-color-adjust: none;
+    background-color: Highlight;
+  }
 }
 
 .split-grip {
   position: absolute;
   top: 50%;
   left: -4px;
-  transform: translate(-50%, -50%);
+  /* --split-drag: how far the divider has been dragged, while it is. */
+  transform: translate(calc(-50% + var(--split-drag, 0px)), -50%);
   z-index: 3;
   width: 28px;
   height: 56px;
@@ -58,6 +64,19 @@
   outline-offset: 2px;
 }
 
+/* Where a dragged divider will land; the panes resize when it is let go. */
+.split-ghost {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -8px;
+  z-index: 3;
+  width: 8px;
+  background-color: rgb(54, 122, 190);
+  transform: translateX(var(--split-drag, 0px));
+  pointer-events: none;
+}
+
 /* Stacked panes (the panel is taller than wide). The grip sits right of
    centre; the main chart's position readout above it is lifted clear of it
    (styles.scss). */
@@ -72,6 +91,17 @@
   width: 56px;
   height: 28px;
   cursor: row-resize;
+  transform: translate(-50%, calc(-50% + var(--split-drag, 0px)));
+}
+
+:host(.stacked) .split-ghost {
+  top: -8px;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: 8px;
+  transform: translateY(var(--split-drag, 0px));
 }
 
 :host(.stacked) .split-grip mat-icon {

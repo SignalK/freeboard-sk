@@ -114,12 +114,8 @@ export class SplitViewService {
     this.active.set(pane);
   }
 
-  /**
-   * @param save false while the divider is being dragged: it is saved once,
-   * when the drag ends (see save()).
-   */
-  setRatio(ratio: number, save = true) {
-    this.update({ ratio: clampRatio(ratio) }, save);
+  setRatio(ratio: number) {
+    this.update({ ratio: clampRatio(ratio) });
   }
 
   /** The size of the panel the two panes share, as laid out. */

@@ -5,6 +5,7 @@ import {
   effect,
   ElementRef,
   inject,
+  NgZone,
   OnDestroy,
   OnInit,
   signal,
@@ -37,6 +38,7 @@ import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
 import {
+  fitRatio,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_RATIO_MIN,
@@ -95,6 +97,11 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private pressedAt = 0;
   private gripRect: DOMRect | null = null;
   private gripStacked = false;
+  private gripStart = 0;
+  private stopGripListeners: (() => void) | null = null;
+  private zone = inject(NgZone);
+  /** While the divider is dragged: a line shows where it will land. */
+  protected dragging = signal(false);
 
   constructor() {
     effect(() => {
@@ -140,6 +147,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.commands?.unsubscribe();
     this.panelSize?.disconnect();
     cancelAnimationFrame(this.gripFrame);
+    this.stopGripListeners?.();
     this.stopMirror?.();
     this.stopUseWatch.forEach((stop) => stop());
     this.mainMap?.un('moveend', this.onMainMoved);
@@ -335,13 +343,32 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.gripRect = container.getBoundingClientRect();
     this.gripStacked = this.split.stacked();
-    (ev.currentTarget as HTMLElement).setPointerCapture?.(ev.pointerId);
+    this.gripStart = this.split.shownRatio();
+    this.gripRatio = null;
+    const grip = ev.currentTarget as HTMLElement;
+    grip.setPointerCapture?.(ev.pointerId);
     ev.preventDefault();
+    this.dragging.set(true);
+    // Moves come at pointer rate: outside Angular they set one style property
+    // and run no change detection.
+    this.zone.runOutsideAngular(() => {
+      const move = (e: PointerEvent) => this.gripMove(e);
+      const end = () => this.zone.run(() => this.gripUp());
+      const ends = ['pointerup', 'pointercancel', 'lostpointercapture'];
+      grip.addEventListener('pointermove', move);
+      ends.forEach((type) => grip.addEventListener(type, end));
+      this.stopGripListeners = () => {
+        grip.removeEventListener('pointermove', move);
+        ends.forEach((type) => grip.removeEventListener(type, end));
+      };
+    });
   }
 
   /**
-   * Both maps resize with the divider, so it moves at most once a frame,
-   * and is saved only when the drag ends.
+   * Resizing a map redraws every layer of its chart, too slow to do for both
+   * panes at pointer rate. While dragging, only a line and the grip move to
+   * where the divider will land (a CSS variable, once a frame); the panes
+   * resize once, when the drag ends.
    */
   protected gripMove(ev: PointerEvent) {
     if (!this.gripRect) {
@@ -357,25 +384,28 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     this.gripRatio = ratio;
+    const size = this.gripStacked ? this.gripRect.height : this.gripRect.width;
+    const offset = Math.round((fitRatio(ratio, size) - this.gripStart) * size);
     cancelAnimationFrame(this.gripFrame);
-    this.gripFrame = requestAnimationFrame(() => {
-      this.gripRatio = null;
-      this.split.setRatio(ratio, false);
-    });
+    this.gripFrame = requestAnimationFrame(() =>
+      this.host.nativeElement.style.setProperty('--split-drag', `${offset}px`)
+    );
   }
 
-  /** Applies a move still waiting for its frame, then saves the divider. */
+  /** Moves the divider to where it was let go, and saves it. */
   protected gripUp() {
     if (!this.gripRect) {
       return;
     }
     this.gripRect = null;
+    this.stopGripListeners?.();
+    this.stopGripListeners = null;
     cancelAnimationFrame(this.gripFrame);
+    this.host.nativeElement.style.removeProperty('--split-drag');
+    this.dragging.set(false);
     if (this.gripRatio !== null) {
       this.split.setRatio(this.gripRatio);
       this.gripRatio = null;
-    } else {
-      this.split.save();
     }
   }
 

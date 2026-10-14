@@ -36,11 +36,12 @@
   [attr.aria-valuemin]="ratioMin"
   [attr.aria-valuemax]="ratioMax"
   matTooltip="Drag to resize"
+  [matTooltipDisabled]="dragging()"
   (pointerdown)="gripDown($event)"
-  (pointermove)="gripMove($event)"
-  (pointerup)="gripUp()"
-  (pointercancel)="gripUp()"
   (keydown)="gripKey($event)"
 >
   <mat-icon>drag_indicator</mat-icon>
 </div>
+@if (dragging()) {
+  <div class="split-ghost" aria-hidden="true"></div>
+}

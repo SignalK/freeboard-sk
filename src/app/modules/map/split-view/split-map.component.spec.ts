@@ -196,26 +196,8 @@ describe('SplitMapComponent: the divider', () => {
   describe('dragged', () => {
     afterEach(() => vi.unstubAllGlobals());
 
-    it('saves where it was let go, even before the move was drawn', () => {
-      const frames: (() => void)[] = [];
-      vi.stubGlobal('requestAnimationFrame', (fn: () => void) =>
-        frames.push(fn)
-      );
-      vi.stubGlobal('cancelAnimationFrame', () => undefined);
-      const cmp = withDivider(false);
-      cmp.split.save = vi.fn();
-      cmp.gripRect = { left: 0, top: 0, width: 1000, height: 600 };
-      cmp.gripStacked = false;
-
-      cmp.gripMove({ clientX: 620, clientY: 300 } as PointerEvent);
-      cmp.gripUp();
-
-      // The final position is set and saved (save defaults to true).
-      expect(cmp.split.setRatio).toHaveBeenCalledWith(0.62);
-      expect(cmp.split.setRatio.mock.calls[0]).toHaveLength(1);
-    });
-
-    it('saves once when the last move was already drawn', () => {
+    // A divider on a 1000 x 600 panel, at half way, being dragged.
+    const dragged = (width = 1000) => {
       vi.stubGlobal('requestAnimationFrame', (fn: () => void) => {
         fn();
         return 1;
@@ -223,14 +205,79 @@ describe('SplitMapComponent: the divider', () => {
       vi.stubGlobal('cancelAnimationFrame', () => undefined);
       const cmp = withDivider(false);
       cmp.split.save = vi.fn();
-      cmp.gripRect = { left: 0, top: 0, width: 1000, height: 600 };
+      cmp.host = { nativeElement: document.createElement('div') };
+      cmp.dragging = signal(true);
+      cmp.gripRect = { left: 0, top: 0, width, height: 600 };
       cmp.gripStacked = false;
+      cmp.gripStart = 0.5;
+      cmp.gripRatio = null;
+      return cmp;
+    };
+    const drag = (cmp: ReturnType<typeof dragged>) =>
+      cmp.host.nativeElement.style.getPropertyValue('--split-drag');
+
+    it('moves only a line while dragged, and the panes once, where it is let go', () => {
+      const cmp = dragged();
 
       cmp.gripMove({ clientX: 620, clientY: 300 } as PointerEvent);
+      expect(drag(cmp)).toBe('120px');
+      expect(cmp.split.setRatio).not.toHaveBeenCalled();
+
+      cmp.gripUp();
+      // Set, and so saved, once.
+      expect(cmp.split.setRatio.mock.calls).toEqual([[0.62]]);
+      expect(drag(cmp)).toBe('');
+      expect(cmp.dragging()).toBe(false);
+    });
+
+    it('stops the line where the divider will land', () => {
+      // 560 px: the second pane keeps its 200 px, so 0.7 shows as 360 px.
+      const cmp = dragged(560);
+
+      cmp.gripMove({ clientX: 520, clientY: 300 } as PointerEvent);
+
+      expect(drag(cmp)).toBe('80px');
+    });
+
+    it('changes nothing when pressed and let go without a move', () => {
+      const cmp = dragged();
+
       cmp.gripUp();
 
-      expect(cmp.split.setRatio).toHaveBeenCalledWith(0.62, false);
-      expect(cmp.split.save).toHaveBeenCalledOnce();
+      expect(cmp.split.setRatio).not.toHaveBeenCalled();
+      expect(cmp.split.save).not.toHaveBeenCalled();
+    });
+
+    it('follows the pointer outside Angular, from press to release', () => {
+      const cmp = dragged();
+      cmp.gripRect = null;
+      const panel = document.createElement('div');
+      panel.getBoundingClientRect = () =>
+        ({ left: 0, top: 0, width: 1000, height: 600 }) as DOMRect;
+      panel.append(cmp.host.nativeElement);
+      cmp.dragging = signal(false);
+      cmp.zone = {
+        runOutsideAngular: vi.fn((fn: () => void) => fn()),
+        run: (fn: () => void) => fn()
+      };
+      const grip = document.createElement('div');
+      const at = (type: string, clientX: number) =>
+        grip.dispatchEvent(new MouseEvent(type, { clientX, clientY: 300 }));
+
+      cmp.gripDown({
+        currentTarget: grip,
+        pointerId: 1,
+        preventDefault: () => undefined
+      } as unknown as PointerEvent);
+      expect(cmp.dragging()).toBe(true);
+      expect(cmp.zone.runOutsideAngular).toHaveBeenCalled();
+      at('pointermove', 400);
+      expect(drag(cmp)).toBe('-100px');
+      at('pointerup', 400);
+      at('pointermove', 600);
+
+      expect(cmp.split.setRatio.mock.calls).toEqual([[0.4]]);
+      expect(drag(cmp)).toBe('');
     });
   });
 
