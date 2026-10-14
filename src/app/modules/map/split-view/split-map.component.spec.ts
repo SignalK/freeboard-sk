@@ -1,6 +1,8 @@
 import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 import { Map as OlMap } from 'ol';
+import { Subject } from 'rxjs';
+import { Position } from 'src/app/types';
 
 import { SplitMapComponent } from './split-map.component';
 
@@ -82,5 +84,46 @@ describe('SplitMapComponent: choosing the active pane', () => {
     press(map.getViewport());
 
     expect(cmp.split.activate).not.toHaveBeenCalled();
+  });
+});
+
+describe('SplitMapComponent: where the pane opens', () => {
+  const FIX: Position = [23.5, 60.1];
+  const opened = (o: { fix: boolean; follow: boolean; stored?: Position }) => {
+    const cmp = bareComponent(o.follow);
+    cmp.app = {
+      MAP_ZOOM_EXTENT: { min: 2, max: 24 },
+      config: { map: { zoomLevel: 14, center: [24.9, 60.2] } },
+      data: {
+        vessels: {
+          // The vessel the main chart follows: own ship or one in focus.
+          active: {
+            positionReceived: o.fix,
+            position: o.fix ? FIX : [0, 0],
+            orientation: 1
+          }
+        }
+      }
+    };
+    cmp.heading = signal(0);
+    cmp.split.lastView = () => ({ zoom: null, center: o.stored ?? null });
+    cmp.split.commands$ = new Subject();
+    cmp.skstream = { vessels$: () => new Subject() };
+    cmp.ngOnInit();
+    return cmp;
+  };
+
+  it('centres on the vessel the main chart follows', () => {
+    expect(opened({ fix: true, follow: true }).center()).toEqual(FIX);
+  });
+
+  it('opens where the main chart was, not at 0,0, before the first fix', () => {
+    expect(opened({ fix: false, follow: true }).center()).toEqual([24.9, 60.2]);
+  });
+
+  it('opens where it was left when not following', () => {
+    expect(
+      opened({ fix: true, follow: false, stored: [22, 59] }).center()
+    ).toEqual([22, 59]);
   });
 });

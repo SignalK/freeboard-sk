@@ -65,3 +65,20 @@ describe('AppComponent: map buttons with the chart split', () => {
     expect(main.app.config.map.zoomLevel).toBe(14);
   });
 });
+
+describe('AppComponent: when the split shows', () => {
+  const shown = (kiosk: boolean) => {
+    const cmp = Object.create(AppComponent.prototype);
+    cmp.app = { config: { experiments: true }, kioskMode: signal(kiosk) };
+    cmp.splitView = { enabled: () => true };
+    return cmp.splitActive();
+  };
+
+  it('shows with experiments on', () => {
+    expect(shown(false)).toBe(true);
+  });
+
+  it('never shows in kiosk mode, which has no button to close it', () => {
+    expect(shown(true)).toBe(false);
+  });
+});

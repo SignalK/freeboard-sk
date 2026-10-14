@@ -584,9 +584,16 @@ export class AppComponent {
     this.focusMap();
   }
 
-  /** The split view is an experiment: it shows only while experiments are on. */
+  /**
+   * The split view is an experiment: it shows only while experiments are on,
+   * and never in kiosk mode, which hides the button that closes it.
+   */
   protected splitActive(): boolean {
-    return !!this.app.config.experiments && this.splitView.enabled();
+    return (
+      !!this.app.config.experiments &&
+      !this.app.kioskMode() &&
+      this.splitView.enabled()
+    );
   }
 
   protected toggleConstrainMapZoom() {

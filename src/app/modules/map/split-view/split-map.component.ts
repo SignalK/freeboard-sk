@@ -95,17 +95,18 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.heading.set(this.app.data.vessels.self.orientation ?? 0);
+    this.heading.set(this.app.data.vessels.active.orientation ?? 0);
 
     const { min } = this.app.MAP_ZOOM_EXTENT;
     const last = this.split.lastView();
     this.zoom.set(
       last.zoom ?? Math.max(min, this.app.config.map.zoomLevel - 3)
     );
-    if (this.split.follow() || !last.center) {
-      this.centerOnVessel();
-    } else {
+    if (!this.split.follow() && last.center) {
       this.center.set(last.center);
+    } else if (!this.centerOnVessel()) {
+      // No fix yet: start where the main chart was left, not at 0,0.
+      this.center.set(last.center ?? [...this.app.config.map.center]);
     }
 
     this.vessels = this.skstream.vessels$().subscribe(() => this.onVessels());
@@ -226,11 +227,17 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  private centerOnVessel() {
-    const position = this.app.data.vessels.self.position;
-    if (Array.isArray(position)) {
-      this.center.set([...position] as Position);
+  /**
+   * Centres the pane on the vessel the main chart follows (own ship, or the
+   * one in focus) once it has a position. Returns false until then.
+   */
+  private centerOnVessel(): boolean {
+    const vessel = this.app.data.vessels.active;
+    if (!vessel?.positionReceived || !Array.isArray(vessel.position)) {
+      return false;
     }
+    this.center.set([...vessel.position] as Position);
+    return true;
   }
 
   // ---------- divider ----------
@@ -290,9 +297,9 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     if (this.split.follow()) {
       this.centerOnVessel();
     }
-    const self = this.app.data.vessels.self;
-    if (typeof self.orientation === 'number') {
-      this.heading.set(self.orientation);
+    const vessel = this.app.data.vessels.active;
+    if (typeof vessel.orientation === 'number') {
+      this.heading.set(vessel.orientation);
     }
   }
 
