@@ -325,7 +325,12 @@ export class AppFacade extends InfoService {
   mapZoom = signal<number>(0);
   // programmatic map move request (e.g. from a plotter extension). A new
   // object reference each time so the consuming effect always reacts.
-  mapMoveRequest = signal<{ center: Position; zoom?: number } | null>(null);
+  mapMoveRequest = signal<{
+    center: Position;
+    zoom?: number;
+    /** Show it on the active pane of the split view, not the main chart. */
+    activePane?: boolean;
+  } | null>(null);
 
   protected signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);

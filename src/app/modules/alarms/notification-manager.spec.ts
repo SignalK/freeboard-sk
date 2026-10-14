@@ -599,7 +599,11 @@ describe('NotificationManager buddy notifications', () => {
     aisTargets.get(`vessels.${BUDDY}`).position = [177.25, -17.75];
     pressed.next();
 
-    expect(mapMoveRequest()).toEqual({ center: [177.25, -17.75] });
+    // A place to show: on the active pane when the chart is split.
+    expect(mapMoveRequest()).toEqual({
+      center: [177.25, -17.75],
+      activePane: true
+    });
   });
 
   it('offers no LOCATE for a buddy without a position', () => {

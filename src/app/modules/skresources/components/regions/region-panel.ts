@@ -116,10 +116,8 @@ export class RegionPanel {
   }
 
   protected onPanTo() {
-    const zoomTo =
-      this.app.config.map.zoomLevel < this.app.config.resources.notes.minZoom
-        ? this.app.config.resources.notes.minZoom
-        : null;
+    // The least zoom that shows the place: a pane further in keeps its zoom.
+    const zoomTo = this.app.config.resources.notes.minZoom;
 
     let position: Position;
     const geometry = this._region().feature.geometry;

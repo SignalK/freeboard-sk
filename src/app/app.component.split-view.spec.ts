@@ -64,6 +64,34 @@ describe('AppComponent: map buttons with the chart split', () => {
     expect(main.mapCenter()).toEqual([23.5, 60.1]);
     expect(main.app.config.map.zoomLevel).toBe(14);
   });
+
+  it("shows a buddy's position in the active pane, and moves the main chart for extensions", () => {
+    const second = component(true);
+    second.app.uiConfig.set({ mapNorthUp: true, mapMove: true });
+
+    second.applyMapMove({ center: [23.5, 60.1], activePane: true });
+    expect(second.splitView.centerOn).toHaveBeenCalledWith(
+      [23.5, 60.1],
+      undefined
+    );
+    // The main chart keeps following.
+    expect(second.app.uiConfig().mapMove).toBe(true);
+
+    second.applyMapMove({ center: [24, 60], zoom: 9 });
+    expect(second.mapCenter()).toEqual([24, 60]);
+    expect(second.app.config.map.zoomLevel).toBe(9);
+    expect(second.app.uiConfig().mapMove).toBe(false);
+  });
+
+  it('zooms the main chart in to a place, never out', () => {
+    const main = component(false);
+    main.app.config.map.zoomLevel = 15;
+
+    main.centerAndZoom([23.5, 60.1], 12);
+
+    expect(main.mapCenter()).toEqual([23.5, 60.1]);
+    expect(main.app.config.map.zoomLevel).toBe(15);
+  });
 });
 
 describe('AppComponent: when the split shows', () => {

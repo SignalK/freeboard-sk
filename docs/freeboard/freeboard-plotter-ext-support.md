@@ -545,7 +545,7 @@ are not arrays of strings), `resourceGroups.notSupported`.
 `map.fitBounds` drive it, and `map.view` follows it.
 
 Moves are routed through Freeboard's own centering path
-(`AppFacade.mapMoveRequest` → `AppComponent` effect → `centerAndZoom`), never by
+(`AppFacade.mapMoveRequest` → `AppComponent.applyMapMove` → `centerMainChart`), never by
 reaching into the OpenLayers view directly — driving the OL view bypasses the
 `mapCenter`/`mapZoom` signal flow, so chart and resource layers would not refresh
 after the move.

@@ -5,7 +5,8 @@ import {
   computed,
   effect,
   inject,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
@@ -340,14 +341,7 @@ export class AppComponent {
     effect(() => {
       const req = this.app.mapMoveRequest();
       if (req) {
-        // An explicit reposition outranks follow-vessel mode: turn it off so
-        // the requested view isn't immediately re-centered on the vessel.
-        // update() (not a reactive read) avoids a read/write feedback loop.
-        this.app.uiConfig.update((c) =>
-          c.mapMove ? { ...c, mapMove: false } : c
-        );
-        // Extensions move the main chart; they don't know about the split.
-        this.centerMainChart(req.center, req.zoom);
+        untracked(() => this.applyMapMove(req));
       }
     });
   }
@@ -1620,16 +1614,41 @@ export class AppComponent {
   // ***** OPTIONS MENU ACTONS *******
 
   /**
-   * Center and zoom the active chart pane
+   * Shows a place on the active chart pane
    * @param position Location to center the map
-   * @param zoomTo Zoom level to apply
+   * @param zoomTo The least zoom the place needs: a pane already further in
+   * keeps its zoom
    */
   protected centerAndZoom(position: Position, zoomTo?: number) {
     if (this.splitView.secondaryActive()) {
       this.splitView.centerOn(position, zoomTo);
       return;
     }
-    this.centerMainChart(position, zoomTo);
+    this.centerMainChart(
+      position,
+      typeof zoomTo === 'number' && zoomTo > this.app.config.map.zoomLevel
+        ? zoomTo
+        : undefined
+    );
+  }
+
+  /** A programmatic map move (a plotter extension, a buddy's LOCATE). */
+  private applyMapMove(req: {
+    center: Position;
+    zoom?: number;
+    activePane?: boolean;
+  }) {
+    // A place to show goes to the active pane, as from the lists, which
+    // stops following there. Extensions move the main chart: they don't know
+    // about the split.
+    if (req.activePane && this.splitView.secondaryActive()) {
+      this.splitView.centerOn(req.center, req.zoom);
+      return;
+    }
+    // An explicit reposition outranks follow-vessel mode: turn it off so the
+    // requested view isn't immediately re-centered on the vessel.
+    this.app.uiConfig.update((c) => (c.mapMove ? { ...c, mapMove: false } : c));
+    this.centerMainChart(req.center, req.zoom);
   }
 
   private centerMainChart(position: Position, zoomTo?: number) {

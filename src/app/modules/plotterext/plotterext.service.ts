@@ -2689,7 +2689,7 @@ export class PlotterExtensionService {
   // ---------- map host API ----------
   //
   // Map moves are routed through the host's own centering path
-  // (AppFacade.mapMoveRequest -> AppComponent effect -> centerMainChart), not
+  // (AppFacade.mapMoveRequest -> AppComponent.applyMapMove -> centerMainChart), not
   // by reaching into the OpenLayers view directly. Driving the OL view
   // directly bypasses Freeboard's mapCenter/mapZoom signal flow, so chart
   // and resource layers do not refresh after the move. They move the main
