@@ -905,6 +905,11 @@ Things to know:
   overlay is hidden or suspended.
 - The user shows, hides and fades the layer in the host's own layer controls;
   your manifest's `visible` and `opacity` are only the starting point.
+- **Settings belong on the layer.** Name a panel in the overlay's `configPanel`
+  and the host offers it from the overlay's row in its layer controls, with
+  `client.context.targetOverlay` set to the overlay id — no separate toolbar
+  button needed. Ask for the density you need with `preferredPixelRatio` (the
+  host still clamps it), and pace live frames by the request's `liveInterval`.
 
 ## Reference implementations
 
