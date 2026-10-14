@@ -426,6 +426,35 @@ describe('PlotterExtensionService panel state', () => {
     ]);
   });
 
+  it('opens one overlay config dialog however often it is asked, until it closes', async () => {
+    service.manifests.set({
+      'ext-a': {
+        ...manifest('ext-a'),
+        overlays: [
+          {
+            id: 'depth',
+            title: 'Depth',
+            type: 'image',
+            runtime: 'runtime',
+            configPanel: 'cfg'
+          }
+        ]
+      }
+    });
+    TestBed.tick();
+    // a double tap lands before the lazily imported dialog has opened
+    service.overlays.openConfigPanel('ext-a/depth');
+    service.overlays.openConfigPanel('ext-a/depth');
+    await vi.waitFor(() => expect(dialogs.length).toBe(1));
+    await new Promise((r) => setTimeout(r, 20));
+    service.overlays.openConfigPanel('ext-a/depth');
+    await new Promise((r) => setTimeout(r, 20));
+    expect(dialogs.length).toBe(1);
+    dialogs[0].close();
+    service.overlays.openConfigPanel('ext-a/depth');
+    await vi.waitFor(() => expect(dialogs.length).toBe(2));
+  });
+
   it('lists no panel for a config dialog without an iframe panel', async () => {
     const a = await follower('ext-a');
     service.openConfigPanel(placed('plain', 'inst-2'));

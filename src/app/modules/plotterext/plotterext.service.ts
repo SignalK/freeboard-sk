@@ -2210,6 +2210,8 @@ export class PlotterExtensionService {
     }>
   >([]);
   private configPanelSeq = 0;
+  /** Overlay keys whose configuration dialog is opening or open. */
+  private readonly overlayConfigsOpen = new Set<string>();
 
   /** Whether a placed widget has a usable iframe configuration panel. */
   widgetHasConfigPanel(placed: PlacedWidget): boolean {
@@ -2279,11 +2281,17 @@ export class PlotterExtensionService {
    * Open an image overlay's configuration panel (its `configPanel`, already
    * resolved to a usable iframe panel by the registry) in the same dialog as a
    * widget's, without the Remove button: an overlay is hidden, never removed.
+   * A second call while that overlay's dialog is opening or open does
+   * nothing: the dialog loads after a lazy import, so a double tap would
+   * otherwise stack two dialogs.
    */
   openOverlayConfigPanel(entry: OverlayEntry) {
+    if (this.overlayConfigsOpen.has(entry.key)) return;
     const panel =
       entry.configPanel && this.iframePanel(entry.extension, entry.configPanel);
     if (!panel) return;
+    this.overlayConfigsOpen.add(entry.key);
+    const release = () => this.overlayConfigsOpen.delete(entry.key);
     import('./panel-dialog.component').then(({ PlotterPanelDialog }) => {
       const ref = this.dialog.open(PlotterPanelDialog, {
         data: {
@@ -2305,14 +2313,13 @@ export class PlotterExtensionService {
           targetOverlay: entry.id
         }
       ]);
-      ref
-        .afterClosed()
-        .subscribe(() =>
-          this.configPanels.update((list) =>
-            list.filter((c) => c.id !== configId)
-          )
+      ref.afterClosed().subscribe(() => {
+        release();
+        this.configPanels.update((list) =>
+          list.filter((c) => c.id !== configId)
         );
-    });
+      });
+    }, release);
   }
 
   /**
