@@ -180,7 +180,7 @@ export class RadarAPIService {
     this.app.debug('Looking for a radar....');
     this.init().finally(() => {
       this.probing = false;
-      if (!this._selectedRadar()) {
+      if (!this._radars().length) {
         this.retryDelay = Math.min(this.retryDelay * 2, RADAR_RETRY_MAX_MS);
       }
     });

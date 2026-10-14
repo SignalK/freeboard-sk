@@ -223,6 +223,23 @@ describe('RadarAPIService init() (#755)', () => {
       );
     });
 
+    it('is looked for every RADAR_RETRY_MS while it is listed but cannot be read', async () => {
+      const capsPath = 'vessels/self/radars/radar-1/capabilities';
+      const notReady = () => throwError(() => new Error('not ready'));
+      held.set(capsPath, [notReady(), notReady()]);
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      await updateAt(RADAR_RETRY_MS);
+      expect(listCalls()).toBe(2);
+      expect(service.radarId()).toBe('');
+
+      await updateAt(2 * RADAR_RETRY_MS);
+      expect(listCalls()).toBe(3);
+      await vi.waitFor(() =>
+        expect(service.radar()?.device.id).toBe('radar-1')
+      );
+    });
+
     it('is not looked for again once one is selected', async () => {
       const service = TestBed.inject(RadarAPIService);
       await service.init();
