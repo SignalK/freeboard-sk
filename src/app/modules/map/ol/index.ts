@@ -54,6 +54,7 @@ import { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson
 import { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
 import { ChartBoundsLayerComponent } from './lib/charts/layer-chart-bounds.component';
 import { RadarComponent } from './lib/radar/layer-radar.component';
+import { PluginOverlayComponent } from './lib/plugin-overlay/layer-plugin-overlay.component';
 import { RadarZonesComponent } from './lib/radar/layer-radar-zones.component';
 import { RadarZoneEditorComponent } from './lib/radar/radar-zone-editor.component';
 
@@ -117,6 +118,7 @@ export { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson
 export { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
 export { ChartBoundsLayerComponent } from './lib/charts/layer-chart-bounds.component';
 export { RadarComponent } from './lib/radar/layer-radar.component';
+export { PluginOverlayComponent } from './lib/plugin-overlay/layer-plugin-overlay.component';
 export { RadarZonesComponent } from './lib/radar/layer-radar-zones.component';
 export { RadarZoneEditorComponent } from './lib/radar/radar-zone-editor.component';
 export { TidalCurrentsLayerComponent } from './lib/resources/tidal-currents-layer.component';
@@ -165,6 +167,7 @@ const declarations = [
   CogLineComponent,
   WindLinesComponent,
   RadarComponent,
+  PluginOverlayComponent,
   RadarZonesComponent,
   RadarZoneEditorComponent,
   RasterChartLayerComponent,

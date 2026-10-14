@@ -224,6 +224,18 @@
     }
   }
 
+  <!-- Image map overlays drawn by extensions (capability overlays.image) -->
+  @for (ov of plotterExt.overlays.active(); track ov.key) {
+    <fb-plugin-overlay
+      [overlayKey]="ov.key"
+      [zIndex]="ov.zIndex"
+      [opacity]="ov.opacity"
+      [minZoom]="ov.minZoom"
+      [maxZoom]="ov.maxZoom"
+    >
+    </fb-plugin-overlay>
+  }
+
   <!-- Radar Overlay -->
   @if (app.uiCtrl().radarLayer) {
     @if (radarImage()) {
