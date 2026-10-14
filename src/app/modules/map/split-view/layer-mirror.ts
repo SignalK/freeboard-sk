@@ -14,6 +14,7 @@ import { ObjectEvent } from 'ol/Object';
 import { unByKey } from 'ol/Observable';
 import { FrameState } from 'ol/Map';
 import { followImageFilter } from '../ol/lib/charts/chart-utils';
+import { ON_TWIN, OnTwin } from '../ol/lib/util';
 
 /*
  * The split view's second pane shows the main chart's layers through twins:
@@ -23,8 +24,11 @@ import { followImageFilter } from '../ol/lib/charts/chart-utils';
  * original as layers come and go and as their properties and styles change.
  */
 
-/** Not copied: an unmanaged layer's own map, and a group's child collection. */
-const NOT_COPIED = new Set(['map', 'layers']);
+/**
+ * Not copied: an unmanaged layer's own map, a group's child collection, and a
+ * layer's request to be told about its twins.
+ */
+const NOT_COPIED = new Set(['map', 'layers', ON_TWIN]);
 
 interface Twin {
   layer: BaseLayer;
@@ -145,8 +149,10 @@ function twinOf(layer: BaseLayer): Twin | null {
       }
     })
   ];
+  let forget: (() => void) | undefined;
   if (twin instanceof Layer) {
     keys.push(...followImageFilter(twin));
+    forget = (layer.get(ON_TWIN) as OnTwin | undefined)?.(twin);
   }
   if (layer instanceof BaseVectorLayer && twin instanceof BaseVectorLayer) {
     twin.setStyle(layer.getStyle());
@@ -164,6 +170,7 @@ function twinOf(layer: BaseLayer): Twin | null {
     stop: () => {
       unByKey(keys);
       stopChildren?.();
+      forget?.();
     }
   };
 }
@@ -199,8 +206,8 @@ export function mirrorCollection(
     if (!twin) {
       return;
     }
-    twin.stop();
     to.remove(twin.layer);
+    twin.stop();
     // Drops the twin's renderer (and its canvas or WebGL context) and its
     // listener on the shared source, which would otherwise keep it alive.
     twin.layer.dispose();

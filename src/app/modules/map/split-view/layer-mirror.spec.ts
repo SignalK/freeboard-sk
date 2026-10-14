@@ -4,6 +4,7 @@ import BaseEvent from 'ol/events/Event';
 import { Point } from 'ol/geom';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
+import ImageLayer from 'ol/layer/Image';
 import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
@@ -16,6 +17,7 @@ import {
   chartLayerClassName,
   IMAGE_FILTER
 } from '../ol/lib/charts/chart-utils';
+import { ON_TWIN } from '../ol/lib/util';
 import { mirrorLayers } from './layer-mirror';
 
 const vectorLayer = (id: string, zIndex = 0) => {
@@ -196,6 +198,42 @@ describe('mirrorLayers', () => {
     expect(drawn.style.backgroundColor).toBe('blue');
     // The main chart's own element is left as the main chart drew it.
     expect(div.style.backgroundColor).toBe('white');
+  });
+
+  it('hands a layer that asks for it each twin, and tells it once the twin is gone', () => {
+    const main = new OlMap();
+    const overlay = new ImageLayer();
+    let twin: BaseLayer;
+    let inPaneWhenGone: boolean | undefined;
+    const second = new OlMap();
+    const onTwin = vi.fn((t: BaseLayer) => {
+      twin = t;
+      return () => (inPaneWhenGone = twinsOn(second).includes(t));
+    });
+    overlay.set(ON_TWIN, onTwin);
+    main.addLayer(overlay);
+
+    mirrorLayers(main, second);
+    expect(onTwin).toHaveBeenCalledTimes(1);
+    expect(twinsOn(second)).toEqual([twin]);
+    expect(twin.get(ON_TWIN)).toBeUndefined();
+
+    main.removeLayer(overlay);
+    expect(inPaneWhenGone).toBe(false);
+  });
+
+  it('tells a layer its twin is gone when the mirror stops', () => {
+    const main = new OlMap();
+    const overlay = new ImageLayer();
+    const forget = vi.fn();
+    overlay.set(ON_TWIN, () => forget);
+    main.addLayer(overlay);
+
+    const stop = mirrorLayers(main, new OlMap());
+    expect(forget).not.toHaveBeenCalled();
+    stop();
+
+    expect(forget).toHaveBeenCalledTimes(1);
   });
 
   describe('a layer it cannot show', () => {

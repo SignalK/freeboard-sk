@@ -12,10 +12,12 @@ import {
 import type { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import ImageLayer from 'ol/layer/Image';
+import type Layer from 'ol/layer/Layer';
 import ImageSource from 'ol/source/Image';
 import type CanvasImageLayerRenderer from 'ol/renderer/canvas/ImageLayer';
 import { get as getProjection } from 'ol/proj';
 import { MapComponent } from '../map.component';
+import { ON_TWIN, OnTwin } from '../util';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import type { OverlayFrameDelivery } from 'src/app/modules/plotterext/overlay-registry';
 import {
@@ -37,7 +39,10 @@ import { FrameBitmaps, frameSource } from './frame-bitmaps';
  * Each frame gets its own static `ImageSource` whose image is the transferred
  * `ImageBitmap` itself (see {@link frameSource}). OL keeps drawing the previous
  * image until the new one has loaded, so swapping sources does not flicker;
- * {@link FrameBitmaps} closes bitmaps by what the renderer actually draws.
+ * {@link FrameBitmaps} closes bitmaps by what the renderers actually draw: this
+ * layer's, and those of its twins drawing the same frames on another map (the
+ * split view's second pane), which tell the layer they exist through
+ * {@link ON_TWIN}.
  */
 @Component({
   selector: 'ol-map > fb-plugin-overlay',
@@ -58,6 +63,7 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   private mapComponent = inject(MapComponent);
 
   private layer: ImageLayer<ImageSource> | null = null;
+  private readonly twins = new Set<Layer>();
   private projection = getProjection('EPSG:3857');
   private readonly bitmaps = new FrameBitmaps();
   private lastRequested: RequestedView | null = null;
@@ -77,12 +83,13 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       opacity: this.clampOpacity(this.opacity),
       // nothing to show until the first frame arrives; the zoom range is gated
       // here rather than by OL, whose minZoom is exclusive
-      visible: false
+      visible: false,
+      properties: { [ON_TWIN]: ((twin) => this.addTwin(twin)) as OnTwin }
     });
     map.addLayer(this.layer);
     this.listenerKeys.push(
       this.layer.on('postrender', () =>
-        this.bitmaps.rendered(this.drawnBitmap())
+        this.bitmaps.rendered(this.drawnBitmaps())
       )
     );
     this.unregisterSink = this.plotterExt.overlays.registerSink(
@@ -129,11 +136,31 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     this.bitmaps.clear();
   }
 
-  /** The bitmap OL's renderer is drawing for this layer, if any. */
-  private drawnBitmap(): unknown {
-    const renderer = this.layer?.getRenderer() as
-      CanvasImageLayerRenderer | undefined;
-    return renderer?.getImage() ?? null;
+  /** The bitmap each renderer of this overlay is drawing, if any. */
+  private drawnBitmaps(): unknown[] {
+    return [this.layer, ...this.twins].map(
+      (layer) =>
+        (
+          layer?.getRenderer() as CanvasImageLayerRenderer | undefined
+        )?.getImage() ?? null
+    );
+  }
+
+  /**
+   * A twin draws this overlay's frames on another map. Until it is gone, the
+   * bitmap it draws stays open: during a gesture on its map it keeps drawing
+   * that one while this layer moves on.
+   */
+  private addTwin(twin: Layer): () => void {
+    this.twins.add(twin);
+    const key = twin.on('postrender', () =>
+      this.bitmaps.rendered(this.drawnBitmaps())
+    );
+    return () => {
+      unByKey(key);
+      this.twins.delete(twin);
+      this.bitmaps.rendered(this.drawnBitmaps());
+    };
   }
 
   private clampOpacity(v: number) {
@@ -192,7 +219,7 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       frame.image.close();
       return;
     }
-    this.bitmaps.add(frame.image, this.drawnBitmap());
+    this.bitmaps.add(frame.image, this.drawnBitmaps());
     this.layer.setSource(
       frameSource(frame.image, frame.extent, this.projection)
     );

@@ -1,3 +1,4 @@
+import type Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile.js';
 import OSM from 'ol/source/OSM.js';
 import { getPointResolution, fromLonLat } from 'ol/proj';
@@ -125,3 +126,13 @@ export function mapifyRadius(radius: number, position: Coordinate): number {
   }
   return radius / getPointResolution('EPSG:3857', 1, fromLonLat(position));
 }
+
+/**
+ * Layer property: a layer that must know every renderer drawing its images (one
+ * that closes the bitmaps it has drawn, say) sets this to a function. Whoever
+ * draws the layer's source on another map with a copy of the layer (the split
+ * view's second pane) hands it each copy, and calls the function it returns
+ * once that copy is gone.
+ */
+export const ON_TWIN = 'onTwin';
+export type OnTwin = (twin: Layer) => () => void;
