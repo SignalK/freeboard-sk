@@ -71,6 +71,9 @@ const setSourceKey = (source: unknown, key: string) =>
 
 let emptyTiles: Record<number, HTMLCanvasElement> = {};
 
+/** Makes each build's style id unique: ol-mapbox-style keys its caches by it. */
+let glStyleSeq = 0;
+
 /** A transparent tile: what Freeboard draws for a tile with no data. */
 function emptyTile(size: number): HTMLCanvasElement {
   if (!emptyTiles[size]) {
@@ -130,9 +133,11 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
    * The vector layers as ol-mapbox-style draws them, one object per build.
    * Changes go through `updateMapboxLayer`, which replaces a layer in it and
    * clears only that layer's compiled expressions: a new style object per
-   * change would leave ol-mapbox-style's module-level caches growing for good.
+   * change would grow ol-mapbox-style's module-level caches with every change
+   * rather than once per build.
    */
   private glStyle: {
+    id: string;
     version: 8;
     sources: Record<string, unknown>;
     layers: StyleLayer[];
@@ -261,6 +266,10 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     }
     const vectorParts = this.parts.filter((p) => p.kind === 'vector');
     this.glStyle = {
+      // ol-mapbox-style numbers a style without an id, and numbers the first
+      // one 0, which it then renumbers as unset, losing that style's saved
+      // stylefunction args; updateMapboxLayer would then silently not restyle
+      id: `fsk-data-overlay-${++glStyleSeq}`,
       version: 8,
       sources: Object.fromEntries(
         vectorParts.map((p) => [p.source, this.model.style.sources[p.source]])

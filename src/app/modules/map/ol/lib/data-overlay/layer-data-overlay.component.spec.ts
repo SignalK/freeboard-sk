@@ -7,6 +7,8 @@ import type LayerGroup from 'ol/layer/Group';
 import type VectorLayer from 'ol/layer/Vector';
 import type VectorSource from 'ol/source/Vector';
 import VectorTileLayer from 'ol/layer/VectorTile';
+import type Style from 'ol/style/Style';
+import type CircleStyle from 'ol/style/Circle';
 import type VectorTileSource from 'ol/source/VectorTile';
 import type { OverlayStyle } from 'signalk-plotterext-bus/host';
 import { MapComponent } from '../map.component';
@@ -100,6 +102,25 @@ describe('DataOverlayComponent', () => {
       group().getLayers().item(0) as VectorTileLayer
     ).getSource() as VectorTileSource;
 
+  it('restyles every vector run, the first one included', () => {
+    // first in the file, so its build is the first style ol-mapbox-style
+    // sees: that one once lost its saved setup and silently stopped restyling
+    const lines = group().getLayers().item(0) as VectorTileLayer;
+    const shoals = group().getLayers().item(1) as VectorLayer;
+    const linesStyle = lines.getStyle();
+    const shoalsStyle = shoals.getStyle();
+    model.setLayer({ layer: 'lines', paint: { 'line-width': 3 } });
+    model.setState({ factor: 2 });
+    expect(lines.getStyle()).not.toBe(linesStyle);
+    expect(shoals.getStyle()).not.toBe(shoalsStyle);
+    const feature = geojsonSource().getFeatures()[0];
+    const styles = shoals.getStyleFunction()!(feature, 10) as Style[];
+    const radius = styles
+      .map((st) => (st.getImage() as CircleStyle | null)?.getRadius())
+      .find((r) => r !== undefined);
+    expect(radius).toBe(8);
+  });
+
   it('draws the overlay as one group: a layer per run of layers on one source', () => {
     expect(group().getZIndex()).toBe(60);
     expect(group().getOpacity()).toBe(0.5);
@@ -180,7 +201,7 @@ describe('DataOverlayComponent', () => {
     expect(byId('shoals')?.paint?.['circle-radius']).toEqual([
       '*',
       4,
-      ['literal', 2]
+      ['get', 'factor', ['literal', { factor: 2 }]]
     ]);
   });
 });

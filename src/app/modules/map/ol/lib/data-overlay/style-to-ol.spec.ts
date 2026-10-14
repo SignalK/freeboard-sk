@@ -208,8 +208,29 @@ describe('olStyleLayer', () => {
       colour: 'red'
     });
     expect(dropped).toEqual([]);
-    expect(out.filter).toEqual(['<', ['get', 'depth'], ['literal', 3]]);
-    expect(out.paint?.['text-color']).toEqual(['literal', 'red']);
+    expect(out.filter).toEqual([
+      '<',
+      ['get', 'depth'],
+      ['get', 'safety', ['literal', { safety: 3 }]]
+    ]);
+    expect(out.paint?.['text-color']).toEqual([
+      'get',
+      'colour',
+      ['literal', { colour: 'red' }]
+    ]);
+  });
+
+  it('coerces a value as MapLibre does: a number reads as text', () => {
+    const { dropped } = olStyleLayer(
+      {
+        id: 'l',
+        type: 'symbol',
+        source: 's',
+        layout: { 'text-field': ['global-state', 'label'] }
+      },
+      { label: 5 }
+    );
+    expect(dropped).toEqual([]);
   });
 
   it('drops a property whose value no longer compiles, so it draws its default', () => {
