@@ -121,6 +121,7 @@ import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component'
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
 import { SplitMapComponent } from './modules/map/split-view/split-map.component';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
+import { SPLIT_SHARE_VAR } from './modules/map/split-view/split-view';
 import {
   RoutePanel,
   SKResourceType,
@@ -590,6 +591,11 @@ export class AppComponent {
       this.splitView.enabled()
     );
   }
+
+  /** The main chart's share of the panel; a dragged divider overrides it. */
+  protected mainShare = computed(
+    () => `var(${SPLIT_SHARE_VAR}, ${this.splitView.shownRatio() * 100}%)`
+  );
 
   protected toggleConstrainMapZoom() {
     this.app.uiConfig.update((current) => {

@@ -1058,9 +1058,7 @@
               [class.active-pane]="
                 splitActive() && !splitView.secondaryActive()
               "
-              [style.flex-basis.%]="
-                splitActive() ? splitView.shownRatio() * 100 : 100
-              "
+              [style.flex-basis]="splitActive() ? mainShare() : '100%'"
             >
               <!-- MAP -->
               <fb-map

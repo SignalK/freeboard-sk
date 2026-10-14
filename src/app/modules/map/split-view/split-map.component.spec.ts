@@ -1,8 +1,9 @@
 import { signal } from '@angular/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Map as OlMap } from 'ol';
+import { Map as OlMap, View } from 'ol';
 import { Subject } from 'rxjs';
 import { WORLD_WIDTH_3857 } from '../route-extend';
+import { SPLIT_SHARE_VAR } from './split-view';
 import { Position } from 'src/app/types';
 
 import { SplitMapComponent } from './split-map.component';
@@ -196,88 +197,190 @@ describe('SplitMapComponent: the divider', () => {
   describe('dragged', () => {
     afterEach(() => vi.unstubAllGlobals());
 
-    // A divider on a 1000 x 600 panel, at half way, being dragged.
-    const dragged = (width = 1000) => {
+    // A chart in a pane `width` x `height` with three controls: one pinned to
+    // the top left (the scale bar), one 50 px in from the right (the zoom
+    // buttons) and one centred (the position readout).
+    const chart = (width: number, height: number) => {
+      const target = document.createElement('div');
+      target.style.width = '100%';
+      target.style.height = '100%';
+      const drawn = () =>
+        target.style.width.endsWith('px')
+          ? parseFloat(target.style.width)
+          : width;
+      target.getBoundingClientRect = () => ({ width, height }) as DOMRect;
+      const map = new OlMap({ target, view: new View() });
+      const control = (left: () => number) => {
+        const el = document.createElement('div');
+        el.style.position = 'absolute';
+        el.getBoundingClientRect = () =>
+          ({ left: left(), top: 10, width: 40, height: 20 }) as DOMRect;
+        // An inline wrapper, as an Angular ol-control element is.
+        const wrapper = document.createElement('span');
+        wrapper.append(el);
+        map.getOverlayContainerStopEvent().append(wrapper);
+        return el;
+      };
+      const pinned = control(() => 10);
+      const right = control(() => drawn() - 50);
+      const centred = control(() => drawn() / 2 - 20);
+      vi.spyOn(map, 'renderSync');
+      return { map, target, control: pinned, right, centred };
+    };
+
+    // The divider at half way on a `width` x 600 panel, pressed.
+    const dragged = (width = 1000, stacked = false) => {
       vi.stubGlobal('requestAnimationFrame', (fn: () => void) => {
         fn();
         return 1;
       });
       vi.stubGlobal('cancelAnimationFrame', () => undefined);
-      const cmp = withDivider(false);
+      const cmp = withDivider(stacked);
       cmp.split.save = vi.fn();
-      cmp.host = { nativeElement: document.createElement('div') };
-      cmp.dragging = signal(true);
-      cmp.gripRect = { left: 0, top: 0, width, height: 600 };
-      cmp.gripStacked = false;
-      cmp.gripStart = 0.5;
-      cmp.gripRatio = null;
-      return cmp;
-    };
-    const drag = (cmp: ReturnType<typeof dragged>) =>
-      cmp.host.nativeElement.style.getPropertyValue('--split-drag');
-
-    it('moves only a line while dragged, and the panes once, where it is let go', () => {
-      const cmp = dragged();
-
-      cmp.gripMove({ clientX: 620, clientY: 300 } as PointerEvent);
-      expect(drag(cmp)).toBe('120px');
-      expect(cmp.split.setRatio).not.toHaveBeenCalled();
-
-      cmp.gripUp();
-      // Set, and so saved, once.
-      expect(cmp.split.setRatio.mock.calls).toEqual([[0.62]]);
-      expect(drag(cmp)).toBe('');
-      expect(cmp.dragging()).toBe(false);
-    });
-
-    it('stops the line where the divider will land', () => {
-      // 560 px: the second pane keeps its 200 px, so 0.7 shows as 360 px.
-      const cmp = dragged(560);
-
-      cmp.gripMove({ clientX: 520, clientY: 300 } as PointerEvent);
-
-      expect(drag(cmp)).toBe('80px');
-    });
-
-    it('changes nothing when pressed and let go without a move', () => {
-      const cmp = dragged();
-
-      cmp.gripUp();
-
-      expect(cmp.split.setRatio).not.toHaveBeenCalled();
-      expect(cmp.split.save).not.toHaveBeenCalled();
-    });
-
-    it('follows the pointer outside Angular, from press to release', () => {
-      const cmp = dragged();
-      cmp.gripRect = null;
       const panel = document.createElement('div');
       panel.getBoundingClientRect = () =>
-        ({ left: 0, top: 0, width: 1000, height: 600 }) as DOMRect;
+        ({ left: 0, top: 0, width, height: 600 }) as DOMRect;
+      cmp.host = { nativeElement: document.createElement('div') };
       panel.append(cmp.host.nativeElement);
       cmp.dragging = signal(false);
+      cmp.overscans = [];
       cmp.zone = {
         runOutsideAngular: vi.fn((fn: () => void) => fn()),
         run: (fn: () => void) => fn()
       };
+      cmp.footprint = signal(null);
+      const main = stacked ? chart(width, 300) : chart(width / 2, 600);
+      const pane = stacked ? chart(width, 292) : chart(width / 2 - 8, 600);
+      cmp.mainMap = main.map;
+      cmp.map = pane.map;
       const grip = document.createElement('div');
-      const at = (type: string, clientX: number) =>
-        grip.dispatchEvent(new MouseEvent(type, { clientX, clientY: 300 }));
-
       cmp.gripDown({
         currentTarget: grip,
         pointerId: 1,
         preventDefault: () => undefined
       } as unknown as PointerEvent);
+      const at = (type: string, x: number, y = 300) =>
+        grip.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y }));
+      const share = () => panel.style.getPropertyValue(SPLIT_SHARE_VAR);
+      return { cmp, at, share, main, pane };
+    };
+
+    it('draws each chart once, at the largest size this drag can give it', () => {
+      const { cmp, main, pane } = dragged();
       expect(cmp.dragging()).toBe(true);
+
+      // The main chart can grow to 70 %, the second pane to 70 % less its border.
+      expect(main.target.style.width).toBe('700px');
+      expect(pane.target.style.width).toBe('692px');
+      // Centred on its pane, as OL keeps the centre of a resized map.
+      expect(main.target.style.transform).toBe('translateX(-100px)');
+      expect(pane.target.style.transform).toBe('translateX(-100px)');
+      expect(main.control.style.translate).toBe('100px 0');
+      expect(main.map.renderSync).toHaveBeenCalledTimes(1);
+      expect(pane.map.renderSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps each control where it sits in a pane of the size shown', () => {
+      const { at, main } = dragged();
+      at('pointermove', 620);
+
+      // The chart is moved 40 px left within its 620 px pane.
+      expect(main.control.style.translate).toBe('40px 0');
+      // 50 px in from the pane's right edge: 700 - 50 - 40 - 40 = 570.
+      expect(main.right.style.translate).toBe('-40px 0');
+      // Centred: the chart's own centre is already mid-pane.
+      expect(main.centred.style.translate).toBe('0px 0');
+    });
+
+    it('moves the charts, without drawing them again, as the divider moves', () => {
+      const { cmp, at, share, main, pane } = dragged();
+
+      at('pointermove', 600);
+      at('pointermove', 620);
+
+      expect(share()).toBe('62%');
+      expect(main.target.style.transform).toBe('translateX(-40px)');
+      expect(pane.target.style.transform).toBe('translateX(-160px)');
+      expect(main.control.style.translate).toBe('40px 0');
+      expect(main.target.style.width).toBe('700px');
+      expect(main.map.renderSync).toHaveBeenCalledTimes(1);
+      expect(pane.map.renderSync).toHaveBeenCalledTimes(1);
+      expect(cmp.split.setRatio).not.toHaveBeenCalled();
+    });
+
+    it('fills its pane again, drawn at that size, when let go', () => {
+      const { cmp, at, share, main, pane } = dragged();
+      at('pointermove', 620);
+
+      at('pointerup', 620);
+
+      expect(cmp.split.setRatio.mock.calls).toEqual([[0.62]]);
+      expect(share()).toBe('');
+      expect(cmp.dragging()).toBe(false);
+      for (const { target, map, control, right } of [main, pane]) {
+        expect(target.style.width).toBe('100%');
+        expect(target.style.transform).toBe('');
+        expect(control.style.translate).toBe('');
+        expect(right.style.translate).toBe('');
+        expect(map.renderSync).toHaveBeenCalledTimes(2);
+      }
+    });
+
+    it('moves the charts up and down when the panes are stacked', () => {
+      // 600 px tall: the second pane keeps 200 px, so the main chart's most is
+      // 400 px, from 300 px.
+      const { at, main } = dragged(390, true);
+      expect(main.target.style.height).toBe('400px');
+      expect(main.target.style.transform).toBe('translateY(-50px)');
+
+      at('pointermove', 195, 360);
+
+      expect(main.target.style.transform).toBe('translateY(-20px)');
+      expect(main.control.style.translate).toBe('0 20px');
+    });
+
+    it('stops where the divider will land', () => {
+      // 560 px: the second pane keeps its 200 px, so 0.7 shows as 360 px.
+      const { at, share } = dragged(560);
+
+      at('pointermove', 520);
+
+      expect(parseFloat(share()) * 5.6).toBeCloseTo(360);
+    });
+
+    it('changes nothing when pressed and let go without a move', () => {
+      const { cmp, at, main } = dragged();
+
+      at('pointerup', 500);
+
+      expect(cmp.split.setRatio).not.toHaveBeenCalled();
+      expect(cmp.split.save).not.toHaveBeenCalled();
+      expect(main.target.style.width).toBe('100%');
+    });
+
+    it('follows the pointer outside Angular, and stops at the release', () => {
+      const { cmp, at, share } = dragged();
       expect(cmp.zone.runOutsideAngular).toHaveBeenCalled();
+
       at('pointermove', 400);
-      expect(drag(cmp)).toBe('-100px');
       at('pointerup', 400);
       at('pointermove', 600);
 
       expect(cmp.split.setRatio.mock.calls).toEqual([[0.4]]);
-      expect(drag(cmp)).toBe('');
+      expect(share()).toBe('');
+    });
+
+    it('gives the main chart back its pane if the split closes mid-drag', () => {
+      const { cmp, at, main } = dragged();
+      cmp.stopUseWatch = [];
+      cmp.onMainMoved = () => undefined;
+      cmp.split.setSecondaryMap = vi.fn();
+      at('pointermove', 620);
+
+      cmp.ngOnDestroy();
+
+      expect(main.target.style.width).toBe('100%');
+      expect(main.target.style.transform).toBe('');
     });
   });
 

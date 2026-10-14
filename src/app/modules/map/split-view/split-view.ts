@@ -17,6 +17,11 @@ export interface SplitViewState {
 }
 
 export const SPLIT_VIEW_STORAGE_KEY = 'fb-split-view';
+/**
+ * CSS variable on the map panel: the main chart's share while the divider is
+ * dragged, so the panes resize live without a change detection run a frame.
+ */
+export const SPLIT_SHARE_VAR = '--split-main-share';
 export const SPLIT_RATIO_MIN = 0.3;
 export const SPLIT_RATIO_MAX = 0.7;
 /**
