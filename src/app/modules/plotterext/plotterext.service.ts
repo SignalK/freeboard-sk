@@ -2281,9 +2281,8 @@ export class PlotterExtensionService {
    * widget's, without the Remove button: an overlay is hidden, never removed.
    */
   openOverlayConfigPanel(entry: OverlayEntry) {
-    const panel = this.manifests()[entry.extension]?.panels?.find(
-      (p) => p.id === entry.configPanel
-    );
+    const panel =
+      entry.configPanel && this.iframePanel(entry.extension, entry.configPanel);
     if (!panel) return;
     import('./panel-dialog.component').then(({ PlotterPanelDialog }) => {
       const ref = this.dialog.open(PlotterPanelDialog, {
