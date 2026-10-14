@@ -51,7 +51,7 @@ describe('storeTrackBody', () => {
       pointCount: 2,
       providerId: 'tracks',
       id: 'tracks:imported:x',
-      imported: true,
+      imported: '2026-10-14T12:00:00.000Z',
       src: null
     }
   };
@@ -83,10 +83,26 @@ describe('stored tracks', () => {
     const f = toTrackFeature({
       type: 'Feature',
       geometry: { type: 'MultiLineString', coordinates: [[[1, 2]]] },
-      properties: { id: 'tracks:imported:x', imported: true, name: 'A' }
+      properties: {
+        id: 'tracks:imported:x',
+        imported: '2026-10-14T12:00:00.000Z',
+        name: 'A'
+      }
     });
     expect(f?.id).toBe('tracks:imported:x');
+    expect(f?.properties['imported']).toBe('2026-10-14T12:00:00.000Z');
     expect(isStoredTrack(f)).toBe(true);
+  });
+
+  it('marks a stored track the provider does not date, or marks with true', () => {
+    for (const imported of [undefined, true] as const) {
+      const f = toTrackFeature({
+        type: 'Feature',
+        geometry: { type: 'MultiLineString', coordinates: [[[1, 2]]] },
+        properties: { id: 'tracks:imported:x', imported }
+      });
+      expect(isStoredTrack(f)).toBe(true);
+    }
   });
 
   it('skips a listed track without an id or geometry', () => {
