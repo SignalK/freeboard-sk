@@ -22,7 +22,7 @@ import {
   mercatorMidLatitude,
   type LonLatBox
 } from 'src/app/lib/map-fit';
-import { queryString } from './track-source';
+import { isImportedTrack, queryString } from './track-source';
 
 /** Most points per history track, at every zoom level: the budget cap on top
  * of the per-view `epsilon`. */
@@ -179,7 +179,7 @@ interface HistoryFeatureLike {
   geometry?: { type?: string; coordinates?: Position[][] } | null;
   properties?: {
     context?: string;
-    imported?: boolean;
+    imported?: string | boolean;
     providerId?: string;
     contextName?: string;
     from?: string;
@@ -198,9 +198,7 @@ interface HistoryFeatureLike {
 const featuresOf = (fc: unknown): HistoryFeatureLike[] => {
   const f = (fc as { features?: unknown })?.features;
   return Array.isArray(f)
-    ? (f as HistoryFeatureLike[]).filter(
-        (t) => t?.properties?.imported !== true
-      )
+    ? (f as HistoryFeatureLike[]).filter((t) => !isImportedTrack(t?.properties))
     : [];
 };
 

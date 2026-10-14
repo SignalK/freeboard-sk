@@ -378,16 +378,23 @@ interface TrackFeatureLike {
     context?: string;
     isSelf?: boolean;
     providerId?: string;
-    imported?: boolean;
+    imported?: string | boolean;
   };
 }
+
+/** Whether a Track API feature is a track a client imported. `imported` is
+ * the time it was stored; tracks plugin releases before that set `true`. */
+export const isImportedTrack = (properties?: {
+  imported?: string | boolean;
+}): boolean =>
+  properties?.imported !== undefined && properties.imported !== false;
 
 /** The recorded features of a response: an imported track is listed beside
  * the vessel's recording and is not part of its trail. */
 const featuresOf = (fc: unknown): TrackFeatureLike[] => {
   const f = (fc as { features?: unknown })?.features;
   return Array.isArray(f)
-    ? (f as TrackFeatureLike[]).filter((t) => t?.properties?.imported !== true)
+    ? (f as TrackFeatureLike[]).filter((t) => !isImportedTrack(t?.properties))
     : [];
 };
 

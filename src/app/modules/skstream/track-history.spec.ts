@@ -261,7 +261,7 @@ describe('track-history parseHistoryTrack', () => {
 
   it('leaves an imported track out of the recording', () => {
     const imported = feature('tracks', [[[9, 9]]], [['2020-01-01T00:00:00Z']]);
-    imported.properties['imported'] = true;
+    imported.properties['imported'] = '2026-10-14T12:00:00.000Z';
     const fc = {
       features: [
         feature('tracks', [[[1, 1]]], [['2026-09-01T00:00:00Z']]),

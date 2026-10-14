@@ -538,19 +538,25 @@ describe('track-source response parsing', () => {
   });
 
   it('leaves an imported own-vessel track out of the trail', () => {
-    const imported = {
-      ...selfB,
-      properties: { ...selfA.properties, imported: true }
-    };
-    expect(
-      parseSelfTrail({ type: 'FeatureCollection', features: [imported, selfA] })
-    ).toEqual(selfA.geometry.coordinates);
+    // The time it was stored, or `true` from older tracks plugin releases.
+    for (const mark of ['2026-10-14T12:00:00.000Z', true]) {
+      const imported = {
+        ...selfB,
+        properties: { ...selfA.properties, imported: mark }
+      };
+      expect(
+        parseSelfTrail({
+          type: 'FeatureCollection',
+          features: [imported, selfA]
+        })
+      ).toEqual(selfA.geometry.coordinates);
+    }
   });
 
   it("never draws an imported track as a vessel's AIS track", () => {
     const imported = {
       ...aisB,
-      properties: { ...aisA.properties, imported: true }
+      properties: { ...aisA.properties, imported: '2026-10-14T12:00:00.000Z' }
     };
     const m = parseAisTracks({
       type: 'FeatureCollection',
