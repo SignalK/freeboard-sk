@@ -39,7 +39,8 @@ package; Freeboard depends on it (`^0.18.0`) and imports its host entry point
 `widgets`, `panels.iframe`, `panels.state`, `buttons`, `events.publish`, `signalk.stream`,
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
-`nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`.
+`nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
+`overlays.image`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -585,6 +586,91 @@ comparison must be by value.
 | `src/app/modules/plotterext/plotterext.service.ts` | the `map.*` handlers, `mapView()`, and `map.view` emission (`emitMapViewChange`) |
 | `src/app/modules/map/fb-map.component.ts` | `onMapMoveEnd` — the OL `moveend` seam that updates the view state |
 | `src/app/lib/map-fit.ts` | `fitBbox` — the centre and zoom `map.fitBounds` moves to |
+
+## The `overlays.image` capability
+
+`overlays.image` lets an extension's background runtime draw a map layer that
+Freeboard composites with its own. Freeboard owns where it sits, when a frame is
+needed, and the memory budget; the runtime only turns its data into a picture of
+the box it is asked for.
+
+### Overlay model
+
+`OverlayRegistry` (a dependency-free root service) holds every overlay of the
+collection, keyed `<extension>/<overlay id>`, with the user's show/fade choices,
+the active-overlay budget and the frame bookkeeping. `PlotterExtensionService`
+feeds it the manifest definitions — an overlay is kept only when its `type` is
+`image` and its `runtime` names one of the same manifest's background runtimes —
+and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
+`visible` / `opacity` apply until the user changes them.
+
+- **Placement.** Bands map to z-indices: `aboveCharts` from 60 (above charts
+  `10+n` and the weather/current layers at 50–56, below radar at 99),
+  `aboveResources` from 700 (above waypoints at 600, below AIS at 900+, the
+  vessel and alarms). Within a band, manifest order; not re-orderable in v1.
+- **Budget.** At most `MAX_ACTIVE_OVERLAYS` (4) shown overlays draw at once; the
+  rest are reported `suspended`. A frame is drawn at a pixel ratio of at most 2,
+  and lower when the box would exceed `MAX_OVERLAY_PIXELS` (8 M pixels, about
+  32 MB) — a rotated view or a large screen is drawn below native density rather
+  than risk the iOS canvas budget. Live (unrequested) frames are accepted at most
+  every 200 ms per overlay (`overlays.throttled`).
+- **User controls.** The Chart list shows one row per overlay above the chart
+  rows (every overlay draws above every chart), with its own *Show in Map*
+  checkbox and *Set Opacity* slider. Shown-but-suspended overlays say so.
+
+### The frame cycle
+
+Each shown, unsuspended overlay gets a `<fb-plugin-overlay>` layer
+(`layer-plugin-overlay.component.ts`), the radar pattern: an OL `ImageLayer` over
+an `ImageSource` with `createLoader` and a mutable `imageExtent`, drawn from a
+canvas. On `moveend` and map resize it asks `needsNewFrame()` whether the view
+changed enough — a pan, zoom or resize, or a rotation past 5°. A heading-up
+chart re-rotates on every heading change (see the `moveend` lesson in the
+lessons log), so small rotations alone are ignored and OL rotates the last
+frame. `overlayView()` turns the view into the request: the north-up box
+covering the rotated viewport (`View.calculateExtent`), moved into the primary
+world with the render-space `worldOffset` kept aside, at most one world wide,
+clipped to the Mercator latitude limit. `requestOverlayFrame()` records it and
+emits `overlay.request` to that overlay's runtime only (`publishToRuntime`).
+
+An accepted `overlay.frame` is drawn into the layer's canvas and placed at the
+frame's extent plus the request's `worldOffset`, so it lands in the world copy on
+screen; the bitmap is then closed. Refused frames are closed by the registry.
+Image sources do not wrap, so at a zoom showing several world copies the overlay
+appears in the copy the request was made for.
+
+A background runtime usually loads after the map has asked for its first frame.
+When a runtime subscribes to `overlay.request`, the host replays the latest
+request of each of its active overlays (`replayOverlayRequests`, deferred one tick
+so it arrives after the subscribe call resolves).
+
+### Methods and events
+
+`overlay.list`, `overlay.setVisibility`, `overlay.setOpacity` and `overlay.frame`
+are a pure factory (`overlay-methods.ts`) over the registry, scoped to the calling
+extension; `overlay.frame` is accepted only from the overlay's own runtime.
+`overlay.state` is emitted to the owning extension for every change of
+visibility, opacity or suspension, whoever made it (`emitOverlayStates`); the
+first report seeds silently.
+
+### Error reasons
+
+`overlays.unknownId` (an id of no overlay of the caller's extension, or a frame
+from a context other than the overlay's runtime), `overlays.badRequest` (bad
+params, an `image` that is not an `ImageBitmap`, a frame whose size does not
+match its request). Refused frames are results: `overlays.superseded` (a newer
+request, the overlay hidden or not yet requested) and `overlays.throttled`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/overlay-registry.ts` | overlay state, budget, z-bands, requests and frame acceptance |
+| `src/app/modules/plotterext/overlay-methods.ts` | the `overlay.*` handlers + param validation + error mapping |
+| `src/app/modules/plotterext/plotterext.service.ts` | manifest definitions, `requestOverlayFrame`, `overlay.state`, request replay |
+| `src/app/modules/map/ol/lib/plugin-overlay/layer-plugin-overlay.component.ts` | the OL layer: requests frames, draws accepted ones |
+| `src/app/modules/map/ol/lib/plugin-overlay/overlay-geometry.ts` | `overlayView()` / `needsNewFrame()` — request geometry and the re-request rule |
+| `src/app/modules/skresources/components/charts/chartlist.html` | the *Plugin layers* rows |
 
 ## Extending the host API? Update the agent bridge
 
