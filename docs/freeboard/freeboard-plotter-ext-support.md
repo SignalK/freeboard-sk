@@ -608,7 +608,7 @@ and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
 - **Placement.** Bands map to z-indices: `aboveCharts` from 60 (above charts
   `10+n` and the weather/current layers at 50–56, below radar at 99).
   `aboveResources` is clamped, as the spec allows: Freeboard draws its routes
-  (500+) and waypoints (600) *above* its own alarm rings (anchor 300, CPA 350),
+  (500+) and waypoints (600) *above* its own anchor alarm ring (300),
   own-vessel lines (330–350) and AIS AtoN/base-station targets (200–220), so no
   z-index is both above the former and below the latter. The spec says its rule
   — never cover the vessel, alarm indications or AIS targets — outranks the band
