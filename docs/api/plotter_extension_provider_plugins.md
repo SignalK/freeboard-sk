@@ -972,7 +972,8 @@ Things to know:
   stops a hair apart. To make colours follow draft or tide, rebuild the stops
   and send them with `overlay.setLayer`, as above.
 - **No data** is a value below any real depth (terrarium black, −32768 m)
-  given transparent stops; answer 404 or 204 for an empty tile.
+  given transparent stops; answer 404 or 204 for an empty tile. Serve opaque
+  pixels: hosts differ on whether a transparent one is drawn.
 - **Contours are yours to generate**, as line features. Label them, and your
   points, with `symbol` layers. The host picks the font.
 - **Check what was drawn.** `overlay.list` reports any layer the host could not

@@ -1690,10 +1690,12 @@ source and is drawn with a `color-relief` layer.
     -1.999, "#d0453a",         0,    "#d0453a"]
   ```
 
-- **No data.** The Style Spec has no "no data" value, and a host ignores alpha
-  in a `raster-dem` tile. Encode a cell with no data as a value below any real
-  one — terrarium black, −32768 m, is the natural choice — and give it
-  transparent stops, as above. A host blends between neighbouring cells, so at
+- **No data.** The Style Spec has no "no data" value. A `raster-dem` pixel's
+  value is in its colour channels, not its alpha, and hosts differ on alpha:
+  MapLibre ignores it, while a host may draw a fully transparent pixel as empty
+  (one way to draw a missing tile). Rely on neither. Serve opaque pixels, and
+  encode a cell with no data as a value below any real one — terrarium black,
+  −32768 m, is the natural choice — and give it transparent stops, as above. A host blends between neighbouring cells, so at
   the edge of the data the blend passes through every colour between the
   sentinel and the real value. Put the last transparent stop just below the
   deepest value you will ever show (−201 above), and that passage is too thin
