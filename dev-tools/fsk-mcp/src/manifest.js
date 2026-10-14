@@ -110,6 +110,9 @@ function buildManifest() {
         title: 'FSK MCP scratch layer (dev)',
         type: 'data',
         band: 'aboveResources',
+        // hidden until fsk_set_overlay_data draws on it, so an empty scratch
+        // layer never counts against the host's active-overlay budget
+        visible: false,
         style: SCRATCH_STYLE
       }
     ],

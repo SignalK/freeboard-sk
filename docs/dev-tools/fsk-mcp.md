@@ -115,7 +115,7 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_open_window` / `fsk_update_window` | `ui.openWindow` / `ui.updateWindow` | open the bridge's **window probe** in a window over the chart (pass `url` to embed a page from the server, e.g. a webapp), then move, resize, show or hide it |
 | `fsk_list_windows` / `fsk_close_window` | `ui.listWindows` / `ui.closeWindow` | list and close the windows the bridge opened |
 | `fsk_list_overlays` | `overlay.list` | list the bridge's own overlays — its **scratch layer** (`scratch`), with any `skippedLayers` |
-| `fsk_set_overlay_data` | `overlay.setData` | draw GeoJSON on the chart through the scratch layer (a feature's `color` and `label` properties style it) |
+| `fsk_set_overlay_data` | `overlay.setData` | draw GeoJSON on the chart through the scratch layer, showing it (it starts hidden); a feature's `color` and `label` properties style it |
 | `fsk_set_overlay_state` / `fsk_set_overlay_layer` | `overlay.setState` / `overlay.setLayer` | change the scratch layer's `global-state` (`color`) or one of its style layers (`areas`, `lines`, `points`, `labels`) |
 
 **Targeting a specific tab.** With more than one Freeboard tab open, pass a

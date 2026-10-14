@@ -469,7 +469,7 @@ const TOOLS = [
   {
     name: 'fsk_set_overlay_data',
     description:
-      "Draw GeoJSON on the chart through the bridge's scratch layer (overlayId `scratch`, source `scratch`). Pass `data` to replace every feature, or `upsert` (features, each with a top-level `id`) and/or `remove` (ids) to change some. Points draw as circles, lines and polygon outlines as lines, polygons filled; a feature's `color` and `label` properties set its colour and label.",
+      "Draw GeoJSON on the chart through the bridge's scratch layer (overlayId `scratch`, source `scratch`), showing the layer if it is hidden. Pass `data` to replace every feature, or `upsert` (features, each with a top-level `id`) and/or `remove` (ids) to change some. Points draw as circles, lines and polygon outlines as lines, polygons filled; a feature's `color` and `label` properties set its colour and label.",
     inputSchema: withSession({
       overlayId: { type: 'string', description: 'Default `scratch`.' },
       source: { type: 'string', description: 'Default `scratch`.' },
@@ -488,18 +488,29 @@ const TOOLS = [
         description: 'Ids of features to remove.'
       }
     }),
-    run: (hub, a) =>
-      hub.call(
+    run: async (hub, a) => {
+      const overlayId = a.overlayId ?? 'scratch';
+      const result = await hub.call(
         'overlay.setData',
         {
-          overlayId: a.overlayId ?? 'scratch',
+          overlayId,
           source: a.source ?? 'scratch',
           ...(a.data !== undefined ? { data: a.data } : {}),
           ...(a.upsert !== undefined ? { upsert: a.upsert } : {}),
           ...(a.remove !== undefined ? { remove: a.remove } : {})
         },
         { session: a.session }
-      )
+      );
+      // the scratch layer starts hidden (manifest.js); drawing on it shows it
+      if (overlayId === 'scratch') {
+        await hub.call(
+          'overlay.setVisibility',
+          { ids: ['scratch'], visible: true },
+          { session: a.session }
+        );
+      }
+      return result;
+    }
   },
   {
     name: 'fsk_set_overlay_state',

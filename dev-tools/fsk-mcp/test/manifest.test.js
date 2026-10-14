@@ -49,6 +49,8 @@ test('offers one data overlay, the scratch layer, for the overlay tools to drive
   const scratch = m.overlays[0];
   assert.strictEqual(scratch.id, 'scratch');
   assert.strictEqual(scratch.type, 'data');
+  // hidden until drawn on, so it never takes a slot of the overlay budget
+  assert.strictEqual(scratch.visible, false);
   assert.strictEqual(scratch.style.version, 8);
   assert.strictEqual(scratch.style.sources.scratch.type, 'geojson');
   for (const layer of scratch.style.layers) {
