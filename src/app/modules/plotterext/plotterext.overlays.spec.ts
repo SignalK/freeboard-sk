@@ -279,6 +279,8 @@ describe('PlotterExtensionService image overlays', () => {
     await expect(
       renderer.overlays.frame({
         overlayId: 'depth',
+        requestId: service.overlays.latestRequestsFor('ext-a', 'renderer')[0]
+          .requestId,
         extent: VIEW.extent,
         image: fakeImage(10, 10)
       })
@@ -320,6 +322,32 @@ describe('PlotterExtensionService image overlays', () => {
       visible: false,
       opacity: 0.5,
       suspended: false
+    });
+  });
+
+  it('reloads the saved choices once the server config is in (init)', async () => {
+    const app = TestBed.inject(AppFacade) as unknown as {
+      config: { plotterExtensions: { widgets: []; overlays?: unknown } };
+    };
+    // the server-stored config replaces the local copy before init()
+    app.config = {
+      ...app.config,
+      plotterExtensions: {
+        widgets: [],
+        overlays: { 'ext-a/depth': { visible: false, opacity: 0.3 } }
+      }
+    };
+    await service.init(); // SignalKClient is a bare stub: discovery fails
+    service.manifests.set({ 'ext-a': manifest('ext-a') });
+    TestBed.tick();
+    expect(service.overlays.entry('ext-a/depth')).toMatchObject({
+      visible: false,
+      opacity: 0.3
+    });
+    // and the next change keeps it rather than writing a stale copy back
+    service.overlays.setVisibility(['ext-a/depth'], true);
+    expect(app.config.plotterExtensions.overlays).toEqual({
+      'ext-a/depth': { visible: true, opacity: 0.3 }
     });
   });
 

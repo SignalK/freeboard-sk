@@ -23,14 +23,24 @@ export const MAX_ACTIVE_OVERLAYS = 4;
 /** Least time between two accepted live (unrequested) frames of one overlay. */
 export const LIVE_FRAME_MIN_INTERVAL_MS = 200;
 
-/** z-index bases in the map layer stack (see fb-map.component.html). */
-const BAND_Z_BASE: Record<OverlayBand, number> = {
-  // above charts (10+n) and weather/currents (50-56), below radar (99)
-  aboveCharts: 60,
-  // above waypoints (600), below AIS (900+), the vessel and alarms
-  aboveResources: 700
+/**
+ * z-index range of each band in the map layer stack (fb-map.component.html).
+ *
+ * `aboveCharts`: above the charts (10+n) and weather/current layers (50-56),
+ * below radar (99).
+ *
+ * `aboveResources`: Freeboard draws its routes (500+) and waypoints (600) above
+ * its own alarm rings (anchor 300, CPA 350), own-vessel lines (330-350) and AIS
+ * AtoN/base-station targets (200-220), so no z-index is both above the former
+ * and below the latter. The spec's hard rule — never cover the vessel, alarm
+ * indications or AIS targets — wins: the band sits above radar (99), tracks
+ * (100-110) and resource sets (120+), below everything from AIS targets (200)
+ * up.
+ */
+const BAND_Z: Record<OverlayBand, { base: number; span: number }> = {
+  aboveCharts: { base: 60, span: 30 },
+  aboveResources: { base: 190, span: 10 }
 };
-const BAND_Z_SPAN = 30;
 
 /** An overlay definition contributed by a compatible extension. */
 export interface OverlayDefinition {
@@ -145,8 +155,11 @@ export class OverlayRegistry {
         title: def.title,
         runtime: def.runtime,
         band,
-        visible: saved ? saved.visible : def.visible !== false,
-        opacity: saved ? saved.opacity : clampOpacity(def.opacity, 1),
+        visible:
+          typeof saved?.visible === 'boolean'
+            ? saved.visible
+            : def.visible !== false,
+        opacity: clampOpacity(saved?.opacity, clampOpacity(def.opacity, 1)),
         suspended: false,
         zIndex: 0,
         minZoom: def.minZoom,
@@ -157,7 +170,7 @@ export class OverlayRegistry {
     let active = 0;
     for (const band of ['aboveCharts', 'aboveResources'] as OverlayBand[]) {
       byBand[band].forEach((e, i) => {
-        e.zIndex = BAND_Z_BASE[band] + Math.min(i, BAND_Z_SPAN - 1);
+        e.zIndex = BAND_Z[band].base + Math.min(i, BAND_Z[band].span - 1);
         if (e.visible) {
           e.suspended = active >= MAX_ACTIVE_OVERLAYS;
           if (!e.suspended) active++;
@@ -322,10 +335,21 @@ export class OverlayRegistry {
       frame.image.close();
       return { accepted: false, reason: 'overlays.superseded' };
     }
+    // A frame answering an older request (or a live frame drawn for one) is
+    // superseded, whatever its size: the newer request may well differ in
+    // size, so a size check first would turn a routine race into an error.
+    const sizeMatches =
+      frame.image.width === pending.request.width &&
+      frame.image.height === pending.request.height;
     if (
-      frame.image.width !== pending.request.width ||
-      frame.image.height !== pending.request.height
+      (frame.requestId !== undefined &&
+        frame.requestId !== pending.request.requestId) ||
+      (frame.requestId === undefined && !sizeMatches)
     ) {
+      frame.image.close();
+      return { accepted: false, reason: 'overlays.superseded' };
+    }
+    if (!sizeMatches) {
       frame.image.close();
       throw new OverlayRefusal(
         'overlays.badRequest',
@@ -333,12 +357,7 @@ export class OverlayRegistry {
           `${pending.request.width}x${pending.request.height}`
       );
     }
-    if (frame.requestId !== undefined) {
-      if (frame.requestId !== pending.request.requestId) {
-        frame.image.close();
-        return { accepted: false, reason: 'overlays.superseded' };
-      }
-    } else {
+    if (frame.requestId === undefined) {
       const t = this.now();
       const last = this.lastLive.get(key);
       if (last !== undefined && t - last < LIVE_FRAME_MIN_INTERVAL_MS) {

@@ -1580,6 +1580,10 @@ export class PlotterExtensionService {
 
   /** Fetch manifests. Called after the server connection is established. */
   async init(): Promise<void> {
+    // The user config is final by now (server-stored for a signed-in user):
+    // reload the overlay choices from it, so the first change does not write a
+    // stale local copy back over the server's.
+    this.overlays.loadSettings(this.app.config.plotterExtensions?.overlays);
     try {
       const response = await firstValueFrom(
         this.signalk.api.get(

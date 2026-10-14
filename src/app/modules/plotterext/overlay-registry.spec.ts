@@ -59,9 +59,11 @@ describe('OverlayRegistry entries', () => {
     ]);
     const [one, two, top] = r.entries();
     expect(one.zIndex).toBeLessThan(two.zIndex);
+    expect(one.zIndex).toBeGreaterThan(56); // above weather/currents
     expect(two.zIndex).toBeLessThan(99); // below radar
-    expect(top.zIndex).toBeGreaterThan(600); // above waypoints
-    expect(top.zIndex).toBeLessThan(900); // below AIS, vessel, alarms
+    // never over AIS targets (200+), alarms (300, 350) or vessel lines
+    expect(top.zIndex).toBeGreaterThan(120); // above resource sets
+    expect(top.zIndex).toBeLessThan(200);
   });
 
   it('treats an unknown band as aboveCharts', () => {
@@ -95,6 +97,15 @@ describe('OverlayRegistry entries', () => {
     r.setOpacity(['ext-a/a'], 0.3, false);
     expect(r.entry('ext-a/a')!.opacity).toBe(0.3);
     expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('ignores malformed saved choices', () => {
+    const r = new OverlayRegistry();
+    r.loadSettings({
+      'ext-a/a': { visible: 'yes' as never, opacity: 7 }
+    });
+    r.setDefinitions(defs('ext-a', def('a', { visible: false, opacity: 0.5 })));
+    expect(r.entry('ext-a/a')).toMatchObject({ visible: false, opacity: 1 });
   });
 
   it('restores saved choices', () => {
@@ -182,6 +193,28 @@ describe('OverlayRegistry frames', () => {
     expect(delivered).toHaveLength(0);
   });
 
+  it('a frame for an older request of another size is superseded, not an error', () => {
+    const { r } = rig();
+    const first = r.newRequest('ext-a/a', VIEW, 0)!;
+    r.newRequest('ext-a/a', { ...VIEW, width: 120, height: 60 }, 0);
+    const answer = (requestId?: string) =>
+      r.acceptFrame('ext-a', 'renderer', {
+        overlayId: 'a',
+        requestId,
+        extent: VIEW.extent,
+        image: fakeImage(100, 50)
+      });
+    expect(answer(first.requestId)).toEqual({
+      accepted: false,
+      reason: 'overlays.superseded'
+    });
+    // a live frame still drawn for the old size raced the new request
+    expect(answer()).toEqual({
+      accepted: false,
+      reason: 'overlays.superseded'
+    });
+  });
+
   it('only the overlay’s own runtime may send its frames', () => {
     const { r } = rig();
     r.newRequest('ext-a/a', VIEW, 0);
@@ -196,13 +229,14 @@ describe('OverlayRegistry frames', () => {
     expect(send('ext-b', 'renderer')).toThrow(/No overlay/);
   });
 
-  it('rejects a frame whose size does not match the request', () => {
+  it('rejects a frame whose size does not match its request', () => {
     const { r } = rig();
-    r.newRequest('ext-a/a', VIEW, 0);
+    const req = r.newRequest('ext-a/a', VIEW, 0)!;
     const image = fakeImage(99, 50);
     expect(() =>
       r.acceptFrame('ext-a', 'renderer', {
         overlayId: 'a',
+        requestId: req.requestId,
         extent: VIEW.extent,
         image
       })
