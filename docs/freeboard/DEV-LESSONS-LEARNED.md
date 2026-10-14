@@ -661,6 +661,44 @@ pointer.
 
 ---
 
+### Redrawing an OL image layer: a static `ImageSource` keeps its first resolution
+
+**The trap.** A map layer drawn from one picture (radar, a plugin image overlay)
+looks simplest as a single `ImageSource` whose loader is `createLoader()` from
+`ol/source/static`. You keep the picture's extent in a mutable array, update the
+array and the image, and call `source.refresh()` for each new picture. It works
+while the scale stays put, and then quietly stops working:
+
+- `createLoader()` computes the image resolution, `getWidth(extent) / image.width`,
+  **once**, when the image first loads.
+- A static source (a loader that takes no arguments) keeps returning that same
+  `ImageWrapper`. `ImageSource.refresh()` is `Source.refresh()`, which only calls
+  `changed()`; it never reloads.
+
+So the extent updates in place but the resolution doesn't. While extent width ÷
+image width stays the same (a pan, a rotation, a new picture at the same zoom)
+everything looks right. As soon as that ratio changes (a zoom, a radar range
+change) OL draws the picture at the first resolution. At a big enough change it is
+off-screen or a few pixels wide, so the layer seems to vanish while the layer is
+visible, its source reports `ready`, and the canvas holds the right pixels. In #1008
+an overlay disappeared after zooming out to the world and back. `layer.getRenderer()
+.image.getResolution()` showed the old zoom's 8.7 m/px at a view of about 35 m/px.
+The radar layer uses the same pattern (#1009).
+
+**What to do instead.** Give each new picture its own static `ImageSource`, built
+from a copy of that picture's extent, and swap it in with `layer.setSource()`. OL
+keeps drawing the previous image until the new source has loaded, so the swap
+doesn't flicker. `frameSource()` in
+`src/app/modules/map/ol/lib/plugin-overlay/frame-bitmaps.ts` does this. A transferred
+`ImageBitmap` can be the image itself: OL accepts any `ImageLike`, so there is no
+need to copy it into a canvas.
+
+If the picture is an `ImageBitmap` you `close()`, close the previous one by what the
+renderer draws (`renderer.getImage()`), not by when the new source loads. OL loads a
+source only while it renders the layer, which it doesn't do while the layer is
+hidden, mid-gesture or in a background tab, so closing on load lets bitmaps pile up.
+`FrameBitmaps` in the same file keeps at most two.
+
 ## When testing
 
 ### `ng test` / `ng build` don't exit
