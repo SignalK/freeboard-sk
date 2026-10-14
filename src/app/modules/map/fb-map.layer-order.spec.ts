@@ -27,16 +27,17 @@ describe('fb-map layer order', () => {
     expect(found, `no [zIndex] found for <${tag}>`).toBeDefined();
     return found;
   };
-  const [cpa] = z('fb-cpa-alarms');
+  const cpa = () => z('fb-cpa-alarms')[0];
 
   it('draws the CPA alarm above every AIS layer (#1010)', () => {
     // The danger ring sits on the target's position, so the target's own AIS
-    // icon must not cover it. #519 set this; #520 reverted it in a merge.
+    // icon must not cover it.
     const ais = [...layers]
       .filter(([tag]) => tag.startsWith('sk-ais-'))
       .flatMap(([, zs]) => zs);
-    expect(ais.length).toBeGreaterThan(0);
-    expect(cpa).toBeGreaterThan(Math.max(...ais));
+    // an AIS layer the pattern can't read would otherwise drop out of the max
+    expect(ais.length).toBe(template.match(/<sk-ais-[\w-]+/g).length);
+    expect(cpa()).toBeGreaterThan(Math.max(...ais));
   });
 
   it('draws the CPA alarm above routes, waypoints, notes and regions', () => {
@@ -47,12 +48,12 @@ describe('fb-map layer order', () => {
       'fb-notes',
       'fb-regions'
     ]) {
-      expect(cpa, tag).toBeGreaterThan(Math.max(...z(tag)));
+      expect(cpa(), tag).toBeGreaterThan(Math.max(...z(tag)));
     }
   });
 
   it('keeps the CPA alarm below the MOB alarm and the own vessel', () => {
-    expect(cpa).toBeLessThan(Math.min(...z('fb-alarms')));
-    expect(cpa).toBeLessThan(Math.min(...z('fb-vessel')));
+    expect(cpa()).toBeLessThan(Math.min(...z('fb-alarms')));
+    expect(cpa()).toBeLessThan(Math.min(...z('fb-vessel')));
   });
 });
