@@ -29,6 +29,8 @@ export interface PlotterPanelDialogData {
   title?: string;
   targetInstance?: string | null;
   targetWidget?: string | null;
+  /** The image overlay a configuration panel is opened for. */
+  targetOverlay?: string | null;
 }
 
 @Component({
@@ -130,6 +132,7 @@ export class PlotterPanelDialog implements OnInit, AfterViewInit, OnDestroy {
       panel,
       targetInstance: this.data.targetInstance,
       targetWidget: this.data.targetWidget,
+      targetOverlay: this.data.targetOverlay,
       close: () => this.dialogRef.close()
     });
   }

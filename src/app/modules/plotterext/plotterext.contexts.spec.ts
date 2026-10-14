@@ -177,6 +177,29 @@ describe('PlotterExtensionService iframe contexts', () => {
     );
   });
 
+  it('gives an overlay config panel its target overlay and extension-scoped state', async () => {
+    const client = await connect((iframe) =>
+      service.attachPanel(iframe, {
+        extension: 'ext-a',
+        panel: { id: 'cfg', title: 'Config', type: 'iframe', url: '' },
+        targetOverlay: 'depth',
+        close: () => {}
+      })
+    );
+    expect(client.context).toMatchObject({
+      kind: 'panel',
+      id: 'cfg',
+      instanceId: null,
+      targetInstance: null,
+      targetWidget: null,
+      targetOverlay: 'depth'
+    });
+    await client.state.set({ palette: 'blue' });
+    expect(stored()).toMatchObject({
+      'ext-a': { extension: { palette: 'blue' } }
+    });
+  });
+
   it('gives a background runtime extension-scoped state and no panel methods', async () => {
     const client = await connect((iframe) =>
       service.attachBackground(iframe, {

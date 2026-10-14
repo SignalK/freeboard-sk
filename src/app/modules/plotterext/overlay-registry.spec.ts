@@ -6,7 +6,7 @@ import {
   OverlayRegistry,
   type OverlayDefinition
 } from './overlay-registry';
-import { OverlayContribution } from './types';
+import { OverlayContribution, PanelContribution } from './types';
 
 const def = (
   id: string,
@@ -149,6 +149,81 @@ describe('OverlayRegistry entries', () => {
   });
 });
 
+describe('OverlayRegistry configuration panels', () => {
+  const panel = (
+    id: string,
+    extra: Partial<PanelContribution> = {}
+  ): PanelContribution => ({
+    id,
+    title: id,
+    type: 'iframe',
+    url: `/plotterext/${id}.html`,
+    ...extra
+  });
+
+  const withPanels = (
+    contrib: OverlayContribution,
+    panels: PanelContribution[]
+  ): OverlayDefinition[] => [
+    { extension: 'ext-a', extensionName: 'ext-a plugin', def: contrib, panels }
+  ];
+
+  it('resolves a configPanel naming an iframe panel of the manifest', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(
+      withPanels(def('a', { configPanel: 'cfg' }), [panel('cfg')])
+    );
+    expect(r.entries()[0].configPanel).toBe('cfg');
+  });
+
+  it.each([
+    ['names no panel', [panel('other')]],
+    ['names a non-iframe panel', [panel('cfg', { type: 'customElement' })]],
+    ['names a panel with no url', [panel('cfg', { url: undefined })]],
+    ['names a panel for a newer host API', [panel('cfg', { apiVersion: '2' })]]
+  ])('ignores a configPanel that %s', (_why, panels) => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(withPanels(def('a', { configPanel: 'cfg' }), panels));
+    expect(r.entries()[0].configPanel).toBeUndefined();
+  });
+
+  it('opens only a usable configuration panel, through the host', () => {
+    const r = new OverlayRegistry();
+    const opener = vi.fn();
+    r.setConfigOpener(opener);
+    r.setDefinitions([
+      ...withPanels(def('a', { configPanel: 'cfg' }), [panel('cfg')]),
+      ...withPanels(def('b', { configPanel: 'gone' }), [panel('cfg')])
+    ]);
+    r.openConfigPanel('ext-a/b');
+    r.openConfigPanel('ext-a/missing');
+    expect(opener).not.toHaveBeenCalled();
+    r.openConfigPanel('ext-a/a');
+    expect(opener).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'ext-a/a', configPanel: 'cfg' })
+    );
+  });
+
+  it('carries a positive preferredPixelRatio and drops a bad one', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(
+      defs(
+        'ext-a',
+        def('a', { preferredPixelRatio: 2 }),
+        def('b', { preferredPixelRatio: 0 }),
+        def('c', { preferredPixelRatio: 'x' as never }),
+        def('d')
+      )
+    );
+    expect(r.entries().map((e) => e.preferredPixelRatio)).toEqual([
+      2,
+      undefined,
+      undefined,
+      undefined
+    ]);
+  });
+});
+
 describe('OverlayRegistry frames', () => {
   function rig(now = () => 0) {
     const r = new OverlayRegistry();
@@ -250,6 +325,13 @@ describe('OverlayRegistry frames', () => {
       })
     ).toThrow(expect.objectContaining({ reason: 'overlays.badRequest' }));
     expect(image.close).toHaveBeenCalled();
+  });
+
+  it('states the live-frame pace it enforces on every request', () => {
+    const { r } = rig();
+    expect(r.newRequest('ext-a/a', VIEW, 0)!.liveInterval).toBe(
+      LIVE_FRAME_MIN_INTERVAL_MS
+    );
   });
 
   it('throttles live frames to the host’s pace', () => {

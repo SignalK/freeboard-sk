@@ -321,6 +321,10 @@ export class ChartListComponent extends ResourceListBase {
     this.overlays.setVisibility([layer.key], checked);
   }
 
+  protected pluginLayerSettings(layer: OverlayEntry) {
+    this.overlays.openConfigPanel(layer.key);
+  }
+
   protected pluginLayerOpacity(layer: OverlayEntry) {
     const original = layer.opacity;
     this.dialog

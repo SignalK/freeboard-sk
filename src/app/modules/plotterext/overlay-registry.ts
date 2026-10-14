@@ -4,7 +4,12 @@ import type {
   OverlayInfo,
   OverlayRequestEvent
 } from 'signalk-plotterext-bus/host';
-import { OverlayBand, OverlayContribution } from './types';
+import {
+  HOST_API_VERSION,
+  OverlayBand,
+  OverlayContribution,
+  PanelContribution
+} from './types';
 
 /**
  * Host-side state for image map overlays (capability `overlays.image`): which
@@ -47,6 +52,8 @@ export interface OverlayDefinition {
   extension: string;
   extensionName: string;
   def: OverlayContribution;
+  /** The manifest's panels, to resolve the overlay's `configPanel` against. */
+  panels?: PanelContribution[];
 }
 
 /** Everything the host needs about one overlay. */
@@ -65,6 +72,9 @@ export interface OverlayEntry {
   zIndex: number;
   minZoom?: number;
   maxZoom?: number;
+  /** Id of the overlay's configuration panel, set only when it is usable. */
+  configPanel?: string;
+  preferredPixelRatio?: number;
 }
 
 export type OverlaySettings = Record<
@@ -113,6 +123,27 @@ function clampOpacity(v: unknown, fallback: number): number {
     : fallback;
 }
 
+/**
+ * The overlay's `configPanel` when it names an iframe panel of the same
+ * manifest that this host can load; otherwise undefined (ignored).
+ */
+function usableConfigPanel(
+  def: OverlayContribution,
+  panels: PanelContribution[] | undefined
+): string | undefined {
+  if (typeof def.configPanel !== 'string') return undefined;
+  const panel = panels?.find((p) => p.id === def.configPanel);
+  return panel &&
+    panel.type === 'iframe' &&
+    panel.url &&
+    (panel.apiVersion === undefined || panel.apiVersion === HOST_API_VERSION)
+    ? panel.id
+    : undefined;
+}
+
+const positiveOrUndefined = (v: unknown): number | undefined =>
+  typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined;
+
 @Injectable({ providedIn: 'root' })
 export class OverlayRegistry {
   private readonly definitions = signal<OverlayDefinition[]>([]);
@@ -125,12 +156,24 @@ export class OverlayRegistry {
   >();
   private requestSeq = 0;
   private persist: (settings: OverlaySettings) => void = () => undefined;
+  private configOpener: (entry: OverlayEntry) => void = () => undefined;
   /** Clock for the live-frame pace; replaceable in tests. */
   now: () => number = () => Date.now();
 
   /** Where the user's show/fade choices are saved. */
   setPersist(fn: (settings: OverlaySettings) => void) {
     this.persist = fn;
+  }
+
+  /** How an overlay's configuration panel is opened (the extension host). */
+  setConfigOpener(fn: (entry: OverlayEntry) => void) {
+    this.configOpener = fn;
+  }
+
+  /** Open an overlay's configuration panel; a no-op when it has none. */
+  openConfigPanel(key: string) {
+    const e = this.entry(key);
+    if (e?.configPanel) this.configOpener(e);
   }
 
   /**
@@ -144,7 +187,12 @@ export class OverlayRegistry {
       aboveCharts: [],
       aboveResources: []
     };
-    for (const { extension, extensionName, def } of this.definitions()) {
+    for (const {
+      extension,
+      extensionName,
+      def,
+      panels
+    } of this.definitions()) {
       const key = overlayKey(extension, def.id);
       const band: OverlayBand =
         def.band === 'aboveResources' ? 'aboveResources' : 'aboveCharts';
@@ -165,7 +213,9 @@ export class OverlayRegistry {
         suspended: false,
         zIndex: 0,
         minZoom: def.minZoom,
-        maxZoom: def.maxZoom
+        maxZoom: def.maxZoom,
+        configPanel: usableConfigPanel(def, panels),
+        preferredPixelRatio: positiveOrUndefined(def.preferredPixelRatio)
       });
     }
     const ordered: OverlayEntry[] = [];
@@ -270,13 +320,14 @@ export class OverlayRegistry {
 
   /**
    * Record a new frame request for `key` and return it (the event the
-   * overlay's runtime receives). `view` is the request minus its ids;
+   * overlay's runtime receives), stating the live-frame pace
+   * {@link acceptFrame} enforces. `view` is the request minus its ids;
    * `worldOffset` is the render-space shift of the viewed world copy, applied
    * to frames answering this request.
    */
   newRequest(
     key: string,
-    view: Omit<OverlayRequestEvent, 'overlayId' | 'requestId'>,
+    view: Omit<OverlayRequestEvent, 'overlayId' | 'requestId' | 'liveInterval'>,
     worldOffset: number
   ): OverlayRequestEvent | null {
     const e = this.entry(key);
@@ -284,7 +335,8 @@ export class OverlayRegistry {
     const request: OverlayRequestEvent = {
       overlayId: e.id,
       requestId: `r-${++this.requestSeq}`,
-      ...view
+      ...view,
+      liveInterval: LIVE_FRAME_MIN_INTERVAL_MS
     };
     const before = this.latest.get(key)?.request;
     this.latest.set(key, {

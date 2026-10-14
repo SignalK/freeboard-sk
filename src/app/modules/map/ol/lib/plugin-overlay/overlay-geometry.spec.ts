@@ -66,6 +66,45 @@ describe('overlayView', () => {
     expect(v.view.pixelRatio).toBeLessThan(1);
   });
 
+  it('uses the overlay’s preferred pixel ratio instead of the screen’s', () => {
+    const extent = [0, 0, 1000, 1000];
+    expect(
+      overlayView({
+        ...base,
+        extent,
+        devicePixelRatio: 2,
+        preferredPixelRatio: 1
+      })!.view.pixelRatio
+    ).toBe(1);
+    expect(
+      overlayView({
+        ...base,
+        extent,
+        devicePixelRatio: 1,
+        preferredPixelRatio: 2
+      })!.view.pixelRatio
+    ).toBe(2);
+  });
+
+  it('clamps a preferred pixel ratio by the ratio and pixel caps', () => {
+    expect(
+      overlayView({
+        ...base,
+        extent: [0, 0, 1000, 1000],
+        preferredPixelRatio: 4
+      })!.view.pixelRatio
+    ).toBe(MAX_OVERLAY_PIXEL_RATIO);
+    const big = overlayView({
+      ...base,
+      extent: [0, 0, 33800, 33800],
+      preferredPixelRatio: 2
+    })!;
+    expect(big.view.width * big.view.height).toBeLessThanOrEqual(
+      MAX_OVERLAY_PIXELS * 1.001
+    );
+    expect(big.view.pixelRatio).toBeLessThan(1);
+  });
+
   it('moves a view in another world copy into the primary world', () => {
     const v = overlayView({
       ...base,

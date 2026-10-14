@@ -300,7 +300,12 @@ export class PlotterExtensionService {
           continue;
         }
         seen.add(def.id);
-        result.push({ extension, extensionName: manifest.name, def });
+        result.push({
+          extension,
+          extensionName: manifest.name,
+          def,
+          panels: manifest.panels
+        });
       }
     }
     return result;
@@ -504,7 +509,8 @@ export class PlotterExtensionService {
           panel: c.panel,
           visible: true,
           collapsed: false,
-          targetInstance: c.targetInstance
+          ...(c.targetInstance ? { targetInstance: c.targetInstance } : {}),
+          ...(c.targetOverlay ? { targetOverlay: c.targetOverlay } : {})
         }
       });
     }
@@ -1010,6 +1016,9 @@ export class PlotterExtensionService {
       this.app.saveConfig();
     });
     this.overlays.loadSettings(this.app.config.plotterExtensions?.overlays);
+    this.overlays.setConfigOpener((entry) =>
+      this.openOverlayConfigPanel(entry)
+    );
     effect(() => {
       const defs = this.overlayDefinitions();
       untracked(() => this.overlays.setDefinitions(defs));
@@ -2043,8 +2052,10 @@ export class PlotterExtensionService {
   }
 
   /**
-   * Attach a panel iframe (e.g. a widget configuration panel). targetInstance
-   * scopes the panel's instance state to the widget being configured.
+   * Attach a panel iframe (e.g. a widget or overlay configuration panel).
+   * targetInstance scopes the panel's instance state to the widget being
+   * configured; an overlay's panel (targetOverlay) has no instance, so its
+   * state defaults to the extension scope.
    */
   attachPanel(
     iframe: HTMLIFrameElement,
@@ -2053,6 +2064,7 @@ export class PlotterExtensionService {
       panel: PanelContribution;
       targetInstance?: string | null;
       targetWidget?: string | null;
+      targetOverlay?: string | null;
       close: () => void;
     }
   ): () => void {
@@ -2064,7 +2076,8 @@ export class PlotterExtensionService {
         id: opts.panel.id,
         instanceId: null,
         targetInstance: opts.targetInstance ?? null,
-        targetWidget: opts.targetWidget ?? null
+        targetWidget: opts.targetWidget ?? null,
+        targetOverlay: opts.targetOverlay ?? null
       },
       stateInstance: opts.targetInstance ?? null,
       methods: {
@@ -2184,14 +2197,16 @@ export class PlotterExtensionService {
   /**
    * Configuration panels loaded in an open dialog, for `panels.state`. A list,
    * not one slot: an extension can open a second widget's dialog over the
-   * first, and each must report its own close.
+   * first, and each must report its own close. Each targets either a widget
+   * instance or an image overlay.
    */
   private readonly configPanels = signal<
     Array<{
       id: number;
       extension: string;
       panel: string;
-      targetInstance: string;
+      targetInstance?: string;
+      targetOverlay?: string;
     }>
   >([]);
   private configPanelSeq = 0;
@@ -2257,6 +2272,47 @@ export class PlotterExtensionService {
           );
         }
       });
+    });
+  }
+
+  /**
+   * Open an image overlay's configuration panel (its `configPanel`, already
+   * resolved to a usable iframe panel by the registry) in the same dialog as a
+   * widget's, without the Remove button: an overlay is hidden, never removed.
+   */
+  openOverlayConfigPanel(entry: OverlayEntry) {
+    const panel = this.manifests()[entry.extension]?.panels?.find(
+      (p) => p.id === entry.configPanel
+    );
+    if (!panel) return;
+    import('./panel-dialog.component').then(({ PlotterPanelDialog }) => {
+      const ref = this.dialog.open(PlotterPanelDialog, {
+        data: {
+          extension: entry.extension,
+          panel,
+          title: entry.title,
+          targetOverlay: entry.id
+        },
+        width: '440px',
+        maxHeight: '85vh'
+      });
+      const configId = ++this.configPanelSeq;
+      this.configPanels.update((list) => [
+        ...list,
+        {
+          id: configId,
+          extension: entry.extension,
+          panel: panel.id,
+          targetOverlay: entry.id
+        }
+      ]);
+      ref
+        .afterClosed()
+        .subscribe(() =>
+          this.configPanels.update((list) =>
+            list.filter((c) => c.id !== configId)
+          )
+        );
     });
   }
 
