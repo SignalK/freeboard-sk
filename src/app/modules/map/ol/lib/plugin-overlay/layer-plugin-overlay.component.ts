@@ -14,7 +14,6 @@ import { unByKey } from 'ol/Observable';
 import ImageLayer from 'ol/layer/Image';
 import ImageSource from 'ol/source/Image';
 import { createLoader } from 'ol/source/static';
-import { createEmpty } from 'ol/extent';
 import { get as getProjection } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
@@ -30,12 +29,16 @@ import {
  * One image map overlay (capability `overlays.image`): an OL image layer whose
  * picture an extension's background runtime draws. On every settled view
  * change that needs it, the layer asks the runtime for a frame of the north-up
- * box covering the view; each accepted frame is drawn into the layer's canvas
- * and placed at its extent, in the world copy on screen. Between frames OL
- * moves, scales and rotates the last one with the map.
+ * box covering the view; each accepted frame is placed at its extent, in the
+ * world copy on screen. Between frames OL moves, scales and rotates the last
+ * one with the map.
  *
- * The same placement as the radar layer (`ImageSource` + a mutable
- * `imageExtent`), fed by the bus instead of a worker.
+ * Each frame gets its own static `ImageSource` whose image is the transferred
+ * `ImageBitmap` itself (no copy). A static source computes its resolution once,
+ * on first load, and `refresh()` never reloads it — so one long-lived source
+ * with a mutable extent (the radar pattern) shows a frame drawn at another zoom
+ * at the old scale. OL keeps drawing the previous image until the new one has
+ * loaded, so swapping sources does not flicker.
  */
 @Component({
   selector: 'ol-map > fb-plugin-overlay',
@@ -55,9 +58,10 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   private mapComponent = inject(MapComponent);
 
   private layer: ImageLayer<ImageSource> | null = null;
-  private source: ImageSource | null = null;
-  private canvas: HTMLCanvasElement | null = null;
-  private readonly imageExtent = createEmpty();
+  private projection = getProjection('EPSG:3857');
+  /** The bitmap on screen, and one still drawn until its successor loads. */
+  private shown: ImageBitmap | null = null;
+  private outgoing: ImageBitmap[] = [];
   private lastRequested: RequestedView | null = null;
   private hasFrame = false;
   private listenerKeys: EventsKey[] = [];
@@ -70,18 +74,7 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   ngOnInit() {
     const map = this.mapComponent.getMap();
     if (!map) return;
-    this.canvas = document.createElement('canvas');
-    const canvas = this.canvas;
-    this.source = new ImageSource({
-      projection: getProjection('EPSG:3857'),
-      loader: createLoader({
-        imageExtent: this.imageExtent,
-        url: '',
-        load: () => Promise.resolve(canvas)
-      })
-    });
     this.layer = new ImageLayer({
-      source: this.source,
       zIndex: this.zIndex,
       opacity: this.clampOpacity(this.opacity),
       // nothing to show until the first frame arrives; the zoom range is gated
@@ -125,13 +118,11 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       map.render();
     }
     this.layer = null;
-    this.source = null;
-    if (this.canvas) {
-      // release the backing store now rather than at GC (iOS canvas budget)
-      this.canvas.width = 0;
-      this.canvas.height = 0;
-      this.canvas = null;
-    }
+    // release the bitmaps now rather than at GC (iOS canvas budget)
+    this.shown?.close();
+    this.shown = null;
+    this.outgoing.forEach((b) => b.close());
+    this.outgoing = [];
   }
 
   private clampOpacity(v: number) {
@@ -183,26 +174,36 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private draw(frame: OverlayFrameDelivery) {
-    if (!this.canvas || !this.layer || !this.source) {
+    if (!this.layer) {
       frame.image.close();
       return;
     }
-    const { image, extent } = frame;
-    if (this.canvas.width !== image.width) this.canvas.width = image.width;
-    if (this.canvas.height !== image.height) this.canvas.height = image.height;
-    const ctx = this.canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, image.width, image.height);
-      ctx.drawImage(image, 0, 0);
-    }
-    image.close();
-    this.imageExtent[0] = extent[0];
-    this.imageExtent[1] = extent[1];
-    this.imageExtent[2] = extent[2];
-    this.imageExtent[3] = extent[3];
+    const image = frame.image;
+    const source = new ImageSource({
+      projection: this.projection,
+      loader: createLoader({
+        imageExtent: frame.extent.slice(),
+        url: '',
+        load: () => Promise.resolve(image)
+      })
+    });
+    // OL keeps drawing the previous bitmap until this one has loaded, so the
+    // outgoing ones are closed only once the source still attached has loaded
+    // (a frame arriving before then supersedes this one and cleans up itself),
+    // and a render later, when OL can no longer be drawing them.
+    if (this.shown) this.outgoing.push(this.shown);
+    this.shown = image;
+    source.once('imageloadend', () => {
+      if (this.layer?.getSource() !== source) return;
+      const done = this.outgoing;
+      this.outgoing = [];
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => done.forEach((b) => b.close()))
+      );
+    });
+    this.layer.setSource(source);
     this.hasFrame = true;
     this.updateVisibility(this.mapComponent.getMap()?.getView().getZoom());
-    this.source.refresh();
   }
 
   /** Shown once a frame has arrived, and only within the zoom range. */
