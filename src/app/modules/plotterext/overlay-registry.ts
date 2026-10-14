@@ -10,11 +10,14 @@ import {
   OverlayContribution,
   PanelContribution
 } from './types';
+import type { DataOverlayModel } from './data-overlay-model';
 
 /**
- * Host-side state for image map overlays (capability `overlays.image`): which
- * overlays exist, the user's show/fade choices, the active-overlay budget, the
- * latest frame request per overlay, and the rules for accepting a frame.
+ * Host-side state for map overlays (capabilities `overlays.image` and
+ * `overlays.data`): which overlays exist, the user's show/fade choices, the
+ * active-overlay budget, and for image overlays the latest frame request per
+ * overlay and the rules for accepting a frame. A data overlay's live state is
+ * its {@link DataOverlayModel}.
  *
  * A dependency-free root service (signals only), so the chart list can use it
  * without the extension host and it is unit-testable with `new`. The
@@ -22,7 +25,7 @@ import {
  * persistence hook.
  */
 
-/** Most image overlays drawn at once; the rest are suspended (budget). */
+/** Most overlays drawn at once; the rest are suspended (budget). */
 export const MAX_ACTIVE_OVERLAYS = 4;
 
 /** Least time between two accepted live (unrequested) frames of one overlay. */
@@ -54,6 +57,8 @@ export interface OverlayDefinition {
   def: OverlayContribution;
   /** The manifest's panels, to resolve the overlay's `configPanel` against. */
   panels?: PanelContribution[];
+  /** A data overlay's loaded style and live state. */
+  model?: DataOverlayModel;
 }
 
 /** Everything the host needs about one overlay. */
@@ -64,7 +69,11 @@ export interface OverlayEntry {
   extensionName: string;
   id: string;
   title: string;
-  runtime: string;
+  type: 'image' | 'data';
+  /** Image overlays: the background runtime that draws it. */
+  runtime?: string;
+  /** Data overlays: the style and live state the map layer draws. */
+  model?: DataOverlayModel;
   band: OverlayBand;
   visible: boolean;
   opacity: number;
@@ -107,7 +116,8 @@ interface PendingRequest {
 
 export class OverlayRefusal extends Error {
   constructor(
-    readonly reason: 'overlays.unknownId' | 'overlays.badRequest',
+    readonly reason:
+      'overlays.unknownId' | 'overlays.badRequest' | 'overlays.unsupported',
     message: string
   ) {
     super(message);
@@ -191,7 +201,8 @@ export class OverlayRegistry {
       extension,
       extensionName,
       def,
-      panels
+      panels,
+      model
     } of this.definitions()) {
       const key = overlayKey(extension, def.id);
       const band: OverlayBand =
@@ -203,7 +214,8 @@ export class OverlayRegistry {
         extensionName,
         id: def.id,
         title: def.title,
-        runtime: def.runtime,
+        type: model ? 'data' : 'image',
+        ...(model ? { model } : { runtime: def.runtime }),
         band,
         visible:
           typeof saved?.visible === 'boolean'
@@ -215,7 +227,9 @@ export class OverlayRegistry {
         minZoom: def.minZoom,
         maxZoom: def.maxZoom,
         configPanel: usableConfigPanel(def, panels),
-        preferredPixelRatio: positiveOrUndefined(def.preferredPixelRatio)
+        preferredPixelRatio: model
+          ? undefined
+          : positiveOrUndefined(def.preferredPixelRatio)
       });
     }
     const ordered: OverlayEntry[] = [];
@@ -261,11 +275,36 @@ export class OverlayRegistry {
       .map((e) => ({
         id: e.id,
         title: e.title,
+        type: e.type,
         band: e.band,
         visible: e.visible,
         opacity: e.opacity,
-        suspended: e.suspended
+        suspended: e.suspended,
+        ...(e.model ? { skippedLayers: e.model.skippedLayers() } : {})
       }));
+  }
+
+  /**
+   * The live state of one of the extension's data overlays. Throws
+   * `overlays.unknownId` for an id it does not own, `overlays.badRequest` for
+   * an image overlay.
+   */
+  dataModel(extension: string, id: unknown): DataOverlayModel {
+    if (typeof id !== 'string') {
+      throw new OverlayRefusal(
+        'overlays.badRequest',
+        '`overlayId` is required'
+      );
+    }
+    this.requireOwn(extension, [id]);
+    const model = this.entry(overlayKey(extension, id))?.model;
+    if (!model) {
+      throw new OverlayRefusal(
+        'overlays.badRequest',
+        `Overlay "${id}" is an image overlay, not a data overlay`
+      );
+    }
+    return model;
   }
 
   /** Throws `overlays.unknownId` unless every id is one of the extension's overlays. */
@@ -381,6 +420,13 @@ export class OverlayRegistry {
   ): OverlayFrameResult {
     const key = overlayKey(extension, frame.overlayId);
     const e = this.entry(key);
+    if (e?.type === 'data') {
+      frame.image.close();
+      throw new OverlayRefusal(
+        'overlays.badRequest',
+        `Overlay "${frame.overlayId}" is a data overlay; the host draws it`
+      );
+    }
     if (!e || runtime === null || e.runtime !== runtime) {
       frame.image.close();
       throw new OverlayRefusal(

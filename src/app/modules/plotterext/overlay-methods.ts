@@ -9,10 +9,14 @@ import {
   overlayKey,
   type OverlayFrameInput
 } from './overlay-registry';
+import { DataOverlayRefusal } from './data-overlay-model';
 
 /**
- * Host method handlers for the `overlays.image` capability: `overlay.list`,
- * `overlay.setVisibility`, `overlay.setOpacity` and `overlay.frame`. A pure
+ * Host method handlers for map overlays: `overlay.list`,
+ * `overlay.setVisibility` and `overlay.setOpacity` (both kinds),
+ * `overlay.frame` (`overlays.image`), and `overlay.refresh`,
+ * `overlay.setData`, `overlay.setLayer` and `overlay.setState`
+ * (`overlays.data`). A pure
  * factory over the registry, matching the {@link createChartMethods} pattern,
  * so the handlers are unit-testable without the Angular host service.
  *
@@ -28,7 +32,7 @@ const badRequest = (message: string) =>
   });
 
 function asRpc(err: unknown): unknown {
-  if (err instanceof OverlayRefusal) {
+  if (err instanceof OverlayRefusal || err instanceof DataOverlayRefusal) {
     return err.reason === 'overlays.badRequest'
       ? badRequest(err.message)
       : new RpcError(err.message, { reason: err.reason });
@@ -64,6 +68,13 @@ export function isImageBitmap(v: unknown): v is ImageBitmap {
     Number.isInteger(b.height) &&
     typeof b.close === 'function'
   );
+}
+
+function asParams(params: unknown): Record<string, unknown> {
+  if (!params || typeof params !== 'object' || Array.isArray(params)) {
+    throw badRequest('params must be an object');
+  }
+  return params as Record<string, unknown>;
 }
 
 function toFrame(params: unknown): OverlayFrameInput {
@@ -154,6 +165,44 @@ export function createOverlayMethods(
 
     'overlay.frame': guard((params) =>
       registry.acceptFrame(extension, runtime, toFrame(params))
-    )
+    ),
+
+    'overlay.refresh': guard((params) => {
+      const p = asParams(params);
+      registry.dataModel(extension, p['overlayId']).refresh({
+        source: p['source'],
+        tiles: p['tiles']
+      });
+      return {};
+    }),
+
+    'overlay.setData': guard((params) => {
+      const p = asParams(params);
+      registry.dataModel(extension, p['overlayId']).setData({
+        source: p['source'],
+        data: p['data'],
+        upsert: p['upsert'],
+        remove: p['remove']
+      });
+      return {};
+    }),
+
+    'overlay.setLayer': guard((params) => {
+      const p = asParams(params);
+      const model = registry.dataModel(extension, p['overlayId']);
+      model.setLayer({
+        layer: p['layer'],
+        paint: p['paint'],
+        layout: p['layout'],
+        ...('filter' in p ? { filter: p['filter'] } : {})
+      });
+      return {};
+    }),
+
+    'overlay.setState': guard((params) => {
+      const p = asParams(params);
+      registry.dataModel(extension, p['overlayId']).setState(p['values']);
+      return {};
+    })
   };
 }
