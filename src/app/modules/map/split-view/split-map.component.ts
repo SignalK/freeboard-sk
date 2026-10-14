@@ -26,7 +26,8 @@ import {
 } from 'src/app/modules/map/ol';
 import {
   FBClickEvent,
-  FBMapEvent
+  FBMapEvent,
+  FBPointerEvent
 } from 'src/app/modules/map/ol/lib/map.component';
 import { MapReadyEvent } from 'src/app/modules/map/ol/lib/models';
 import { Position } from 'src/app/types';
@@ -204,6 +205,11 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected onPress() {
     this.pressedAt = Date.now();
+  }
+
+  /** The main chart's position readout follows the pointer here too. */
+  protected onPointerMove(e: FBPointerEvent) {
+    this.split.forwardPointer(e.lonlat as Position);
   }
 
   protected onTap(e: FBClickEvent) {

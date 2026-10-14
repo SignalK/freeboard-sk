@@ -286,3 +286,14 @@ describe('SplitMapComponent: the main chart outline', () => {
     expect(cmp.footprint()[2]).toEqual([100, -50]);
   });
 });
+
+describe('SplitMapComponent: the position readout', () => {
+  it('hands the pointer position to the main chart readout', () => {
+    const cmp = bareComponent();
+    cmp.split.forwardPointer = vi.fn();
+
+    cmp.onPointerMove({ lonlat: [23.5, 60.1] });
+
+    expect(cmp.split.forwardPointer).toHaveBeenCalledWith([23.5, 60.1]);
+  });
+});

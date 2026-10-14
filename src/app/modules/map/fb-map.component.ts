@@ -623,9 +623,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
     );
-    // Taps on the split view's second pane, which shows this chart's features
+    // Taps and the pointer on the split view's second pane, which shows this
+    // chart's features
     this.obsList.push(
-      this.splitView.taps$.subscribe((tap) => this.onSecondaryTap(tap))
+      this.splitView.taps$.subscribe((tap) => this.onSecondaryTap(tap)),
+      this.splitView.pointer$.subscribe((lonlat) =>
+        this.onSecondaryPointer(lonlat)
+      )
     );
     // SETTINGS settings.change$ event
     this.obsList.push(
@@ -1183,6 +1187,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * A tap or menu request on the split view's second pane. Its layers mirror
    * this chart's, so its features are this chart's own and are handled here.
    */
+  /**
+   * The pointer over the second pane moves the position readout only: the
+   * pixel and map coordinate stay this chart's, for its own menu.
+   */
+  private onSecondaryPointer(lonlat: Position) {
+    this.mouse.update((mouse) => ({
+      ...mouse,
+      coords: GeoUtils.normaliseCoords(lonlat)
+    }));
+  }
+
   private onSecondaryTap(tap: SecondaryTap) {
     if (tap.kind === 'click') {
       this.pointerDownAt = tap.pressedAt;

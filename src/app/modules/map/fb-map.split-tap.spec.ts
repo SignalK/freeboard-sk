@@ -220,3 +220,19 @@ describe('FBMapComponent: layers shown from some zoom on, with the chart split',
     expect(cmp.shownFrom(12)).toBe(gate);
   });
 });
+
+describe('FBMapComponent: the position readout with the split view open', () => {
+  it('follows the pointer over the second pane, keeping its own for the menu', () => {
+    const cmp = bareComponent(new OlMap());
+    cmp.mouse = signal({ pixel: [10, 20], xy: [1000, 2000], coords: [23, 60] });
+
+    // a pointer over a world copy east of the primary world
+    cmp.onSecondaryPointer([383.5, 60.1]);
+
+    expect(cmp.mouse()).toEqual({
+      pixel: [10, 20],
+      xy: [1000, 2000],
+      coords: [23.5, 60.1]
+    });
+  });
+});

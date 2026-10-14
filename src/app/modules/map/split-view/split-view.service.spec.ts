@@ -60,6 +60,18 @@ describe('SplitViewService: the active pane', () => {
   });
 });
 
+describe('SplitViewService: the pointer over the second pane', () => {
+  it('passes it on for the position readout', () => {
+    const split = new SplitViewService();
+    const seen: number[][] = [];
+    split.pointer$.subscribe((lonlat) => seen.push(lonlat));
+
+    split.forwardPointer([23.5, 60.1]);
+
+    expect(seen).toEqual([[23.5, 60.1]]);
+  });
+});
+
 describe('SplitViewService: layout and saving', () => {
   const stored = () =>
     JSON.parse(localStorage.getItem(SPLIT_VIEW_STORAGE_KEY) ?? 'null');

@@ -51,6 +51,7 @@ export class SplitViewService {
   private state = signal<SplitViewState>(this.read());
   private secondary = signal<OlMap | null>(null);
   private taps = new Subject<SecondaryTap>();
+  private pointer = new Subject<Position>();
   private active = signal<SplitPane>('main');
   private commands = new Subject<PaneCommand>();
   private panel = signal<{ width: number; height: number } | null>(null);
@@ -59,6 +60,8 @@ export class SplitViewService {
   /** The second pane's map while the pane is open. */
   readonly secondaryMap = this.secondary.asReadonly();
   readonly taps$ = this.taps.asObservable();
+  /** Where the pointer is over the second pane, for the position readout. */
+  readonly pointer$ = this.pointer.asObservable();
   readonly commands$ = this.commands.asObservable();
 
   readonly enabled = computed(() => this.state().enabled);
@@ -148,6 +151,10 @@ export class SplitViewService {
 
   forwardTap(tap: SecondaryTap) {
     this.taps.next(tap);
+  }
+
+  forwardPointer(lonlat: Position) {
+    this.pointer.next(lonlat);
   }
 
   zoomBy(step: number) {
