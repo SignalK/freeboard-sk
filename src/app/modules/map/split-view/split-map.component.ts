@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   computed,
   effect,
@@ -34,7 +35,12 @@ import { mapControls, mapInteractions } from '../mapconfig';
 import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
-import { ratioFromPointer, viewFootprint } from './split-view';
+import {
+  ratioFromPointer,
+  SPLIT_RATIO_MAX,
+  SPLIT_RATIO_MIN,
+  viewFootprint
+} from './split-view';
 import { PaneCommand, SplitPane, SplitViewService } from './split-view.service';
 
 /**
@@ -50,9 +56,12 @@ import { PaneCommand, SplitPane, SplitViewService } from './split-view.service';
   imports: [FreeboardOpenlayersModule, MatIconModule, MatTooltipModule],
   templateUrl: './split-map.component.html',
   styleUrls: ['./split-map.component.css'],
-  host: { '[class.active-pane]': 'split.secondaryActive()' }
+  host: {
+    '[class.active-pane]': 'split.secondaryActive()',
+    '[class.stacked]': 'split.stacked()'
+  }
 })
-export class SplitMapComponent implements OnInit, OnDestroy {
+export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   protected app = inject(AppFacade);
   protected skstream = inject(SKStreamFacade);
   protected split = inject(SplitViewService);
@@ -74,7 +83,11 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   private map: OlMap | undefined;
   private mainMap: OlMap | undefined;
   private stopMirror: (() => void) | undefined;
-  private stopPressWatch: (() => void)[] = [];
+  private stopUseWatch: (() => void)[] = [];
+  private panelSize: ResizeObserver | undefined;
+  private gripFrame = 0;
+  protected readonly ratioMin = Math.round(SPLIT_RATIO_MIN * 100);
+  protected readonly ratioMax = Math.round(SPLIT_RATIO_MAX * 100);
   private vessels: Subscription;
   private commands: Subscription;
   private pressedAt = 0;
@@ -108,13 +121,27 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     this.commands = this.split.commands$.subscribe((c) => this.onCommand(c));
   }
 
+  ngAfterViewInit() {
+    // The panel's own shape decides whether the panes stack, and its length
+    // along the split how far the divider may go.
+    const panel = this.host.nativeElement.parentElement;
+    if (panel) {
+      this.panelSize = new ResizeObserver(() =>
+        this.split.setPanelSize(panel.clientWidth, panel.clientHeight)
+      );
+      this.panelSize.observe(panel);
+    }
+  }
+
   ngOnDestroy() {
     this.vessels?.unsubscribe();
     this.commands?.unsubscribe();
+    this.panelSize?.disconnect();
+    cancelAnimationFrame(this.gripFrame);
     this.stopMirror?.();
-    this.stopPressWatch.forEach((stop) => stop());
-    this.mainMap?.un('moveend', this.updateFootprint);
-    this.mainMap?.un('change:size', this.updateFootprint);
+    this.stopUseWatch.forEach((stop) => stop());
+    this.mainMap?.un('moveend', this.onMainMoved);
+    this.mainMap?.un('change:size', this.onMainMoved);
     this.split.setSecondaryMap(null);
   }
 
@@ -124,29 +151,42 @@ export class SplitMapComponent implements OnInit, OnDestroy {
     this.mainMap = e.mapService.getMaps().find((m) => m !== e.map);
     if (this.mainMap) {
       this.stopMirror = mirrorLayers(this.mainMap, e.map);
-      this.mainMap.on('moveend', this.updateFootprint);
-      this.mainMap.on('change:size', this.updateFootprint);
-      this.stopPressWatch.push(this.activateOnPress(this.mainMap, 'main'));
+      this.mainMap.on('moveend', this.onMainMoved);
+      this.mainMap.on('change:size', this.onMainMoved);
+      this.stopUseWatch.push(this.activateOnUse(this.mainMap, 'main'));
     }
-    this.stopPressWatch.push(this.activateOnPress(e.map, 'secondary'));
+    this.stopUseWatch.push(this.activateOnUse(e.map, 'secondary'));
     this.updateFootprint();
     this.split.setSecondaryMap(e.map);
   }
 
   /**
-   * A press on a pane's chart makes that pane the active one. Presses on its
-   * controls and popovers don't count: the zoom buttons sit on the main chart,
-   * and pressing them must not take them away from the second pane.
+   * A press on a pane's chart, or keyboard focus moving onto it, makes that
+   * pane the active one. Its controls and popovers don't count: the zoom
+   * buttons sit on the main chart, and pressing them must not take them away
+   * from the second pane. Nor does focus the app moves there itself after a
+   * toolbar click; only focus the user moved by keyboard (:focus-visible).
    */
-  private activateOnPress(map: OlMap, pane: SplitPane): () => void {
+  private activateOnUse(map: OlMap, pane: SplitPane): () => void {
     const viewport = map.getViewport();
+    const onChart = (e: Event) =>
+      !map.getOverlayContainerStopEvent().contains(e.target as Node);
     const onPress = (e: PointerEvent) => {
-      if (!map.getOverlayContainerStopEvent().contains(e.target as Node)) {
+      if (onChart(e)) {
+        this.split.activate(pane);
+      }
+    };
+    const onFocus = (e: FocusEvent) => {
+      if (onChart(e) && (e.target as Element).matches?.(':focus-visible')) {
         this.split.activate(pane);
       }
     };
     viewport.addEventListener('pointerdown', onPress);
-    return () => viewport.removeEventListener('pointerdown', onPress);
+    map.getTargetElement()?.addEventListener('focusin', onFocus);
+    return () => {
+      viewport.removeEventListener('pointerdown', onPress);
+      map.getTargetElement()?.removeEventListener('focusin', onFocus);
+    };
   }
 
   // ---------- taps ----------
@@ -275,17 +315,26 @@ export class SplitMapComponent implements OnInit, OnDestroy {
 
   // ---------- divider ----------
 
+  /** The main chart's share of the panel, as the divider reports it. */
+  protected splitPercent(): number {
+    return Math.round(this.split.shownRatio() * 100);
+  }
+
   protected gripDown(ev: PointerEvent) {
     const container = this.host.nativeElement.parentElement;
     if (!container) {
       return;
     }
     this.gripRect = container.getBoundingClientRect();
-    this.gripStacked = this.isStacked(container);
+    this.gripStacked = this.split.stacked();
     (ev.currentTarget as HTMLElement).setPointerCapture?.(ev.pointerId);
     ev.preventDefault();
   }
 
+  /**
+   * Both maps resize with the divider, so it moves at most once a frame,
+   * and is saved only when the drag ends.
+   */
   protected gripMove(ev: PointerEvent) {
     if (!this.gripRect) {
       return;
@@ -296,32 +345,41 @@ export class SplitMapComponent implements OnInit, OnDestroy {
       ev.clientY,
       this.gripStacked
     );
-    if (ratio !== null) {
-      this.split.setRatio(ratio);
+    if (ratio === null) {
+      return;
     }
+    cancelAnimationFrame(this.gripFrame);
+    this.gripFrame = requestAnimationFrame(() =>
+      this.split.setRatio(ratio, false)
+    );
   }
 
   protected gripUp() {
-    this.gripRect = null;
-  }
-
-  protected gripKey(ev: KeyboardEvent) {
-    const container = this.host.nativeElement.parentElement;
-    const stacked = container ? this.isStacked(container) : false;
-    const step =
-      ev.key === (stacked ? 'ArrowUp' : 'ArrowLeft')
-        ? -0.05
-        : ev.key === (stacked ? 'ArrowDown' : 'ArrowRight')
-          ? 0.05
-          : 0;
-    if (step) {
-      ev.preventDefault();
-      this.split.setRatio(this.split.ratio() + step);
+    if (this.gripRect) {
+      this.gripRect = null;
+      this.split.save();
     }
   }
 
-  private isStacked(container: HTMLElement): boolean {
-    return getComputedStyle(container).flexDirection === 'column';
+  /** The divider as a window splitter: arrows move it, Home and End to the ends. */
+  protected gripKey(ev: KeyboardEvent) {
+    const stacked = this.split.stacked();
+    const back = stacked ? 'ArrowUp' : 'ArrowLeft';
+    const forward = stacked ? 'ArrowDown' : 'ArrowRight';
+    const ratio =
+      ev.key === 'Home'
+        ? SPLIT_RATIO_MIN
+        : ev.key === 'End'
+          ? SPLIT_RATIO_MAX
+          : ev.key === back
+            ? this.split.shownRatio() - 0.05
+            : ev.key === forward
+              ? this.split.shownRatio() + 0.05
+              : null;
+    if (ratio !== null) {
+      ev.preventDefault();
+      this.split.setRatio(ratio);
+    }
   }
 
   // ---------- data ----------
@@ -337,7 +395,22 @@ export class SplitMapComponent implements OnInit, OnDestroy {
   }
 
   // OpenLayers calls this outside the Angular zone; the signal carries it in.
-  private updateFootprint = () => {
-    this.footprint.set(this.mainMap ? viewFootprint(this.mainMap) : null);
-  };
+  private onMainMoved = () => this.updateFootprint();
+
+  private updateFootprint() {
+    const main = this.mainMap;
+    const ring = main ? viewFootprint(main) : null;
+    if (!main || !ring) {
+      this.footprint.set(null);
+      return;
+    }
+    // In the primary world, so the pane's wrapped copies show it wherever the
+    // main chart has been panned to: OL repeats it only one world either side.
+    const view = main.getView();
+    const offset = worldCopyOffset(
+      view.getCenter()[0],
+      getWidth(view.getProjection().getExtent())
+    );
+    this.footprint.set(ring.map(([x, y]) => [x - offset, y]));
+  }
 }

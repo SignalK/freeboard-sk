@@ -355,6 +355,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
+  /**
+   * Room left under the position readout for widgets along the bottom of the
+   * screen. Stacked under the split view's second pane, this chart does not
+   * reach the bottom of the screen, so it needs none.
+   */
+  protected statusBarLift = computed(() =>
+    this.splitView.secondaryMap() && this.splitView.stacked()
+      ? 0
+      : this.plotterExt.statusBarLift()
+  );
   // Matches the zoom buttons: the active pane's zoom.
   protected mapZoomText = computed(() => zoomDisplayText(this.viewZoom()));
   /** The zoom of the pane the zoom buttons act on. */

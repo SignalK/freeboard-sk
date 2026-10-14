@@ -104,11 +104,7 @@
     <ol-content>
       <div
         class="ol-mouse-position"
-        [style.bottom]="
-          plotterExt.statusBarLift() > 0
-            ? plotterExt.statusBarLift() + 'px'
-            : null
-        "
+        [style.bottom]="statusBarLift() > 0 ? statusBarLift() + 'px' : null"
       >
         <span
           style="

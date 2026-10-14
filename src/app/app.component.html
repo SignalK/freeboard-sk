@@ -1049,6 +1049,7 @@
           <div
             class="mapPanel"
             [class.split]="splitActive()"
+            [class.stacked]="splitActive() && splitView.stacked()"
             (dragover)="mapDragOver($event)"
             (drop)="mapDrop($event)"
           >
@@ -1058,7 +1059,7 @@
                 splitActive() && !splitView.secondaryActive()
               "
               [style.flex-basis.%]="
-                splitActive() ? splitView.ratio() * 100 : 100
+                splitActive() ? splitView.shownRatio() * 100 : 100
               "
             >
               <!-- MAP -->

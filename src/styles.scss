@@ -49,8 +49,8 @@ b { font-weight: 500; }
     font-family: 'Roboto';
 }
 
-/* The chart, and the split view's second pane beside it (below it on a
-   portrait screen). */
+/* The chart, and the split view's second pane beside it (below it when the
+   panel is taller than it is wide). */
 .mapPanel {
     display: flex;
     width: 100%;
@@ -75,10 +75,18 @@ b { font-weight: 500; }
     box-shadow: inset 0 0 0 3px rgb(54, 122, 190);
 }
 
-@media (orientation: portrait) {
-    .mapPanel.split {
-        flex-direction: column;
+/* Forced colours drop box shadows: draw the outline in the system colour. */
+@media (forced-colors: active) {
+    .mapMain.active-pane::after {
+        box-shadow: none;
+        outline: 3px solid Highlight;
+        outline-offset: -3px;
     }
+}
+
+/* The panes stack when the panel is taller than it is wide. */
+.mapPanel.split.stacked {
+    flex-direction: column;
 }
 
 .transparent-backdrop {

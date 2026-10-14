@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 import { Map as OlMap } from 'ol';
 import { Subject } from 'rxjs';
+import { WORLD_WIDTH_3857 } from '../route-extend';
 import { Position } from 'src/app/types';
 
 import { SplitMapComponent } from './split-map.component';
@@ -65,7 +66,7 @@ describe('SplitMapComponent: choosing the active pane', () => {
   it('makes a pane active when its chart is pressed', () => {
     const cmp = bareComponent();
     const map = new OlMap();
-    cmp.activateOnPress(map, 'secondary');
+    cmp.activateOnUse(map, 'secondary');
 
     press(map.getViewport());
 
@@ -77,7 +78,7 @@ describe('SplitMapComponent: choosing the active pane', () => {
     const map = new OlMap();
     const button = document.createElement('button');
     map.getOverlayContainerStopEvent().appendChild(button);
-    cmp.activateOnPress(map, 'main');
+    cmp.activateOnUse(map, 'main');
 
     press(button);
 
@@ -87,7 +88,7 @@ describe('SplitMapComponent: choosing the active pane', () => {
   it('stops listening when asked', () => {
     const cmp = bareComponent();
     const map = new OlMap();
-    const stop = cmp.activateOnPress(map, 'secondary');
+    const stop = cmp.activateOnUse(map, 'secondary');
 
     stop();
     press(map.getViewport());
@@ -168,5 +169,79 @@ describe('SplitMapComponent: double-click and keys', () => {
     cmp.onKeydown(key('ArrowLeft'));
 
     expect(cmp.split.setFollow).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('SplitMapComponent: the divider', () => {
+  const key = (k: string) =>
+    ({ key: k, preventDefault: vi.fn() }) as unknown as KeyboardEvent;
+  const withDivider = (stacked: boolean) => {
+    const cmp = bareComponent();
+    cmp.split.stacked = () => stacked;
+    cmp.split.shownRatio = () => 0.5;
+    cmp.split.setRatio = vi.fn();
+    return cmp;
+  };
+
+  it('moves with the arrow keys along the split', () => {
+    const side = withDivider(false);
+    side.gripKey(key('ArrowRight'));
+    expect(side.split.setRatio).toHaveBeenCalledWith(0.55);
+
+    const stacked = withDivider(true);
+    stacked.gripKey(key('ArrowUp'));
+    expect(stacked.split.setRatio).toHaveBeenCalledWith(0.45);
+  });
+
+  it('goes to either end with Home and End', () => {
+    const cmp = withDivider(false);
+    cmp.gripKey(key('Home'));
+    cmp.gripKey(key('End'));
+    expect(cmp.split.setRatio.mock.calls).toEqual([[0.3], [0.7]]);
+  });
+});
+
+describe('SplitMapComponent: keyboard focus', () => {
+  it('makes a pane active when the keyboard moves focus onto its chart', () => {
+    const cmp = bareComponent();
+    const map = new OlMap();
+    const target = document.createElement('div');
+    target.appendChild(map.getViewport());
+    map.getTargetElement = () => target;
+    cmp.activateOnUse(map, 'secondary');
+    const focused = (visible: boolean) => {
+      const viewport = map.getViewport();
+      viewport.matches = (q: string) => q === ':focus-visible' && visible;
+      viewport.dispatchEvent(new Event('focusin', { bubbles: true }));
+    };
+
+    focused(false);
+    expect(cmp.split.activate).not.toHaveBeenCalled();
+    focused(true);
+    expect(cmp.split.activate).toHaveBeenCalledWith('secondary');
+  });
+});
+
+describe('SplitMapComponent: the main chart outline', () => {
+  it('draws it in the primary world, wherever the main chart was panned', () => {
+    const cmp = bareComponent();
+    cmp.footprint = signal(null);
+    const W = WORLD_WIDTH_3857;
+    // The main chart panned three worlds east of the primary one.
+    cmp.mainMap = {
+      getSize: () => [100, 50],
+      getCoordinateFromPixel: ([x, y]: number[]) => [3 * W + x, -y],
+      getView: () => ({
+        getCenter: () => [3 * W + 50, -25],
+        getProjection: () => ({
+          getExtent: () => [-W / 2, -W / 2, W / 2, W / 2]
+        })
+      })
+    };
+
+    cmp.updateFootprint();
+
+    expect(cmp.footprint()[0]).toEqual([0, -0]);
+    expect(cmp.footprint()[2]).toEqual([100, -50]);
   });
 });

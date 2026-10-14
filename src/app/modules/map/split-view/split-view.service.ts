@@ -7,6 +7,7 @@ import { FBClickEvent } from 'src/app/modules/map/ol/lib/map.component';
 import { Position } from 'src/app/types';
 import {
   clampRatio,
+  fitRatio,
   parseSplitViewState,
   SplitViewState,
   SPLIT_VIEW_STORAGE_KEY
@@ -50,6 +51,8 @@ export class SplitViewService {
   private taps = new Subject<SecondaryTap>();
   private active = signal<SplitPane>('main');
   private commands = new Subject<PaneCommand>();
+  private panel = signal<{ width: number; height: number } | null>(null);
+  private saveTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** The second pane's map while the pane is open. */
   readonly secondaryMap = this.secondary.asReadonly();
@@ -62,6 +65,27 @@ export class SplitViewService {
   readonly follow = computed(() => this.state().follow);
   /** The second pane's zoom as last reported by its map. */
   readonly zoom = computed(() => this.state().zoom);
+
+  /**
+   * Whether the panes are stacked: when the map panel is taller than it is
+   * wide (a phone held upright, or a side panel taking the width).
+   */
+  readonly stacked = computed(() => {
+    const panel = this.panel();
+    return !!panel && panel.height > panel.width;
+  });
+
+  /**
+   * The share the main chart gets on screen: the chosen ratio, moved in so
+   * neither pane is too narrow to show a popover.
+   */
+  readonly shownRatio = computed(() => {
+    const panel = this.panel();
+    if (!panel) {
+      return this.ratio();
+    }
+    return fitRatio(this.ratio(), this.stacked() ? panel.height : panel.width);
+  });
 
   /** True while the shared map buttons act on the second pane. */
   readonly secondaryActive = computed(
@@ -85,8 +109,17 @@ export class SplitViewService {
     this.active.set(pane);
   }
 
-  setRatio(ratio: number) {
-    this.update({ ratio: clampRatio(ratio) });
+  /**
+   * @param save false while the divider is being dragged: it is saved once,
+   * when the drag ends (see save()).
+   */
+  setRatio(ratio: number, save = true) {
+    this.update({ ratio: clampRatio(ratio) }, save);
+  }
+
+  /** The size of the panel the two panes share, as laid out. */
+  setPanelSize(width: number, height: number) {
+    this.panel.set({ width, height });
   }
 
   setNorthUp(northUp: boolean) {
@@ -97,8 +130,14 @@ export class SplitViewService {
     this.update({ follow });
   }
 
+  /**
+   * Called on every move of the second pane's map, which a divider drag
+   * fires per frame: the write to storage waits for the moves to settle.
+   */
   rememberView(zoom: number, center: Position) {
-    this.update({ zoom, center });
+    this.update({ zoom, center }, false);
+    clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => this.save(), 500);
   }
 
   setSecondaryMap(map: OlMap | null) {
@@ -117,8 +156,16 @@ export class SplitViewService {
     this.commands.next({ kind: 'center', position, zoom });
   }
 
-  private update(patch: Partial<SplitViewState>) {
+  private update(patch: Partial<SplitViewState>, save = true) {
     this.state.update((s) => ({ ...s, ...patch }));
+    if (save) {
+      this.save();
+    }
+  }
+
+  /** Writes the current state to storage. */
+  save() {
+    clearTimeout(this.saveTimer);
     try {
       localStorage.setItem(
         SPLIT_VIEW_STORAGE_KEY,

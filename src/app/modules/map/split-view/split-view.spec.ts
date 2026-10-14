@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   clampRatio,
   DEFAULT_SPLIT_VIEW,
+  fitRatio,
   parseSplitViewState,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
@@ -46,6 +47,26 @@ describe('ratioFromPointer', () => {
   });
 });
 
+describe('fitRatio', () => {
+  it('keeps a ratio that leaves both panes room', () => {
+    expect(fitRatio(0.6, 1200, 340)).toBe(0.6);
+  });
+
+  it('moves the divider in so neither pane is too narrow', () => {
+    // 844 px landscape phone: 0.7 would leave the second pane 253 px.
+    expect(fitRatio(0.7, 844, 340) * 844).toBeCloseTo(844 - 340);
+    expect(fitRatio(0.3, 844, 340) * 844).toBeCloseTo(340);
+  });
+
+  it('shares a panel too small for two full panes equally', () => {
+    expect(fitRatio(0.7, 600, 340)).toBe(0.5);
+  });
+
+  it('leaves the ratio alone before the panel has a size', () => {
+    expect(fitRatio(0.7, 0, 340)).toBe(0.7);
+  });
+});
+
 describe('parseSplitViewState', () => {
   it('returns the defaults when nothing is stored', () => {
     expect(parseSplitViewState(null)).toEqual(DEFAULT_SPLIT_VIEW);
@@ -83,6 +104,15 @@ describe('parseSplitViewState', () => {
       ratio: SPLIT_RATIO_MAX,
       northUp: false
     });
+  });
+
+  it('rejects a stored centre outside the world', () => {
+    expect(
+      parseSplitViewState(JSON.stringify({ center: [23.5, 91] })).center
+    ).toBeNull();
+    expect(
+      parseSplitViewState(JSON.stringify({ center: [197, 60] })).center
+    ).toBeNull();
   });
 
   it('drops anything after lon/lat from a stored centre', () => {

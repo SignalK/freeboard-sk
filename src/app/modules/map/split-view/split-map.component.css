@@ -24,6 +24,15 @@
   box-shadow: inset 0 0 0 3px rgb(54, 122, 190);
 }
 
+/* Forced colours drop box shadows: draw the outline in the system colour. */
+@media (forced-colors: active) {
+  :host(.active-pane)::after {
+    box-shadow: none;
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+}
+
 .split-grip {
   position: absolute;
   top: 50%;
@@ -44,22 +53,26 @@
   touch-action: none;
 }
 
-/* Portrait screens stack the panes. */
-@media (orientation: portrait) {
-  :host {
-    border-left: 0;
-    border-top: 8px solid #2b3846;
-  }
+.split-grip:focus-visible {
+  outline: 3px solid rgb(54, 122, 190);
+  outline-offset: 2px;
+}
 
-  .split-grip {
-    top: -4px;
-    left: 50%;
-    width: 56px;
-    height: 28px;
-    cursor: row-resize;
-  }
+/* Stacked panes (the panel is taller than wide). The grip sits right of
+   centre, clear of the main chart's position readout above it. */
+:host(.stacked) {
+  border-left: 0;
+  border-top: 8px solid #2b3846;
+}
 
-  .split-grip mat-icon {
-    transform: rotate(90deg);
-  }
+:host(.stacked) .split-grip {
+  top: -4px;
+  left: 75%;
+  width: 56px;
+  height: 28px;
+  cursor: row-resize;
+}
+
+:host(.stacked) .split-grip mat-icon {
+  transform: rotate(90deg);
 }

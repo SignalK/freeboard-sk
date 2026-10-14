@@ -25,10 +25,15 @@
   <fb-view-footprint [ring]="footprint()" [zIndex]="950"></fb-view-footprint>
 </ol-map>
 
-<button
+<div
   class="split-grip"
-  type="button"
+  role="separator"
+  tabindex="0"
   aria-label="Resize the split view"
+  [attr.aria-orientation]="split.stacked() ? 'horizontal' : 'vertical'"
+  [attr.aria-valuenow]="splitPercent()"
+  [attr.aria-valuemin]="ratioMin"
+  [attr.aria-valuemax]="ratioMax"
   matTooltip="Drag to resize"
   (pointerdown)="gripDown($event)"
   (pointermove)="gripMove($event)"
@@ -37,4 +42,4 @@
   (keydown)="gripKey($event)"
 >
   <mat-icon>drag_indicator</mat-icon>
-</button>
+</div>

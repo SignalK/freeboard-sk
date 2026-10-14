@@ -19,6 +19,8 @@ export interface SplitViewState {
 export const SPLIT_VIEW_STORAGE_KEY = 'fb-split-view';
 export const SPLIT_RATIO_MIN = 0.3;
 export const SPLIT_RATIO_MAX = 0.7;
+/** The least a pane needs along the split: room for a popover and toolbar. */
+export const MIN_PANE_PX = 340;
 
 export const DEFAULT_SPLIT_VIEW: SplitViewState = {
   enabled: false,
@@ -54,10 +56,32 @@ export function ratioFromPointer(
   return clampRatio(stacked ? (y - rect.top) / size : (x - rect.left) / size);
 }
 
+/**
+ * The share the main chart actually gets of a panel `size` pixels long along
+ * the split: `ratio`, moved in so neither pane is under `minPane` pixels.
+ * When the panel cannot give both panes that much, they share it equally.
+ */
+export function fitRatio(
+  ratio: number,
+  size: number,
+  minPane = MIN_PANE_PX
+): number {
+  if (!(size > 0)) {
+    return ratio;
+  }
+  const floor = minPane / size;
+  if (floor >= 0.5) {
+    return 0.5;
+  }
+  return Math.min(1 - floor, Math.max(floor, ratio));
+}
+
 const isPosition = (p: unknown): p is Position =>
   Array.isArray(p) &&
   p.length >= 2 &&
-  p.slice(0, 2).every((n) => typeof n === 'number' && Number.isFinite(n));
+  p.slice(0, 2).every((n) => typeof n === 'number' && Number.isFinite(n)) &&
+  Math.abs(p[0]) <= 180 &&
+  Math.abs(p[1]) <= 90;
 
 /** Reads stored state, falling back field by field on anything malformed. */
 export function parseSplitViewState(raw: string | null): SplitViewState {
