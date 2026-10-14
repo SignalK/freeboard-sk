@@ -279,6 +279,7 @@ required and optional capabilities and lists your contributions. A real one
 | `resourceGroups`    | Apply a stored resource group to the display (`resourceGroup.apply`) |
 | `background.iframe` | Run a headless background runtime                             |
 | `overlays.image`    | Draw a map layer the host composites (`overlay.*`)            |
+| `overlays.data`     | Supply data + a MapLibre style the host draws on the map (`overlay.*`) |
 
 **Contribution fields**
 
@@ -910,6 +911,79 @@ Things to know:
   `client.context.targetOverlay` set to the overlay id — no separate toolbar
   button needed. Ask for the density you need with `preferredPixelRatio` (the
   host still clamps it), and pace live frames by the request's `liveInterval`.
+
+## Drawing a map layer from data
+
+With `overlays.data` you do not draw at all. You serve your data — depth grids
+as `raster-dem` tiles, contours and points as GeoJSON or vector tiles — and
+describe how it should look in a **MapLibre style**. The host draws it with its
+own map stack. This is the cheaper and more portable choice whenever your layer
+can be expressed as data plus a style; keep `overlays.image` for pictures that
+genuinely need your own renderer.
+
+```jsonc
+{
+  "requires": ["overlays.data"],
+  "optional": ["background.iframe", "signalk.stream", "units"],
+  "background": [{ "id": "live", "type": "iframe", "url": "/plotterext/my-plugin/live.html" }],
+  "overlays": [{ "id": "depth", "title": "Live depth", "type": "data",
+                 "band": "aboveCharts", "opacity": 0.85,
+                 "style": "/plotterext/my-plugin/depth-style.json" }]
+}
+```
+
+The style is an ordinary MapLibre style document with `version`, `sources`,
+`layers` and, if you use them, `state` variables. Serve it and the tiles from
+your plugin's public path. Without a runtime the layer is static. Add one when
+your data changes while the user watches:
+
+```js
+// live.html — keeps the layer current
+const client = await connectExtension()
+const DRAFT = 'design.draft.maximum'
+
+// 1. Colours follow the draft: rebuild the ramp's literal stops and send them.
+await client.signalk.subscribe([DRAFT], (ev) =>
+  client.call('overlay.setLayer', {
+    overlayId: 'depth', layer: 'shading',
+    paint: { 'color-relief-color': rampFor(ev.value) }
+  }))
+
+// 2. Labels follow the user's depth unit.
+const { units } = await client.call('units.get')
+await client.call('overlay.setState', {
+  overlayId: 'depth', values: { unitFactor: metresTo(units.depth) }
+})
+
+// 3. New soundings: once the plugin has folded one in, refetch only the tiles
+//    it touched — one per zoom level of your pyramid.
+onSoundingStored(({ lon, lat }) =>
+  client.call('overlay.refresh', {
+    overlayId: 'depth', source: 'depth', tiles: tilesAt(lon, lat, 0, 18)
+  }))
+```
+
+Things to know:
+
+- **Depth is negative elevation.** Encode metres as `terrarium` (or `mapbox`,
+  or `custom`) and declare `tileSize` if it is not 512.
+- **The ramp is a plain `interpolate` with literal stops.** No `step`, no
+  `global-state` inside `color-relief-color`; for a hard colour edge put two
+  stops a hair apart. To make colours follow draft or tide, rebuild the stops
+  and send them with `overlay.setLayer`, as above.
+- **No data** is a value below any real depth (terrarium black, −32768 m)
+  given transparent stops; answer 404 or 204 for an empty tile.
+- **Contours are yours to generate**, as line features. Label them, and your
+  points, with `symbol` layers. The host picks the font.
+- **Check what was drawn.** `overlay.list` reports any layer the host could not
+  draw in `skippedLayers`. Keep to the core in the spec (*Data overlays → What a
+  host draws*) and the list stays empty.
+- **Serve changing tiles with `Cache-Control: no-cache`**, and refresh only the
+  tiles that changed. The host may merge several changes into one redraw.
+- Points you compute in the browser go straight in with `overlay.setData`
+  (whole collections, or `upsert` / `remove` by feature id).
+- Settings, the band, and the user's show, hide and fade work as for an image
+  overlay (see above).
 
 ## Reference implementations
 

@@ -24,8 +24,9 @@ the existing Signal K plugin/app-store flow.
 > extensions (`signalk-instrument-widgets`, `signalk-poi-search`): widgets,
 > panels, toolbar buttons, state storage, Signal K data relay, unit
 > preferences, resource display filters, map control, live route editing,
-> chart-layer management and headless background runtimes. Image map overlays
-> (`overlays.image`) are specified ahead of the reference host. Manifest-declared
+> chart-layer management, headless background runtimes and image map overlays
+> (`overlays.image`). Host-drawn data overlays (`overlays.data`) are specified
+> ahead of the reference host. Manifest-declared
 > filter chains and host-into-runtime calls are out of scope for this version
 > (see Non-Goals).
 
@@ -131,6 +132,7 @@ extension id (the providing plugin's id is the recommended key):
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 | `windows`           | Host can show an extension's iframe panels as floating windows (`ui.openWindow` and the other `ui.*Window` methods) and emits `window.*` events. See *Windows*. |
 | `overlays.image`    | Host composites map layers whose pixels an extension's background runtime draws (`overlay.*` methods, `overlay.request` / `overlay.state` events). Requires `background.iframe`. See *Map overlays*. |
+| `overlays.data`     | Host draws map layers from data and a MapLibre style an extension supplies (`overlay.*` methods including `overlay.refresh`, `overlay.setData`, `overlay.setLayer` and `overlay.setState`; `overlay.state` events). See *Data overlays*. |
 
 The vocabulary is open-ended: future versions add ids (buttons, resource
 filters, map control), and hosts may expose vendor-specific experiments
@@ -262,7 +264,7 @@ A runtime speaks the same bus protocol as widgets and panels; its handshake
 `map.*`, `ui.openPanel`/`ui.togglePanel`, `ui.listPanels` (see *Panel
 state*), the window methods (`ui.openWindow` and the rest; see *Windows*), and
 `overlay.*` (see *Map overlays*); it is the only context that receives
-`overlay.request`. It has no `ui.closePanel` or
+`overlay.request`, and the usual place to drive a data overlay's live changes. It has no `ui.closePanel` or
 `ui.*ConfigPanel` (those are panel/widget affordances). The typical use is a
 client-side service that holds session state and keeps work alive so a panel
 can **close itself** (`ui.closePanel`) without losing that state, then
@@ -444,7 +446,7 @@ inside a routing envelope over `postMessage`**:
 `context.kind` is `widget`, `panel`, `window`, `background` or
 `embedding-host` (this version). For a configuration panel,
 `targetInstance`/`targetWidget` identify the widget being configured, or
-`targetOverlay` the image overlay being configured (see *Map overlays*); a
+`targetOverlay` the overlay being configured (see *Map overlays*); a
 `background` runtime and an `embedding-host` carry neither. A `window` context
 adds `windowId` and `params` (see *Windows*). An `embedding-host` context describes the **caller** — the
 application embedding the plotter — while the plotter remains the API host;
@@ -553,6 +555,10 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `overlay.setVisibility` | `{ ids: string[], visible: boolean }`          | `{}`                       |
 | `overlay.setOpacity`    | `{ ids: string[], opacity: number }`           | `{}`                       |
 | `overlay.frame`         | `{ overlayId, requestId?, extent, image }` (`image` transferred) | `{ accepted, reason? }` |
+| `overlay.refresh`       | `{ overlayId, source, tiles? }`                | `{}`                       |
+| `overlay.setData`       | `{ overlayId, source, data?, upsert?, remove? }` | `{}`                     |
+| `overlay.setLayer`      | `{ overlayId, layer, paint?, layout?, filter? }` | `{}`                     |
+| `overlay.setState`      | `{ overlayId, values }`                        | `{}`                       |
 
 **Host events**
 
@@ -565,8 +571,8 @@ capability is supported: `state.changed` always; `sk.<path>` with
 (`route.*`) with `routes`; chart events (`chart.*`) with `charts` (`chart.time` with `charts.time`);
 `resourceGroup.applied` with `resourceGroups`; `map.view` with `map`;
 `nightMode.changed` with `nightMode`; `panel.state` with `panels.state`;
-`window.*` with `windows`; `overlay.request` and `overlay.state` with
-`overlays.image`. The
+`window.*` with `windows`; `overlay.request` with `overlays.image`, and
+`overlay.state` with `overlays.image` or `overlays.data`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -1273,13 +1279,23 @@ which the reference host has always fitted correctly.
 
 ### Map overlays
 
-An **image overlay** is a map layer whose pixels an extension draws. The host
-decides *where* and *when*; the extension decides *what*. The host places the
-overlay in its own layer stack, asks the extension for a frame whenever the view
-needs one, and composites the image it gets back — a live depth survey, a radar
-picture, a heatmap. Capability: **`overlays.image`**.
+A **map overlay** is a map layer an extension contributes. There are two kinds:
 
-An overlay is drawn by one of the extension's **background runtimes** (see
+- An **image overlay** (`overlays.image`) is a layer whose pixels the extension
+  draws. The host decides *where* and *when*; the extension decides *what*.
+- A **data overlay** (`overlays.data`) is a layer the host draws from data and a
+  style the extension supplies. See *Data overlays*.
+
+Both kinds are declared in the same `overlays` manifest section, sit in the same
+bands, and are shown, hidden and faded the same way. This section describes
+image overlays and what the two kinds share; *Data overlays* covers the rest.
+
+For an image overlay, the host places the overlay in its own layer stack, asks
+the extension for a frame whenever the view needs one, and composites the image
+it gets back — a live depth survey, a radar picture, a heatmap. Capability:
+**`overlays.image`**.
+
+An image overlay is drawn by one of the extension's **background runtimes** (see
 *Background Runtimes*), so an extension that contributes one requires
 `background.iframe` as well. The host draws the map; the runtime only turns its
 own data into an image for the box the host asks for. It needs no map library of
@@ -1314,10 +1330,11 @@ Overlays are declared in an `overlays` manifest section:
 }
 ```
 
-`id`, `title`, `type` and `runtime` are required; `runtime` must name an entry in
-the same manifest's `background` section, or the host omits the overlay.
-`type` is `"image"` in this version — hosts omit overlays of a type they do not
-support.
+`id`, `title` and `type` are required. `type` is `"image"` or `"data"`, and a
+host omits overlays of a type it does not support. An image overlay also requires
+`runtime`, which must name an entry in the same manifest's `background` section,
+or the host omits the overlay. `runtime` and `preferredPixelRatio` apply to image
+overlays only; a data overlay declares a `style` instead (see *Data overlays*).
 
 **Configuration.** An overlay may name a panel from the same manifest via
 `configPanel`, for the settings that shape what it draws (a depth source, a
@@ -1451,11 +1468,12 @@ moved past its threshold, not on every degree of yaw.
   `overlay.setVisibility` / `overlay.setOpacity`), and when the host suspends or
   resumes it. While `visible` is false or `suspended` is true the host sends no
   requests; the runtime should stop drawing and **release its graphics
-  resources** (for WebGL, lose its context).
+  resources** (for WebGL, lose its context). A hidden or suspended data overlay
+  is not drawn and its sources are not fetched.
 - **The host owns the budget.** It chooses `pixelRatio` — following the
   overlay's `preferredPixelRatio` where it can, or the screen's density, and
-  lower when needed to save memory — and may cap how many image overlays are
-  active at once, suspending the rest.
+  lower when needed to save memory — and may cap how many overlays are active at
+  once, suspending the rest.
 - **Draw off the main thread.** On several engines an extension iframe shares
   the host page's main thread, so heavy drawing in the runtime stalls the whole
   plotter. Render in a Web Worker (`OffscreenCanvas`, then
@@ -1464,21 +1482,321 @@ moved past its threshold, not on every degree of yaw.
 #### Methods
 
 - `overlay.list` → `{ overlays }`: this extension's overlays, each
-  `{ id, title, band, visible, opacity, suspended }`.
+  `{ id, title, type, band, visible, opacity, suspended }`, plus
+  `skippedLayers` for a data overlay (see *Data overlays*). A host without
+  `overlays.data` may leave out `type`; read a missing one as `image`.
 - `overlay.setVisibility({ ids, visible })` and `overlay.setOpacity({ ids,
   opacity })` — the same batch shape as the chart methods; each change emits
-  `overlay.state`.
+  `overlay.state`. They apply to overlays of either kind.
 - `overlay.frame({ overlayId, requestId?, extent, image })` → `{ accepted,
-  reason? }`, with `image` in the transfer list.
+  reason? }`, with `image` in the transfer list. Image overlays only.
+- `overlay.refresh`, `overlay.setData`, `overlay.setLayer` and
+  `overlay.setState` — data overlays only; see *Data overlays*.
 
 An extension sees and controls **only its own overlays**: an `overlay.*` id that
 names another extension's overlay is `overlays.unknownId`.
 
 **Errors** use the standard `error.data.reason` convention:
-`overlays.unknownId`, `overlays.badRequest` (missing or invalid params, an
+`overlays.unknownId`, `overlays.badRequest` (missing or invalid params; an
 `image` that is not an `ImageBitmap`, or a size that does not match its
-request), `overlays.notSupported` (host lacks `overlays.image`). A refused frame
-is a result, not an error: `overlays.superseded` or `overlays.throttled`.
+request; a method used on the wrong kind of overlay; a source or layer id the
+overlay's style does not have), `overlays.unsupported` (a data-overlay change
+the host cannot draw — see *Data overlays*), `overlays.notSupported` (host lacks
+the capability for the overlay's kind). A refused frame is a result, not an
+error: `overlays.superseded` or `overlays.throttled`.
+
+### Data overlays
+
+A **data overlay** is a map layer the host draws from data and a style the
+extension supplies. The extension says *what* to draw and *how it should look*;
+the host draws it with its own map stack, sharing its graphics resources with
+the rest of the map. No extension code runs to draw a frame, and an extension
+needs no runtime at all unless its data changes while it is shown. Capability:
+**`overlays.data`**.
+
+The style language is the **MapLibre Style Spec**, version 8, within the limits
+this section sets. A host that does not render with MapLibre translates the
+style into its own renderer; the extension never sees the difference.
+
+Everything in *Map overlays* that is not specific to images applies here too:
+the `overlays` manifest section, `band` and the safety rule that outranks it,
+`visible`, `opacity`, `minZoom`, `maxZoom`, `configPanel` and
+`context.targetOverlay`, the user's layer controls, `overlay.state`,
+`overlay.list`, `overlay.setVisibility`, `overlay.setOpacity` and the host's
+budget.
+
+#### Declaring a data overlay
+
+```jsonc
+{
+  "requires": ["overlays.data"],
+  "optional": ["background.iframe", "signalk.stream", "units"],
+  "background": [
+    { "id": "live", "type": "iframe",
+      "url": "/plotterext/signalk-livedepth-plugin/live.html" }
+  ],
+  "overlays": [
+    {
+      "id": "depth",
+      "title": "Live depth",
+      "type": "data",
+      "band": "aboveCharts",
+      "visible": true,
+      "opacity": 0.85,
+      "minZoom": 8,
+      "configPanel": "depth-settings",
+      "style": "/plotterext/signalk-livedepth-plugin/depth-style.json"
+    }
+  ]
+}
+```
+
+`style` is required. It is either a URL (see *Source URLs*) or the style object
+itself. A host that cannot load the style, or finds it is not a version-8 style,
+omits the overlay. `runtime` and `preferredPixelRatio` do not apply to a data
+overlay. Live changes come from any of the extension's contexts; this example's
+background runtime is optional, so without it the overlay still draws, it just
+does not change while shown.
+
+#### The style
+
+```jsonc
+{
+  "version": 8,
+  "state": {
+    "unitFactor": { "default": 1 },   // metres → the user's depth unit
+    "safetyDepth": { "default": 3 }   // metres
+  },
+  "sources": {
+    "depth": {
+      "type": "raster-dem",
+      "tiles": ["/plotterext/signalk-livedepth-plugin/dem/{z}/{x}/{y}.png"],
+      "encoding": "terrarium",
+      "tileSize": 256,
+      "maxzoom": 18
+    },
+    "contours": {
+      "type": "vector",
+      "tiles": ["/plotterext/signalk-livedepth-plugin/contours/{z}/{x}/{y}.pbf"],
+      "maxzoom": 16
+    },
+    "soundings": {
+      "type": "geojson",
+      "data": { "type": "FeatureCollection", "features": [] }
+    }
+  },
+  "layers": [
+    { "id": "shading", "type": "color-relief", "source": "depth",
+      "paint": { "color-relief-color": ["interpolate", ["linear"], ["elevation"],
+        -32768, "rgba(0,0,0,0)", -201, "rgba(0,0,0,0)",
+        -200, "#9cc8ec", -5, "#cfe6f7", 0, "#f2f8fc"] } },
+    { "id": "isobars", "type": "line", "source": "contours",
+      "source-layer": "contours",
+      "paint": { "line-color": "#5d7f99", "line-width": 0.8 } },
+    { "id": "shoals", "type": "circle", "source": "soundings",
+      "filter": ["<", ["get", "depth"], ["global-state", "safetyDepth"]],
+      "paint": { "circle-radius": 4, "circle-color": "#d0453a" } },
+    { "id": "labels", "type": "symbol", "source": "soundings",
+      "layout": {
+        "text-field": ["number-format",
+          ["*", ["get", "depth"], ["global-state", "unitFactor"]],
+          { "max-fraction-digits": 1 }],
+        "text-size": 11
+      } }
+  ]
+}
+```
+
+- **What the host reads.** A style carries `version`, `sources` and `layers`,
+  and optionally `state`. The host ignores the rest — `glyphs`, `sprite`,
+  `center`, `zoom`, `bearing`, `pitch`, `light`, `sky`, `terrain`,
+  `projection`, `transition` and the like — because the map is the host's.
+  (The Style Spec's own validator rejects a `text-field` without a `glyphs`
+  URL. Include one if you validate your style that way; the host ignores it.)
+- **Ids belong to the overlay.** Source and layer ids are scoped to the overlay
+  that declares them: two overlays, or an overlay and the host's own layers,
+  may use the same id without clashing. A host that needs globally unique ids
+  renames them internally. Ids that begin with `__` are reserved for hosts.
+- **Order.** Layers draw in array order, the first lowest, all of them within
+  the overlay's band.
+- **Visibility.** A layer's `layout.visibility` hides that one layer; the
+  user's show and hide of the overlay applies on top of it.
+- **Zoom.** Layer and source `minzoom` / `maxzoom` mean what they mean in the
+  Style Spec (past a source's `maxzoom` the host over-zooms its tiles). The
+  overlay's own `minZoom` and `maxZoom` apply on top.
+
+#### What a host draws
+
+A host with `overlays.data` draws this core:
+
+| | Core |
+|---|---|
+| Sources | `raster-dem`, `raster`, `vector` (Mapbox Vector Tiles), `geojson` |
+| Layers | `color-relief`, `raster`, `fill`, `line`, `circle`, `symbol` (text) |
+| Expressions | the version-8 expression language, including `global-state`, wherever the Style Spec allows an expression in these layers, with the limits under *Depth and other grids* |
+
+Outside the core a host may draw more, or not. Other layer types (`hillshade`,
+`heatmap`, `fill-extrusion`, `background`), anything that needs a sprite
+(`icon-*`, `fill-pattern`, `line-pattern`, the `image` expression), a TileJSON
+`url` in place of `tiles`, and `"scheme": "tms"` are all optional.
+
+**A host draws a layer exactly or not at all.** It skips any layer it cannot
+draw as written — a layer type it lacks, a property or expression it cannot
+reproduce, a source it cannot use — and never draws a layer with some of its
+properties silently dropped. It reports each skipped layer in the overlay's
+`overlay.list` entry:
+
+```jsonc
+"skippedLayers": [
+  { "id": "relief", "reason": "layerType", "detail": "hillshade" }
+]
+```
+
+`reason` is `layerType`, `property` or `source`; `detail` is optional text for a
+person reading a log. An empty list means every layer is drawn. An extension
+that wants a fallback declares it as a second layer with
+`"visibility": "none"` and shows it with `overlay.setLayer` when the first one
+is reported skipped.
+
+The one exception is the font. A host draws text in a font of its own choosing;
+`text-font` is a preference, and ignoring it is not a reason to skip a layer.
+
+#### Depth and other grids
+
+A grid — depth, a weather field, any value per cell — travels as a `raster-dem`
+source and is drawn with a `color-relief` layer.
+
+- **Encoding.** `mapbox` (the default), `terrarium` or `custom` (with
+  `redFactor`, `greenFactor`, `blueFactor` and `baseShift`), as the Style Spec
+  defines them. Values are metres of elevation, so **depth is negative
+  elevation**: a sounding of 4.2 m is −4.2. Tiles are square, and `tileSize`
+  defaults to 512 as in the Style Spec; declare `256` if that is what you
+  serve.
+- **The colour ramp.** `color-relief-color` must be a top-level
+  `["interpolate", ["linear"], ["elevation"], …]` with **literal number stops**
+  in ascending order. `step`, `global-state`, a computed input such as
+  `["-", ["elevation"], 2]` and other interpolation types are not allowed there.
+  MapLibre's own renderer ignores them or draws nothing, so a style that uses
+  them would not draw the same on every host. Colours blend linearly between
+  stops, and a value beyond the last stop takes that stop's colour. For a hard
+  edge, put two stops close together:
+
+  ```jsonc
+  // draft 2.0 m, 1 m margin: red shallower than the keel, amber inside the margin
+  "color-relief-color": ["interpolate", ["linear"], ["elevation"],
+    -32768, "rgba(0,0,0,0)",  -201,  "rgba(0,0,0,0)",   // no data
+    -200,   "#9cc8ec",        -3.0,  "#d6ebf8",
+    -2.999, "#f2c14e",        -2.0,  "#f2c14e",
+    -1.999, "#d0453a",         0,    "#d0453a"]
+  ```
+
+- **No data.** The Style Spec has no "no data" value, and a host ignores alpha
+  in a `raster-dem` tile. Encode a cell with no data as a value below any real
+  one — terrarium black, −32768 m, is the natural choice — and give it
+  transparent stops, as above. A host blends between neighbouring cells, so at
+  the edge of the data the blend passes through every colour between the
+  sentinel and the real value. Put the last transparent stop just below the
+  deepest value you will ever show (−201 above), and that passage is too thin
+  to see. For a tile with no data at all, answer 404 or 204; the host treats a
+  missing tile as empty.
+- **Moving the colours.** Stops are literals, so a ramp that follows draft,
+  tide or a safety depth is rebuilt by the extension and sent with
+  `overlay.setLayer` whenever those change. The host swaps the ramp without
+  fetching any tile again.
+
+#### Lines, points and labels
+
+- **Contours.** The Style Spec has no contour layer, so contours travel as line
+  features — a `geojson` source, or `vector` tiles for a large area — that the
+  extension or its plugin generates from its grid. Draw them with `line`, and
+  label them with a `symbol` layer whose `symbol-placement` is `line`.
+- **Points.** Soundings, shoals and other points are features drawn with
+  `circle` and labelled with `symbol`.
+- **Numbers in the user's units.** Data stays in SI. To label in the user's
+  unit, multiply by a factor held in a `global-state` variable, and set it
+  from `units.get` (see *Unit preferences*).
+
+#### Runtime variables
+
+The style's root `state` declares variables and their defaults. Expressions read
+them with `["global-state", "<name>"]` in the paint, layout and filter
+properties of `fill`, `line`, `circle` and `symbol` layers. A `color-relief`
+ramp cannot read them (see *Depth and other grids*).
+
+`overlay.setState({ overlayId, values })` sets one or more variables; a value of
+`null` restores the default. Variables belong to the overlay, so their names
+never collide with another overlay's or the host's. The host supplies none of
+its own: whatever an extension needs — the user's units, the vessel's draft,
+night mode — it reads through the host API and sets itself.
+
+#### Source URLs
+
+The URLs in a data overlay are its `style` URL, each source's `tiles`
+templates (with `{z}`, `{x}` and `{y}`, in the XYZ scheme), and a `geojson`
+source's `data` when that is a URL rather than an inline object. The host
+fetches them itself:
+
+- A **server-relative** path (`/plotterext/<plugin-id>/…`, or any other path
+  on the Signal K server) is resolved against the server the host is connected
+  to and fetched **with** the user's credentials. A plugin normally serves its
+  data from its own public path.
+- An absolute **`https://`** URL is fetched **without** credentials.
+- Anything else makes the source unusable. Its layers are skipped with reason
+  `source`, and a style URL of that kind means the host omits the overlay.
+
+#### Live changes
+
+Any of the extension's contexts may change its data overlay. Usually it is a
+background runtime that follows a live feed. All four methods resolve to `{}`
+once the host has taken the change. The host applies changes in its own time
+and may merge several into one redraw.
+
+- **`overlay.refresh({ overlayId, source, tiles? })`** — fetch again.
+  `tiles` lists tiles as `[z, x, y]`, as substituted into the source's
+  template, and only those are fetched again. Without `tiles` the host fetches
+  the whole source again; for a `geojson` source with a URL, that is how to
+  reload it. A host fetches a refreshed tile afresh, bypassing any cached copy;
+  a listed tile it does not hold is simply fetched fresh when it is next
+  needed. Serve tiles that change with `Cache-Control: no-cache`.
+
+  A runtime that folds a new sounding into the grid each second refreshes only
+  the tiles that sounding touched, not the whole source.
+
+- **`overlay.setData({ overlayId, source, data })`** replaces every feature of
+  a `geojson` source. **`overlay.setData({ overlayId, source, upsert?, remove?
+  })`** changes some of them. `upsert` is a list of features, each with a
+  top-level `id`, that are added or replace the feature with that id. `remove`
+  is a list of ids. `data` cannot be combined with `upsert` or `remove`, and
+  `setData` on a source that is not `geojson` is `overlays.badRequest`.
+
+- **`overlay.setLayer({ overlayId, layer, paint?, layout?, filter? })`** —
+  change one layer. Each property named in `paint` or `layout` replaces that
+  property, and a value of `null` restores what the style declared. `filter`
+  replaces the layer's filter; `filter: null` removes it. A change the host
+  cannot draw is refused with `overlays.unsupported`, and the layer stays as
+  it was. This is how a ramp follows draft and tide, and how an extension
+  recolours its layers for night mode.
+
+- **`overlay.setState({ overlayId, values })`** — see *Runtime variables*.
+
+Changes made while the overlay is hidden or suspended are kept and take effect
+when it is shown. A host that keeps tiles while the overlay is hidden fetches
+them again when it shows the overlay, so a change made meanwhile is never lost.
+
+#### Opacity and night mode
+
+The overlay's opacity, chosen by the user or set with `overlay.setOpacity`,
+fades the whole overlay on top of the style's own opacities. How it is
+composited is the host's choice: one fade of the whole layer, or each layer's
+own opacities scaled. A host that dims or tints its whole map for night vision
+does the same to data overlays. Recolouring beyond that is the extension's:
+subscribe to `nightMode.changed` and send the night colours with
+`overlay.setLayer`.
+
+#### Overlay features
+
+In this version, features in a data overlay cannot be clicked, hovered or
+selected, and they do not open popups.
 
 ### State storage
 
@@ -1589,7 +1907,7 @@ A panel's state:
 - **`targetInstance`** — present only for a configuration panel opened for a
   widget instance: the instance it configures (its `context.targetInstance`).
 - **`targetOverlay`** — present only for a configuration panel opened for an
-  image overlay: the overlay it configures (its `context.targetOverlay`).
+  overlay: the overlay it configures (its `context.targetOverlay`).
 
 `visible` describes the host's presentation only. It does not change when the
 browser tab is hidden (inside the iframe, `document.visibilityState` reports
@@ -1980,10 +2298,9 @@ adversarial boundary**:
 
 This version deliberately does not specify:
 
-- **Host-drawn data overlays.** An image overlay hands the host finished
-  pixels. A tier in which an extension hands the host *data plus a style*
-  (for example the MapLibre Style Spec) and the host draws it is planned as a
-  separate capability.
+- **Interacting with data-overlay features.** Features in a data overlay are
+  drawn, not interactive: there is no click, hover or selection, and no popup.
+  A later version may let an extension open its own UI for a feature.
 - **Manifest-declared filter chains.** Display filtering here is imperative:
   running extension code pushes an id set or `match` predicate via
   `resources.setFilter`. Filters declared _statically in the manifest_ and
