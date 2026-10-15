@@ -131,7 +131,7 @@
   { "feature": "bearing-distance", "kind": "enhanced", "since": "v2.19.5", "date": "2026-01-03", "title": "Bearing & Distance context menu option." },
   { "feature": "bearing-distance", "pr": 977, "kind": "enhanced", "since": "v3.3.0", "date": "2026-10-11", "title": "feat(map): unify bearing & distance measuring" },
   { "feature": "bearing-distance", "pr": 980, "kind": "enhanced", "since": "v3.3.0", "date": "2026-10-11", "title": "feat(map): drag the bearing & distance end point to move it" },
-  { "feature": "extension-map-layers", "pr": 1011, "kind": "new", "date": "2026-10-14", "title": "feat(plotterext): implement overlays.image in the reference host" },
-  { "feature": "extension-map-layers", "pr": 1017, "kind": "enhanced", "date": "2026-10-14", "title": "feat(plotterext): implement overlay config panels, density and pace hints" },
-  { "feature": "extension-map-layers", "pr": 1022, "kind": "enhanced", "date": "2026-10-15", "title": "feat(plotterext): implement data overlays in the reference host" }
+  { "feature": "extension-map-layers", "pr": 1011, "kind": "new", "since": "v3.4.0-beta.0", "date": "2026-10-14", "title": "feat(plotterext): implement overlays.image in the reference host" },
+  { "feature": "extension-map-layers", "pr": 1017, "kind": "enhanced", "since": "v3.4.0-beta.0", "date": "2026-10-14", "title": "feat(plotterext): implement overlay config panels, density and pace hints" },
+  { "feature": "extension-map-layers", "pr": 1022, "kind": "enhanced", "since": "v3.4.0-beta.0", "date": "2026-10-15", "title": "feat(plotterext): implement data overlays in the reference host" }
 ]
