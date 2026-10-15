@@ -2296,7 +2296,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.popoverMap.set(this.clickMap);
     const poData: IPopover = {
       show: false,
       content: [],
@@ -2435,7 +2434,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.trackHistory = whole
           ? { ...trackHistory, route: undefined }
           : trackHistory;
-        this.overlay.set(poData);
+        this.showPopover(poData);
         this.loadWholeTrack(id, source, whole, hf);
         return;
       }
@@ -2466,7 +2465,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.show = true;
         poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2485,10 +2484,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         // Note details surface (info panel or dialog) straight away.
         if (this.app.config.display.singleClickNoteDetails) {
           poData.show = false;
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         } else if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2519,7 +2518,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         }
         if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2536,7 +2535,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.show = true;
         poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2571,7 +2570,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       default:
         return;
     }
-    this.overlay.set(poData);
+    this.showPopover(poData);
+  }
+
+  /** Shows a popover on the chart the tap that opened it landed on. */
+  private showPopover(popover: IPopover) {
+    this.popoverMap.set(this.clickMap);
+    this.overlay.set(popover);
   }
 
   /** handle selection from the FeatureList popover */

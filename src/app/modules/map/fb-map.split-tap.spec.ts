@@ -106,6 +106,22 @@ describe('FBMapComponent: taps on the split view second pane', () => {
     expect(cmp.overlay().worldOffset).toBe(WORLD_WIDTH_3857);
   });
 
+  it('keeps an open popover on its chart when a pane tap opens none', () => {
+    const pane = new OlMap();
+    const cmp = bareComponent(pane);
+    cmp.app.config.map.popoverMulti = true;
+    cmp.onMapSingleClick(tap);
+    // A tap on the anchor goes straight to Modify, which has nothing to edit.
+    cmp.processMapClick = vi.fn(() =>
+      cmp.formatPopover('anchor', [23.5, 60.1])
+    );
+
+    cmp.onSecondaryTap(paneTap(pane));
+
+    expect(cmp.overlay().show).toBe(true);
+    expect(cmp.popoverPane()).toBeUndefined();
+  });
+
   it('opens popovers on the main chart again once the pane has closed', () => {
     const pane = new OlMap();
     const cmp = bareComponent(pane);
