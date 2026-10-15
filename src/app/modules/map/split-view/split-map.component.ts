@@ -422,9 +422,14 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.interactionList;
   }
 
-  /** Keys act on the chart that has focus, as on the main chart. */
+  /**
+   * Keys act on the chart that has focus, as on the main chart; not keys in
+   * a popover on it, which does not make the pane the active one.
+   */
   protected onKeydown(e: KeyboardEvent) {
-    this.split.activate('secondary');
+    if (!this.map?.getOverlayContainerStopEvent().contains(e.target as Node)) {
+      this.split.activate('secondary');
+    }
     const direction = zoomKeyDirection(e);
     if (direction) {
       e.preventDefault();

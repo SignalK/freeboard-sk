@@ -168,6 +168,21 @@ describe('SplitMapComponent: double-click and keys', () => {
     expect(cmp.zoom()).toBe(11);
   });
 
+  it('does not become the active pane for keys in a popover on it', () => {
+    const cmp = bareComponent();
+    cmp.map = new OlMap();
+    const button = document.createElement('button');
+    cmp.map.getOverlayContainerStopEvent().appendChild(button);
+
+    cmp.onKeydown({
+      key: 'Enter',
+      target: button,
+      preventDefault: vi.fn()
+    } as unknown as KeyboardEvent);
+
+    expect(cmp.split.activate).not.toHaveBeenCalled();
+  });
+
   it('stops following when the keys pan it', () => {
     const cmp = bareComponent(true);
 
