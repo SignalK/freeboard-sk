@@ -84,19 +84,27 @@ function createTwin(
   // The class name gives a chart its own canvas, as on the main chart, so a
   // chart's brightness and contrast filter applies to that chart alone.
   const className = layer.getClassName();
+  // How a vector layer draws is set when it is made, not by properties.
+  const drawing =
+    layer instanceof BaseVectorLayer
+      ? {
+          declutter: layer.getDeclutter(),
+          renderBuffer: layer.getRenderBuffer(),
+          updateWhileAnimating: layer.getUpdateWhileAnimating(),
+          updateWhileInteracting: layer.getUpdateWhileInteracting()
+        }
+      : {};
   if (layer instanceof VectorTileLayer) {
     return {
       twin: new VectorTileLayer({
         className,
-        declutter: layer.getDeclutter(),
+        ...drawing,
         renderMode: layer.getRenderMode()
       })
     };
   }
   if (layer instanceof VectorLayer) {
-    return {
-      twin: new VectorLayer({ className, declutter: layer.getDeclutter() })
-    };
+    return { twin: new VectorLayer({ className, ...drawing }) };
   }
   // A WebGL tile layer's style is not a property: a layer styled for its data
   // hands its twin the style through ON_TWIN.

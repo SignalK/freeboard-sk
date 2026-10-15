@@ -8,6 +8,7 @@ import ImageLayer from 'ol/layer/Image';
 import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
+import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorSource from 'ol/source/Vector';
 import XYZ from 'ol/source/XYZ';
 import RasterSource from 'ol/source/Raster';
@@ -81,6 +82,27 @@ describe('mirrorLayers', () => {
     expect(twin.getVisible()).toBe(false);
     expect(twin.getSource()).toBe(source);
     expect(twin.getStyle()).toBe(style);
+  });
+
+  it('draws vector layers as their originals do: same buffer and updates', () => {
+    const main = new OlMap();
+    const options = {
+      renderBuffer: 250,
+      updateWhileAnimating: true,
+      updateWhileInteracting: true
+    };
+    main.addLayer(new VectorLayer({ ...options, source: new VectorSource() }));
+    main.addLayer(new VectorTileLayer(options));
+    const second = new OlMap();
+
+    mirrorLayers(main, second);
+
+    for (const twin of twinsOn(second) as (VectorLayer | VectorTileLayer)[]) {
+      expect(twin.getRenderBuffer()).toBe(250);
+      expect(twin.getUpdateWhileAnimating()).toBe(true);
+      expect(twin.getUpdateWhileInteracting()).toBe(true);
+    }
+    expect(twinsOn(second)).toHaveLength(2);
   });
 
   it("follows a raster chart's preload, so a pan shows the lower zoom there too", () => {
