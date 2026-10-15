@@ -116,7 +116,7 @@ function createTwin(
     };
   }
   if (layer instanceof TileLayer) {
-    return { twin: new TileLayer({ className, preload: layer.getPreload() }) };
+    return { twin: new TileLayer({ className }) };
   }
   if (layer instanceof ImageLayer) {
     // A raster source (a MapStyle chart's hillshading) computes one image for
@@ -251,7 +251,7 @@ export function mirrorCollection(
         : null;
     if (renderer instanceof CanvasTileLayerRenderer) {
       renderer.getTileCache().clear();
-      renderer.getSourceTileCache()?.clear();
+      renderer.getSourceTileCache().clear();
     }
     // Drops the twin's renderer (and its canvas or WebGL context) and its
     // listener on the shared source, which would otherwise keep it alive.
