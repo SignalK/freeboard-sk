@@ -158,6 +158,36 @@ describe('TileFetcher decoded tiles', () => {
     expect(decode).toHaveBeenCalledTimes(2);
   });
 
+  it('decodes a tile two layers ask for at once only once', async () => {
+    const { fetcher } = setup({
+      type: 'raster-dem',
+      tiles: ['/p/{z}/{x}/{y}.png']
+    });
+    const [a, b] = await Promise.all([
+      fetcher.image(3, 2, 1),
+      fetcher.image(3, 2, 1)
+    ]);
+    expect(a).toBe(b);
+    expect(decode).toHaveBeenCalledTimes(1);
+  });
+
+  it('decodes a tile refreshed while it was being decoded afresh', async () => {
+    const { model, fetcher } = setup({
+      type: 'raster-dem',
+      tiles: ['/p/{z}/{x}/{y}.png']
+    });
+    const before = fetcher.image(3, 2, 1);
+    model.refresh({ source: 's', tiles: [[3, 2, 1]] });
+    fetcher.invalidate([[3, 2, 1]]);
+    const after = fetcher.image(3, 2, 1);
+    await Promise.all([before, after]);
+    expect(decode).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenLastCalledWith(`${ORIGIN}/p/3/2/1.png`, {
+      credentials: 'include',
+      cache: 'reload'
+    });
+  });
+
   it('decodes a raster tile with the browser defaults, and an empty tile not at all', async () => {
     const { fetcher } = setup({
       type: 'raster',
