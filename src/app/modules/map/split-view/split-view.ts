@@ -11,7 +11,7 @@ export interface SplitViewState {
   ratio: number;
   northUp: boolean;
   follow: boolean;
-  /** Where the second pane was last left; null until the user has moved it. */
+  /** Where the second pane was last left; null until it has been moved. */
   zoom: number | null;
   center: Position | null;
 }

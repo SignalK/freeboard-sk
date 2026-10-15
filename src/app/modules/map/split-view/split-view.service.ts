@@ -153,8 +153,9 @@ export class SplitViewService {
   }
 
   /**
-   * Called on every move of the second pane's map, which a divider drag
-   * fires per frame: the write to storage waits for the moves to settle.
+   * Called on every settled move of the second pane's map, each fix included
+   * while it follows the vessel: the write to storage waits for the moves to
+   * settle, or is left to the next save.
    */
   rememberView(zoom: number, center: Position, write = true) {
     this.update({ zoom, center }, false);

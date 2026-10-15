@@ -544,7 +544,9 @@ are not arrays of strings), `resourceGroups.notSupported`.
 `map` exposes the chart viewport: `map.getView` reads it, `map.center` /
 `map.fitBounds` drive it, and `map.view` follows it. With the split view open
 (an experiment) that is the main chart's viewport: the second pane's view is
-not exposed, and moves never go to it.
+not exposed, and moves never go to it. The host's map handlers take
+`MapService.getMaps()[0]` as the main chart; the second pane registers as
+`secondary` (`MapService.addMap`), which keeps it after the main chart.
 
 Moves are routed through Freeboard's own centering path
 (`AppFacade.mapMoveRequest` → `AppComponent.applyMapMove` → `centerMainChart`), never by
@@ -822,7 +824,10 @@ carry over and apply at each pane's own zoom. A `color-relief` layer's ramp is
 not a layer property, so the layer hands each copy its style through `ON_TWIN`
 (`ol/lib/util.ts`), and every new ramp after it. `raster-opacity` and
 `color-relief-opacity` are evaluated at the main chart's zoom, and the second
-pane uses the same value.
+pane uses the same value. `overlay.refresh` with `tiles` refreshes exactly
+those tiles; the second pane, at another zoom, keeps its own until they are
+refreshed too or fall out of the cache, so an extension whose data changed
+broadly refreshes without `tiles`.
 
 ### Live changes
 
