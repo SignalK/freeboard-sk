@@ -361,7 +361,12 @@ describe('skstream.worker timedTrail — trail recording times (#821)', () => {
     features: [
       {
         geometry: { type: 'MultiLineString', coordinates: coords },
-        properties: { providerId: 'tracks', isSelf: true, coordTimes }
+        properties: {
+          providerId: 'tracks',
+          isSelf: true,
+          from: '2026-09-01T00:00:00Z',
+          coordTimes
+        }
       }
     ]
   });
@@ -523,7 +528,11 @@ describe('skstream.worker own trail — overlapping fetches', () => {
                     ]
                   ]
                 },
-                properties: { isSelf: true, providerId: 'tracks' }
+                properties: {
+                  isSelf: true,
+                  providerId: 'tracks',
+                  from: '2026-09-01T00:00:00Z'
+                }
               }
             ]
           })

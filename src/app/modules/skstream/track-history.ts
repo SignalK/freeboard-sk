@@ -22,7 +22,7 @@ import {
   mercatorMidLatitude,
   type LonLatBox
 } from 'src/app/lib/map-fit';
-import { isImportedTrack, queryString } from './track-source';
+import { isTimedTrack, queryString } from './track-source';
 
 /** Most points per history track, at every zoom level: the budget cap on top
  * of the per-view `epsilon`. */
@@ -179,7 +179,6 @@ interface HistoryFeatureLike {
   geometry?: { type?: string; coordinates?: Position[][] } | null;
   properties?: {
     context?: string;
-    imported?: string | boolean;
     providerId?: string;
     contextName?: string;
     from?: string;
@@ -192,13 +191,12 @@ interface HistoryFeatureLike {
   };
 }
 
-/** The recorded features of a response. A track a client imported is listed
- * beside the vessel's recording, and joined to it would splice another
- * passage, with its times, into what the vessel recorded. */
+/** The features of a response that belong in a vessel's history: the
+ * untimed ones are left out, as `isTimedTrack` says why. */
 const featuresOf = (fc: unknown): HistoryFeatureLike[] => {
   const f = (fc as { features?: unknown })?.features;
   return Array.isArray(f)
-    ? (f as HistoryFeatureLike[]).filter((t) => !isImportedTrack(t?.properties))
+    ? (f as HistoryFeatureLike[]).filter((t) => isTimedTrack(t?.properties))
     : [];
 };
 

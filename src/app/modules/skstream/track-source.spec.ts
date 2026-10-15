@@ -537,30 +537,36 @@ describe('track-source response parsing', () => {
     ).toEqual(selfA.geometry.coordinates);
   });
 
-  it('leaves an imported own-vessel track out of the trail', () => {
-    // The time it was stored, or `true` from older tracks plugin releases.
-    for (const mark of ['2026-10-14T12:00:00.000Z', true]) {
-      const imported = {
-        ...selfB,
-        properties: { ...selfA.properties, imported: mark }
-      };
-      expect(
-        parseSelfTrail({
-          type: 'FeatureCollection',
-          features: [imported, selfA]
-        })
-      ).toEqual(selfA.geometry.coordinates);
-    }
+  // As the Track API returns a track whose points carry no times.
+  const untimed = <T extends { properties: { from?: string } }>(f: T): T => {
+    const properties = { ...f.properties };
+    delete properties.from;
+    return { ...f, properties };
+  };
+
+  it('leaves an own-vessel track without times out of the trail', () => {
+    expect(
+      parseSelfTrail({
+        type: 'FeatureCollection',
+        features: [untimed({ ...selfB, properties: selfA.properties }), selfA]
+      })
+    ).toEqual(selfA.geometry.coordinates);
   });
 
-  it("never draws an imported track as a vessel's AIS track", () => {
+  it('keeps a timed track whoever stored it', () => {
     const imported = {
-      ...aisB,
-      properties: { ...aisA.properties, imported: '2026-10-14T12:00:00.000Z' }
+      ...selfA,
+      properties: { ...selfA.properties, imported: '2026-10-14T12:00:00.000Z' }
     };
+    expect(
+      parseSelfTrail({ type: 'FeatureCollection', features: [imported] })
+    ).toEqual(selfA.geometry.coordinates);
+  });
+
+  it("never draws a track without times as a vessel's AIS track", () => {
     const m = parseAisTracks({
       type: 'FeatureCollection',
-      features: [imported, aisA]
+      features: [untimed({ ...aisB, properties: aisA.properties }), aisA]
     });
     expect(m.get('vessels.urn:mrn:imo:mmsi:2')).toEqual(
       aisA.geometry.coordinates

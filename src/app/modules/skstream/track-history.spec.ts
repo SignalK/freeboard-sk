@@ -187,7 +187,11 @@ describe('track-history parseHistoryTrack', () => {
       features: [
         {
           geometry: { type: 'MultiLineString', coordinates: [[[1, 1]]] },
-          properties: { resolution: 'PT30S', epsilon: 25 }
+          properties: {
+            from: '2026-09-01T00:00:00Z',
+            resolution: 'PT30S',
+            epsilon: 25
+          }
         }
       ]
     };
@@ -201,7 +205,12 @@ describe('track-history parseHistoryTrack', () => {
   const feature = (providerId: string, coords, coordTimes?) => ({
     type: 'Feature',
     geometry: { type: 'MultiLineString', coordinates: coords },
-    properties: { context: 'vessels.x', providerId, coordTimes }
+    properties: {
+      context: 'vessels.x',
+      providerId,
+      from: '2026-09-01T00:00:00Z',
+      coordTimes
+    }
   });
 
   it('keeps every segment and its aligned recording times', () => {
@@ -259,13 +268,13 @@ describe('track-history parseHistoryTrack', () => {
     expect(t.times).toBeUndefined();
   });
 
-  it('leaves an imported track out of the recording', () => {
-    const imported = feature('tracks', [[[9, 9]]], [['2020-01-01T00:00:00Z']]);
-    imported.properties['imported'] = '2026-10-14T12:00:00.000Z';
+  it('leaves a track without times out of the history', () => {
+    const untimed = feature('tracks', [[[9, 9]]]);
+    delete untimed.properties.from;
     const fc = {
       features: [
         feature('tracks', [[[1, 1]]], [['2026-09-01T00:00:00Z']]),
-        imported
+        untimed
       ]
     };
     expect(parseHistoryTrack('self', fc)).toEqual({
@@ -297,7 +306,12 @@ describe('track-history parseHistoryTrack', () => {
 describe('track-history parseTimedTracks', () => {
   const f = (context: string, providerId: string, coords, coordTimes?) => ({
     geometry: { type: 'MultiLineString', coordinates: coords },
-    properties: { context, providerId, coordTimes }
+    properties: {
+      context,
+      providerId,
+      from: '2026-09-01T00:00:00Z',
+      coordTimes
+    }
   });
 
   it('keys timed tracks by context, one provider each, and skips untimed ones', () => {
