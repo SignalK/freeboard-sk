@@ -2579,6 +2579,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.overlay.set(popover);
   }
 
+  /**
+   * A popover opened from the one showing (a feature picked from a list, a
+   * route made from a track) takes its place: on the pane it is on and in its
+   * world copy, whatever has been tapped since.
+   */
+  private adoptPopoverTap() {
+    const open = this.overlay();
+    this.clickMap = this.popoverMap();
+    this.clickWorldOffset = open.worldOffset ?? 0;
+    this.clickMercX =
+      fromLonLat(open.position as Position)[0] + this.clickWorldOffset;
+  }
+
   /** handle selection from the FeatureList popover */
   protected featureListSelection(feature) {
     // trim the draw.features collection to the selected feature.id
@@ -2589,13 +2602,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     });
     this.mapInteract.draw.features = sf;
-    // The feature's popover takes the list's place: on the pane the list was
-    // opened on and in its world copy, whatever has been tapped since.
-    const list = this.overlay();
-    this.clickMap = this.popoverMap();
-    this.clickWorldOffset = list.worldOffset ?? 0;
-    this.clickMercX =
-      fromLonLat(list.position as Position)[0] + this.clickWorldOffset;
+    this.adoptPopoverTap();
     this.formatPopover(feature.id, feature.coord);
   }
 
@@ -2744,6 +2751,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } else {
       // the tapped track is no feature of the route: MODIFY would edit it
       this.mapInteract.draw.features = new Collection<Feature>();
+      this.adoptPopoverTap();
       this.formatPopover(`route.${buffer.routeId}`, this.overlay().position);
     }
   }

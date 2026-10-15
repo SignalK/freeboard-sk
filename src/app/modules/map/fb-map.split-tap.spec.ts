@@ -122,6 +122,41 @@ describe('FBMapComponent: taps on the split view second pane', () => {
     expect(cmp.popoverPane()).toBeUndefined();
   });
 
+  it('opens a route made from a track where the track was, after other taps', () => {
+    const pane = new OlMap();
+    const cmp = bareComponent(pane);
+    cmp.app.config.map.popoverMulti = true;
+    cmp.app.useInfoPanel = () => false;
+    cmp.infoPanel = { opened: () => false };
+    cmp.routeBuffers = { create: () => ({ routeId: 'r1' }) };
+    cmp.getUnsavedRouteBuffer = () => ({});
+    cmp.bufferToFBRoute = () => ['r1', { name: 'Track of T' }];
+    // The track's popover is on the main chart...
+    cmp.overlay.set({
+      show: true,
+      type: 'trackHistory',
+      position: [23.5, 60.1],
+      worldOffset: 0,
+      trackHistory: {
+        name: 'T',
+        route: [
+          [23.4, 60.1],
+          [23.6, 60.1]
+        ]
+      }
+    });
+    // ...and a tap in open water on the pane, one world east, leaves it open.
+    cmp.processMapClick = vi.fn();
+    cmp.onSecondaryTap(
+      paneTap(pane, { ...tap, worldOffset: WORLD_WIDTH_3857 })
+    );
+
+    cmp.routeFromTrack();
+
+    expect(cmp.overlay()).toMatchObject({ type: 'route', worldOffset: 0 });
+    expect(cmp.popoverPane()).toBeUndefined();
+  });
+
   it('opens popovers on the main chart again once the pane has closed', () => {
     const pane = new OlMap();
     const cmp = bareComponent(pane);
