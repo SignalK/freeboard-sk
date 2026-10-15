@@ -192,7 +192,6 @@ export class SplitViewService {
     }
   }
 
-  /** Writes the current state to storage. */
   /** Writes a view still waiting for the pane's moves to settle. */
   flush() {
     if (this.saveTimer !== undefined) {
@@ -200,6 +199,7 @@ export class SplitViewService {
     }
   }
 
+  /** Writes the current state to storage. */
   save() {
     clearTimeout(this.saveTimer);
     this.saveTimer = undefined;
