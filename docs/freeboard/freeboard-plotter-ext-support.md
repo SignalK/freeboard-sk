@@ -542,7 +542,9 @@ are not arrays of strings), `resourceGroups.notSupported`.
 ## The `map` capability
 
 `map` exposes the chart viewport: `map.getView` reads it, `map.center` /
-`map.fitBounds` drive it, and `map.view` follows it.
+`map.fitBounds` drive it, and `map.view` follows it. With the split view open
+(an experiment) that is the main chart's viewport: the second pane's view is
+not exposed, and moves never go to it.
 
 Moves are routed through Freeboard's own centering path
 (`AppFacade.mapMoveRequest` → `AppComponent.applyMapMove` → `centerMainChart`), never by
@@ -666,7 +668,10 @@ tab, when OL loads nothing. Normally that is one renderer, so at most two
 bitmaps. With the split view open the second pane draws the same frames through
 a twin of the layer, which the mirror hands to the layer (`ON_TWIN` in
 `ol/lib/util.ts`); a twin mid-gesture keeps its bitmap open while the main
-chart moves on. Refused frames are closed by the registry.
+chart moves on. Frames are still requested for the main chart's view only, so
+on the second pane an overlay covers the area the main chart shows, and no
+request is made for a view the chart only passes through while the split's
+divider is dragged (`RESIZING`). Refused frames are closed by the registry.
 Image sources do not wrap, so at a zoom showing several world copies the overlay
 appears in the copy the request was made for.
 

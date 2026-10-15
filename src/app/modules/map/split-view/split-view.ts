@@ -49,8 +49,9 @@ export function clampRatio(ratio: number): number {
 
 /**
  * The ratio for a divider dragged to client point (x, y). `stacked` is true
- * when the panes are above each other (a portrait screen). Null when the
- * panel has no size along the divider's axis, so the divider stays put.
+ * when the panes are above each other (the panel is taller than wide). Null
+ * when the panel has no size along the divider's axis, so the divider stays
+ * put.
  */
 export function ratioFromPointer(
   rect: { left: number; top: number; width: number; height: number },
