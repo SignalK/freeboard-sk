@@ -46,9 +46,9 @@ const unmirrored = new WeakSet<BaseLayer>();
  * A twin for a layer that draws its own element instead of using a renderer,
  * such as the background of a MapStyle chart. Its element can be in only one
  * map, so the twin copies the original's output into an element of its own,
- * then puts the original's element back as its own map drew it. (The twin
- * meets that element on its first frame, so only from then on; opening the
- * split resizes, and so redraws, the main chart anyway.)
+ * then puts the original's element back as its own map drew it. On its first
+ * frame it has nothing to put back yet, so it asks the original to be drawn
+ * again on its own map.
  */
 function elementTwin(layer: Layer): Layer {
   const own = document.createElement('div');
@@ -64,6 +64,8 @@ function elementTwin(layer: Layer): Layer {
         own.style.cssText = drawn.style.cssText;
         if (before !== undefined) {
           drawn.style.cssText = before;
+        } else {
+          layer.changed();
         }
       }
       return own;

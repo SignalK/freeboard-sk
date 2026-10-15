@@ -238,6 +238,26 @@ describe('mirrorLayers', () => {
     expect(div.style.backgroundColor).toBe('white');
   });
 
+  it("has the original's element drawn again after the twin's first frame", () => {
+    // The twin's first frame draws the element for the second pane's zoom,
+    // with nothing yet to put back: the main chart must draw its own again.
+    const div = document.createElement('div');
+    const background = new Layer({ render: () => div });
+    const main = new OlMap();
+    main.addLayer(background);
+    const second = new OlMap();
+    mirrorLayers(main, second);
+    const twin = twinsOn(second)[0] as Layer;
+    const redrawn = vi.fn();
+    background.on('change', redrawn);
+    const frame = { viewState: { resolution: 1000 } } as unknown as FrameState;
+
+    twin.render(frame, null);
+    twin.render(frame, null);
+
+    expect(redrawn).toHaveBeenCalledTimes(1);
+  });
+
   it('hands a layer that asks for it each twin, and tells it once the twin is gone', () => {
     const main = new OlMap();
     const overlay = new ImageLayer();
