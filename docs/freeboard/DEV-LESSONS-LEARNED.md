@@ -699,6 +699,59 @@ source only while it renders the layer, which it doesn't do while the layer is
 hidden, mid-gesture or in a background tab, so closing on load lets bitmaps pile up.
 `FrameBitmaps` in the same file keeps at most two.
 
+### Restyling through ol-mapbox-style: give the style object an `id`
+
+**The trap.** To change one layer of a style already applied with ol-mapbox-style's
+`stylefunction`, the documented call is `updateMapboxLayer(mapOrGroup, layer)`. It
+finds the style on `mapOrGroup.get('mapbox-style')`, clears that layer's compiled
+expressions, and re-runs the style function with the arguments it saved at setup.
+It finds those arguments by the style's id. A style object with no `id` is numbered
+by a module-level counter that **starts at 0**. Its own check is `if (!glStyle.id)`,
+so the style numbered 0 is renumbered on the next lookup. The saved arguments are
+then under a key that is never asked for again.
+
+`updateMapboxLayer` doesn't fail. It falls back to `layer.changed()`, which
+re-renders with the old style function, so the change is silently ignored. It only
+hits the **first** style ol-mapbox-style sees in the page. That is the first vector
+chart, or, for a user with only raster charts, whatever comes next: in #1022, the
+first vector layer of a plugin's data overlay ignored every `overlay.setLayer` and
+`overlay.setState`, while its other layers restyled fine.
+
+**What to do instead.** Give every style object you hand ol-mapbox-style a truthy
+`id` of your own, unique per object (`fsk-data-overlay-${++seq}`): its compiled-
+expression and filter caches are keyed by it. A test that only checks the style
+object was mutated won't catch this. Assert on what `layer.getStyleFunction()`
+returns, from a test that runs first in its file, so its style is the first one the
+module sees. The opposite mistake costs too: a fresh style object per change avoids
+the lookup, but leaves an entry in ol-mapbox-style's module-level caches every time.
+
+### Pre-resolving MapLibre `global-state` for ol-mapbox-style: don't make it a literal
+
+**The trap.** ol-mapbox-style evaluates expressions with only zoom and distance from
+centre, so `["global-state", name]` always evaluates to null there. The obvious
+workaround is to substitute the value before applying the style, as `["literal",
+value]`. That changes when the value is type-checked. MapLibre types
+`global-state` as `value` and checks it at runtime: a wrong type (or an unset
+variable, which is null) is an evaluation error, and the property quietly falls back
+to its default. A literal is typed when the expression compiles, so the same value
+becomes a **compile** error. ol-mapbox-style compiles lazily inside the style
+function and throws, from the render loop, freezing the whole map (as noted for
+charts at `isUnevaluableByOl` in `chart-utils.ts`). A literal also loses MapLibre's
+coercions: a number in `text-field` reads as text in MapLibre but fails to compile
+as `["literal", 5]`.
+
+**What to do instead.** Substitute `["get", name, ["literal", { [name]: value }]]`.
+`get` is typed `value` like `global-state`, so the parser inserts the same
+coercions and assertions MapLibre would. It is also always an expression, so a
+filter like `["==", ["global-state", "mode"], "a"]` doesn't turn into the legacy
+`["==", key, value]` form, which a bare string would. The style-spec still folds a
+constant like this when it compiles, so a value that is really the wrong type still
+fails. Run each resolved paint/layout property that used `global-state` through
+`isUnevaluableByOl`, and drop the ones that fail: that draws their default, as
+MapLibre does. ol-mapbox-style already catches filter compile errors (they evaluate
+to false), so filters need nothing extra. See `olStyleLayer` in
+`src/app/modules/map/ol/lib/data-overlay/style-to-ol.ts`.
+
 ## When testing
 
 ### `ng test` / `ng build` don't exit
@@ -1346,6 +1399,27 @@ matrix spans several Node versions. Asserting `'6:16 PM'` with a hard-coded spac
 a latent cross-version failure; `/^6:16\s?PM$/` matches both, since JS `\s`
 includes U+202F.
 
+
+### Stubbing `fetch` in a spec: a real `Response` breaks on Node 22
+
+**The trap.** A spec that stubs `fetch` with `async () => new Response(new
+Blob([...]))` passes locally on Node 24 and fails every Node 22 leg of CI with
+`TypeError: object.stream is not a function`. Under test, `Blob` is jsdom's, but
+`Response` is Node's own (undici). Node 22's undici reads the body through
+`blob.stream()`, which jsdom's `Blob` doesn't have; Node 24's copes. Nothing in
+the code under test is wrong, and the stack points at the spec's own `new
+Response(...)` line.
+
+**What to do instead.** Don't build a real `Response` around a jsdom `Blob`.
+Return a plain object with just the members the code reads, cast to `Response`:
+
+```ts
+const tileResponse = (status: number) =>
+  ({ status, ok: status >= 200 && status < 300, blob: async () => new Blob(['png']) }) as unknown as Response;
+```
+
+And reproduce a CI-only failure on the Node version CI runs (`nvm use 22`), not the
+one on your machine.
 
 ---
 
