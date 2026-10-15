@@ -108,6 +108,14 @@ describe('SplitViewService: layout and saving', () => {
     expect((1 - split.shownRange().max) * 560).toBeCloseTo(MIN_PANE_PX);
   });
 
+  it("measures the divider's reach along the height once the panes stack", () => {
+    const split = new SplitViewService();
+    split.setPanelSize(390, 560);
+
+    expect(split.shownRange().min * 560).toBeCloseTo(MIN_PANE_PX);
+    expect((1 - split.shownRange().max) * 560).toBeCloseTo(MIN_PANE_PX);
+  });
+
   it('leaves a phone the divider to drag', () => {
     // A phone held upright, in a browser: about 390 x 664.
     const split = new SplitViewService();

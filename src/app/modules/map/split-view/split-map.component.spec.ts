@@ -528,7 +528,9 @@ describe('SplitMapComponent: the divider', () => {
     });
 
     it('reports a settled view when let go at the size it was drawn at', () => {
-      // From half way to the main chart's 70 %: the size it was drawn at.
+      // From half way to the main chart's 70 %: the size it was drawn at, so
+      // OL reports no move-end on release (nor ever here, where the charts
+      // have no size): the release reports one.
       const { at, main } = dragged();
       at('pointermove', 700);
       const settled = vi.fn();
@@ -709,9 +711,9 @@ describe('SplitMapComponent: the main chart outline', () => {
     // The main chart panned three worlds east of the primary one.
     cmp.mainMap = {
       getSize: () => [100, 50],
-      getCoordinateFromPixel: ([x, y]: number[]) => [3 * W + x, -y],
+      getCoordinateFromPixel: ([x, y]: number[]) => [3 * W + x + 10, 20 - y],
       getView: () => ({
-        getCenter: () => [3 * W + 50, -25],
+        getCenter: () => [3 * W + 60, -5],
         getProjection: () => ({
           getExtent: () => [-W / 2, -W / 2, W / 2, W / 2]
         })
@@ -720,8 +722,8 @@ describe('SplitMapComponent: the main chart outline', () => {
 
     cmp.updateFootprint();
 
-    expect(cmp.footprint()[0]).toEqual([0, -0]);
-    expect(cmp.footprint()[2]).toEqual([100, -50]);
+    expect(cmp.footprint()[0]).toEqual([10, 20]);
+    expect(cmp.footprint()[2]).toEqual([110, -30]);
   });
 });
 
