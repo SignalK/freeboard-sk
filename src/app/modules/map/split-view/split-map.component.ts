@@ -33,7 +33,9 @@ import {
 import {
   FBClickEvent,
   FBMapEvent,
-  FBPointerEvent
+  FBPointerEvent,
+  HIT_TOLERANCE,
+  TOUCH_HIT_TOLERANCE
 } from 'src/app/modules/map/ol/lib/map.component';
 import { MapReadyEvent } from 'src/app/modules/map/ol/lib/models';
 import { Position } from 'src/app/types';
@@ -370,8 +372,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       features: map.getFeaturesAtPixel(map.getEventPixel(e), {
         hitTolerance: hitToleranceForPointer(
           (e as PointerEvent).pointerType,
-          5,
-          15
+          HIT_TOLERANCE,
+          TOUCH_HIT_TOLERANCE
         )
       }),
       lonlat: toLonLat(coordinate),

@@ -84,6 +84,14 @@ export type FBPointerDownEvent = PointerEvent & {
   worldOffset: number;
 };
 
+/** Feature hit radius in pixels for a mouse. */
+export const HIT_TOLERANCE = 5;
+/**
+ * Feature hit radius in pixels for touch: larger than the mouse's, so a
+ * deliberate tap on a thin route line lands in the common case (#548).
+ */
+export const TOUCH_HIT_TOLERANCE = 15;
+
 // used for wind vector scaling
 export const zoomOffsetLevel = [
   1, 1000000, 550000, 290000, 140000, 70000, 38000, 17000, 7600, 3900, 1900,
@@ -162,10 +170,8 @@ export class MapComponent implements OnInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() properties: { [index: string]: any };
   @Input() setFocus = '';
-  @Input() hitTolerance = 5;
-  // Touch pointers get a larger radius than the mouse so a deliberate tap on a
-  // thin route line lands in the common case (#548).
-  @Input() touchHitTolerance = 15;
+  @Input() hitTolerance = HIT_TOLERANCE;
+  @Input() touchHitTolerance = TOUCH_HIT_TOLERANCE;
   /** A second chart beside the main one (the split view); see MapService.addMap. */
   @Input() secondary = false;
 
