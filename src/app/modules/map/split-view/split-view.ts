@@ -119,6 +119,28 @@ export function parseSplitViewState(raw: string | null): SplitViewState {
   };
 }
 
+/**
+ * The zoom a layer shown from some zoom on is gated by: the closer in of the
+ * two charts, as it shows on whichever is zoomed in far enough (each chart
+ * applies the layer's minZoom itself). `paneZoom` is null with the second
+ * pane closed.
+ */
+export function gateZoom(mainZoom: number, paneZoom: number | null): number {
+  return Math.max(mainZoom, paneZoom ?? 0);
+}
+
+/**
+ * The zoom of the chart the zoom buttons act on: the second pane's while it
+ * is the active one and has reported its zoom, else the main chart's.
+ */
+export function activeZoom(
+  mainZoom: number,
+  paneZoom: number | null,
+  paneActive: boolean
+): number {
+  return paneActive ? (paneZoom ?? mainZoom) : mainZoom;
+}
+
 /** The part of an OpenLayers map the footprint reads. */
 export interface FootprintSource {
   getSize(): number[] | undefined;

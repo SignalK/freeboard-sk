@@ -83,6 +83,7 @@ import {
   SecondaryTap,
   SplitViewService
 } from './split-view/split-view.service';
+import { activeZoom, gateZoom } from './split-view/split-view';
 import {
   radarRange,
   rangeRingScale,
@@ -376,9 +377,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * its own zoom through the layer's minZoom.
    */
   protected paneZoomMax = computed(() =>
-    Math.max(
+    gateZoom(
       this.mapZoomLevel(),
-      (this.splitView.secondaryMap() && this.splitView.zoom()) || 0
+      this.splitView.secondaryMap() ? this.splitView.zoom() : null
     )
   );
   /** Zoom the chart menu was opened at, on whichever pane. */
@@ -388,9 +389,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected mapZoomText = computed(() => zoomDisplayText(this.viewZoom()));
   /** The zoom of the pane the zoom buttons act on. */
   protected viewZoom = computed(() =>
-    this.splitView.secondaryActive()
-      ? (this.splitView.zoom() ?? this.mapZoomLevel())
-      : this.mapZoomLevel()
+    activeZoom(
+      this.mapZoomLevel(),
+      this.splitView.zoom(),
+      this.splitView.secondaryActive()
+    )
   );
   protected mapCenterPositon = signal<Position>([0, 0]);
   protected mapRotation = signal<number>(0);

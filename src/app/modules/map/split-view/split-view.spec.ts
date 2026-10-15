@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  activeZoom,
   clampRatio,
   DEFAULT_SPLIT_VIEW,
   fitRatio,
+  gateZoom,
   parseSplitViewState,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
@@ -148,5 +150,30 @@ describe('viewFootprint', () => {
 
   it('is null before the map has rendered', () => {
     expect(viewFootprint(map([100, 50], false))).toBeNull();
+  });
+});
+
+describe('gateZoom', () => {
+  it('is the closer in of the two charts', () => {
+    expect(gateZoom(10, 13)).toBe(13);
+    expect(gateZoom(12, 9)).toBe(12);
+  });
+
+  it("is the main chart's with the second pane closed", () => {
+    expect(gateZoom(10, null)).toBe(10);
+  });
+});
+
+describe('activeZoom', () => {
+  it("is the second pane's while it is the active one", () => {
+    expect(activeZoom(10, 13, true)).toBe(13);
+  });
+
+  it("is the main chart's while that is the active one", () => {
+    expect(activeZoom(10, 13, false)).toBe(10);
+  });
+
+  it("is the main chart's until the pane has reported its zoom", () => {
+    expect(activeZoom(10, null, true)).toBe(10);
   });
 });
