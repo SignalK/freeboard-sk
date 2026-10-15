@@ -87,6 +87,14 @@ Two more appear where they apply:
 Opacity, image adjustment and minimum zoom are saved per chart and persist between
 sessions. The checkbox on the right of the entry is what shows or hides the chart.
 
+## Plugin layers
+
+If a Signal K server plugin draws its own layer on the chart (depth shading or contours,
+for instance), it is listed at the top of the Chart List under **Plugin layers**, above
+the charts. Each has its own checkbox and **Set Opacity**, and sometimes **Layer
+settings**. Plugin layers always draw above every chart, so they can't be dragged into
+the stack. See the **Extension Map Layers** feature.
+
 ## Adding your own chart source
 
 **Add** (the `add` icon) registers a new chart source with the server — **WMTS**, **WMS**,
