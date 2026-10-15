@@ -549,6 +549,7 @@ export class AppComponent {
   protected toggleFollow() {
     if (this.splitView.secondaryActive()) {
       this.splitView.setFollow(!this.splitView.follow());
+      this.focusMap();
       return;
     }
     this.toggleMoveMap();
@@ -557,6 +558,7 @@ export class AppComponent {
   protected toggleNorthUp() {
     if (this.splitView.secondaryActive()) {
       this.splitView.setNorthUp(!this.splitView.northUp());
+      this.focusMap();
       return;
     }
     this.app.uiConfig.update((current) => {

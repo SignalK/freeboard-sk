@@ -83,6 +83,15 @@ describe('AppComponent: map buttons with the chart split', () => {
     expect(second.app.uiConfig().mapMove).toBe(false);
   });
 
+  it('gives the keys back to the active pane after North up and Follow', () => {
+    for (const secondaryActive of [true, false]) {
+      const cmp = component(secondaryActive);
+      cmp.toggleNorthUp();
+      cmp.toggleFollow();
+      expect(cmp.focusMap).toHaveBeenCalledTimes(2);
+    }
+  });
+
   it('zooms the main chart in to a place, never out', () => {
     const main = component(false);
     main.app.config.map.zoomLevel = 15;
