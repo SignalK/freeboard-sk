@@ -83,9 +83,21 @@ import { createChartMethods } from './chart-methods';
 import { createOverlayMethods } from './overlay-methods';
 import {
   OverlayRegistry,
+  overlayKey,
   type OverlayDefinition,
   type OverlayEntry
 } from './overlay-registry';
+import {
+  DataOverlayModel,
+  fetchJson,
+  type FetchJson
+} from './data-overlay-model';
+import {
+  parseOverlayStyle,
+  resolveOverlayUrl,
+  type ResolvedUrl
+} from './data-overlay-style';
+import type { OverlayStyle } from 'signalk-plotterext-bus/host';
 import { createNightModeMethods } from './nightmode-methods';
 import {
   createEventsMethods,
@@ -267,36 +279,145 @@ export class PlotterExtensionService {
     return result;
   });
 
-  // ---------- image map overlays (capability `overlays.image`) ----------
+  // ---------- map overlays (capabilities `overlays.image`, `overlays.data`) ----------
 
   /**
-   * Image overlays: their definitions, the user's show/fade choices (persisted
-   * in config), the active-overlay budget and frame bookkeeping. The map draws
-   * `overlays.active()`; the chart list shows `overlays.entries()`.
+   * Map overlays: their definitions, the user's show/fade choices (persisted
+   * in config), the active-overlay budget, image-frame bookkeeping and each
+   * data overlay's live state. The map draws `overlays.active()`; the chart
+   * list shows `overlays.entries()`.
    */
   readonly overlays = inject(OverlayRegistry);
 
+  /** Fetches a data overlay's style; replaceable in tests. */
+  fetchOverlayJson: FetchJson = fetchJson;
+
+  /** Origin of the Signal K server that server-relative overlay URLs resolve against. */
+  private serverOrigin(): string {
+    try {
+      return new URL(this.app.hostDef?.url || window.location.origin).origin;
+    } catch {
+      return window.location.origin;
+    }
+  }
+
+  /** Data-overlay styles declared by URL: overlay key → resolved URL (null: refused). */
+  private readonly dataStyleUrls = computed(() => {
+    const origin = this.serverOrigin();
+    const result = new Map<string, ResolvedUrl | null>();
+    for (const [extension, manifest] of Object.entries(this.manifests())) {
+      if (!this.isCompatible(manifest)) continue;
+      for (const def of manifest.overlays ?? []) {
+        if (def?.type === 'data' && typeof def.style === 'string') {
+          result.set(
+            overlayKey(extension, def.id),
+            resolveOverlayUrl(def.style, origin)
+          );
+        }
+      }
+    }
+    return result;
+  });
+
+  /** Styles loaded from a URL, by overlay key; `style` null when unusable. */
+  private readonly fetchedStyles = signal<
+    Record<string, { url: string; style: OverlayStyle | null }>
+  >({});
+  private readonly styleFetches = new Set<string>();
+
+  private fetchDataStyles(urls: Map<string, ResolvedUrl | null>) {
+    for (const [key, url] of urls) {
+      if (!url) {
+        if (!this.styleFetches.has(`${key} refused`)) {
+          this.styleFetches.add(`${key} refused`);
+          console.warn(
+            `[plotterext] overlay ${key} omitted: its style URL is neither server-relative nor https`
+          );
+        }
+        continue;
+      }
+      if (this.styleFetches.has(`${key} ${url.url}`)) continue;
+      this.styleFetches.add(`${key} ${url.url}`);
+      this.fetchOverlayJson(url, false)
+        .then((json) => parseOverlayStyle(json))
+        .catch((err) => {
+          console.warn(`[plotterext] could not load style ${url.url}:`, err);
+          return null;
+        })
+        .then((style) => {
+          if (!style) {
+            console.warn(
+              `[plotterext] overlay ${key} omitted: ${url.url} is not a version 8 style`
+            );
+          }
+          this.fetchedStyles.update((all) => ({
+            ...all,
+            [key]: { url: url.url, style }
+          }));
+        });
+    }
+  }
+
+  /** Live models by overlay key, kept while the overlay's style is unchanged. */
+  private dataModels = new Map<
+    string,
+    { sig: string; model: DataOverlayModel }
+  >();
+
   /**
-   * Overlays contributed by compatible extensions whose named runtime is one of
-   * this host's background runtimes. An overlay of an unknown `type`, or one
-   * naming no runtime of its own manifest, is omitted.
+   * A data overlay's style, parsed: inline, or once its URL has loaded. Null
+   * while loading, or when it is refused or is not a version-8 style.
+   */
+  private dataOverlayStyle(key: string, style: unknown): OverlayStyle | null {
+    if (typeof style !== 'string') return parseOverlayStyle(style);
+    const url = this.dataStyleUrls().get(key);
+    const fetched = this.fetchedStyles()[key];
+    return url && fetched?.url === url.url ? fetched.style : null;
+  }
+
+  /**
+   * Overlays contributed by compatible extensions. An image overlay must name
+   * one of this host's background runtimes of its own manifest; a data overlay
+   * must have a loadable version-8 style. Anything else, or an overlay of an
+   * unknown `type`, is omitted.
    */
   private readonly overlayDefinitions = computed<OverlayDefinition[]>(() => {
     const runtimes = new Set(this.backgroundRuntimes().map((r) => r.key));
+    const origin = this.serverOrigin();
+    const models = new Map<string, { sig: string; model: DataOverlayModel }>();
     const result: OverlayDefinition[] = [];
     for (const [extension, manifest] of Object.entries(this.manifests())) {
       if (!this.isCompatible(manifest)) continue;
       const seen = new Set<string>();
       for (const def of manifest.overlays ?? []) {
         if (
-          def?.type !== 'image' ||
-          typeof def.id !== 'string' ||
+          typeof def?.id !== 'string' ||
           typeof def.title !== 'string' ||
-          typeof def.runtime !== 'string' ||
           seen.has(def.id) ||
-          !runtimes.has(`${extension}/${def.runtime}`) ||
           (def.apiVersion !== undefined && def.apiVersion !== HOST_API_VERSION)
         ) {
+          continue;
+        }
+        let model: DataOverlayModel | undefined;
+        if (def.type === 'image') {
+          if (
+            typeof def.runtime !== 'string' ||
+            !runtimes.has(`${extension}/${def.runtime}`)
+          ) {
+            continue;
+          }
+        } else if (def.type === 'data') {
+          const key = overlayKey(extension, def.id);
+          const style = this.dataOverlayStyle(key, def.style);
+          if (!style) continue;
+          const sig = `${origin} ${JSON.stringify(style)}`;
+          const kept = this.dataModels.get(key);
+          model =
+            kept?.sig === sig
+              ? kept.model
+              : new DataOverlayModel(style, origin, this.fetchOverlayJson);
+          models.set(key, { sig, model });
+        } else {
           continue;
         }
         seen.add(def.id);
@@ -304,10 +425,12 @@ export class PlotterExtensionService {
           extension,
           extensionName: manifest.name,
           def,
-          panels: manifest.panels
+          panels: manifest.panels,
+          ...(model ? { model } : {})
         });
       }
     }
+    this.dataModels = models;
     return result;
   });
 
@@ -322,8 +445,9 @@ export class PlotterExtensionService {
     worldOffset: number
   ) {
     const entry = this.overlays.entry(key);
+    if (!entry?.runtime) return;
     const request = this.overlays.newRequest(key, view, worldOffset);
-    if (entry && request) {
+    if (request) {
       this.publishToRuntime(
         entry.extension,
         entry.runtime,
@@ -1009,8 +1133,9 @@ export class PlotterExtensionService {
       const states = this.panelStates();
       untracked(() => this.emitPanelStates(states));
     });
-    // Image overlays: follow the collection, load the user's saved choices,
-    // and emit `overlay.state` for every change (origin-transparent).
+    // Map overlays: follow the collection (fetching data overlays' styles),
+    // load the user's saved choices, and emit `overlay.state` for every change
+    // (origin-transparent).
     this.overlays.setPersist((settings) => {
       this.app.config.plotterExtensions.overlays = settings;
       this.app.saveConfig();
@@ -1019,6 +1144,10 @@ export class PlotterExtensionService {
     this.overlays.setConfigOpener((entry) =>
       this.openOverlayConfigPanel(entry)
     );
+    effect(() => {
+      const urls = this.dataStyleUrls();
+      untracked(() => this.fetchDataStyles(urls));
+    });
     effect(() => {
       const defs = this.overlayDefinitions();
       untracked(() => this.overlays.setDefinitions(defs));

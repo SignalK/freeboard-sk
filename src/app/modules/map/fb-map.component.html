@@ -224,17 +224,30 @@
     }
   }
 
-  <!-- Image map overlays drawn by extensions (capability overlays.image) -->
+  <!-- Map overlays contributed by extensions: image overlays are drawn by the
+       extension (overlays.image), data overlays from its style (overlays.data) -->
   @for (ov of plotterExt.overlays.active(); track ov.key) {
-    <fb-plugin-overlay
-      [overlayKey]="ov.key"
-      [zIndex]="ov.zIndex"
-      [opacity]="ov.opacity"
-      [minZoom]="ov.minZoom"
-      [maxZoom]="ov.maxZoom"
-      [preferredPixelRatio]="ov.preferredPixelRatio"
-    >
-    </fb-plugin-overlay>
+    @if (ov.model) {
+      <fb-data-overlay
+        [overlayKey]="ov.key"
+        [model]="ov.model"
+        [zIndex]="ov.zIndex"
+        [opacity]="ov.opacity"
+        [minZoom]="ov.minZoom"
+        [maxZoom]="ov.maxZoom"
+      >
+      </fb-data-overlay>
+    } @else {
+      <fb-plugin-overlay
+        [overlayKey]="ov.key"
+        [zIndex]="ov.zIndex"
+        [opacity]="ov.opacity"
+        [minZoom]="ov.minZoom"
+        [maxZoom]="ov.maxZoom"
+        [preferredPixelRatio]="ov.preferredPixelRatio"
+      >
+      </fb-plugin-overlay>
+    }
   }
 
   <!-- Radar Overlay -->

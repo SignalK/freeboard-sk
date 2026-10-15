@@ -40,3 +40,20 @@ test('lists the driveable host capabilities as optional, not required', () => {
     assert.ok(!m.requires.includes(cap), `${cap} must not be required`);
   }
 });
+
+test('offers one data overlay, the scratch layer, for the overlay tools to drive', () => {
+  const m = buildManifest();
+  assert.ok(m.optional.includes('overlays.data'));
+  assert.ok(!m.requires.includes('overlays.data'));
+  assert.strictEqual(m.overlays.length, 1);
+  const scratch = m.overlays[0];
+  assert.strictEqual(scratch.id, 'scratch');
+  assert.strictEqual(scratch.type, 'data');
+  // hidden until drawn on, so it never takes a slot of the overlay budget
+  assert.strictEqual(scratch.visible, false);
+  assert.strictEqual(scratch.style.version, 8);
+  assert.strictEqual(scratch.style.sources.scratch.type, 'geojson');
+  for (const layer of scratch.style.layers) {
+    assert.strictEqual(layer.source, 'scratch');
+  }
+});

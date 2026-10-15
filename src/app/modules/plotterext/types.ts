@@ -28,7 +28,8 @@ export const HOST_CAPABILITIES = [
   'background.iframe',
   'ui',
   'windows',
-  'overlays.image'
+  'overlays.image',
+  'overlays.data'
 ];
 
 export type WidgetSize = '1x1' | '2x1' | '1x2' | '2x2';
@@ -181,19 +182,22 @@ export interface BackgroundContribution {
   apiVersion?: string;
 }
 
-/** Where an image overlay sits relative to Freeboard's own map content. */
+/** Where a map overlay sits relative to Freeboard's own map content. */
 export type OverlayBand = 'aboveCharts' | 'aboveResources';
 
 /**
- * An image map overlay (capability `overlays.image`): a map layer whose pixels
- * the named background runtime draws on request.
+ * A map overlay. `image` (capability `overlays.image`): a layer whose pixels
+ * the named background runtime draws on request. `data` (capability
+ * `overlays.data`): a layer Freeboard draws from a MapLibre style.
  */
 export interface OverlayContribution {
   id: string;
   title: string;
-  type: 'image';
-  /** Id of the background runtime (same manifest) that draws it. */
-  runtime: string;
+  type: 'image' | 'data';
+  /** Image overlays: id of the background runtime (same manifest) that draws it. */
+  runtime?: string;
+  /** Data overlays: the MapLibre style, as a URL or the style object itself. */
+  style?: string | Record<string, unknown>;
   band?: OverlayBand;
   /** Initial visibility, before the user chooses. */
   visible?: boolean;
@@ -203,7 +207,7 @@ export interface OverlayContribution {
   maxZoom?: number;
   /** Id of an iframe panel (same manifest) holding the overlay's settings. */
   configPanel?: string;
-  /** Pixel density the overlay looks right at, used instead of the screen's. */
+  /** Image overlays: pixel density it looks right at, used instead of the screen's. */
   preferredPixelRatio?: number;
   apiVersion?: string;
 }

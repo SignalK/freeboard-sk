@@ -139,6 +139,7 @@ describe('OverlayRegistry entries', () => {
       {
         id: 'a',
         title: 'A',
+        type: 'image',
         band: 'aboveCharts',
         visible: true,
         opacity: 1,

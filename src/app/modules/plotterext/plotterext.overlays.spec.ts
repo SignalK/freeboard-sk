@@ -1,6 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock
+} from 'vitest';
 import { MatDialog } from '@angular/material/dialog';
 import { SignalKClient } from 'signalk-client-angular';
 import {
@@ -20,6 +28,7 @@ import { SKResourceService } from '../skresources/resources.service';
 import { MapService } from '../map/ol/lib/map.service';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 import { PlotterExtensionManifest } from './types';
+import type { FetchJson } from './data-overlay-model';
 
 const manifest = (id: string): PlotterExtensionManifest =>
   ({
@@ -53,6 +62,49 @@ const VIEW = {
 const fakeImage = (width = 100, height = 50) =>
   ({ width, height, close: vi.fn() }) as unknown as ImageBitmap;
 
+/** The real host service over minimal stubs; `config` is what it persists to. */
+function configureHost(
+  config: { plotterExtensions: { widgets: []; overlays?: unknown } },
+  saveConfig: ReturnType<typeof vi.fn>
+) {
+  TestBed.configureTestingModule({
+    providers: [
+      PlotterExtensionService,
+      RouteBufferRegistry,
+      {
+        provide: AppFacade,
+        useValue: {
+          config: {
+            ...config,
+            display: { nightMode: false },
+            map: { center: [0, 0], zoomLevel: 10 }
+          },
+          mapExtent: signal([]),
+          debug: () => {},
+          isTopWindow: () => true,
+          saveConfig,
+          uiCtrl: signal({ forceNightMode: false })
+        }
+      },
+      { provide: SignalKClient, useValue: {} },
+      { provide: MatDialog, useValue: {} },
+      {
+        provide: SKResourceService,
+        useValue: { routes: signal([]), charts: signal([]) }
+      },
+      { provide: MapService, useValue: {} },
+      {
+        provide: SKStreamFacade,
+        useValue: {
+          selfNightMode: signal(false),
+          refreshSelfNightMode: () => {}
+        }
+      }
+    ]
+  });
+  return TestBed.inject(PlotterExtensionService);
+}
+
 // The overlays.image capability end to end: real extension clients over the
 // bus, through jsdom iframes, against the real host service.
 describe('PlotterExtensionService image overlays', () => {
@@ -67,42 +119,7 @@ describe('PlotterExtensionService image overlays', () => {
     localStorage.clear();
     saveConfig = vi.fn();
     config = { plotterExtensions: { widgets: [] } };
-    TestBed.configureTestingModule({
-      providers: [
-        PlotterExtensionService,
-        RouteBufferRegistry,
-        {
-          provide: AppFacade,
-          useValue: {
-            config: {
-              ...config,
-              display: { nightMode: false },
-              map: { center: [0, 0], zoomLevel: 10 }
-            },
-            mapExtent: signal([]),
-            debug: () => {},
-            isTopWindow: () => true,
-            saveConfig,
-            uiCtrl: signal({ forceNightMode: false })
-          }
-        },
-        { provide: SignalKClient, useValue: {} },
-        { provide: MatDialog, useValue: {} },
-        {
-          provide: SKResourceService,
-          useValue: { routes: signal([]), charts: signal([]) }
-        },
-        { provide: MapService, useValue: {} },
-        {
-          provide: SKStreamFacade,
-          useValue: {
-            selfNightMode: signal(false),
-            refreshSelfNightMode: () => {}
-          }
-        }
-      ]
-    });
-    service = TestBed.inject(PlotterExtensionService);
+    service = configureHost(config, saveConfig);
     service.manifests.set({
       'ext-a': manifest('ext-a'),
       'ext-b': manifest('ext-b')
@@ -179,6 +196,7 @@ describe('PlotterExtensionService image overlays', () => {
       {
         id: 'depth',
         title: 'Depth',
+        type: 'image',
         band: 'aboveCharts',
         visible: true,
         opacity: 1,
@@ -360,5 +378,137 @@ describe('PlotterExtensionService image overlays', () => {
       a.call('overlay.setOpacity', { ids: ['depth'], opacity: 3 })
     ).rejects.toHaveProperty('reason', 'overlays.badRequest');
     expect(service.overlays.entry('ext-b/depth')!.visible).toBe(true);
+  });
+});
+
+// Parsing data overlays (capability overlays.data) from manifests.
+describe('PlotterExtensionService data overlay manifests', () => {
+  const STYLE = {
+    version: 8,
+    glyphs: 'https://x.example/{fontstack}/{range}.pbf',
+    sources: {
+      soundings: {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      }
+    },
+    layers: [
+      {
+        id: 'shoals',
+        type: 'circle',
+        source: 'soundings',
+        paint: { 'circle-radius': 4 }
+      }
+    ]
+  };
+  const dataManifest = (overlays: unknown[]): PlotterExtensionManifest =>
+    ({
+      name: 'Depth plugin',
+      apiVersion: '1',
+      requires: ['overlays.data'],
+      overlays
+    }) as unknown as PlotterExtensionManifest;
+  const keys = () => service.overlays.entries().map((e) => e.key);
+
+  let service: PlotterExtensionService;
+  let fetchJson: Mock<FetchJson>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    service = configureHost({ plotterExtensions: { widgets: [] } }, vi.fn());
+    fetchJson = vi.fn<FetchJson>(async () => STYLE);
+    service.fetchOverlayJson = fetchJson;
+  });
+
+  it('accepts an inline style, with no runtime, as a data overlay', () => {
+    service.manifests.set({
+      ext: dataManifest([
+        { id: 'depth', title: 'Depth', type: 'data', style: STYLE }
+      ])
+    });
+    TestBed.tick();
+    const [entry] = service.overlays.entries();
+    expect(entry).toMatchObject({ key: 'ext/depth', type: 'data' });
+    expect(entry.runtime).toBeUndefined();
+    expect(entry.model?.layers().map((l) => l.id)).toEqual(['shoals']);
+    expect(service.overlays.list('ext')[0]).toMatchObject({
+      type: 'data',
+      skippedLayers: []
+    });
+  });
+
+  it.each([
+    ['no style', {}],
+    ['a version 7 style', { style: { ...STYLE, version: 7 } }],
+    ['a style URL on another scheme', { style: 'http://x.example/style.json' }],
+    ['a style without layers', { style: { version: 8, sources: {} } }]
+  ])('omits a data overlay with %s', (_label, extra) => {
+    service.manifests.set({
+      ext: dataManifest([
+        { id: 'depth', title: 'Depth', type: 'data', ...extra }
+      ])
+    });
+    TestBed.tick();
+    expect(keys()).toEqual([]);
+    expect(fetchJson).not.toHaveBeenCalled();
+  });
+
+  it('loads a style URL from the server with credentials, then adds the overlay', async () => {
+    service.manifests.set({
+      ext: dataManifest([
+        {
+          id: 'depth',
+          title: 'Depth',
+          type: 'data',
+          style: '/plotterext/depth/style.json'
+        }
+      ])
+    });
+    TestBed.tick();
+    expect(keys()).toEqual([]);
+    expect(fetchJson).toHaveBeenCalledWith(
+      {
+        url: `${window.location.origin}/plotterext/depth/style.json`,
+        credentials: 'include'
+      },
+      false
+    );
+    await vi.waitFor(() => {
+      TestBed.tick();
+      expect(keys()).toEqual(['ext/depth']);
+    });
+    expect(fetchJson).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits an overlay whose style URL fails to load or is not a version 8 style', async () => {
+    fetchJson.mockImplementation(async (url) => {
+      if (url.url.endsWith('bad.json')) return { version: 7 };
+      throw new Error('404');
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    service.manifests.set({
+      ext: dataManifest([
+        { id: 'a', title: 'A', type: 'data', style: '/p/bad.json' },
+        { id: 'b', title: 'B', type: 'data', style: '/p/missing.json' }
+      ])
+    });
+    TestBed.tick();
+    await vi.waitFor(() => expect(warn).toHaveBeenCalledTimes(3));
+    TestBed.tick();
+    expect(keys()).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it('keeps an overlay’s live changes while its style is unchanged', () => {
+    const overlays = [
+      { id: 'depth', title: 'Depth', type: 'data', style: STYLE }
+    ];
+    service.manifests.set({ ext: dataManifest(overlays) });
+    TestBed.tick();
+    const model = service.overlays.entries()[0].model!;
+    model.setState({ unitFactor: 2 });
+    service.manifests.set({ ext: dataManifest(structuredClone(overlays)) });
+    TestBed.tick();
+    expect(service.overlays.entries()[0].model).toBe(model);
   });
 });

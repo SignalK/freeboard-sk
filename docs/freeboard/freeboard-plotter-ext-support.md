@@ -40,7 +40,7 @@ package; Freeboard depends on it (`^0.19.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
-`overlays.image`.
+`overlays.image`, `overlays.data`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -600,9 +600,9 @@ the box it is asked for.
 `OverlayRegistry` (a dependency-free root service) holds every overlay of the
 collection, keyed `<extension>/<overlay id>`, with the user's show/fade choices,
 the active-overlay budget and the frame bookkeeping. `PlotterExtensionService`
-feeds it the manifest definitions — an overlay is kept only when its `type` is
-`image` and its `runtime` names one of the same manifest's background runtimes —
-and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
+feeds it the manifest definitions — an image overlay is kept only when its
+`runtime` names one of the same manifest's background runtimes (data overlays:
+see *The `overlays.data` capability*) — and saves the user's choices in `config.plotterExtensions.overlays`. Manifest
 `visible` / `opacity` apply until the user changes them.
 
 - **Placement.** Bands map to z-indices: `aboveCharts` from 60 (above charts
@@ -700,6 +700,164 @@ request, the overlay hidden or not yet requested) and `overlays.throttled`.
 | `src/app/modules/map/ol/lib/plugin-overlay/frame-bitmaps.ts` | `frameSource()` (a static source per frame) and `FrameBitmaps` (at most two bitmaps held: the drawn one and the newest) |
 | `src/app/modules/map/ol/lib/plugin-overlay/overlay-geometry.ts` | `overlayView()` / `needsNewFrame()` — request geometry and the re-request rule |
 | `src/app/modules/skresources/components/charts/chartlist.html` | the *Plugin layers* rows |
+
+## The `overlays.data` capability
+
+`overlays.data` lets an extension contribute a map layer as data plus a MapLibre
+style, which Freeboard draws with its own OpenLayers stack. Everything the image
+tier owns that is not about frames is shared: the registry, bands and z-indices,
+the budget, persistence, `overlay.list` / `setVisibility` / `setOpacity`,
+`overlay.state`, the chart-list rows and the configuration panel. The spec is
+*Data overlays* in the API doc; this section is how Freeboard implements it.
+
+### Loading the style
+
+`PlotterExtensionService.overlayDefinitions` accepts `type: "data"` with a `style`
+that is the style object or a URL; `runtime` is not used. A URL resolves with
+`resolveOverlayUrl` and is fetched once per overlay (`fetchDataStyles`, by an
+effect, since a `computed` cannot fetch); the overlay appears when it loads. A
+style that cannot be loaded, is refused by the resolver, or fails
+`parseOverlayStyle` (not version 8, no `sources` / `layers`, a layer without a
+unique string id) omits the overlay with a `console.warn`.
+
+Each data overlay gets a `DataOverlayModel` (`data-overlay-model.ts`), which the
+registry entry carries as `model`. The model is kept while the style is
+unchanged, so live changes survive a manifest re-read, and it outlives the map
+layer, so changes made while the overlay is hidden or suspended take effect when
+it is shown again.
+
+### What Freeboard draws (`data-overlay-style.ts`)
+
+`analyzeLayer` decides, per layer, *drawn* or a skip reason, and `overlay.list`
+reports the skips as `skippedLayers`. A layer is drawn only when:
+
+- its type is `color-relief`, `raster`, `fill`, `line`, `circle` or `symbol`
+  (else `layerType`);
+- its source exists, is usable and is the type that layer needs (else
+  `source`). Usable means `raster-dem` / `raster` / `vector` with `tiles` (a
+  TileJSON `url` and `scheme: "tms"` are refused) whose URLs all resolve the same
+  way and use no placeholder but `{z}`, `{x}`, `{y}`, or `geojson` with inline
+  data or a resolvable URL (`cluster` and a source `filter` are refused);
+- the Style Spec validator (`validateStyleMin`, on a one-layer style with a dummy
+  `glyphs`) accepts it, and it uses only properties its drawing path reproduces
+  (`DRAWN`), any other at its Style Spec default, and none of the `image`,
+  `within` or `distance` operators (else `property`). `text-font` is always
+  accepted and ignored.
+
+`color-relief-color` must be a top-level `interpolate` / `linear` / `elevation`
+with ascending literal number stops and literal colours (`parseReliefRamp`).
+`resampling` is checked by hand: the bundled style-spec (23.3) predates it.
+
+### Source URLs
+
+`resolveOverlayUrl` joins a server-relative path to the Signal K server's origin
+(`app.hostDef.url`, else the page's) as text, so `{z}`/`{x}`/`{y}` survive;
+`resolveAssetUrl` cannot be reused, since it percent-encodes the braces and
+refuses other origins. Server-relative URLs are fetched with `credentials:
+'include'`, `https://` URLs with `'omit'`; everything else is refused.
+
+### Drawing (`<fb-data-overlay>`)
+
+`layer-data-overlay.component.ts` mounts next to `<fb-plugin-overlay>` for each
+shown, unsuspended data overlay: one OL `LayerGroup` at the overlay's z-index
+with its opacity (so the user's fade scales each layer's own opacity) and its
+manifest zoom range (inclusive at both ends, as for image overlays). Inside it,
+drawn layers become OL layers in style order:
+
+- **`color-relief`** → `WebGLTileLayer` over an `ImageTile` source. The shader
+  decodes elevation from the bands (`elevationExpression`: OL bands are 0..1, so
+  each Style Spec factor is ×255) and maps it through the ramp as an OL
+  `interpolate` (`reliefColorExpression`). The decode is linear in each channel,
+  so linear texture filtering interpolates elevation correctly. DEM tiles are
+  decoded with `premultiplyAlpha: 'none'` and `colorSpaceConversion: 'none'`. A
+  missing tile (404/204, or outside `bounds`) is a transparent tile, and the
+  shader draws alpha-0 pixels transparent — the one place Freeboard reads alpha
+  in a DEM, since the spec treats a missing tile as empty. A new ramp from
+  `overlay.setLayer` is `setStyle`, which swaps the shader and keeps the tiles.
+- **`raster`** → canvas `TileLayer` over an `ImageTile` source.
+- **`fill` / `line` / `circle` / `symbol`** → one `VectorLayer` (geojson) or
+  `VectorTileLayer` (MVT, 512-px grid) per run of consecutive layers on the same
+  source, styled by ol-mapbox-style's `stylefunction`. It cannot evaluate
+  `global-state` (it evaluates with only zoom and distance-from-centre), so
+  Freeboard **pre-resolves** it: `resolveLayer` replaces each `["global-state",
+  name]` with `["get", name, ["literal", { name: value }]]` and every vector
+  layer is re-styled on `overlay.setState`. `get` is typed `value` like
+  `global-state`, so the parser coerces the value as MapLibre would (a number
+  in `text-field` reads as text), and it is always an expression, so a filter
+  never turns into a legacy one. A constant like this is still checked when it
+  compiles, so a value of the wrong type (or an unset variable) would become a
+  compile error that ol-mapbox-style throws from the render loop.
+  `olStyleLayer` drops such a property instead (with one `console.warn`), which
+  draws its default, as MapLibre does on the runtime error. All vector layers
+  share one style object per build, set on the group as `mapbox-style` with an
+  id of its own, and changes go through ol-mapbox-style's `updateMapboxLayer`:
+  a new style object per change would grow its module-level caches with every
+  change rather than once per build. (The explicit id matters: ol-mapbox-style
+  numbers the first style it sees 0, then treats it as unnumbered, and loses
+  the setup `updateMapboxLayer` needs to restyle it.) Text is drawn in Roboto
+  with the requested weight and style (`fskFonts`). Symbol runs
+  declutter among the overlay's own layers.
+
+Layer `minzoom` / `maxzoom` are MapLibre zooms (512-px world); OL resolutions are
+derived from them (`resolutionRange`). Below a tiled source's `minzoom` nothing
+is drawn; past its `maxzoom` OL over-zooms. `raster-opacity` and
+`color-relief-opacity` may follow zoom or global state and are re-evaluated on
+`moveend`.
+
+Night mode needs nothing: the `app-night` CSS filter dims the whole map,
+overlays included.
+
+### Live changes
+
+The methods are a pure factory over the registry (`overlay-methods.ts`); each
+changes the `DataOverlayModel`, which emits a change the component applies.
+
+- **`overlay.refresh`.** Tiles are fetched with `fetch`, not `<img>`, by one
+  `TileFetcher` per source, which keeps up to 256 tiles' bytes and 32 decoded
+  bitmaps in memory. A refresh marks the tiles stale in the model
+  (`needsReload`: fetched next with `cache: 'reload'`), drops them from the
+  fetcher and, once per animation frame for a burst of refreshes, bumps the OL
+  source key. OL then asks for every visible tile again — keeping the old ones
+  on screen until the new ones load — but only the refreshed ones are fetched
+  and decoded.
+  Vector tiles carry a per-tile revision in their OL tile key so the source
+  reuses every unrefreshed source tile. A whole-source refresh drops them all. A
+  geojson URL is fetched again with `cache: 'reload'`.
+- **`overlay.setData`** replaces or upserts/removes features of a geojson source
+  in the model; the component mirrors it into the OL `VectorSource`. Changes to
+  a URL source that has not loaded yet, or is reloading, are applied to the
+  data that load brings. A reload that fails keeps the features drawn.
+- **`overlay.setLayer`** merges into the model's copy of the layer and re-runs
+  `analyzeLayer`; a result it would skip is refused with `overlays.unsupported`
+  and the layer is left alone. The component re-styles the affected OL layer, or
+  rebuilds the OL layers (sources and fetched tiles are kept) when the set of
+  drawn layers changes or a raster layer's resampling does.
+- **`overlay.setState`** updates the model's values and re-styles every vector
+  run and opacity.
+
+The OL static-image trap from #1012 does not arise: nothing is drawn from one
+image.
+
+### Error reasons
+
+`overlays.unknownId` (an overlay of no caller-owned id), `overlays.badRequest`
+(bad params; a source, layer or tile the style does not have; `setData` on a
+non-geojson source or with `data` and `upsert`/`remove` together; `tiles` on a
+geojson source; any data method on an image overlay, or `overlay.frame` on a data
+overlay), `overlays.unsupported` (`setLayer` to something Freeboard would not
+draw).
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/data-overlay-style.ts` | style parsing, source plans, URL resolver, per-layer draw/skip verdicts, ramp parsing, `global-state` resolution |
+| `src/app/modules/plotterext/data-overlay-model.ts` | one data overlay's live state: changed layers, `global-state`, geojson features, stale tiles; change events |
+| `src/app/modules/plotterext/overlay-methods.ts` | `overlay.refresh` / `setData` / `setLayer` / `setState` alongside the shared methods |
+| `src/app/modules/plotterext/plotterext.service.ts` | manifest parsing and style loading (`overlayDefinitions`, `fetchDataStyles`) |
+| `src/app/modules/map/ol/lib/data-overlay/layer-data-overlay.component.ts` | the OL layer group: builds, styles and live-updates the layers |
+| `src/app/modules/map/ol/lib/data-overlay/style-to-ol.ts` | DEM decode, ramp → shader expression, MapLibre zoom ↔ OL resolution |
+| `src/app/modules/map/ol/lib/data-overlay/tile-fetcher.ts` | credentialed, cache-aware tile fetching with an in-memory cache |
 
 ## Extending the host API? Update the agent bridge
 

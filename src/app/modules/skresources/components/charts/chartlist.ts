@@ -94,7 +94,7 @@ export class ChartListComponent extends ResourceListBase {
   private overlays = inject(OverlayRegistry);
 
   /**
-   * Image map overlays contributed by extensions, top layer first like the
+   * Map overlays (image and data) contributed by extensions, top layer first like the
    * charts below them: every overlay draws above every chart. One row each,
    * shown/faded individually; not re-orderable.
    */
