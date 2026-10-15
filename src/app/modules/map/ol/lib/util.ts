@@ -129,10 +129,11 @@ export function mapifyRadius(radius: number, position: Coordinate): number {
 
 /**
  * Layer property: a layer that must know every renderer drawing its images (one
- * that closes the bitmaps it has drawn, say) sets this to a function. Whoever
- * draws the layer's source on another map with a copy of the layer (the split
- * view's second pane) hands it each copy, and calls the function it returns
- * once that copy is gone.
+ * that closes the bitmaps it has drawn, say), or whose copies cannot take its
+ * look from its properties (a WebGL tile layer's style), sets this to a
+ * function. Whoever draws the layer's source on another map with a copy of the
+ * layer (the split view's second pane) hands it each copy, and calls the
+ * function it returns once that copy is gone.
  */
 export const ON_TWIN = 'onTwin';
 export type OnTwin = (twin: Layer) => () => void;

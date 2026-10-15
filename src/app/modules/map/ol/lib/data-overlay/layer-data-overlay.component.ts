@@ -15,7 +15,9 @@ import type BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
 import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile';
-import WebGLTileLayer from 'ol/layer/WebGLTile';
+import WebGLTileLayer, {
+  type Style as WebGLTileStyle
+} from 'ol/layer/WebGLTile';
 import VectorLayer from 'ol/layer/Vector';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
@@ -31,6 +33,7 @@ import { createXYZ } from 'ol/tilegrid';
 import { stylefunction, updateMapboxLayer } from 'ol-mapbox-style';
 import type { OverlayFeature } from 'signalk-plotterext-bus/host';
 import { MapComponent } from '../map.component';
+import { ON_TWIN, type OnTwin } from '../util';
 import type {
   DataOverlayChange,
   DataOverlayModel
@@ -65,7 +68,30 @@ interface Part {
   olLayer: BaseLayer;
   /** color-relief / raster: how it resamples, fixed per OL source. */
   interpolate?: boolean;
+  /** color-relief: the ramp it draws with. */
+  relief?: Relief;
 }
+
+/**
+ * A color-relief layer's shader style, and its twins: copies of the layer
+ * drawing it on another map (the split view's second pane). A WebGL layer's
+ * style is not a layer property, so a twin cannot take it from the layer: it
+ * gets it here.
+ */
+interface Relief {
+  style: WebGLTileStyle;
+  twins: Set<WebGLTileLayer>;
+}
+
+/** Gives each twin of a relief layer its ramp, now and whenever it changes. */
+const followRelief =
+  (relief: Relief): OnTwin =>
+  (layer) => {
+    const twin = layer as WebGLTileLayer;
+    twin.setStyle(relief.style);
+    relief.twins.add(twin);
+    return () => relief.twins.delete(twin);
+  };
 
 /** Changing a tile source's key re-renders every tile; OL keeps it protected. */
 const setSourceKey = (source: unknown, key: string) =>
@@ -93,7 +119,8 @@ function emptyTile(size: number): HTMLCanvasElement {
  *
  * - `color-relief` → a WebGL tile layer decoding the `raster-dem` tiles and
  *   colouring them with the ramp in the shader. A new ramp (`overlay.setLayer`)
- *   swaps the shader and keeps the tiles.
+ *   swaps the shader and keeps the tiles. A copy of the layer on another map
+ *   (the split view's second pane) is given each ramp too.
  * - `raster` → a canvas tile layer.
  * - `fill` / `line` / `circle` / `symbol` → a vector (geojson) or vector-tile
  *   layer per run of consecutive layers on one source, styled by
@@ -339,19 +366,24 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
         plan as TiledPlan,
         interpolate
       );
-      const olLayer =
+      const relief: Relief | undefined =
         layer.type === 'color-relief'
-          ? new WebGLTileLayer({
-              source: tileSource,
-              style: { color: [0, 0, 0, 0] }
-            })
-          : new TileLayer({ source: tileSource });
+          ? { style: { color: [0, 0, 0, 0] }, twins: new Set() }
+          : undefined;
+      const olLayer = relief
+        ? new WebGLTileLayer({
+            source: tileSource,
+            style: relief.style,
+            properties: { [ON_TWIN]: followRelief(relief) }
+          })
+        : new TileLayer({ source: tileSource });
       return {
         kind: layer.type,
         source,
         layerIds: [layer.id],
         olLayer,
-        interpolate
+        interpolate,
+        relief
       };
     }
     const declutter = this.overlayKey;
@@ -490,14 +522,16 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     );
     olLayer.setMinResolution(range.minResolution ?? 0);
     olLayer.setMaxResolution(range.maxResolution ?? Infinity);
-    if (part.kind === 'color-relief') {
+    if (part.relief) {
       const ramp = parseReliefRamp(layer.paint?.['color-relief-color']);
-      (olLayer as WebGLTileLayer).setStyle({
+      part.relief.style = {
         color: reliefColorExpression(
           ramp as ReliefRamp,
           (plan as DemPlan).encoding
         )
-      });
+      };
+      (olLayer as WebGLTileLayer).setStyle(part.relief.style);
+      for (const twin of part.relief.twins) twin.setStyle(part.relief.style);
     }
     this.applyOpacity(part);
   }

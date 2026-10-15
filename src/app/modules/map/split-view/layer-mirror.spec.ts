@@ -83,6 +83,18 @@ describe('mirrorLayers', () => {
     expect(twin.getStyle()).toBe(style);
   });
 
+  it("follows a raster chart's preload, so a pan shows the lower zoom there too", () => {
+    const main = new OlMap();
+    const chart = new TileLayer({ source: new XYZ({ url: 'c/{z}/{x}/{y}' }) });
+    main.addLayer(chart);
+    const second = new OlMap();
+    mirrorLayers(main, second);
+
+    chart.setPreload(1);
+
+    expect((twinsOn(second)[0] as TileLayer).getPreload()).toBe(1);
+  });
+
   it('adds and removes twins as layers come and go, keeping their order', () => {
     const main = new OlMap();
     const a = vectorLayer('a');

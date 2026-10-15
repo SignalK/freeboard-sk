@@ -98,6 +98,8 @@ function createTwin(
       twin: new VectorLayer({ className, declutter: layer.getDeclutter() })
     };
   }
+  // A WebGL tile layer's style is not a property: a layer styled for its data
+  // hands its twin the style through ON_TWIN.
   if (layer instanceof WebGLTileLayer) {
     return {
       twin: new WebGLTileLayer({ className, source: layer.getSource() })
