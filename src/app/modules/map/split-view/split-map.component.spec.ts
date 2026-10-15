@@ -633,6 +633,29 @@ describe("SplitMapComponent: the pane's own view", () => {
     expect(moved(false, 12, true)).not.toHaveBeenCalled();
   });
 
+  it('reports the view it opened at, before the buttons can act on it', () => {
+    // OL reports no move for a map's first frame, so the zoom readout would
+    // show the main chart's zoom until the pane was first moved.
+    const cmp = bareComponent();
+    cmp.zoom.set(9);
+    cmp.center.set([23.5, 60.1]);
+    cmp.split.rememberView = vi.fn();
+    cmp.split.setSecondaryMap = vi.fn();
+    cmp.scaleUnits = () => '';
+    cmp.stopUseWatch = [];
+    cmp.footprint = signal(null);
+    const pane = new OlMap();
+
+    // The pane alone: no main chart to mirror.
+    cmp.onMapReady({ map: pane, mapService: { getMaps: () => [pane] } });
+
+    expect(cmp.split.rememberView).toHaveBeenCalledWith(9, [23.5, 60.1], false);
+    expect(cmp.split.rememberView.mock.invocationCallOrder[0]).toBeLessThan(
+      cmp.split.setSecondaryMap.mock.invocationCallOrder[0]
+    );
+    cmp.stopUseWatch.forEach((stop: () => void) => stop());
+  });
+
   it('opens within the map zoom range, whatever was stored', () => {
     const cmp = bareComponent();
     cmp.app.data = { vessels: { active: { orientation: 0 } } };

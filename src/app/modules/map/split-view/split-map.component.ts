@@ -260,6 +260,9 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.updateFootprint();
     this.setScaleUnits(this.scaleUnits());
+    // OL reports no move for a map's first frame: until the pane is moved, the
+    // view it opened at is the one the zoom readout and buttons go by.
+    this.split.rememberView(this.zoom(), this.center(), false);
     this.split.setSecondaryMap(e.map);
   }
 
