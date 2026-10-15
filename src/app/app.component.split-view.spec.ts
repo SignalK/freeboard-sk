@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Map as OlMap } from 'ol';
 
@@ -108,6 +108,8 @@ describe('AppComponent: map buttons with the chart split', () => {
 });
 
 describe('AppComponent: map buttons once the second pane is gone', () => {
+  afterEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+
   // Kiosk mode or experiments turned off take the pane away (`@if
   // (splitActive())`), and the pane lets go of its map as it goes.
   it('acts on the main chart, even if the second pane was the active one', () => {
@@ -128,7 +130,6 @@ describe('AppComponent: map buttons once the second pane is gone', () => {
     expect(setFollow).not.toHaveBeenCalled();
     expect(setNorthUp).not.toHaveBeenCalled();
     expect(cmp.app.uiConfig()).toEqual({ mapNorthUp: false, mapMove: true });
-    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
   });
 });
 

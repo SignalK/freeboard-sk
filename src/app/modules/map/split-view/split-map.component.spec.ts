@@ -520,6 +520,11 @@ describe('SplitMapComponent: the divider', () => {
       expect(cmp.dragging()).toBe(false);
       expect(main.target.style.width).toBe('100%');
       expect(cmp.split.setRatio.mock.calls).toEqual([[0.62]]);
+      // ngAfterViewInit listened on the document: stop, as the pane does
+      // when it goes, so later tests' keys don't reach this one.
+      for (const [type, fn] of cmp.documentListeners) {
+        document.removeEventListener(type, fn, true);
+      }
     });
 
     it('reports a settled view when let go at the size it was drawn at', () => {

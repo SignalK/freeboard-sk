@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { of } from 'rxjs';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
@@ -391,8 +391,10 @@ describe('AppFacade auth token scoping (GHSA-p766-mg92-xc8g)', () => {
 });
 
 describe('AppFacade.activePaneFollows', () => {
+  beforeEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+  afterEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+
   it('follows the setting of the chart the map buttons act on', () => {
-    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
     TestBed.configureTestingModule({});
     const app = TestBed.inject(AppFacade);
     const split = TestBed.inject(SplitViewService);
@@ -405,6 +407,5 @@ describe('AppFacade.activePaneFollows', () => {
 
     split.activate('main');
     expect(app.activePaneFollows()).toBe(true);
-    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
   });
 });
