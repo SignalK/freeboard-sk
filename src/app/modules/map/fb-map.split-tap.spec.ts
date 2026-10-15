@@ -290,6 +290,19 @@ describe('FBMapComponent: Modify picked on the second pane', () => {
     expect(cmp.app.config.map.zoomLevel).toBe(15);
   });
 
+  it('makes the main chart active before it stops following, so keys go to it', () => {
+    const { cmp } = editable(new OlMap(), 0);
+    cmp.movingMap = true;
+    const active = signal('secondary');
+    cmp.splitView.activate = (pane: string) => active.set(pane);
+    let activeWhenFollowStops: string | undefined;
+    cmp.exitMovingMap = { emit: () => (activeWhenFollowStops = active()) };
+
+    cmp.modifyFeature();
+
+    expect(activeWhenFollowStops).toBe('main');
+  });
+
   it('centres on the tapped point for a feature with no popover', () => {
     const pane = new OlMap();
     const { cmp } = editable(pane, 0);

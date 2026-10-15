@@ -1580,12 +1580,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // Picked on the split view's second pane, but editing happens on this
       // chart: bring it to the feature first. The chart is centred in the
       // primary world, so align the edit with that world, not the pane's copy.
+      // The buttons and keys now act on the chart being edited, close enough
+      // in to show the feature as the pane did. First, so that leaving follow
+      // mode hands the keys to this chart, not the pane.
+      this.splitView.activate('main');
       if (this.movingMap) {
         this.exitMovingMap.emit(true);
       }
-      // The buttons and keys now act on the chart being edited, close enough
-      // in to show the feature as the pane did.
-      this.splitView.activate('main');
       const paneZoom = this.splitView.zoom();
       if (typeof paneZoom === 'number' && paneZoom > this.mapZoomLevel()) {
         this.mapZoomLevel.set(paneZoom);
