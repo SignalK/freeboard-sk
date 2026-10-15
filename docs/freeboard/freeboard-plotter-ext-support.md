@@ -815,6 +815,15 @@ is drawn; past its `maxzoom` OL over-zooms. `raster-opacity` and
 Night mode needs nothing: the `app-night` CSS filter dims the whole map,
 overlays included.
 
+With the split view open (an experiment) the second pane draws a data overlay
+through copies of its layers that share their sources
+(`split-view/layer-mirror.ts`). Vector styles, layer zoom ranges and visibility
+carry over and apply at each pane's own zoom. A `color-relief` layer's ramp is
+not a layer property, so the layer hands each copy its style through `ON_TWIN`
+(`ol/lib/util.ts`), and every new ramp after it. `raster-opacity` and
+`color-relief-opacity` are evaluated at the main chart's zoom, and the second
+pane uses the same value.
+
 ### Live changes
 
 The methods are a pure factory over the registry (`overlay-methods.ts`); each
