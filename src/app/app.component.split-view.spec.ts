@@ -87,6 +87,18 @@ describe('AppComponent: map buttons with the chart split', () => {
     expect(second.app.uiConfig().mapMove).toBe(false);
   });
 
+  it("shows a buddy's position on the main chart while it is the active one", () => {
+    const main = component(false);
+    main.app.uiConfig.set({ mapNorthUp: true, mapMove: true });
+
+    main.applyMapMove({ center: [23.5, 60.1], activePane: true });
+
+    expect(main.splitView.centerOn).not.toHaveBeenCalled();
+    expect(main.mapCenter()).toEqual([23.5, 60.1]);
+    // It stops following to keep the buddy in view.
+    expect(main.app.uiConfig().mapMove).toBe(false);
+  });
+
   it('gives the keys back to the active pane after North up and Follow', () => {
     for (const secondaryActive of [true, false]) {
       const cmp = component(secondaryActive);

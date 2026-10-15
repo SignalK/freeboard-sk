@@ -105,6 +105,22 @@ describe('mirrorLayers', () => {
     expect(twinsOn(second)).toHaveLength(2);
   });
 
+  it("keeps a vector layer's declutter group and a vector tile layer's render mode", () => {
+    // A data overlay declutters its labels among its own layers only.
+    const main = new OlMap();
+    main.addLayer(
+      new VectorLayer({ declutter: 'ext/depth', source: new VectorSource() })
+    );
+    main.addLayer(new VectorTileLayer({ renderMode: 'vector' }));
+    const second = new OlMap();
+
+    mirrorLayers(main, second);
+
+    const [vector, tiles] = twinsOn(second) as [VectorLayer, VectorTileLayer];
+    expect(vector.getDeclutter()).toBe('ext/depth');
+    expect(tiles.getRenderMode()).toBe('vector');
+  });
+
   it("follows a raster chart's preload, so a pan shows the lower zoom there too", () => {
     const main = new OlMap();
     const chart = new TileLayer({ source: new XYZ({ url: 'c/{z}/{x}/{y}' }) });

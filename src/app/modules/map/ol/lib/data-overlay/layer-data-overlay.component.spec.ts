@@ -1,4 +1,4 @@
-import { ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, SimpleChange } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   afterEach,
@@ -371,6 +371,39 @@ describe('DataOverlayComponent: a color-relief layer on a second map', () => {
 
     expect(styleOf(reliefOn(map))).not.toEqual(before);
     expect(styleOf(reliefOn(second))).toEqual(styleOf(reliefOn(map)));
+  });
+
+  it('gives the copy the ramp of a style the extension reloaded', () => {
+    mount();
+    mirrorLayers(map, second);
+    const reloaded = new DataOverlayModel(
+      {
+        ...reliefStyle(),
+        layers: [
+          {
+            id: 'shading',
+            type: 'color-relief',
+            source: 'depth',
+            paint: { 'color-relief-color': ramp('#00ff00', '#0000ff') }
+          }
+        ]
+      } as OverlayStyle,
+      'http://sk.local'
+    );
+    const previous = component.model;
+    component.model = reloaded;
+
+    component.ngOnChanges({
+      model: new SimpleChange(previous, reloaded, false)
+    });
+
+    const copies = (second.getLayers().item(0) as LayerGroup)
+      .getLayersArray()
+      .filter((l) => l instanceof WebGLTileLayer);
+    expect(copies).toHaveLength(1);
+    expect(styleOf(copies[0] as WebGLTileLayer)).toEqual(
+      styleOf(reliefOn(map))
+    );
   });
 
   it('lets go of a copy once it is gone', () => {

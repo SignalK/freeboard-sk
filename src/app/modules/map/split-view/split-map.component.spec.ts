@@ -1,14 +1,20 @@
 import { signal } from '@angular/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { TestBed } from '@angular/core/testing';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap, View } from 'ol';
 import { ScaleLine } from 'ol/control';
 import MapEvent from 'ol/MapEvent';
 import { fromLonLat } from 'ol/proj';
 import { Subject } from 'rxjs';
 import { WORLD_WIDTH_3857 } from '../route-extend';
-import { SPLIT_SHARE_VAR } from './split-view';
+import { SPLIT_SHARE_VAR, SPLIT_VIEW_STORAGE_KEY } from './split-view';
+import { SplitViewService } from './split-view.service';
 import { RESIZING } from 'src/app/modules/map/ol/lib/util';
 import { Position } from 'src/app/types';
+import { AppFacade } from 'src/app/app.facade';
+import { SKStreamFacade } from 'src/app/modules';
+import { FBMapInteractService } from '../fbmap-interact.service';
 
 import { SplitMapComponent } from './split-map.component';
 
@@ -796,5 +802,91 @@ describe('SplitMapComponent: the position readout', () => {
     cmp.onPointerMove({ lonlat: [23.5, 60.1] });
 
     expect(cmp.split.forwardPointer).toHaveBeenCalledWith([23.5, 60.1]);
+  });
+});
+
+// The pane's own effects, run by Angular as in the app; only the template,
+// which needs a whole map, is left out.
+describe('SplitMapComponent: what it follows and tells', () => {
+  let vessel: { positionReceived: boolean; position?: Position };
+  let announce: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    vessel = { positionReceived: false };
+    announce = vi.fn();
+    TestBed.overrideComponent(SplitMapComponent, {
+      set: { template: '', imports: [] }
+    });
+    TestBed.configureTestingModule({
+      imports: [SplitMapComponent],
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            MAP_ZOOM_EXTENT: { min: 2, max: 24 },
+            config: { map: { zoomLevel: 10, center: [24, 60] } },
+            data: { vessels: { active: vessel } }
+          }
+        },
+        {
+          provide: SKStreamFacade,
+          useValue: { vessels$: () => new Subject() }
+        },
+        { provide: FBMapInteractService, useValue: {} },
+        { provide: LiveAnnouncer, useValue: { announce } }
+      ]
+    });
+  });
+
+  afterEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+
+  const open = () => {
+    const fixture = TestBed.createComponent(SplitMapComponent);
+    fixture.detectChanges();
+    const pane = fixture.componentInstance as unknown as {
+      center: () => Position;
+      map: OlMap;
+    };
+    return { fixture, pane, split: TestBed.inject(SplitViewService) };
+  };
+
+  it('tells a screen reader which chart the map buttons move to, but not as it opens', () => {
+    TestBed.inject(SplitViewService).toggle();
+    const { fixture, split } = open();
+    expect(announce).not.toHaveBeenCalled();
+
+    split.setSecondaryMap(new OlMap());
+    fixture.detectChanges();
+    expect(announce).toHaveBeenLastCalledWith('Second chart active');
+
+    split.activate('main');
+    fixture.detectChanges();
+    expect(announce).toHaveBeenLastCalledWith('Main chart active');
+    expect(announce).toHaveBeenCalledTimes(2);
+  });
+
+  it('centres on the vessel when set to follow it', () => {
+    const { fixture, pane, split } = open();
+    vessel.positionReceived = true;
+    vessel.position = [23.5, 60.1];
+    fixture.detectChanges();
+    expect(pane.center()).toEqual([24, 60]);
+
+    split.setFollow(true);
+    fixture.detectChanges();
+
+    expect(pane.center()).toEqual([23.5, 60.1]);
+  });
+
+  it("draws the scale bar in the user's distance unit", () => {
+    const { fixture, pane } = open();
+    const scale = new ScaleLine({ units: 'nautical' });
+    pane.map = new OlMap({ controls: [scale] });
+
+    fixture.componentRef.setInput('scaleUnits', 'kilometer');
+    fixture.detectChanges();
+
+    expect(scale.getUnits()).toBe('metric');
   });
 });
