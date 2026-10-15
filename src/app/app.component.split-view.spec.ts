@@ -1,7 +1,11 @@
 import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { Map as OlMap } from 'ol';
+
 import { AppComponent } from './app.component';
+import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
+import { SplitViewService } from './modules/map/split-view/split-view.service';
 
 // The toolbar's North up and Follow buttons, and the lists' "show on chart"
 // actions, act on the active pane of the split view. Exercised on a bare
@@ -100,6 +104,31 @@ describe('AppComponent: map buttons with the chart split', () => {
 
     expect(main.mapCenter()).toEqual([23.5, 60.1]);
     expect(main.app.config.map.zoomLevel).toBe(15);
+  });
+});
+
+describe('AppComponent: map buttons once the second pane is gone', () => {
+  // Kiosk mode or experiments turned off take the pane away (`@if
+  // (splitActive())`), and the pane lets go of its map as it goes.
+  it('acts on the main chart, even if the second pane was the active one', () => {
+    const split = new SplitViewService();
+    split.toggle();
+    split.setSecondaryMap(new OlMap());
+    const cmp = Object.create(AppComponent.prototype);
+    cmp.app = { uiConfig: signal({ mapNorthUp: true, mapMove: false }) };
+    cmp.splitView = split;
+    cmp.focusMap = vi.fn();
+    const setFollow = vi.spyOn(split, 'setFollow');
+    const setNorthUp = vi.spyOn(split, 'setNorthUp');
+
+    split.setSecondaryMap(null);
+    cmp.toggleFollow();
+    cmp.toggleNorthUp();
+
+    expect(setFollow).not.toHaveBeenCalled();
+    expect(setNorthUp).not.toHaveBeenCalled();
+    expect(cmp.app.uiConfig()).toEqual({ mapNorthUp: false, mapMove: true });
+    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
   });
 });
 
