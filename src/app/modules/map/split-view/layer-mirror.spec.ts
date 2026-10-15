@@ -258,6 +258,39 @@ describe('mirrorLayers', () => {
     expect(redrawn).toHaveBeenCalledTimes(1);
   });
 
+  it('follows a background set on a layer later', () => {
+    const main = new OlMap();
+    const chart = vectorLayer('chart');
+    main.addLayer(chart);
+    const second = new OlMap();
+    mirrorLayers(main, second);
+
+    chart.setBackground('#102030');
+
+    expect(twinsOn(second)[0].getBackground()).toBe('#102030');
+  });
+
+  it('leaves nothing behind for a layer it fails to show', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const inner = new ImageLayer();
+    const forget = vi.fn();
+    inner.set(ON_TWIN, () => forget);
+    const group = new LayerGroup({ layers: [inner] });
+    group.getBackground = () => {
+      throw new Error('cannot read');
+    };
+    const main = new OlMap({ layers: [group, vectorLayer('routes')] });
+    const second = new OlMap();
+
+    mirrorLayers(main, second);
+
+    // The group's own twin of its layer is let go; the rest is still shown.
+    expect(forget).toHaveBeenCalledTimes(1);
+    expect(twinsOn(second).map((l) => l.get('id'))).toEqual(['routes']);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it('hands a layer that asks for it each twin, and tells it once the twin is gone', () => {
     const main = new OlMap();
     const overlay = new ImageLayer();

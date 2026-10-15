@@ -140,68 +140,74 @@ function copyProperties(from: BaseLayer, to: BaseLayer) {
 }
 
 function twinOf(layer: BaseLayer): Twin | null {
-  let made: ReturnType<typeof createTwin>;
+  let made: ReturnType<typeof createTwin> = null;
+  const keys: EventsKey[] = [];
+  let forget: (() => void) | undefined;
+  const stop = () => {
+    unByKey(keys);
+    made?.stopChildren?.();
+    forget?.();
+  };
   try {
     made = createTwin(layer);
-  } catch (err) {
-    console.warn('Split view: a layer could not be shown in both panes', err);
-    return null;
-  }
-  if (!made) {
-    if (!unmirrored.has(layer)) {
-      unmirrored.add(layer);
-      console.warn(
-        'Split view: a layer of this kind is not shown in the second pane',
-        layer
-      );
-    }
-    return null;
-  }
-  const { twin, stopChildren } = made;
-  copyProperties(layer, twin);
-  const background = layer.getBackground();
-  if (background) {
-    twin.setBackground(background);
-  }
-  const keys: EventsKey[] = [
-    layer.on('propertychange', (e: ObjectEvent) => {
-      if (!NOT_COPIED.has(e.key)) {
-        twin.set(e.key, layer.get(e.key));
+    if (!made) {
+      if (!unmirrored.has(layer)) {
+        unmirrored.add(layer);
+        console.warn(
+          'Split view: a layer of this kind is not shown in the second pane',
+          layer
+        );
       }
-    })
-  ];
-  let forget: (() => void) | undefined;
-  if (twin instanceof Layer) {
-    keys.push(...followImageFilter(twin));
-    forget = (layer.get(ON_TWIN) as OnTwin | undefined)?.(twin);
-    if (layer instanceof BaseVectorLayer && twin instanceof BaseVectorLayer) {
-      twin.setStyle(layer.getStyle());
+      return null;
     }
-    // A new style is not a property change, and a layer redrawn with the same
-    // style (a style's sprite sheet arriving, a new wind indicator) signals
-    // only 'change'; the twin is redrawn with it.
+    const { twin } = made;
+    copyProperties(layer, twin);
+    const background = layer.getBackground();
+    if (background) {
+      twin.setBackground(background);
+    }
     keys.push(
-      layer.on('change', () => {
-        if (
-          layer instanceof BaseVectorLayer &&
-          twin instanceof BaseVectorLayer &&
-          twin.getStyle() !== layer.getStyle()
-        ) {
-          twin.setStyle(layer.getStyle());
-        } else {
-          twin.changed();
+      layer.on('propertychange', (e: ObjectEvent) => {
+        if (!NOT_COPIED.has(e.key)) {
+          twin.set(e.key, layer.get(e.key));
         }
       })
     );
-  }
-  return {
-    layer: twin,
-    stop: () => {
-      unByKey(keys);
-      stopChildren?.();
-      forget?.();
+    if (twin instanceof Layer) {
+      keys.push(...followImageFilter(twin));
+      forget = (layer.get(ON_TWIN) as OnTwin | undefined)?.(twin);
+      if (layer instanceof BaseVectorLayer && twin instanceof BaseVectorLayer) {
+        twin.setStyle(layer.getStyle());
+      }
+      // A new style or background is not a property change, and a layer
+      // redrawn with the same style (a style's sprite sheet arriving, a new
+      // wind indicator) signals only 'change'; the twin is redrawn with it.
+      keys.push(
+        layer.on('change', () => {
+          const background = layer.getBackground() || undefined;
+          if (twin.getBackground() !== background) {
+            twin.setBackground(background);
+          }
+          if (
+            layer instanceof BaseVectorLayer &&
+            twin instanceof BaseVectorLayer &&
+            twin.getStyle() !== layer.getStyle()
+          ) {
+            twin.setStyle(layer.getStyle());
+          } else {
+            twin.changed();
+          }
+        })
+      );
     }
-  };
+    return { layer: twin, stop };
+  } catch (err) {
+    // Whatever was set up so far (a group's own twins included) goes again.
+    stop();
+    made?.twin.dispose();
+    console.warn('Split view: a layer could not be shown in both panes', err);
+    return null;
+  }
 }
 
 /**
