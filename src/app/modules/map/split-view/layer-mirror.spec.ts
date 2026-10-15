@@ -382,6 +382,40 @@ describe('mirrorLayers', () => {
     expect(dispose).toHaveBeenCalled();
   });
 
+  it("lets a raster chart's preload finish before its twin goes", () => {
+    vi.useFakeTimers();
+    try {
+      const main = new OlMap();
+      const chart = new TileLayer({
+        preload: 1,
+        source: new XYZ({ url: 'c/{z}/{x}/{y}' })
+      });
+      main.addLayer(chart);
+      const second = new OlMap();
+      mirrorLayers(main, second);
+      const twin = twinsOn(second)[0] as TileLayer<XYZ>;
+      const renderer = twin.getRenderer() as CanvasTileLayerRenderer;
+      // What OL leaves after drawing a frame of a layer that preloads: a
+      // timer that queues the lower zoom's tiles, reading the layer.
+      setTimeout(() =>
+        renderer.enqueueTiles(
+          { viewState: {} } as FrameState,
+          [0, 0, 1, 1],
+          1,
+          {},
+          0
+        )
+      );
+
+      main.removeLayer(chart);
+
+      expect(() => vi.runAllTimers()).not.toThrow();
+      expect(twin.hasRenderer()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   describe('a layer it cannot show', () => {
     afterEach(() => vi.restoreAllMocks());
 

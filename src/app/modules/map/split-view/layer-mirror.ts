@@ -243,19 +243,23 @@ export function mirrorCollection(
     }
     to.remove(twin.layer);
     twin.stop();
-    // A tile left in the twin's cache keeps its decoded vector tile in the
-    // shared source, and its canvas, for as long as the chart is shown.
-    const renderer =
-      twin.layer instanceof Layer && twin.layer.hasRenderer()
-        ? twin.layer.getRenderer()
-        : null;
-    if (renderer instanceof CanvasTileLayerRenderer) {
-      renderer.getTileCache().clear();
-      renderer.getSourceTileCache().clear();
+    const gone = twin.layer;
+    if (gone instanceof Layer) {
+      // Its listener on the shared source would keep the twin alive. And a
+      // raster chart's preload, left by the last frame to a timer, then finds
+      // no source and loads nothing.
+      gone.setSource(null);
+      // A tile left in the twin's cache keeps its decoded vector tile in the
+      // shared source, and its canvas, for as long as the chart is shown.
+      const renderer = gone.hasRenderer() ? gone.getRenderer() : null;
+      if (renderer instanceof CanvasTileLayerRenderer) {
+        renderer.getTileCache().clear();
+        renderer.getSourceTileCache().clear();
+      }
     }
-    // Drops the twin's renderer (and its canvas or WebGL context) and its
-    // listener on the shared source, which would otherwise keep it alive.
-    twin.layer.dispose();
+    // Drops the twin's renderer, and its canvas or WebGL context, once that
+    // timer has run: it reads the renderer's layer, which disposing clears.
+    setTimeout(() => gone.dispose(), 0);
     twins.delete(layer);
   };
 
