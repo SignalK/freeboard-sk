@@ -3,6 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OlMap from 'ol/Map';
 import View from 'ol/View';
+import { get as getProjection } from 'ol/proj';
+import TileState from 'ol/TileState';
 import type LayerGroup from 'ol/layer/Group';
 import type VectorLayer from 'ol/layer/Vector';
 import type VectorSource from 'ol/source/Vector';
@@ -119,6 +121,48 @@ describe('DataOverlayComponent', () => {
       .map((st) => (st.getImage() as CircleStyle | null)?.getRadius())
       .find((r) => r !== undefined);
     expect(radius).toBe(8);
+  });
+
+  it('lets go of the tiles a rebuilt layer drew', () => {
+    // Switching a raster layer between smooth and crisp rebuilds every
+    // layer, on the sources the overlay keeps.
+    component.ngOnDestroy();
+    const withPhoto = style();
+    model = new DataOverlayModel(
+      {
+        ...withPhoto,
+        sources: {
+          ...withPhoto.sources,
+          photo: { type: 'raster', tiles: ['/t/{z}/{x}/{y}'] }
+        },
+        layers: [
+          ...withPhoto.layers,
+          { id: 'photo', type: 'raster', source: 'photo' }
+        ]
+      } as OverlayStyle,
+      'http://sk.local'
+    );
+    component.model = model;
+    component.ngOnInit();
+    const lines = group().getLayers().item(0) as VectorTileLayer;
+    const drawn = vectorTileSource().getTile(
+      12,
+      0,
+      0,
+      1,
+      getProjection('EPSG:3857')!
+    );
+    lines.getRenderer().getTileCache().set('12/0/0', drawn);
+    expect(drawn.getState()).toBe(TileState.IDLE);
+
+    model.setLayer({
+      layer: 'photo',
+      paint: { 'raster-resampling': 'nearest' }
+    });
+
+    expect(group().getLayers().item(0)).not.toBe(lines);
+    // Released: it no longer holds its source tiles in the source.
+    expect(drawn.getState()).toBe(TileState.EMPTY);
   });
 
   it('draws the overlay as one group: a layer per run of layers on one source', () => {

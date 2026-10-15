@@ -13,10 +13,12 @@ import type { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import type BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
+import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
 import VectorLayer from 'ol/layer/Vector';
 import VectorTileLayer from 'ol/layer/VectorTile';
+import CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
 import ImageTileSource from 'ol/source/ImageTile';
 import VectorSource from 'ol/source/Vector';
 import VectorTileSource from 'ol/source/VectorTile';
@@ -298,9 +300,27 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
   private clearParts() {
     for (const part of this.parts) {
       this.group?.getLayers().remove(part.olLayer);
+      this.releaseTiles(part.olLayer);
       part.olLayer.dispose();
     }
     this.parts = [];
+  }
+
+  /**
+   * Disposing a layer leaves its tile cache as it is, and each vector tile
+   * in it keeps the source tile it decoded in the shared source. A rebuild
+   * keeps the sources, so without this every tile a rebuilt layer drew would
+   * stay in memory for as long as the overlay is shown.
+   */
+  private releaseTiles(layer: BaseLayer) {
+    const renderer =
+      layer instanceof Layer && layer.hasRenderer()
+        ? layer.getRenderer()
+        : null;
+    if (renderer instanceof CanvasTileLayerRenderer) {
+      renderer.getTileCache().clear();
+      renderer.getSourceTileCache().clear();
+    }
   }
 
   private plan(sourceId: string): SourcePlan | null {
