@@ -30,6 +30,11 @@ export class TileFetcher {
   private readonly memo = new Map<string, Blob | null>();
   private readonly decoded = new Map<string, ImageBitmap | null>();
   private readonly inflight = new Map<string, Promise<Blob | null>>();
+  /**
+   * Decodes under way. Each style layer drawing a raster source asks for its
+   * tiles, so two layers on one source ask for the same tile at once.
+   */
+  private readonly decoding = new Map<string, Promise<ImageBitmap | null>>();
   /** Bumped by {@link invalidate} (all tiles, and per tile), so a fetch begun before it is not memoised. */
   private generation = 0;
   private readonly tileGeneration = new Map<string, number>();
@@ -77,6 +82,23 @@ export class TileFetcher {
       this.decoded.set(key, bitmap);
       return bitmap;
     }
+    let pending = this.decoding.get(key);
+    if (!pending) {
+      const p = this.decode(z, x, y).finally(() => {
+        if (this.decoding.get(key) === p) this.decoding.delete(key);
+      });
+      this.decoding.set(key, p);
+      pending = p;
+    }
+    return pending;
+  }
+
+  private async decode(
+    z: number,
+    x: number,
+    y: number
+  ): Promise<ImageBitmap | null> {
+    const key = `${z}/${x}/${y}`;
     const generation = this.generationOf(key);
     const blob = await this.fetch(z, x, y);
     const bitmap = blob
@@ -130,6 +152,7 @@ export class TileFetcher {
       this.generation++;
       this.tileGeneration.clear();
       this.inflight.clear();
+      this.decoding.clear();
       this.memo.clear();
       this.decoded.clear();
       return;
@@ -138,6 +161,7 @@ export class TileFetcher {
       const key = `${z}/${x}/${y}`;
       this.tileGeneration.set(key, (this.tileGeneration.get(key) ?? 0) + 1);
       this.inflight.delete(key);
+      this.decoding.delete(key);
       this.memo.delete(key);
       this.decoded.delete(key);
     }
