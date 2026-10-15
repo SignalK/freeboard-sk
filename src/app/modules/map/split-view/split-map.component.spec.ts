@@ -810,11 +810,23 @@ describe('SplitMapComponent: the position readout', () => {
 describe('SplitMapComponent: what it follows and tells', () => {
   let vessel: { positionReceived: boolean; position?: Position };
   let announce: ReturnType<typeof vi.fn>;
+  let interact: {
+    isDrawing: ReturnType<typeof signal<boolean>>;
+    isModifying: ReturnType<typeof signal<boolean>>;
+    isMeasuring: ReturnType<typeof signal<boolean>>;
+    isBoxSelecting: ReturnType<typeof signal<boolean>>;
+  };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     vessel = { positionReceived: false };
     announce = vi.fn();
+    interact = {
+      isDrawing: signal(false),
+      isModifying: signal(false),
+      isMeasuring: signal(false),
+      isBoxSelecting: signal(false)
+    };
     TestBed.overrideComponent(SplitMapComponent, {
       set: { template: '', imports: [] }
     });
@@ -833,7 +845,7 @@ describe('SplitMapComponent: what it follows and tells', () => {
           provide: SKStreamFacade,
           useValue: { vessels$: () => new Subject() }
         },
-        { provide: FBMapInteractService, useValue: {} },
+        { provide: FBMapInteractService, useValue: interact },
         { provide: LiveAnnouncer, useValue: { announce } }
       ]
     });
@@ -864,6 +876,20 @@ describe('SplitMapComponent: what it follows and tells', () => {
     fixture.detectChanges();
     expect(announce).toHaveBeenLastCalledWith('Main chart active');
     expect(announce).toHaveBeenCalledTimes(2);
+  });
+
+  it('hands the map buttons to the main chart as measuring starts there', () => {
+    TestBed.inject(SplitViewService).toggle();
+    const { fixture, split } = open();
+    split.setSecondaryMap(new OlMap());
+    fixture.detectChanges();
+    expect(split.secondaryActive()).toBe(true);
+
+    interact.isMeasuring.set(true);
+    fixture.detectChanges();
+
+    expect(split.secondaryActive()).toBe(false);
+    expect(announce).toHaveBeenLastCalledWith('Main chart active');
   });
 
   it('centres on the vessel when set to follow it', () => {

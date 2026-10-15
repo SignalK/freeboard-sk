@@ -164,6 +164,13 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       const units = this.scaleUnits();
       untracked(() => this.setScaleUnits(units));
     });
+    // Drawing, measuring and editing take taps on the main chart only: its
+    // outline shows where to tap.
+    effect(() => {
+      if (this.interacting()) {
+        untracked(() => this.split.activate('main'));
+      }
+    });
     // Which chart the shared buttons act on is shown by an outline; a screen
     // reader is told.
     let wasSecond: boolean | undefined;
