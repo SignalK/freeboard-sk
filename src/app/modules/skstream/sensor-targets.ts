@@ -136,13 +136,12 @@ export function unlinkedTargets(
   vessels: Map<string, SKVessel>,
   self?: SKVessel
 ): Map<string, SKSensorTarget> {
-  const charted = (context: string): boolean => {
-    const vessel =
-      context === 'vessels.self' || context === self?.id
-        ? self
-        : vessels.get(context);
-    return Boolean(vessel?.position);
-  };
+  // A vessel without a position yet still counts: fusedVessels places it at
+  // the target, so drawing the target as well would show the boat twice.
+  const charted = (context: string): boolean =>
+    context === 'vessels.self' || context === self?.id
+      ? Boolean(self?.position)
+      : vessels.has(context);
   const shown = new Map<string, SKSensorTarget>();
   const freshest = new Map<string, SKSensorTarget>();
   targets.forEach((target, id) => {
