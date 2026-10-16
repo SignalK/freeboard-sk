@@ -836,8 +836,7 @@ export class PlotterExtensionService {
 
   /**
    * Toggle a drawer panel: if it is the currently visible panel, close it;
-   * otherwise open (or switch to) it. Mirrors Freeboard's instrument-panel
-   * button behavior.
+   * otherwise open (or switch to) it, so one button both shows and hides it.
    */
   togglePanel(extension: string, panelId: string): boolean {
     const key = `${extension}/${panelId}`;
