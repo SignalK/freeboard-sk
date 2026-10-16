@@ -83,7 +83,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
         if (key === 'layerProperties') {
-          this.layer.setProperties(properties, false);
+          Object.assign(properties, changes[key].currentValue);
         } else {
           [
             'opacity',
