@@ -386,8 +386,8 @@ interface TrackFeatureLike {
  * omits `from` on a track whose points carry no times, such as a GPX imported
  * without `<time>`: a shape someone sailed, which has no place in a trail or
  * in the passage times read from one. */
-export const isTimedTrack = (properties?: { from?: string }): boolean =>
-  properties?.from !== undefined;
+export const isTimedTrack = (properties?: { from?: string | null }): boolean =>
+  typeof properties?.from === 'string';
 
 /** The features of a response that belong in a vessel's trail. */
 const featuresOf = (fc: unknown): TrackFeatureLike[] => {
