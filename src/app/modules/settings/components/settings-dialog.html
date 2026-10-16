@@ -83,6 +83,16 @@
                       Prefer Info-Panel
                     </mat-checkbox>
                   </div>
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.splitView"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Show the Split view button, which opens a second chart beside or below the main one."
+                    >
+                      Enable split view
+                    </mat-checkbox>
+                  </div>
                 </div>
               </mat-card-content>
             </mat-card>

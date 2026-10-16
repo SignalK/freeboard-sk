@@ -577,12 +577,12 @@ export class AppComponent {
   }
 
   /**
-   * The split view is an experiment: it shows only while experiments are on,
-   * and never in kiosk mode, which hides the button that closes it.
+   * The split view shows only while it is enabled in Settings → Display, and
+   * never in kiosk mode, which hides the button that closes it.
    */
   protected splitActive(): boolean {
     return (
-      !!this.app.config.experiments &&
+      !!this.app.config.display.splitView &&
       !this.app.kioskMode() &&
       this.splitView.enabled()
     );

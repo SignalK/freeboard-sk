@@ -122,7 +122,7 @@ describe('AppComponent: map buttons with the chart split', () => {
 describe('AppComponent: map buttons once the second pane is gone', () => {
   afterEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
 
-  // Kiosk mode or experiments turned off take the pane away (`@if
+  // Kiosk mode or the setting turned off take the pane away (`@if
   // (splitActive())`), and the pane lets go of its map as it goes.
   it('acts on the main chart, even if the second pane was the active one', () => {
     const split = new SplitViewService();
@@ -164,15 +164,22 @@ describe('AppComponent: keyboard focus with the chart split', () => {
 });
 
 describe('AppComponent: when the split shows', () => {
-  const shown = (kiosk: boolean) => {
+  const shown = (kiosk: boolean, setting = true) => {
     const cmp = Object.create(AppComponent.prototype);
-    cmp.app = { config: { experiments: true }, kioskMode: signal(kiosk) };
+    cmp.app = {
+      config: { display: { splitView: setting } },
+      kioskMode: signal(kiosk)
+    };
     cmp.splitView = { enabled: () => true };
     return cmp.splitActive();
   };
 
-  it('shows with experiments on', () => {
+  it('shows while split view is enabled in the settings', () => {
     expect(shown(false)).toBe(true);
+  });
+
+  it('stays hidden while the setting is off, even if it was left open', () => {
+    expect(shown(false, false)).toBe(false);
   });
 
   it('never shows in kiosk mode, which has no button to close it', () => {

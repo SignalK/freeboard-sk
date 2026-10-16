@@ -166,6 +166,24 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.ui.autoNightMode).toBe(false);
   });
 
+  it('leaves split view off by default', () => {
+    expect(defaultConfig().display.splitView).toBe(false);
+  });
+
+  it('turns split view off for a config saved without the setting', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    delete cfg.display.splitView;
+    cleanConfig(cfg, {});
+    expect(cfg.display.splitView).toBe(false);
+  });
+
+  it('keeps split view on once the user turned it on', () => {
+    const cfg = defaultConfig();
+    cfg.display.splitView = true;
+    cleanConfig(cfg, {});
+    expect(cfg.display.splitView).toBe(true);
+  });
+
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
