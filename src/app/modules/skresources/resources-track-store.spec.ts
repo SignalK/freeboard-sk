@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { SKResourceService } from './resources.service';
 import { SKTrack } from './resource-classes';
 import { FBTrack } from 'src/app/types';
@@ -94,6 +95,21 @@ describe('migrateResourceTracks', () => {
 
     expect(await svc.migrateResourceTracks()).toBe(0);
     expect(deletedNew).toEqual(['/tracks/tracks%3Aimported%3An1']);
+  });
+
+  it('skips a track the Track API refuses as invalid', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    let calls = 0;
+    const { svc, deleteFromServer } = svcWith({
+      old: ['a', 'b'],
+      post: () =>
+        ++calls === 1
+          ? throwError(() => new HttpErrorResponse({ status: 400 }))
+          : of({ id: 'tracks:imported:n1' })
+    });
+
+    expect(await svc.migrateResourceTracks()).toBe(1);
+    expect(deleteFromServer.mock.calls.map((c) => c[1])).toEqual(['b']);
   });
 
   it('stops at the first track the Track API refuses', async () => {
