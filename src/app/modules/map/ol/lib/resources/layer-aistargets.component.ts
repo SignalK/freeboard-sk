@@ -82,12 +82,18 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
                   label
                 )
               );
+              this.parseCogLine(id, target);
             } else {
               this.addTargetWithId(id);
             }
+          } else if (f) {
+            // a sensor target leaves the set once linked to a boat on the chart
+            this.source.removeFeature(f);
+            this.removeCogLine(id);
           }
         } else {
           this.source.removeFeature(f);
+          this.removeCogLine(id);
         }
       }
     });
@@ -101,6 +107,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
         if (f) {
           this.source.removeFeature(f);
         }
+        this.removeCogLine(id);
       }
     });
   }
@@ -127,6 +134,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
         )
       );
       this.source.addFeature(f);
+      this.parseCogLine(id, target);
     }
   }
 
