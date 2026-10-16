@@ -18,7 +18,11 @@ const trackFc = (coords: number[][][], times?: string[][]) => ({
     {
       type: 'Feature',
       geometry: { type: 'MultiLineString', coordinates: coords },
-      properties: { providerId: 'tracks', coordTimes: times }
+      properties: {
+        providerId: 'tracks',
+        from: '2026-09-01T00:00:00Z',
+        coordTimes: times
+      }
     }
   ]
 });

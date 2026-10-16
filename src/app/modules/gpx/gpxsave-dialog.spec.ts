@@ -34,7 +34,12 @@ const trackResponse = (coords: Position[][], times: string[][]) => ({
     {
       type: 'Feature',
       geometry: { type: 'MultiLineString', coordinates: coords },
-      properties: { context: CTX, providerId: 'tracks', coordTimes: times }
+      properties: {
+        context: CTX,
+        providerId: 'tracks',
+        from: '2026-09-01T00:00:00Z',
+        coordTimes: times
+      }
     }
   ]
 });

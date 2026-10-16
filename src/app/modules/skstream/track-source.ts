@@ -374,12 +374,27 @@ export function trailBandUrl(
 
 interface TrackFeatureLike {
   geometry?: { type?: string; coordinates?: Position[][] };
-  properties?: { context?: string; isSelf?: boolean; providerId?: string };
+  properties?: {
+    context?: string;
+    isSelf?: boolean;
+    providerId?: string;
+    from?: string;
+  };
 }
 
+/** Whether a Track API feature is part of its vessel's history. The Track API
+ * omits `from` on a track whose points carry no times, such as a GPX imported
+ * without `<time>`: a shape someone sailed, which has no place in a trail or
+ * in the passage times read from one. */
+export const isTimedTrack = (properties?: { from?: string | null }): boolean =>
+  typeof properties?.from === 'string';
+
+/** The features of a response that belong in a vessel's trail. */
 const featuresOf = (fc: unknown): TrackFeatureLike[] => {
   const f = (fc as { features?: unknown })?.features;
-  return Array.isArray(f) ? (f as TrackFeatureLike[]) : [];
+  return Array.isArray(f)
+    ? (f as TrackFeatureLike[]).filter((t) => isTimedTrack(t?.properties))
+    : [];
 };
 
 const linesOf = (f: TrackFeatureLike): Position[][] | undefined =>

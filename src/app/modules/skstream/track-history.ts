@@ -22,7 +22,7 @@ import {
   mercatorMidLatitude,
   type LonLatBox
 } from 'src/app/lib/map-fit';
-import { queryString } from './track-source';
+import { isTimedTrack, queryString } from './track-source';
 
 /** Most points per history track, at every zoom level: the budget cap on top
  * of the per-view `epsilon`. */
@@ -191,9 +191,13 @@ interface HistoryFeatureLike {
   };
 }
 
+/** The features of a response that belong in a vessel's history: the
+ * untimed ones are left out, as `isTimedTrack` says why. */
 const featuresOf = (fc: unknown): HistoryFeatureLike[] => {
   const f = (fc as { features?: unknown })?.features;
-  return Array.isArray(f) ? (f as HistoryFeatureLike[]) : [];
+  return Array.isArray(f)
+    ? (f as HistoryFeatureLike[]).filter((t) => isTimedTrack(t?.properties))
+    : [];
 };
 
 /** The features of one provider: the preferred one when it answered, else the
