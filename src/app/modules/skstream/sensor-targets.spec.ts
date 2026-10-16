@@ -316,6 +316,7 @@ describe('unlinkedTargets', () => {
     target(targets, RADAR, VESSEL);
     const unplaced = new SKVessel();
     unplaced.id = VESSEL;
+    unplaced.position = null;
     const vessels = new Map([[VESSEL, unplaced]]);
     expect([...unlinkedTargets(targets, vessels).keys()]).toEqual([]);
     expect(fusedVessels(vessels, targets).get(VESSEL).position).toEqual([
