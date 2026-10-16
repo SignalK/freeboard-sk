@@ -8,7 +8,6 @@ import { Position } from 'src/app/types';
 import {
   clampRatio,
   fitRatio,
-  MIN_PANE_PX,
   parseSplitViewState,
   SplitViewState,
   SPLIT_RATIO_MAX,
@@ -58,8 +57,6 @@ export class SplitViewService {
   private active = signal<SplitPane>('main');
   private commands = new Subject<PaneCommand>();
   private panel = signal<{ width: number; height: number } | null>(null);
-  /** How far down each map toolbar reaches; see setToolbarReach. */
-  private toolbars = signal<ReadonlyMap<object, number>>(new Map());
   private saveTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
@@ -92,26 +89,15 @@ export class SplitViewService {
   });
 
   /**
-   * The least the main chart keeps along the split. Stacked, the map toolbars
-   * run down its sides, so it keeps enough height to show all their buttons.
-   */
-  readonly mainMin = computed(() =>
-    this.stacked()
-      ? Math.max(MIN_PANE_PX, ...this.toolbars().values())
-      : MIN_PANE_PX
-  );
-
-  /**
    * The share the main chart gets on screen: the chosen ratio, moved in so
-   * neither pane is too narrow to show a popover, and the main chart keeps
-   * room for the toolbars.
+   * neither pane is too narrow to show a popover.
    */
   readonly shownRatio = computed(() => {
     const panel = this.panel();
     if (!panel) {
       return this.ratio();
     }
-    return this.fit(this.ratio(), this.stacked() ? panel.height : panel.width);
+    return fitRatio(this.ratio(), this.stacked() ? panel.height : panel.width);
   });
 
   /** The shares the main chart can be shown at, as the divider can reach. */
@@ -122,8 +108,8 @@ export class SplitViewService {
     }
     const size = this.stacked() ? panel.height : panel.width;
     return {
-      min: this.fit(SPLIT_RATIO_MIN, size),
-      max: this.fit(SPLIT_RATIO_MAX, size)
+      min: fitRatio(SPLIT_RATIO_MIN, size),
+      max: fitRatio(SPLIT_RATIO_MAX, size)
     };
   });
 
@@ -156,34 +142,6 @@ export class SplitViewService {
   /** The size of the panel the two panes share, as laid out. */
   setPanelSize(width: number, height: number) {
     this.panel.set({ width, height });
-  }
-
-  /**
-   * How far down from the top of the panel `toolbar` reaches, or null once it
-   * is gone.
-   */
-  setToolbarReach(toolbar: object, px: number | null) {
-    const reach = px === null ? null : Math.ceil(Math.max(0, px));
-    this.toolbars.update((all) => {
-      if ((all.get(toolbar) ?? null) === reach) {
-        return all;
-      }
-      const next = new Map(all);
-      if (reach === null) {
-        next.delete(toolbar);
-      } else {
-        next.set(toolbar, reach);
-      }
-      return next;
-    });
-  }
-
-  /**
-   * The share the main chart gets of a panel `size` pixels long along the
-   * split, for a divider at `ratio`.
-   */
-  fit(ratio: number, size: number): number {
-    return fitRatio(ratio, size, MIN_PANE_PX, this.mainMin());
   }
 
   setNorthUp(northUp: boolean) {

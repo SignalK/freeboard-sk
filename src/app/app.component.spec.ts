@@ -10,8 +10,6 @@ import { RadarAPIService } from './modules/radar/radar-api.service';
 import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { Position } from './types';
-import { SplitViewService } from './modules/map/split-view/split-view.service';
-import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -74,39 +72,6 @@ describe('AppComponent', () => {
     expect(
       fixture.debugElement.query(By.css('.instrumentPanelToggle'))
     ).toBeNull();
-  });
-
-  it('ends the toolbars where the main chart does when the split panes stack', () => {
-    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = TestBed.inject(AppFacade);
-    const split = TestBed.inject(SplitViewService);
-    app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
-    app.config.experiments = true;
-    fixture.detectChanges();
-    const bottoms = () =>
-      fixture.debugElement
-        .queryAll(By.css('.buttonPanel.left, .buttonPanel.right'))
-        .map((de) => (de.nativeElement as HTMLElement).style.bottom);
-    expect(bottoms()).toEqual(['', '']);
-
-    split.toggle();
-    split.setRatio(0.7);
-    split.setPanelSize(390, 760);
-    fixture.detectChanges();
-    // The second pane takes the bottom 30%; the toolbars stop above it.
-    const [left, right] = bottoms();
-    expect(left).toMatch(/%$/);
-    expect(parseFloat(left)).toBeCloseTo(30);
-    expect(parseFloat(right)).toBeCloseTo(30);
-
-    // Side by side the toolbars do not cross the divider: left as they were.
-    split.setPanelSize(844, 390);
-    fixture.detectChanges();
-    expect(bottoms()).toEqual(['', '']);
-
-    split.toggle();
-    localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY);
   });
 
   it('keeps the Instruments toolbar slot while the panel is open', () => {

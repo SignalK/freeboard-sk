@@ -9,7 +9,6 @@ import {
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_RATIO_MIN,
-  toolbarReach,
   viewFootprint
 } from './split-view';
 
@@ -67,51 +66,6 @@ describe('fitRatio', () => {
 
   it('leaves the ratio alone before the panel has a size', () => {
     expect(fitRatio(0.7, 0, 340)).toBe(0.7);
-  });
-
-  it('keeps the main chart its own, larger minimum', () => {
-    // 760 px upright phone, toolbars reaching 473 px down.
-    expect(fitRatio(0.3, 760, 200, 473) * 760).toBeCloseTo(473);
-    expect(fitRatio(0.7, 760, 200, 473)).toBe(0.7);
-  });
-
-  it('keeps the second pane its minimum when the panel cannot give both', () => {
-    // 560 px: 473 + 200 will not fit, so the main chart gets the other 360.
-    expect(fitRatio(0.3, 560, 200, 473) * 560).toBeCloseTo(560 - 200);
-    expect(fitRatio(0.7, 560, 200, 473) * 560).toBeCloseTo(560 - 200);
-  });
-
-  it('still shares a panel too small for even the second pane equally', () => {
-    expect(fitRatio(0.3, 300, 200, 473)).toBe(0.5);
-  });
-});
-
-describe('toolbarReach', () => {
-  const item = (offsetTop: number, offsetHeight = 58, scrollHeight = 0) => ({
-    offsetTop,
-    offsetHeight,
-    scrollHeight
-  });
-
-  it('reaches from the top of the panel to under its lowest button', () => {
-    expect(toolbarReach(60, [item(5), item(63), item(121)], 2)).toBe(
-      60 + 121 + 58 + 2
-    );
-  });
-
-  it('counts what runs past the last button, so the toolbar never scrolls', () => {
-    expect(toolbarReach(60, [item(5), item(63, 58, 83)], 2)).toBe(
-      60 + 63 + 83 + 2
-    );
-  });
-
-  it('passes over buttons that are hidden', () => {
-    expect(toolbarReach(60, [item(5), item(0, 0, 0)], 2)).toBe(60 + 63 + 2);
-  });
-
-  it('reaches nowhere with no button shown', () => {
-    expect(toolbarReach(60, [], 2)).toBe(0);
-    expect(toolbarReach(60, [item(0, 0)], 2)).toBe(0);
   });
 });
 
