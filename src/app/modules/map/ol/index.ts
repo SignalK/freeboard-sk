@@ -58,6 +58,7 @@ import { PluginOverlayComponent } from './lib/plugin-overlay/layer-plugin-overla
 import { DataOverlayComponent } from './lib/data-overlay/layer-data-overlay.component';
 import { RadarZonesComponent } from './lib/radar/layer-radar-zones.component';
 import { RadarZoneEditorComponent } from './lib/radar/radar-zone-editor.component';
+import { ViewFootprintComponent } from './lib/layer-view-footprint.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -123,6 +124,7 @@ export { PluginOverlayComponent } from './lib/plugin-overlay/layer-plugin-overla
 export { DataOverlayComponent } from './lib/data-overlay/layer-data-overlay.component';
 export { RadarZonesComponent } from './lib/radar/layer-radar-zones.component';
 export { RadarZoneEditorComponent } from './lib/radar/radar-zone-editor.component';
+export { ViewFootprintComponent } from './lib/layer-view-footprint.component';
 export { TidalCurrentsLayerComponent } from './lib/resources/tidal-currents-layer.component';
 
 const declarations = [
@@ -179,7 +181,8 @@ const declarations = [
   WmtsChartLayerComponent,
   TileJsonChartLayerComponent,
   MapStyleJsonChartLayerComponent,
-  S57ChartLayerComponent
+  S57ChartLayerComponent,
+  ViewFootprintComponent
 ];
 
 @NgModule({

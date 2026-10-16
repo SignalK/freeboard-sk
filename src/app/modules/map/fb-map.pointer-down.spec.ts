@@ -111,7 +111,9 @@ describe('FBMapComponent long-press before any pointer move (#979)', () => {
       plotterExt: { addableCellAt: () => null },
       mapInteract: { isMeasuring: () => false },
       modifyMode: false,
-      contextMenu: { menuData: null, openMenu, closeMenu: () => undefined }
+      contextMenu: { menuData: null, openMenu, closeMenu: () => undefined },
+      menuZoom: signal(0),
+      mapZoomLevel: () => 10
     });
     ol.mapPointerDown.subscribe((e) => cmp.onMapPointerDown(e));
     ol.mapContextMenu.subscribe((e) => cmp.onMapContextMenu(e));

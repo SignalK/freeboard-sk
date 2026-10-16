@@ -268,7 +268,7 @@ export class NotificationManager {
       .subscribe(() => {
         const at = position();
         if (at) {
-          this.app.mapMoveRequest.set({ center: at });
+          this.app.mapMoveRequest.set({ center: at, activePane: true });
         }
       });
   }

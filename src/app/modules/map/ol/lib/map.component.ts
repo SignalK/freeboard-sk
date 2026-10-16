@@ -84,6 +84,14 @@ export type FBPointerDownEvent = PointerEvent & {
   worldOffset: number;
 };
 
+/** Feature hit radius in pixels for a mouse. */
+export const HIT_TOLERANCE = 5;
+/**
+ * Feature hit radius in pixels for touch: larger than the mouse's, so a
+ * deliberate tap on a thin route line lands in the common case (#548).
+ */
+export const TOUCH_HIT_TOLERANCE = 15;
+
 // used for wind vector scaling
 export const zoomOffsetLevel = [
   1, 1000000, 550000, 290000, 140000, 70000, 38000, 17000, 7600, 3900, 1900,
@@ -162,10 +170,10 @@ export class MapComponent implements OnInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() properties: { [index: string]: any };
   @Input() setFocus = '';
-  @Input() hitTolerance = 5;
-  // Touch pointers get a larger radius than the mouse so a deliberate tap on a
-  // thin route line lands in the common case (#548).
-  @Input() touchHitTolerance = 15;
+  @Input() hitTolerance = HIT_TOLERANCE;
+  @Input() touchHitTolerance = TOUCH_HIT_TOLERANCE;
+  /** A second chart beside the main one (the split view); see MapService.addMap. */
+  @Input() secondary = false;
 
   private _pointerDown = signal<FBPointerDownEvent | undefined>(undefined);
   public pointerDownSignal = this._pointerDown.asReadonly();
@@ -192,7 +200,7 @@ export class MapComponent implements OnInit, OnDestroy {
       this.map.setTarget(target);
       this.map.setProperties(this.properties, true);
       // register the map in the injectable mapService
-      this.mapService.addMap(this.map);
+      this.mapService.addMap(this.map, this.secondary);
 
       this.map.once('postrender', () => {
         this.afterMapReady();
@@ -201,6 +209,9 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    // The resize throttle's timer dereferences this.map; a map can now be
+    // destroyed at runtime (the split view's second pane).
+    clearTimeout(this.timeoutId);
     if (!this.map) {
       return;
     }
@@ -230,6 +241,9 @@ export class MapComponent implements OnInit, OnDestroy {
     window.removeEventListener('resize', this.updateSizeThrottle);
     window.removeEventListener('orientationchange', this.updateSizeThrottle);
 
+    // A second map (the split view) comes and goes at runtime; leaving it
+    // registered would keep a dead map in every getMaps() lookup.
+    this.mapService.removeMap(this.map);
     this.map.setTarget(null);
     this.map = null;
   }

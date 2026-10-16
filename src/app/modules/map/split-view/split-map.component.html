@@ -1,0 +1,47 @@
+<!-- First, so Tab reaches the divider between the two charts. -->
+<div
+  class="split-grip"
+  role="separator"
+  tabindex="0"
+  aria-label="Main chart"
+  aria-controls="fb-main-chart"
+  [attr.aria-orientation]="split.stacked() ? 'horizontal' : 'vertical'"
+  [attr.aria-valuenow]="splitPercent()"
+  [attr.aria-valuemin]="percent(split.shownRange().min)"
+  [attr.aria-valuemax]="percent(split.shownRange().max)"
+  matTooltip="Drag, or use the arrow keys, to resize"
+  [matTooltipDisabled]="dragging()"
+  (pointerdown)="gripDown($event)"
+  (contextmenu)="$event.preventDefault()"
+  (keydown)="gripKey($event)"
+>
+  <mat-icon>drag_indicator</mat-icon>
+</div>
+
+<ol-map
+  class="split-ol-map"
+  [secondary]="true"
+  [logo]="false"
+  [olInteractions]="interactions()"
+  [olControls]="olControls"
+  (mapReady)="onMapReady($event)"
+  (mapMoveEnd)="onMoveEnd($event)"
+  (mapPointerDown)="onPress()"
+  (mapPointerDrag)="onDrag()"
+  (mapPointerMove)="onPointerMove($event)"
+  (mapSingleClick)="onTap($event)"
+  (mapContextMenu)="onContextMenu($event)"
+  (contextmenu)="onContextMenu($event)"
+  (keydown)="onKeydown($event)"
+  olView
+  [zoom]="zoom()"
+  [center]="center()"
+  [rotation]="rotation()"
+  [minZoom]="app.MAP_ZOOM_EXTENT.min"
+  [maxZoom]="app.MAP_ZOOM_EXTENT.max"
+  [enableAnimation]="false"
+>
+  <!-- The main chart's layers are mirrored in from code; this pane adds
+       only the outline of what the main chart is showing. -->
+  <fb-view-footprint [ring]="footprint()" [zIndex]="950"></fb-view-footprint>
+</ol-map>

@@ -542,10 +542,14 @@ are not arrays of strings), `resourceGroups.notSupported`.
 ## The `map` capability
 
 `map` exposes the chart viewport: `map.getView` reads it, `map.center` /
-`map.fitBounds` drive it, and `map.view` follows it.
+`map.fitBounds` drive it, and `map.view` follows it. With the split view open
+(an experiment) that is the main chart's viewport: the second pane's view is
+not exposed, and moves never go to it. The host's map handlers take
+`MapService.getMaps()[0]` as the main chart; the second pane registers as
+`secondary` (`MapService.addMap`), which keeps it after the main chart.
 
 Moves are routed through Freeboard's own centering path
-(`AppFacade.mapMoveRequest` → `AppComponent` effect → `centerAndZoom`), never by
+(`AppFacade.mapMoveRequest` → `AppComponent.applyMapMove` → `centerMainChart`), never by
 reaching into the OpenLayers view directly — driving the OL view bypasses the
 `mapCenter`/`mapZoom` signal flow, so chart and resource layers would not refresh
 after the move.
@@ -660,10 +664,16 @@ emits `overlay.request` to that overlay's runtime only (`publishToRuntime`).
 An accepted `overlay.frame` is placed at the frame's extent plus the request's
 `worldOffset`, so it lands in the world copy on screen. OL keeps drawing the
 previous bitmap until the new source has loaded, so the swap does not flicker;
-`FrameBitmaps` keeps at most two bitmaps (the one the renderer draws and the
-newest) and closes the older once the newest is drawn, even while the layer is
-hidden, mid-gesture or in a background tab, when OL loads nothing. Refused
-frames are closed by the registry.
+`FrameBitmaps` keeps the newest bitmap and the one each renderer draws, and
+closes the rest, even while the layer is hidden, mid-gesture or in a background
+tab, when OL loads nothing. Normally that is one renderer, so at most two
+bitmaps. With the split view open the second pane draws the same frames through
+a twin of the layer, which the mirror hands to the layer (`ON_TWIN` in
+`ol/lib/util.ts`); a twin mid-gesture keeps its bitmap open while the main
+chart moves on. Frames are still requested for the main chart's view only, so
+on the second pane an overlay covers the area the main chart shows, and no
+request is made for a view the chart only passes through while the split's
+divider is dragged (`RESIZING`). Refused frames are closed by the registry.
 Image sources do not wrap, so at a zoom showing several world copies the overlay
 appears in the copy the request was made for.
 
@@ -697,7 +707,7 @@ request, the overlay hidden or not yet requested) and `overlays.throttled`.
 | `src/app/modules/plotterext/overlay-methods.ts` | the `overlay.*` handlers + param validation + error mapping |
 | `src/app/modules/plotterext/plotterext.service.ts` | manifest definitions, `requestOverlayFrame`, `overlay.state`, request replay |
 | `src/app/modules/map/ol/lib/plugin-overlay/layer-plugin-overlay.component.ts` | the OL layer: requests frames, draws accepted ones |
-| `src/app/modules/map/ol/lib/plugin-overlay/frame-bitmaps.ts` | `frameSource()` (a static source per frame) and `FrameBitmaps` (at most two bitmaps held: the drawn one and the newest) |
+| `src/app/modules/map/ol/lib/plugin-overlay/frame-bitmaps.ts` | `frameSource()` (a static source per frame) and `FrameBitmaps` (holds the newest bitmap and the one each renderer draws) |
 | `src/app/modules/map/ol/lib/plugin-overlay/overlay-geometry.ts` | `overlayView()` / `needsNewFrame()` — request geometry and the re-request rule |
 | `src/app/modules/skresources/components/charts/chartlist.html` | the *Plugin layers* rows |
 
@@ -806,6 +816,18 @@ is drawn; past its `maxzoom` OL over-zooms. `raster-opacity` and
 
 Night mode needs nothing: the `app-night` CSS filter dims the whole map,
 overlays included.
+
+With the split view open the second pane draws a data overlay
+through copies of its layers that share their sources
+(`split-view/layer-mirror.ts`). Vector styles, layer zoom ranges and visibility
+carry over and apply at each pane's own zoom. A `color-relief` layer's ramp is
+not a layer property, so the layer hands each copy its style through `ON_TWIN`
+(`ol/lib/util.ts`), and every new ramp after it. `raster-opacity` and
+`color-relief-opacity` are evaluated at the main chart's zoom, and the second
+pane uses the same value. `overlay.refresh` with `tiles` refreshes exactly
+those tiles; the second pane, at another zoom, keeps its own until they are
+refreshed too or fall out of the cache, so an extension whose data changed
+broadly refreshes without `tiles`.
 
 ### Live changes
 

@@ -1,11 +1,21 @@
-import { ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, SimpleChange } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance
+} from 'vitest';
 import OlMap from 'ol/Map';
 import View from 'ol/View';
 import { get as getProjection } from 'ol/proj';
 import TileState from 'ol/TileState';
-import type LayerGroup from 'ol/layer/Group';
+import type BaseLayer from 'ol/layer/Base';
+import LayerGroup from 'ol/layer/Group';
+import WebGLTileLayer from 'ol/layer/WebGLTile';
 import type VectorLayer from 'ol/layer/Vector';
 import type VectorSource from 'ol/source/Vector';
 import VectorTileLayer from 'ol/layer/VectorTile';
@@ -16,6 +26,7 @@ import type { OverlayStyle } from 'signalk-plotterext-bus/host';
 import { MapComponent } from '../map.component';
 import { DataOverlayModel } from 'src/app/modules/plotterext/data-overlay-model';
 import { DataOverlayComponent } from './layer-data-overlay.component';
+import { mirrorLayers } from '../../../split-view/layer-mirror';
 
 const point = (id: string, depth: number) => ({
   type: 'Feature' as const,
@@ -247,5 +258,166 @@ describe('DataOverlayComponent', () => {
       4,
       ['get', 'factor', ['literal', { factor: 2 }]]
     ]);
+  });
+});
+
+// The split view's second pane draws the overlay through copies of its layers
+// (split-view/layer-mirror). A WebGL layer's style is not a layer property,
+// so a color-relief copy must be given the ramp, or it draws the raw tiles.
+describe('DataOverlayComponent: a color-relief layer on a second map', () => {
+  const ramp = (lo: string, hi: string) => [
+    'interpolate',
+    ['linear'],
+    ['elevation'],
+    -200,
+    lo,
+    0,
+    hi
+  ];
+  const reliefStyle = (): OverlayStyle =>
+    ({
+      version: 8,
+      sources: {
+        depth: {
+          type: 'raster-dem',
+          tiles: ['/p/dem/{z}/{x}/{y}.png'],
+          encoding: 'terrarium',
+          tileSize: 256
+        }
+      },
+      layers: [
+        {
+          id: 'shading',
+          type: 'color-relief',
+          source: 'depth',
+          paint: { 'color-relief-color': ramp('#ff0000', '#0000ff') }
+        }
+      ]
+    }) as OverlayStyle;
+
+  let map: OlMap;
+  let second: OlMap;
+  let model: DataOverlayModel;
+  let component: DataOverlayComponent;
+  let setStyle: MockInstance<WebGLTileLayer['setStyle']>;
+
+  const mount = () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: MapComponent, useValue: { getMap: () => map } },
+        { provide: ChangeDetectorRef, useValue: { detach: () => undefined } }
+      ]
+    });
+    component = TestBed.runInInjectionContext(() => new DataOverlayComponent());
+    component.overlayKey = 'ext/depth';
+    component.model = model;
+    component.ngOnInit();
+  };
+  const reliefOn = (m: OlMap): WebGLTileLayer => {
+    const flat = (layers: BaseLayer[]): BaseLayer[] =>
+      layers.flatMap((l) =>
+        l instanceof LayerGroup ? flat(l.getLayers().getArray()) : [l]
+      );
+    return flat(m.getLayers().getArray()).find(
+      (l) => l instanceof WebGLTileLayer
+    ) as WebGLTileLayer;
+  };
+  // OL keeps a WebGL layer's style to itself: read what it was last given.
+  const styleOf = (layer: WebGLTileLayer) =>
+    setStyle.mock.calls
+      .filter((_, i) => setStyle.mock.contexts[i] === layer)
+      .at(-1)?.[0];
+
+  beforeEach(() => {
+    setStyle = vi.spyOn(WebGLTileLayer.prototype, 'setStyle');
+    map = new OlMap({ view: new View({ center: [0, 0], zoom: 12 }) });
+    second = new OlMap({ view: new View({ center: [0, 0], zoom: 9 }) });
+    model = new DataOverlayModel(reliefStyle(), 'http://sk.local');
+  });
+
+  afterEach(() => {
+    component.ngOnDestroy();
+    setStyle.mockRestore();
+  });
+
+  it('gives a copy made once the overlay is drawn its ramp', () => {
+    mount();
+    const original = reliefOn(map);
+    expect(styleOf(original)).toBeDefined();
+
+    mirrorLayers(map, second);
+
+    expect(reliefOn(second)).not.toBe(original);
+    expect(styleOf(reliefOn(second))).toEqual(styleOf(original));
+  });
+
+  it('gives a copy made as the overlay is drawn its ramp', () => {
+    // The split open first: the copy appears before the ramp is applied.
+    mirrorLayers(map, second);
+    mount();
+
+    expect(styleOf(reliefOn(second))).toEqual(styleOf(reliefOn(map)));
+  });
+
+  it('gives the copy each new ramp', () => {
+    mount();
+    mirrorLayers(map, second);
+    const before = styleOf(reliefOn(map));
+
+    model.setLayer({
+      layer: 'shading',
+      paint: { 'color-relief-color': ramp('#0000ff', '#ff0000') }
+    });
+
+    expect(styleOf(reliefOn(map))).not.toEqual(before);
+    expect(styleOf(reliefOn(second))).toEqual(styleOf(reliefOn(map)));
+  });
+
+  it('gives the copy the ramp of a style the extension reloaded', () => {
+    mount();
+    mirrorLayers(map, second);
+    const reloaded = new DataOverlayModel(
+      {
+        ...reliefStyle(),
+        layers: [
+          {
+            id: 'shading',
+            type: 'color-relief',
+            source: 'depth',
+            paint: { 'color-relief-color': ramp('#00ff00', '#0000ff') }
+          }
+        ]
+      } as OverlayStyle,
+      'http://sk.local'
+    );
+    const previous = component.model;
+    component.model = reloaded;
+
+    component.ngOnChanges({
+      model: new SimpleChange(previous, reloaded, false)
+    });
+
+    const copies = (second.getLayers().item(0) as LayerGroup)
+      .getLayersArray()
+      .filter((l) => l instanceof WebGLTileLayer);
+    expect(copies).toHaveLength(1);
+    expect(styleOf(copies[0] as WebGLTileLayer)).toEqual(
+      styleOf(reliefOn(map))
+    );
+  });
+
+  it('lets go of a copy once it is gone', () => {
+    mount();
+    const stop = mirrorLayers(map, second);
+    const copy = reliefOn(second);
+    stop();
+    const given = setStyle.mock.contexts.filter((c) => c === copy).length;
+
+    model.setLayer({
+      layer: 'shading',
+      paint: { 'color-relief-color': ramp('#0000ff', '#ff0000') }
+    });
+
+    expect(setStyle.mock.contexts.filter((c) => c === copy).length).toBe(given);
   });
 });

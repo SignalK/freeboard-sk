@@ -140,6 +140,11 @@ export class ViewDirective
   }
 
   ngOnDestroy() {
+    // A map can go while a change is still settling (the split view's second
+    // pane closed just after a pan); its emit would read the map it no longer has.
+    clearTimeout(this.timerCenterId);
+    clearTimeout(this.timerZoomId);
+    clearTimeout(this.timerRotationId);
     if (!this.view) {
       return;
     }

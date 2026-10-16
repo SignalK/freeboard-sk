@@ -1,4 +1,7 @@
+import type BaseLayer from 'ol/layer/Base';
+import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile.js';
+import CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
 import OSM from 'ol/source/OSM.js';
 import { getPointResolution, fromLonLat } from 'ol/proj';
 
@@ -124,4 +127,39 @@ export function mapifyRadius(radius: number, position: Coordinate): number {
     return radius;
   }
   return radius / getPointResolution('EPSG:3857', 1, fromLonLat(position));
+}
+
+/**
+ * Layer property: a layer that must know every renderer drawing its images (one
+ * that closes the bitmaps it has drawn, say), or whose copies cannot take its
+ * look from its properties (a WebGL tile layer's style), sets this to a
+ * function. Whoever draws the layer's source on another map with a copy of the
+ * layer (the split view's second pane) hands it each copy, and calls the
+ * function it returns once that copy is gone.
+ */
+export const ON_TWIN = 'onTwin';
+export type OnTwin = (twin: Layer) => () => void;
+
+/**
+ * Map property, true while the map is drawn larger than it shows (the split
+ * view's divider being dragged). Its view changes then are not settled ones:
+ * the move-end that follows when it is drawn at its real size again is.
+ */
+export const RESIZING = 'resizing';
+
+/**
+ * Empties a tile layer's caches; disposing the layer leaves them as they are.
+ * Each vector tile in them keeps the source tile it decoded in its source, so
+ * with a source that outlives the layer (shared with another map, or kept for
+ * a rebuild) every tile the layer drew would stay in memory. Clearing releases
+ * each tile and its canvas. A layer never drawn is left alone, so no renderer
+ * is made just to be cleared.
+ */
+export function releaseTiles(layer: BaseLayer) {
+  const renderer =
+    layer instanceof Layer && layer.hasRenderer() ? layer.getRenderer() : null;
+  if (renderer instanceof CanvasTileLayerRenderer) {
+    renderer.getTileCache().clear();
+    renderer.getSourceTileCache().clear();
+  }
 }

@@ -12,7 +12,8 @@ import {
   input,
   effect,
   inject,
-  NgZone
+  NgZone,
+  untracked
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -47,7 +48,7 @@ import { getGreatCircleBearing } from 'geolib';
 import { bearingDistanceReadout } from './bearing-distance';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
-import { Collection, Feature } from 'ol';
+import { Collection, Feature, Map as OlMap } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
@@ -60,6 +61,7 @@ import {
 import { trueWindDirection } from 'src/app/lib/true-bearing';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { isPanKey } from 'src/app/lib/pan-keys';
+import { shownFromZoom } from './ol/lib/charts/chart-utils';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
 import { isRefollowActivity, RefollowTimer } from 'src/app/lib/refollow-timer';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
@@ -77,6 +79,11 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { GuardZoneEditService } from 'src/app/modules/radar/guard-zone-edit.service';
 import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import {
+  SecondaryTap,
+  SplitViewService
+} from './split-view/split-view.service';
+import { activeZoom, gateZoom } from './split-view/split-view';
 import {
   radarRange,
   rangeRingScale,
@@ -108,6 +115,7 @@ import {
 } from 'src/app/modules';
 import {
   mapControls,
+  mapInteractions,
   aircraftStyles,
   sarStyles,
   regionStyles,
@@ -120,7 +128,8 @@ import {
   routeDraftStyles,
   targetAngleStyle,
   raceCourseStyles,
-  bearingDistanceStyle
+  bearingDistanceStyle,
+  scaleLineUnits
 } from './mapconfig';
 import { SKRoute } from 'src/app/modules/skresources/resource-classes';
 import { RouteReverseService } from 'src/app/modules/skresources/route-reverse.service';
@@ -147,11 +156,14 @@ import {
   IPopover
 } from './fbmap-interact.service';
 import { ScaleLine } from 'ol/control';
-import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
-import { hitToleranceForPointer, worldCopyOffset } from './ol/lib/util';
+import {
+  hitToleranceForPointer,
+  RESIZING,
+  worldCopyOffset
+} from './ol/lib/util';
 import { LineString as OLLineString } from 'ol/geom';
 import {
   extendRouteAtClick,
@@ -349,11 +361,42 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
-  protected mapZoomText = computed(() => zoomDisplayText(this.mapZoomLevel()));
+  /**
+   * Room left under the position readout for widgets along the bottom of the
+   * screen. Stacked under the split view's second pane, this chart does not
+   * reach the bottom of the screen, so it needs none.
+   */
+  protected statusBarLift = computed(() =>
+    this.splitView.secondaryMap() && this.splitView.stacked()
+      ? 0
+      : this.plotterExt.statusBarLift()
+  );
+  /**
+   * The higher zoom of the panes on screen. Layers shown only from some zoom
+   * on exist while either pane is that far in; each map then hides them at
+   * its own zoom through the layer's minZoom.
+   */
+  protected paneZoomMax = computed(() =>
+    gateZoom(
+      this.mapZoomLevel(),
+      this.splitView.secondaryMap() ? this.splitView.zoom() : null
+    )
+  );
+  /** Zoom the chart menu was opened at, on whichever pane. */
+  protected menuZoom = signal(0);
+  private zoomGates = new Map<number, { minZoom: number }>();
+  // Matches the zoom buttons: the active pane's zoom.
+  protected mapZoomText = computed(() => zoomDisplayText(this.viewZoom()));
+  /** The zoom of the pane the zoom buttons act on. */
+  protected viewZoom = computed(() =>
+    activeZoom(
+      this.mapZoomLevel(),
+      this.splitView.zoom(),
+      this.splitView.secondaryActive()
+    )
+  );
   protected mapCenterPositon = signal<Position>([0, 0]);
   protected mapRotation = signal<number>(0);
-
-  protected showNoteslayer = signal<boolean>(false); //control notes layer display
 
   // ** map feature styles
   protected featureStyles = {
@@ -458,6 +501,59 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const m = this.cursorPin.marker();
     return m ? [m] : [];
   });
+  /**
+   * The split view's second pane when the latest tap landed there, undefined
+   * for this chart. An overlay opened by a tap (a popover, the tap marker, a
+   * Bearing & Distance label) keeps the map it opened on, and is drawn there
+   * while that map is the second pane.
+   */
+  private clickMap: OlMap | undefined;
+  private popoverMap = signal<OlMap | undefined>(undefined);
+  private pinMap = signal<OlMap | undefined>(undefined);
+  private bearingMap = signal<OlMap | undefined>(undefined);
+  protected popoverPane(): OlMap | undefined {
+    return this.inPane(this.popoverMap());
+  }
+  protected pinPane(): OlMap | undefined {
+    return this.inPane(this.pinMap());
+  }
+  protected bearingPane(): OlMap | undefined {
+    return this.inPane(this.bearingMap());
+  }
+  /**
+   * The split view's second pane opened or closed. Overlays left on a closed
+   * pane would move to this chart, into the world copy the pane showed; an
+   * open popover would also block the chart menu. And its map is let go.
+   */
+  private onPaneChanged(pane: OlMap | null) {
+    const gone = (map: OlMap | undefined) => !!map && map !== pane;
+    if (gone(this.popoverMap())) {
+      this.popoverClosed();
+    }
+    if (gone(this.pinMap())) {
+      this.pinMap.set(undefined);
+      this.cursorPin.release();
+    }
+    if (gone(this.bearingMap())) {
+      this.bearingMap.set(undefined);
+      const worldOffset = this.viewWorldOffset();
+      this.mapInteract.bearingDistance.update(
+        (bd) => bd && { ...bd, worldOffset }
+      );
+    }
+    if (gone(this.clickMap)) {
+      this.clickMap = undefined;
+    }
+  }
+
+  /** The world copy this chart is looking at, as an x offset. */
+  private viewWorldOffset(): number {
+    const center = this.olMap?.getMap()?.getView().getCenter();
+    return center ? worldCopyOffset(center[0], WORLD_WIDTH_3857) : 0;
+  }
+  private inPane(map: OlMap | undefined): OlMap | undefined {
+    return map && map === this.splitView.secondaryMap() ? map : undefined;
+  }
   /** When the gesture in flight pressed down — a tap is a short press. */
   private pointerDownAt = 0;
   contextMenuPosition = { x: '0px', y: '0px' };
@@ -481,6 +577,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private routeReverse = inject(RouteReverseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
+  private splitView = inject(SplitViewService);
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
@@ -538,6 +635,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     });
     this.toggleDblClickZoom(); // init olMapinterations
+    effect(() => {
+      const pane = this.splitView.secondaryMap();
+      untracked(() => this.onPaneChanged(pane));
+    });
   }
 
   ngAfterViewInit() {
@@ -552,6 +653,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // STREAM VESSELS update event
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
+    );
+    // Taps and the pointer on the split view's second pane, which shows this
+    // chart's features
+    this.obsList.push(
+      this.splitView.taps$.subscribe((tap) => this.onSecondaryTap(tap)),
+      this.splitView.pointer$.subscribe((lonlat) =>
+        this.onSecondaryPointer(lonlat)
+      )
     );
     // SETTINGS settings.change$ event
     this.obsList.push(
@@ -636,11 +745,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // set map scale units
   private setScaleUnits() {
     try {
-      const u: Units = ['kilometer', 'm'].includes(this.scaleUnits())
-        ? 'metric'
-        : 'nautical';
       const c = this.olMap.getMap().getControls().getArray();
-      (c[0] as ScaleLine).setUnits(u);
+      (c[0] as ScaleLine).setUnits(scaleLineUnits(this.scaleUnits()));
     } catch {
       // no map or scale control
     }
@@ -772,22 +878,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ********** MAP EVENT HANDLERS *****************
 
   private toggleDblClickZoom(set?: boolean) {
-    const olInteractions = [
-      { name: 'dragpan' },
-      { name: 'dragzoom' },
-      { name: 'keyboardpan' },
-      // keyboardzoom is handled by onMapKeydown so +/- preserves the follow
-      // offset, the same as the on-screen zoom buttons.
-      { name: 'mousewheelzoom' },
-      { name: 'pinchzoom' }
-    ];
-
-    this.olMapInteractions.update(() => {
-      const i = set
-        ? [{ name: 'doubleclickzoom' }].concat(olInteractions)
-        : [].concat(olInteractions);
-      return i;
-    });
+    // keyboardzoom is left out: onMapKeydown handles +/- so it preserves the
+    // follow offset, the same as the on-screen zoom buttons.
+    this.olMapInteractions.set(mapInteractions(!!set));
   }
 
   // ** handle context menu choices **
@@ -808,6 +901,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
         break;
       case 'bearing_dist':
+        this.bearingMap.set(this.clickMap);
         this.mapInteract.showBearingDistanceFromVessel(
           pos,
           this.clickWorldOffset
@@ -855,6 +949,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // handle map move / zoom
   protected onMapMoveEnd(e: FBMapEvent) {
+    // Drawn larger than it shows while the split view's divider is dragged;
+    // the move-end when it is drawn at its real size again is the one to keep.
+    if (e.map?.get(RESIZING)) {
+      return;
+    }
     this.app.config.map.zoomLevel = e.zoom;
     this.app.mapZoom.set(e.zoom);
 
@@ -1015,6 +1114,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       return;
     }
+    this.pinMap.set(this.clickMap);
     this.cursorPin.pin(
       position,
       worldOffset,
@@ -1038,7 +1138,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.contextMenuPosition.y = e.clientY + 'px';
   }
 
-  protected onMapSingleClick(e) {
+  protected onMapSingleClick(e, map?: OlMap) {
+    this.clickMap = map;
     // Remember which world copy this click landed in so any popover it opens is
     // drawn there, and the raw world-aware x so a route edit aligns with it (#572).
     this.clickWorldOffset = e.worldOffset ?? 0;
@@ -1050,6 +1151,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.mapInteract.isMeasuring()) {
       // measuring
       if (this.mapInteract.measureGeometryType === 'BearingDistance') {
+        this.bearingMap.set(map);
         this.mapInteract.placeBearingDistancePoint(
           GeoUtils.normaliseCoords(e.lonlat as Position),
           this.clickWorldOffset
@@ -1076,11 +1178,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       !this.zoneEdit.edit()
     ) {
       if (!this.app.config.map.popoverMulti) {
-        this.overlay.update((current) => {
-          return Object.assign({}, current, {
-            show: false
-          });
-        });
+        this.popoverClosed();
       }
       this.processMapClick(e);
       this.pinCursorAtTap(e.lonlat as Position, e.worldOffset ?? 0);
@@ -1088,11 +1186,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Handle right click / touch hold */
-  protected onMapRightClick(e: {
-    features: FeatureLike[];
-    lonlat: Coordinate;
-    worldOffset?: number;
-  }) {
+  protected onMapRightClick(
+    e: {
+      features: FeatureLike[];
+      lonlat: Coordinate;
+      worldOffset?: number;
+    },
+    map?: OlMap
+  ) {
+    this.clickMap = map;
     // toLonLat() gives [lon, lat]
     const lonlat = e.lonlat as Position;
     this.clickWorldOffset = e.worldOffset ?? 0;
@@ -1110,9 +1212,47 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.onContextMenu(e);
   }
 
-  /** Handle ol-map container context menu event */
-  protected onContextMenu(e: PointerEvent) {
+  /**
+   * The pointer over the second pane moves the position readout and its
+   * bearing and distance: the pixel and map coordinate stay this chart's, for
+   * its own menu.
+   */
+  private onSecondaryPointer(lonlat: Position) {
+    const coords = GeoUtils.normaliseCoords(lonlat);
+    this.mouse.update((mouse) => ({ ...mouse, coords }));
+    this.updateCursorInfo(coords);
+  }
+
+  /**
+   * A tap or menu request on the split view's second pane. Its layers mirror
+   * this chart's, so its features are this chart's own and are handled here.
+   */
+  private onSecondaryTap(tap: SecondaryTap) {
+    if (tap.kind === 'click') {
+      this.pointerDownAt = tap.pressedAt;
+      this.onMapSingleClick(tap.event, tap.map);
+    } else {
+      // No menu opens over an open popover: leave the tap where it was.
+      if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
+        return;
+      }
+      this.onMapRightClick(tap, tap.map);
+      this.onContextMenu(
+        tap.event,
+        GeoUtils.normaliseCoords(tap.lonlat as Position),
+        tap.zoom
+      );
+    }
+  }
+
+  /**
+   * Handle ol-map container context menu event
+   * @param at Where the menu acts, when not where the pointer is over this
+   * chart (a long press on the split view's second pane)
+   */
+  protected onContextMenu(e: MouseEvent, at?: Position, zoom?: number) {
     this.app.debug(`onContextMenu()`, this.app.data.map.atClick);
+    this.menuZoom.set(zoom ?? this.mapZoomLevel());
     if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
       return;
     }
@@ -1125,12 +1265,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       e.clientX,
       e.clientY
     );
-    this.contextMenu.menuData = { item: this.mouse().coords };
+    this.contextMenu.menuData = { item: at ?? this.mouse().coords };
     if (this.mapInteract.isMeasuring()) {
       // The measure point is added by onMapRightClick, which fires alongside
       // this handler with a valid lonlat; just suppress the context menu here.
     } else if (!this.modifyMode) {
-      if (!this.mouse().xy) {
+      if (!at && !this.mouse().xy) {
         return;
       }
       this.contextMenu.openMenu();
@@ -1229,11 +1369,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Handle OL interaction start event */
   protected onMeasureEnd() {
     this.app.debug(`onMeasureEnd()...`);
-    this.overlay.update((current) => {
-      return Object.assign({}, current, {
-        show: false
-      });
-    });
+    this.popoverClosed();
     this.mapInteract.stopMeasuring();
   }
 
@@ -1435,9 +1571,34 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected modifyFeature(featureType?: string) {
+  /**
+   * @param at Where the feature was tapped, when no popover was opened for it
+   * (a tap straight on the anchor)
+   */
+  protected modifyFeature(featureType?: string, at?: Position) {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
+    }
+    if (at ? this.inPane(this.clickMap) : this.popoverPane()) {
+      // Picked on the split view's second pane, but editing happens on this
+      // chart: bring it to the feature first. The chart is centred in the
+      // primary world, so align the edit with that world, not the pane's copy.
+      // The buttons and keys now act on the chart being edited, close enough
+      // in to show the feature as the pane did. First, so that leaving follow
+      // mode hands the keys to this chart, not the pane.
+      this.splitView.activate('main');
+      if (this.movingMap) {
+        this.exitMovingMap.emit(true);
+      }
+      const paneZoom = this.splitView.zoom();
+      if (typeof paneZoom === 'number' && paneZoom > this.mapZoomLevel()) {
+        this.mapZoomLevel.set(paneZoom);
+        this.app.config.map.zoomLevel = paneZoom;
+      }
+      this.mapCenterPositon.set([...(at ?? this.overlay().position)]);
+      this.clickMercX -= this.clickWorldOffset;
+      this.clickWorldOffset = 0;
+      this.clickMap = undefined;
     }
     // Align the edit feature with the world copy the user is looking at, so OL
     // Modify (which hit-tests raw geometry in view-space, ignoring wrapX) matches
@@ -2134,9 +2295,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     featureList?: Map<string, FeatureListEntry>
   ) {
     if (!id) {
-      this.overlay.update((current) => {
-        return Object.assign({}, current, { show: false });
-      });
+      this.popoverClosed();
       return;
     }
 
@@ -2170,7 +2329,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.readOnly = true;
         break;
       case 'anchor':
-        this.modifyFeature('anchor');
+        this.modifyFeature('anchor', coord);
         return;
       case 'list':
         poData.type = t[0];
@@ -2278,7 +2437,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.trackHistory = whole
           ? { ...trackHistory, route: undefined }
           : trackHistory;
-        this.overlay.set(poData);
+        this.showPopover(poData);
         this.loadWholeTrack(id, source, whole, hf);
         return;
       }
@@ -2309,7 +2468,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.show = true;
         poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2328,10 +2487,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         // Note details surface (info panel or dialog) straight away.
         if (this.app.config.display.singleClickNoteDetails) {
           poData.show = false;
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         } else if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2362,7 +2521,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         }
         if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2379,7 +2538,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.show = true;
         poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         if (this.infoPanel.opened()) {
-          this.overlay.set(poData);
+          this.showPopover(poData);
           this.popoverInfo();
         }
         break;
@@ -2414,7 +2573,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
       default:
         return;
     }
-    this.overlay.set(poData);
+    this.showPopover(poData);
+  }
+
+  /** Shows a popover on the chart the tap that opened it landed on. */
+  private showPopover(popover: IPopover) {
+    this.popoverMap.set(this.clickMap);
+    this.overlay.set(popover);
+  }
+
+  /**
+   * A popover opened from the one showing (a feature picked from a list, a
+   * route made from a track) takes its place: on the pane it is on and in its
+   * world copy, whatever has been tapped since.
+   */
+  private adoptPopoverTap() {
+    const open = this.overlay();
+    this.clickMap = this.popoverMap();
+    this.clickWorldOffset = open.worldOffset ?? 0;
+    this.clickMercX =
+      fromLonLat(open.position as Position)[0] + this.clickWorldOffset;
   }
 
   /** handle selection from the FeatureList popover */
@@ -2427,6 +2605,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     });
     this.mapInteract.draw.features = sf;
+    this.adoptPopoverTap();
     this.formatPopover(feature.id, feature.coord);
   }
 
@@ -2575,6 +2754,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } else {
       // the tapped track is no feature of the route: MODIFY would edit it
       this.mapInteract.draw.features = new Collection<Feature>();
+      this.adoptPopoverTap();
       this.formatPopover(`route.${buffer.routeId}`, this.overlay().position);
     }
   }
@@ -2607,8 +2787,36 @@ export class FBMapComponent implements OnInit, OnDestroy {
     return `${fmt(r.distance, 'm')} ${fmt(r.bearing, 'deg')} (${fmt(r.reciprocal, 'deg')} recip)`;
   }
 
-  /** handle popover closed event */
+  /** Whether the notes layer is on, and either pane is zoomed in for notes. */
+  protected notesShown(): boolean {
+    return (
+      this.app.config.ui.showNotes &&
+      this.paneZoomMax() >= this.app.config.resources.notes.minZoom
+    );
+  }
+
+  /** Layer properties that show a layer from `zoom` on, on each map. */
+  protected shownFrom(zoom: number): { minZoom: number } {
+    let gate = this.zoomGates.get(zoom);
+    if (!gate) {
+      gate = { minZoom: shownFromZoom(zoom) };
+      this.zoomGates.set(zoom, gate);
+    }
+    return gate;
+  }
+
+  /** The placed Bearing & Distance target, dragged on this chart. */
+  protected onBearingTargetDrag(position: Position, worldOffset: number) {
+    this.bearingMap.set(undefined);
+    this.mapInteract.moveBearingDistanceTarget(position, worldOffset);
+  }
+
+  /**
+   * Hides the popover. The next one shown opens on this chart unless a tap on
+   * the second pane opens it there.
+   */
   protected popoverClosed() {
+    this.popoverMap.set(undefined);
     this.overlay.update((current) => {
       return Object.assign({}, current, { show: false });
     });
@@ -2674,6 +2882,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   //   pointerdrag, so apply the pan behaviour here or the "Map Pan When
   //   Following" setting is bypassed (#725).
   protected onMapKeydown(e: KeyboardEvent) {
+    // Keys go to the chart that has focus, so it becomes the active pane; not
+    // keys on its controls, as the zoom buttons act on the active pane.
+    const controls = this.olMap?.getMap()?.getOverlayContainerStopEvent();
+    if (!controls?.contains(e.target as Node)) {
+      this.splitView.activate('main');
+    }
     const direction = zoomKeyDirection(e);
     if (direction) {
       e.preventDefault();
@@ -2687,6 +2901,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // handle map zoom controls
   protected zoomMap(zoomIn: boolean) {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.zoomBy(zoomIn ? 1 : -1);
+      return;
+    }
     const { min, max } = this.app.MAP_ZOOM_EXTENT;
     const current = this.app.config.map.zoomLevel;
     const next = zoomIn
@@ -2927,9 +3145,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Apply the selected Interaction mode */
   private applyInteractionMode(mode: INTERACTION_MODE, value: boolean) {
-    this.overlay.update((current) => {
-      return Object.assign({}, current, { show: false });
-    });
+    this.popoverClosed();
     if (mode === INTERACTION_MODE.MEASURE) {
       this.mapInteract.draw.style = value
         ? drawStyles.measure
@@ -3037,12 +3253,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @returns true if skres.refreshNotes() should be called
    */
   private shouldFetchNotes(zoomChanged: boolean) {
-    this.showNoteslayer.update(
-      () =>
-        this.app.config.ui.showNotes &&
-        this.app.config.map.zoomLevel >= this.app.config.resources.notes.minZoom
-    );
-
     this.app.debug(`lastGet: ${this.app.data.lastGet}`);
     this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
 

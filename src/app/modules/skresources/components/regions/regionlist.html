@@ -114,7 +114,7 @@
             <div style="flex: 1 1 auto; text-align: right">
               <button
                 mat-icon-button
-                [disabled]="app.uiConfig().mapMove"
+                [disabled]="app.activePaneFollows()"
                 (click)="emitCenter(r[1])"
                 matTooltip="Center Region"
                 matTooltipPosition="above"

@@ -125,7 +125,7 @@
               } @if(r[1].position){
               <button
                 mat-icon-button
-                [disabled]="app.uiConfig().mapMove"
+                [disabled]="app.activePaneFollows()"
                 (click)="emitCenter(r[1].position)"
                 matTooltip="Center Note"
                 matTooltipPosition="left"

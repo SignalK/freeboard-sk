@@ -138,7 +138,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="app.uiConfig().mapMove"
+                [disabled]="app.activePaneFollows()"
                 (click)="emitCenter(r[1].feature.geometry.coordinates[0][0])"
                 matTooltip="Center Track"
                 matTooltipPosition="above"

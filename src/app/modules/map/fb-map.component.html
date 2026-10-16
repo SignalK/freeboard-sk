@@ -80,7 +80,7 @@
           class="button-accent"
           mat-mini-fab
           (click)="zoomMap(false)"
-          [disabled]="mapZoomLevel() <= app.MAP_ZOOM_EXTENT.min"
+          [disabled]="viewZoom() <= app.MAP_ZOOM_EXTENT.min"
           matTooltip="Zoom out"
         >
           <mat-icon>remove</mat-icon>
@@ -90,7 +90,7 @@
           class="button-accent"
           mat-mini-fab
           (click)="zoomMap(true)"
-          [disabled]="mapZoomLevel() >= app.MAP_ZOOM_EXTENT.max"
+          [disabled]="viewZoom() >= app.MAP_ZOOM_EXTENT.max"
           matTooltip="Zoom in"
         >
           <mat-icon>add</mat-icon>
@@ -104,11 +104,7 @@
     <ol-content>
       <div
         class="ol-mouse-position"
-        [style.bottom]="
-          plotterExt.statusBarLift() > 0
-            ? plotterExt.statusBarLift() + 'px'
-            : null
-        "
+        [style.bottom]="statusBarLift() > 0 ? statusBarLift() + 'px' : null"
       >
         <span
           style="
@@ -448,8 +444,9 @@
   <!-- AIS Vessel targets -->
   @if (app.config.ui.showAisTargets) {
     <div>
-      @if (mapZoomLevel() >= app.config.vessels.aisWindMinZoom) {
+      @if (paneZoomMax() >= app.config.vessels.aisWindMinZoom) {
         <sk-ais-wind
+          [layerProperties]="shownFrom(app.config.vessels.aisWindMinZoom)"
           [targetContext]="'vessels'"
           [targets]="dfeat.ais"
           [vectorApparent]="app.config.vessels.aisWindApparent"
@@ -568,8 +565,13 @@
   </fb-regions>
 
   <!-- Notes (display-filtered by plotter extensions) -->
-  @if (showNoteslayer()) {
-    <fb-notes [notes]="plotterExt.visibleNotes()" [zIndex]="450"> </fb-notes>
+  @if (notesShown()) {
+    <fb-notes
+      [notes]="plotterExt.visibleNotes()"
+      [zIndex]="450"
+      [layerProperties]="shownFrom(app.config.resources.notes.minZoom)"
+    >
+    </fb-notes>
   }
 
   <!-- Distance & Bearing to -->
@@ -582,12 +584,7 @@
       [showOrigin]="!!bd.origin"
       [showRing]="true"
       [markerDraggable]="bd.fixed"
-      (markerDrag)="
-        mapInteract.moveBearingDistanceTarget(
-          $event.position,
-          $event.worldOffset
-        )
-      "
+      (markerDrag)="onBearingTargetDrag($event.position, $event.worldOffset)"
       [markerName]=""
       [bearingStyles]="featureStyles.bearingDistance"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -599,6 +596,7 @@
       <ol-overlay
         [position]="bd.target"
         [worldOffset]="bd.worldOffset"
+        [targetMap]="bearingPane()"
         [positioning]="'top-center'"
       >
         <!-- While it follows the pointer the label sits under it, so let the
@@ -628,6 +626,7 @@
       [position]="overlay().position"
       [worldOffset]="overlay().worldOffset ?? 0"
       [positioning]="'top-center'"
+      [targetMap]="popoverPane()"
     >
       @if (mapInteract.isMeasuring()) {
         <ap-popover
@@ -1054,6 +1053,7 @@
       [worldOffset]="m.worldOffset"
       [positioning]="'center-center'"
       [stopEvent]="false"
+      [targetMap]="pinPane()"
     >
       <div
         class="cursor-marker"
@@ -1113,7 +1113,7 @@
       Add Waypoint here
     </button>
 
-    @if (mapZoomLevel() >= app.config.resources.notes.minZoom) {
+    @if (menuZoom() >= app.config.resources.notes.minZoom) {
       <button
         mat-menu-item
         (click)="onContextMenuAction('add_note', item)"

@@ -93,10 +93,8 @@ export class NoteListComponent {
   }
 
   emitCenter(position: SKPosition) {
-    const zoomTo =
-      this.app.config.map.zoomLevel < this.app.config.resources.notes.minZoom
-        ? this.app.config.resources.notes.minZoom
-        : null;
+    // The least zoom that shows the place: a pane further in keeps its zoom.
+    const zoomTo = this.app.config.resources.notes.minZoom;
     this.pan.emit({
       center: [position.longitude, position.latitude],
       zoomLevel: zoomTo

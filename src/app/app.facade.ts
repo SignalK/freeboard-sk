@@ -1,7 +1,14 @@
 /** Application Information Service **
  * perform version checking etc. here
  * ************************************/
-import { effect, inject, Injectable, isDevMode, signal } from '@angular/core';
+import {
+  computed,
+  effect,
+  inject,
+  Injectable,
+  isDevMode,
+  signal
+} from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
@@ -66,6 +73,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
 import { S57Service } from './modules/map/ol';
+import { SplitViewService } from './modules/map/split-view/split-view.service';
 import {
   LineStyleDash,
   LineStyleDef
@@ -317,7 +325,12 @@ export class AppFacade extends InfoService {
   mapZoom = signal<number>(0);
   // programmatic map move request (e.g. from a plotter extension). A new
   // object reference each time so the consuming effect always reacts.
-  mapMoveRequest = signal<{ center: Position; zoom?: number } | null>(null);
+  mapMoveRequest = signal<{
+    center: Position;
+    zoom?: number;
+    /** Show it on the active pane of the split view, not the main chart. */
+    activePane?: boolean;
+  } | null>(null);
 
   protected signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
@@ -326,6 +339,17 @@ export class AppFacade extends InfoService {
   private iconReg = inject(MatIconRegistry);
   private dom = inject(DomSanitizer);
   private s57 = inject(S57Service);
+  private splitView = inject(SplitViewService);
+
+  /**
+   * Whether the chart the map buttons act on follows the vessel: the main
+   * chart, or the split view's second pane while that pane is active.
+   */
+  readonly activePaneFollows = computed(() =>
+    this.splitView.secondaryActive()
+      ? this.splitView.follow()
+      : this.uiConfig().mapMove
+  );
 
   constructor() {
     /** Initialise and apply defaults */

@@ -1,5 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { hitToleranceForPointer, mapifyCoords, worldCopyOffset } from './util';
+import { describe, it, expect, vi } from 'vitest';
+import Disposable from 'ol/Disposable';
+import TileLayer from 'ol/layer/Tile';
+import type CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
+import XYZ from 'ol/source/XYZ';
+import type Tile from 'ol/Tile';
+import {
+  hitToleranceForPointer,
+  mapifyCoords,
+  releaseTiles,
+  worldCopyOffset
+} from './util';
 import { Coordinate } from './models';
 
 // EPSG:3857 world width (metres), as OL derives it from the projection extent.
@@ -234,5 +244,31 @@ describe('mapifyCoords', () => {
     const snapshot = coords.map((c) => [c[0], c[1]]);
     mapifyCoords(coords);
     expect(coords).toEqual(snapshot);
+  });
+});
+
+describe('releaseTiles', () => {
+  const chart = () =>
+    new TileLayer({ source: new XYZ({ url: 'c/{z}/{x}/{y}' }) });
+
+  it("lets go of the tiles a drawn layer's renderer kept", () => {
+    const layer = chart();
+    const renderer = layer.getRenderer() as CanvasTileLayerRenderer;
+    const kept = new Disposable();
+    const dispose = vi.spyOn(kept, 'dispose');
+    renderer.getTileCache().set('0/0/0', kept as unknown as Tile);
+
+    releaseTiles(layer);
+
+    expect(dispose).toHaveBeenCalled();
+    expect(renderer.getTileCache().getCount()).toBe(0);
+  });
+
+  it('makes no renderer for a layer never drawn', () => {
+    const layer = chart();
+
+    releaseTiles(layer);
+
+    expect(layer.hasRenderer()).toBe(false);
   });
 });

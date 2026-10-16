@@ -258,9 +258,7 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
    * @param position vessel position
    */
   protected emitCenter(position: Position) {
-    this.pan.emit({
-      center: position,
-      zoomLevel: this.app.config.map.zoomLevel
-    });
+    // No zoom: the chart it centres keeps its own.
+    this.pan.emit({ center: position, zoomLevel: null });
   }
 }

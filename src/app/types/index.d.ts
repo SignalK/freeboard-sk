@@ -123,6 +123,7 @@ export interface IAppConfig {
       favourites: string[];
     };
     preferInfoPanel: boolean;
+    splitView: boolean; // offer the Split view button: a second chart pane
     singleClickNoteDetails: boolean;
     windIndicator: WindIndicator; // glyph used to render wind direction/speed
     statusBar: {

@@ -5,7 +5,8 @@ import {
   computed,
   effect,
   inject,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
@@ -119,6 +120,9 @@ import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.com
 import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
 import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
+import { SplitMapComponent } from './modules/map/split-view/split-map.component';
+import { SplitViewService } from './modules/map/split-view/split-view.service';
+import { SPLIT_SHARE_VAR } from './modules/map/split-view/split-view';
 import {
   RoutePanel,
   SKResourceType,
@@ -180,6 +184,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     PlotterBackgroundHost,
     PlotterPanelDrawer,
     ExtWindowLayerComponent,
+    SplitMapComponent,
     WeatherListComponent
   ]
 })
@@ -264,6 +269,13 @@ export class AppComponent {
   });
 
   protected app = inject(AppFacade);
+  protected splitView = inject(SplitViewService);
+  // The North up button shows the setting of the pane it acts on.
+  protected viewNorthUp = computed(() =>
+    this.splitView.secondaryActive()
+      ? this.splitView.northUp()
+      : this.app.uiConfig().mapNorthUp
+  );
   protected infoPanel = inject(InfoPanelFacade);
   protected mapInteract = inject(FBMapInteractService);
   protected anchor = inject(AnchorService);
@@ -329,13 +341,7 @@ export class AppComponent {
     effect(() => {
       const req = this.app.mapMoveRequest();
       if (req) {
-        // An explicit reposition outranks follow-vessel mode: turn it off so
-        // the requested view isn't immediately re-centered on the vessel.
-        // update() (not a reactive read) avoids a read/write feedback loop.
-        this.app.uiConfig.update((c) =>
-          c.mapMove ? { ...c, mapMove: false } : c
-        );
-        this.centerAndZoom(req.center, req.zoom);
+        untracked(() => this.applyMapMove(req));
       }
     });
   }
@@ -539,7 +545,22 @@ export class AppComponent {
     this.focusMap();
   }
 
+  /** The Follow button: the active pane follows the vessel, or stops. */
+  protected toggleFollow() {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.setFollow(!this.splitView.follow());
+      this.focusMap();
+      return;
+    }
+    this.toggleMoveMap();
+  }
+
   protected toggleNorthUp() {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.setNorthUp(!this.splitView.northUp());
+      this.focusMap();
+      return;
+    }
     this.app.uiConfig.update((current) => {
       return Object.assign({}, current, { mapNorthUp: !current.mapNorthUp });
     });
@@ -554,6 +575,23 @@ export class AppComponent {
     });
     this.focusMap();
   }
+
+  /**
+   * The split view shows only while it is enabled in Settings → Display, and
+   * never in kiosk mode, which hides the button that closes it.
+   */
+  protected splitActive(): boolean {
+    return (
+      !!this.app.config.display.splitView &&
+      !this.app.kioskMode() &&
+      this.splitView.enabled()
+    );
+  }
+
+  /** The main chart's share of the panel; a dragged divider overrides it. */
+  protected mainShare = computed(
+    () => `var(${SPLIT_SHARE_VAR}, ${this.splitView.shownRatio() * 100}%)`
+  );
 
   protected toggleConstrainMapZoom() {
     this.app.uiConfig.update((current) => {
@@ -1173,6 +1211,14 @@ export class AppComponent {
 
   // ** trigger focus of the map so keyboard controls work
   protected focusMap() {
+    // Keys go to the chart with focus: the active pane of the split view.
+    const pane = this.splitView.secondaryActive()
+      ? this.splitView.secondaryMap()
+      : null;
+    if (pane) {
+      pane.getTargetElement()?.focus();
+      return;
+    }
     this.mapSetFocus.update(() => Date().valueOf());
   }
 
@@ -1578,11 +1624,44 @@ export class AppComponent {
   // ***** OPTIONS MENU ACTONS *******
 
   /**
-   * Center and zoom the map
+   * Shows a place on the active chart pane
    * @param position Location to center the map
-   * @param zoomTo Zoom level to apply
+   * @param zoomTo The least zoom the place needs: a pane already further in
+   * keeps its zoom
    */
   protected centerAndZoom(position: Position, zoomTo?: number) {
+    if (this.splitView.secondaryActive()) {
+      this.splitView.centerOn(position, zoomTo);
+      return;
+    }
+    this.centerMainChart(
+      position,
+      typeof zoomTo === 'number' && zoomTo > this.app.config.map.zoomLevel
+        ? zoomTo
+        : undefined
+    );
+  }
+
+  /** A programmatic map move (a plotter extension, a buddy's LOCATE). */
+  private applyMapMove(req: {
+    center: Position;
+    zoom?: number;
+    activePane?: boolean;
+  }) {
+    // A place to show goes to the active pane, as from the lists, which
+    // stops following there. Extensions move the main chart: they don't know
+    // about the split.
+    if (req.activePane && this.splitView.secondaryActive()) {
+      this.splitView.centerOn(req.center, req.zoom);
+      return;
+    }
+    // An explicit reposition outranks follow-vessel mode: turn it off so the
+    // requested view isn't immediately re-centered on the vessel.
+    this.app.uiConfig.update((c) => (c.mapMove ? { ...c, mapMove: false } : c));
+    this.centerMainChart(req.center, req.zoom);
+  }
+
+  private centerMainChart(position: Position, zoomTo?: number) {
     this.mapCenter.update(() => position);
     if (typeof zoomTo === 'number') {
       this.app.config.map.zoomLevel = zoomTo;

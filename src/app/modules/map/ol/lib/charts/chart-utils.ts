@@ -2,6 +2,8 @@ import { Extent } from 'ol/extent';
 import { equivalent, get as getProjection, transformExtent } from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import RenderEvent from 'ol/render/Event';
+import { EventsKey } from 'ol/events';
+import { ObjectEvent } from 'ol/Object';
 import LayerGroup from 'ol/layer/Group';
 import BaseLayer from 'ol/layer/Base';
 import Layer from 'ol/layer/Layer';
@@ -50,6 +52,39 @@ export function imageAdjustmentToFilter(adj?: ChartImageAdjustment): string {
   return `brightness(${brightness}) contrast(${contrast})`;
 }
 
+/** Layer property holding the CSS filter for a chart's brightness/contrast. */
+export const IMAGE_FILTER = 'imageFilter';
+
+/**
+ * Keeps the canvas `layer` renders into filtered by the layer's
+ * {@link IMAGE_FILTER} property: on every render, and at once when the property
+ * changes. The filter lives on the layer rather than in a closure so a copy of
+ * the layer (the split view's second pane) carries it too.
+ */
+export function followImageFilter(layer: Layer): EventsKey[] {
+  let canvas: HTMLCanvasElement | null = null;
+  const apply = () => {
+    const filter = layer.get(IMAGE_FILTER) ?? '';
+    if (canvas && canvas.style.filter !== filter) {
+      canvas.style.filter = filter;
+    }
+  };
+  return [
+    layer.on('postrender', (evt: RenderEvent) => {
+      const cnv = (evt.context as CanvasRenderingContext2D)?.canvas;
+      if (cnv instanceof HTMLCanvasElement) {
+        canvas = cnv;
+        apply();
+      }
+    }),
+    layer.on('propertychange', (evt: ObjectEvent) => {
+      if (evt.key === IMAGE_FILTER) {
+        apply();
+      }
+    })
+  ];
+}
+
 /**
  * Apply a per-chart brightness/contrast adjustment to a raster (canvas) tile
  * layer as a CSS filter on the layer's canvas element. A CSS element filter is
@@ -65,23 +100,9 @@ export function imageAdjustmentToFilter(adj?: ChartImageAdjustment): string {
 export function attachImageAdjustmentFilter(
   layer: TileLayer
 ): (adj?: ChartImageAdjustment) => void {
-  let filter = '';
-  let canvas: HTMLCanvasElement | null = null;
-  const apply = () => {
-    if (canvas && canvas.style.filter !== filter) {
-      canvas.style.filter = filter;
-    }
-  };
-  layer.on('postrender', (evt: RenderEvent) => {
-    const cnv = (evt.context as CanvasRenderingContext2D)?.canvas;
-    if (cnv instanceof HTMLCanvasElement) {
-      canvas = cnv;
-      apply();
-    }
-  });
+  followImageFilter(layer);
   return (adj?: ChartImageAdjustment) => {
-    filter = imageAdjustmentToFilter(adj);
-    apply();
+    layer.set(IMAGE_FILTER, imageAdjustmentToFilter(adj));
   };
 }
 
@@ -101,6 +122,11 @@ export function chartLayerClassName(id: string): string {
  * a chart's declared minimum.
  */
 const MIN_ZOOM_EPSILON = 1e-6;
+
+/** The layer `minZoom` that shows a layer from `zoom` on, `zoom` included. */
+export function shownFromZoom(zoom: number): number {
+  return zoom - MIN_ZOOM_EPSILON;
+}
 
 /**
  * Layer min/max zoom for a chart, combining its declared range (what tiles

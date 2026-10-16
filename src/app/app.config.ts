@@ -84,6 +84,7 @@ export function cleanConfig(
         favourites: []
       },
       preferInfoPanel: true,
+      splitView: false,
       singleClickNoteDetails: false,
       windIndicator: 'barb',
       statusBar: {
@@ -98,6 +99,9 @@ export function cleanConfig(
     }
     if (typeof settings.display.preferInfoPanel === 'undefined') {
       settings.display.preferInfoPanel = true;
+    }
+    if (typeof settings.display.splitView === 'undefined') {
+      settings.display.splitView = false;
     }
     if (typeof settings.display.singleClickNoteDetails === 'undefined') {
       settings.display.singleClickNoteDetails = false;
@@ -576,6 +580,7 @@ export function defaultConfig(): IAppConfig {
         favourites: []
       },
       preferInfoPanel: true,
+      splitView: false,
       singleClickNoteDetails: false,
       windIndicator: 'barb',
       statusBar: {

@@ -97,10 +97,8 @@ export class NotePanel {
 
   onPanTo() {
     if (this._note().position) {
-      const zoomTo =
-        this.app.config.map.zoomLevel < this.app.config.resources.notes.minZoom
-          ? this.app.config.resources.notes.minZoom
-          : null;
+      // The least zoom that shows the place: a pane further in keeps its zoom.
+      const zoomTo = this.app.config.resources.notes.minZoom;
       this.panTo.emit({
         center: [
           this._note().position.longitude,

@@ -49,6 +49,58 @@ b { font-weight: 500; }
     font-family: 'Roboto';
 }
 
+/* The chart, and the split view's second pane beside it (below it when the
+   panel is taller than it is wide). */
+.mapPanel {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.mapMain {
+    position: relative;
+    flex: 0 0 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* While the chart is split, the active pane is outlined; the shared map
+   buttons act on it. The second pane draws its own outline. */
+.mapMain.active-pane::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 3px rgb(54, 122, 190);
+}
+
+/* Forced colours drop box shadows: draw the outline in the system colour. */
+@media (forced-colors: active) {
+    .mapMain.active-pane::after {
+        box-shadow: none;
+        outline: 3px solid Highlight;
+        outline-offset: -3px;
+    }
+}
+
+/* The panes stack when the panel is taller than it is wide. */
+.mapPanel.split.stacked {
+    flex-direction: column;
+}
+
+/* While the divider is dragged each chart is drawn bigger than its pane and
+   shown through it (see SplitMapComponent.gripDown). */
+.mapPanel.split .mapMain {
+    overflow: hidden;
+}
+
+/* Stacked, the divider grip reaches 10px up into the main chart; keep the
+   main chart's position readout clear of it. */
+.mapPanel.split.stacked .mapMain .ol-mouse-position {
+    bottom: 14px;
+}
+
 .transparent-backdrop {
     background: transparent !important;
 }
