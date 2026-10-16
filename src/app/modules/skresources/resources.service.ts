@@ -3703,7 +3703,13 @@ export class SKResourceService {
   public async listTracks(query?: string): Promise<FBTracks> {
     const flags = this.app.featureFlags();
     const [stored, resources] = await Promise.all([
-      flags.trackStore ? this.listStoredTracks() : [],
+      // the tracks plugin may be restarting: still list the resource tracks
+      flags.trackStore
+        ? this.listStoredTracks().catch((err) => {
+            console.warn('Stored tracks not listed:', err);
+            return [];
+          })
+        : [],
       flags.resourceTracks ? this.listFromServer<FBTrack>('tracks', query) : []
     ]);
     return stored.concat(resources);
@@ -3799,7 +3805,8 @@ export class SKResourceService {
    * Freeboard keeps one track store. Each track is deleted from
    * /resources/tracks once stored; if that delete fails (another client moved
    * it first, or no permission), the new copy is removed again so the track
-   * exists once. Stops at the first track the Track API refuses.
+   * exists once. A track the Track API refuses as invalid stays where it is;
+   * any other refusal stops the move.
    * @returns Number of tracks moved
    */
   public async migrateResourceTracks(): Promise<number> {
@@ -3818,13 +3825,19 @@ export class SKResourceService {
       try {
         newId = await this.storeTrack(storeTrackBody(feature));
       } catch (err) {
+        if (err instanceof HttpErrorResponse && err.status === 400) {
+          console.warn(`Track ${oldId} not moved to the Track API:`, err);
+          continue;
+        }
         console.warn('Tracks not moved to the Track API:', err);
         break;
       }
       try {
         await this.deleteFromServer('tracks', oldId);
       } catch {
-        await this.deleteStoredTrack(newId).catch(() => undefined);
+        await this.deleteStoredTrack(newId).catch((err) =>
+          console.warn(`Track ${oldId} is now stored twice:`, err)
+        );
         continue;
       }
       moved++;
