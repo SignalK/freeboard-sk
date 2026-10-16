@@ -1,5 +1,7 @@
-import type Layer from 'ol/layer/Layer';
+import type BaseLayer from 'ol/layer/Base';
+import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile.js';
+import CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
 import OSM from 'ol/source/OSM.js';
 import { getPointResolution, fromLonLat } from 'ol/proj';
 
@@ -144,3 +146,20 @@ export type OnTwin = (twin: Layer) => () => void;
  * the move-end that follows when it is drawn at its real size again is.
  */
 export const RESIZING = 'resizing';
+
+/**
+ * Empties a tile layer's caches; disposing the layer leaves them as they are.
+ * Each vector tile in them keeps the source tile it decoded in its source, so
+ * with a source that outlives the layer (shared with another map, or kept for
+ * a rebuild) every tile the layer drew would stay in memory. Clearing releases
+ * each tile and its canvas. A layer never drawn is left alone, so no renderer
+ * is made just to be cleared.
+ */
+export function releaseTiles(layer: BaseLayer) {
+  const renderer =
+    layer instanceof Layer && layer.hasRenderer() ? layer.getRenderer() : null;
+  if (renderer instanceof CanvasTileLayerRenderer) {
+    renderer.getTileCache().clear();
+    renderer.getSourceTileCache().clear();
+  }
+}

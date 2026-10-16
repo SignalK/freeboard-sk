@@ -13,10 +13,9 @@ import WebGLTileLayer from 'ol/layer/WebGLTile';
 import { ObjectEvent } from 'ol/Object';
 import { unByKey } from 'ol/Observable';
 import { FrameState } from 'ol/Map';
-import CanvasTileLayerRenderer from 'ol/renderer/canvas/TileLayer';
 import RasterSource from 'ol/source/Raster';
 import { followImageFilter } from '../ol/lib/charts/chart-utils';
-import { ON_TWIN, OnTwin } from '../ol/lib/util';
+import { ON_TWIN, OnTwin, releaseTiles } from '../ol/lib/util';
 
 /*
  * The split view's second pane shows the main chart's layers through twins:
@@ -249,13 +248,9 @@ export function mirrorCollection(
       // raster chart's preload, left by the last frame to a timer, then finds
       // no source and loads nothing.
       gone.setSource(null);
-      // A tile left in the twin's cache keeps its decoded vector tile in the
-      // shared source, and its canvas, for as long as the chart is shown.
-      const renderer = gone.hasRenderer() ? gone.getRenderer() : null;
-      if (renderer instanceof CanvasTileLayerRenderer) {
-        renderer.getTileCache().clear();
-        renderer.getSourceTileCache().clear();
-      }
+      // Its tiles would keep their decoded vector tiles in the shared source
+      // for as long as the chart is shown.
+      releaseTiles(gone);
     }
     // Drops the twin's renderer, and its canvas or WebGL context, once that
     // timer has run: it reads the renderer's layer, which disposing clears.
