@@ -46,7 +46,6 @@ import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
 import {
-  fitRatio,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_SHARE_VAR,
@@ -545,12 +544,12 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     this.overscan(
       this.mainMap,
-      (fitRatio(SPLIT_RATIO_MAX, size) - start) * size,
+      (this.split.fit(SPLIT_RATIO_MAX, size) - start) * size,
       1
     );
     this.overscan(
       this.map,
-      (start - fitRatio(SPLIT_RATIO_MIN, size)) * size,
+      (start - this.split.fit(SPLIT_RATIO_MIN, size)) * size,
       -1
     );
   }
@@ -576,7 +575,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.gripRatio = ratio;
     const size = this.gripStacked ? this.gripRect.height : this.gripRect.width;
-    const share = fitRatio(ratio, size);
+    const share = this.split.fit(ratio, size);
     const moved = (share - this.gripStart) * size;
     cancelAnimationFrame(this.gripFrame);
     this.gripFrame = requestAnimationFrame(() => {
@@ -599,7 +598,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       const size = this.gripStacked ? rect.height : rect.width;
       this.host.nativeElement.parentElement?.style.setProperty(
         SPLIT_SHARE_VAR,
-        `${fitRatio(this.gripRatio, size) * 100}%`
+        `${this.split.fit(this.gripRatio, size) * 100}%`
       );
       this.split.setRatio(this.gripRatio);
       this.gripRatio = null;

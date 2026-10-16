@@ -471,7 +471,11 @@
               </div>
             </div>
             @if (app.uiConfig().toolbarButtons) {
-              <div class="buttonPanel left">
+              <div
+                class="buttonPanel left"
+                fbSplitToolbar
+                [style.bottom]="toolbarBottom()"
+              >
                 <div class="buttonPanelItem">
                   <button
                     class="button-warn"
@@ -801,7 +805,9 @@
             @if (app.uiConfig().toolbarButtons) {
               <div
                 class="buttonPanel right"
+                fbSplitToolbar
                 [style.top.px]="60 + plotterExt.toolbarTopOffset()"
+                [style.bottom]="toolbarBottom()"
               >
                 <!-- instrument sidebar open button -->
                 @if (

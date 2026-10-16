@@ -8,7 +8,12 @@ import MapEvent from 'ol/MapEvent';
 import { fromLonLat } from 'ol/proj';
 import { Subject } from 'rxjs';
 import { WORLD_WIDTH_3857 } from '../route-extend';
-import { SPLIT_SHARE_VAR, SPLIT_VIEW_STORAGE_KEY } from './split-view';
+import {
+  fitRatio,
+  MIN_PANE_PX,
+  SPLIT_SHARE_VAR,
+  SPLIT_VIEW_STORAGE_KEY
+} from './split-view';
 import { SplitViewService } from './split-view.service';
 import { RESIZING } from 'src/app/modules/map/ol/lib/util';
 import { Position } from 'src/app/types';
@@ -206,6 +211,7 @@ describe('SplitMapComponent: the divider', () => {
     cmp.split.stacked = () => stacked;
     cmp.split.shownRatio = () => 0.5;
     cmp.split.setRatio = vi.fn();
+    cmp.split.fit = (ratio: number, size: number) => fitRatio(ratio, size);
     return cmp;
   };
 
@@ -261,7 +267,8 @@ describe('SplitMapComponent: the divider', () => {
       stacked = false,
       start = 0.5,
       pressedAt = 0,
-      queued = false
+      queued = false,
+      mainMin = MIN_PANE_PX
     } = {}) => {
       const waiting: (() => void)[] = [];
       vi.stubGlobal('requestAnimationFrame', (fn: () => void) => {
@@ -275,6 +282,8 @@ describe('SplitMapComponent: the divider', () => {
       vi.stubGlobal('cancelAnimationFrame', () => waiting.splice(0));
       const cmp = withDivider(stacked);
       cmp.split.shownRatio = () => start;
+      cmp.split.fit = (ratio: number, size: number) =>
+        fitRatio(ratio, size, MIN_PANE_PX, mainMin);
       cmp.split.save = vi.fn();
       cmp.split.setPanelSize = vi.fn();
       const panel = document.createElement('div');
@@ -404,6 +413,20 @@ describe('SplitMapComponent: the divider', () => {
       at('pointermove', 520);
 
       expect(parseFloat(share()) * 5.6).toBeCloseTo(360);
+    });
+
+    it("stops above the second pane where the main chart's toolbars end", () => {
+      // Stacked on a 600 px panel, the toolbars reach 380 px down.
+      const { at, share } = dragged({
+        width: 390,
+        stacked: true,
+        start: 0.65,
+        mainMin: 380
+      });
+
+      at('pointermove', 195, 100);
+
+      expect(parseFloat(share()) * 6).toBeCloseTo(380);
     });
 
     it('changes nothing when pressed and let go without a move', () => {

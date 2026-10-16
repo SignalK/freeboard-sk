@@ -121,6 +121,7 @@ import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.c
 import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
 import { SplitMapComponent } from './modules/map/split-view/split-map.component';
+import { SplitToolbarDirective } from './modules/map/split-view/split-toolbar.directive';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
 import { SPLIT_SHARE_VAR } from './modules/map/split-view/split-view';
 import {
@@ -185,6 +186,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     PlotterPanelDrawer,
     ExtWindowLayerComponent,
     SplitMapComponent,
+    SplitToolbarDirective,
     WeatherListComponent
   ]
 })
@@ -586,6 +588,18 @@ export class AppComponent {
       !this.app.kioskMode() &&
       this.splitView.enabled()
     );
+  }
+
+  /**
+   * Stacked, the toolbars down the sides of the map end where the main chart
+   * does, not at the foot of the screen under the second pane. The main
+   * chart is kept tall enough for all their buttons (SplitViewService.mainMin);
+   * on a screen too short even for that, they scroll.
+   */
+  protected toolbarBottom(): string | null {
+    return this.splitActive() && this.splitView.stacked()
+      ? `${(1 - this.splitView.shownRatio()) * 100}%`
+      : null;
   }
 
   /** The main chart's share of the panel; a dragged divider overrides it. */

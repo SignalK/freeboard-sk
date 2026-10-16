@@ -116,6 +116,54 @@ describe('SplitViewService: layout and saving', () => {
     expect((1 - split.shownRange().max) * 560).toBeCloseTo(MIN_PANE_PX);
   });
 
+  it('keeps the main chart tall enough for the toolbars once the panes stack', () => {
+    const split = new SplitViewService();
+    const left = {};
+    split.setPanelSize(390, 760);
+    split.setRatio(0.3);
+
+    split.setToolbarReach(left, 473);
+
+    expect(split.ratio()).toBe(0.3);
+    expect(split.shownRatio() * 760).toBeCloseTo(473);
+    expect(split.shownRange().min * 760).toBeCloseTo(473);
+    expect(split.shownRange().max).toBe(0.7);
+  });
+
+  it('goes by the toolbar that reaches furthest, and forgets one that is gone', () => {
+    const split = new SplitViewService();
+    const [left, right] = [{}, {}];
+    split.setPanelSize(390, 760);
+    split.setRatio(0.3);
+
+    split.setToolbarReach(left, 473);
+    split.setToolbarReach(right, 415);
+    expect(split.mainMin()).toBe(473);
+
+    split.setToolbarReach(left, null);
+    expect(split.mainMin()).toBe(415);
+    split.setToolbarReach(right, null);
+    expect(split.mainMin()).toBe(MIN_PANE_PX);
+  });
+
+  it('keeps the second pane its minimum on a screen too short for the toolbars', () => {
+    const split = new SplitViewService();
+    split.setPanelSize(375, 560);
+    split.setToolbarReach({}, 473);
+
+    expect((1 - split.shownRatio()) * 560).toBeCloseTo(MIN_PANE_PX);
+  });
+
+  it('leaves the toolbars out of it side by side, where they do not cross the divider', () => {
+    const split = new SplitViewService();
+    split.setPanelSize(844, 390);
+    split.setRatio(0.3);
+    split.setToolbarReach({}, 473);
+
+    expect(split.mainMin()).toBe(MIN_PANE_PX);
+    expect(split.shownRatio()).toBe(0.3);
+  });
+
   it('leaves a phone the divider to drag', () => {
     // A phone held upright, in a browser: about 390 x 664.
     const split = new SplitViewService();

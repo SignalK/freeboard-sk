@@ -68,22 +68,52 @@ export function ratioFromPointer(
 
 /**
  * The share the main chart actually gets of a panel `size` pixels long along
- * the split: `ratio`, moved in so neither pane is under `minPane` pixels.
- * When the panel cannot give both panes that much, they share it equally.
+ * the split: `ratio`, moved in so the second pane keeps `minPane` pixels and
+ * the main chart `minMain`. When the panel cannot give both that much, the
+ * second pane keeps its `minPane` (half the panel, if even that will not fit)
+ * and the main chart gets the rest.
  */
 export function fitRatio(
   ratio: number,
   size: number,
-  minPane = MIN_PANE_PX
+  minPane = MIN_PANE_PX,
+  minMain = minPane
 ): number {
   if (!(size > 0)) {
     return ratio;
   }
-  const floor = minPane / size;
-  if (floor >= 0.5) {
-    return 0.5;
+  const ceiling = 1 - Math.min(0.5, minPane / size);
+  const floor = Math.min(ceiling, minMain / size);
+  return Math.min(ceiling, Math.max(floor, ratio));
+}
+
+/**
+ * How far down from the top of the map panel a map toolbar reaches: its top,
+ * the lowest bottom edge of its items (laid out from its padding box,
+ * `offsetTop`; an item's content can run past its box) and its bottom
+ * padding. Measured from the items, not the toolbar, so a toolbar cut short
+ * and scrolling still reports its full reach. 0 with no item shown.
+ */
+export function toolbarReach(
+  top: number,
+  items: ArrayLike<{
+    offsetTop: number;
+    offsetHeight: number;
+    scrollHeight: number;
+  }>,
+  paddingBottom: number
+): number {
+  let bottom = 0;
+  for (let i = 0; i < items.length; i++) {
+    const { offsetTop, offsetHeight, scrollHeight } = items[i];
+    if (offsetHeight > 0) {
+      bottom = Math.max(
+        bottom,
+        offsetTop + Math.max(offsetHeight, scrollHeight)
+      );
+    }
   }
-  return Math.min(1 - floor, Math.max(floor, ratio));
+  return bottom > 0 ? top + bottom + paddingBottom : 0;
 }
 
 const isPosition = (p: unknown): p is Position =>
