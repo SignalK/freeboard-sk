@@ -10,6 +10,7 @@ import { Map, Feature, Collection, MapBrowserEvent } from 'ol';
 import { Geometry } from 'ol/geom';
 import { Modify } from 'ol/interaction';
 import { ModifyEvent } from 'ol/interaction/Modify';
+import BaseEvent from 'ol/events/Event';
 import { MapComponent } from '../map.component';
 import { hitToleranceForPointer } from '../util';
 import { markVertexDeleted } from '../vertex-delete';
@@ -115,7 +116,7 @@ export class InteractionModifyComponent {
   /** Snap dragged vertices to the waypoints shown on the map. */
   @Input() snapToWaypoints = false;
 
-  @Output() change: EventEmitter<ModifyEvent> = new EventEmitter();
+  @Output() change: EventEmitter<BaseEvent> = new EventEmitter();
   @Output() modifyStart: EventEmitter<ModifyEvent> = new EventEmitter();
   @Output() modifyEnd: EventEmitter<ModifyEvent> = new EventEmitter();
 
@@ -155,7 +156,7 @@ export class InteractionModifyComponent {
 
   // ** emit events
 
-  private emitChangeEvent = (event: ModifyEvent) => this.change.emit(event);
+  private emitChangeEvent = (event: BaseEvent) => this.change.emit(event);
   private emitModifyStartEvent = (event: ModifyEvent) =>
     this.modifyStart.emit(event);
   private emitModifyEndEvent = (event: ModifyEvent) =>

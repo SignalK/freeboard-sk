@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { map } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { GPXExportService } from 'src/app/modules/gpx/gpx-export.service';
@@ -1164,11 +1164,13 @@ export class AppComponent {
       buddyList: false,
       tidalApi: false
     };
-    this.signalk.get('/signalk/v2/features?enabled=1').subscribe(
-      (res: {
+    (
+      this.signalk.get('/signalk/v2/features?enabled=1') as Observable<{
         apis: string[];
         plugins: Array<{ id: string; version: string }>;
-      }) => {
+      }>
+    ).subscribe(
+      (res) => {
         // detect apis
         ff.weatherApi = res.apis.includes('weather');
         ff.autopilotApi = res.apis.includes('autopilot');

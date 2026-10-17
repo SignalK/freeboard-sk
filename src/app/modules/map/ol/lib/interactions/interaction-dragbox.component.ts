@@ -8,6 +8,7 @@ import {
 import { Map } from 'ol';
 import { DragBox } from 'ol/interaction';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
+import BaseEvent from 'ol/events/Event';
 import { MapComponent } from '../map.component';
 
 @Component({
@@ -24,7 +25,7 @@ export class InteractionDragBoxComponent {
     this.changeDetectorRef.detach();
   }
 
-  @Output() change: EventEmitter<DragBoxEvent> = new EventEmitter();
+  @Output() change: EventEmitter<BaseEvent> = new EventEmitter();
   @Output() boxStart: EventEmitter<DragBoxEvent> = new EventEmitter();
   @Output() boxEnd: EventEmitter<DragBoxEvent> = new EventEmitter();
   @Output() boxDrag: EventEmitter<DragBoxEvent> = new EventEmitter();
@@ -64,7 +65,7 @@ export class InteractionDragBoxComponent {
   }
 
   // ** emit events
-  private emitChangeEvent = (event: DragBoxEvent) => this.change.emit(event);
+  private emitChangeEvent = (event: BaseEvent) => this.change.emit(event);
   private emitBoxStartEvent = (event: DragBoxEvent) =>
     this.boxStart.emit(event);
   private emitBoxEndEvent = (event: DragBoxEvent) => this.boxEnd.emit(event);

@@ -1189,7 +1189,7 @@ export class SKResourceService {
    * @returns Sorted FBChart array
    */
   private sortByScaleDesc(chartList: FBCharts) {
-    return chartList.sort((a: [string, SKChart], b: [string, SKChart]) => {
+    return chartList.sort((a, b) => {
       return b[1].scale - a[1].scale;
     });
   }

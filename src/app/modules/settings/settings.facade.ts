@@ -328,8 +328,8 @@ export class SettingsFacade {
       this.applicationList.push(this.app.config.display.plugins.instruments);
     }
 
-    this.signalk.apps.list().subscribe(
-      (a: Array<SKAppsList>) => {
+    (this.signalk.apps.list() as Observable<Array<SKAppsList>>).subscribe(
+      (a) => {
         this.applicationList = a
           .map((i) => {
             if (i.name === '@signalk/freeboard-sk') {
