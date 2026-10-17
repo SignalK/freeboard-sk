@@ -141,6 +141,19 @@ export function activeZoom(
   return paneActive ? (paneZoom ?? mainZoom) : mainZoom;
 }
 
+/**
+ * Whether the status bar, shown in the active pane, reaches the bottom of the
+ * screen: everywhere but in the main chart while it is the top one of two
+ * stacked panes.
+ */
+export function statusBarAtBottom(
+  paneOpen: boolean,
+  stacked: boolean,
+  paneActive: boolean
+): boolean {
+  return !paneOpen || !stacked || paneActive;
+}
+
 /** The part of an OpenLayers map the footprint reads. */
 export interface FootprintSource {
   getSize(): number[] | undefined;

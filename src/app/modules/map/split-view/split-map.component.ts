@@ -10,8 +10,10 @@ import {
   OnDestroy,
   OnInit,
   signal,
+  TemplateRef,
   untracked
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -100,7 +102,12 @@ function positioned(el: Element): HTMLElement[] {
  */
 @Component({
   selector: 'fb-split-map',
-  imports: [FreeboardOpenlayersModule, MatIconModule, MatTooltipModule],
+  imports: [
+    FreeboardOpenlayersModule,
+    MatIconModule,
+    MatTooltipModule,
+    NgTemplateOutlet
+  ],
   templateUrl: './split-map.component.html',
   styleUrls: ['./split-map.component.css'],
   host: {
@@ -120,6 +127,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly olControls = mapControls;
   /** The user's distance unit, for the scale bar. */
   readonly scaleUnits = input<string>('');
+  /** The main chart's status bar, shown here while this pane is active. */
+  readonly statusBar = input<TemplateRef<unknown> | null>(null);
 
   protected zoom = signal<number>(10);
   protected center = signal<Position>([0, 0]);

@@ -9,6 +9,7 @@ import {
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_RATIO_MIN,
+  statusBarAtBottom,
   viewFootprint
 } from './split-view';
 
@@ -175,5 +176,25 @@ describe('activeZoom', () => {
 
   it("is the main chart's until the pane has reported its zoom", () => {
     expect(activeZoom(10, null, true)).toBe(10);
+  });
+});
+
+describe('statusBarAtBottom', () => {
+  it('is at the bottom with the chart not split', () => {
+    expect(statusBarAtBottom(false, false, false)).toBe(true);
+    expect(statusBarAtBottom(false, true, false)).toBe(true);
+  });
+
+  it('is at the bottom side by side, whichever pane is active', () => {
+    expect(statusBarAtBottom(true, false, false)).toBe(true);
+    expect(statusBarAtBottom(true, false, true)).toBe(true);
+  });
+
+  it('is at the bottom stacked, in the second pane', () => {
+    expect(statusBarAtBottom(true, true, true)).toBe(true);
+  });
+
+  it('is clear of the bottom stacked, in the main chart', () => {
+    expect(statusBarAtBottom(true, true, false)).toBe(false);
   });
 });
