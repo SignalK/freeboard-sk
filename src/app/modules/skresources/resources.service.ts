@@ -2127,7 +2127,7 @@ export class SKResourceService {
         this.app.sIsFetching.set(false);
       } catch (err) {
         this.app.sIsFetching.set(false);
-        this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+        this.app.parseHttpErrorResponse(err);
         return;
       }
     }
@@ -2479,7 +2479,7 @@ export class SKResourceService {
       this.app.sIsFetching.set(false);
     } catch (err) {
       this.app.sIsFetching.set(false);
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err);
       return;
     }
     this.dialog
@@ -2825,7 +2825,7 @@ export class SKResourceService {
       this.app.sIsFetching.set(false);
     } catch (err) {
       this.app.sIsFetching.set(false);
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err);
       return;
     }
     this.dialog
@@ -3005,7 +3005,7 @@ export class SKResourceService {
       this.app.sIsFetching.set(false);
     } catch (err) {
       this.app.sIsFetching.set(false);
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err);
       return;
     }
     this.dialog
@@ -3717,7 +3717,7 @@ export class SKResourceService {
       this.app.sIsFetching.set(false);
     } catch (err) {
       this.app.sIsFetching.set(false);
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err);
       return;
     }
     this.dialog

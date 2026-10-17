@@ -1266,15 +1266,16 @@ export class AppFacade extends InfoService {
    * @description Parse and display error message
    * @param err Error response
    */
-  parseHttpErrorResponse(err: HttpErrorResponse) {
+  parseHttpErrorResponse(err: unknown) {
+    const http = err instanceof HttpErrorResponse ? err : undefined;
     const msg =
-      err.status && [401, 403].includes(err.status)
+      http?.status && [401, 403].includes(http.status)
         ? // unauthorised / forbidden
           'Signal K server requires authentication to update resources.\nPlease login and try again.\n'
         : 'Operation could not be completed!\n';
     this.showAlert(
-      `${err.status ?? 'Error'}`,
-      msg + `${err.error?.message ?? ''}`
+      `${http?.status ?? 'Error'}`,
+      msg + `${http?.error?.message ?? ''}`
     );
   }
 

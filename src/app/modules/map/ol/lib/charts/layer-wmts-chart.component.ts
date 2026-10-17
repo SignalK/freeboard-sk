@@ -240,9 +240,12 @@ export class WmtsChartLayerComponent implements OnDestroy {
       return capabilities;
     } catch (err) {
       clearTimeout(abortTimer);
-      throw new Error(err.message ?? 'Unable to retrieve capabilities!', {
-        cause: err
-      });
+      throw new Error(
+        err instanceof Error ? err.message : 'Unable to retrieve capabilities!',
+        {
+          cause: err
+        }
+      );
     }
   }
 }
