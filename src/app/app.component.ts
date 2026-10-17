@@ -1260,6 +1260,10 @@ export class AppComponent {
           await this.moveResourceTracks();
         }
       }
+    }
+    // The startup refresh can run before the flags above are set and list
+    // nothing, so tracks are listed again once their source is known.
+    if (this.app.tracksAvailable()) {
       this.skres.refreshTracks();
     }
   }
