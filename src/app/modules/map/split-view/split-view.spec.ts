@@ -5,11 +5,11 @@ import {
   DEFAULT_SPLIT_VIEW,
   fitRatio,
   gateZoom,
+  paneStatusBarLift,
   parseSplitViewState,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_RATIO_MIN,
-  statusBarAtBottom,
   viewFootprint
 } from './split-view';
 
@@ -179,22 +179,30 @@ describe('activeZoom', () => {
   });
 });
 
-describe('statusBarAtBottom', () => {
-  it('is at the bottom with the chart not split', () => {
-    expect(statusBarAtBottom(false, false, false)).toBe(true);
-    expect(statusBarAtBottom(false, true, false)).toBe(true);
+describe('paneStatusBarLift', () => {
+  // The room a bottom-centre widget needs; 0 with none on screen.
+  const WIDGET = 60;
+
+  it('clears the widgets with the chart not split', () => {
+    expect(paneStatusBarLift(WIDGET, false, false, false)).toBe(WIDGET);
+    expect(paneStatusBarLift(WIDGET, false, true, false)).toBe(WIDGET);
   });
 
-  it('is at the bottom side by side, whichever pane is active', () => {
-    expect(statusBarAtBottom(true, false, false)).toBe(true);
-    expect(statusBarAtBottom(true, false, true)).toBe(true);
+  it('clears the widgets side by side, whichever pane is active', () => {
+    expect(paneStatusBarLift(WIDGET, true, false, false)).toBe(WIDGET);
+    expect(paneStatusBarLift(WIDGET, true, false, true)).toBe(WIDGET);
   });
 
-  it('is at the bottom stacked, in the second pane', () => {
-    expect(statusBarAtBottom(true, true, true)).toBe(true);
+  it('clears the widgets stacked, in the second pane', () => {
+    expect(paneStatusBarLift(WIDGET, true, true, true)).toBe(WIDGET);
   });
 
-  it('is clear of the bottom stacked, in the main chart', () => {
-    expect(statusBarAtBottom(true, true, false)).toBe(false);
+  it('needs no room stacked, in the main chart above the second pane', () => {
+    expect(paneStatusBarLift(WIDGET, true, true, false)).toBe(0);
+  });
+
+  it('needs no room with no widget along the bottom', () => {
+    expect(paneStatusBarLift(0, true, true, true)).toBe(0);
+    expect(paneStatusBarLift(0, false, false, false)).toBe(0);
   });
 });

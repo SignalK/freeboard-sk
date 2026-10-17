@@ -986,7 +986,7 @@ describe('SplitMapComponent: the status bar', () => {
     expect(shown(fixture)).toBe(true);
   });
 
-  it('leaves it to the main chart while that is active', () => {
+  it('takes it out while the main chart is active, and back on return', () => {
     const split = TestBed.inject(SplitViewService);
     split.toggle();
     const fixture = open();

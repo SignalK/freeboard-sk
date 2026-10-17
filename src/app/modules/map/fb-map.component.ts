@@ -88,7 +88,7 @@ import {
 import {
   activeZoom,
   gateZoom,
-  statusBarAtBottom
+  paneStatusBarLift
 } from './split-view/split-view';
 import {
   radarRange,
@@ -373,18 +373,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
-  /**
-   * Room left under the status bar for widgets along the bottom of the
-   * screen, needed only where the bar reaches the bottom of the screen.
-   */
+  /** Room left under the status bar for widgets along the bottom of the screen. */
   protected statusBarLift = computed(() =>
-    statusBarAtBottom(
+    paneStatusBarLift(
+      this.plotterExt.statusBarLift(),
       !!this.splitView.secondaryMap(),
       this.splitView.stacked(),
       this.splitView.secondaryActive()
     )
-      ? this.plotterExt.statusBarLift()
-      : 0
   );
   /**
    * The higher zoom of the panes on screen. Layers shown only from some zoom
