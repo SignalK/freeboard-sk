@@ -8,9 +8,6 @@ import {
   effect,
   linkedSignal
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { SafeResourceUrl } from '@angular/platform-browser';
 
 interface PiPVideoElement extends HTMLVideoElement {
@@ -19,30 +16,13 @@ interface PiPVideoElement extends HTMLVideoElement {
 }
 
 //** Picture in Picture video component **
+// Holds the hidden video element. The host renders the "Show Video" button
+// and calls initPiP() from it.
 @Component({
   selector: 'pip-video',
-  imports: [MatButtonModule, MatTooltipModule, MatIconModule],
   template: `
     <div style="border: gray 1px solid;border-radius:5px;display:none;">
       <video #vid [src]="vidUrl" [muted]="_muted()" autoplay></video>
-    </div>
-    <div style="padding-left: 5px;">
-      <button
-        class="button-toolbar"
-        mat-mini-fab
-        [style.display]="src() ? 'block' : 'none'"
-        matTooltip="Show Video"
-        matTooltipPosition="left"
-        [disabled]="pipMode"
-        (click)="initPiP()"
-      >
-        <mat-icon>videocam</mat-icon>
-      </button>
-      <!--<button mat-mini-fab [style.display]="pipMode ? 'block' : 'none'"
-                matTooltip="Mute Audio"
-                (click)="toggleMute()">
-                <mat-icon>{{_muted() ? 'volume_off' : 'volume_mute'}}</mat-icon>
-            </button>-->
     </div>
   `,
   styles: [``]
@@ -94,6 +74,11 @@ export class PiPVideoComponent implements OnInit {
       this.pipWindow.removeEventListener('resize', this.onPipWindowResize);
       this.change.emit(this.pipMode);
     });
+  }
+
+  /** Whether initPiP() can open the video now. */
+  canStart(): boolean {
+    return !!this.src() && !this.pipMode;
   }
 
   // ** pipWindow resize event handler **

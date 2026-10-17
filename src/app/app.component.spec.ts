@@ -1,7 +1,7 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { AppFacade } from './app.facade';
-import { beforeEach, expect, describe, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, describe, it, vi } from 'vitest';
 import '@vitest/web-worker';
 import { MatMenuTrigger } from '@angular/material/menu';
 import { By } from '@angular/platform-browser';
@@ -53,45 +53,102 @@ describe('AppComponent', () => {
     expect(openFeatureBrowser).toHaveBeenCalled();
   });
 
-  it('drops the Instruments toolbar slot when no instruments app is selected', () => {
+  // The right-hand toolbar button showing the given icon, or null.
+  const toolbarButton = (
+    fixture: ComponentFixture<AppComponent>,
+    icon: string
+  ): HTMLButtonElement | null =>
+    fixture.debugElement
+      .queryAll(By.css('fb-map-toolbar.right button'))
+      .map((de) => de.nativeElement as HTMLButtonElement)
+      .find((b) => b.querySelector('mat-icon')?.textContent?.trim() === icon) ??
+    null;
+
+  it('drops the Instruments toolbar button when no instruments app is selected', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = TestBed.inject(AppFacade);
     app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
 
     app.config.display.plugins.instruments = '/@signalk/instrumentpanel';
     fixture.detectChanges();
-    expect(
-      fixture.debugElement.query(By.css('.instrumentPanelToggle button'))
-    ).not.toBeNull();
+    expect(toolbarButton(fixture, 'av_timer')).not.toBeNull();
 
     // Settings -> Display -> Select Instruments App: "None" stores a null url.
     app.config.display.plugins.instruments = null;
     fixture.detectChanges();
-    // The whole slot goes, not just the button: .buttonPanelItem is a fixed
-    // 48px, so leaving it behind would hold an empty gap in the toolbar.
-    expect(
-      fixture.debugElement.query(By.css('.instrumentPanelToggle'))
-    ).toBeNull();
+    expect(toolbarButton(fixture, 'av_timer')).toBeNull();
   });
 
-  it('keeps the Instruments toolbar slot while the panel is open', () => {
+  it('keeps the Instruments toolbar button, disabled, while the panel is open', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = TestBed.inject(AppFacade);
     app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
     app.config.display.plugins.instruments = '/@signalk/instrumentpanel';
     fixture.detectChanges();
+    expect(toolbarButton(fixture, 'av_timer')?.disabled).toBe(false);
 
     app.instrumentPanel.set({ open: true, activate: true });
     fixture.detectChanges();
 
-    // Transient conditions hide the button but hold its place, so the buttons
-    // below it do not shift up and down as the user works.
-    expect(
-      fixture.debugElement.query(By.css('.instrumentPanelToggle'))
-    ).not.toBeNull();
-    expect(
-      fixture.debugElement.query(By.css('.instrumentPanelToggle button'))
-    ).toBeNull();
+    // Transient conditions disable the button but keep its place, so the
+    // buttons below it do not shift up and down as the user works.
+    expect(toolbarButton(fixture, 'av_timer')?.disabled).toBe(true);
+  });
+
+  describe('when the left toolbar runs out of room', () => {
+    // jsdom does no layout: report every toolbar as tall enough for 4 buttons.
+    class FourSlotResizeObserver {
+      constructor(private callback: ResizeObserverCallback) {}
+      observe() {
+        this.callback(
+          [{ contentRect: { height: 4 * 58 } } as ResizeObserverEntry],
+          this as unknown as ResizeObserver
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+
+    beforeEach(() => vi.stubGlobal('ResizeObserver', FourSlotResizeObserver));
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('puts the buttons that do not fit at the top of the More menu, in order', () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = TestBed.inject(AppFacade);
+      app.uiConfig.update((c) =>
+        Object.assign({}, c, { toolbarButtons: true })
+      );
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      const triggers = fixture.debugElement
+        .queryAll(By.css('fb-map-toolbar.left button'))
+        .map((de) => de.nativeElement as HTMLButtonElement);
+      // Alarms, Layers, Draw, then More holding North up and Follow
+      expect(
+        triggers.map((b) => b.querySelector('mat-icon')?.textContent?.trim())
+      ).toEqual(['', 'layers', 'edit', 'more_horiz']);
+
+      const more = fixture.debugElement
+        .queryAll(By.directive(MatMenuTrigger))
+        .find(
+          (de) =>
+            de.nativeElement.querySelector('mat-icon')?.textContent?.trim() ===
+            'more_horiz'
+        );
+      more?.injector.get(MatMenuTrigger).openMenu();
+      fixture.detectChanges();
+
+      const labels = Array.from(
+        document.querySelectorAll<HTMLElement>('.mat-mdc-menu-item-text')
+      ).map((el) => el.textContent?.trim());
+      expect(labels.slice(0, 2)).toEqual([
+        'Show Heading Up',
+        'Center & Follow Vessel'
+      ]);
+      // ...followed by More's own items
+      expect(labels).toContain('Settings');
+    });
   });
 
   it('sandboxes the instrument panel iframe with form submission allowed', () => {
@@ -232,7 +289,7 @@ describe('AppComponent', () => {
       fixture.debugElement.query(By.css('autopilot-console')) !== null;
     const press = () => {
       fixture.debugElement
-        .query(By.css('button[mattooltip="Autopilot"]'))
+        .query(By.css('button[data-toolbar-item="autopilot"]'))
         .nativeElement.click();
       fixture.detectChanges();
     };
@@ -313,7 +370,7 @@ describe('AppComponent', () => {
     };
 
     it.each([
-      ['button panel', 'wpt', 'button[mattooltip="Radar"]'],
+      ['button panel', 'wpt', 'button[data-toolbar-item="radar"]'],
       ['floating action', 'radar', 'radar-button button']
     ] as const)(
       'closes the radar panel with the %s button that opened it',

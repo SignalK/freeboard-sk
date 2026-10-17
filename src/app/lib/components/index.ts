@@ -10,3 +10,5 @@ export * from './wpt-button.component';
 export * from './radar-button.component';
 export * from './autopilot-button.component';
 export * from './interact-help.component';
+export * from './map-toolbar/map-toolbar';
+export * from './map-toolbar/map-toolbar.component';

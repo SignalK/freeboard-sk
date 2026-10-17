@@ -87,71 +87,114 @@
       }
     </mat-menu>
 
-    <mat-menu #settingsmenu="matMenu">
-      @if (app.config.vessels.trail && app.selfTrail().length !== 0) {
-        <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
-          <mat-icon>clear_all</mat-icon>
-          <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
-        </a>
-        <a mat-menu-item (click)="trailToRoute()">
-          <mat-icon>insights</mat-icon>
-          <span>Trail to Route</span>
-        </a>
-        <mat-divider></mat-divider>
-      }
-      @if (course.courseData().position) {
-        <a mat-menu-item (click)="clearDestination()">
-          <mat-icon>clear_all</mat-icon>
-          <span>Stop Navigating</span>
-        </a>
-        <a mat-menu-item (click)="clearCourseData()">
-          <mat-icon>clear_all</mat-icon>
-          <span>Clear Course Data</span>
-        </a>
-        <mat-divider></mat-divider>
-      }
+    <fb-experiments (selected)="openExperiment($event)"></fb-experiments>
 
-      <a mat-menu-item (click)="toggleCourseData()">
-        <mat-icon>{{
-          app.config.ui.showCourseData ? 'visibility_off' : 'compare_arrows'
-        }}</mat-icon>
-        <span
-          >{{ app.config.ui.showCourseData ? 'Hide' : 'Show' }} Course
-          Data</span
-        >
-      </a>
-      <a mat-menu-item (click)="toggleAisTargets()">
-        <mat-icon>{{
-          app.config.ui.showAisTargets ? 'visibility_off' : 'directions_boat'
-        }}</mat-icon>
-        <span
-          >{{ app.config.ui.showAisTargets ? 'Hide' : 'Show' }} Vessels</span
-        >
-      </a>
-      <a mat-menu-item (click)="toggleNotes()">
-        <mat-icon>{{
-          app.config.ui.showNotes ? 'visibility_off' : 'local_offer'
-        }}</mat-icon>
-        <span>{{ app.config.ui.showNotes ? 'Hide' : 'Show' }} Notes</span>
-      </a>
-      @if (app.featureFlags().weatherApi && app.data.vessels.showSelf) {
+    <mat-menu #settingsmenu="matMenu">
+      <!-- left toolbar buttons that don't fit, in toolbar order -->
+      @let leftOverflow = leftToolbar()?.overflow() ?? [];
+      @for (item of leftOverflow; track item.id) {
+        @if (item.menu) {
+          <button
+            mat-menu-item
+            [disabled]="item.disabled"
+            [matMenuTriggerFor]="item.menu"
+          >
+            <ng-container
+              *ngTemplateOutlet="toolbarMenuIcon; context: { $implicit: item }"
+            ></ng-container>
+            <span>{{ toolbarMenuLabel(item) }}</span>
+          </button>
+        } @else {
+          <button
+            mat-menu-item
+            [disabled]="item.disabled"
+            (click)="leftToolbar()?.run(item)"
+          >
+            <ng-container
+              *ngTemplateOutlet="toolbarMenuIcon; context: { $implicit: item }"
+            ></ng-container>
+            <span>{{ toolbarMenuLabel(item) }}</span>
+          </button>
+        }
+      }
+      @if (leftOverflow.length !== 0) {
         <mat-divider></mat-divider>
-        <a mat-menu-item (click)="showWeather('forecast')">
-          <mat-icon>air</mat-icon>
-          <span>Weather Forecast</span>
+      }
+      <!-- More's own items stay out of reach while drawing or measuring, as
+           they are when the toolbar fits and More is disabled -->
+      @if (!isInteracting()) {
+        @if (app.config.vessels.trail && app.selfTrail().length !== 0) {
+          <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
+            <mat-icon>clear_all</mat-icon>
+            <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
+          </a>
+          <a mat-menu-item (click)="trailToRoute()">
+            <mat-icon>insights</mat-icon>
+            <span>Trail to Route</span>
+          </a>
+          <mat-divider></mat-divider>
+        }
+        @if (course.courseData().position) {
+          <a mat-menu-item (click)="clearDestination()">
+            <mat-icon>clear_all</mat-icon>
+            <span>Stop Navigating</span>
+          </a>
+          <a mat-menu-item (click)="clearCourseData()">
+            <mat-icon>clear_all</mat-icon>
+            <span>Clear Course Data</span>
+          </a>
+          <mat-divider></mat-divider>
+        }
+
+        <a mat-menu-item (click)="toggleCourseData()">
+          <mat-icon>{{
+            app.config.ui.showCourseData ? 'visibility_off' : 'compare_arrows'
+          }}</mat-icon>
+          <span
+            >{{ app.config.ui.showCourseData ? 'Hide' : 'Show' }} Course
+            Data</span
+          >
+        </a>
+        <a mat-menu-item (click)="toggleAisTargets()">
+          <mat-icon>{{
+            app.config.ui.showAisTargets ? 'visibility_off' : 'directions_boat'
+          }}</mat-icon>
+          <span
+            >{{ app.config.ui.showAisTargets ? 'Hide' : 'Show' }} Vessels</span
+          >
+        </a>
+        <a mat-menu-item (click)="toggleNotes()">
+          <mat-icon>{{
+            app.config.ui.showNotes ? 'visibility_off' : 'local_offer'
+          }}</mat-icon>
+          <span>{{ app.config.ui.showNotes ? 'Hide' : 'Show' }} Notes</span>
+        </a>
+        @if (app.featureFlags().weatherApi && app.data.vessels.showSelf) {
+          <mat-divider></mat-divider>
+          <a mat-menu-item (click)="showWeather('forecast')">
+            <mat-icon>air</mat-icon>
+            <span>Weather Forecast</span>
+          </a>
+        }
+        <mat-divider></mat-divider>
+        <a mat-menu-item (click)="openSettings()">
+          <mat-icon>settings</mat-icon>
+          <span>Settings</span>
+        </a>
+        <mat-divider></mat-divider>
+        <a mat-menu-item (click)="openFeatureBrowser()">
+          <mat-icon class="icon-accent">tips_and_updates</mat-icon>
+          <span>What's New</span>
         </a>
       }
-      <mat-divider></mat-divider>
-      <a mat-menu-item (click)="openSettings()">
-        <mat-icon>settings</mat-icon>
-        <span>Settings</span>
-      </a>
-      <mat-divider></mat-divider>
-      <a mat-menu-item (click)="openFeatureBrowser()">
-        <mat-icon class="icon-accent">tips_and_updates</mat-icon>
-        <span>What's New</span>
-      </a>
     </mat-menu>
+    <ng-template #toolbarMenuIcon let-item>
+      <mat-icon
+        [class]="(item.iconClass ?? '') + (item.active ? ' icon-primary' : '')"
+        [svgIcon]="item.svgIcon"
+        >{{ item.svgIcon ? '' : item.icon }}</mat-icon
+      >
+    </ng-template>
 
     <mat-menu #editmenu="matMenu">
       <a mat-menu-item (click)="mapInteract.startMeasuring('LineString')">
@@ -471,130 +514,12 @@
               </div>
             </div>
             @if (app.uiConfig().toolbarButtons) {
-              <div class="buttonPanel left">
-                <div class="buttonPanelItem">
-                  <button
-                    class="button-warn"
-                    mat-mini-fab
-                    matTooltip="Alarms"
-                    matTooltipPosition="left"
-                    [matBadge]="notiMgr.alerts().length"
-                    matBadgeOverlap="true"
-                    [matBadgeHidden]="notiMgr.alerts().length === 0"
-                    (click)="toggleAlertList(true)"
-                    aria-hidden="false"
-                  >
-                    <mat-icon class="ob" svgIcon="alert-list"></mat-icon>
-                  </button>
-                </div>
-                <div class="buttonPanelItem">
-                  <button
-                    class="button-accent"
-                    mat-mini-fab
-                    [disabled]="isInteracting()"
-                    matTooltip="Routes, Waypoints, Notes, etc."
-                    matTooltipPosition="right"
-                    [matMenuTriggerFor]="layersmenu"
-                  >
-                    <mat-icon>layers</mat-icon>
-                  </button>
-                </div>
-                <div class="buttonPanelItem">
-                  <button
-                    class="button-toolbar"
-                    mat-mini-fab
-                    [disabled]="isInteracting()"
-                    matTooltip="Draw / Measure / Select"
-                    matTooltipPosition="right"
-                    [matMenuTriggerFor]="editmenu"
-                  >
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                </div>
-                <div class="buttonPanelItem">
-                  <button
-                    mat-mini-fab
-                    [ngClass]="{
-                      'button-primary': !viewNorthUp(),
-                      'button-toolbar': viewNorthUp()
-                    }"
-                    (click)="toggleNorthUp()"
-                    [matTooltip]="
-                      viewNorthUp() ? 'Show Heading Up' : 'Show North Up'
-                    "
-                    matTooltipPosition="right"
-                  >
-                    <mat-icon
-                      class="ob"
-                      [svgIcon]="
-                        viewNorthUp() ? 'heading-n-up' : 'heading-h-up'
-                      "
-                    >
-                    </mat-icon>
-                  </button>
-                </div>
-                <div class="buttonPanelItem">
-                  <button
-                    mat-mini-fab
-                    [ngClass]="{
-                      'button-primary': app.activePaneFollows(),
-                      'button-toolbar': !app.activePaneFollows()
-                    }"
-                    (click)="toggleFollow()"
-                    [disabled]="!app.data.vessels.showSelf"
-                    [matTooltip]="
-                      app.activePaneFollows()
-                        ? 'Turn off Follow Vessel'
-                        : 'Center & Follow Vessel'
-                    "
-                    matTooltipPosition="right"
-                  >
-                    <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
-                  </button>
-                </div>
-                <div class="buttonPanelItem">
-                  <button
-                    class="button-toolbar"
-                    mat-mini-fab
-                    [disabled]="isInteracting()"
-                    matTooltip="More actions"
-                    matTooltipPosition="right"
-                    [matMenuTriggerFor]="settingsmenu"
-                  >
-                    <mat-icon>more_horiz</mat-icon>
-                  </button>
-                </div>
-                @if (mode === 1) {
-                  <div class="buttonPanelItem">
-                    <!-- Playback mode -->
-                    <button
-                      class="button-warn"
-                      mat-mini-fab
-                      matTooltip="Exit playback mode"
-                      matTooltipPosition="right"
-                      (click)="showSelectMode()"
-                    >
-                      <mat-icon>cancel</mat-icon>
-                    </button>
-                  </div>
-                }
-                @if (whatsNew.hasUnseen()) {
-                  <div class="buttonPanelItem">
-                    <!-- passive "What's New" indicator: only present while
-                         unseen feature changes exist; opening the browser
-                         extinguishes it -->
-                    <button
-                      class="button-accent"
-                      mat-mini-fab
-                      matTooltip="What's New"
-                      matTooltipPosition="right"
-                      (click)="openFeatureBrowser()"
-                    >
-                      <mat-icon>tips_and_updates</mat-icon>
-                    </button>
-                  </div>
-                }
-              </div>
+              <fb-map-toolbar
+                #leftToolbar
+                side="left"
+                style="top: 60px; bottom: 0"
+                [items]="leftToolbarItems()"
+              ></fb-map-toolbar>
             }
             <!-- /left button bar-->
 
@@ -787,8 +712,8 @@
                   (click)="toggleToolbarButtons()"
                   [matTooltip]="
                     app.uiConfig().toolbarButtons
-                      ? 'Hide Toobars'
-                      : 'Show Toobars'
+                      ? 'Hide Toolbars'
+                      : 'Show Toolbars'
                   "
                   matTooltipPosition="before"
                 >
@@ -799,249 +724,23 @@
               </div>
             </div>
             @if (app.uiConfig().toolbarButtons) {
-              <div
-                class="buttonPanel right"
+              <fb-map-toolbar
+                side="right"
                 [style.top.px]="60 + plotterExt.toolbarTopOffset()"
-              >
-                <!-- instrument sidebar open button -->
-                @if (
-                  app.instrumentPanelAvailable() &&
-                  app.config.display.plugins.instruments
-                ) {
-                  <!-- The slot is only dropped when instruments are
-                       unavailable; the transient conditions below hide the
-                       button but keep its space so the buttons under it do
-                       not shift as the user works. -->
-                  <div class="instrumentPanelToggle buttonPanelItem">
-                    @if (
-                      !app.instrumentPanel().open &&
-                      !infoPanel.opened() &&
-                      !isInteracting() &&
-                      !app.data.vessels.activeId
-                    ) {
-                      <button
-                        class="button-toolbar"
-                        mat-mini-fab
-                        (click)="openInstrumentPanel()"
-                        matTooltip="Instruments"
-                        matTooltipPosition="before"
-                      >
-                        <mat-icon>av_timer</mat-icon>
-                      </button>
-                    }
-                    <br />&nbsp;<br />&nbsp;
-                  </div>
-                }
-
-                <!-- Web audio enable -->
-                @if (audioStatus() !== 'running') {
-                  <div class="buttonPanelItem">
-                    <button
-                      class="button-toolbar"
-                      mat-mini-fab
-                      matTooltip="Web Audio off! Click to enable."
-                      matTooltipPosition="before"
-                      (click)="enableAudio()"
-                    >
-                      <mat-icon class="icon-warn">volume_off</mat-icon>
-                    </button>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-
-                <!-- fullscreen enable -->
-                @if (this.app.isTopWindow() && displayFullscreen().enabled) {
-                  <div class="buttonPanelItem">
-                    <button
-                      mat-mini-fab
-                      [ngClass]="{
-                        'button-primary': displayFullscreen().active,
-                        'button-toolbar': !displayFullscreen().active
-                      }"
-                      (click)="toggleFullscreen()"
-                      [matTooltip]="
-                        displayFullscreen().active
-                          ? 'Exit Fullscreen '
-                          : 'Go Fullscreen'
-                      "
-                      matTooltipPosition="before"
-                    >
-                      <mat-icon>
-                        {{
-                          displayFullscreen().active
-                            ? 'fullscreen_exit '
-                            : 'fullscreen'
-                        }}
-                      </mat-icon>
-                    </button>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-
-                <!-- constrain zoom to selected map(s) extent -->
-                <div class="buttonPanelItem">
-                  <button
-                    mat-mini-fab
-                    [ngClass]="{
-                      'button-primary': app.uiConfig().mapConstrainZoom,
-                      'button-toolbar': !app.uiConfig().mapConstrainZoom
-                    }"
-                    (click)="toggleConstrainMapZoom()"
-                    matTooltip="Constrain map zoom."
-                    matTooltipPosition="before"
-                  >
-                    <mat-icon>zoom_in_map</mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- Invert colors -->
-                <div class="buttonPanelItem">
-                  <button
-                    mat-mini-fab
-                    [ngClass]="{
-                      'button-primary': app.uiConfig().invertColor,
-                      'button-toolbar': !app.uiConfig().invertColor
-                    }"
-                    (click)="invertFeatureLabelColor()"
-                    matTooltip="Invert feature text color."
-                    matTooltipPosition="before"
-                  >
-                    <mat-icon>{{
-                      true ? 'invert_colors' : 'invert_colors_off'
-                    }}</mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- Split view -->
-                @if (app.config.display.splitView) {
-                  <div class="buttonPanelItem">
-                    <button
-                      mat-mini-fab
-                      [ngClass]="{
-                        'button-primary': splitView.enabled(),
-                        'button-toolbar': !splitView.enabled()
-                      }"
-                      (click)="splitView.toggle()"
-                      [matTooltip]="
-                        splitView.enabled()
-                          ? 'Close split view'
-                          : 'Split view: a second chart'
-                      "
-                      matTooltipPosition="before"
-                    >
-                      <mat-icon>vertical_split</mat-icon>
-                    </button>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-
-                <!-- Experiments -->
-                @if (app.config.experiments) {
-                  <div class="buttonPanelItem">
-                    <fb-experiments
-                      (selected)="openExperiment($event)"
-                    ></fb-experiments>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-                <!-- PiP enable -->
-                @if (
-                  app.config.resources.video.enable &&
-                  app.config.resources.video.url
-                ) {
-                  <div class="buttonPanelItem">
-                    <pip-video
-                      [src]="vidUrl()"
-                      [muted]="true"
-                      (click)="focusMap()"
-                    >
-                    </pip-video>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-
-                <!-- Autopilot console-->
-                @if (
-                  app.featureFlags().autopilotApi &&
-                  app.data.vessels.self.autopilot.default &&
-                  app.config.display.fab !== 'autopilot'
-                ) {
-                  <div class="buttonPanelItem">
-                    <button
-                      mat-mini-fab
-                      [ngClass]="{
-                        'button-primary':
-                          app.data.vessels.self.autopilot.enabled,
-                        'button-toolbar':
-                          !app.data.vessels.self.autopilot.enabled
-                      }"
-                      matTooltip="Autopilot"
-                      matTooltipPosition="before"
-                      (click)="
-                        toggleAutopilotConsole(!app.uiCtrl().autopilotConsole)
-                      "
-                    >
-                      <mat-icon
-                        class="ob"
-                        svgIcon="command-autopilot"
-                      ></mat-icon>
-                    </button>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-
-                <!-- Radar console-->
-                @if (
-                  app.featureFlags().radarApi &&
-                  radarApi.radarId() &&
-                  app.config.display.fab !== 'radar'
-                ) {
-                  <div class="buttonPanelItem">
-                    <button
-                      mat-mini-fab
-                      [ngClass]="{
-                        'button-primary': app.uiCtrl().radarLayer,
-                        'button-toolbar': !app.uiCtrl().radarLayer
-                      }"
-                      [disabled]="this.app.instrumentPanel().open"
-                      matTooltip="Radar"
-                      matTooltipPosition="before"
-                      (click)="toggleRadarPanel()"
-                    >
-                      <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
-                    </button>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-
-                <!-- plotter extension buttons -->
-                @for (
-                  entry of plotterExt.toolbarButtons();
-                  track entry.extension + '/' + entry.button.id
-                ) {
-                  <div class="buttonPanelItem">
-                    <button
-                      class="button-toolbar"
-                      mat-mini-fab
-                      [matTooltip]="entry.button.title"
-                      matTooltipPosition="before"
-                      (click)="
-                        plotterExt.handleButtonAction(
-                          entry.extension,
-                          entry.button
-                        )
-                      "
-                    >
-                      <mat-icon>{{
-                        entry.button.icon || 'extension'
-                      }}</mat-icon>
-                    </button>
-                    <br />&nbsp;<br />
-                  </div>
-                }
-              </div>
+                [style.bottom.px]="rightToolbarBottom()"
+                [items]="rightToolbarItems()"
+              ></fb-map-toolbar>
+              <!-- the video element behind the toolbar's Show Video button -->
+              @if (
+                app.config.resources.video.enable &&
+                app.config.resources.video.url
+              ) {
+                <pip-video
+                  [src]="vidUrl()"
+                  [muted]="true"
+                  (click)="focusMap()"
+                ></pip-video>
+              }
             }
             <!-- /right button bar -->
           }
