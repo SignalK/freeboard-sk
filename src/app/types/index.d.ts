@@ -332,7 +332,7 @@ export type LegacyAppConfig = Omit<
     notes?: unknown; // legacy notes selections section; dropped
   };
   display: IAppConfig['display'] & {
-    plugins?: unknown; // retired instruments panel settings; dropped
+    plugins?: unknown; // retired instruments panel settings; kept for older builds sharing this config
   };
 };
 

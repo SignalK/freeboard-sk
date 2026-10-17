@@ -521,8 +521,6 @@ export function cleanConfig(
 
   // ensure legacy notes selections section is removed
   delete settings.selections.notes;
-  // ensure the settings of the retired instruments panel are removed
-  delete settings.display.plugins;
 
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {
