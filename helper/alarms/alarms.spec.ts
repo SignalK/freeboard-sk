@@ -33,14 +33,19 @@ const makeServer = (
   listResources: (...args: unknown[]) => Promise<unknown>
 ) => {
   const getRoutes = new Map<string, RouteHandler>();
+  const postRoutes = new Map<string, RouteHandler>();
   const deltas: { handler?: DeltaHandler } = {};
+  const handleMessage = vi.fn(); // deleting an area clears its notification
+  const getSelfPath = vi.fn((): unknown => undefined);
   const server = {
     debug: noop,
     get: (path: string, handler: RouteHandler) => getRoutes.set(path, handler),
-    post: noop,
+    post: (path: string, handler: RouteHandler) =>
+      postRoutes.set(path, handler),
     put: noop,
     delete: noop,
-    handleMessage: noop, // deleting an area clears its notification
+    handleMessage,
+    getSelfPath,
     subscriptionmanager: {
       subscribe: (
         _cmd: unknown,
@@ -53,7 +58,7 @@ const makeServer = (
     },
     resourcesApi: { listResources }
   } as unknown as FreeboardHelperApp;
-  return { server, getRoutes, deltas };
+  return { server, getRoutes, postRoutes, deltas, handleMessage, getSelfPath };
 };
 
 // Invoke a captured GET handler and return what it sent as JSON.
@@ -133,7 +138,7 @@ describe('initAlarms() — regions provider missing (#732)', () => {
     initAlarms(server, 'freeboard-sk');
     await vi.advanceTimersByTimeAsync(5000);
 
-    expect(listResources).toHaveBeenCalledWith('regions', undefined);
+    expect(listResources).toHaveBeenCalledWith('regions', {});
     expect(unhandled).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
 
@@ -474,5 +479,61 @@ describe('region alarm areas — Region resource shapes (#755)', () => {
       deltas.handler(regionDelta('never-tracked', null))
     ).not.toThrow();
     expect(await areaIds(getRoutes)).not.toContain('never-tracked');
+  });
+});
+
+describe('silencing an area alarm', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    shutdownAlarms();
+    vi.useRealTimers();
+  });
+
+  const setUp = async () => {
+    const env = makeServer(() => Promise.resolve({ reef: hazardRegion }));
+    initAlarms(env.server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+    const route = env.postRoutes.get(`${AREA_PATH}/:id/silence`);
+    if (!route) {
+      throw new Error('silence route not registered');
+    }
+    const silence = () =>
+      route(
+        { method: 'POST', path: '', params: { id: 'reef' } },
+        { status: () => ({ json: noop }) }
+      );
+    env.handleMessage.mockClear();
+    return { ...env, silence };
+  };
+
+  it('sends nothing when the area has no notification yet', async () => {
+    const { silence, handleMessage } = await setUp();
+
+    silence();
+
+    expect(handleMessage).not.toHaveBeenCalled();
+  });
+
+  it('drops only the sound method from an active notification', async () => {
+    const { silence, handleMessage, getSelfPath } = await setUp();
+    getSelfPath.mockReturnValue({
+      value: { state: 'alarm', message: 'x', method: ['sound', 'visual'] }
+    });
+
+    silence();
+
+    expect(handleMessage).toHaveBeenCalledTimes(1);
+    const delta = handleMessage.mock.calls[0][1] as Delta;
+    expect(delta.updates[0]).toMatchObject({
+      values: [
+        {
+          path: 'notifications.area.reef',
+          value: { state: 'alarm', message: 'x', method: ['visual'] }
+        }
+      ]
+    });
   });
 });

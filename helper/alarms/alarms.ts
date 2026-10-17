@@ -13,6 +13,7 @@ import {
   Region,
   SKVersion,
   SubscribeMessage,
+  Unsubscribes,
   Update
 } from '@signalk/server-api';
 import { FreeboardHelperApp } from '../index';
@@ -22,9 +23,27 @@ import { isPointWithinRadius, isPointInPolygon } from 'geolib';
 type AlarmTrigger = 'entry' | 'exit';
 type AlarmGeometry = 'polygon' | 'circle' | 'region';
 
-interface AreaAlarmDef {
-  geometry: AlarmGeometry;
+interface CircleAreaAlarmDef {
+  geometry: 'circle';
   trigger: AlarmTrigger;
+  center: Position;
+  radius: number;
+  name?: string;
+}
+
+interface PolygonAreaAlarmDef {
+  geometry: 'polygon' | 'region';
+  trigger: AlarmTrigger;
+  coords: Array<Position>;
+  name?: string;
+}
+
+type AreaAlarmDef = CircleAreaAlarmDef | PolygonAreaAlarmDef;
+
+/** An area alarm request body, before validateAreaBody() has checked it. */
+interface AreaAlarmBody {
+  geometry?: AlarmGeometry;
+  trigger?: AlarmTrigger;
   coords?: Array<Position>;
   center?: Position;
   radius?: number;
@@ -70,17 +89,20 @@ class AreaAlarmManager {
    * @returns void
    */
   update(id: string, condition: AlarmCondition) {
-    if (!alarmAreas.has(id)) {
+    const area = alarmAreas.get(id);
+    if (!area) {
       return;
     }
-    if (!this.alarms.has(id)) {
-      this.alarms.set(id, {
+    let alarm = this.alarms.get(id);
+    if (!alarm) {
+      alarm = {
         alarmId: id,
         active: false,
         lastUpdate: Date.now() - 1000
-      });
+      };
+      this.alarms.set(id, alarm);
     }
-    this.assessStatus(id, condition);
+    this.assessStatus(id, area, alarm, condition);
   }
 
   /**
@@ -91,27 +113,32 @@ class AreaAlarmManager {
     const n = getSelfPathValue<{ method?: ALARM_METHOD[] }>(
       `notifications.area.${id}`
     );
-    if (n?.value && Array.isArray(n.value.method)) {
+    if (!n?.value) {
+      return;
+    }
+    if (Array.isArray(n.value.method)) {
       const m = n.value.method.filter((i) => i !== 'sound');
       n.value.method = m;
     }
     emitNotification({
       path: `notifications.area.${id}` as Path,
-      value: n?.value
+      value: n.value
     });
   }
 
   /**
    * Assess and emit alarm based on supplied condition
    * @param id alarm id
+   * @param area monitored area
+   * @param alarm alarm status of the area
    * @param condition current condition
    */
-  private assessStatus(id: string, condition: AlarmCondition) {
-    if (!alarmAreas.has(id)) {
-      return;
-    }
-    const area = alarmAreas.get(id);
-    const alarm = this.alarms.get(id);
+  private assessStatus(
+    id: string,
+    area: AreaAlarmDef,
+    alarm: AreaAlarmStatus,
+    condition: AlarmCondition
+  ) {
     let notify = false;
 
     if (area.trigger === 'entry') {
@@ -173,7 +200,7 @@ class AreaAlarmManager {
 
 let server: FreeboardHelperApp;
 let pluginId: string;
-let unsubscribes = [];
+let unsubscribes: Unsubscribes = [];
 
 const alarmAreas: Map<string, AreaAlarmDef> = new Map();
 const alarmManager: AreaAlarmManager = new AreaAlarmManager();
@@ -444,7 +471,7 @@ const deleteArea = (id: string) => {
  * @param body request body (untrusted; defaults are applied and stray
  * fields removed in place)
  */
-const validateAreaBody = (body: Partial<AreaAlarmDef>) => {
+const validateAreaBody = (body: AreaAlarmBody) => {
   if (!body.trigger) {
     body.trigger = 'entry';
   } else if (!AREA_TRIGGERS.includes(body.trigger)) {
@@ -542,7 +569,7 @@ const parseRegionList = async (attempt: number) => {
   // its config): recoverable, there are simply no region alarm areas to load.
   let regList: Record<string, unknown>;
   try {
-    regList = await server.resourcesApi.listResources('regions', undefined);
+    regList = await server.resourcesApi.listResources('regions', {});
   } catch (err) {
     if (!regionLoadActive) {
       return; // plugin stopped while the request was in flight
@@ -603,16 +630,15 @@ const isHazardRegion = (region: Region): boolean =>
  * @param region Region data
  */
 const processRegionUpdate = (id: string, region: Region | null) => {
-  if (alarmAreas.has(id)) {
+  const area = alarmAreas.get(id);
+  if (area) {
     if (!region) {
       deleteArea(id);
     } else if (!isHazardRegion(region)) {
       deleteArea(id);
-    } else {
-      const r = alarmAreas.get(id);
-      r.coords = parseRegionCoords(region);
-      r.name = region.name;
-      alarmAreas.set(id, r);
+    } else if (area.geometry !== 'circle') {
+      area.coords = parseRegionCoords(region);
+      area.name = region.name;
     }
   } else if (region) {
     // a deletion (null) of a region that was never a hazard area is a no-op
