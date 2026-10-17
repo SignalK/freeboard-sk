@@ -106,7 +106,7 @@ jobs:
 
       - name: Stamp the feature ledger with the release version
         run: |
-          node dev-tools/changelog/index.mjs stamp
+          node dev-tools/changelog/index.mts stamp
           if git diff --quiet -- features/changelog.json; then
             exit 0
           fi
@@ -144,7 +144,7 @@ jobs:
         id: check
         run: |
           set +e
-          node dev-tools/changelog/index.mjs check > missing.md
+          node dev-tools/changelog/index.mts check > missing.md
           code=$?
           set -e
           # Exit 1 with a list means rows are missing; anything else is a fault.

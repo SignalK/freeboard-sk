@@ -12,9 +12,9 @@ dependencies; it shells out to `git`.
 ## Commands
 
 ```bash
-node dev-tools/changelog/index.mjs stamp [version]      # write since values into the ledger
-node dev-tools/changelog/index.mjs render <tag> [--out <file>]   # print/write the Release body
-node dev-tools/changelog/index.mjs check                # list feat/perf PRs with no ledger row
+node dev-tools/changelog/index.mts stamp [version]      # write since values into the ledger
+node dev-tools/changelog/index.mts render <tag> [--out <file>]   # print/write the Release body
+node dev-tools/changelog/index.mts check                # list feat/perf PRs with no ledger row
 ```
 
 ### `stamp [version]`
@@ -57,8 +57,8 @@ below); run it locally on `master` to see what a release would be missing.
 ## Dry run
 
 ```bash
-node dev-tools/changelog/index.mjs stamp v3.0.0     # graduates betas (mutates the ledger)
-node dev-tools/changelog/index.mjs render v3.0.0    # preview the notes
+node dev-tools/changelog/index.mts stamp v3.0.0     # graduates betas (mutates the ledger)
+node dev-tools/changelog/index.mts render v3.0.0    # preview the notes
 git checkout features/changelog.json                # discard the dry-run stamp
 ```
 
@@ -114,7 +114,7 @@ The npm publish is the last step and can fail on its own: the `publish` job of
 
 ## Tests
 
-Pure logic lives in `lib.mjs` and is unit-tested in `lib.spec.mjs`
+Pure logic lives in `lib.mts` and is unit-tested in `lib.spec.mts`
 (`npm run test:tools`, a standalone Vitest config). The `.github/workflows/tools.yml`
 job runs it on PRs that touch `dev-tools/` (or the tooling's dependencies/workflow).
 </content>

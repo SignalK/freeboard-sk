@@ -11,6 +11,8 @@ on:
   pull_request:
     paths:
       - 'dev-tools/**'
+      # The changelog tool reads the app's ledger row type.
+      - 'src/app/modules/features/feature-corpus.ts'
       - 'helper/**'
       - '.github/workflows/tools.yml'
       - 'package.json'
@@ -19,6 +21,8 @@ on:
     branches: [master]
     paths:
       - 'dev-tools/**'
+      # The changelog tool reads the app's ledger row type.
+      - 'src/app/modules/features/feature-corpus.ts'
       - 'helper/**'
       - '.github/workflows/tools.yml'
       - 'package.json'

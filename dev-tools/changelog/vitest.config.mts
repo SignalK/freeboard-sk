@@ -4,6 +4,6 @@ import { defineConfig } from 'vitest/config';
 // no Angular setup. Run via `npm run test:tools`.
 export default defineConfig({
   test: {
-    include: ['**/*.spec.mjs']
+    include: ['**/*.spec.mts']
   }
 });
