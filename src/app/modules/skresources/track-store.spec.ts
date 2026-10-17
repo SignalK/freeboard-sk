@@ -72,6 +72,23 @@ describe('storeTrackBody', () => {
     });
   });
 
+  it('never takes the vessel from the file', () => {
+    const own: MultiLineStringFeature = {
+      ...feature,
+      properties: {
+        name: 'Friend',
+        context: 'vessels.urn:mrn:imo:mmsi:123456789',
+        contextName: 'Ariadne',
+        isSelf: true
+      }
+    };
+    const times = [['2026-10-01T08:00:00Z', '2026-10-01T08:01:00Z']];
+    expect(storeTrackBody(own, times).properties).toEqual({
+      name: 'Friend',
+      coordTimes: times
+    });
+  });
+
   it('adds the point times when given', () => {
     const times = [['2026-10-01T08:00:00Z', '2026-10-01T08:01:00Z']];
     expect(storeTrackBody(feature, times).properties.coordTimes).toBe(times);

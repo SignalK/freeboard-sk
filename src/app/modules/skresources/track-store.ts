@@ -98,6 +98,10 @@ export function storeTrackBody(
   };
 }
 
+/** Properties never copied from a file: the ones a provider derives, and the
+ * vessel. A file naming the own vessel would otherwise be written into its
+ * recording by the tracks plugin, replacing what the boat recorded; which
+ * vessel a track belongs to is the user's choice, not the file's. */
 const DERIVED = new Set([
   'id',
   'providerId',
@@ -108,6 +112,8 @@ const DERIVED = new Set([
   'to',
   'resolution',
   'epsilon',
+  'context',
+  'contextName',
   'isSelf'
 ]);
 
