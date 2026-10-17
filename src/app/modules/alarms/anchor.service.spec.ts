@@ -23,7 +23,7 @@ describe('AnchorService plugin commands', () => {
         {
           provide: AppFacade,
           useValue: {
-            debug: () => undefined,
+            debug: (): void => undefined,
             data: { vessels: { self: { position: vessel } } }
           }
         },
