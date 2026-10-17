@@ -82,6 +82,15 @@ describe('MapToolbarComponent', () => {
     expect(buttonIcons()).toEqual(['icon_a', 'icon_b', 'icon_c']);
   });
 
+  it('names every button for screen readers, including "…"', () => {
+    mount([item('a'), item('b'), item('c')]);
+    fitSlots(2);
+    expect(buttons().map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Label a',
+      'More buttons'
+    ]);
+  });
+
   it('shows the first X - 1 buttons then "…" when they do not fit', () => {
     mount([item('a'), item('b'), item('c'), item('d')]);
     fitSlots(3);
