@@ -1131,6 +1131,38 @@ slow, cut the number of *tests* that need a mount rather than sharing one betwee
 component graph, not the rendering. Selecting a tab costs ~14ms against
 `createComponent`'s 168ms, so "render fewer tabs" saves nothing measurable.
 
+### Rendering a real `ol-map` in a spec: it mounts, but `mapReady` never fires
+
+**The trap.** A component whose template holds an `ol-map` looks untestable in TestBed,
+and some specs say so ("a TestBed fixture would need a whole map"). It isn't: the real
+template, OpenLayers map included, mounts fine under jsdom. What doesn't happen is
+anything that waits for the map to be ready. `MapComponent` creates the map in `ngOnInit`
+but only calls `afterMapReady()` on the map's first `postrender`, and a map in jsdom has
+no size, so it never renders a frame. So:
+
+- `mapReady` never emits, and whatever the component does from its handler silently
+  never runs. In the split view's second pane that is `setSecondaryMap()`, so
+  `SplitViewService.secondaryActive()` stays `false` however you activate the pane.
+- The map's event outputs (`mapClick`, `mapMoveEnd`, pointer events, …) are wired up in
+  `afterMapReady()` too, so they never fire either.
+
+Nothing errors or warns. The assertions just fail, and the failure points at your
+feature, not at the test setup.
+
+**What to do instead.** Render the real template, then do by hand what `mapReady` would
+have done, and run change detection again:
+
+```ts
+const fixture = TestBed.createComponent(HostComponent);
+fixture.detectChanges();
+TestBed.inject(SplitViewService).setSecondaryMap(new OlMap());
+fixture.detectChanges();
+```
+
+`SplitMapComponent: the status bar` in `split-map.component.spec.ts` is the worked
+example. To drive the map's own events, call the handler directly on a bare instance, as
+the other split-map specs do; don't wait for OpenLayers to emit them.
+
 ### Unit-testing a function that lives *inside* the stream worker
 
 **The trap.** The logic you want to test (e.g. `apiGet`, `getVesselTrail`) is a
