@@ -260,6 +260,7 @@ export class AppComponent {
   public mode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME; // current mode
 
   private timers = [];
+  private userConfigLoaded: Promise<unknown> = Promise.resolve();
   private trackApiNoticeShown = false; // this session
 
   // external resources
@@ -1131,12 +1132,14 @@ export class AppComponent {
         next: () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
-          this.app.loadUserConfigfromServer().finally(() => {
-            this.loadSymbolsThenFetchResources();
-            // after user config is final so persisted widget placements
-            // reflect the server-stored layout, not a stale local copy
-            this.plotterExt.init();
-          });
+          this.userConfigLoaded = this.app
+            .loadUserConfigfromServer()
+            .finally(() => {
+              this.loadSymbolsThenFetchResources();
+              // after user config is final so persisted widget placements
+              // reflect the server-stored layout, not a stale local copy
+              this.plotterExt.init();
+            });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
@@ -1233,11 +1236,40 @@ export class AppComponent {
     // Get unit preferences from the signal k server
     this.app.fetchUnitPrefsFromSKServer();
 
+    // Tracks go to the Track API when it can hold them; /resources/tracks is
+    // then only read, to move what it still holds.
+    const trackStore = await this.skres.detectTrackStore();
     // Check for custom resource collections
-    const rcs = await this.skresOther.initCustomCollections();
+    const rcs = await this.skresOther.initCustomCollections(
+      trackStore ? ['tracks'] : []
+    );
     this.app.featureFlags.update((current) => {
-      return Object.assign({}, current, rcs);
+      return Object.assign({}, current, rcs, { trackStore });
     });
+    if (trackStore) {
+      if (this.app.featureFlags().resourceTracks) {
+        // Moving rewrites track selections and saves the config, which must
+        // be the user's config from the server, not the local one it replaces.
+        await this.userConfigLoaded;
+        await this.moveResourceTracks();
+      }
+      this.skres.refreshTracks();
+    }
+  }
+
+  /** Move Freeboard's tracks from /resources/tracks into the Track API. */
+  private async moveResourceTracks() {
+    try {
+      const moved = await this.skres.migrateResourceTracks();
+      if (moved !== 0) {
+        this.app.saveConfig();
+        this.app.showMessage(
+          `Moved ${moved} track${moved === 1 ? '' : 's'} to the Track API.`
+        );
+      }
+    } catch (err) {
+      console.warn('Tracks not moved to the Track API:', err);
+    }
   }
 
   // ** start trail / AIS timers

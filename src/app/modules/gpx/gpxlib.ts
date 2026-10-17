@@ -489,6 +489,8 @@ export class GPX {
     pt.lat = Number(xmlwpt['$'].lat) || 0;
     pt.lon = Number(xmlwpt['$'].lon) || 0;
     pt.ele = xmlwpt.ele ? Number(this.xValue(xmlwpt.ele)) : null;
+    const time = xmlwpt.time ? new Date(this.xValue(xmlwpt.time)) : null;
+    pt.datetime = time && !isNaN(time.getTime()) ? time : undefined;
 
     pt.sym = xmlwpt.sym ? this.xValue(xmlwpt.sym) : null;
     pt.name = xmlwpt.name ? this.xValue(xmlwpt.name) : null;

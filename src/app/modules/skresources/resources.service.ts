@@ -85,7 +85,8 @@ import {
   FBVessel,
   FBResource,
   ResourceActionResult,
-  SKVesselResponse
+  SKVesselResponse,
+  MultiLineStringFeature
 } from 'src/app/types';
 import { ActionResult, PathValue } from 'src/app/types';
 import { groupBy } from 'rxjs/operators';
@@ -113,6 +114,16 @@ import {
   withPointNames,
   type PointMeta
 } from './components/route-reorder.util';
+import {
+  StoredTrackFeature,
+  StoreTrackBody,
+  storeTrackBody,
+  toTrackFeature,
+  trackStoreItemPath,
+  TRACK_BY_ID_PROBE,
+  TRACK_IMPORTS_LIST,
+  TRACK_STORE_PATH
+} from './track-store';
 
 export type SKResourceType =
   'routes' | 'waypoints' | 'regions' | 'notes' | 'charts' | 'tracks';
@@ -3635,13 +3646,196 @@ export class SKResourceService {
     }
     this.app.debug(`** refreshTracks(): ${query}`);
     try {
-      const trks = await this.listFromServer<FBTrack>('tracks', query);
+      const trks = await this.listTracks(query);
       const flist = trks.filter((track: FBTrack) => track[2]);
       this.trackCacheSignal.set(flist);
     } catch (err) {
       this.app.debug('** refreshTracks:', err);
       this.trackCacheSignal.set([]);
     }
+  }
+
+  // The Track API sends no resource deltas, so lists watch this instead.
+  private trackStoreVersionSignal = signal(0);
+  readonly trackStoreVersion = this.trackStoreVersionSignal.asReadonly();
+
+  /**
+   * @description Whether the Track API can hold Freeboard's tracks: the server
+   * has its by-id routes, and the tracks plugin lists the stored imports.
+   */
+  public async detectTrackStore(): Promise<boolean> {
+    const byIdRoutes = new Promise<boolean>((resolve) => {
+      this.signalk.api.get(2, TRACK_BY_ID_PROBE).subscribe({
+        next: () => resolve(false),
+        error: (err: HttpErrorResponse) => resolve(err.status === 400)
+      });
+    });
+    const importList = new Promise<boolean>((resolve) => {
+      this.signalk.get(TRACK_IMPORTS_LIST).subscribe({
+        next: (res: unknown) => resolve(Array.isArray(res)),
+        error: () => resolve(false)
+      });
+    });
+    const [routes, list] = await Promise.all([byIdRoutes, importList]);
+    return routes && list;
+  }
+
+  /**
+   * @description List Freeboard's tracks. Tracks still in /resources/tracks
+   * (not yet moved to the Track API) are listed beside the stored ones.
+   * @param query Filter criteria for /resources/tracks
+   * @returns Promise<FBTracks> (rejects with HTTPErrorResponse)
+   */
+  public async listTracks(query?: string): Promise<FBTracks> {
+    const flags = this.app.featureFlags();
+    const [stored, resources] = await Promise.all([
+      // the tracks plugin may be restarting: still list the resource tracks
+      flags.trackStore
+        ? this.listStoredTracks().catch((err) => {
+            console.warn('Stored tracks not listed:', err);
+            return [];
+          })
+        : [],
+      flags.resourceTracks ? this.listFromServer<FBTrack>('tracks', query) : []
+    ]);
+    return stored.concat(resources);
+  }
+
+  /** Every stored import: listed by the tracks plugin, each then fetched
+   * whole, with its point times, through the Track API. */
+  private async listStoredTracks(): Promise<FBTracks> {
+    const imports = await new Promise<Array<{ id?: string }>>(
+      (resolve, reject) => {
+        this.signalk.get(TRACK_IMPORTS_LIST).subscribe({
+          next: (res: Array<{ id?: string }>) =>
+            resolve(Array.isArray(res) ? res : []),
+          error: (err: HttpErrorResponse) => reject(err)
+        });
+      }
+    );
+    const features = await Promise.all(
+      imports
+        .filter((i) => typeof i?.id === 'string')
+        .map(
+          (i) =>
+            new Promise<StoredTrackFeature | undefined>((resolve) => {
+              this.signalk.api.get(2, trackStoreItemPath(i.id)).subscribe({
+                next: (f: StoredTrackFeature) => resolve(f),
+                // deleted since it was listed
+                error: () => resolve(undefined)
+              });
+            })
+        )
+    );
+    const list: FBTracks = [];
+    features.forEach((f) => {
+      const feature = f && toTrackFeature(f);
+      if (feature) {
+        list.push([
+          feature.id,
+          new SKTrack({ feature }),
+          !this.selectionIsFiltered('tracks') ||
+            this.selectionHas('tracks', feature.id)
+        ]);
+      }
+    });
+    return list;
+  }
+
+  /**
+   * @description Store a track in Freeboard's track store: the Track API when
+   * available, else /resources/tracks.
+   * @param feature Track geometry and properties
+   * @param coordTimes Time of every point, nested to match the segments
+   * @returns Promise<string> id of the stored track (rejects with HTTPErrorResponse)
+   */
+  public async importTrack(
+    feature: MultiLineStringFeature,
+    coordTimes?: string[][]
+  ): Promise<string> {
+    if (this.app.featureFlags().trackStore) {
+      const id = await this.storeTrack(storeTrackBody(feature, coordTimes));
+      this.trackStoreVersionSignal.update((v) => v + 1);
+      return id;
+    }
+    const res = await this.postToServer('tracks', new SKTrack({ feature }));
+    if (Math.floor(res.statusCode / 100) !== 2) {
+      throw new Error(res.message ?? 'Track not stored');
+    }
+    return res.id;
+  }
+
+  private storeTrack(body: StoreTrackBody): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api.post(2, TRACK_STORE_PATH, body).subscribe({
+        next: (res: { id?: string }) =>
+          res?.id
+            ? resolve(res.id)
+            : reject(new Error('Track stored without an id')),
+        error: (err: HttpErrorResponse) => reject(err)
+      });
+    });
+  }
+
+  private deleteStoredTrack(id: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api.delete(2, trackStoreItemPath(id)).subscribe({
+        next: () => resolve(),
+        error: (err: HttpErrorResponse) => reject(err)
+      });
+    });
+  }
+
+  /**
+   * @description Move every /resources/tracks track into the Track API, so
+   * Freeboard keeps one track store. Each track is deleted from
+   * /resources/tracks once stored; if that delete fails (another client moved
+   * it first, or no permission), the new copy is removed again so the track
+   * exists once. A track the Track API refuses as invalid stays where it is;
+   * any other refusal stops the move.
+   * @returns Number of tracks moved
+   */
+  public async migrateResourceTracks(): Promise<number> {
+    let moved = 0;
+    const old = await this.listFromServer<FBTrack>('tracks');
+    for (const [oldId, trk] of old) {
+      const feature: MultiLineStringFeature = {
+        ...trk.feature,
+        properties: {
+          ...trk.feature.properties,
+          name: trk.name || trk.feature.properties?.name,
+          description: trk.description || trk.feature.properties?.description
+        }
+      };
+      let newId: string;
+      try {
+        newId = await this.storeTrack(storeTrackBody(feature));
+      } catch (err) {
+        if (err instanceof HttpErrorResponse && err.status === 400) {
+          console.warn(`Track ${oldId} not moved to the Track API:`, err);
+          continue;
+        }
+        console.warn('Tracks not moved to the Track API:', err);
+        break;
+      }
+      try {
+        await this.deleteFromServer('tracks', oldId);
+      } catch {
+        await this.deleteStoredTrack(newId).catch((err) =>
+          console.warn(`Track ${oldId} is now stored twice:`, err)
+        );
+        continue;
+      }
+      moved++;
+      if (this.selectionHas('tracks', oldId)) {
+        this.selectionRemove('tracks', oldId);
+        this.selectionAdd('tracks', newId);
+      }
+    }
+    if (moved !== 0) {
+      this.trackStoreVersionSignal.update((v) => v + 1);
+    }
+    return moved;
   }
 
   /**
@@ -3738,8 +3932,9 @@ export class SKResourceService {
   /**
    * @description Confirm deletion of Track with supplied id
    * @param id Track identifier
+   * @param stored The track is held by the Track API, not /resources/tracks
    */
-  public async deleteTrack(id: string) {
+  public async deleteTrack(id: string, stored = false) {
     if (!id) {
       return;
     }
@@ -3753,7 +3948,13 @@ export class SKResourceService {
       .subscribe(async (result: { ok: boolean; checked: boolean }) => {
         if (result && result.ok) {
           try {
-            await this.deleteFromServer('tracks', id);
+            if (stored) {
+              await this.deleteStoredTrack(id);
+              this.trackRemove([id]);
+              this.trackStoreVersionSignal.update((v) => v + 1);
+            } else {
+              await this.deleteFromServer('tracks', id);
+            }
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
           }

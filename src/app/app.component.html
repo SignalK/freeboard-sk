@@ -61,7 +61,7 @@
       </button>
 
       <mat-divider></mat-divider>
-      @if (app.featureFlags().resourceTracks) {
+      @if (app.tracksAvailable()) {
         <button mat-menu-item (click)="displayLeftMenu('trackList', true)">
           <mat-icon class="icon-warn">show_chart</mat-icon>
           &nbsp;Tracks

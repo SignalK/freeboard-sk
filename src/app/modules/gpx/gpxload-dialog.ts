@@ -17,7 +17,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKResourceService, SKTrack } from 'src/app/modules';
+import { SKResourceService } from 'src/app/modules';
+import { coordTimesOf } from 'src/app/modules/skresources/track-store';
 import { SymbolService } from 'src/app/modules/icons';
 import {
   GPX,
@@ -27,7 +28,7 @@ import {
   GPXTrackSegment
 } from './gpxlib';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ErrorList } from 'src/app/types';
+import { ErrorList, MultiLineStringFeature } from 'src/app/types';
 
 //** GPXLoad dialog **
 @Component({
@@ -319,17 +320,17 @@ export class GPXImportDialog implements OnInit {
     const trkIds = [];
     for (let i = 0; i < res.trk.selected.length; i++) {
       if (res.trk.selected[i]) {
-        const trk = this.transformTrack(this.gpx.trk[i]);
+        const gpxtrk = this.gpx.trk[i];
+        const trk = this.transformTrack(gpxtrk);
         this.subCount++;
         try {
-          const res = await this.skres.postToServer('tracks', trk as SKTrack);
+          const id = await this.skres.importTrack(
+            trk.feature,
+            coordTimesOf((gpxtrk.trkseg ?? []).map((seg) => seg.trkpt))
+          );
           this.subCount--;
-          if (Math.floor(res['statusCode'] / 100) === 2) {
-            trkIds.push(res.id);
-            this.app.debug('SUCCESS: Track added.');
-          } else {
-            this.errorCount++;
-          }
+          trkIds.push(id);
+          this.app.debug('SUCCESS: Track added.');
           this.checkComplete();
         } catch (err) {
           this.errorCount++;
@@ -488,8 +489,10 @@ export class GPXImportDialog implements OnInit {
   }
 
   // ** transform and upload track
-  private transformTrack(gpxtrk: GPXTrack) {
-    const trk = {
+  private transformTrack(gpxtrk: GPXTrack): {
+    feature: MultiLineStringFeature;
+  } {
+    const trk: { feature: MultiLineStringFeature } = {
       feature: {
         type: 'Feature',
         geometry: { type: 'MultiLineString', coordinates: [] },
