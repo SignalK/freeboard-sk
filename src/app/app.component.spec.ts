@@ -10,6 +10,7 @@ import { RadarAPIService } from './modules/radar/radar-api.service';
 import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { Position } from './types';
+import { WhatsNewService } from './modules/features/whats-new.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -140,7 +141,7 @@ describe('AppComponent', () => {
       fixture.detectChanges();
 
       const labels = Array.from(
-        document.querySelectorAll<HTMLElement>('.mat-mdc-menu-item-text')
+        document.querySelectorAll<HTMLElement>('.mat-mdc-menu-item-text > span')
       ).map((el) => el.textContent?.trim());
       expect(labels.slice(0, 2)).toEqual([
         'Show Heading Up',
@@ -148,6 +149,40 @@ describe('AppComponent', () => {
       ]);
       // ...followed by More's own items
       expect(labels).toContain('Settings');
+    });
+
+    it("lists What's New once when its button is hidden in More", () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = TestBed.inject(AppFacade);
+      app.uiConfig.update((c) =>
+        Object.assign({}, c, { toolbarButtons: true })
+      );
+      fixture.detectChanges();
+      (
+        TestBed.inject(WhatsNewService) as unknown as {
+          _hasUnseen: WritableSignal<boolean>;
+        }
+      )._hasUnseen.set(true);
+      fixture.detectChanges();
+
+      fixture.debugElement
+        .queryAll(By.directive(MatMenuTrigger))
+        .find(
+          (de) =>
+            de.nativeElement.querySelector('mat-icon')?.textContent?.trim() ===
+            'more_horiz'
+        )
+        ?.injector.get(MatMenuTrigger)
+        .openMenu();
+      fixture.detectChanges();
+
+      const labels = Array.from(
+        document.querySelectorAll<HTMLElement>('.mat-mdc-menu-item-text > span')
+      ).map((el) => el.textContent?.trim());
+      expect(labels.filter((l) => l === "What's New")).toHaveLength(1);
+      expect(labels.indexOf("What's New")).toBeLessThan(
+        labels.indexOf('Settings')
+      );
     });
   });
 

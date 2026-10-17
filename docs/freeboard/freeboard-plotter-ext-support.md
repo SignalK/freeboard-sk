@@ -442,7 +442,7 @@ The window layer (`fb-pe-window-layer`) is absolutely positioned inside the
 chart's `mat-sidenav-content`, so the **window area is the chart area**: it
 excludes the extension panel drawer, and whenever Freeboard shows its controls
 (not kiosk mode) it is inset 54 px left and right, clear of the toolbar columns
-(`.buttonPanel`, z-index 4800). Inside the chart's stacking context the layer
+(`fb-map-toolbar`, z-index 4800). Inside the chart's stacking context the layer
 sits at z-index 4850, above the map, and **below** the map buttons, nav data,
 alarm/bottom-sheet (4902), FAB (5000) and alert list (6100). So no window, sheet
 or modal backdrop can cover the toolbars (including the Alarms button) or the

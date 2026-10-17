@@ -182,6 +182,9 @@ import {
         z-index: 4800;
         padding: 5px 2px 2px 2px;
         overflow: hidden;
+        /* Always room for the overflow button, even when widgets squeeze the
+           toolbar to nothing; it then overlaps the Action Button instead. */
+        min-height: 58px;
       }
       :host(.left) {
         left: 0;

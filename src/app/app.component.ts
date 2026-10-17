@@ -691,6 +691,10 @@ export class AppComponent {
     return items;
   }
 
+  protected overflowHas(overflow: ToolbarItem[], id: string): boolean {
+    return overflow.some((i) => i.id === id);
+  }
+
   /**
    * Right-hand toolbar buttons, top to bottom, with plotter extension buttons
    * last. Built on every change detection pass, like leftToolbarItems().
@@ -818,7 +822,8 @@ export class AppComponent {
       items.push({
         id: `ext:${entry.extension}/${entry.button.id}`,
         icon: entry.button.icon || 'extension',
-        tooltip: entry.button.title,
+        // the title becomes a visible menu label, so never leave it blank
+        tooltip: entry.button.title || entry.extensionName,
         action: () =>
           this.plotterExt.handleButtonAction(entry.extension, entry.button)
       });
