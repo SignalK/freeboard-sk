@@ -44,4 +44,11 @@
   <!-- The main chart's layers are mirrored in from code; this pane adds
        only the outline of what the main chart is showing. -->
   <fb-view-footprint [ring]="footprint()" [zIndex]="950"></fb-view-footprint>
+  @if (split.secondaryActive() && statusBar(); as bar) {
+    <ol-control>
+      <ol-content>
+        <ng-container [ngTemplateOutlet]="bar"></ng-container>
+      </ol-content>
+    </ol-control>
+  }
 </ol-map>

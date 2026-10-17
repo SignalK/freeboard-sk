@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -914,5 +914,89 @@ describe('SplitMapComponent: what it follows and tells', () => {
     fixture.detectChanges();
 
     expect(scale.getUnits()).toBe('metric');
+  });
+});
+
+// The main chart's status bar follows the active pane: the second pane shows
+// it, in its own map control, only while it is the active one.
+describe('SplitMapComponent: the status bar', () => {
+  @Component({
+    imports: [SplitMapComponent],
+    template: `
+      <ng-template #bar><span class="probe-status-bar">bar</span></ng-template>
+      <fb-split-map [statusBar]="bar"></fb-split-map>
+    `
+  })
+  class HostComponent {}
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [HostComponent],
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            MAP_ZOOM_EXTENT: { min: 2, max: 24 },
+            config: { map: { zoomLevel: 10, center: [24, 60] } },
+            data: { vessels: { active: { positionReceived: false } } }
+          }
+        },
+        {
+          provide: SKStreamFacade,
+          useValue: { vessels$: () => new Subject() }
+        },
+        {
+          provide: FBMapInteractService,
+          useValue: {
+            isDrawing: signal(false),
+            isModifying: signal(false),
+            isMeasuring: signal(false),
+            isBoxSelecting: signal(false)
+          }
+        },
+        { provide: LiveAnnouncer, useValue: { announce: vi.fn() } }
+      ]
+    });
+  });
+
+  afterEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+
+  // The pane registers its map after the map's first render, which never comes
+  // without a layout: register one here, as the app would.
+  const open = () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    TestBed.inject(SplitViewService).setSecondaryMap(new OlMap());
+    fixture.detectChanges();
+    return fixture;
+  };
+
+  const shown = (fixture: { nativeElement: HTMLElement }) =>
+    fixture.nativeElement.querySelector(
+      'fb-split-map .ol-overlaycontainer-stopevent .probe-status-bar'
+    ) !== null;
+
+  it('shows it in the second pane while that pane is active', () => {
+    const split = TestBed.inject(SplitViewService);
+    split.toggle();
+    const fixture = open();
+    expect(split.secondaryActive()).toBe(true);
+
+    expect(shown(fixture)).toBe(true);
+  });
+
+  it('takes it out while the main chart is active, and back on return', () => {
+    const split = TestBed.inject(SplitViewService);
+    split.toggle();
+    const fixture = open();
+
+    split.activate('main');
+    fixture.detectChanges();
+    expect(shown(fixture)).toBe(false);
+
+    split.activate('secondary');
+    fixture.detectChanges();
+    expect(shown(fixture)).toBe(true);
   });
 });

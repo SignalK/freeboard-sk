@@ -141,6 +141,21 @@ export function activeZoom(
   return paneActive ? (paneZoom ?? mainZoom) : mainZoom;
 }
 
+/**
+ * The room to leave under the status bar for widgets along the bottom of the
+ * screen. The bar is in the active pane, and needs it wherever that pane
+ * reaches the bottom of the screen: everywhere but in the main chart while it
+ * is the top one of two stacked panes.
+ */
+export function paneStatusBarLift(
+  widgetLift: number,
+  paneOpen: boolean,
+  stacked: boolean,
+  paneActive: boolean
+): number {
+  return paneOpen && stacked && !paneActive ? 0 : widgetLift;
+}
+
 /** The part of an OpenLayers map the footprint reads. */
 export interface FootprintSource {
   getSize(): number[] | undefined;

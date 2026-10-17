@@ -13,8 +13,10 @@ import {
   effect,
   inject,
   NgZone,
+  TemplateRef,
   untracked
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -83,7 +85,11 @@ import {
   SecondaryTap,
   SplitViewService
 } from './split-view/split-view.service';
-import { activeZoom, gateZoom } from './split-view/split-view';
+import {
+  activeZoom,
+  gateZoom,
+  paneStatusBarLift
+} from './split-view/split-view';
 import {
   radarRange,
   rangeRingScale,
@@ -281,6 +287,7 @@ const OFFSET_GRACE_PERIOD = 2000;
     MatButtonModule,
     MatTooltipModule,
     CoordsPipe,
+    NgTemplateOutlet,
     MatCardModule,
     MatMenuModule,
     FreeboardOpenlayersModule,
@@ -326,6 +333,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
   @ViewChild('olMap', { static: false }) olMap: MapComponent;
+  /**
+   * The status bar (position, zoom and cursor ETA readout). It is shown in
+   * whichever split-view pane is active, so the second pane renders it too.
+   */
+  @ViewChild('statusBar', { static: true }) statusBar: TemplateRef<unknown>;
   @ViewChild('routeDraw', { static: false })
   routeDraw: InteractionDrawComponent;
 
@@ -361,15 +373,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
-  /**
-   * Room left under the position readout for widgets along the bottom of the
-   * screen. Stacked under the split view's second pane, this chart does not
-   * reach the bottom of the screen, so it needs none.
-   */
+  /** Room left under the status bar for widgets along the bottom of the screen. */
   protected statusBarLift = computed(() =>
-    this.splitView.secondaryMap() && this.splitView.stacked()
-      ? 0
-      : this.plotterExt.statusBarLift()
+    paneStatusBarLift(
+      this.plotterExt.statusBarLift(),
+      !!this.splitView.secondaryMap(),
+      this.splitView.stacked(),
+      this.splitView.secondaryActive()
+    )
   );
   /**
    * The higher zoom of the panes on screen. Layers shown only from some zoom
@@ -577,7 +588,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private routeReverse = inject(RouteReverseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
-  private splitView = inject(SplitViewService);
+  protected splitView = inject(SplitViewService);
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);

@@ -99,68 +99,15 @@
     </ol-content>
   </ol-control>
 
-  <!-- Cursor position control -->
-  <ol-control>
-    <ol-content>
-      <div
-        class="ol-mouse-position"
-        [style.bottom]="statusBarLift() > 0 ? statusBarLift() + 'px' : null"
-      >
-        <span
-          style="
-            background-color: rgba(250, 250, 250, 0.7);
-            padding: 0 5px 0 5px;
-          "
-        >
-          @if (app.config.units.positionFormat === 'XY') {
-            <span>Lat:&nbsp;</span>
-          }
-          <span
-            [innerText]="
-              mouse().coords[1] | coords: app.config.units.positionFormat : true
-            "
-          ></span>
-          &nbsp;
-          @if (app.config.units.positionFormat === 'XY') {
-            <span>Lon:&nbsp;</span>
-          }
-
-          <span
-            [innerText]="
-              mouse().coords[0] | coords: app.config.units.positionFormat
-            "
-          ></span>
-          &nbsp;
-          <span [innerText]="'Zm: ' + mapZoomText()"></span>
-          @if (cursorInfo(); as ci) {
-            &nbsp;
-            <span
-              [innerText]="
-                'Brg: ' +
-                app.formatValueForDisplay(ci.bearing, 'deg', {
-                  precision: 0
-                })
-              "
-            ></span>
-            &nbsp;
-            <span
-              [innerText]="
-                'Dist: ' + app.formatValueForDisplay(ci.distance, 'm')
-              "
-            ></span>
-            @if (ci.timeToGo !== null) {
-              &nbsp;
-              <span
-                [innerText]="
-                  'ETA: ' + app.formatValueForDisplay(ci.timeToGo, 's')
-                "
-              ></span>
-            }
-          }
-        </span>
-      </div>
-    </ol-content>
-  </ol-control>
+  <!-- Status bar: shown in the active pane; the second pane renders the
+       same template while it is the active one. -->
+  @if (!splitView.secondaryActive()) {
+    <ol-control>
+      <ol-content>
+        <ng-container [ngTemplateOutlet]="statusBar"></ng-container>
+      </ol-content>
+    </ol-control>
+  }
 
   <!-- Charts -->
   @for (c of skres.charts(); track c[0]; let idx = $index) {
@@ -1201,3 +1148,56 @@
     }
   </ng-template>
 </mat-menu>
+
+<ng-template #statusBar>
+  <div
+    class="ol-mouse-position"
+    [style.bottom]="statusBarLift() > 0 ? statusBarLift() + 'px' : null"
+  >
+    <span
+      style="background-color: rgba(250, 250, 250, 0.7); padding: 0 5px 0 5px"
+    >
+      @if (app.config.units.positionFormat === 'XY') {
+        <span>Lat:&nbsp;</span>
+      }
+      <span
+        [innerText]="
+          mouse().coords[1] | coords: app.config.units.positionFormat : true
+        "
+      ></span>
+      &nbsp;
+      @if (app.config.units.positionFormat === 'XY') {
+        <span>Lon:&nbsp;</span>
+      }
+
+      <span
+        [innerText]="
+          mouse().coords[0] | coords: app.config.units.positionFormat
+        "
+      ></span>
+      &nbsp;
+      <span [innerText]="'Zm: ' + mapZoomText()"></span>
+      @if (cursorInfo(); as ci) {
+        &nbsp;
+        <span
+          [innerText]="
+            'Brg: ' +
+            app.formatValueForDisplay(ci.bearing, 'deg', {
+              precision: 0
+            })
+          "
+        ></span>
+        &nbsp;
+        <span
+          [innerText]="'Dist: ' + app.formatValueForDisplay(ci.distance, 'm')"
+        ></span>
+        @if (ci.timeToGo !== null) {
+          &nbsp;
+          <span
+            [innerText]="'ETA: ' + app.formatValueForDisplay(ci.timeToGo, 's')"
+          ></span>
+        }
+      }
+    </span>
+  </div>
+</ng-template>

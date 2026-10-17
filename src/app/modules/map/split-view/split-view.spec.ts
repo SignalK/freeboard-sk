@@ -5,6 +5,7 @@ import {
   DEFAULT_SPLIT_VIEW,
   fitRatio,
   gateZoom,
+  paneStatusBarLift,
   parseSplitViewState,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
@@ -175,5 +176,33 @@ describe('activeZoom', () => {
 
   it("is the main chart's until the pane has reported its zoom", () => {
     expect(activeZoom(10, null, true)).toBe(10);
+  });
+});
+
+describe('paneStatusBarLift', () => {
+  // The room a bottom-centre widget needs; 0 with none on screen.
+  const WIDGET = 60;
+
+  it('clears the widgets with the chart not split', () => {
+    expect(paneStatusBarLift(WIDGET, false, false, false)).toBe(WIDGET);
+    expect(paneStatusBarLift(WIDGET, false, true, false)).toBe(WIDGET);
+  });
+
+  it('clears the widgets side by side, whichever pane is active', () => {
+    expect(paneStatusBarLift(WIDGET, true, false, false)).toBe(WIDGET);
+    expect(paneStatusBarLift(WIDGET, true, false, true)).toBe(WIDGET);
+  });
+
+  it('clears the widgets stacked, in the second pane', () => {
+    expect(paneStatusBarLift(WIDGET, true, true, true)).toBe(WIDGET);
+  });
+
+  it('needs no room stacked, in the main chart above the second pane', () => {
+    expect(paneStatusBarLift(WIDGET, true, true, false)).toBe(0);
+  });
+
+  it('needs no room with no widget along the bottom', () => {
+    expect(paneStatusBarLift(0, true, true, true)).toBe(0);
+    expect(paneStatusBarLift(0, false, false, false)).toBe(0);
   });
 });
