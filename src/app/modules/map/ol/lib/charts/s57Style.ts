@@ -1,5 +1,5 @@
 import { S57Service, Lookup, DisplayCategory } from './s57.service';
-import { Feature } from 'ol';
+import { FeatureLike } from 'ol/Feature';
 import { Style, Fill, Stroke, Icon, Text } from 'ol/style';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 
@@ -183,7 +183,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2121
-  private GetCSQQUALIN01(feature: Feature): string[] {
+  private GetCSQQUALIN01(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const featureProperties = feature.getProperties();
 
@@ -224,7 +224,7 @@ export class S57Style {
   }
 
   // https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2185
-  private GetCSQQUAPNT01(feature: Feature): string[] {
+  private GetCSQQUAPNT01(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const featureProperties = feature.getProperties();
 
@@ -261,7 +261,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2072
-  private GetCSQUAPOS01(feature: Feature): string[] {
+  private GetCSQUAPOS01(feature: FeatureLike): string[] {
     const geometry = feature.getGeometry();
 
     if (geometry.getType() === 'LineString') {
@@ -272,7 +272,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2232
-  private GetCSSLCONS03(feature: Feature): string[] {
+  private GetCSSLCONS03(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const featureProperties = feature.getProperties();
     const geometry = feature.getGeometry();
@@ -339,7 +339,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L5809
-  private GetCSTOPMAR01(feature: Feature): string[] {
+  private GetCSTOPMAR01(feature: FeatureLike): string[] {
     let rulestring: string;
     const featureProperties = feature.getProperties();
     if (!featureProperties['TOPSHP']) {
@@ -576,7 +576,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4494C40-L4494C40
-  private GetCSLIGHTS05(feature: Feature): string[] {
+  private GetCSLIGHTS05(feature: FeatureLike): string[] {
     let rulestring: string = null;
     const featureProperties = feature.getProperties();
 
@@ -646,7 +646,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4295
-  private GetCSDEPCNT02(feature: Feature): string[] {
+  private GetCSDEPCNT02(feature: FeatureLike): string[] {
     //let rulestring: string = null;
     const featureProperties = feature.getProperties();
     const geometry = feature.getGeometry();
@@ -700,7 +700,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4247
-  private getCSDEPARE01(feature: Feature): string[] {
+  private getCSDEPARE01(feature: FeatureLike): string[] {
     const featureProperties = feature.getProperties();
 
     let drval1 = -1;
@@ -731,7 +731,7 @@ export class S57Style {
     return retval;
   }
 
-  private GetCSSOUNDG02(feature: Feature): string[] {
+  private GetCSSOUNDG02(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const featureProperties = feature.getProperties();
 
@@ -779,7 +779,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/master/libs/s52plib/src/s52cnsy.cpp
-  private GetCSOBSTRN04(feature: Feature): string[] {
+  private GetCSOBSTRN04(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const props = feature.getProperties();
     const geomType = feature.getGeometry().getType();
@@ -831,7 +831,7 @@ export class S57Style {
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/master/libs/s52plib/src/s52cnsy.cpp
-  private GetCSWRECKS02(feature: Feature): string[] {
+  private GetCSWRECKS02(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const props = feature.getProperties();
     const geomType = feature.getGeometry().getType();
@@ -880,7 +880,7 @@ export class S57Style {
     return retval;
   }
 
-  private GetCSRESTRN01(feature: Feature): string[] {
+  private GetCSRESTRN01(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const props = feature.getProperties();
 
@@ -925,14 +925,14 @@ export class S57Style {
     return retval;
   }
 
-  private GetCSRESARE02(feature: Feature): string[] {
+  private GetCSRESARE02(feature: FeatureLike): string[] {
     const retval: string[] = [];
     retval.push('LS(DASH,2,CHMGD)');
     retval.push(...this.GetCSRESTRN01(feature));
     return retval;
   }
 
-  private evalCS(feature: Feature, instruction: string): string[] {
+  private evalCS(feature: FeatureLike, instruction: string): string[] {
     let retval: string[] = [];
     const instrParts = this.instructionMatch.exec(instruction);
     if (instrParts && instrParts.length > 1) {
@@ -979,7 +979,7 @@ export class S57Style {
     return retval;
   }
 
-  private getStylesFromRules(lup: Lookup, feature: Feature): Style[] {
+  private getStylesFromRules(lup: Lookup, feature: FeatureLike): Style[] {
     const styles: Style[] = [];
     if (lup) {
       const properties = feature.getProperties();
@@ -1048,7 +1048,7 @@ export class S57Style {
     return styles;
   }
 
-  private layerOrder(feature: Feature): number {
+  private layerOrder(feature: FeatureLike): number {
     const properties = feature.getProperties();
 
     const layer = properties['layer'];
@@ -1083,7 +1083,7 @@ export class S57Style {
     }
   }
 
-  private updateSafeContour(feature: Feature): number {
+  private updateSafeContour(feature: FeatureLike): number {
     const properties = feature.getProperties();
     if (properties['DRVAL1']) {
       const drval1 = properties['DRVAL1'];
@@ -1108,7 +1108,10 @@ export class S57Style {
     return 0;
   }
 
-  public renderOrder = (feature1: Feature, feature2: Feature): number => {
+  public renderOrder = (
+    feature1: FeatureLike,
+    feature2: FeatureLike
+  ): number => {
     const l1 = this.layerOrder(feature1);
     const l2 = this.layerOrder(feature2);
     // TODO: updateSafeContour has side effects inside a sort comparator,
@@ -1146,7 +1149,7 @@ export class S57Style {
     return 0;
   };
 
-  public getStyle = (feature: Feature, resolution: number): Style[] => {
+  public getStyle = (feature: FeatureLike, resolution: number): Style[] => {
     this.currentResolution = resolution;
     let lupIndex = feature[LOOKUPINDEXKEY];
     if (lupIndex === undefined || lupIndex === null) {

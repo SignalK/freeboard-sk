@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 
 import { Feature } from 'ol';
+import { FeatureLike } from 'ol/Feature';
 import { Style, Stroke, Fill, Text } from 'ol/style';
 import { Polygon, Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
@@ -105,7 +106,7 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
     return f;
   }
 
-  buildStyle(feature: Feature) {
+  buildStyle(feature: FeatureLike) {
     return [
       new Style({
         stroke: new Stroke({

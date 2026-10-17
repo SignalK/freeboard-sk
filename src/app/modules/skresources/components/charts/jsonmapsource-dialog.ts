@@ -181,10 +181,10 @@ export class JsonMapSourceDialog {
     this.provider = undefined;
 
     this.http
-      .get(uri)
+      .get<TileJson | MapboxStyle>(uri)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res: TileJson | MapboxStyle) => {
+        next: (res) => {
           this.isFetching = false;
           if (!res.name) {
             this.errorMsg = 'Invalid response received!';

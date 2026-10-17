@@ -56,6 +56,17 @@ export interface FBMapEvent extends MapEvent {
   rotation: number;
 }
 
+/**
+ * OpenLayers types every map browser event's `originalEvent` as a pointer,
+ * keyboard or wheel event, but the pointer gesture types (click, singleclick,
+ * dblclick, pointerdrag, pointermove) are only ever raised from a PointerEvent.
+ */
+function pointerGesture(
+  listener: (event: MapBrowserEvent<PointerEvent>) => void
+): (event: MapBrowserEvent) => void {
+  return listener as (event: MapBrowserEvent) => void;
+}
+
 export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
   features: Array<FeatureLike>;
   lonlat: Coordinate;
@@ -145,7 +156,7 @@ export class MapComponent implements OnInit, OnDestroy {
     new EventEmitter<FBClickEvent>();
   @Output() mapDblClick: EventEmitter<FBClickEvent> =
     new EventEmitter<FBClickEvent>();
-  @Output() mapMoveStart: EventEmitter<MapEvent> =
+  @Output() mapMoveStart: EventEmitter<FBMapEvent> =
     new EventEmitter<FBMapEvent>();
   @Output() mapMoveEnd: EventEmitter<FBMapEvent> =
     new EventEmitter<FBMapEvent>();
@@ -478,9 +489,9 @@ export class MapComponent implements OnInit, OnDestroy {
 
   // Discrete user actions (clicks) re-enter the Angular zone so consumers that
   // mutate Angular state / open popovers trigger change detection.
-  private emitClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
+  private emitClickEvent = pointerGesture((event) => {
     this.ngZone.run(() => this.mapClick.emit(this.augmentClickEvent(event)));
-  };
+  });
 
   private emitRightClickEvent = (event: MouseEvent) => {
     this.ngZone.run(() => {
@@ -502,20 +513,20 @@ export class MapComponent implements OnInit, OnDestroy {
       });
     });
   };
-  private emitSingleClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
+  private emitSingleClickEvent = pointerGesture((event) => {
     this.ngZone.run(() =>
       this.mapSingleClick.emit(this.augmentClickEvent(event))
     );
     // Consumers have now seen this click, so a vertex delete it completed is
     // spent and must not suppress the next one (#608).
     clearVertexDeleted(this.map);
-  };
-  private emitDblClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
+  });
+  private emitDblClickEvent = pointerGesture((event) => {
     this.ngZone.run(() => this.mapDblClick.emit(this.augmentClickEvent(event)));
     // A double click cancels the pending singleclick, so retire the marker here
     // instead (#608).
     clearVertexDeleted(this.map);
-  };
+  });
 
   // Render-space offset (EPSG:3857 metres) of the world copy a click landed in,
   // relative to the primary world. `toLonLat` normalises a click to [-180,180]
@@ -568,7 +579,7 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  private emitPointerDragEvent = (event: MapBrowserEvent<PointerEvent>) => {
+  private emitPointerDragEvent = pointerGesture((event) => {
     // Only a real move (beyond tolerance) cancels the hold / pending delete —
     // a real drag means "move the vertex", a jitter does not.
     this.clearTimerIfMoved(event);
@@ -577,11 +588,11 @@ export class MapComponent implements OnInit, OnDestroy {
     // a later drag must not retire one whose click is still pending (#608).
     clearVertexDeletedOnDrag(this.map);
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
-  };
-  private emitPointerMoveEvent = (event: MapBrowserEvent<PointerEvent>) => {
+  });
+  private emitPointerMoveEvent = pointerGesture((event) => {
     this.clearTimerIfMoved(event);
     this.mapPointerMove.emit(this.augmentPointerEvent(event));
-  };
+  });
 
   // ** add {lonlat, worldOffset} fields to event
   private augmentPointerEvent(event: MapBrowserEvent<PointerEvent>) {

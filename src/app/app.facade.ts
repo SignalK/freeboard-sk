@@ -13,7 +13,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -438,8 +438,12 @@ export class AppFacade extends InfoService {
    * Sets serverConfig.unitPreferences signal
    */
   public fetchUnitPrefsFromSKServer() {
-    this.signalk.get('/signalk/v1/unitpreferences/active').subscribe({
-      next: (res: SKServerUnitPrefs) => {
+    (
+      this.signalk.get(
+        '/signalk/v1/unitpreferences/active'
+      ) as Observable<SKServerUnitPrefs>
+    ).subscribe({
+      next: (res) => {
         this.serverConfig.unitPreferences.set(res);
         this.refreshPathDisplayUnits();
       },
@@ -633,8 +637,8 @@ export class AppFacade extends InfoService {
             this.debug(
               'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
             );
-            this.signalk.appDataGet('/').subscribe({
-              next: (serverSettings: IAppConfig) => {
+            (this.signalk.appDataGet('/') as Observable<IAppConfig>).subscribe({
+              next: (serverSettings) => {
                 if (Object.keys(serverSettings).length === 0) {
                   resolve(false);
                 }

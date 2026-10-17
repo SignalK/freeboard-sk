@@ -6,6 +6,7 @@
     "alwaysStrict": true,
     "noImplicitThis": true,
     "strictBindCallApply": true,
+    "strictFunctionTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
     "noImplicitReturns": false,
