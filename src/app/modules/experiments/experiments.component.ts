@@ -1,17 +1,17 @@
 /** Experiments Components **
  ********************************/
 
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild } from '@angular/core';
 
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatMenu, MatMenuModule } from '@angular/material/menu';
 
 /********* ExperimentsComponent ********/
+// Provides the Experiments menu; the host's toolbar renders the button that
+// opens it.
 @Component({
   selector: 'fb-experiments',
-  imports: [MatMenuModule, MatIconModule, MatButtonModule, MatTooltipModule],
+  imports: [MatMenuModule, MatIconModule],
   template: `
     <mat-menu #experimentsmenu="matMenu">
       <!--
@@ -28,22 +28,12 @@ import { MatMenuModule } from '@angular/material/menu';
         <span>Capture Debug Info</span>
       </a>
     </mat-menu>
-
-    <div>
-      <button
-        class="button-toolbar"
-        mat-mini-fab
-        [matMenuTriggerFor]="experimentsmenu"
-        matTooltip="Experiments"
-        matTooltipPosition="left"
-      >
-        <mat-icon>science</mat-icon>
-      </button>
-    </div>
   `,
   styles: [``]
 })
 export class ExperimentsComponent {
+  @ViewChild('experimentsmenu', { static: true }) menu: MatMenu;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() selected: EventEmitter<any> = new EventEmitter();
 

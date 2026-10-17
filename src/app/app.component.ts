@@ -6,8 +6,12 @@ import {
   effect,
   inject,
   signal,
-  untracked
+  untracked,
+  viewChild
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { map } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { GPXExportService } from 'src/app/modules/gpx/gpx-export.service';
@@ -20,7 +24,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatMenu, MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -28,8 +32,11 @@ import {
   ETADialComponent,
   FileInputComponent,
   InteractionHelpComponent,
+  MapToolbarComponent,
   MFBContainerComponent,
   PiPVideoComponent,
+  ToolbarItem,
+  toolbarMenuLabel,
   TextDialComponent,
   TTGDialComponent
 } from './lib/components';
@@ -156,6 +163,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     ETADialComponent,
     FileInputComponent,
     PiPVideoComponent,
+    MapToolbarComponent,
     MFBContainerComponent,
     InteractionHelpComponent,
     FBMapComponent,
@@ -191,6 +199,13 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
 export class AppComponent {
   @ViewChild('sideright', { static: false }) sideright;
   @ViewChild('fbMap', { static: false }) fbMap: FBMapComponent;
+  @ViewChild('layersmenu', { static: true }) private layersMenu: MatMenu;
+  @ViewChild('editmenu', { static: true }) private editMenu: MatMenu;
+  @ViewChild('settingsmenu', { static: true }) private settingsMenu: MatMenu;
+  @ViewChild(ExperimentsComponent, { static: true })
+  private experiments: ExperimentsComponent;
+  private pipVideo = viewChild(PiPVideoComponent);
+  protected leftToolbar = viewChild<MapToolbarComponent>('leftToolbar');
 
   protected navDataPanel = signal<{
     show: boolean;
@@ -253,6 +268,7 @@ export class AppComponent {
   protected vidUrl = signal<SafeResourceUrl | null>(null);
 
   protected convert = Convert;
+  protected toolbarMenuLabel = toolbarMenuLabel;
   private obsList = []; // observables array
   private streamOptions = { options: null, toMode: null };
 
@@ -299,6 +315,22 @@ export class AppComponent {
   protected plotterExt = inject(PlotterExtensionService);
   private temporaryRoutes = inject(TemporaryRouteService);
   protected whatsNew = inject(WhatsNewService);
+
+  // The Instruments panel is too wide for a narrow screen, so its toolbar
+  // button is left out there.
+  private narrowScreen = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 800px)')
+      .pipe(map((state) => state.matches)),
+    { initialValue: false }
+  );
+
+  // The right-hand toolbar stops above the Action Button (56 px tall, 23 px
+  // from the bottom unless widgets lift it).
+  protected rightToolbarBottom = computed(() => {
+    const lift = this.plotterExt.actionButtonLift();
+    return (lift > 0 ? lift : 23) + 57;
+  });
 
   constructor() {
     // set self to active vessel
@@ -574,6 +606,229 @@ export class AppComponent {
       });
     });
     this.focusMap();
+  }
+
+  /**
+   * Left toolbar buttons, top to bottom. Built on every change detection
+   * pass because several conditions are plain (non-signal) state.
+   */
+  protected leftToolbarItems(): ToolbarItem[] {
+    const interacting = this.isInteracting();
+    const northUp = this.viewNorthUp();
+    const follows = this.app.activePaneFollows();
+    const items: ToolbarItem[] = [
+      {
+        id: 'alarms',
+        svgIcon: 'alert-list',
+        iconClass: 'ob',
+        tooltip: 'Alarms',
+        buttonClass: 'button-warn',
+        badge: this.notiMgr.alerts().length,
+        action: () => this.toggleAlertList(true)
+      },
+      {
+        id: 'layers',
+        icon: 'layers',
+        tooltip: 'Routes, Waypoints, Notes, etc.',
+        buttonClass: 'button-accent',
+        disabled: interacting,
+        menu: this.layersMenu
+      },
+      {
+        id: 'draw',
+        icon: 'edit',
+        tooltip: 'Draw / Measure / Select',
+        disabled: interacting,
+        menu: this.editMenu
+      },
+      {
+        id: 'northUp',
+        svgIcon: northUp ? 'heading-n-up' : 'heading-h-up',
+        iconClass: 'ob',
+        tooltip: northUp ? 'Show Heading Up' : 'Show North Up',
+        active: !northUp,
+        action: () => this.toggleNorthUp()
+      },
+      {
+        id: 'follow',
+        svgIcon: 'cent-iec',
+        iconClass: 'ob',
+        tooltip: follows ? 'Turn off Follow Vessel' : 'Center & Follow Vessel',
+        active: follows,
+        disabled: !this.app.data.vessels.showSelf,
+        action: () => this.toggleFollow()
+      },
+      {
+        id: 'more',
+        icon: 'more_horiz',
+        tooltip: 'More actions',
+        disabled: interacting,
+        menu: this.settingsMenu,
+        overflowAnchor: true
+      }
+    ];
+    if (this.mode === SKSTREAM_MODE.PLAYBACK) {
+      items.push({
+        id: 'exitPlayback',
+        icon: 'cancel',
+        tooltip: 'Exit playback mode',
+        buttonClass: 'button-warn',
+        active: true,
+        action: () => this.showSelectMode()
+      });
+    }
+    // A passive indicator, present only while unseen feature changes exist.
+    if (this.whatsNew.hasUnseen()) {
+      items.push({
+        id: 'whatsNew',
+        icon: 'tips_and_updates',
+        tooltip: "What's New",
+        buttonClass: 'button-accent',
+        active: true,
+        action: () => this.openFeatureBrowser()
+      });
+    }
+    return items;
+  }
+
+  protected overflowHas(overflow: ToolbarItem[], id: string): boolean {
+    return overflow.some((i) => i.id === id);
+  }
+
+  /**
+   * Right-hand toolbar buttons, top to bottom, with plotter extension buttons
+   * last. Built on every change detection pass, like leftToolbarItems().
+   */
+  protected rightToolbarItems(): ToolbarItem[] {
+    const items: ToolbarItem[] = [];
+    const ui = this.app.uiConfig();
+    if (
+      this.app.instrumentPanelAvailable() &&
+      this.app.config.display.plugins.instruments &&
+      !this.narrowScreen()
+    ) {
+      // Transient conditions disable the button rather than remove it, so the
+      // buttons below it don't shift as the user works.
+      items.push({
+        id: 'instruments',
+        icon: 'av_timer',
+        tooltip: 'Instruments',
+        disabled:
+          this.app.instrumentPanel().open ||
+          this.infoPanel.opened() ||
+          this.isInteracting() ||
+          !!this.app.data.vessels.activeId,
+        action: () => this.openInstrumentPanel()
+      });
+    }
+    if (this.audioStatus() !== 'running') {
+      items.push({
+        id: 'audio',
+        icon: 'volume_off',
+        iconClass: 'icon-warn',
+        tooltip: 'Web Audio off! Click to enable.',
+        buttonClass: 'button-toolbar',
+        active: true,
+        action: () => this.enableAudio()
+      });
+    }
+    if (this.app.isTopWindow() && this.displayFullscreen().enabled) {
+      const fullscreen = this.displayFullscreen().active;
+      items.push({
+        id: 'fullscreen',
+        icon: fullscreen ? 'fullscreen_exit' : 'fullscreen',
+        tooltip: fullscreen ? 'Exit Fullscreen' : 'Go Fullscreen',
+        active: fullscreen,
+        action: () => this.toggleFullscreen()
+      });
+    }
+    items.push(
+      {
+        id: 'constrainZoom',
+        icon: 'zoom_in_map',
+        tooltip: 'Constrain map zoom',
+        active: ui.mapConstrainZoom,
+        action: () => this.toggleConstrainMapZoom()
+      },
+      {
+        id: 'invertColor',
+        icon: 'invert_colors',
+        tooltip: 'Invert feature text color',
+        active: ui.invertColor,
+        action: () => this.invertFeatureLabelColor()
+      }
+    );
+    if (this.app.config.display.splitView) {
+      const split = this.splitView.enabled();
+      items.push({
+        id: 'splitView',
+        icon: 'vertical_split',
+        tooltip: split ? 'Close split view' : 'Split view: a second chart',
+        active: split,
+        action: () => this.splitView.toggle()
+      });
+    }
+    if (this.app.config.experiments) {
+      items.push({
+        id: 'experiments',
+        icon: 'science',
+        tooltip: 'Experiments',
+        menu: this.experiments.menu
+      });
+    }
+    if (
+      this.app.config.resources.video.enable &&
+      this.app.config.resources.video.url
+    ) {
+      items.push({
+        id: 'pip',
+        icon: 'videocam',
+        tooltip: 'Show Video',
+        disabled: !this.pipVideo()?.canStart(),
+        action: () => this.pipVideo()?.initPiP()
+      });
+    }
+    if (
+      this.app.featureFlags().autopilotApi &&
+      this.app.data.vessels.self.autopilot.default &&
+      this.app.config.display.fab !== 'autopilot'
+    ) {
+      items.push({
+        id: 'autopilot',
+        svgIcon: 'command-autopilot',
+        iconClass: 'ob',
+        tooltip: 'Autopilot',
+        active: this.app.data.vessels.self.autopilot.enabled,
+        action: () =>
+          this.toggleAutopilotConsole(!this.app.uiCtrl().autopilotConsole)
+      });
+    }
+    if (
+      this.app.featureFlags().radarApi &&
+      this.radarApi.radarId() &&
+      this.app.config.display.fab !== 'radar'
+    ) {
+      items.push({
+        id: 'radar',
+        svgIcon: 'radar-iec',
+        iconClass: 'ob',
+        tooltip: 'Radar',
+        active: this.app.uiCtrl().radarLayer,
+        disabled: this.app.instrumentPanel().open,
+        action: () => this.toggleRadarPanel()
+      });
+    }
+    for (const entry of this.plotterExt.toolbarButtons()) {
+      items.push({
+        id: `ext:${entry.extension}/${entry.button.id}`,
+        icon: entry.button.icon || 'extension',
+        // the title becomes a visible menu label, so never leave it blank
+        tooltip: entry.button.title || entry.extensionName,
+        action: () =>
+          this.plotterExt.handleButtonAction(entry.extension, entry.button)
+      });
+    }
+    return items;
   }
 
   /**

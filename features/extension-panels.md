@@ -16,7 +16,8 @@ routes around land.
 ![Fig 2. An auto-routing panel, another example of a panel extension](extension-panels-2.jpg)
 
 **To use one**, tap the grid icon in the top-right corner of the chart to
-reveal the toolbar, then tap the plugin's button. Its panel slides in from
+reveal the toolbar, then tap the plugin's button. On a small screen it may be
+under the **…** button at the bottom of the toolbar. Its panel slides in from
 the right-hand side of the screen. Tap the button again, or use the panel's
 own close button, to put it away. Some plugins show their panel in a floating
 window instead — see below.

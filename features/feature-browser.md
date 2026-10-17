@@ -21,7 +21,8 @@ or release.
 
 A small lightbulb button also appears on the left toolbar whenever there's
 something new or changed you haven't seen yet — click it to jump straight
-into the Feature Browser. It only shows up when there's something to tell
+into the Feature Browser. On a screen too short for it, it's listed at the
+top of the **More actions** menu instead. It only shows up when there's something to tell
 you about, and disappears once you've opened the browser. Freeboard no
 longer interrupts you with a welcome screen or a "what's new" popup when it
 starts — this lightbulb is the quiet, opt-in replacement.
