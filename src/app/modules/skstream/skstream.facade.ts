@@ -6,6 +6,7 @@ import { Observable, Subject } from 'rxjs';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './skstream.service';
+import type { MsgFromApp } from 'src/app/types/stream';
 import { CourseService, SettingsFacade, SKVessel } from 'src/app/modules';
 import {
   UpdateMessage,
@@ -227,7 +228,7 @@ export class SKStreamFacade {
     this.worker.close();
   }
 
-  post(msg) {
+  post(msg: MsgFromApp) {
     this.worker.postMessage(msg);
   }
 
@@ -399,7 +400,7 @@ export class SKStreamFacade {
    * Refresh the aisLifecycle().updated list.
    */
   aisTargetUpdated() {
-    const av = [];
+    const av: string[] = [];
     this.app.data.vessels.aisTargets.forEach((v, k) => {
       av.push(k);
     });

@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
-import { SKStreamAPI, Alarm } from './stream-api';
+import { SKStreamAPI, Alarm, AlarmState } from './stream-api';
+import type { Subscription } from 'rxjs';
 import {
   SKVessel,
   SKAtoN,
@@ -15,7 +16,10 @@ import {
   TrailMessage,
   ResultPayload,
   ResourceMessage,
-  RadarMessage
+  RadarMessage,
+  SKPosition,
+  SKStreamMessage,
+  MsgFromApp
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
@@ -87,20 +91,36 @@ interface VesselTrailConfig {
 
 type GroupFilter = Map<string, SKVessel | SKSaR | SKAircraft | SKAtoN>;
 
-interface MsgFromApp {
-  cmd:
-    | 'open'
-    | 'close'
-    | 'subscribe'
-    | 'settings'
-    | 'alarm'
-    | 'vessel'
-    | 'auth'
-    | 'trail'
-    | 'view'
-    | 'trackSelection';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options: { [key: string]: any };
+/** What `handleStreamEvent` receives from the stream's observables. */
+type StreamEvent =
+  | { action: 'onConnect' | 'onClose' | 'onError'; msg: Event }
+  | { action: 'onMessage'; msg: SKStreamMessage };
+
+interface OpenStreamOptions {
+  url?: string;
+  subscribe?: string;
+  token?: string;
+  playback?: boolean;
+  playbackOptions?: {
+    startTime?: string;
+    playbackRate?: number;
+    subscribe?: string;
+  };
+}
+
+interface AlarmOptions {
+  type: string;
+  raise: boolean;
+  message: string;
+  state?: AlarmState;
+}
+
+// object value of a delta on the root path of an AIS target context
+interface TargetInfoValue {
+  name?: string;
+  mmsi?: string;
+  atonType?: SKAtoN['type'];
+  communication?: { callsignVhf?: string; callsignHf?: string };
 }
 
 // preference source paths
@@ -129,8 +149,8 @@ const watchDog = {
 let vessels: ResultPayload; // post message payload
 let stream: SKStreamAPI;
 let skToken!: string;
-const unsubscribe = [];
-let timers = [];
+const unsubscribe: Subscription[] = [];
+let timers: ReturnType<typeof setInterval>[] = [];
 let updateReceived = false;
 
 let apiUrl: string; // path to Signal K api
@@ -168,7 +188,7 @@ let extRecalcCounter = 0;
 let targetStatus: AisStatus; // per interval ais target status
 
 // ** settings **
-let preferredPaths = {};
+let preferredPaths: Partial<IAppConfig['units']['preferredPaths']> = {};
 let msgInterval = 500;
 let playbackMode = false;
 let playbackTime: string;
@@ -244,13 +264,13 @@ function initAisTargetStatus() {
     result: 'result / message'
 } 
 */
-export function handleStreamEvent({ action, msg }) {
+export function handleStreamEvent({ action, msg }: StreamEvent) {
   switch (action) {
     case 'onConnect':
       postMessage({
         action: 'open',
         playback: playbackMode,
-        result: msg.target.readyState
+        result: (msg.target as WebSocket).readyState
       });
       refreshTrackSource();
       watchDog.msgCount = 0;
@@ -334,10 +354,10 @@ function handleCommand(data: MsgFromApp) {
       //console.log('Worker control: settings...');
       applySettings(data.options as WorkerSettings);
       break;
-    //** { cmd: 'alarm', options: {raise: boolean, type: string, msg: string, state: string} }
+    //** { cmd: 'alarm', options: {raise: boolean, type: string, message: string, state: AlarmState} }
     case 'alarm':
       //console.log('Worker control: alarm action...');
-      actionAlarm(data.options);
+      actionAlarm(data.options as AlarmOptions);
       break;
     //** { cmd: 'vessel', options: {context: string, name: string} }
     case 'vessel':
@@ -755,7 +775,7 @@ export function getVesselTrail(
     opt.trailDuration === TRAIL_DURATION_ALL
       ? TRAIL_MAX_HOURS
       : opt.trailDuration;
-  const req = [];
+  const req: Promise<unknown>[] = [];
   // set up fetch requests
   if (hours > 24) {
     // beyond last 24hrs
@@ -794,11 +814,16 @@ export function getVesselTrail(
         return;
       }
       msg.result = assembleTrail(
-        res.map((r) =>
-          r?.type === 'MultiLineString' && Array.isArray(r.coordinates)
-            ? r.coordinates
-            : null
-        )
+        res.map((r) => {
+          const line = r as {
+            type?: string;
+            coordinates?: Position[][];
+          } | null;
+          return line?.type === 'MultiLineString' &&
+            Array.isArray(line.coordinates)
+            ? line.coordinates
+            : null;
+        })
       );
       postMessage(msg);
     })
@@ -824,7 +849,7 @@ export function assembleTrail(
   const highQuality = true;
   const segLen = 60; // max line segment length (OL rendering treatment)
   const lastIdx = bands.length - 1;
-  let trail = [];
+  let trail: Position[][] = [];
   bands.forEach((lines, idx) => {
     if (!lines) {
       return;
@@ -856,7 +881,7 @@ export function assembleTrail(
   return trail;
 }
 
-function openStream(opt) {
+function openStream(opt: OpenStreamOptions) {
   if (stream) {
     return;
   }
@@ -910,7 +935,7 @@ function openStream(opt) {
   }
 }
 
-function actionAlarm(opt) {
+function actionAlarm(opt: AlarmOptions) {
   const n =
     opt.type.indexOf('notifications.') === -1
       ? `notifications.${opt.type}`
@@ -926,7 +951,7 @@ function actionAlarm(opt) {
 // **************************************
 
 // ** process Signal K message **
-function parseStreamMessage(data) {
+function parseStreamMessage(data: SKStreamMessage) {
   if (stream.isHello(data)) {
     // hello
     postMessage({
@@ -1467,7 +1492,7 @@ function processAISStatus() {
 }
 
 // process AtoN values
-function processAtoN(id: string, v): string {
+function processAtoN(id: string, v: PathValue): string {
   let isBaseStation = false;
   if (id.indexOf('shore.basestations') !== -1) {
     isBaseStation = true;
@@ -1485,21 +1510,23 @@ function processAtoN(id: string, v): string {
   }
   const d = vessels.atons.get(id);
   if (v.path === '') {
-    if (typeof v.value.name !== 'undefined') {
-      d.name = v.value.name;
+    const info = v.value as TargetInfoValue;
+    if (typeof info.name !== 'undefined') {
+      d.name = info.name;
     }
-    if (typeof v.value.mmsi !== 'undefined') {
-      d.mmsi = v.value.mmsi;
+    if (typeof info.mmsi !== 'undefined') {
+      d.mmsi = info.mmsi;
     }
-    if (typeof v.value.atonType !== 'undefined') {
-      d.type = v.value.atonType;
+    if (typeof info.atonType !== 'undefined') {
+      d.type = info.atonType;
     }
   } else if (v.path === 'atonType') {
-    d.type = v.value;
+    d.type = v.value as SKAtoN['type'];
   } else if (v.path === 'virtual') {
-    d.virtual = v.value;
+    d.virtual = v.value as boolean;
   } else if (v.path === 'navigation.position') {
-    d.position = [v.value.longitude, v.value.latitude];
+    const pos = v.value as SKPosition;
+    d.position = [pos.longitude, pos.latitude];
     d.positionReceived = true;
   }
   // properties
@@ -1511,7 +1538,7 @@ function processAtoN(id: string, v): string {
 }
 
 // process SaR values
-function processSaR(id: string, v) {
+function processSaR(id: string, v: PathValue) {
   if (!vessels.sar.has(id)) {
     const sar = new SKSaR();
     sar.id = id;
@@ -1522,31 +1549,30 @@ function processSaR(id: string, v) {
   }
   const d = vessels.sar.get(id);
   if (v.path === '') {
-    if (typeof v.value.name !== 'undefined') {
-      d.name = v.value.name;
+    const info = v.value as TargetInfoValue;
+    if (typeof info.name !== 'undefined') {
+      d.name = info.name;
     }
-    if (typeof v.value.mmsi !== 'undefined') {
-      d.mmsi = v.value.mmsi;
+    if (typeof info.mmsi !== 'undefined') {
+      d.mmsi = info.mmsi;
     }
-    if (typeof v.value.communication !== 'undefined') {
-      d.callsignVhf = v.value.communication.callsignVhf ?? '';
-      d.callsignHf = v.value.communication.callsignHf ?? '';
+    if (typeof info.communication !== 'undefined') {
+      d.callsignVhf = info.communication.callsignVhf ?? '';
+      d.callsignHf = info.communication.callsignHf ?? '';
     }
   } else if (v.path === 'communication.callsignVhf') {
-    d.callsignVhf = v.value;
+    d.callsignVhf = v.value as string;
   } else if (v.path === 'communication.callsignHf') {
-    d.callsignHf = v.value;
+    d.callsignHf = v.value as string;
   } else if (v.path === 'navigation.position' && v.value) {
-    d.position = GeoUtils.normaliseCoords([
-      v.value.longitude,
-      v.value.latitude
-    ]);
+    const pos = v.value as SKPosition;
+    d.position = GeoUtils.normaliseCoords([pos.longitude, pos.latitude]);
     d.positionReceived = true;
   }
 }
 
 // process Meteo values
-function processMeteo(id: string, v) {
+function processMeteo(id: string, v: PathValue) {
   if (!vessels.meteo.has(id)) {
     const meteo = new SKMeteo();
     meteo.id = id;
@@ -1557,37 +1583,36 @@ function processMeteo(id: string, v) {
   }
   const d = vessels.meteo.get(id);
   if (v.path === '') {
-    if (typeof v.value.name !== 'undefined') {
-      d.name = v.value.name;
+    const info = v.value as TargetInfoValue;
+    if (typeof info.name !== 'undefined') {
+      d.name = info.name;
     }
-    if (typeof v.value.mmsi !== 'undefined') {
+    if (typeof info.mmsi !== 'undefined') {
       const nid = id.split(':').slice(-2); //meteo extended id
-      d.mmsi = nid.length === 2 ? `${nid[0]}:${nid[1]}` : v.value.mmsi;
+      d.mmsi = nid.length === 2 ? `${nid[0]}:${nid[1]}` : info.mmsi;
     }
-    if (typeof v.value.communication !== 'undefined') {
-      d.callsignVhf = v.value.communication.callsignVhf ?? '';
-      d.callsignHf = v.value.communication.callsignHf ?? '';
+    if (typeof info.communication !== 'undefined') {
+      d.callsignVhf = info.communication.callsignVhf ?? '';
+      d.callsignHf = info.communication.callsignHf ?? '';
     }
   } else if (v.path === 'communication.callsignVhf') {
-    d.callsignVhf = v.value;
+    d.callsignVhf = v.value as string;
   } else if (v.path === 'communication.callsignHf') {
-    d.callsignHf = v.value;
+    d.callsignHf = v.value as string;
   } else if (v.path === 'environment.outside.temperature') {
-    d.temperature = v.value;
+    d.temperature = v.value as number;
   } else if (v.path === 'environment.wind.directionTrue') {
-    d.twd = v.value;
+    d.twd = v.value as number;
   } else if (v.path === 'environment.wind.averageSpeed') {
-    d.tws = v.value;
+    d.tws = v.value as number;
   } else if (v.path === 'navigation.position' && v.value) {
-    d.position = GeoUtils.normaliseCoords([
-      v.value.longitude,
-      v.value.latitude
-    ]);
+    const pos = v.value as SKPosition;
+    d.position = GeoUtils.normaliseCoords([pos.longitude, pos.latitude]);
     d.positionReceived = true;
   }
 }
 
-function processAircraft(id: string, v) {
+function processAircraft(id: string, v: PathValue) {
   if (!vessels.aircraft.has(id)) {
     const aircraft = new SKAircraft();
     aircraft.id = id;
@@ -1596,31 +1621,30 @@ function processAircraft(id: string, v) {
   }
   const d = vessels.aircraft.get(id);
   if (v.path === '') {
-    if (typeof v.value.name !== 'undefined') {
-      d.name = v.value.name;
+    const info = v.value as TargetInfoValue;
+    if (typeof info.name !== 'undefined') {
+      d.name = info.name;
     }
-    if (typeof v.value.mmsi !== 'undefined') {
-      d.mmsi = v.value.mmsi;
+    if (typeof info.mmsi !== 'undefined') {
+      d.mmsi = info.mmsi;
     }
-    if (typeof v.value.communication !== 'undefined') {
-      d.callsignVhf = v.value.communication.callsignVhf ?? '';
-      d.callsignHf = v.value.communication.callsignHf ?? '';
+    if (typeof info.communication !== 'undefined') {
+      d.callsignVhf = info.communication.callsignVhf ?? '';
+      d.callsignHf = info.communication.callsignHf ?? '';
     }
   } else if (v.path === 'communication.callsignVhf') {
-    d.callsignVhf = v.value;
+    d.callsignVhf = v.value as string;
   } else if (v.path === 'communication.callsignHf') {
-    d.callsignHf = v.value;
+    d.callsignHf = v.value as string;
   } else if (v.path === 'navigation.position' && v.value) {
-    d.position = GeoUtils.normaliseCoords([
-      v.value.longitude,
-      v.value.latitude
-    ]);
+    const pos = v.value as SKPosition;
+    d.position = GeoUtils.normaliseCoords([pos.longitude, pos.latitude]);
     d.positionReceived = true;
     appendTrack(d);
   } else if (v.path === 'navigation.courseOverGroundTrue') {
-    d.orientation = v.value;
+    d.orientation = v.value as number;
   } else if (v.path === 'navigation.speedOverGround') {
-    d.sog = v.value;
+    d.sog = v.value as number;
   }
 }
 
