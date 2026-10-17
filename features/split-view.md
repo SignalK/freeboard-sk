@@ -34,8 +34,10 @@ The main chart stays where it was and works exactly as before.
 Tap or drag a chart to make it the **active** chart, marked by a blue outline. The map
 buttons (North Up / Heading Up, Center & Follow Vessel, and Zoom) act on the active
 chart, and so do the keyboard and the Center actions in the resource lists. Each chart
-can follow the boat, or not, at its own zoom and orientation. The zoom readout in the
-status bar shows the active chart's zoom.
+can follow the boat, or not, at its own zoom and orientation. The status bar (position,
+zoom and, if you've turned it on, the bearing, distance and ETA to the cursor) sits along
+the bottom of the active chart, and moves when you switch charts. Its zoom readout shows
+the active chart's zoom.
 
 Center from a list zooms the active chart in just far enough to show the item.
 
