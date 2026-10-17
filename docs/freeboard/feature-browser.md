@@ -26,7 +26,7 @@ corpus; never restate it in a PR body or a second place.*
 | `features/changelog.json` | the append-only change ledger |
 | `features/categories.json` | the canonical, ordered category list + chip colours |
 | `features/assets/<featureId>-<n>.jpg` | screenshots, referenced inline by docs |
-| `scripts/build-features.mjs` | bundles the above into `src/assets/features-corpus.json` (+ copies screenshots); validates categories. Runs automatically before `build:web` and `start` |
+| `scripts/build-features.mts` | bundles the above into `src/assets/features-corpus.json` (+ copies screenshots); validates categories. Runs automatically before `build:web` and `start` |
 | `src/app/modules/features/feature-corpus.ts` | parses/compiles the payload (the unit-tested logic) |
 | `src/app/modules/features/feature-browser-dialog.ts` | the dialog |
 

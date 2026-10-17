@@ -1,7 +1,7 @@
 // CI unit-test wrapper.
 //
 // Same Angular `@angular/build` (esbuild) non-exit issue as
-// scripts/build-web.mjs, but for `ng test`: the test bundle builds, vitest
+// scripts/build-web.mts, but for `ng test`: the test bundle builds, vitest
 // runs and prints its summary, but the process then fails to terminate (a
 // lingering esbuild service keeps the event loop alive). In CI that hangs the
 // test step until the job timeout even though every test passed.
@@ -27,6 +27,7 @@
 
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { stripVTControlCharacters } from 'node:util';
 
 const require = createRequire(import.meta.url);
 const ngBin = require.resolve('@angular/cli/bin/ng.js');
@@ -54,17 +55,23 @@ const GRACE_MS = 10_000; // let ng exit on its own before we force it
 // wrapper's diagnostics — so it sits below it, with room for a cold npm cache.
 const HARD_TIMEOUT_MS = (process.arch === 'arm' ? 18 : 15) * 60 * 1000;
 
-const stripAnsi = (s) => s.replace(/\x1b\[[0-9;]*m/g, '');
-
 const child = spawn(process.execPath, [ngBin, ...NG_ARGS], {
   stdio: ['inherit', 'pipe', 'pipe']
 });
 
 let settled = false;
-let graceTimer = null;
-let hardTimer = null;
+let graceTimer: NodeJS.Timeout | undefined;
 
-const finish = (code, reason) => {
+const hardTimer = setTimeout(
+  () =>
+    finish(
+      1,
+      `Hard timeout (${HARD_TIMEOUT_MS / 1000}s) — tests never completed.`
+    ),
+  HARD_TIMEOUT_MS
+);
+
+const finish = (code: number, reason?: string) => {
   if (settled) return;
   settled = true;
   clearTimeout(graceTimer);
@@ -74,9 +81,9 @@ const finish = (code, reason) => {
   setTimeout(() => process.exit(code), 500);
 };
 
-const scan = (chunk) => {
+const scan = (chunk: Buffer) => {
   if (settled) return;
-  for (const line of stripAnsi(chunk.toString()).split('\n')) {
+  for (const line of stripVTControlCharacters(chunk.toString()).split('\n')) {
     if (BUILD_ERROR.test(line)) {
       finish(1, 'Build error — tests could not run (likely a compile error).');
       return;
@@ -94,11 +101,11 @@ const scan = (chunk) => {
   }
 };
 
-child.stdout.on('data', (b) => {
+child.stdout.on('data', (b: Buffer) => {
   process.stdout.write(b);
   scan(b);
 });
-child.stderr.on('data', (b) => {
+child.stderr.on('data', (b: Buffer) => {
   process.stderr.write(b);
   scan(b);
 });
@@ -110,13 +117,4 @@ child.on('exit', (code, signal) => {
 });
 child.on('error', (err) =>
   finish(1, `Failed to start ng test: ${err.message}`)
-);
-
-hardTimer = setTimeout(
-  () =>
-    finish(
-      1,
-      `Hard timeout (${HARD_TIMEOUT_MS / 1000}s) — tests never completed.`
-    ),
-  HARD_TIMEOUT_MS
 );

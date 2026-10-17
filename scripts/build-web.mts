@@ -38,11 +38,19 @@ const child = spawn(process.execPath, [ngBin, ...NG_ARGS], {
 });
 
 let settled = false;
-let graceTimer = null;
-let hardTimer = null;
-let failTimer = null;
+let graceTimer: NodeJS.Timeout | undefined;
+let failTimer: NodeJS.Timeout | undefined;
 
-const finish = (code, reason) => {
+const hardTimer = setTimeout(
+  () =>
+    finish(
+      1,
+      `Hard timeout (${HARD_TIMEOUT_MS / 1000}s) — build never completed.`
+    ),
+  HARD_TIMEOUT_MS
+);
+
+const finish = (code: number, reason?: string) => {
   if (settled) return;
   settled = true;
   clearTimeout(graceTimer);
@@ -54,7 +62,7 @@ const finish = (code, reason) => {
   setTimeout(() => process.exit(code), 500);
 };
 
-const scan = (text) => {
+const scan = (text: string) => {
   if (settled) return;
   if (text.includes(FAILED)) {
     // ng build prints its detailed errors AFTER this summary line and then
@@ -88,11 +96,11 @@ const scan = (text) => {
   }
 };
 
-child.stdout.on('data', (b) => {
+child.stdout.on('data', (b: Buffer) => {
   process.stdout.write(b);
   scan(b.toString());
 });
-child.stderr.on('data', (b) => {
+child.stderr.on('data', (b: Buffer) => {
   process.stderr.write(b);
   scan(b.toString());
 });
@@ -105,13 +113,4 @@ child.on('exit', (code, signal) => {
 });
 child.on('error', (err) =>
   finish(1, `Failed to start ng build: ${err.message}`)
-);
-
-hardTimer = setTimeout(
-  () =>
-    finish(
-      1,
-      `Hard timeout (${HARD_TIMEOUT_MS / 1000}s) — build never completed.`
-    ),
-  HARD_TIMEOUT_MS
 );

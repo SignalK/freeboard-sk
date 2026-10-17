@@ -11,7 +11,7 @@ import {
 
 /**
  * Loads the bundled feature corpus (`assets/features-corpus.json`, produced by
- * `scripts/build-features.mjs`) and exposes the compiled feature list. Fetched
+ * `scripts/build-features.mts`) and exposes the compiled feature list. Fetched
  * once and cached; a missing/invalid payload yields an empty list rather than
  * an error, so the browser degrades gracefully.
  */
