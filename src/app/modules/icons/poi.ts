@@ -1,8 +1,12 @@
 // POI Icons
 
 import { AppIconSet } from './app.icons';
+import type {
+  MapIconDef,
+  MapIconDefs
+} from '../map/ol/lib/map-image-registry.service';
 
-const DefaultNoteIcon = {
+const DefaultNoteIcon: MapIconDef = {
   path: './assets/img/note.png',
   scale: 1,
   anchor: [5, 3]
@@ -40,7 +44,7 @@ export const PoiIcons: AppIconSet = {
  * @description Build MapIcon definitions for use by MapImageRegistry
  */
 export const getPoiDefs = () => {
-  const poiList = {};
+  const poiList: MapIconDefs = {};
 
   const addToList = (list: AppIconSet) => {
     list.files.forEach((file: string) => {

@@ -45,7 +45,7 @@ const AtoNsType2: AppIconSet = {
   anchor: [23, 49]
 };
 
-export const ATON_TYPE_IDS = {
+export const ATON_TYPE_IDS: Record<string, string> = {
   aton: 'aton',
   '-2': 'basestation',
   '-1': 'weatherStation',
@@ -116,7 +116,11 @@ export const meteoWindBucket = (
  * @description Build MapIcon definitions for use by MapImageRegistry
  */
 export const getAtoNDefs = () => {
-  const atonList: { real: MapIconDefs; virtual: MapIconDefs } = {
+  const atonList: {
+    real: MapIconDefs;
+    virtual: MapIconDefs;
+    [gid: string]: MapIconDefs;
+  } = {
     real: {},
     virtual: {}
   };

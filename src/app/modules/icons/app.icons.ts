@@ -19,17 +19,18 @@ import { RESERVED_DEFAULT_NS } from './symbol-ref';
 // functions below can resolve external symbols without requiring DI injection
 // at every call site.  When null (pre-load or no provider) behavior is
 // identical to today.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _symbolRegistry: any = null;
+interface SymbolRegistryHook {
+  resolveDisplayIcon(ref: string): AppIconDef | null;
+  getExternalNoteIcons(showAll: boolean): Array<{ id: string; name: string }>;
+  getExternalWaypointIcons(showAll: boolean): AppIconDef[];
+  hasExternalVersion(id: string): boolean;
+  getGpxMapping(ref: string): { gpxType?: string; gpxSym?: string } | null;
+}
+
+let _symbolRegistry: SymbolRegistryHook | null = null;
 
 export const setSymbolRegistry = (
-  registry: {
-    resolveDisplayIcon(ref: string): AppIconDef | null;
-    getExternalNoteIcons(showAll: boolean): Array<{ id: string; name: string }>;
-    getExternalWaypointIcons(showAll: boolean): AppIconDef[];
-    hasExternalVersion(id: string): boolean;
-    getGpxMapping(ref: string): { gpxType?: string; gpxSym?: string } | null;
-  } | null
+  registry: SymbolRegistryHook | null
 ): void => {
   _symbolRegistry = registry;
 };
@@ -135,7 +136,7 @@ export const getResourceIcon = (
     return { class: 'icon-route', svgIcon: 'route', name: undefined };
   }
   if (resourceType === 'regions') {
-    const iconDef = {
+    const iconDef: AppIconDef = {
       class: 'icon-region',
       svgIcon: undefined,
       name: 'tab_unselected'
@@ -158,7 +159,7 @@ export const getResourceIcon = (
     return { class: undefined, svgIcon: `${icon}`, name: undefined };
   }
   if (resourceType === 'notes') {
-    const iconDef = {
+    const iconDef: AppIconDef = {
       class: 'icon-accent',
       svgIcon: undefined,
       name: 'local_offer'
