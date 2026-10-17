@@ -73,6 +73,20 @@ export function coordTimesOf(
 /** Turn a track feature into a `POST /tracks` body. The properties the
  * provider derives for itself (id, bbox, counts, time range) are left out;
  * everything else Freeboard stored with the track goes along. */
+/** Whether `times` holds one valid time per point, nested like `lines`. */
+function timesFit(times: unknown, lines: unknown[][]): times is string[][] {
+  return (
+    Array.isArray(times) &&
+    times.length === lines.length &&
+    times.every(
+      (t, i) =>
+        Array.isArray(t) &&
+        t.length === lines[i].length &&
+        t.every((s) => typeof s === 'string' && !isNaN(Date.parse(s)))
+    )
+  );
+}
+
 export function storeTrackBody(
   feature: MultiLineStringFeature,
   coordTimes?: string[][]
@@ -83,8 +97,12 @@ export function storeTrackBody(
       properties[k] = v;
     }
   });
-  if (coordTimes) {
-    properties.coordTimes = coordTimes;
+  // A file's own coordTimes is kept only when it fits the geometry, or the
+  // Track API refuses the whole track.
+  const times = coordTimes ?? properties.coordTimes;
+  delete properties.coordTimes;
+  if (timesFit(times, feature.geometry.coordinates)) {
+    properties.coordTimes = times;
   }
   return {
     type: 'Feature',
