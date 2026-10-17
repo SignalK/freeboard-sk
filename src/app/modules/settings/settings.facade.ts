@@ -13,16 +13,6 @@ import {
 } from 'src/app/types';
 import { Observable, Subject } from 'rxjs';
 
-interface SKAppsList {
-  author: string;
-  description: string;
-  license: string;
-  location: string;
-  _location: string; //npm linked app
-  name: string;
-  version: string;
-}
-
 interface ResourceTypeList {
   [key: string]: {
     $source: string;
@@ -259,8 +249,6 @@ export class SettingsOptions {
 
 @Injectable({ providedIn: 'root' })
 export class SettingsFacade {
-  applicationList = []; // installed webapp list
-  favouritesList = []; // favourite webapp selections
   resourcePathList = []; // resource layer list
   fixedPosition: Position = [0, 0];
 
@@ -302,7 +290,6 @@ export class SettingsFacade {
     this.settings = this.app.config;
     this.fixedPosition =
       this.settings.vessels.fixedPosition.slice() as Position;
-    this.getApps();
     this.getResourcePaths();
     this.app.fetchUnitPrefsFromSKServer();
   }
@@ -319,67 +306,6 @@ export class SettingsFacade {
       },
       () => (this.resourcePathList = [])
     );
-  }
-
-  /** Populate applications list */
-  private getApps() {
-    // apps list - default an entry to stored config value
-    if (this.app.config.display.plugins.instruments) {
-      this.applicationList.push(this.app.config.display.plugins.instruments);
-    }
-
-    this.signalk.apps.list().subscribe(
-      (a: Array<SKAppsList>) => {
-        this.applicationList = a
-          .map((i) => {
-            if (i.name === '@signalk/freeboard-sk') {
-              return null;
-            }
-            if (!i._location && !i.location) {
-              // npm linked app
-              return {
-                name: i.name,
-                description: i.description,
-                url: `/${i.name}`
-              };
-            }
-            if (typeof i._location !== 'undefined') {
-              // legacywebapps list
-              const x = i._location.indexOf('/signalk-server/');
-              return {
-                name: i.name,
-                description: i.description,
-                url: x === -1 ? i._location : i._location.slice(15)
-              };
-            } else if (typeof i.location !== 'undefined') {
-              return {
-                name: i.name,
-                description: i.description,
-                url: i.location
-              };
-            }
-          })
-          .filter((e) => {
-            return e;
-          });
-
-        this.applicationList.unshift({
-          name: 'None',
-          description: '',
-          url: null
-        });
-
-        this.buildFavouritesList();
-      },
-      () => {
-        this.app.debug('ERROR retrieving AppList!');
-      }
-    );
-  }
-
-  /** Favourited plugins / apps */
-  buildFavouritesList() {
-    this.favouritesList = this.applicationList.slice(1);
   }
 
   /** Apply / persist settings */
