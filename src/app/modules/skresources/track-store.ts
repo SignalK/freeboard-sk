@@ -70,9 +70,16 @@ export function coordTimesOf(
   return times;
 }
 
-/** Turn a track feature into a `POST /tracks` body. The properties the
- * provider derives for itself (id, bbox, counts, time range) are left out;
- * everything else Freeboard stored with the track goes along. */
+/** An ISO 8601 date and time with a UTC offset, the only time form the Track
+ * API accepts. `Date.parse` alone would also pass a bare date or a local
+ * time, which the server refuses. */
+const INSTANT =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/i;
+
+function isInstant(s: unknown): s is string {
+  return typeof s === 'string' && INSTANT.test(s) && !isNaN(Date.parse(s));
+}
+
 /** Whether `times` holds one valid time per point, nested like `lines`. */
 function timesFit(times: unknown, lines: unknown[][]): times is string[][] {
   return (
@@ -80,13 +87,14 @@ function timesFit(times: unknown, lines: unknown[][]): times is string[][] {
     times.length === lines.length &&
     times.every(
       (t, i) =>
-        Array.isArray(t) &&
-        t.length === lines[i].length &&
-        t.every((s) => typeof s === 'string' && !isNaN(Date.parse(s)))
+        Array.isArray(t) && t.length === lines[i].length && t.every(isInstant)
     )
   );
 }
 
+/** Turn a track feature into a `POST /tracks` body. The properties the
+ * provider derives for itself (id, bbox, counts, time range) are left out;
+ * everything else Freeboard stored with the track goes along. */
 export function storeTrackBody(
   feature: MultiLineStringFeature,
   coordTimes?: string[][]

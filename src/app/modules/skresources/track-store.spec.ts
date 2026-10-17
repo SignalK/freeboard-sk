@@ -79,9 +79,15 @@ describe('storeTrackBody', () => {
       properties: { name: 'Friend', coordTimes }
     });
     expect(storeTrackBody(withTimes(fits)).properties.coordTimes).toEqual(fits);
+    const offset = [['2026-10-01T10:00+02:00', '2026-10-01T10:01:30.5+02:00']];
+    expect(storeTrackBody(withTimes(offset)).properties.coordTimes).toEqual(
+      offset
+    );
     for (const bad of [
       [['2026-10-01T08:00:00Z']],
       [['2026-10-01T08:00:00Z', 'not a time']],
+      [['2026-10-01', '2026-10-02']],
+      [['2026-10-01T08:00:00', '2026-10-01T08:01:00']],
       ['2026-10-01T08:00:00Z', '2026-10-01T08:01:00Z']
     ]) {
       expect(storeTrackBody(withTimes(bad)).properties).toEqual({
