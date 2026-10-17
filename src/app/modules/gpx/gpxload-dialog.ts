@@ -346,9 +346,16 @@ export class GPXImportDialog implements OnInit {
 
   private errorList: ErrorList = [];
 
-  private logError(err: HttpErrorResponse) {
-    const msg = err.error ? err.error.message : err.message;
-    this.errorList.push({ status: err.status, message: msg });
+  private logError(err: unknown) {
+    if (err instanceof HttpErrorResponse) {
+      const msg = err.error ? err.error.message : err.message;
+      this.errorList.push({ status: err.status, message: msg });
+    } else {
+      this.errorList.push({
+        status: undefined,
+        message: err instanceof Error ? err.message : String(err)
+      });
+    }
   }
 
   // ** check all submissions are resolved and emit result$
