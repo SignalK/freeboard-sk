@@ -21,7 +21,7 @@ import httpProxy from 'http-proxy';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 
-const MIME = {
+const MIME: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
   '.mjs': 'text/javascript',
@@ -41,23 +41,33 @@ const MIME = {
 };
 
 // Serve `dir` and reverse-proxy the SignalK API + WS stream at `skTarget` on the
-// same origin. Returns { server, getWsUpgrades }.
-export function startServer(dir, port, skTarget) {
+// same origin.
+export interface HarnessServer {
+  server: http.Server;
+  getWsUpgrades: () => number;
+}
+
+export function startServer(
+  dir: string,
+  port: number,
+  skTarget: string
+): Promise<HarnessServer> {
   const proxy = httpProxy.createProxyServer({
     target: skTarget,
     ws: true,
     changeOrigin: true
   });
-  proxy.on('error', (err, req, res) => {
+  proxy.on('error', (_err, _req, res) => {
+    // A failed WebSocket upgrade hands over a raw socket, which has no HTTP response to write.
     try {
-      if (res && res.writeHead) {
+      if (res instanceof http.ServerResponse) {
         res.writeHead(502);
         res.end('proxy error');
       }
     } catch {}
   });
   let wsUpgrades = 0;
-  const isApi = (u) =>
+  const isApi = (u: string) =>
     u.startsWith('/signalk') ||
     u.startsWith('/skServer') ||
     u.startsWith('/plugins') ||
@@ -66,7 +76,7 @@ export function startServer(dir, port, skTarget) {
     u.startsWith('/restart') ||
     u === '/loginStatus';
   const server = http.createServer((req, res) => {
-    const u = req.url.split('?')[0];
+    const u = (req.url ?? '').split('?')[0];
     if (isApi(u)) return proxy.web(req, res);
     try {
       const p = decodeURIComponent(u);

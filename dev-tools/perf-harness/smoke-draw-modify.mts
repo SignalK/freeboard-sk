@@ -34,31 +34,51 @@
  * ?perfprobe hook, i.e. current main.ts) and the dockerised SignalK server
  * running (see performance-testing.md / docker-compose.yml).
  */
-import { chromium } from 'playwright';
+import { chromium, type Page } from 'playwright';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { startServer } from './serve.mjs';
+import { startServer } from './serve.mts';
+
+declare global {
+  interface Window {
+    /** Change-detection pass counter installed by main.ts under ?perfprobe. */
+    __cd?: number;
+  }
+}
+
+type Point = [x: number, y: number];
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 // The app shows a first-run / "what's new" dialog unless the stored version
 // matches the current one, so seed the exact app version (its single source of
 // truth is the root package.json — same as the app reads).
-const APP_VERSION = JSON.parse(
+const { version: APP_VERSION }: { version: string } = JSON.parse(
   readFileSync(path.resolve(__dir, '../../package.json'), 'utf8')
-).version;
+);
 const BUILD_DIR = path.resolve(__dir, process.env.BUILD_DIR || '../../public');
 const PORT = Number(process.env.PORT || 8091);
 const SKHOST = process.env.SKHOST || 'localhost';
 const SKPORT = process.env.SKPORT || '3010';
 const HEADLESS = (process.env.HEADLESS || 'true') !== 'false';
 
-const log = (...a) => console.error('[smoke]', ...a);
-const cd = (page) => page.evaluate(() => window.__cd);
+const log = (...a: unknown[]) => console.error('[smoke]', ...a);
+async function cd(page: Page): Promise<number> {
+  const passes = await page.evaluate(() => window.__cd);
+  if (passes === undefined)
+    throw new Error(
+      'window.__cd missing — build lacks the ?perfprobe hook (main.ts)'
+    );
+  return passes;
+}
 // Wait until the change-detection counter stops advancing for `quietMs` (initial
 // connect/render churn settles well before we measure). Returns true if it went
 // quiet, false on timeout.
-async function waitForQuiet(page, quietMs = 500, timeoutMs = 8000) {
+async function waitForQuiet(
+  page: Page,
+  quietMs = 500,
+  timeoutMs = 8000
+): Promise<boolean> {
   let last = await cd(page);
   let quietSince = Date.now();
   const t0 = Date.now();
@@ -76,15 +96,15 @@ async function waitForQuiet(page, quietMs = 500, timeoutMs = 8000) {
 }
 // The "Lat: .. Lon: .. Zm: .." status readout — used to detect an accidental
 // map pan (which would mean the vertex grab missed).
-const centre = (page) =>
+const centre = (page: Page) =>
   page.evaluate(() => {
     const el = [...document.querySelectorAll('*')].find((e) =>
       /^Lat:.*Lon:.*Zm:/.test((e.textContent || '').trim())
     );
-    return el ? el.textContent.trim() : '';
+    return el ? (el.textContent || '').trim() : '';
   });
 
-async function connect(page, url) {
+async function connect(page: Page, url: string) {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector('canvas', { timeout: 30000 });
   // wait for the SignalK connection (the draw tools are disabled until connected)
@@ -104,7 +124,7 @@ async function connect(page, url) {
   }
 }
 
-async function drawRoute(page, P1, P2, P3) {
+async function drawRoute(page: Page, P1: Point, P2: Point, P3: Point) {
   await page
     .locator('button')
     .filter({ has: page.locator('mat-icon', { hasText: 'edit' }) })
@@ -123,7 +143,7 @@ async function drawRoute(page, P1, P2, P3) {
   await page.waitForTimeout(700);
 }
 
-async function enterModify(page, routeLinePoint) {
+async function enterModify(page: Page, routeLinePoint: Point) {
   await page.mouse.click(...routeLinePoint); // open the route popover
   await page.waitForTimeout(600);
   const modify = page.getByRole('button', { name: /modify/i }).first();
@@ -138,7 +158,7 @@ async function enterModify(page, routeLinePoint) {
 
 // Drag the vertex from -> to, hold it still, then release; return the __cd delta
 // caused by the release (pointerup -> modifyend -> onModifyEnd).
-async function measureModifyEndCd(page, from, to) {
+async function measureModifyEndCd(page: Page, from: Point, to: Point) {
   await page.mouse.move(...from);
   await page.mouse.down();
   await page.waitForTimeout(120);
@@ -203,10 +223,7 @@ async function run() {
     // host/port pin the app to the same-origin proxy; perfprobe installs window.__cd
     const url = `http://localhost:${PORT}/?movemap=0&northup=1&zoom=15&perfprobe=1&host=localhost&port=${PORT}`;
     await connect(page, url);
-    if ((await cd(page)) === undefined)
-      throw new Error(
-        'window.__cd missing — build lacks the ?perfprobe hook (main.ts)'
-      );
+    await cd(page); // throws if the build lacks the ?perfprobe hook
 
     // quiescent baseline: __cd should be ~stable when idle (nothing else driving CD)
     const idle0 = await cd(page);
@@ -215,12 +232,13 @@ async function run() {
     log(`idle CD passes over 1.5s: ${idleRate}`);
 
     const box = await page.locator('canvas').first().boundingBox();
+    if (!box) throw new Error('map canvas is not visible');
     const cx = Math.round(box.x + box.width / 2);
     const cy = Math.round(box.y + box.height / 2);
-    const P1 = [cx - 140, cy - 40];
-    const P2 = [cx, cy + 30]; // middle vertex we will drag
-    const P3 = [cx + 140, cy - 20];
-    const routeLine = [
+    const P1: Point = [cx - 140, cy - 40];
+    const P2: Point = [cx, cy + 30]; // middle vertex we will drag
+    const P3: Point = [cx + 140, cy - 20];
+    const routeLine: Point = [
       Math.round((P1[0] + P2[0]) / 2),
       Math.round((P1[1] + P2[1]) / 2)
     ];
@@ -252,7 +270,7 @@ async function run() {
       exitCode = 1;
     }
   } catch (e) {
-    log('ERROR', e.message);
+    log('ERROR', e instanceof Error ? e.message : e);
     await page
       .screenshot({ path: path.join(__dir, 'results', 'smoke-failure.png') })
       .catch(() => {});

@@ -22,11 +22,58 @@
  *   SETTLE_MS  wait after load for connect+render (default 9000)
  *   STUB_TILES stub external map tiles (default true)
  */
-import { chromium } from 'playwright';
+import { chromium, type CDPSession } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { startServer } from './serve.mjs';
+import { startServer } from './serve.mts';
+
+/** What `window.__perf.collect()` (INIT_PROBE) reports for a measured window. */
+export interface ProbeResult {
+  durationMs: number;
+  longtasks: { count: number; totalMs: number };
+  frames: number;
+  fps: number;
+  longFrames: number;
+  maxFrameMs: number;
+}
+
+export interface SteadyResult {
+  windowMs: number;
+  scriptSec: number;
+  longtasks: ProbeResult['longtasks'];
+  longFrames: number;
+  maxFrameMs: number;
+}
+
+/** The results JSON written to OUT and read back by compare.mts. */
+export interface ProfileResult {
+  label: string;
+  buildDir: string;
+  gestureMs: number;
+  canvasCount: number;
+  dialogPresent: boolean;
+  streamConnections: number;
+  cdTicks: number;
+  steady: SteadyResult | null;
+  cdp: {
+    scriptSec: number;
+    layoutSec: number;
+    recalcStyleSec: number;
+    taskSec: number;
+  };
+  probe: ProbeResult;
+  consoleErrorCount: number;
+  consoleErrorsSample: string[];
+}
+
+declare global {
+  interface Window {
+    __perf: { mark(): void; collect(): ProbeResult };
+    /** Change-detection pass counter installed by main.ts under ?perfprobe. */
+    __cd?: number;
+  }
+}
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const BUILD_DIR = path.resolve(__dir, process.env.BUILD_DIR || '../../public');
@@ -43,7 +90,7 @@ const STEADY_MS = Number(process.env.STEADY_MS || 0);
 const CPU_THROTTLE = Number(process.env.CPU_THROTTLE || 1); // 1 = none; 6 ~ Pi-class
 
 // The static-app + SignalK-proxy server is shared with the smoke test; see
-// serve.mjs (startServer).
+// serve.mts (startServer).
 
 // 1x1 gray PNG (base64) used to stub external map tiles for determinism/offline.
 const STUB_PNG = Buffer.from(
@@ -86,9 +133,9 @@ window.__perf = (function () {
 })();
 `;
 
-async function cdpMetrics(client) {
+async function cdpMetrics(client: CDPSession): Promise<Record<string, number>> {
   const { metrics } = await client.send('Performance.getMetrics');
-  const m = {};
+  const m: Record<string, number> = {};
   for (const e of metrics) m[e.name] = e.value;
   return m;
 }
@@ -151,7 +198,7 @@ async function run() {
   }
 
   const page = await context.newPage();
-  const consoleErrors = [];
+  const consoleErrors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error') consoleErrors.push(m.text());
   });
@@ -209,7 +256,7 @@ async function run() {
 
   // ---- optional steady-state window (no interaction): isolates the per-tick
   // data->render cost (e.g. AIS re-styling) from interaction. ----
-  let steady = null;
+  let steady: SteadyResult | null = null;
   if (STEADY_MS > 0) {
     const sBefore = await cdpMetrics(client);
     await page.evaluate(() => window.__perf.mark());
@@ -242,7 +289,7 @@ async function run() {
     await page.waitForTimeout(15);
   }
   // 2) drag-pan in 4 directions
-  const drags = [
+  const drags: [number, number][] = [
     [1, 0],
     [0, 1],
     [-1, 0],
@@ -285,7 +332,7 @@ async function run() {
   ).toFixed(3);
   const dTask = +(after.TaskDuration - before.TaskDuration).toFixed(3);
 
-  const result = {
+  const result: ProfileResult = {
     label: LABEL,
     buildDir: BUILD_DIR,
     gestureMs,

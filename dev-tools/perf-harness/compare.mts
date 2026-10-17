@@ -15,8 +15,8 @@
  * profiled right after a candidate has been seen to collapse to a fraction of its
  * isolated value). Until that's root-caused, the most trustworthy signal is each
  * build profiled on its own in a tight loop, e.g.:
- *   for i in 1 2 3 4 5; do BUILD_DIR=builds/baseline  HEADLESS=false node profile.mjs; done
- *   for i in 1 2 3 4 5; do BUILD_DIR=builds/candidate HEADLESS=false node profile.mjs; done
+ *   for i in 1 2 3 4 5; do BUILD_DIR=builds/baseline  HEADLESS=false node profile.mts; done
+ *   for i in 1 2 3 4 5; do BUILD_DIR=builds/candidate HEADLESS=false node profile.mts; done
  *
  * Env:
  *   REPEATS    runs per build      (default 3)
@@ -30,6 +30,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { ProfileResult } from './profile.mts';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const REPEATS = Number(process.env.REPEATS || 3);
@@ -46,7 +47,12 @@ const VARIANTS = [
   }
 ];
 
-function run(cmd, args, env, label) {
+function run(
+  cmd: string,
+  args: string[],
+  env: NodeJS.ProcessEnv,
+  label: string
+): Promise<{ out: string; err: string }> {
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, {
       cwd: __dir,
@@ -55,8 +61,8 @@ function run(cmd, args, env, label) {
     });
     let out = '',
       err = '';
-    p.stdout.on('data', (d) => (out += d));
-    p.stderr.on('data', (d) => (err += d));
+    p.stdout.on('data', (d: Buffer) => (out += d.toString()));
+    p.stderr.on('data', (d: Buffer) => (err += d.toString()));
     p.on('error', (e) =>
       reject(new Error(`${label} failed to spawn: ${e.message}`))
     );
@@ -68,19 +74,19 @@ function run(cmd, args, env, label) {
   });
 }
 
-const median = (xs) => {
+const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
-const pct = (base, cand) =>
+const pct = (base: number, cand: number) =>
   base === 0 ? 0 : Math.round(((cand - base) / base) * 1000) / 10;
 
 async function main() {
   console.log(
     `[compare] feed: ${AIS_COUNT} AIS @1Hz | ${REPEATS} repeats/build | zoom ${ZOOM}`
   );
-  const feed = spawn('node', ['sk-feed.mjs'], {
+  const feed = spawn('node', ['sk-feed.mts'], {
     cwd: __dir,
     env: {
       ...process.env,
@@ -93,7 +99,9 @@ async function main() {
   });
   await new Promise((r) => setTimeout(r, 2500));
 
-  const samples = Object.fromEntries(VARIANTS.map((v) => [v.label, []]));
+  const samples: Record<string, ProfileResult[]> = Object.fromEntries(
+    VARIANTS.map((v) => [v.label, []])
+  );
   let port = 8090;
   for (let i = 0; i < REPEATS; i++) {
     // alternate order each repeat to cancel warm-up/thermal drift
@@ -104,7 +112,7 @@ async function main() {
       process.stdout.write(`[compare] run ${label} (port ${port}) ... `);
       await run(
         'node',
-        ['profile.mjs'],
+        ['profile.mts'],
         {
           BUILD_DIR: path.resolve(__dir, v.dir),
           LABEL: label,
@@ -115,7 +123,7 @@ async function main() {
         },
         label
       );
-      const r = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+      const r: ProfileResult = JSON.parse(fs.readFileSync(outFile, 'utf8'));
       samples[v.label].push(r);
       console.log(
         `cdTicks=${r.cdTicks} script=${r.cdp.scriptSec}s gestureMs=${r.gestureMs} longFrames=${r.probe.longFrames} maxFrame=${r.probe.maxFrameMs}ms streams=${r.streamConnections}`
@@ -126,7 +134,7 @@ async function main() {
     feed.kill('SIGTERM');
   } catch {}
 
-  const agg = (rs) => ({
+  const agg = (rs: ProfileResult[]) => ({
     cdTicks: median(rs.map((r) => r.cdTicks)),
     scriptSec: median(rs.map((r) => r.cdp.scriptSec)),
     taskSec: median(rs.map((r) => r.cdp.taskSec)),
@@ -141,7 +149,7 @@ async function main() {
 
   const A = agg(samples[VARIANTS[0].label]);
   const B = agg(samples[VARIANTS[1].label]);
-  const rows = [
+  const rows: [name: string, baseline: number, candidate: number][] = [
     ['CD passes during gesture ↓', A.cdTicks, B.cdTicks],
     ['gestureMs (wall, fixed seq ↓)', A.gestureMs, B.gestureMs],
     ['CDP scriptSec ↓', A.scriptSec, B.scriptSec],

@@ -27,13 +27,13 @@ const DURATION_S = Number(process.env.DURATION_S || 0);
 const [CLON, CLAT] = (process.env.CENTER || '0,0').split(',').map(Number);
 
 const R_EARTH = 6371000;
-const toRad = (d) => (d * Math.PI) / 180;
+const toRad = (d: number) => (d * Math.PI) / 180;
 // metres -> degrees offset at a given latitude
-const dLon = (m, lat) =>
+const dLon = (m: number, lat: number) =>
   (m / (R_EARTH * Math.cos(toRad(lat)))) * (180 / Math.PI);
-const dLat = (m) => (m / R_EARTH) * (180 / Math.PI);
+const dLat = (m: number) => (m / R_EARTH) * (180 / Math.PI);
 
-function nowIso(tickMs) {
+function nowIso() {
   // Derive an ISO timestamp from a monotonic base + elapsed ticks (Date.now is
   // fine here — this is a standalone script, not a workflow).
   return new Date(Date.now()).toISOString();
@@ -48,8 +48,9 @@ const targets = Array.from({ length: AIS_COUNT }, (_, i) => {
   const mmsi = String(366000000 + i);
   return { i, ring, phase, angSpeed, dir, mmsi, name: `AIS Target ${i + 1}` };
 });
+type AisTarget = (typeof targets)[number];
 
-function selfDelta(t) {
+function selfDelta(t: number) {
   // slow figure-eight drift around centre
   const x = 600 * Math.sin(t * 0.03);
   const y = 400 * Math.sin(t * 0.06);
@@ -87,7 +88,7 @@ function selfDelta(t) {
   };
 }
 
-function aisDelta(tg, t) {
+function aisDelta(tg: AisTarget, t: number) {
   const ang = tg.phase + tg.dir * tg.angSpeed * t;
   const x = tg.ring * Math.cos(ang);
   const y = tg.ring * Math.sin(ang);
@@ -120,7 +121,7 @@ function aisDelta(tg, t) {
   };
 }
 
-function aisStatic(tg) {
+function aisStatic(tg: AisTarget) {
   return {
     context: `vessels.urn:mrn:imo:mmsi:${tg.mmsi}`,
     updates: [
@@ -138,7 +139,7 @@ function aisStatic(tg) {
 
 const ws = new WebSocket(SK_URL);
 let tick = 0;
-let timer = null;
+let timer: ReturnType<typeof setInterval> | undefined;
 
 ws.onopen = () => {
   console.error(
@@ -160,7 +161,10 @@ ws.onopen = () => {
       ws.send(JSON.stringify(selfDelta(t)));
       for (const tg of targets) ws.send(JSON.stringify(aisDelta(tg, t)));
     } catch (e) {
-      console.error('[sk-feed] send error', e.message);
+      console.error(
+        '[sk-feed] send error',
+        e instanceof Error ? e.message : undefined
+      );
     }
     tick++;
     if (tick % (RATE_HZ * 5) === 0)
@@ -175,7 +179,12 @@ ws.onopen = () => {
     }
   }, periodMs);
 };
-ws.onerror = (e) => console.error('[sk-feed] WS error', e.message || e.type);
+// Node's WebSocket reports failures as an ErrorEvent, which carries a message the Event type lacks.
+ws.onerror = (e) =>
+  console.error(
+    '[sk-feed] WS error',
+    ('message' in e && typeof e.message === 'string' && e.message) || e.type
+  );
 ws.onclose = () => {
   if (timer) clearInterval(timer);
 };
