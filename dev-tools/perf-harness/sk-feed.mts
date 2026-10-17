@@ -192,13 +192,17 @@ process.on('SIGINT', () => {
   if (timer) clearInterval(timer);
   try {
     ws.close();
-  } catch {}
+  } catch {
+    /* ignore */
+  }
   process.exit(0);
 });
 process.on('SIGTERM', () => {
   if (timer) clearInterval(timer);
   try {
     ws.close();
-  } catch {}
+  } catch {
+    /* ignore */
+  }
   process.exit(0);
 });

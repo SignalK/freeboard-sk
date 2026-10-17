@@ -132,7 +132,9 @@ async function main() {
   }
   try {
     feed.kill('SIGTERM');
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 
   const agg = (rs: ProfileResult[]) => ({
     cdTicks: median(rs.map((r) => r.cdTicks)),

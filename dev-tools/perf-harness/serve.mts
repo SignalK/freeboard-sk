@@ -64,7 +64,9 @@ export function startServer(
         res.writeHead(502);
         res.end('proxy error');
       }
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   });
   let wsUpgrades = 0;
   const isApi = (u: string) =>

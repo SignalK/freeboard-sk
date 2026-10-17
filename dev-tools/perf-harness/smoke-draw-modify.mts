@@ -218,7 +218,7 @@ async function run() {
   }, APP_VERSION);
   const page = await context.newPage();
 
-  let exitCode = 1;
+  let exitCode: number;
   try {
     // host/port pin the app to the same-origin proxy; perfprobe installs window.__cd
     const url = `http://localhost:${PORT}/?movemap=0&northup=1&zoom=15&perfprobe=1&host=localhost&port=${PORT}`;

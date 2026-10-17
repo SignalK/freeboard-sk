@@ -180,7 +180,9 @@ async function run() {
         'freeboard_info',
         JSON.stringify({ name: 'Freeboard-SK', version: '2.24.0' })
       );
-    } catch (e) {}
+    } catch {
+      /* ignore */
+    }
   });
 
   if (STUB_TILES) {
@@ -242,7 +244,9 @@ async function run() {
       else await page.keyboard.press('Escape').catch(() => {});
       await page.waitForTimeout(500);
     }
-  } catch {}
+  } catch {
+    /* ignore */
+  }
   await page.waitForTimeout(600);
 
   const canvasCount = await page.locator('canvas').count();
