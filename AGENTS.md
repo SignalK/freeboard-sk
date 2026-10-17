@@ -160,18 +160,22 @@ PR that stops at step 6 will not be merged.
    (see *PR descriptions* below). **Do not edit
    `features/`** — that corpus is maintainer-owned and compiled after merge.
 7. **Wait for CodeRabbit, and confirm it actually reviewed.** CodeRabbit normally
-   starts within minutes of the push, but reviews are **rate-limited per repository**
-   — a small number of included reviews per hour, shared across every open PR. When
-   the budget is spent it posts a notice *instead of* a review — *"Review rate
-   limited … Next included review available in N minutes"* — and **the CodeRabbit
+   starts within minutes of the push, but reviews are **rate-limited per repository,
+   per developer** — each person has a small number of included reviews per hour on
+   this repo, shared across all of their open PRs. When the budget is spent it
+   posts a notice *instead of* a review — *"Review rate limited … Next included
+   review available in N minutes"* — and **the CodeRabbit
    status check still shows green** (it means the integration ran, not that a review
    happened). **A rate-limited review never resumes on its own**: the push that hit
    the limit has spent its trigger. Since no PR is merged without a completed
    CodeRabbit review, re-requesting is the contributor's job: read `N` from the
    notice, set a timer, and once it has passed post `@coderabbitai review` as a PR
    comment. If it is refused again, a fresh notice with a fresh figure appears —
-   repeat against that. Don't push further commits while a review is running or
-   while you are waiting out a window; every push draws on the same budget. Take
+   repeat against that. Because each developer has their own allowance, someone
+   you're collaborating with (or a maintainer) can post `@coderabbitai review` for
+   you, and that review draws on their allowance instead of yours. Don't push
+   further commits while a review is running or while you are waiting out a
+   window; every push draws on your same budget. Take
    "review complete" from CodeRabbit's summary comment (edited in place as it works),
    never from the status check. Mechanics for scripting the wait are in the lessons
    log under *Waiting on a CodeRabbit review*.

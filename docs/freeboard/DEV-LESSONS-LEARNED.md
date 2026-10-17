@@ -1543,6 +1543,13 @@ provides up to N included reviews per hour; M remain after this review."* Readin
 `M` after a review tells you whether the next one is free or will be refused, which
 is the cheapest way to plan a follow-up push.
 
+Limits are **per repository, per developer**: each person who triggers a review has
+their own hourly allowance on each repo. So `M` is the allowance of whoever
+triggered that review, not a shared pool. A fork and its upstream don't share one,
+and neither do two people working on the same PR. If you're rate-limited, a
+collaborator or a maintainer can post `@coderabbitai review` for you, and that
+review comes out of their allowance.
+
 Compute the deadline from the notice comment's `updated_at`, not from
 when you read it, and allow a small buffer; if it is refused again, a fresh
 notice with a fresh figure appears, so repeat against that. For the same reason
