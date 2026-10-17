@@ -2,7 +2,15 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { EMPTY } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  MockInstance,
+  vi
+} from 'vitest';
 
 import { CompiledFeature } from './feature-corpus';
 import { FeatureCorpusService } from './feature-corpus.service';
@@ -46,7 +54,7 @@ describe('FeatureBrowserDialog details scroll', () => {
         },
         {
           provide: MatDialogRef,
-          useValue: { keydownEvents: () => EMPTY, close: () => undefined }
+          useValue: { keydownEvents: () => EMPTY, close: (): void => undefined }
         }
       ]
     });
@@ -101,7 +109,7 @@ describe('FeatureBrowserDialog what’s-new strip', () => {
         },
         {
           provide: MatDialogRef,
-          useValue: { keydownEvents: () => EMPTY, close: () => undefined }
+          useValue: { keydownEvents: () => EMPTY, close: (): void => undefined }
         }
       ]
     });
@@ -146,7 +154,7 @@ describe('FeatureBrowserDialog what’s-new strip', () => {
 
 describe('FeatureBrowserDialog history table', () => {
   let fixture: ComponentFixture<FeatureBrowserDialog>;
-  let warn: ReturnType<typeof vi.spyOn>;
+  let warn: MockInstance<typeof console.warn>;
 
   // A catch-up doc for an older feature: more than one change predating the PR
   // workflow, so every such row carries `pr: null`.
@@ -171,7 +179,7 @@ describe('FeatureBrowserDialog history table', () => {
         },
         {
           provide: MatDialogRef,
-          useValue: { keydownEvents: () => EMPTY, close: () => undefined }
+          useValue: { keydownEvents: () => EMPTY, close: (): void => undefined }
         }
       ]
     });
