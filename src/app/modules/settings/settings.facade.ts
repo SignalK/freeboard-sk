@@ -332,15 +332,6 @@ export class SettingsFacade {
 
   /** Populate applications list */
   private getApps() {
-    // apps list - default an entry to stored config value
-    if (this.app.config.display.plugins.instruments) {
-      this.applicationList.push({
-        name: this.app.config.display.plugins.instruments,
-        description: '',
-        url: this.app.config.display.plugins.instruments
-      });
-    }
-
     (this.signalk.apps.list() as Observable<Array<SKAppsList>>).subscribe(
       (a) => {
         this.applicationList = a
