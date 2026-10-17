@@ -127,11 +127,13 @@ async function enterModify(page, routeLinePoint) {
   await page.mouse.click(...routeLinePoint); // open the route popover
   await page.waitForTimeout(600);
   const modify = page.getByRole('button', { name: /modify/i }).first();
-  if (!(await modify.count())) throw new Error('route popover / MODIFY button not found');
+  if (!(await modify.count()))
+    throw new Error('route popover / MODIFY button not found');
   await modify.click();
   await page.waitForTimeout(600);
   const inModify = (await page.locator('body').innerText()).includes('FINISH');
-  if (!inModify) throw new Error('did not enter modify mode (no FINISH control)');
+  if (!inModify)
+    throw new Error('did not enter modify mode (no FINISH control)');
 }
 
 // Drag the vertex from -> to, hold it still, then release; return the __cd delta
@@ -157,18 +159,39 @@ async function measureModifyEndCd(page, from, to) {
   await page.waitForTimeout(800);
   const after = await cd(page);
   const centreAfter = await centre(page);
-  return { before, after, delta: after - before, centreBefore, centreAfter, quiet };
+  return {
+    before,
+    after,
+    delta: after - before,
+    centreBefore,
+    centreAfter,
+    quiet
+  };
 }
 
 async function run() {
-  const { server } = await startServer(BUILD_DIR, PORT, `http://${SKHOST}:${SKPORT}`);
-  log(`serving ${BUILD_DIR} on :${PORT} (SignalK proxy -> ${SKHOST}:${SKPORT})`);
-  const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox'] });
-  const context = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  const { server } = await startServer(
+    BUILD_DIR,
+    PORT,
+    `http://${SKHOST}:${SKPORT}`
+  );
+  log(
+    `serving ${BUILD_DIR} on :${PORT} (SignalK proxy -> ${SKHOST}:${SKPORT})`
+  );
+  const browser = await chromium.launch({
+    headless: HEADLESS,
+    args: ['--no-sandbox']
+  });
+  const context = await browser.newContext({
+    viewport: { width: 1200, height: 900 }
+  });
   // suppress the first-run / what's-new onboarding dialog
   await context.addInitScript((v) => {
     try {
-      localStorage.setItem('freeboard_info', JSON.stringify({ name: 'Freeboard-SK', version: v }));
+      localStorage.setItem(
+        'freeboard_info',
+        JSON.stringify({ name: 'Freeboard-SK', version: v })
+      );
     } catch {
       /* ignore */
     }
@@ -181,7 +204,9 @@ async function run() {
     const url = `http://localhost:${PORT}/?movemap=0&northup=1&zoom=15&perfprobe=1&host=localhost&port=${PORT}`;
     await connect(page, url);
     if ((await cd(page)) === undefined)
-      throw new Error('window.__cd missing — build lacks the ?perfprobe hook (main.ts)');
+      throw new Error(
+        'window.__cd missing — build lacks the ?perfprobe hook (main.ts)'
+      );
 
     // quiescent baseline: __cd should be ~stable when idle (nothing else driving CD)
     const idle0 = await cd(page);
@@ -195,7 +220,10 @@ async function run() {
     const P1 = [cx - 140, cy - 40];
     const P2 = [cx, cy + 30]; // middle vertex we will drag
     const P3 = [cx + 140, cy - 20];
-    const routeLine = [Math.round((P1[0] + P2[0]) / 2), Math.round((P1[1] + P2[1]) / 2)];
+    const routeLine = [
+      Math.round((P1[0] + P2[0]) / 2),
+      Math.round((P1[1] + P2[1]) / 2)
+    ];
 
     await drawRoute(page, P1, P2, P3);
     await enterModify(page, routeLine);
@@ -204,20 +232,30 @@ async function run() {
     log(`modify: __cd ${r.before} -> ${r.after} (delta ${r.delta})`);
     log(`centre before: "${r.centreBefore}"  after: "${r.centreAfter}"`);
     if (!r.quiet)
-      log('WARN: change detection did not fully settle before the release — result may be noisy.');
+      log(
+        'WARN: change detection did not fully settle before the release — result may be noisy.'
+      );
     if (r.centreBefore && r.centreBefore !== r.centreAfter)
-      log('WARN: map centre changed during the vertex drag — the grab may have panned instead of grabbing the vertex.');
+      log(
+        'WARN: map centre changed during the vertex drag — the grab may have panned instead of grabbing the vertex.'
+      );
 
     if (r.delta >= 1) {
-      log('PASS: draw + modify drove end-to-end and releasing the vertex scheduled a change-detection pass.');
+      log(
+        'PASS: draw + modify drove end-to-end and releasing the vertex scheduled a change-detection pass.'
+      );
       exitCode = 0;
     } else {
-      log('FAIL: modify end scheduled NO change-detection pass — the draw/modify flow or zone containment is broken.');
+      log(
+        'FAIL: modify end scheduled NO change-detection pass — the draw/modify flow or zone containment is broken.'
+      );
       exitCode = 1;
     }
   } catch (e) {
     log('ERROR', e.message);
-    await page.screenshot({ path: path.join(__dir, 'results', 'smoke-failure.png') }).catch(() => {});
+    await page
+      .screenshot({ path: path.join(__dir, 'results', 'smoke-failure.png') })
+      .catch(() => {});
     exitCode = 1;
   } finally {
     await browser.close();

@@ -95,41 +95,66 @@ async function cdpMetrics(client) {
 
 async function run() {
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  const { server, getWsUpgrades } = await startServer(BUILD_DIR, PORT, `http://${SKHOST}:${SKPORT}`);
-  console.error(`[profile] serving ${BUILD_DIR} on :${PORT} (proxy -> ${SKHOST}:${SKPORT})  label=${LABEL}  headless=${HEADLESS}`);
+  const { server, getWsUpgrades } = await startServer(
+    BUILD_DIR,
+    PORT,
+    `http://${SKHOST}:${SKPORT}`
+  );
+  console.error(
+    `[profile] serving ${BUILD_DIR} on :${PORT} (proxy -> ${SKHOST}:${SKPORT})  label=${LABEL}  headless=${HEADLESS}`
+  );
 
   // Headless can't reach the GPU reliably, so we fall back to SwiftShader
   // (software GL) there — but that makes canvas rasterisation CPU-bound and
   // dominate, masking JS-side wins. Run headed (HEADLESS=false) to use the real
   // GPU and get real-world render performance.
   const glArgs = HEADLESS
-    ? ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+    ? [
+        '--use-gl=angle',
+        '--use-angle=swiftshader',
+        '--enable-unsafe-swiftshader'
+      ]
     : [];
   const browser = await chromium.launch({
     headless: HEADLESS,
     args: [...glArgs, '--no-sandbox']
   });
-  const context = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
+  const context = await browser.newContext({
+    viewport: { width: 1400, height: 900 },
+    deviceScaleFactor: 1
+  });
   await context.addInitScript(INIT_PROBE);
   // Suppress the first-run onboarding (welcome dialog -> Settings cascade) by
   // pre-seeding the stored version so checkVersion() resolves to 'current'.
   // Key/namespace from State/LocalStorage; version from app.facade FSK const.
   await context.addInitScript(() => {
-    try { localStorage.setItem('freeboard_info', JSON.stringify({ name: 'Freeboard-SK', version: '2.24.0' })); } catch (e) {}
+    try {
+      localStorage.setItem(
+        'freeboard_info',
+        JSON.stringify({ name: 'Freeboard-SK', version: '2.24.0' })
+      );
+    } catch (e) {}
   });
 
   if (STUB_TILES) {
     // stub external raster map tiles (osm/openseamap/etc.) for determinism
     await context.route(/tile\.|tiles\.|\.tile\.|\/tiles\//i, (route) => {
       const url = route.request().url();
-      if (/\.png|\.jpg|\.jpeg|\.webp/i.test(url)) return route.fulfill({ status: 200, contentType: 'image/png', body: STUB_PNG });
+      if (/\.png|\.jpg|\.jpeg|\.webp/i.test(url))
+        return route.fulfill({
+          status: 200,
+          contentType: 'image/png',
+          body: STUB_PNG
+        });
       return route.continue();
     });
   }
 
   const page = await context.newPage();
   const consoleErrors = [];
-  page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+  page.on('console', (m) => {
+    if (m.type() === 'error') consoleErrors.push(m.text());
+  });
   const client = await context.newCDPSession(page);
   await client.send('Performance.enable');
   // Simulate low-power hardware (e.g. a Raspberry Pi / tablet) so change-detection
@@ -147,7 +172,9 @@ async function run() {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
   // wait for the OL map canvas to exist, then settle for connect + data + render
-  await page.waitForSelector('canvas', { timeout: 30000 }).catch(() => console.error('[profile] no canvas yet'));
+  await page
+    .waitForSelector('canvas', { timeout: 30000 })
+    .catch(() => console.error('[profile] no canvas yet'));
   console.error(`[profile] settling ${SETTLE_MS}ms for connect + data...`);
   await page.waitForTimeout(SETTLE_MS);
 
@@ -159,8 +186,12 @@ async function run() {
     if (await page.locator('mat-dialog-container').count()) {
       dialogPresent = true;
       // close via the dialog's close (X) button if present, else Escape
-      const x = page.locator('mat-dialog-container').getByRole('button', { name: /close/i }).first();
-      if (await x.isVisible({ timeout: 500 }).catch(() => false)) await x.click().catch(() => {});
+      const x = page
+        .locator('mat-dialog-container')
+        .getByRole('button', { name: /close/i })
+        .first();
+      if (await x.isVisible({ timeout: 500 }).catch(() => false))
+        await x.click().catch(() => {});
       else await page.keyboard.press('Escape').catch(() => {});
       await page.waitForTimeout(500);
     }
@@ -168,10 +199,13 @@ async function run() {
   await page.waitForTimeout(600);
 
   const canvasCount = await page.locator('canvas').count();
-  await page.screenshot({ path: path.join(path.dirname(OUT), `${LABEL}.png`) }).catch(() => {});
+  await page
+    .screenshot({ path: path.join(path.dirname(OUT), `${LABEL}.png`) })
+    .catch(() => {});
 
   // locate map centre (viewport)
-  const cx = 700, cy = 450;
+  const cx = 700,
+    cy = 450;
 
   // ---- optional steady-state window (no interaction): isolates the per-tick
   // data->render cost (e.g. AIS re-styling) from interaction. ----
@@ -189,13 +223,17 @@ async function run() {
       longFrames: sProbe.longFrames,
       maxFrameMs: sProbe.maxFrameMs
     };
-    console.error(`[profile] steady: scriptSec=${steady.scriptSec} longFrames=${steady.longFrames} maxFrameMs=${steady.maxFrameMs} longtasks=${steady.longtasks.count}`);
+    console.error(
+      `[profile] steady: scriptSec=${steady.scriptSec} longFrames=${steady.longFrames} maxFrameMs=${steady.maxFrameMs} longtasks=${steady.longtasks.count}`
+    );
   }
 
   // ---- measured gesture window ----
   const before = await cdpMetrics(client);
   await page.evaluate(() => window.__perf.mark());
-  const cdBefore = await page.evaluate(() => (typeof window.__cd === 'number' ? window.__cd : -1));
+  const cdBefore = await page.evaluate(() =>
+    typeof window.__cd === 'number' ? window.__cd : -1
+  );
   const gestureStart = Date.now();
 
   // 1) cursor moves across the map (pointermove storm)
@@ -204,7 +242,12 @@ async function run() {
     await page.waitForTimeout(15);
   }
   // 2) drag-pan in 4 directions
-  const drags = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  const drags = [
+    [1, 0],
+    [0, 1],
+    [-1, 0],
+    [0, -1]
+  ];
   for (const [dx, dy] of drags) {
     await page.mouse.move(cx, cy);
     await page.mouse.down();
@@ -216,10 +259,20 @@ async function run() {
     await page.waitForTimeout(120);
   }
   // 3) zoom in/out with wheel
-  for (let i = 0; i < 6; i++) { await page.mouse.move(cx, cy); await page.mouse.wheel(0, -240); await page.waitForTimeout(160); }
-  for (let i = 0; i < 6; i++) { await page.mouse.move(cx, cy); await page.mouse.wheel(0, 240); await page.waitForTimeout(160); }
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.move(cx, cy);
+    await page.mouse.wheel(0, -240);
+    await page.waitForTimeout(160);
+  }
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.move(cx, cy);
+    await page.mouse.wheel(0, 240);
+    await page.waitForTimeout(160);
+  }
 
-  const cdAfter = await page.evaluate(() => (typeof window.__cd === 'number' ? window.__cd : -1));
+  const cdAfter = await page.evaluate(() =>
+    typeof window.__cd === 'number' ? window.__cd : -1
+  );
   const probe = await page.evaluate(() => window.__perf.collect());
   const after = await cdpMetrics(client);
   const gestureMs = Date.now() - gestureStart;
@@ -227,7 +280,9 @@ async function run() {
 
   const dScript = +(after.ScriptDuration - before.ScriptDuration).toFixed(3);
   const dLayout = +(after.LayoutDuration - before.LayoutDuration).toFixed(3);
-  const dRecalc = +(after.RecalcStyleDuration - before.RecalcStyleDuration).toFixed(3);
+  const dRecalc = +(
+    after.RecalcStyleDuration - before.RecalcStyleDuration
+  ).toFixed(3);
   const dTask = +(after.TaskDuration - before.TaskDuration).toFixed(3);
 
   const result = {
@@ -239,7 +294,12 @@ async function run() {
     streamConnections: getWsUpgrades(),
     cdTicks,
     steady,
-    cdp: { scriptSec: dScript, layoutSec: dLayout, recalcStyleSec: dRecalc, taskSec: dTask },
+    cdp: {
+      scriptSec: dScript,
+      layoutSec: dLayout,
+      recalcStyleSec: dRecalc,
+      taskSec: dTask
+    },
     probe,
     consoleErrorCount: consoleErrors.length,
     consoleErrorsSample: consoleErrors.slice(0, 5)
@@ -252,4 +312,7 @@ async function run() {
   server.close();
 }
 
-run().catch((e) => { console.error('[profile] FAILED', e); process.exit(1); });
+run().catch((e) => {
+  console.error('[profile] FAILED', e);
+  process.exit(1);
+});

@@ -36,18 +36,35 @@ const REPEATS = Number(process.env.REPEATS || 3);
 const AIS_COUNT = Number(process.env.AIS_COUNT || 50);
 const ZOOM = process.env.ZOOM || '15';
 const VARIANTS = [
-  { label: process.env.LABEL_A || 'baseline', dir: process.env.BUILD_A || 'builds/baseline' },
-  { label: process.env.LABEL_B || 'tier1', dir: process.env.BUILD_B || 'builds/tier1' }
+  {
+    label: process.env.LABEL_A || 'baseline',
+    dir: process.env.BUILD_A || 'builds/baseline'
+  },
+  {
+    label: process.env.LABEL_B || 'tier1',
+    dir: process.env.BUILD_B || 'builds/tier1'
+  }
 ];
 
 function run(cmd, args, env, label) {
   return new Promise((resolve, reject) => {
-    const p = spawn(cmd, args, { cwd: __dir, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
-    let out = '', err = '';
+    const p = spawn(cmd, args, {
+      cwd: __dir,
+      env: { ...process.env, ...env },
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    let out = '',
+      err = '';
     p.stdout.on('data', (d) => (out += d));
     p.stderr.on('data', (d) => (err += d));
-    p.on('error', (e) => reject(new Error(`${label} failed to spawn: ${e.message}`)));
-    p.on('close', (code) => (code === 0 ? resolve({ out, err }) : reject(new Error(`${label} exited ${code}\n${err.slice(-500)}`))));
+    p.on('error', (e) =>
+      reject(new Error(`${label} failed to spawn: ${e.message}`))
+    );
+    p.on('close', (code) =>
+      code === 0
+        ? resolve({ out, err })
+        : reject(new Error(`${label} exited ${code}\n${err.slice(-500)}`))
+    );
   });
 }
 
@@ -56,13 +73,22 @@ const median = (xs) => {
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
-const pct = (base, cand) => (base === 0 ? 0 : Math.round(((cand - base) / base) * 1000) / 10);
+const pct = (base, cand) =>
+  base === 0 ? 0 : Math.round(((cand - base) / base) * 1000) / 10;
 
 async function main() {
-  console.log(`[compare] feed: ${AIS_COUNT} AIS @1Hz | ${REPEATS} repeats/build | zoom ${ZOOM}`);
+  console.log(
+    `[compare] feed: ${AIS_COUNT} AIS @1Hz | ${REPEATS} repeats/build | zoom ${ZOOM}`
+  );
   const feed = spawn('node', ['sk-feed.mjs'], {
     cwd: __dir,
-    env: { ...process.env, DURATION_S: String(60 + REPEATS * VARIANTS.length * 40), AIS_COUNT: String(AIS_COUNT), RATE_HZ: '1', CENTER: '0,0' },
+    env: {
+      ...process.env,
+      DURATION_S: String(60 + REPEATS * VARIANTS.length * 40),
+      AIS_COUNT: String(AIS_COUNT),
+      RATE_HZ: '1',
+      CENTER: '0,0'
+    },
     stdio: ['ignore', 'ignore', 'inherit']
   });
   await new Promise((r) => setTimeout(r, 2500));
@@ -76,16 +102,29 @@ async function main() {
       const label = `${v.label}-${i}`;
       const outFile = path.join(__dir, 'results', `${label}.json`);
       process.stdout.write(`[compare] run ${label} (port ${port}) ... `);
-      await run('node', ['profile.mjs'], {
-        BUILD_DIR: path.resolve(__dir, v.dir), LABEL: label, OUT: outFile,
-        PORT: String(port++), ZOOM, HEADLESS: process.env.HEADLESS || 'true'
-      }, label);
+      await run(
+        'node',
+        ['profile.mjs'],
+        {
+          BUILD_DIR: path.resolve(__dir, v.dir),
+          LABEL: label,
+          OUT: outFile,
+          PORT: String(port++),
+          ZOOM,
+          HEADLESS: process.env.HEADLESS || 'true'
+        },
+        label
+      );
       const r = JSON.parse(fs.readFileSync(outFile, 'utf8'));
       samples[v.label].push(r);
-      console.log(`cdTicks=${r.cdTicks} script=${r.cdp.scriptSec}s gestureMs=${r.gestureMs} longFrames=${r.probe.longFrames} maxFrame=${r.probe.maxFrameMs}ms streams=${r.streamConnections}`);
+      console.log(
+        `cdTicks=${r.cdTicks} script=${r.cdp.scriptSec}s gestureMs=${r.gestureMs} longFrames=${r.probe.longFrames} maxFrame=${r.probe.maxFrameMs}ms streams=${r.streamConnections}`
+      );
     }
   }
-  try { feed.kill('SIGTERM'); } catch {}
+  try {
+    feed.kill('SIGTERM');
+  } catch {}
 
   const agg = (rs) => ({
     cdTicks: median(rs.map((r) => r.cdTicks)),
@@ -113,16 +152,38 @@ async function main() {
     ['fps (probe rAF ↑)', A.fps, B.fps],
     ['longtask totalMs ↓', A.longtaskMs, B.longtaskMs]
   ];
-  const out = { repeats: REPEATS, aisCount: AIS_COUNT, variants: VARIANTS.map((v) => v.label), median: { [VARIANTS[0].label]: A, [VARIANTS[1].label]: B } };
-  fs.writeFileSync(path.join(__dir, 'results', 'comparison.json'), JSON.stringify(out, null, 2));
+  const out = {
+    repeats: REPEATS,
+    aisCount: AIS_COUNT,
+    variants: VARIANTS.map((v) => v.label),
+    median: { [VARIANTS[0].label]: A, [VARIANTS[1].label]: B }
+  };
+  fs.writeFileSync(
+    path.join(__dir, 'results', 'comparison.json'),
+    JSON.stringify(out, null, 2)
+  );
 
-  const L0 = VARIANTS[0].label, L1 = VARIANTS[1].label;
-  console.log(`\n=== MEDIAN over ${REPEATS} runs (streams ${A.streams}/${B.streams}) ===`);
-  console.log(`${'metric'.padEnd(32)} ${L0.padStart(12)} ${L1.padStart(12)}   Δ%`);
+  const L0 = VARIANTS[0].label,
+    L1 = VARIANTS[1].label;
+  console.log(
+    `\n=== MEDIAN over ${REPEATS} runs (streams ${A.streams}/${B.streams}) ===`
+  );
+  console.log(
+    `${'metric'.padEnd(32)} ${L0.padStart(12)} ${L1.padStart(12)}   Δ%`
+  );
   for (const [name, a, b] of rows) {
-    console.log(`${name.padEnd(32)} ${String(a).padStart(12)} ${String(b).padStart(12)}   ${pct(a, b) > 0 ? '+' : ''}${pct(a, b)}%`);
+    console.log(
+      `${name.padEnd(32)} ${String(a).padStart(12)} ${String(b).padStart(12)}   ${pct(a, b) > 0 ? '+' : ''}${pct(a, b)}%`
+    );
   }
-  console.log(`\n(↓ lower is better. gestureMs & longFrames are the headline interaction-smoothness metrics.)`);
-  console.log(`Absolute values are inflated by headless software-GL; the ${L0}->${L1} delta is the signal.`);
+  console.log(
+    `\n(↓ lower is better. gestureMs & longFrames are the headline interaction-smoothness metrics.)`
+  );
+  console.log(
+    `Absolute values are inflated by headless software-GL; the ${L0}->${L1} delta is the signal.`
+  );
 }
-main().catch((e) => { console.error('[compare] FAILED', e); process.exit(1); });
+main().catch((e) => {
+  console.error('[compare] FAILED', e);
+  process.exit(1);
+});
