@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { Feature } from 'ol';
+import { FeatureLike } from 'ol/Feature';
 import { Subject } from 'rxjs';
 import * as xml2js from 'xml2js';
 import { Style } from 'ol/style';
@@ -376,7 +376,7 @@ export class S57Service {
     }
   }
 
-  public selectLookup(feature: Feature): number {
+  public selectLookup(feature: FeatureLike): number {
     const props = feature.getProperties();
     const properties = {};
     Object.keys(props).forEach((k) => {

@@ -10,6 +10,7 @@ import { Map, MapBrowserEvent } from 'ol';
 import { Draw } from 'ol/interaction';
 import { DrawEvent, Options as DrawOptions } from 'ol/interaction/Draw';
 import { StyleLike } from 'ol/style/Style';
+import BaseEvent from 'ol/events/Event';
 import { MapComponent } from '../map.component';
 import {
   SnapPress,
@@ -114,7 +115,7 @@ export class InteractionDrawComponent {
   /** Snap drawn points to the waypoints shown on the map. */
   @Input() snapToWaypoints = false;
 
-  @Output() change: EventEmitter<DrawEvent> = new EventEmitter();
+  @Output() change: EventEmitter<BaseEvent> = new EventEmitter();
   @Output() drawStart: EventEmitter<DrawEvent> = new EventEmitter();
   @Output() drawEnd: EventEmitter<DrawEvent> = new EventEmitter();
   @Output() drawAbort: EventEmitter<DrawEvent> = new EventEmitter();
@@ -178,7 +179,7 @@ export class InteractionDrawComponent {
   }
 
   // ** emit events
-  private emitChangeEvent = (event: DrawEvent) => this.change.emit(event);
+  private emitChangeEvent = (event: BaseEvent) => this.change.emit(event);
   private emitDrawStartEvent = (event: DrawEvent) => this.drawStart.emit(event);
   private emitDrawEndEvent = (event: DrawEvent) => this.drawEnd.emit(event);
   private emitDrawAbortEvent = (event: DrawEvent) => this.drawAbort.emit(event);

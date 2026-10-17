@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
+import { FeatureLike } from 'ol/Feature';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill, Circle, Text } from 'ol/style';
@@ -164,7 +165,7 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
         geometry: new LineString(fromLonLatArray(this.mapifiedLine))
       });
       cog.setId('cogSelf');
-      cog.setStyle((feature: Feature) => {
+      cog.setStyle((feature: FeatureLike) => {
         const geometry = feature.getGeometry() as LineString;
         const defaultColor = 'rgba(204, 12, 225, 0.7)';
 
@@ -179,7 +180,7 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
           })
         );
 
-        geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
+        geometry.forEachSegment((start, end) => {
           styles.push(
             new Style({
               geometry: new Point(end),

@@ -281,11 +281,11 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   // show / hide cog vector
   toggleCogLines(show: boolean) {
     if (show) {
-      this.targets.forEach((v: SKVessel, k) => {
-        this.parseCogLine(k, v);
+      this.targets.forEach((v, k) => {
+        this.parseCogLine(k, v as SKVessel);
       });
     } else {
-      this.source.forEachFeature((cl: Feature<LineString>) => {
+      this.source.forEachFeature((cl) => {
         if ((cl.getId() as string).includes('cog-')) {
           this.source.removeFeature(cl);
         }
