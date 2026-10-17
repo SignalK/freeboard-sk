@@ -48,7 +48,7 @@ describe('PlotterExtensionService.hideRoute (#592)', () => {
     Object.assign(skres as unknown as Record<string, unknown>, {
       app: {
         config: { selections: { routes: selections } },
-        saveConfig: () => undefined
+        saveConfig: (): void => undefined
       },
       routeCacheSignal,
       routes: routeCacheSignal.asReadonly()

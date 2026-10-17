@@ -17,7 +17,7 @@ describe('PlotterPanelDialog with no configuration panel', () => {
       imports: [PlotterPanelDialog],
       providers: [
         provideNoopAnimations(),
-        { provide: MatDialogRef, useValue: { close: () => undefined } },
+        { provide: MatDialogRef, useValue: { close: (): void => undefined } },
         {
           provide: MAT_DIALOG_DATA,
           useValue: {
@@ -32,8 +32,8 @@ describe('PlotterPanelDialog with no configuration panel', () => {
           provide: PlotterExtensionService,
           useValue: {
             resolveAssetUrl: (u: string) => u,
-            attachPanel: () => () => undefined,
-            removeWidget: () => undefined
+            attachPanel: () => (): void => undefined,
+            removeWidget: (): void => undefined
           }
         }
       ]
@@ -59,7 +59,7 @@ describe('PlotterPanelDialog with no configuration panel', () => {
 
 describe('PlotterPanelDialog for an overlay configuration panel', () => {
   let fixture: ComponentFixture<PlotterPanelDialog>;
-  const attachPanel = vi.fn(() => () => undefined);
+  const attachPanel = vi.fn(() => (): void => undefined);
 
   beforeEach(() => {
     attachPanel.mockClear();
@@ -67,7 +67,7 @@ describe('PlotterPanelDialog for an overlay configuration panel', () => {
       imports: [PlotterPanelDialog],
       providers: [
         provideNoopAnimations(),
-        { provide: MatDialogRef, useValue: { close: () => undefined } },
+        { provide: MatDialogRef, useValue: { close: (): void => undefined } },
         {
           provide: MAT_DIALOG_DATA,
           useValue: {
@@ -87,7 +87,7 @@ describe('PlotterPanelDialog for an overlay configuration panel', () => {
           useValue: {
             resolveAssetUrl: (u: string) => u,
             attachPanel,
-            removeWidget: () => undefined
+            removeWidget: (): void => undefined
           }
         }
       ]

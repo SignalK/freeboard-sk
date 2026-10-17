@@ -389,7 +389,7 @@ describe('PlotterExtensionService data overlay manifests', () => {
     sources: {
       soundings: {
         type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
+        data: { type: 'FeatureCollection', features: [] as unknown[] }
       }
     },
     layers: [

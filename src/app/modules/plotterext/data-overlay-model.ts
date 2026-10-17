@@ -413,7 +413,7 @@ export class DataOverlayModel {
     state.reload = false;
     const loading = this.load(url, reload)
       .then((json) => geojsonFeatures(json) ?? [])
-      .catch((err) => {
+      .catch((err: unknown): null => {
         console.warn(`[plotterext] could not load ${url.url}:`, err);
         return null;
       })
