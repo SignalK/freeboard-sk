@@ -134,7 +134,7 @@
   { "feature": "extension-map-layers", "pr": 1011, "kind": "new", "since": "v3.4.0-beta.0", "date": "2026-10-14", "title": "feat(plotterext): implement overlays.image in the reference host" },
   { "feature": "extension-map-layers", "pr": 1017, "kind": "enhanced", "since": "v3.4.0-beta.0", "date": "2026-10-14", "title": "feat(plotterext): implement overlay config panels, density and pace hints" },
   { "feature": "extension-map-layers", "pr": 1022, "kind": "enhanced", "since": "v3.4.0-beta.0", "date": "2026-10-15", "title": "feat(plotterext): implement data overlays in the reference host" },
-  { "feature": "split-view", "pr": 1025, "kind": "new", "date": "2026-10-16", "title": "feat(map): add a split view with a second chart pane" },
+  { "feature": "split-view", "pr": 1025, "kind": "new", "since": "v3.4.0-beta.1", "date": "2026-10-16", "title": "feat(map): add a split view with a second chart pane" },
   { "feature": null, "pr": 1027, "kind": "skip", "reason": "performance only: shared data-overlay tiles decode once; no user-facing change" },
-  { "feature": "toolbar-overflow", "pr": 1035, "kind": "new", "date": "2026-10-17", "title": "feat(map): fit the map toolbars to the screen with an overflow menu" }
+  { "feature": "toolbar-overflow", "pr": 1035, "kind": "new", "since": "v3.4.0-beta.1", "date": "2026-10-17", "title": "feat(map): fit the map toolbars to the screen with an overflow menu" }
 ]
