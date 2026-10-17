@@ -7,7 +7,8 @@ this is what users read for each release. It replaces GitHub's flat auto-generat
 notes.
 
 Dev-only (in `dev-tools/`, excluded from the npm package). Plain Node — no runtime
-dependencies; it shells out to `git`.
+dependencies; it shells out to `git`. It is TypeScript that Node runs directly, so
+it needs Node 22.18 or newer (the release workflows use Node 24).
 
 ## Commands
 
