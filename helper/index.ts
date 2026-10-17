@@ -1,4 +1,11 @@
-import { Context, Plugin, ServerAPI, SKVersion } from '@signalk/server-api';
+import {
+  Context,
+  Meta,
+  Path,
+  Plugin,
+  ServerAPI,
+  SKVersion
+} from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms, shutdownAlarms } from './alarms/alarms';
 
@@ -107,84 +114,84 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
    */
   const emitMeteoMetas = () => {
     const pathRoot = 'environment';
-    const metas = [];
+    const metas: Meta[] = [];
     server.debug('**** Building METEO metas *****');
     metas.push({
-      path: `${pathRoot}.date`,
+      path: `${pathRoot}.date` as Path,
       value: {
         description: 'Time of measurement.'
       }
     });
     metas.push({
-      path: `${pathRoot}.sun.sunrise`,
+      path: `${pathRoot}.sun.sunrise` as Path,
       value: {
         description: 'Time of sunrise at the related position.'
       }
     });
     metas.push({
-      path: `${pathRoot}.sun.sunset`,
+      path: `${pathRoot}.sun.sunset` as Path,
       value: {
         description: 'Time of sunset at the related position.'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.uvIndex`,
+      path: `${pathRoot}.outside.uvIndex` as Path,
       value: {
         description: 'Level of UV radiation. 1 UVI = 25mW/sqm',
         units: 'UVI'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.cloudCover`,
+      path: `${pathRoot}.outside.cloudCover` as Path,
       value: {
         description: 'Cloud clover.',
         units: 'ratio'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.temperature`,
+      path: `${pathRoot}.outside.temperature` as Path,
       value: {
         description: 'Outside air temperature.',
         units: 'K'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.dewPointTemperature`,
+      path: `${pathRoot}.outside.dewPointTemperature` as Path,
       value: {
         description: 'Dew point.',
         units: 'K'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.feelsLikeTemperature`,
+      path: `${pathRoot}.outside.feelsLikeTemperature` as Path,
       value: {
         description: 'Feels like temperature.',
         units: 'K'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.horizontalVisibility`,
+      path: `${pathRoot}.outside.horizontalVisibility` as Path,
       value: {
         description: 'Horizontal visibility.',
         units: 'm'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.horizontalVisibilityOverRange`,
+      path: `${pathRoot}.outside.horizontalVisibilityOverRange` as Path,
       value: {
         description:
           'Visibilty distance is greater than the range of the measuring equipment.'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.pressure`,
+      path: `${pathRoot}.outside.pressure` as Path,
       value: {
         description: 'Barometric pressure.',
         units: 'Pa'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.pressureTendency`,
+      path: `${pathRoot}.outside.pressureTendency` as Path,
       value: {
         description:
           'Integer value indicating barometric pressure value tendency e.g. 0 = steady, etc.'
@@ -192,63 +199,63 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.outside.pressureTendencyType`,
+      path: `${pathRoot}.outside.pressureTendencyType` as Path,
       value: {
         description:
           'Description for the value of pressureTendency e.g. steady, increasing, decreasing.'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.relativeHumidity`,
+      path: `${pathRoot}.outside.relativeHumidity` as Path,
       value: {
         description: 'Relative humidity.',
         units: 'ratio'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.absoluteHumidity`,
+      path: `${pathRoot}.outside.absoluteHumidity` as Path,
       value: {
         description: 'Absolute humidity.',
         units: 'ratio'
       }
     });
     metas.push({
-      path: `${pathRoot}.outside.precipitationVolume`,
+      path: `${pathRoot}.outside.precipitationVolume` as Path,
       value: {
         description: 'Precipitation Volume.',
         units: 'm'
       }
     });
     metas.push({
-      path: `${pathRoot}.wind.averageSpeed`,
+      path: `${pathRoot}.wind.averageSpeed` as Path,
       value: {
         description: 'Average wind speed.',
         units: 'm/s'
       }
     });
     metas.push({
-      path: `${pathRoot}.wind.speedTrue`,
+      path: `${pathRoot}.wind.speedTrue` as Path,
       value: {
         description: 'True wind speed.',
         units: 'm/s'
       }
     });
     metas.push({
-      path: `${pathRoot}.wind.directionTrue`,
+      path: `${pathRoot}.wind.directionTrue` as Path,
       value: {
         description: 'The wind direction relative to true north.',
         units: 'rad'
       }
     });
     metas.push({
-      path: `${pathRoot}.wind.gust`,
+      path: `${pathRoot}.wind.gust` as Path,
       value: {
         description: 'Maximum wind gust.',
         units: 'm/s'
       }
     });
     metas.push({
-      path: `${pathRoot}.wind.gustDirectionTrue`,
+      path: `${pathRoot}.wind.gustDirectionTrue` as Path,
       value: {
         description: 'Maximum wind gust direction.',
         units: 'rad'
@@ -256,7 +263,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.wind.gust`,
+      path: `${pathRoot}.wind.gust` as Path,
       value: {
         description: 'Maximum wind gust.',
         units: 'm/s'
@@ -264,7 +271,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.level`,
+      path: `${pathRoot}.water.level` as Path,
       value: {
         description: 'Water level.',
         units: 'm'
@@ -272,7 +279,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.temperature`,
+      path: `${pathRoot}.water.temperature` as Path,
       value: {
         description: 'Water temperature.',
         units: 'K'
@@ -280,7 +287,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.salinity`,
+      path: `${pathRoot}.water.salinity` as Path,
       value: {
         description: 'Water salinity.',
         units: 'ratio'
@@ -288,7 +295,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.levelTendency`,
+      path: `${pathRoot}.water.levelTendency` as Path,
       value: {
         description:
           'Integer value indicating water level tendency e.g. 0 = steady, etc.'
@@ -296,7 +303,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.levelTendencyType`,
+      path: `${pathRoot}.water.levelTendencyType` as Path,
       value: {
         description:
           'Description for the value of levelTendency e.g. steady, increasing, decreasing.'
@@ -304,7 +311,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.current.set`,
+      path: `${pathRoot}.water.current.set` as Path,
       value: {
         description: 'Water current direction.',
         units: 'rad'
@@ -312,7 +319,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.current.drift`,
+      path: `${pathRoot}.water.current.drift` as Path,
       value: {
         description: 'Water current speed.',
         units: 'm/s'
@@ -320,7 +327,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.waves.significantHeight`,
+      path: `${pathRoot}.water.waves.significantHeight` as Path,
       value: {
         description: 'Significant wave height.',
         units: 'm'
@@ -328,7 +335,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.waves.period`,
+      path: `${pathRoot}.water.waves.period` as Path,
       value: {
         description: 'Wave period.',
         units: 'ms'
@@ -336,7 +343,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.waves.direction`,
+      path: `${pathRoot}.water.waves.direction` as Path,
       value: {
         description: 'Wave direction.',
         units: 'rad'
@@ -344,7 +351,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.swell.significantHeight`,
+      path: `${pathRoot}.water.swell.significantHeight` as Path,
       value: {
         description: 'Significant swell height.',
         units: 'm'
@@ -352,7 +359,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.swell.period`,
+      path: `${pathRoot}.water.swell.period` as Path,
       value: {
         description: 'Swell period.',
         units: 'ms'
@@ -360,7 +367,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
 
     metas.push({
-      path: `${pathRoot}.water.swell.directionTrue`,
+      path: `${pathRoot}.water.swell.directionTrue` as Path,
       value: {
         description: 'Swell direction.',
         units: 'rad'
