@@ -484,16 +484,17 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.selections.resourceSets).toEqual({ 'resource-sets': ['abc'] });
   });
 
-  it('drops the settings of the retired instruments panel', () => {
+  it('keeps the stored settings of the retired instruments panel for older builds', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    cfg.display.plugins = {
+    const plugins = {
       instruments: '/@signalk/instrumentpanel',
       startOnOpen: true,
       parameters: null,
       favourites: ['/@mxtommy/kip']
     };
+    cfg.display.plugins = plugins;
     cleanConfig(cfg, {});
-    expect(cfg.display).not.toHaveProperty('plugins');
+    expect(cfg.display.plugins).toEqual(plugins);
   });
 
   it('produces a config with every default key present', () => {
