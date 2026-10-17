@@ -56,6 +56,8 @@ interface PreferredPathsResult {
   value: IAppConfig['units']['preferredPaths'];
 }
 
+type AisState = 'moored' | 'anchored';
+
 //** Settings **
 @Component({
   selector: 'settings-dialog',
@@ -91,7 +93,7 @@ export class SettingsDialog implements OnInit {
   protected options: SettingsOptions;
   protected readonly centerOffsetLimit = CENTER_OFFSET_LIMIT;
 
-  protected aisStateFilter: Record<string, boolean> = {
+  protected aisStateFilter: Record<AisState, boolean> = {
     moored: false,
     anchored: false
   };
@@ -128,7 +130,7 @@ export class SettingsDialog implements OnInit {
   ngOnInit() {
     this.facade.refresh();
     this.facade.settings.selections.aisState.forEach((i: string) => {
-      if (i in this.aisStateFilter) {
+      if (this.isAisState(i)) {
         this.aisStateFilter[i] = true;
       }
     });
@@ -422,14 +424,16 @@ export class SettingsDialog implements OnInit {
    * Handle AIS state filter change
    */
   onAisStateFilter() {
-    const s = [];
-    for (const i in this.aisStateFilter) {
-      if (this.aisStateFilter[i]) {
-        s.push(i);
-      }
-    }
-    this.facade.settings.selections.aisState = [].concat(s);
+    this.facade.settings.selections.aisState = Object.entries(
+      this.aisStateFilter
+    )
+      .filter(([, selected]) => selected)
+      .map(([state]) => state);
     this.persistModel();
+  }
+
+  private isAisState(state: string): state is AisState {
+    return state in this.aisStateFilter;
   }
 
   /**
