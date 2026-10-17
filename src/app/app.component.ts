@@ -260,6 +260,7 @@ export class AppComponent {
   public mode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME; // current mode
 
   private timers = [];
+  private userConfigLoaded: Promise<unknown> = Promise.resolve();
   private trackApiNoticeShown = false; // this session
 
   // external resources
@@ -1131,12 +1132,14 @@ export class AppComponent {
         next: () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
-          this.app.loadUserConfigfromServer().finally(() => {
-            this.loadSymbolsThenFetchResources();
-            // after user config is final so persisted widget placements
-            // reflect the server-stored layout, not a stale local copy
-            this.plotterExt.init();
-          });
+          this.userConfigLoaded = this.app
+            .loadUserConfigfromServer()
+            .finally(() => {
+              this.loadSymbolsThenFetchResources();
+              // after user config is final so persisted widget placements
+              // reflect the server-stored layout, not a stale local copy
+              this.plotterExt.init();
+            });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
@@ -1245,6 +1248,9 @@ export class AppComponent {
     });
     if (trackStore) {
       if (this.app.featureFlags().resourceTracks) {
+        // Moving rewrites track selections and saves the config, which must
+        // be the user's config from the server, not the local one it replaces.
+        await this.userConfigLoaded;
         await this.moveResourceTracks();
       }
       this.skres.refreshTracks();
