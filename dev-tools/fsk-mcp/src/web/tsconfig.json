@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["es2020", "dom"],
+    "types": []
+  },
+  "include": ["**/*.ts"],
+  "exclude": []
+}

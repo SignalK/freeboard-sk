@@ -7,21 +7,28 @@
     "signalk-node-server-plugin"
   ],
   "license": "Apache-2.0",
+  "type": "module",
   "main": "plugin/index.js",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.18.0"
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "prepare": "node scripts/build.mjs",
-    "test": "node --test \"test/**/*.test.js\""
+    "build": "npm run typecheck && node scripts/build.ts",
+    "prepare": "node scripts/build.ts",
+    "typecheck": "tsc -p . && tsc -p src/web",
+    "test": "node --test \"test/**/*.test.ts\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "@signalk/server-api": "^2.33.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
     "esbuild": "^0.28.1",
-    "signalk-plotterext-bus": "^0.7.3"
+    "signalk-plotterext-bus": "^0.7.3",
+    "typescript": "~5.9.3"
   }
 }

@@ -1,9 +1,9 @@
 // Manifest shape — pure, no servers started.
 
-const { test } = require('node:test');
-const assert = require('node:assert');
+import { test } from 'node:test';
+import assert from 'node:assert';
 
-const { buildManifest } = require('../src/manifest');
+import { buildManifest } from '../src/manifest.ts';
 
 test('declares a version-1 background-runtime extension', () => {
   const m = buildManifest();
@@ -19,8 +19,8 @@ test('declares a version-1 background-runtime extension', () => {
 
 test('contributes no visible UI of its own (headless bridge only)', () => {
   const m = buildManifest();
-  assert.strictEqual(m.widgets, undefined);
-  assert.strictEqual(m.buttons, undefined);
+  assert.ok(!('widgets' in m));
+  assert.ok(!('buttons' in m));
 });
 
 test('offers one panel, the window probe, for agents to open in windows', () => {
