@@ -16,7 +16,7 @@ tsconfig-helper.json
 tsconfig.spec.json
 tsconfig.worker.json
 vitest-base.config.ts
-vitest-setup.js
+vitest-setup.ts
 webpack.config.js
 .angular
 .github
