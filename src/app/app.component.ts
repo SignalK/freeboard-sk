@@ -9,9 +9,7 @@ import {
   untracked,
   viewChild
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { BreakpointObserver } from '@angular/cdk/layout';
-import { map, Observable, Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { GPXExportService } from 'src/app/modules/gpx/gpx-export.service';
@@ -345,15 +343,6 @@ export class AppComponent {
   protected layouts = inject(LayoutService);
   private temporaryRoutes = inject(TemporaryRouteService);
   protected whatsNew = inject(WhatsNewService);
-
-  // The Instruments panel is too wide for a narrow screen, so its toolbar
-  // button is left out there.
-  private narrowScreen = toSignal(
-    inject(BreakpointObserver)
-      .observe('(max-width: 800px)')
-      .pipe(map((state) => state.matches)),
-    { initialValue: false }
-  );
 
   // The nav data panel's bottom offset, lifted above the bottom widgets it
   // would cover (until the user moves it).
@@ -2177,7 +2166,7 @@ export class AppComponent {
         this.app.data.vessels.activeId = null;
       } else {
         this.app.data.vessels.active = av;
-        this.closeDrawer();
+        this.infoPanel.close();
       }
     }
     this.app.data.activeRoute = null;
