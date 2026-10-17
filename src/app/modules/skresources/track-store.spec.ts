@@ -72,6 +72,24 @@ describe('storeTrackBody', () => {
     });
   });
 
+  it("keeps a file's own point times only when they fit the geometry", () => {
+    const fits = [['2026-10-01T08:00:00Z', '2026-10-01T08:01:00Z']];
+    const withTimes = (coordTimes: unknown): MultiLineStringFeature => ({
+      ...feature,
+      properties: { name: 'Friend', coordTimes }
+    });
+    expect(storeTrackBody(withTimes(fits)).properties.coordTimes).toEqual(fits);
+    for (const bad of [
+      [['2026-10-01T08:00:00Z']],
+      [['2026-10-01T08:00:00Z', 'not a time']],
+      ['2026-10-01T08:00:00Z', '2026-10-01T08:01:00Z']
+    ]) {
+      expect(storeTrackBody(withTimes(bad)).properties).toEqual({
+        name: 'Friend'
+      });
+    }
+  });
+
   it('never takes the vessel from the file', () => {
     const own: MultiLineStringFeature = {
       ...feature,
