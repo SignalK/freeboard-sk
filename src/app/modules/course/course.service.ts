@@ -80,7 +80,7 @@ export class CourseService {
       );
       return true;
     } catch (err) {
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err);
       return false;
     }
   }
@@ -212,7 +212,7 @@ export class CourseService {
       );
       return true;
     } catch (err) {
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err);
       return false;
     }
   }
@@ -273,7 +273,7 @@ export class CourseService {
       );
       return true;
     } catch (err) {
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err);
       return false;
     }
   }
