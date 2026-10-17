@@ -261,7 +261,7 @@ export class AppComponent {
   public mode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME; // current mode
 
   private timers = [];
-  private userConfigLoaded: Promise<unknown> = Promise.resolve();
+  private userConfigLoaded: Promise<boolean> = Promise.resolve(false);
   private trackApiNoticeShown = false; // this session
 
   // external resources
@@ -1253,8 +1253,12 @@ export class AppComponent {
       if (this.app.featureFlags().resourceTracks) {
         // Moving rewrites track selections and saves the config, which must
         // be the user's config from the server, not the local one it replaces.
-        await this.userConfigLoaded;
-        await this.moveResourceTracks();
+        // If a signed-in user's config could not be read, the move waits for
+        // a later connect: the tracks stay where they are until then.
+        const configLoaded = await this.userConfigLoaded;
+        if (configLoaded || !this.app.isLoggedIn()) {
+          await this.moveResourceTracks();
+        }
       }
       this.skres.refreshTracks();
     }
