@@ -17,7 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatListModule } from '@angular/material/list';
+import { MatListModule, MatSelectionList } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -91,7 +91,7 @@ export class SettingsDialog implements OnInit {
   protected options: SettingsOptions;
   protected readonly centerOffsetLimit = CENTER_OFFSET_LIMIT;
 
-  protected aisStateFilter = {
+  protected aisStateFilter: Record<string, boolean> = {
     moored: false,
     anchored: false
   };
@@ -412,7 +412,7 @@ export class SettingsDialog implements OnInit {
    * Handle favourites component event
    * @param e
    */
-  onFavSelected(e: unknown, f) {
+  onFavSelected(e: unknown, f: MatSelectionList) {
     this.facade.settings.display.plugins.favourites =
       f.selectedOptions.selected.map((i) => i.value);
     this.persistModel();
@@ -436,7 +436,7 @@ export class SettingsDialog implements OnInit {
    * Handle custom resource path selection changes
    * @param f
    */
-  onResPathSelected(f) {
+  onResPathSelected(f: MatSelectionList) {
     this.facade.settings.resources.paths = f.selectedOptions.selected.map(
       (i) => i.value
     );

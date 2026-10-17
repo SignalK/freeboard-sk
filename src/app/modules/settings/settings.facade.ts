@@ -23,6 +23,13 @@ interface SKAppsList {
   version: string;
 }
 
+/** An installed webapp, as offered in the Instruments and Favourites lists. */
+interface AppListEntry {
+  name: string;
+  description: string;
+  url: string;
+}
+
 interface ResourceTypeList {
   [key: string]: {
     $source: string;
@@ -259,9 +266,9 @@ export class SettingsOptions {
 
 @Injectable({ providedIn: 'root' })
 export class SettingsFacade {
-  applicationList = []; // installed webapp list
-  favouritesList = []; // favourite webapp selections
-  resourcePathList = []; // resource layer list
+  applicationList: AppListEntry[] = []; // installed webapp list
+  favouritesList: AppListEntry[] = []; // favourite webapp selections
+  resourcePathList: string[] = []; // resource layer list
   fixedPosition: Position = [0, 0];
 
   settings!: IAppConfig;
@@ -317,7 +324,9 @@ export class SettingsFacade {
           })
           .sort();
       },
-      () => (this.resourcePathList = [])
+      (): void => {
+        this.resourcePathList = [];
+      }
     );
   }
 
@@ -325,7 +334,11 @@ export class SettingsFacade {
   private getApps() {
     // apps list - default an entry to stored config value
     if (this.app.config.display.plugins.instruments) {
-      this.applicationList.push(this.app.config.display.plugins.instruments);
+      this.applicationList.push({
+        name: this.app.config.display.plugins.instruments,
+        description: '',
+        url: this.app.config.display.plugins.instruments
+      });
     }
 
     (this.signalk.apps.list() as Observable<Array<SKAppsList>>).subscribe(
