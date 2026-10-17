@@ -9,9 +9,6 @@ import {
   untracked,
   viewChild
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { BreakpointObserver } from '@angular/cdk/layout';
-import { map } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { GPXExportService } from 'src/app/modules/gpx/gpx-export.service';
@@ -313,15 +310,6 @@ export class AppComponent {
   protected plotterExt = inject(PlotterExtensionService);
   private temporaryRoutes = inject(TemporaryRouteService);
   protected whatsNew = inject(WhatsNewService);
-
-  // The Instruments panel is too wide for a narrow screen, so its toolbar
-  // button is left out there.
-  private narrowScreen = toSignal(
-    inject(BreakpointObserver)
-      .observe('(max-width: 800px)')
-      .pipe(map((state) => state.matches)),
-    { initialValue: false }
-  );
 
   // The right-hand toolbar stops above the Action Button (56 px tall, 23 px
   // from the bottom unless widgets lift it).
@@ -2103,7 +2091,7 @@ export class AppComponent {
         this.app.data.vessels.activeId = null;
       } else {
         this.app.data.vessels.active = av;
-        this.sideright.close();
+        this.infoPanel.close();
       }
     }
     this.app.data.activeRoute = null;
