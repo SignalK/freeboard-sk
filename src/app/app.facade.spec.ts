@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
 import { AppFacade } from './app.facade';
@@ -407,5 +408,35 @@ describe('AppFacade.activePaneFollows', () => {
 
     split.activate('main');
     expect(app.activePaneFollows()).toBe(true);
+  });
+});
+
+describe('AppFacade.parseHttpErrorResponse', () => {
+  let app: AppFacade;
+  let showAlert: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    app = TestBed.inject(AppFacade);
+    showAlert = vi.spyOn(app, 'showAlert').mockReturnValue(undefined);
+  });
+
+  it('asks the user to log in when the server refuses the request', () => {
+    app.parseHttpErrorResponse(
+      new HttpErrorResponse({ status: 403, error: { message: 'Denied' } })
+    );
+    expect(showAlert).toHaveBeenCalledWith(
+      '403',
+      expect.stringContaining('requires authentication')
+    );
+    expect(showAlert.mock.calls[0][1]).toContain('Denied');
+  });
+
+  it('reports a generic failure for an error that is not an HTTP response', () => {
+    app.parseHttpErrorResponse(new Error('boom'));
+    expect(showAlert).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('Operation could not be completed!')
+    );
   });
 });

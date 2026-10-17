@@ -211,7 +211,7 @@ export class SKResourceGroupService {
         this.app.sIsFetching.set(false);
       } catch (err) {
         this.app.sIsFetching.set(false);
-        this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+        this.app.parseHttpErrorResponse(err);
         return;
       }
     }

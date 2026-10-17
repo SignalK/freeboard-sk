@@ -13,6 +13,7 @@ import {
   computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -370,15 +371,7 @@ export class AutopilotComponent {
         await this.autopilot.engage();
       }
     } catch (error) {
-      let msg = `Error setting Autopilot state!\n`;
-      if (error.status === 403) {
-        msg += 'Unauthorised: Please login.';
-        this.app.showAlert(`Error (${error.status}):`, msg);
-      } else {
-        this.app.showMessage(
-          error.error?.message ?? 'Device returned an error!'
-        );
-      }
+      this.reportError(error, `Error setting Autopilot state!\n`);
     }
   }
 
@@ -389,14 +382,7 @@ export class AutopilotComponent {
     try {
       await this.autopilot.adjustTarget(value);
     } catch (error) {
-      if (error.status === 403) {
-        const msg = 'Unauthorised: Please login.';
-        this.app.showAlert(`Error (${error.status}):`, msg);
-      } else {
-        this.app.showMessage(
-          error.error?.message ?? 'Device returned an error!'
-        );
-      }
+      this.reportError(error);
     }
   }
 
@@ -406,14 +392,7 @@ export class AutopilotComponent {
       await this.autopilot.dodge(this.apData().mode !== 'dodge');
       this.app.debug(`Set dodge mode.`);
     } catch (error) {
-      if (error.status === 403) {
-        const msg = 'Unauthorised: Please login.';
-        this.app.showAlert(`Error (${error.status}):`, msg);
-      } else {
-        this.app.showMessage(
-          error.error?.message ?? 'Device returned an error!'
-        );
-      }
+      this.reportError(error);
     }
   }
 
@@ -422,14 +401,7 @@ export class AutopilotComponent {
     try {
       await this.autopilot.adjustDodge(value);
     } catch (error) {
-      if (error.status === 403) {
-        const msg = 'Unauthorised: Please login.';
-        this.app.showAlert(`Error (${error.status}):`, msg);
-      } else {
-        this.app.showMessage(
-          error.error?.message ?? 'Device returned an error!'
-        );
-      }
+      this.reportError(error);
     }
   }
 
@@ -440,15 +412,7 @@ export class AutopilotComponent {
     try {
       await this.autopilot.mode(mode);
     } catch (error) {
-      let msg = `Error setting Autopilot mode!\n`;
-      if (error.status === 403) {
-        msg += 'Unauthorised: Please login.';
-        this.app.showAlert(`Error (${error.status}):`, msg);
-      } else {
-        this.app.showMessage(
-          error.error?.message ?? 'Device returned an error!'
-        );
-      }
+      this.reportError(error, `Error setting Autopilot mode!\n`);
     }
   }
 
@@ -459,15 +423,23 @@ export class AutopilotComponent {
     try {
       await this.autopilot.state(state);
     } catch (error) {
-      let msg = `Error setting Autopilot state!\n`;
-      if (error.status === 403) {
-        msg += 'Unauthorised: Please login.';
-        this.app.showAlert(`Error (${error.status}):`, msg);
-      } else {
-        this.app.showMessage(
-          error.error?.message ?? 'Device returned an error!'
-        );
-      }
+      this.reportError(error, `Error setting Autopilot state!\n`);
+    }
+  }
+
+  /** Alert on an unauthorised request, otherwise show the device's message.
+   * @param error What the failed request rejected with
+   * @param prefix Leads the unauthorised alert text
+   */
+  private reportError(error: unknown, prefix = '') {
+    const http = error instanceof HttpErrorResponse ? error : undefined;
+    if (http?.status === 403) {
+      this.app.showAlert(
+        `Error (${http.status}):`,
+        prefix + 'Unauthorised: Please login.'
+      );
+    } else {
+      this.app.showMessage(http?.error?.message ?? 'Device returned an error!');
     }
   }
 

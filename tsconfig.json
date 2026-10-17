@@ -6,6 +6,7 @@
     "alwaysStrict": true,
     "noImplicitThis": true,
     "strictBindCallApply": true,
+    "useUnknownInCatchVariables": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
     "noImplicitReturns": false,
