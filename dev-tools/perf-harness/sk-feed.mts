@@ -17,7 +17,8 @@
  *   CENTER      "lon,lat"                          (default -122.45,37.80)
  */
 
-const SK_URL = process.env.SK_URL || 'ws://localhost:3010/signalk/v1/stream?subscribe=none';
+const SK_URL =
+  process.env.SK_URL || 'ws://localhost:3010/signalk/v1/stream?subscribe=none';
 const RATE_HZ = Number(process.env.RATE_HZ || 1);
 const AIS_COUNT = Number(process.env.AIS_COUNT || 20);
 const DURATION_S = Number(process.env.DURATION_S || 0);
@@ -26,14 +27,13 @@ const DURATION_S = Number(process.env.DURATION_S || 0);
 const [CLON, CLAT] = (process.env.CENTER || '0,0').split(',').map(Number);
 
 const R_EARTH = 6371000;
-const toRad = (d) => (d * Math.PI) / 180;
+const toRad = (d: number) => (d * Math.PI) / 180;
 // metres -> degrees offset at a given latitude
-const dLon = (m, lat) => (m / (R_EARTH * Math.cos(toRad(lat)))) * (180 / Math.PI);
-const dLat = (m) => (m / R_EARTH) * (180 / Math.PI);
+const dLon = (m: number, lat: number) =>
+  (m / (R_EARTH * Math.cos(toRad(lat)))) * (180 / Math.PI);
+const dLat = (m: number) => (m / R_EARTH) * (180 / Math.PI);
 
-function nowIso(tickMs) {
-  // Derive an ISO timestamp from a monotonic base + elapsed ticks (Date.now is
-  // fine here — this is a standalone script, not a workflow).
+function nowIso() {
   return new Date(Date.now()).toISOString();
 }
 
@@ -46,8 +46,9 @@ const targets = Array.from({ length: AIS_COUNT }, (_, i) => {
   const mmsi = String(366000000 + i);
   return { i, ring, phase, angSpeed, dir, mmsi, name: `AIS Target ${i + 1}` };
 });
+type AisTarget = (typeof targets)[number];
 
-function selfDelta(t) {
+function selfDelta(t: number) {
   // slow figure-eight drift around centre
   const x = 600 * Math.sin(t * 0.03);
   const y = 400 * Math.sin(t * 0.06);
@@ -61,19 +62,31 @@ function selfDelta(t) {
         source: { label: 'perf-harness' },
         timestamp: nowIso(),
         values: [
-          { path: 'navigation.position', value: { longitude: lon, latitude: lat } },
+          {
+            path: 'navigation.position',
+            value: { longitude: lon, latitude: lat }
+          },
           { path: 'navigation.courseOverGroundTrue', value: cog },
           { path: 'navigation.headingTrue', value: cog },
-          { path: 'navigation.speedOverGround', value: 3.5 + Math.sin(t * 0.1) },
-          { path: 'environment.wind.angleApparent', value: 0.7 + 0.2 * Math.sin(t * 0.2) },
-          { path: 'environment.wind.speedApparent', value: 6 + Math.sin(t * 0.15) }
+          {
+            path: 'navigation.speedOverGround',
+            value: 3.5 + Math.sin(t * 0.1)
+          },
+          {
+            path: 'environment.wind.angleApparent',
+            value: 0.7 + 0.2 * Math.sin(t * 0.2)
+          },
+          {
+            path: 'environment.wind.speedApparent',
+            value: 6 + Math.sin(t * 0.15)
+          }
         ]
       }
     ]
   };
 }
 
-function aisDelta(tg, t) {
+function aisDelta(tg: AisTarget, t: number) {
   const ang = tg.phase + tg.dir * tg.angSpeed * t;
   const x = tg.ring * Math.cos(ang);
   const y = tg.ring * Math.sin(ang);
@@ -87,9 +100,18 @@ function aisDelta(tg, t) {
         source: { label: 'perf-harness' },
         timestamp: nowIso(),
         values: [
-          { path: 'navigation.position', value: { longitude: lon, latitude: lat } },
-          { path: 'navigation.courseOverGroundTrue', value: (cog + 2 * Math.PI) % (2 * Math.PI) },
-          { path: 'navigation.headingTrue', value: (cog + 2 * Math.PI) % (2 * Math.PI) },
+          {
+            path: 'navigation.position',
+            value: { longitude: lon, latitude: lat }
+          },
+          {
+            path: 'navigation.courseOverGroundTrue',
+            value: (cog + 2 * Math.PI) % (2 * Math.PI)
+          },
+          {
+            path: 'navigation.headingTrue',
+            value: (cog + 2 * Math.PI) % (2 * Math.PI)
+          },
           { path: 'navigation.speedOverGround', value: 2 + (tg.i % 4) }
         ]
       }
@@ -97,7 +119,7 @@ function aisDelta(tg, t) {
   };
 }
 
-function aisStatic(tg) {
+function aisStatic(tg: AisTarget) {
   return {
     context: `vessels.urn:mrn:imo:mmsi:${tg.mmsi}`,
     updates: [
@@ -115,12 +137,19 @@ function aisStatic(tg) {
 
 const ws = new WebSocket(SK_URL);
 let tick = 0;
-let timer = null;
+let timer: ReturnType<typeof setInterval> | undefined;
 
 ws.onopen = () => {
-  console.error(`[sk-feed] connected ${SK_URL}  rate=${RATE_HZ}Hz  ais=${AIS_COUNT}  center=${CLON},${CLAT}`);
+  console.error(
+    `[sk-feed] connected ${SK_URL}  rate=${RATE_HZ}Hz  ais=${AIS_COUNT}  center=${CLON},${CLAT}`
+  );
   // send static identity once
-  ws.send(JSON.stringify({ context: 'vessels.self', updates: [{ values: [{ path: '', value: { name: 'Perf Test Vessel' } }] }] }));
+  ws.send(
+    JSON.stringify({
+      context: 'vessels.self',
+      updates: [{ values: [{ path: '', value: { name: 'Perf Test Vessel' } }] }]
+    })
+  );
   targets.forEach((tg) => ws.send(JSON.stringify(aisStatic(tg))));
 
   const periodMs = 1000 / RATE_HZ;
@@ -130,10 +159,16 @@ ws.onopen = () => {
       ws.send(JSON.stringify(selfDelta(t)));
       for (const tg of targets) ws.send(JSON.stringify(aisDelta(tg, t)));
     } catch (e) {
-      console.error('[sk-feed] send error', e.message);
+      console.error(
+        '[sk-feed] send error',
+        e instanceof Error ? e.message : undefined
+      );
     }
     tick++;
-    if (tick % (RATE_HZ * 5) === 0) console.error(`[sk-feed] t=${t.toFixed(0)}s sent ${tick} self ticks (+${AIS_COUNT} ais each)`);
+    if (tick % (RATE_HZ * 5) === 0)
+      console.error(
+        `[sk-feed] t=${t.toFixed(0)}s sent ${tick} self ticks (+${AIS_COUNT} ais each)`
+      );
     if (DURATION_S && t >= DURATION_S) {
       clearInterval(timer);
       ws.close();
@@ -142,7 +177,30 @@ ws.onopen = () => {
     }
   }, periodMs);
 };
-ws.onerror = (e) => console.error('[sk-feed] WS error', e.message || e.type);
-ws.onclose = () => { if (timer) clearInterval(timer); };
-process.on('SIGINT', () => { if (timer) clearInterval(timer); try { ws.close(); } catch {} process.exit(0); });
-process.on('SIGTERM', () => { if (timer) clearInterval(timer); try { ws.close(); } catch {} process.exit(0); });
+// Node's WebSocket reports failures as an ErrorEvent, which carries a message the Event type lacks.
+ws.onerror = (e) =>
+  console.error(
+    '[sk-feed] WS error',
+    ('message' in e && typeof e.message === 'string' && e.message) || e.type
+  );
+ws.onclose = () => {
+  if (timer) clearInterval(timer);
+};
+process.on('SIGINT', () => {
+  if (timer) clearInterval(timer);
+  try {
+    ws.close();
+  } catch {
+    /* ignore */
+  }
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  if (timer) clearInterval(timer);
+  try {
+    ws.close();
+  } catch {
+    /* ignore */
+  }
+  process.exit(0);
+});

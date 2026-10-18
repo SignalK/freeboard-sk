@@ -19,7 +19,7 @@ Everything lives in `dev-tools/perf-harness/`. It is self-contained (its own
    deterministic **pan / zoom / cursor gesture sequence**.
 4. Measures main-thread cost over the gesture window and writes JSON + a
    screenshot.
-5. `compare.mjs` profiles **two build variants** (e.g. baseline vs your change)
+5. `compare.mts` profiles **two build variants** (e.g. baseline vs your change)
    and prints median metrics with deltas.
 
 ### Metrics collected
@@ -50,7 +50,10 @@ Everything lives in `dev-tools/perf-harness/`. It is self-contained (its own
 ## Prerequisites
 
 - **Docker** (with the daemon running) and Docker Compose.
-- **Node** 22+ (sk-feed.mjs uses the global `WebSocket`, enabled by default in Node 22+).
+- **Node** 22.18+ (23.6+ on the Node 23 line). The scripts are TypeScript
+  (`.mts`) that Node runs directly by stripping the types, which is on by
+  default from those versions; `sk-feed.mts`
+  also uses the global `WebSocket` (Node 22+).
 - The main app's dependencies installed at the repo root (`npm ci`) so you can
   `npm run build`.
 
@@ -58,10 +61,13 @@ Everything lives in `dev-tools/perf-harness/`. It is self-contained (its own
 
 ```bash
 cd dev-tools/perf-harness
-npm install                 # playwright + http-proxy
+npm install                 # playwright + http-proxy (+ TypeScript for typecheck)
 npx playwright install chromium
 docker compose up -d        # SignalK server on http://localhost:3010
 ```
+
+After editing a script, `npm run typecheck` checks it against the strict
+`tsconfig.json`; nothing is compiled, Node runs the `.mts` files as they are.
 
 Verify the server is up and open:
 
@@ -78,12 +84,12 @@ is disabled via a compose `entrypoint` override (the stock image hardcodes
 
 ## Seeding data
 
-`sk-feed.mjs` pushes deltas over the SignalK WS. It is deterministic (no RNG), so
+`sk-feed.mts` pushes deltas over the SignalK WS. It is deterministic (no RNG), so
 runs are repeatable.
 
 ```bash
 # 1 self vessel + 50 AIS targets at 1 Hz, centred on [0,0], for 240s
-DURATION_S=240 AIS_COUNT=50 RATE_HZ=1 CENTER=0,0 node sk-feed.mjs
+DURATION_S=240 AIS_COUNT=50 RATE_HZ=1 CENTER=0,0 node sk-feed.mts
 ```
 
 | Env | Default | Notes |
@@ -94,7 +100,7 @@ DURATION_S=240 AIS_COUNT=50 RATE_HZ=1 CENTER=0,0 node sk-feed.mjs
 | `CENTER` | `0,0` | `"lon,lat"` — `0,0` matches the app's default map centre |
 | `SK_URL` | `ws://localhost:3010/...` | SignalK stream URL |
 
-`compare.mjs` starts and stops the feed for you; you only run `sk-feed.mjs`
+`compare.mts` starts and stops the feed for you; you only run `sk-feed.mts`
 directly when profiling a single build by hand.
 
 ---
@@ -120,8 +126,8 @@ rebuilds). It only stashes tracked `src/` changes — the harness under
 ### Single build
 
 ```bash
-DURATION_S=120 AIS_COUNT=50 CENTER=0,0 node sk-feed.mjs &   # start the feed
-LABEL=mybuild BUILD_DIR=../../public ZOOM=15 node profile.mjs   # writes results/mybuild.json + .png
+DURATION_S=120 AIS_COUNT=50 CENTER=0,0 node sk-feed.mts &   # start the feed
+LABEL=mybuild BUILD_DIR=../../public ZOOM=15 node profile.mts   # writes results/mybuild.json + .png
 ```
 
 | Env | Default | Notes |
@@ -141,7 +147,7 @@ Check `results/<label>.png` to confirm the fleet rendered.
 ### Before / after comparison
 
 ```bash
-REPEATS=3 AIS_COUNT=50 node compare.mjs
+REPEATS=3 AIS_COUNT=50 node compare.mts
 ```
 
 Profiles `builds/baseline` vs `builds/tier1` (override with `BUILD_A`/`BUILD_B`
@@ -216,7 +222,7 @@ render/frame measurement; headless software-GL masks JS-side wins and inflates
 frame times.**
 
 Reproduce: build both variants (`./build-variants.sh`), then e.g.
-`AIS_COUNT=200 HEADLESS=false CPU_THROTTLE=6 SETTLE_MS=16000 BUILD_DIR=builds/tier1 node profile.mjs`.
+`AIS_COUNT=200 HEADLESS=false CPU_THROTTLE=6 SETTLE_MS=16000 BUILD_DIR=builds/tier1 node profile.mts`.
 
 ---
 
@@ -224,7 +230,7 @@ Reproduce: build both variants (`./build-variants.sh`), then e.g.
 
 ```bash
 docker compose down            # stop the SignalK server
-pkill -f sk-feed.mjs           # stop any stray feed
+pkill -f sk-feed.mts           # stop any stray feed
 rm -rf builds results          # generated artifacts (gitignored)
 ```
 
@@ -233,8 +239,9 @@ rm -rf builds results          # generated artifacts (gitignored)
 | File | Purpose |
 |---|---|
 | `docker-compose.yml` | SignalK server (open access) |
-| `sk-feed.mjs` | synthetic data generator (self + AIS over WS) |
-| `profile.mjs` | serve a build + proxy SignalK + drive gestures + measure |
-| `compare.mjs` | before/after orchestration over two builds |
+| `sk-feed.mts` | synthetic data generator (self + AIS over WS) |
+| `profile.mts` | serve a build + proxy SignalK + drive gestures + measure |
+| `compare.mts` | before/after orchestration over two builds |
 | `build-variants.sh` | build baseline + candidate side by side |
+| `tsconfig.json` | strict type-checking for the scripts (`npm run typecheck`) |
 | `results/` | per-run JSON, screenshots, `comparison.json` (gitignored) |
