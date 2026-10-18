@@ -11,6 +11,7 @@ import type Tile from 'ol/Tile';
 import type ImageTile from 'ol/ImageTile';
 import type VectorTile from 'ol/VectorTile';
 import type { FeatureLike } from 'ol/Feature';
+import TileState from 'ol/TileState';
 
 // create a PMTile WebGLtile layer
 export function initPMTilesWebGLLayer(
@@ -73,16 +74,22 @@ export function initPMTilesXYZLayer(
     const x = +result[3];
     const y = +result[4];
 
-    tiles.getZxy(z, x, y).then((tile_result) => {
-      if (tile_result) {
-        const blob = new Blob([tile_result.data]);
-        const imageUrl = window.URL.createObjectURL(blob);
-        ((tile as ImageTile).getImage() as HTMLImageElement).src = imageUrl;
-        tile.setState(2); // LOADED
-      } else {
-        tile.setState(4); // EMPTY
-      }
-    });
+    tiles
+      .getZxy(z, x, y)
+      .then((tile_result) => {
+        if (tile_result) {
+          const blob = new Blob([tile_result.data]);
+          const imageUrl = window.URL.createObjectURL(blob);
+          const image = (tile as ImageTile).getImage() as HTMLImageElement;
+          const release = () => window.URL.revokeObjectURL(imageUrl);
+          image.addEventListener('load', release, { once: true });
+          image.addEventListener('error', release, { once: true });
+          image.src = imageUrl;
+        } else {
+          tile.setState(TileState.EMPTY);
+        }
+      })
+      .catch(() => tile.setState(TileState.ERROR));
   }
 
   return new TileLayer({
@@ -119,19 +126,23 @@ export function initPMTilesVectorLayer(
 
     tile.setLoader((extent, resolution, projection) => {
       tile.setState(1); // LOADING
-      tiles.getZxy(z, x, y).then((tile_result) => {
-        if (tile_result) {
-          const format = tile.getFormat();
-          const features = format.readFeatures(tile_result.data, {
-            extent: extent,
-            featureProjection: projection
-          });
-          tile.setFeatures(features);
-          tile.setState(2); // LOADED
-        } else {
-          tile.setState(4); // EMPTY
-        }
-      });
+      tiles
+        .getZxy(z, x, y)
+        .then((tile_result) => {
+          if (tile_result) {
+            const format = tile.getFormat();
+            const features = format.readFeatures(tile_result.data, {
+              extent: extent,
+              featureProjection: projection
+            });
+            tile.setFeatures(features);
+          } else {
+            // A source tile left EMPTY never completes the render tile
+            // waiting on it; an empty feature set does.
+            tile.setFeatures([]);
+          }
+        })
+        .catch(() => tile.setState(TileState.ERROR));
     });
   }
 
