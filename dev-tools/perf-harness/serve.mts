@@ -16,7 +16,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import httpProxy from 'http-proxy';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
@@ -120,7 +120,7 @@ export function startServer(
 }
 
 // Run standalone: serve until Ctrl-C.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const BUILD_DIR = path.resolve(
     __dir,
     process.env.BUILD_DIR || '../../public'
