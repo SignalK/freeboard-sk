@@ -7,9 +7,9 @@ import {
   SKVersion
 } from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
-import { initAlarms, shutdownAlarms } from './alarms/alarms';
+import { initAlarms, shutdownAlarms } from './alarms/alarms.js';
 
-import * as openapi from './openApi.json';
+import openapi from './openApi.json' with { type: 'json' };
 
 //const defaultPollInterval = 60;
 
@@ -26,7 +26,7 @@ interface SETTINGS {
 
 export interface FreeboardHelperApp extends Application, ServerAPI {}
 
-module.exports = (server: FreeboardHelperApp): Plugin => {
+export default (server: FreeboardHelperApp): Plugin => {
   // ** default configuration settings
   let settings: SETTINGS = {
     alarms: {

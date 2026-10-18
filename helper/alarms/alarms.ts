@@ -16,7 +16,7 @@ import {
   Unsubscribes,
   Update
 } from '@signalk/server-api';
-import { FreeboardHelperApp } from '../index';
+import type { FreeboardHelperApp } from '../index.js';
 import * as uuid from 'uuid';
 import { isPointWithinRadius, isPointInPolygon } from 'geolib';
 

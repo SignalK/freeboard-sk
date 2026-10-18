@@ -6,8 +6,8 @@
     "types": [],
     "resolveJsonModule": true,
     "sourceMap": false,
-    "module": "commonjs",
-    "moduleResolution": "node"
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
   "include": ["helper/**/*", "helper/openApi.json"],
   "exclude": ["src","projects","helper/**/*.spec.ts"]
