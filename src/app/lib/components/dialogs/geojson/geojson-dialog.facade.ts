@@ -16,7 +16,8 @@ import {
   LineStringFeature,
   MultiLineStringFeature,
   PointFeature,
-  PolygonFeature
+  PolygonFeature,
+  SKApiResponse
 } from 'src/app/types';
 import { GeoJSONFeatureCollection } from 'ol/format/GeoJSON';
 
@@ -41,9 +42,9 @@ export class GeoJSONLoadFacade {
   }
 
   // ** parse GeoJSON file
-  validate(fileData: string) {
+  validate(fileData: string): GeoJSONFeatureCollection | null {
     try {
-      const data = JSON.parse(fileData);
+      const data: GeoJSONFeatureCollection = JSON.parse(fileData);
       if (
         typeof data.type === 'undefined' ||
         data.type !== 'FeatureCollection'
@@ -134,9 +135,9 @@ export class GeoJSONLoadFacade {
     this.signalk.api
       .post(this.app.skApiVersion, `/resources/routes`, r)
       .subscribe(
-        (r) => {
+        (r: SKApiResponse) => {
           this.subCount--;
-          if (r['state'] === 'COMPLETED') {
+          if (r.state === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Route added.');
           } else {
             this.errorCount++;
@@ -179,9 +180,9 @@ export class GeoJSONLoadFacade {
     this.signalk.api
       .post(this.app.skApiVersion, `/resources/waypoints`, w)
       .subscribe(
-        (r) => {
+        (r: SKApiResponse) => {
           this.subCount--;
-          if (r['state'] === 'COMPLETED') {
+          if (r.state === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Waypoint added.');
           } else {
             this.errorCount++;
@@ -215,9 +216,9 @@ export class GeoJSONLoadFacade {
     this.signalk.api
       .post(this.app.skApiVersion, `/resources/tracks`, r)
       .subscribe(
-        (r) => {
+        (r: SKApiResponse) => {
           this.subCount--;
-          if (r['state'] === 'COMPLETED') {
+          if (r.state === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Track added.');
           } else {
             this.errorCount++;
@@ -258,9 +259,9 @@ export class GeoJSONLoadFacade {
     this.signalk.api
       .post(this.app.skApiVersion, `/resources/regions`, r)
       .subscribe(
-        (r) => {
+        (r: SKApiResponse) => {
           this.subCount--;
-          if (r['state'] === 'COMPLETED') {
+          if (r.state === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Region added.');
           } else {
             this.errorCount++;

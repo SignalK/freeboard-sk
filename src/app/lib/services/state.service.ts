@@ -39,7 +39,7 @@ export class State {
 
   /** save info, config & data **
    * values= {info: xx, config: xx, data: xx }  **/
-  save(values = null) {
+  save(values: { info?: unknown; config?: unknown; data?: unknown } = null) {
     if (!values) {
       return;
     }
@@ -93,21 +93,21 @@ export class State {
   }
 
   //** persist app config **
-  saveConfig(value = null) {
+  saveConfig(value: unknown = null) {
     if (value) {
       this.ls.write('config', value);
     }
   }
 
   //** persist app data **
-  saveData(value = null) {
+  saveData(value: unknown = null) {
     if (value) {
       this.ls.write('data', value);
     }
   }
 
   //** persist app info **
-  saveInfo(value = null) {
+  saveInfo(value: unknown = null) {
     if (value) {
       this.ls.write('info', value);
     }

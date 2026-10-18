@@ -46,8 +46,6 @@ import { MatListModule } from '@angular/material/list';
   standalone: true
 })
 export class ErrorListDialog {
-  public image = null;
-
   protected dialogRef = inject(MatDialogRef<ErrorListDialog>);
   protected data = inject<{
     errorList: Array<{

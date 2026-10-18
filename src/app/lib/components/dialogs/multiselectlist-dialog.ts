@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -62,8 +62,6 @@ import { AppIconDef } from 'src/app/modules/icons';
   ]
 })
 export class MultiSelectListDialog implements OnInit {
-  @ViewChild('btncancel', { static: false }) btncancel;
-
   protected dialogRef = inject(MatDialogRef<MultiSelectListDialog>);
   protected data = inject<{
     title: string;

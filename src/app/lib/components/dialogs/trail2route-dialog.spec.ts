@@ -54,7 +54,7 @@ describe('Trail2RouteDialog — tolerance slider', () => {
       providers: [
         provideNoopAnimations(),
         { provide: MAT_DIALOG_DATA, useValue: { trail } },
-        { provide: MatDialogRef, useValue: { close: () => undefined } },
+        { provide: MatDialogRef, useValue: { close: (): void => undefined } },
         { provide: SKResourceService, useValue: {} },
         { provide: SKStreamFacade, useValue: { trail$: () => EMPTY } },
         { provide: AppFacade, useValue: { serverTrailWanted: () => false } }

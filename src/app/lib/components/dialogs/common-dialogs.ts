@@ -1,4 +1,10 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  inject
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -49,7 +55,7 @@ import {
   ]
 })
 export class MsgBox implements OnInit {
-  public msglines = [];
+  public msglines: string[] = [];
 
   protected dialogRef = inject(MatDialogRef<MsgBox>);
   protected data = inject<{
@@ -114,8 +120,7 @@ export class MsgBox implements OnInit {
   ]
 })
 export class AlertDialog implements OnInit {
-  public msglines = [];
-  public image = null;
+  public msglines: string[] = [];
   public checked = false;
 
   protected dialogRef = inject(MatDialogRef<AlertDialog>);
@@ -190,7 +195,7 @@ export class AlertDialog implements OnInit {
   ]
 })
 export class ConfirmDialog implements OnInit {
-  public msglines = [];
+  public msglines: string[] = [];
   public checked = false;
 
   protected dialogRef = inject(MatDialogRef<ConfirmDialog>);
@@ -345,10 +350,11 @@ export class AboutDialog {
   `
 })
 export class LoginDialog implements OnInit {
-  @ViewChild('username', { static: false }) username;
+  @ViewChild('username', { static: false })
+  username: ElementRef<HTMLInputElement>;
 
   protected imgSource = 'assets/img/success.png';
-  private result = {
+  private result: { cancel: boolean; user: string; pwd: string } = {
     cancel: false,
     user: null,
     pwd: null
@@ -373,14 +379,14 @@ export class LoginDialog implements OnInit {
     setTimeout(() => this.username.nativeElement.focus(), 500);
   }
 
-  keyUp(e, u, p) {
+  keyUp(e: KeyboardEvent, u: HTMLInputElement, p: HTMLInputElement) {
     if (e.key === 'Enter') {
       this.login(u.value, p.value);
     }
   }
 
-  handleFocus(e) {
-    e.currentTarget.select(0, e.currentTarget.value.length);
+  handleFocus(e: FocusEvent) {
+    (e.currentTarget as HTMLInputElement).select();
   }
 
   // ** cancelled login

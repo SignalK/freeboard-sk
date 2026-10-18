@@ -37,14 +37,17 @@ describe('trueWindDirection (#858)', () => {
 
   it('derives true wind from magnetic wind and variation', () => {
     const v = {
-      wind: { twd: null, mwd: rad(17.2) },
+      wind: { twd: null as number | null, mwd: rad(17.2) },
       magneticVariation: rad(12.8)
     };
     expect(deg(trueWindDirection(v))).toBeCloseTo(30, 9);
   });
 
   it('is null with only magnetic wind and no variation', () => {
-    const v = { wind: { twd: null, mwd: rad(17.2) }, magneticVariation: null };
+    const v = {
+      wind: { twd: null as number | null, mwd: rad(17.2) },
+      magneticVariation: null as number | null
+    };
     expect(trueWindDirection(v)).toBeNull();
   });
 });

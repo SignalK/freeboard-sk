@@ -5,7 +5,9 @@
 /**
  * Conversion from SI base units
  */
-const siBaseFn = {
+const siBaseFn: Partial<
+  Record<UNIT, Partial<Record<UNIT, (v: number) => number>>>
+> = {
   K: {
     C: (v: number) => v - 273.15,
     F: (v: number) => ((v - 273.15) * 9) / 5 + 32
@@ -82,7 +84,9 @@ export type TARGET_UNIT =
 
 export type DEPTH_UNIT = 'm' | 'foot' | 'fathom';
 
-const symbolMap = {
+type UNIT = SI_BASE_UNIT | TARGET_UNIT;
+
+const symbolMap: Partial<Record<UNIT, { symbol: string; name: string }>> = {
   degree: {
     symbol: String.fromCharCode(186),
     name: 'Degrees'

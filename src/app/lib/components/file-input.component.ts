@@ -76,7 +76,7 @@ export class FileInputComponent {
   }>();
   cleared = output<void>();
 
-  protected avatar = null;
+  protected avatar: string = null;
 
   protected inputAccept = computed(() =>
     effectiveAccept(this.accept(), navigator)
@@ -87,16 +87,16 @@ export class FileInputComponent {
   constructor() {}
 
   //** detect file change event handler **
-  fileChange(input) {
+  fileChange(input: HTMLInputElement) {
     //** read all file in file list array **
     this.readFiles(input.files);
   }
 
-  dragOver(e) {
+  dragOver(e: DragEvent) {
     e.preventDefault();
   }
 
-  drop(ev) {
+  drop(ev: DragEvent) {
     ev.preventDefault();
     if (ev.dataTransfer.files) {
       if (ev.dataTransfer.files.length > 0) {
@@ -111,7 +111,7 @@ export class FileInputComponent {
   }
 
   //** process file list array **
-  readFiles(files, index = 0) {
+  readFiles(files: FileList, index = 0) {
     const reader = new FileReader();
     const errmsg = { type: '', value: '', message: '' };
 
@@ -120,7 +120,7 @@ export class FileInputComponent {
       // ** Check file size **
       if (this.maxfilesize() && files[index].size > this.maxfilesize()) {
         errmsg.type = 'SIZE';
-        errmsg.value = files[index].size;
+        errmsg.value = String(files[index].size);
         errmsg.message = `File size exceeds the accepted maximum size of ${this.maxfilesize()}`;
         this.invalid.emit(errmsg); //** fire invalid size event
         return;
@@ -177,9 +177,10 @@ export class FileInputComponent {
   }
 
   // ** read file contents **
-  readFile(file, reader, callback) {
+  readFile(file: File, reader: FileReader, callback: (result: string) => void) {
     reader.onload = () => {
-      callback(reader.result);
+      // readAsText and readAsDataURL both produce a string
+      callback(reader.result as string);
     };
 
     if (file.type.indexOf('text') !== -1 || this.astext()) {
@@ -191,7 +192,12 @@ export class FileInputComponent {
   }
 
   // ** resize image file **
-  resize(img, MAX_WIDTH: number, MAX_HEIGHT: number, callback) {
+  resize(
+    img: HTMLImageElement,
+    MAX_WIDTH: number,
+    MAX_HEIGHT: number,
+    callback: (dataUrl: string, before: number, after: number) => void
+  ) {
     // This will wait until the img is loaded before calling this function
     return (img.onload = () => {
       // Get the images current width and height
