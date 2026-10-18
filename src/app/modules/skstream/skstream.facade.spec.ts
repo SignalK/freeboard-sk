@@ -1,4 +1,5 @@
 import { expect, describe, it, vi } from 'vitest';
+import { signal } from '@angular/core';
 import {
   SKStreamFacade,
   isPositionStale,
@@ -52,6 +53,43 @@ describe('SKStreamFacade.parseVesselOther — AIS target orientation', () => {
         vessel({ headingTrue: null, headingMagnetic: null, cogTrue: 1.658 })
       )
     ).toBe(1.658);
+  });
+});
+
+// The anchor values the facade hands to the anchor watch come from the
+// navigation.anchor.* deltas, which carry plain numbers.
+describe('SKStreamFacade.parseVesselSelf — anchor', () => {
+  it('passes on the current anchor radius', () => {
+    const facade = Object.create(SKStreamFacade.prototype) as unknown as {
+      app: unknown;
+      course: unknown;
+      anchorSignal: ReturnType<typeof signal>;
+      parseSelfRacing: () => void;
+      processVessel: () => void;
+      refreshSelfNightMode: () => void;
+      refreshSelfPositionStale: () => void;
+      parseVesselSelf: (v: SKVessel) => void;
+    };
+    facade.app = {
+      config: { vessels: { fixedLocationMode: false } },
+      data: { vessels: {} }
+    };
+    facade.course = { parseSelf: (): void => undefined };
+    facade.anchorSignal = signal({});
+    facade.parseSelfRacing = (): void => undefined;
+    facade.processVessel = (): void => undefined;
+    facade.refreshSelfNightMode = (): void => undefined;
+    facade.refreshSelfPositionStale = (): void => undefined;
+
+    const v = new SKVessel();
+    v.anchor = { maxRadius: 40, radius: 25, position: null };
+    facade.parseVesselSelf(v);
+
+    expect(facade.anchorSignal()).toEqual({
+      position: null,
+      maxRadius: 40,
+      radius: 25
+    });
   });
 });
 

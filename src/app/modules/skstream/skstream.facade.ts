@@ -509,7 +509,7 @@ export class SKStreamFacade {
           ? [v.anchor.position.longitude, v.anchor.position.latitude]
           : null,
         maxRadius: v.anchor.maxRadius ?? -1,
-        radius: v.anchor.radius?.value ?? null
+        radius: v.anchor.radius ?? null
       };
     });
 
