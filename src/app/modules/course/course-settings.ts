@@ -395,7 +395,7 @@ export class CourseSettingsModal implements OnInit {
 
   minValues() {
     const v = [];
-    for (let i = 0; i < 59; i++) {
+    for (let i = 0; i < 60; i++) {
       v.push(('00' + i).slice(-2));
     }
     return v;

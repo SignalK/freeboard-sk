@@ -102,3 +102,16 @@ describe('CourseSettingsModal Arrival Circle unit conversion (#639)', () => {
     expect(modal.app.config.course.arrivalCircle).toBe(100);
   });
 });
+
+describe('CourseSettingsModal arrival time pickers', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  it('offers every minute and second from 00 to 59', () => {
+    const modal = setup('naut-mile', 100);
+    modal.ngOnInit();
+    const values = modal.minValues();
+    expect(values).toHaveLength(60);
+    expect(values[0]).toBe('00');
+    expect(values[59]).toBe('59');
+  });
+});
