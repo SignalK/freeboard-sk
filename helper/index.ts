@@ -7,9 +7,12 @@ import {
   SKVersion
 } from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
+import { createRequire } from 'node:module';
 import { initAlarms, shutdownAlarms } from './alarms/alarms.js';
 
-import openapi from './openApi.json' with { type: 'json' };
+// Import attributes for JSON need Node 18.20 / 20.10; require works on every
+// Node the engines range allows.
+const openapi = createRequire(import.meta.url)('./openApi.json') as object;
 
 //const defaultPollInterval = 60;
 
