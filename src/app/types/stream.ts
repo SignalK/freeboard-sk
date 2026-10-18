@@ -39,6 +39,23 @@ export interface SKNotification {
   id?: string;
 }
 
+// message posted from the app to the stream worker
+export interface MsgFromApp {
+  cmd:
+    | 'open'
+    | 'close'
+    | 'subscribe'
+    | 'settings'
+    | 'alarm'
+    | 'vessel'
+    | 'auth'
+    | 'trail'
+    | 'view'
+    | 'trackSelection';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  options: { [key: string]: any };
+}
+
 // Update Deltas
 export interface PathValue {
   path: string;

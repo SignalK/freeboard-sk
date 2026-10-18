@@ -202,7 +202,11 @@ describe('track-history parseHistoryTrack', () => {
     });
   });
 
-  const feature = (providerId: string, coords, coordTimes?) => ({
+  const feature = (
+    providerId: string,
+    coords: number[][][],
+    coordTimes?: string[][]
+  ) => ({
     type: 'Feature',
     geometry: { type: 'MultiLineString', coordinates: coords },
     properties: {
@@ -304,7 +308,12 @@ describe('track-history parseHistoryTrack', () => {
 });
 
 describe('track-history parseTimedTracks', () => {
-  const f = (context: string, providerId: string, coords, coordTimes?) => ({
+  const f = (
+    context: string,
+    providerId: string,
+    coords: number[][][],
+    coordTimes?: string[][]
+  ) => ({
     geometry: { type: 'MultiLineString', coordinates: coords },
     properties: {
       context,
@@ -338,7 +347,7 @@ describe('track-history parseHistorySpan / parseHistoryContexts', () => {
     const fc = {
       features: [
         {
-          geometry: null,
+          geometry: null as unknown,
           properties: {
             providerId: 'tracks',
             from: '2026-09-17T00:00:00Z',
@@ -673,7 +682,7 @@ describe('track-history joinStretches', () => {
 
 describe('track-history extent (zoom to a recorded track)', () => {
   const meta = (providerId: string, bbox: unknown) => ({
-    geometry: null,
+    geometry: null as unknown,
     properties: {
       providerId,
       from: '2026-09-17T00:00:00Z',

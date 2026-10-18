@@ -234,7 +234,7 @@ export class TrackHistoryService {
     this.get(
       `/tracks/contexts?${historyContextsQuery(this.provider())}`
     )?.subscribe({
-      next: (r) => {
+      next: (r: unknown) => {
         if (epoch === this.sourceEpoch) {
           this.recorded.set(parseHistoryContexts(r));
         }
@@ -518,7 +518,7 @@ export class TrackHistoryService {
     this.generation.set(context, token);
     this.pending.update((n) => n + 1);
     req.subscribe({
-      next: (fc) => {
+      next: (fc: unknown) => {
         if (this.generation.get(context) !== token) {
           return;
         }
@@ -581,7 +581,7 @@ export class TrackHistoryService {
     }
     this.pending.update((n) => n + 1);
     req.subscribe({
-      next: (fc) => {
+      next: (fc: unknown) => {
         if (epoch !== this.sourceEpoch || !this.isShown(context)) {
           return;
         }
@@ -625,7 +625,7 @@ export class TrackHistoryService {
     }
     this.pending.update((n) => n + 1);
     req.subscribe({
-      next: (fc) => {
+      next: (fc: unknown) => {
         if (
           epoch === this.sourceEpoch &&
           this.extentGeneration.get(context) === token

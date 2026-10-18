@@ -29,7 +29,7 @@ const trackFc = (coords: number[][][], times?: string[][]) => ({
 const spanFc = {
   features: [
     {
-      geometry: null,
+      geometry: null as unknown,
       properties: {
         providerId: 'tracks',
         from: '2026-09-17T00:00:00Z',

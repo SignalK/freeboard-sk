@@ -150,7 +150,7 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
       serverTrailWanted: () => serverTrailWanted,
       trackSource: () => ({ api }),
       data: { serverTrail: true },
-      selfTrailTimed: { set: () => undefined }
+      selfTrailTimed: { set: (): void => undefined }
     };
     const trailRequests = () => posted.filter((m) => m.cmd === 'trail').length;
     return { facade, trailRequests, vessels: config.vessels };

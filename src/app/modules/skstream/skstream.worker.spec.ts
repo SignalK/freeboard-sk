@@ -116,7 +116,7 @@ describe('skstream.worker handleStreamEvent — watchdog on disconnect (#695)', 
     // a live connection, via the same event that arms the watchdog for real.
     handleStreamEvent({
       action: 'onConnect',
-      msg: { target: { readyState: 1 } }
+      msg: { target: { readyState: 1 } } as unknown as Event
     });
     posted = [];
   });
@@ -130,19 +130,19 @@ describe('skstream.worker handleStreamEvent — watchdog on disconnect (#695)', 
     posted.filter((m) => m.action === 'update' && m.watchDogAlarm === true);
 
   it('raises the alarm on a detected close', () => {
-    handleStreamEvent({ action: 'onClose', msg: {} });
+    handleStreamEvent({ action: 'onClose', msg: new Event('close') });
 
     expect(alarmUpdates()).toHaveLength(1);
   });
 
   it('still posts the close message the app reconnects on', () => {
-    handleStreamEvent({ action: 'onClose', msg: {} });
+    handleStreamEvent({ action: 'onClose', msg: new Event('close') });
 
     expect(posted.some((m) => m.action === 'close')).toBe(true);
   });
 
   it('raises the alarm on a connection error', () => {
-    handleStreamEvent({ action: 'onError', msg: {} });
+    handleStreamEvent({ action: 'onError', msg: new Event('error') });
 
     expect(alarmUpdates()).toHaveLength(1);
   });

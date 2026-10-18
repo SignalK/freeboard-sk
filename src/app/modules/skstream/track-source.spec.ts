@@ -344,7 +344,7 @@ describe('track-source detectTrackSource', () => {
       });
     };
 
-  const features = (apis: string[]) => ({ apis, plugins: [] });
+  const features = (apis: string[]) => ({ apis, plugins: [] as string[] });
 
   it('builds the probe urls from the v1 api url', () => {
     expect(urls).toEqual({
