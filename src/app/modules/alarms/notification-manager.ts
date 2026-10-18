@@ -504,7 +504,7 @@ export class NotificationManager {
       this.signalk.api
         .post(this.app.skApiVersion, `notifications/mob`, { message: message })
         .subscribe(
-          (r) => {
+          (r: { id: string }) => {
             this.app.debug(`MOB Alarm raised (${r.id})`);
           },
           (err: HttpErrorResponse) => {

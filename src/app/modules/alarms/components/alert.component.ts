@@ -51,7 +51,7 @@ export interface AlertData {
   createdAt: number;
 }
 
-const SoundFiles = {
+const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
   emergency: './assets/sound/woop.mp3',
   alarm: './assets/sound/woop.mp3',
   alert: './assets/sound/ding.mp3',
@@ -326,8 +326,8 @@ export class AlertComponent {
             this.audio.src = this.soundFile;
             this.audio
               .play()
-              .then(() => undefined)
-              .catch(() => undefined);
+              .then((): void => undefined)
+              .catch((): void => undefined);
           }
         } else {
           this.audio.pause();

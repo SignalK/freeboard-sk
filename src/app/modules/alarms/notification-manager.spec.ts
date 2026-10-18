@@ -43,8 +43,8 @@ describe('NotificationManager alert properties (#755)', () => {
       featureFlags: signal({ notificationApi: true }),
       config: { display: { depthAlarm: { enabled: true }, muteSound: true } },
       data: { vessels: { closest: [], cpaPositions: new Map() } },
-      debug: () => undefined,
-      showMessage: () => undefined
+      debug: (): void => undefined,
+      showMessage: (): void => undefined
     };
     TestBed.configureTestingModule({
       providers: [
@@ -283,8 +283,8 @@ describe('NotificationManager alert actions', () => {
             },
             data: { vessels: { closest: [] } },
             skApiVersion: 2,
-            debug: () => undefined,
-            showMessage: () => undefined,
+            debug: (): void => undefined,
+            showMessage: (): void => undefined,
             parseHttpErrorResponse: (err: unknown) => errors.push(err)
           }
         },
@@ -539,7 +539,7 @@ describe('NotificationManager buddy notifications', () => {
               display: { depthAlarm: { enabled: true }, muteSound: true }
             },
             data: { vessels: { closest: [], aisTargets } },
-            debug: () => undefined,
+            debug: (): void => undefined,
             mapMoveRequest,
             showMessage: (
               message: string,
