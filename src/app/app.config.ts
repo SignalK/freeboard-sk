@@ -103,6 +103,15 @@ export function cleanConfig(
     if (typeof settings.display.splitView === 'undefined') {
       settings.display.splitView = false;
     }
+    // Configs saved without `display.plugins` exist, and it is read on startup.
+    if (typeof settings.display.plugins === 'undefined') {
+      settings.display.plugins = {
+        instruments: '/@signalk/instrumentpanel',
+        startOnOpen: true,
+        parameters: null,
+        favourites: []
+      };
+    }
     if (typeof settings.display.singleClickNoteDetails === 'undefined') {
       settings.display.singleClickNoteDetails = false;
     }
