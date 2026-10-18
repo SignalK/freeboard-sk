@@ -1,18 +1,42 @@
 // Release-notes generator — pure, deterministic core.
 //
 // No I/O here: every function takes plain data and returns plain data/strings,
-// so it is fully unit-testable. The CLI (index.mjs) does the file/git reads and
-// hands the results to these functions. See docs/freeboard/release-notes.md.
+// so it is fully unit-testable. The CLI (index.mts) does the file/git reads and
+// hands the results to these functions. See docs/dev-tools/release-notes.md.
+
+import type { FeatureLedgerRow } from '../../src/app/modules/features/feature-corpus.ts';
+
+/** A ledger row as stored: the fields the app reads, plus any others (kept on write). */
+export type LedgerFileRow = FeatureLedgerRow & Record<string, unknown>;
+
+/** A squash-merge commit subject, parsed. */
+export interface ParsedCommit {
+  type: string;
+  title: string;
+  pr: number | null;
+}
+
+/** One bullet in the release notes: a feature title and its description. */
+interface NoteItem {
+  title: string;
+  desc: string;
+}
+
+/** A feature doc as the release notes show it. */
+export interface FeatureSummary {
+  title: string;
+  summary: string;
+}
 
 /** A version string carries a pre-release tag when it contains a hyphen. */
-export function isPrerelease(version) {
+export function isPrerelease(version: string): boolean {
   return typeof version === 'string' && version.includes('-');
 }
 
 /** Compare `vX.Y.Z[-pre]` strings; a release outranks its pre-releases. */
-export function compareVersions(a, b) {
+export function compareVersions(a: string, b: string): number {
   if (a === b) return 0;
-  const parse = (v) =>
+  const parse = (v: string) =>
     String(v)
       .replace(/^v/i, '')
       .split(/[.-]/)
@@ -36,7 +60,7 @@ export function compareVersions(a, b) {
  * previous *stable* tag (so the range spans all its pre-releases); for a
  * pre-release the previous tag of any kind. Null if there's no earlier tag.
  */
-export function previousBoundary(tags, tag) {
+export function previousBoundary(tags: string[], tag: string): string | null {
   const stableTarget = !isPrerelease(tag);
   const candidates = tags
     .filter((t) => t !== tag && compareVersions(t, tag) < 0)
@@ -46,7 +70,7 @@ export function previousBoundary(tags, tag) {
 }
 
 /** The newest of `tags` (any kind), or null when there are none. */
-export function latestTag(tags) {
+export function latestTag(tags: string[]): string | null {
   const sorted = [...tags].sort(compareVersions);
   return sorted.length ? sorted[sorted.length - 1] : null;
 }
@@ -59,7 +83,10 @@ export function latestTag(tags) {
  *    (and the Feature Browser's "Since") absorb everything from its betas.
  * `skip` rows are untouched. Returns a new array; unchanged rows are reused.
  */
-export function stampLedger(rows, version) {
+export function stampLedger<R extends FeatureLedgerRow>(
+  rows: R[],
+  version: string
+): R[] {
   const stable = !isPrerelease(version);
   const preOfThis = `${version}-`; // e.g. "v3.0.0-" → matches v3.0.0-beta.1
   return rows.map((r) => {
@@ -86,7 +113,7 @@ const FIELD_ORDER = [
 /** Serialize the ledger back to the canonical one-row-per-line JSON format,
  *  so `stamp` produces a minimal, hand-authored-looking diff. Fields outside
  *  the canonical order are preserved (appended), never dropped. */
-export function serializeLedger(rows) {
+export function serializeLedger(rows: LedgerFileRow[]): string {
   const lines = rows.map((r) => {
     const keys = [
       ...FIELD_ORDER.filter((k) => k in r),
@@ -104,7 +131,7 @@ const TYPE_PREFIX_RE =
   /^(feat|fix|perf|refactor|docs|test|chore|ci|build|style|revert)(\([^)]*\))?!?:\s*/i;
 
 /** Strip a conventional-commit `type(scope):` prefix from a title. */
-export function stripTypePrefix(title) {
+export function stripTypePrefix(title: string | undefined): string {
   return String(title || '')
     .replace(TYPE_PREFIX_RE, '')
     .trim();
@@ -113,7 +140,7 @@ export function stripTypePrefix(title) {
 const SUBJECT_RE = /^([a-z]+)(?:\([^)]*\))?!?:\s*(.*?)(?:\s*\(#(\d+)\))?$/i;
 
 /** Parse a squash-merge commit subject: "feat(map): title (#123)". */
-export function parseCommitSubject(subject) {
+export function parseCommitSubject(subject: string): ParsedCommit | null {
   const m = SUBJECT_RE.exec(String(subject || '').trim());
   if (!m) return null;
   return {
@@ -124,7 +151,7 @@ export function parseCommitSubject(subject) {
 }
 
 /** One-line summary of a feature doc body: first sentence, images/markup stripped. */
-export function docSummary(body) {
+export function docSummary(body: string): string {
   const firstPara =
     String(body || '')
       .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // drop images
@@ -144,11 +171,17 @@ const DOCUMENTED_TYPES = new Set(['feat', 'perf']);
  * in the ledger. Any row for the PR counts, a `skip` row included. Each PR is
  * listed once, in commit order.
  */
-export function undocumentedPRs({ ledger, commits }) {
+export function undocumentedPRs({
+  ledger,
+  commits
+}: {
+  ledger: FeatureLedgerRow[];
+  commits: ParsedCommit[];
+}): ParsedCommit[] {
   const documented = new Set(ledger.map((r) => r.pr));
-  const listed = new Set();
+  const listed = new Set<number>();
   return commits.filter((c) => {
-    if (c.pr == null || !DOCUMENTED_TYPES.has(c.type)) return false;
+    if (c.pr === null || !DOCUMENTED_TYPES.has(c.type)) return false;
     if (documented.has(c.pr) || listed.has(c.pr)) return false;
     listed.add(c.pr);
     return true;
@@ -166,20 +199,31 @@ const TYPE_HEADINGS = { fix: '🐛 Bug Fixes' };
  * - Bug Fixes / Other Changes: merged PRs in range NOT present in the ledger,
  *   grouped by conventional-commit type.
  */
-export function renderNotes({ ledger, features, commits, tag }) {
+export function renderNotes({
+  ledger,
+  features,
+  commits,
+  tag
+}: {
+  ledger: FeatureLedgerRow[];
+  features: Record<string, FeatureSummary>;
+  commits: ParsedCommit[];
+  tag: string;
+}): string {
   const rows = ledger.filter(
-    (r) => r.kind !== 'skip' && r.feature && r.since === tag
+    (r): r is FeatureLedgerRow & { feature: string } =>
+      r.kind !== 'skip' && !!r.feature && r.since === tag
   );
 
-  const byFeature = new Map();
+  const byFeature = new Map<string, FeatureLedgerRow[]>();
   for (const r of rows) {
     const list = byFeature.get(r.feature);
     if (list) list.push(r);
     else byFeature.set(r.feature, [r]);
   }
 
-  const newFeatures = [];
-  const improvements = [];
+  const newFeatures: NoteItem[] = [];
+  const improvements: NoteItem[] = [];
   for (const [id, frows] of byFeature) {
     const doc = features[id] || { title: id, summary: '' };
     if (frows.some((r) => r.kind === 'new')) {
@@ -192,16 +236,16 @@ export function renderNotes({ ledger, features, commits, tag }) {
   }
 
   const ledgerPRs = new Set(ledger.map((r) => r.pr));
-  const byType = new Map();
+  const byType = new Map<string, ParsedCommit[]>();
   for (const c of commits) {
-    if (c.pr == null || ledgerPRs.has(c.pr)) continue;
+    if (c.pr === null || ledgerPRs.has(c.pr)) continue;
     const key = c.type === 'fix' ? 'fix' : 'other';
     const bucket = byType.get(key);
     if (bucket) bucket.push(c);
     else byType.set(key, [c]);
   }
 
-  const sections = [];
+  const sections: string[] = [];
   if (newFeatures.length) {
     sections.push(
       '## 🚀 New Features\n\n' +
@@ -216,7 +260,7 @@ export function renderNotes({ ledger, features, commits, tag }) {
         improvements.map((i) => `- **${i.title}** — ${i.desc}`).join('\n')
     );
   }
-  const fixList = (key, heading) => {
+  const fixList = (key: string, heading: string) => {
     const items = byType.get(key);
     if (!items || !items.length) return;
     sections.push(

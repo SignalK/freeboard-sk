@@ -27,7 +27,7 @@ jobs:
       - name: Generate release notes from the feature ledger
         env:
           TAG: ${{ github.ref_name }} # via env — never interpolated into the shell
-        run: node dev-tools/changelog/index.mjs render "$TAG" --out RELEASE_NOTES.md
+        run: node dev-tools/changelog/index.mts render "$TAG" --out RELEASE_NOTES.md
 
       - uses: softprops/action-gh-release@v3
         with:

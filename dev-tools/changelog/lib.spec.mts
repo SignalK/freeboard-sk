@@ -11,7 +11,8 @@ import {
   renderNotes,
   latestTag,
   undocumentedPRs
-} from './lib.mjs';
+} from './lib.mts';
+import type { LedgerFileRow, ParsedCommit } from './lib.mts';
 
 describe('isPrerelease', () => {
   it('detects a pre-release tag', () => {
@@ -42,7 +43,7 @@ describe('previousBoundary', () => {
 });
 
 describe('stampLedger', () => {
-  const rows = [
+  const rows: LedgerFileRow[] = [
     { feature: 'a', pr: 1, kind: 'new', since: 'v3.0.0-beta.1', title: 'x' },
     { feature: 'b', pr: 2, kind: 'enhanced', title: 'y' }, // blank since
     { feature: null, pr: 3, kind: 'skip', reason: 'r' }
@@ -118,7 +119,7 @@ describe('stripTypePrefix / parseCommitSubject / docSummary', () => {
 });
 
 describe('renderNotes', () => {
-  const ledger = [
+  const ledger: LedgerFileRow[] = [
     {
       feature: 'weather-overlays',
       pr: 413,
@@ -205,11 +206,15 @@ describe('latestTag', () => {
 });
 
 describe('undocumentedPRs', () => {
-  const ledger = [
+  const ledger: LedgerFileRow[] = [
     { feature: 'notes', pr: 10, kind: 'enhanced', since: null },
     { feature: null, pr: 11, kind: 'skip', reason: 'internal' }
   ];
-  const commit = (type, pr, title = 'a change') => ({ type, pr, title });
+  const commit = (
+    type: string,
+    pr: number | null,
+    title = 'a change'
+  ): ParsedCommit => ({ type, pr, title });
 
   it('lists feat and perf PRs with no ledger row', () => {
     const commits = [commit('feat', 12), commit('perf', 13)];

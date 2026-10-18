@@ -16,7 +16,7 @@
 //                       have no row in features/changelog.json, one per line on
 //                       stdout, and exit 1 when there are any.
 //
-// All interpretation lives in lib.mjs (unit-tested); this file is only I/O.
+// All interpretation lives in lib.mts (unit-tested); this file is only I/O.
 
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -31,29 +31,30 @@ import {
   previousBoundary,
   latestTag,
   undocumentedPRs
-} from './lib.mjs';
+} from './lib.mts';
+import type { FeatureSummary, LedgerFileRow } from './lib.mts';
 
 const ROOT = process.cwd();
 const LEDGER = join(ROOT, 'features', 'changelog.json');
 const FEATURES = join(ROOT, 'features');
 
-const readLedger = () =>
+const readLedger = (): LedgerFileRow[] =>
   existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : [];
 
 // Let git failures surface — a broken `git log` must fail the release, not
 // silently produce empty notes. (A legitimate empty result — no tags, no
 // commits in range — exits 0 and returns '' without throwing.)
-const git = (args) =>
+const git = (args: string[]) =>
   execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
 
 /** Read each feature doc → { title, summary } for the release-notes headings. */
-function readFeatures() {
-  const map = {};
+function readFeatures(): Record<string, FeatureSummary> {
+  const map: Record<string, FeatureSummary> = {};
   if (!existsSync(FEATURES)) return map;
   for (const f of readdirSync(FEATURES).filter((n) => n.endsWith('.md'))) {
     const raw = readFileSync(join(FEATURES, f), 'utf8');
     const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(raw);
-    const fm = {};
+    const fm: Record<string, string> = {};
     if (m) {
       for (const line of m[1].split(/\r?\n/)) {
         const i = line.indexOf(':');
@@ -70,7 +71,7 @@ function readFeatures() {
   return map;
 }
 
-function stampCmd(version) {
+function stampCmd(version: string) {
   const rows = readLedger();
   const stamped = stampLedger(rows, version);
   writeFileSync(LEDGER, serializeLedger(stamped));
@@ -80,7 +81,7 @@ function stampCmd(version) {
   process.stderr.write(`[changelog] stamped ${changed} row(s) → ${version}\n`);
 }
 
-function renderCmd(tag, outFile) {
+function renderCmd(tag: string, outFile: string | null) {
   const ledger = readLedger();
   const features = readFeatures();
   const tags = git(['tag', '-l', 'v*'])
@@ -94,7 +95,7 @@ function renderCmd(tag, outFile) {
     .split('\n')
     .filter(Boolean)
     .map(parseCommitSubject)
-    .filter(Boolean);
+    .filter((c) => c !== null);
   const body = renderNotes({ ledger, features, commits, tag });
   if (outFile) {
     writeFileSync(outFile, body);
@@ -119,7 +120,7 @@ function checkCmd() {
     .split('\n')
     .filter(Boolean)
     .map(parseCommitSubject)
-    .filter(Boolean);
+    .filter((c) => c !== null);
   const missing = undocumentedPRs({ ledger: readLedger(), commits });
   const since = last ?? 'the first commit';
   if (!missing.length) {
@@ -137,10 +138,10 @@ function checkCmd() {
   process.exitCode = 1;
 }
 
-const withV = (v) => (v.startsWith('v') ? v : `v${v}`);
+const withV = (v: string) => (v.startsWith('v') ? v : `v${v}`);
 // Only the prerelease forms release.yml recognizes (-beta.N / -rc.N).
 const VERSION_RE = /^v\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?$/;
-const requireVersion = (v) => {
+const requireVersion = (v: string) => {
   if (!VERSION_RE.test(v)) {
     console.error(
       `[changelog] invalid version "${v}" (expected vX.Y.Z, vX.Y.Z-beta.N or vX.Y.Z-rc.N)`
