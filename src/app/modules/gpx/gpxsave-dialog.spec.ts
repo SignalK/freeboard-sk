@@ -88,7 +88,7 @@ function setup(opts: {
             tracks: d.tracks
           }),
           saveToFile,
-          clear: () => undefined
+          clear: (): void => undefined
         }
       },
       { provide: MatDialogRef, useValue: { close: vi.fn() } },

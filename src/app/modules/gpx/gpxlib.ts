@@ -38,6 +38,22 @@ export function xmlText(value: unknown): string {
 /************************
  ** GPX File Class **
  ************************/
+// xml2js output (explicitArray): each child element is an array of nodes
+interface XmlGpxDocument {
+  gpx: {
+    metadata?: unknown[];
+    wpt?: unknown[];
+    rte?: unknown[];
+    trk?: unknown[];
+    extensions?: unknown[];
+  };
+}
+
+interface XmlTrackSegment {
+  extensions?: unknown[];
+  trkpt?: unknown[];
+}
+
 export class GPX {
   private version: string; // ** GPX version
   public creator: string;
@@ -212,8 +228,7 @@ export class GPX {
   }
 
   /** Return formatted ptType <tag> XML for supplied GPXWaypoint object **/
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private ptToXML(pt: any, tag: any) {
+  private ptToXML(pt: GPXWaypoint, tag: 'wpt' | 'rtept' | 'trkpt') {
     let pad = '';
     let padLevel = 2;
     switch (tag) {
@@ -324,7 +339,7 @@ export class GPX {
     // ** initialise **
     this.init();
     try {
-      const xjs = await xml2JsonInWorker(gpxstr);
+      const xjs = (await xml2JsonInWorker(gpxstr)) as XmlGpxDocument;
 
       //** parse header **
       if (xjs['gpx']['metadata']) {
@@ -421,10 +436,10 @@ export class GPX {
     if (!Array.isArray(xext)) {
       return {};
     }
-    const resExt = {};
+    const resExt: Record<string, Record<string, unknown>> = {};
     xext.forEach((i) => {
       if (i.signalk) {
-        const res = {};
+        const res: Record<string, unknown> = {};
         const sk = this.xValue(i.signalk);
         Object.keys(sk).forEach((k) => {
           res[k] = this.xValue(sk[k]);
@@ -438,7 +453,7 @@ export class GPX {
   /** return array of GPXLinkType objects from x2js **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseLinks(xlink: any): Array<GPXLinkType> {
-    const links = [];
+    const links: GPXLinkType[] = [];
     if (!xlink) {
       return links;
     }
@@ -522,7 +537,7 @@ export class GPX {
 
     if (xmltrk.trkseg) {
       if (Array.isArray(xmltrk.trkseg)) {
-        xmltrk.trkseg.forEach((trkseg) => {
+        xmltrk.trkseg.forEach((trkseg: XmlTrackSegment) => {
           const seg = new GPXTrackSegment();
           seg.extensions = trkseg.extensions
             ? this.parseExtensions(trkseg.extensions)
