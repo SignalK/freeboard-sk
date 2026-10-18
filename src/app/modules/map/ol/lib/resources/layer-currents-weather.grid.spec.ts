@@ -77,7 +77,7 @@ describe('LayerCurrentsWeatherComponent stale-arrow clearing (#522)', () => {
       {} as never,
       {} as never,
       {} as never,
-      { detach: () => undefined } as never
+      { detach: (): void => undefined } as never
     );
     component.show = true;
     const source = new VectorSource();

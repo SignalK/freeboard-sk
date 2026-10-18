@@ -81,9 +81,9 @@ function waypoint(
 
 function stubMap(): OlMap {
   return {
-    addLayer: () => undefined,
-    removeLayer: () => undefined,
-    render: () => undefined
+    addLayer: (): void => undefined,
+    removeLayer: (): void => undefined,
+    render: (): void => undefined
   } as unknown as OlMap;
 }
 
@@ -101,7 +101,7 @@ function routeLayer(map: OlMap, routes: FBRoutes): RouteLayer {
     routeStyles: {
       default: new Style({ stroke: new Stroke({ color: 'blue', width: 2 }) })
     },
-    mapImages: { getExternalSymbol: () => null }
+    mapImages: { getExternalSymbol: (): null => null }
   });
   c.ngOnInit();
   return c as RouteLayer;
@@ -118,7 +118,7 @@ function waypointLayer(map: OlMap, waypoints: FBWaypoints): WaypointLayer {
     labelPrefixes: [],
     labelMinZoom: 10,
     mapZoom: 14,
-    mapImages: { getWaypoint: () => null }
+    mapImages: { getWaypoint: (): null => null }
   });
   c.ngOnInit();
   return c as WaypointLayer;

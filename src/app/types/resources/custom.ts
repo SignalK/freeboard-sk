@@ -1,5 +1,6 @@
 import {
   PointFeature,
+  MultiPointFeature,
   LineStringFeature,
   MultiLineStringFeature,
   PolygonFeature,
@@ -24,6 +25,7 @@ export interface ResourceSet extends CustomResource {
     type: 'FeatureCollection';
     features: Array<
       | PointFeature
+      | MultiPointFeature
       | LineStringFeature
       | MultiLineStringFeature
       | PolygonFeature

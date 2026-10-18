@@ -11,7 +11,7 @@ describe('RadarRenderService', () => {
     vi.stubGlobal(
       'OffscreenCanvas',
       class {
-        getContext() {
+        getContext(): null {
           return null;
         }
       }

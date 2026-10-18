@@ -33,7 +33,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected theme = LightTheme;
-  protected labelPrefixes = [];
+  protected labelPrefixes: string[] = [];
 
   /**
    * This event is triggered after the layer is initialized

@@ -89,7 +89,10 @@ describe('DataOverlayComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: MapComponent, useValue: { getMap: () => map } },
-        { provide: ChangeDetectorRef, useValue: { detach: () => undefined } }
+        {
+          provide: ChangeDetectorRef,
+          useValue: { detach: (): void => undefined }
+        }
       ]
     });
     component = TestBed.runInInjectionContext(() => new DataOverlayComponent());
@@ -305,7 +308,10 @@ describe('DataOverlayComponent: a color-relief layer on a second map', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: MapComponent, useValue: { getMap: () => map } },
-        { provide: ChangeDetectorRef, useValue: { detach: () => undefined } }
+        {
+          provide: ChangeDetectorRef,
+          useValue: { detach: (): void => undefined }
+        }
       ]
     });
     component = TestBed.runInInjectionContext(() => new DataOverlayComponent());

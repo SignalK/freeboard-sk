@@ -75,7 +75,7 @@ describe('RadarZoneEditorComponent', () => {
         pointerId,
         isPrimary: pointerId === 1,
         button,
-        preventDefault: () => undefined
+        preventDefault: (): void => undefined
       }
     } as unknown as MapBrowserEvent;
     // false: the event goes no further, so the map does not pan

@@ -9,14 +9,16 @@ import {
   MouseWheelZoom,
   PinchZoom
 } from 'ol/interaction';
+import type Map from 'ol/Map';
 import { MapComponent } from './map.component';
+import type { MapItemConfig } from './models';
 
 @Directive({
   selector: 'ol-map > [olInteractions]',
   standalone: false
 })
 export class InteractionsDirective implements OnInit {
-  private interactions = [];
+  private interactions: MapItemConfig[] = [];
   private readonly interactionList = {
     dragpan: DragPan,
     dragrotate: DragRotate,
@@ -36,8 +38,7 @@ export class InteractionsDirective implements OnInit {
   }
 
   @Input()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  set olInteractions(value: any[]) {
+  set olInteractions(value: MapItemConfig[]) {
     this.interactions = value;
     this.setInteractions();
   }
@@ -58,14 +59,15 @@ export class InteractionsDirective implements OnInit {
     }
   }
 
-  private addInteraction(map, controlConfig) {
-    if (!this.interactionList[controlConfig.name]) {
+  private addInteraction(map: Map, controlConfig: MapItemConfig) {
+    const NewInteraction =
+      this.interactionList[
+        controlConfig.name as keyof typeof this.interactionList
+      ];
+    if (!NewInteraction) {
       console.error(`Unknown interaction ${controlConfig.name}`);
       return;
     }
-    const newInteraction = new this.interactionList[controlConfig.name](
-      controlConfig.options
-    );
-    map.addInteraction(newInteraction);
+    map.addInteraction(new NewInteraction(controlConfig.options));
   }
 }

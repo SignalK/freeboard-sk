@@ -19,6 +19,13 @@ export type PointFeature = Feature & {
   };
 };
 
+export type MultiPointFeature = Feature & {
+  geometry: {
+    type: 'MultiPoint';
+    coordinates: Position[];
+  };
+};
+
 export type LineStringFeature = Feature & {
   geometry: {
     type: 'LineString';

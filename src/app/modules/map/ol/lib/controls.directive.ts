@@ -8,14 +8,16 @@ import {
   ZoomSlider,
   ZoomToExtent
 } from 'ol/control';
+import type Map from 'ol/Map';
 import { MapComponent } from './map.component';
+import type { MapItemConfig } from './models';
 
 @Directive({
   selector: 'ol-map > [olControls]',
   standalone: false
 })
 export class ControlsDirective implements OnInit {
-  private controls = [];
+  private controls: MapItemConfig[] = [];
   private readonly controlList = {
     attribution: Attribution,
     fullscreen: FullScreen,
@@ -34,8 +36,7 @@ export class ControlsDirective implements OnInit {
   }
 
   @Input()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  set olControls(value: any[]) {
+  set olControls(value: MapItemConfig[]) {
     this.controls = value;
     this.setControls();
   }
@@ -58,14 +59,13 @@ export class ControlsDirective implements OnInit {
     }
   }
 
-  private addControl(map, controlConfig) {
-    if (!this.controlList[controlConfig.name]) {
+  private addControl(map: Map, controlConfig: MapItemConfig) {
+    const NewControl =
+      this.controlList[controlConfig.name as keyof typeof this.controlList];
+    if (!NewControl) {
       console.warn(`Unknown control ${controlConfig.name}`);
       return;
     }
-    const newControl = new this.controlList[controlConfig.name](
-      controlConfig.options
-    );
-    map.addControl(newControl);
+    map.addControl(new NewControl(controlConfig.options));
   }
 }

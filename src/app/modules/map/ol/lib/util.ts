@@ -25,19 +25,32 @@ export function osmSource() {
   return new OSM();
 }
 
-// Point | LineString | MultiLineString
+type Coordinates =
+  | Array<Array<Array<Coordinate>>>
+  | Array<Array<Coordinate>>
+  | Array<Coordinate>
+  | Coordinate;
+
+// Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon
+export function fromLonLatArray(coords: Coordinate): Coordinate;
+export function fromLonLatArray(coords: Array<Coordinate>): Array<Coordinate>;
 export function fromLonLatArray(
-  coords: Array<Array<Coordinate>> | Array<Coordinate> | Coordinate
-) {
+  coords: Array<Array<Coordinate>>
+): Array<Array<Coordinate>>;
+export function fromLonLatArray(
+  coords: Array<Array<Array<Coordinate>>>
+): Array<Array<Array<Coordinate>>>;
+export function fromLonLatArray(coords: Coordinates): Coordinates;
+export function fromLonLatArray(coords: Coordinates): Coordinates {
   if (!Array.isArray(coords)) {
     return coords;
   }
   if (typeof coords[0] === 'number') {
-    return fromLonLat(coords as Coordinate);
+    return fromLonLat(coords as Coordinate) as Coordinate;
   } else if (Array.isArray(coords[0])) {
-    return coords.map((c) => {
-      return fromLonLatArray(c);
-    });
+    return (coords as Array<Exclude<Coordinates, number[]>>).map((c) =>
+      fromLonLatArray(c)
+    ) as Coordinates;
   } else {
     return coords;
   }
