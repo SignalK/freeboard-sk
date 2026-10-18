@@ -181,7 +181,7 @@ export function undocumentedPRs({
   const documented = new Set(ledger.map((r) => r.pr));
   const listed = new Set<number>();
   return commits.filter((c) => {
-    if (c.pr == null || !DOCUMENTED_TYPES.has(c.type)) return false;
+    if (c.pr === null || !DOCUMENTED_TYPES.has(c.type)) return false;
     if (documented.has(c.pr) || listed.has(c.pr)) return false;
     listed.add(c.pr);
     return true;
@@ -238,7 +238,7 @@ export function renderNotes({
   const ledgerPRs = new Set(ledger.map((r) => r.pr));
   const byType = new Map<string, ParsedCommit[]>();
   for (const c of commits) {
-    if (c.pr == null || ledgerPRs.has(c.pr)) continue;
+    if (c.pr === null || ledgerPRs.has(c.pr)) continue;
     const key = c.type === 'fix' ? 'fix' : 'other';
     const bucket = byType.get(key);
     if (bucket) bucket.push(c);
