@@ -353,7 +353,7 @@ describe('chartTimeStateFollowingHead', () => {
 });
 
 describe('a forecast', () => {
-  // Ten days ahead by the hour; "now" is faked at 12:07 on the first day.
+  // Ten days ahead by the hour; "now" is faked at 13:07, an hour into the run.
   const H = 3600000;
   const forecast = chartTimeline({
     current: true,
@@ -373,12 +373,12 @@ describe('a forecast', () => {
 
   it('opens its loop on the hours ahead, from now to the end', () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-09-18T12:07:00.000Z'));
+    vi.setSystemTime(new Date('2026-09-18T13:07:00.000Z'));
     try {
       const window = chartTimeWindow(forecast, forecast.max);
       expect(
         initialChartTimeLoop(forecast, window, chartTimelineHeadMs(forecast))
-      ).toEqual({ min: forecast.min, max: forecast.max });
+      ).toEqual({ min: forecast.min + H, max: forecast.max });
     } finally {
       vi.useRealTimers();
     }
