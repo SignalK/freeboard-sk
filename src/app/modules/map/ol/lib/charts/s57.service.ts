@@ -104,6 +104,12 @@ enum LookupTable {
   SYMBOLIZED = 4
 }
 
+// a COLOR-TABLE element of chartsymbols.xml, as parsed to JSON
+interface ColorTableXml {
+  'GRAPHICS-FILE': Array<{ $: { NAME: string } }>;
+  COLOR: Array<{ $: { NAME: string; R: string; G: string; B: string } }>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -173,11 +179,11 @@ export class S57Service {
   }
 
   public getStyle(key: string): Style {
-    return this.styles[key];
+    return this.styles.get(key);
   }
 
   public setStyle(key: string, style: Style) {
-    this.styles[key] = style;
+    this.styles.set(key, style);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -205,14 +211,12 @@ export class S57Service {
   private processColors(symbolsJson: any) {
     const colorTables =
       symbolsJson['CHARTSYMBOLS']['COLOR-TABLES'][0]['COLOR-TABLE'];
-    colorTables.forEach((colortable) => {
+    colorTables.forEach((colortable: ColorTableXml) => {
       const colorTable: ColorTable = {
         symbolfile: colortable['GRAPHICS-FILE'][0]['$']['NAME'],
         colors: new Map<string, string>()
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const colors = colortable['COLOR'] as any[];
-      colors.forEach((color) => {
+      colortable['COLOR'].forEach((color) => {
         colorTable.colors.set(
           color['$']['NAME'],
           'RGBA(' +
@@ -378,7 +382,7 @@ export class S57Service {
 
   public selectLookup(feature: FeatureLike): number {
     const props = feature.getProperties();
-    const properties = {};
+    const properties: typeof props = {};
     Object.keys(props).forEach((k) => {
       properties[k.toUpperCase()] = props[k];
     });

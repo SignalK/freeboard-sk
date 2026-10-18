@@ -15,7 +15,7 @@ import { MapComponent } from '../map.component';
 describe('ChartBoundsLayerComponent — bounds outline', () => {
   const outline = new ChartBoundsLayerComponent(
     {} as MapComponent,
-    { detach: () => undefined } as unknown as ChangeDetectorRef
+    { detach: (): void => undefined } as unknown as ChangeDetectorRef
   );
 
   /** Longitudes of the outline's ring, back in degrees and not wrapped. */

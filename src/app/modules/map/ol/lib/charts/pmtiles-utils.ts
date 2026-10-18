@@ -7,6 +7,10 @@ import { SKChart } from 'src/app/modules/skresources';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
 import { MVT } from 'ol/format';
+import type Tile from 'ol/Tile';
+import type ImageTile from 'ol/ImageTile';
+import type VectorTile from 'ol/VectorTile';
+import type { FeatureLike } from 'ol/Feature';
 
 // create a PMTile WebGLtile layer
 export function initPMTilesWebGLLayer(
@@ -18,7 +22,7 @@ export function initPMTilesWebGLLayer(
   const tiles = new pmtiles.PMTiles(url);
 
   function loadImage(src: string) {
-    return new Promise((resolve, reject) => {
+    return new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.addEventListener('load', () => resolve(img));
       img.addEventListener('error', () => reject(new Error('load failed')));
@@ -26,8 +30,11 @@ export function initPMTilesWebGLLayer(
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async function loader(z, x, y): Promise<any> {
+  async function loader(
+    z: number,
+    x: number,
+    y: number
+  ): Promise<HTMLImageElement> {
     const response = await tiles.getZxy(z, x, y);
     const blob = new Blob([response.data]);
     const src = URL.createObjectURL(blob);
@@ -56,7 +63,7 @@ export function initPMTilesXYZLayer(
 ): TileLayer<XYZ> {
   const tiles = new pmtiles.PMTiles(chart.url);
 
-  function loader(tile, url) {
+  function loader(tile: Tile, url: string) {
     tile.setState(1); // LOADING
     // the URL construction is done internally by OL, so we need to parse it
     // back out here using a hacky regex
@@ -70,7 +77,7 @@ export function initPMTilesXYZLayer(
       if (tile_result) {
         const blob = new Blob([tile_result.data]);
         const imageUrl = window.URL.createObjectURL(blob);
-        tile.getImage().src = imageUrl;
+        ((tile as ImageTile).getImage() as HTMLImageElement).src = imageUrl;
         tile.setState(2); // LOADED
       } else {
         tile.setState(4); // EMPTY
@@ -100,7 +107,8 @@ export function initPMTilesVectorLayer(
 ): VectorTileLayer {
   const tiles = new pmtiles.PMTiles(chart.url);
 
-  function loader(tile, url) {
+  function loader(loadTile: Tile, url: string) {
+    const tile = loadTile as VectorTile<FeatureLike>;
     // the URL construction is done internally by OL, so we need to parse it
     // back out here using a hacky regex
     const re = new RegExp(/pmtiles:\/\/(.+)\/(\d+)\/(\d+)\/(\d+)/);

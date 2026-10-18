@@ -20,7 +20,7 @@ export abstract class VectorLayerStyler {
     this.MaxZ = this.chart.maxZoom;
   }
 
-  public abstract ApplyStyle(vectorLayer: VectorTileLayer<never>);
+  public abstract ApplyStyle(vectorLayer: VectorTileLayer<never>): void;
   public abstract CreateLayer(): VectorTileLayer<never>;
 }
 
