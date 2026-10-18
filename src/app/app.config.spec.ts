@@ -50,7 +50,7 @@ const legacyConfig = (): LegacyAppConfig => {
 };
 
 describe('cleanConfig() legacy migration', () => {
-  it.each([
+  it.each<['depth' | 'speed' | 'distance', string, string]>([
     ['depth', 'ft', 'foot'],
     ['speed', 'msec', 'm/s'],
     ['speed', 'kmh', 'km/h'],

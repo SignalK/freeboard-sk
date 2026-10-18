@@ -114,6 +114,7 @@
     "@types/geojson": "^7946.0.10",
     "@types/ngeohash": "^0.6.8",
     "@types/node": "^24.10.1",
+    "@types/semver": "^7.8.0",
     "@types/topojson-specification": "^1.0.2",
     "@types/xml2js": "^0.4.14",
     "@vitest/web-worker": "^4.0.18",

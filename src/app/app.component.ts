@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { map, Observable } from 'rxjs';
+import { map, Observable, Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { GPXExportService } from 'src/app/modules/gpx/gpx-export.service';
@@ -25,7 +25,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatMenu, MatMenuModule } from '@angular/material/menu';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import {
@@ -136,6 +136,7 @@ import {
   SKResourceType,
   WaypointPanel
 } from './modules/skresources';
+import { SKResourceSet } from './modules/skresources/custom-resource-classes';
 import { SymbolService, setSymbolRegistry } from './modules/icons';
 import {
   trackApiNoticeMessage,
@@ -198,7 +199,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
   ]
 })
 export class AppComponent {
-  @ViewChild('sideright', { static: false }) sideright;
+  @ViewChild('sideright', { static: false }) sideright: MatSidenav;
   @ViewChild('fbMap', { static: false }) fbMap: FBMapComponent;
   @ViewChild('layersmenu', { static: true }) private layersMenu: MatMenu;
   @ViewChild('editmenu', { static: true }) private editMenu: MatMenu;
@@ -260,7 +261,7 @@ export class AppComponent {
   public features = { playbackAPI: true };
   public mode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME; // current mode
 
-  private timers = [];
+  private timers: ReturnType<typeof setInterval>[] = [];
   private userConfigLoaded: Promise<boolean> = Promise.resolve(false);
   private trackApiNoticeShown = false; // this session
 
@@ -271,8 +272,11 @@ export class AppComponent {
 
   protected convert = Convert;
   protected toolbarMenuLabel = toolbarMenuLabel;
-  private obsList = []; // observables array
-  private streamOptions = { options: null, toMode: null };
+  private obsList: Subscription[] = [];
+  private streamOptions: { options: StreamOptions; toMode: SKSTREAM_MODE } = {
+    options: null,
+    toMode: null
+  };
 
   protected mapSetFocus = signal<string>('');
   protected mapCenter = signal<Position>([0, 0]);
@@ -893,12 +897,17 @@ export class AppComponent {
 
   /** fullscreen mode */
   protected toggleFullscreen() {
-    const docel = document.documentElement;
-    const fscreen =
+    // Prefixed variants for browsers without the standard Fullscreen API.
+    const docel = document.documentElement as HTMLElement & {
+      webkitRequestFullScreen?: () => void;
+      mozRequestFullscreen?: () => void;
+      msRequestFullscreen?: () => void;
+    };
+    const fscreen: (() => Promise<void> | void) | undefined =
       docel.requestFullscreen ||
-      docel['webkitRequestFullScreen'] ||
-      docel['mozRequestFullscreen'] ||
-      docel['msRequestFullscreen'];
+      docel.webkitRequestFullScreen ||
+      docel.mozRequestFullscreen ||
+      docel.msRequestFullscreen;
     if (fscreen) {
       if (!document.fullscreenElement) {
         fscreen.call(docel);
@@ -1832,7 +1841,7 @@ export class AppComponent {
           this.signalk.login(res.user, res.pwd).subscribe({
             next: (r) => {
               // ** authenticated
-              this.app.setAuthToken(r['token']);
+              this.app.setAuthToken((r as { token: string }).token);
               this.app.loadUserConfigfromServer().then((loaded: boolean) => {
                 if (loaded) {
                   this.loadSymbolsThenFetchResources();
@@ -2182,12 +2191,12 @@ export class AppComponent {
     } else if (e.type === 'alarm') {
       this.notiMgr.showAlertInfo(e.id);
     } else if (e.type === 'rset') {
-      v = this.skresOther.fromResourceSetCache(e.id);
-      if (v) {
+      const rSet = this.skresOther.fromResourceSetCache(e.id) as SKResourceSet;
+      if (rSet) {
         this.bottomSheet
           .open(ResourceSetFeatureModal, {
             disableClose: true,
-            data: { id: e.id, item: v }
+            data: { id: e.id, item: rSet }
           })
           .afterDismissed()
           .subscribe(() => {
@@ -2649,10 +2658,10 @@ export class AppComponent {
     }
     this.app.alignCustomResourcesPaths();
     this.signalk.api.getSelf().subscribe(
-      (r) => {
+      (r: { name?: string }) => {
         this.stream.post({
           cmd: 'vessel',
-          options: { context: 'self', name: r['name'] }
+          options: { context: 'self', name: r.name }
         });
         // query anchor alarm status
         this.anchor.queryAnchorStatus(

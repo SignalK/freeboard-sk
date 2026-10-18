@@ -31,11 +31,14 @@ describe('RegionPanel add note', () => {
         {
           provide: SKResourceService,
           useValue: {
-            getRelatedNotes: async () => [],
+            getRelatedNotes: async (): Promise<unknown[]> => [],
             showNoteEditor: (e: unknown) => editorRequests.push(e)
           }
         },
-        { provide: SKResourceGroupService, useValue: { with: async () => [] } },
+        {
+          provide: SKResourceGroupService,
+          useValue: { with: async (): Promise<unknown[]> => [] }
+        },
         { provide: MatDialog, useValue: {} }
       ]
     });
