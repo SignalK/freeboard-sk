@@ -128,7 +128,7 @@ export class AtoNPropertiesModal implements OnInit {
     this.sk.api
       .get(path)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
+      .subscribe((v: unknown) => {
         if (this.data.type === 'meteo') {
           this.properties = this.parseMeteo(v);
         } else {
@@ -139,7 +139,7 @@ export class AtoNPropertiesModal implements OnInit {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseMeteo(data: any) {
-    const res = {};
+    const res: Record<string, Value> = {};
 
     if (data.navigation && data.navigation.position) {
       res['navigation.position'] = data.navigation.position.value;
@@ -175,7 +175,7 @@ export class AtoNPropertiesModal implements OnInit {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseAtoN(data: any) {
-    const res = {};
+    const res: Record<string, Value> = {};
     if (data.navigation && data.navigation.position) {
       res['navigation.position'] = data.navigation.position.value;
     }

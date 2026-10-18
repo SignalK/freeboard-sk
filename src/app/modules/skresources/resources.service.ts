@@ -3,6 +3,7 @@ import {
   effect,
   inject,
   Injectable,
+  Signal,
   signal,
   untracked
 } from '@angular/core';
@@ -61,6 +62,7 @@ import {
   RegionResource,
   TrackResource,
   Position,
+  SKPosition,
   Regions,
   ChartResource,
   InfoLayers,
@@ -132,6 +134,33 @@ export type SKResourceClass<C extends SKResourceType> = C extends 'routes'
             ? SKTrack
             : never;
 
+/** A cache entry for a collection: `[id, resource, selected]`. */
+export type FBResourceEntry<C extends SKResourceType> = [
+  string,
+  SKResourceClass<C>,
+  boolean?
+];
+
+/** A note as older servers send it, with the v1 fields it is upgraded from. */
+type LegacyNoteResource = NoteResource & {
+  title?: string;
+  region?: string;
+  geohash?: string;
+};
+
+/**
+ * What `showNoteEditor` opens on: an existing note by `id`, a new note at a
+ * `position` or in a `group`, or a new note attached to the resource `href`
+ * names, of the given `type`.
+ */
+export interface NoteEditorRequest {
+  id?: string;
+  position?: Position;
+  group?: string;
+  type?: string;
+  href?: { id: string; exists: boolean };
+}
+
 /** Data for the Note editor dialog (see `showNoteEditor`). */
 interface NoteEditorData {
   noteId: string | null;
@@ -182,12 +211,17 @@ export class SKResourceService {
 
   // ******** Resource selections management ********************
 
+  /** The saved selection lists, by collection; a collection may have none. */
+  private get selectionLists(): Partial<Record<SKSelection, string[] | null>> {
+    return this.app.config.selections;
+  }
+
   /**
    * @description Returns boolean indicating if resource selection list is filtered.
    * @returns true: is filtered, false: not filtered.
    */
   public selectionIsFiltered(collection: SKSelection): boolean {
-    return Array.isArray(this.app.config.selections[collection]);
+    return Array.isArray(this.selectionLists[collection]);
   }
 
   /**
@@ -198,12 +232,12 @@ export class SKResourceService {
    */
   public selectionHas(collection: SKSelection, id: string) {
     if (
-      !this.app.config.selections[collection] ||
+      !this.selectionLists[collection] ||
       !this.selectionIsFiltered(collection)
     ) {
       return false;
     }
-    return this.app.config.selections[collection].includes(id);
+    return this.selectionLists[collection].includes(id);
   }
   /**
    * @description Add resource ids to selection list
@@ -211,16 +245,14 @@ export class SKResourceService {
    * @id Resource identifier or array of identifiers to add to selection list
    */
   public selectionAdd(collection: SKSelection, id: string | string[]) {
-    if (typeof this.app.config.selections[collection] === 'undefined') {
+    if (typeof this.selectionLists[collection] === 'undefined') {
       return;
     }
     if (this.selectionIsFiltered(collection)) {
       let ids = typeof id === 'string' ? [id] : id;
-      ids = ids.filter(
-        (s) => !this.app.config.selections[collection].includes(s)
-      );
-      this.app.config.selections[collection] =
-        this.app.config.selections[collection].concat(ids);
+      ids = ids.filter((s) => !this.selectionLists[collection].includes(s));
+      this.selectionLists[collection] =
+        this.selectionLists[collection].concat(ids);
       this.app.saveConfig();
     }
   }
@@ -231,14 +263,14 @@ export class SKResourceService {
    * @id Resource identifier or array of identifiers to remove from selection list
    */
   public selectionRemove(collection: SKSelection, id: string | string[]) {
-    if (typeof this.app.config.selections[collection] === 'undefined') {
+    if (typeof this.selectionLists[collection] === 'undefined') {
       return;
     }
     if (this.selectionIsFiltered(collection)) {
       const ids = typeof id === 'string' ? [id] : id;
-      this.app.config.selections[collection] = this.app.config.selections[
-        collection
-      ].filter((s: string) => !ids.includes(s));
+      this.selectionLists[collection] = this.selectionLists[collection].filter(
+        (s: string) => !ids.includes(s)
+      );
       this.app.saveConfig();
     }
   }
@@ -248,7 +280,7 @@ export class SKResourceService {
    * @param collection
    */
   public selectionUnfilter(collection: SKSelection) {
-    this.app.config.selections[collection] = null;
+    this.selectionLists[collection] = null;
     this.app.saveConfig();
   }
 
@@ -257,7 +289,7 @@ export class SKResourceService {
    * @param collection
    */
   public selectionClear(collection: SKSelection) {
-    this.app.config.selections[collection] = [];
+    this.selectionLists[collection] = [];
     this.app.saveConfig();
   }
 
@@ -267,12 +299,12 @@ export class SKResourceService {
    * @param fullList Array of resource identifiers
    */
   public selectionClean(collection: SKSelection, fullList: string[]) {
-    if (!Array.isArray(this.app.config.selections[collection])) {
+    if (!Array.isArray(this.selectionLists[collection])) {
       return;
     }
-    this.app.config.selections[collection] = this.app.config.selections[
-      collection
-    ].filter((i) => fullList.includes(i));
+    this.selectionLists[collection] = this.selectionLists[collection].filter(
+      (i) => fullList.includes(i)
+    );
     this.app.saveConfig();
   }
 
@@ -321,33 +353,23 @@ export class SKResourceService {
   }
 
   /**
-   * @description Retrieve cached resource entry (app.data)
-   * @params cache Resource cache to use (e.g. routes, etc.)
+   * @description Retrieve a cached resource entry
+   * @params collection Resource cache to use (e.g. routes, etc.)
    * @params id Resource identifier
    * @returns resource entry
    */
-  public fromCache(collection: SKResourceType, id: string) {
-    if (
-      ['routes', 'waypoints', 'notes', 'regions', 'charts', 'tracks'].includes(
-        collection
-      )
-    ) {
-      const cache = this.getCacheRef(collection);
-      if (!cache) {
-        this.app.showAlert('Error', 'Collection not found!');
-        return;
-      }
-      return cache().find((r) => r[0] === id);
-    } else {
-      if (
-        !this.app.data[collection] ||
-        !Array.isArray(this.app.data[collection])
-      ) {
-        return;
-      }
-      const item = this.app.data[collection].find((i) => i[0] === id);
-      return item ?? undefined;
+  public fromCache<C extends SKResourceType>(
+    collection: C,
+    id: string
+  ): FBResourceEntry<C> | undefined {
+    const cache = this.getCacheRef(collection) as unknown as Signal<
+      FBResourceEntry<C>[]
+    >;
+    if (!cache) {
+      this.app.showAlert('Error', 'Collection not found!');
+      return;
     }
+    return cache().find((r) => r[0] === id);
   }
 
   // ******** SK Resource operations ********************
@@ -533,7 +555,7 @@ export class SKResourceService {
     if (!Array.isArray(msg)) {
       return;
     }
-    const action = {
+    const action: Partial<Record<SKResourceType, boolean>> = {
       routes: false,
       waypoints: false,
       notes: false,
@@ -553,9 +575,9 @@ export class SKResourceService {
         }
         if (this.selectionIsFiltered(collection) && !item.value) {
           // deleted - remove from selections
-          if (this.app.config.selections[collection].includes(id)) {
-            this.app.config.selections[collection].splice(
-              this.app.config.selections[collection].indexOf(id),
+          if (this.selectionLists[collection].includes(id)) {
+            this.selectionLists[collection].splice(
+              this.selectionLists[collection].indexOf(id),
               1
             );
             this.app.saveConfig();
@@ -2282,7 +2304,7 @@ export class SKResourceService {
           rte.feature.properties.points.names &&
           Array.isArray(rte.feature.properties.points.names)
         ) {
-          const pts = [];
+          const pts: Array<{ name: string }> = [];
           rte.feature.properties.points.names.forEach((pt: string) => {
             if (pt) {
               pts.push({ name: pt });
@@ -2895,10 +2917,10 @@ export class SKResourceService {
     if (!w) {
       return;
     }
-    const wpt = w[1];
+    const wpt: SKWaypoint & { position?: SKPosition } = w[1];
     wpt['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(position);
-    wpt['position'] = {
+    wpt.position = {
       latitude: wpt['feature']['geometry']['coordinates'][1],
       longitude: wpt['feature']['geometry']['coordinates'][0]
     };
@@ -3185,7 +3207,7 @@ export class SKResourceService {
    * @param id Note id
    * @returns SKNote object
    */
-  private transformNote(note: NoteResource, id: string): SKNote {
+  private transformNote(note: LegacyNoteResource, id: string): SKNote {
     // replace title with name
     if (!note.name) {
       note.name = note['title'] ?? 'Note-' + id.slice(-6);
@@ -3430,19 +3452,11 @@ export class SKResourceService {
     }
   }
 
-  /** 
+  /**
    * @description Display Add / Update Note Dialog
-   * @param e {
-      noteId: string,
-      note: SKNote,
-      editable: boolean,
-      addNote: boolean,
-      title: string,
-      region: string,
-      createRegion: boolean
-    }
+   * @param e The note to edit, or where to add a new one
    */
-  public async showNoteEditor(e = null) {
+  public async showNoteEditor(e: NoteEditorRequest = null) {
     let note: SKNote;
     const data: NoteEditorData = {
       noteId: null,

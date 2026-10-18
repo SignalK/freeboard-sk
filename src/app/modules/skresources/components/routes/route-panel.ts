@@ -28,7 +28,7 @@ import { markdownProcessor } from '../../../../lib/markdown';
 import { AppFacade } from 'src/app/app.facade';
 import { InfoPanelFacade } from 'src/app/modules/info-panel/info-panel.facade';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
-import { SKRoute, SKWaypoint } from '../../resource-classes';
+import { SKRoute } from '../../resource-classes';
 import { SKResourceService } from '../../resources.service';
 import { FBNotes, Position } from 'src/app/types';
 import {
@@ -48,6 +48,15 @@ import { RouteReverseService } from '../../route-reverse.service';
 import { routePointsMeta } from '../route-points-meta.util';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+/** A route point as the panel lists it, with the leg to it formatted for display. */
+interface RoutePanelPoint {
+  index: number;
+  name: string;
+  description: string;
+  bearing: string;
+  distance: string;
+}
 
 @Component({
   selector: 'route-panel',
@@ -112,15 +121,7 @@ export class RoutePanel {
   });
   protected notes = signal<FBNotes>([]);
   protected groups = signal<FBResourceGroups>([]);
-  protected points = signal<
-    {
-      index: number;
-      name: string;
-      description: string;
-      bearing: number;
-      distance: number;
-    }[]
-  >([]);
+  protected points = signal<RoutePanelPoint[]>([]);
 
   private routeReversed = false;
 
@@ -209,7 +210,7 @@ export class RoutePanel {
       const legs = this.getLegInfo();
       const meta = this.getPointsMeta();
       this.points.update(() => {
-        let r = [];
+        let r: RoutePanelPoint[] = [];
         for (let i = 0; i < legs.length; ++i) {
           r.push(Object.assign({}, legs[i], meta[i]));
         }
@@ -246,7 +247,7 @@ export class RoutePanel {
     return routePointsMeta(
       this._route().feature.geometry.coordinates.length,
       this._route().feature.properties.coordinatesMeta,
-      (id) => this.skres.fromCache('waypoints', id)?.[1] as SKWaypoint
+      (id) => this.skres.fromCache('waypoints', id)?.[1]
     ).map((meta, index) => ({ index, ...meta }));
   }
 

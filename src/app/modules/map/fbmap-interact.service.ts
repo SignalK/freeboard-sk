@@ -9,17 +9,16 @@ import { StyleLike } from 'ol/style/Style';
 import { AppFacade } from 'src/app/app.facade';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
-import { FBChart, LineString, Position } from 'src/app/types';
 import {
-  SKAircraft,
-  SKAtoN,
-  SKMeteo,
-  SKNote,
-  SKRegion,
-  SKRoute,
-  SKVessel,
-  SKWaypoint
-} from '../skresources';
+  FBChart,
+  FBNote,
+  FBRegion,
+  FBRoute,
+  FBWaypoint,
+  LineString,
+  Position
+} from 'src/app/types';
+import { SKAircraft, SKAtoN, SKMeteo, SKVessel } from '../skresources';
 import { GeoJSONFeature } from 'ol/format/GeoJSON';
 import { AlertData } from '../alarms';
 import { ActiveRoutePoint } from './route-point-pick';
@@ -41,7 +40,7 @@ export interface IPopover {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any[];
   featureCount: number;
-  resource?: [string, SKRoute | SKWaypoint | SKNote | SKRegion];
+  resource?: FBRoute | FBWaypoint | FBNote | FBRegion;
   /** The feature a resource set popover shows. */
   resourceSet?: GeoJSONFeature;
   vessel?: SKVessel;

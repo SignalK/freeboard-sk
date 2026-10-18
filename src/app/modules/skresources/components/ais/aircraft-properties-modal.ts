@@ -1,3 +1,4 @@
+import type { Value } from '@signalk/server-api';
 import { Component, DestroyRef, inject } from '@angular/core';
 import {
   MatBottomSheetRef,
@@ -95,7 +96,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class AircraftPropertiesModal {
   protected showProperties = true;
-  protected properties: { [key: string]: string | number | null };
+  protected properties: Record<string, Value>;
 
   private sk = inject(SignalKClient);
   private destroyRef = inject(DestroyRef);
@@ -123,14 +124,14 @@ export class AircraftPropertiesModal {
     this.sk.api
       .get(path)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
+      .subscribe((v: unknown) => {
         this.properties = this.parseAircraft(v);
       });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseAircraft(data: any) {
-    const res = {};
+    const res: Record<string, Value> = {};
 
     if (data.navigation && data.navigation.position) {
       res['navigation.position'] = data.navigation.position.value;

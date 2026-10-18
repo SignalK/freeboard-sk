@@ -598,7 +598,7 @@ const parseTimeDimension = (
   try {
     if (Array.isArray(value)) {
       // check if values are ranges
-      const ranges = [];
+      const ranges: TimeDimension[] = [];
       value.forEach((r) => {
         if (isRange(r)) {
           const range = parseRange(r.split('/'));

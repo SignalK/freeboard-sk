@@ -33,7 +33,7 @@ import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.s
         <autopilot-button
           [active]="
             app.featureFlags().autopilotApi &&
-            app.data.vessels.self.autopilot.default
+            !!app.data.vessels.self.autopilot.default
           "
         ></autopilot-button>
       }

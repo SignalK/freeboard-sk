@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChartPropertiesDialog } from './chart-properties-dialog';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from '../../resource-classes';
+import { LayerNode } from './maplib';
 
 /**
  * #783: a user-added chart (source `resources-provider`) can be given an
@@ -146,7 +147,7 @@ describe('ChartPropertiesDialog — layer pick pre-fills', () => {
         title: 'NEXRAD Base Reflectivity',
         description: 'Composite radar mosaic, updated every 10 minutes.',
         selected: false,
-        parent: null,
+        parent: null as LayerNode,
         time: { from: T0, to: T1, interval: 600000, current: T1 }
       },
       {

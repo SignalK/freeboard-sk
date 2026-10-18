@@ -50,10 +50,8 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
   focusVessel = output<string>();
   pan = output<{ center: Position; zoomLevel: number }>();
 
-  aisAvailable = [];
   onlyIMO = false;
   onlyBuddies = false;
-  filterList = [];
   override filterText = '';
   override someSel = false;
   override allSel = false;

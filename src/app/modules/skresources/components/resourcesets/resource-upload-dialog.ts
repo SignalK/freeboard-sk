@@ -41,13 +41,15 @@ import { AppFacade } from 'src/app/app.facade';
 export class ResourceImportDialog implements OnInit {
   public resPaths: Array<string> = [];
   public targetPath: string = null;
-  public source = { type: null, name: null, data: null };
+  public source: { type: string; name: string; data: string } = {
+    type: null,
+    name: null,
+    data: null
+  };
 
   public display = {
     notValid: false
   };
-
-  private unsubscribe = [];
 
   constructor(
     public app: AppFacade,
@@ -59,7 +61,7 @@ export class ResourceImportDialog implements OnInit {
 
   ngOnInit() {
     this.skclient.api.get(this.app.skApiVersion, '/resources').subscribe(
-      (r) => {
+      (r: object) => {
         this.resPaths = [];
         this.targetPath = null;
         this.resPaths = Object.keys(r).filter((i) => {
@@ -78,10 +80,6 @@ export class ResourceImportDialog implements OnInit {
         this.targetPath = null;
       }
     );
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe.forEach((i) => i.unsubscribe());
   }
 
   // ** send data for load to server **
