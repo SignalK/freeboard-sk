@@ -6,7 +6,7 @@ import type {
   SubscribeMessage,
   Update
 } from '@signalk/server-api';
-import type { Position } from './resources/geojson';
+import type { MultiLineString, Position } from './resources/geojson';
 
 // Notification types
 export enum ALARM_STATE {
@@ -156,10 +156,10 @@ import {
 
 type AisIds = Array<string>;
 
-interface WorkerMessageBase {
+interface WorkerMessageBase<T> {
   action: string;
   playback: boolean;
-  result: ResultPayload | PathValue;
+  result: T;
   self: string;
   timestamp: string;
 }
@@ -184,21 +184,21 @@ export interface ResultPayload {
   meteo: Map<string, SKMeteo>;
 }
 
-export class NotificationMessage implements WorkerMessageBase {
+export class NotificationMessage implements WorkerMessageBase<DeltaSignal> {
   action = 'notification';
   playback = false;
-  result = null;
-  self = null;
+  result: DeltaSignal = null;
+  self: string = null;
   timestamp = new Date().toISOString();
   sourceRef!: string;
 }
 
-export class UpdateMessage implements WorkerMessageBase {
+export class UpdateMessage<T = ResultPayload> implements WorkerMessageBase<T> {
   action: string;
   playback = false;
-  result = null;
+  result: T = null;
   timestamp: string;
-  self = null;
+  self: string = null;
   watchDogAlarm: boolean;
 
   constructor() {
@@ -206,21 +206,21 @@ export class UpdateMessage implements WorkerMessageBase {
   }
 }
 
-export class ResourceMessage extends UpdateMessage {
+export class ResourceMessage extends UpdateMessage<DeltaSignal> {
   constructor() {
     super();
     this.action = 'resource';
   }
 }
 
-export class RadarMessage extends UpdateMessage {
+export class RadarMessage extends UpdateMessage<DeltaSignal> {
   constructor() {
     super();
     this.action = 'radar';
   }
 }
 
-export class TrailMessage extends UpdateMessage {
+export class TrailMessage extends UpdateMessage<MultiLineString> {
   /** The trail as recorded, with each point's time (`times[i][j]` is when
    * `lines[i][j]` was recorded), before the older bands are simplified for
    * drawing. v2 Track API only. */
