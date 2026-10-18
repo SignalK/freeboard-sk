@@ -2,20 +2,24 @@
 //
 // The agent connects here as a remote MCP server (POST/GET/DELETE on /mcp).
 // Tool calls are dispatched to the declarative TOOLS table and relayed to the
-// browser runtime through the bridge hub. The MCP SDK is ESM-only, so it is
-// pulled in with a dynamic import() from this CommonJS plugin.
+// browser runtime through the bridge hub. The MCP SDK is imported when the
+// handler is first built, so a plugin that is never enabled never loads it.
 
-const { randomUUID } = require('node:crypto');
-const { TOOLS } = require('./tools');
+import { randomUUID } from 'node:crypto';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { StreamableHTTPServerTransport as Transport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import type { BridgeHub } from './bridge-hub.ts';
+import { messageOf, reasonOf } from './errors.ts';
+import { TOOLS } from './tools.ts';
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
-function readJsonBody(req) {
+function readJsonBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    const chunks = [];
+    const chunks: Buffer[] = [];
     let size = 0;
     let aborted = false;
-    req.on('data', (chunk) => {
+    req.on('data', (chunk: Buffer) => {
       size += chunk.length; // byte length — the cap is a byte limit
       if (size > MAX_BODY_BYTES) {
         aborted = true;
@@ -38,10 +42,38 @@ function readJsonBody(req) {
   });
 }
 
-function sendJsonRpcError(res, status, message, id = null) {
+function sendJsonRpcError(
+  res: ServerResponse,
+  status: number,
+  message: unknown,
+  id: unknown = null
+): void {
   res.writeHead(status, { 'content-type': 'application/json' });
   res.end(
     JSON.stringify({ jsonrpc: '2.0', error: { code: -32000, message }, id })
+  );
+}
+
+export interface McpHttpOptions {
+  hub: BridgeHub;
+  logger?: (msg: string) => void;
+  version?: string;
+  token?: string | null;
+  host: string;
+  port: number;
+}
+
+export interface McpHttpHandler {
+  handle(req: IncomingMessage, res: ServerResponse): Promise<void>;
+  close(): void;
+}
+
+// The JSON-RPC id of a request body, for an error reply to echo.
+function requestId(body: unknown): unknown {
+  return (
+    (typeof body === 'object' && body !== null && 'id' in body
+      ? body.id
+      : undefined) ?? null
   );
 }
 
@@ -55,14 +87,14 @@ function sendJsonRpcError(res, status, message, id = null) {
 // to reach via DNS rebinding, and the guard rejects any request whose Host header
 // isn't one of ours. A non-loopback (LAN) bind can't enumerate its valid hosts,
 // so it relies on the token instead.
-async function createMcpHttpHandler({
+export async function createMcpHttpHandler({
   hub,
   logger,
   version,
   token,
   host,
   port
-}) {
+}: McpHttpOptions): Promise<McpHttpHandler> {
   const log = logger || (() => {});
   const isLoopback =
     host === '127.0.0.1' || host === 'localhost' || host === '::1';
@@ -76,7 +108,7 @@ async function createMcpHttpHandler({
         ]
       }
     : {};
-  const authorized = (req) =>
+  const authorized = (req: IncomingMessage) =>
     !token || req.headers['authorization'] === `Bearer ${token}`;
   const [{ Server }, { StreamableHTTPServerTransport }, types] =
     await Promise.all([
@@ -123,11 +155,14 @@ async function createMcpHttpHandler({
           ]
         };
       } catch (err) {
-        const reason = err?.reason ? ` (reason: ${err.reason})` : '';
+        const reason = reasonOf(err);
         return {
           isError: true,
           content: [
-            { type: 'text', text: `Error: ${err?.message ?? err}${reason}` }
+            {
+              type: 'text',
+              text: `Error: ${messageOf(err) ?? err}${reason ? ` (reason: ${reason})` : ''}`
+            }
           ]
         };
       }
@@ -136,9 +171,12 @@ async function createMcpHttpHandler({
     return server;
   };
 
-  const transports = new Map(); // sessionId -> transport
+  const transports = new Map<string, Transport>(); // sessionId -> transport
 
-  async function handle(req, res) {
+  async function handle(
+    req: IncomingMessage,
+    res: ServerResponse
+  ): Promise<void> {
     try {
       if (!authorized(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
@@ -154,7 +192,8 @@ async function createMcpHttpHandler({
       if (req.method === 'POST') {
         const body = await readJsonBody(req);
         const sid = req.headers['mcp-session-id'];
-        let transport = sid ? transports.get(sid) : undefined;
+        let transport =
+          typeof sid === 'string' ? transports.get(sid) : undefined;
 
         if (!transport) {
           if (!isInitializeRequest(body)) {
@@ -162,19 +201,22 @@ async function createMcpHttpHandler({
               res,
               400,
               'No valid session — send an initialize request first',
-              body?.id ?? null
+              requestId(body)
             );
           }
-          transport = new StreamableHTTPServerTransport({
+          const created: Transport = new StreamableHTTPServerTransport({
             sessionIdGenerator: () => randomUUID(),
             enableJsonResponse: true,
-            onsessioninitialized: (id) => transports.set(id, transport),
+            onsessioninitialized: (id) => {
+              transports.set(id, created);
+            },
             ...dnsGuard
           });
-          transport.onclose = () => {
-            if (transport.sessionId) transports.delete(transport.sessionId);
+          created.onclose = () => {
+            if (created.sessionId) transports.delete(created.sessionId);
           };
-          await makeServer().connect(transport);
+          await makeServer().connect(created);
+          transport = created;
         }
         await transport.handleRequest(req, res, body);
         return;
@@ -182,7 +224,8 @@ async function createMcpHttpHandler({
 
       if (req.method === 'GET' || req.method === 'DELETE') {
         const sid = req.headers['mcp-session-id'];
-        const transport = sid ? transports.get(sid) : undefined;
+        const transport =
+          typeof sid === 'string' ? transports.get(sid) : undefined;
         if (!transport)
           return sendJsonRpcError(res, 400, 'Unknown or missing session');
         await transport.handleRequest(req, res);
@@ -191,13 +234,13 @@ async function createMcpHttpHandler({
 
       res.writeHead(405, { allow: 'POST, GET, DELETE' }).end();
     } catch (err) {
-      log(`mcp: request error: ${err?.message ?? err}`);
+      log(`mcp: request error: ${messageOf(err) ?? err}`);
       if (!res.headersSent)
-        sendJsonRpcError(res, 400, err?.message ?? 'bad request');
+        sendJsonRpcError(res, 400, messageOf(err) ?? 'bad request');
     }
   }
 
-  function close() {
+  function close(): void {
     for (const transport of transports.values()) {
       try {
         transport.close();
@@ -210,5 +253,3 @@ async function createMcpHttpHandler({
 
   return { handle, close };
 }
-
-module.exports = { createMcpHttpHandler };

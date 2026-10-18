@@ -5,14 +5,22 @@
 // With `params.bare` it shows only that page, as a real extension window would.
 
 import { connectExtension } from 'signalk-plotterext-bus/extension';
+import type { HandshakeContext } from 'signalk-plotterext-bus';
+
+// The bus types predate the `windows` capability, whose window context also
+// carries the window id and the params the window was opened with.
+interface WindowContext extends HandshakeContext {
+  windowId?: string;
+  params?: Record<string, unknown>;
+}
 
 (async () => {
   const client = await connectExtension();
-  const ctx = client.context;
+  const ctx = client.context as WindowContext;
   const params = ctx.params ?? {};
   if (params.bare === true) document.body.classList.add('bare');
 
-  document.getElementById('context').textContent = JSON.stringify(
+  document.getElementById('context')!.textContent = JSON.stringify(
     { kind: ctx.kind, windowId: ctx.windowId, params },
     null,
     2
@@ -27,7 +35,7 @@ import { connectExtension } from 'signalk-plotterext-bus/extension';
     document.body.appendChild(frame);
   }
 
-  document.getElementById('close').addEventListener('click', () => {
+  document.getElementById('close')!.addEventListener('click', () => {
     client
       .call('ui.closeWindow')
       .catch((e) => console.warn('[fsk-mcp probe]', e));

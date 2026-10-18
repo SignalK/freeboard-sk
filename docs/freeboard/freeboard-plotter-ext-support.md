@@ -482,7 +482,7 @@ same options as `ui.openWindow`; each button remembers the window it opened.
 | `src/app/modules/plotterext/windows/geometry.ts` | request resolution, gestures, clamping, snapping |
 | `src/app/modules/plotterext/windows/window.component.ts` | one window: title bar, gestures, the bus-connected iframe |
 | `src/app/modules/plotterext/windows/window-layer.component.ts` | the window area, modal backdrop, Escape |
-| `dev-tools/fsk-mcp/src/tools.js` | `fsk_open_window` / `fsk_update_window` / `fsk_list_windows` / `fsk_close_window` |
+| `dev-tools/fsk-mcp/src/tools.ts` | `fsk_open_window` / `fsk_update_window` / `fsk_list_windows` / `fsk_close_window` |
 
 ## The `resourceGroups` capability
 
@@ -884,7 +884,7 @@ draw).
 ## Extending the host API? Update the agent bridge
 
 When you add or change a host API method here, also add or update the matching
-tool in [`../../dev-tools/fsk-mcp/src/tools.js`](../../dev-tools/fsk-mcp/src/tools.js)
+tool in [`../../dev-tools/fsk-mcp/src/tools.ts`](../../dev-tools/fsk-mcp/src/tools.ts)
 so the `fsk-mcp` dev bridge can drive the new behaviour from an agent (setup:
 [`../dev-tools/fsk-mcp.md`](../dev-tools/fsk-mcp.md)). The generic `fsk_call` tool
 already reaches any method; the curated tools are for discoverability.

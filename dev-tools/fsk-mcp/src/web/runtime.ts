@@ -14,20 +14,36 @@
 // Nothing here is FSK-specific: it drives whatever host answered the handshake.
 
 import { connectExtension } from 'signalk-plotterext-bus/extension';
+import { messageOf } from '../errors.ts';
+
+// bridge-config.json, as the plugin serves it (src/index.ts).
+interface BridgeConfig {
+  port: number;
+  path?: string;
+  token?: string;
+  // Not served by the plugin; honoured for an advanced setup (see bridgeUrl).
+  url?: string;
+  host?: string;
+}
+
+// What the plugin's bridge hub (src/bridge-hub.ts) sends.
+type HubMessage =
+  | { type: 'call'; id: string; method: string; params?: unknown }
+  | { type: 'ping'; id?: string };
 
 const CONFIG_URL = 'bridge-config.json'; // resolved against this iframe's origin
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 15000;
 
-function log(...args) {
+function log(...args: unknown[]): void {
   // Recoverable/diagnostic only; the host console is where a dev sees this.
   console.warn('[fsk-mcp runtime]', ...args);
 }
 
-async function loadConfig() {
+async function loadConfig(): Promise<BridgeConfig> {
   const res = await fetch(CONFIG_URL, { credentials: 'include' });
   if (!res.ok) throw new Error(`bridge-config.json ${res.status}`);
-  return res.json();
+  return (await res.json()) as BridgeConfig;
 }
 
 // The plugin serves a plain (non-TLS) WebSocket bridge on the same host the
@@ -35,30 +51,35 @@ async function loadConfig() {
 // speaks `ws:` only; an https-origin Freeboard can't reach a plain-ws bridge
 // (browser mixed-content) — run it over http/localhost. `config.url` lets an
 // advanced setup point at an explicit endpoint (e.g. a TLS-terminating proxy).
-function bridgeUrl(config) {
+function bridgeUrl(config: BridgeConfig): string {
   if (config.url) return config.url;
   const host = config.host || location.hostname;
   const path = config.path || '/bridge';
   return `ws://${host}:${config.port}${path}`;
 }
 
-function reasonOf(err) {
+function hostReasonOf(err: unknown): unknown {
+  if (typeof err !== 'object' || err === null) return undefined;
   // Host API errors carry a stable string in error.data.reason (see spec).
-  return err?.data?.reason ?? err?.reason ?? undefined;
+  const { data, reason } = err as {
+    data?: { reason?: unknown } | null;
+    reason?: unknown;
+  };
+  return data?.reason ?? reason ?? undefined;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const client = await connectExtension();
   log(
     `handshake ok: host=${client.handshake.host}@${client.handshake.hostVersion}`,
     `caps=[${client.capabilities.join(', ')}]`
   );
 
-  let config;
+  let config: BridgeConfig;
   try {
     config = await loadConfig();
   } catch (err) {
-    log('cannot read bridge-config.json — bridge disabled:', err.message);
+    log('cannot read bridge-config.json — bridge disabled:', messageOf(err));
     return;
   }
 
@@ -69,14 +90,16 @@ async function main() {
     );
   }
 
-  let ws = null;
+  let ws: WebSocket | null = null;
   let backoff = RECONNECT_MIN_MS;
 
-  const send = (obj) => {
+  const send = (obj: object) => {
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
   };
 
-  async function handleCall(msg) {
+  async function handleCall(
+    msg: Extract<HubMessage, { type: 'call' }>
+  ): Promise<void> {
     try {
       const result = await client.call(msg.method, msg.params);
       send({ type: 'result', id: msg.id, result });
@@ -84,12 +107,15 @@ async function main() {
       send({
         type: 'error',
         id: msg.id,
-        error: { reason: reasonOf(err), message: err?.message ?? String(err) }
+        error: {
+          reason: hostReasonOf(err),
+          message: messageOf(err) ?? String(err)
+        }
       });
     }
   }
 
-  function connect() {
+  function connect(): void {
     const url = bridgeUrl(config);
     ws = new WebSocket(url);
 
@@ -108,14 +134,15 @@ async function main() {
     });
 
     ws.addEventListener('message', (ev) => {
-      let msg;
+      let parsed: unknown;
       try {
-        msg = JSON.parse(ev.data);
+        parsed = JSON.parse(String(ev.data));
       } catch {
         return;
       }
       // JSON.parse('null'|'5'|...) yields a non-object; guard before .type.
-      if (!msg || typeof msg !== 'object') return;
+      if (!parsed || typeof parsed !== 'object') return;
+      const msg = parsed as HubMessage;
       if (msg.type === 'call') handleCall(msg);
       else if (msg.type === 'ping') send({ type: 'pong', id: msg.id });
     });
@@ -134,4 +161,4 @@ async function main() {
   connect();
 }
 
-main().catch((err) => log('fatal:', err?.message ?? err));
+main().catch((err: unknown) => log('fatal:', messageOf(err) ?? err));

@@ -17,23 +17,47 @@
 // excludes dev-tools/). Install it into a local server only for development —
 // see docs/dev-tools/fsk-mcp.md.
 
-const path = require('path');
-const http = require('http');
+import http from 'node:http';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import type { Plugin, ServerAPI } from '@signalk/server-api';
+import type { Application } from 'express';
+import pkg from '../package.json' with { type: 'json' };
+import { BridgeHub } from './bridge-hub.ts';
+import { messageOf } from './errors.ts';
+import { createMcpHttpHandler, type McpHttpHandler } from './mcp-http.ts';
+import { PLUGIN_ID, ASSET_BASE, buildManifest } from './manifest.ts';
 
-const { BridgeHub } = require('../src/bridge-hub');
-const { createMcpHttpHandler } = require('../src/mcp-http');
-const { PLUGIN_ID, ASSET_BASE, buildManifest } = require('../src/manifest');
+// Both this source and its bundle (plugin/index.js) sit one level below the
+// package root, where public/ is built.
+const PUBLIC_DIR = path.join(import.meta.dirname, '..', 'public');
 
-const pkg = require('../package.json');
-
-const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+// An ES module has no `require`. Express is still loaded on demand, only when
+// there is an Express app to mount on, so a failure to load it is reported.
+const nodeRequire = createRequire(import.meta.url);
 
 const DEFAULT_PORT = 3013;
 const DEFAULT_HOST = '127.0.0.1';
 const BRIDGE_PATH = '/bridge';
 const MCP_PATH = '/mcp';
 
-module.exports = (app) => {
+// What the plugin uses of the server's app. A minimal host (the tests) has no
+// Express routing to mount the runtime's assets on.
+export type PluginApp = Pick<
+  ServerAPI,
+  'debug' | 'error' | 'setPluginStatus' | 'setPluginError'
+> &
+  Partial<Pick<ServerAPI, 'registerResourceProvider'>> &
+  Partial<Pick<Application, 'use' | 'get'>>;
+
+// The plugin's stored configuration (see schema()), as the server hands it over.
+export interface FskMcpOptions {
+  port?: number | string;
+  host?: string;
+  token?: string;
+}
+
+export default function fskMcp(app: PluginApp): Plugin {
   let running = false;
   let providerRegistered = false;
   let assetsMounted = false;
@@ -43,25 +67,27 @@ module.exports = (app) => {
   // config save restarts the plugin) can't leave a stale server bound.
   let generation = 0;
 
-  let hub = null;
-  let mcp = null;
-  let httpServer = null;
-  let serverClosing = null; // resolves when a torn-down server has released its port
+  let hub: BridgeHub | null = null;
+  let mcp: McpHttpHandler | null = null;
+  let httpServer: http.Server | null = null;
+  let serverClosing: Promise<void> | null = null; // resolves when a torn-down server has released its port
   let config = { port: DEFAULT_PORT, host: DEFAULT_HOST, token: '' };
 
-  const debug = (msg) => app.debug(`${PLUGIN_ID}: ${msg}`);
+  const debug = (msg: string) => app.debug(`${PLUGIN_ID}: ${msg}`);
 
   // Returns true when the runtime assets are (or will be) reachable: either
   // mounted here, or there is no Express app to mount on (a minimal/test host,
   // where the browser runtime isn't exercised). Returns false only when mounting
   // was expected but failed — the caller must then not advertise the extension.
-  const mountAssets = () => {
+  const mountAssets = (): boolean => {
     if (assetsMounted) return true;
     if (typeof app.use !== 'function' || typeof app.get !== 'function') {
       return true;
     }
     try {
-      const serveStatic = require('express').static;
+      const { static: serveStatic } = nodeRequire(
+        'express'
+      ) as typeof import('express');
       // bridge-config.json is dynamic (carries the runtime-configured
       // port/token), so register it before the static mount.
       app.get(`${ASSET_BASE}/bridge-config.json`, (_req, res) => {
@@ -77,7 +103,7 @@ module.exports = (app) => {
       return true;
     } catch (err) {
       app.error(
-        `${PLUGIN_ID}: cannot serve ${ASSET_BASE}: ${err?.message ?? err}`
+        `${PLUGIN_ID}: cannot serve ${ASSET_BASE}: ${messageOf(err) ?? err}`
       );
       return false;
     }
@@ -94,7 +120,7 @@ module.exports = (app) => {
       methods: {
         listResources: async () =>
           running ? { [PLUGIN_ID]: buildManifest() } : {},
-        getResource: async (id) => {
+        getResource: async (id: string) => {
           if (!running || id !== PLUGIN_ID) {
             throw new Error(`No such plotterExtensions resource: ${id}`);
           }
@@ -115,7 +141,7 @@ module.exports = (app) => {
   // the shared hub/mcp/httpServer at the very end, once this generation still
   // owns the plugin. That way an overlapping start/stop can never make one
   // generation tear down another generation's live server.
-  const startServers = async () => {
+  const startServers = async (): Promise<void> => {
     const myGeneration = generation;
     const superseded = () => !running || myGeneration !== generation;
 
@@ -132,7 +158,7 @@ module.exports = (app) => {
       port: config.port
     });
     // Close only what this generation built — never the shared references.
-    const abandonLocals = (server) => {
+    const abandonLocals = (server?: http.Server) => {
       localMcp.close();
       localHub.close();
       if (server) {
@@ -176,7 +202,7 @@ module.exports = (app) => {
     }
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         localServer.once('error', reject);
         localServer.listen(config.port, config.host, () => {
           localServer.off('error', reject);
@@ -193,7 +219,7 @@ module.exports = (app) => {
     // whole Signal K process down.
     localServer.on('error', (err) => {
       app.error(
-        `${PLUGIN_ID}: bridge/MCP server error: ${err?.message ?? err}`
+        `${PLUGIN_ID}: bridge/MCP server error: ${messageOf(err) ?? err}`
       );
     });
 
@@ -222,7 +248,7 @@ module.exports = (app) => {
     if (hub) hub.close();
     if (httpServer) {
       const closing = httpServer;
-      serverClosing = new Promise((resolve) => {
+      serverClosing = new Promise<void>((resolve) => {
         try {
           closing.close(() => resolve());
         } catch {
@@ -269,7 +295,7 @@ module.exports = (app) => {
       }
     }),
 
-    start(options) {
+    start(options: FskMcpOptions) {
       running = true;
       generation += 1;
       const myGeneration = generation;
@@ -290,7 +316,7 @@ module.exports = (app) => {
       registerProvider();
       // Server bring-up is async (ESM MCP SDK import + listen); don't block the
       // server's start(). Surface failures as plugin status rather than crashing.
-      startServers().catch((err) => {
+      startServers().catch((err: unknown) => {
         // startServers cleaned up its own local instances; just report — and
         // only if this is still the active generation.
         if (myGeneration !== generation) return;
@@ -299,9 +325,11 @@ module.exports = (app) => {
         // `running`, so this removes fsk-mcp from the plotterExtensions set.
         running = false;
         app.error(
-          `${PLUGIN_ID}: failed to start bridge/MCP server: ${err?.message ?? err}`
+          `${PLUGIN_ID}: failed to start bridge/MCP server: ${messageOf(err) ?? err}`
         );
-        app.setPluginError(`bridge/MCP server failed: ${err?.message ?? err}`);
+        app.setPluginError(
+          `bridge/MCP server failed: ${messageOf(err) ?? err}`
+        );
       });
       debug('started');
     },
@@ -313,4 +341,4 @@ module.exports = (app) => {
       debug('stopped');
     }
   };
-};
+}

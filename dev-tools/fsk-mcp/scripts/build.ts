@@ -1,3 +1,8 @@
+// Bundle the plugin entry into plugin/index.js, which package.json `main`
+// names: the Signal K server loads plugins from node_modules, where Node does
+// not strip TypeScript types, so it gets plain JavaScript. Dependencies stay
+// external and resolve from node_modules as they would unbundled.
+//
 // Bundle the browser-side background runtime into public/, which the plugin
 // serves as a static route at /plotterext/fsk-mcp/. Mirrors the reference
 // extensions' build (esbuild -> IIFE bundle + a generated HTML shell).
@@ -9,17 +14,28 @@
 
 import { build } from 'esbuild';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(import.meta.dirname, '..');
 const pub = join(root, 'public');
 mkdirSync(join(pub, 'js'), { recursive: true });
 
 await build({
+  entryPoints: [join(root, 'src/index.ts')],
+  bundle: true,
+  platform: 'node',
+  format: 'esm',
+  packages: 'external',
+  outfile: join(root, 'plugin/index.js'),
+  sourcemap: true,
+  target: ['node22'],
+  logLevel: 'info'
+});
+
+await build({
   entryPoints: [
-    join(root, 'src/web/runtime.js'),
-    join(root, 'src/web/window-probe.js')
+    join(root, 'src/web/runtime.ts'),
+    join(root, 'src/web/window-probe.ts')
   ],
   bundle: true,
   format: 'iife',
@@ -74,4 +90,6 @@ writeFileSync(
 `
 );
 
-console.error('fsk-mcp: public/ runtime and window probe built');
+console.error(
+  'fsk-mcp: plugin/ entry and public/ runtime and window probe built'
+);

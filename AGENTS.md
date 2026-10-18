@@ -78,7 +78,7 @@ never shipped.
 **Keep it in sync with the host API.** When you add or change a Plotter Extensions
 host API method (the `map.*` / `route.*` / `resources.*` / … surface in
 [`docs/api/plotter-extensions-api.md`](docs/api/plotter-extensions-api.md)), add or
-update the matching tool in `dev-tools/fsk-mcp/src/tools.js` so agents can exercise
+update the matching tool in `dev-tools/fsk-mcp/src/tools.ts` so agents can exercise
 the new behaviour. (`fsk_call` already reaches any method generically; the curated
 tools exist for clean, discoverable schemas — that file is the single place they
 live.)

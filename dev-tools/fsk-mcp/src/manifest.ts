@@ -14,10 +14,10 @@
 // of its own to exercise `overlays.data`, and it doubles as a way to draw any
 // GeoJSON on the chart while debugging (fsk_set_overlay_data).
 
-const pkg = require('../package.json');
+import pkg from '../package.json' with { type: 'json' };
 
-const PLUGIN_ID = 'fsk-mcp';
-const ASSET_BASE = `/plotterext/${PLUGIN_ID}`;
+export const PLUGIN_ID = 'fsk-mcp';
+export const ASSET_BASE = `/plotterext/${PLUGIN_ID}`;
 
 // Features take `color` and `label` properties; `global-state` `color` is the
 // colour of features without one (set it with fsk_set_overlay_state).
@@ -74,7 +74,7 @@ const SCRATCH_STYLE = {
   ]
 };
 
-function buildManifest() {
+export function buildManifest() {
   return {
     name: 'FSK MCP Bridge (dev)',
     description:
@@ -126,5 +126,3 @@ function buildManifest() {
     ]
   };
 }
-
-module.exports = { PLUGIN_ID, ASSET_BASE, buildManifest };

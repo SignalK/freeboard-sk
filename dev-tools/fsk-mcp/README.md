@@ -27,7 +27,7 @@ primary thing you'll debug with it.
 ## Quick start
 
 ```sh
-cd dev-tools/fsk-mcp && npm install          # builds the runtime into public/
+cd dev-tools/fsk-mcp && npm install          # builds plugin/ and the runtime into public/
 # then npm link it into your local Signal K server and enable it
 ```
 
@@ -39,9 +39,17 @@ MCP endpoint into your agent — is in
 
 | Path                 | What                                                                          |
 | -------------------- | ----------------------------------------------------------------------------- |
-| `plugin/index.js`    | plugin entry: resource provider, asset serving, HTTP server (WS bridge + MCP) |
-| `src/manifest.js`    | the `plotterExtensions` manifest (one background runtime)                     |
-| `src/bridge-hub.js`  | WebSocket hub: session registry + call relay                                  |
-| `src/mcp-http.js`    | MCP server over Streamable HTTP                                               |
-| `src/tools.js`       | the MCP tool surface — **keep in sync with the host API**                     |
-| `src/web/runtime.js` | the browser-side bridge (bundled into `public/`)                              |
+| `src/index.ts`       | plugin entry: resource provider, asset serving, HTTP server (WS bridge + MCP) |
+| `src/manifest.ts`    | the `plotterExtensions` manifest (one background runtime)                     |
+| `src/bridge-hub.ts`  | WebSocket hub: session registry + call relay                                  |
+| `src/mcp-http.ts`    | MCP server over Streamable HTTP                                               |
+| `src/tools.ts`       | the MCP tool surface — **keep in sync with the host API**                     |
+| `src/web/runtime.ts` | the browser-side bridge (bundled into `public/`)                              |
+| `plugin/index.js`    | build output: the bundled plugin entry that `main` names (gitignored)         |
+
+The sources are strict TypeScript (Node 22.18+ to build and test). `npm run
+build` type-checks them (`npm run typecheck`) and bundles them with esbuild:
+`src/index.ts` into `plugin/index.js`, which the Signal K server loads, and
+`src/web/` into `public/`. `npm test` runs the `node --test` suites against the
+TypeScript sources, plus one check that the built `plugin/index.js` loads and
+starts.

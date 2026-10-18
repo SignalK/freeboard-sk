@@ -35,15 +35,21 @@ usual target.
   dev build in front of it. If you don't have that yet, set it up first:
   [`../signalk/local-dev-environment.md`](../signalk/local-dev-environment.md).
 - An MCP-capable agent (e.g. Claude Code).
+- **Node 22.18 or later** for working on `fsk-mcp`: its build script and tests
+  are TypeScript that Node runs directly. The built plugin the server loads is
+  plain JavaScript.
 
 ## Setup
 
-### 1. Install (builds the runtime)
+### 1. Install (builds the plugin and the runtime)
 
 ```sh
 cd dev-tools/fsk-mcp
-npm install          # runs the build; emits public/runtime.html + bundle
+npm install          # runs the build; emits plugin/index.js and public/runtime.html + bundle
 ```
+
+The server loads the bundled `plugin/index.js`, not `src/`: after changing the
+sources, run `npm run build` (type check + bundle) and restart the server.
 
 `fsk-mcp` has its own `package.json` and is **not** part of the Freeboard build
 or npm workspace, so this install is separate from the repo-root `npm i` and
