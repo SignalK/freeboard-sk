@@ -4,7 +4,22 @@ import { inject, Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { SK2GPX } from './sk2gpx';
 import { SignalKClient } from 'signalk-client-angular';
-import { GpxTrackData, gpxTrackResource } from './track-export';
+import {
+  GpxTrackData,
+  gpxTrackResource,
+  TrackExportSource
+} from './track-export';
+import {
+  SKRoute,
+  SKWaypoint
+} from 'src/app/modules/skresources/resource-classes';
+
+/** Resources listed in the GPX save dialog. */
+export interface GPXResourceData {
+  routes: SKRoute[];
+  waypoints: SKWaypoint[];
+  tracks: TrackExportSource[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class GPXSaveFacade {
@@ -32,8 +47,8 @@ export class GPXSaveFacade {
 
   // ** prepare resource data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  prepData(data: { [key: string]: any }) {
-    const resData = {
+  prepData(data: { [key: string]: any }): GPXResourceData {
+    const resData: GPXResourceData = {
       routes: [],
       waypoints: [],
       tracks: []

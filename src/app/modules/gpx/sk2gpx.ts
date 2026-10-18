@@ -9,6 +9,7 @@ import {
   GPXTrackSegment
 } from './gpxlib';
 import { getSymbolGpxMapping } from 'src/app/modules/icons';
+import type { Position } from 'src/app/types';
 
 export class SK2GPX {
   public gpx: GPX;
@@ -176,9 +177,9 @@ export class SK2GPX {
     // recording time of each point, nested to match the coordinates (as the
     // Track API's `coordTimes`); absent or partial when not known
     const coordTimes = t.feature.properties['coordTimes'];
-    t.feature.geometry.coordinates.forEach((s, i: number) => {
+    t.feature.geometry.coordinates.forEach((s: Position[], i: number) => {
       const seg = new GPXTrackSegment();
-      s.forEach((p, j: number) => {
+      s.forEach((p: Position, j: number) => {
         const pt = new GPXWaypoint();
         pt.lon = p[0];
         pt.lat = p[1];

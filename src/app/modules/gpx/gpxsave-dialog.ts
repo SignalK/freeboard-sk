@@ -1,5 +1,5 @@
 import { Component, OnInit, Inject, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, type Subscription } from 'rxjs';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { FormsModule } from '@angular/forms';
@@ -18,7 +18,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { SignalKClient } from 'signalk-client-angular';
 
-import { GPXSaveFacade } from './gpxsave-dialog.facade';
+import { GPXSaveFacade, GPXResourceData } from './gpxsave-dialog.facade';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from '../skresources';
 import { FBRoute, FBWaypoint } from 'src/app/types';
@@ -93,10 +93,10 @@ export function fromLocalInput(value: string): number | null {
   styleUrls: ['./gpxsave-dialog.css']
 })
 export class GPXExportDialog implements OnInit {
-  protected resData = {
+  protected resData: GPXResourceData = {
     routes: [],
     waypoints: [],
-    tracks: [] as TrackExportSource[]
+    tracks: []
   };
 
   /** Which track to export: the displayed one, or a range fetched from the
@@ -111,10 +111,9 @@ export class GPXExportDialog implements OnInit {
   private signalk = inject(SignalKClient);
   protected trackHistory = inject(TrackHistoryService);
 
-  protected selRoutes = [];
-  protected selectedRoute = null;
-  protected selWaypoints = [];
-  protected selTracks = [];
+  protected selRoutes: boolean[] = [];
+  protected selWaypoints: boolean[] = [];
+  protected selTracks: boolean[] = [];
 
   protected display = {
     notValid: false,
@@ -132,7 +131,7 @@ export class GPXExportDialog implements OnInit {
     expand: { routes: false, waypoints: false, tracks: false }
   };
 
-  private unsubscribe = [];
+  private unsubscribe: Subscription[] = [];
 
   constructor(
     protected app: AppFacade,
@@ -327,7 +326,9 @@ export class GPXExportDialog implements OnInit {
     const t = parseHistoryTrack(context, fc, provider);
     return {
       lines: t?.lines ?? [],
-      times: t?.times ?? (t?.lines ?? []).map((l) => l.map(() => undefined))
+      times:
+        t?.times ??
+        (t?.lines ?? []).map((l) => l.map((): undefined => undefined))
     };
   }
 

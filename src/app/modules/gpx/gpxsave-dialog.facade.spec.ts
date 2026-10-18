@@ -2,11 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { SignalKClient } from 'signalk-client-angular';
 import { GPXSaveFacade } from './gpxsave-dialog.facade';
+import type { GpxTrackData } from './track-export';
 
 const NOTHING = {
-  rte: { selected: [] },
-  wpt: { selected: [] },
-  trk: { tracks: [] }
+  rte: { selected: [] as boolean[] },
+  wpt: { selected: [] as boolean[] },
+  trk: { tracks: [] as GpxTrackData[] }
 };
 
 /** The facade with the save picker rejecting as `name`. */

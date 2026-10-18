@@ -27,7 +27,26 @@ import {
   GPXTrackSegment
 } from './gpxlib';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ErrorList } from 'src/app/types';
+import { ErrorList, Position, SKApiResponse } from 'src/app/types';
+
+interface GPXImportItem {
+  name: string;
+  description: string;
+  wptcount?: number;
+}
+
+interface GPXImportData {
+  name: string;
+  routes: GPXImportItem[];
+  waypoints: GPXImportItem[];
+  tracks: GPXImportItem[];
+}
+
+interface GPXImportSelection {
+  rte: { selected: boolean[] };
+  wpt: { selected: boolean[] };
+  trk: { selected: boolean[] };
+}
 
 //** GPXLoad dialog **
 @Component({
@@ -51,17 +70,16 @@ import { ErrorList } from 'src/app/types';
   styleUrls: ['./gpxload-dialog.css']
 })
 export class GPXImportDialog implements OnInit {
-  public gpxData = {
+  public gpxData: GPXImportData = {
     name: '',
     routes: [],
     waypoints: [],
     tracks: []
   };
 
-  public selRoutes = [];
-  public selectedRoute = null;
-  public selWaypoints = [];
-  public selTracks = [];
+  public selRoutes: boolean[] = [];
+  public selWaypoints: boolean[] = [];
+  public selTracks: boolean[] = [];
 
   public display = {
     notValid: false,
@@ -112,7 +130,7 @@ export class GPXImportDialog implements OnInit {
     });
   }
 
-  async parseGPXData(data) {
+  async parseGPXData(data: string) {
     this.display.allRoutesChecked = false;
     this.display.loadRoutesOK = false;
     this.selRoutes = [];
@@ -255,7 +273,7 @@ export class GPXImportDialog implements OnInit {
 
   // ** parse GPX file
   public async parseFileData(data: string) {
-    const gpxData = {
+    const gpxData: GPXImportData = {
       name: '',
       routes: [],
       waypoints: [],
@@ -299,7 +317,7 @@ export class GPXImportDialog implements OnInit {
   }
 
   // ** upload selected resources to Signal K server **
-  public async uploadToServer(res) {
+  public async uploadToServer(res: GPXImportSelection) {
     this.app.sIsFetching.set(true);
     this.errorCount = 0;
     this.subCount = 0;
@@ -397,7 +415,9 @@ export class GPXImportDialog implements OnInit {
     }
     rte.feature.properties['coordinatesMeta'] = [];
     rte.feature.properties['coordinatesMeta'] = r.rtept.map((pt) => {
-      const ptMeta = { name: pt.name ?? '' };
+      const ptMeta: { name: string; description?: string } = {
+        name: pt.name ?? ''
+      };
       if (pt.cmt) {
         ptMeta['description'] = pt.cmt;
       }
@@ -408,7 +428,7 @@ export class GPXImportDialog implements OnInit {
     this.signalk.api
       .put(this.app.skApiVersion, `/resources/routes/${skObj[0]}`, skObj[1])
       .subscribe(
-        (r) => {
+        (r: SKApiResponse) => {
           this.subCount--;
           if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Route added.');
@@ -473,7 +493,7 @@ export class GPXImportDialog implements OnInit {
         wptObj[1]
       )
       .subscribe(
-        (r) => {
+        (r: SKApiResponse) => {
           this.subCount--;
           if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Waypoint added.');
@@ -499,14 +519,14 @@ export class GPXImportDialog implements OnInit {
     const trk = {
       feature: {
         type: 'Feature',
-        geometry: { type: 'MultiLineString', coordinates: [] },
-        properties: {},
+        geometry: { type: 'MultiLineString', coordinates: [] as Position[][] },
+        properties: {} as Record<string, unknown>,
         id: ''
       }
     };
     if (gpxtrk.trkseg) {
       gpxtrk.trkseg.forEach((tseg: GPXTrackSegment) => {
-        const line = [];
+        const line: Position[] = [];
         tseg.trkpt.forEach((pt: GPXWaypoint) => {
           line.push([pt.lon, pt.lat]);
         });
