@@ -31,7 +31,7 @@ describe('ExtWindowLayerComponent', () => {
           provide: PlotterExtensionService,
           useValue: {
             resolveAssetUrl: (u: string) => `http://boat.local:3000${u}`,
-            attachWindow: () => () => undefined
+            attachWindow: () => (): void => undefined
           }
         }
       ]

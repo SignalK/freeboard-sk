@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { RpcError } from 'signalk-plotterext-bus/host';
 import { createResourceGroupMethods } from './resourcegroup-methods';
+import type { SKResourceGroup } from 'src/app/modules/skresources/components/groups/groups.service';
 
 function setup(fetchGroup: (id: string) => Promise<unknown>) {
   const deps = {
@@ -21,7 +22,12 @@ function setup(fetchGroup: (id: string) => Promise<unknown>) {
 
 describe('resourceGroup.apply', () => {
   it('fetches the group, applies it and returns { applied }', async () => {
-    const group = { name: 'g', routes: ['r1'], charts: [] };
+    const group: SKResourceGroup = {
+      name: 'g',
+      description: '',
+      routes: ['r1'],
+      charts: []
+    };
     const { deps, call } = setup(async () => group);
     expect(await call({ id: 'g1' })).toEqual({ applied: ['routes', 'charts'] });
     expect(deps.fetchGroup).toHaveBeenCalledWith('g1');

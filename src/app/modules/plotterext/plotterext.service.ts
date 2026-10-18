@@ -340,7 +340,7 @@ export class PlotterExtensionService {
       this.styleFetches.add(`${key} ${url.url}`);
       this.fetchOverlayJson(url, false)
         .then((json) => parseOverlayStyle(json))
-        .catch((err) => {
+        .catch((err: unknown): null => {
           console.warn(`[plotterext] could not load style ${url.url}:`, err);
           return null;
         })

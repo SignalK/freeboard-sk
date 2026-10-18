@@ -71,7 +71,7 @@ describe('ExtWindowComponent', () => {
       'setOpacity',
       'userClose'
     ] as const) {
-      vi.spyOn(service, m).mockImplementation(() => undefined);
+      vi.spyOn(service, m).mockImplementation((): void => undefined);
     }
     mount();
   });
@@ -384,7 +384,7 @@ describe('ExtWindowComponent', () => {
   it('closes a modal window on Escape pressed inside its panel, but not a modeless one', () => {
     const close = vi
       .spyOn(service, 'close')
-      .mockImplementation(() => undefined);
+      .mockImplementation((): void => undefined);
     const escapeInPanel = () => {
       const iframe = host.querySelector('iframe');
       iframe.dispatchEvent(new Event('load'));
