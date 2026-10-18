@@ -24,7 +24,7 @@ large, often non-technical user base, so changes warrant extra care.
 |------|------|
 | `src/app/` | the Angular webapp; feature areas under `src/app/modules/` (`map`, `skresources`, `plotterext`, `autopilot`, `radar`, `weather`, `gpx`, `settings`, …) |
 | `helper/` | the companion server plugin (TypeScript) |
-| `scripts/` | build/test wrappers (`build-web.mjs`, `test-ci.mjs`) — see *Build/test* |
+| `scripts/` | build/test wrappers (`build-web.mts`, `test-ci.mts`) — see *Build/test* |
 | `dev-tools/` | developer-only tooling, **never shipped** (excluded by the package `files` whitelist, and not an npm workspace). e.g. `fsk-mcp/` — an MCP bridge that lets an agent drive a running Freeboard (see *Build, test, run*) |
 | `docs/` | the documentation set this file indexes |
 | `public/` | build output: the webapp (served by the SK server at `/@signalk/freeboard-sk/`) — gitignored |
@@ -33,7 +33,9 @@ large, often non-technical user base, so changes warrant extra care.
 
 ## Build, test, run
 
-Node `>=18`. Install with `npm i`. Angular `21`.
+Node `22.18` or newer to build and test: the scripts in `scripts/` are TypeScript
+that Node runs directly. (`engines` stays `>=18`; it is what the helper plugin
+needs on the server.) Install with `npm i`. Angular `21`.
 
 | Command | Use |
 |---------|-----|
@@ -49,8 +51,8 @@ Node `>=18`. Install with `npm i`. Angular `21`.
 > **Why `build:web` / `test:ci` exist (important).** Angular's esbuild-based
 > `ng build` / `ng test` complete successfully but then **fail to terminate** — a
 > lingering esbuild service keeps the event loop alive. In CI that hangs the job to
-> its timeout *even though everything passed*. The `scripts/build-web.mjs` and
-> `scripts/test-ci.mjs` wrappers run the Angular command, detect the
+> its timeout *even though everything passed*. The `scripts/build-web.mts` and
+> `scripts/test-ci.mts` wrappers run the Angular command, detect the
 > success/summary, and force-exit. **Always use `npm run build:web` and
 > `npm run test:ci` for anything that must terminate** (CI, scripts, an agent
 > verifying a change). Plain `npm test` stays as the local watch command.

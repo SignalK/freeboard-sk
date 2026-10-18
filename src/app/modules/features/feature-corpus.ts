@@ -1,7 +1,7 @@
 /**
  * Feature corpus: parsing and compilation.
  *
- * The build step (`scripts/build-features.mjs`) bundles the hand-authored
+ * The build step (`scripts/build-features.mts`) bundles the hand-authored
  * `features/<id>.md` docs and the `features/changelog.json` ledger into a single
  * `features-corpus.json` payload without interpreting them. This module is the
  * single place that interprets that payload — parsing each doc's frontmatter and

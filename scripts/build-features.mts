@@ -32,7 +32,9 @@ const LEDGER = join(SRC, 'changelog.json');
 const CATEGORIES = join(SRC, 'categories.json');
 const ASSETS = join(SRC, 'assets');
 
-const log = (msg) => console.log(`[build-features] ${msg}`);
+const log = (msg: string) => console.log(`[build-features] ${msg}`);
+const errorMessage = (err: unknown) =>
+  err instanceof Error ? err.message : String(err);
 
 // Ensure the output directory exists on every path (both branches write here).
 mkdirSync(join(ROOT, 'src', 'assets'), { recursive: true });
@@ -57,34 +59,44 @@ const docs = readdirSync(SRC)
   }));
 
 // Ledger: parsed here only to fail the build early on invalid JSON.
-let ledger = [];
+let ledger: unknown[] = [];
 if (existsSync(LEDGER)) {
+  let parsed: unknown;
   try {
-    ledger = JSON.parse(readFileSync(LEDGER, 'utf8'));
+    parsed = JSON.parse(readFileSync(LEDGER, 'utf8'));
   } catch (err) {
-    console.error(`[build-features] invalid ${LEDGER}: ${err.message}`);
+    console.error(`[build-features] invalid ${LEDGER}: ${errorMessage(err)}`);
     process.exit(1);
   }
-  if (!Array.isArray(ledger)) {
+  if (!Array.isArray(parsed)) {
     console.error(`[build-features] ${LEDGER} must be a JSON array`);
     process.exit(1);
   }
+  ledger = parsed;
 }
 
 // Categories: the canonical, ordered list every doc must use.
-let categories = [];
+let categories: Array<{ name: string }> = [];
 if (existsSync(CATEGORIES)) {
+  let parsed: unknown;
   try {
-    categories = JSON.parse(readFileSync(CATEGORIES, 'utf8'));
+    parsed = JSON.parse(readFileSync(CATEGORIES, 'utf8'));
   } catch (err) {
-    console.error(`[build-features] invalid ${CATEGORIES}: ${err.message}`);
+    console.error(
+      `[build-features] invalid ${CATEGORIES}: ${errorMessage(err)}`
+    );
     process.exit(1);
   }
+  if (!Array.isArray(parsed)) {
+    console.error(`[build-features] ${CATEGORIES} must be a JSON array`);
+    process.exit(1);
+  }
+  categories = parsed;
 }
 const categoryNames = new Set(categories.map((c) => c.name));
 
 // Validate every doc's frontmatter `category` against that list.
-const errors = [];
+const errors: string[] = [];
 for (const doc of docs) {
   const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(doc.raw);
   const match = fm && /^\s*category:\s*(.+?)\s*$/m.exec(fm[1]);

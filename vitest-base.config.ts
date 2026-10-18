@@ -47,7 +47,7 @@ export default defineConfig({
     testTimeout: TEST_TIMEOUT_MS,
     hookTimeout: HOOK_TIMEOUT_MS,
     setupFiles: [
-      'vitest-setup.js',
+      'vitest-setup.ts',
       '@vitest/web-worker'
     ]
   },
