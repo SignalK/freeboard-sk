@@ -385,17 +385,15 @@ describe('a forecast', () => {
   });
 
   it('keeps a remembered loop, as other charts do', () => {
+    // The last hour, measured back from the newest frame: the forecast's end.
     const window = chartTimeWindow(forecast, forecast.max);
-    const latest = chartTimelineHeadMs(forecast);
     expect(
-      initialChartTimeLoop(forecast, window, latest, DEFAULT_CHART_TIME_LOOP)
-    ).toEqual(
-      chartTimeLoopFromOffsets(
+      initialChartTimeLoop(
         forecast,
         window,
-        latest,
+        chartTimelineHeadMs(forecast),
         DEFAULT_CHART_TIME_LOOP
       )
-    );
+    ).toEqual({ min: forecast.max - H, max: forecast.max });
   });
 });
