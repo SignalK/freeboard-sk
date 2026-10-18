@@ -124,3 +124,39 @@ describe('migrateResourceTracks', () => {
     expect(deleteFromServer).not.toHaveBeenCalled();
   });
 });
+
+describe('listing tracks from both stores', () => {
+  function svcListing(
+    stored: () => Promise<FBTrack[]>,
+    old: () => Promise<FBTrack[]>
+  ) {
+    const svc = Object.create(SKResourceService.prototype) as SKResourceService;
+    (svc as unknown as { app: unknown }).app = {
+      featureFlags: () => ({ trackStore: true, resourceTracks: true })
+    };
+    Object.assign(svc, { listStoredTracks: stored, listFromServer: old });
+    return svc;
+  }
+  const track = (id: string): FBTrack => [id, new SKTrack(), true];
+
+  it('still lists one store when the other fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const failed = () => Promise.reject(new Error('down'));
+    expect(
+      (
+        await svcListing(
+          () => Promise.resolve([track('a')]),
+          failed
+        ).listTracks()
+      ).map(([id]) => id)
+    ).toEqual(['a']);
+    expect(
+      (
+        await svcListing(failed, () =>
+          Promise.resolve([track('b')])
+        ).listTracks()
+      ).map(([id]) => id)
+    ).toEqual(['b']);
+    warn.mockRestore();
+  });
+});

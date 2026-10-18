@@ -3703,14 +3703,19 @@ export class SKResourceService {
   public async listTracks(query?: string): Promise<FBTracks> {
     const flags = this.app.featureFlags();
     const [stored, resources] = await Promise.all([
-      // the tracks plugin may be restarting: still list the resource tracks
+      // one source failing still lists the other's tracks
       flags.trackStore
         ? this.listStoredTracks().catch((err) => {
             console.warn('Stored tracks not listed:', err);
             return [];
           })
         : [],
-      flags.resourceTracks ? this.listFromServer<FBTrack>('tracks', query) : []
+      flags.resourceTracks
+        ? this.listFromServer<FBTrack>('tracks', query).catch((err) => {
+            console.warn('Resource tracks not listed:', err);
+            return [];
+          })
+        : []
     ]);
     return stored.concat(resources);
   }
