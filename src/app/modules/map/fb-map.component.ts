@@ -2039,9 +2039,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
               svgIcon: feature.get('icon'),
               name: undefined
             };
-            addToFeatureList = true;
             const n = this.skres.fromCache('notes', t[1]);
-            text = n[1].name ?? '';
+            addToFeatureList = !!n;
+            text = n?.[1].name ?? '';
             break;
           }
           case 'route': {
@@ -2063,13 +2063,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
               name: undefined,
               class: 'icon-route'
             };
-            addToFeatureList = true;
             const ub = this.getUnsavedRouteBuffer(t[1]);
             if (ub) {
+              addToFeatureList = true;
               text = ub.name || 'Route (unsaved)';
             } else {
               const r = this.skres.fromCache('routes', t[1]);
-              text = r[1].name;
+              addToFeatureList = !!r;
+              text = r?.[1].name;
             }
             break;
           }
@@ -2079,9 +2080,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
               svgIcon: undefined,
               class: 'icon-waypoint'
             };
-            addToFeatureList = true;
             const w = this.skres.fromCache('waypoints', t[1]);
-            text = w[1].name ?? '';
+            addToFeatureList = !!w;
+            text = w?.[1].name ?? '';
             break;
           }
           case 'atons':

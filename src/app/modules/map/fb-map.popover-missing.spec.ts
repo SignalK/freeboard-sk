@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@angular/core';
+import type { FeatureLike } from 'ol/Feature';
 
 import { FBMapComponent } from './fb-map.component';
 import { RouteBufferRegistry } from '../plotterext/route-buffer.registry';
@@ -28,6 +29,30 @@ describe('FBMapComponent — popover for a resource no longer cached', () => {
       const cmp = bareComponent();
       expect(cmp.formatPopover(`${type}.gone`, at)).toBe(false);
       expect(cmp.overlay().show).toBe(false);
+    });
+  }
+});
+
+describe('FBMapComponent — tap on a resource no longer cached', () => {
+  const tapOn = (id: string) => ({
+    features: [
+      {
+        getId: () => id,
+        get: (): undefined => undefined,
+        getGeometry: (): undefined => undefined
+      }
+    ] as unknown as FeatureLike[],
+    lonlat: at,
+    worldOffset: 0
+  });
+
+  for (const type of ['note', 'route', 'waypoint']) {
+    it(`lists no stale ${type} under the tap`, () => {
+      const cmp = bareComponent();
+      Object.defineProperty(cmp, 'activeRoute', { value: undefined });
+      cmp.formatPopover = vi.fn();
+      expect(() => cmp.processMapClick(tapOn(`${type}.gone`))).not.toThrow();
+      expect(cmp.formatPopover).not.toHaveBeenCalled();
     });
   }
 });
