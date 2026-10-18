@@ -8,6 +8,9 @@ const DEPARE = 42; // Depth Area
 
 const LOOKUPINDEXKEY = '$lupIndex';
 
+// the selected lookup is cached on the feature object itself
+type LookupCachedFeature = FeatureLike & { [LOOKUPINDEXKEY]?: number };
+
 type TextStyleConfig = {
   textAlign: CanvasTextAlign;
   textBaseline: CanvasTextBaseline;
@@ -891,7 +894,7 @@ export class S57Style {
     const restrns = props['RESTRN']
       .toString()
       .split(',')
-      .map((v) => parseInt(v));
+      .map((v: string) => parseInt(v));
 
     if (restrns.includes(1) || restrns.includes(2)) {
       retval.push('SY(ACHRES51)');
@@ -1119,15 +1122,17 @@ export class S57Style {
     // Proper fix: compute safe contour in a pre-render pass over all features.
     const o1 = this.updateSafeContour(feature1);
     const o2 = this.updateSafeContour(feature2);
-    let lupIndex1 = feature1[LOOKUPINDEXKEY];
-    let lupIndex2 = feature2[LOOKUPINDEXKEY];
+    const cached1 = feature1 as LookupCachedFeature;
+    const cached2 = feature2 as LookupCachedFeature;
+    let lupIndex1 = cached1[LOOKUPINDEXKEY];
+    let lupIndex2 = cached2[LOOKUPINDEXKEY];
     if (!lupIndex1) {
       lupIndex1 = this.s57Service.selectLookup(feature1);
-      feature1[LOOKUPINDEXKEY] = lupIndex1;
+      cached1[LOOKUPINDEXKEY] = lupIndex1;
     }
     if (!lupIndex2) {
       lupIndex2 = this.s57Service.selectLookup(feature2);
-      feature2[LOOKUPINDEXKEY] = lupIndex2;
+      cached2[LOOKUPINDEXKEY] = lupIndex2;
     }
 
     if (l1 !== l2) {
@@ -1151,10 +1156,11 @@ export class S57Style {
 
   public getStyle = (feature: FeatureLike, resolution: number): Style[] => {
     this.currentResolution = resolution;
-    let lupIndex = feature[LOOKUPINDEXKEY];
+    const cached = feature as LookupCachedFeature;
+    let lupIndex = cached[LOOKUPINDEXKEY];
     if (lupIndex === undefined || lupIndex === null) {
       lupIndex = this.s57Service.selectLookup(feature);
-      feature[LOOKUPINDEXKEY] = lupIndex;
+      cached[LOOKUPINDEXKEY] = lupIndex;
     }
     if (lupIndex >= 0) {
       const lup = this.s57Service.getLookup(lupIndex);
