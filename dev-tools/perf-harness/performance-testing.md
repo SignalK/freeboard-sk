@@ -50,8 +50,9 @@ Everything lives in `dev-tools/perf-harness/`. It is self-contained (its own
 ## Prerequisites
 
 - **Docker** (with the daemon running) and Docker Compose.
-- **Node** 22.18+. The scripts are TypeScript (`.mts`) that Node runs directly
-  by stripping the types, which is on by default from Node 22.18; `sk-feed.mts`
+- **Node** 22.18+ (23.6+ on the Node 23 line). The scripts are TypeScript
+  (`.mts`) that Node runs directly by stripping the types, which is on by
+  default from those versions; `sk-feed.mts`
   also uses the global `WebSocket` (Node 22+).
 - The main app's dependencies installed at the repo root (`npm ci`) so you can
   `npm run build`.

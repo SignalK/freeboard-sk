@@ -34,8 +34,6 @@ const dLon = (m: number, lat: number) =>
 const dLat = (m: number) => (m / R_EARTH) * (180 / Math.PI);
 
 function nowIso() {
-  // Derive an ISO timestamp from a monotonic base + elapsed ticks (Date.now is
-  // fine here — this is a standalone script, not a workflow).
   return new Date(Date.now()).toISOString();
 }
 

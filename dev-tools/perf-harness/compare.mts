@@ -86,7 +86,7 @@ async function main() {
   console.log(
     `[compare] feed: ${AIS_COUNT} AIS @1Hz | ${REPEATS} repeats/build | zoom ${ZOOM}`
   );
-  const feed = spawn('node', ['sk-feed.mts'], {
+  const feed = spawn(process.execPath, ['sk-feed.mts'], {
     cwd: __dir,
     env: {
       ...process.env,
@@ -111,7 +111,7 @@ async function main() {
       const outFile = path.join(__dir, 'results', `${label}.json`);
       process.stdout.write(`[compare] run ${label} (port ${port}) ... `);
       await run(
-        'node',
+        process.execPath,
         ['profile.mts'],
         {
           BUILD_DIR: path.resolve(__dir, v.dir),

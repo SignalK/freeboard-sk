@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Automated perf/profiling harness for Freeboard-SK (SignalK in Docker + Playwright).",
   "engines": {
-    "node": ">=22.18.0"
+    "node": "^22.18.0 || >=23.6.0"
   },
   "scripts": {
     "feed": "node sk-feed.mts",
