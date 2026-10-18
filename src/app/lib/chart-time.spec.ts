@@ -589,16 +589,4 @@ describe('a forecast (time.forecast)', () => {
       '2026-09-18T15:00:00.000Z'
     );
   });
-
-  it('is summarised as a forecast', () => {
-    expect(
-      chartTimeSummary({
-        current: true,
-        forecast: true,
-        from: FROM,
-        to: TO,
-        step: H
-      })
-    ).toBe('Forecast: every 1 h, until 2026-09-28');
-  });
 });

@@ -73,11 +73,10 @@ const RELATIVE_SPAN_MAX_MS = 31 * 86400000;
 
 /**
  * One-line description of a time dimension for a layer picker, e.g.
- * `Time-varying: every 5 min, last 12 h` for a live product,
- * `Time-varying: every 5 min, 1995-01-01 – 2026-12-31` for an archive,
- * `Time-varying: 24 frames` for a discrete list, or
- * `Forecast: every 1 h, until 2026-10-28` for a forecast. Empty when the
- * dimension has no usable range (the layer gets no Time control either) (#808).
+ * `Time-varying: every 5 min, last 12 h` for a live product or
+ * `Time-varying: every 5 min, 1995-01-01 – 2026-12-31` for an archive, or
+ * `Time-varying: 24 frames` for a discrete list. Empty when the dimension has
+ * no usable range (the layer gets no Time control either) (#808).
  */
 export function chartTimeSummary(dim?: ChartTimeDimension): string {
   const timeline = chartTimeline(dim);
@@ -100,10 +99,6 @@ export function chartTimeSummary(dim?: ChartTimeDimension): string {
     dim.step > 0
   ) {
     parts.push(`every ${formatDuration(dim.step)}`);
-  }
-  if (timeline.forecast) {
-    parts.push(`until ${isoDate(last)}`);
-    return `Forecast: ${parts.join(', ')}`;
   }
   if (span > 0) {
     parts.push(
