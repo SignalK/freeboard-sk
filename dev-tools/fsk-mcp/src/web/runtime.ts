@@ -58,7 +58,7 @@ function bridgeUrl(config: BridgeConfig): string {
   return `ws://${host}:${config.port}${path}`;
 }
 
-function reasonOf(err: unknown): unknown {
+function hostReasonOf(err: unknown): unknown {
   if (typeof err !== 'object' || err === null) return undefined;
   // Host API errors carry a stable string in error.data.reason (see spec).
   const { data, reason } = err as {
@@ -107,7 +107,10 @@ async function main(): Promise<void> {
       send({
         type: 'error',
         id: msg.id,
-        error: { reason: reasonOf(err), message: messageOf(err) ?? String(err) }
+        error: {
+          reason: hostReasonOf(err),
+          message: messageOf(err) ?? String(err)
+        }
       });
     }
   }
