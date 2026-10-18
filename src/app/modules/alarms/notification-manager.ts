@@ -172,13 +172,16 @@ export class NotificationManager {
         this.dropPendingActions(replaced.id);
       }
       this.settlePendingActions(v);
+      // A missing method (which breaks the spec) is not `[]`, which the server
+      // sends for "acknowledged, keep quiet": still show it, without sound.
+      const method = v.method ?? [ALARM_METHOD.visual];
       alert = {
         id: v.id,
         path: msg.path,
         priority: v.state,
         message: v.message,
-        sound: v.method.includes(ALARM_METHOD.sound),
-        visual: v.method.includes(ALARM_METHOD.visual),
+        sound: method.includes(ALARM_METHOD.sound),
+        visual: method.includes(ALARM_METHOD.visual),
         properties: {},
         acknowledged: v.status.acknowledged,
         silenced: v.status.silenced,
