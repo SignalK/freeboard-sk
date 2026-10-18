@@ -184,6 +184,22 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.display.splitView).toBe(true);
   });
 
+  it('restores the instruments settings for a config saved without them', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    delete cfg.display.plugins;
+    cleanConfig(cfg, {});
+    expect(cfg.display.plugins).toEqual(defaultConfig().display.plugins);
+  });
+
+  it('keeps the instruments app the user chose', () => {
+    const cfg = defaultConfig();
+    cfg.display.plugins.instruments = '/@mxtommy/kip';
+    cfg.display.plugins.favourites = ['/@mxtommy/kip'];
+    cleanConfig(cfg, {});
+    expect(cfg.display.plugins.instruments).toBe('/@mxtommy/kip');
+    expect(cfg.display.plugins.favourites).toEqual(['/@mxtommy/kip']);
+  });
+
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
