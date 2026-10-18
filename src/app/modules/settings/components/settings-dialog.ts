@@ -433,7 +433,7 @@ export class SettingsDialog implements OnInit {
   }
 
   private isAisState(state: string): state is AisState {
-    return state in this.aisStateFilter;
+    return Object.hasOwn(this.aisStateFilter, state);
   }
 
   /**

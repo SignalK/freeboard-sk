@@ -236,6 +236,15 @@ describe('settings dialog — note details option placement', () => {
     });
   });
 
+  describe('AIS state filter', () => {
+    it('keeps only the known AIS states from the stored selection', () => {
+      settings.selections.aisState = ['moored', 'toString'];
+      fixture.componentInstance.ngOnInit();
+      fixture.componentInstance.onAisStateFilter();
+      expect(settings.selections.aisState).toEqual(['moored']);
+    });
+  });
+
   describe('other vessels tracks (#821)', () => {
     const text = () => dialog.textContent ?? '';
 
