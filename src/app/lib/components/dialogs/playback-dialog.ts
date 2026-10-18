@@ -123,9 +123,13 @@ import { provideNativeDateAdapter } from '@angular/material/core';
   ]
 })
 export class PlaybackDialog {
-  protected hour;
-  protected minute;
-  protected formData = {
+  protected formData: {
+    context: string;
+    startTimeHr: string;
+    startTimeMin: string;
+    startDate: Date;
+    playbackRate: number;
+  } = {
     context: 'all',
     startTimeHr: '00',
     startTimeMin: '00',

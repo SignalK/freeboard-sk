@@ -308,7 +308,11 @@ describe('chartTimeStateFollowingHead', () => {
   });
 
   it('keeps an unset loop bound unset', () => {
-    const state = { ...opened(), loopStart: null, loopEnd: null };
+    const state = {
+      ...opened(),
+      loopStart: null as number | null,
+      loopEnd: null as number | null
+    };
     withClock(now + STEP + 1000, () => {
       const after = chartTimeStateFollowingHead(archive, state);
       expect(after.loopStart).toBeNull();

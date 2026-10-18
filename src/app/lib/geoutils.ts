@@ -198,10 +198,17 @@ export class GeoUtils {
   }
 
   // ensure -180<coords<180
-  static normaliseCoords(coords: Position); // Point
-  static normaliseCoords(coords: Array<Position>); //LineString
-  static normaliseCoords(coords: Array<Array<Position>>); // MultiLineString
-  static normaliseCoords(coords) {
+  static normaliseCoords(coords: Position): Position; // Point
+  static normaliseCoords(coords: Array<Position>): Array<Position>; //LineString
+  static normaliseCoords(
+    coords: Array<Array<Position>>
+  ): Array<Array<Position>>; // MultiLineString
+  static normaliseCoords(
+    coords: Position | Array<Position> | Array<Array<Position>>
+  ): Position | Array<Position> | Array<Array<Position>>;
+  static normaliseCoords(
+    coords: Position | Array<Position> | Array<Array<Position>>
+  ): Position | Array<Position> | Array<Array<Position>> {
     if (!Array.isArray(coords)) {
       return [0, 0];
     }
@@ -217,7 +224,9 @@ export class GeoUtils {
       }
       return coords;
     } else if (Array.isArray(coords[0])) {
-      coords.forEach((c) => this.normaliseCoords(c));
+      (coords as Array<Position | Array<Position>>).forEach((c) =>
+        this.normaliseCoords(c)
+      );
       return coords;
     }
   }

@@ -85,7 +85,7 @@ export class IndexedDB {
       const objectStore = transaction.objectStore(storeName);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result: Array<any> = [];
-      let request: IDBRequest;
+      let request: IDBRequest<IDBCursorWithValue>;
 
       if (indexDetails) {
         const index = objectStore.index(indexDetails.indexName),
@@ -99,11 +99,11 @@ export class IndexedDB {
         reject(e);
       };
 
-      request.onsuccess = function (evt: Event) {
-        const cursor = (<IDBOpenDBRequest>evt.target).result;
+      request.onsuccess = function () {
+        const cursor = request.result;
         if (cursor) {
-          result.push(cursor['value']);
-          cursor['continue']();
+          result.push(cursor.value);
+          cursor.continue();
         } else {
           resolve(result);
         }

@@ -11,7 +11,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class LocalStorage {
-  private _ls = null;
+  private _ls: Storage = null;
   private _namespace = '';
 
   constructor() {
@@ -33,7 +33,7 @@ export class LocalStorage {
   }
 
   //** read data and return a JSON object to supplied key
-  read(key) {
+  read(key: string) {
     if (this._ls && key) {
       try {
         return JSON.parse(this._ls.getItem(this._namespace + key));
@@ -44,22 +44,22 @@ export class LocalStorage {
   }
 
   //** write data as a JSON object to supplied key
-  write(key, value = '') {
-    value = JSON.stringify(value);
+  write(key: string, value: unknown = '') {
+    const json = JSON.stringify(value);
     if (this._ls && key) {
-      this._ls.setItem(this._namespace + key, value);
+      this._ls.setItem(this._namespace + key, json);
     }
   }
 
   //** delete the supplied key
-  delete(key) {
+  delete(key: string) {
     if (this._ls && key) {
       return this._ls.removeItem(this._namespace + key);
     }
   }
 
   //** check supplied key exists **
-  exists(key) {
+  exists(key: string) {
     if (this._ls && key) {
       return this._ls.getItem(this._namespace + key) ? true : false;
     }

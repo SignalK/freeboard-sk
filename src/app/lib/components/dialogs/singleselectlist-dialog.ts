@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -66,8 +66,6 @@ import { AppIconDef } from 'src/app/modules/icons';
   ]
 })
 export class SingleSelectListDialog implements OnInit {
-  @ViewChild('btncancel', { static: false }) btncancel;
-
   protected dialogRef = inject(MatDialogRef<SingleSelectListDialog>);
   protected data = inject<{
     title: string;

@@ -19,7 +19,10 @@ describe('InteractionHelpComponent — unified route helper', () => {
       providers: [
         {
           provide: AppFacade,
-          useValue: { debug: () => undefined, formatValueForDisplay: () => '' }
+          useValue: {
+            debug: (): void => undefined,
+            formatValueForDisplay: () => ''
+          }
         }
       ]
     });
@@ -117,8 +120,8 @@ describe('FBMapInteractService — route editing undo', () => {
         {
           provide: AppFacade,
           useValue: {
-            debug: () => undefined,
-            uiCtrl: { update: () => undefined }
+            debug: (): void => undefined,
+            uiCtrl: { update: (): void => undefined }
           }
         }
       ]

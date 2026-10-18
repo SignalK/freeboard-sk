@@ -18,6 +18,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { GeoJSONLoadFacade } from './geojson-dialog.facade';
 import { AppFacade } from 'src/app/app.facade';
+import { Subscription } from 'rxjs';
+import { GeoJSONFeatureCollection } from 'ol/format/GeoJSON';
+import {
+  LineStringFeature,
+  MultiLineStringFeature,
+  MultiPolygonFeature,
+  PointFeature,
+  PolygonFeature
+} from 'src/app/types';
 
 @Component({
   selector: 'geojson-dialog',
@@ -38,7 +47,14 @@ import { AppFacade } from 'src/app/app.facade';
   styleUrls: ['./geojson-dialog.css']
 })
 export class GeoJSONImportDialog implements OnInit {
-  public geoData = {
+  public geoData: {
+    name: string;
+    routes: LineStringFeature[];
+    waypoints: PointFeature[];
+    tracks: MultiLineStringFeature[];
+    regions: Array<PolygonFeature | MultiPolygonFeature>;
+    value: GeoJSONFeatureCollection;
+  } = {
     name: '',
     routes: [],
     waypoints: [],
@@ -51,7 +67,7 @@ export class GeoJSONImportDialog implements OnInit {
     notValid: false
   };
 
-  private unsubscribe = [];
+  private unsubscribe: Subscription[] = [];
 
   protected dialogRef = inject(MatDialogRef<GeoJSONImportDialog>);
   protected data = inject<{
