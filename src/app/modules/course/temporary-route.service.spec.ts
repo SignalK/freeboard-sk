@@ -67,7 +67,7 @@ function setup() {
   const app = {
     data: { activeRoute: null as string | null },
     skApiVersion: 2,
-    debug: () => undefined
+    debug: (): void => undefined
   };
   let serverCourse: { activeRoute: { href: string } | null } = {
     activeRoute: null

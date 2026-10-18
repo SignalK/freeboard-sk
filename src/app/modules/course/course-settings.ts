@@ -3,7 +3,7 @@ import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -15,8 +15,14 @@ import {
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatDatepickerModule } from '@angular/material/datepicker';
+import {
+  MatSlideToggleChange,
+  MatSlideToggleModule
+} from '@angular/material/slide-toggle';
+import {
+  MatDatepickerInputEvent,
+  MatDatepickerModule
+} from '@angular/material/datepicker';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
@@ -194,7 +200,7 @@ export class CourseSettingsModal implements OnInit {
     hour: '00',
     minutes: '00',
     seconds: '00',
-    datetime: null
+    datetime: null as Date | null
   };
   private context = 'self';
   /*this.app.data.vessels.activeId
@@ -208,7 +214,7 @@ export class CourseSettingsModal implements OnInit {
     private signalk: SignalKClient,
     protected course: CourseService,
     public modalRef: MatBottomSheetRef<CourseSettingsModal>,
-    @Inject(MAT_BOTTOM_SHEET_DATA) public data
+    @Inject(MAT_BOTTOM_SHEET_DATA) public data: { title: string }
   ) {}
 
   ngOnInit() {
@@ -240,7 +246,7 @@ export class CourseSettingsModal implements OnInit {
 
     this.signalk.api
       .get(this.app.skApiVersion, 'vessels/self/navigation/course')
-      .subscribe((val) => {
+      .subscribe((val: { targetArrivalTime?: string }) => {
         console.log(val.targetArrivalTime);
         if (val.targetArrivalTime) {
           this.targetArrivalEnabled = true;
@@ -266,9 +272,9 @@ export class CourseSettingsModal implements OnInit {
     this.modalRef.dismiss();
   }
 
-  onFormChange(e) {
+  onFormChange(e: Event | MatDatepickerInputEvent<Date> | MatSelectChange) {
     if (
-      e.targetElement &&
+      'targetElement' in e &&
       [
         'arrivalDate',
         'arrivalHour',
@@ -279,14 +285,18 @@ export class CourseSettingsModal implements OnInit {
       this.processTargetArrival();
     }
     if (
-      e.source &&
+      'source' in e &&
       ['arrivalHour', 'arrivalMinutes', 'arrivalSeconds'].includes(e.source.id)
     ) {
       this.processTargetArrival();
     }
-    if (e.target && e.target.id === 'arrivalCircle') {
-      if (e.target.value !== '' && e.target.value !== null) {
-        const value = Number(e.target.value);
+    if ('targetElement' in e || 'source' in e) {
+      return;
+    }
+    const input = e.target as HTMLInputElement | null;
+    if (input?.id === 'arrivalCircle') {
+      if (input.value !== '' && input.value !== null) {
+        const value = Number(input.value);
         if (!Number.isFinite(value)) {
           return;
         }
@@ -305,7 +315,7 @@ export class CourseSettingsModal implements OnInit {
             { value: d }
           )
           .subscribe(
-            () => undefined,
+            (): void => undefined,
             (error: HttpErrorResponse) => {
               let msg = `Error setting Arrival Circle!\n`;
               if (error.status === 403) {
@@ -318,7 +328,7 @@ export class CourseSettingsModal implements OnInit {
     }
   }
 
-  toggleTargetArrival(e) {
+  toggleTargetArrival(e: MatSlideToggleChange) {
     this.targetArrivalEnabled = e.checked;
     if (!this.targetArrivalEnabled) {
       this.arrivalData.datetime = null;

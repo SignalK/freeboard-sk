@@ -100,7 +100,7 @@ export class CourseService {
     this.signalk.api
       .delete(this.app.skApiVersion, `vessels/self/navigation/course`)
       .subscribe(
-        () => undefined,
+        (): void => undefined,
         (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }
@@ -130,7 +130,7 @@ export class CourseService {
         })
       )
       .subscribe(
-        () => undefined,
+        (): void => undefined,
         (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }
@@ -149,7 +149,7 @@ export class CourseService {
         null
       )
       .subscribe(
-        () => undefined,
+        (): void => undefined,
         (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }
@@ -168,7 +168,7 @@ export class CourseService {
         null
       )
       .subscribe(
-        () => undefined,
+        (): void => undefined,
         (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }
@@ -187,7 +187,7 @@ export class CourseService {
         null
       )
       .subscribe(
-        () => undefined,
+        (): void => undefined,
         (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }
@@ -236,7 +236,7 @@ export class CourseService {
         }
       )
       .subscribe(
-        () => undefined,
+        (): void => undefined,
         (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }

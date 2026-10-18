@@ -45,13 +45,25 @@ function setup(distanceUnit: DistanceUnitDef, arrivalCircleMeters: number) {
       },
       {
         provide: ChangeDetectorRef,
-        useValue: { detectChanges: () => undefined }
+        useValue: { detectChanges: (): void => undefined }
       },
-      { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
+      {
+        provide: MatBottomSheetRef,
+        useValue: { dismiss: (): void => undefined }
+      },
       { provide: MAT_BOTTOM_SHEET_DATA, useValue: { title: 'Course Settings' } }
     ]
   });
   return TestBed.inject(CourseSettingsModal);
+}
+
+/** Fires a real change event from the Arrival Circle input. */
+function changeArrivalCircle(modal: CourseSettingsModal, value: string) {
+  const input = document.createElement('input');
+  input.id = 'arrivalCircle';
+  input.value = value;
+  input.addEventListener('change', (e) => modal.onFormChange(e));
+  input.dispatchEvent(new Event('change'));
 }
 
 describe('CourseSettingsModal Arrival Circle unit conversion (#639)', () => {
@@ -72,21 +84,21 @@ describe('CourseSettingsModal Arrival Circle unit conversion (#639)', () => {
   it('converts km input back to meters on save when Distance preference is kilometer', () => {
     const modal = setup('kilometer', 100);
     modal.ngOnInit();
-    modal.onFormChange({ target: { id: 'arrivalCircle', value: '1' } });
+    changeArrivalCircle(modal, '1');
     expect(modal.app.config.course.arrivalCircle).toBeCloseTo(1000, 6); // 1 km -> 1000 m, not 1
   });
 
   it('converts nm input back to meters on save when Distance preference is naut-mile', () => {
     const modal = setup('naut-mile', 1852);
     modal.ngOnInit();
-    modal.onFormChange({ target: { id: 'arrivalCircle', value: '1' } });
+    changeArrivalCircle(modal, '1');
     expect(modal.app.config.course.arrivalCircle).toBeCloseTo(1852, 6); // 1 nm -> 1852 m
   });
 
   it('leaves the stored value untouched for non-finite input', () => {
     const modal = setup('kilometer', 100);
     modal.ngOnInit();
-    modal.onFormChange({ target: { id: 'arrivalCircle', value: '1e999' } }); // -> Infinity
+    changeArrivalCircle(modal, '1e999'); // -> Infinity
     expect(modal.app.config.course.arrivalCircle).toBe(100);
   });
 });

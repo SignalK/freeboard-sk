@@ -84,7 +84,10 @@ describe('CourseService course API data (#755)', () => {
     const app = {
       config: { units: { distance: 'naut-mile' } },
       useMagnetic: false,
-      data: { activeWaypoint: null, activeRoute: null }
+      data: {
+        activeWaypoint: null as string | null,
+        activeRoute: null as string | null
+      }
     };
     TestBed.configureTestingModule({
       providers: [
@@ -95,9 +98,9 @@ describe('CourseService course API data (#755)', () => {
           provide: SKResourceService,
           useValue: {
             routes: signal(null),
-            fromCache: () => undefined,
-            waypointAddFromServer: () => undefined,
-            routeAddFromServer: () => undefined
+            fromCache: (): void => undefined,
+            waypointAddFromServer: (): void => undefined,
+            routeAddFromServer: (): void => undefined
           }
         }
       ]
@@ -246,7 +249,7 @@ describe('CourseService destination point name', () => {
           useValue: {
             routes: signal(null),
             fromCache: () => route,
-            routeAddFromServer: () => undefined
+            routeAddFromServer: (): void => undefined
           }
         }
       ]
