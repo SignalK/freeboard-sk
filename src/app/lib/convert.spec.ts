@@ -41,7 +41,12 @@ describe('Speed Conversions', () => {
     expect(Convert.transform(1, 'm/s', 'mph')).toBe(2.2369362920544025);
   });
   it('m/s to Bf', () => {
-    expect(Convert.transform(25, 'm/s', 'Bf')).toBe(29);
+    expect(Convert.transform(0.836, 'm/s', 'Bf')).toBeCloseTo(1);
+    expect(Convert.transform(0.836 * 8, 'm/s', 'Bf')).toBeCloseTo(4);
+    expect(Convert.transform(0.836 * 27, 'm/s', 'Bf')).toBeCloseTo(9);
+  });
+  it('m/s to Bf gives force 10 for a 25 m/s storm', () => {
+    expect(Math.round(Convert.transform(25, 'm/s', 'Bf'))).toBe(10);
   });
   it('m/s to fps', () => {
     expect(Convert.transform(1, 'm/s', 'fps')).toBe(3.280839895013124);
