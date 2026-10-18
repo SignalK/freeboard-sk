@@ -67,7 +67,7 @@ describe('BearingLineComponent marker drag', () => {
         pointerType: 'mouse',
         isPrimary: pointerId === 1,
         button,
-        preventDefault: () => undefined
+        preventDefault: (): void => undefined
       }
     } as unknown as MapBrowserEvent;
     return interaction.handleEvent(e);

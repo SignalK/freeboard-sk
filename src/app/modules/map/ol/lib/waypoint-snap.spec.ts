@@ -214,7 +214,7 @@ describe('snapping map events onto drawn waypoints', () => {
         isPrimary: true,
         clientX: pixel[0],
         clientY: pixel[1],
-        preventDefault: () => undefined
+        preventDefault: (): void => undefined
       } as unknown as PointerEvent;
       // Pointers still down after the event: none once it is released.
       const active = type === 'pointerup' ? [] : [original];

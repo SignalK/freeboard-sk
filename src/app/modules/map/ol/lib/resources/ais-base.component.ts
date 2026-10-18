@@ -88,7 +88,7 @@ export class AISBaseLayerComponent
    * @returns array of target ids
    */
   protected extractKeys(m: Map<string, SKTarget>): Array<string> {
-    const keys = [];
+    const keys: string[] = [];
     m.forEach((v, k) => {
       if (k.includes(this.targetContext)) {
         keys.push(k);

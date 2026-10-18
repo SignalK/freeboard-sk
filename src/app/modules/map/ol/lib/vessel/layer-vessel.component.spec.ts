@@ -17,7 +17,7 @@ function vessel(stale: boolean) {
     position: [1, 2],
     heading: 0,
     stale,
-    mapImages: { getExternalSymbol: () => null }
+    mapImages: { getExternalSymbol: (): null => null }
   });
   return c;
 }

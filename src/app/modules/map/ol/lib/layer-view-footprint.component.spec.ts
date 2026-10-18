@@ -11,7 +11,7 @@ describe('ViewFootprintComponent', () => {
     const map = new OlMap();
     let current: OlMap | null = map;
     const footprint = new ViewFootprintComponent(
-      { detach: () => undefined } as never,
+      { detach: (): void => undefined } as never,
       { getMap: () => current } as never
     );
     footprint.ngOnInit();

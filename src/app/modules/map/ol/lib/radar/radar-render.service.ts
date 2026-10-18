@@ -53,7 +53,7 @@ export class RadarRenderService {
       return;
     }
     // map legend for rendering
-    const legend = {};
+    const legend: Record<string, SKRadarLegendEntry> = {};
     let idx = 0;
     this.radarApi.radar().capabilities?.legend?.pixels?.forEach((i) => {
       legend[idx] = i;

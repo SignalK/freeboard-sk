@@ -73,7 +73,7 @@ export class RacingStartLineLayerComponent
   // Style function
   buildStyle(feature: Feature) {
     const geometry = feature.getGeometry() as OLLineString;
-    const styles = [];
+    const styles: Style[] = [];
 
     if (typeof this.racecourseStyles === 'undefined') {
       if (this.layerProperties && this.layerProperties.style) {

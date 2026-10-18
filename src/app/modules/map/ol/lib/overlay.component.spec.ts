@@ -11,7 +11,7 @@ import { OverlayComponent } from './overlay.component';
 describe('OverlayComponent: the map it shows on', () => {
   const overlayOn = (own: OlMap, targetMap?: OlMap) => {
     const overlay = new OverlayComponent(
-      { detach: () => undefined } as never,
+      { detach: (): void => undefined } as never,
       { nativeElement: document.createElement('div') },
       { getMap: () => own } as never
     );

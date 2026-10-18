@@ -41,6 +41,12 @@ export enum SourceType {
 /* interface types */
 export type Coordinate = [number, number, number?];
 
+/** A map control or interaction, by its directive name, with its options. */
+export interface MapItemConfig {
+  name: string;
+  options?: object;
+}
+
 export type Extent = [number, number, number, number];
 
 export interface MapReadyEvent {

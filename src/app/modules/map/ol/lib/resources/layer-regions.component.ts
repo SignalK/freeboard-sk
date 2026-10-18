@@ -10,6 +10,7 @@ import { Style, Stroke, Fill, Text } from 'ol/style';
 import { Polygon, MultiPolygon } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
+import { Coordinate } from '../models';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBRegions } from 'src/app/types';
 import { SKRegion } from 'src/app/modules/skresources';
@@ -55,8 +56,8 @@ export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
       const f = new Feature({
         geometry:
           r[1].feature.geometry.type === 'MultiPolygon'
-            ? new MultiPolygon(c)
-            : new Polygon(c),
+            ? new MultiPolygon(c as Coordinate[][][])
+            : new Polygon(c as Coordinate[][]),
         name: r[1].name
       });
       f.setId('region.' + r[0]);
@@ -111,17 +112,17 @@ export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(coords: Array<any>, geomType: 'Polygon' | 'MultiPolygon') {
     if (geomType === 'MultiPolygon') {
-      const multipoly = [];
+      const multipoly: Coordinate[][][] = [];
       coords.forEach((mpoly) => {
-        const lines = [];
-        mpoly.forEach((poly) => {
+        const lines: Coordinate[][] = [];
+        mpoly.forEach((poly: Coordinate[]) => {
           lines.push(mapifyCoords(poly));
         });
         multipoly.push(lines);
       });
       return fromLonLatArray(multipoly);
     } else if (geomType === 'Polygon') {
-      const lines = [];
+      const lines: Coordinate[][] = [];
       coords.forEach((line) => lines.push(mapifyCoords(line)));
       return fromLonLatArray(lines);
     }

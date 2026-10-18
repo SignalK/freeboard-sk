@@ -14,7 +14,7 @@ describe('ViewDirective: settled view changes', () => {
 
   const mounted = () => {
     const directive = new ViewDirective(
-      { detach: () => undefined } as never,
+      { detach: (): void => undefined } as never,
       { getMap: () => map } as unknown as MapComponent
     );
     directive.ngOnInit();
