@@ -58,6 +58,7 @@
       [stopClick]="mapInteract.draw.resourceType === 'route' ? false : true"
       [snapToWaypoints]="mapInteract.draw.resourceType === 'route'"
       [style]="mapInteract.draw.style"
+      (drawStart)="onDrawStart($event)"
       (drawEnd)="onDrawEnd($event)"
     >
     </ol-draw>
