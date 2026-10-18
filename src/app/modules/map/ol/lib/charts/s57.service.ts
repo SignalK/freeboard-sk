@@ -167,6 +167,10 @@ export class S57Service {
   public setOptions(options: Options) {
     if (this.isChanged(this.options, options)) {
       this.options = Object.assign({}, options);
+      if (this.options.colorTable !== this.selectedColorTable) {
+        // cached area and line styles hold the previous table's colours
+        this.styles = new Map<string, Style>();
+      }
       this.selectedColorTable = this.options.colorTable;
       this.refresh.next();
     }
