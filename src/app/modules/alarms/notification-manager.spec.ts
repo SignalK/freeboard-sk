@@ -251,7 +251,7 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(alert.properties).toEqual({});
   });
 
-  it('lists a notification sent without a method, silent and without a pop-up', () => {
+  it('raises a notification sent without a method visually, without sound', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit(
       'notifications.electrical.chargers.261.l1.InverterImbalance',
@@ -262,6 +262,15 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(path).toBe(
       'notifications.electrical.chargers.261.l1.InverterImbalance'
     );
+    expect(alert.sound).toBe(false);
+    expect(alert.visual).toBe(true);
+  });
+
+  it('keeps a notification sent with an empty method quiet', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit('notifications.fire', notification({ method: [] }));
+
+    const [[, alert]] = mgr.alerts();
     expect(alert.sound).toBe(false);
     expect(alert.visual).toBe(false);
   });
