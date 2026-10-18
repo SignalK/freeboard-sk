@@ -23,9 +23,15 @@ const bareComponent = () => {
 const olMapComponent = () => {
   TestBed.configureTestingModule({
     providers: [
-      { provide: ChangeDetectorRef, useValue: { detach: () => undefined } },
+      {
+        provide: ChangeDetectorRef,
+        useValue: { detach: (): void => undefined }
+      },
       { provide: ElementRef, useValue: new ElementRef(null) },
-      { provide: MapService, useValue: { clearFeatureUrls: () => undefined } }
+      {
+        provide: MapService,
+        useValue: { clearFeatureUrls: (): void => undefined }
+      }
     ]
   });
   const cmp = TestBed.runInInjectionContext(() => new MapComponent());
@@ -34,11 +40,11 @@ const olMapComponent = () => {
     map: {
       get: (k: string) => props.get(k),
       set: (k: string, v: unknown) => props.set(k, v),
-      getInteractions: () => ({ getArray: () => [] }),
+      getInteractions: () => ({ getArray: (): unknown[] => [] }),
       getEventCoordinate: () => fromLonLat([-80.1, 25.7]),
       getEventPixel: () => [120, 45],
       getPixelFromCoordinateInternal: () => [120, 45],
-      getFeaturesAtPixel: () => [],
+      getFeaturesAtPixel: (): unknown[] => [],
       getView: () => ({
         getProjection: () => ({
           getExtent: () => [
@@ -103,15 +109,19 @@ describe('FBMapComponent long-press before any pointer move (#979)', () => {
     const openMenu = vi.fn();
     Object.assign(cmp, {
       app: {
-        debug: () => undefined,
+        debug: (): void => undefined,
         data: { map: { atClick: null } },
         uiCtrl: () => ({ suppressContextMenu: false })
       },
       overlay: () => ({ show: false }),
-      plotterExt: { addableCellAt: () => null },
+      plotterExt: { addableCellAt: (): null => null },
       mapInteract: { isMeasuring: () => false },
       modifyMode: false,
-      contextMenu: { menuData: null, openMenu, closeMenu: () => undefined },
+      contextMenu: {
+        menuData: null,
+        openMenu,
+        closeMenu: (): void => undefined
+      },
       menuZoom: signal(0),
       mapZoomLevel: () => 10
     });

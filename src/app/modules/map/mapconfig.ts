@@ -343,7 +343,7 @@ export const targetAngleStyle = new Style({
 });
 
 export const drawStyles = {
-  default: undefined,
+  default: undefined as Style[],
   measure: [
     new Style({
       stroke: new Stroke({

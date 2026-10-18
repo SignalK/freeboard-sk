@@ -22,12 +22,12 @@ const ALPHA = {
 
 function stubMap() {
   return {
-    get: () => undefined,
+    get: (): void => undefined,
     getView: () => ({ getResolution: () => RES }),
     getCoordinateFromPixel: (p: number[]) => [p[0] * RES, p[1] * RES],
     getPixelFromCoordinate: (c: number[]) => [c[0] / RES, c[1] / RES],
-    forEachFeatureAtPixel: () => undefined,
-    getFeaturesAtPixel: () => []
+    forEachFeatureAtPixel: (): void => undefined,
+    getFeaturesAtPixel: (): unknown[] => []
   } as unknown as OlMap;
 }
 

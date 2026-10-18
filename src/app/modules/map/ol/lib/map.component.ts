@@ -23,6 +23,7 @@ import { MapReadyEvent } from './models';
 import { AsyncSubject } from 'rxjs';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
+import type { Position } from 'src/app/types';
 import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
 import { hitToleranceForPointer, worldCopyOffset } from './util';
@@ -69,7 +70,7 @@ function pointerGesture(
 
 export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
   features: Array<FeatureLike>;
-  lonlat: Coordinate;
+  lonlat: Position;
   /** EPSG:3857-metre offset of the clicked world copy from the primary world. */
   worldOffset: number;
 }
@@ -548,7 +549,7 @@ export class MapComponent implements OnInit, OnDestroy {
           this.touchHitTolerance
         )
       }),
-      lonlat: toLonLat(event.coordinate),
+      lonlat: toLonLat(event.coordinate) as Position,
       worldOffset: this.worldOffsetOf(event.coordinate)
     });
   }

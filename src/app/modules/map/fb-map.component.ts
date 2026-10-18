@@ -159,6 +159,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   FBMapInteractService,
   DrawFeatureInfo,
+  DrawFeatureSaveInfo,
   IPopover
 } from './fbmap-interact.service';
 import { ScaleLine } from 'ol/control';
@@ -449,12 +450,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     closest: []
   };
 
-  private saveTimer;
+  private saveTimer: ReturnType<typeof setInterval>;
   private isDirty = false;
   /** A user drag is in flight under the 'offset' pan behavior — the resulting
    * map centre becomes the new vessel centre offset. */
   private userPanned = false;
-  private offsetGraceTimer;
+  private offsetGraceTimer: ReturnType<typeof setTimeout>;
   /** Map centre as of the last move-end, so the next one can tell a pan (the
    * user) from a rotation (heading-up turning the chart on its own). */
   private lastMoveCenter: Position | null = null;
@@ -574,7 +575,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     PlotterExtensionService['addableCellAt']
   > = null;
 
-  private obsList = [];
+  private obsList: Subscription[] = [];
 
   private http = inject(HttpClient);
   protected app = inject(AppFacade);
@@ -1149,7 +1150,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.contextMenuPosition.y = e.clientY + 'px';
   }
 
-  protected onMapSingleClick(e, map?: OlMap) {
+  protected onMapSingleClick(e: FBClickEvent, map?: OlMap) {
     this.clickMap = map;
     // Remember which world copy this click landed in so any popover it opens is
     // drawn there, and the raw world-aware x so a route edit aligns with it (#572).
@@ -1164,7 +1165,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (this.mapInteract.measureGeometryType === 'BearingDistance') {
         this.bearingMap.set(map);
         this.mapInteract.placeBearingDistancePoint(
-          GeoUtils.normaliseCoords(e.lonlat as Position),
+          GeoUtils.normaliseCoords(e.lonlat),
           this.clickWorldOffset
         );
       } else {
@@ -1192,7 +1193,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.popoverClosed();
       }
       this.processMapClick(e);
-      this.pinCursorAtTap(e.lonlat as Position, e.worldOffset ?? 0);
+      this.pinCursorAtTap(e.lonlat, e.worldOffset ?? 0);
     }
   }
 
@@ -1388,13 +1389,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * Process pointer click in DRAW mode
    * @param fa Array of Features
    */
-  protected onDrawClick(fa: Feature[]) {
+  protected onDrawClick(fa: FeatureLike[]) {
     if (!Array.isArray(fa)) {
       return;
     }
     if (this.mapInteract.draw.resourceType === 'route') {
       let rteCoords: Position[];
-      fa.forEach((f: Feature) => {
+      fa.forEach((f: FeatureLike) => {
         if (f.getGeometry().getType() === 'LineString') {
           rteCoords = (f.getGeometry() as OLLineString)
             .getCoordinates()
@@ -1723,7 +1724,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // from it (#991).
       f.changed();
     }
-    let pc;
+    let pc: DrawFeatureSaveInfo['coords'];
     if (fid.split('.')[0] === 'route') {
       pc = this.transformCoordsArray(c);
       this.mapInteract.measurementCoords = pc;
@@ -1751,7 +1752,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       pc = c;
     } else {
       // point feature
-      pc = toLonLat(c);
+      pc = toLonLat(c) as Position;
       // shift anchor
       if (fid === 'anchor') {
         this.anchor.setAnchorPosition(pc).catch((err: HttpErrorResponse) => {
@@ -1967,16 +1968,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Process pointer click in non-interaction mode */
-  private processMapClick(e) {
+  private processMapClick(e: FBClickEvent) {
     this.s57Features = {};
     this.trackHistoryFeatures = {};
     const featureList: Map<string, FeatureListEntry> = new Map(); // features under pointer
     const chartBoundsFeatures: Map<string, FeatureListEntry> = new Map(); // chart bounds under pointer
-    const fa = []; // features that can be the target of modify interaction
+    const fa: Feature[] = []; // features that can be the target of modify interaction
     let maskPopover = false; // suppress popover display
 
     // process list of features at click location
-    e.features.forEach((feature: Feature) => {
+    e.features.forEach((feature: FeatureLike) => {
       let id = feature.getId() as string;
       let addToFeatureList = false;
       let aton: SKAtoN;
@@ -2044,7 +2045,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             break;
           }
           case 'route': {
-            const point = this.activeRoutePointAt(e, feature, t[1]);
+            const point = this.activeRoutePointAt(e, feature as Feature, t[1]);
             if (point !== null) {
               id = `rtept.${point}`;
               icon = {
@@ -2241,7 +2242,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           icon: icon,
           text: text
         });
-        fa.push(feature);
+        fa.push(feature as Feature);
       }
     });
 
@@ -2575,7 +2576,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'rset':
         poData.id = id;
         poData.type = t[0];
-        poData.resourceSet = this.skresOther.fromResourceSetCache(id, true);
+        poData.resourceSet = this.skresOther.fromResourceSetCache(
+          id,
+          true
+        ) as IPopover['resourceSet'];
         poData.title =
           (poData.resourceSet as GeoJsonFeature)?.properties?.name ??
           'Resource Set';
@@ -2607,7 +2611,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** handle selection from the FeatureList popover */
-  protected featureListSelection(feature) {
+  protected featureListSelection(feature: FeatureListEntry) {
     // trim the draw.features collection to the selected feature.id
     const sf = new Collection<Feature>();
     this.mapInteract.draw.features.forEach((e) => {
@@ -3184,7 +3188,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private transformCoordsArray(ca: Array<Position>) {
     return ca.map((i) => {
-      return toLonLat(i);
+      return toLonLat(i) as Position;
     });
   }
 

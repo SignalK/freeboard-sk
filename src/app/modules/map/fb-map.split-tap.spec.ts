@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Collection, Feature, Map as OlMap } from 'ol';
 import { LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
+import { FeatureLike } from 'ol/Feature';
 
 import { FBMapComponent } from './fb-map.component';
 import { WORLD_WIDTH_3857 } from './route-extend';
@@ -15,7 +16,7 @@ const bareComponent = (secondPane: OlMap | null) => {
     data: { map: {} },
     config: { map: { popoverMulti: false }, display: { statusBar: {} } },
     uiCtrl: () => ({ suppressContextMenu: false }),
-    debug: () => undefined
+    debug: (): void => undefined
   };
   cmp.mapInteract = {
     isMeasuring: () => false,
@@ -24,7 +25,7 @@ const bareComponent = (secondPane: OlMap | null) => {
     draw: { features: new Collection(), forSave: {} }
   };
   cmp.s57Features = {};
-  cmp.zoneEdit = { edit: () => undefined };
+  cmp.zoneEdit = { edit: (): void => undefined };
   cmp.overlay = signal({ show: false });
   cmp.popoverMap = signal(undefined);
   cmp.pinMap = signal(undefined);
@@ -33,7 +34,7 @@ const bareComponent = (secondPane: OlMap | null) => {
   cmp.splitView = {
     secondaryMap: signal(secondPane),
     activate: vi.fn(),
-    zoom: () => null
+    zoom: (): null => null
   };
   cmp.mapZoomLevel = signal(10);
   // Stands in for a tap on a feature: it opens that feature's popover.
@@ -42,7 +43,11 @@ const bareComponent = (secondPane: OlMap | null) => {
   return cmp;
 };
 
-const tap = { features: [], lonlat: [23.5, 60.1], worldOffset: 0 };
+const tap = {
+  features: [] as FeatureLike[],
+  lonlat: [23.5, 60.1],
+  worldOffset: 0
+};
 const paneTap = (map: OlMap, event = tap) => ({
   kind: 'click',
   event,
@@ -253,7 +258,7 @@ describe('FBMapComponent: taps on the split view second pane', () => {
     cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
     cmp.contextMenu = { openMenu: vi.fn(), closeMenu: vi.fn(), menuData: null };
     cmp.contextMenuPosition = { x: '0px', y: '0px' };
-    cmp.plotterExt = { addableCellAt: () => null };
+    cmp.plotterExt = { addableCellAt: (): null => null };
     cmp.modifyMode = false;
     const backdrop = document.createElement('div');
     backdrop.className = 'cdk-overlay-backdrop';

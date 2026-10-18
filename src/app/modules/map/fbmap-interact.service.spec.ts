@@ -19,7 +19,7 @@ describe('FBMapInteractService.stopDrawing', () => {
         FBMapInteractService,
         {
           provide: AppFacade,
-          useValue: { debug: () => undefined, uiCtrl }
+          useValue: { debug: (): void => undefined, uiCtrl }
         }
       ]
     });
@@ -104,7 +104,7 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
         FBMapInteractService,
         {
           provide: AppFacade,
-          useValue: { debug: () => undefined, uiCtrl }
+          useValue: { debug: (): void => undefined, uiCtrl }
         }
       ]
     });

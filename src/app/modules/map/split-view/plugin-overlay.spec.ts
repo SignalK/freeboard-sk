@@ -53,7 +53,10 @@ describe('A plugin image overlay in the split view', () => {
     requested = [];
     TestBed.configureTestingModule({
       providers: [
-        { provide: ChangeDetectorRef, useValue: { detach: () => undefined } },
+        {
+          provide: ChangeDetectorRef,
+          useValue: { detach: (): void => undefined }
+        },
         { provide: MapComponent, useValue: { getMap: () => main } },
         {
           provide: PlotterExtensionService,
@@ -64,9 +67,9 @@ describe('A plugin image overlay in the split view', () => {
                 sink: (frame: OverlayFrameDelivery) => void
               ) => {
                 deliver = sink;
-                return () => undefined;
+                return (): void => undefined;
               },
-              clearRequest: () => undefined
+              clearRequest: (): void => undefined
             },
             requestOverlayFrame: (...args: unknown[]) => requested.push(args)
           }
