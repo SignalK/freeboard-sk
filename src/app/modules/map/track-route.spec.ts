@@ -337,7 +337,7 @@ describe('trackSectionRoute', () => {
     const rec = day();
     const untimed: TimedTrack = {
       lines: rec.lines,
-      times: rec.times.map((line) => line.map(() => undefined))
+      times: rec.times.map((line) => line.map((): undefined => undefined))
     };
     expect(trackSectionRoute(untimed, at(A, 5000, 0), OWN_STOP_MS)).toBe(
       undefined

@@ -4,8 +4,12 @@ import { Collection, Feature } from 'ol';
 import { Subject } from 'rxjs';
 
 import { FBMapComponent } from './fb-map.component';
-import { RouteBufferRegistry } from '../plotterext/route-buffer.registry';
+import {
+  RouteBuffer,
+  RouteBufferRegistry
+} from '../plotterext/route-buffer.registry';
 import { Position } from 'src/app/types';
+import { TimedTrack } from 'src/app/modules/skstream/track-history';
 
 // A tap on a recorded track offers the passage through it as a route (MAKE
 // ROUTE), which opens as a draft, as a drawn route does. Exercised on a bare
@@ -54,7 +58,10 @@ const bareComponent = () => {
   cmp.bearingMap = signal(undefined);
   cmp.mapInteract = { draw: { features: null } };
   cmp.clickWorldOffset = 0;
-  cmp.trackHistory = { label: () => 'FERRY', wholeTrack: () => undefined };
+  cmp.trackHistory = {
+    label: () => 'FERRY',
+    wholeTrack: (): void => undefined
+  };
   cmp.trackHistoryFeatures = {};
   cmp.routeBuffers = new RouteBufferRegistry();
   cmp.infoPanel = { openWith: vi.fn() };
@@ -121,7 +128,7 @@ describe('FBMapComponent — a route from a recorded track', () => {
 
     cmp.routeFromTrack();
 
-    const [draft] = cmp.routeBuffers.all();
+    const [draft]: RouteBuffer[] = cmp.routeBuffers.all();
     expect(draft.saved).toBe(false);
     expect(draft.name).toBe('Track of FERRY');
     expect(draft.points.map((p) => p.position)).toEqual(th.route);
@@ -149,7 +156,7 @@ describe('FBMapComponent — a route from a recorded track', () => {
 
     cmp.routeFromTrack();
 
-    const [draft] = cmp.routeBuffers.all();
+    const [draft]: RouteBuffer[] = cmp.routeBuffers.all();
     expect(formatPopover).toHaveBeenCalledWith(`route.${draft.routeId}`, at);
     expect(cmp.infoPanel.openWith).not.toHaveBeenCalled();
     // nothing selected for the draft's MODIFY to edit in place of the route
@@ -215,7 +222,7 @@ describe('FBMapComponent — a route from a recorded track', () => {
       cmp.app = {
         useInfoPanel: () => true,
         serverTrailWanted: () => true,
-        localTrailTimed: () => ({ lines: [], times: [] })
+        localTrailTimed: (): TimedTrack => ({ lines: [], times: [] })
       };
       tap(cmp, 'trail.self.server', 'self', clipped(track));
 
@@ -325,7 +332,7 @@ describe('FBMapComponent — a route from a recorded track', () => {
       cmp.app = {
         useInfoPanel: () => true,
         serverTrailWanted: () => true,
-        localTrailTimed: () => ({ lines: [], times: [] })
+        localTrailTimed: (): TimedTrack => ({ lines: [], times: [] })
       };
       const whole = new Subject<unknown>();
       const detail = new Subject<unknown>();

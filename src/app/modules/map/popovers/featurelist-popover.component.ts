@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PopoverComponent } from './popover.component';
-import { Position } from 'geojson';
+import { Position } from 'src/app/types';
 import { AppIconDef } from '../../icons';
 
 interface FeatureDef {

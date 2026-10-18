@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { FeatureLike } from 'ol/Feature';
 import { FBMapComponent } from './fb-map.component';
 
 // A bare prototype instance, as in fb-map.pointer-down.spec.ts: the handler
@@ -29,7 +30,7 @@ const bareComponent = (editing: boolean) => {
   return cmp;
 };
 
-const tap = { features: [], lonlat: [5, 52], worldOffset: 0 };
+const tap = { features: [] as FeatureLike[], lonlat: [5, 52], worldOffset: 0 };
 
 describe('FBMapComponent.onMapSingleClick during a guard zone edit', () => {
   it('opens no popover for a tap on the chart being drawn on', () => {

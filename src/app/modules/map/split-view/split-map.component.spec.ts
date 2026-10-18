@@ -127,7 +127,10 @@ describe('SplitMapComponent: where the pane opens', () => {
       }
     };
     cmp.heading = signal(0);
-    cmp.split.lastView = () => ({ zoom: null, center: o.stored ?? null });
+    cmp.split.lastView = () => ({
+      zoom: null as number,
+      center: o.stored ?? null
+    });
     cmp.split.commands$ = new Subject();
     cmp.skstream = { vessels$: () => new Subject() };
     cmp.ngOnInit();
@@ -157,12 +160,16 @@ describe('SplitMapComponent: double-click and keys', () => {
     const cmp = bareComponent();
     cmp.app.config = { map: { doubleClickZoom: false } };
     const off = cmp.interactions();
-    expect(off.map((i) => i.name)).not.toContain('doubleclickzoom');
+    expect(off.map((i: { name: string }) => i.name)).not.toContain(
+      'doubleclickzoom'
+    );
     expect(cmp.interactions()).toBe(off);
 
     cmp.app.config.map.doubleClickZoom = true;
 
-    expect(cmp.interactions().map((i) => i.name)).toContain('doubleclickzoom');
+    expect(cmp.interactions().map((i: { name: string }) => i.name)).toContain(
+      'doubleclickzoom'
+    );
   });
 
   it('becomes the active pane and zooms with + and -', () => {
@@ -312,7 +319,7 @@ describe('SplitMapComponent: the divider', () => {
           button: 0,
           clientX: stacked ? width / 2 : length * start + pressedAt,
           clientY: stacked ? length * start + pressedAt : 300,
-          preventDefault: () => undefined,
+          preventDefault: (): void => undefined,
           ...more
         } as unknown as PointerEvent);
       press();
@@ -432,7 +439,7 @@ describe('SplitMapComponent: the divider', () => {
       const { cmp, at, main, pane } = dragged();
       cmp.stopUseWatch = [];
       cmp.documentListeners = [];
-      cmp.onMainMoved = () => undefined;
+      cmp.onMainMoved = (): void => undefined;
       cmp.split.setSecondaryMap = vi.fn();
       cmp.split.flush = vi.fn();
       at('pointermove', 620);

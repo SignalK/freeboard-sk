@@ -53,8 +53,8 @@ function popover(
     canStart: () => canStart,
     canReverse: () => canReverse,
     app: appStub,
-    _title: { set: () => undefined },
-    hasMarkdown: { set: () => undefined },
+    _title: { set: (): void => undefined },
+    hasMarkdown: { set: (): void => undefined },
     ctrl: {
       showInfoButton: false,
       showModifyButton: false,
