@@ -124,8 +124,8 @@ describe('RadarPanel', () => {
             },
             uiCtrl: () => ui(),
             formatValueForDisplay: (v: number) => `${v}`,
-            saveConfig: () => undefined,
-            parseHttpErrorResponse: () => undefined
+            saveConfig: (): void => undefined,
+            parseHttpErrorResponse: (): void => undefined
           }
         },
         { provide: RadarAPIService, useValue: api }

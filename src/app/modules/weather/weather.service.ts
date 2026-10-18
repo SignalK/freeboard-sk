@@ -150,8 +150,7 @@ export class WeatherService {
       )
       .pipe(
         map((response) => {
-          const obs: SkObservation | undefined = response?.[0] as
-            SkObservation | undefined;
+          const obs = (response as SkObservation[] | undefined)?.[0];
           const speed = obs?.wind?.speedTrue;
           const direction = obs?.wind?.directionTrue;
           return typeof speed === 'number' && typeof direction === 'number'

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { CompiledFeature } from './feature-corpus';
+import { CompiledFeature, FeatureEvent } from './feature-corpus';
 import { FeatureCorpusService } from './feature-corpus.service';
 import { eventKeys, unseenEvents } from './whats-new';
 import { WhatsNewService } from './whats-new.service';
@@ -15,7 +15,11 @@ function feature(id: string, prs: number[]): CompiledFeature {
     body: '',
     since: null,
     latestKind: 'new',
-    events: prs.map((pr) => ({ pr, date: null, title: `change ${pr}` })),
+    events: prs.map((pr): FeatureEvent => ({
+      pr,
+      date: null,
+      title: `change ${pr}`
+    })),
     recentChanges: null,
     images: []
   };
