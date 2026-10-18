@@ -139,7 +139,7 @@ export class RegionPanel {
 
   protected addNote() {
     this.skres.showNoteEditor({
-      type: 'waypoint',
+      type: 'region',
       href: { id: this.id(), exists: true }
     });
   }
