@@ -23,7 +23,7 @@ const siBaseFn = {
     kn: (v: number) => v * 1.94384,
     'km/h': (v: number) => v * 3.6,
     mph: (v: number) => v * 2.2369362920544025,
-    Bf: (v: number) => (v / 0.836) ^ (2 / 3),
+    Bf: (v: number) => Math.pow(v / 0.836, 2 / 3),
     fps: (v: number) => v * 3.280839895013124
   },
   'rad/s': {
