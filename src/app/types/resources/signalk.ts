@@ -91,6 +91,11 @@ export interface ChartTimeDimension {
   // is a valid target. A purely archival source sets false and is started at
   // its last frame.
   current: boolean;
+  // True when the frames are a forecast: every one from `from` to `to` (or
+  // every listed value) exists already, the ones ahead of now included. Without
+  // it, frames after now are taken as not there yet (a rolling product whose
+  // declared `to` runs ahead of the present).
+  forecast?: boolean;
   // Best-effort timeline metadata: a regular range …
   from?: string;
   to?: string;

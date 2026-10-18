@@ -73,10 +73,11 @@ const RELATIVE_SPAN_MAX_MS = 31 * 86400000;
 
 /**
  * One-line description of a time dimension for a layer picker, e.g.
- * `Time-varying: every 5 min, last 12 h` for a live product or
- * `Time-varying: every 5 min, 1995-01-01 – 2026-12-31` for an archive, or
- * `Time-varying: 24 frames` for a discrete list. Empty when the dimension has
- * no usable range (the layer gets no Time control either) (#808).
+ * `Time-varying: every 5 min, last 12 h` for a live product,
+ * `Time-varying: every 5 min, 1995-01-01 – 2026-12-31` for an archive,
+ * `Time-varying: 24 frames` for a discrete list, or
+ * `Forecast: every 1 h, until 2026-10-28` for a forecast. Empty when the
+ * dimension has no usable range (the layer gets no Time control either) (#808).
  */
 export function chartTimeSummary(dim?: ChartTimeDimension): string {
   const timeline = chartTimeline(dim);
@@ -99,6 +100,10 @@ export function chartTimeSummary(dim?: ChartTimeDimension): string {
     dim.step > 0
   ) {
     parts.push(`every ${formatDuration(dim.step)}`);
+  }
+  if (timeline.forecast) {
+    parts.push(`until ${isoDate(last)}`);
+    return `Forecast: ${parts.join(', ')}`;
   }
   if (span > 0) {
     parts.push(
@@ -210,10 +215,11 @@ export function isChartTimeInstant(time: unknown): time is string {
  * addressed by instant and the live frame is requested, so no stale instant
  * lingers on the source. `null` means the newest frame: for a source that
  * serves a live/latest frame (`current` true) that is the live frame -- no
- * instant -- and for a purely archival source it is the newest frame that
- * exists, the one at (or nearest before) now, since a declared `to` may run
- * ahead of the frames that actually exist. Resolved when asked, so a layer
- * re-requesting on its refresh tick lands on whatever is newest by then.
+ * instant -- and for a purely archival source it is the frame for now, the
+ * one at (or nearest before) the present: a declared `to` may run ahead of
+ * the frames that actually exist, and on a forecast the frames ahead are not
+ * the present. Resolved when asked, so a layer re-requesting on its refresh
+ * tick lands on whatever is newest by then.
  */
 export function resolveChartTime(
   dim: ChartTimeDimension | undefined,
@@ -227,7 +233,7 @@ export function resolveChartTime(
   }
   const timeline = chartTimeline(dim);
   return timeline
-    ? chartTimelineInstant(timeline, chartTimelineHead(timeline))
+    ? chartTimelineInstant(timeline, chartTimelinePosition(timeline, null))
     : null;
 }
 
@@ -252,6 +258,8 @@ export interface ChartTimeline {
   step: number;
   // Explicit instants, ascending, when the dimension lists `values`.
   frames?: string[];
+  // A forecast: every frame exists already, the ones ahead of now included.
+  forecast?: boolean;
 }
 
 /**
@@ -264,9 +272,10 @@ export function chartTimeline(dim?: ChartTimeDimension): ChartTimeline | null {
   if (!dim) {
     return null;
   }
+  const forecast = dim.forecast === true ? { forecast: true } : {};
   const frames = sortedInstants(dim.values);
   if (frames.length) {
-    return { min: 0, max: frames.length - 1, step: 1, frames };
+    return { min: 0, max: frames.length - 1, step: 1, frames, ...forecast };
   }
   const from = chartTimeMs(dim.from);
   const to = chartTimeMs(dim.to);
@@ -281,7 +290,7 @@ export function chartTimeline(dim?: ChartTimeDimension): ChartTimeline | null {
           MIN_TIMELINE_STEP_MS,
           Math.round((to - from) / DEFAULT_TIMELINE_FRAMES)
         );
-  return { min: from, max: to, step };
+  return { min: from, max: to, step, ...forecast };
 }
 
 /**
@@ -346,7 +355,9 @@ export function chartTimelineInstant(
  * forward off the end returns to live; on an archival source it is the head
  * of the timeline (see {@link chartTimelineHead}), so stepping back from it
  * lands one frame before the head, and stepping forward onto (or past) the
- * head returns `null`.
+ * head returns `null`. On a forecast every frame exists: the step is taken
+ * from the shown frame (`null`: the frame for now) either way, holding at the
+ * first and last frames.
  */
 export function stepChartTime(
   timeline: ChartTimeline,
@@ -354,6 +365,12 @@ export function stepChartTime(
   direction: -1 | 1,
   current: boolean
 ): string | null {
+  if (timeline.forecast) {
+    return chartTimelineInstant(
+      timeline,
+      chartTimelinePosition(timeline, time) + direction * timeline.step
+    );
+  }
   const end = current ? timeline.max : chartTimelineHead(timeline);
   if (time === null) {
     if (direction > 0) {
@@ -377,10 +394,13 @@ export function stepChartTime(
  * now -- at or before the present, clamped into the range. It moves on as
  * frames are added: by the clock on a range whose declared `to` runs ahead of
  * the present, or when a re-read of the chart resource brings a longer
- * `values` list or a rolling `from`/`to` that has moved on.
+ * `values` list or a rolling `from`/`to` that has moved on. On a forecast
+ * every frame exists already, so the head is the last one.
  */
 export function chartTimelineHead(timeline: ChartTimeline): number {
-  return chartTimelinePosition(timeline, null);
+  return timeline.forecast
+    ? timeline.max
+    : chartTimelinePosition(timeline, null);
 }
 
 /** The instant at the head of a timeline, in milliseconds since the epoch. */
