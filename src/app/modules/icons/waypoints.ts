@@ -1,6 +1,7 @@
 // Waypoint Icons
 
 import { AppIconSet } from './app.icons';
+import type { MapIconDefs } from '../map/ol/lib/map-image-registry.service';
 import { AtoNsType1 } from './atons';
 import { PoiIcons } from './poi';
 
@@ -29,7 +30,7 @@ export const WaypointIcons: AppIconSet = {
  * @description Build MapIcon definitions for use by MapImageRegistry
  */
 export const getWaypointDefs = () => {
-  const waypointList = {};
+  const waypointList: MapIconDefs = {};
 
   const addToList = (list: AppIconSet) => {
     list.files.forEach((file: string) => {
