@@ -25,7 +25,7 @@ export enum ALARM_METHOD {
 
 export interface SKNotification {
   state: ALARM_STATE;
-  method: ALARM_METHOD[];
+  method?: ALARM_METHOD[]; // some providers (e.g. Victron Venus) send none
   message: string;
   status?: {
     silenced: boolean;
