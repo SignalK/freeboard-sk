@@ -113,7 +113,7 @@ import { Feature } from 'geojson';
   ]
 })
 export class FeaturePropertiesModal {
-  protected display = [];
+  protected display: Feature['properties'][] = [];
   protected currentPage = 1;
 
   protected modalRef = inject(MatBottomSheetRef<FeaturePropertiesModal>);
@@ -129,6 +129,6 @@ export class FeaturePropertiesModal {
     const sh = document.getElementsByClassName(
       'mat-horizontal-stepper-header-container'
     );
-    sh[0]['style']['display'] = 'none';
+    (sh[0] as HTMLElement).style.display = 'none';
   }
 }

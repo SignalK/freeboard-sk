@@ -60,7 +60,10 @@ describe('ActiveResourcePropertiesModal flagged route point', () => {
         },
         { provide: SKResourceService, useValue: {} },
         { provide: RouteBufferRegistry, useValue: {} },
-        { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
+        {
+          provide: MatBottomSheetRef,
+          useValue: { dismiss: (): void => undefined }
+        },
         {
           provide: MAT_BOTTOM_SHEET_DATA,
           useValue: {
@@ -159,7 +162,10 @@ describe('ActiveResourcePropertiesModal point names', () => {
           }
         },
         { provide: RouteBufferRegistry, useValue: {} },
-        { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
+        {
+          provide: MatBottomSheetRef,
+          useValue: { dismiss: (): void => undefined }
+        },
         {
           provide: MAT_BOTTOM_SHEET_DATA,
           useValue: {
@@ -226,7 +232,10 @@ function mountRoutePoints() {
       { provide: CourseService, useValue: {} },
       { provide: SKResourceService, useValue: {} },
       { provide: RouteBufferRegistry, useValue: {} },
-      { provide: MatBottomSheetRef, useValue: { dismiss: () => undefined } },
+      {
+        provide: MatBottomSheetRef,
+        useValue: { dismiss: (): void => undefined }
+      },
       {
         provide: MAT_BOTTOM_SHEET_DATA,
         useValue: {

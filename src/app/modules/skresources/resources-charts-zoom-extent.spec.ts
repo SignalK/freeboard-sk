@@ -29,7 +29,7 @@ function svcWithCharts(mapConstrainZoom: boolean, cache: FBCharts = []) {
   (svc as unknown as { app: unknown }).app = {
     uiConfig: () => ({ mapConstrainZoom }),
     MAP_ZOOM_EXTENT: { ...DEFAULT_EXTENT },
-    debug: () => undefined
+    debug: (): void => undefined
   };
   (svc as unknown as { chartCacheSignal: unknown }).chartCacheSignal =
     signal<FBCharts>(cache);
@@ -51,7 +51,7 @@ describe('map zoom extent (#552)', () => {
       appendOSM: (l: FBCharts) => l,
       sortByScaleDesc: (l: FBCharts) => l,
       arrangeChartLayers: (l: FBCharts) => l,
-      migrateAdoptedOverlays: () => undefined
+      migrateAdoptedOverlays: (): void => undefined
     });
 
     await svc.refreshCharts();

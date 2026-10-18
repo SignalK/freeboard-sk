@@ -19,6 +19,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { RemarkModule } from 'ngx-remark';
 import { markdownProcessor } from '../../../lib/markdown';
 import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
+import { FBNote, FBRegion, FBRoute, FBWaypoint } from 'src/app/types';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 
 interface PopoverCtrl {
@@ -313,7 +314,7 @@ interface PopoverCtrl {
 export class ResourcePopoverComponent {
   protected readonly mdProcessor = markdownProcessor;
   title = input<string>(); // popover title text
-  resource = input<[string, SKRoute | SKWaypoint | SKNote | SKRegion]>();
+  resource = input<FBRoute | FBWaypoint | FBNote | FBRegion>();
   type = input<string>(); // resource type
   /** Id of the route or waypoint being followed. */
   active = input<string>();

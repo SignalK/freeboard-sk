@@ -52,7 +52,7 @@ const commonProviders = [
   provideHttpClientTesting(),
   touchPlatform,
   { provide: AppFacade, useValue: appStub },
-  { provide: MatDialogRef, useValue: { close: () => undefined } }
+  { provide: MatDialogRef, useValue: { close: (): void => undefined } }
 ];
 
 describe('note dialog symbol dropdown', () => {

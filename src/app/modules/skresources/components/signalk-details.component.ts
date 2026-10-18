@@ -81,7 +81,7 @@ export class SignalKDetailsComponent {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private section(u: Array<any>): Array<any> {
-    const result = [];
+    const result: Array<[number, string, string, unknown]> = [];
     u.forEach((i) => {
       const p = i[0].split('.');
       if (p.length === 1) {
@@ -96,7 +96,7 @@ export class SignalKDetailsComponent {
       return a[1] < b[1] ? -1 : 1;
     });
     let prevParent: string = null;
-    const processedParents = [];
+    const processedParents: string[] = [];
     u = [];
     result.forEach((i) => {
       if (i[1] !== prevParent) {
@@ -115,7 +115,7 @@ export class SignalKDetailsComponent {
   // ** flatten object values to .paths **
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private flatten(u: Array<any>): Array<any> {
-    let paths = [];
+    let paths: Array<[string, unknown]> = [];
     u.forEach((i) => {
       if (typeof i[1] === 'object' && i[1] !== null) {
         paths = paths.concat(this.processObject(i[0], i[1]));
@@ -128,8 +128,8 @@ export class SignalKDetailsComponent {
 
   // ** process object values **
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private processObject(parent: string, obj: any) {
-    let paths = [];
+  private processObject(parent: string, obj: any): Array<[string, unknown]> {
+    let paths: Array<[string, unknown]> = [];
     const u = Object.entries(obj);
     u.sort((a, b) => {
       return a[0] < b[0] ? -1 : 1;

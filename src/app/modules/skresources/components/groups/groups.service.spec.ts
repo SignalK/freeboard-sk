@@ -68,7 +68,7 @@ describe('SKResourceGroupService.applyGroup', () => {
   it('announces every apply on applied$, including a repeat of the same group', async () => {
     const events: unknown[] = [];
     service.applied$.subscribe((e) => events.push(e));
-    const group = { name: 'g', description: '', waypoints: [] };
+    const group = { name: 'g', description: '', waypoints: [] as string[] };
     await service.applyGroup('g1', group);
     await service.applyGroup('g1', group);
     expect(events).toEqual([

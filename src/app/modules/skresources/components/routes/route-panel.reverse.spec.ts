@@ -71,7 +71,7 @@ describe('RoutePanel REVERSE', () => {
         {
           provide: SKResourceService,
           useValue: {
-            getRelatedNotes: async () => [],
+            getRelatedNotes: async (): Promise<unknown[]> => [],
             fromCache: (_c: string, id: string) =>
               cached.has(id) ? [id, cached.get(id), true] : undefined,
             updateRouteCoords
@@ -84,7 +84,10 @@ describe('RoutePanel REVERSE', () => {
           useValue: { courseData: signal({ pointIndex: 0 }), courseReverse }
         },
         { provide: TemporaryRouteService, useValue: {} },
-        { provide: SKResourceGroupService, useValue: { with: async () => [] } },
+        {
+          provide: SKResourceGroupService,
+          useValue: { with: async (): Promise<unknown[]> => [] }
+        },
         { provide: MatDialog, useValue: {} },
         { provide: MatBottomSheet, useValue: {} }
       ]

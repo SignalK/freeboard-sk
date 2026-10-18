@@ -333,8 +333,9 @@ export class SKResourceGroupService {
       skf?.subscribe(
         (res: GroupResponse) => {
           const list = Object.entries(res).filter((item) => {
-            if (Array.isArray(item[1][collection])) {
-              return item[1][collection].includes(id);
+            const members: Partial<Record<SKResourceType, string[]>> = item[1];
+            if (Array.isArray(members[collection])) {
+              return members[collection].includes(id);
             } else {
               return false;
             }

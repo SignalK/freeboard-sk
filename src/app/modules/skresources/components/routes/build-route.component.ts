@@ -23,12 +23,21 @@ import {
   CdkDropList
 } from '@angular/cdk/drag-drop';
 import { SKResourceService } from '../../resources.service';
-import { FBWaypoint, LineString } from 'src/app/types';
+import { FBWaypoint, LineString, Position } from 'src/app/types';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   coordinatesMetaFromPoints,
   type PointMeta
 } from '../route-reorder.util';
+
+/** A waypoint offered for, or placed in, the route being built. */
+interface RouteWaypointItem {
+  id: string;
+  name: string;
+  description: string;
+  position: Position;
+  href: string;
+}
 
 @Component({
   selector: 'route-builder',
@@ -168,8 +177,8 @@ import {
   `
 })
 export class BuildRouteComponent {
-  wpts = signal([]);
-  rtepts = [];
+  wpts = signal<RouteWaypointItem[]>([]);
+  rtepts: RouteWaypointItem[] = [];
 
   save = output<{
     coordinates: LineString;
@@ -212,7 +221,7 @@ export class BuildRouteComponent {
     this.rtepts.splice(index, 1);
   }
 
-  dropEventHandler(event: CdkDragDrop<string[]>) {
+  dropEventHandler(event: CdkDragDrop<RouteWaypointItem[]>) {
     if (event.previousContainer === event.container) {
       moveItemInArray(
         event.container.data,

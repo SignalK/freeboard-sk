@@ -59,7 +59,6 @@ export class RegionListComponent extends ResourceListBase {
 
   protected override fullList: FBRegions = [];
   protected override filteredList = signal<FBRegions>([]);
-  filterList = [];
 
   protected app = inject(AppFacade);
   private worker = inject(SKWorkerService);

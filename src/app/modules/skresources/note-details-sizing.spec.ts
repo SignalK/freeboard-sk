@@ -27,13 +27,13 @@ type Captured = { component?: unknown; config?: CapturedDialogConfig };
 function svcCapturingDialogOpen(captured: Captured) {
   const svc = Object.create(SKResourceService.prototype) as SKResourceService;
   Object.assign(svc as unknown as Record<string, unknown>, {
-    app: { sIsFetching: { set: () => undefined } },
+    app: { sIsFetching: { set: (): void => undefined } },
     fromServer: async () => ({ name: 'X', mimeType: '', properties: {} }),
     dialog: {
       open: (component: unknown, config: CapturedDialogConfig) => {
         captured.component = component;
         captured.config = config;
-        return { afterClosed: () => ({ subscribe: () => undefined }) };
+        return { afterClosed: () => ({ subscribe: (): void => undefined }) };
       }
     }
   });

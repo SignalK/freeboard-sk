@@ -264,7 +264,7 @@ describe('adopting Overlays as charts', () => {
       overlaySelection: null
     });
     Object.assign(svc as unknown as Record<string, unknown>, {
-      migrateAdoptedOverlays: () => undefined
+      migrateAdoptedOverlays: (): void => undefined
     });
 
     await svc.refreshCharts();
@@ -377,7 +377,7 @@ describe('migrating adopted Overlays', () => {
     deleteFromServer.mockRejectedValue({ status: 404 });
     await svc.listChartsFromServer();
     Object.assign(svc as unknown as Record<string, unknown>, {
-      refreshCharts: async () => undefined
+      refreshCharts: async (): Promise<void> => undefined
     });
 
     await priv.migrateAdoptedOverlays();
@@ -393,7 +393,7 @@ describe('migrating adopted Overlays', () => {
     });
     await svc.listChartsFromServer();
     Object.assign(svc as unknown as Record<string, unknown>, {
-      refreshCharts: async () => undefined
+      refreshCharts: async (): Promise<void> => undefined
     });
 
     await priv.migrateAdoptedOverlays();

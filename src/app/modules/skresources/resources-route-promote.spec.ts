@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { of } from 'rxjs';
 import { SKResourceService } from './resources.service';
+import { Position } from 'src/app/types';
 
 /**
  * Saving a route in Route Details keeps it: a temporary route (one started
@@ -17,7 +18,7 @@ const stored = () => ({
   distance: 0,
   feature: {
     type: 'Feature',
-    geometry: { type: 'LineString', coordinates: [] },
+    geometry: { type: 'LineString', coordinates: [] as Position[] },
     properties: {
       temporary: { created: '2026-09-30T10:00:00.000Z' },
       coordinatesMeta: [{ name: 'Leading light' }]
@@ -30,8 +31,8 @@ function svc(dialogResult: { save: boolean }) {
   const s = Object.create(SKResourceService.prototype) as SKResourceService;
   Object.assign(s as unknown as Record<string, unknown>, {
     app: {
-      sIsFetching: { set: () => undefined },
-      parseHttpErrorResponse: () => undefined
+      sIsFetching: { set: (): void => undefined },
+      parseHttpErrorResponse: (): void => undefined
     },
     fromServer: () => Promise.resolve(stored()),
     putToServer: put,

@@ -47,7 +47,7 @@ export class NoteListComponent {
   closed = output<void>();
   pan = output<{ center: Position; zoomLevel: number }>();
 
-  filterList = [];
+  filterList: FBNote[] = [];
   filterText = '';
   someSel = false;
   showNotes = false;

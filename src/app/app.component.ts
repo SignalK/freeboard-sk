@@ -58,6 +58,7 @@ import {
   StreamOptions,
   AnchorService,
   SKResourceService,
+  NoteEditorRequest,
   SKVessel,
   SKSaR,
   SKAircraft,
@@ -2356,9 +2357,11 @@ export class AppComponent {
     this.app.data.editingId = '';
     switch (this.mapInteract.draw.resourceType) {
       case 'note': {
-        const params = { position: e.coordinates };
+        const params: NoteEditorRequest = {
+          position: e.coordinates as Position
+        };
         if (this.mapInteract.draw.properties['group']) {
-          params['group'] = this.mapInteract.draw.properties['group'];
+          params.group = this.mapInteract.draw.properties['group'];
         }
         this.skres.showNoteEditor(params);
         break;

@@ -208,7 +208,7 @@ describe('refreshing the chart list', () => {
     ];
     Object.assign(svc as unknown as Record<string, unknown>, {
       app: {
-        debug: () => undefined,
+        debug: (): void => undefined,
         uiConfig: () => ({}),
         MAP_ZOOM_EXTENT: {}
       },
@@ -216,8 +216,8 @@ describe('refreshing the chart list', () => {
       appendOSM: (l: FBCharts) => l,
       sortByScaleDesc: (l: FBCharts) => l,
       arrangeChartLayers: (l: FBCharts) => l,
-      setMapZoomRange: () => undefined,
-      migrateAdoptedOverlays: () => undefined
+      setMapZoomRange: (): void => undefined,
+      migrateAdoptedOverlays: (): void => undefined
     });
 
     await svc.refreshCharts();
@@ -653,7 +653,7 @@ describe('time dimension refresh', () => {
     describe('the resource delta it raises', () => {
       const withTransform = (internals: Internals) => {
         internals.app = {
-          debug: () => undefined,
+          debug: (): void => undefined,
           hostDef: { url: 'http://sk.local:3000' },
           config: {
             selections: {

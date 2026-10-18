@@ -39,7 +39,7 @@ export class FBCustomResourceService {
    * @returns object items to be added to this.app.featureFlags
    */
   public async initCustomCollections() {
-    const rcs = {};
+    const rcs: Record<string, boolean> = {};
     await Promise.all(
       this.app.CUSTOM_RESOURCES.map(async (cr) => {
         rcs[cr.featureKey] = await this.checkCustomCollection(

@@ -17,10 +17,9 @@ import {
   CdkDragPlaceholder,
   CdkDropList
 } from '@angular/cdk/drag-drop';
-import { Position } from 'src/app/types';
+import { FBRoute, Position } from 'src/app/types';
 import { AppFacade } from 'src/app/app.facade';
 
-import { SKWaypoint, SKRoute } from '../resource-classes';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { SKResourceService } from '../resources.service';
 import { CourseService } from '../../course';
@@ -219,7 +218,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
   protected data = inject<{
     title: string;
     type: string;
-    resource: SKWaypoint | SKRoute;
+    resource: FBRoute;
     noButtons: boolean;
   }>(MAT_BOTTOM_SHEET_DATA);
 
@@ -275,7 +274,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
     return routePointsMeta(
       this.points.length,
       this.data.resource[1].feature.properties.coordinatesMeta,
-      (id) => this.skres.fromCache('waypoints', id)?.[1] as SKWaypoint
+      (id) => this.skres.fromCache('waypoints', id)?.[1]
     );
   }
 

@@ -44,16 +44,16 @@ describe('RoutePanel Start here', () => {
         {
           provide: SKResourceService,
           useValue: {
-            getRelatedNotes: async () => [],
-            fromCache: () => undefined
+            getRelatedNotes: async (): Promise<unknown[]> => [],
+            fromCache: (): void => undefined
           }
         },
         {
           provide: RouteBufferRegistry,
           useValue: {
             live: signal([]),
-            get: () => undefined,
-            getForRoute: () => undefined
+            get: (): void => undefined,
+            getForRoute: (): void => undefined
           }
         },
         { provide: InfoPanelFacade, useValue: {} },
@@ -68,7 +68,10 @@ describe('RoutePanel Start here', () => {
           }
         },
         { provide: TemporaryRouteService, useValue: {} },
-        { provide: SKResourceGroupService, useValue: { with: async () => [] } },
+        {
+          provide: SKResourceGroupService,
+          useValue: { with: async (): Promise<unknown[]> => [] }
+        },
         { provide: MatDialog, useValue: {} },
         { provide: MatBottomSheet, useValue: {} }
       ]

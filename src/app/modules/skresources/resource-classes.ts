@@ -14,6 +14,7 @@ import {
   WaypointResource,
   RegionResource,
   NoteResource,
+  PathValue,
   ChartResource,
   ChartImageAdjustment,
   ChartTimeDimension,
@@ -240,8 +241,19 @@ class SKTargetBase {
 // ** Vessel Data **
 export class SKVessel extends SKTargetBase {
   // stream sourced attributes
-  anchor = { maxRadius: null, radius: null, position: null };
-  autopilot = {
+  anchor: { maxRadius: number; radius: number; position: SKPosition } = {
+    maxRadius: null,
+    radius: null,
+    position: null
+  };
+  autopilot: {
+    state: string;
+    mode: string;
+    target: number;
+    enabled: boolean;
+    default: string;
+    availableActions: string[];
+  } = {
     state: null,
     mode: null,
     target: null,
@@ -250,7 +262,7 @@ export class SKVessel extends SKTargetBase {
     availableActions: []
   };
   buddy = false;
-  closestApproach = {
+  closestApproach: { distance: number; timeTo: number } = {
     distance: null,
     timeTo: null
   };
@@ -265,7 +277,7 @@ export class SKVessel extends SKTargetBase {
   };
   courseCalcs: SKCourseCalcs = {};
   distanceToSelf: number;
-  environment = {
+  environment: { mode: string; sun: string } = {
     mode: null, // day | night
     sun: null // dawn| sunrise | day | sunset | dusk | night
   };
@@ -282,20 +294,29 @@ export class SKVessel extends SKTargetBase {
   // navigation.magneticVariation (radians, easterly positive): derives true
   // angles for drawing when only magnetic ones are reported (#858)
   magneticVariation: number = null;
-  performance = {
+  performance: { beatAngle: number; gybeAngle: number } = {
     beatAngle: null,
     gybeAngle: null
   };
   // radars.<id>.* delta values, keyed by radar id then path remainder
   radars: Record<string, Record<string, Value>> = {};
   registrations: SKRegistrations = {};
-  resourceUpdates = []; // resource deltas
+  resourceUpdates: PathValue[] = []; // resource deltas
   sog: number;
   track: Array<Position[]> = [];
-  vectors = {
+  vectors: { cog: Position[] } = {
     cog: [] // cog vector
   };
-  wind = {
+  wind: {
+    direction: number;
+    mwd: number;
+    twd: number;
+    tws: number;
+    speedTrue: number;
+    sog: number;
+    awa: number;
+    aws: number;
+  } = {
     direction: null,
     mwd: null,
     twd: null,
@@ -316,7 +337,7 @@ export class SKVessel extends SKTargetBase {
     },
     length: null
   };
-  destination = {
+  destination: { name: string; eta: string } = {
     name: null,
     eta: null
   };
