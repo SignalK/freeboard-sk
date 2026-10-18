@@ -17,7 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatListModule } from '@angular/material/list';
+import { MatListModule, MatSelectionList } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -56,6 +56,8 @@ interface PreferredPathsResult {
   value: IAppConfig['units']['preferredPaths'];
 }
 
+type AisState = 'moored' | 'anchored';
+
 //** Settings **
 @Component({
   selector: 'settings-dialog',
@@ -91,7 +93,7 @@ export class SettingsDialog implements OnInit {
   protected options: SettingsOptions;
   protected readonly centerOffsetLimit = CENTER_OFFSET_LIMIT;
 
-  protected aisStateFilter = {
+  protected aisStateFilter: Record<AisState, boolean> = {
     moored: false,
     anchored: false
   };
@@ -128,7 +130,7 @@ export class SettingsDialog implements OnInit {
   ngOnInit() {
     this.facade.refresh();
     this.facade.settings.selections.aisState.forEach((i: string) => {
-      if (i in this.aisStateFilter) {
+      if (this.isAisState(i)) {
         this.aisStateFilter[i] = true;
       }
     });
@@ -412,7 +414,7 @@ export class SettingsDialog implements OnInit {
    * Handle favourites component event
    * @param e
    */
-  onFavSelected(e: unknown, f) {
+  onFavSelected(e: unknown, f: MatSelectionList) {
     this.facade.settings.display.plugins.favourites =
       f.selectedOptions.selected.map((i) => i.value);
     this.persistModel();
@@ -422,21 +424,23 @@ export class SettingsDialog implements OnInit {
    * Handle AIS state filter change
    */
   onAisStateFilter() {
-    const s = [];
-    for (const i in this.aisStateFilter) {
-      if (this.aisStateFilter[i]) {
-        s.push(i);
-      }
-    }
-    this.facade.settings.selections.aisState = [].concat(s);
+    this.facade.settings.selections.aisState = Object.entries(
+      this.aisStateFilter
+    )
+      .filter(([, selected]) => selected)
+      .map(([state]) => state);
     this.persistModel();
+  }
+
+  private isAisState(state: string): state is AisState {
+    return Object.hasOwn(this.aisStateFilter, state);
   }
 
   /**
    * Handle custom resource path selection changes
    * @param f
    */
-  onResPathSelected(f) {
+  onResPathSelected(f: MatSelectionList) {
     this.facade.settings.resources.paths = f.selectedOptions.selected.map(
       (i) => i.value
     );

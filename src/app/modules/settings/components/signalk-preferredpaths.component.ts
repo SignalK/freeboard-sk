@@ -16,6 +16,13 @@ import { MatRadioModule } from '@angular/material/radio';
 import { AppFacade } from 'src/app/app.facade';
 import { AUTO_ORIENTATION } from 'src/app/modules/skstream/orientation';
 
+interface PathChoice {
+  name: string;
+  choices: string[];
+  available: string[];
+  current: string;
+}
+
 @Component({
   selector: 'signalk-preferred-paths',
   imports: [MatRadioModule],
@@ -56,7 +63,7 @@ export class SignalKPreferredPathsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() chosen: any = new EventEmitter<any>();
 
-  private pathChoices = {
+  private pathChoices: Record<'tws' | 'twd' | 'heading', PathChoice> = {
     tws: {
       name: 'True Wind Speed',
       choices: [
@@ -141,7 +148,7 @@ export class SignalKPreferredPathsComponent {
 
   // save / cancel
   save(keep: boolean) {
-    const value = {};
+    const value: Record<string, string> = {};
     Object.entries(this.pathChoices).forEach((i) => {
       value[i[0]] = i[1].current;
     });

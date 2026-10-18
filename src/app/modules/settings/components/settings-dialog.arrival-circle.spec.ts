@@ -90,9 +90,9 @@ describe('settings dialog — arrival circle', () => {
             favouritesList: [],
             fixedPosition: [0, 0],
             resourcePathList: [],
-            refresh: () => undefined,
-            applySettings: () => undefined,
-            emitChangeEvent: () => undefined
+            refresh: (): void => undefined,
+            applySettings: (): void => undefined,
+            emitChangeEvent: (): void => undefined
           }
         },
         {
@@ -109,18 +109,21 @@ describe('settings dialog — arrival circle', () => {
             featureFlags: () => ({ radarApi: false }),
             uiCtrl: () => ({ radarLayer: false }),
             serverConfig: { unitPreferences: () => ({}) },
-            alignUnitPrefs: () => undefined,
+            alignUnitPrefs: (): void => undefined,
             lineDashMap: new Map([['none', 'none']]),
-            formatLineDashArray: () => null
+            formatLineDashArray: (): null => null
           }
         },
         { provide: WakeLockService, useValue: { isAvailable: false } },
-        { provide: S57Service, useValue: { setOptions: () => undefined } },
+        {
+          provide: S57Service,
+          useValue: { setOptions: (): void => undefined }
+        },
         {
           provide: RadarAPIService,
           useValue: { listRadars: () => Promise.resolve([]) }
         },
-        { provide: MatDialogRef, useValue: { close: () => undefined } },
+        { provide: MatDialogRef, useValue: { close: (): void => undefined } },
         {
           provide: CourseService,
           useValue: {

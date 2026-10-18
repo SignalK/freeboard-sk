@@ -67,9 +67,9 @@ describe('settings dialog — note details option placement', () => {
       favouritesList: [],
       fixedPosition: [0, 0],
       resourcePathList: [],
-      refresh: () => undefined,
+      refresh: (): void => undefined,
       applySettings: () => applied++,
-      emitChangeEvent: () => undefined
+      emitChangeEvent: (): void => undefined
     } as unknown as SettingsFacade;
 
     const appStub = {
@@ -82,9 +82,9 @@ describe('settings dialog — note details option placement', () => {
       featureFlags: () => ({ radarApi: false }),
       uiCtrl: () => ({ radarLayer: false }),
       serverConfig: { unitPreferences: () => ({}) },
-      alignUnitPrefs: () => undefined,
+      alignUnitPrefs: (): void => undefined,
       lineDashMap: new Map([['none', 'none']]),
-      formatLineDashArray: () => null
+      formatLineDashArray: (): null => null
     } as unknown as AppFacade;
 
     TestBed.configureTestingModule({
@@ -96,12 +96,15 @@ describe('settings dialog — note details option placement', () => {
         { provide: SettingsFacade, useValue: facadeStub },
         { provide: AppFacade, useValue: appStub },
         { provide: WakeLockService, useValue: { isAvailable: false } },
-        { provide: S57Service, useValue: { setOptions: () => undefined } },
+        {
+          provide: S57Service,
+          useValue: { setOptions: (): void => undefined }
+        },
         {
           provide: RadarAPIService,
           useValue: { listRadars: () => Promise.resolve([]) }
         },
-        { provide: MatDialogRef, useValue: { close: () => undefined } }
+        { provide: MatDialogRef, useValue: { close: (): void => undefined } }
       ]
     });
 
@@ -230,6 +233,15 @@ describe('settings dialog — note details option placement', () => {
       await slideTo(96);
       expect(settings.vessels.trailDuration).toBe(96);
       expect(lengthLabel()).toBe('96 hrs');
+    });
+  });
+
+  describe('AIS state filter', () => {
+    it('keeps only the known AIS states from the stored selection', () => {
+      settings.selections.aisState = ['moored', 'toString'];
+      fixture.componentInstance.ngOnInit();
+      fixture.componentInstance.onAisStateFilter();
+      expect(settings.selections.aisState).toEqual(['moored']);
     });
   });
 
