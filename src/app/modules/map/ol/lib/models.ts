@@ -39,7 +39,7 @@ export enum SourceType {
 }
 
 /* interface types */
-export type Coordinate = [number, number, number?];
+export type Coordinate = [number, number] | [number, number, number];
 
 /** A map control or interaction, by its directive name, with its options. */
 export interface MapItemConfig {

@@ -287,7 +287,9 @@ export class RoutePanel {
       return;
     }
     const route = this._route();
-    const coordinates = buffer.points.map((p) => p.position);
+    // Position is the bus's [lon, lat, alt?] written as two tuples, which
+    // strictNullChecks lets OpenLayers' number[] accept.
+    const coordinates = buffer.points.map((p) => p.position) as Position[];
     const properties = { ...route.feature.properties };
     const meta = coordinatesMetaFromPoints(buffer.points);
     if (meta) {
