@@ -992,6 +992,9 @@
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
     [iconScale]="app.config.vessels.iconScale"
+    [actualSize]="app.config.vessels.iconActualSize"
+    [lengthOverall]="dfeat.self.design?.length?.overall"
+    [beam]="dfeat.self.design?.beam"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [stale]="
       skstream.selfPositionStale() && !app.config.vessels.fixedLocationMode

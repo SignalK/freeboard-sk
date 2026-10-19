@@ -79,6 +79,17 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.units.distance).toBe('naut-mile');
   });
 
+  it('defaults the actual-size vessel icon off, keeping a stored choice', () => {
+    const cfg = legacyConfig();
+    delete (cfg.vessels as Partial<IAppConfig['vessels']>).iconActualSize;
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.iconActualSize).toBe(false);
+
+    cfg.vessels.iconActualSize = true;
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.iconActualSize).toBe(true);
+  });
+
   it('moves vessels.cogLine / headingLineSize into selfLines', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});
