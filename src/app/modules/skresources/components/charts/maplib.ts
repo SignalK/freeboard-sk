@@ -47,25 +47,28 @@ export type WMTSLayerDef = {
   time?: TimeDef;
 };
 
+// null where the capabilities document leaves a bound out
 export interface TimeDimension {
-  from: string;
-  to: string;
+  from: string | null;
+  to: string | null;
   interval?: number;
   values?: string[];
 }
 
 export interface TimeDef extends TimeDimension {
-  current: string;
+  current: string | null;
 }
 
 export interface LayerNode {
   name: string;
   title?: string;
   description: string;
-  time?: TimeDef;
+  // null: the layer declares no time dimension
+  time?: TimeDef | null;
   children?: LayerNode[];
   selected: boolean;
-  parent: LayerNode;
+  // null for a top-level layer
+  parent: LayerNode | null;
 }
 
 /** Return the layer identifier to show alongside its display title.
@@ -143,7 +146,7 @@ const withoutParams = (
  * per request), other parameters kept, and no dangling `?` (#810).
  * @param entered What the user typed or pasted
  */
-export const ogcServiceUrl = (entered: string): string => {
+export const ogcServiceUrl = (entered: string | undefined): string => {
   const { base, params } = splitQuery(entered ?? '');
   const kept = withoutParams(params, OGC_REQUEST_PARAMS).toString();
   return kept ? `${base}?${kept}` : base;
@@ -177,13 +180,13 @@ export const layerTimeHint = (time?: TimeDef | null): string =>
 /** Return layer with the supplied name
  * @param name Layer Name
  * @param data Array of LayerNode objects
- * @returns LayerNode object
+ * @returns LayerNode object, or undefined when no layer has the name
  */
 export const getLayerNodeByName = (
   name: string,
   data: LayerNode[]
-): LayerNode => {
-  let result: LayerNode;
+): LayerNode | undefined => {
+  let result: LayerNode | undefined;
 
   const parseNode = (n: LayerNode) => {
     if (result) return;
@@ -228,7 +231,7 @@ export const chartTimeFromLayers = (
   }
   for (const name of layers) {
     const time = chartTimeFromCapabilities(
-      getLayerNodeByName(name, capabilities.layers)?.time
+      getLayerNodeByName(name, capabilities.layers)?.time ?? undefined
     );
     if (time) {
       return time;

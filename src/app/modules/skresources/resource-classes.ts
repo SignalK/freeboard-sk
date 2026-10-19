@@ -73,12 +73,12 @@ export class SKWaypoint {
 export class SKNote {
   name: string;
   description: string;
-  position: SKPosition;
-  href: string;
+  position?: SKPosition;
+  href?: string;
   mimeType: string;
   url: string;
-  group: string;
-  timestamp: string;
+  group?: string;
+  timestamp?: string;
   authors: NoteResource['authors'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: Record<string, any>;
@@ -125,21 +125,21 @@ export class SKRegion {
 
 // ** Signal K chart
 export class SKChart {
-  identifier: string;
-  name: string;
-  description: string;
-  region: string;
+  identifier?: string;
+  name?: string;
+  description?: string;
+  region?: string;
   scale = 250000;
   layers: Array<string>;
-  bounds: Array<number>;
-  format: string;
+  bounds?: Array<number>;
+  format?: string;
   minZoom = 0;
   maxZoom = 24;
   tileSize = 256;
-  type: string;
-  url: string;
-  source: string;
-  style: string;
+  type?: string;
+  url?: string;
+  source?: string;
+  style?: string;
   // The opacity drawn at: the user's own setting where there is one, else the
   // resource's.
   defaultOpacity: number;
@@ -217,23 +217,24 @@ export class SKTrack {
 
 // ** SK Target Base class **
 class SKTargetBase {
-  id: string;
-  name: string;
-  mmsi: string;
-  position: Position = [0, 0];
+  id?: string;
+  name?: string;
+  mmsi?: string;
+  // null for a target whose position is not known yet
+  position: Position | null = [0, 0];
   positionReceived = false;
   positionTimestamp: string = '';
   /** Client-clock epoch ms at which the last position delta was received
    * (0 = none yet). Stamped locally rather than derived from
    * `positionTimestamp` so position age is immune to server clock skew. */
   positionUpdatedAt = 0;
-  state: string;
-  type: { id: number; name: string } = { id: -1, name: '' };
+  state?: string;
+  type: { id: number | null; name: string } | null = { id: -1, name: '' };
   // delta values not mapped to a field above, keyed by path
   properties: Record<string, Value> = {};
   lastUpdated = new Date();
-  callsignVhf: string;
-  callsignHf: string;
+  callsignVhf?: string | null;
+  callsignHf?: string | null;
   orientation = 0;
   virtual?: boolean;
 }
@@ -241,17 +242,21 @@ class SKTargetBase {
 // ** Vessel Data **
 export class SKVessel extends SKTargetBase {
   // stream sourced attributes
-  anchor: { maxRadius: number; radius: number; position: SKPosition } = {
+  anchor: {
+    maxRadius: number | null;
+    radius: number | null;
+    position: SKPosition | null;
+  } = {
     maxRadius: null,
     radius: null,
     position: null
   };
   autopilot: {
-    state: string;
-    mode: string;
-    target: number;
+    state: string | null;
+    mode: string | null;
+    target: number | null;
     enabled: boolean;
-    default: string;
+    default: string | null;
     availableActions: string[];
   } = {
     state: null,
@@ -262,13 +267,13 @@ export class SKVessel extends SKTargetBase {
     availableActions: []
   };
   buddy = false;
-  closestApproach: { distance: number; timeTo: number } = {
+  closestApproach: { distance: number | null; timeTo: number | null } = {
     distance: null,
     timeTo: null
   };
-  cog: number;
-  cogTrue: number = null;
-  cogMagnetic: number = null;
+  cog?: number;
+  cogTrue: number | null = null;
+  cogMagnetic: number | null = null;
   courseApi: SKCourseApi = {
     arrivalCircle: 0,
     activeRoute: {},
@@ -276,14 +281,14 @@ export class SKVessel extends SKTargetBase {
     previousPoint: {}
   };
   courseCalcs: SKCourseCalcs = {};
-  distanceToSelf: number;
-  environment: { mode: string; sun: string } = {
+  distanceToSelf?: number;
+  environment: { mode: string | null; sun: string | null } = {
     mode: null, // day | night
     sun: null // dawn| sunrise | day | sunset | dusk | night
   };
-  heading: number;
-  headingTrue: number = null;
-  headingMagnetic: number = null;
+  heading?: number;
+  headingTrue: number | null = null;
+  headingMagnetic: number | null = null;
   // Local receipt times for the heading sources, stamped in the stream worker
   // (only it sees per-path deltas). Automatic orientation needs to know a
   // heading is still arriving, not merely that a value was received once —
@@ -293,8 +298,8 @@ export class SKVessel extends SKTargetBase {
   headingMagneticUpdatedAt = 0;
   // navigation.magneticVariation (radians, easterly positive): derives true
   // angles for drawing when only magnetic ones are reported (#858)
-  magneticVariation: number = null;
-  performance: { beatAngle: number; gybeAngle: number } = {
+  magneticVariation: number | null = null;
+  performance: { beatAngle: number | null; gybeAngle: number | null } = {
     beatAngle: null,
     gybeAngle: null
   };
@@ -302,20 +307,20 @@ export class SKVessel extends SKTargetBase {
   radars: Record<string, Record<string, Value>> = {};
   registrations: SKRegistrations = {};
   resourceUpdates: PathValue[] = []; // resource deltas
-  sog: number;
+  sog?: number;
   track: Array<Position[]> = [];
   vectors: { cog: Position[] } = {
     cog: [] // cog vector
   };
   wind: {
-    direction: number;
-    mwd: number;
-    twd: number;
-    tws: number;
-    speedTrue: number;
-    sog: number;
-    awa: number;
-    aws: number;
+    direction: number | null;
+    mwd: number | null;
+    twd: number | null;
+    tws: number | null;
+    speedTrue: number | null;
+    sog: number | null;
+    awa: number | null;
+    aws: number | null;
   } = {
     direction: null,
     mwd: null,
@@ -337,12 +342,12 @@ export class SKVessel extends SKTargetBase {
     },
     length: null
   };
-  destination: { name: string; eta: string } = {
+  destination: { name: string | null; eta: string | null } = {
     name: null,
     eta: null
   };
-  flag: string;
-  port: string;
+  flag?: string;
+  port?: string;
 }
 
 // ** SaR class **
@@ -370,9 +375,9 @@ export class SKAtoN extends SKTargetBase {
 
 // ** Meteo / weather class **
 export class SKMeteo extends SKAtoN {
-  twd: number;
-  tws: number;
-  temperature: number;
+  twd?: number;
+  tws?: number;
+  temperature?: number;
   constructor() {
     super();
   }

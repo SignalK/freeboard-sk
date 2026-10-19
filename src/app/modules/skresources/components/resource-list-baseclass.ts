@@ -5,7 +5,7 @@ import { SKResourceService, SKSelection } from '../resources.service';
  * A list entry: `[id, resource, selected?]`. Subclasses narrow the resource;
  * the base only needs its name to filter and sort on.
  */
-export type ResourceListEntry = [string, { name: string }, boolean?];
+export type ResourceListEntry = [string, { name?: string | null }, boolean?];
 
 /**
  * Base class for Resource Lists. `T` is the list's own entry type, so its
