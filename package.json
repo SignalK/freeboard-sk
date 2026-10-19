@@ -90,6 +90,7 @@
     "remark-parse": "^11.0.0",
     "signalk-plotterext-bus": "^0.21.0",
     "tslib": "^2.0.0",
+    "typebox": "^1.3.36",
     "unified": "^11.0.5",
     "uuid": "^14.0.1"
   },

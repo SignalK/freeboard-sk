@@ -35,6 +35,7 @@ const makeServer = (
 ) => {
   const getRoutes = new Map<string, RouteHandler>();
   const postRoutes = new Map<string, RouteHandler>();
+  const putRoutes = new Map<string, RouteHandler>();
   const deltas: { handler: DeltaHandler } = {
     handler: () => {
       throw new Error('initAlarms() did not subscribe to deltas');
@@ -47,7 +48,7 @@ const makeServer = (
     get: (path: string, handler: RouteHandler) => getRoutes.set(path, handler),
     post: (path: string, handler: RouteHandler) =>
       postRoutes.set(path, handler),
-    put: noop,
+    put: (path: string, handler: RouteHandler) => putRoutes.set(path, handler),
     delete: noop,
     handleMessage,
     getSelfPath,
@@ -63,7 +64,15 @@ const makeServer = (
     },
     resourcesApi: { listResources }
   } as unknown as FreeboardHelperApp;
-  return { server, getRoutes, postRoutes, deltas, handleMessage, getSelfPath };
+  return {
+    server,
+    getRoutes,
+    postRoutes,
+    putRoutes,
+    deltas,
+    handleMessage,
+    getSelfPath
+  };
 };
 
 // Invoke a captured GET handler and return what it sent as JSON.
@@ -549,5 +558,139 @@ describe('silencing an area alarm', () => {
         }
       ]
     });
+  });
+});
+
+describe('area alarm requests', () => {
+  const center = { latitude: 25.1, longitude: -80.1 };
+  const triangle = [
+    center,
+    { latitude: 25.1, longitude: -80.2 },
+    { latitude: 25.2, longitude: -80.2 }
+  ];
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    shutdownAlarms();
+    vi.useRealTimers();
+  });
+
+  const setUp = () => {
+    const env = makeServer(() => Promise.resolve({}));
+    initAlarms(env.server, 'freeboard-sk');
+    const send = async (
+      routes: Map<string, RouteHandler>,
+      path: string,
+      body: unknown,
+      id?: string
+    ) => {
+      const handler = routes.get(path);
+      if (!handler) {
+        throw new Error(`No route registered for ${path}`);
+      }
+      let statusCode = 0;
+      let reply: { message?: string } = {};
+      const res = {
+        status: (code: number) => {
+          statusCode = code;
+          return res;
+        },
+        json: (payload: { message?: string }) => {
+          reply = payload;
+        }
+      };
+      await handler({ method: 'PUT', path, body, params: { id } }, res);
+      return { statusCode, message: reply.message };
+    };
+    const post = (body: unknown) => send(env.postRoutes, AREA_PATH, body);
+    const put = (id: string, body: unknown) =>
+      send(env.putRoutes, `${AREA_PATH}/:id`, body, id);
+    const area = async (id: string) => {
+      const areas = (await invokeGet(
+        env.getRoutes.get(AREA_PATH),
+        AREA_PATH
+      )) as Array<[string, unknown]>;
+      return areas.find(([areaId]) => areaId === id)?.[1];
+    };
+    return { post, put, area };
+  };
+
+  it('stores a circle with the default trigger and without stray fields', async () => {
+    const { put, area } = setUp();
+
+    const res = await put('c1', {
+      geometry: 'circle',
+      center,
+      radius: 500,
+      coords: [center],
+      colour: 'red'
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(await area('c1')).toEqual({
+      geometry: 'circle',
+      trigger: 'entry',
+      center,
+      radius: 500
+    });
+  });
+
+  it('treats a body without geometry as a polygon', async () => {
+    const { post, area } = setUp();
+
+    const res = await post({ trigger: 'exit', coords: triangle });
+
+    expect(res.statusCode).toBe(200);
+    const id = res.message?.replace('Alarm Area created: ', '') ?? '';
+    expect(await area(id)).toEqual({
+      geometry: 'polygon',
+      trigger: 'exit',
+      coords: triangle
+    });
+  });
+
+  it('rejects a polygon with any invalid coordinate', async () => {
+    const { put, area } = setUp();
+
+    const res = await put('p1', {
+      geometry: 'polygon',
+      coords: [center, { latitude: 91, longitude: -80.2 }, triangle[2]]
+    });
+
+    expect(res).toEqual({
+      statusCode: 400,
+      message: 'Area alarm is invalid: /coords/1/latitude must be <= 90'
+    });
+    expect(await area('p1')).toBeUndefined();
+  });
+
+  it.each([
+    ['an unknown trigger', { trigger: 'near', coords: triangle }],
+    ['an unknown geometry', { geometry: 'square', coords: triangle }],
+    ['a polygon without coordinates', { geometry: 'polygon', coords: [] }],
+    ['a polygon of two points', { coords: triangle.slice(0, 2) }],
+    ['a circle without a radius', { geometry: 'circle', center }],
+    ['a circle with a zero radius', { geometry: 'circle', center, radius: 0 }],
+    ['a name that is not text', { coords: triangle, name: 7 }],
+    ['a body that is not an object', 'polygon']
+  ])('rejects %s', async (_case, body) => {
+    const { post } = setUp();
+
+    const res = await post(body);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.message).toMatch(/^Area alarm is invalid: /);
+  });
+
+  it('asks for a PUT when a region area is posted', async () => {
+    const { post } = setUp();
+
+    const res = await post({ geometry: 'region' });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.message).toMatch(/Use PUT request/);
   });
 });

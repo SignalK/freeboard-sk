@@ -19,9 +19,14 @@ import {
 import type { FreeboardHelperApp } from '../index.js';
 import * as uuid from 'uuid';
 import { isPointWithinRadius, isPointInPolygon } from 'geolib';
+import { Value } from 'typebox/value';
+import {
+  parseAreaBody,
+  PositionSchema,
+  type AreaAlarmBody
+} from './area-schemas.js';
 
 type AlarmTrigger = 'entry' | 'exit';
-type AlarmGeometry = 'polygon' | 'circle' | 'region';
 
 interface CircleAreaAlarmDef {
   geometry: 'circle';
@@ -39,19 +44,6 @@ interface PolygonAreaAlarmDef {
 }
 
 type AreaAlarmDef = CircleAreaAlarmDef | PolygonAreaAlarmDef;
-
-/** An area alarm request body, before validateAreaBody() has checked it. */
-interface AreaAlarmBody {
-  geometry?: AlarmGeometry;
-  trigger?: AlarmTrigger;
-  coords?: Array<Position>;
-  center?: Position;
-  radius?: number;
-  name?: string;
-}
-
-const AREA_TRIGGERS: Array<AlarmTrigger> = ['entry', 'exit'];
-const AREA_GEOMETRIES: Array<AlarmGeometry> = ['polygon', 'circle', 'region'];
 
 const ALARM_API_PATH = '/signalk/v2/api/alarms';
 
@@ -300,8 +292,9 @@ const initAlarmEndpoints = () => {
   });
   // new area alarm
   server.post(`${ALARM_API_PATH}/area`, async (req: Request, res: Response) => {
+    let body: AreaAlarmBody;
     try {
-      validateAreaBody(req.body);
+      body = parseAreaBody(req.body);
     } catch (err) {
       res.status(400).json({
         state: 'FAILED',
@@ -311,7 +304,7 @@ const initAlarmEndpoints = () => {
       return;
     }
 
-    if (req.body.geometry === 'region') {
+    if (body.geometry === 'region') {
       res.status(400).json({
         state: 'FAILED',
         statusCode: 400,
@@ -321,7 +314,7 @@ const initAlarmEndpoints = () => {
     }
 
     const id = uuid.v4();
-    alarmAreas.set(id, req.body);
+    alarmAreas.set(id, body);
     res.status(200).json({
       state: 'COMPLETE',
       statusCode: 200,
@@ -333,8 +326,9 @@ const initAlarmEndpoints = () => {
     async (req: Request, res: Response) => {
       server.debug(`** ${req.method} ${req.path}`);
 
+      let body: AreaAlarmBody;
       try {
-        validateAreaBody(req.body);
+        body = parseAreaBody(req.body);
       } catch (err) {
         res.status(400).json({
           state: 'FAILED',
@@ -344,15 +338,15 @@ const initAlarmEndpoints = () => {
         return;
       }
 
-      if (req.body.geometry === 'region') {
+      if (body.geometry === 'region') {
         // use region resource as alarm area
         try {
           const reg = await fetchRegion(req.params.id);
           const coords = parseRegionCoords(reg);
           if (Array.isArray(coords)) {
             alarmAreas.set(req.params.id, {
-              geometry: req.body.geometry,
-              trigger: req.body.trigger,
+              geometry: body.geometry,
+              trigger: body.trigger,
               coords: coords,
               name: reg.name
             });
@@ -381,7 +375,7 @@ const initAlarmEndpoints = () => {
         const msg = alarmAreas.has(req.params.id)
           ? `Alarm Area updated: ${req.params.id}`
           : `Alarm Area created: ${req.params.id}`;
-        alarmAreas.set(req.params.id, req.body);
+        alarmAreas.set(req.params.id, body);
         res.status(200).json({
           state: 'COMPLETE',
           statusCode: 200,
@@ -464,71 +458,6 @@ const emitNotification = (msg: PathValue) => {
 const deleteArea = (id: string) => {
   alarmAreas.delete(id);
   alarmManager.delete(id);
-};
-
-/**
- * Validate Area Alarm request parameters
- * @param body request body (untrusted; defaults are applied and stray
- * fields removed in place)
- */
-const validateAreaBody = (body: AreaAlarmBody) => {
-  if (!body.trigger) {
-    body.trigger = 'entry';
-  } else if (!AREA_TRIGGERS.includes(body.trigger)) {
-    throw new Error(`Area alarm trigger is invalid!`);
-  }
-  if (!body.geometry) {
-    body.geometry = 'polygon';
-  } else if (!AREA_GEOMETRIES.includes(body.geometry)) {
-    throw new Error(`Area alarm geometry is invalid!`);
-  }
-
-  if (body.geometry === 'polygon') {
-    if (!Array.isArray(body.coords)) {
-      throw new Error(`Area coordinates not provided or are invalid!`);
-    }
-    if (body.coords.length === 0) {
-      throw new Error(`Area coordinates not provided!`);
-    } else if (!isValidPosition(body.coords[0])) {
-      throw new Error(`Area coordinates are invalid!`);
-    }
-    delete body.center;
-    delete body.radius;
-  }
-  if (body.geometry === 'circle') {
-    if (!body.center || !isValidPosition(body.center)) {
-      throw new Error(`Center coordinate not provided or is invalid!`);
-    }
-    if (typeof body.radius !== 'number') {
-      throw new Error(`Radius not provided or invalid!`);
-    }
-    delete body.coords;
-  }
-
-  if (body.geometry === 'region') {
-    delete body.coords;
-    delete body.center;
-    delete body.radius;
-  }
-};
-
-/**
- * Determines if supplied position is valid
- * @param position
- * @returns true if valid
- */
-const isValidPosition = (position: Position): boolean => {
-  return position &&
-    'latitude' in position &&
-    'longitude' in position &&
-    typeof position.latitude === 'number' &&
-    position.latitude >= -90 &&
-    position.latitude <= 90 &&
-    typeof position.longitude === 'number' &&
-    position.longitude >= -180 &&
-    position.longitude <= 180
-    ? true
-    : false;
 };
 
 /**
@@ -659,7 +588,7 @@ const processRegionUpdate = (id: string, region: Region | null) => {
  * @param position Vessel position
  */
 const processVesselPositionUpdate = (position: Position) => {
-  if (!isValidPosition(position)) {
+  if (!Value.Check(PositionSchema, position)) {
     return;
   }
 
