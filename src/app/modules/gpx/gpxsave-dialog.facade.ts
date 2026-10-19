@@ -27,7 +27,7 @@ export class GPXSaveFacade {
   private resultSource: Subject<number>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public result$: Observable<any>;
-  private sk2gpx: SK2GPX;
+  private sk2gpx: SK2GPX | null = null;
   public hasFSA: boolean;
 
   // *******************************************************
@@ -77,7 +77,8 @@ export class GPXSaveFacade {
   // ** save selected resources to GPX file **
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   saveToFile(res: any, selections: any) {
-    this.sk2gpx = new SK2GPX();
+    const sk2gpx = new SK2GPX();
+    this.sk2gpx = sk2gpx;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const skroutes: { [key: string]: any } = {};
@@ -91,21 +92,21 @@ export class GPXSaveFacade {
         skroutes[res.routes[i].feature.id] = res.routes[i];
       }
     }
-    this.sk2gpx.setRoutes(skroutes);
+    sk2gpx.setRoutes(skroutes);
 
     for (let i = 0; i < selections.wpt.selected.length; i++) {
       if (selections.wpt.selected[i]) {
         skwaypoints[res.waypoints[i].feature.id] = res.waypoints[i];
       }
     }
-    this.sk2gpx.setWaypoints(skwaypoints);
+    sk2gpx.setWaypoints(skwaypoints);
 
     // tracks arrive resolved: the selected ones, fetched and named
     (selections.trk.tracks ?? []).forEach((t: GpxTrackData) => {
       const uuid = this.signalk.uuid;
       sktracks[uuid] = gpxTrackResource(uuid, t);
     });
-    this.sk2gpx.setTracks(sktracks);
+    sk2gpx.setTracks(sktracks);
 
     if (this.hasFSA) {
       this.fsaSaveFile();
@@ -114,9 +115,17 @@ export class GPXSaveFacade {
     }
   }
 
+  /** The export being saved; throws once clear() has dropped it. */
+  private gpxXml(): string {
+    if (!this.sk2gpx) {
+      throw new Error('No GPX export to save');
+    }
+    return this.sk2gpx.toXML();
+  }
+
   // Using legacy download
   legacySaveToFile() {
-    const file = new Blob([this.sk2gpx.toXML()], { type: 'text/xml' });
+    const file = new Blob([this.gpxXml()], { type: 'text/xml' });
 
     const a = document.createElement('a');
     a.href = URL.createObjectURL(file);
@@ -144,7 +153,7 @@ export class GPXSaveFacade {
         h.createWritable()
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .then((writable: any) => {
-            const blob = new Blob([this.sk2gpx.toXML()]);
+            const blob = new Blob([this.gpxXml()]);
             writable.write(blob).then(() => {
               writable.close();
               this.resultSource.next(0); // ** success

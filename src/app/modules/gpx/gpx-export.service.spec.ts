@@ -7,6 +7,14 @@ import { AppFacade } from '../../app.facade';
 import { SKResourceService } from '../skresources/resources.service';
 import type { Position } from '../../types';
 
+/** The value, failing the test when there is none. */
+function defined<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined) {
+    throw new Error('expected a value');
+  }
+  return value;
+}
+
 const CTX = 'vessels.urn:mrn:imo:mmsi:366000012';
 const T0 = '2026-09-25T14:00:00.000Z';
 const T1 = '2026-09-25T14:01:00.000Z';
@@ -95,12 +103,14 @@ describe('GPXExportService', () => {
   });
 
   it("offers an AIS vessel's displayed track with its recording times", () => {
-    const t = service(
-      appStub({
-        trackApi: 'v2',
-        aisTimed: new Map([[CTX, { lines: [recorded], times: [[T0, T1]] }]])
-      })
-    ).vesselTrack(CTX);
+    const t = defined(
+      service(
+        appStub({
+          trackApi: 'v2',
+          aisTimed: new Map([[CTX, { lines: [recorded], times: [[T0, T1]] }]])
+        })
+      ).vesselTrack(CTX)
+    );
     expect(t.label).toBe('FERRY ONE (366000012)');
     expect(t.tailOnly).toBe(false);
     // the live tail since the last fetch has no recorded time yet
@@ -109,24 +119,25 @@ describe('GPXExportService', () => {
 
   it('says when an AIS track is only the tail Freeboard gathered', () => {
     expect(
-      service(appStub({ trackApi: 'none' })).vesselTrack(CTX).tailOnly
+      service(appStub({ trackApi: 'none' })).vesselTrack(CTX)?.tailOnly
     ).toBe(true);
     TestBed.resetTestingModule();
     // a v2 provider with nothing recorded for this vessel
-    expect(service(appStub({ trackApi: 'v2' })).vesselTrack(CTX).tailOnly).toBe(
-      true
-    );
+    expect(
+      service(appStub({ trackApi: 'v2' })).vesselTrack(CTX)?.tailOnly
+    ).toBe(true);
     TestBed.resetTestingModule();
-    expect(service(appStub({ trackApi: 'v1' })).vesselTrack(CTX).tailOnly).toBe(
-      false
-    );
+    expect(
+      service(appStub({ trackApi: 'v1' })).vesselTrack(CTX)?.tailOnly
+    ).toBe(false);
   });
 
   it('offers a vessel with no track drawn, for a Track history range', () => {
     const app = appStub({ trackApi: 'v2' });
     app.data.vessels.aisTracks.clear();
-    app.data.vessels.aisTargets.get(CTX).track = undefined;
-    const t = service(app).vesselTrack(CTX);
+    const target = defined(app.data.vessels.aisTargets.get(CTX));
+    (target as { track?: unknown }).track = undefined;
+    const t = defined(service(app).vesselTrack(CTX));
     expect(t.label).toBe('FERRY ONE (366000012)');
     expect(t.displayed.lines).toEqual([]);
   });

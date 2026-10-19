@@ -23,7 +23,7 @@ export * from './resources/freeboard';
 export * from './stream';
 export * from './vessel';
 
-export type ErrorList = Array<{ status: number; message: string }>;
+export type ErrorList = Array<{ status?: number; message: string }>;
 
 export type MFBAction = 'wpt' | 'pob' | 'autopilot' | 'radar';
 

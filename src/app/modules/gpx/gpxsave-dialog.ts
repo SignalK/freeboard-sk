@@ -250,7 +250,7 @@ export class GPXExportDialog implements OnInit {
 
   // ** load selected resources **
   async save() {
-    let tracks: GpxTrackData[];
+    let tracks: GpxTrackData[] | null;
     try {
       tracks = await this.selectedTracks();
     } catch {

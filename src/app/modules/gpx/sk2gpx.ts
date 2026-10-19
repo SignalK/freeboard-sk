@@ -12,7 +12,8 @@ import { getSymbolGpxMapping } from 'src/app/modules/icons';
 import type { Position } from 'src/app/types';
 
 export class SK2GPX {
-  public gpx: GPX;
+  // set by init(), which the constructor calls
+  public gpx!: GPX;
 
   constructor() {
     this.init();
