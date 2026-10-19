@@ -45,11 +45,11 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
   calcVector(target: SKVessel) {
     const windDirection = this.vectorApparent
       ? typeof target.wind.awa !== 'undefined'
-        ? target.orientation + target.wind.awa
+        ? target.orientation + (target.wind.awa ?? 0)
         : null
       : trueWindDirection(target);
 
-    if (typeof windDirection !== 'number') {
+    if (typeof windDirection !== 'number' || !target.position) {
       return [];
     }
 

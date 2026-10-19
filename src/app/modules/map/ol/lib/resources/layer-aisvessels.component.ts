@@ -146,7 +146,7 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
     let s: Style;
     const isMoored = target.state === 'moored';
 
-    const shipClass = target.type.id
+    const shipClass = target.type?.id
       ? Math.abs(Math.floor(target.type.id / 10) * 10)
       : -1;
 

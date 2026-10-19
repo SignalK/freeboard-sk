@@ -148,12 +148,11 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       return target.orientation;
     }
     const meteo = target as SKMeteo;
+    const twd = meteo.twd ?? NaN;
     if (this.isMeteoArrow(target)) {
-      return meteo.twd + Math.PI;
+      return twd + Math.PI;
     }
-    return meteoWindBucket(meteo.tws) && Number.isFinite(meteo.twd)
-      ? meteo.twd
-      : 0;
+    return meteoWindBucket(meteo.tws) && Number.isFinite(twd) ? twd : 0;
   }
 
   // Whether a meteo target reports a wind speed to display alongside its glyph.
@@ -172,7 +171,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       return label;
     }
     const speed = this.app.formatValueForDisplay(
-      (target as SKMeteo).tws,
+      (target as SKMeteo).tws ?? NaN,
       'm/s',
       {
         precision: 0,
@@ -188,7 +187,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       ? this.mapImages.getWindArrow()
       : this.targetContext === 'meteo'
         ? this.mapImages.getMeteoIcon((target as SKMeteo).tws, target.virtual)
-        : this.mapImages.getAtoN(target.type?.id, target.virtual);
+        : this.mapImages.getAtoN(target.type?.id ?? '', target.virtual);
     if (icon && typeof this.targetStyles === 'undefined') {
       return new Style({
         image: icon,

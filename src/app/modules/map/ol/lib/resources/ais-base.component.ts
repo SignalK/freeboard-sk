@@ -135,7 +135,7 @@ export class AISBaseLayerComponent
       checkImo(id) && checkBuddy(id);
 
     if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
-      const st = Math.floor((this.targets.get(id)?.type.id ?? NaN) / 10) * 10;
+      const st = Math.floor((this.targets.get(id)?.type?.id ?? NaN) / 10) * 10;
       return this.filterShipTypes.includes(st) && passesSentinelFilters(id);
     }
     if (!this.filterIds) {
