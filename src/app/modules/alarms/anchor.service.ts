@@ -120,12 +120,14 @@ export class AnchorService {
       if (typeof radius !== 'number') {
         const vessel = this.app.data.vessels.self.position;
         const anchor = this.position();
-        if (!anchor) {
+        if (!vessel || !anchor) {
           return throwError(
             () =>
               new HttpErrorResponse({
                 status: 400,
-                error: { message: 'The anchor position is not known yet.' }
+                error: {
+                  message: 'The vessel or anchor position is not known yet.'
+                }
               })
           );
         }
