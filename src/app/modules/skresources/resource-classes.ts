@@ -271,7 +271,7 @@ export class SKVessel extends SKTargetBase {
     distance: null,
     timeTo: null
   };
-  cog?: number;
+  cog?: number | null;
   cogTrue: number | null = null;
   cogMagnetic: number | null = null;
   courseApi: SKCourseApi = {
@@ -286,7 +286,7 @@ export class SKVessel extends SKTargetBase {
     mode: null, // day | night
     sun: null // dawn| sunrise | day | sunset | dusk | night
   };
-  heading?: number;
+  heading?: number | null;
   headingTrue: number | null = null;
   headingMagnetic: number | null = null;
   // Local receipt times for the heading sources, stamped in the stream worker
