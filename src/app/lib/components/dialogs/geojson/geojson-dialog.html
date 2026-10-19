@@ -85,7 +85,7 @@
     }
 
     <!-- Tracks -->
-    @if(geoData.tracks.length!=0 && app.featureFlags().resourceTracks) {
+    @if(geoData.tracks.length!=0 && app.tracksAvailable()) {
     <div class="card-group">
       <mat-card>
         <mat-card-content>
