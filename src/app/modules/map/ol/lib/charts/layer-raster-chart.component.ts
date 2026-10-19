@@ -100,7 +100,7 @@ export class RasterChartLayerComponent implements OnDestroy {
         this.layer.setMaxZoom(zoom.max ?? Infinity);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       } else {
-        if (chart[1].url.indexOf('.pmtiles') !== -1) {
+        if (chart[1].url?.includes('.pmtiles')) {
           this.layer = initPMTilesXYZLayer(
             chart[1],
             this.zIndex(),

@@ -48,27 +48,27 @@ export class RadarRenderService {
       this.app.showMessage('Web-GL is not available!');
       return;
     }
-    if (!this.radarApi.radar()) {
+    const activeRadar = this.radarApi.radar();
+    if (!activeRadar) {
       this.app.showMessage('No Radar speciified!');
       return;
     }
     // map legend for rendering
     const legend: Record<string, SKRadarLegendEntry> = {};
     let idx = 0;
-    this.radarApi.radar().capabilities?.legend?.pixels?.forEach((i) => {
+    activeRadar.capabilities?.legend?.pixels?.forEach((i) => {
       legend[idx] = i;
       idx++;
     });
 
     return {
-      id: this.radarApi.radar().device.id,
-      name: this.radarApi.radar().device.name,
+      id: activeRadar.device.id,
+      name: activeRadar.device.name,
       // Spoke geometry comes from /capabilities (present on both old and new
       // servers). Radar API 3.4.0 streams binary spokes from …/{id}/spokes;
       // pre-3.4.0 servers (no version in the discovery envelope) use …/{id}/stream.
-      spokesPerRevolution:
-        this.radarApi.radar().capabilities.spokesPerRevolution,
-      maxSpokeLen: this.radarApi.radar().capabilities.maxSpokeLength,
+      spokesPerRevolution: activeRadar.capabilities.spokesPerRevolution,
+      maxSpokeLen: activeRadar.capabilities.maxSpokeLength,
       streamUrl: `${this.app.hostDef.ssl ? 'wss' : 'ws'}://${this.app.hostDef.name}:${
         this.app.hostDef.port
       }/signalk/v2/api/vessels/self/radars/${this.radarApi.radarId()}/${

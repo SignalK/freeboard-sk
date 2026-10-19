@@ -81,7 +81,7 @@ export class WmsChartLayerComponent implements OnDestroy {
       if (this.featureUrl) {
         this.mapService.addFeatureUrls({
           id: this.chart()[0],
-          name: this.chart()[1].name,
+          name: this.chart()[1].name ?? '',
           type: 'chart',
           subType: 'wms',
           url: this.featureUrl

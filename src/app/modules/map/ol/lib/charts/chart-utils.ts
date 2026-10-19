@@ -1125,12 +1125,12 @@ export function applyChartTimeToTileSource(
   source: UrlTile,
   time: string | null,
   timeUrl: string | undefined,
-  live: string | UrlFunction
+  live: string | UrlFunction | undefined
 ): void {
   if (time === null) {
     if (typeof live === 'string') {
       source.setUrl(live);
-    } else {
+    } else if (live) {
       source.setTileUrlFunction(live, CHART_TIME_LIVE_KEY);
     }
     return;

@@ -73,7 +73,7 @@ export class VectorChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
 
-      if (chart[1].url.indexOf('.pmtiles') !== -1) {
+      if (chart[1].url?.includes('.pmtiles')) {
         this.layer = initPMTilesVectorLayer(chart[1], this.zIndex());
       } else {
         this.layer = new VectorTileLayer({

@@ -65,7 +65,8 @@ export function initPMTilesXYZLayer(
   zIndex: number,
   className?: string
 ): TileLayer<XYZ> {
-  const tiles = new pmtiles.PMTiles(chart.url);
+  // callers pick the pmtiles layer by the chart's .pmtiles url
+  const tiles = new pmtiles.PMTiles(chart.url ?? '');
 
   function loader(tile: Tile, url: string) {
     tile.setState(1); // LOADING
@@ -123,7 +124,8 @@ export function initPMTilesVectorLayer(
   chart: SKChart,
   zIndex: number
 ): VectorTileLayer {
-  const tiles = new pmtiles.PMTiles(chart.url);
+  // callers pick the pmtiles layer by the chart's .pmtiles url
+  const tiles = new pmtiles.PMTiles(chart.url ?? '');
 
   function loader(loadTile: Tile, url: string) {
     const tile = loadTile as VectorTile<FeatureLike>;
