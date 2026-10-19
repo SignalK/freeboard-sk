@@ -1387,11 +1387,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * What a context menu at `at` shows, or null when none opens. No menu
-   * during a modal interaction (the measure point is added by
-   * onMapRightClick, which fires alongside the menu). Freeboard's own items
-   * are left out in kiosk mode and over an open popover; extension actions
-   * are offered at every point, position actions included.
+   * What a context menu at `at` shows, or null when none opens. Freeboard's
+   * own items are left out where they always were: in kiosk mode, over an
+   * open popover, and while drawing, measuring, modifying or box-selecting,
+   * which suppress them (the measure point is added by onMapRightClick,
+   * which fires alongside the menu). Extension actions are offered at every
+   * point, position actions included, except during a modal interaction.
    */
   private contextMenuContent(
     features: FeatureLike[],
@@ -1400,23 +1401,27 @@ export class FBMapComponent implements OnInit, OnDestroy {
     host: boolean;
     ext: Array<{ target: ChartTarget; actions: UsableAction[] }>;
   } | null {
-    if (this.isModalInteraction() || this.modifyMode) {
+    if (this.modifyMode) {
       return null;
     }
     const host = !this.app.uiCtrl().suppressContextMenu && !this.overlay().show;
-    const ext = this.extensionActionGroups(features, at);
+    const ext = this.isModalInteraction()
+      ? []
+      : this.extensionActionGroups(features, at);
     return host || ext.length ? { host, ext } : null;
   }
 
   /**
    * Whether the user is in a modal interaction — drawing, measuring, editing
-   * geometry, editing a guard zone — which no context menu interrupts.
+   * geometry or a guard zone, box-selecting — during which no extension
+   * action is offered.
    */
   private isModalInteraction(): boolean {
     return (
       this.mapInteract.isDrawing() ||
       this.mapInteract.isMeasuring() ||
       this.mapInteract.isModifying() ||
+      this.mapInteract.isBoxSelecting() ||
       !!this.zoneEdit.edit()
     );
   }

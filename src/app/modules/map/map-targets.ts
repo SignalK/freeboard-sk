@@ -182,14 +182,16 @@ export function featureTarget(
       };
     }
     case 'vessels': {
-      if (rest !== 'self') return null;
+      // The own vessel's feature id is its context (`vessels.<urn>`, the
+      // server's self id); AIS vessels are `ais-vessels.*`.
+      if (!rest) return null;
       const v = src.self();
       const name = v?.name || undefined;
       return {
         target: defined({
           kind: 'vessel',
           position,
-          context: 'vessels.self',
+          context: featureId,
           self: true,
           name,
           featurePosition: pointOf(v?.position)

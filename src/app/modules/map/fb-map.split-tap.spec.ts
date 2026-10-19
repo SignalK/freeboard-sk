@@ -22,6 +22,7 @@ const bareComponent = (secondPane: OlMap | null) => {
     isMeasuring: () => false,
     isDrawing: () => false,
     isModifying: () => false,
+    isBoxSelecting: () => false,
     draw: { features: new Collection(), forSave: {} }
   };
   cmp.s57Features = {};

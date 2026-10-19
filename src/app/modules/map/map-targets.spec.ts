@@ -182,10 +182,13 @@ describe('featureTarget', () => {
   });
 
   it('makes the own vessel and an AIS vessel vessel targets', () => {
-    expect(featureTarget('vessels.self', at, sources())?.target).toEqual({
+    // the own vessel's feature id is the server's self context
+    expect(
+      featureTarget('vessels.urn:mrn:imo:mmsi:338123456', at, sources())?.target
+    ).toEqual({
       kind: 'vessel',
       position: at,
-      context: 'vessels.self',
+      context: 'vessels.urn:mrn:imo:mmsi:338123456',
       self: true,
       name: 'eSea Street',
       featurePosition: [-80.1, 25.7]

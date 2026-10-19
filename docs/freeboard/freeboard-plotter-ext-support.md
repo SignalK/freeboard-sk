@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.19.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.23.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -892,8 +892,9 @@ choice. Not yet here: `overlayFeature` targets (`actions.overlay`, #1109).
 
 `extensionActions` (service) holds the usable actions of compatible manifests,
 read by the pure `usableActions` (`actions.ts`): an action missing `id`,
-`title`, `targets` or a known `action.type`, or whose every target entry is
-ignored, is left out. A target entry is ignored when its kind is not one
+`title` or `targets`, one that cannot be performed (an unknown `action.type`, a
+`publish` without a `topic`, a panel or window type naming no iframe panel of
+its manifest), or one whose every target entry is ignored, is left out. A target entry is ignored when its kind is not one
 Freeboard offers or it narrows a kind with a field that kind does not take.
 `match` uses the `resources.setFilter` evaluator, which lives in
 `filter-condition.ts` for both. `actionsFor(selected)` filters by target and by
@@ -911,13 +912,14 @@ ids, the same ones `processMapClick` reads:
 | `waypoint.<id>`, `note.<id>`, `region.<id>` | `id`, `href` `/resources/<type>/<id>`; a waypoint's or note's `featurePosition` | the cached `SK*` object |
 | `route.<id>` | stored: `id`, `href` and `routeId` from the route registry; a never-saved draft: `routeId` only | the stored route; a draft `{ name }` |
 | `track.<id>` | `href` `/tracks/<id>` for a Track API track, `/resources/tracks/<id>` otherwise | `{ name, description }` |
-| `vessels.self` | `context: 'vessels.self'`, `self: true` | — |
+| `vessels.<urn>` (the own vessel; its id is the server's self context) | `context` = the feature id, `self: true` | — |
 | `ais-vessels.<urn>` | `context: 'vessels.<urn>'`, `self: false` | — |
 | `atons.*`, `aton.*`, `shore.*` | `context` = the feature id | — |
 | an S-57 feature (`s57.<LNAM>`) | `class` = its tile `layer`, `name` = `OBJNAM`, `properties` = its attributes, a point's `featurePosition` | the target |
 
 Every target's `position` is the canonical click point, never the world-copy
-offset. Trails, AIS tracks, route points, the destination flag, SaR and meteo
+offset. A chart feature carries no `chart.id` yet (optional in the spec): the
+hit test reports features, not which chart layer drew them. Trails, AIS tracks, route points, the destination flag, SaR and meteo
 stations make no target.
 
 ### Where actions appear
@@ -926,11 +928,11 @@ stations make no target.
   Freeboard's own items, one group per target, each with a header naming it:
   first the features under the pointer that make a target, then the position
   ("This position"). Each item names its extension. `contextMenuContent`
-  decides what opens. During a modal interaction (drawing, measuring,
-  modifying, guard-zone editing) nothing opens. In kiosk mode and over an open
-  popover, Freeboard's own items are left out but extension actions still show,
-  so position actions can be reached at every point. With nothing to show, no
-  menu opens. The split view's second pane goes through the same path.
+  decides what opens. Freeboard's own items are left out where they always
+  were: in kiosk mode, over an open popover, and while drawing, measuring,
+  modifying or box-selecting. Extension actions show everywhere except during a
+  modal interaction (those four and guard-zone editing), so position actions
+  can be reached at every point. With nothing to show, no menu opens. The split view's second pane goes through the same path.
 - **Feature popovers.** `<fb-ext-actions>` (`ext-actions.component.ts`) is
   projected into the resource, vessel, aton and S-57 popovers and the track
   popover, for the target `formatPopover` stores in `IPopover.target`. The

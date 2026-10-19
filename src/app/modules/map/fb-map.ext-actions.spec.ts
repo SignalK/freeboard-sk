@@ -41,6 +41,7 @@ const bareComponent = (offered: string[]) => {
     isMeasuring: () => false,
     isDrawing: () => false,
     isModifying: () => false,
+    isBoxSelecting: () => false,
     draw: { features: new Collection(), forSave: {} }
   };
   cmp.zoneEdit = { edit: (): null => null };
@@ -146,17 +147,29 @@ describe('FBMapComponent: extension actions in the chart menu', () => {
     expect(cmp.contextMenu.openMenu).not.toHaveBeenCalled();
   });
 
-  it('offers nothing during a modal interaction', () => {
-    for (const mode of ['isDrawing', 'isModifying', 'isMeasuring']) {
+  it('offers nothing while drawing, measuring, modifying or box-selecting', () => {
+    for (const mode of [
+      'isDrawing',
+      'isModifying',
+      'isMeasuring',
+      'isBoxSelecting'
+    ]) {
       const cmp = bareComponent(['position']);
       cmp.mapInteract[mode] = () => true;
+      // as the interaction service does when one of them starts
+      cmp.app.uiCtrl.set({ suppressContextMenu: true });
       cmp.onContextMenu(menuEvent());
       expect(cmp.contextMenu.openMenu).not.toHaveBeenCalled();
     }
+  });
+
+  it('keeps Freeboard’s own items, without extension actions, in a guard zone edit', () => {
     const cmp = bareComponent(['position']);
     cmp.zoneEdit = { edit: () => ({}) };
     cmp.onContextMenu(menuEvent());
-    expect(cmp.contextMenu.openMenu).not.toHaveBeenCalled();
+    expect(cmp.contextMenu.openMenu).toHaveBeenCalled();
+    expect(cmp.contextMenu.menuData.host).toBe(true);
+    expect(cmp.contextMenu.menuData.ext).toEqual([]);
   });
 
   it('opens the pane menu with only extension actions over a popover', () => {
