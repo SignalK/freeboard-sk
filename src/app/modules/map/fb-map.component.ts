@@ -482,6 +482,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * world alone isn't enough — align by the feature's extent). See #572.
    */
   private clickMercX = 0;
+  /** The sketch of the route being drawn; OL updates its geometry in place. */
+  private drawSketch: Feature | undefined;
 
   // Cursor position readout. A signal so the readout (and measure overlay)
   // refresh when pointer-move runs OUTSIDE the Angular zone (see MapComponent).
@@ -1176,7 +1178,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.mapInteract.isDrawing() &&
       this.mapInteract.draw.resourceType === 'route'
     ) {
-      this.onDrawClick(e.features);
+      this.onDrawClick();
     } else if (
       // modifying a route: a click in open water extends it from the end
       this.mapInteract.isModifying() &&
@@ -1385,26 +1387,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mapInteract.stopMeasuring();
   }
 
+  /** Handle OL interaction start event */
+  protected onDrawStart(e: DrawEvent) {
+    this.drawSketch = e.feature;
+  }
+
   /**
-   * Process pointer click in DRAW mode
-   * @param fa Array of Features
+   * Process pointer click in DRAW mode. The read-out is taken from the sketch
+   * itself, since the features under the click include other routes, tracks
+   * and chart lines.
    */
-  protected onDrawClick(fa: FeatureLike[]) {
-    if (!Array.isArray(fa)) {
+  protected onDrawClick() {
+    if (this.mapInteract.draw.resourceType !== 'route') {
       return;
     }
-    if (this.mapInteract.draw.resourceType === 'route') {
-      let rteCoords: Position[];
-      fa.forEach((f: FeatureLike) => {
-        if (f.getGeometry().getType() === 'LineString') {
-          rteCoords = (f.getGeometry() as OLLineString)
-            .getCoordinates()
-            .map((c) => toLonLat(c) as Position);
-          rteCoords = rteCoords.slice(0, rteCoords.length - 1);
-        }
-      });
-      this.mapInteract.measurementCoords = rteCoords;
+    const geom = this.drawSketch?.getGeometry();
+    if (!(geom instanceof OLLineString)) {
+      return;
     }
+    // The sketch's last coordinate is OL's floating cursor point.
+    const rteCoords = geom
+      .getCoordinates()
+      .slice(0, -1)
+      .map((c) => toLonLat(c) as Position);
+    this.mapInteract.measurementCoords = rteCoords;
   }
 
   /**
