@@ -6,6 +6,7 @@
     "alwaysStrict": true,
     "noImplicitThis": true,
     "strictBindCallApply": true,
+    "noImplicitAny": true,
     "strictFunctionTypes": true,
     "useUnknownInCatchVariables": true,
     "noImplicitOverride": true,
