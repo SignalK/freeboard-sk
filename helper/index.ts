@@ -8,6 +8,7 @@ import {
 } from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
 import { createRequire } from 'node:module';
+import { Type } from 'typebox';
 import { initAlarms, shutdownAlarms } from './alarms/alarms.js';
 
 // Import attributes for JSON need Node 18.20 / 20.10; require works on every
@@ -16,36 +17,28 @@ const openapi = createRequire(import.meta.url)('./openApi.json') as object;
 
 //const defaultPollInterval = 60;
 
-const CONFIG_SCHEMA = {
-  properties: {}
-};
+// Nothing to configure: area alarms are always on.
+const CONFIG_SCHEMA = Type.Object({});
 
 const CONFIG_UISCHEMA = {};
 
-interface SETTINGS {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  alarms: { [key: string]: any };
+interface Settings {
+  alarms: { enable: boolean };
 }
+
+const SETTINGS: Settings = { alarms: { enable: true } };
 
 export interface FreeboardHelperApp extends Application, ServerAPI {}
 
 export default (server: FreeboardHelperApp): Plugin => {
-  // ** default configuration settings
-  let settings: SETTINGS = {
-    alarms: {
-      enable: true
-    }
-  };
-
   // ******** REQUIRED PLUGIN DEFINITION *******
   const plugin: Plugin = {
     id: 'freeboard-sk',
     name: 'Freeboard-SK',
     schema: () => CONFIG_SCHEMA,
     uiSchema: () => CONFIG_UISCHEMA,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    start: (settings: any) => {
-      doStartup(settings);
+    start: () => {
+      doStartup();
     },
     stop: () => {
       doShutdown();
@@ -57,13 +50,9 @@ export default (server: FreeboardHelperApp): Plugin => {
   };
   // ************************************
 
-  const doStartup = (options: SETTINGS) => {
+  const doStartup = () => {
     try {
       server.debug(`${plugin.name} starting.......`);
-
-      if (typeof options !== 'undefined') {
-        settings = options;
-      }
 
       /**
        * emit metas for environment paths
@@ -71,25 +60,17 @@ export default (server: FreeboardHelperApp): Plugin => {
        */
       emitMeteoMetas();
 
-      settings.alarms = options.alarms ?? {
-        enable: true
-      };
-      // const f = await server.getFeatures();
-      settings.alarms.enable = true; //!f.apis.includes('notifications' as any);
+      server.debug(`Applied config: ${JSON.stringify(SETTINGS)}`);
 
-      server.debug(`Applied config: ${JSON.stringify(settings)}`);
-
-      if (settings.alarms.enable) {
-        initAlarms(server, plugin.id);
-      }
+      initAlarms(server, plugin.id);
       server.setPluginStatus('Started');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error) {
       const msg = 'Started with errors!';
       server.setPluginError(msg);
       server.error('** EXCEPTION: **');
-      server.error(error.stack);
-      return error;
+      server.error(
+        error instanceof Error ? (error.stack ?? error.message) : String(error)
+      );
     }
   };
 
@@ -106,7 +87,7 @@ export default (server: FreeboardHelperApp): Plugin => {
 
     router.get('/settings', (req: Request, res: Response) => {
       res.status(200).json({
-        settings: settings
+        settings: SETTINGS
       });
     });
   };
