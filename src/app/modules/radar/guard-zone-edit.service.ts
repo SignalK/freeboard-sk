@@ -157,7 +157,7 @@ export class GuardZoneEditService {
   }
 
   /** Replace the edited zone, e.g. while a handle is dragged. */
-  update(zone: GuardZone) {
+  update(zone: GuardZone | undefined) {
     this._edit.update((e) => (e ? { ...e, zone } : e));
   }
 

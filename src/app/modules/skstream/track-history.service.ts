@@ -164,7 +164,8 @@ export class TrackHistoryService {
           typeId:
             context === 'self'
               ? undefined
-              : this.app.data.vessels.aisTargets.get(context)?.type?.id
+              : (this.app.data.vessels.aisTargets.get(context)?.type?.id ??
+                undefined)
         });
       }
     });
