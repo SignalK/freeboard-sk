@@ -621,6 +621,24 @@ distance test as a fallback only, for a marker whose icon hasn't rendered yet. N
 that hit detection includes the name label, so a click on a label counts as a click
 on its waypoint. That matches what a map click does.
 
+### Recognising a map feature by its id: the own vessel is `vessels.<urn>`, not `vessels.self`
+
+**The trap.** Map features are told apart by the prefix of their id (`waypoint.`,
+`ais-vessels.`, `atons.` …; see `processMapClick` in `fb-map.component.ts`). The own
+vessel looks as if it should be `vessels.self`, the context Signal K accepts for it,
+and a check for that literal id passes every spec written the same way. On the map it
+never matches. The own vessel's feature id is `app.data.selfId`, the context the
+server sends in its hello: `vessels.urn:mrn:imo:mmsi:…` (or a UUID form). In #1107
+the first cut of `map/map-targets.ts` accepted only `vessels.self`, so actions never
+reached the own boat, with every test green. A fresh review caught it before the PR.
+
+**What to do instead.** Treat any `vessels.*` id as the own vessel, as
+`processMapClick` and `formatPopover` do. AIS vessels are `ais-vessels.*`. In a spec,
+use a realistic self id such as `vessels.urn:mrn:imo:mmsi:338123456`, never
+`vessels.self`, so the test exercises what the map really draws. The same applies to
+any id you match on: read where the layer sets it (`[id]=` in
+`fb-map.component.html`) rather than assuming it.
+
 ### Changing the coordinates of events an OL `Draw` sees — keep each gesture consistent
 
 **The trap.** Snapping (or any other adjustment of the pointer) is naturally written
