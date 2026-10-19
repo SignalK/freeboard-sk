@@ -189,6 +189,13 @@ type LegacyNoteResource = NoteResource & {
   geohash?: string;
 };
 
+/** A chart as v1 servers send it, with the v1 names of url, layers and type. */
+type LegacyChartResource = ChartResource & {
+  tilemapUrl?: string;
+  chartLayers?: string[];
+  serverType?: string;
+};
+
 /**
  * What `showNoteEditor` opens on: an existing note by `id`, a new note at a
  * `position` or in a `group`, or a new note attached to the resource `href`
@@ -511,7 +518,7 @@ export class SKResourceService {
       case 'notes':
         return this.transformNote(resource as NoteResource, id);
       case 'charts':
-        return this.transformChart(resource as ChartResource, id);
+        return this.transformChart(resource as LegacyChartResource, id);
       case 'tracks':
         return this.transformTrack(resource as TrackResource);
     }
@@ -1084,7 +1091,7 @@ export class SKResourceService {
    * @param id Chart resource identifier
    * @returns SKChart object
    */
-  private transformChart(chart: ChartResource, id: string): SKChart {
+  private transformChart(chart: LegacyChartResource, id: string): SKChart {
     // v1->2 alignment
     if (chart.tilemapUrl) {
       chart.url = chart.tilemapUrl;
