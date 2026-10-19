@@ -60,6 +60,9 @@ export interface MsgFromApp {
 export interface PathValue {
   path: string;
   value: object | number | string | null | Notification | boolean;
+  // Set by a server that enforces data timeouts: `value` is null because no
+  // update arrived in time, not because the value went away.
+  state?: { timedOut?: boolean };
 }
 
 export interface ActionResult {
