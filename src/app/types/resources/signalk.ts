@@ -5,6 +5,7 @@ import {
   MultiPolygonFeature
 } from './geojson';
 import { ActionResult } from '../stream';
+import type { NoteResource as SKNoteResource } from '@signalk/server-api/typebox';
 
 export type SKPosition = {
   latitude: number;
@@ -41,22 +42,21 @@ export interface RegionResource {
   feature: PolygonFeature | MultiPolygonFeature;
 }
 
-export interface NoteResource {
+/**
+ * A note as the server lists it. The schema calls the title `title`, but
+ * Freeboard and note providers such as signalk-activecaptain-resources write
+ * `name`; the read path turns a `title` into the name.
+ */
+export type NoteResource = SKNoteResource & {
   name?: string;
-  description?: string;
-  href?: string;
-  position?: SKPosition;
-  mimeType?: string;
-  url?: string;
   // ca reports attributes
   group?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authors?: Array<any>;
+  authors?: Array<{ name?: string }>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: { [key: string]: any };
+  // when the note was last modified, as the server lists it
   timestamp?: string;
-  source?: string;
-}
+};
 
 /**
  * Response to a resource PUT / POST. A POST also carries the id the server

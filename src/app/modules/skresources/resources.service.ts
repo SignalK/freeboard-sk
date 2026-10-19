@@ -154,7 +154,6 @@ export type FBResourceEntry<C extends SKResourceType> = [
 
 /** A note as older servers send it, with the v1 fields it is upgraded from. */
 type LegacyNoteResource = NoteResource & {
-  title?: string;
   region?: string;
   geohash?: string;
 };
