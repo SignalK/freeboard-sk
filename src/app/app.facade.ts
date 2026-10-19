@@ -367,8 +367,7 @@ export class AppFacade extends InfoService {
 
     /** initialise IndexedDB and subscribe to events */
     this.db = new AppDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.db.dbUpdate$.subscribe((res: { action: string; value: any }) => {
+    this.db.dbUpdate$.subscribe((res) => {
       if (res.action) {
         switch (res.action) {
           case 'db_init':
@@ -1522,13 +1521,18 @@ export class AppFacade extends InfoService {
 /******************
  ** App Database  **
  ******************/
+interface DbUpdate {
+  action: 'db_init' | 'trail_save';
+  value: boolean;
+}
+
 export class AppDB {
   private db: IndexedDB;
-  private dbUpdateSource;
-  public dbUpdate$;
+  private dbUpdateSource: Subject<DbUpdate>;
+  public dbUpdate$: Observable<DbUpdate>;
 
   constructor() {
-    this.dbUpdateSource = new Subject<string>();
+    this.dbUpdateSource = new Subject<DbUpdate>();
     this.dbUpdate$ = this.dbUpdateSource.asObservable();
     this.db = new IndexedDB('freeboard', 1);
 
@@ -1551,7 +1555,7 @@ export class AppDB {
   }
 
   // ** emit dbUpdate message **
-  emitDbUpdate(value = null) {
+  emitDbUpdate(value: DbUpdate) {
     this.dbUpdateSource.next(value);
   }
 
@@ -1561,7 +1565,7 @@ export class AppDB {
   }
 
   // ** create / update vessel trail entry**
-  saveTrail(id = 'self', trailData) {
+  saveTrail(id = 'self', trailData: LineString) {
     this.db.update('trail', { uuid: id, value: trailData }).then(
       () => {
         this.emitDbUpdate({ action: 'trail_save', value: true });
