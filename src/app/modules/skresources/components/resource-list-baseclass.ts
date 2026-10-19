@@ -40,7 +40,7 @@ export class ResourceListBase<T extends ResourceListEntry = ResourceListEntry> {
    */
   protected doFilter() {
     const sortList = () => {
-      fl.sort((a, b) => a[1].name.localeCompare(b[1].name));
+      fl.sort((a, b) => (a[1].name ?? '').localeCompare(b[1].name ?? ''));
     };
     let fl: Array<T>;
     if (this.filterText.length === 0) {
