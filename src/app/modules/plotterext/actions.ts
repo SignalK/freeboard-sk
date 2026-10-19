@@ -56,15 +56,33 @@ const MATCH_KINDS = new Set<string>([
   'overlayFeature'
 ]);
 
-/** The `action` types an action may take (a button's). */
-const ACTION_TYPES = new Set([
+/** The `action` types an action may take (a button's), by what they need. */
+const PANEL_TYPES = new Set([
   'openPanel',
   'togglePanel',
   'openWindow',
-  'toggleWindow',
-  'publish',
-  'sendMessage'
+  'toggleWindow'
 ]);
+const PUBLISH_TYPES = new Set(['publish', 'sendMessage']);
+
+/**
+ * Whether choosing the action can do anything: a publish names its topic, a
+ * panel or window type names a panel `hasPanel` can show.
+ */
+function performable(
+  action: ActionContribution['action'],
+  hasPanel: (panel: string) => boolean
+): boolean {
+  if (!action) return false;
+  if (PUBLISH_TYPES.has(action.type)) {
+    return typeof action.topic === 'string' && action.topic.length > 0;
+  }
+  return (
+    PANEL_TYPES.has(action.type) &&
+    typeof action.panel === 'string' &&
+    hasPanel(action.panel)
+  );
+}
 
 /** A target entry this host can use. */
 export interface TargetRule {
@@ -120,15 +138,17 @@ export interface UsableAction {
 
 /**
  * The actions of one manifest this host can offer, in manifest order. An
- * action that lacks a required field, has an action type the host does not
- * know, targets a newer host API, or has no target entry the host can use is
- * left out. A repeated id keeps its first action.
+ * action that lacks a required field, cannot be performed (an unknown action
+ * type, a publish without a topic, a panel `hasPanel` does not know), targets
+ * a newer host API, or has no target entry the host can use is left out. A
+ * repeated id keeps its first action.
  */
 export function usableActions(
   extension: string,
   extensionName: string,
   actions: unknown,
-  hostApiVersion: string
+  hostApiVersion: string,
+  hasPanel: (panel: string) => boolean
 ): UsableAction[] {
   if (!Array.isArray(actions)) return [];
   const result: UsableAction[] = [];
@@ -138,7 +158,7 @@ export function usableActions(
     if (typeof a.id !== 'string' || !a.id || seen.has(a.id)) continue;
     if (typeof a.title !== 'string' || !a.title.trim()) continue;
     if (!Array.isArray(a.targets)) continue;
-    if (!a.action || !ACTION_TYPES.has(a.action.type)) continue;
+    if (!performable(a.action, hasPanel)) continue;
     if (a.apiVersion !== undefined && a.apiVersion !== hostApiVersion) continue;
     const rules = a.targets
       .map(parseTargetEntry)

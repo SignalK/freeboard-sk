@@ -276,7 +276,8 @@ export class PlotterExtensionService {
           extension,
           manifest.name,
           manifest.actions,
-          HOST_API_VERSION
+          HOST_API_VERSION,
+          (panel) => !!this.iframePanel(extension, panel)
         )
       );
     }
@@ -360,8 +361,9 @@ export class PlotterExtensionService {
           params,
           'actions.badRequest'
         );
+        const actions = this.manifests()[extension]?.actions;
         const own = new Set(
-          (this.manifests()[extension]?.actions ?? []).map((a) => a?.id)
+          Array.isArray(actions) ? actions.map((a) => a?.id) : []
         );
         const unknown = ids.filter((id) => !own.has(id));
         if (unknown.length) {

@@ -21,6 +21,9 @@ const action = (targets: unknown[], extra: Record<string, unknown> = {}) => ({
 
 const at: [number, number] = [-80.1, 25.7];
 
+const usable = (actions: unknown, apiVersion = '1') =>
+  usableActions('ext', 'Ext', actions, apiVersion, (p) => p === 'viewer');
+
 describe('parseTargetEntry', () => {
   it('takes the kinds this host offers, as strings or objects', () => {
     expect(parseTargetEntry('waypoint')).toEqual({ kind: 'waypoint' });
@@ -62,9 +65,7 @@ describe('parseTargetEntry', () => {
 
 describe('usableActions', () => {
   it('keeps complete actions with a usable target, in manifest order', () => {
-    const list = usableActions(
-      'ext',
-      'Ext',
+    const list = usable(
       [
         action(['position'], { id: 'a' }),
         action(['overlayFeature'], { id: 'b' }),
@@ -78,9 +79,7 @@ describe('usableActions', () => {
   });
 
   it('leaves out an action that lacks a required field', () => {
-    const list = usableActions(
-      'ext',
-      'Ext',
+    const list = usable(
       [
         action(['position'], { id: '' }),
         action(['position'], { title: ' ' }),
@@ -94,10 +93,28 @@ describe('usableActions', () => {
     expect(list).toEqual([]);
   });
 
+  it('leaves out an action that cannot do anything when chosen', () => {
+    const list = usable([
+      action(['position'], { id: 'a', action: { type: 'publish' } }),
+      action(['position'], { id: 'b', action: { type: 'openPanel' } }),
+      action(['position'], {
+        id: 'c',
+        action: { type: 'openWindow', panel: 'gone' }
+      }),
+      action(['position'], {
+        id: 'd',
+        action: { type: 'toggleWindow', panel: 'viewer' }
+      }),
+      action(['position'], {
+        id: 'e',
+        action: { type: 'sendMessage', topic: 'x.go' }
+      })
+    ]);
+    expect(list.map((a) => a.action.id)).toEqual(['d', 'e']);
+  });
+
   it('keeps the first of two actions with one id', () => {
-    const list = usableActions(
-      'ext',
-      'Ext',
+    const list = usable(
       [action(['position'], { title: 'One' }), action(['note'])],
       '1'
     );
@@ -105,14 +122,13 @@ describe('usableActions', () => {
   });
 
   it('takes no actions from a manifest without a list of them', () => {
-    expect(usableActions('ext', 'Ext', undefined, '1')).toEqual([]);
-    expect(usableActions('ext', 'Ext', { id: 'x' }, '1')).toEqual([]);
+    expect(usable(undefined, '1')).toEqual([]);
+    expect(usable({ id: 'x' }, '1')).toEqual([]);
   });
 });
 
 describe('actionApplies', () => {
-  const one = (targets: unknown[]) =>
-    usableActions('ext', 'Ext', [action(targets)], '1')[0];
+  const one = (targets: unknown[]) => usable([action(targets)], '1')[0];
 
   const note = (skIcon: string): SelectedTarget => ({
     target: {
