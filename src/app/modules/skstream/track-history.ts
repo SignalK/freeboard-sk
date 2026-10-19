@@ -695,7 +695,7 @@ export function bearingBetween(a: Position, b: Position): number {
  * record, after it, or in a gap. */
 export function poseAt(
   lines: Position[][],
-  times: string[][] | undefined,
+  times: PointTime[][] | undefined,
   t: number
 ): { position: Position; heading: number } | undefined {
   if (!Array.isArray(times)) {
@@ -703,49 +703,76 @@ export function poseAt(
   }
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const ts = times[i]?.map((v) => Date.parse(v));
-    if (!ts || ts.length !== line.length || line.length === 0) {
+    const ts = times[i]?.map((v) => (v === undefined ? NaN : Date.parse(v)));
+    if (!ts || ts.length !== line.length) {
       continue;
     }
-    if (!(t >= ts[0] && t <= ts[ts.length - 1])) {
-      continue;
-    }
-    // last recorded point at or before t
-    let lo = 0;
-    let hi = ts.length - 1;
-    while (lo < hi) {
-      const mid = Math.ceil((lo + hi) / 2);
-      if (ts[mid] <= t) {
-        lo = mid;
-      } else {
-        hi = mid - 1;
+    // a point without a time splits the line, so the pose is only ever
+    // interpolated between points whose times are known
+    let start = 0;
+    while (start < ts.length) {
+      if (!Number.isFinite(ts[start])) {
+        start++;
+        continue;
       }
+      let end = start;
+      while (end + 1 < ts.length && Number.isFinite(ts[end + 1])) {
+        end++;
+      }
+      if (t >= ts[start] && t <= ts[end]) {
+        return poseInRun(
+          line.slice(start, end + 1),
+          ts.slice(start, end + 1),
+          t
+        );
+      }
+      start = end + 1;
     }
-    const a = line[lo];
-    const b = line[Math.min(lo + 1, line.length - 1)];
-    const span = ts[Math.min(lo + 1, ts.length - 1)] - ts[lo];
-    const f = span > 0 ? (t - ts[lo]) / span : 0;
-    // unwrap across the antimeridian before interpolating
-    let bLon = b[0];
-    if (bLon - a[0] > 180) bLon -= 360;
-    if (a[0] - bLon > 180) bLon += 360;
-    let lon = a[0] + (bLon - a[0]) * f;
-    lon = ((((lon + 180) % 360) + 360) % 360) - 180;
-    const position: Position = [lon, a[1] + (b[1] - a[1]) * f];
-
-    const ahead = lo + GHOST_HEADING_LOOKAHEAD;
-    const heading =
-      ahead < line.length
-        ? bearingBetween(position, line[ahead])
-        : line.length > 1
-          ? bearingBetween(
-              line[Math.max(0, line.length - 1 - GHOST_HEADING_LOOKAHEAD)],
-              line[line.length - 1]
-            )
-          : 0;
-    return { position, heading };
   }
   return undefined;
+}
+
+/** The pose at `t` on a run of points that all have a time, with `t`
+ * within the run. */
+function poseInRun(
+  line: Position[],
+  ts: number[],
+  t: number
+): { position: Position; heading: number } {
+  // last recorded point at or before t
+  let lo = 0;
+  let hi = ts.length - 1;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (ts[mid] <= t) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  const a = line[lo];
+  const b = line[Math.min(lo + 1, line.length - 1)];
+  const span = ts[Math.min(lo + 1, ts.length - 1)] - ts[lo];
+  const f = span > 0 ? (t - ts[lo]) / span : 0;
+  // unwrap across the antimeridian before interpolating
+  let bLon = b[0];
+  if (bLon - a[0] > 180) bLon -= 360;
+  if (a[0] - bLon > 180) bLon += 360;
+  let lon = a[0] + (bLon - a[0]) * f;
+  lon = ((((lon + 180) % 360) + 360) % 360) - 180;
+  const position: Position = [lon, a[1] + (b[1] - a[1]) * f];
+
+  const ahead = lo + GHOST_HEADING_LOOKAHEAD;
+  const heading =
+    ahead < line.length
+      ? bearingBetween(position, line[ahead])
+      : line.length > 1
+        ? bearingBetween(
+            line[Math.max(0, line.length - 1 - GHOST_HEADING_LOOKAHEAD)],
+            line[line.length - 1]
+          )
+        : 0;
+  return { position, heading };
 }
 
 /** The next playback time: one step on through the selected range, wrapping
