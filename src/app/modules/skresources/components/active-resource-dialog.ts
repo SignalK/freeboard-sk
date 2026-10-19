@@ -335,7 +335,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
       const cpi = GeoUtils.closestForwardPoint(
         this.data.resource[1].feature.geometry.coordinates,
         position,
-        Convert.radiansToDegrees(this.app.data.vessels.self.heading)
+        Convert.radiansToDegrees(this.app.data.vessels.self.heading ?? 0)
       );
       if (cpi === -1) {
         this.app.showAlert('Start Route', 'Closest point is behind vessel!');
