@@ -13,8 +13,11 @@
   "include": [
     "src/app/lib/components/map-toolbar",
     "src/app/lib/pipes",
+    "src/app/modules/alarms",
     "src/app/modules/buddies",
+    "src/app/modules/course",
     "src/app/modules/features",
+    "src/app/modules/gpx",
     "src/app/modules/skresources/components/weather"
   ],
   "exclude": ["src/**/*.worker.ts"]
