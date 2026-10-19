@@ -245,7 +245,9 @@ describe('initAlarms() — regions provider missing (#732)', () => {
   });
 
   it('does not reschedule when an attempt in flight fails after shutdown', async () => {
-    let rejectInFlight: (err: Error) => void = noop;
+    let rejectInFlight: (err: Error) => void = () => {
+      throw new Error('listResources() did not capture the reject callback');
+    };
     const listResources = vi.fn(
       () =>
         new Promise((_resolve, reject) => {
@@ -269,7 +271,9 @@ describe('initAlarms() — regions provider missing (#732)', () => {
   });
 
   it('does not warn when the final attempt in flight fails after shutdown', async () => {
-    let rejectInFlight: (err: Error) => void = noop;
+    let rejectInFlight: (err: Error) => void = () => {
+      throw new Error('listResources() did not capture the reject callback');
+    };
     const listResources = vi.fn(
       () =>
         new Promise((_resolve, reject) => {
@@ -297,7 +301,9 @@ describe('initAlarms() — regions provider missing (#732)', () => {
   });
 
   it('does not load areas when an attempt in flight succeeds after shutdown', async () => {
-    let resolveInFlight: (list: unknown) => void = noop;
+    let resolveInFlight: (list: unknown) => void = () => {
+      throw new Error('listResources() did not capture the resolve callback');
+    };
     const listResources = vi.fn(
       () =>
         new Promise((resolve) => {
