@@ -18,11 +18,11 @@ import { markdownProcessor } from '../../../../lib/markdown';
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SKNote } from '../../resource-classes';
 import { ResolveSkIconPipe } from 'src/app/modules/icons';
+import { FBNotes } from 'src/app/types';
 
 interface DialogData {
-  notes: SKNote[];
+  notes: FBNotes;
   relatedBy: string;
   readOnly: boolean;
 }

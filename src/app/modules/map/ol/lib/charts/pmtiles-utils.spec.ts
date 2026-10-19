@@ -72,7 +72,7 @@ describe('PMTiles tile loaders', () => {
       // OL swaps in a blank canvas on error; jsdom has no 2D context.
       vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
         function (this: HTMLCanvasElement) {
-          return { canvas: this, fillRect: () => undefined } as never;
+          return { canvas: this, fillRect: (): void => undefined } as never;
         }
       );
       getZxy.mockResolvedValue(tileData);

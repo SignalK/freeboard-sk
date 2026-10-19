@@ -3705,16 +3705,18 @@ export class SKResourceService {
     const [stored, resources] = await Promise.all([
       // one source failing still lists the other's tracks
       flags.trackStore
-        ? this.listStoredTracks().catch((err) => {
+        ? this.listStoredTracks().catch((err): FBTracks => {
             console.warn('Stored tracks not listed:', err);
             return [];
           })
         : [],
       flags.resourceTracks
-        ? this.listFromServer<FBTrack>('tracks', query).catch((err) => {
-            console.warn('Resource tracks not listed:', err);
-            return [];
-          })
+        ? this.listFromServer<FBTrack>('tracks', query).catch(
+            (err): FBTracks => {
+              console.warn('Resource tracks not listed:', err);
+              return [];
+            }
+          )
         : []
     ]);
     return stored.concat(resources);

@@ -40,6 +40,11 @@ interface PopoverCtrl {
   modifyLabel: string;
 }
 
+/** A labelled value shown in a popover; positions go through the coords pipe. */
+type PopoverProperty =
+  | ['Name' | 'Desc.' | 'Description' | 'Distance', string]
+  | ['Latitude' | 'Longitude', number];
+
 @Component({
   selector: 'resource-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -345,7 +350,7 @@ export class ResourcePopoverComponent {
 
   protected _title = linkedSignal(() => this.title());
 
-  properties: Array<unknown>; // ** resource properties
+  properties: Array<PopoverProperty>; // ** resource properties
   ctrl: PopoverCtrl = {
     showInfoButton: false,
     showModifyButton: false,
@@ -668,7 +673,7 @@ export class ResourceSetPopoverComponent {
   info = output<void>();
   closed = output<void>();
 
-  protected properties: Array<unknown>; // ** resource properties
+  protected properties: Array<PopoverProperty>; // ** resource properties
   protected icon: AppIconDef;
   protected app = inject(AppFacade);
 

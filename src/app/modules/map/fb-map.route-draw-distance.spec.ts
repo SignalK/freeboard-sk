@@ -23,7 +23,7 @@ const sketch = () =>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function drawingComponent(drawSketch: Feature): any {
   const cmp = Object.create(FBMapComponent.prototype);
-  cmp.app = { data: { map: {} }, debug: () => undefined };
+  cmp.app = { data: { map: {} }, debug: (): void => undefined };
   cmp.mapInteract = {
     isMeasuring: () => false,
     isDrawing: () => true,

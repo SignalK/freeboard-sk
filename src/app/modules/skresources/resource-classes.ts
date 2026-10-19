@@ -79,6 +79,7 @@ export class SKNote {
   mimeType: string;
   url: string;
   group: string;
+  timestamp: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authors: Array<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,6 +94,7 @@ export class SKNote {
     this.url = note?.url ?? '';
     // ca reports
     this.group = note?.group;
+    this.timestamp = note?.timestamp;
     this.authors =
       note?.authors && Array.isArray(note?.authors) ? note.authors : [];
     this.properties =
