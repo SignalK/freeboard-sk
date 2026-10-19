@@ -7,6 +7,13 @@ import {
 } from 'signalk-plotterext-bus/host';
 import { isValidGroup } from 'src/app/modules/skresources/components/groups/group-apply';
 import type { SKResourceGroup } from 'src/app/modules/skresources/components/groups/groups.service';
+import { parseParams } from './method-params';
+
+// The schema loads with the validator on the first call, keeping TypeBox out
+// of the initial bundle.
+const schemas = () => import('./resourcegroup-params');
+
+const BAD_REQUEST = 'resourceGroups.badRequest';
 
 /**
  * Host method handlers for the `resourceGroups` capability — apply a stored
@@ -34,20 +41,15 @@ export interface ResourceGroupMethodsDeps {
 export function createResourceGroupMethods(
   deps: ResourceGroupMethodsDeps
 ): Record<string, MethodHandler> {
-  const badRequest = (message: string) =>
-    new RpcError(message, {
-      code: RPC_ERRORS.INVALID_PARAMS,
-      reason: 'resourceGroups.badRequest'
-    });
-
   return {
     'resourceGroup.apply': async (
       params
     ): Promise<ResourceGroupApplyResult> => {
-      const id = (params as { id?: unknown } | undefined)?.id;
-      if (typeof id !== 'string' || id.length === 0) {
-        throw badRequest('resourceGroup.apply requires a string id');
-      }
+      const { id } = await parseParams(
+        (await schemas()).ApplyParams,
+        params,
+        BAD_REQUEST
+      );
       let group: unknown;
       try {
         group = await deps.fetchGroup(id);
@@ -65,8 +67,9 @@ export function createResourceGroupMethods(
             });
       }
       if (!isValidGroup(group)) {
-        throw badRequest(
-          `Resource group ${id} has a list that is not an array of ids`
+        throw new RpcError(
+          `Resource group ${id} has a list that is not an array of ids`,
+          { code: RPC_ERRORS.INVALID_PARAMS, reason: BAD_REQUEST }
         );
       }
       return { applied: await deps.applyGroup(id, group as SKResourceGroup) };

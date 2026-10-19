@@ -1,9 +1,12 @@
 import {
-  RPC_ERRORS,
-  RpcError,
   type MethodHandler,
   type NightModeState
 } from 'signalk-plotterext-bus/host';
+import { parseParams } from './method-params';
+
+// The schema loads with the validator on the first call, keeping TypeBox out
+// of the initial bundle.
+const schemas = () => import('./nightmode-params');
 
 /**
  * Host method handlers for the `nightMode` capability — read and control
@@ -30,31 +33,18 @@ export interface NightModeMethodsDeps {
 export function createNightModeMethods(
   deps: NightModeMethodsDeps
 ): Record<string, MethodHandler> {
-  const badRequest = (message: string) =>
-    new RpcError(message, {
-      code: RPC_ERRORS.INVALID_PARAMS,
-      reason: 'nightMode.badRequest'
-    });
-
   return {
     'nightMode.get': async () => deps.getState(),
 
     'nightMode.set': async (params) => {
-      const p = (params ?? {}) as { enabled?: unknown; auto?: unknown };
-      const hasEnabled = p.enabled !== undefined;
-      const hasAuto = p.auto !== undefined;
-      if (!hasEnabled && !hasAuto) {
-        throw badRequest('nightMode.set requires enabled and/or auto');
-      }
-      if (hasEnabled && typeof p.enabled !== 'boolean') {
-        throw badRequest('enabled must be a boolean');
-      }
-      if (hasAuto && typeof p.auto !== 'boolean') {
-        throw badRequest('auto must be a boolean');
-      }
+      const { enabled, auto } = await parseParams(
+        (await schemas()).SetParams,
+        params ?? {},
+        'nightMode.badRequest'
+      );
       const next: Partial<NightModeState> = {};
-      if (hasAuto) next.auto = p.auto as boolean;
-      if (hasEnabled) next.enabled = p.enabled as boolean;
+      if (auto !== undefined) next.auto = auto;
+      if (enabled !== undefined) next.enabled = enabled;
       await deps.setState(next);
       return {};
     }
