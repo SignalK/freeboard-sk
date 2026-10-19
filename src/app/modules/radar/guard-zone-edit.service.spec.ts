@@ -210,6 +210,11 @@ describe('GuardZoneEditService', () => {
     });
   });
 
+  it('shows no zones while no radar is loaded', () => {
+    radar.set(undefined);
+    expect(service.zones()).toEqual([]);
+  });
+
   it('ends the edit when another radar is picked', () => {
     service.editZone('guardZone1');
     radar.set(makeRadar('fur6424B', { guardZone1: stored }));
