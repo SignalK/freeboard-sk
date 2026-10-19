@@ -192,6 +192,11 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           key === 'stale'
         ) {
           if (this.source) {
+            if (this.actualSize && key === 'position') {
+              // Metres per pixel is latitude-dependent, so the scale is stale
+              // after a position change even when the zoom has not moved.
+              this.generateSelfStyle();
+            }
             this.parseVessel();
           }
         } else if (

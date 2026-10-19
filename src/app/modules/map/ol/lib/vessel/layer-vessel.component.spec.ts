@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { SimpleChange } from '@angular/core';
 import Style from 'ol/style/Style';
 import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
@@ -94,5 +95,41 @@ describe('VesselComponent without a position', () => {
     c.parseVessel();
     expect(c.source?.getFeatures()).toEqual([]);
     expect(c.vessel).toBeUndefined();
+  });
+
+  describe('actual-size scaling follows the vessel latitude', () => {
+    const component = () => {
+      const c = Object.create(VesselComponent.prototype) as VesselComponent;
+      Object.assign(c, {
+        layer: { setProperties: (): void => undefined },
+        source: {},
+        actualSize: true,
+        iconScale: 0.9,
+        mapImages: { getExternalSymbol: (): null => null }
+      });
+      vi.spyOn(c, 'generateSelfStyle').mockImplementation(() => undefined);
+      vi.spyOn(c, 'parseVessel').mockImplementation(() => undefined);
+      return c;
+    };
+
+    it('recalculates the scale when the position changes', () => {
+      const c = component();
+      c.ngOnChanges({
+        position: new SimpleChange([0, 0], [10, 50], false)
+      });
+
+      expect(c.generateSelfStyle).toHaveBeenCalled();
+      expect(c.parseVessel).toHaveBeenCalled();
+    });
+
+    it('leaves the style alone for a heading-only change', () => {
+      const c = component();
+      c.ngOnChanges({
+        heading: new SimpleChange(0, 1, false)
+      });
+
+      expect(c.generateSelfStyle).not.toHaveBeenCalled();
+      expect(c.parseVessel).toHaveBeenCalled();
+    });
   });
 });
