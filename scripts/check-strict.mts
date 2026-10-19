@@ -20,53 +20,60 @@ const formatHost: ts.FormatDiagnosticsHost = {
   getNewLine: () => ts.sys.newLine
 };
 
-const fail = (diagnostics: readonly ts.Diagnostic[]): never => {
+const report = (diagnostics: readonly ts.Diagnostic[]): number => {
   console.error(
     ts.formatDiagnosticsWithColorAndContext(diagnostics, formatHost)
   );
   console.error(
     `[check-strict] ${diagnostics.length} error(s) in strict folders.`
   );
-  process.exit(1);
+  return 1;
 };
 
-const { config, error } = ts.readConfigFile(CONFIG, ts.sys.readFile);
-if (error) fail([error]);
+const check = (): number => {
+  const { config, error } = ts.readConfigFile(CONFIG, ts.sys.readFile);
+  if (error) return report([error]);
 
-const parsed = ts.parseJsonConfigFileContent(config, ts.sys, dirname(CONFIG));
-if (parsed.errors.length > 0) fail(parsed.errors);
+  const parsed = ts.parseJsonConfigFileContent(config, ts.sys, dirname(CONFIG));
+  if (parsed.errors.length > 0) return report(parsed.errors);
 
-// A mistyped entry would match no files and pass without checking anything.
-const entries: string[] = config.include;
-const empty = entries.filter(
-  (entry) =>
-    ts.parseJsonConfigFileContent(
-      { ...config, include: [entry] },
-      ts.sys,
-      dirname(CONFIG)
-    ).fileNames.length === 0
-);
-if (empty.length > 0) {
-  console.error(`[check-strict] No TypeScript files in: ${empty.join(', ')}`);
-  process.exit(1);
-}
+  // A mistyped entry would match no files and pass without checking anything.
+  const entries: string[] = config.include;
+  const empty = entries.filter(
+    (entry) =>
+      ts.parseJsonConfigFileContent(
+        { ...config, include: [entry] },
+        ts.sys,
+        dirname(CONFIG)
+      ).fileNames.length === 0
+  );
+  if (empty.length > 0) {
+    console.error(`[check-strict] No TypeScript files in: ${empty.join(', ')}`);
+    return 1;
+  }
 
-const program = ts.createProgram(parsed.fileNames, parsed.options);
-const diagnostics = [
-  ...program.getOptionsDiagnostics(),
-  ...program.getGlobalDiagnostics(),
-  ...parsed.fileNames.flatMap((fileName) => {
-    const sourceFile = program.getSourceFile(fileName);
-    return sourceFile
-      ? [
-          ...program.getSyntacticDiagnostics(sourceFile),
-          ...program.getSemanticDiagnostics(sourceFile)
-        ]
-      : [];
-  })
-];
-if (diagnostics.length > 0) fail(diagnostics);
+  const program = ts.createProgram(parsed.fileNames, parsed.options);
+  const diagnostics = [
+    ...program.getOptionsDiagnostics(),
+    ...program.getGlobalDiagnostics(),
+    ...parsed.fileNames.flatMap((fileName) => {
+      const sourceFile = program.getSourceFile(fileName);
+      return sourceFile
+        ? [
+            ...program.getSyntacticDiagnostics(sourceFile),
+            ...program.getSemanticDiagnostics(sourceFile)
+          ]
+        : [];
+    })
+  ];
+  if (diagnostics.length > 0) return report(diagnostics);
 
-console.log(
-  `[check-strict] ${parsed.fileNames.length} file(s) in strict folders pass.`
-);
+  console.log(
+    `[check-strict] ${parsed.fileNames.length} file(s) in strict folders pass.`
+  );
+  return 0;
+};
+
+// Not process.exit(): it can cut off a long error list still being written
+// to a pipe, as in CI.
+process.exitCode = check();
