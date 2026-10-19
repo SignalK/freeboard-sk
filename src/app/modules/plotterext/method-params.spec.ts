@@ -27,7 +27,8 @@ describe('parseParams', () => {
     [{ ids: ['a', ''], opacity: 0.5, label: 'x' }, '/ids/1'],
     [{ ids: [], opacity: 2, label: 'x' }, '/opacity'],
     [{ ids: [], opacity: NaN, label: 'x' }, '/opacity'],
-    [{ ids: [], opacity: 0.5 }, 'params'],
+    [{ ids: [], opacity: 0.5 }, '/label is required'],
+    [{ label: 'x' }, '/ids is required'],
     [{ ids: [], opacity: 0.5, label: ' ' }, '/label must not be blank']
   ])('refuses %j naming %s', async (params, field) => {
     const error: unknown = await parse(params).catch((e: unknown) => e);

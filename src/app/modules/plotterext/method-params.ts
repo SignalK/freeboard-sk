@@ -16,7 +16,11 @@ export async function parseParams<T extends TSchema>(
     return params;
   }
   const [error] = Errors(schema, params);
-  throw new RpcError(`${error.instancePath || 'params'} ${error.message}`, {
+  const message =
+    error.keyword === 'required'
+      ? `${error.instancePath}/${error.params.requiredProperties[0]} is required`
+      : `${error.instancePath || 'params'} ${error.message}`;
+  throw new RpcError(message, {
     code: RPC_ERRORS.INVALID_PARAMS,
     reason
   });
