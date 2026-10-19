@@ -196,7 +196,7 @@ export interface IAppConfig {
     };
     aisCogLine: number; // (minutes) length = cogLine * sog
     iconScale: number; // scale to apply to self Vessel icon
-    iconActualSize: boolean; // scale self icon to actual size (never below iconScale)
+    iconActualSize: boolean; // scale self icon to the reported beam and length overall
     rangeCircles: boolean; //display range circles
     rangeCirclesFixed: boolean; // use a fixed distance rather than zoom level calc
     rangeCirclesDistance: number; // distance between circles when fixed is true
