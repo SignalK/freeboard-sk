@@ -10,6 +10,7 @@ import type { MapImageRegistry } from '../map-image-registry.service';
 import {
   VesselComponent,
   STALE_VESSEL_OPACITY,
+  INACTIVE_VESSEL_OPACITY,
   selfVesselIcon
 } from './layer-vessel.component';
 import type { OwnVesselIconType } from 'src/app/modules/icons/vessels';
@@ -204,6 +205,27 @@ describe('VesselComponent without a position', () => {
       expect(c.generateSelfStyle).not.toHaveBeenCalled();
       expect(c.parseVessel).toHaveBeenCalled();
     });
+  });
+});
+
+describe('own-vessel icon while another vessel is selected', () => {
+  it('keeps the chosen shape and dims it', () => {
+    const c = Object.create(VesselComponent.prototype) as VesselComponent;
+    Object.assign(c, {
+      id: 'self',
+      activeId: 'other',
+      position: [1, 2],
+      heading: 0,
+      stale: false,
+      iconType: 'catamaran',
+      mapImages: { getExternalSymbol: (): null => null }
+    });
+
+    c.parseVessel();
+
+    const image = (c.vessel.getStyle() as Style).getImage() as Icon;
+    expect(image.getSrc()).toContain('self_catamaran.svg');
+    expect(image.getOpacity()).toBe(INACTIVE_VESSEL_OPACITY);
   });
 });
 

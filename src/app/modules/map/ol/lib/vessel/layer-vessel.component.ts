@@ -63,18 +63,6 @@ export function selfVesselIcon(
   } as Options);
 }
 
-const inactiveVesselStyle = new Style({
-  image: new Icon({
-    src: './assets/img/vessels/self_blur.png',
-    anchor: [9.5, 22.5],
-    anchorXUnits: 'pixels',
-    anchorYUnits: 'pixels',
-    size: [50, 50],
-    scale: 0.75,
-    rotateWithView: true
-  })
-});
-
 const fixedVesselStyle = new Style({
   image: new Icon({
     src: './assets/img/vessels/self_fixed.png',
@@ -89,6 +77,9 @@ const fixedVesselStyle = new Style({
 
 /** Opacity applied to the vessel icon while its position is stale. */
 export const STALE_VESSEL_OPACITY = 0.4;
+
+/** Opacity applied to the own-vessel icon while another vessel is selected. */
+export const INACTIVE_VESSEL_OPACITY = 0.5;
 
 /** Drawn over the vessel when its position is no longer being updated.
  * Deliberately unmissable: the whole point of #672 is that a transient
@@ -148,6 +139,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   selfStyle?: Style;
   private view?: View;
   private scaledIcon: Icon | null = null;
+  inactiveStyle: Style | null = null;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -289,7 +281,13 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         }
         // set both ways: the styles are shared module-level instances, so a
         // dimmed icon would otherwise stay dimmed after position resumes
-        im.setOpacity(this.stale ? STALE_VESSEL_OPACITY : 1);
+        im.setOpacity(
+          this.stale
+            ? STALE_VESSEL_OPACITY
+            : s === this.inactiveStyle
+              ? INACTIVE_VESSEL_OPACITY
+              : 1
+        );
       }
       this.vessel.setStyle(this.stale ? [s, staleVesselStyle] : s);
     }
@@ -297,6 +295,15 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   // default self style with specified scale
   generateSelfStyle() {
+    this.selfStyle = new Style({ image: this.selfIcon() });
+    this.inactiveStyle = null;
+  }
+
+  private generateInactiveStyle() {
+    this.inactiveStyle = new Style({ image: this.selfIcon() });
+  }
+
+  private selfIcon(): Icon {
     this.scaledIcon?.unlistenImageChange(this.onScaledIconChange);
     this.scaledIcon = null;
     const icon = selfVesselIcon(this.mapImages, this.iconScale, this.iconType);
@@ -322,7 +329,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         icon.listenImageChange(this.onScaledIconChange);
       }
     }
-    this.selfStyle = new Style({ image: icon });
+    return icon;
   }
 
   private metresPerPixel(): number | undefined {
@@ -375,7 +382,10 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         cs = fixedVesselStyle;
       } else {
         if (this.activeId && this.activeId !== this.id) {
-          cs = inactiveVesselStyle;
+          if (!this.inactiveStyle) {
+            this.generateInactiveStyle();
+          }
+          cs = this.inactiveStyle;
         }
       }
     }
