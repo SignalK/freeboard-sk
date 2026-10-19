@@ -1186,10 +1186,15 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
   if (isSelf) {
     d.lastUpdated = new Date();
     if (v.path.startsWith('resources.')) {
-      // resource deltas
-      d.resourceUpdates.push(v);
-      // emit immediate resource update for single path
-      processResourceUpdate(v);
+      // Null on a resource path means deleted, but a timed-out one only means
+      // the server has not heard about the resource lately: it still exists,
+      // so there is nothing to pass on.
+      if (!v.state?.timedOut) {
+        // resource deltas
+        d.resourceUpdates.push(v);
+        // emit immediate resource update for single path
+        processResourceUpdate(v);
+      }
     } else if (v.path.startsWith('radars')) {
       // emit immediate radar update for single path
       processRadarUpdate(v);

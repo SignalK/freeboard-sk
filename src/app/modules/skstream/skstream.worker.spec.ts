@@ -657,3 +657,59 @@ describe('skstream.worker own trail — v1 resolution', () => {
     expect(urls[2]).toContain('resolution=5s');
   });
 });
+
+// A server enforcing data timeouts replaces a resource announcement it has
+// not heard about lately with `null` + `state.timedOut`. Null on a resource
+// path means deleted, which removes the chart or route from the user's
+// selection, so a timed-out one must not reach the app.
+describe('skstream.worker processVessel — resource deltas', () => {
+  const posted = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal('postMessage', posted);
+  });
+
+  afterEach(() => {
+    posted.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  const chart = { name: 'Nautical Charts', type: 'tilelayer' };
+
+  it('passes on a resource delta', () => {
+    const vessel = new SKVessel();
+    const delta = { path: 'resources.charts.nautical-charts', value: chart };
+
+    processVessel(vessel, delta, true);
+
+    expect(vessel.resourceUpdates).toEqual([delta]);
+    expect(posted).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes on a deletion', () => {
+    const vessel = new SKVessel();
+    const deleted = { path: 'resources.charts.nautical-charts', value: null };
+
+    processVessel(vessel, deleted, true);
+
+    expect(vessel.resourceUpdates).toEqual([deleted]);
+    expect(posted).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not pass on a timed-out resource delta', () => {
+    const vessel = new SKVessel();
+
+    processVessel(
+      vessel,
+      {
+        path: 'resources.charts.nautical-charts',
+        value: null,
+        state: { timedOut: true }
+      },
+      true
+    );
+
+    expect(vessel.resourceUpdates).toEqual([]);
+    expect(posted).not.toHaveBeenCalled();
+  });
+});
