@@ -1,5 +1,6 @@
 import type { WindowGeometry, WindowState } from 'signalk-plotterext-bus/host';
 import { PanelContribution } from '../types';
+import type { ActionInvocation } from '../actions';
 
 /**
  * An extension window: one of an extension's iframe panels shown floating over
@@ -36,6 +37,8 @@ export interface ExtWindow {
   opacity: number;
   /** Remember the window's geometry under this key (per extension, per device). */
   restoreKey?: string;
+  /** The action invocation that opened the window, for its handshake. */
+  invocation?: ActionInvocation;
 }
 
 /** Why a window closed (`window.closed` reason). */

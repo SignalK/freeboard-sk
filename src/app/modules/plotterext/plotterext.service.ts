@@ -65,7 +65,6 @@ import {
   PanelContribution,
   PlacedWidget,
   PlotterExtensionManifest,
-  ResourceFilterCondition,
   ResourceFilterSpec,
   WIDGET_CELL_GAP,
   WidgetCandidate,
@@ -105,6 +104,16 @@ import {
   publishEvent
 } from './events-methods';
 import { createResourceGroupMethods } from './resourcegroup-methods';
+import { evalCondition, isValidFilterCondition } from './filter-condition';
+import { parseParams } from './method-params';
+import {
+  actionApplies,
+  invocationParams,
+  usableActions,
+  type ActionInvocation,
+  type SelectedTarget,
+  type UsableAction
+} from './actions';
 import { createWindowMethods, parseOpenWindow } from './window-methods';
 import { ExtWindowService } from './windows/window.service';
 import { ExtWindow } from './windows/types';
@@ -122,30 +131,6 @@ const STATE_STORAGE_KEY = 'fb-plotterext-state';
 // stays under this single scope — one embedder per server in practice.
 const EMBEDDING_HOST_ID = 'embedding-host';
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
-
-// Recognised resources.setFilter condition operators (see ResourceFilterCondition).
-const FILTER_OPS = new Set([
-  'eq',
-  'ne',
-  'lt',
-  'lte',
-  'gt',
-  'gte',
-  'in',
-  'contains',
-  'regex',
-  'exists'
-]);
-
-// A match condition is only safe to store/evaluate if it has a string path and
-// a known operator; evalCondition() does `cond.path.split('.')`, so a malformed
-// entry (e.g. {}) would throw during change detection.
-const isValidFilterCondition = (c: unknown): boolean =>
-  !!c &&
-  typeof c === 'object' &&
-  typeof (c as { path?: unknown }).path === 'string' &&
-  (c as { path: string }).path.length > 0 &&
-  FILTER_OPS.has((c as { op?: unknown }).op as string);
 
 interface ExtensionStateStore {
   [extensionId: string]: {
@@ -278,6 +263,121 @@ export class PlotterExtensionService {
     }
     return result;
   });
+
+  // ---------- map actions (capability `actions`) ----------
+
+  /** The actions of compatible extensions this host can offer, in manifest order. */
+  readonly extensionActions = computed<UsableAction[]>(() => {
+    const result: UsableAction[] = [];
+    for (const [extension, manifest] of Object.entries(this.manifests())) {
+      if (!this.isCompatible(manifest)) continue;
+      result.push(
+        ...usableActions(
+          extension,
+          manifest.name,
+          manifest.actions,
+          HOST_API_VERSION
+        )
+      );
+    }
+    return result;
+  });
+
+  /**
+   * `actions.setVisibility` choices, by `<extension>/<actionId>`. Not
+   * persisted: every action starts as its manifest `visible` says.
+   */
+  private readonly actionVisibility = signal<Record<string, boolean>>({});
+
+  private actionVisible(a: UsableAction): boolean {
+    return (
+      this.actionVisibility()[`${a.extension}/${a.action.id}`] ??
+      a.action.visible !== false
+    );
+  }
+
+  /** The visible actions that apply to a selected target, in manifest order. */
+  actionsFor(sel: SelectedTarget): UsableAction[] {
+    return this.extensionActions().filter(
+      (a) => this.actionVisible(a) && actionApplies(a, sel)
+    );
+  }
+
+  /**
+   * The user chose an action on a target: perform it as a button would
+   * (a toggle opens), then tell the extension's loaded contexts with
+   * `action.invoked`. A panel or window the action loads has not attached
+   * yet, so it is not among them; it finds the invocation in its handshake.
+   */
+  invokeAction(extension: string, actionId: string, sel: SelectedTarget) {
+    const a = this.extensionActions().find(
+      (x) => x.extension === extension && x.action.id === actionId
+    );
+    if (!a || !this.actionVisible(a)) return;
+    const invocation: ActionInvocation = { actionId, target: sel.target };
+    const action = a.action.action;
+    switch (action.type) {
+      case 'publish':
+      case 'sendMessage':
+        try {
+          publishEvent(this.eventsDeps, extension, {
+            topic: action.topic,
+            params: invocationParams(action.params, invocation),
+            scope: action.scope
+          });
+        } catch (err) {
+          console.warn(
+            `plotterext ${extension}: action "${actionId}" not published`,
+            err
+          );
+        }
+        break;
+      case 'openPanel':
+      case 'togglePanel':
+        if (action.panel) this.openPanel(extension, action.panel, invocation);
+        break;
+      case 'openWindow':
+      case 'toggleWindow':
+        this.openTrackedWindow(
+          this.actionWindows,
+          `${extension}/${actionId}`,
+          extension,
+          action,
+          false,
+          invocation
+        );
+        break;
+    }
+    this.publishToExtension(extension, 'action.invoked', invocation);
+  }
+
+  /** `actions.setVisibility` for an extension context. */
+  private actionMethods(extension: string): Record<string, MethodHandler> {
+    return {
+      'actions.setVisibility': async (params) => {
+        const { ids, visible } = await parseParams(
+          (await import('./action-params')).SetVisibilityParams,
+          params,
+          'actions.badRequest'
+        );
+        const own = new Set(
+          (this.manifests()[extension]?.actions ?? []).map((a) => a?.id)
+        );
+        const unknown = ids.filter((id) => !own.has(id));
+        if (unknown.length) {
+          throw new RpcError(`Unknown action id: ${unknown.join(', ')}`, {
+            reason: 'actions.unknownId'
+          });
+        }
+        this.actionVisibility.update((all) => {
+          const next = { ...all };
+          for (const id of ids) next[`${extension}/${id}`] = visible;
+          return next;
+        });
+        return {};
+      }
+    };
+  }
 
   // ---------- map overlays (capabilities `overlays.image`, `overlays.data`) ----------
 
@@ -526,6 +626,8 @@ export class PlotterExtensionService {
       extension: string;
       panel: PanelContribution;
       visible: boolean;
+      /** The action invocation that loaded the panel, for its handshake. */
+      invocation?: ActionInvocation;
     }>
   >([]);
 
@@ -554,7 +656,11 @@ export class PlotterExtensionService {
     return panel;
   }
 
-  openPanel(extension: string, panelId: string): boolean {
+  openPanel(
+    extension: string,
+    panelId: string,
+    invocation?: ActionInvocation
+  ): boolean {
     const panel = this.iframePanel(extension, panelId);
     if (!panel) return false;
     const key = `${extension}/${panelId}`;
@@ -568,7 +674,16 @@ export class PlotterExtensionService {
       if (retained.some((p) => p.key === key)) {
         return retained;
       }
-      return [...retained, { key, extension, panel, visible: true }];
+      return [
+        ...retained,
+        {
+          key,
+          extension,
+          panel,
+          visible: true,
+          ...(invocation ? { invocation } : {})
+        }
+      ];
     });
     return true;
   }
@@ -769,18 +884,28 @@ export class PlotterExtensionService {
     });
   }
 
+  /** The window each `openWindow` / `toggleWindow` action opened. */
+  private actionWindows = new Map<string, string>();
+
   /**
-   * An `openWindow` / `toggleWindow` button. The button tracks the window it
-   * opened: pressing it again shows and raises that window, or for
-   * `toggleWindow` hides or closes it the way its own close control would.
+   * An `openWindow` / `toggleWindow` button or action. It tracks the window it
+   * opened (in `tracked`, under `key`): choosing it again shows and raises
+   * that window, or with `toggle` hides or closes it the way its own close
+   * control would. `invocation` goes to a window the action opens.
    */
-  private handleWindowButton(extension: string, button: ButtonContribution) {
-    const key = `${extension}/${button.id}`;
-    const tracked = this.buttonWindows.get(key);
-    const open = tracked ? this.windows.get(tracked) : undefined;
-    if (tracked && !open) this.buttonWindows.delete(key);
+  private openTrackedWindow(
+    tracked: Map<string, string>,
+    key: string,
+    extension: string,
+    action: ButtonContribution['action'],
+    toggle: boolean,
+    invocation?: ActionInvocation
+  ) {
+    const trackedId = tracked.get(key);
+    const open = trackedId ? this.windows.get(trackedId) : undefined;
+    if (trackedId && !open) tracked.delete(key);
     if (open) {
-      if (button.action?.type === 'toggleWindow' && open.visible) {
+      if (toggle && open.visible) {
         this.windows.userClose(open.id);
       } else {
         this.windows.update(open.id, { visible: true });
@@ -789,20 +914,23 @@ export class PlotterExtensionService {
       return;
     }
     try {
-      const { panel: panelId, req } = parseOpenWindow(button.action);
+      const { panel: panelId, req } = parseOpenWindow(action);
       const panel = this.iframePanel(extension, panelId);
       if (!panel) {
-        console.warn('plotterext: window button names no panel', button.id);
+        console.warn('plotterext: window action names no panel', key);
         return;
       }
-      const w = this.windows.open(extension, panel, req);
+      const w = this.windows.open(extension, panel, {
+        ...req,
+        ...(invocation ? { invocation } : {})
+      });
       if (typeof w === 'string') {
-        console.warn('plotterext: window button could not open', button.id, w);
+        console.warn('plotterext: window action could not open', key, w);
       } else {
-        this.buttonWindows.set(key, w.id);
+        tracked.set(key, w.id);
       }
     } catch (err) {
-      console.warn('plotterext: unusable window button', button.id, err);
+      console.warn('plotterext: unusable window action', key, err);
     }
   }
 
@@ -835,7 +963,13 @@ export class PlotterExtensionService {
     const action = button.action;
     if (!action) return;
     if (action.type === 'openWindow' || action.type === 'toggleWindow') {
-      this.handleWindowButton(extension, button);
+      this.openTrackedWindow(
+        this.buttonWindows,
+        `${extension}/${button.id}`,
+        extension,
+        action,
+        action.type === 'toggleWindow'
+      );
       return;
     }
     if (action.type === 'publish' || action.type === 'sendMessage') {
@@ -947,116 +1081,9 @@ export class PlotterExtensionService {
       matches = spec.ids.includes(id);
     }
     if (matches && spec.match) {
-      matches = spec.match.every((cond) => this.evalCondition(cond, resource));
+      matches = spec.match.every((cond) => evalCondition(cond, resource));
     }
     return spec.mode === 'exclude' ? !matches : matches;
-  }
-
-  private evalCondition(
-    cond: ResourceFilterCondition,
-    resource: unknown
-  ): boolean {
-    let value: unknown = resource;
-    for (const seg of cond.path.split('.')) {
-      if (value === null || typeof value !== 'object') {
-        value = undefined;
-        break;
-      }
-      value = (value as Record<string, unknown>)[seg];
-    }
-    switch (cond.op) {
-      case 'exists':
-        return value !== undefined;
-      case 'eq':
-        return this.refEquals(value, cond.value, cond.exact);
-      case 'ne':
-        return !this.refEquals(value, cond.value, cond.exact);
-      case 'lt':
-        return typeof value === 'number' && value < (cond.value as number);
-      case 'lte':
-        return typeof value === 'number' && value <= (cond.value as number);
-      case 'gt':
-        return typeof value === 'number' && value > (cond.value as number);
-      case 'gte':
-        return typeof value === 'number' && value >= (cond.value as number);
-      case 'in':
-        return (
-          Array.isArray(cond.value) &&
-          cond.value.some((v) => this.refEquals(value, v, cond.exact))
-        );
-      case 'contains':
-        if (typeof value === 'string') {
-          return value.toLowerCase().includes(String(cond.value).toLowerCase());
-        }
-        return Array.isArray(value) && value.includes(cond.value);
-      case 'regex': {
-        if (typeof value !== 'string' || typeof cond.value !== 'string') {
-          return false;
-        }
-        // Bound tested input length as a second ReDoS safeguard (resource
-        // fields are short; anything larger is not worth matching here).
-        if (value.length > 2000) return false;
-        const re = this.compileRegex(cond.value);
-        return re ? re.test(value) : false;
-      }
-      default:
-        return false;
-    }
-  }
-
-  /**
-   * Local id of a symbol-style `namespace:id` reference, or null when the
-   * value is not one. The grammar follows the Symbols API alias form: a
-   * single colon, `namespace` matching `[A-Za-z0-9_-]+`, and an `id` with no
-   * further colon. Multi-colon strings (e.g. `urn:mrn:...`) are NOT symbol
-   * references and return null, so URN-like fields keep exact-match semantics.
-   */
-  private symbolLocalId(value: unknown): string | null {
-    if (typeof value !== 'string') return null;
-    const m = /^[A-Za-z0-9_-]+:([^:]+)$/.exec(value);
-    return m ? m[1] : null;
-  }
-
-  /**
-   * Equality used by eq/ne/in. Exact match first; then namespace-tolerant
-   * matching for symbol references so a filter written against a bare symbol
-   * id (`anchorage`) still matches once the host has persisted a
-   * fully-qualified alias (`default:anchorage`), and vice versa. Differing
-   * namespaces (`custom:x` vs `fsk:x`) never match. Only single-colon
-   * `namespace:id` values participate; everything else compares strictly.
-   * `exact` opts out of the tolerance and compares strictly.
-   */
-  private refEquals(
-    stored: unknown,
-    target: unknown,
-    exact?: boolean
-  ): boolean {
-    if (stored === target) return true;
-    if (exact) return false;
-    // bare target id vs qualified stored reference
-    if (typeof target === 'string' && !target.includes(':')) {
-      if (this.symbolLocalId(stored) === target) return true;
-    }
-    // qualified target reference vs bare stored id
-    if (typeof stored === 'string' && !stored.includes(':')) {
-      if (this.symbolLocalId(target) === stored) return true;
-    }
-    return false;
-  }
-
-  /**
-   * Compile a filter regex; invalid or oversized patterns make the condition
-   * false. Patterns come from extension filter specs and run synchronously in
-   * the visibleNotes computed during change detection, so the length bound
-   * limits ReDoS exposure (paired with an input-length bound at the call site).
-   */
-  private compileRegex(pattern: string): RegExp | null {
-    if (pattern.length > 200) return null;
-    try {
-      return new RegExp(pattern);
-    } catch {
-      return null;
-    }
   }
 
   private contexts = new Set<LiveContext>();
@@ -2127,6 +2154,7 @@ export class PlotterExtensionService {
         ...createOverlayMethods(this.overlays, opts.extension, ctx.runtime),
         ...createEventsMethods(this.eventsDeps, opts.extension),
         ...this.uiPanelMethods(opts.extension),
+        ...this.actionMethods(opts.extension),
         ...this.windowMethods(
           opts.extension,
           opts.context.kind === 'window'
@@ -2194,6 +2222,7 @@ export class PlotterExtensionService {
       targetInstance?: string | null;
       targetWidget?: string | null;
       targetOverlay?: string | null;
+      invocation?: ActionInvocation;
       close: () => void;
     }
   ): () => void {
@@ -2206,7 +2235,8 @@ export class PlotterExtensionService {
         instanceId: null,
         targetInstance: opts.targetInstance ?? null,
         targetWidget: opts.targetWidget ?? null,
-        targetOverlay: opts.targetOverlay ?? null
+        targetOverlay: opts.targetOverlay ?? null,
+        ...(opts.invocation ? { invocation: opts.invocation } : {})
       },
       stateInstance: opts.targetInstance ?? null,
       methods: {
@@ -2252,7 +2282,8 @@ export class PlotterExtensionService {
         id: w.panel.id,
         instanceId: null,
         windowId: w.id,
-        params: w.params
+        params: w.params,
+        ...(w.invocation ? { invocation: w.invocation } : {})
       },
       stateInstance: null
     });

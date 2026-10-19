@@ -29,7 +29,8 @@ export const HOST_CAPABILITIES = [
   'ui',
   'windows',
   'overlays.image',
-  'overlays.data'
+  'overlays.data',
+  'actions'
 ];
 
 export type WidgetSize = '1x1' | '2x1' | '1x2' | '2x2';
@@ -138,6 +139,25 @@ export interface ButtonContribution {
   apiVersion?: string;
 }
 
+/**
+ * An action (capability `actions`): something the user can do to a target on
+ * the chart. Its `action` takes the button action vocabulary; see
+ * `actions.ts` for how targets are matched and a choice is delivered.
+ */
+export interface ActionContribution {
+  id: string;
+  title: string;
+  icon?: string;
+  /** Target kinds, or kinds narrowed with `match` / `self` (raw manifest JSON). */
+  targets: unknown[];
+  action: ButtonContribution['action'];
+  /** Overlay features only (capability `actions.overlay`). */
+  default?: boolean;
+  /** Offered before the extension says otherwise. Default `true`. */
+  visible?: boolean;
+  apiVersion?: string;
+}
+
 export interface ResourceFilterCondition {
   path: string;
   op:
@@ -235,6 +255,7 @@ export interface PlotterExtensionManifest {
   buttons?: ButtonContribution[];
   background?: BackgroundContribution[];
   overlays?: OverlayContribution[];
+  actions?: ActionContribution[];
   // Future contribution sections (buttons, background, resourceFilters) are
   // tolerated but not consumed by this build.
   [key: string]: unknown;
