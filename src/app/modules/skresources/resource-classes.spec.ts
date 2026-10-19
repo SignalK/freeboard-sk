@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SKChart } from './resource-classes';
+import { SKChart, SKNote } from './resource-classes';
 
 /**
  * `SKChart` is constructed from a server chart resource, which spells its zoom
@@ -135,5 +135,19 @@ describe('SKChart', () => {
     expect(chart.maxZoom).toBe(24);
     expect(new SKChart(chart).minZoom).toBe(0);
     expect(new SKChart(chart).maxZoom).toBe(24);
+  });
+});
+
+describe('SKNote', () => {
+  it('keeps the time a report was made', () => {
+    // The related notes dialog shows it as the report's date.
+    const note = new SKNote({
+      name: 'Anchorage',
+      group: 'ActiveCaptain',
+      timestamp: '2026-05-04T10:20:30Z',
+      properties: {}
+    });
+
+    expect(note.timestamp).toBe('2026-05-04T10:20:30Z');
   });
 });
