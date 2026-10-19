@@ -1,10 +1,11 @@
 import type {
+  ChartResource as SKChartResource,
+  NoteResource as SKNoteResource,
+  RegionResource as SKRegionResource,
   RouteResource as SKRouteResource,
-  WaypointResource as SKWaypointResource,
-  RegionResource as SKRegionResource
+  WaypointResource as SKWaypointResource
 } from '@signalk/server-api/typebox';
 import { ActionResult } from '../stream';
-import type { NoteResource as SKNoteResource } from '@signalk/server-api/typebox';
 
 export type SKPosition = {
   latitude: number;
@@ -104,18 +105,19 @@ export interface ChartTimeLoopOffsets {
   end: number;
 }
 
-export interface ChartResource {
-  name?: string;
-  identifier?: string;
-  description?: string;
-  bounds?: Array<number>;
-  format?: string;
-  minzoom?: number;
-  maxzoom?: number;
+type SKTileLayerChart = Extract<SKChartResource, { type: 'tilelayer' }>;
+
+/**
+ * A chart as the server lists it. The schema declares bounds, zooms, format and
+ * scale for tilelayer charts only, but providers send them with every chart
+ * type (charts-provider-simple does for S-57 charts), so they apply to all.
+ * `type` and `format` stay plain strings: Freeboard matches both
+ * case-insensitively, accepts formats the schema does not list (`mvt`), and
+ * still draws a chart that has no type.
+ */
+export type ChartResource = Omit<SKTileLayerChart, 'type' | 'format'> & {
   type?: string;
-  scale?: number;
-  url?: string;
-  layers?: string[];
+  format?: string;
   tileSize?: number;
   defaultOpacity?: number;
   // Auto-refresh cadence in milliseconds for a time-varying raster chart
@@ -134,11 +136,7 @@ export interface ChartResource {
   proxy?: boolean;
   $source?: string;
   style?: string;
-  //v1
-  tilemapUrl?: string; // replaced by url
-  chartLayers?: string[]; // replaced by layers
-  serverType?: string; // replaced by type
-}
+};
 
 export interface ChartProvider {
   identifier?: string;
