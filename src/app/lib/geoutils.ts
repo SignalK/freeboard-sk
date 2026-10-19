@@ -130,7 +130,7 @@ export class GeoUtils {
    */
   static closestForwardPoint(
     points: Position[],
-    vessel: Position,
+    vessel: Position | null | undefined,
     heading: number
   ): number {
     if (points.length < 2 || !vessel) {

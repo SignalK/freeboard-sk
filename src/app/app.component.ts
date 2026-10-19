@@ -1323,24 +1323,22 @@ export class AppComponent {
     }
     // ** update vessel trail **
     const t = this.app.selfTrail().slice(-1);
-    if (this.app.data.vessels.showSelf) {
+    const position = this.app.data.vessels.self.position;
+    if (this.app.data.vessels.showSelf && position) {
       if (t.length === 0) {
-        this.app.stampTrailPoint(this.app.data.vessels.self.position);
+        this.app.stampTrailPoint(position);
         this.app.selfTrail.update((current) => {
           const st = ([] as Position[]).concat(current);
-          st.push(this.app.data.vessels.self.position);
+          st.push(position);
           return st;
         });
         return;
       }
-      if (
-        this.app.data.vessels.self.position[0] !== t[0][0] ||
-        this.app.data.vessels.self.position[1] !== t[0][1]
-      ) {
-        this.app.stampTrailPoint(this.app.data.vessels.self.position);
+      if (position[0] !== t[0][0] || position[1] !== t[0][1]) {
+        this.app.stampTrailPoint(position);
         this.app.selfTrail.update((current) => {
           const st = ([] as Position[]).concat(current);
-          st.push(this.app.data.vessels.self.position);
+          st.push(position);
           return st;
         });
       }
@@ -2681,7 +2679,7 @@ export class AppComponent {
         // query anchor alarm status
         this.anchor.queryAnchorStatus(
           'self',
-          this.app.data.vessels.self.position
+          this.app.data.vessels.self.position ?? undefined
         );
         // query radars / align defaultId
         this.radarApi.init();

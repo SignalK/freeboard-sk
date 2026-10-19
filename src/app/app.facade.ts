@@ -1111,6 +1111,10 @@ export class AppFacade extends InfoService {
     rotation?: number
   ): Position {
     const position = this.data.vessels.active.position;
+    // nothing to follow until the vessel reports a position: stay put
+    if (!position) {
+      return this.config.map.center;
+    }
     const offset = this.config.map.centerOffset;
     const viewport =
       applyOffset && (offset.x || offset.y) ? this.mapViewport(rotation) : null;
@@ -1130,14 +1134,11 @@ export class AppFacade extends InfoService {
    */
   applyPanGesture(mapCenter: Position): 'release' | 'adopted' | 'unchanged' {
     const viewport = this.mapViewport();
-    if (!viewport) {
+    const position = this.data.vessels.active.position;
+    if (!viewport || !position) {
       return 'unchanged';
     }
-    const outcome = resolvePan(
-      this.data.vessels.active.position,
-      mapCenter,
-      viewport
-    );
+    const outcome = resolvePan(position, mapCenter, viewport);
     if (outcome.action === 'release') {
       return 'release';
     }
