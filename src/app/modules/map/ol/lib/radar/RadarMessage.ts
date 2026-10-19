@@ -98,7 +98,7 @@ export class RadarMessage extends pb_1.Message {
   serializeBinary(): Uint8Array {
     return this.serialize();
   }
-  static deserializeBinary(bytes: Uint8Array): RadarMessage {
+  static override deserializeBinary(bytes: Uint8Array): RadarMessage {
     return RadarMessage.deserialize(bytes);
   }
 }
@@ -372,7 +372,7 @@ export namespace RadarMessage {
     serializeBinary(): Uint8Array {
       return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): Spoke {
+    static override deserializeBinary(bytes: Uint8Array): Spoke {
       return Spoke.deserialize(bytes);
     }
   }
