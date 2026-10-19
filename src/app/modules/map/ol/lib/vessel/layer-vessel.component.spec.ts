@@ -235,6 +235,7 @@ describe('selfVesselIcon own-vessel types', () => {
   } as unknown as MapImageRegistry;
 
   it.each<[OwnVesselIconType, string]>([
+    ['classic', 'self.png'],
     ['monohull', 'self_monohull.svg'],
     ['catamaran', 'self_catamaran.svg'],
     ['powerboat', 'self_powerboat.svg']
@@ -244,8 +245,8 @@ describe('selfVesselIcon own-vessel types', () => {
     expect(icon.getScale()).toBe(0.9);
   });
 
-  it('defaults to the sailing monohull', () => {
-    expect(selfVesselIcon(noOverrides).getSrc()).toContain('self_monohull.svg');
+  it('defaults to the original red sailboat', () => {
+    expect(selfVesselIcon(noOverrides).getSrc()).toContain('self.png');
   });
 
   it('still prefers a registered external override', () => {

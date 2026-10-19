@@ -32,8 +32,6 @@ import {
 /** Symbol id used to override the own-vessel marker. */
 export const VESSEL_SELF_MARKER = 'vessel-self';
 
-const SELF_ICON_SIZE = { width: 19, height: 45 };
-
 /** The own-vessel icon at `iconScale`: the external symbol override when one
  * is registered, else the built-in icon for `iconType`. A fresh instance, so
  * per-render heading rotation does not mutate a shared one. */
@@ -55,9 +53,9 @@ export function selfVesselIcon(
     OwnVesselIcons[iconType] ?? OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON];
   return new Icon({
     src: def.path,
-    anchor: def.anchor,
-    anchorXUnits: 'pixels',
-    anchorYUnits: 'pixels',
+    anchor: [0.5, 0.5],
+    anchorXUnits: 'fraction',
+    anchorYUnits: 'fraction',
     scale: iconScale ? Math.abs(iconScale) : def.scale,
     rotateWithView: true
   } as Options);
@@ -311,7 +309,10 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       const size = icon.getSize();
       const metresPerPixel = this.metresPerPixel();
       if (metresPerPixel !== undefined) {
-        const metrics = size ?? [SELF_ICON_SIZE.width, SELF_ICON_SIZE.height];
+        const def =
+          OwnVesselIcons[this.iconType] ??
+          OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON];
+        const metrics = size ?? [def.width, def.height];
         icon.setScale(
           actualSizeIconScale(
             {

@@ -276,7 +276,7 @@ export function cleanConfig(
       aisCogLine: 10,
       iconScale: 0.9,
       iconActualSize: false,
-      iconType: 'monohull',
+      iconType: 'classic',
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000,
@@ -325,7 +325,7 @@ export function cleanConfig(
       settings.vessels.iconActualSize = false;
     }
     if (typeof settings.vessels.iconType === 'undefined') {
-      settings.vessels.iconType = 'monohull';
+      settings.vessels.iconType = 'classic';
     }
     if (typeof settings.vessels.rangeCircleCount === 'undefined') {
       settings.vessels.rangeCircleCount = 4;
@@ -678,7 +678,7 @@ export function defaultConfig(): IAppConfig {
       aisCogLine: 10, // ais COG line time (mins)
       iconScale: 0.9,
       iconActualSize: false,
-      iconType: 'monohull',
+      iconType: 'classic',
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000, // distance in m

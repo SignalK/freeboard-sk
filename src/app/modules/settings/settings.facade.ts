@@ -200,6 +200,7 @@ export class SettingsOptions {
       [1.4, 'XL']
     ]),
     selfIconType: new Map<OwnVesselIconType, string>([
+      ['classic', 'Original red sailboat'],
       ['monohull', 'Sailing Monohull'],
       ['catamaran', 'Catamaran'],
       ['powerboat', 'Powerboat']
