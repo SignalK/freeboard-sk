@@ -26,7 +26,8 @@ const CircleAreaBodySchema = Type.Object({
 const PolygonAreaBodySchema = Type.Object({
   geometry: Type.Literal('polygon'),
   trigger: AreaTriggerSchema,
-  coords: Type.Array(PositionSchema, { minItems: 1 }),
+  // Fewer than three points enclose no area, so an entry alarm never fires.
+  coords: Type.Array(PositionSchema, { minItems: 3 }),
   name: Type.Optional(Type.String())
 });
 

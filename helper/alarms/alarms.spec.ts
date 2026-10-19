@@ -563,6 +563,11 @@ describe('silencing an area alarm', () => {
 
 describe('area alarm requests', () => {
   const center = { latitude: 25.1, longitude: -80.1 };
+  const triangle = [
+    center,
+    { latitude: 25.1, longitude: -80.2 },
+    { latitude: 25.2, longitude: -80.2 }
+  ];
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -636,14 +641,14 @@ describe('area alarm requests', () => {
   it('treats a body without geometry as a polygon', async () => {
     const { post, area } = setUp();
 
-    const res = await post({ trigger: 'exit', coords: [center] });
+    const res = await post({ trigger: 'exit', coords: triangle });
 
     expect(res.statusCode).toBe(200);
     const id = res.message?.replace('Alarm Area created: ', '') ?? '';
     expect(await area(id)).toEqual({
       geometry: 'polygon',
       trigger: 'exit',
-      coords: [center]
+      coords: triangle
     });
   });
 
@@ -652,7 +657,7 @@ describe('area alarm requests', () => {
 
     const res = await put('p1', {
       geometry: 'polygon',
-      coords: [center, { latitude: 91, longitude: -80.2 }]
+      coords: [center, { latitude: 91, longitude: -80.2 }, triangle[2]]
     });
 
     expect(res).toEqual({
@@ -663,12 +668,13 @@ describe('area alarm requests', () => {
   });
 
   it.each([
-    ['an unknown trigger', { trigger: 'near', coords: [center] }],
-    ['an unknown geometry', { geometry: 'square', coords: [center] }],
+    ['an unknown trigger', { trigger: 'near', coords: triangle }],
+    ['an unknown geometry', { geometry: 'square', coords: triangle }],
     ['a polygon without coordinates', { geometry: 'polygon', coords: [] }],
+    ['a polygon of two points', { coords: triangle.slice(0, 2) }],
     ['a circle without a radius', { geometry: 'circle', center }],
     ['a circle with a zero radius', { geometry: 'circle', center, radius: 0 }],
-    ['a name that is not text', { coords: [center], name: 7 }],
+    ['a name that is not text', { coords: triangle, name: 7 }],
     ['a body that is not an object', 'polygon']
   ])('rejects %s', async (_case, body) => {
     const { post } = setUp();
