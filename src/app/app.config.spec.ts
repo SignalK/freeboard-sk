@@ -3,6 +3,11 @@ import { cleanConfig, defaultConfig } from './app.config';
 import { TRAIL_DURATION_ALL } from './modules/skstream/track-source';
 import { IAppConfig, LegacyAppConfig } from './types';
 
+/** Removes a setting, as from a config saved before the setting existed. */
+function unset<T>(section: T, key: keyof T) {
+  delete (section as Partial<T>)[key];
+}
+
 /**
  * A stored config from an earlier release: `defaultConfig()` with the
  * pre-migration values and fields that `cleanConfig()` upgrades.
@@ -77,8 +82,8 @@ describe('cleanConfig() legacy migration', () => {
   it('moves vessels.cogLine / headingLineSize into selfLines', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});
-    expect(cfg.vessels.selfLines.cog.length).toBe(15);
-    expect(cfg.vessels.selfLines.heading.length).toBe(3);
+    expect(cfg.vessels.selfLines?.cog.length).toBe(15);
+    expect(cfg.vessels.selfLines?.heading.length).toBe(3);
     expect(cfg.vessels).not.toHaveProperty('cogLine');
     expect(cfg.vessels).not.toHaveProperty('headingLineSize');
   });
@@ -150,8 +155,8 @@ describe('cleanConfig() legacy migration', () => {
 
   it('follows the server night mode for a config saved without the setting', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    delete cfg.display.nightMode;
-    delete cfg.ui.autoNightMode;
+    unset(cfg.display, 'nightMode');
+    unset(cfg.ui, 'autoNightMode');
     cleanConfig(cfg, {});
     expect(cfg.display.nightMode).toBe(true);
     expect(cfg.ui.autoNightMode).toBe(true);
@@ -172,7 +177,7 @@ describe('cleanConfig() legacy migration', () => {
 
   it('turns split view off for a config saved without the setting', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    delete cfg.display.splitView;
+    unset(cfg.display, 'splitView');
     cleanConfig(cfg, {});
     expect(cfg.display.splitView).toBe(false);
   });
@@ -186,7 +191,7 @@ describe('cleanConfig() legacy migration', () => {
 
   it('restores the instruments settings for a config saved without them', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    delete cfg.display.plugins;
+    unset(cfg.display, 'plugins');
     cleanConfig(cfg, {});
     expect(cfg.display.plugins).toEqual(defaultConfig().display.plugins);
   });
@@ -222,7 +227,7 @@ describe('cleanConfig() legacy migration', () => {
 
   it('moves an install still on the old trail resolutions once', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    delete cfg.vessels.trailResolutionApplied;
+    unset(cfg.vessels, 'trailResolutionApplied');
     cfg.vessels.trailResolution.next23 = '1m';
     cfg.vessels.trailResolution.beyond24 = '5m';
     cleanConfig(cfg, {});
@@ -233,7 +238,7 @@ describe('cleanConfig() legacy migration', () => {
 
   it('keeps trail resolutions the user changed', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    delete cfg.vessels.trailResolutionApplied;
+    unset(cfg.vessels, 'trailResolutionApplied');
     cfg.vessels.trailResolution.next23 = '30s';
     cfg.vessels.trailResolution.beyond24 = '15m';
     cleanConfig(cfg, {});

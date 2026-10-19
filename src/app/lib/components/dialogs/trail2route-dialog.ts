@@ -46,7 +46,7 @@ import { Coordinate } from 'src/app/modules/map/ol/lib/models';
 })
 export class Trail2RouteDialog implements OnInit {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rteFromTrail: any[];
+  rteFromTrail: any[] = [];
   mapCenter: Coordinate = [0, 0];
   pointCount = 0;
   incServer = false;
@@ -91,9 +91,10 @@ export class Trail2RouteDialog implements OnInit {
   }
 
   parseTrail(incServer?: boolean, center?: boolean) {
-    let trail = [].concat(this.data.trail ?? []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let trail: any[] = [...(this.data.trail ?? [])];
     if (incServer) {
-      trail = [].concat(this.serverCoords, trail);
+      trail = [...this.serverCoords, ...trail];
     }
     const rteCoords = SimplifyAP(trail, this.tolerance, this.highQuality);
     this.pointCount = rteCoords.length;

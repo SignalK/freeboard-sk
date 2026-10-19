@@ -208,7 +208,7 @@ export class GeoUtils {
   ): Position | Array<Position> | Array<Array<Position>>;
   static normaliseCoords(
     coords: Position | Array<Position> | Array<Array<Position>>
-  ): Position | Array<Position> | Array<Array<Position>> {
+  ): Position | Array<Position> | Array<Array<Position>> | undefined {
     if (!Array.isArray(coords)) {
       return [0, 0];
     }

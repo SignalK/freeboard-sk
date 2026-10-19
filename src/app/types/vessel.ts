@@ -36,7 +36,7 @@ export interface SKCourseCalcs {
   'route.distance'?: number;
   'route.timeToGo'?: number;
   'route.estimatedTimeOfArrival'?: string | null;
-  [path: string]: number | string | null;
+  [path: string]: number | string | null | undefined;
 }
 
 /**

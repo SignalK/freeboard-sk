@@ -42,7 +42,11 @@ import {
 } from './lib/components';
 
 import { AppFacade } from './app.facade';
-import { InfoPanelFacade, InfoPanelComponent } from './modules/info-panel';
+import {
+  InfoPanelFacade,
+  InfoPanelComponent,
+  InfoPanelItem
+} from './modules/info-panel';
 import { SignalKClient } from 'signalk-client-angular';
 import { WakeLockService } from 'src/app/lib/services';
 
@@ -109,6 +113,7 @@ import {
   LineString,
   MultiLineString,
   Polygon,
+  FBChart,
   FBRoute,
   Position,
   ErrorList
@@ -199,13 +204,13 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
   ]
 })
 export class AppComponent {
-  @ViewChild('sideright', { static: false }) sideright: MatSidenav;
-  @ViewChild('fbMap', { static: false }) fbMap: FBMapComponent;
-  @ViewChild('layersmenu', { static: true }) private layersMenu: MatMenu;
-  @ViewChild('editmenu', { static: true }) private editMenu: MatMenu;
-  @ViewChild('settingsmenu', { static: true }) private settingsMenu: MatMenu;
+  @ViewChild('sideright', { static: false }) sideright!: MatSidenav;
+  @ViewChild('fbMap', { static: false }) fbMap!: FBMapComponent;
+  @ViewChild('layersmenu', { static: true }) private layersMenu!: MatMenu;
+  @ViewChild('editmenu', { static: true }) private editMenu!: MatMenu;
+  @ViewChild('settingsmenu', { static: true }) private settingsMenu!: MatMenu;
   @ViewChild(ExperimentsComponent, { static: true })
-  private experiments: ExperimentsComponent;
+  private experiments!: ExperimentsComponent;
   private pipVideo = viewChild(PiPVideoComponent);
   protected leftToolbar = viewChild<MapToolbarComponent>('leftToolbar');
 
@@ -273,7 +278,10 @@ export class AppComponent {
   protected convert = Convert;
   protected toolbarMenuLabel = toolbarMenuLabel;
   private obsList: Subscription[] = [];
-  private streamOptions: { options: StreamOptions; toMode: SKSTREAM_MODE } = {
+  private streamOptions: {
+    options: StreamOptions | null;
+    toMode: SKSTREAM_MODE | null;
+  } = {
     options: null,
     toMode: null
   };
@@ -359,7 +367,7 @@ export class AppComponent {
     // handle uiConfig signal
     effect(() => {
       this.app.uiConfig();
-      this.handleSettingChangeEvent(undefined);
+      this.handleSettingChangeEvent();
     });
 
     effect(() => {
@@ -527,7 +535,9 @@ export class AppComponent {
   /** Open the radar panel, or close it when it is already showing. Closing it
    *  leaves the radar overlay on; the overlay is switched off in the panel. */
   protected toggleRadarPanel() {
-    if (this.infoPanel.item()?.type === 'radars') {
+    // the item signal is untyped until the info-panel folder is strict (#869)
+    const item = this.infoPanel.item() as InfoPanelItem | undefined;
+    if (item?.type === 'radars') {
       this.infoPanel.close();
       this.closeDrawer();
     } else {
@@ -914,7 +924,7 @@ export class AppComponent {
 
   /** ************* */
 
-  private darkThemeApplied: boolean;
+  private darkThemeApplied?: boolean;
   private setDarkTheme() {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const enabled =
@@ -1134,7 +1144,8 @@ export class AppComponent {
       )
       .subscribe({
         next: () => {
-          this.signalk.authToken = this.app.getFBToken();
+          // the client accepts no token, though its setter is typed string
+          this.signalk.authToken = this.app.getFBToken() as string;
           this.app.watchSKLogin();
           this.userConfigLoaded = this.app
             .loadUserConfigfromServer()
@@ -1316,7 +1327,7 @@ export class AppComponent {
       if (t.length === 0) {
         this.app.stampTrailPoint(this.app.data.vessels.self.position);
         this.app.selfTrail.update((current) => {
-          const st = [].concat(current);
+          const st = ([] as Position[]).concat(current);
           st.push(this.app.data.vessels.self.position);
           return st;
         });
@@ -1328,7 +1339,7 @@ export class AppComponent {
       ) {
         this.app.stampTrailPoint(this.app.data.vessels.self.position);
         this.app.selfTrail.update((current) => {
-          const st = [].concat(current);
+          const st = ([] as Position[]).concat(current);
           st.push(this.app.data.vessels.self.position);
           return st;
         });
@@ -1444,7 +1455,7 @@ export class AppComponent {
   /** Handle setting change events
    * @param e setting change identifier
    */
-  private handleSettingChangeEvent(e: string[]) {
+  private handleSettingChangeEvent(e?: string[]) {
     if (e?.includes('darkTheme')) {
       this.setDarkTheme();
     }
@@ -1818,7 +1829,7 @@ export class AppComponent {
 
   // ** show login dialog **
   protected async showLogin(
-    message?: string,
+    message?: string | null,
     cancelWarning = true,
     onConnect?: boolean
   ): Promise<void> {
@@ -2039,7 +2050,8 @@ export class AppComponent {
     }
     const isDraft = this.temporaryRoutes.isDraft(id);
     let coordinates = isDraft
-      ? (this.routeBuffers.get(id).points.map((p) => p.position) as LineString)
+      ? (this.routeBuffers.get(id)?.points.map((p) => p.position) as
+          LineString | undefined)
       : this.skres.fromCache('routes', id)?.[1].feature.geometry.coordinates;
     if (!coordinates) {
       // Only routes displayed on the map are cached; the Routes list can open
@@ -2090,7 +2102,7 @@ export class AppComponent {
     type: string;
     resource?: FBRoute;
   }) {
-    let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
+    let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN | undefined;
     if (e.type === 'route') {
       try {
         // A route with a live edit buffer — a never-saved draft, or a stored
@@ -2102,7 +2114,7 @@ export class AppComponent {
         // way navigation would ignore the unsaved reordered geometry.
         const isBuffer = !!e.resource;
         let route: FBRoute[1];
-        if (isBuffer) {
+        if (e.resource) {
           route = e.resource[1];
         } else {
           this.app.sIsFetching.set(true);
@@ -2235,8 +2247,9 @@ export class AppComponent {
 
   protected mapDrop(e: DragEvent) {
     e.preventDefault();
-    if (e.dataTransfer.files) {
-      if (e.dataTransfer.files.length > 1) {
+    const files = e.dataTransfer?.files;
+    if (files) {
+      if (files.length > 1) {
         this.app.showAlert(
           'Load Resources',
           'Multiple files provided!\nPlease select only one file for processing.'
@@ -2249,14 +2262,15 @@ export class AppComponent {
             `There was an error reading the file contents!`
           );
         };
-        if (!e.dataTransfer.files[0].name) {
+        if (!files[0].name) {
           return;
         }
-        const fname = e.dataTransfer.files[0].name;
+        const fname = files[0].name;
         reader.onload = () => {
-          this.processGPX({ name: fname, data: reader.result });
+          // readAsText yields a string once loaded
+          this.processGPX({ name: fname, data: reader.result as string });
         };
-        reader.readAsText(e.dataTransfer.files[0]);
+        reader.readAsText(files[0]);
       }
     }
   }
@@ -2264,7 +2278,7 @@ export class AppComponent {
   // ********* MODE ACTIONS *************
 
   // ** set the active vessel to the supplied UUID **
-  protected switchActiveVessel(uuid: string = null) {
+  protected switchActiveVessel(uuid: string | null = null) {
     this.app.data.vessels.activeId = uuid;
     if (!uuid) {
       this.app.data.vessels.active = this.app.data.vessels.self;
@@ -2336,7 +2350,11 @@ export class AppComponent {
   /** Handle OL selection end event and prompt */
   protected handleSelectionEnded(selection: SelectionResultDef) {
     if (selection.mode === 'seedChart') {
-      this.skres.seedChartCache(selection.data, selection.bbox);
+      // seedChartCache alerts when the chart is missing
+      this.skres.seedChartCache(
+        selection.data as FBChart,
+        selection.bbox as Position[]
+      );
     }
   }
 
@@ -2527,9 +2545,13 @@ export class AppComponent {
    * Finish/Cancel and the confirm prompt used for other resource types.
    */
   private applyModifyResult(save: boolean) {
-    const r = this.mapInteract.draw.forSave.id.split('.');
+    const forSave = this.mapInteract.draw.forSave;
+    if (!forSave?.id) {
+      return;
+    }
+    const r = forSave.id.split('.');
     // The edited geometry's nesting follows the resource type (r[0]).
-    const coords = this.mapInteract.draw.forSave.coords;
+    const coords = forSave.coords;
     if (save) {
       if (r[0] === 'route') {
         const buf = this.routeBuffers.get(r[1]);
@@ -2538,8 +2560,7 @@ export class AppComponent {
           // route.dirty). Persisted only via an explicit Save. Carry the
           // per-point name/description/waypoint link so metadata is not
           // dropped on a later Save.
-          const meta = this.mapInteract.draw.forSave.coordsMetadata as
-            PointMeta[] | undefined;
+          const meta = forSave.coordsMetadata as PointMeta[] | undefined;
           this.routeBuffers.replace(
             r[1],
             buildRoutePoints(coords as Position[], meta)
@@ -2551,7 +2572,7 @@ export class AppComponent {
           this.plotterExt.saveNativeRouteEdit(
             r[1],
             coords as Position[],
-            this.mapInteract.draw.forSave.coordsMetadata
+            forSave.coordsMetadata
           );
         }
       }
@@ -2629,8 +2650,8 @@ export class AppComponent {
 
   /** open WS Stream */
   private openSKStream(
-    options: StreamOptions = null,
-    toMode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME,
+    options: StreamOptions | null = null,
+    toMode: SKSTREAM_MODE | null = SKSTREAM_MODE.REALTIME,
     restart = false
   ) {
     if (restart) {
@@ -2639,7 +2660,7 @@ export class AppComponent {
       return;
     }
     this.stream.sendConfig(this.app.config);
-    this.stream.open(options);
+    this.stream.open(options ?? undefined);
   }
 
   /** query server for current values */
@@ -2659,7 +2680,7 @@ export class AppComponent {
         });
         // query anchor alarm status
         this.anchor.queryAnchorStatus(
-          undefined,
+          'self',
           this.app.data.vessels.self.position
         );
         // query radars / align defaultId
@@ -2686,7 +2707,7 @@ export class AppComponent {
   }
 
   // ** handle connection closure
-  private onClose(e?: UpdateMessage<boolean>) {
+  private onClose(e: UpdateMessage<boolean>) {
     this.app.debug('onClose: STREAM connection closed...');
     this.app.debug(e);
     this.stopTimers();

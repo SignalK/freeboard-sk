@@ -10,7 +10,7 @@ import { Component, effect, input, signal } from '@angular/core';
   `
 })
 export class CountryFlagComponent {
-  protected flagIcon: string;
+  protected flagIcon?: string;
   protected showFlag = signal<boolean>(true);
 
   public mmsi = input<string>();

@@ -53,7 +53,7 @@ export class GeoJSONImportDialog implements OnInit {
     waypoints: PointFeature[];
     tracks: MultiLineStringFeature[];
     regions: Array<PolygonFeature | MultiPolygonFeature>;
-    value: GeoJSONFeatureCollection;
+    value: GeoJSONFeatureCollection | null;
   } = {
     name: '',
     routes: [],
@@ -71,7 +71,7 @@ export class GeoJSONImportDialog implements OnInit {
 
   protected dialogRef = inject(MatDialogRef<GeoJSONImportDialog>);
   protected data = inject<{
-    fileData: string;
+    fileData: string | null;
     fileName: string;
   }>(MAT_DIALOG_DATA);
 
@@ -97,10 +97,12 @@ export class GeoJSONImportDialog implements OnInit {
   }
 
   load() {
-    this.facade.uploadToServer(this.geoData.value);
+    if (this.geoData.value) {
+      this.facade.uploadToServer(this.geoData.value);
+    }
   }
 
-  parseFileData(fileData: string) {
+  parseFileData(fileData: string | null) {
     this.geoData.value = this.facade.validate(fileData);
     if (!this.geoData.value) {
       console.warn('Error:', 'Invalid GeoJSON file!');

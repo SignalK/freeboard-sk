@@ -28,18 +28,19 @@ interface PiPVideoElement extends HTMLVideoElement {
   styles: [``]
 })
 export class PiPVideoComponent implements OnInit {
-  private pipVideo: PiPVideoElement;
+  // set in ngOnInit
+  private pipVideo!: PiPVideoElement;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private pipWindow: any;
   pipMode = false;
-  vidUrl: string;
+  vidUrl?: string;
   src = input<SafeResourceUrl>();
   muted = input<boolean>(true);
   _muted = linkedSignal(() => this.muted());
   resize = output<[number, number]>();
   change = output<boolean>();
   click = output<boolean>();
-  @ViewChild('vid', { static: true }) vid: ElementRef;
+  @ViewChild('vid', { static: true }) vid!: ElementRef;
 
   constructor() {
     effect(() => {

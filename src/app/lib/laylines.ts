@@ -101,8 +101,6 @@ export function computeLaylines(input: LaylineInput): Laylines {
     typeof input.gybeAngle === 'number'
       ? Convert.radiansToDegrees(input.gybeAngle)
       : undefined;
-  const ga_diff =
-    typeof ga_deg === 'number' ? 180 - Math.abs(ga_deg) : undefined;
 
   // mark laylines
   const markLines = (angle: number): LineString => {
@@ -111,16 +109,23 @@ export function computeLaylines(input: LaylineInput): Laylines {
     return [[pt1.longitude, pt1.latitude], mark, [pt2.longitude, pt2.latitude]];
   };
 
-  // no downwind laylines without a gybe angle
-  if (!destUpwind && typeof ga_deg !== 'number') {
+  let markAngle: number;
+  let tackAngle: number;
+  if (destUpwind) {
+    markAngle = ba_deg;
+    tackAngle = ba_deg;
+  } else if (typeof ga_deg === 'number') {
+    markAngle = ga_deg;
+    tackAngle = 180 - Math.abs(ga_deg);
+  } else {
+    // no downwind laylines without a gybe angle
     return NO_LAYLINES;
   }
-  const tackAngle = destUpwind ? ba_deg : ga_diff;
-  const targetAngle = markLines(destUpwind ? ba_deg : ga_deg);
+  const targetAngle = markLines(markAngle);
 
-  const destInTarget = destUpwind
-    ? Math.abs(Angle.difference(brg_deg, twd_deg)) < ba_deg
-    : Math.abs(Angle.difference(brg_deg, twd_inv)) < ga_diff;
+  const destInTarget =
+    Math.abs(Angle.difference(brg_deg, destUpwind ? twd_deg : twd_inv)) <
+    tackAngle;
 
   if (!destInTarget) {
     return { targetAngle, port: [], starboard: [] };

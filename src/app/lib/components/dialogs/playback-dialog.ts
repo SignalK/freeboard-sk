@@ -127,7 +127,7 @@ export class PlaybackDialog {
     context: string;
     startTimeHr: string;
     startTimeMin: string;
-    startDate: Date;
+    startDate: Date | null;
     playbackRate: number;
   } = {
     context: 'all',
@@ -145,10 +145,12 @@ export class PlaybackDialog {
   submit(cancel = false) {
     let q = {};
     let ts = '';
-    if (!cancel) {
-      this.formData.startDate.setHours(parseInt(this.formData.startTimeHr));
-      this.formData.startDate.setMinutes(parseInt(this.formData.startTimeMin));
-      ts = this.formData.startDate.toISOString();
+    const startDate = this.formData.startDate;
+    // submit is disabled until a start date is picked
+    if (!cancel && startDate) {
+      startDate.setHours(parseInt(this.formData.startTimeHr));
+      startDate.setMinutes(parseInt(this.formData.startTimeMin));
+      ts = startDate.toISOString();
       ts = ts.slice(0, ts.indexOf('.')) + 'Z';
       q = {
         subscribe: this.formData.context,

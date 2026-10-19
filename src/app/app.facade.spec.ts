@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { of } from 'rxjs';
+import { EMPTY, of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
@@ -418,7 +418,7 @@ describe('AppFacade.parseHttpErrorResponse', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({});
     app = TestBed.inject(AppFacade);
-    showAlert = vi.spyOn(app, 'showAlert').mockReturnValue(undefined);
+    showAlert = vi.spyOn(app, 'showAlert').mockReturnValue(EMPTY);
   });
 
   it('asks the user to log in when the server refuses the request', () => {

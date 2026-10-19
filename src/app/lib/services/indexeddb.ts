@@ -85,7 +85,7 @@ export class IndexedDB {
       const objectStore = transaction.objectStore(storeName);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result: Array<any> = [];
-      let request: IDBRequest<IDBCursorWithValue>;
+      let request: IDBRequest<IDBCursorWithValue | null>;
 
       if (indexDetails) {
         const index = objectStore.index(indexDetails.indexName),
@@ -296,7 +296,7 @@ export interface IndexDetails {
 export class DbWrapper {
   dbName: string;
   dbVersion: number;
-  db: IDBDatabase;
+  db: IDBDatabase | null;
 
   constructor(dbName: string, version: number) {
     this.dbName = dbName;
@@ -305,6 +305,9 @@ export class DbWrapper {
   }
 
   validateStoreName(storeName: string) {
+    if (!this.db) {
+      throw new Error('Database is not open');
+    }
     return this.db.objectStoreNames.contains(storeName);
   }
 
@@ -329,13 +332,16 @@ export class DbWrapper {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     abort?: (e: Event) => any;
   }): IDBTransaction {
+    if (!this.db) {
+      throw new Error('Database is not open');
+    }
     const trans: IDBTransaction = this.db.transaction(
       options.storeName,
       options.dbMode
     );
     trans.onerror = options.error;
     trans.oncomplete = options.complete;
-    trans.onabort = options.abort;
+    trans.onabort = options.abort ?? null;
     return trans;
   }
 }

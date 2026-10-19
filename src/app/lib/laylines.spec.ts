@@ -33,7 +33,7 @@ describe('laylineInput', () => {
       mark,
       self(rad(40), rad(40 - variation))
     );
-    expect(input.twd).toBeCloseTo(rad(40), 9);
+    expect(input?.twd).toBeCloseTo(rad(40), 9);
   });
 
   it('derives true wind from magnetic wind and variation when there is no true wind (#858)', () => {
@@ -42,7 +42,7 @@ describe('laylineInput', () => {
       mark,
       self(null, rad(40 - variation), rad(variation))
     );
-    expect(input.twd).toBeCloseTo(rad(40), 9);
+    expect(input?.twd).toBeCloseTo(rad(40), 9);
   });
 
   it('skips the laylines when there is no true wind direction', () => {

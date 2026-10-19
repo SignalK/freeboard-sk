@@ -11,7 +11,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class LocalStorage {
-  private _ls: Storage = null;
+  private _ls: Storage | null = null;
   private _namespace = '';
 
   constructor() {
@@ -36,7 +36,7 @@ export class LocalStorage {
   read(key: string) {
     if (this._ls && key) {
       try {
-        return JSON.parse(this._ls.getItem(this._namespace + key));
+        return JSON.parse(this._ls.getItem(this._namespace + key) ?? 'null');
       } catch {
         return this._ls.getItem(this._namespace + key);
       }

@@ -7,6 +7,11 @@ import {
 } from './overlay-charts';
 import { InfoLayerResource } from 'src/app/types';
 
+/** Removes a field, as from an Overlay that does not carry it. */
+function unset<T>(section: T, key: keyof T) {
+  delete (section as Partial<T>)[key];
+}
+
 /**
  * #784: a legacy Overlay (`infolayers` entry) is presented as a chart. The
  * mapping is what lets an existing radar layer carry over with nothing done
@@ -60,7 +65,7 @@ describe('isOverlayResource', () => {
 
   it('rejects an Overlay with no source URL, which no chart can be built on', () => {
     const noUrl = radarOverlay();
-    delete noUrl.values.url;
+    unset(noUrl.values, 'url');
     expect(isOverlayResource(noUrl)).toBe(false);
     noUrl.values.url = '  ';
     expect(isOverlayResource(noUrl)).toBe(false);
@@ -114,10 +119,10 @@ describe('chartFromOverlay', () => {
 
   it('omits the time block, interval and zoom range when the Overlay has none', () => {
     const plain = radarOverlay();
-    delete plain.values.time;
+    unset(plain.values, 'time');
     plain.values.refreshInterval = 0;
-    delete plain.values.minZoom;
-    delete plain.values.maxZoom;
+    unset(plain.values, 'minZoom');
+    unset(plain.values, 'maxZoom');
     const chart = chartFromOverlay('ov1', plain);
     expect(chart.time).toBeUndefined();
     expect(chart.refreshInterval).toBeUndefined();
@@ -128,7 +133,8 @@ describe('chartFromOverlay', () => {
   it('does not share the layers array with the Overlay', () => {
     const overlay = radarOverlay();
     const chart = chartFromOverlay('ov1', overlay);
-    chart.layers.push('other');
+    expect(chart.layers).toEqual(['nexrad-n0q']);
+    chart.layers?.push('other');
     expect(overlay.values.layers).toEqual(['nexrad-n0q']);
   });
 });

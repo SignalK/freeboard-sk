@@ -71,7 +71,7 @@ export interface CustomResource {
 
 export interface CustomStyles {
   default?: CustomStyle;
-  [key: string]: CustomStyle;
+  [key: string]: CustomStyle | undefined;
 }
 
 export interface CustomStyle {

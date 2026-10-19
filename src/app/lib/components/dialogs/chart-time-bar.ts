@@ -363,7 +363,8 @@ export class ChartTimeBar {
     const next = keyboardBarPosition(
       e.key,
       e.shiftKey,
-      current,
+      // a playhead not yet placed steps from 0
+      current ?? 0,
       this.min(),
       this.max(),
       this.step()

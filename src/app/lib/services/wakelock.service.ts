@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class WakeLockService {
-  private wakeLockRef: WakeLockSentinel;
+  private wakeLockRef?: WakeLockSentinel | null;
   private _enabled = signal<boolean>(false);
   readonly enabled = this._enabled.asReadonly();
 
@@ -18,7 +18,7 @@ export class WakeLockService {
   }
 
   toggle() {
-    if (this._enabled) {
+    if (this._enabled()) {
       this.disable();
     } else {
       this.enable();

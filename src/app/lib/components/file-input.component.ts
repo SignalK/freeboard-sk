@@ -61,7 +61,7 @@ export function effectiveAccept(accept: string, p: PlatformHints): string {
 export class FileInputComponent {
   disabled = input<boolean>(false);
   multiple = input<boolean>(false);
-  maxfilesize = input<number>(undefined); //** 1MB default
+  maxfilesize = input<number | undefined>(undefined); //** 1MB default
   accept = input<string>(''); // ** html input attribute value
   astext = input<boolean>(false); // ** return text instead of base64
   preview = input<boolean>(false);
@@ -76,7 +76,7 @@ export class FileInputComponent {
   }>();
   cleared = output<void>();
 
-  protected avatar: string = null;
+  protected avatar: string | null = null;
 
   protected inputAccept = computed(() =>
     effectiveAccept(this.accept(), navigator)
@@ -89,7 +89,9 @@ export class FileInputComponent {
   //** detect file change event handler **
   fileChange(input: HTMLInputElement) {
     //** read all file in file list array **
-    this.readFiles(input.files);
+    if (input.files) {
+      this.readFiles(input.files);
+    }
   }
 
   dragOver(e: DragEvent) {
@@ -98,9 +100,10 @@ export class FileInputComponent {
 
   drop(ev: DragEvent) {
     ev.preventDefault();
-    if (ev.dataTransfer.files) {
-      if (ev.dataTransfer.files.length > 0) {
-        this.readFiles(ev.dataTransfer.files);
+    const files = ev.dataTransfer?.files;
+    if (files) {
+      if (files.length > 0) {
+        this.readFiles(files);
       }
     }
   }
@@ -118,10 +121,11 @@ export class FileInputComponent {
     //** If there is a file **
     if (index in files) {
       // ** Check file size **
-      if (this.maxfilesize() && files[index].size > this.maxfilesize()) {
+      const maxfilesize = this.maxfilesize();
+      if (maxfilesize && files[index].size > maxfilesize) {
         errmsg.type = 'SIZE';
         errmsg.value = String(files[index].size);
-        errmsg.message = `File size exceeds the accepted maximum size of ${this.maxfilesize()}`;
+        errmsg.message = `File size exceeds the accepted maximum size of ${maxfilesize}`;
         this.invalid.emit(errmsg); //** fire invalid size event
         return;
       }
@@ -225,7 +229,7 @@ export class FileInputComponent {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      ctx.drawImage(img, 0, 0, width, height);
+      ctx?.drawImage(img, 0, 0, width, height);
 
       // Get this encoded as a jpeg
       // IMPORTANT: 'jpeg' NOT 'jpg'

@@ -41,9 +41,9 @@ export class GeoJSONLoadFacade {
   }
 
   // ** parse GeoJSON file
-  validate(fileData: string): GeoJSONFeatureCollection | null {
+  validate(fileData: string | null): GeoJSONFeatureCollection | null {
     try {
-      const data: GeoJSONFeatureCollection = JSON.parse(fileData);
+      const data: GeoJSONFeatureCollection = JSON.parse(fileData ?? 'null');
       if (
         typeof data.type === 'undefined' ||
         data.type !== 'FeatureCollection'

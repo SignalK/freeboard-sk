@@ -333,7 +333,7 @@ export class InteractionHelpComponent {
     this.canFinish = computed(() => {
       return (
         this.mapInteract.isModifying() ||
-        this.mapInteract.measurement().coords.length >= 2
+        (this.mapInteract.measurement().coords?.length ?? 0) >= 2
       );
     });
 
@@ -381,11 +381,11 @@ export class InteractionHelpComponent {
           iconName: 'edit',
           iconText: 'Modify',
           description:
-            this.mapInteract.draw.forSave.id === 'anchor'
+            this.mapInteract.draw.forSave?.id === 'anchor'
               ? 'Click and drag to move anchor.'
               : '',
           steps:
-            this.mapInteract.draw.forSave.id !== 'anchor'
+            this.mapInteract.draw.forSave?.id !== 'anchor'
               ? [
                   'Click and drag to move point.',
                   'Ctrl-Click or press-and-hold to remove point from a line.'
