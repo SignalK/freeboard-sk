@@ -1,0 +1,21 @@
+// The folders already clean under strictNullChecks and
+// strictPropertyInitialization. `npm run typecheck:strict` keeps them clean,
+// reporting errors only in these folders. Add a folder (or a file or glob)
+// once its errors are fixed; when every folder is listed, the flags move into
+// tsconfig.json and this file goes.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/app/lib/components/map-toolbar",
+    "src/app/lib/pipes",
+    "src/app/modules/buddies",
+    "src/app/modules/features",
+    "src/app/modules/skresources/components/weather"
+  ],
+  "exclude": ["src/**/*.worker.ts"]
+}
