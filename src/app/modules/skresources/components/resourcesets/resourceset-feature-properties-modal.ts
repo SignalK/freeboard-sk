@@ -126,10 +126,10 @@ export class ResourceSetFeatureModal implements OnInit {
     const features = this.data.item.values.features;
     const feature = fIndex < features.length ? features[fIndex] : features[0];
 
-    this.title = feature.properties.name ?? 'Feature';
+    this.title = feature.properties?.name ?? 'Feature';
     this.properties = {
-      name: feature.properties.name ?? '',
-      description: feature.properties.description ?? '',
+      name: feature.properties?.name ?? '',
+      description: feature.properties?.description ?? '',
       'position.latitude': feature.geometry.coordinates[1],
       'position.longitude': feature.geometry.coordinates[0],
       'resourceset.name': this.data.item.name,

@@ -85,21 +85,21 @@ describe('parseWMSCapabilities', () => {
     expect(root.name).toBe('');
     expect(root.title).toBe('Root');
     // top-level layers are sorted by name; children keep document order
-    expect(root.children.map((l) => l.name)).toEqual(['sst', 'bathy']);
-    expect(root.children[0].description).toBe('SST analysis');
-    expect(root.children[0].parent).toBe(root);
+    expect(root.children?.map((l) => l.name)).toEqual(['sst', 'bathy']);
+    expect(root.children?.[0].description).toBe('SST analysis');
+    expect(root.children?.[0].parent).toBe(root);
   });
 
   it('reads a time dimension from the element text and its attributes', async () => {
     const wms = await parseWMSCapabilities(WMS_XML, 'http://x/wms', OPTIONS);
-    const sst = wms.layers[0].children.find((l) => l.name === 'sst');
-    expect(sst.time).toEqual({
+    const sst = wms.layers[0].children?.find((l) => l.name === 'sst');
+    expect(sst?.time).toEqual({
       current: '2026-09-16T00:00:00.000Z',
       from: '2026-09-15T00:00:00.000Z',
       to: '2026-09-17T00:00:00.000Z',
       interval: 6 * 3600 * 1000
     });
-    expect(wms.layers[0].children.find((l) => l.name === 'bathy').time).toBe(
+    expect(wms.layers[0].children?.find((l) => l.name === 'bathy')?.time).toBe(
       null
     );
   });
@@ -120,10 +120,10 @@ describe('parseWMTSCapabilities', () => {
     );
     expect(wmts.type).toBe('WMTS');
     const l = wmts.layers.find((l) => l.id === 'charts');
-    expect(l.name).toBe('Nautical chart');
-    expect(l.description).toBe('Raster chart tiles');
-    expect(l.bounds).toEqual([-81, 24.5, -80, 26]);
-    expect(l.format).toBe('jpg');
+    expect(l?.name).toBe('Nautical chart');
+    expect(l?.description).toBe('Raster chart tiles');
+    expect(l?.bounds).toEqual([-81, 24.5, -80, 26]);
+    expect(l?.format).toBe('jpg');
   });
 
   it('reads a list of time values', async () => {
@@ -132,7 +132,7 @@ describe('parseWMTSCapabilities', () => {
       'http://x/wmts',
       OPTIONS
     );
-    expect(wmts.layers.find((l) => l.id === 'charts').time).toEqual({
+    expect(wmts.layers.find((l) => l.id === 'charts')?.time).toEqual({
       current: '2026-09-16T00:00:00.000Z',
       from: '2026-09-15T00:00:00.000Z',
       to: '2026-09-16T00:00:00.000Z',
@@ -157,7 +157,7 @@ describe('parseWMTSCapabilities', () => {
       'http://x/wmts',
       OPTIONS
     );
-    expect(wmts.layers.find((l) => l.id === 'attrs').format).toBe('png');
+    expect(wmts.layers.find((l) => l.id === 'attrs')?.format).toBe('png');
   });
 });
 

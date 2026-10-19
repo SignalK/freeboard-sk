@@ -41,7 +41,7 @@ describe('ChartPropertiesDialog — refresh interval', () => {
     ) as HTMLInputElement | null;
 
   const typeMinutes = async (value: string) => {
-    const input = minutesInput();
+    const input = minutesInput()!;
     input.value = value;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -147,7 +147,7 @@ describe('ChartPropertiesDialog — layer pick pre-fills', () => {
         title: 'NEXRAD Base Reflectivity',
         description: 'Composite radar mosaic, updated every 10 minutes.',
         selected: false,
-        parent: null as LayerNode,
+        parent: null as LayerNode | null,
         time: { from: T0, to: T1, interval: 600000, current: T1 }
       },
       {
@@ -364,7 +364,7 @@ describe('ChartPropertiesDialog — layer pick pre-fills', () => {
 
   it('keeps a 0 the user typed, even for a time-varying layer', async () => {
     await open(newWms({ refreshInterval: 900000 }), wmsCapabilities);
-    await typeInto(minutesInput(), '0');
+    await typeInto(minutesInput()!, '0');
     await pick(['nexrad-n0q']);
     expect(minutesInput()?.value).toBe('0');
     expect(dialog().refreshMinutes).toBe(0);

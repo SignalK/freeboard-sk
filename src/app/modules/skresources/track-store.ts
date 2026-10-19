@@ -146,7 +146,7 @@ const DERIVED = new Set([
 /** A stored track as the feature Freeboard draws, keyed by its Track API id. */
 export function toTrackFeature(
   f: StoredTrackFeature
-): MultiLineStringFeature | undefined {
+): (MultiLineStringFeature & { id: string }) | undefined {
   // only imports are fetched from the store, whether or not the provider
   // marks them
   const id = f?.properties?.id;

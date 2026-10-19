@@ -284,32 +284,20 @@ export class SKResourceGroupService {
     const grp = await this.fromServer(grpId);
 
     if (resType === 'route') {
-      if (!Array.isArray(grp.routes)) {
-        grp.routes = [];
-      }
-      const newids = resId.filter((i) => !grp.routes.includes(i));
-      grp.routes = grp.routes.concat(newids);
+      const ids = Array.isArray(grp.routes) ? grp.routes : [];
+      grp.routes = ids.concat(resId.filter((i) => !ids.includes(i)));
     }
     if (resType === 'waypoint') {
-      if (!Array.isArray(grp.waypoints)) {
-        grp.waypoints = [];
-      }
-      const newids = resId.filter((i) => !grp.waypoints.includes(i));
-      grp.waypoints = grp.waypoints.concat(newids);
+      const ids = Array.isArray(grp.waypoints) ? grp.waypoints : [];
+      grp.waypoints = ids.concat(resId.filter((i) => !ids.includes(i)));
     }
     if (resType === 'region') {
-      if (!Array.isArray(grp.regions)) {
-        grp.regions = [];
-      }
-      const newids = resId.filter((i) => !grp.regions.includes(i));
-      grp.regions = grp.regions.concat(newids);
+      const ids = Array.isArray(grp.regions) ? grp.regions : [];
+      grp.regions = ids.concat(resId.filter((i) => !ids.includes(i)));
     }
     if (resType === 'chart') {
-      if (!Array.isArray(grp.charts)) {
-        grp.charts = [];
-      }
-      const newids = resId.filter((i) => !grp.charts.includes(i));
-      grp.charts = grp.charts.concat(newids);
+      const ids = Array.isArray(grp.charts) ? grp.charts : [];
+      grp.charts = ids.concat(resId.filter((i) => !ids.includes(i)));
     }
     await this.putToServer(grpId, grp);
   }

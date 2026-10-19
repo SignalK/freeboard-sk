@@ -79,12 +79,12 @@ describe('SKResourceService.updateRouteCoords', () => {
   });
 
   it("writes a route's points one after another, the next from what the last left", async () => {
-    let fail: (err: Error) => void;
+    let fail!: (err: Error) => void;
     const puts = [
       () => new Promise((_resolve, reject) => (fail = reject)),
       async () => ({})
     ];
-    const { svc, route } = service(() => puts.shift()());
+    const { svc, route } = service(() => puts.shift()!());
     const put = (svc as unknown as { putToServer: ReturnType<typeof vi.fn> })
       .putToServer;
     const later: Position[] = [
@@ -118,12 +118,12 @@ describe('SKResourceService.updateRouteCoords', () => {
   });
 
   it('writes the points as they were when the write was asked for', async () => {
-    let finish: () => void;
+    let finish!: () => void;
     const puts = [
       () => new Promise<void>((resolve) => (finish = resolve)),
       async () => ({})
     ];
-    const { svc, route } = service(() => puts.shift()());
+    const { svc, route } = service(() => puts.shift()!());
     const later: Position[] = [
       [24.96, 60.15],
       [24.96, 60.17]
@@ -141,11 +141,11 @@ describe('SKResourceService.updateRouteCoords', () => {
     await second;
 
     expect(route.feature.geometry.coordinates[0]).toEqual([24.96, 60.15]);
-    expect(route.feature.properties.coordinatesMeta[0].name).toBe('Start');
+    expect(route.feature.properties?.coordinatesMeta?.[0].name).toBe('Start');
   });
 
   it('publishes the change to the chart, and its undo when the write fails', async () => {
-    let fail: (err: Error) => void;
+    let fail!: (err: Error) => void;
     const { svc } = service(
       () => new Promise((_resolve, reject) => (fail = reject))
     );

@@ -316,7 +316,6 @@ import { NodeListSelect } from './node-list-select';
   ]
 })
 export class ChartPropertiesDialog {
-  protected icon: string;
   protected wmsLayers = signal<LayerNode[]>([]);
   protected wmtsLayers = signal<WMTSLayerDef[]>([]);
   protected isEditable = signal<boolean>(false);
@@ -337,7 +336,10 @@ export class ChartPropertiesDialog {
   protected layerErrorText = '';
   private capabilities!: WMTSCapabilitiesDef | WMSCapabilitiesDef;
 
-  protected capabilitiesParam = signal<{ url: string; type: string }>({
+  protected capabilitiesParam = signal<{
+    url: string | null | undefined;
+    type: string | null;
+  }>({
     url: null,
     type: null
   });
@@ -372,11 +374,12 @@ export class ChartPropertiesDialog {
   }
 
   ngOnInit() {
-    if (['wms', 'wmts'].includes(this.data.type?.toLowerCase())) {
+    const type = this.data.type?.toLowerCase();
+    if (type === 'wms' || type === 'wmts') {
       this.capabilitiesParam.update(() => {
         return {
           url: this.data.url,
-          type: this.data.type.toLowerCase()
+          type
         };
       });
     }
@@ -391,7 +394,10 @@ export class ChartPropertiesDialog {
    * @param url Chart url
    * @param chartType wms | wmts
    */
-  private async fetchCapabilities(url: string, chartType: string) {
+  private async fetchCapabilities(
+    url: string | null | undefined,
+    chartType: string | null
+  ) {
     if (!url) return;
     try {
       if (chartType === 'wms') {
@@ -416,9 +422,9 @@ export class ChartPropertiesDialog {
     // layer without one stops being time-varying.
     let picked: { title: string; description: string } | undefined;
     if (this.data.type?.toLowerCase() === 'wmts') {
-      const l: WMTSLayerDef = (this.capabilities.layers as WMTSLayerDef[]).find(
-        (i: WMTSLayerDef) => i.id === e[0]
-      );
+      const l: WMTSLayerDef | undefined = (
+        this.capabilities.layers as WMTSLayerDef[]
+      ).find((i: WMTSLayerDef) => i.id === e[0]);
       if (l) {
         this.data.format = l.format ? l.format : this.data.format;
         this.data.bounds = l.bounds ? l.bounds : this.data.bounds;

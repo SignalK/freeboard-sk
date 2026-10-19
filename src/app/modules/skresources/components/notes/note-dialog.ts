@@ -124,7 +124,8 @@ export class NoteDialog implements OnInit {
     toolbarHiddenButtons: this.editorHiddenButtons
   };
 
-  protected icon: AppIconDef;
+  // set in ngOnInit, before the template first reads it
+  protected icon!: AppIconDef;
   protected poiIcons: Array<{ id: string; name: string }> = [];
   protected showAllIcons = signal(false);
   protected data = inject<DialogData>(MAT_DIALOG_DATA);

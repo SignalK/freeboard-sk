@@ -48,7 +48,7 @@ interface DialogData {
 })
 export class RelatedNotesDialog implements OnInit {
   protected readonly mdProcessor = markdownProcessor;
-  protected relatedBy: string;
+  protected relatedBy = '';
 
   protected data = inject<DialogData>(MAT_DIALOG_DATA);
   protected app = inject(AppFacade);

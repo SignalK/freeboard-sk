@@ -53,8 +53,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class WaypointPanel {
   protected readonly mdProcessor = markdownProcessor;
   waypoint = input<SKWaypoint>(new SKWaypoint());
-  id = input<string>(undefined);
-  related = input<string>(undefined);
+  id = input<string>('');
+  related = input<string>('');
   interacting = input<boolean>(false);
 
   protected _waypoint = linkedSignal(() => this.waypoint());
@@ -67,7 +67,7 @@ export class WaypointPanel {
     zoomLevel: number;
   }>();
 
-  protected icon: AppIconDef;
+  protected icon: AppIconDef = {};
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
   private course = inject(CourseService);

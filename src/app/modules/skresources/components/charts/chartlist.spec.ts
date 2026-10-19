@@ -381,7 +381,7 @@ describe('ChartListComponent — drag wiring in the rendered list', () => {
       .queryAll(By.css('mat-slide-toggle'))
       .find((t) => t.nativeElement.textContent.includes('In view'));
 
-    inViewSwitch.nativeElement.querySelector('button[role="switch"]').click();
+    inViewSwitch!.nativeElement.querySelector('button[role="switch"]').click();
     fixture.detectChanges();
 
     expect(app.config.selections.chartsInViewOnly).toBe(true);

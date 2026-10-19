@@ -69,7 +69,7 @@ function harness(opts: {
   overlaySelection?: string[] | null;
   chartOrder?: string[];
   confirm?: boolean;
-  dialogResult?: { save: boolean; chart: SKChart };
+  dialogResult?: { save: boolean; chart?: SKChart };
 }) {
   const svc = Object.create(SKResourceService.prototype) as SKResourceService;
   const overlays = opts.overlays ?? {};

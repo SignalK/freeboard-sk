@@ -45,10 +45,13 @@ describe('RoutePanel REVERSE', () => {
     // like the real one: rewrites the cached route in place
     updateRouteCoords = vi.fn(
       async (id: string, c: Position[], meta?: Array<{ name: string }>) => {
-        const route = cached.get(id);
+        const route = cached.get(id)!;
         route.feature.geometry.coordinates = c;
         if (meta) {
-          route.feature.properties.coordinatesMeta = meta;
+          route.feature.properties = {
+            ...route.feature.properties,
+            coordinatesMeta: meta
+          };
         }
         return true;
       }
@@ -141,10 +144,10 @@ describe('RoutePanel REVERSE', () => {
     expect(panel.canReverse()).toBe(true);
     await panel.onReverse();
 
-    expect(registry.get(id).points.map((p) => p.position)).toEqual(
+    expect(registry.get(id)?.points.map((p) => p.position)).toEqual(
       [...coords].reverse()
     );
-    expect(registry.get(id).points.map((p) => p.name)).toEqual(
+    expect(registry.get(id)?.points.map((p) => p.name)).toEqual(
       [...names].reverse()
     );
     expect(panel.points().map((p) => p.name)).toEqual([...names].reverse());
@@ -184,7 +187,7 @@ describe('RoutePanel REVERSE', () => {
     await panel.onReverse();
     await panel.onReverse();
 
-    expect(registry.get(id).points.map((p) => p.position)).toEqual(coords);
+    expect(registry.get(id)?.points.map((p) => p.position)).toEqual(coords);
     expect(panel.points().map((p) => p.name)).toEqual(names);
   });
 
@@ -202,7 +205,7 @@ describe('RoutePanel REVERSE', () => {
 
     await panel.onReverse();
 
-    expect(registry.get(routeId).points.map((p) => p.name)).toEqual([
+    expect(registry.get(routeId)?.points.map((p) => p.name)).toEqual([
       'Four',
       'Three',
       'Two',
@@ -281,7 +284,7 @@ describe('RoutePanel REVERSE', () => {
 
     await panel.onReverse();
 
-    expect(registry.get(routeId).points.map((p) => p.name)).toEqual([
+    expect(registry.get(routeId)?.points.map((p) => p.name)).toEqual([
       'Four',
       'Three',
       'Two',
@@ -294,7 +297,7 @@ describe('RoutePanel REVERSE', () => {
       'One'
     ]);
     expect(updateRouteCoords).not.toHaveBeenCalled();
-    expect(cached.get('rte-1').feature.geometry.coordinates).toEqual(coords);
+    expect(cached.get('rte-1')?.feature.geometry.coordinates).toEqual(coords);
   });
 
   it('turns the route being followed round through the course', async () => {
