@@ -863,7 +863,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           if (target || cpa) {
             v.push({
               self,
-              target,
+              target: target ?? undefined,
               selfAtCpa: cpa?.self,
               targetAtCpa: cpa?.target
             });
@@ -2737,7 +2737,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'ais';
         poData.isSelf = true;
         poData.vessel = this.dfeat.self;
-        poData.position = this.dfeat.self.position;
+        poData.position = this.dfeat.self.position ?? coord;
         poData.show = true;
         break;
       case 'ais-vessels': {
@@ -2749,7 +2749,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'ais';
         poData.id = aid;
         poData.vessel = vessel;
-        poData.position = vessel.position;
+        poData.position = vessel.position ?? coord;
         poData.show = true;
         break;
       }
@@ -2763,7 +2763,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'aton';
         poData.id = id;
         poData.aton = aton;
-        poData.position = aton.position;
+        poData.position = aton.position ?? coord;
         poData.show = true;
         break;
       }
@@ -2775,7 +2775,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'aton';
         poData.id = id;
         poData.aton = sar;
-        poData.position = sar.position;
+        poData.position = sar.position ?? coord;
         poData.show = true;
         break;
       }
@@ -2787,7 +2787,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = t[0];
         poData.id = id;
         poData.aton = meteo;
-        poData.position = meteo.position;
+        poData.position = meteo.position ?? coord;
         poData.show = true;
         break;
       }
@@ -2799,7 +2799,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = t[0];
         poData.id = id;
         poData.aircraft = aircraft;
-        poData.position = aircraft.position;
+        poData.position = aircraft.position ?? coord;
         poData.show = true;
         break;
       }
@@ -3393,8 +3393,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const wMax = 10; // max line length
 
     // update vessel trail
-    if (vesselUpdate) {
-      this.app.addToSelfTrail(this.dfeat.self.position);
+    const selfPosition = this.dfeat.self.position;
+    if (vesselUpdate && selfPosition) {
+      this.app.addToSelfTrail(selfPosition);
     }
 
     // render laylines
@@ -3411,14 +3412,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
           : Convert.nauticalMilesToKm(
               this.app.config.vessels.selfLines.heading.length
             ) * 1000;
-      const heading = [
-        this.dfeat.active.position,
-        GeoUtils.rhumbDestination(
-          this.dfeat.active.position,
-          this.dfeat.active.orientation,
-          hl
-        )
-      ];
+      const position = this.dfeat.active.position;
+      const heading: LineString = position
+        ? [
+            position,
+            GeoUtils.rhumbDestination(
+              position,
+              this.dfeat.active.orientation,
+              hl
+            )
+          ]
+        : [];
 
       return {
         cog: cog,
