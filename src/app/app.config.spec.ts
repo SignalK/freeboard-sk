@@ -90,6 +90,17 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels.iconActualSize).toBe(true);
   });
 
+  it('defaults the own-vessel icon type, keeping a stored choice', () => {
+    const cfg = legacyConfig();
+    delete (cfg.vessels as Partial<IAppConfig['vessels']>).iconType;
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.iconType).toBe('monohull');
+
+    cfg.vessels.iconType = 'catamaran';
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.iconType).toBe('catamaran');
+  });
+
   it('moves vessels.cogLine / headingLineSize into selfLines', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});

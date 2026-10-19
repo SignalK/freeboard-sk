@@ -10,6 +10,35 @@ const VesselSelfIcons: AppIconSet = {
   files: ['ais_self.svg']
 };
 
+/** Selectable icons for the owner's own vessel. */
+export type OwnVesselIconType = 'monohull' | 'catamaran' | 'powerboat';
+
+export interface OwnVesselIconDef {
+  path: string;
+  scale: number;
+  anchor: [number, number];
+}
+
+export const DEFAULT_OWN_VESSEL_ICON: OwnVesselIconType = 'monohull';
+
+export const OwnVesselIcons: Record<OwnVesselIconType, OwnVesselIconDef> = {
+  monohull: {
+    path: './assets/img/vessels/self_monohull.svg',
+    scale: 0.9,
+    anchor: [9.5, 22.5]
+  },
+  catamaran: {
+    path: './assets/img/vessels/self_catamaran.svg',
+    scale: 0.9,
+    anchor: [9.5, 22.5]
+  },
+  powerboat: {
+    path: './assets/img/vessels/self_powerboat.svg',
+    scale: 0.9,
+    anchor: [9.5, 22.5]
+  }
+};
+
 export const VesselAisIcons: AppIconSet = {
   path: './assets/img/vessels',
   scale: 1.0,

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="19" height="45" viewBox="0 0 38 90">
+  <title>Sailing monohull</title>
+  <path d="M19 2 C24 12 27 26 28 44 L29 78 C29 84 26 88 21 88 L17 88 C12 88 9 84 9 78 L10 44 C11 26 14 12 19 2 Z" fill="#d32f2f" stroke="#7f0000" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M19 14 C21 25 22 40 22 56 L22 80 C22 83 21 84 19 84 C17 84 16 83 16 80 L16 56 C16 40 17 25 19 14 Z" fill="#fff5f5" stroke="#7f0000" stroke-width="1"/>
+  <path d="M20 22 L27 65 L20 61 Z" fill="#ffffff" stroke="#7f0000" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M18 27 L12 63 L18 60 Z" fill="#f3f3f3" stroke="#7f0000" stroke-width="1.5" stroke-linejoin="round"/>
+  <line x1="19" y1="17" x2="19" y2="72" stroke="#5d0000" stroke-width="2"/>
+</svg>

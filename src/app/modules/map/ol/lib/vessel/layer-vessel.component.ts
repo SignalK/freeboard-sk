@@ -23,27 +23,24 @@ import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
 import { MapImageRegistry } from '../map-image-registry.service';
 import { actualSizeIconScale } from 'src/app/lib/vessel-icon-scale';
+import {
+  DEFAULT_OWN_VESSEL_ICON,
+  OwnVesselIconType,
+  OwnVesselIcons
+} from 'src/app/modules/icons/vessels';
 
 /** Symbol id used to override the own-vessel marker. */
 export const VESSEL_SELF_MARKER = 'vessel-self';
 
 const SELF_ICON_SIZE = { width: 19, height: 45 };
 
-const vesselIconDef = {
-  src: './assets/img/vessels/self.png',
-  anchor: [9.5, 22.5],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels',
-  scale: 0.9, //0.75,
-  rotateWithView: true
-};
-
 /** The own-vessel icon at `iconScale`: the external symbol override when one
- * is registered, else the built-in icon. A fresh instance, so per-render
- * heading rotation does not mutate a shared one. */
+ * is registered, else the built-in icon for `iconType`. A fresh instance, so
+ * per-render heading rotation does not mutate a shared one. */
 export function selfVesselIcon(
   mapImages: MapImageRegistry,
-  iconScale?: number
+  iconScale?: number,
+  iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON
 ): Icon {
   const ext = mapImages.getExternalSymbol(VESSEL_SELF_MARKER);
   if (ext) {
@@ -54,9 +51,15 @@ export function selfVesselIcon(
     }
     return img;
   }
+  const def =
+    OwnVesselIcons[iconType] ?? OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON];
   return new Icon({
-    ...vesselIconDef,
-    scale: iconScale ? Math.abs(iconScale) : vesselIconDef.scale
+    src: def.path,
+    anchor: def.anchor,
+    anchorXUnits: 'pixels',
+    anchorYUnits: 'pixels',
+    scale: iconScale ? Math.abs(iconScale) : def.scale,
+    rotateWithView: true
   } as Options);
 }
 
@@ -131,6 +134,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() actualSize = false;
   @Input() lengthOverall: number | null = null;
   @Input() beam: number | null = null;
+  @Input() iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON;
   @Input() opacity?: number;
   @Input() visible?: boolean;
   @Input() extent?: Extent;
@@ -204,7 +208,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           key === 'iconScale' ||
           key === 'actualSize' ||
           key === 'lengthOverall' ||
-          key === 'beam'
+          key === 'beam' ||
+          key === 'iconType'
         ) {
           if (this.source) {
             this.generateSelfStyle();
@@ -294,7 +299,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   generateSelfStyle() {
     this.scaledIcon?.unlistenImageChange(this.onScaledIconChange);
     this.scaledIcon = null;
-    const icon = selfVesselIcon(this.mapImages, this.iconScale);
+    const icon = selfVesselIcon(this.mapImages, this.iconScale, this.iconType);
     if (this.actualSize) {
       const size = icon.getSize();
       const metresPerPixel = this.metresPerPixel();

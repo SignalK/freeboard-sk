@@ -11,6 +11,7 @@ import {
   Position,
   WindIndicator
 } from 'src/app/types';
+import { OwnVesselIconType } from 'src/app/modules/icons/vessels';
 import { Observable, Subject } from 'rxjs';
 
 interface SKAppsList {
@@ -197,6 +198,11 @@ export class SettingsOptions {
       [0.9, 'M'],
       [1.15, 'L'],
       [1.4, 'XL']
+    ]),
+    selfIconType: new Map<OwnVesselIconType, string>([
+      ['monohull', 'Sailing Monohull'],
+      ['catamaran', 'Catamaran'],
+      ['powerboat', 'Powerboat']
     ]),
     headingLine: new Map([
       [-1, 'Default'],

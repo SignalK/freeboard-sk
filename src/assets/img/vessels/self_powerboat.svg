@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="19" height="45" viewBox="0 0 38 90">
+  <title>Powerboat</title>
+  <path d="M19 3 C24 14 30 28 32 47 L32 79 C32 85 29 88 25 88 L13 88 C9 88 6 85 6 79 L6 47 C8 28 14 14 19 3 Z" fill="#d32f2f" stroke="#7f0000" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M19 12 C22 24 24 38 24 53 L24 79 C24 82 22 84 19 84 C16 84 14 82 14 79 L14 53 C14 38 16 24 19 12 Z" fill="#fff5f5" stroke="#7f0000" stroke-width="1"/>
+  <path d="M12 37 L26 37 L28 53 L10 53 Z" fill="#e8f2ff" stroke="#164eaf" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M16 40 L22 40 L23 50 L15 50 Z" fill="#7fb2e5" stroke="#164eaf" stroke-width="1"/>
+  <path d="M9 69 L29 69 L27 83 L11 83 Z" fill="#fff5f5" stroke="#7f0000" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

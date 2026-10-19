@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="19" height="45" viewBox="0 0 38 90">
+  <title>Sailing catamaran</title>
+  <path d="M10 4 C13 15 14 32 14 56 L14 78 C14 84 12 87 10 87 C8 87 6 84 6 78 L6 56 C6 32 7 15 10 4 Z" fill="#d32f2f" stroke="#7f0000" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M28 4 C31 15 32 32 32 56 L32 78 C32 84 30 87 28 87 C26 87 24 84 24 78 L24 56 C24 32 25 15 28 4 Z" fill="#d32f2f" stroke="#7f0000" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M9 40 L29 40 L31 64 L7 64 Z" fill="#fff5f5" stroke="#7f0000" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M19 18 L24 61 L19 57 Z" fill="#ffffff" stroke="#7f0000" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M17 24 L12 59 L17 56 Z" fill="#f3f3f3" stroke="#7f0000" stroke-width="1.5" stroke-linejoin="round"/>
+  <line x1="19" y1="15" x2="19" y2="66" stroke="#5d0000" stroke-width="2"/>
+</svg>

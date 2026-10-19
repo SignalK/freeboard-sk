@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SimpleChange, type ChangeDetectorRef } from '@angular/core';
 import Style from 'ol/style/Style';
-import type Icon from 'ol/style/Icon';
+import Icon from 'ol/style/Icon';
 import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
@@ -9,8 +9,10 @@ import type { MapComponent } from '../map.component';
 import type { MapImageRegistry } from '../map-image-registry.service';
 import {
   VesselComponent,
-  STALE_VESSEL_OPACITY
+  STALE_VESSEL_OPACITY,
+  selfVesselIcon
 } from './layer-vessel.component';
+import type { OwnVesselIconType } from 'src/app/modules/icons/vessels';
 
 /**
  * When self position stops updating, the own-vessel icon must say so on the
@@ -202,5 +204,36 @@ describe('VesselComponent without a position', () => {
       expect(c.generateSelfStyle).not.toHaveBeenCalled();
       expect(c.parseVessel).toHaveBeenCalled();
     });
+  });
+});
+
+describe('selfVesselIcon own-vessel types', () => {
+  const noOverrides = {
+    getExternalSymbol: (): null => null
+  } as unknown as MapImageRegistry;
+
+  it.each<[OwnVesselIconType, string]>([
+    ['monohull', 'self_monohull.svg'],
+    ['catamaran', 'self_catamaran.svg'],
+    ['powerboat', 'self_powerboat.svg']
+  ])('draws a %s from its own icon', (type, file) => {
+    const icon = selfVesselIcon(noOverrides, 0.9, type);
+    expect(icon.getSrc()).toContain(file);
+    expect(icon.getScale()).toBe(0.9);
+  });
+
+  it('defaults to the sailing monohull', () => {
+    expect(selfVesselIcon(noOverrides).getSrc()).toContain('self_monohull.svg');
+  });
+
+  it('still prefers a registered external override', () => {
+    const override = new Icon({ src: './custom-self.svg' });
+    const withOverride = {
+      getExternalSymbol: (): Icon => override
+    } as unknown as MapImageRegistry;
+
+    const icon = selfVesselIcon(withOverride, 1.2, 'catamaran');
+    expect(icon.getSrc()).toContain('custom-self.svg');
+    expect(icon.getScale()).toBe(1.2);
   });
 });
