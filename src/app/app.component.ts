@@ -2069,7 +2069,7 @@ export class AppComponent {
     const cpi = GeoUtils.closestForwardPoint(
       coordinates,
       this.app.data.vessels.self.position,
-      Convert.radiansToDegrees(this.app.data.vessels.self.heading)
+      Convert.radiansToDegrees(this.app.data.vessels.self.heading ?? undefined)
     );
     if (cpi === -1) {
       this.app
