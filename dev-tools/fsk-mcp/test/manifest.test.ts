@@ -57,3 +57,15 @@ test('offers one data overlay, the scratch layer, for the overlay tools to drive
     assert.strictEqual(layer.source, 'scratch');
   }
 });
+
+test('offers one action, the probe, hidden until an agent shows it', () => {
+  const m = buildManifest();
+  assert.ok(m.optional.includes('actions'));
+  assert.ok(!m.requires.includes('actions'));
+  assert.strictEqual(m.actions.length, 1);
+  const probe = m.actions[0];
+  assert.strictEqual(probe.id, 'probe');
+  assert.strictEqual(probe.visible, false);
+  assert.ok(probe.targets.includes('position'));
+  assert.strictEqual(probe.action.type, 'publish');
+});

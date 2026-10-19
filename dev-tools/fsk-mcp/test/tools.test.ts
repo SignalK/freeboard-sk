@@ -145,3 +145,36 @@ test('fsk_set_overlay_layer passes filter null through and omits what was not gi
     ]
   );
 });
+
+test('fsk_set_action_visibility defaults to the probe action', () => {
+  assert.deepStrictEqual(run('fsk_set_action_visibility', { visible: true }), [
+    [
+      'actions.setVisibility',
+      { ids: ['probe'], visible: true },
+      { session: undefined }
+    ]
+  ]);
+});
+
+test('fsk_list_action_invocations reads what the runtime recorded', async () => {
+  const calls: Call[] = [];
+  const recorded = [{ actionId: 'probe' }];
+  const result = await find('fsk_list_action_invocations').run(
+    {
+      call: (...a) => {
+        calls.push(a);
+        return Promise.resolve({ values: { actionInvocations: recorded } });
+      },
+      listSessions: () => []
+    },
+    {}
+  );
+  assert.deepStrictEqual(calls, [
+    [
+      'state.get',
+      { scope: 'extension', keys: ['actionInvocations'] },
+      { session: undefined }
+    ]
+  ]);
+  assert.deepStrictEqual(result, recorded);
+});

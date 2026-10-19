@@ -610,6 +610,10 @@
           [properties]="this.overlay().s57Feature"
           (closed)="popoverClosed()"
         >
+          <fb-ext-actions
+            [target]="overlay().target"
+            (chosen)="popoverClosed()"
+          ></fb-ext-actions>
         </s57-popover>
       }
       @if (this.overlay().type === 'trackhistory') {
@@ -658,6 +662,10 @@
               </div>
             </div>
           }
+          <fb-ext-actions
+            [target]="overlay().target"
+            (chosen)="popoverClosed()"
+          ></fb-ext-actions>
         </ap-popover>
       }
       @if (this.overlay().type === 'tidal') {
@@ -738,6 +746,10 @@
           (points)="popoverPoints(); popoverClosed()"
           (closed)="popoverClosed()"
         >
+          <fb-ext-actions
+            [target]="overlay().target"
+            (chosen)="popoverClosed()"
+          ></fb-ext-actions>
         </resource-popover>
       }
       @if (overlay().type === 'rset') {
@@ -770,6 +782,10 @@
             (markPosition)="skres.newWaypointAt($event); popoverClosed()"
             (closed)="popoverClosed()"
           >
+            <fb-ext-actions
+              [target]="overlay().target"
+              (chosen)="popoverClosed()"
+            ></fb-ext-actions>
           </vessel-popover>
         </div>
       }
@@ -780,6 +796,10 @@
           (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
           (closed)="popoverClosed()"
         >
+          <fb-ext-actions
+            [target]="overlay().target"
+            (chosen)="popoverClosed()"
+          ></fb-ext-actions>
         </aton-popover>
       }
       @if (overlay().type === 'aircraft') {
@@ -1029,123 +1049,146 @@
   [matMenuTriggerFor]="contextMenu"
 ></div>
 <mat-menu #contextMenu="matMenu" (contextmenu)="$event.preventDefault()">
-  <ng-template matMenuContent let-item="item">
-    @if (app.data.vessels.showSelf) {
+  <ng-template matMenuContent let-item="item" let-host="host" let-ext="ext">
+    @if (host) {
+      @if (app.data.vessels.showSelf) {
+        <button
+          mat-menu-item
+          (contextmenu)="$event.preventDefault()"
+          (click)="onContextMenuAction('nav_to', item)"
+        >
+          <mat-icon>near_me</mat-icon>
+          Navigate to here
+        </button>
+      }
+      @if (course.courseData().position) {
+        <button
+          mat-menu-item
+          (click)="onContextMenuAction('cleardestination', item)"
+        >
+          <mat-icon>clear_all</mat-icon>
+          <span>Stop Navigating</span>
+        </button>
+      }
+      @if (app.data.vessels.showSelf || course.courseData().position) {
+        <mat-divider></mat-divider>
+      }
       <button
         mat-menu-item
+        (click)="onContextMenuAction('add_wpt', item)"
         (contextmenu)="$event.preventDefault()"
-        (click)="onContextMenuAction('nav_to', item)"
       >
-        <mat-icon>near_me</mat-icon>
-        Navigate to here
+        <mat-icon class="icon-waypoint">add_location</mat-icon>
+        Add Waypoint here
       </button>
-    }
-    @if (course.courseData().position) {
-      <button
-        mat-menu-item
-        (click)="onContextMenuAction('cleardestination', item)"
-      >
-        <mat-icon>clear_all</mat-icon>
-        <span>Stop Navigating</span>
-      </button>
-    }
-    @if (app.data.vessels.showSelf || course.courseData().position) {
+
+      @if (menuZoom() >= app.config.resources.notes.minZoom) {
+        <button
+          mat-menu-item
+          (click)="onContextMenuAction('add_note', item)"
+          (contextmenu)="$event.preventDefault()"
+        >
+          <mat-icon>local_offer</mat-icon>
+          Add Note here
+        </button>
+      }
+
       <mat-divider></mat-divider>
-    }
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('add_wpt', item)"
-      (contextmenu)="$event.preventDefault()"
-    >
-      <mat-icon class="icon-waypoint">add_location</mat-icon>
-      Add Waypoint here
-    </button>
-
-    @if (menuZoom() >= app.config.resources.notes.minZoom) {
+      @if (this.app.data.vessels.showSelf) {
+        <button
+          mat-menu-item
+          (contextmenu)="$event.preventDefault()"
+          (click)="onContextMenuAction('bearing_dist', item)"
+        >
+          <mat-icon svgIcon="bearing-distance"></mat-icon>
+          Bearing & Distance
+        </button>
+      }
       <button
         mat-menu-item
-        (click)="onContextMenuAction('add_note', item)"
+        (click)="onContextMenuAction('measure', item)"
         (contextmenu)="$event.preventDefault()"
       >
-        <mat-icon>local_offer</mat-icon>
-        Add Note here
+        <mat-icon>straighten</mat-icon>
+        Measure
       </button>
-    }
+      <mat-divider></mat-divider>
 
-    <mat-divider></mat-divider>
-    @if (this.app.data.vessels.showSelf) {
+      @if (app.config.vessels.trail && app.selfTrail().length !== 0) {
+        <button mat-menu-item (click)="onContextMenuAction('cleartrail', item)">
+          <mat-icon>clear_all</mat-icon>
+          <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
+        </button>
+      }
+
       <button
         mat-menu-item
+        (click)="onContextMenuAction('trail2route', item)"
         (contextmenu)="$event.preventDefault()"
-        (click)="onContextMenuAction('bearing_dist', item)"
       >
-        <mat-icon svgIcon="bearing-distance"></mat-icon>
-        Bearing & Distance
+        <mat-icon>insights</mat-icon>
+        Trail to Route
       </button>
-    }
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('measure', item)"
-      (contextmenu)="$event.preventDefault()"
-    >
-      <mat-icon>straighten</mat-icon>
-      Measure
-    </button>
-    <mat-divider></mat-divider>
 
-    @if (app.config.vessels.trail && app.selfTrail().length !== 0) {
-      <button mat-menu-item (click)="onContextMenuAction('cleartrail', item)">
-        <mat-icon>clear_all</mat-icon>
-        <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
-      </button>
-    }
-
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('trail2route', item)"
-      (contextmenu)="$event.preventDefault()"
-    >
-      <mat-icon>insights</mat-icon>
-      Trail to Route
-    </button>
-
-    <mat-divider></mat-divider>
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('anchor', item)"
-      (contextmenu)="$event.preventDefault()"
-    >
-      <mat-icon>anchor</mat-icon>
-      Anchor Watch
-    </button>
-    @if (app.featureFlags().weatherApi) {
-      <button
-        mat-menu-item
-        (click)="onContextMenuAction('weather_forecast', item)"
-      >
-        <mat-icon>air</mat-icon>
-        <span>Weather Forecast</span>
-      </button>
-    }
-    @if (app.config.experiments && mapService.featureUrls().length) {
-      <button
-        mat-menu-item
-        (click)="onContextMenuAction('get_feature_info', item)"
-      >
-        <mat-icon>info</mat-icon>
-        <span>Get Feature Info</span>
-      </button>
-    }
-    @if (addableWidgetCell) {
       <mat-divider></mat-divider>
       <button
         mat-menu-item
-        (click)="onContextMenuAction('add_widget', item)"
+        (click)="onContextMenuAction('anchor', item)"
         (contextmenu)="$event.preventDefault()"
       >
-        <mat-icon>widgets</mat-icon>
-        Add widget here
+        <mat-icon>anchor</mat-icon>
+        Anchor Watch
       </button>
+      @if (app.featureFlags().weatherApi) {
+        <button
+          mat-menu-item
+          (click)="onContextMenuAction('weather_forecast', item)"
+        >
+          <mat-icon>air</mat-icon>
+          <span>Weather Forecast</span>
+        </button>
+      }
+      @if (app.config.experiments && mapService.featureUrls().length) {
+        <button
+          mat-menu-item
+          (click)="onContextMenuAction('get_feature_info', item)"
+        >
+          <mat-icon>info</mat-icon>
+          <span>Get Feature Info</span>
+        </button>
+      }
+      @if (addableWidgetCell) {
+        <mat-divider></mat-divider>
+        <button
+          mat-menu-item
+          (click)="onContextMenuAction('add_widget', item)"
+          (contextmenu)="$event.preventDefault()"
+        >
+          <mat-icon>widgets</mat-icon>
+          Add widget here
+        </button>
+      }
+    }
+    <!-- Extension actions (plotterext `actions`): after Freeboard's own, one
+         group per target, headed by the target's name. -->
+    @for (group of ext; track $index) {
+      @if (host || !$first) {
+        <mat-divider></mat-divider>
+      }
+      <div class="ext-menu-header" (click)="$event.stopPropagation()">
+        {{ group.target.label }}
+      </div>
+      @for (a of group.actions; track a.extension + '/' + a.action.id) {
+        <button
+          mat-menu-item
+          (contextmenu)="$event.preventDefault()"
+          (click)="onExtensionAction(a, group.target)"
+        >
+          <mat-icon>{{ a.action.icon || 'extension' }}</mat-icon>
+          <span>{{ a.action.title }}</span>
+          <span class="ext-menu-source">{{ a.extensionName }}</span>
+        </button>
+      }
     }
   </ng-template>
 </mat-menu>

@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PlotterExtensionService } from './plotterext.service';
 import { PanelContribution } from './types';
+import type { ActionInvocation } from './actions';
 
 @Component({
   selector: 'fb-plotterext-panel-frame',
@@ -51,6 +52,8 @@ export class PlotterPanelFrame implements OnInit, OnDestroy {
   panelKey = input.required<string>();
   extension = input.required<string>();
   panel = input.required<PanelContribution>();
+  /** The action invocation that loaded the panel, if one did. */
+  invocation = input<ActionInvocation>();
 
   @ViewChild('frame', { static: true })
   frame: ElementRef<HTMLIFrameElement>;
@@ -69,6 +72,7 @@ export class PlotterPanelFrame implements OnInit, OnDestroy {
     this.detach = this.service.attachPanel(this.frame.nativeElement, {
       extension: this.extension(),
       panel: this.panel(),
+      invocation: this.invocation(),
       close: () => this.service.closePanel(this.panelKey())
     });
   }
@@ -108,6 +112,7 @@ export class PlotterPanelFrame implements OnInit, OnDestroy {
               [panelKey]="entry.key"
               [extension]="entry.extension"
               [panel]="entry.panel"
+              [invocation]="entry.invocation"
             ></fb-plotterext-panel-frame>
           </div>
         }

@@ -114,8 +114,17 @@ describe('FBMapComponent long-press before any pointer move (#979)', () => {
         uiCtrl: () => ({ suppressContextMenu: false })
       },
       overlay: () => ({ show: false }),
-      plotterExt: { addableCellAt: (): null => null },
-      mapInteract: { isMeasuring: () => false },
+      plotterExt: {
+        addableCellAt: (): null => null,
+        actionsFor: (): unknown[] => []
+      },
+      mapInteract: {
+        isMeasuring: () => false,
+        isDrawing: () => false,
+        isModifying: () => false,
+        isBoxSelecting: () => false
+      },
+      zoneEdit: { edit: (): null => null },
       modifyMode: false,
       contextMenu: {
         menuData: null,

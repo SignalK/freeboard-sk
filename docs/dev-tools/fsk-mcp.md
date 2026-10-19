@@ -123,6 +123,8 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_list_overlays` | `overlay.list` | list the bridge's own overlays — its **scratch layer** (`scratch`), with any `skippedLayers` |
 | `fsk_set_overlay_data` | `overlay.setData` | draw GeoJSON on the chart through the scratch layer, showing it (it starts hidden); a feature's `color` and `label` properties style it |
 | `fsk_set_overlay_state` / `fsk_set_overlay_layer` | `overlay.setState` / `overlay.setLayer` | change the scratch layer's `global-state` (`color`) or one of its style layers (`areas`, `lines`, `points`, `labels`) |
+| `fsk_set_action_visibility` | `actions.setVisibility` | show (or hide) the bridge's **probe action**, which applies to every target kind and starts hidden; then choose "FSK MCP probe (dev)" in the chart menu or a feature popover |
+| `fsk_list_action_invocations` | `state.get` | the latest choices of the probe: each `action.invoked` with the exact target object the host delivered, newest first |
 
 **Targeting a specific tab.** With more than one Freeboard tab open, pass a
 `session` id (from `fsk_list_sessions`) to any tool; omit it to use the most

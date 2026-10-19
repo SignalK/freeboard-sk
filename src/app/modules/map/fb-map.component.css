@@ -75,3 +75,22 @@
         bottom: 2px;
     }
 }
+
+/* Extension actions in the chart context menu: a header naming the target,
+   and each action attributed to its extension. */
+.ext-menu-header {
+  padding: 6px 16px 2px;
+  font-size: 12px;
+  font-weight: bold;
+  opacity: 0.7;
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+.ext-menu-source {
+  margin-left: 12px;
+  font-size: 11px;
+  opacity: 0.6;
+}

@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.19.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.23.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -40,7 +40,7 @@ package; Freeboard depends on it (`^0.19.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
-`overlays.image`, `overlays.data`.
+`overlays.image`, `overlays.data`, `actions`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -880,6 +880,97 @@ draw).
 | `src/app/modules/map/ol/lib/data-overlay/layer-data-overlay.component.ts` | the OL layer group: builds, styles and live-updates the layers |
 | `src/app/modules/map/ol/lib/data-overlay/style-to-ol.ts` | DEM decode, ramp → shader expression, MapLibre zoom ↔ OL resolution |
 | `src/app/modules/map/ol/lib/data-overlay/tile-fetcher.ts` | credentialed, cache-aware tile fetching with an in-memory cache |
+
+## The `actions` capability
+
+`actions` lets an extension declare things the user can do to something on the
+chart, with the kinds of target each applies to (spec: *Actions*). Freeboard
+offers them in its chart context menu and in feature popovers, and reports the
+choice. Not yet here: `overlayFeature` targets (`actions.overlay`, #1109).
+
+### Which actions apply
+
+`extensionActions` (service) holds the usable actions of compatible manifests,
+read by the pure `usableActions` (`actions.ts`): an action missing `id`,
+`title` or `targets`, one that cannot be performed (an unknown `action.type`, a
+`publish` without a `topic`, a panel or window type naming no iframe panel of
+its manifest), or one whose every target entry is ignored, is left out. A target entry is ignored when its kind is not one
+Freeboard offers or it narrows a kind with a field that kind does not take.
+`match` uses the `resources.setFilter` evaluator, which lives in
+`filter-condition.ts` for both. `actionsFor(selected)` filters by target and by
+visibility: the manifest `visible`, overridden per action by
+`actions.setVisibility`. The override is kept in memory only, so a reload starts
+from the manifest again.
+
+### Targets (`map/map-targets.ts`)
+
+The map turns what the user selected into a target, keyed by its own feature
+ids, the same ones `processMapClick` reads:
+
+| Feature | Target | `match` sees |
+|---------|--------|--------------|
+| `waypoint.<id>`, `note.<id>`, `region.<id>` | `id`, `href` `/resources/<type>/<id>`; a waypoint's or note's `featurePosition` | the cached `SK*` object |
+| `route.<id>` | stored: `id`, `href` and `routeId` from the route registry; a never-saved draft: `routeId` only | the stored route; a draft `{ name }` |
+| `track.<id>` | `href` `/tracks/<id>` for a Track API track, `/resources/tracks/<id>` otherwise | `{ name, description }` |
+| `vessels.<urn>` (the own vessel; its id is the server's self context) | `context` = the feature id, `self: true` | — |
+| `ais-vessels.<urn>` | `context: 'vessels.<urn>'`, `self: false` | — |
+| `atons.*`, `aton.*`, `shore.*` | `context` = the feature id | — |
+| an S-57 feature (`s57.<LNAM>`) | `class` = its tile `layer`, `name` = `OBJNAM`, `properties` = its attributes, a point's `featurePosition` | the target |
+
+Every target's `position` is the canonical click point, never the world-copy
+offset. A chart feature carries no `chart.id` yet (optional in the spec): the
+hit test reports features, not which chart layer drew them. Trails, AIS tracks, route points, the destination flag, SaR and meteo
+stations make no target.
+
+### Where actions appear
+
+- **Chart context menu** (`fb-map.component.html` `#contextMenu`). After
+  Freeboard's own items, one group per target, each with a header naming it:
+  first the features under the pointer that make a target, then the position
+  ("This position"). Each item names its extension. `contextMenuContent`
+  decides what opens. Freeboard's own items are left out where they always
+  were: in kiosk mode, over an open popover, and while drawing, measuring,
+  modifying or box-selecting. Extension actions show everywhere except during a
+  modal interaction (those four and guard-zone editing), so position actions
+  can be reached at every point. With nothing to show, no menu opens. The split view's second pane goes through the same path.
+- **Feature popovers.** `<fb-ext-actions>` (`ext-actions.component.ts`) is
+  projected into the resource, vessel, aton and S-57 popovers and the track
+  popover, for the target `formatPopover` stores in `IPopover.target`. The
+  popover title names the target. Up to four actions show as buttons grouped
+  under their extension's name; more go into one menu.
+- A touch long-press now emits the right-click before the menu event
+  (`map.component.ts` `touchHold`), so the menu sees what is under the finger.
+
+### Choosing an action
+
+`invokeAction` acts as a button would, with one difference: a toggle opens.
+`publish` adds `actionId` and `target` to the action's `params`. A panel is
+opened with the invocation on its `openPanels` entry, which the drawer passes
+to `attachPanel`. A window opens through the button machinery
+(`openTrackedWindow`, keyed per action in `actionWindows`), with the invocation
+on `ExtWindow.invocation`. Choosing the action again raises that window. Then
+`action.invoked` goes to the extension's contexts that are already loaded. A
+panel or window the action has just loaded is not attached yet, so it gets the
+invocation from its handshake (`context.invocation`) and not from the event.
+
+### Error reasons
+
+`actions.badRequest` (`ids` not a list of strings, or `visible` not a boolean),
+`actions.unknownId` (an id that is not in the caller's manifest; nothing
+changes). The embedding host has no manifest, so every id it sends is unknown.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/actions.ts` | target-entry parsing, usable actions, matching (target types come from the bus) |
+| `src/app/modules/plotterext/action-params.ts` | the `actions.setVisibility` params schema |
+| `src/app/modules/plotterext/filter-condition.ts` | the condition evaluator shared with `resources.setFilter` |
+| `src/app/modules/plotterext/plotterext.service.ts` | `extensionActions`, `actionsFor`, `invokeAction`, `actions.setVisibility`, invocation in handshakes |
+| `src/app/modules/plotterext/ext-actions.component.ts` | the popover row / menu |
+| `src/app/modules/map/map-targets.ts` | feature id → target |
+| `src/app/modules/map/fb-map.component.ts` | context-menu content, popover targets |
+| `dev-tools/fsk-mcp/src/tools.ts` | `fsk_set_action_visibility` / `fsk_list_action_invocations` (the bridge's hidden probe action) |
 
 ## Extending the host API? Update the agent bridge
 

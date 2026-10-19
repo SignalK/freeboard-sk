@@ -7,6 +7,7 @@ import type {
   WindowState
 } from 'signalk-plotterext-bus/host';
 import { PanelContribution } from '../types';
+import type { ActionInvocation } from '../actions';
 import {
   DEFAULT_GEOMETRY,
   DEFAULT_LIMITS,
@@ -49,6 +50,8 @@ export interface WindowRequest {
   userClose?: 'close' | 'hide';
   visible?: boolean;
   restoreKey?: string;
+  /** The action invocation opening the window (capability `actions`). */
+  invocation?: ActionInvocation;
 }
 
 export type OpenFailure = 'limit' | 'modalOpen';
@@ -192,7 +195,8 @@ export class ExtWindowService {
       visible: req.visible ?? true,
       collapsed: false,
       opacity: 1,
-      ...(req.restoreKey ? { restoreKey: req.restoreKey } : {})
+      ...(req.restoreKey ? { restoreKey: req.restoreKey } : {}),
+      ...(req.invocation ? { invocation: req.invocation } : {})
     };
     this.windows.update((list) => [...list, w]);
     this.zOrder.update((z) => this.modalOnTop([...z, w.id]));
