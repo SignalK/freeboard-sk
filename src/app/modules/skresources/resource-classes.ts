@@ -79,8 +79,7 @@ export class SKNote {
   url: string;
   group: string;
   timestamp: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authors: Array<any>;
+  authors: NoteResource['authors'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: Record<string, any>;
 
