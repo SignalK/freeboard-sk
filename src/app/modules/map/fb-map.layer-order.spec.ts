@@ -29,9 +29,9 @@ describe('fb-map layer order', () => {
     // silently; the lookahead keeps <fb-vessel from counting <fb-vessel-trail
     const elements = template.match(new RegExp(`<${tag}(?=[\\s/>])`, 'g'));
     expect(found, `not every <${tag}> has a numeric [zIndex]`).toHaveLength(
-      elements.length
+      elements?.length ?? 0
     );
-    return found;
+    return found ?? [];
   };
   const cpa = () => z('fb-cpa-alarms')[0];
 
@@ -42,7 +42,7 @@ describe('fb-map layer order', () => {
       .filter(([tag]) => tag.startsWith('sk-ais-'))
       .flatMap(([, zs]) => zs);
     // an AIS layer the pattern can't read would otherwise drop out of the max
-    expect(ais.length).toBe(template.match(/<sk-ais-[\w-]+/g).length);
+    expect(ais.length).toBe(template.match(/<sk-ais-[\w-]+/g)?.length);
     expect(cpa()).toBeGreaterThan(Math.max(...ais));
   });
 

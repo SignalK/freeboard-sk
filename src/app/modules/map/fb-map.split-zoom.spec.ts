@@ -55,7 +55,7 @@ describe('FBMapComponent: keys with the chart split', () => {
     const map = new OlMap();
     cmp.olMap = { getMap: () => map };
     const button = document.createElement('button');
-    map.getOverlayContainerStopEvent().append(button);
+    map.getOverlayContainerStopEvent()?.append(button);
 
     cmp.onMapKeydown({
       key: 'Enter',

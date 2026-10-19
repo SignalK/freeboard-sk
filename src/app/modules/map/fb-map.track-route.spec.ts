@@ -147,7 +147,7 @@ describe('FBMapComponent — a route from a recorded track', () => {
     const at = cmp.overlay().position;
     // the tap selected the track
     cmp.mapInteract.draw.features = new Collection([new Feature()]);
-    let selectedAtOpen: number;
+    let selectedAtOpen: number | undefined;
     const formatPopover = vi
       .spyOn(cmp, 'formatPopover')
       .mockImplementation(() => {

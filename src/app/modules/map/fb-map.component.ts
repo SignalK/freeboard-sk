@@ -240,6 +240,7 @@ import {
   HistoryTrack,
   PointTime,
   poseAt,
+  TimedTrack,
   trackTimeInfo
 } from 'src/app/modules/skstream/track-history';
 import { chartTimeShortLabel } from 'src/app/lib/components/dialogs/chart-time-dialog';
@@ -248,8 +249,8 @@ import { chartTimeShortLabel } from 'src/app/lib/components/dialogs/chart-time-d
 interface FeatureListEntry {
   id: string;
   coord: Position;
-  icon: AppIconDef | string;
-  text: string;
+  icon: AppIconDef | string | undefined;
+  text: string | undefined;
 }
 
 interface IResource {
@@ -268,9 +269,12 @@ interface IFeatureData {
   self: SKVessel; //self vessel
   ais: Map<string, SKVessel>; // other vessels
   active: SKVessel; // focussed vessel
-  navData: { position: Position; startPosition: Position };
+  navData: { position: Position | null; startPosition: Position | null };
   closest: Array<CpaTarget>;
 }
+
+/** What a track popover shows. */
+type TrackHistoryPopover = NonNullable<IPopover['trackHistory']>;
 
 /** A tapped recorded track, as its popover is answered from. */
 interface TrackHistoryFeature {
@@ -339,15 +343,15 @@ const OVERLAY_FEATURE_ENTRY = 'overlay-feature.';
   styleUrls: ['./fb-map.component.css']
 })
 export class FBMapComponent implements OnInit, OnDestroy {
-  @Input() setFocus: string;
+  @Input() setFocus?: string;
   @Input() mapCenter: Position = [0, 0];
   @Input() mapZoom = 1;
   @Input() movingMap = false;
   @Input() northUp = true;
-  @Input() measureMode: boolean;
-  @Input() drawMode: boolean;
+  @Input() measureMode?: boolean;
+  @Input() drawMode?: boolean;
   @Input() modifyMode = false;
-  @Input() activeRoute: string;
+  @Input() activeRoute?: string;
   @Input() vesselTrail: Array<Position> = [];
   @Input() dblClickZoom = false;
   @Input() overZoomTiles = true;
@@ -357,18 +361,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Output() info: EventEmitter<IResource> = new EventEmitter();
   @Output() exitMovingMap: EventEmitter<boolean> = new EventEmitter();
   @Output() resumeMovingMap: EventEmitter<void> = new EventEmitter();
-  @Output() focusVessel: EventEmitter<string> = new EventEmitter();
+  @Output() focusVessel: EventEmitter<string | null> = new EventEmitter();
   @Output() menuItemSelected: EventEmitter<string> = new EventEmitter();
 
-  @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
-  @ViewChild('olMap', { static: false }) olMap: MapComponent;
+  // Both are unconditional in the template; static queries resolve before
+  // ngOnInit and olMap before ngAfterViewInit, ahead of any use.
+  @ViewChild(MatMenuTrigger, { static: true }) contextMenu!: MatMenuTrigger;
+  @ViewChild('olMap', { static: false }) olMap!: MapComponent;
   /**
    * The status bar (position, zoom and cursor ETA readout). It is shown in
    * whichever split-view pane is active, so the second pane renders it too.
    */
-  @ViewChild('statusBar', { static: true }) statusBar: TemplateRef<unknown>;
+  @ViewChild('statusBar', { static: true }) statusBar!: TemplateRef<unknown>;
+  /** Only in the template while drawing. */
   @ViewChild('routeDraw', { static: false })
-  routeDraw: InteractionDrawComponent;
+  routeDraw?: InteractionDrawComponent;
 
   scaleUnits = input<string>('');
 
@@ -478,12 +485,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     closest: []
   };
 
-  private saveTimer: ReturnType<typeof setInterval>;
+  private saveTimer?: ReturnType<typeof setInterval>;
   private isDirty = false;
   /** A user drag is in flight under the 'offset' pan behavior — the resulting
    * map centre becomes the new vessel centre offset. */
   private userPanned = false;
-  private offsetGraceTimer: ReturnType<typeof setTimeout>;
+  private offsetGraceTimer?: ReturnType<typeof setTimeout>;
   /** Map centre as of the last move-end, so the next one can tell a pan (the
    * user) from a rotation (heading-up turning the chart on its own). */
   private lastMoveCenter: Position | null = null;
@@ -662,7 +669,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         radarRange(radar),
         (this.scaleUnits() || this.app.config.units.distance) as TARGET_UNIT
       );
-      return (scale?.distances ?? []).map((distance) => ({
+      if (!scale) {
+        return [];
+      }
+      return scale.distances.map((distance) => ({
         distance,
         label: ringLabel(distance, scale.unit)
       }));
@@ -821,7 +831,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private stopSaveTimer() {
     if (this.saveTimer) {
       clearInterval(this.saveTimer);
-      this.saveTimer = null;
+      this.saveTimer = undefined;
     }
   }
 
@@ -872,7 +882,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** locate vessel popover
     if (
       this.overlay().show &&
-      ['ais', 'aton', 'aircraft'].includes(this.overlay().type)
+      ['ais', 'aton', 'aircraft'].includes(this.overlay().type ?? '')
     ) {
       if (this.overlay().isSelf) {
         this.overlay.update((current) => {
@@ -882,14 +892,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
           });
         });
       } else {
+        const { id, type } = this.overlay();
         if (this.popoverTargetGone()) {
           this.overlay().show = false;
-        } else {
-          if (this.overlay().type === 'ais') {
+        } else if (type === 'ais' && id !== null) {
+          const vessel = this.dfeat.ais.get(id);
+          if (vessel) {
             this.overlay.update((current) => {
               return Object.assign({}, current, {
-                position: this.dfeat.ais.get(current.id).position,
-                vessel: this.dfeat.ais.get(current.id)
+                position: vessel.position,
+                vessel
               });
             });
           }
@@ -913,6 +925,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   private popoverTargetGone(): boolean {
     const { id, type } = this.overlay();
+    if (id === null) {
+      return type === 'ais' || type === 'aton' || type === 'aircraft';
+    }
     switch (type) {
       case 'ais':
         return !this.dfeat.ais.has(id);
@@ -1579,7 +1594,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     c = c.slice(0, c.length - 1);
     this.mapInteract.measurementCoords = c;
     const ovPosition: LineString = c;
-    this.formatPopover(null, null);
+    this.popoverClosed();
     this.overlay.update((current) => {
       return Object.assign({}, current, {
         position: ovPosition,
@@ -1693,7 +1708,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = this.mapInteract.draw.features?.getArray()[0];
-    if (!f) {
+    const forSave = this.mapInteract.draw.forSave;
+    if (!f || !forSave) {
       return;
     }
     // Capture the geometry before it is replaced: diffed against the restored
@@ -1714,9 +1730,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // Re-baseline session state to the restored geometry so the next op (and a
     // subsequent Finish/Cancel) sees the reverted route.
     this.mapInteract.draw.coordinates = snap.coordinates;
-    this.mapInteract.draw.forSave.coordsMetadata = snap.coordsMetadata;
+    forSave.coordsMetadata = snap.coordsMetadata;
     const pc = this.transformCoordsArray(snap.coordinates) as LineString;
-    this.mapInteract.draw.forSave['coords'] = pc;
+    forSave['coords'] = pc;
     this.mapInteract.measurementCoords = pc;
     this.mapInteract.measurementIndex = modifiedLegIndex(
       undone,
@@ -1771,7 +1787,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // coordsMetadata from the rendered feature's pointMetadata) doesn't drop
     // point names/descriptions or waypoint links on save.
     const coordsMeta = coordinatesMetaFromPoints(b.points);
-    if (coordsMeta) {
+    if (coordsMeta && rte.feature.properties) {
       rte.feature.properties.coordinatesMeta = coordsMeta;
     }
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
@@ -1780,33 +1796,38 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** True when the popover's route is an unsaved draft (or has pending edits). */
   protected isUnsavedRoute(): boolean {
-    if (this.overlay().type !== 'route') {
+    const { id, type } = this.overlay();
+    if (type !== 'route' || id === null) {
       return false;
     }
-    const b = this.routeBuffers.get(this.overlay().id);
+    const b = this.routeBuffers.get(id);
     return !!b && (!b.saved || b.dirty);
   }
 
   /** True when REVERSE can turn the popover's route round. */
   protected canReverseRoute(): boolean {
+    const { id, type } = this.overlay();
     return (
-      this.overlay().type === 'route' &&
-      this.routeReverse.mode(this.overlay().id) !== null
+      type === 'route' && id !== null && this.routeReverse.mode(id) !== null
     );
   }
 
   /** REVERSE in a route's popover. The popover stays open, so a draft can be
    *  STARTed straight away. */
   protected reverseRoute() {
-    this.routeReverse.reverse(this.overlay().id);
+    const id = this.overlay().id;
+    if (id !== null) {
+      this.routeReverse.reverse(id);
+    }
   }
 
   /** True when the popover's route was drawn and never saved. */
   protected isDraftRoute(): boolean {
-    if (this.overlay().type !== 'route') {
+    const { id, type } = this.overlay();
+    if (type !== 'route' || id === null) {
       return false;
     }
-    const b = this.routeBuffers.get(this.overlay().id);
+    const b = this.routeBuffers.get(id);
     return !!b && !b.saved;
   }
 
@@ -1816,8 +1837,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * user a trip through INFO.
    */
   protected async saveRouteFromPopover() {
+    const id = this.overlay().id;
+    if (id === null) {
+      return;
+    }
     try {
-      await this.plotterExt.saveBuffer(this.overlay().id, {
+      await this.plotterExt.saveBuffer(id, {
         dialog: true,
         promote: true
       });
@@ -1832,7 +1857,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * (a tap straight on the anchor)
    */
   protected modifyFeature(featureType?: string, at?: Position) {
-    if (this.mapInteract.draw.features.getLength() === 0) {
+    const features = this.mapInteract.draw.features;
+    if (!features?.getLength()) {
       return;
     }
     if (at ? this.inPane(this.clickMap) : this.popoverPane()) {
@@ -1864,9 +1890,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // It's a whole-world translation, so wrapX still draws the feature in the same
     // place (visually transparent), no vertices are added, and the edited
     // coordinates normalise back to [-180,180] on save (#572).
-    const editGeom = (
-      this.mapInteract.draw.features.getArray()[0] as Feature
-    )?.getGeometry();
+    const editGeom = (features.getArray()[0] as Feature)?.getGeometry();
     if (editGeom) {
       const ext = editGeom.getExtent();
       const centreX = (ext[0] + ext[2]) / 2;
@@ -1875,14 +1899,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
         WORLD_WIDTH_3857
       );
       if (shift) {
-        this.mapInteract.draw.features.forEach((f: Feature) =>
-          f.getGeometry()?.translate(shift, 0)
-        );
+        features.forEach((f: Feature) => f.getGeometry()?.translate(shift, 0));
       }
     }
     this.mapInteract.startModifying(this.overlay());
-    if (this.overlay().type === 'route') {
-      const rid = this.overlay().id;
+    const rid = this.overlay().id;
+    if (this.overlay().type === 'route' && rid !== null) {
       // Route name for the helper title ("Modify <name>"). An unnamed draft
       // resolves to the "(unsaved)" placeholder from formatPopover(), which we
       // keep on purpose so the title reads "Modify (unsaved)" — a deliberate
@@ -1895,11 +1917,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         ? (this.routeBuffers
             .get(rid)!
             .points.map((p) => p.position) as LineString)
-        : this.skres.fromCache('routes', rid)[1].feature.geometry.coordinates;
+        : (this.skres.fromCache('routes', rid)?.[1].feature.geometry
+            .coordinates ?? []);
     }
-    if (featureType === 'anchor') {
+    const forSave = this.mapInteract.draw.forSave;
+    if (featureType === 'anchor' && forSave) {
       this.overlay().type = featureType;
-      this.mapInteract.draw.forSave.id = featureType;
+      forSave.id = featureType;
     }
   }
 
@@ -1907,15 +1931,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected onModifyStart(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
+    const forSave = this.mapInteract.draw.forSave;
+    if (!forSave) {
+      return;
+    }
     this.mapInteract.draw.coordinates = f.getGeometry().getCoordinates();
-    if (!this.mapInteract.draw.forSave.id) {
+    if (!forSave.id) {
       // initialise save info
-      this.mapInteract.draw.forSave.id = f.getId();
+      forSave.id = f.getId();
     }
     if (f.getGeometry().getType() === 'LineString') {
       const meta = f.get('pointMetadata');
       if (meta) {
-        this.mapInteract.draw.forSave.coordsMetadata = meta;
+        forSave.coordsMetadata = meta;
       }
     }
   }
@@ -1933,6 +1961,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private applyModifyEnd(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
+    const forSave = this.mapInteract.draw.forSave;
+    if (!forSave) {
+      return;
+    }
     const fid = f.getId();
     const c = f.getGeometry().getCoordinates();
     // Snapshot the pre-operation route geometry so this vertex op (move / add /
@@ -1941,8 +1973,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // coordsMetadata is mutated in place by updateCoordsMeta below, so clone it
     // now.
     if (fid.split('.')[0] === 'route') {
-      const meta = this.mapInteract.draw.forSave.coordsMetadata as
-        RoutePointMeta[] | undefined;
+      const meta = forSave.coordsMetadata as RoutePointMeta[] | undefined;
       this.mapInteract.pushModifyUndo({
         coordinates: (this.mapInteract.draw.coordinates as Position[]).map(
           (co) => [...co] as Position
@@ -1952,13 +1983,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     if (f.getGeometry().getType() === 'LineString') {
       this.updateCoordsMeta(
-        this.mapInteract.draw.coordinates,
+        this.mapInteract.draw.coordinates as Coordinate[],
         c,
-        this.mapInteract.draw.forSave.coordsMetadata
+        forSave.coordsMetadata
       );
       if (fid.split('.')[0] === 'route') {
         this.linkModifiedPoint(
           f,
+          forSave,
           this.mapInteract.draw.coordinates as Position[],
           c
         );
@@ -1999,23 +2031,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
       pc = toLonLat(c) as Position;
       // shift anchor
       if (fid === 'anchor') {
-        this.anchor.setAnchorPosition(pc).catch((err: HttpErrorResponse) => {
+        this.anchor.setAnchorPosition(pc)?.catch((err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         });
       }
     }
-    this.mapInteract.draw.forSave['coords'] = pc;
+    forSave['coords'] = pc;
     if (
       this.app.data.activeRoute &&
-      this.mapInteract.draw.forSave.id.indexOf(this.app.data.activeRoute) !== -1
+      forSave.id?.includes(this.app.data.activeRoute)
     ) {
       this.app.data.activeRouteIsEditing = true;
     } else {
       this.app.data.activeRouteIsEditing = false;
     }
-    this.app.data.editingId = this.mapInteract.draw.forSave.id;
+    this.app.data.editingId = forSave.id;
 
-    this.app.debug(this.mapInteract.draw.forSave);
+    this.app.debug(forSave);
   }
 
   /**
@@ -2030,7 +2062,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private extendRouteInModify(e: FBClickEvent) {
     const f = this.mapInteract.draw.features?.getArray()[0] as Feature;
     const geom = f?.getGeometry();
-    if (!f || geom?.getType() !== 'LineString') {
+    const forSave = this.mapInteract.draw.forSave;
+    if (!f || geom?.getType() !== 'LineString' || !forSave) {
       return;
     }
     const line = geom as OLLineString;
@@ -2056,8 +2089,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     // Metadata may not be seeded yet if this is the first op of the session (no
     // modifystart has run) — read it from the feature, matching onModifyStart.
-    let meta = this.mapInteract.draw.forSave.coordsMetadata as
-      RoutePointMeta[] | undefined;
+    let meta = forSave.coordsMetadata as RoutePointMeta[] | undefined;
     if (!meta) {
       const fm = f.get('pointMetadata');
       meta = Array.isArray(fm) ? fm : undefined;
@@ -2095,13 +2127,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       f.set('pointMetadata', result.meta);
     }
 
-    if (!this.mapInteract.draw.forSave.id) {
-      this.mapInteract.draw.forSave.id = f.getId() as string;
+    if (!forSave.id) {
+      forSave.id = f.getId() as string;
     }
-    this.mapInteract.draw.forSave.coordsMetadata = result.meta;
+    forSave.coordsMetadata = result.meta;
     this.mapInteract.draw.coordinates = result.after;
     const pc = this.transformCoordsArray(result.after) as LineString;
-    this.mapInteract.draw.forSave['coords'] = pc;
+    forSave['coords'] = pc;
     this.mapInteract.measurementCoords = pc;
     this.mapInteract.measurementIndex = modifiedLegIndex(
       result.undo.coordinates,
@@ -2110,9 +2142,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     this.app.data.activeRouteIsEditing =
       !!this.app.data.activeRoute &&
-      this.mapInteract.draw.forSave.id.indexOf(this.app.data.activeRoute) !==
-        -1;
-    this.app.data.editingId = this.mapInteract.draw.forSave.id;
+      forSave.id.includes(this.app.data.activeRoute);
+    this.app.data.editingId = forSave.id;
   }
 
   /** Name and description of a waypoint shown on the map. */
@@ -2124,9 +2155,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * dropped on (#881). `before` and `after` are the route's render-space
    * geometry either side of the operation.
    */
-  private linkModifiedPoint(f: Feature, before: Position[], after: Position[]) {
-    const meta = this.mapInteract.draw.forSave.coordsMetadata as
-      RoutePointMeta[] | undefined;
+  private linkModifiedPoint(
+    f: Feature,
+    forSave: DrawFeatureSaveInfo,
+    before: Position[],
+    after: Position[]
+  ) {
+    const meta = forSave.coordsMetadata as RoutePointMeta[] | undefined;
     const linked = linkPointOnWaypoint(
       after,
       touchedVertex(before, after),
@@ -2137,7 +2172,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (linked !== meta) {
       // The route had no metadata: keep the new array on the feature too, so
       // the next modifystart reads it back.
-      this.mapInteract.draw.forSave.coordsMetadata = linked;
+      forSave.coordsMetadata = linked;
       f.set('pointMetadata', linked);
     }
   }
@@ -2163,7 +2198,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Whether the active route has edits not yet saved to the server, whose
    *  point order the Course API follows. */
   private activeRouteHasUnsavedEdits(): boolean {
-    return editsRouteBuffer(this.routeBuffers.getForRoute(this.activeRoute));
+    return (
+      !!this.activeRoute &&
+      editsRouteBuffer(this.routeBuffers.getForRoute(this.activeRoute))
+    );
   }
 
   /**
@@ -2186,11 +2224,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       return null;
     }
+    const resolution = e.map.getView().getResolution();
+    if (resolution === undefined) {
+      return null;
+    }
     const coordinates = geometry.getCoordinates();
     const candidates = pickRoutePoints(
       coordinates,
       e.coordinate,
-      e.map.getView().getResolution(),
+      resolution,
       e.originalEvent?.pointerType === 'touch'
         ? ROUTE_POINT_PICK_PX.touch
         : ROUTE_POINT_PICK_PX.mouse,
@@ -2253,13 +2295,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       listOverlaysAbove(i);
       let id = feature.getId() as string;
       let addToFeatureList = false;
-      let aton: SKAtoN;
-      let sar: SKSaR;
-      let meteo: SKMeteo;
-      let aircraft: SKAircraft;
-      let vessel: SKVessel;
-      let icon: AppIconDef;
-      let text: string;
+      let aton: SKAtoN | undefined;
+      let sar: SKSaR | undefined;
+      let meteo: SKMeteo | undefined;
+      let aircraft: SKAircraft | undefined;
+      let vessel: SKVessel | undefined;
+      let icon: AppIconDef | undefined;
+      let text: string | undefined;
       if (id && typeof id === 'string') {
         const t = id.split('.');
         if (t[0] === 'chart-backdrop') {
@@ -2671,14 +2713,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'list':
         poData.type = t[0];
         poData.title = 'Features';
-        poData.content = [];
-        featureList.forEach((f) => poData.content.push(f));
+        poData.content = featureList ? [...featureList.values()] : [];
         poData.show = true;
         break;
       case 'chartlist':
         poData.type = t[0];
-        poData.content = [];
-        featureList.forEach((f) => poData.content.push(f));
+        poData.content = featureList ? [...featureList.values()] : [];
         poData.show = true;
         break;
       case 'alarm': {
@@ -2700,59 +2740,69 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.position = this.dfeat.self.position;
         poData.show = true;
         break;
-      case 'ais-vessels':
+      case 'ais-vessels': {
         aid = id.slice(4);
-        if (!this.dfeat.ais.has(aid)) {
+        const vessel = this.dfeat.ais.get(aid);
+        if (!vessel) {
           return false;
         }
         poData.type = 'ais';
         poData.id = aid;
-        poData.vessel = this.dfeat.ais.get(aid);
-        poData.position = poData.vessel.position;
+        poData.vessel = vessel;
+        poData.position = vessel.position;
         poData.show = true;
         break;
+      }
       case 'atons':
       case 'aton':
-      case 'shore':
-        if (!this.app.data.atons.has(id)) {
+      case 'shore': {
+        const aton = this.app.data.atons.get(id);
+        if (!aton) {
           return false;
         }
         poData.type = 'aton';
         poData.id = id;
-        poData.aton = this.app.data.atons.get(id);
-        poData.position = poData.aton.position;
+        poData.aton = aton;
+        poData.position = aton.position;
         poData.show = true;
         break;
-      case 'sar':
-        if (!this.app.data.sar.has(id)) {
+      }
+      case 'sar': {
+        const sar = this.app.data.sar.get(id);
+        if (!sar) {
           return false;
         }
         poData.type = 'aton';
         poData.id = id;
-        poData.aton = this.app.data.sar.get(id);
-        poData.position = poData.aton.position;
+        poData.aton = sar;
+        poData.position = sar.position;
         poData.show = true;
         break;
-      case 'meteo':
-        if (!this.app.data.meteo.has(id)) {
+      }
+      case 'meteo': {
+        const meteo = this.app.data.meteo.get(id);
+        if (!meteo) {
           return false;
         }
         poData.type = t[0];
         poData.id = id;
-        poData.aton = this.app.data.meteo.get(id);
-        poData.position = poData.aton.position;
+        poData.aton = meteo;
+        poData.position = meteo.position;
         poData.show = true;
         break;
-      case 'aircraft':
-        if (!this.app.data.aircraft.has(id)) {
+      }
+      case 'aircraft': {
+        const aircraft = this.app.data.aircraft.get(id);
+        if (!aircraft) {
           return false;
         }
         poData.type = t[0];
         poData.id = id;
-        poData.aircraft = this.app.data.aircraft.get(id);
-        poData.position = poData.aircraft.position;
+        poData.aircraft = aircraft;
+        poData.position = aircraft.position;
         poData.show = true;
         break;
+      }
       case 'trail':
       case 'track':
       case 'track-vessels':
@@ -2940,7 +2990,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected featureListSelection(feature: FeatureListEntry) {
     // trim the draw.features collection to the selected feature.id
     const sf = new Collection<Feature>();
-    this.mapInteract.draw.features.forEach((e) => {
+    this.mapInteract.draw.features?.forEach((e) => {
       if (e.getId() === feature.id) {
         sf.push(e);
       }
@@ -2951,7 +3001,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** What a track popover shows for a tap on `hf`. */
-  private trackPopover(hf: TrackHistoryFeature): IPopover['trackHistory'] {
+  private trackPopover(hf: TrackHistoryFeature): TrackHistoryPopover {
     const info = trackTimeInfo(hf.lines, hf.times, hf.at);
     const label = (t: number) => chartTimeShortLabel(new Date(t).toISOString());
     return {
@@ -3006,7 +3056,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const atTime = trackTimeInfo(hf.lines, hf.times, hf.at)?.atTime;
     const onTrack = (
       track: HistoryTrack | undefined
-    ): TrackHistoryFeature | undefined => {
+    ): (TrackHistoryFeature & Pick<TimedTrack, 'times'>) | undefined => {
       if (!track?.times || this.overlay().id !== id || !this.overlay().show) {
         return undefined;
       }
@@ -3028,7 +3078,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.wholeTrackSub = whole.subscribe({
       next: (track) => {
         const tapped = onTrack(track);
-        if (!tapped) {
+        if (!tapped || !track) {
           return;
         }
         const trackHistory = this.trackPopover(tapped);
@@ -3045,13 +3095,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 stopMs(hf.context)
               )
             : undefined;
-        const passage = span
-          ? this.trackHistory.wholeTrack(source, hf.context, {
-              // the stops either side may lie a little beyond the thinned points
-              from: span.from - stopMs(hf.context),
-              to: span.to + stopMs(hf.context)
-            })
-          : undefined;
+        const passage =
+          span && source
+            ? this.trackHistory.wholeTrack(source, hf.context, {
+                // the stops either side may lie a little beyond the thinned points
+                from: span.from - stopMs(hf.context),
+                to: span.to + stopMs(hf.context)
+              })
+            : undefined;
         this.overlay.update((o) => ({
           ...o,
           trackHistory: passage
@@ -3063,10 +3114,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
             const tappedPassage = onTrack(detail);
             if (tappedPassage) {
               const { route } = this.trackPopover(tappedPassage);
-              this.overlay.update((o) => ({
-                ...o,
-                trackHistory: { ...o.trackHistory, route }
-              }));
+              this.overlay.update((o) =>
+                o.trackHistory
+                  ? { ...o, trackHistory: { ...o.trackHistory, route } }
+                  : o
+              );
             }
           },
           error: () => undefined
@@ -3102,21 +3154,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** handle popover info event */
   protected popoverInfo() {
-    const collection = `${this.overlay().type}s` as SKResourceType;
+    const { id, type } = this.overlay();
+    if (id === null || type === null) {
+      return;
+    }
+    const collection = `${type}s` as SKResourceType;
     if (
       ['notes', 'regions', 'waypoints', 'routes'].includes(collection) &&
       this.app.useInfoPanel()
     ) {
-      const ub = this.getUnsavedRouteBuffer(this.overlay().id);
+      const ub = this.getUnsavedRouteBuffer(id);
       if (collection === 'routes' && ub) {
         // Unsaved live buffer: open the info panel directly from the registry
         // (it is not on the server, so infoPanel.open()'s fetch would fail).
         this.infoPanel.openWith('routes', this.bufferToFBRoute(ub));
       } else {
-        this.infoPanel.open(collection, this.overlay().id);
+        this.infoPanel.open(collection, id);
       }
     } else {
-      this.skres.resourceProperties(this.overlay());
+      this.skres.resourceProperties({ id, type });
     }
   }
 
@@ -3163,8 +3219,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private updateCoordsMeta(startCoords: any[], endCoords: any[], meta: any[]) {
+  private updateCoordsMeta(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    startCoords: any[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    endCoords: any[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    meta: any[] | undefined
+  ) {
     if (!meta) {
       return;
     }
@@ -3187,7 +3249,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         endCoords,
         meta,
         (href) =>
-          this.skres.fromCache('waypoints', href.split('/').pop())?.[1]?.name
+          this.skres.fromCache('waypoints', href.split('/').pop() ?? '')?.[1]
+            ?.name
       );
       return meta;
     }
@@ -3432,16 +3495,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** activate route / waypoint
   protected setActiveFeature() {
-    if (this.overlay().type === 'waypoint') {
-      this.course.navigateToWaypoint(this.overlay().id);
+    const { id, type } = this.overlay();
+    if (id === null) {
+      return;
+    }
+    if (type === 'waypoint') {
+      this.course.navigateToWaypoint(id);
     } else {
-      this.activate.emit(this.overlay().id);
+      this.activate.emit(id);
     }
   }
 
   // ** deactivate route / waypoint
   protected clearActiveFeature() {
-    this.deactivate.emit(this.overlay().id);
+    const id = this.overlay().id;
+    if (id !== null) {
+      this.deactivate.emit(id);
+    }
   }
 
   // ** rejoin the active route at a point, or skip the one being headed for
@@ -3470,15 +3540,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * back to the buffer (#583).
    */
   protected popoverPoints() {
-    const ub = this.getUnsavedRouteBuffer(this.overlay().id);
+    const { id, type } = this.overlay();
+    if (id === null || type === null) {
+      return;
+    }
+    const ub = this.getUnsavedRouteBuffer(id);
     this.info.emit({
-      id: this.overlay().id,
-      type: this.overlay().type,
+      id,
+      type,
       resource: ub ? this.bufferToFBRoute(ub) : undefined
     });
   }
 
-  protected setActiveVessel(id: string = null) {
+  protected setActiveVessel(id: string | null = null) {
     this.focusVessel.emit(id);
   }
 
@@ -3571,7 +3645,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** returns true if skresOther.refreshResourceSetsInBounds() should be called
-  private shouldFetchResourceSets(zoomChanged: boolean) {
+  private shouldFetchResourceSets(zoomChanged?: boolean) {
     if (
       this.app.config.resources.fetchRadius !== 0 &&
       this.app.config.resources.fetchFilter
@@ -3593,7 +3667,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @param zoomChanged When true signifies that zoom level has changed.
    * @returns true if skres.refreshNotes() should be called
    */
-  private shouldFetchNotes(zoomChanged: boolean) {
+  private shouldFetchNotes(zoomChanged?: boolean) {
     this.app.debug(`lastGet: ${this.app.data.lastGet}`);
     this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
 

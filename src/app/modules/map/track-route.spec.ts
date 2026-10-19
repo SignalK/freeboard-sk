@@ -26,6 +26,22 @@ const distM = (a: Position, b: Position) => {
   const k = Math.cos((((a[1] + b[1]) / 2) * Math.PI) / 180);
   return Math.hypot(dLon * k * M, (b[1] - a[1]) * M);
 };
+/** trackSectionRoute, for the cases that must find a passage. */
+const routeOf = (...args: Parameters<typeof trackSectionRoute>) => {
+  const route = trackSectionRoute(...args);
+  if (!route) {
+    throw new Error('no passage found');
+  }
+  return route;
+};
+/** trackSectionSpan, for the cases that must find a passage. */
+const spanOf = (...args: Parameters<typeof trackSectionSpan>) => {
+  const span = trackSectionSpan(...args);
+  if (!span) {
+    throw new Error('no passage found');
+  }
+  return span;
+};
 
 /** Builds a recorded track one stretch at a time, a point a minute. */
 class Recorder {
@@ -95,7 +111,7 @@ describe('trackSectionRoute', () => {
       .stay(120);
 
   it('runs between the anchorages either side of the tap, in recorded order', () => {
-    const route = trackSectionRoute(day().track, at(A, 5000, 0), OWN_STOP_MS);
+    const route = routeOf(day().track, at(A, 5000, 0), OWN_STOP_MS);
 
     expect(route).toBeDefined();
     expect(distM(route[0], A)).toBeLessThan(30);
@@ -104,7 +120,7 @@ describe('trackSectionRoute', () => {
   });
 
   it('takes the next passage for a tap further along', () => {
-    const route = trackSectionRoute(day().track, at(B, 0, 5000), OWN_STOP_MS);
+    const route = routeOf(day().track, at(B, 0, 5000), OWN_STOP_MS);
 
     expect(distM(route[0], B)).toBeLessThan(30);
     expect(distM(route[route.length - 1], C)).toBeLessThan(30);
@@ -112,7 +128,7 @@ describe('trackSectionRoute', () => {
 
   it('runs to the end of the track while the vessel is still under way', () => {
     const rec = new Recorder(A).stay(120).sail(10000, 0, 60);
-    const route = trackSectionRoute(rec.track, at(A, 5000, 0), OWN_STOP_MS);
+    const route = routeOf(rec.track, at(A, 5000, 0), OWN_STOP_MS);
 
     expect(distM(route[0], A)).toBeLessThan(30);
     expect(distM(route[route.length - 1], rec.pos)).toBeLessThan(1);
@@ -120,7 +136,7 @@ describe('trackSectionRoute', () => {
 
   it('runs from the start of the track when no stop came before', () => {
     const rec = new Recorder(A).sail(10000, 0, 60).stay(120);
-    const route = trackSectionRoute(rec.track, at(A, 5000, 0), OWN_STOP_MS);
+    const route = routeOf(rec.track, at(A, 5000, 0), OWN_STOP_MS);
 
     expect(distM(route[0], at(A, 10000 / 60, 0))).toBeLessThan(1);
     expect(distM(route[route.length - 1], B)).toBeLessThan(30);
@@ -133,7 +149,7 @@ describe('trackSectionRoute', () => {
       .sail(0, 3 * ROUTE_TOLERANCE_M, 1)
       .sail(5000, 0, 30)
       .stay(120);
-    const route = trackSectionRoute(rec.track, at(A, 2000, 0), OWN_STOP_MS);
+    const route = routeOf(rec.track, at(A, 2000, 0), OWN_STOP_MS);
 
     // anchorage, the two corners of the jog, anchorage
     expect(route).toHaveLength(4);
@@ -151,7 +167,7 @@ describe('trackSectionRoute', () => {
         .stay(120).track;
 
     it('is one point of the own vessel’s route, not a zigzag', () => {
-      const route = trackSectionRoute(track(), at(A, 2000, 0), OWN_STOP_MS);
+      const route = routeOf(track(), at(A, 2000, 0), OWN_STOP_MS);
 
       const near = route.filter((p) => distM(p, corner) < STOP_RADIUS_M);
       expect(near).toHaveLength(1);
@@ -162,7 +178,7 @@ describe('trackSectionRoute', () => {
     });
 
     it('ends another vessel’s passage, as a ferry terminal does', () => {
-      const route = trackSectionRoute(track(), at(A, 2000, 0), OTHER_STOP_MS);
+      const route = routeOf(track(), at(A, 2000, 0), OTHER_STOP_MS);
 
       expect(distM(route[0], A)).toBeLessThan(30);
       expect(distM(route[route.length - 1], corner)).toBeLessThan(30);
@@ -173,7 +189,7 @@ describe('trackSectionRoute', () => {
     const rec = new Recorder(A).stay(120).sail(4000, 0, 30);
     const lastBeforeGap = rec.pos;
     rec.gap(120, 3000, 0).sail(3000, 0, 30).stay(120);
-    const route = trackSectionRoute(rec.track, at(A, 2000, 0), OWN_STOP_MS);
+    const route = routeOf(rec.track, at(A, 2000, 0), OWN_STOP_MS);
 
     expect(distM(route[0], A)).toBeLessThan(30);
     expect(distM(route[route.length - 1], lastBeforeGap)).toBeLessThan(1);
@@ -183,7 +199,7 @@ describe('trackSectionRoute', () => {
     const rec = new Recorder(A).stay(120).sail(4000, 0, 30);
     const lastBeforeGap = rec.pos;
     rec.gap(180, 0, 0).sail(3000, 0, 30).stay(120);
-    const route = trackSectionRoute(rec.track, at(A, 2000, 0), OWN_STOP_MS);
+    const route = routeOf(rec.track, at(A, 2000, 0), OWN_STOP_MS);
 
     expect(distM(route[0], A)).toBeLessThan(30);
     expect(distM(route[route.length - 1], lastBeforeGap)).toBeLessThan(60);
@@ -193,7 +209,7 @@ describe('trackSectionRoute', () => {
     const rec = new Recorder(A).stay(120).sail(4000, 0, 30);
     rec.gap(1, 100, 0).sail(3000, 0, 30).stay(120);
     const end = rec.pos;
-    const route = trackSectionRoute(rec.track, at(A, 2000, 0), OWN_STOP_MS);
+    const route = routeOf(rec.track, at(A, 2000, 0), OWN_STOP_MS);
 
     expect(distM(route[0], A)).toBeLessThan(30);
     expect(distM(route[route.length - 1], end)).toBeLessThan(30);
@@ -212,18 +228,14 @@ describe('trackSectionRoute', () => {
     const end = rec.pos;
 
     it('ends the passage before it', () => {
-      const route = trackSectionRoute(
-        oneLine(rec),
-        at(A, 2000, 0),
-        OWN_STOP_MS
-      );
+      const route = routeOf(oneLine(rec), at(A, 2000, 0), OWN_STOP_MS);
 
       expect(distM(route[0], A)).toBeLessThan(30);
       expect(distM(route[route.length - 1], lastBeforeGap)).toBeLessThan(1);
     });
 
     it('starts the passage after it', () => {
-      const route = trackSectionRoute(
+      const route = routeOf(
         oneLine(rec),
         at(firstAfterGap, 1500, 0),
         OWN_STOP_MS
@@ -234,7 +246,7 @@ describe('trackSectionRoute', () => {
     });
 
     it('spans only its own side of it', () => {
-      const span = trackSectionSpan(oneLine(rec), at(A, 2000, 0), OWN_STOP_MS);
+      const span = spanOf(oneLine(rec), at(A, 2000, 0), OWN_STOP_MS);
 
       expect(span.to).toBe(T0 + 149 * MIN);
     });
@@ -254,7 +266,7 @@ describe('trackSectionRoute', () => {
 
     it('ends the passage arriving where the creeping starts', () => {
       const { rec, creepStart } = creeping();
-      const route = trackSectionRoute(rec.track, at(A, 2000, 0), OTHER_STOP_MS);
+      const route = routeOf(rec.track, at(A, 2000, 0), OTHER_STOP_MS);
 
       expect(distM(route[0], A)).toBeLessThan(30);
       expect(distM(route[route.length - 1], creepStart)).toBeLessThan(150);
@@ -262,7 +274,7 @@ describe('trackSectionRoute', () => {
 
     it('gives the passage leaving it for a tap on it, as for any stop', () => {
       const { rec, creepEnd, end } = creeping();
-      const route = trackSectionRoute(
+      const route = routeOf(
         rec.track,
         at(A, 4000 + CREEP_M_PER_MIN * 60, 0),
         OTHER_STOP_MS
@@ -286,21 +298,21 @@ describe('trackSectionRoute', () => {
       .stay(120);
 
     [at(A, 5000, 0), at(A, 150, 0)].forEach((tap) => {
-      const route = trackSectionRoute(rec.track, tap, OWN_STOP_MS);
+      const route = routeOf(rec.track, tap, OWN_STOP_MS);
       expect(distM(route[0], A)).toBeLessThan(30);
       expect(distM(route[route.length - 1], B)).toBeLessThan(30);
     });
   });
 
   it('gives the passage leaving a stop for a tap on the stop', () => {
-    const route = trackSectionRoute(day().track, B, OWN_STOP_MS);
+    const route = routeOf(day().track, B, OWN_STOP_MS);
 
     expect(distM(route[0], B)).toBeLessThan(30);
     expect(distM(route[route.length - 1], C)).toBeLessThan(30);
   });
 
   it('gives the passage arriving for a tap on the stop the track ends at', () => {
-    const route = trackSectionRoute(day().track, C, OWN_STOP_MS);
+    const route = routeOf(day().track, C, OWN_STOP_MS);
 
     expect(distM(route[0], B)).toBeLessThan(30);
     expect(distM(route[route.length - 1], C)).toBeLessThan(30);
@@ -309,7 +321,7 @@ describe('trackSectionRoute', () => {
   it('crosses the antimeridian without a detour round the world', () => {
     const west: Position = [179.97, -17];
     const rec = new Recorder(west).stay(120).sail(6000, 0, 40).stay(120);
-    const route = trackSectionRoute(rec.track, at(west, 3000, 0), OWN_STOP_MS);
+    const route = routeOf(rec.track, at(west, 3000, 0), OWN_STOP_MS);
 
     expect(distM(route[0], west)).toBeLessThan(30);
     expect(distM(route[route.length - 1], at(west, 6000, 0))).toBeLessThan(30);
@@ -323,11 +335,7 @@ describe('trackSectionRoute', () => {
   it('keeps a stop astride the antimeridian on the chart', () => {
     const anchor: Position = [179.9995, -17];
     const rec = new Recorder(anchor).stay(120).sail(-6000, 0, 40).stay(120);
-    const route = trackSectionRoute(
-      rec.track,
-      at(anchor, -3000, 0),
-      OWN_STOP_MS
-    );
+    const route = routeOf(rec.track, at(anchor, -3000, 0), OWN_STOP_MS);
 
     expect(Math.abs(route[0][0])).toBeLessThanOrEqual(180);
     expect(distM(route[0], anchor)).toBeLessThan(30);
@@ -356,7 +364,7 @@ describe('trackSectionSpan', () => {
       .sail(0, 10000, 60)
       .stay(120).track;
 
-    const span = trackSectionSpan(track, at(B, 0, 5000), OWN_STOP_MS);
+    const span = spanOf(track, at(B, 0, 5000), OWN_STOP_MS);
 
     // the anchorages begin as the vessel comes within the swing circle
     expect(Math.abs(span.from - (T0 + 180 * MIN))).toBeLessThanOrEqual(2 * MIN);

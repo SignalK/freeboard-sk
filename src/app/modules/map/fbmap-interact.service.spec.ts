@@ -131,9 +131,9 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     service.placeBearingDistancePoint([-80.1, 25.7]);
     service.followBearingDistance([-80.0, 25.8], 40075016);
 
-    expect(service.bearingDistance().target).toEqual([-80.0, 25.8]);
-    expect(service.bearingDistance().worldOffset).toBe(40075016);
-    expect(service.bearingDistance().fixed).toBe(false);
+    expect(service.bearingDistance()?.target).toEqual([-80.0, 25.8]);
+    expect(service.bearingDistance()?.worldOffset).toBe(40075016);
+    expect(service.bearingDistance()?.fixed).toBe(false);
   });
 
   it('places the target on the second click, ends the interaction and keeps the measurement', () => {
@@ -154,7 +154,7 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     service.placeBearingDistancePoint([-80.1, 25.7]);
     service.placeBearingDistancePoint([-80.1, 25.7]);
 
-    expect(service.bearingDistance().fixed).toBe(false);
+    expect(service.bearingDistance()?.fixed).toBe(false);
     expect(service.isMeasuring()).toBe(true);
   });
 
@@ -163,7 +163,7 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     service.placeBearingDistancePoint([-80.0, 25.8]);
     service.followBearingDistance([-79.0, 26.0]);
 
-    expect(service.bearingDistance().target).toEqual([-80.0, 25.8]);
+    expect(service.bearingDistance()?.target).toEqual([-80.0, 25.8]);
   });
 
   it('cancelling before the target is placed discards the measurement', () => {
@@ -197,10 +197,10 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     service.placeBearingDistancePoint([-80.0, 25.8]);
 
     service.moveBearingDistanceTarget([-79.9, 25.9], 40075016);
-    expect(service.bearingDistance().target).toEqual([-79.9, 25.9]);
-    expect(service.bearingDistance().worldOffset).toBe(40075016);
-    expect(service.bearingDistance().origin).toEqual([-80.1, 25.7]);
-    expect(service.bearingDistance().fixed).toBe(true);
+    expect(service.bearingDistance()?.target).toEqual([-79.9, 25.9]);
+    expect(service.bearingDistance()?.worldOffset).toBe(40075016);
+    expect(service.bearingDistance()?.origin).toEqual([-80.1, 25.7]);
+    expect(service.bearingDistance()?.fixed).toBe(true);
   });
 
   it('does not move a target that is still following the pointer', () => {
@@ -208,7 +208,7 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     service.followBearingDistance([-80.0, 25.8]);
     service.moveBearingDistanceTarget([-79.9, 25.9]);
 
-    expect(service.bearingDistance().target).toEqual([-80.0, 25.8]);
+    expect(service.bearingDistance()?.target).toEqual([-80.0, 25.8]);
   });
 
   it('measures from the vessel with the target placed at once', () => {

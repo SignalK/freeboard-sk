@@ -336,11 +336,11 @@ describe('FBMapComponent: Modify picked on the second pane', () => {
 
   it('edits in the primary world, where the main chart is centred', () => {
     const { cmp, feature } = editable(new OlMap(), WORLD_WIDTH_3857);
-    const before = feature.getGeometry().getExtent();
+    const before = feature.getGeometry()?.getExtent();
 
     cmp.modifyFeature();
 
-    expect(feature.getGeometry().getExtent()).toEqual(before);
+    expect(feature.getGeometry()?.getExtent()).toEqual(before);
   });
 
   it('makes the main chart active, at least as close in as the pane', () => {

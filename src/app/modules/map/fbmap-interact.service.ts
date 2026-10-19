@@ -29,9 +29,9 @@ import type { MapTarget, TargetRule } from '../plotterext/actions';
 import type { PickCancelReason } from '../plotterext/map-pick';
 
 export interface IPopover {
-  id: string;
-  type: string;
-  icon?: string;
+  id: string | null;
+  type: string | null;
+  icon?: string | null;
   position: Position;
   /**
    * Render-space offset (EPSG:3857 metres) of the world copy the user clicked
@@ -40,10 +40,10 @@ export interface IPopover {
    */
   worldOffset?: number;
   show: boolean;
-  title: string;
+  title: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content: any[];
-  featureCount: number;
+  content: any[] | null;
+  featureCount: number | undefined;
   resource?: FBRoute | FBWaypoint | FBNote | FBRegion;
   /** The feature a resource set popover shows. */
   resourceSet?: GeoJSONFeature;
@@ -71,8 +71,8 @@ export interface IPopover {
 }
 
 export interface MeasurementDef {
-  coords?: Array<Position>;
-  index?: number;
+  coords: Array<Position>;
+  index: number;
 }
 
 /** A Bearing & Distance measurement (#905). */
@@ -95,7 +95,7 @@ export type MeasureType = 'LineString' | 'BearingDistance';
 export type SelectionModeDef = 'seedChart';
 
 export interface SelectionResultDef {
-  mode: SelectionModeDef;
+  mode: SelectionModeDef | null;
   bbox?: [Position?, Position?];
   /** The chart whose tile cache the selected area seeds (`seedChart`). */
   data?: FBChart;
@@ -120,13 +120,15 @@ export interface DrawFeatureSaveInfo {
 }
 
 export interface DrawFeatureInfo {
-  resourceType: DrawFeatureType;
-  featureType: 'Point' | 'LineString' | 'Polygon';
+  /** null until a draw or modify session starts */
+  resourceType: DrawFeatureType | null;
+  /** null during a modify session, which edits whatever geometry it is given */
+  featureType: 'Point' | 'LineString' | 'Polygon' | null;
   /**
    * The feature's geometry coordinates — lon/lat once a draw completes, raw
    * render-space geometry during a modify. Nesting follows `featureType`.
    */
-  coordinates: Coordinate | Coordinate[] | Coordinate[][];
+  coordinates: Coordinate | Coordinate[] | Coordinate[][] | null;
   /** Features under the last map click; the set a Modify session edits. */
   features: Collection<Feature> | null;
   forSave: DrawFeatureSaveInfo | null;
@@ -214,7 +216,8 @@ export class FBMapInteractService {
     mode: null
   });
 
-  private selectionResult: SelectionResultDef;
+  /** undefined until the first box selection starts */
+  private selectionResult?: SelectionResultDef;
   public measureGeometryType: MeasureType = 'LineString';
 
   /** draw interaction data */
@@ -307,9 +310,7 @@ export class FBMapInteractService {
       pt
     );
     this.measurement.update((current) => {
-      const c = [].concat(current.coords);
-      c.push(pt);
-      return Object.assign({}, current, { coords: c });
+      return Object.assign({}, current, { coords: [...current.coords, pt] });
     });
     return d;
   }
@@ -348,7 +349,8 @@ export class FBMapInteractService {
   /** Exit measuring mode. A Bearing & Distance not yet placed is discarded. */
   stopMeasuring() {
     this.app.debug(`stopMeasuring()...`);
-    if (this.bearingDistance() && !this.bearingDistance().fixed) {
+    const bd = this.bearingDistance();
+    if (bd && !bd.fixed) {
       this.bearingDistance.set(null);
     }
     this.isMeasuring.set(false);
@@ -466,7 +468,7 @@ export class FBMapInteractService {
   /** Start modifying mode */
   startModifying(overlay: Pick<IPopover, 'type'>) {
     this.app.debug(`startModifying()...`);
-    if (this.draw.features.getLength() === 0) {
+    if (!this.draw.features?.getLength()) {
       return;
     }
     this.isModifying.set(true);
@@ -504,31 +506,26 @@ export class FBMapInteractService {
   /** Exit measuring mode */
   stopBoxSelection(coords?: Position) {
     this.app.debug(`stopBoxSelection()...`);
-    if (coords) {
-      this.selectionResult.bbox.push(coords);
-      this.formatBbox();
+    const result = this.selectionResult;
+    if (coords && result?.bbox) {
+      result.bbox.push(coords);
+      this.formatBbox(result);
       this.selection.update(() => {
-        return this.selectionResult;
+        return result;
       });
     }
     this.isBoxSelecting.set(false);
     this.interactionEnded();
   }
 
-  private formatBbox() {
-    if (this.selectionResult.bbox.length !== 2) {
+  private formatBbox(result: SelectionResultDef) {
+    const [a, b] = result.bbox ?? [];
+    if (result.bbox?.length !== 2 || !a || !b) {
       return;
     }
-    const coords = [].concat(this.selectionResult.bbox);
-    this.selectionResult.bbox = [
-      [
-        coords[0][0] < coords[1][0] ? coords[0][0] : coords[1][0],
-        coords[0][1] < coords[1][1] ? coords[0][1] : coords[1][1]
-      ],
-      [
-        coords[0][0] > coords[1][0] ? coords[0][0] : coords[1][0],
-        coords[0][1] > coords[1][1] ? coords[0][1] : coords[1][1]
-      ]
+    result.bbox = [
+      [a[0] < b[0] ? a[0] : b[0], a[1] < b[1] ? a[1] : b[1]],
+      [a[0] > b[0] ? a[0] : b[0], a[1] > b[1] ? a[1] : b[1]]
     ];
   }
 
