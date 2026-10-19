@@ -22,7 +22,7 @@ describe('RelatedNotesDialog — note date', () => {
       imports: [RelatedNotesDialog],
       providers: [
         provideNoopAnimations(),
-        { provide: MatDialogRef, useValue: { close: () => undefined } },
+        { provide: MatDialogRef, useValue: { close: (): void => undefined } },
         {
           provide: MAT_DIALOG_DATA,
           useValue: {
