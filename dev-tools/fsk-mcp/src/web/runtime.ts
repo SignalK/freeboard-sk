@@ -32,6 +32,10 @@ type HubMessage =
   | { type: 'ping'; id?: string };
 
 const CONFIG_URL = 'bridge-config.json'; // resolved against this iframe's origin
+// Extension state key of the recorded action choices; fsk_list_action_invocations
+// (src/tools.ts) reads it back with state.get.
+const INVOCATIONS_KEY = 'actionInvocations';
+const MAX_INVOCATIONS = 20;
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 15000;
 
@@ -74,6 +78,31 @@ async function main(): Promise<void> {
     `handshake ok: host=${client.handshake.host}@${client.handshake.hostVersion}`,
     `caps=[${client.capabilities.join(', ')}]`
   );
+
+  if (client.capabilities.includes('actions')) {
+    await client.subscribe(['action.invoked'], (_name, invocation) => {
+      recordInvocation(invocation).catch((err: unknown) =>
+        log('cannot record an action invocation:', messageOf(err))
+      );
+    });
+  }
+
+  // Keep the latest action choices, newest first, in the extension state.
+  async function recordInvocation(invocation: unknown): Promise<void> {
+    const saved = (await client.state.get([INVOCATIONS_KEY], 'extension'))[
+      INVOCATIONS_KEY
+    ];
+    const list = Array.isArray(saved) ? saved : [];
+    await client.state.set(
+      {
+        [INVOCATIONS_KEY]: [
+          { at: new Date().toISOString(), ...(invocation as object) },
+          ...list
+        ].slice(0, MAX_INVOCATIONS)
+      },
+      'extension'
+    );
+  }
 
   let config: BridgeConfig;
   try {

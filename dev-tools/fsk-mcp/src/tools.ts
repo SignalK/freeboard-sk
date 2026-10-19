@@ -16,6 +16,10 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { BridgeHub } from './bridge-hub.ts';
+import { PROBE_ACTION } from './manifest.ts';
+
+// Where the runtime records action choices (src/web/runtime.ts).
+const INVOCATIONS_KEY = 'actionInvocations';
 
 export type ToolHub = Pick<BridgeHub, 'call' | 'listSessions'>;
 export type ToolArgs = Record<string, unknown>;
@@ -699,5 +703,41 @@ export const TOOLS: ToolDef[] = [
         { windowId: a.windowId },
         { session: a.session }
       )
+  }),
+  tool({
+    name: 'fsk_set_action_visibility',
+    description:
+      'Show or hide the bridge\'s own map actions (capability `actions`, method `actions.setVisibility`). Its one action, the probe (id `probe`), applies to every kind of target and starts hidden: show it, then choose "FSK MCP probe (dev)" in Freeboard\'s chart menu or a feature popover, and read what the host delivered with fsk_list_action_invocations.',
+    inputSchema: withSession(
+      {
+        visible: { type: 'boolean' },
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: "Action ids of the bridge's manifest. Default ['probe']."
+        }
+      },
+      ['visible']
+    ),
+    run: (hub, a: Session & { visible: boolean; ids?: string[] }) =>
+      hub.call(
+        'actions.setVisibility',
+        { ids: a.ids ?? [PROBE_ACTION], visible: a.visible },
+        { session: a.session }
+      )
+  }),
+  tool({
+    name: 'fsk_list_action_invocations',
+    description:
+      "The latest choices of the bridge's actions, newest first: each `action.invoked` the bridge runtime heard, { at, actionId, target }. The target is exactly what the host delivers to an extension (kind, position, name, featurePosition, and id/href, routeId, context/self or class/properties by kind). The runtime keeps the last 20 in its extension state.",
+    inputSchema: withSession(),
+    run: async (hub, a: Session) => {
+      const result = (await hub.call(
+        'state.get',
+        { scope: 'extension', keys: [INVOCATIONS_KEY] },
+        { session: a.session }
+      )) as { values?: Record<string, unknown> } | undefined;
+      return result?.values?.[INVOCATIONS_KEY] ?? [];
+    }
   })
 ];

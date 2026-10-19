@@ -13,11 +13,18 @@
 // overlay methods only reach the caller's own overlays, so the bridge needs one
 // of its own to exercise `overlays.data`, and it doubles as a way to draw any
 // GeoJSON on the chart while debugging (fsk_set_overlay_data).
+//
+// Its one action, the probe, is there to check what the host delivers when the
+// user chooses an action (capability `actions`). It applies to every target
+// kind and starts hidden, so it is in no menu until an agent shows it with
+// fsk_set_action_visibility; the runtime records each choice
+// (fsk_list_action_invocations).
 
 import pkg from '../package.json' with { type: 'json' };
 
 export const PLUGIN_ID = 'fsk-mcp';
 export const ASSET_BASE = `/plotterext/${PLUGIN_ID}`;
+export const PROBE_ACTION = 'probe';
 
 // Features take `color` and `label` properties; `global-state` `color` is the
 // colour of features without one (set it with fsk_set_overlay_state).
@@ -93,7 +100,8 @@ export function buildManifest() {
       'units',
       'ui',
       'windows',
-      'overlays.data'
+      'overlays.data',
+      'actions'
     ],
     panels: [
       {
@@ -114,6 +122,31 @@ export function buildManifest() {
         // layer never counts against the host's active-overlay budget
         visible: false,
         style: SCRATCH_STYLE
+      }
+    ],
+    actions: [
+      {
+        id: PROBE_ACTION,
+        title: 'FSK MCP probe (dev)',
+        icon: 'bug_report',
+        targets: [
+          'position',
+          'waypoint',
+          'note',
+          'route',
+          'track',
+          'region',
+          'vessel',
+          'aton',
+          'chartFeature',
+          'overlayFeature'
+        ],
+        visible: false,
+        action: {
+          type: 'publish',
+          topic: `${PLUGIN_ID}.probe`,
+          scope: 'extension'
+        }
       }
     ],
     background: [
