@@ -57,26 +57,26 @@ export interface SKApiResponse {
 }
 
 export interface CourseData {
-  dtg: number;
-  ttg: number;
-  eta: Date;
+  dtg: number | null;
+  ttg: number | null;
+  eta: Date | null;
   route: {
-    dtg: number;
-    ttg: number;
-    eta: Date;
+    dtg: number | null;
+    ttg: number | null;
+    eta: Date | null;
   };
-  vmg: number;
-  bearing: { value: number; type: string };
-  bearingTrue: number;
-  bearingMagnetic: number;
-  xte: number;
-  position: Position;
+  vmg: number | null;
+  bearing: { value: number | null; type: string | null };
+  bearingTrue: number | null;
+  bearingMagnetic: number | null;
+  xte: number | null;
+  position: Position | null;
   pointIndex: number;
   pointTotal: number;
-  arrivalCircle: number;
-  startPosition: Position;
+  arrivalCircle: number | null;
+  startPosition: Position | null;
   pointNames: string[];
-  activeRoutePoints: LineString;
+  activeRoutePoints: LineString | null;
   destPointName: string;
 }
 
@@ -171,7 +171,7 @@ export interface IAppConfig {
     autoNextPointOnArrival: boolean;
     autoNextPointDelay: number;
     autoNextPointTrigger: 'perpendicularPassed' | 'arrivalCircleEntered';
-    arrivalCircle: number;
+    arrivalCircle: number | null;
   };
   vessels: {
     fixedLocationMode: boolean;
@@ -346,12 +346,12 @@ export interface FBAppData {
     charts: FBCharts;
   };
   selfId: string;
-  activeRoute: string;
+  activeRoute: string | null;
   activeRouteReversed: boolean;
   activeRouteCircular: boolean;
   activeRouteIsEditing: boolean;
   editingId: string;
-  activeWaypoint: string;
+  activeWaypoint: string | null;
   serverTrail: boolean; // trail received from server
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server: { [key: string]: any }; // SK server info

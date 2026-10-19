@@ -192,8 +192,8 @@ import { Subscription } from 'rxjs';
   ]
 })
 export class CourseSettingsModal implements OnInit {
-  frmArrivalCircle: number;
-  private deltaSub: Subscription;
+  frmArrivalCircle = 0;
+  private deltaSub?: Subscription;
   protected targetArrivalEnabled = false;
   protected minDate = new Date();
   protected arrivalData = {
@@ -221,10 +221,7 @@ export class CourseSettingsModal implements OnInit {
     if (this.data.title === 'undefined') {
       this.data['title'] = 'Course Settings';
     }
-    this.frmArrivalCircle =
-      this.course.courseData().arrivalCircle === null
-        ? 0
-        : this.course.courseData().arrivalCircle;
+    this.frmArrivalCircle = this.course.courseData().arrivalCircle ?? 0;
     this.frmArrivalCircle =
       this.app.config.units.distance === 'kilometer'
         ? Number(
@@ -265,7 +262,7 @@ export class CourseSettingsModal implements OnInit {
   }
 
   ngOnDestroy() {
-    this.deltaSub.unsubscribe();
+    this.deltaSub?.unsubscribe();
   }
 
   closeModal() {
@@ -300,11 +297,11 @@ export class CourseSettingsModal implements OnInit {
         if (!Number.isFinite(value)) {
           return;
         }
-        let d =
+        const meters =
           this.app.config.units.distance === 'kilometer'
             ? value * 1000
             : Convert.nauticalMilesToKm(value) * 1000;
-        d = d <= 0 ? null : d;
+        const d = meters <= 0 ? null : meters;
         this.app.config.course.arrivalCircle = d;
 
         this.signalk.api
@@ -352,7 +349,7 @@ export class CourseSettingsModal implements OnInit {
       if (!this.arrivalData.datetime) {
         return;
       }
-      const atime = this.formatArrivalTime();
+      const atime = this.formatArrivalTime(this.arrivalData.datetime);
       this.signalk.api
         .putWithContext(
           this.app.skApiVersion,
@@ -377,11 +374,11 @@ export class CourseSettingsModal implements OnInit {
     }
   }
 
-  formatArrivalTime(): string {
-    this.arrivalData.datetime.setHours(parseInt(this.arrivalData.hour));
-    this.arrivalData.datetime.setMinutes(parseInt(this.arrivalData.minutes));
-    this.arrivalData.datetime.setSeconds(parseInt(this.arrivalData.seconds));
-    const ts = this.arrivalData.datetime.toISOString();
+  formatArrivalTime(datetime: Date): string {
+    datetime.setHours(parseInt(this.arrivalData.hour));
+    datetime.setMinutes(parseInt(this.arrivalData.minutes));
+    datetime.setSeconds(parseInt(this.arrivalData.seconds));
+    const ts = datetime.toISOString();
     return ts.slice(0, ts.indexOf('.')) + 'Z';
   }
 

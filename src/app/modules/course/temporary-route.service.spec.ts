@@ -264,10 +264,10 @@ describe('TemporaryRouteService — cleaning up', () => {
     const [collection, id, route] = t.skres.putToServer.mock
       .calls[0] as unknown as [string, string, FBRoute[1]];
     expect([collection, id]).toEqual(['routes', 'rte-1']);
-    const marker = route.feature.properties[
+    const marker = route.feature.properties?.[
       'temporary'
     ] as TemporaryRouteMarker;
-    expect(Date.now() - Date.parse(marker.released)).toBeLessThan(5000);
+    expect(Date.now() - Date.parse(marker.released ?? '')).toBeLessThan(5000);
   });
 
   it('deletes the previous temporary route once a new one replaces it', async () => {

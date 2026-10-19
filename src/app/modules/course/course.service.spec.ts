@@ -190,7 +190,7 @@ describe('CourseService course API data (#755)', () => {
 
     const c = service.courseData();
     expect(c.eta).toBeInstanceOf(Date);
-    expect(c.eta.toISOString()).toBe('2026-09-18T12:00:00.000Z');
+    expect(c.eta?.toISOString()).toBe('2026-09-18T12:00:00.000Z');
     expect(c.route.eta).toBeNull();
   });
 });
