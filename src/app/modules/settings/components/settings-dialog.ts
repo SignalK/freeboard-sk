@@ -206,13 +206,11 @@ export class SettingsDialog implements OnInit {
 
   /** apply RADAR Options  */
   doRadar() {
-    this.radarApi
-      .init(this.facade.settings.radars.deviceId)
-      .then((id: string) => {
-        if (id) {
-          this.persistModel();
-        }
-      });
+    this.radarApi.init(this.facade.settings.radars.deviceId).then((id) => {
+      if (id) {
+        this.persistModel();
+      }
+    });
   }
 
   /** handle line style change */

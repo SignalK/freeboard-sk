@@ -74,8 +74,8 @@ export class SKStreamFacade {
   // **************** SIGNALS ***********************************
   private anchorSignal = signal<{
     maxRadius?: number;
-    radius?: number;
-    position?: Position;
+    radius?: number | null;
+    position?: Position | null;
   }>({});
   readonly selfAnchor = this.anchorSignal.asReadonly();
 

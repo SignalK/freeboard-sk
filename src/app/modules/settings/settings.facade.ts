@@ -27,7 +27,8 @@ interface SKAppsList {
 interface AppListEntry {
   name: string;
   description: string;
-  url: string;
+  /** null for the "None" entry */
+  url: string | null;
 }
 
 interface ResourceTypeList {
@@ -294,7 +295,7 @@ export class SettingsFacade {
   }
 
   /** Notify of setting attribute change */
-  emitChangeEvent(value: string) {
+  emitChangeEvent(value?: string) {
     const v = value ? [value] : [];
     this.changeEvent.next(v);
   }
@@ -371,9 +372,7 @@ export class SettingsFacade {
               };
             }
           })
-          .filter((e) => {
-            return e;
-          });
+          .filter((e) => e !== null && e !== undefined);
 
         this.applicationList.unshift({
           name: 'None',

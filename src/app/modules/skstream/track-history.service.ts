@@ -372,7 +372,7 @@ export class TrackHistoryService {
       v?.name ||
       this.spans().get(context)?.name ||
       v?.mmsi ||
-      context.split(':').pop()
+      context.slice(context.lastIndexOf(':') + 1)
     );
   }
 

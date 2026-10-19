@@ -81,7 +81,7 @@ describe('SKStreamAPI received messages', () => {
   });
 
   const receive = (msg: SKStreamMessage) =>
-    ws.onmessage({ data: JSON.stringify(msg) } as MessageEvent);
+    ws.onmessage!({ data: JSON.stringify(msg) } as MessageEvent);
 
   it('records self and playback mode from the hello message', () => {
     receive(hello);
@@ -108,7 +108,7 @@ describe('SKStreamAPI received messages', () => {
   });
 
   it('ignores non-JSON frames', () => {
-    ws.onmessage({ data: 'not json' } as MessageEvent);
+    ws.onmessage!({ data: 'not json' } as MessageEvent);
     expect(received).toEqual([]);
   });
 });

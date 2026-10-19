@@ -53,7 +53,7 @@ export function rangeRingScale(
   range: number | undefined,
   userUnit: TARGET_UNIT
 ): RangeRingScale | undefined {
-  if (!(range > 0)) {
+  if (range === undefined || !(range > 0)) {
     return undefined;
   }
   const ringsOf = (count: number, spacing: number) =>

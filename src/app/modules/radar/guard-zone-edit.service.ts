@@ -63,7 +63,7 @@ export class GuardZoneEditService {
   private _edit = signal<ZoneEdit | undefined>(undefined);
   readonly edit = this._edit.asReadonly();
   private pending = signal<PendingZone | undefined>(undefined);
-  private pendingTimer: ReturnType<typeof setTimeout>;
+  private pendingTimer: ReturnType<typeof setTimeout> | undefined;
   // the latest change sent or cleared: a failure that comes back after a
   // newer change leaves the newer change's state alone
   private latestChange = 0;
@@ -194,9 +194,12 @@ export class GuardZoneEditService {
   /** Arm or disarm a zone as the radar holds it, or as it was just saved. */
   async setEnabled(controlId: string, enabled: boolean): Promise<void> {
     const radarId = this.radarApi.radar()?.device?.id;
+    if (!radarId) {
+      return;
+    }
     const zone =
       this.pendingZone(radarId, controlId) ?? this.storedZone(controlId);
-    if (radarId && zone) {
+    if (zone) {
       await this.send(
         radarId,
         controlId,

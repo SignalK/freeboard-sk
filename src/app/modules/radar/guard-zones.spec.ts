@@ -97,7 +97,7 @@ describe('guardZoneFromControl', () => {
 
   it('treats a missing enabled flag as switched off', () => {
     expect(
-      guardZoneFromControl({ value: 0, endValue: 1, endDistance: 500 }).enabled
+      guardZoneFromControl({ value: 0, endValue: 1, endDistance: 500 })?.enabled
     ).toBe(false);
   });
 });

@@ -80,7 +80,8 @@ describe('historyEpsilon', () => {
     expect(historyEpsilon(16, box(24.5))).toBe(1.09);
     // each level in halves the tolerance
     expect(
-      historyEpsilon(13, box(24.5)) / historyEpsilon(12, box(24.5))
+      (historyEpsilon(13, box(24.5)) ?? NaN) /
+        (historyEpsilon(12, box(24.5)) ?? NaN)
     ).toBeCloseTo(0.5, 2);
   });
 
@@ -89,7 +90,7 @@ describe('historyEpsilon', () => {
     // already suit 12.9
     expect(historyEpsilon(12.9, box(24.5))).toBe(historyEpsilon(12, box(24.5)));
     expect(historyEpsilon(12, box(24.5))).toBeCloseTo(
-      historyEpsilon(13, box(24.5)) * 2,
+      (historyEpsilon(13, box(24.5)) ?? NaN) * 2,
       1
     );
   });
@@ -99,7 +100,7 @@ describe('historyEpsilon', () => {
     // centre (58)
     const wide = historyEpsilon(3, [0, 40, 10, 70]);
     expect(wide).toBe(historyEpsilon(3, [0, 57.5, 10, 58.5]));
-    expect(wide).toBeLessThan(historyEpsilon(3, [0, 54.5, 10, 55.5]));
+    expect(wide).toBeLessThan(historyEpsilon(3, [0, 54.5, 10, 55.5]) ?? NaN);
     // clamped to the projection's usable range
     expect(historyEpsilon(18, [0, 88, 1, 90])).toBe(
       historyEpsilon(18, [0, 86, 1, 89])
@@ -145,14 +146,14 @@ describe('track-history queries', () => {
         range: { from: NOW - 7 * DAY, to: null }
       })
     );
-    expect(p.context).toBe('vessels.urn:mrn:imo:mmsi:366000010');
-    expect(p.bbox).toBe('170,-20,-170,-10');
-    expect(p.from).toBe(new Date(NOW - 7 * DAY).toISOString());
-    expect(p.to).toBeUndefined();
+    expect(p?.context).toBe('vessels.urn:mrn:imo:mmsi:366000010');
+    expect(p?.bbox).toBe('170,-20,-170,-10');
+    expect(p?.from).toBe(new Date(NOW - 7 * DAY).toISOString());
+    expect(p?.to).toBeUndefined();
     // without an epsilon none is sent, and never a bare simplify
-    expect(p.epsilon).toBeUndefined();
-    expect(p.simplify).toBeUndefined();
-    expect(p.provider).toBeUndefined();
+    expect(p?.epsilon).toBeUndefined();
+    expect(p?.simplify).toBeUndefined();
+    expect(p?.provider).toBeUndefined();
   });
 
   it('asks for metadata only when probing a recorded span', () => {
@@ -212,7 +213,7 @@ describe('track-history parseHistoryTrack', () => {
     properties: {
       context: 'vessels.x',
       providerId,
-      from: '2026-09-01T00:00:00Z',
+      from: '2026-09-01T00:00:00Z' as string | undefined,
       coordTimes
     }
   });
@@ -268,8 +269,8 @@ describe('track-history parseHistoryTrack', () => {
       ]
     };
     const t = parseHistoryTrack('self', fc);
-    expect(t.lines.length).toBe(1);
-    expect(t.times).toBeUndefined();
+    expect(t?.lines.length).toBe(1);
+    expect(t?.times).toBeUndefined();
   });
 
   it('leaves a track without times out of the history', () => {
@@ -292,8 +293,8 @@ describe('track-history parseHistoryTrack', () => {
     const fc = {
       features: [feature('parquet', [[[9, 9]]]), feature('tracks', [[[1, 1]]])]
     };
-    expect(parseHistoryTrack('self', fc, 'tracks').lines).toEqual([[[1, 1]]]);
-    expect(parseHistoryTrack('self', fc, 'other').lines).toEqual([[[9, 9]]]);
+    expect(parseHistoryTrack('self', fc, 'tracks')?.lines).toEqual([[[1, 1]]]);
+    expect(parseHistoryTrack('self', fc, 'other')?.lines).toEqual([[[9, 9]]]);
   });
 
   it('is undefined for an empty or malformed response', () => {
@@ -449,11 +450,11 @@ describe('track-history tapped segment', () => {
 
   it('reports the segment span and the time at the tapped point', () => {
     const info = segmentTimeInfo(line, times, [-81.71, 24.5]);
-    expect(info.start).toBe(Date.parse(times[0]));
-    expect(info.end).toBe(Date.parse(times[2]));
-    expect(info.duration).toBe(3.5 * HOUR);
+    expect(info?.start).toBe(Date.parse(times[0]));
+    expect(info?.end).toBe(Date.parse(times[2]));
+    expect(info?.duration).toBe(3.5 * HOUR);
     // 90% of the way along the 11:00 -> 13:30 leg
-    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-20T13:15:00Z'), -3);
+    expect(info?.atTime).toBeCloseTo(Date.parse('2026-09-20T13:15:00Z'), -3);
   });
 
   it('has nothing to say without recording times', () => {
@@ -472,10 +473,10 @@ describe('track-history tapped segment', () => {
       [otherTimes, times],
       [-81.79, 24.5]
     );
-    expect(info.start).toBe(Date.parse(times[0]));
-    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-20T11:15:00Z'), -3);
+    expect(info?.start).toBe(Date.parse(times[0]));
+    expect(info?.atTime).toBeCloseTo(Date.parse('2026-09-20T11:15:00Z'), -3);
     expect(
-      trackTimeInfo([other, line], [otherTimes, []], [-81.79, 24.5]).start
+      trackTimeInfo([other, line], [otherTimes, []], [-81.79, 24.5])?.start
     ).toBe(Date.parse(otherTimes[0])); // a segment without times is skipped
     expect(trackTimeInfo([line], undefined, [0, 0])).toBeUndefined();
   });
@@ -498,8 +499,8 @@ describe('track-history tapped segment', () => {
       [nextDayTimes, sparseTimes],
       [5, 0.01]
     );
-    expect(info.start).toBe(Date.parse(sparseTimes[0]));
-    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-20T05:00:00Z'), -3);
+    expect(info?.start).toBe(Date.parse(sparseTimes[0]));
+    expect(info?.atTime).toBeCloseTo(Date.parse('2026-09-20T05:00:00Z'), -3);
   });
 
   it('formats durations', () => {
@@ -534,23 +535,23 @@ describe('track-history scrubbing', () => {
 
   it('interpolates the position between the recorded points either side', () => {
     const p = poseAt([line], [times], at('2026-09-20T00:30:00Z'));
-    expect(p.position[0]).toBeCloseTo(0);
-    expect(p.position[1]).toBeCloseTo(0.5);
+    expect(p?.position[0]).toBeCloseTo(0);
+    expect(p?.position[1]).toBeCloseTo(0.5);
   });
 
   it('points the vessel at the recorded point two ahead', () => {
     // between points 0 and 1: two ahead is [1, 1], north-east of [0, 0.5]
     const p = poseAt([line], [times], at('2026-09-20T00:30:00Z'));
-    expect(p.heading).toBeGreaterThan(0);
-    expect(p.heading).toBeLessThan(Math.PI / 2);
+    expect(p?.heading).toBeGreaterThan(0);
+    expect(p?.heading).toBeLessThan(Math.PI / 2);
   });
 
   it('at the end of a stretch, keeps the heading it arrived on', () => {
     const p = poseAt([line], [times], at('2026-09-20T03:00:00Z'));
-    expect(p.position).toEqual([1, 0]);
+    expect(p?.position).toEqual([1, 0]);
     // from [0, 1] (two before the end) to [1, 0]: south-east
-    expect(p.heading).toBeGreaterThan(Math.PI / 2);
-    expect(p.heading).toBeLessThan(Math.PI);
+    expect(p?.heading).toBeGreaterThan(Math.PI / 2);
+    expect(p?.heading).toBeLessThan(Math.PI);
   });
 
   it('is undefined outside the record and in a gap between stretches', () => {
@@ -561,7 +562,7 @@ describe('track-history scrubbing', () => {
     expect(poseAt(lines, ts, at('2026-09-19T00:00:00Z'))).toBeUndefined();
     expect(poseAt(lines, ts, at('2026-09-20T04:00:00Z'))).toBeUndefined();
     expect(poseAt(lines, ts, at('2026-09-21T00:00:00Z'))).toBeUndefined();
-    expect(poseAt(lines, ts, at('2026-09-20T06:00:00Z')).position).toEqual([
+    expect(poseAt(lines, ts, at('2026-09-20T06:00:00Z'))?.position).toEqual([
       5, 5
     ]);
     expect(poseAt([line], undefined, at(times[1]))).toBeUndefined();
@@ -596,7 +597,7 @@ describe('track-history scrubbing', () => {
       [['2026-09-20T00:00:00Z', '2026-09-20T01:00:00Z']],
       at('2026-09-20T00:15:00Z')
     );
-    expect(p.position[0]).toBeCloseTo(179.5);
+    expect(p?.position[0]).toBeCloseTo(179.5);
   });
 });
 
@@ -658,9 +659,9 @@ describe('track-history TrailStamps (local trail)', () => {
     expect(segmentTimeInfo(line, times, [0.5, 0.01])).toBeUndefined();
     // the timed stretch answers for itself, bounded to its own points
     const info = segmentTimeInfo(line, times, [5.5, 0.01]);
-    expect(info.start).toBe(Date.parse(at(10)));
-    expect(info.end).toBe(Date.parse(at(11)));
-    expect(info.atTime).toBeCloseTo(Date.parse('2026-09-24T10:30:00Z'), -3);
+    expect(info?.start).toBe(Date.parse(at(10)));
+    expect(info?.end).toBe(Date.parse(at(11)));
+    expect(info?.atTime).toBeCloseTo(Date.parse('2026-09-24T10:30:00Z'), -3);
     // the leg bridging untimed to timed has no time either
     expect(segmentTimeInfo(line, times, [3, 0.01])).toBeUndefined();
   });
@@ -720,14 +721,14 @@ describe('track-history extent (zoom to a recorded track)', () => {
       },
       'tracks'
     );
-    expect(span.bbox).toEqual([-82, 23, -79.5, 25]);
+    expect(span?.bbox).toEqual([-82, 23, -79.5, 25]);
   });
 
   it('keeps a bbox crossing the antimeridian the short way round', () => {
     const span = parseHistorySpan({
       features: [meta('tracks', [178, -18, -179, -16])]
     });
-    expect(span.bbox).toEqual([178, -18, -179, -16]);
+    expect(span?.bbox).toEqual([178, -18, -179, -16]);
     // a second passage further east stays on the short side
     const both = parseHistorySpan({
       features: [
@@ -735,12 +736,12 @@ describe('track-history extent (zoom to a recorded track)', () => {
         meta('tracks', [-178, -17, -177, -15])
       ]
     });
-    expect(both.bbox).toEqual([178, -18, -177, -15]);
+    expect(both?.bbox).toEqual([178, -18, -177, -15]);
   });
 
   it('ignores a missing or malformed bbox', () => {
     expect(
-      parseHistorySpan({ features: [meta('tracks', undefined)] }).bbox
+      parseHistorySpan({ features: [meta('tracks', undefined)] })?.bbox
     ).toBeUndefined();
     expect(validBbox([1, 2, 3])).toBeUndefined();
     expect(validBbox([1, 2, 3, 'x'])).toBeUndefined();

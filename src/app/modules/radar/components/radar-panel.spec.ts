@@ -138,15 +138,20 @@ describe('RadarPanel', () => {
     fixture.detectChanges();
     return fixture;
   };
-  const control = (el: HTMLElement, name: string) =>
-    Array.from(el.querySelectorAll<HTMLElement>('.ctl')).find(
+  const control = (el: HTMLElement, name: string): HTMLElement => {
+    const row = Array.from(el.querySelectorAll<HTMLElement>('.ctl')).find(
       (c) => c.querySelector('.ctl-name')?.textContent?.trim() === name
     );
+    if (!row) {
+      throw new Error(`no ${name} control`);
+    }
+    return row;
+  };
 
   it('groups the controls by category', () => {
     const el: HTMLElement = open().nativeElement;
     const titles = Array.from(el.querySelectorAll('mat-panel-title')).map((t) =>
-      t.textContent.trim()
+      t.textContent?.trim()
     );
     expect(titles).toEqual(['Base', 'Targets', 'Info']);
   });
@@ -154,7 +159,7 @@ describe('RadarPanel', () => {
   it('shows the Doppler mode the radar reports', () => {
     const el: HTMLElement = open().nativeElement;
     expect(
-      control(el, 'Doppler').querySelector('.ctl-value').textContent.trim()
+      control(el, 'Doppler').querySelector('.ctl-value')!.textContent?.trim()
     ).toBe('Off');
   });
 
@@ -168,7 +173,7 @@ describe('RadarPanel', () => {
     const row = control(el, 'Doppler');
     expect(row.querySelector('mat-slider')).toBeNull();
     expect(row.querySelector('mat-select')).not.toBeNull();
-    expect(row.querySelector('.ctl-value').textContent.trim()).toBe('—');
+    expect(row.querySelector('.ctl-value')!.textContent?.trim()).toBe('—');
   });
 
   it('shows a level with no reported value as an empty field, not a slider at its minimum', () => {
@@ -180,21 +185,23 @@ describe('RadarPanel', () => {
     const row = control(el, 'Gain');
     expect(row.querySelector('mat-slider')).toBeNull();
     expect(
-      row.querySelector<HTMLInputElement>('input[type=number]').value
+      row.querySelector<HTMLInputElement>('input[type=number]')!.value
     ).toBe('');
   });
 
   it('shows read-only information as text', () => {
     const el: HTMLElement = open().nativeElement;
     const row = control(el, 'Firmware version');
-    expect(row.querySelector('.ctl-value').textContent.trim()).toBe('01.05');
+    expect(row.querySelector('.ctl-value')!.textContent?.trim()).toBe('01.05');
     expect(row.querySelector('input')).toBeNull();
   });
 
   it('hides the gain slider while gain is on auto, and shows it once it is not', () => {
     const fixture = open();
     const el: HTMLElement = fixture.nativeElement;
-    const toggle = control(el, 'Gain').querySelector('mat-slide-toggle button');
+    const toggle = control(el, 'Gain').querySelector(
+      'mat-slide-toggle button'
+    )!;
     expect(toggle.getAttribute('aria-checked')).toBe('true');
     expect(control(el, 'Gain').querySelector('mat-slider')).toBeNull();
 
@@ -206,7 +213,7 @@ describe('RadarPanel', () => {
 
     expect(control(el, 'Gain').querySelector('mat-slider')).not.toBeNull();
     expect(
-      control(el, 'Gain').querySelector('.ctl-value').textContent.trim()
+      control(el, 'Gain').querySelector('.ctl-value')!.textContent?.trim()
     ).toBe('28');
   });
 
@@ -241,14 +248,16 @@ describe('RadarPanel', () => {
     }));
     const el: HTMLElement = open().nativeElement;
     expect(
-      control(el, 'Sea clutter').querySelector('.ctl-value').textContent.trim()
+      control(el, 'Sea clutter')
+        .querySelector('.ctl-value')!
+        .textContent?.trim()
     ).toBe('A0');
   });
 
   it('switches auto off with an { auto } change', () => {
     const fixture = open();
     control(fixture.nativeElement, 'Gain')
-      .querySelector<HTMLElement>('mat-slide-toggle button')
+      .querySelector<HTMLElement>('mat-slide-toggle button')!
       .click();
 
     expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'gain', {
@@ -259,7 +268,7 @@ describe('RadarPanel', () => {
   it('presses a button control with an empty change', () => {
     const el: HTMLElement = open().nativeElement;
     Array.from(el.querySelectorAll<HTMLElement>('.ctl-button'))
-      .find((b) => b.textContent.trim() === 'Clear targets')
+      .find((b) => b.textContent?.trim() === 'Clear targets')!
       .click();
 
     expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'clearTargets', {});
@@ -267,10 +276,10 @@ describe('RadarPanel', () => {
 
   it('colours the lozenge by power state and transmits from standby', () => {
     const el: HTMLElement = open().nativeElement;
-    expect(el.querySelector('.lozenge').classList).toContain('power-standby');
-    expect(el.querySelector('.state').textContent.trim()).toBe('Standby');
+    expect(el.querySelector('.lozenge')!.classList).toContain('power-standby');
+    expect(el.querySelector('.state')!.textContent?.trim()).toBe('Standby');
 
-    el.querySelector<HTMLElement>('.power-button').click();
+    el.querySelector<HTMLElement>('.power-button')!.click();
 
     expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'power', {
       value: 2
@@ -285,24 +294,24 @@ describe('RadarPanel', () => {
         .set('range', { value: 1852, allowed: false })
     }));
     const el: HTMLElement = open().nativeElement;
-    expect(el.querySelector<HTMLButtonElement>('.power-button').disabled).toBe(
+    expect(el.querySelector<HTMLButtonElement>('.power-button')!.disabled).toBe(
       true
     );
     expect(
-      el.querySelector('.range mat-select').getAttribute('aria-disabled')
+      el.querySelector('.range mat-select')!.getAttribute('aria-disabled')
     ).toBe('true');
   });
 
   it('switches to another radar from the radar menu', async () => {
     const fixture = open();
-    fixture.nativeElement.querySelector('.radar-name').click();
+    fixture.nativeElement.querySelector('.radar-name')!.click();
     fixture.detectChanges();
     await fixture.whenStable();
 
     const items = Array.from(
       document.querySelectorAll<HTMLElement>('.mat-mdc-menu-item')
     );
-    expect(items.map((i) => i.textContent.trim())).toEqual([
+    expect(items.map((i) => i.textContent?.trim())).toEqual([
       'radio_button_checked DRS4D-NXT 6424',
       'radio_button_unchecked DRS4D-NXT 6424 B'
     ]);
@@ -314,7 +323,7 @@ describe('RadarPanel', () => {
   it('offers no radar menu with a single radar', () => {
     api.radars.set([{ id: 'fur6424A', name: 'DRS4D-NXT 6424' }]);
     const el: HTMLElement = open().nativeElement;
-    expect(el.querySelector<HTMLButtonElement>('.radar-name').disabled).toBe(
+    expect(el.querySelector<HTMLButtonElement>('.radar-name')!.disabled).toBe(
       true
     );
   });
@@ -407,11 +416,11 @@ describe('RadarPanel', () => {
         controls: new Map(r.controls).set('guardZone1', value)
       }));
     const zoneBlock = (el: HTMLElement) =>
-      control(el, 'Guard zone 1').querySelector<HTMLElement>('.zone-edit');
+      control(el, 'Guard zone 1').querySelector<HTMLElement>('.zone-edit')!;
     const button = (el: HTMLElement, label: string) =>
       Array.from(
         zoneBlock(el).querySelectorAll<HTMLButtonElement>('button')
-      ).find((b) => b.textContent.trim() === label);
+      ).find((b) => b.textContent?.trim() === label)!;
     beforeEach(() => transmit());
 
     const zone: ControlValue = {
@@ -436,8 +445,8 @@ describe('RadarPanel', () => {
       const el: HTMLElement = fixture.nativeElement;
       button(el, 'Draw').click();
       fixture.detectChanges();
-      expect(TestBed.inject(GuardZoneEditService).edit().mode).toBe('draw');
-      expect(zoneBlock(el).querySelector('.zone-hint').textContent).toContain(
+      expect(TestBed.inject(GuardZoneEditService).edit()?.mode).toBe('draw');
+      expect(zoneBlock(el).querySelector('.zone-hint')!.textContent).toContain(
         'Drag across the chart'
       );
     });
@@ -452,7 +461,7 @@ describe('RadarPanel', () => {
       const field = (label: string) =>
         zoneBlock(el).querySelector<HTMLInputElement>(
           `input[aria-label="${label}"]`
-        );
+        )!;
       expect(field('To bearing').value).toBe('90');
       expect(field('Outer distance').value).toBe('0.8');
 
@@ -479,7 +488,7 @@ describe('RadarPanel', () => {
 
       const inner = zoneBlock(el).querySelector<HTMLInputElement>(
         'input[aria-label="Inner distance"]'
-      );
+      )!;
       // the inner distance stays a zone depth inside the outer one, also
       // when the same refused value is typed again
       for (let i = 0; i < 2; i++) {
@@ -555,7 +564,7 @@ describe('RadarPanel', () => {
       withZone(zone);
       const el: HTMLElement = open().nativeElement;
       zoneBlock(el)
-        .querySelector<HTMLElement>('mat-slide-toggle button')
+        .querySelector<HTMLElement>('mat-slide-toggle button')!
         .click();
       expect(api.setControl).toHaveBeenCalledWith(
         'fur6424A',

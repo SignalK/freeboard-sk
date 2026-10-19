@@ -414,7 +414,7 @@ export function parseSelfTrail(fc: unknown): Position[][] | undefined {
   const provider = self[0].properties?.providerId;
   return self
     .filter((f) => f.properties?.providerId === provider)
-    .flatMap((f) => linesOf(f));
+    .flatMap((f) => linesOf(f) ?? []);
 }
 
 /** AIS tracks from a v2 response, keyed by context (`vessels.urn:mrn:…`).
@@ -538,7 +538,9 @@ export function aisTracksQuery(req: AisTracksRequest): string | null {
     return null;
   }
   const hours =
-    Number.isFinite(req.pickHours) && req.pickHours > 0
+    req.pickHours !== undefined &&
+    Number.isFinite(req.pickHours) &&
+    req.pickHours > 0
       ? req.pickHours
       : AIS_PICK_DEFAULT_HOURS;
   return queryString({

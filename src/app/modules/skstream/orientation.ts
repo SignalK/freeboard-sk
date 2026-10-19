@@ -119,7 +119,7 @@ export function magneticPreferenceOrientation(
       : path === 'navigation.courseOverGroundMagnetic'
         ? d.cogMagnetic
         : null;
-  return Number.isFinite(value)
+  return value !== null && Number.isFinite(value)
     ? orientationFromPath(path, value, d.magneticVariation)
     : null;
 }
