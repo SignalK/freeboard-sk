@@ -436,6 +436,7 @@ export class S57Service {
       let lup = this.lookups[currentIndex];
       let lmatch = 0;
       while (
+        lup &&
         lup.name.localeCompare(name, 'en', { sensitivity: 'base' }) === 0 &&
         lup.geometryType === type &&
         lup.lookupTable === lookupTable
@@ -469,6 +470,7 @@ export class S57Service {
         let currentIndex = startIndex;
         let lup = this.lookups[currentIndex];
         while (
+          lup &&
           lup.name.localeCompare(name, 'en', { sensitivity: 'base' }) === 0 &&
           lup.geometryType === type &&
           lup.lookupTable === lookupTable
