@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { initAlarms, shutdownAlarms } from './alarms';
 import type { FreeboardHelperApp } from '../index';
 import type { Delta, Region } from '@signalk/server-api';
@@ -34,7 +35,11 @@ const makeServer = (
 ) => {
   const getRoutes = new Map<string, RouteHandler>();
   const postRoutes = new Map<string, RouteHandler>();
-  const deltas: { handler?: DeltaHandler } = {};
+  const deltas: { handler: DeltaHandler } = {
+    handler: () => {
+      throw new Error('initAlarms() did not subscribe to deltas');
+    }
+  };
   const handleMessage = vi.fn(); // deleting an area clears its notification
   const getSelfPath = vi.fn((): unknown => undefined);
   const server = {
@@ -62,7 +67,10 @@ const makeServer = (
 };
 
 // Invoke a captured GET handler and return what it sent as JSON.
-const invokeGet = async (handler: RouteHandler, path: string) => {
+const invokeGet = async (handler: RouteHandler | undefined, path: string) => {
+  if (!handler) {
+    throw new Error(`No GET route registered for ${path}`);
+  }
   let body: unknown;
   const res = {
     status: () => res,
@@ -96,14 +104,14 @@ const hazardRegion = {
 };
 
 describe('initAlarms() — regions provider missing (#732)', () => {
-  let unhandled: ReturnType<typeof vi.fn>;
+  let unhandled: Mock<(reason: unknown) => void>;
   let warn: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // fake only the timers the region load uses; setImmediate stays real so
     // the test can yield a macrotask for Node to emit 'unhandledRejection'
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    unhandled = vi.fn();
+    unhandled = vi.fn<(reason: unknown) => void>();
     process.on('unhandledRejection', unhandled);
     warn = vi.spyOn(console, 'warn').mockImplementation(noop);
   });
@@ -237,7 +245,9 @@ describe('initAlarms() — regions provider missing (#732)', () => {
   });
 
   it('does not reschedule when an attempt in flight fails after shutdown', async () => {
-    let rejectInFlight: (err: Error) => void;
+    let rejectInFlight: (err: Error) => void = () => {
+      throw new Error('listResources() did not capture the reject callback');
+    };
     const listResources = vi.fn(
       () =>
         new Promise((_resolve, reject) => {
@@ -261,7 +271,9 @@ describe('initAlarms() — regions provider missing (#732)', () => {
   });
 
   it('does not warn when the final attempt in flight fails after shutdown', async () => {
-    let rejectInFlight: (err: Error) => void;
+    let rejectInFlight: (err: Error) => void = () => {
+      throw new Error('listResources() did not capture the reject callback');
+    };
     const listResources = vi.fn(
       () =>
         new Promise((_resolve, reject) => {
@@ -289,7 +301,9 @@ describe('initAlarms() — regions provider missing (#732)', () => {
   });
 
   it('does not load areas when an attempt in flight succeeds after shutdown', async () => {
-    let resolveInFlight: (list: unknown) => void;
+    let resolveInFlight: (list: unknown) => void = () => {
+      throw new Error('listResources() did not capture the resolve callback');
+    };
     const listResources = vi.fn(
       () =>
         new Promise((resolve) => {

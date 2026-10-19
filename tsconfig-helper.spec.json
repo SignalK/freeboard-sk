@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig-helper.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["helper/**/*"],
+  "exclude": []
+}

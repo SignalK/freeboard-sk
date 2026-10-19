@@ -3,8 +3,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/worker",
+    // The workers import shared app modules whose types refer to DOM globals.
     "lib": [
       "es2022",
+      "dom",
       "webworker"
     ],
     "types": []
