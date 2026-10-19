@@ -447,23 +447,17 @@ export class AppComponent {
     this.obsList.push(
       this.stream
         .connect$()
-        .subscribe((msg: NotificationMessage | UpdateMessage) =>
-          this.onConnect(msg)
-        )
+        .subscribe((msg: UpdateMessage<number>) => this.onConnect(msg))
     );
     this.obsList.push(
       this.stream
         .close$()
-        .subscribe((msg: NotificationMessage | UpdateMessage) =>
-          this.onClose(msg)
-        )
+        .subscribe((msg: UpdateMessage<boolean>) => this.onClose(msg))
     );
     this.obsList.push(
       this.stream
         .error$()
-        .subscribe((msg: NotificationMessage | UpdateMessage) =>
-          this.onError(msg)
-        )
+        .subscribe((msg: UpdateMessage<string>) => this.onError(msg))
     );
     // ** TRAIL$ update event
     this.obsList.push(
@@ -2681,7 +2675,7 @@ export class AppComponent {
   }
 
   /** handle connection established */
-  private onConnect(e?: NotificationMessage | UpdateMessage) {
+  private onConnect(e?: UpdateMessage<number>) {
     this.app.showMessage('Connection Open.', false, 2000);
     this.app.debug(e);
     // ** query server for status
@@ -2692,7 +2686,7 @@ export class AppComponent {
   }
 
   // ** handle connection closure
-  private onClose(e?: NotificationMessage | UpdateMessage) {
+  private onClose(e?: UpdateMessage<boolean>) {
     this.app.debug('onClose: STREAM connection closed...');
     this.app.debug(e);
     this.stopTimers();
@@ -2733,7 +2727,7 @@ export class AppComponent {
   private reconnecting = false;
 
   // ** handle error message
-  private onError(e?: NotificationMessage | UpdateMessage) {
+  private onError(e?: UpdateMessage<string>) {
     this.app.showMessage('Connection Error!', false, 2000);
     console.warn('Stream Error!', e);
   }
