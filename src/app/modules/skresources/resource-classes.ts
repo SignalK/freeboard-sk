@@ -4,8 +4,7 @@ import type { Value } from '@signalk/server-api';
 import {
   LineStringFeature,
   PointFeature,
-  PolygonFeature,
-  MultiPolygonFeature,
+  PolygonalFeature,
   MultiLineStringFeature,
   Position,
   TrackResource,
@@ -106,7 +105,7 @@ export class SKNote {
 export class SKRegion {
   name: string;
   description: string;
-  feature: PolygonFeature | MultiPolygonFeature;
+  feature: PolygonalFeature;
 
   constructor(region?: RegionResource) {
     this.name = region?.name ? region.name : '';

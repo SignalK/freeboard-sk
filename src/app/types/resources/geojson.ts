@@ -53,3 +53,8 @@ export type MultiPolygonFeature = Feature & {
     coordinates: MultiPolygon;
   };
 };
+
+/** A region's feature: one polygon, or several. */
+export type PolygonalFeature = Feature & {
+  geometry: PolygonFeature['geometry'] | MultiPolygonFeature['geometry'];
+};

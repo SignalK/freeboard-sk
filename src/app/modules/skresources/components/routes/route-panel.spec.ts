@@ -218,26 +218,27 @@ describe('RoutePanel point names', () => {
       href?: string;
     }>
   ) => {
+    const route = new SKRoute({
+      name: 'Harbour run',
+      feature: {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [24.95, 60.15],
+            [24.955, 60.16],
+            [24.95, 60.17]
+          ]
+        },
+        properties: {}
+      }
+    });
+    // Set on the route rather than the resource: one entry has neither name
+    // nor href, which the server's route schema does not allow.
+    route.feature.properties.coordinatesMeta = coordinatesMeta;
     const fixture = TestBed.createComponent(RoutePanel);
     fixture.componentRef.setInput('id', 'rte-1');
-    fixture.componentRef.setInput(
-      'route',
-      new SKRoute({
-        name: 'Harbour run',
-        feature: {
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [24.95, 60.15],
-              [24.955, 60.16],
-              [24.95, 60.17]
-            ]
-          },
-          properties: { coordinatesMeta }
-        }
-      })
-    );
+    fixture.componentRef.setInput('route', route);
     fixture.detectChanges();
     return (
       fixture.componentInstance as unknown as {

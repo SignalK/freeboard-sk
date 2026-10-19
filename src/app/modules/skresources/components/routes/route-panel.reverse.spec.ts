@@ -23,7 +23,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
  * turned round on the server.
  */
 describe('RoutePanel REVERSE', () => {
-  const coords: Position[] = [
+  const coords: Array<[number, number]> = [
     [24.95, 60.15],
     [24.955, 60.16],
     [24.95, 60.17]
