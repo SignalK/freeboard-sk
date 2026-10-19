@@ -419,7 +419,8 @@ press that does not apply.
 
 **Errors** use the standard `error.data.reason` convention: `buttons.badRequest`
 (`ids` not a list of strings, or `visible` not a boolean), `buttons.unknownId`
-(an id that is not a button of the caller's manifest; nothing is changed).
+(an id that is not a button of the caller's manifest; nothing is changed),
+`buttons.notSupported` (host lacks `buttons.visibility`).
 
 ---
 
@@ -654,8 +655,9 @@ call wins.
 
 **Errors** use the standard `error.data.reason` convention: `actions.badRequest`
 (`ids` not a list of strings, or `visible` not a boolean), `actions.unknownId`
-(an id that is not an action of the caller's manifest; nothing is changed). An
-embedding host has no actions, so every id is unknown to it.
+(an id that is not an action of the caller's manifest; nothing is changed),
+`actions.notSupported` (host lacks `actions`). An embedding host has no
+actions, so every id is unknown to it.
 
 ### Choosing an action
 
@@ -1684,7 +1686,8 @@ appear*).
 **Errors** use the standard `error.data.reason` convention: `map.badRequest`
 (a malformed `targets`, or one with no kind the host supports),
 `map.pickBusy` (the user is in a modal interaction — drawing, measuring or
-editing — that a pick must not interrupt).
+editing — that a pick must not interrupt), `map.notSupported` (host lacks
+`map.pick`).
 
 ### Map overlays
 
