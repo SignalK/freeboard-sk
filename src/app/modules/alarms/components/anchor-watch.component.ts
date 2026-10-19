@@ -219,14 +219,18 @@ export class AnchorWatchComponent {
    */
   setRadius(value?: number) {
     this.rodeOut = true;
-    this.displayRadius.update(() => this.formatTransformedValue(value));
+    if (typeof value === 'number') {
+      this.displayRadius.update(() => this.formatTransformedValue(value));
+    }
     if (!this.raised) {
       this.anchor
         .setRadius(value)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: () => {
-            this.app.config.anchor.radius = value;
+            if (typeof value === 'number') {
+              this.app.config.anchor.radius = value;
+            }
             this.app.saveConfig();
           },
           error: (err: HttpErrorResponse) => {
@@ -283,7 +287,6 @@ export class AnchorWatchComponent {
    * @param radius Alarm radius to set
    */
   dropAnchor(radius?: number) {
-    this.app.config.anchor.radius = radius;
     this.anchor.setRaisedSignal(false);
     this.anchor
       .drop(radius)
