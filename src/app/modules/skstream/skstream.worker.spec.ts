@@ -11,7 +11,7 @@ import {
   timedTrail
 } from './skstream.worker';
 import { SKVessel } from '../skresources/resource-classes';
-import { Position } from 'src/app/types';
+import { PathValue, Position } from 'src/app/types';
 import { TRAIL_DURATION_ALL } from './track-source';
 
 // getVesselTrail() fetches the server-side "self" track with several apiGet()
@@ -688,7 +688,10 @@ describe('skstream.worker processVessel — resource deltas', () => {
 
   it('passes on a deletion', () => {
     const vessel = new SKVessel();
-    const deleted = { path: 'resources.charts.nautical-charts', value: null };
+    const deleted: PathValue = {
+      path: 'resources.charts.nautical-charts',
+      value: null
+    };
 
     processVessel(vessel, deleted, true);
 
