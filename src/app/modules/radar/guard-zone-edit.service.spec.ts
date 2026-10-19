@@ -35,7 +35,7 @@ describe('GuardZoneEditService', () => {
     enabled: false
   };
 
-  let radar: WritableSignal<ActiveRadar>;
+  let radar: WritableSignal<ActiveRadar | undefined>;
   let setControl: ReturnType<typeof vi.fn>;
   let service: GuardZoneEditService;
 
@@ -50,10 +50,9 @@ describe('GuardZoneEditService', () => {
     controls: new Map(Object.entries(values))
   });
   const report = (controlId: string, value: ControlValue) =>
-    radar.update((r) => ({
-      ...r,
-      controls: new Map(r.controls).set(controlId, value)
-    }));
+    radar.update(
+      (r) => r && { ...r, controls: new Map(r.controls).set(controlId, value) }
+    );
   const shown = (id: string) => service.zones().find((z) => z.id === id)?.zone;
 
   beforeEach(() => {
