@@ -178,7 +178,7 @@ export function viewFootprint(map: FootprintSource): Coordinate[] | null {
     [w, h],
     [0, h]
   ].map((pixel) => map.getCoordinateFromPixel(pixel));
-  if (corners.some((c) => !c)) {
+  if (!corners.every((c): c is Coordinate => !!c)) {
     return null;
   }
   return [...corners, corners[0]];
