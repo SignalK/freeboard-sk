@@ -191,7 +191,10 @@ export class FBCustomResourceService {
     if (!Array.isArray(items)) {
       return;
     }
-    const item = items.filter((i) => i[0] === rSetId)[0];
+    const item = items.find((i) => i[0] === rSetId);
+    if (!item) {
+      return;
+    }
     return getFeature ? item[1].values.features[index] : item[1];
   }
 
