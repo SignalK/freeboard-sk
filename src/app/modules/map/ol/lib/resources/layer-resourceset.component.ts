@@ -30,9 +30,9 @@ import { SKResourceSet } from 'src/app/modules/skresources';
   standalone: false
 })
 export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
-  protected features: Array<Feature>;
+  protected features: Array<Feature> = [];
 
-  @Input() collection: string;
+  @Input() collection?: string;
   @Input() resourceSets: FBResourceSets = [];
 
   constructor(
@@ -72,40 +72,41 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
   parseResources(rSet: SKResourceSet) {
     const fa: Feature[] = [];
     let count = 0;
-    for (const w of rSet.values.features) {
-      let f: Feature;
+    for (const w of rSet.values?.features ?? []) {
+      const props = w.properties ?? {};
+      let f: Feature | undefined;
       if (w.geometry.type === 'Point') {
         f = new Feature({
           geometry: new Point(fromLonLat(w.geometry.coordinates)),
-          name: w.properties.name ?? `Point ${count}`
+          name: props.name ?? `Point ${count}`
         });
       }
       if (w.geometry.type === 'MultiPoint') {
         f = new Feature({
           geometry: new MultiPoint(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name ?? `Pt ${count}`
+          name: props.name ?? `Pt ${count}`
         });
       } else if (w.geometry.type === 'LineString') {
         f = new Feature({
           geometry: new LineString(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name ?? `L${count}`
+          name: props.name ?? `L${count}`
         });
       } else if (w.geometry.type === 'MultiLineString') {
         f = new Feature({
           geometry: new MultiLineString(
             fromLonLatArray(w.geometry.coordinates)
           ),
-          name: w.properties.name ?? `L${count}`
+          name: props.name ?? `L${count}`
         });
       } else if (w.geometry.type === 'Polygon') {
         f = new Feature({
           geometry: new Polygon(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name ?? `P${count}`
+          name: props.name ?? `P${count}`
         });
       } else if (w.geometry.type === 'MultiPolygon') {
         f = new Feature({
           geometry: new MultiPolygon(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name ?? `P${count}`
+          name: props.name ?? `P${count}`
         });
       }
       if (!f) {
@@ -115,17 +116,14 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
       // set style
       if (typeof rSet.styles !== 'undefined') {
         let rs: Style;
-        if (typeof w.properties.styleRef !== 'undefined') {
-          rs = this.buildStyle(
-            rSet.styles[w.properties.styleRef],
-            w.geometry.type
-          );
-        } else if (typeof w.properties.style !== 'undefined') {
-          rs = this.buildStyle(w.properties.style, w.geometry.type);
+        if (typeof props.styleRef !== 'undefined') {
+          rs = this.buildStyle(rSet.styles[props.styleRef], w.geometry.type);
+        } else if (typeof props.style !== 'undefined') {
+          rs = this.buildStyle(props.style, w.geometry.type);
         } else {
-          rs = this.buildStyle(rSet.styles.default, w.geometry.type);
+          rs = this.buildStyle(rSet.styles.default ?? {}, w.geometry.type);
         }
-        f.setStyle(this.setTextLabel(rs, w.properties.name));
+        f.setStyle(this.setTextLabel(rs, props.name));
       }
       fa.push(f);
       count++;

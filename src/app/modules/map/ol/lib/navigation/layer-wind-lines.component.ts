@@ -29,8 +29,8 @@ import { fromLonLat } from 'ol/proj';
   standalone: false
 })
 export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
+  protected layer?: Layer;
+  public source?: VectorSource;
   protected features: Array<Feature> = [];
 
   /**
@@ -45,14 +45,14 @@ export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
   protected aws = input<number>(0);
   protected position = input<Coordinate>();
 
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -102,16 +102,17 @@ export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
   parseInput() {
     const fa: Feature[] = [];
-    if (Array.isArray(this.position())) {
+    const position = this.position();
+    if (Array.isArray(position)) {
       if (typeof this.twd() === 'number' && this.tws() > 0) {
         const twdArrow = new Feature({
-          geometry: new Point(fromLonLat(this.position()))
+          geometry: new Point(fromLonLat(position))
         });
         twdArrow.setId('twd');
         twdArrow.setStyle(
@@ -131,7 +132,7 @@ export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
       }
       if (typeof this.awa() === 'number' && this.aws() > 0) {
         const awaArrow = new Feature({
-          geometry: new Point(fromLonLat(this.position()))
+          geometry: new Point(fromLonLat(position))
         });
         awaArrow.setId('awa');
         awaArrow.setStyle(

@@ -52,7 +52,9 @@ describe('AISTargetsLayerComponent.targetRotation (#490)', () => {
   it('does not rotate when the wind direction is unknown or invalid', () => {
     const c = layer('meteo');
     expect(c.targetRotation({ tws: 6 } as SKTarget)).toBe(0);
-    expect(c.targetRotation({ tws: null, twd: null } as SKTarget)).toBe(0);
+    expect(
+      c.targetRotation({ tws: null, twd: null } as unknown as SKTarget)
+    ).toBe(0);
     expect(c.targetRotation({ tws: 6, twd: NaN } as SKTarget)).toBe(0);
   });
 });

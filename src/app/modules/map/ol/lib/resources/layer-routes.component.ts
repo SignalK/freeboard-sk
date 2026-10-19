@@ -37,11 +37,11 @@ export const ROUTE_MARKER_END = 'route-end';
   standalone: false
 })
 export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
-  @Input() routeStyles: { [key: string]: Style };
-  @Input() activeRoute: string;
+  @Input() routeStyles?: { [key: string]: Style };
+  @Input() activeRoute?: string;
   @Input() routes: FBRoutes = [];
 
-  private leaveOverlap: () => void;
+  private leaveOverlap?: () => void;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -115,7 +115,10 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
           name: r[1].name
         });
         f.setId('route.' + r[0]);
-        f.set('pointMetadata', r[1].feature.properties.coordinatesMeta ?? null);
+        f.set(
+          'pointMetadata',
+          r[1].feature.properties?.coordinatesMeta ?? null
+        );
         // Style FUNCTION (not a static array) so the per-vertex markers, whose
         // geometries are derived from the line in buildStyle, re-evaluate as the
         // geometry changes during a Modify drag — otherwise they stay frozen at
@@ -131,7 +134,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   }
 
   // Route style function
-  buildStyle(feature: Feature, resolution?: number) {
+  buildStyle(feature: Feature, resolution: number) {
     const geometry = feature.getGeometry() as LineString;
     const styles = [];
     const id = (feature.getId() as string).split('.').slice(-1)[0];
@@ -158,12 +161,12 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     if (isActive && typeof this.routeStyles.active !== 'undefined') {
       styles.push(this.routeStyles.active);
       ptFill = new Fill({
-        color: this.routeStyles.active.getStroke().getColor()
+        color: this.routeStyles.active.getStroke()?.getColor()
       });
     } else {
       styles.push(this.routeStyles.default.clone());
       ptFill = new Fill({
-        color: this.routeStyles.default.getStroke().getColor()
+        color: this.routeStyles.default.getStroke()?.getColor()
       });
     }
 

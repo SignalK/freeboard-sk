@@ -31,8 +31,8 @@ import { LineStyleDef } from 'src/app/modules/settings/components/linestyle-sele
   standalone: false
 })
 export class HeadingLineComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
+  protected layer?: Layer;
+  public source?: VectorSource;
   protected features: Array<Feature> = [];
 
   /**
@@ -45,14 +45,14 @@ export class HeadingLineComponent implements OnInit, OnDestroy, OnChanges {
   protected lineStyle = input<LineStyleDef>();
 
   @Input() mapZoom = 10;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   protected mapifiedLine: Array<Coordinate> = [];
 
@@ -109,24 +109,29 @@ export class HeadingLineComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
   parseInput() {
     const fa: Feature[] = [];
-    if (Array.isArray(this.coords()) && this.coords().length !== 0) {
-      this.mapifiedLine = this.coords().map((p) => [p[0], p[1]] as Coordinate);
+    const coords = this.coords();
+    if (Array.isArray(coords) && coords.length !== 0) {
+      this.mapifiedLine = coords.map((p) => [p[0], p[1]] as Coordinate);
 
       const heading = new Feature({
         geometry: new LineString(fromLonLatArray(this.mapifiedLine))
       });
       heading.setId('cogSelf');
+      const lineStyle = this.lineStyle();
       heading.setStyle(
         new Style({
-          stroke: !this.lineStyle()
+          stroke: !lineStyle
             ? new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 })
-            : new Stroke(this.lineStyle().stroke)
+            : new Stroke({
+                ...lineStyle.stroke,
+                lineDash: lineStyle.stroke.lineDash ?? undefined
+              })
         })
       );
       fa.push(heading);

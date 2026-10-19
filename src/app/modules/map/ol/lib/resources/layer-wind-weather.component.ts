@@ -45,10 +45,10 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
   @Input() opacity = 0.55;
   @Input() indicator: WindIndicator = 'barb';
 
-  private layer: VectorLayer<VectorSource>;
-  private source: VectorSource;
+  private layer?: VectorLayer<VectorSource>;
+  private source?: VectorSource;
   private refresh$ = new Subject<void>();
-  private refreshSub: Subscription;
+  private refreshSub?: Subscription;
   private readonly zIndex = 55;
   private readonly gridColumns = 5;
   private readonly gridRows = 4;
@@ -186,6 +186,9 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
   }
 
   private renderWind(samples: WeatherWindSample[]) {
+    if (!this.source) {
+      return;
+    }
     this.source.clear();
     this.source.addFeatures(
       samples.map((sample) => {

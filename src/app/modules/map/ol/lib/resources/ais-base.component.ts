@@ -27,13 +27,13 @@ export class AISBaseLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
   @Input() targets: Map<string, SKTarget> = new Map();
-  @Input() targetContext: string; // e.g. 'vessels', 'atons', 'aircraft', 'meteo'
-  @Input() targetStyles: { [key: string]: Style };
-  @Input() focusId: string;
+  @Input({ required: true }) targetContext!: string; // e.g. 'vessels', 'atons', 'aircraft', 'meteo'
+  @Input() targetStyles?: { [key: string]: Style };
+  @Input() focusId?: string;
   @Input() inactiveTime = 180000; // in ms (3 mins)
-  @Input() filterByShipType: boolean;
-  @Input() filterShipTypes: Array<number>;
-  @Input() filterIds: Array<string>;
+  @Input() filterByShipType?: boolean;
+  @Input() filterShipTypes?: Array<number>;
+  @Input() filterIds?: Array<string>;
   @Input() updateIds: Array<string> = [];
   @Input() staleIds: Array<string> = [];
   @Input() removeIds: Array<string> = [];
@@ -135,7 +135,7 @@ export class AISBaseLayerComponent
       checkImo(id) && checkBuddy(id);
 
     if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
-      const st = Math.floor(this.targets.get(id).type.id / 10) * 10;
+      const st = Math.floor((this.targets.get(id)?.type.id ?? NaN) / 10) * 10;
       return this.filterShipTypes.includes(st) && passesSentinelFilters(id);
     }
     if (!this.filterIds) {

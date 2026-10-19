@@ -20,7 +20,7 @@ import { AISBaseLayerComponent } from './ais-base.component';
   standalone: false
 })
 export class AISFlagsLayerComponent extends AISBaseLayerComponent {
-  @Input() flagged: Array<string>;
+  @Input() flagged?: Array<string>;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -50,10 +50,10 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
 
   // add new flag feature
   addFlagWithId(id: string) {
-    if (!id.includes(this.targetContext) || !this.targets.has(id)) {
+    const target = this.targets.get(id);
+    if (!id.includes(this.targetContext) || !target) {
       return;
     }
-    const target = this.targets.get(id);
     if (this.okToRenderTarget(id) && target.position) {
       const label = target.callsignVhf ?? target.callsignHf ?? '......';
       const f = new Feature({
@@ -87,7 +87,7 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
 
   // reload all Features from this.targets
   override onReloadTargets() {
-    this.flagged.forEach((id) => {
+    this.flagged?.forEach((id) => {
       this.addFlagWithId(id);
     });
   }
@@ -95,12 +95,12 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
   // update flag when target updated
   override onUpdateTargets(ids: Array<string>) {
     ids.forEach((id: string) => {
-      if (id.includes(this.targetContext) && this.flagged.includes(id)) {
+      if (id.includes(this.targetContext) && this.flagged?.includes(id)) {
         const f = this.source.getFeatureById('flag-' + id) as Feature;
         if (this.okToRenderTarget(id)) {
           if (this.targets.has(id)) {
             if (f) {
-              const position = this.targets.get(id).position;
+              const position = this.targets.get(id)?.position;
               if (position) {
                 f.setGeometry(new Point(fromLonLat(position)));
               }

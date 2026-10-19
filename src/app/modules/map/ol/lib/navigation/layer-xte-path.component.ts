@@ -30,9 +30,9 @@ import { AsyncSubject } from 'rxjs';
   standalone: false
 })
 export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features: Array<Feature> = [];
 
   /**
    * This event is triggered after the layer is initialized
@@ -44,14 +44,14 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
   protected destPosition = input<Coordinate>();
   protected color = input<string>();
 
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   public mapifiedLine: Array<Coordinate> = [];
 
@@ -109,20 +109,16 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
   parseValues() {
     const fa: Feature[] = [];
-    if (
-      Array.isArray(this.startPosition()) &&
-      Array.isArray(this.destPosition())
-    ) {
-      this.mapifiedLine = mapifyCoords([
-        this.startPosition(),
-        this.destPosition()
-      ]);
+    const startPosition = this.startPosition();
+    const destPosition = this.destPosition();
+    if (Array.isArray(startPosition) && Array.isArray(destPosition)) {
+      this.mapifiedLine = mapifyCoords([startPosition, destPosition]);
 
       const f = new Feature({
         geometry: new LineString(fromLonLatArray(this.mapifiedLine))

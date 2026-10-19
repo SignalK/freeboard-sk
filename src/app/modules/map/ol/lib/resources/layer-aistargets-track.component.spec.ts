@@ -124,6 +124,6 @@ describe('AISTargetsTrackLayerComponent.parseCoordinates', () => {
     c.addTrackWithId(ID);
     const f = c.source.getFeatureById('track-' + ID);
     expect(f).not.toBeNull();
-    expect(f.getGeometry().getType()).toBe('MultiLineString');
+    expect(f?.getGeometry()?.getType()).toBe('MultiLineString');
   });
 });

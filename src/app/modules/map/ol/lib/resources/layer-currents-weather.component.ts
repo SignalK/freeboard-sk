@@ -95,10 +95,10 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
   @Input() show = false;
   @Input() opacity = 0.55;
 
-  private layer: VectorLayer<VectorSource>;
-  private source: VectorSource;
+  private layer?: VectorLayer<VectorSource>;
+  private source?: VectorSource;
   private refresh$ = new Subject<void>();
-  private refreshSub: Subscription;
+  private refreshSub?: Subscription;
   private readonly zIndex = 56;
   private readonly gridColumns = 10;
   private readonly gridRows = 8;
@@ -222,6 +222,9 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
   }
 
   private renderCurrents(samples: OceanCurrentSample[]) {
+    if (!this.source) {
+      return;
+    }
     this.source.clear();
     this.source.addFeatures(
       samples.map((sample) => {

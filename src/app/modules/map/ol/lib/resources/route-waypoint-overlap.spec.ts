@@ -141,7 +141,7 @@ function routeMarkers(
   resolution = 10
 ): number[][] {
   const f = layer.source.getFeatureById('route.' + id) as Feature;
-  const styles = f.getStyleFunction()(f, resolution) as Style[];
+  const styles = f.getStyleFunction()?.(f, resolution) as Style[];
   return styles
     .map((s) => s.getGeometry())
     .filter((g): g is Point => g instanceof Point)
@@ -151,7 +151,7 @@ function routeMarkers(
 /** The style waypoint `id` is drawn with at `resolution`. */
 function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
   const f = layer.source.getFeatureById('waypoint.' + id) as Feature;
-  return f.getStyleFunction()(f, resolution) as Style;
+  return f.getStyleFunction()?.(f, resolution) as Style;
 }
 
 /** Whether waypoint `id` shows a visible icon (not just its hit target). */

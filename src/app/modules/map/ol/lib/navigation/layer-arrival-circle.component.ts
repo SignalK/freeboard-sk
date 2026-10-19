@@ -29,9 +29,9 @@ import { AsyncSubject } from 'rxjs';
   standalone: false
 })
 export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features: Array<Feature> = [];
 
   /**
    * This event is triggered after the layer is initialized
@@ -39,16 +39,16 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() position: Coordinate;
-  @Input() radius: number;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input({ required: true }) position!: Coordinate;
+  @Input({ required: true }) radius!: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   public mapifiedLine: Array<Coordinate> = [];
 
@@ -102,7 +102,7 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 

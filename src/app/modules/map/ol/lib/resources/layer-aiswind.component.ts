@@ -106,7 +106,7 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
           if (this.targets.has(id)) {
             if (f) {
               const target = this.targets.get(id) as SKVessel;
-              const position = this.targets.get(id).position;
+              const position = target.position;
               const v = this.calcVector(target);
               if (v.length !== 2) {
                 // no direction for this vector type any more (e.g. apparent

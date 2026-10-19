@@ -162,17 +162,14 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
               : this.mapImages.getVessel(shipClass, isMoored);
 
     if (icon && typeof this.targetStyles === 'undefined') {
-      if (icon) {
-        return new Style({
-          image: icon,
-          text: new Text({
-            text: '',
-            offsetX: 0,
-            offsetY: isMoored ? 12 : 22
-          })
-        });
-      }
-      return;
+      return new Style({
+        image: icon,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: isMoored ? 12 : 22
+        })
+      });
     }
 
     if (typeof this.targetStyles !== 'undefined') {

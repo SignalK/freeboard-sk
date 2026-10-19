@@ -21,7 +21,6 @@ import { getWidth } from 'ol/extent';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill, Circle, Text } from 'ol/style';
-import { StyleLike } from 'ol/style/Style';
 import { LineString, Point } from 'ol/geom';
 import { fromLonLat, get as getProjection, toLonLat } from 'ol/proj';
 import { GeoUtils } from 'src/app/lib/geoutils';
@@ -38,7 +37,8 @@ import { Position } from 'src/app/types';
 import { setHandleDrag } from '../handle-drag';
 import { AsyncSubject } from 'rxjs';
 
-const WORLD_WIDTH = getWidth(getProjection('EPSG:3857').getExtent());
+// EPSG:3857 is built into OpenLayers, so the lookup always finds it
+const WORLD_WIDTH = getWidth(getProjection('EPSG:3857')!.getExtent());
 
 /** Where a dragged marker is: canonical lon/lat, plus the world copy (#572). */
 export interface MarkerDragEvent {
@@ -54,8 +54,8 @@ export interface MarkerDragEvent {
   standalone: false
 })
 export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
+  protected layer?: Layer;
+  public source?: VectorSource;
   protected features: Array<Feature> = [];
 
   /**
@@ -81,23 +81,23 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() mapZoom = 10;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() bearingStyles: { [key: string]: any };
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() bearingStyles?: { [key: string]: any };
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   public mapifiedRadius = 0;
   public mapifiedLine: Array<Coordinate> = [];
 
-  private interaction: PointerInteraction;
+  private interaction?: PointerInteraction;
   // the finger that grabbed the marker, and where the marker was before
-  private dragPointerId: number;
-  private dragOrigin: MarkerDragEvent;
+  private dragPointerId?: number;
+  private dragOrigin?: MarkerDragEvent;
   private cursorSet = false;
 
   constructor(
@@ -169,53 +169,48 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy() {
     const map = this.mapComponent.getMap();
-    map?.removeInteraction(this.interaction);
+    if (this.interaction) {
+      map?.removeInteraction(this.interaction);
+    }
     this.endDrag();
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
   parseValues() {
     const fa: Feature[] = [];
-    if (this.showOrigin() && Array.isArray(this.vesselPosition())) {
+    const vesselPosition = this.vesselPosition();
+    const markerPosition = this.markerPosition();
+    if (this.showOrigin() && Array.isArray(vesselPosition)) {
       const fo = new Feature({
-        geometry: new Point(fromLonLat(this.vesselPosition()))
+        geometry: new Point(fromLonLat(vesselPosition))
       });
       fo.setId('origin.point');
       fo.setStyle(this.buildStyle('origin'));
       fa.push(fo);
     }
-    if (
-      Array.isArray(this.vesselPosition()) &&
-      Array.isArray(this.markerPosition())
-    ) {
-      this.mapifiedLine = mapifyCoords([
-        this.vesselPosition(),
-        this.markerPosition()
-      ]);
+    if (Array.isArray(vesselPosition) && Array.isArray(markerPosition)) {
+      this.mapifiedLine = mapifyCoords([vesselPosition, markerPosition]);
       const fl = new Feature({
         geometry: new LineString(fromLonLatArray(this.mapifiedLine))
       });
       fl.setStyle(this.buildStyle('line'));
       fa.push(fl);
       let fp = new Feature({
-        geometry: new Point(fromLonLat(this.markerPosition()))
+        geometry: new Point(fromLonLat(markerPosition))
       });
       fp.setId('d.base');
       fp.setStyle(this.buildStyle('line'));
       this.updateLabel(fp);
       fa.push(fp);
       if (this.showRing()) {
-        const d = GeoUtils.distanceTo(
-          this.vesselPosition(),
-          this.markerPosition()
-        );
+        const d = GeoUtils.distanceTo(vesselPosition, markerPosition);
         if (d > 0) {
           const fr = new Feature({
-            geometry: bearingDistanceRing(this.vesselPosition(), d).transform(
+            geometry: bearingDistanceRing(vesselPosition, d).transform(
               'EPSG:4326',
               'EPSG:3857'
             )
@@ -226,7 +221,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       }
       if (this.showMarker()) {
         fp = new Feature({
-          geometry: new Point(fromLonLat(this.markerPosition()))
+          geometry: new Point(fromLonLat(markerPosition))
         });
         fp.setId('dest.point');
         fp.setStyle(this.buildStyle('marker'));
@@ -282,7 +277,9 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     }
     if ((e.originalEvent as PointerEvent).pointerId !== this.dragPointerId) {
       // a second finger: a pinch or a slip, so put the marker back
-      this.markerDrag.emit(this.dragOrigin);
+      if (this.dragOrigin) {
+        this.markerDrag.emit(this.dragOrigin);
+      }
       this.endDrag();
       return;
     }
@@ -386,7 +383,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     try {
-      let s: StyleLike = f.getStyle();
+      let s = f.getStyle();
       if (!s) {
         return;
       }

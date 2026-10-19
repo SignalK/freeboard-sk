@@ -67,9 +67,9 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       if (id.includes(this.targetContext)) {
         const f = this.source.getFeatureById(id) as Feature;
         if (this.okToRenderTarget(id)) {
-          if (this.targets.has(id)) {
+          const target = this.targets.get(id);
+          if (target) {
             if (f) {
-              const target = this.targets.get(id);
               const label = this.buildLabel(target);
               if (target.position) {
                 f.setGeometry(new Point(fromLonLat(target.position)));
@@ -107,10 +107,10 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
 
   // add new target
   addTargetWithId(id: string) {
-    if (!id.includes(this.targetContext) || !this.targets.has(id)) {
+    const target = this.targets.get(id);
+    if (!id.includes(this.targetContext) || !target) {
       return;
     }
-    const target = this.targets.get(id);
     const label = this.buildLabel(target);
     if (target.position) {
       const f = new Feature({
@@ -190,17 +190,14 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
         ? this.mapImages.getMeteoIcon((target as SKMeteo).tws, target.virtual)
         : this.mapImages.getAtoN(target.type?.id, target.virtual);
     if (icon && typeof this.targetStyles === 'undefined') {
-      if (icon) {
-        return new Style({
-          image: icon,
-          text: new Text({
-            text: '',
-            offsetX: 0,
-            offsetY: -18
-          })
-        });
-      }
-      return;
+      return new Style({
+        image: icon,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: -18
+        })
+      });
     }
     let s: Style;
     const setStale = this.isStale(target);
