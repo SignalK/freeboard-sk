@@ -1303,7 +1303,7 @@ export class AppFacade extends InfoService {
    * preset is used.
    */
   formatValueForDisplay(
-    value: number | null | undefined,
+    value: number,
     sourceUnit: SI_BASE_UNIT,
     options?: {
       path?: string;
