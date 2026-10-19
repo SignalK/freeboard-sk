@@ -287,7 +287,12 @@ export class RoutePanel {
       return;
     }
     const route = this._route();
-    const coordinates = buffer.points.map((p) => p.position);
+    // A bus position can carry an explicit undefined altitude, which must not
+    // reach the route's GeoJSON.
+    const coordinates = buffer.points.map(
+      ({ position: [lon, lat, alt] }): Position =>
+        alt === undefined ? [lon, lat] : [lon, lat, alt]
+    );
     const properties = { ...route.feature.properties };
     const meta = coordinatesMetaFromPoints(buffer.points);
     if (meta) {
