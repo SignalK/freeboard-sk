@@ -567,6 +567,24 @@ describe('track-history scrubbing', () => {
     expect(poseAt([line], undefined, at(times[1]))).toBeUndefined();
   });
 
+  it('places no ghost across a point without a time', () => {
+    const gappy = [times[0], undefined, times[2], times[3]];
+    expect(poseAt([line], [gappy], at('2026-09-20T01:00:00Z'))).toBeUndefined();
+    const p = poseAt([line], [gappy], at('2026-09-20T02:30:00Z'));
+    expect(p?.position[0]).toBeCloseTo(1);
+    expect(p?.position[1]).toBeCloseTo(0.5);
+  });
+
+  it('places a ghost on the timed points after a first point without one', () => {
+    const p = poseAt(
+      [line],
+      [[undefined, times[1], times[2], times[3]]],
+      at('2026-09-20T01:30:00Z')
+    );
+    expect(p?.position[0]).toBeCloseTo(0.5);
+    expect(p?.position[1]).toBeCloseTo(1);
+  });
+
   it('interpolates across the antimeridian the short way', () => {
     const p = poseAt(
       [
