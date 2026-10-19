@@ -1089,6 +1089,12 @@ involved. A provider adds a `time` block to the resource:
 - `current: true` says the source serves a live/latest frame, so `null` is a
   valid target. A purely archival source sets `current: false`, and a host
   then starts it at `to` (or the last of `values`).
+- `forecast: true` (optional) says the frames are a forecast: every one from
+  `from` to `to` (or every listed value) exists already, the ones ahead of now
+  included. A host's own time control then lets the user step and play ahead
+  of now, and `null` is still the frame for the present. Without it a host
+  takes frames after now as not there yet, as for a rolling product whose
+  declared `to` runs ahead of the present.
 - `from`/`to`/`step`/`values` are optional and advisory, as above; a provider
   whose timeline rolls should keep them roughly right or omit them.
 

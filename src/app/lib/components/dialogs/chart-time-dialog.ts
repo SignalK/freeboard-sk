@@ -82,6 +82,11 @@ export function chartTimeWindowSpan(
   timeline: ChartTimeline,
   end: number
 ): number {
+  // A forecast is read ahead over its whole run (days, not decades), so the
+  // bar spans all of it.
+  if (timeline.forecast) {
+    return Math.max(timeline.step, timeline.max - timeline.min);
+  }
   if (!timeline.frames) {
     return Math.max(
       timeline.step,
@@ -251,6 +256,33 @@ export function chartTimeLoopFromOffsets(
   const min = clamp(Math.min(start, end));
   const max = clamp(Math.max(start, end));
   return { min, max };
+}
+
+/**
+ * The loop the palette opens with: the remembered offsets (the last hour by
+ * default) measured back from `latest`, or, on a forecast with none
+ * remembered, from the frame for now to the end of the window -- playing
+ * through the hours ahead, not the last hour of the run.
+ */
+export function initialChartTimeLoop(
+  timeline: ChartTimeline,
+  window: { min: number; max: number },
+  latest: number,
+  remembered?: ChartTimeLoopOffsets | null
+): { min: number; max: number } {
+  if (timeline.forecast && !remembered) {
+    const now = chartTimelinePosition(timeline, null);
+    return {
+      min: Math.min(window.max, Math.max(window.min, now)),
+      max: window.max
+    };
+  }
+  return chartTimeLoopFromOffsets(
+    timeline,
+    window,
+    latest,
+    remembered ?? DEFAULT_CHART_TIME_LOOP
+  );
 }
 
 /** Offsets before `latest` for loop bounds on the timeline. */
@@ -484,7 +516,9 @@ export function chartTimeShortLabel(time: string | null): string {
           mat-icon-button
           aria-label="Next frame"
           matTooltip="Next frame"
-          [disabled]="!timeline() || data.value() === null"
+          [disabled]="
+            !timeline() || (data.value() === null && !timeline()?.forecast)
+          "
           (click)="step(1)"
         >
           <mat-icon>navigate_next</mat-icon>
@@ -493,9 +527,11 @@ export function chartTimeShortLabel(time: string | null): string {
         <button
           mat-button
           [matTooltip]="
-            current()
-              ? 'Return to the live frame'
-              : 'Return to the newest frame'
+            timeline()?.forecast
+              ? 'Return to the frame for now'
+              : current()
+                ? 'Return to the live frame'
+                : 'Return to the newest frame'
           "
           [disabled]="data.value() === null"
           (click)="goLive()"
@@ -716,11 +752,11 @@ export class ChartTimeDialog implements OnDestroy {
   private initialLoop(): { min: number; max: number } {
     const timeline = this.timeline();
     return timeline
-      ? chartTimeLoopFromOffsets(
+      ? initialChartTimeLoop(
           timeline,
           this.window(),
           this.latestMs,
-          this.data.loop ?? DEFAULT_CHART_TIME_LOOP
+          this.data.loop
         )
       : { min: 0, max: 0 };
   }

@@ -10,7 +10,8 @@ import {
   chartTimeStepLabel,
   DEFAULT_CHART_TIME_LOOP,
   chartTimeWindow,
-  chartTimeWindowEnd
+  chartTimeWindowEnd,
+  initialChartTimeLoop
 } from './chart-time-dialog';
 import { chartTimeline, chartTimelineHeadMs } from '../../chart-time';
 
@@ -348,5 +349,51 @@ describe('chartTimeStateFollowingHead', () => {
         loopEnd: 11
       });
     });
+  });
+});
+
+describe('a forecast', () => {
+  // Ten days ahead by the hour; "now" is faked at 13:07, an hour into the run.
+  const H = 3600000;
+  const forecast = chartTimeline({
+    current: true,
+    forecast: true,
+    from: '2026-09-18T12:00:00.000Z',
+    to: '2026-09-28T12:00:00.000Z',
+    step: H
+  });
+
+  it('shows its whole run on the bar', () => {
+    expect(chartTimeWindowSpan(forecast, forecast.max)).toBe(10 * 24 * H);
+    expect(chartTimeWindow(forecast, forecast.min)).toEqual({
+      min: forecast.min,
+      max: forecast.max
+    });
+  });
+
+  it('opens its loop on the hours ahead, from now to the end', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-18T13:07:00.000Z'));
+    try {
+      const window = chartTimeWindow(forecast, forecast.max);
+      expect(
+        initialChartTimeLoop(forecast, window, chartTimelineHeadMs(forecast))
+      ).toEqual({ min: forecast.min + H, max: forecast.max });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps a remembered loop, as other charts do', () => {
+    // The last hour, measured back from the newest frame: the forecast's end.
+    const window = chartTimeWindow(forecast, forecast.max);
+    expect(
+      initialChartTimeLoop(
+        forecast,
+        window,
+        chartTimelineHeadMs(forecast),
+        DEFAULT_CHART_TIME_LOOP
+      )
+    ).toEqual({ min: forecast.max - H, max: forecast.max });
   });
 });

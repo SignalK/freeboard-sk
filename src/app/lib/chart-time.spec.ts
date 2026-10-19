@@ -524,3 +524,69 @@ describe('the timeline head', () => {
     expect(chartTimelineHeadMs(ended)).toBe(Date.parse(T1));
   });
 });
+
+describe('a forecast (time.forecast)', () => {
+  // Ten days ahead by the hour, from the hour before the faked now (12:07).
+  const H = 3600000;
+  const FROM = '2026-09-18T12:00:00.000Z';
+  const TO = '2026-09-28T12:00:00.000Z';
+  const forecast = chartTimeline({
+    current: true,
+    forecast: true,
+    from: FROM,
+    to: TO,
+    step: H
+  });
+
+  it('is marked on the timeline, and only when declared', () => {
+    expect(forecast.forecast).toBe(true);
+    expect(
+      chartTimeline({ current: true, from: FROM, to: TO, step: H }).forecast
+    ).toBeUndefined();
+  });
+
+  it('has its last frame as the head, while live stays the frame for now', () => {
+    expect(chartTimelineHead(forecast)).toBe(Date.parse(TO));
+    expect(chartTimelinePosition(forecast, null)).toBe(Date.parse(FROM));
+  });
+
+  it('steps ahead from live and on through the hours', () => {
+    expect(stepChartTime(forecast, null, 1, true)).toBe(
+      '2026-09-18T13:00:00.000Z'
+    );
+    expect(stepChartTime(forecast, '2026-09-18T13:00:00.000Z', 1, true)).toBe(
+      '2026-09-18T14:00:00.000Z'
+    );
+    expect(stepChartTime(forecast, '2026-09-18T14:00:00.000Z', -1, true)).toBe(
+      '2026-09-18T13:00:00.000Z'
+    );
+  });
+
+  it('holds at its first and last frames', () => {
+    expect(stepChartTime(forecast, TO, 1, true)).toBe(TO);
+    expect(stepChartTime(forecast, FROM, -1, true)).toBe(FROM);
+    expect(stepChartTime(forecast, null, -1, true)).toBe(FROM);
+  });
+
+  it('resolves null on an archival forecast to the frame for now, not the last', () => {
+    expect(
+      resolveChartTime(
+        { current: false, forecast: true, from: FROM, to: TO, step: H },
+        null
+      )
+    ).toBe(FROM);
+  });
+
+  it('steps a listed forecast frame by frame from the one for now', () => {
+    const listed = chartTimeline({
+      current: false,
+      forecast: true,
+      values: [T0, T1, T2, '2026-09-18T15:00:00.000Z']
+    });
+    expect(chartTimelineHead(listed)).toBe(3);
+    expect(stepChartTime(listed, null, 1, false)).toBe(T2);
+    expect(stepChartTime(listed, T2, 1, false)).toBe(
+      '2026-09-18T15:00:00.000Z'
+    );
+  });
+});
