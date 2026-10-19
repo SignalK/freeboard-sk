@@ -78,9 +78,16 @@ export function initPMTilesXYZLayer(
       .getZxy(z, x, y)
       .then((tile_result) => {
         if (tile_result) {
+          // A tile scrolled out of view is disposed, image and all, and the
+          // archive read can return after that.
+          const image = (
+            tile as ImageTile
+          ).getImage() as HTMLImageElement | null;
+          if (!image) {
+            return;
+          }
           const blob = new Blob([tile_result.data]);
           const imageUrl = window.URL.createObjectURL(blob);
-          const image = (tile as ImageTile).getImage() as HTMLImageElement;
           const release = () => window.URL.revokeObjectURL(imageUrl);
           image.addEventListener('load', release, { once: true });
           image.addEventListener('error', release, { once: true });

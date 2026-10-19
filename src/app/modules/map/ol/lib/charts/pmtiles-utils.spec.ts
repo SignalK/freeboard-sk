@@ -92,6 +92,20 @@ describe('PMTiles tile loaders', () => {
       expect(createObjectURL).not.toHaveBeenCalled();
     });
 
+    it('creates no object URL for a tile disposed while its read was pending', async () => {
+      let resolveRead: (r: pmtiles.RangeResponse) => void = () => undefined;
+      getZxy.mockReturnValue(
+        new Promise<pmtiles.RangeResponse>((resolve) => (resolveRead = resolve))
+      );
+      const tile = await loadTile();
+
+      tile.dispose();
+      resolveRead(tileData);
+      await settle();
+
+      expect(createObjectURL).not.toHaveBeenCalled();
+    });
+
     it('reports EMPTY when the archive has no tile there', async () => {
       getZxy.mockResolvedValue(undefined);
       const tile = await loadTile();
