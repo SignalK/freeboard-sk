@@ -1,9 +1,8 @@
-import {
-  PointFeature,
-  LineStringFeature,
-  PolygonFeature,
-  MultiPolygonFeature
-} from './geojson';
+import type {
+  RouteResource as SKRouteResource,
+  WaypointResource as SKWaypointResource,
+  RegionResource as SKRegionResource
+} from '@signalk/server-api/typebox';
 import { ActionResult } from '../stream';
 
 export type SKPosition = {
@@ -18,28 +17,18 @@ export type Regions = { [id: string]: RegionResource };
 export type Notes = { [id: string]: NoteResource };
 export type Charts = { [id: string]: ChartResource };
 
-export interface RouteResource {
-  name?: string | null;
-  description?: string | null;
-  distance?: number | null;
-  // v2 start / end hrefs; dropped on transform (the points carry them)
-  start?: string;
-  end?: string;
-  feature: LineStringFeature;
-}
+/**
+ * The server's resource schemas list a feature's geometry and properties only.
+ * On the wire it is a whole GeoJSON Feature (RFC 7946 §3.2), so it also has
+ * `type` and may have an `id`.
+ */
+type WithGeoJsonFeature<R extends { feature: object }> = Omit<R, 'feature'> & {
+  feature: R['feature'] & { type: 'Feature'; id?: string };
+};
 
-export interface WaypointResource {
-  name?: string | null;
-  description?: string | null;
-  type?: string | null;
-  feature: PointFeature;
-}
-
-export interface RegionResource {
-  name?: string | null;
-  description?: string | null;
-  feature: PolygonFeature | MultiPolygonFeature;
-}
+export type RouteResource = WithGeoJsonFeature<SKRouteResource>;
+export type WaypointResource = WithGeoJsonFeature<SKWaypointResource>;
+export type RegionResource = WithGeoJsonFeature<SKRegionResource>;
 
 export interface NoteResource {
   name?: string;

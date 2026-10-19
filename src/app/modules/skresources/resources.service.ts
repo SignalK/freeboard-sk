@@ -152,6 +152,37 @@ export type FBResourceEntry<C extends SKResourceType> = [
   boolean?
 ];
 
+/**
+ * A route as older servers send it: early v2 `start` / `end` hrefs (the points
+ * carry them now), and point names in the legacy `points` property.
+ */
+type LegacyRouteResource = RouteResource & {
+  start?: string;
+  end?: string;
+  feature: {
+    properties?: { points?: unknown[] | { names?: string[] } };
+  };
+};
+
+/**
+ * A waypoint as older servers send it: a v1 `position`, and its name,
+ * description and type among the feature properties.
+ */
+type LegacyWaypointResource = WaypointResource & {
+  position?: SKPosition;
+  feature: {
+    properties?: {
+      name?: string;
+      description?: string;
+      cmt?: string;
+      skType?: string;
+    };
+  };
+};
+
+/** A region as older servers send it: a v1 region was a geohash. */
+type LegacyRegionResource = RegionResource & { geohash?: string };
+
 /** A note as older servers send it, with the v1 fields it is upgraded from. */
 type LegacyNoteResource = NoteResource & {
   title?: string;
@@ -473,11 +504,11 @@ export class SKResourceService {
   ): SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack {
     switch (collection) {
       case 'regions':
-        return this.transformRegion(resource as RegionResource, id);
+        return this.transformRegion(resource as LegacyRegionResource, id);
       case 'routes':
-        return this.transformRoute(resource as RouteResource, id);
+        return this.transformRoute(resource as LegacyRouteResource, id);
       case 'waypoints':
-        return this.transformWaypoint(resource as WaypointResource, id);
+        return this.transformWaypoint(resource as LegacyWaypointResource, id);
       case 'notes':
         return this.transformNote(resource as NoteResource, id);
       case 'charts':
@@ -2293,7 +2324,7 @@ export class SKResourceService {
    * @param id Route id
    * @returns SKRoute object
    */
-  private transformRoute(rte: RouteResource, id: string): SKRoute {
+  private transformRoute(rte: LegacyRouteResource, id: string): SKRoute {
     // parse as v2
     if (typeof rte.start !== 'undefined') {
       delete rte.start;
@@ -2705,11 +2736,12 @@ export class SKResourceService {
    * @param id Waypoint id
    * @returns SKWaypoint object
    */
-  private transformWaypoint(wpt: WaypointResource, id: string): SKWaypoint {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof (wpt as any).position !== 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (wpt as any).position;
+  private transformWaypoint(
+    wpt: LegacyWaypointResource,
+    id: string
+  ): SKWaypoint {
+    if (typeof wpt.position !== 'undefined') {
+      delete wpt.position;
     }
     if (wpt.feature && !wpt.feature.properties) {
       wpt.feature.properties = {};
@@ -2969,15 +3001,9 @@ export class SKResourceService {
    * @param id Resource id
    * @returns SKRegion object
    */
-  private transformRegion(region: RegionResource, id: string): SKRegion {
-    if (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      typeof (region as any).geohash !== 'undefined' &&
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      typeof (region as any).geohash === 'string'
-    ) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const gh = ngeohash.decode_bbox((region as any).geohash);
+  private transformRegion(region: LegacyRegionResource, id: string): SKRegion {
+    if (typeof region.geohash === 'string') {
+      const gh = ngeohash.decode_bbox(region.geohash);
       const reg = new SKRegion();
       reg.name = 'Region-' + id.slice(-6);
       reg.feature.geometry.coordinates = [
