@@ -279,3 +279,95 @@ describe('RoutePanel point names', () => {
     expect(points.map((p) => p.name)).toEqual(['One', 'RtePt-002', 'Three']);
   });
 });
+
+/**
+ * A route with edits not yet saved is shown as its edit buffer has it. A
+ * plotter extension can send a point whose altitude is present but undefined;
+ * the route's GeoJSON gets the point without it.
+ */
+describe('RoutePanel unsaved edits', () => {
+  const buffer = {
+    saved: true,
+    dirty: true,
+    points: [
+      { position: [24.95, 60.15, undefined] },
+      { position: [24.955, 60.16, 4] }
+    ]
+  };
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    TestBed.overrideComponent(RoutePanel, {
+      set: { template: '', imports: [] }
+    });
+    TestBed.configureTestingModule({
+      imports: [RoutePanel],
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            data: {
+              activeRoute: null,
+              activeRouteReversed: false,
+              vessels: { self: { position: [24.95, 60.14] } }
+            },
+            formatValueForDisplay: () => ''
+          }
+        },
+        {
+          provide: SKResourceService,
+          useValue: {
+            getRelatedNotes: async (): Promise<unknown[]> => [],
+            fromCache: (): void => undefined
+          }
+        },
+        {
+          provide: RouteBufferRegistry,
+          useValue: {
+            live: signal(0),
+            get: (): void => undefined,
+            getForRoute: () => buffer
+          }
+        },
+        { provide: InfoPanelFacade, useValue: {} },
+        {
+          provide: CourseService,
+          useValue: { courseData: signal({ pointIndex: -1 }) }
+        },
+        { provide: TemporaryRouteService, useValue: {} },
+        {
+          provide: SKResourceGroupService,
+          useValue: { with: async (): Promise<unknown[]> => [] }
+        },
+        { provide: MatDialog, useValue: {} },
+        { provide: MatBottomSheet, useValue: {} }
+      ]
+    });
+  });
+
+  it('drops an undefined altitude from the edited points', () => {
+    const fixture = TestBed.createComponent(RoutePanel);
+    fixture.componentRef.setInput('id', 'rte-1');
+    fixture.componentRef.setInput(
+      'route',
+      new SKRoute({
+        name: 'Harbour run',
+        feature: {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: [] },
+          properties: {}
+        }
+      })
+    );
+    fixture.detectChanges();
+    const shown = (
+      fixture.componentInstance as unknown as {
+        _route: () => SKRoute;
+      }
+    )._route();
+    expect(shown.feature.geometry.coordinates).toStrictEqual([
+      [24.95, 60.15],
+      [24.955, 60.16, 4]
+    ]);
+  });
+});
