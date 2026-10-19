@@ -201,7 +201,9 @@ describe('NotificationManager alert properties (#755)', () => {
       alarm(52.1, ALARM_STATE.warn)
     );
 
-    expect(app.data.vessels.cpaPositions.get(vessel).self).toEqual([4.2, 52.2]);
+    expect(app.data.vessels.cpaPositions.get(vessel)?.self).toEqual([
+      4.2, 52.2
+    ]);
   });
 
   it('ignores CPA positions when one of the two is missing', () => {
@@ -370,7 +372,13 @@ describe('NotificationManager alert actions', () => {
     posts[i].response.complete();
   };
 
-  const shown = (mgr: NotificationManager) => mgr.getAlert(PATH);
+  const shown = (mgr: NotificationManager) => {
+    const alert = mgr.getAlert(PATH);
+    if (!alert) {
+      throw new Error(`no alert at ${PATH}`);
+    }
+    return alert;
+  };
 
   it('shows the alert acknowledged as soon as ACK is pressed', () => {
     const mgr = TestBed.inject(NotificationManager);
@@ -620,7 +628,11 @@ describe('NotificationManager buddy notifications', () => {
     expect(mgr.alerts()).toHaveLength(0);
 
     // the buddy has moved on by the time LOCATE is pressed
-    aisTargets.get(`vessels.${BUDDY}`).position = [177.25, -17.75];
+    const buddy = aisTargets.get(`vessels.${BUDDY}`);
+    if (!buddy) {
+      throw new Error('no buddy vessel');
+    }
+    buddy.position = [177.25, -17.75];
     pressed.next();
 
     // A place to show: on the active pane when the chart is split.

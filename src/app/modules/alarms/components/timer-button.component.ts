@@ -39,13 +39,13 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class TimerButtonComponent {
   @Input() period = 5000; // timeout period in milliseconds
-  @Input() label: string;
-  @Input() icon: string;
-  @Input() cancelledLabel: string;
-  @Input() disabled: boolean;
+  @Input() label?: string;
+  @Input() icon?: string;
+  @Input() cancelledLabel?: string;
+  @Input() disabled?: boolean;
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
 
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof setInterval> | null = null;
   protected timeLeft = signal<number>(this.period ?? 5);
   protected cancelled = signal<boolean>(false);
 
@@ -60,7 +60,9 @@ export class TimerButtonComponent {
       if (this.timeLeft() === 0) {
         this.disabled = true;
         this.action();
-        clearInterval(this.timer);
+        if (this.timer) {
+          clearInterval(this.timer);
+        }
         this.timer = null;
       }
     }, 1000);

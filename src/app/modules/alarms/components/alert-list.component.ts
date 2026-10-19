@@ -235,7 +235,7 @@ export class AlertListComponent {
    * @description Set the alert icon
    * @returns svgIcon value
    */
-  protected setIcon(alert: AlertData): string {
+  protected setIcon(alert: AlertData): string | undefined {
     return getAlertIcon(alert).svgIcon;
   }
 }

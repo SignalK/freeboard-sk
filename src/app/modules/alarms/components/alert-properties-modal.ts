@@ -122,7 +122,7 @@ import { NotificationManager } from '../notification-manager';
 export class AlertPropertiesModal implements OnInit {
   protected showProperties = true;
   protected hasProperties = false;
-  protected properties: AlertProperties;
+  protected properties: AlertProperties = {};
   protected raisedAt!: string;
 
   protected notiMgr = inject(NotificationManager);

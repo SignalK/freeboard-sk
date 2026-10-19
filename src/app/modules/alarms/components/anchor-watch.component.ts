@@ -62,27 +62,29 @@ import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
   styleUrls: ['./anchor-watch.component.css']
 })
 export class AnchorWatchComponent {
-  @Input() radius: number;
+  @Input() radius?: number;
   @Input() min = 5;
   @Input() max = 250;
   @Input() raised = true;
   @Input() showSelf = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
 
-  @ViewChild('slideCtl', { static: true }) slideCtl: ElementRef<MatSlideToggle>;
+  // a static query is resolved before ngOnInit
+  @ViewChild('slideCtl', { static: true })
+  slideCtl!: ElementRef<MatSlideToggle>;
 
-  protected bgImage: string;
-  protected sliderValue: number;
+  protected bgImage?: string;
+  protected sliderValue?: number;
   protected rodeOut = false;
   protected convert = Convert;
 
   // set controls
-  protected useDefaultRadius: boolean;
-  protected useSetManual: boolean;
+  protected useDefaultRadius = false;
+  protected useSetManual = false;
   protected defaultRodeLength = signal<number>(10);
   protected defaultAlarmRadius = signal<number>(10);
 
-  protected disableRaiseDrop: boolean;
+  protected disableRaiseDrop = false;
 
   private anchor = inject(AnchorService);
   protected app = inject(AppFacade);
@@ -219,14 +221,18 @@ export class AnchorWatchComponent {
    */
   setRadius(value?: number) {
     this.rodeOut = true;
-    this.displayRadius.update(() => this.formatTransformedValue(value));
+    if (typeof value === 'number') {
+      this.displayRadius.update(() => this.formatTransformedValue(value));
+    }
     if (!this.raised) {
       this.anchor
         .setRadius(value)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: () => {
-            this.app.config.anchor.radius = value;
+            if (typeof value === 'number') {
+              this.app.config.anchor.radius = value;
+            }
             this.app.saveConfig();
           },
           error: (err: HttpErrorResponse) => {
@@ -283,7 +289,6 @@ export class AnchorWatchComponent {
    * @param radius Alarm radius to set
    */
   dropAnchor(radius?: number) {
-    this.app.config.anchor.radius = radius;
     this.anchor.setRaisedSignal(false);
     this.anchor
       .drop(radius)
@@ -320,14 +325,14 @@ export class AnchorWatchComponent {
    */
   shiftAnchor(direction: number) {
     const inc = 1;
-    const position = computeDestinationPoint(
-      this.anchor.position(),
-      inc,
-      direction
-    );
+    const anchor = this.anchor.position();
+    if (!anchor) {
+      return;
+    }
+    const position = computeDestinationPoint(anchor, inc, direction);
     this.anchor
       .setAnchorPosition([position.longitude, position.latitude])
-      .catch((err: HttpErrorResponse) => {
+      ?.catch((err: HttpErrorResponse) => {
         this.app.parseHttpErrorResponse(err);
       });
   }

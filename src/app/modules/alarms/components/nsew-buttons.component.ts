@@ -70,7 +70,7 @@ import { MatIconModule } from '@angular/material/icon';
   `
 })
 export class NSEWButtonsComponent {
-  @Input() disabled: boolean;
+  @Input() disabled?: boolean;
   @Output() direction: EventEmitter<number> = new EventEmitter();
 
   constructor() {}

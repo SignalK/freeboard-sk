@@ -27,6 +27,10 @@ interface PendingAction {
   state: AlertData['priority'];
 }
 
+/** The Notifications API gives every notification an id and a status. */
+type ApiNotification = SKNotification &
+  Required<Pick<SKNotification, 'id' | 'status'>>;
+
 /**
  * `navigation.closestApproach` notification. The other vessel is named by
  * `data.targetRef` (the shared collision alarm shape); `other` is the older,
@@ -114,9 +118,9 @@ export class NotificationManager {
 
     // update closest vessel ids
     const cpaAlerts = alerts.filter((i) => i[1].type === 'cpa');
-    this.app.data.vessels.closest = cpaAlerts.map(
-      (i) => i[1].properties?.vesselId
-    );
+    this.app.data.vessels.closest = cpaAlerts
+      .map((i) => i[1].properties.vesselId)
+      .filter((id): id is string => id !== undefined);
     // alerts are sorted most urgent first, so that one's positions are drawn
     // when several alarms name the same vessel
     const cpaPositions = new Map<string, CpaPositions>();
@@ -154,19 +158,20 @@ export class NotificationManager {
 
     // test for return to normal state
     if (!msg.value || (msg.value as SKNotification)?.state === 'normal') {
-      if (this.alertMap.has(msg.path)) {
-        this.dropPendingActions(this.alertMap.get(msg.path).id);
+      const cleared = this.alertMap.get(msg.path);
+      if (cleared) {
+        this.dropPendingActions(cleared.id);
         this.alertMap.delete(msg.path);
         this.emitSignals();
       }
       return;
     }
 
-    let alert: AlertData;
+    let alert: AlertData | undefined;
 
     // Test for Notifications API
     if (this.app.featureFlags().notificationApi) {
-      const v: SKNotification = msg.value as SKNotification;
+      const v = msg.value as ApiNotification;
       const replaced = this.alertMap.get(msg.path);
       if (replaced && replaced.id !== v.id) {
         this.dropPendingActions(replaced.id);
@@ -228,6 +233,9 @@ export class NotificationManager {
       );
       alert.canCancel = this.isStandardAlarm(alert.type);
     } */
+    if (!alert) {
+      return;
+    }
 
     alert.type = alertType;
     alert.icon = getAlertIcon(alert);
@@ -332,7 +340,7 @@ export class NotificationManager {
    * @param path Path of Alert
    * @returns AlertData object
    */
-  public getAlert(path: string): AlertData {
+  public getAlert(path: string): AlertData | undefined {
     const al = this.alerts().find((i) => i[0] === path);
     return al ? al[1] : undefined;
   }
@@ -440,7 +448,7 @@ export class NotificationManager {
    * not hide the escalated alarm.
    * @param v Notification value
    */
-  private settlePendingActions(v: SKNotification) {
+  private settlePendingActions(v: ApiNotification) {
     for (const flag of ['acknowledged', 'silenced'] as const) {
       const entry = this.pendingActions[flag].get(v.id);
       if (entry && (v.status[flag] || v.state !== entry.state)) {
@@ -481,8 +489,8 @@ export class NotificationManager {
    * @param path Path of the the alert to cancel
    */
   public clear(path: string) {
-    if (this.alertMap.has(path)) {
-      const alert = this.alertMap.get(path);
+    const alert = this.alertMap.get(path);
+    if (alert) {
       if (this.app.featureFlags().notificationApi) {
         this.signalk.api
           .delete(this.app.skApiVersion, `notifications/${alert.id}`)

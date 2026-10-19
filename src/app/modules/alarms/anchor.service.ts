@@ -34,7 +34,7 @@ export class AnchorService {
   // **************** ATTRIBUTES ***************************
   private raisedSignal = signal<boolean>(true);
   readonly raised = this.raisedSignal.asReadonly();
-  private positionSignal = signal<Position>(null);
+  private positionSignal = signal<Position | null>(null);
   readonly position = this.positionSignal.asReadonly();
   private radiusSignal = signal<number>(0);
   readonly radius = this.radiusSignal.asReadonly();
@@ -120,6 +120,15 @@ export class AnchorService {
       if (typeof radius !== 'number') {
         const vessel = this.app.data.vessels.self.position;
         const anchor = this.position();
+        if (!anchor) {
+          return throwError(
+            () =>
+              new HttpErrorResponse({
+                status: 400,
+                error: { message: 'The anchor position is not known yet.' }
+              })
+          );
+        }
         radius = Math.ceil(
           getDistance(
             { longitude: vessel[0], latitude: vessel[1] },
@@ -198,7 +207,7 @@ export class AnchorService {
     context = !context || context === 'self' ? 'vessels/self' : context;
     this.signalk.api.get(`/${context}/navigation/anchor`).subscribe(
       (r: AnchorStatusResponse) => {
-        const pos: Position = r.position?.value
+        const pos: Position | null = r.position?.value
           ? [r.position.value.longitude, r.position.value.latitude]
           : null;
         const data = {
@@ -217,7 +226,11 @@ export class AnchorService {
 
   // ** process anchor status
   private parseAnchorStatus(
-    r: { maxRadius?: number; position?: Position; radius?: number },
+    r: {
+      maxRadius?: number | null;
+      position?: Position | null;
+      radius?: number | null;
+    },
     position?: Position
   ) {
     if (

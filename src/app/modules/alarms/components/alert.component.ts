@@ -34,13 +34,13 @@ export interface AlertProperties {
 }
 
 export interface AlertData {
-  id?: string;
+  id: string;
   path: string;
   priority: ALARM_STATE;
   message: string;
   sound: boolean;
   visual: boolean;
-  properties?: AlertProperties;
+  properties: AlertProperties;
   icon: AppIconDef;
   type?: string;
   acknowledged: boolean;
@@ -208,7 +208,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AlertComponent {
-  alert = input<AlertData>();
+  alert = input.required<AlertData>();
   acknowledged = input<boolean>(false);
   silenced = input<boolean>(false);
   audioStatus = input<string>(); // changed audio context state
@@ -223,10 +223,10 @@ export class AlertComponent {
   protected showStaticNextPoint = false;
   protected showAutoNextPoint = false;
   protected nextPointClicked = false;
-  private audio: HTMLAudioElement;
-  private source: MediaElementAudioSourceNode;
+  private audio?: HTMLAudioElement;
+  private source?: MediaElementAudioSourceNode;
   private soundFile = SoundFiles.warn;
-  private timerRef!: ReturnType<typeof setInterval> | null;
+  private timerRef: ReturnType<typeof setInterval> | null = null;
 
   protected app = inject(AppFacade);
   private notiMgr = inject(NotificationManager);
@@ -240,10 +240,9 @@ export class AlertComponent {
       this.acknowledged();
       this.silenced();
       const al = this.alert();
-      this.showStaticNextPoint = [
-        'perpendicularPassed',
-        'arrivalCircleEntered'
-      ].includes(al.type);
+      this.showStaticNextPoint =
+        !!al.type &&
+        ['perpendicularPassed', 'arrivalCircleEntered'].includes(al.type);
       this.showAutoNextPoint =
         this.showStaticNextPoint &&
         this.app.config.course.autoNextPointTrigger === al.type;
@@ -267,7 +266,9 @@ export class AlertComponent {
               this.progressValue.update((value) => value - 4);
             } else {
               this.hidden.set(true);
-              clearInterval(this.timerRef);
+              if (this.timerRef) {
+                clearInterval(this.timerRef);
+              }
             }
           }, 100);
         });
@@ -282,9 +283,9 @@ export class AlertComponent {
       clearInterval(this.timerRef);
       this.timerRef = null;
     }
-    this.audio.pause();
-    this.audio = null;
-    this.source = null;
+    this.audio?.pause();
+    this.audio = undefined;
+    this.source = undefined;
   }
 
   protected hide() {
@@ -319,7 +320,7 @@ export class AlertComponent {
             this.alert().acknowledged
           ) {
             this.audio.pause();
-          } else {
+          } else if (this.soundFile) {
             this.audio.loop = ['emergency', 'alarm'].includes(
               this.alert().priority
             );
@@ -328,6 +329,9 @@ export class AlertComponent {
               .play()
               .then((): void => undefined)
               .catch((): void => undefined);
+          } else {
+            // no sound for this alarm state
+            this.audio.pause();
           }
         } else {
           this.audio.pause();
