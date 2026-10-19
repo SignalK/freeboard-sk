@@ -667,6 +667,7 @@ describe('area alarm requests', () => {
     ['an unknown geometry', { geometry: 'square', coords: [center] }],
     ['a polygon without coordinates', { geometry: 'polygon', coords: [] }],
     ['a circle without a radius', { geometry: 'circle', center }],
+    ['a circle with a zero radius', { geometry: 'circle', center, radius: 0 }],
     ['a name that is not text', { coords: [center], name: 7 }],
     ['a body that is not an object', 'polygon']
   ])('rejects %s', async (_case, body) => {

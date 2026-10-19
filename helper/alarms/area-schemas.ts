@@ -18,7 +18,8 @@ const CircleAreaBodySchema = Type.Object({
   geometry: Type.Literal('circle'),
   trigger: AreaTriggerSchema,
   center: PositionSchema,
-  radius: Type.Number(),
+  // An entry alarm can never fire inside a circle of zero or negative radius.
+  radius: Type.Number({ exclusiveMinimum: 0 }),
   name: Type.Optional(Type.String())
 });
 
