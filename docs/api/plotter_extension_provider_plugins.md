@@ -254,8 +254,8 @@ required and optional capabilities and lists your contributions. A real one
 - `optional` — capabilities you _use when present_. Absence must not stop your
   extension running; check at runtime with `client.hasCapability(id)` and
   degrade gracefully.
-- Contribution arrays — `widgets`, `panels`, `buttons`, `background`,
-  `overlays`. Include
+- Contribution arrays — `widgets`, `panels`, `buttons`, `actions`,
+  `background`, `overlays`. Include
   only the ones you provide.
 
 **Capabilities you will reach for** (full list in the spec):
@@ -266,12 +266,15 @@ required and optional capabilities and lists your contributions. A real one
 | `panels.iframe`     | Contribute iframe panels                                      |
 | `panels.state`      | Know when your panels are on screen (`ui.listPanels`, `panel.state` event) |
 | `buttons`           | Add toolbar buttons                                           |
+| `buttons.visibility` | Show and hide your toolbar buttons as your state changes (`buttons.setVisibility`) |
+| `actions`           | Add your actions to the host's menus and popovers on chart targets (`action.invoked`) |
 | `events.publish`    | Publish your own events onto the bus (`client.publish`)       |
 | `signalk.stream`    | Subscribe to live SK path values (`client.signalk.subscribe`) |
 | `signalk.put`       | Send SK PUT requests (`client.signalk.put`)                   |
 | `resources`         | Run resource queries (`resources.list`)                       |
 | `resources.filter`  | Push display filters (`resources.setFilter`)                  |
 | `map`               | Read/drive/follow the map view (`map.*`, `map.view` event)    |
+| `map.pick`          | Ask the user to pick a point or feature (`map.pick`, `map.picked` event) |
 | `routes`            | Read & edit the routes on the chart (`route.*`)               |
 | `charts`            | Manage chart-layer display — visibility/opacity/order (`chart.*`) |
 | `units`             | Read the user's display-unit preferences (`units.get`)        |
@@ -280,6 +283,7 @@ required and optional capabilities and lists your contributions. A real one
 | `background.iframe` | Run a headless background runtime                             |
 | `overlays.image`    | Draw a map layer the host composites (`overlay.*`)            |
 | `overlays.data`     | Supply data + a MapLibre style the host draws on the map (`overlay.*`) |
+| `actions.overlay`   | Make your data-overlay features selectable, with your actions on them |
 
 **Contribution fields**
 
@@ -288,12 +292,16 @@ required and optional capabilities and lists your contributions. A real one
   manifest), optional `lifecycle`.
 - **Panel:** `id`, `title`, `type: 'iframe'`, `url`, optional `lifecycle`.
 - **Button:** `id`, `title`, `slot` (`mapToolbar` is the well-known slot),
-  `icon` (Material icon name), `action` — one of
+  `icon` (Material icon name), `visible?` (capability `buttons.visibility`:
+  start hidden, then `client.call('buttons.setVisibility', { ids, visible })`
+  from your code; not remembered across reloads), `action` — one of
   `{ type: 'togglePanel'|'openPanel', panel }`,
   `{ type: 'openWindow'|'toggleWindow', panel, …window options }` (capability
   `windows`; see *Windows* below) or
   `{ type: 'publish', topic, params?, scope? }` (see *Publishing your own
   events* below; `sendMessage` is its deprecated alias).
+- **Action:** `id`, `title`, `icon?`, `targets`, `action` (the button action
+  types), `default?`, `visible?` — see *Adding actions to the chart* below.
 - **Background:** `id`, `title?`, `type: 'iframe'`, `url`.
 
 **Lifecycle** controls when the host loads a context's iframe:
@@ -324,7 +332,8 @@ import { connectExtension } from 'signalk-plotterext-bus/extension'
 const client = await connectExtension() // resolves after the host handshake
 
 client.context // { kind, id, instanceId, targetInstance, targetWidget }
-// (a window context also carries windowId and params)
+// (a window context also carries windowId and params; a panel or window an
+// action opened carries invocation)
 client.hasCapability('map') // is an optional capability available?
 
 await client.call('method', params) // call any host API method (table in spec)
@@ -985,6 +994,167 @@ Things to know:
   (whole collections, or `upsert` / `remove` by feature id).
 - Settings, the band, and the user's show, hide and fade work as for an image
   overlay (see above).
+
+## Adding actions to the chart
+
+With the `actions` capability you add your own entries to what the user can do
+on the chart: "Smart route to here" on an empty spot, "Take bearing" on a
+landmark, "Weather-optimise" on a route. You declare them in the manifest; the
+host shows them in its own menus and popovers and tells you when one is chosen.
+
+```jsonc
+{
+  "requires": ["actions", "routes", "background.iframe", "panels.iframe"],
+  "optional": ["windows", "events.publish"],
+  "background": [{ "id": "router", "type": "iframe", "url": "/plotterext/my-router/router.html" }],
+  "panels": [{ "id": "optimiser", "title": "Optimise route", "type": "iframe",
+               "url": "/plotterext/my-router/optimiser.html" }],
+  "actions": [
+    {
+      "id": "route-to",
+      "title": "Smart route to here",
+      "icon": "alt_route",
+      "targets": ["position", "waypoint", "note"],
+      "action": { "type": "publish", "topic": "my-router.routeTo", "scope": "extension" }
+    },
+    {
+      "id": "optimise",
+      "title": "Weather-optimise",
+      "targets": ["route"],
+      "action": { "type": "openWindow", "panel": "optimiser" }
+    }
+  ]
+}
+```
+
+The background runtime does the work for the first action:
+
+```js
+// router.html
+const client = await connectExtension()
+await client.subscribe(['my-router.routeTo'], async (_name, { target }) => {
+  const to = target.featurePosition ?? target.position
+  const points = await planRoute(await boatPosition(), to)
+  await client.call('route.create', { points, name: `To ${target.name ?? 'here'}` })
+})
+```
+
+The window for the second reads the route it was opened on: from its handshake
+when the action opens it, and from the event when the user chooses the action
+again while the window is open (the host raises the same window):
+
+```js
+// optimiser.html
+const client = await connectExtension()
+const load = async ({ target }) => show(await client.call('route.get', { routeId: target.routeId }))
+
+if (client.context.invocation) load(client.context.invocation)
+await client.subscribe(['action.invoked'], (_name, inv) => inv.actionId === 'optimise' && load(inv))
+```
+
+Things to know:
+
+- **`targets` narrow what an action applies to.** A target kind on its own
+  applies to all of its kind. Add `match` (the `resources.setFilter`
+  conditions) to narrow it: notes with the anchorage icon, chart features of
+  class `LNDMRK`. Vessels narrow with `self: true` or `false`. The full list of
+  kinds is in the spec (*Actions → Targets*).
+- **The host shows the name, your title stays short.** The host labels the
+  menu or popover with the target's name, so title the action "Take bearing",
+  not "Bearing to …".
+- **Use `featurePosition` for the thing, `position` for the click.** A tap
+  lands near a landmark, not on it. Bearings, ranges and routes to a feature
+  start from `featurePosition`.
+- **A target is identity, not content.** Resources come with `id` and `href`;
+  fetch the object if you need more. A route the user has on the chart also has
+  a `routeId` for the `route.*` methods.
+- **Every action also emits `action.invoked`.** A `publish` action therefore
+  reaches you twice: as its own topic, with `actionId` and `target` added to its
+  `params`, and as `action.invoked`. Listen to one of them. On a host without
+  `events.publish` the topic goes to every subscribed context, other
+  extensions' included; `action.invoked` always stays yours.
+- **Actions that depend on your state** — "Resolve fix" only while a session
+  is running — start hidden with `"visible": false` and are switched by your
+  code as the state changes. The host does not remember this across reloads,
+  so set it again when your runtime starts:
+
+  ```js
+  await client.call('actions.setVisibility', { ids: ['resolve-fix'], visible: sessionActive })
+  ```
+
+- **Nothing of yours has to be running** for an action to be offered: the host
+  builds its menus from the manifest. The action loads whatever it opens.
+- **`togglePanel` and `toggleWindow` act as open** for an action: choosing it
+  again on another target should show that target, not close the panel.
+- Unknown target kinds are ignored, so a host that predates a kind simply does
+  not offer the action there.
+
+### Actions on your own map features
+
+With `actions.overlay` the features of a data overlay can be selected like the
+host's own. Mark the overlay `interactive`, give your features ids, and target
+them with `overlayFeature`:
+
+```jsonc
+{
+  "requires": ["overlays.data", "actions", "panels.iframe"],
+  "optional": ["actions.overlay", "windows", "events.publish"],
+  "panels": [{ "id": "buoy", "title": "Buoy", "type": "iframe",
+               "url": "/plotterext/my-buoys/buoy.html" }],
+  "overlays": [{ "id": "buoys", "title": "Weather buoys", "type": "data",
+                 "style": "/plotterext/my-buoys/style.json",
+                 "interactive": true, "interactiveLayers": ["buoy-icons"],
+                 "titleProperty": "station" }],
+  "actions": [
+    { "id": "details", "title": "Buoy details", "default": true,
+      "targets": [{ "kind": "overlayFeature", "overlays": ["buoys"] }],
+      "action": { "type": "openWindow", "panel": "buoy" } },
+    { "id": "route-to", "title": "Route to buoy",
+      "targets": [{ "kind": "overlayFeature", "overlays": ["buoys"] }],
+      "action": { "type": "publish", "topic": "my-buoys.routeTo", "scope": "extension" } }
+  ]
+}
+```
+
+- **A tap runs the `default` action**, here the details window. Without a
+  default the host shows a popover titled by `titleProperty`, with your actions
+  as its buttons. A right-click or long-press shows the actions in a menu
+  either way.
+- **Every selectable feature needs an id**: the top-level `id` of a GeoJSON
+  feature, or a `promoteId` on a vector source. Features without one cannot be
+  selected.
+- `target.properties` are your feature's own properties and `target.featureId`
+  its id, so you rarely need to look it up.
+- Only your own overlays' features are your targets; other extensions cannot
+  put actions on them.
+
+## Asking the user to pick something
+
+Sometimes your panel needs the user to choose something on the chart: a
+destination, a waypoint to route to. With `map.pick` the host shows your prompt
+and a cancel control, and hands you what the user taps:
+
+```js
+await client.subscribe(['map.picked'], (_name, picked) => {
+  if (picked.cancelled) return status('Cancelled')
+  setDestination(picked.target)
+})
+pickButton.onclick = () =>
+  client.call('map.pick', { prompt: 'Select a waypoint or tap a spot',
+                            targets: ['waypoint', 'position'] })
+```
+
+- **The answer is an event**, `map.picked`. Subscribe before you call.
+- **`targets` say what may be picked**, as for actions. Without them it is a
+  point. List only feature kinds and taps elsewhere are ignored until the user
+  picks one or cancels.
+- **One pick, one select.** To collect several points, pick again after each
+  answer. A new pick from anywhere replaces the one that is on (`reason:
+  'superseded'`).
+- **The pick can end without you.** The user cancels, or starts drawing a
+  route, and you get `cancelled: true` with the reason. Reset your UI on it.
+- `map.pick` is refused with `map.pickBusy` while the user is drawing, measuring
+  or editing.
 
 ## Reference implementations
 

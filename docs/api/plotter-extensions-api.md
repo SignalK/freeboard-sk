@@ -25,10 +25,11 @@ the existing Signal K plugin/app-store flow.
 > panels, toolbar buttons, state storage, Signal K data relay, unit
 > preferences, resource display filters, map control, live route editing,
 > chart-layer management, headless background runtimes and image map overlays
-> (`overlays.image`). Host-drawn data overlays (`overlays.data`) are specified
-> ahead of the reference host. Manifest-declared
-> filter chains and host-into-runtime calls are out of scope for this version
-> (see Non-Goals).
+> (`overlays.image`). Host-drawn data overlays (`overlays.data`), map actions
+> (`actions`, `actions.overlay`), map picks (`map.pick`) and button
+> visibility (`buttons.visibility`) are specified ahead of the reference
+> host. Manifest-declared filter chains and host-into-runtime calls are out of
+> scope for this version (see Non-Goals).
 
 ---
 
@@ -102,8 +103,8 @@ extension id (the providing plugin's id is the recommended key):
   offered at all.
 - `optional` — capability ids the extension uses when present; absence must
   not prevent it from running.
-- Contribution sections: `widgets`, `panels`, `buttons`, `background`,
-  `overlays` (this version). Hosts must ignore unknown sections and fields.
+- Contribution sections: `widgets`, `panels`, `buttons`, `actions`,
+  `background`, `overlays` (this version). Hosts must ignore unknown sections and fields.
 - Any individual contribution entry may declare its own `apiVersion` when
   it needs a newer host API than the manifest baseline; hosts silently omit
   contributions they cannot satisfy while keeping the rest.
@@ -117,11 +118,14 @@ extension id (the providing plugin's id is the recommended key):
 | `panels.state`      | Host reports whether each loaded panel is on screen (`ui.listPanels`) and emits `panel.state` when that changes. See *Panel state*. |
 | `background.iframe` | Host supports headless background-runtime iframes (no UI, loaded while the extension is present).                                 |
 | `buttons`           | Host renders extension toolbar buttons in at least one slot.                                                                      |
+| `buttons.visibility` | Host lets an extension show and hide its own toolbar buttons (`buttons.setVisibility`) and honours a button's `visible`. Requires `buttons`. See *Showing and hiding buttons*. |
+| `actions`           | Host offers manifest `actions` on chart targets — points, stored resources, vessels, aids to navigation, chart features — reports the user's choice (`action.invoked`, `context.invocation`) and lets the extension show and hide its actions (`actions.setVisibility`). See *Actions*. |
 | `events.publish`    | Host implements `events.publish` (extension-originated events) and the `scope` option on the `publish` button action. See *Publishing events*. |
 | `signalk.stream`    | Host streams Signal K path values to extension contexts over the message bus.                                                     |
 | `signalk.put`       | Host relays Signal K PUT requests from extension contexts.                                                                        |
 | `units`             | Host exposes the user's preferred display units (`units.get`).                                                                    |
 | `map`               | Host implements the `map.*` methods (view query and control) and emits `map.view` when the chart viewport changes.                |
+| `map.pick`          | Host implements `map.pick` / `map.cancelPick` (the user picks a point or feature for an extension) and emits `map.picked`. See *Picking on the map*. |
 | `resources`         | Host implements `resources.list` (relayed resource queries).                                                                      |
 | `resources.filter`  | Host implements imperative resource display filters.                                                                              |
 | `routes`            | Host implements live route edit-buffer commands (`route.*`) and emits route lifecycle/mutation events.                            |
@@ -133,6 +137,7 @@ extension id (the providing plugin's id is the recommended key):
 | `windows`           | Host can show an extension's iframe panels as floating windows (`ui.openWindow` and the other `ui.*Window` methods) and emits `window.*` events. See *Windows*. |
 | `overlays.image`    | Host composites map layers whose pixels an extension's background runtime draws (`overlay.*` methods, `overlay.request` / `overlay.state` events). Requires `background.iframe`. See *Map overlays*. |
 | `overlays.data`     | Host draws map layers from data and a MapLibre style an extension supplies (`overlay.*` methods including `overlay.refresh`, `overlay.setData`, `overlay.setLayer` and `overlay.setState`; `overlay.state` events). See *Data overlays*. |
+| `actions.overlay`   | Data-overlay features can be made selectable and are `overlayFeature` targets for their extension's actions. Requires `actions` and `overlays.data`. See *Interactive overlay features*. |
 
 The vocabulary is open-ended: future versions add ids (buttons, resource
 filters, map control), and hosts may expose vendor-specific experiments
@@ -307,6 +312,10 @@ An extension may contribute buttons to host-defined UI slots:
 - `icon` — a Material icon name the host may render; hosts without that
   icon set may substitute a generic extension icon. (A generic `symbol`
   reference field is reserved for the symbols resource integration.)
+- `visible` — whether the button is shown before the extension says otherwise
+  (capability `buttons.visibility`; see *Showing and hiding buttons*). Default
+  `true`. A host without `buttons.visibility` ignores it and always shows the
+  button.
 - `action` — what the button does:
 
   - `togglePanel` — open the named `panel` from the same manifest, or close
@@ -382,6 +391,323 @@ An extension may contribute buttons to host-defined UI slots:
     `events.publish` capability uses `sendMessage` and omits `scope` (such a
     host delivers to every subscribed context, i.e. `scope: "all"`).
 
+### Showing and hiding buttons
+
+Some buttons only make sense in some states of the extension: "Stop
+recording" while a recording runs, "Resolve fix" during a dead-reckoning
+session. With the **`buttons.visibility`** capability an extension shows and
+hides its own buttons as its state changes, instead of leaving a button on the
+toolbar that does nothing.
+
+```json
+{ "ids": ["stop-recording"], "visible": false }
+```
+
+**`buttons.setVisibility({ ids, visible })`** shows or hides the calling
+extension's own buttons and resolves `{}`. A hidden button is removed from its
+slot, not greyed out, and the host closes the gap it leaves; a shown one takes
+its place again. Hiding a button changes nothing it opened: its panel or window
+stays as it is.
+
+Visibility belongs to the extension, not the user, and is not persisted: when
+the host loads, every button starts as its manifest `visible` says, and the
+extension sets it again from its own state, typically from a background
+runtime as it starts. Any of the extension's contexts may call it; the last
+call wins. An extension that must also run on a host without
+`buttons.visibility` leaves such buttons `visible` (the default) and handles a
+press that does not apply.
+
+**Errors** use the standard `error.data.reason` convention: `buttons.badRequest`
+(`ids` not a list of strings, or `visible` not a boolean), `buttons.unknownId`
+(an id that is not a button of the caller's manifest; nothing is changed).
+
+---
+
+## Actions
+
+An extension may contribute **actions**: things the user can do to something
+on the chart — a spot, a waypoint, a route, a vessel, a landmark printed on
+the chart. An action is declared in the manifest with the kinds of **target**
+it applies to; the host offers it wherever it offers its own actions for such a
+target, and tells the extension when the user chooses it and on what.
+Capability: **`actions`**.
+
+```json
+{
+  "id": "route-to",
+  "title": "Smart route to here",
+  "icon": "alt_route",
+  "targets": ["position", "waypoint", "note"],
+  "action": { "type": "publish", "topic": "auto-route.routeTo", "scope": "extension" }
+}
+```
+
+An action is declarative. The host builds each menu from the manifest — keeping
+the actions whose targets match what the user selected — and never asks a
+running extension what to show, so a menu opens as fast as the host's own, and
+an action is offered even when none of the extension's contexts is loaded. An
+extension whose actions depend on its own state shows and hides them ahead of
+time (see *Showing and hiding actions*).
+
+**Action fields**
+
+- `id`, `title` (required) — `title` is plain text; a host never renders it as
+  markup.
+- `icon` — a Material icon name, as for buttons.
+- `targets` (required) — the targets the action applies to (see *Targets*).
+- `action` (required) — what choosing it does (see *Choosing an action*).
+- `default` — `true` makes this the action a primary select runs directly on an
+  overlay feature (see *Interactive overlay features*). It has no effect on
+  other targets.
+- `visible` — whether the action is offered before the extension says
+  otherwise (see *Showing and hiding actions*). Default `true`.
+
+A host omits an action that lacks a required field, and an action none of whose
+targets it supports.
+
+### Targets
+
+A target is the thing an action is chosen on. Each entry in `targets` is either
+a kind, or an object that names a kind and narrows it:
+
+| Kind             | The target is                                                | Narrowed by |
+| ---------------- | ------------------------------------------------------------ | ----------- |
+| `position`       | a point on the chart                                         | — |
+| `waypoint`       | a stored waypoint                                            | `match` |
+| `note`           | a stored note                                                | `match` |
+| `route`          | a stored route, or a draft route on the chart                | `match` |
+| `track`          | a stored track                                               | `match` |
+| `region`         | a stored region                                              | `match` |
+| `vessel`         | the own vessel or another vessel (AIS)                       | `self` |
+| `aton`           | a Signal K aid to navigation                                 | — |
+| `chartFeature`   | a feature of a chart layer, e.g. a landmark or light in an ENC | `match` |
+| `overlayFeature` | a feature of one of the extension's own data overlays (capability `actions.overlay`) | `overlays`, `match` |
+
+```json
+"targets": [
+  "position",
+  { "kind": "note", "match": [{ "path": "properties.skIcon", "op": "eq", "value": "anchorage" }] },
+  { "kind": "vessel", "self": false },
+  { "kind": "chartFeature", "match": [{ "path": "class", "op": "in", "value": ["LNDMRK", "LIGHTS"] }] }
+]
+```
+
+- **`match`** uses the condition grammar of `resources.setFilter` (see
+  *Resource queries and display filters*), symbol-reference tolerance included,
+  and an action applies only when every condition holds. The conditions are
+  evaluated against data the host already holds, so a menu never waits on a
+  fetch:
+
+  - `waypoint`, `note`, `route`, `region` — the stored resource, the same
+    object `resources.setFilter` evaluates against. A draft route that was
+    never saved is evaluated as `{ "name": … }`.
+  - `track` — `{ "name": …, "description": … }`, since a track may come from
+    the Track API or from a resource collection, whose objects differ.
+  - `chartFeature` — the target object (so `class`, `name` and
+    `properties.*`).
+  - `overlayFeature` — the extension's feature as `{ "id": …, "properties": … }`,
+    the same for a GeoJSON source and a vector source.
+- **`self`** — `true` applies only to the own vessel, `false` only to other
+  vessels. Without it, both.
+- **`overlays`** — limits an `overlayFeature` entry to the listed overlay ids
+  of the same manifest.
+
+A host ignores a target entry of a kind it does not know or support, and an
+entry that narrows a kind with a field that kind does not take. New kinds can
+therefore be added later without breaking older hosts: they simply do not offer
+the action for that target. An extension that wants a fallback lists it too:
+`["chartFeature", "position"]` is offered on a landmark where the host supports
+chart features, and on the spot the user selected where it does not.
+
+`position` is any point on the chart, with or without a feature under it. A
+host **MUST** let the user reach `position` actions through its location
+context gesture at every point of the chart, whether or not it has actions of
+its own there — if it would otherwise show nothing, it shows a menu with only
+the extension actions.
+
+### The target object
+
+The target is delivered to the extension as an object:
+
+```jsonc
+{
+  "kind": "chartFeature",
+  "position": [-173.9792, -18.6473],         // where the user selected, [lon, lat]
+  "featurePosition": [-173.9826, -18.6473],  // the feature's own position, for a point
+  "name": "Communications Tower Mt Talau",
+  "chart": { "id": "tonga-enc" },
+  "class": "LNDMRK",
+  "properties": { "OBJNAM": "Communications Tower Mt Talau", "CATLMK": "17" }
+}
+```
+
+Every target carries:
+
+- `kind` — one of the kinds above.
+- `position` — the point the user selected, `[lon, lat]`. Longitudes are
+  always in `[-180, 180]`, as in *Bounding boxes*, whichever copy of the world
+  the user was looking at.
+- `name` — the target's name, when the host knows one: the resource's name,
+  the vessel's or aid's name, the chart feature's object name, or the overlay
+  feature's `titleProperty`.
+- `featurePosition` — the target's own position when it is a point: a
+  waypoint, a note, a vessel or aid where the host last had it, a point
+  feature of a chart or overlay. Take bearings and ranges from this, not from
+  `position`, which is wherever the user's finger landed.
+
+And by kind:
+
+| Kind | Fields |
+| ---- | ------ |
+| `position` | — |
+| `waypoint`, `note`, `region`, `track` | `id`, `href` |
+| `route` | `id` and `href` when stored; `routeId` when it is in the visible set (capability `routes`) |
+| `vessel` | `context`, `self` |
+| `aton` | `context` |
+| `chartFeature` | `chart.id` when the host knows the chart, `class`, `properties` |
+| `overlayFeature` | `overlayId`, `source`, `featureId`, `properties` |
+
+- **`href`** is the stored object's path on the server's version 2 API,
+  relative to `/signalk/v2/api`, as everywhere in this API:
+  `/resources/<type>/<id>` for resources. A track's `href` is where the host
+  reads it: `/tracks/<id>` from the Track API, or `/resources/tracks/<id>`
+  from a resource collection. A target carries identity, not content: fetch
+  the object with `GET /signalk/v2/api` followed by the `href`. **`routeId`**
+  is the opaque handle of *Live routes*, so a route action can go straight to
+  `route.get` and `route.replace`. A draft that was never saved has only a
+  `routeId`, so a host offers route actions on a draft only when it supports
+  `routes`.
+- **`context`** is the Signal K context, such as
+  `vessels.urn:mrn:imo:mmsi:367123450` or `atons.urn:mrn:imo:mmsi:993672001`.
+  For the own vessel a host may send `vessels.self`.
+- **`class`** is the feature's class: the S-57 object class acronym
+  (`LNDMRK`, `LIGHTS`, `BOYLAT` …) for an ENC, the source layer for a vector
+  chart. **`properties`** are the feature's attributes as the chart provides
+  them — S-57 attribute codes for an ENC, whatever keys a vector chart uses.
+  Read them defensively.
+- **`featureId`** is the overlay feature's id (see *Interactive overlay
+  features*), a string or a number exactly as the extension gave it, and
+  **`properties`** its own properties, echoed back so the extension need not
+  look the feature up.
+
+The target is a snapshot taken when the user selected. It is not updated, so a
+vessel's `featurePosition` is where the host last had it at that moment.
+
+### Where actions appear
+
+The host decides where an action appears and which gesture brings it up; the
+extension only says what it applies to. Actions are offered **on the chart**,
+for something the user selected on the map, so every target has a selected
+`position`. (Offering them from the host's lists and panels is not part of this
+version.) There, a host offers an action wherever it offers its own actions for
+that target:
+
+- `position` actions in its location context menu — reached by a right-click,
+  a long-press, or a keyboard context key, as the host already does;
+- actions for a feature in whatever UI the host shows for that feature — a
+  popover, a selection card, a context menu on the feature, or several of
+  these.
+
+The reference host shows them in its chart context menu and in the feature's
+popover.
+
+**Rules a host follows:**
+
+- **The target is identified.** The host makes clear which target the
+  extension actions apply to — a menu header or the popover's title naming
+  it — so an action's `title` need not repeat the name. "Take bearing" under
+  "Communications Tower Mt Talau" is enough.
+- **Host items come first.** Extension actions are grouped after the host's own
+  and attributed to their extension. They never displace or hide the host's
+  own actions. A host may cap how many it shows at once and put the rest in an
+  overflow menu.
+- **Not during a modal interaction.** While the user is drawing, measuring,
+  editing geometry or picking (see *Picking on the map*), the host offers no
+  extension actions, as it suppresses its own.
+- **Several features under the pointer** are resolved as the host already
+  resolves them (a list to choose from, say). Actions apply to the target the
+  user chose.
+
+### Showing and hiding actions
+
+`match` decides from the **target** whether an action applies. Some actions
+depend on the **extension's** state instead: "Resolve fix" only while a
+dead-reckoning session is running, "Radar range" only while the radar
+transmits. The extension switches those on and off as its state changes:
+
+```json
+{ "ids": ["resolve-fix"], "visible": true }
+```
+
+**`actions.setVisibility({ ids, visible })`** shows or hides the calling
+extension's own actions and resolves `{}`. A hidden action is offered nowhere,
+and a hidden `default` action is not run on a primary select. The change
+applies from the next menu or popover the host builds; one already on screen
+may keep what it showed. The host never waits on the extension for this, and
+the user's selection is never delayed by it.
+
+Visibility belongs to the extension, not the user, and is not persisted: when
+the host loads, every action starts as its manifest `visible` says, and the
+extension sets it again from its own state, typically from a background
+runtime as it starts. Any of the extension's contexts may call it; the last
+call wins.
+
+**Errors** use the standard `error.data.reason` convention: `actions.badRequest`
+(`ids` not a list of strings, or `visible` not a boolean), `actions.unknownId`
+(an id that is not an action of the caller's manifest; nothing is changed). An
+embedding host has no actions, so every id is unknown to it.
+
+### Choosing an action
+
+`action` takes the same types as a button's (see *Buttons*): `openPanel`,
+`togglePanel`, `openWindow`, `toggleWindow` and `publish` (with its deprecated
+alias `sendMessage`). An action opens rather than toggles: `togglePanel` and
+`toggleWindow` behave as `openPanel` and `openWindow`. A host that supports
+`actions` but not `windows` treats `openWindow` as `openPanel`, as it does for
+buttons.
+
+When the user chooses an action, the host:
+
+1. **performs the action** on behalf of the extension, as for a button. A
+   `publish` action publishes its topic with `actionId` and `target` added to
+   its `params`;
+2. **emits `action.invoked`** — `{ actionId, target }` — to every context of
+   the extension that is already loaded, shown or hidden, and subscribed to it:
+   its background runtime, widgets, panels and windows;
+3. **hands the invocation to a context the action loads.** A panel or window
+   that the action itself loads finds the same `{ actionId, target }` in its
+   handshake, as `context.invocation`, so it does not depend on subscribing in
+   time to hear the event. It does not also receive `action.invoked` for that
+   invocation.
+
+An action keeps track of the window it opened, as a button does: choosing the
+action again while that window is open shows and raises it instead of opening
+another, and the window hears the new target as `action.invoked`. A loaded
+`keepAlive` panel is shown, not reloaded, and hears it the same way.
+
+A `publish` action therefore reaches the extension twice — as its topic and as
+`action.invoked` — and the extension listens to whichever suits it.
+
+Together these reach every shape of extension. A background runtime hears the
+event. A panel that was closed is loaded and reads its handshake. A window or
+`keepAlive` panel that is already loaded hears the event; a reused window's
+`params` cannot carry the new target, because they are fixed when it opens.
+
+A `publish` action on a host without `events.publish` is published to every
+subscribed context, as a button's is (see *Buttons*); `action.invoked` always
+stays within the extension.
+
+```js
+const client = await connectExtension()  // the panel the action opens
+
+const show = ({ target }) => planRouteTo(target.featurePosition ?? target.position)
+
+if (client.context.invocation) show(client.context.invocation)
+await client.subscribe(['action.invoked'], (_name, inv) => show(inv))
+```
+
+An embedding host has no manifest, so it contributes no actions.
+
 ---
 
 ## Communication
@@ -448,7 +774,9 @@ inside a routing envelope over `postMessage`**:
 `targetInstance`/`targetWidget` identify the widget being configured, or
 `targetOverlay` the overlay being configured (see *Map overlays*); a
 `background` runtime and an `embedding-host` carry neither. A `window` context
-adds `windowId` and `params` (see *Windows*). An `embedding-host` context describes the **caller** — the
+adds `windowId` and `params` (see *Windows*). A panel or window loaded by the
+user choosing one of the extension's actions adds `invocation` —
+`{ actionId, target }` (see *Actions*). An `embedding-host` context describes the **caller** — the
 application embedding the plotter — while the plotter remains the API host;
 see *Embedding Hosts*.
 
@@ -538,6 +866,10 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `map.getView`           | —                                              | `{ center, zoom, bounds }` |
 | `map.center`            | `{ position: [lon, lat], zoom? }`              | `{}`                       |
 | `map.fitBounds`         | `{ bounds: [west, south, east, north] }`       | `{}`                       |
+| `map.pick`              | `{ prompt?, targets? }`                        | `{ pickId }`               |
+| `map.cancelPick`        | `{ pickId }`                                   | `{}`                       |
+| `actions.setVisibility` | `{ ids: string[], visible: boolean }`          | `{}`                       |
+| `buttons.setVisibility` | `{ ids: string[], visible: boolean }`          | `{}`                       |
 | `nightMode.get`         | —                                              | `{ enabled, auto }`        |
 | `nightMode.set`         | `{ enabled?, auto? }`                           | `{}`                       |
 | `ui.openPanel`          | `{ panel }`                                    | `{}`                       |
@@ -570,6 +902,7 @@ capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
 (`route.*`) with `routes`; chart events (`chart.*`) with `charts` (`chart.time` with `charts.time`);
 `resourceGroup.applied` with `resourceGroups`; `map.view` with `map`;
+`map.picked` with `map.pick`; `action.invoked` with `actions`;
 `nightMode.changed` with `nightMode`; `panel.state` with `panels.state`;
 `window.*` with `windows`; `overlay.request` with `overlays.image`, and
 `overlay.state` with `overlays.image` or `overlays.data`. The
@@ -631,6 +964,12 @@ handled by the protocol layer, not subscribed to.
 - `map.view` — `{ center, zoom, bounds }`: the chart viewport was panned and/or
   zoomed. The payload is the same shape `map.getView` returns. Emitted once per
   **settled** view change, not continuously during the gesture. See *Map view*.
+- `map.picked` — `{ pickId, target }` or `{ pickId, cancelled, reason }`: a pick
+  the context asked for with `map.pick` ended. Delivered only to that context.
+  See *Picking on the map*.
+- `action.invoked` — `{ actionId, target }`: the user chose one of the
+  extension's actions. Delivered only to the owning extension's contexts. See
+  *Actions*.
 - `nightMode.changed` — `{ enabled, auto }`: the host's night-mode state changed.
   Like the route and chart events it is **origin-transparent** — emitted for
   *every* change, whether an extension called `nightMode.set`, the user toggled
@@ -1283,6 +1622,70 @@ longitude), treating a box 360 or more degrees wide as `[-180, south, 180,
 north]`; and can pass `map.fitBounds` a crossing box in the unwrapped form,
 which the reference host has always fitted correctly.
 
+### Picking on the map
+
+With an action, the user starts and the extension responds. A **pick** is the
+other way round: the extension asks the user to choose something on the chart
+— "Tap the destination", "Select the waypoint to route to" — and the host
+hands back what the user chose. Capability: **`map.pick`**.
+
+```json
+{ "prompt": "Select the waypoint to route to", "targets": ["waypoint"] }
+```
+
+**`map.pick`** puts the host into a pick, and returns `{ pickId }` at once.
+The answer comes later as the `map.picked` event, so the call is not held open
+while the user thinks — subscribe to `map.picked` before calling:
+
+```js
+await client.subscribe(['map.picked'], (_name, picked) => {
+  if (picked.cancelled) return
+  routeTo(picked.target)
+})
+const { pickId } = await client.call('map.pick', { prompt: 'Tap the destination' })
+```
+
+- **`prompt`** — plain text the host shows while the pick is on. Without it
+  the host shows its own wording.
+- **`targets`** — what may be picked, in the same form as an action's
+  `targets` (see *Actions*), `match` and `self` included. Without it, a point:
+  `["position"]`. With feature kinds only, a select that lands on no matching
+  feature is ignored and the pick stays on; with `position` among them, it
+  yields the matching feature if there is one, and the point otherwise.
+
+While a pick is on, the host shows the prompt and a way to cancel. The next
+primary select (a tap or a click) on something the pick accepts ends it and
+does nothing else: it opens no popover and adds no point. The user can still
+pan and zoom the chart to find what they want.
+
+**`map.picked`** goes to the context that asked:
+
+- `{ pickId, target }` — the user picked; `target` is a target object (see
+  *The target object*).
+- `{ pickId, cancelled: true, reason }` — no pick. `reason` is `user` (the
+  user cancelled), `extension` (`map.cancelPick`), `superseded` (another pick
+  replaced this one) or `host` (the host ended it, for example because the
+  user started drawing a route).
+
+One pick is on at a time, host-wide. A new `map.pick`, from any context,
+supersedes the one already on. A pick lasts for one select: to pick several
+things in turn, call `map.pick` again after each `map.picked`. A host ends the
+pick of a context that unloads, without an event.
+
+**`map.cancelPick({ pickId })`** ends the caller's pick if it is still on, and
+resolves `{}` either way. A context cannot cancel another context's pick.
+
+`map.pick` does not require `actions`; it only shares the target vocabulary.
+An `overlayFeature` entry needs `actions.overlay`, and picks only among the
+caller's own interactive overlays. When several pickable things are under the
+pointer, the host resolves them as it does for actions (see *Where actions
+appear*).
+
+**Errors** use the standard `error.data.reason` convention: `map.badRequest`
+(a malformed `targets`, or one with no kind the host supports),
+`map.pickBusy` (the user is in a modal interaction — drawing, measuring or
+editing — that a pick must not interrupt).
+
 ### Map overlays
 
 A **map overlay** is a map layer an extension contributes. There are two kinds:
@@ -1801,10 +2204,62 @@ does the same to data overlays. Recolouring beyond that is the extension's:
 subscribe to `nightMode.changed` and send the night colours with
 `overlay.setLayer`.
 
-#### Overlay features
+#### Interactive overlay features
 
-In this version, features in a data overlay cannot be clicked, hovered or
-selected, and they do not open popups.
+By default the features of a data overlay are drawn, not interactive: a click
+on one goes to whatever lies beneath. With the **`actions.overlay`**
+capability an overlay can opt in, so the user can select its features and
+choose the extension's actions on them (see *Actions*). A marker a plugin draws
+then behaves like a waypoint the host draws.
+
+```jsonc
+{
+  "id": "buoys",
+  "title": "Weather buoys",
+  "type": "data",
+  "style": "/plotterext/signalk-buoys/style.json",
+  "interactive": true,
+  "interactiveLayers": ["buoy-icons"],   // optional: only these style layers
+  "titleProperty": "station"             // optional: the property that names a feature
+}
+```
+
+- **`interactive`** — `true` makes the overlay's features selectable. Default
+  `false`.
+- **`interactiveLayers`** — the style layers whose features are selectable.
+  Without it, every layer of the overlay. A halo or label layer is usually
+  left out.
+- **`titleProperty`** — the feature property that names it, for the host's
+  header and the target's `name`. Default `name`; without one the host uses
+  the overlay's `title`.
+
+**Feature ids.** A selectable feature needs a stable id, which becomes the
+target's `featureId`: the top-level `id` of a GeoJSON feature (the same id
+`overlay.setData` upserts and removes by), or for a vector source the property
+its `promoteId` names, as in the MapLibre Style Spec. A feature without an id
+is not selectable.
+
+**A primary select** (a tap or a click) on a selectable feature:
+
+- runs the extension's `default` action for that feature, if one applies — the
+  first in manifest order when several do;
+- otherwise, when any of the extension's actions applies to it, shows the
+  host's UI for a selected feature — the reference host opens a popover,
+  titled by `titleProperty` — with those actions;
+- otherwise behaves as if the feature were not interactive: the select goes to
+  whatever lies beneath.
+
+When a selectable overlay feature and one of the host's own features are both
+under the pointer, the host resolves them as it does any several features (see
+*Where actions appear*).
+
+A context request on the feature (a right-click or long-press) offers the same
+actions, with the `position` actions of every extension.
+
+Only the extension that owns an overlay sees its features as targets: an
+`overlayFeature` target entry applies to the declaring extension's overlays
+only. The host decides how a selected feature looks (if at all), and never
+mistakes an overlay feature for one of its own, whatever its id.
 
 ### State storage
 
@@ -2306,9 +2761,21 @@ adversarial boundary**:
 
 This version deliberately does not specify:
 
-- **Interacting with data-overlay features.** Features in a data overlay are
-  drawn, not interactive: there is no click, hover or selection, and no popup.
-  A later version may let an extension open its own UI for a feature.
+- **Hovering data-overlay features.** A selectable overlay feature (see
+  *Interactive overlay features*) is selected, not hovered: there is no hover
+  feedback or hover event, and the host chooses how a selection looks.
+- **A stream of map clicks.** Extensions are not sent every click or
+  right-click on the chart. A click the host already acted on (a popover, a
+  menu, a point added to a drawing) cannot be shared without ambiguity. An
+  extension acts on the user's choice through *Actions*, or asks for one with
+  *Picking on the map*.
+- **Consulting extension code when a menu opens.** The host builds every menu
+  from what it already holds: the manifest, `match` against the target, and
+  the visibility the extension set beforehand with `actions.setVisibility`. It
+  never asks a running extension what to offer for this particular selection,
+  so a menu never waits on extension code. An action's `title` is fixed text,
+  not a template; retitling actions from code could be added later without
+  breaking existing manifests.
 - **Manifest-declared filter chains.** Display filtering here is imperative:
   running extension code pushes an id set or `match` predicate via
   `resources.setFilter`. Filters declared _statically in the manifest_ and
