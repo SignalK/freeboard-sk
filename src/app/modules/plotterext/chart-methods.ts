@@ -1,13 +1,18 @@
 import {
   normalizeBounds,
-  RPC_ERRORS,
   RpcError,
   type ChartLayer,
   type ChartTime,
   type MethodHandler
 } from 'signalk-plotterext-bus/host';
 import { FBChart, FBCharts } from 'src/app/types';
-import { isChartTimeInstant } from 'src/app/lib/chart-time';
+import { parseParams } from './method-params';
+
+// The schemas load with the validator on the first call, keeping TypeBox out
+// of the initial bundle.
+const schemas = () => import('./chart-params');
+
+const BAD_REQUEST = 'charts.badRequest';
 
 /**
  * Host method handlers for the `charts` capability — a lightweight facade over
@@ -108,24 +113,6 @@ export function toChartLayer(fb: FBChart, temporal = false): ChartLayer {
 export function createChartMethods(
   deps: ChartMethodsDeps
 ): Record<string, MethodHandler> {
-  const badRequest = (message: string) =>
-    new RpcError(message, {
-      code: RPC_ERRORS.INVALID_PARAMS,
-      reason: 'charts.badRequest'
-    });
-
-  // Reject a malformed id list at the boundary so it can't reach the host
-  // services. An empty array is a legal no-op batch.
-  const requireIds = (v: unknown, field: string): string[] => {
-    if (
-      !Array.isArray(v) ||
-      v.some((x) => typeof x !== 'string' || x.length === 0)
-    ) {
-      throw badRequest(`${field} must be an array of chart ids`);
-    }
-    return v as string[];
-  };
-
   // Every supplied id must name a chart the host currently manages, otherwise
   // the caller is working from a stale list — surface it rather than silently
   // dropping the id.
@@ -148,11 +135,11 @@ export function createChartMethods(
     },
 
     'chart.setVisibility': async (params) => {
-      const ids = requireIds((params as { ids?: unknown })?.ids, 'ids');
-      const visible = (params as { visible?: unknown })?.visible;
-      if (typeof visible !== 'boolean') {
-        throw badRequest('visible must be a boolean');
-      }
+      const { ids, visible } = await parseParams(
+        (await schemas()).SetVisibilityParams,
+        params,
+        BAD_REQUEST
+      );
       if (ids.length > 0) {
         requireKnown(ids, await deps.listAvailableOrdered());
         await deps.setVisibility(ids, visible);
@@ -161,14 +148,11 @@ export function createChartMethods(
     },
 
     'chart.setOpacity': async (params) => {
-      const ids = requireIds((params as { ids?: unknown })?.ids, 'ids');
-      const opacity = (params as { opacity?: unknown })?.opacity;
-      if (typeof opacity !== 'number' || !Number.isFinite(opacity)) {
-        throw badRequest('opacity must be a finite number');
-      }
-      if (opacity < 0 || opacity > 1) {
-        throw badRequest('opacity must be between 0 and 1');
-      }
+      const { ids, opacity } = await parseParams(
+        (await schemas()).SetOpacityParams,
+        params,
+        BAD_REQUEST
+      );
       if (ids.length > 0) {
         requireKnown(ids, await deps.listAvailableOrdered());
         await deps.setOpacity(ids, opacity);
@@ -177,12 +161,11 @@ export function createChartMethods(
     },
 
     'chart.setTime': async (params) => {
-      const ids = requireIds((params as { ids?: unknown })?.ids, 'ids');
-      const raw = (params as { time?: unknown })?.time;
-      if (raw !== null && !isChartTimeInstant(raw)) {
-        throw badRequest('time must be null or an ISO 8601 instant');
-      }
-      const time = raw as string | null;
+      const { ids, time } = await parseParams(
+        (await schemas()).SetTimeParams,
+        params,
+        BAD_REQUEST
+      );
       if (ids.length > 0) {
         const available = await deps.listAvailableOrdered();
         requireKnown(ids, available);
@@ -203,7 +186,11 @@ export function createChartMethods(
     },
 
     'chart.setOrder': async (params) => {
-      const order = requireIds((params as { order?: unknown })?.order, 'order');
+      const { order } = await parseParams(
+        (await schemas()).SetOrderParams,
+        params,
+        BAD_REQUEST
+      );
       if (order.length > 0) {
         requireKnown(order, await deps.listAvailableOrdered());
         await deps.setOrder(order);
