@@ -73,6 +73,9 @@ export class GuardZoneEditService {
     const radar = this.radarApi.radar();
     const id = radar?.device?.id;
     const zones = radarGuardZones(radar);
+    if (!id) {
+      return zones;
+    }
     const edit = this._edit();
     const pending = this.pending();
     const override =
