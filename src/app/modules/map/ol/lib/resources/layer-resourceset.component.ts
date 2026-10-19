@@ -117,7 +117,10 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
       if (typeof rSet.styles !== 'undefined') {
         let rs: Style;
         if (typeof props.styleRef !== 'undefined') {
-          rs = this.buildStyle(rSet.styles[props.styleRef], w.geometry.type);
+          rs = this.buildStyle(
+            rSet.styles[props.styleRef] ?? {},
+            w.geometry.type
+          );
         } else if (typeof props.style !== 'undefined') {
           rs = this.buildStyle(props.style, w.geometry.type);
         } else {
