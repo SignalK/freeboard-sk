@@ -8,7 +8,7 @@ import { Style } from 'ol/style';
 import { DEPTH_UNIT } from 'src/app/lib/convert';
 
 interface Symbol {
-  image: HTMLImageElement;
+  image: HTMLImageElement | null;
   width: number;
   height: number;
   originX: number;
@@ -117,7 +117,7 @@ export class S57Service {
   private chartSymbols: Map<string, Symbol> = new Map<string, Symbol>();
   private colorTables: ColorTable[] = [];
   private selectedColorTable = 0;
-  private chartSymbolsImage: HTMLImageElement;
+  private chartSymbolsImage?: HTMLImageElement;
   private lookups: Lookup[] = [];
   private lookupStartIndex: Map<string, number> = new Map<string, number>();
   private styles: Map<string, Style> = new Map<string, Style>();
@@ -182,7 +182,7 @@ export class S57Service {
     }
   }
 
-  public getStyle(key: string): Style {
+  public getStyle(key: string): Style | undefined {
     return this.styles.get(key);
   }
 
@@ -207,7 +207,7 @@ export class S57Service {
     return this.lookups[lookupIndex];
   }
 
-  public getColor(colorName: string): string {
+  public getColor(colorName: string): string | undefined {
     return this.colorTables[this.selectedColorTable].colors.get(colorName);
   }
 
@@ -340,11 +340,12 @@ export class S57Service {
     });
   }
 
-  public getSymbol(key: string): Symbol {
+  public getSymbol(key: string): Symbol | null {
     const icon = this.chartSymbols.get(key);
     if (icon && this.chartSymbolsImage) {
       if (!icon.image) {
-        icon.image = new Image(icon.width, icon.height);
+        const image = new Image(icon.width, icon.height);
+        icon.image = image;
         createImageBitmap(
           this.chartSymbolsImage,
           icon.locationX,
@@ -355,9 +356,10 @@ export class S57Service {
           const canvas = document.createElement('CANVAS') as HTMLCanvasElement;
           canvas.height = icon.height;
           canvas.width = icon.width;
-          const ctx = canvas.getContext('2d');
+          // a fresh canvas always provides a 2d context
+          const ctx = canvas.getContext('2d')!;
           ctx.drawImage(bitmap, 0, 0);
-          icon.image.src = canvas.toDataURL();
+          image.src = canvas.toDataURL();
           //this.refresh.next()
         });
         return icon;
@@ -392,6 +394,9 @@ export class S57Service {
     });
 
     const geometry = feature.getGeometry();
+    if (!geometry) {
+      return -1;
+    }
     const name = properties['LAYER'];
     const geomType = geometry.getType();
 
@@ -431,8 +436,8 @@ export class S57Service {
     const startIndex = this.lookupStartIndex.get(
       lookupTable + ',' + name.toUpperCase() + ',' + type
     );
-    let currentIndex = startIndex;
-    if (currentIndex) {
+    if (startIndex) {
+      let currentIndex = startIndex;
       let lup = this.lookups[currentIndex];
       let lmatch = 0;
       while (
@@ -445,6 +450,9 @@ export class S57Service {
         Object.keys(lup.attributes).forEach((k) => {
           const v = lup.attributes[k];
           const parts = this.attMatch.exec(v);
+          if (!parts) {
+            return;
+          }
           const key = parts[1].toUpperCase();
           const value = parts[2].toUpperCase();
           if (value === ' ') {

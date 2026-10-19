@@ -33,7 +33,7 @@ class S57LayerStyler extends VectorLayerStyler {
   }
 
   public CreateLayer(): VectorTileLayer<never> {
-    let extent: Extent = null;
+    let extent: Extent | undefined;
     if (this.chart.bounds && this.chart.bounds.length > 0) {
       extent = transformExtent(this.chart.bounds, 'EPSG:4326', 'EPSG:3857');
     }
@@ -70,7 +70,9 @@ class S57LayerStyler extends VectorLayerStyler {
 export class VectorLayerStyleFactory {
   constructor(private s57service: S57Service) {}
 
-  public CreateVectorLayerStyler(chart: SKChart): VectorLayerStyler {
+  public CreateVectorLayerStyler(
+    chart: SKChart
+  ): VectorLayerStyler | undefined {
     if (chart.type === 'S-57' || chart.type === 's-57') {
       this.s57service.fetchSymbols();
       return new S57LayerStyler(chart, this.s57service);

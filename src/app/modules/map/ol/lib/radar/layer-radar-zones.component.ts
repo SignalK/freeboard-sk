@@ -56,13 +56,13 @@ export function guardZoneStyle(zone: RadarGuardZone): Style {
 })
 export class RadarZonesComponent implements OnInit, OnChanges, OnDestroy {
   @Input() zones: RadarGuardZone[] = [];
-  @Input() position: Coordinate;
+  @Input() position?: Coordinate;
   /** vessel heading, radians true: the zones' bearings are relative to the bow */
   @Input() heading = 0;
-  @Input() zIndex: number;
+  @Input({ required: true }) zIndex!: number;
 
-  protected layer: VectorLayer<VectorSource>;
-  protected source: VectorSource;
+  protected layer?: VectorLayer<VectorSource>;
+  protected source?: VectorSource;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -78,7 +78,7 @@ export class RadarZonesComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (!this.layer) {
+    if (!this.layer || !this.source) {
       return;
     }
     if (changes['zIndex']) {
@@ -91,16 +91,19 @@ export class RadarZonesComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.mapComponent.getMap()?.removeLayer(this.layer);
-    this.layer = null;
+    if (this.layer) {
+      this.mapComponent.getMap()?.removeLayer(this.layer);
+      this.layer = undefined;
+    }
   }
 
   private buildFeatures(): Feature[] {
-    if (!Array.isArray(this.position) || !Array.isArray(this.zones)) {
+    const position = this.position;
+    if (!Array.isArray(position) || !Array.isArray(this.zones)) {
       return [];
     }
     return this.zones.map((z) => {
-      const rings = guardZoneRings(this.position, this.heading ?? 0, z.zone);
+      const rings = guardZoneRings(position, this.heading ?? 0, z.zone);
       const f = new Feature({
         geometry: new Polygon(
           rings.map((ring) => fromLonLatArray(mapifyCoords(ring)))

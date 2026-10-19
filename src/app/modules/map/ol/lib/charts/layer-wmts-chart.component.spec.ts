@@ -243,7 +243,7 @@ describe('WmtsChartLayerComponent — tile matrix set', () => {
     expect(map.addLayer).toHaveBeenCalledTimes(1);
     const source = (map.addLayer.mock.calls[0][0] as TileLayer).getSource();
     expect((source as WMTS).getMatrixSet()).toBe('webmercator');
-    expect(source.getProjection().getCode()).toBe('EPSG:3857');
+    expect(source?.getProjection()?.getCode()).toBe('EPSG:3857');
   });
 
   it('warns and adds no layer when no linked set is in a projection it can display', async () => {

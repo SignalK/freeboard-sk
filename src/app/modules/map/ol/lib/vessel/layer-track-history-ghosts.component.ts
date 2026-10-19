@@ -34,12 +34,12 @@ export const GHOST_OPACITY = 0.45;
 export class TrackHistoryGhostLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
-  private layer: VectorLayer<VectorSource>;
-  private source: VectorSource;
+  private layer?: VectorLayer<VectorSource>;
+  private source?: VectorSource;
 
   @Input() ghosts: TrackHistoryGhost[] = [];
-  @Input() iconScale: number;
-  @Input() zIndex: number;
+  @Input() iconScale?: number;
+  @Input({ required: true }) zIndex!: number;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -56,7 +56,7 @@ export class TrackHistoryGhostLayerComponent
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (!this.layer) {
+    if (!this.layer || !this.source) {
       return;
     }
     if (changes['ghosts'] || changes['iconScale']) {
@@ -69,8 +69,10 @@ export class TrackHistoryGhostLayerComponent
   }
 
   ngOnDestroy() {
-    this.mapComponent.getMap()?.removeLayer(this.layer);
-    this.layer = null;
+    if (this.layer) {
+      this.mapComponent.getMap()?.removeLayer(this.layer);
+      this.layer = undefined;
+    }
   }
 
   private buildFeatures(): Feature[] {

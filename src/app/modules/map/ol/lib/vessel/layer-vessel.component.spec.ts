@@ -24,7 +24,7 @@ function vessel(stale: boolean) {
 
 /** Styles set on the feature, normalised to an array. */
 function styles(c: VesselComponent): Style[] {
-  const s = c.vessel.getStyle();
+  const s = c.vessel?.getStyle();
   return (Array.isArray(s) ? s : [s]) as Style[];
 }
 
@@ -35,8 +35,8 @@ describe('VesselComponent stale position indication (#672)', () => {
 
     const s = styles(c);
     expect(s.length).toBe(2);
-    expect(s[1].getText().getText()).toBe('?');
-    expect(s[0].getImage().getOpacity()).toBe(STALE_VESSEL_OPACITY);
+    expect(s[1].getText()?.getText()).toBe('?');
+    expect(s[0].getImage()?.getOpacity()).toBe(STALE_VESSEL_OPACITY);
   });
 
   it('shows no badge and a fully opaque icon when position is current', () => {
@@ -45,7 +45,7 @@ describe('VesselComponent stale position indication (#672)', () => {
 
     const s = styles(c);
     expect(s.length).toBe(1);
-    expect(s[0].getImage().getOpacity()).toBe(1);
+    expect(s[0].getImage()?.getOpacity()).toBe(1);
   });
 
   it('restores the icon when position resumes', () => {
@@ -56,6 +56,6 @@ describe('VesselComponent stale position indication (#672)', () => {
 
     const s = styles(c);
     expect(s.length).toBe(1);
-    expect(s[0].getImage().getOpacity()).toBe(1);
+    expect(s[0].getImage()?.getOpacity()).toBe(1);
   });
 });

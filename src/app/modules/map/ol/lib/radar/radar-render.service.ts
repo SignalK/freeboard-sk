@@ -28,12 +28,12 @@ export interface RadarRenderDef {
 })
 export class RadarRenderService {
   public hasWebgl: boolean = false;
-  private worker: Worker;
+  private worker?: Worker;
 
   private app = inject(AppFacade);
   private radarApi = inject(RadarAPIService);
 
-  private shipStateSubscription: Subscription;
+  private shipStateSubscription?: Subscription;
 
   constructor() {
     const gl = new OffscreenCanvas(10, 10).getContext('webgl2');
@@ -43,7 +43,7 @@ export class RadarRenderService {
     }
   }
 
-  public async connect(): Promise<RadarRenderDef> {
+  public async connect(): Promise<RadarRenderDef | undefined> {
     if (!this.hasWebgl) {
       this.app.showMessage('Web-GL is not available!');
       return;
@@ -129,18 +129,17 @@ export class RadarRenderService {
       })
     });
 
-    if (this.hasWebgl) {
-      this.worker = new Worker(new URL('./radar-gl.worker', import.meta.url));
-    }
+    const worker = new Worker(new URL('./radar-gl.worker', import.meta.url));
+    this.worker = worker;
 
-    this.worker.postMessage({ canvas: offscreenRadarCanvas, radar: radar }, [
+    worker.postMessage({ canvas: offscreenRadarCanvas, radar: radar }, [
       offscreenRadarCanvas
     ]);
 
     let lastRedraw = 0;
     const REDRAW_INTERVAL_MS = 33;
 
-    this.worker.onmessage = (event) => {
+    worker.onmessage = (event) => {
       if (event.data.redraw) {
         const now = Date.now();
         if (now - lastRedraw >= REDRAW_INTERVAL_MS) {
@@ -173,7 +172,7 @@ export class RadarRenderService {
         lastHeading === undefined ||
         Math.abs(state.heading - lastHeading) > 0.5
       ) {
-        this.worker.postMessage({
+        worker.postMessage({
           heading: state.heading
         });
         lastHeading = state.heading;

@@ -69,12 +69,12 @@ export function cpaShapes(t: CpaTarget): CpaShapes {
   standalone: false
 })
 export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features: Array<Feature> = [];
   protected rings: Array<Feature> = [];
   private flashOn = true;
-  private flashTimer: ReturnType<typeof setInterval>;
+  private flashTimer?: ReturnType<typeof setInterval>;
 
   /**
    * This event is triggered after the layer is initialized
@@ -82,15 +82,15 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() cpaTargets: Array<CpaTarget>;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() cpaTargets?: Array<CpaTarget>;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -149,7 +149,7 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 

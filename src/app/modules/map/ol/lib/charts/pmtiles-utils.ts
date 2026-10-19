@@ -37,6 +37,9 @@ export function initPMTilesWebGLLayer(
     y: number
   ): Promise<HTMLImageElement> {
     const response = await tiles.getZxy(z, x, y);
+    if (!response) {
+      throw new Error(`No PMTiles tile at ${z}/${x}/${y}`);
+    }
     const blob = new Blob([response.data]);
     const src = URL.createObjectURL(blob);
     const image = await loadImage(src);
@@ -69,7 +72,8 @@ export function initPMTilesXYZLayer(
     // the URL construction is done internally by OL, so we need to parse it
     // back out here using a hacky regex
     const re = new RegExp(/pmtiles:\/\/(.+)\/(\d+)\/(\d+)\/(\d+)/);
-    const result = url.match(re);
+    // OL builds the url from this source's own pmtiles:// template
+    const result = url.match(re)!;
     const z = +result[2];
     const x = +result[3];
     const y = +result[4];
@@ -126,7 +130,8 @@ export function initPMTilesVectorLayer(
     // the URL construction is done internally by OL, so we need to parse it
     // back out here using a hacky regex
     const re = new RegExp(/pmtiles:\/\/(.+)\/(\d+)\/(\d+)\/(\d+)/);
-    const result = url.match(re);
+    // OL builds the url from this source's own pmtiles:// template
+    const result = url.match(re)!;
     const z = +result[2];
     const x = +result[3];
     const y = +result[4];

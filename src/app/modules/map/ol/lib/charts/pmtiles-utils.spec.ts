@@ -17,7 +17,7 @@ import { SKChart } from 'src/app/modules/skresources/resource-classes';
  * loaded or failed, or every tile viewed stays in memory for the session.
  */
 describe('PMTiles tile loaders', () => {
-  const proj = getProjection('EPSG:3857');
+  const proj = getProjection('EPSG:3857')!;
   const chart = new SKChart({ url: 'https://c.test/chart.pmtiles' });
   const tileData = { data: new ArrayBuffer(8) } as pmtiles.RangeResponse;
 

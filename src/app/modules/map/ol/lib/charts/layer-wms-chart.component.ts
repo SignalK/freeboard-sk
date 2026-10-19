@@ -34,12 +34,12 @@ import {
   standalone: false
 })
 export class WmsChartLayerComponent implements OnDestroy {
-  protected chart = input<FBChart>();
-  protected zIndex = input<number>();
+  protected chart = input.required<FBChart>();
+  protected zIndex = input.required<number>();
   protected overZoomTiles = input<boolean>(true);
   protected mapMaxZoom = input<number>();
 
-  private layer: TileLayer;
+  private layer?: TileLayer;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
@@ -50,7 +50,7 @@ export class WmsChartLayerComponent implements OnDestroy {
   private mapService = inject(MapService);
 
   private map: Map;
-  private featureUrl: string = undefined;
+  private featureUrl?: string;
 
   constructor() {
     this.changeDetectorRef.detach();
@@ -64,12 +64,15 @@ export class WmsChartLayerComponent implements OnDestroy {
     });
     effect(() => {
       const ev = this.mapComponent.pointerDownSignal();
-      if (!ev) {
+      if (!ev || !this.layer) {
         return;
       }
       const view = this.map.getView();
       const prj = view.getProjection();
       const resolution = view.getResolution();
+      if (resolution === undefined) {
+        return;
+      }
       const coord = this.map.getEventCoordinate(ev);
       const src: TileWMS = this.layer.getSource() as TileWMS;
       this.featureUrl = src.getFeatureInfoUrl(coord, resolution, prj, {
@@ -138,8 +141,8 @@ export class WmsChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
       this.layer.setZIndex(this.zIndex());
-      this.layer.setMinZoom(zoom.min);
-      this.layer.setMaxZoom(zoom.max);
+      this.layer.setMinZoom(zoom.min ?? -Infinity);
+      this.layer.setMaxZoom(zoom.max ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
       const src = this.layer.getSource() as TileWMS;

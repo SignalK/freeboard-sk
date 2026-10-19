@@ -29,26 +29,26 @@ import { AlertData } from 'src/app/modules/alarms';
   standalone: false
 })
 export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features: Array<Feature> = [];
 
   /**
    * This event is triggered after the layer is initialized
    * Use this to have access to the layer and some helper functions
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-  @Input() alarms: Array<[string, AlertData]>;
+  @Input({ required: true }) alarms!: Array<[string, AlertData]>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() alarmStyles: { [key: string]: any };
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() alarmStyles?: { [key: string]: any };
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -99,21 +99,17 @@ export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
   parseValues() {
     const fa: Feature[] = [];
     this.alarms.forEach((alarm: [string, AlertData]) => {
-      if (!alarm || !alarm[1].properties.position) return;
+      const position = alarm?.[1].properties?.position;
+      if (!position) return;
       const fp = new Feature({
-        geometry: new Point(
-          fromLonLat([
-            alarm[1].properties.position.longitude,
-            alarm[1].properties.position.latitude
-          ])
-        )
+        geometry: new Point(fromLonLat([position.longitude, position.latitude]))
       });
       fp.setStyle(this.buildStyle(alarm[1].type));
       fp.setId(`alarm.${alarm[1].path}`);
@@ -124,8 +120,8 @@ export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildStyle(key: string): Style {
-    if (this.alarmStyles && this.alarmStyles[key]) {
+  buildStyle(key: string | undefined): Style {
+    if (key && this.alarmStyles && this.alarmStyles[key]) {
       return this.alarmStyles[key];
     } else {
       if (this.layerProperties && this.layerProperties.style) {

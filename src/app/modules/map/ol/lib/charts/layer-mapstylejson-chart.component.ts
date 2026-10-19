@@ -23,10 +23,10 @@ import { applyMapStyle, extentFromBounds } from './chart-utils';
   standalone: false
 })
 export class MapStyleJsonChartLayerComponent implements OnDestroy {
-  protected chart = input<FBChart>();
-  protected zIndex = input<number>();
+  protected chart = input.required<FBChart>();
+  protected zIndex = input.required<number>();
 
-  private layer: LayerGroup;
+  private layer?: LayerGroup;
   private stopRecovery?: () => void;
   private destroyed = false;
   private changeDetectorRef = inject(ChangeDetectorRef);
