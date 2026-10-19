@@ -58,9 +58,11 @@ export interface StreamOptions {
 @Injectable({ providedIn: 'root' })
 export class SKStreamFacade {
   // **************** ATTRIBUTES ***************************
-  private onConnect: Subject<UpdateMessage> = new Subject();
-  private onClose: Subject<UpdateMessage> = new Subject();
-  private onError: Subject<UpdateMessage> = new Subject();
+  // open carries the socket's readyState, close whether it was closed by
+  // command, and error a description.
+  private onConnect: Subject<UpdateMessage<number>> = new Subject();
+  private onClose: Subject<UpdateMessage<boolean>> = new Subject();
+  private onError: Subject<UpdateMessage<string>> = new Subject();
   private onMessage: Subject<UpdateMessage> = new Subject();
   private onSelfTrail: Subject<{
     action: 'get';
@@ -141,7 +143,9 @@ export class SKStreamFacade {
     private settings: SettingsFacade
   ) {
     // ** SIGNAL K STREAM **
-    this.worker.message$().subscribe((msg: UpdateMessage | TrailMessage) => {
+    // The result's type depends on the action, so it is unknown until the
+    // action has been checked.
+    this.worker.message$().subscribe((msg: UpdateMessage<unknown>) => {
       if (msg.action === 'open') {
         this.post({
           cmd: 'auth',
@@ -149,11 +153,11 @@ export class SKStreamFacade {
             token: this.app.getFBToken()
           }
         });
-        this.onConnect.next(msg);
+        this.onConnect.next(msg as UpdateMessage<number>);
       } else if (msg.action === 'close') {
-        this.onClose.next(msg);
+        this.onClose.next(msg as UpdateMessage<boolean>);
       } else if (msg.action === 'error') {
-        this.onError.next(msg);
+        this.onError.next(msg as UpdateMessage<string>);
       } else if (msg.action === 'trail') {
         this.parseSelfTrail(msg as TrailMessage);
       } else if (msg.action === 'aisTracksTimed') {
@@ -163,7 +167,7 @@ export class SKStreamFacade {
       } else if (msg.action === 'trackSource') {
         this.setTrackSource(msg.result as TrackSource);
       } else {
-        this.parseUpdateMessage(msg);
+        this.parseUpdateMessage(msg as UpdateMessage);
         this.watchDogAlarmSignal.update(() => msg.watchDogAlarm);
         this.onMessage.next(msg as UpdateMessage);
       }
@@ -190,13 +194,13 @@ export class SKStreamFacade {
     });
   }
   // ** SKStream WebSocket messages **
-  connect$(): Observable<UpdateMessage> {
+  connect$(): Observable<UpdateMessage<number>> {
     return this.onConnect.asObservable();
   }
-  close$(): Observable<UpdateMessage> {
+  close$(): Observable<UpdateMessage<boolean>> {
     return this.onClose.asObservable();
   }
-  error$(): Observable<UpdateMessage> {
+  error$(): Observable<UpdateMessage<string>> {
     return this.onError.asObservable();
   }
   delta$(): Observable<UpdateMessage> {
