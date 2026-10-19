@@ -1102,7 +1102,7 @@ export class SKResourceService {
     if (chart.serverType && !chart.type) {
       chart.type = chart.serverType;
     }
-    if (chart.type) {
+    if (chart.type && chart.url) {
       // ensure host is in url
       if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
         chart.url = this.app.hostDef.url + chart.url;
