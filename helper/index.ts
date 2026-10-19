@@ -7,9 +7,12 @@ import {
   SKVersion
 } from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
-import { initAlarms, shutdownAlarms } from './alarms/alarms';
+import { createRequire } from 'node:module';
+import { initAlarms, shutdownAlarms } from './alarms/alarms.js';
 
-import * as openapi from './openApi.json';
+// Import attributes for JSON need Node 18.20 / 20.10; require works on every
+// Node the engines range allows.
+const openapi = createRequire(import.meta.url)('./openApi.json') as object;
 
 //const defaultPollInterval = 60;
 
@@ -26,7 +29,7 @@ interface SETTINGS {
 
 export interface FreeboardHelperApp extends Application, ServerAPI {}
 
-module.exports = (server: FreeboardHelperApp): Plugin => {
+export default (server: FreeboardHelperApp): Plugin => {
   // ** default configuration settings
   let settings: SETTINGS = {
     alarms: {

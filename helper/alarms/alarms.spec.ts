@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { initAlarms, shutdownAlarms } from './alarms';
-import type { FreeboardHelperApp } from '../index';
+import { initAlarms, shutdownAlarms } from './alarms.js';
+import type { FreeboardHelperApp } from '../index.js';
 import type { Delta, Region } from '@signalk/server-api';
 
 // Regression guards for the initial region load in initAlarms():
