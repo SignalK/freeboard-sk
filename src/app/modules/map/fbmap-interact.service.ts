@@ -23,6 +23,7 @@ import { GeoJSONFeature } from 'ol/format/GeoJSON';
 import { AlertData } from '../alarms';
 import { ActiveRoutePoint } from './route-point-pick';
 import type { PointMeta } from '../skresources/components/route-reorder.util';
+import type { ChartTarget } from './map-targets';
 
 export interface IPopover {
   id: string;
@@ -62,6 +63,8 @@ export interface IPopover {
     route?: Position[];
   };
   readOnly: boolean;
+  /** The target extension actions apply to (plotterext capability `actions`). */
+  target?: ChartTarget;
 }
 
 export interface MeasurementDef {

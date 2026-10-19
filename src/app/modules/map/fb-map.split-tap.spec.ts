@@ -40,6 +40,10 @@ const bareComponent = (secondPane: OlMap | null) => {
   // Stands in for a tap on a feature: it opens that feature's popover.
   cmp.processMapClick = vi.fn(() => cmp.formatPopover('s57.x', [23.5, 60.1]));
   cmp.pinCursorAtTap = vi.fn();
+  cmp.plotterExt = {
+    addableCellAt: (): null => null,
+    actionsFor: (): unknown[] => []
+  };
   return cmp;
 };
 
@@ -258,7 +262,6 @@ describe('FBMapComponent: taps on the split view second pane', () => {
     cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
     cmp.contextMenu = { openMenu: vi.fn(), closeMenu: vi.fn(), menuData: null };
     cmp.contextMenuPosition = { x: '0px', y: '0px' };
-    cmp.plotterExt = { addableCellAt: (): null => null };
     cmp.modifyMode = false;
     const backdrop = document.createElement('div');
     backdrop.className = 'cdk-overlay-backdrop';
@@ -278,7 +281,11 @@ describe('FBMapComponent: taps on the split view second pane', () => {
     expect(cmp.contextMenu.openMenu).toHaveBeenCalled();
     // "Add Note here" goes by the zoom of the pane the menu opened on.
     expect(cmp.menuZoom()).toBe(15);
-    expect(cmp.contextMenu.menuData).toEqual({ item: [23.5, 60.1] });
+    expect(cmp.contextMenu.menuData).toEqual({
+      item: [23.5, 60.1],
+      host: true,
+      ext: []
+    });
     expect(cmp.contextMenuPosition).toEqual({ x: '300px', y: '200px' });
     expect(cmp.app.data.map.atClick.lonlat).toEqual([23.5, 60.1]);
   });

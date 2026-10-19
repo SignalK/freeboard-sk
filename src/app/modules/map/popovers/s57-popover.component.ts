@@ -478,6 +478,8 @@ const HEIGHT_KEYS = new Set(['HEIGHT', 'VERLEN', 'HORLEN', 'HORWID']);
       @if (displayProps.length === 0) {
         <div style="color: #888;">No details available</div>
       }
+      <!-- extension actions for this feature (plotterext actions) -->
+      <ng-content></ng-content>
     </ap-popover>
   `
 })

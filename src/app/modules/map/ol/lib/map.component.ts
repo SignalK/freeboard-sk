@@ -392,8 +392,10 @@ export class MapComponent implements OnInit, OnDestroy {
       this.indicatorShown = false;
       return;
     }
-    this.mapContextMenu.emit(src);
+    // The right-click first: it records what is under the finger, which the
+    // menu offers extension actions for.
     this.rightClickHandler(src);
+    this.mapContextMenu.emit(src);
   };
   // Show the delete-progress indicator over a grabbed vertex, its bar timed to
   // fill for the remainder of the hold. Triggered by the native long-press

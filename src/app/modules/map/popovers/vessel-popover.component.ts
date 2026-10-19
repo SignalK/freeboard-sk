@@ -283,6 +283,8 @@ import {
           </div>
         </div>
       </div>
+      <!-- extension actions for this feature (plotterext actions) -->
+      <ng-content></ng-content>
     </ap-popover>
   `,
   styleUrls: []

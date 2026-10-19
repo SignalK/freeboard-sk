@@ -82,6 +82,15 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { GuardZoneEditService } from 'src/app/modules/radar/guard-zone-edit.service';
 import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import { ExtActionsComponent } from 'src/app/modules/plotterext/ext-actions.component';
+import type { UsableAction } from 'src/app/modules/plotterext/actions';
+import {
+  type ChartTarget,
+  chartFeatureTarget,
+  featureTarget,
+  positionTarget,
+  type TargetSources
+} from './map-targets';
 import {
   SecondaryTap,
   SplitViewService
@@ -295,6 +304,7 @@ const OFFSET_GRACE_PERIOD = 2000;
     MatCardModule,
     MatMenuModule,
     FreeboardOpenlayersModule,
+    ExtActionsComponent,
     PopoverComponent,
     FeatureListPopoverComponent,
     ChartListPopoverComponent,
@@ -954,6 +964,85 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** The user chose an extension action from the chart context menu. */
+  protected onExtensionAction(a: UsableAction, target: ChartTarget) {
+    this.plotterExt.invokeAction(a.extension, a.action.id, target);
+  }
+
+  /** Where the map finds what a target is made from (capability `actions`). */
+  private get targetSources(): TargetSources {
+    return {
+      waypoint: (id) => this.skres.fromCache('waypoints', id),
+      note: (id) => this.skres.fromCache('notes', id),
+      route: (id) => this.skres.fromCache('routes', id),
+      region: (id) => this.skres.fromCache('regions', id),
+      track: (id) => this.skres.fromCache('tracks', id),
+      draftRoute: (routeId) => this.getUnsavedRouteBuffer(routeId),
+      visibleRouteId: (id) => this.routeBuffers.getForRoute(id)?.routeId,
+      self: () => this.dfeat.self,
+      vessel: (context) => this.dfeat.ais.get(context),
+      aton: (context) => this.app.data.atons.get(context)
+    };
+  }
+
+  /**
+   * The targets of the features under a right-click or long-press, once each,
+   * in hit order: the map's own features by id, S-57 chart features by their
+   * tile properties.
+   */
+  private targetsAt(features: FeatureLike[], at: Position): ChartTarget[] {
+    const seen = new Set<string>();
+    const targets: ChartTarget[] = [];
+    for (const feature of features) {
+      const id = feature.getId();
+      let key: string;
+      let target: ChartTarget | null = null;
+      if (id && typeof id === 'string') {
+        key = id;
+        if (!seen.has(key)) target = featureTarget(id, at, this.targetSources);
+      } else {
+        const props = feature.getProperties?.() ?? {};
+        if (!props['RCID'] || !S57_CLICKABLE_LAYERS.has(props['layer'])) {
+          continue;
+        }
+        key = `s57.${props['LNAM']}`;
+        if (!seen.has(key)) target = chartFeatureTarget(props, at, feature);
+      }
+      seen.add(key);
+      if (target) targets.push(target);
+    }
+    return targets;
+  }
+
+  /** The target a feature popover shows, for its extension actions. */
+  private popoverTarget(id: string, at: Position): ChartTarget | undefined {
+    if (id.startsWith('s57.')) {
+      const props = this.s57Features[id];
+      return props
+        ? chartFeatureTarget(props, at, this.s57FeatureLikes[id])
+        : undefined;
+    }
+    return featureTarget(id, at, this.targetSources) ?? undefined;
+  }
+
+  /**
+   * Extension actions for a context request: each feature target under the
+   * pointer with its actions, then the position itself.
+   */
+  private extensionActionGroups(
+    features: FeatureLike[],
+    at: Position
+  ): Array<{ target: ChartTarget; actions: UsableAction[] }> {
+    const position = positionTarget(at);
+    position.label = 'This position';
+    return [...this.targetsAt(features, at), position]
+      .map((target) => ({
+        target,
+        actions: this.plotterExt.actionsFor(target)
+      }))
+      .filter((g) => g.actions.length > 0);
+  }
+
   /** Tell the stream worker the initial view: a fresh map emits no move-end
    * until the user moves it, and the AIS tracks request is scoped to the view. */
   protected onMapReady() {
@@ -1249,16 +1338,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.pointerDownAt = tap.pressedAt;
       this.onMapSingleClick(tap.event, tap.map);
     } else {
-      // No menu opens over an open popover: leave the tap where it was.
-      if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
+      const at = GeoUtils.normaliseCoords(tap.lonlat as Position);
+      // No menu, no move: leave the tap where it was.
+      if (!this.contextMenuContent(tap.features, at)) {
         return;
       }
       this.onMapRightClick(tap, tap.map);
-      this.onContextMenu(
-        tap.event,
-        GeoUtils.normaliseCoords(tap.lonlat as Position),
-        tap.zoom
-      );
+      this.onContextMenu(tap.event, at, tap.zoom);
     }
   }
 
@@ -1270,34 +1356,69 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected onContextMenu(e: MouseEvent, at?: Position, zoom?: number) {
     this.app.debug(`onContextMenu()`, this.app.data.map.atClick);
     this.menuZoom.set(zoom ?? this.mapZoomLevel());
-    if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
+    if (!at && !this.mouse().xy) {
       return;
     }
+    const where = at ?? this.mouse().coords;
+    const content = this.contextMenuContent(
+      this.app.data.map.atClick?.features ?? [],
+      where
+    );
+    if (!content) {
+      return;
+    }
+    const { host, ext } = content;
     e.preventDefault();
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
     // Resolve the click to an empty widget-anchor cell (desktop right-click
     // equivalent of the press-and-hold add gesture). Null when not over one.
-    this.addableWidgetCell = this.plotterExt.addableCellAt(
-      e.clientX,
-      e.clientY
-    );
-    this.contextMenu.menuData = { item: at ?? this.mouse().coords };
-    if (this.mapInteract.isMeasuring()) {
-      // The measure point is added by onMapRightClick, which fires alongside
-      // this handler with a valid lonlat; just suppress the context menu here.
-    } else if (!this.modifyMode) {
-      if (!at && !this.mouse().xy) {
-        return;
-      }
-      this.contextMenu.openMenu();
-      document
-        .getElementsByClassName('cdk-overlay-backdrop')[0]
-        .addEventListener('contextmenu', (offEvent) => {
-          offEvent.preventDefault(); // prevent default context menu for overlay
-          this.contextMenu.closeMenu();
-        });
+    this.addableWidgetCell = host
+      ? this.plotterExt.addableCellAt(e.clientX, e.clientY)
+      : null;
+    this.contextMenu.menuData = { item: where, host, ext };
+    this.contextMenu.openMenu();
+    document
+      .getElementsByClassName('cdk-overlay-backdrop')[0]
+      .addEventListener('contextmenu', (offEvent) => {
+        offEvent.preventDefault(); // prevent default context menu for overlay
+        this.contextMenu.closeMenu();
+      });
+  }
+
+  /**
+   * What a context menu at `at` shows, or null when none opens. No menu
+   * during a modal interaction (the measure point is added by
+   * onMapRightClick, which fires alongside the menu). Freeboard's own items
+   * are left out in kiosk mode and over an open popover; extension actions
+   * are offered at every point, position actions included.
+   */
+  private contextMenuContent(
+    features: FeatureLike[],
+    at: Position
+  ): {
+    host: boolean;
+    ext: Array<{ target: ChartTarget; actions: UsableAction[] }>;
+  } | null {
+    if (this.isModalInteraction() || this.modifyMode) {
+      return null;
     }
+    const host = !this.app.uiCtrl().suppressContextMenu && !this.overlay().show;
+    const ext = this.extensionActionGroups(features, at);
+    return host || ext.length ? { host, ext } : null;
+  }
+
+  /**
+   * Whether the user is in a modal interaction — drawing, measuring, editing
+   * geometry, editing a guard zone — which no context menu interrupts.
+   */
+  private isModalInteraction(): boolean {
+    return (
+      this.mapInteract.isDrawing() ||
+      this.mapInteract.isMeasuring() ||
+      this.mapInteract.isModifying() ||
+      !!this.zoneEdit.edit()
+    );
   }
 
   /** process pointer click event when in measure mode */
@@ -1979,6 +2100,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Process pointer click in non-interaction mode */
   private processMapClick(e: FBClickEvent) {
     this.s57Features = {};
+    this.s57FeatureLikes = {};
     this.trackHistoryFeatures = {};
     const featureList: Map<string, FeatureListEntry> = new Map(); // features under pointer
     const chartBoundsFeatures: Map<string, FeatureListEntry> = new Map(); // chart bounds under pointer
@@ -2262,6 +2384,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           };
           text = S57_NAMES[props['layer']];
           this.s57Features[id] = props;
+          this.s57FeatureLikes[id] = feature;
         }
       }
 
@@ -2314,6 +2437,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private s57Features: Record<string, Record<string, string | number>> = {};
+  /** The S-57 features themselves, for a point feature's position. */
+  private s57FeatureLikes: Record<string, FeatureLike> = {};
   private trackHistoryFeatures: Record<string, TrackHistoryFeature> = {};
   private wholeTrackSub?: Subscription;
   private passageSub?: Subscription;
@@ -2353,7 +2478,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // stays canonical; this only shifts where it renders (#572).
       worldOffset: this.clickWorldOffset,
       readOnly: false,
-      isSelf: false
+      isSelf: false,
+      target: this.popoverTarget(id, coord)
     };
 
     let item;
