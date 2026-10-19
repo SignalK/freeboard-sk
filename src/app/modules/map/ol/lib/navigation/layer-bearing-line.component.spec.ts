@@ -209,3 +209,39 @@ describe('BearingLineComponent marker drag', () => {
     expect(target.style.cursor).toBe('crosshair');
   });
 });
+
+describe('BearingLineComponent destination marker', () => {
+  const map = {
+    addLayer: vi.fn(),
+    removeLayer: vi.fn(),
+    render: vi.fn(),
+    addInteraction: vi.fn(),
+    removeInteraction: vi.fn(),
+    getTargetElement: (): null => null
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [BearingLineComponent],
+      providers: [{ provide: MapComponent, useValue: { getMap: () => map } }]
+    }).compileComponents();
+  });
+
+  function markerDrawn(showMarker: boolean): boolean {
+    const fixture = TestBed.createComponent(BearingLineComponent);
+    fixture.componentRef.setInput('vesselPosition', [-80.5, 25.0]);
+    fixture.componentRef.setInput('markerPosition', [-80.4, 25.1]);
+    fixture.componentRef.setInput('showMarker', showMarker);
+    fixture.detectChanges();
+    return !!fixture.componentInstance.source.getFeatureById('dest.point');
+  }
+
+  it('draws the marker when asked to', () => {
+    expect(markerDrawn(true)).toBe(true);
+  });
+
+  // a destination that is a waypoint already shows the waypoint's icon
+  it('leaves the marker out when not asked to', () => {
+    expect(markerDrawn(false)).toBe(false);
+  });
+});

@@ -224,7 +224,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
           fa.push(fr);
         }
       }
-      if (this.showMarker) {
+      if (this.showMarker()) {
         fp = new Feature({
           geometry: new Point(fromLonLat(this.markerPosition()))
         });
