@@ -25,13 +25,13 @@ import { Coordinate } from './models';
   standalone: false
 })
 export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
-  protected overlay: Overlay;
-  public element: HTMLElement;
+  protected overlay?: Overlay;
+  public element?: HTMLElement;
 
-  @Input() id: number | string;
-  @Input() className: string;
-  @Input() offset: number[];
-  @Input() position: Coordinate;
+  @Input() id?: number | string;
+  @Input() className?: string;
+  @Input() offset?: number[];
+  @Input() position?: Coordinate;
   /**
    * Render-space offset (EPSG:3857 metres) of the world copy to draw this
    * overlay in. `position` is canonical lon/lat; this shifts only the drawn
@@ -39,9 +39,9 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
    * looking at. Defaults to the primary world.
    */
   @Input() worldOffset = 0;
-  @Input() positioning: string;
-  @Input() stopEvent: boolean;
-  @Input() insertFirst: boolean;
+  @Input() positioning?: string;
+  @Input() stopEvent?: boolean;
+  @Input() insertFirst?: boolean;
   /**
    * The map to show the overlay on, when not the one it is declared in: a
    * popover for a tap on the split view's second pane opens in that pane.
@@ -55,8 +55,8 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
    * or below) re-measures on it.
    */
   readonly repositioned = new Subject<void>();
-  private moveEndKey: EventsKey;
-  private shownOn: OlMap;
+  private moveEndKey?: EventsKey;
+  private shownOn?: OlMap;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -75,28 +75,33 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   ngOnInit() {
     if (this.elementRef.nativeElement) {
       this.element = this.elementRef.nativeElement;
-      this.overlay = new Overlay(this as Options);
-      this.showOn(this.targetMap ?? this.mapComponent.getMap());
+      const overlay = new Overlay(this as Options);
+      this.overlay = overlay;
+      this.showOn(overlay, this.targetMap ?? this.mapComponent.getMap());
       if (this.position) {
-        this.overlay.setPosition(this.toWorldPosition(this.position));
+        overlay.setPosition(this.toWorldPosition(this.position));
       }
     }
   }
 
   ngOnDestroy() {
-    unByKey(this.moveEndKey);
+    if (this.moveEndKey) {
+      unByKey(this.moveEndKey);
+    }
     this.repositioned.complete();
     if (this.overlay) {
       this.shownOn?.removeOverlay(this.overlay);
-      this.overlay = null;
+      this.overlay = undefined;
     }
   }
 
-  private showOn(map: OlMap) {
-    unByKey(this.moveEndKey);
-    this.shownOn?.removeOverlay(this.overlay);
+  private showOn(overlay: Overlay, map: OlMap) {
+    if (this.moveEndKey) {
+      unByKey(this.moveEndKey);
+    }
+    this.shownOn?.removeOverlay(overlay);
     this.shownOn = map;
-    map.addOverlay(this.overlay);
+    map.addOverlay(overlay);
     // moveend is dispatched before postrender, and the overlay only moves
     // to its new screen position on postrender, so signal after that.
     this.moveEndKey = map.on('moveend', () =>
@@ -108,7 +113,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
     if (this.overlay && changes.targetMap) {
       const map = this.targetMap ?? this.mapComponent.getMap();
       if (map !== this.shownOn) {
-        this.showOn(map);
+        this.showOn(this.overlay, map);
         this.repositioned.next();
       }
     }
@@ -122,6 +127,6 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   panIntoView(panIntoViewOptions: PanIntoViewOptions) {
-    this.overlay.panIntoView(panIntoViewOptions);
+    this.overlay?.panIntoView(panIntoViewOptions);
   }
 }

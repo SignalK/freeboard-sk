@@ -30,8 +30,11 @@ import { LightTheme, DarkTheme } from './themes';
   standalone: false
 })
 export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
+  protected layer?: Layer;
+  // Created in ngOnInit. The first ngOnChanges runs before it, so subclasses
+  // check for it there; it stays non-optional so the layers built on this
+  // class keep compiling unchanged (#869).
+  public source!: VectorSource;
   protected theme = LightTheme;
   protected labelPrefixes: string[] = [];
 
@@ -44,14 +47,14 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() darkMode = false;
   @Input() labelMinZoom = 10;
   @Input() mapZoom = 10;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: Record<string, any>;
+  @Input() layerProperties?: Record<string, any>;
 
   constructor(
     protected mapComponent: MapComponent,
@@ -107,7 +110,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
@@ -181,7 +184,7 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
    * @param text string containing
    */
   setTextLabel(style: Style, text: string): Style {
-    let ts: Text;
+    let ts: Text | null | undefined;
     if (!style || typeof style === 'function') {
       return style;
     } else if (Array.isArray(style)) {

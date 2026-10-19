@@ -167,7 +167,7 @@ describe('DataOverlayComponent', () => {
       1,
       getProjection('EPSG:3857')!
     );
-    lines.getRenderer().getTileCache().set('12/0/0', drawn);
+    lines.getRenderer()!.getTileCache().set('12/0/0', drawn);
     expect(drawn.getState()).toBe(TileState.IDLE);
 
     model.setLayer({

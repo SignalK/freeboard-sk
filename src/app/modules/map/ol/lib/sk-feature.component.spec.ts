@@ -28,7 +28,7 @@ describe('FBFeatureLayerComponent: layer properties', () => {
       )
     });
 
-    expect(c['layer'].getMinZoom()).toBe(7.9);
+    expect(c['layer']?.getMinZoom()).toBe(7.9);
   });
 
   it('applies them alongside the other inputs that changed', () => {
@@ -43,7 +43,7 @@ describe('FBFeatureLayerComponent: layer properties', () => {
       )
     });
 
-    expect(c['layer'].getZIndex()).toBe(450);
-    expect(c['layer'].getMinZoom()).toBe(7.9);
+    expect(c['layer']?.getZIndex()).toBe(450);
+    expect(c['layer']?.getMinZoom()).toBe(7.9);
   });
 });

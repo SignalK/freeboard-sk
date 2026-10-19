@@ -150,9 +150,9 @@ function emptyTile(size: number): HTMLCanvasElement {
 })
 export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
   /** `<extension>/<overlay id>` */
-  @Input() overlayKey: string;
-  @Input() model: DataOverlayModel;
-  @Input() zIndex: number;
+  @Input({ required: true }) overlayKey!: string;
+  @Input({ required: true }) model!: DataOverlayModel;
+  @Input({ required: true }) zIndex!: number;
   @Input() opacity = 1;
   @Input() minZoom: number | undefined;
   @Input() maxZoom: number | undefined;

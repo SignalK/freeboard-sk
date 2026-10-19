@@ -38,9 +38,9 @@ export class ViewFootprintComponent implements OnInit, OnChanges, OnDestroy {
    * repeat). Drawn only, never stored.
    */
   @Input() ring: Coordinate[] | null = null;
-  @Input() zIndex: number;
+  @Input() zIndex?: number;
 
-  private layer: VectorLayer<VectorSource>;
+  private layer?: VectorLayer<VectorSource>;
   private feature = new Feature();
   /** Kept: the map is gone from its component by the time this one goes. */
   private map: OlMap | null = null;
@@ -67,7 +67,7 @@ export class ViewFootprintComponent implements OnInit, OnChanges, OnDestroy {
     if (changes.ring) {
       this.applyRing();
     }
-    if (changes.zIndex && this.layer) {
+    if (changes.zIndex && this.layer && this.zIndex !== undefined) {
       this.layer.setZIndex(this.zIndex);
     }
   }
@@ -76,14 +76,14 @@ export class ViewFootprintComponent implements OnInit, OnChanges, OnDestroy {
     if (this.layer) {
       this.map?.removeLayer(this.layer);
       this.layer.dispose();
-      this.layer = null;
+      this.layer = undefined;
     }
     this.map = null;
   }
 
   private applyRing() {
     this.feature.setGeometry(
-      this.ring?.length > 3 ? new Polygon([this.ring]) : undefined
+      this.ring && this.ring.length > 3 ? new Polygon([this.ring]) : undefined
     );
   }
 }

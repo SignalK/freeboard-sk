@@ -24,7 +24,7 @@ describe('ViewDirective: settled view changes', () => {
     directive.zoomChange.subscribe(emitted);
     directive.rotationChange.subscribe(emitted);
     const moveView = () => {
-      const view = directive.getView();
+      const view = directive.getView()!;
       view.setCenter([1000, 0]);
       view.setZoom(5);
       view.setRotation(0.3);

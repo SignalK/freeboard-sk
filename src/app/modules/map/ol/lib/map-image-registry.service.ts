@@ -85,14 +85,14 @@ export class MapImageRegistry {
     symbols: Object.create(null)
   };
 
-  private oceanCurrentArrowIcon: Icon;
-  private tidalCurrentArrowIcon: Icon;
+  private oceanCurrentArrowIcon?: Icon;
+  private tidalCurrentArrowIcon?: Icon;
 
   /** Definitions for external symbols registered by SymbolService. */
   private symbolDefs: { [ref: string]: MapIconDef } = Object.create(null);
 
   /** Cached built-in wind arrow (used when no provider override exists). */
-  private windArrowIcon: Icon;
+  private windArrowIcon?: Icon;
 
   private atonImageDefs: { virtual: MapIconDefs; real: MapIconDefs } = {
     virtual: {},

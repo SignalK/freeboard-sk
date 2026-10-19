@@ -31,7 +31,7 @@ export class ViewDirective
   private timerZoomId: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timerRotationId: any;
-  private view: View;
+  private view?: View;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private viewProperties: { [index: string]: any } = {};
 
@@ -41,22 +41,22 @@ export class ViewDirective
   @Output() zoomChange: EventEmitter<number> = new EventEmitter<number>();
 
   @Input() enableAnimation = false;
-  @Input() constrainRotation: boolean | number;
-  @Input() constrainResolution: boolean;
-  @Input() enableRotation: boolean;
-  @Input() extent: Extent;
-  @Input() maxResolution: number;
-  @Input() minResolution: number;
-  @Input() maxZoom: number;
-  @Input() minZoom: number;
-  @Input() multiWorld: boolean;
-  @Input() resolution: number;
-  @Input() resolutions: number[];
-  @Input() rotation: number;
-  @Input() zoom: number;
-  @Input() zoomFactor: number;
-  @Input() center: Coordinate;
-  @Input() projection: ProjectionLike;
+  @Input() constrainRotation?: boolean | number;
+  @Input() constrainResolution?: boolean;
+  @Input() enableRotation?: boolean;
+  @Input() extent?: Extent;
+  @Input() maxResolution?: number;
+  @Input() minResolution?: number;
+  @Input() maxZoom?: number;
+  @Input() minZoom?: number;
+  @Input() multiWorld?: boolean;
+  @Input() resolution?: number;
+  @Input() resolutions?: number[];
+  @Input() rotation?: number;
+  @Input() zoom?: number;
+  @Input() zoomFactor?: number;
+  @Input() center?: Coordinate;
+  @Input() projection?: ProjectionLike;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -66,18 +66,19 @@ export class ViewDirective
   }
 
   ngOnInit() {
-    this.view = new View(this.viewProperties);
-    this.view.setRotation(this.rotation ?? 0);
+    const view = new View(this.viewProperties);
+    this.view = view;
+    view.setRotation(this.rotation ?? 0);
     const map = this.mapComponent.getMap();
     if (map) {
-      map.setView(this.view);
+      map.setView(view);
       map.updateSize();
     }
   }
 
   ngAfterViewInit() {
     const map = this.mapComponent.getMap();
-    if (map) {
+    if (map && this.view) {
       // register view events
       this.view.on('change:center', this.emitCenterChange);
       this.view.on('change:resolution', this.emitZoomChange);
@@ -153,7 +154,7 @@ export class ViewDirective
     this.view.un('change:rotation', this.emitRotationChange);
   }
 
-  getView(): View {
+  getView(): View | undefined {
     return this.view;
   }
 
@@ -161,45 +162,51 @@ export class ViewDirective
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private emitCenterChange = (e: any) => {
     clearTimeout(this.timerCenterId);
-    this.timerCenterId = setTimeout(
-      () =>
-        this.centerChange.emit(
-          Object.assign(e, {
-            lonlat: toLonLat(this.view.getCenter()),
-            zoom: this.view.getZoom(),
-            extent: transformExtent(
-              this.view.calculateExtent(this.mapComponent.getMap().getSize()),
-              this.view.getProjection().getCode(),
-              'EPSG:4326'
-            ),
-            projCode: this.view.getProjection().getCode(),
-            key: e.target.get(e.key)
-          })
-        ),
-      animateDuration + 10
-    );
+    this.timerCenterId = setTimeout(() => {
+      const view: View = e.target;
+      const center = view.getCenter();
+      if (!center) {
+        return;
+      }
+      this.centerChange.emit(
+        Object.assign(e, {
+          lonlat: toLonLat(center),
+          zoom: view.getZoom(),
+          extent: transformExtent(
+            view.calculateExtent(this.mapComponent.getMap().getSize()),
+            view.getProjection().getCode(),
+            'EPSG:4326'
+          ),
+          projCode: view.getProjection().getCode(),
+          key: e.target.get(e.key)
+        })
+      );
+    }, animateDuration + 10);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private emitZoomChange = (e: any) => {
     clearTimeout(this.timerZoomId);
-    this.timerZoomId = setTimeout(
-      () =>
-        this.zoomChange.emit(
-          Object.assign(e, {
-            lonlat: toLonLat(this.view.getCenter()),
-            zoom: this.view.getZoom(),
-            extent: transformExtent(
-              this.view.calculateExtent(this.mapComponent.getMap().getSize()),
-              this.view.getProjection().getCode(),
-              'EPSG:4326'
-            ),
-            projCode: this.view.getProjection().getCode(),
-            key: e.target.get(e.key)
-          })
-        ),
-      animateDuration + 10
-    );
+    this.timerZoomId = setTimeout(() => {
+      const view: View = e.target;
+      const center = view.getCenter();
+      if (!center) {
+        return;
+      }
+      this.zoomChange.emit(
+        Object.assign(e, {
+          lonlat: toLonLat(center),
+          zoom: view.getZoom(),
+          extent: transformExtent(
+            view.calculateExtent(this.mapComponent.getMap().getSize()),
+            view.getProjection().getCode(),
+            'EPSG:4326'
+          ),
+          projCode: view.getProjection().getCode(),
+          key: e.target.get(e.key)
+        })
+      );
+    }, animateDuration + 10);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

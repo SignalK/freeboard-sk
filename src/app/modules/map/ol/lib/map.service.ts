@@ -38,8 +38,8 @@ export class MapService {
   /**
    * Returns a map object from the maps array
    */
-  getMapById(id: string): Map {
-    let map: Map = null;
+  getMapById(id: string): Map | null {
+    let map: Map | null = null;
     for (let i = 0; i < this.maps.length; i++) {
       if (this.maps[i].getTarget() === id) {
         map = this.maps[i];
@@ -49,8 +49,8 @@ export class MapService {
     return map;
   }
 
-  getLayerByKey(key: string, value: string): BaseLayer {
-    let tl: BaseLayer;
+  getLayerByKey(key: string, value: string): BaseLayer | undefined {
+    let tl: BaseLayer | undefined;
     this.maps.forEach((map) => {
       map.getLayers().forEach((layer) => {
         if (layer.get(key) === value) {
@@ -99,7 +99,7 @@ export class MapService {
       register(proj4);
       projection = getProj(epsg);
       if (extent) {
-        projection.setExtent(extent);
+        projection?.setExtent(extent);
       }
     }
     if (!projection) {

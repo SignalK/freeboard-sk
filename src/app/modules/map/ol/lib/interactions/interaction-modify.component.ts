@@ -112,7 +112,7 @@ export class InteractionModifyComponent {
     this.changeDetectorRef.detach();
   }
 
-  @Input() features: Collection<Feature<Geometry>>;
+  @Input({ required: true }) features!: Collection<Feature<Geometry>>;
   /** Snap dragged vertices to the waypoints shown on the map. */
   @Input() snapToWaypoints = false;
 
@@ -120,8 +120,9 @@ export class InteractionModifyComponent {
   @Output() modifyStart: EventEmitter<ModifyEvent> = new EventEmitter();
   @Output() modifyEnd: EventEmitter<ModifyEvent> = new EventEmitter();
 
-  private map: Map;
-  private interaction: Modify;
+  // Set in ngAfterViewInit; the parent map exists from its own ngOnInit.
+  private map!: Map;
+  private interaction: Modify | null = null;
 
   ngAfterViewInit() {
     this.map = this.mapComponent.getMap();
@@ -129,10 +130,14 @@ export class InteractionModifyComponent {
   }
 
   ngOnDestroy() {
-    this.map.removeInteraction(this.interaction);
-    this.interaction.un('change', this.emitChangeEvent);
-    this.interaction.un('modifystart', this.emitModifyStartEvent);
-    this.interaction.un('modifyend', this.emitModifyEndEvent);
+    const interaction = this.interaction;
+    if (!interaction) {
+      return;
+    }
+    this.map.removeInteraction(interaction);
+    interaction.un('change', this.emitChangeEvent);
+    interaction.un('modifystart', this.emitModifyStartEvent);
+    interaction.un('modifyend', this.emitModifyEndEvent);
     this.interaction = null;
   }
 
