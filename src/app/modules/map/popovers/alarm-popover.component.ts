@@ -107,7 +107,7 @@ export class AlarmPopoverComponent {
   info = output<string>();
   goto = output<Position>();
   closed = output<void>();
-  _title: string;
+  _title?: string;
 
   protected app = inject(AppFacade);
 
@@ -130,14 +130,19 @@ export class AlarmPopoverComponent {
   }
 
   handleInfo() {
-    this.info.emit(this.alarm().path);
+    const alarm = this.alarm();
+    if (!alarm) {
+      return;
+    }
+    this.info.emit(alarm.path);
   }
 
   handleGoto() {
-    this.goto.emit([
-      this.alarm().properties.position.longitude,
-      this.alarm().properties.position.latitude
-    ]);
+    const position = this.alarm()?.properties?.position;
+    if (!position) {
+      return;
+    }
+    this.goto.emit([position.longitude, position.latitude]);
   }
   handleClose() {
     this.closed.emit();

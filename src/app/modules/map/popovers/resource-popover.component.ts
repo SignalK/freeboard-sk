@@ -352,7 +352,7 @@ export class ResourcePopoverComponent {
 
   protected _title = linkedSignal(() => this.title());
 
-  properties: Array<PopoverProperty>; // ** resource properties
+  properties: Array<PopoverProperty> = []; // ** resource properties
   ctrl: PopoverCtrl = {
     showInfoButton: false,
     showModifyButton: false,
@@ -371,7 +371,7 @@ export class ResourcePopoverComponent {
     modifyLabel: 'MOVE'
   };
   protected hasMarkdown = signal<boolean>(false);
-  protected icon: AppIconDef;
+  protected icon?: AppIconDef;
   protected app = inject(AppFacade);
 
   constructor() {
@@ -412,6 +412,8 @@ export class ResourcePopoverComponent {
     }
   }
 
+  // The host opens this popover only for a resource it has found, so the
+  // parse*() methods and emitRelated() can rely on resource() being set.
   private parse() {
     if (this.type() === 'destination') {
       this.parseDestination();
@@ -431,7 +433,7 @@ export class ResourcePopoverComponent {
   }
 
   private parseDestination() {
-    const wpt = this.resource()[1] as SKWaypoint;
+    const wpt = this.resource()![1] as SKWaypoint;
     this.icon = undefined;
     this.ctrl.isActive = this.app.data.activeRoute ? false : true;
     this.ctrl.activeText = 'GO TO';
@@ -457,10 +459,10 @@ export class ResourcePopoverComponent {
   }
 
   private parseWaypoint() {
-    const wpt = this.resource()[1] as SKWaypoint;
+    const wpt = this.resource()![1] as SKWaypoint;
     this.ctrl.isReadOnly = wpt.feature.properties?.readOnly;
     this.ctrl.isActive =
-      this.active() && this.active() === this.resource()[0] ? true : false;
+      this.active() && this.active() === this.resource()![0] ? true : false;
     this.ctrl.activeText = 'GO TO';
     this.ctrl.canActivate = true;
     this.ctrl.showInfoButton = true;
@@ -485,10 +487,10 @@ export class ResourcePopoverComponent {
   }
 
   private parseRoute() {
-    const rte = this.resource()[1] as SKRoute;
+    const rte = this.resource()![1] as SKRoute;
     this.ctrl.isReadOnly = rte.feature.properties?.readOnly;
     this.ctrl.isActive =
-      this.active() && this.active() === this.resource()[0] ? true : false;
+      this.active() && this.active() === this.resource()![0] ? true : false;
     this.ctrl.activeText = 'START';
     this.ctrl.canActivate = true;
     this.ctrl.showInfoButton = true;
@@ -514,7 +516,7 @@ export class ResourcePopoverComponent {
   }
 
   private parseNote() {
-    const note = this.resource()[1] as SKNote;
+    const note = this.resource()![1] as SKNote;
     this.ctrl.isReadOnly = note.properties?.readOnly;
     this.ctrl.isActive = false;
     this.ctrl.activeText = '';
@@ -541,7 +543,7 @@ export class ResourcePopoverComponent {
   }
 
   private parseRegion() {
-    const region = this.resource()[1] as SKRegion;
+    const region = this.resource()![1] as SKRegion;
     this.ctrl.isReadOnly = region.feature.properties?.readOnly;
     this.ctrl.isActive = false;
     this.ctrl.activeText = '';
@@ -613,7 +615,8 @@ export class ResourcePopoverComponent {
   }
 
   emitRelated() {
-    this.related.emit((this.resource()[1] as SKNote).group);
+    // RELATED is offered only for a note with a group (see parseNote)
+    this.related.emit((this.resource()![1] as SKNote).group!);
   }
 
   handleClose() {
@@ -675,8 +678,8 @@ export class ResourceSetPopoverComponent {
   info = output<void>();
   closed = output<void>();
 
-  protected properties: Array<PopoverProperty>; // ** resource properties
-  protected icon: AppIconDef;
+  protected properties: Array<PopoverProperty> = []; // ** resource properties
+  protected icon?: AppIconDef;
   protected app = inject(AppFacade);
 
   constructor() {

@@ -118,9 +118,9 @@ measure: boolean= measure mode;
   styleUrls: ['./popover.component.scss']
 })
 export class PopoverComponent {
-  @Input() title: string;
-  @Input() mmsi: string;
-  @Input() icon: { class?: string; name?: string; svgIcon?: string };
+  @Input() title?: string;
+  @Input() mmsi?: string;
+  @Input() icon?: { class?: string; name?: string; svgIcon?: string };
   @Input() canClose = true;
   @Input() measure = false;
   @Input() compact = false;
@@ -131,7 +131,7 @@ export class PopoverComponent {
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() navigateTo: EventEmitter<void> = new EventEmitter();
 
-  @ViewChild('box', { static: true }) private box: ElementRef<HTMLElement>;
+  @ViewChild('box', { static: true }) private box!: ElementRef<HTMLElement>;
 
   protected app = inject(AppFacade);
 
@@ -139,7 +139,7 @@ export class PopoverComponent {
   protected placement = signal<PopoverPlacement>('top');
 
   private overlay = inject(OverlayComponent, { optional: true });
-  private resizeObserver: ResizeObserver;
+  private resizeObserver?: ResizeObserver;
 
   constructor() {
     // Open below the anchor when there is no room above it, so the title bar

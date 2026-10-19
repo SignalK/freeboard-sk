@@ -27,10 +27,10 @@ class SvgDialBase implements DialConfig {
   maxAngle = 360; //** pointer angle when showing max value
   private _scale = 1; //** scaling variables
   protected pointers: {
-    value: ElementRef;
+    value: ElementRef | null;
     value2?: ElementRef;
-    lo: ElementRef;
-    hi: ElementRef;
+    lo: ElementRef | null;
+    hi: ElementRef | null;
   } = {
     //** dial pointers
     value: null,
@@ -98,26 +98,28 @@ class SvgDialBase implements DialConfig {
   templateUrl: './compass.component.svg'
 })
 export class CompassComponent extends SvgDialBase {
-  @Input() speed: number;
+  @Input() speed?: number;
   @Input() speedunits = 'knots';
-  @Input() heading: number;
-  @Input() needle: number;
-  @Input() windtrue: number;
-  @Input() windapparent: number;
-  @ViewChild('speedtext', { static: true }) speedtext: ElementRef;
-  @ViewChild('speedunitstext', { static: true }) speedunitstext: ElementRef;
-  @ViewChild('dial', { static: true }) dial: ElementRef;
-  @ViewChild('headingtext', { static: true }) headingtext: ElementRef;
-  @ViewChild('pointer', { static: true }) pointer: ElementRef;
-  @ViewChild('needlehi', { static: true }) needlehi: ElementRef;
-  @ViewChild('needlelo', { static: true }) needlelo: ElementRef;
+  @Input() heading?: number;
+  @Input() needle?: number;
+  @Input() windtrue?: number | null;
+  @Input() windapparent?: number | null;
+  // Static queries resolve when the view is created, before the first
+  // ngOnChanges, so they are set wherever updateDial() reads them.
+  @ViewChild('speedtext', { static: true }) speedtext!: ElementRef;
+  @ViewChild('speedunitstext', { static: true }) speedunitstext!: ElementRef;
+  @ViewChild('dial', { static: true }) dial!: ElementRef;
+  @ViewChild('headingtext', { static: true }) headingtext!: ElementRef;
+  @ViewChild('pointer', { static: true }) pointer!: ElementRef;
+  @ViewChild('needlehi', { static: true }) needlehi!: ElementRef;
+  @ViewChild('needlelo', { static: true }) needlelo!: ElementRef;
   public valueStr: string = '0' + String.fromCharCode(186);
   private ptrOffset = 0; // ** pointer offset value
 
   private renderer = inject(Renderer2);
 
   constructor() {
-    super(null);
+    super();
   }
 
   ngOnInit() {
@@ -133,13 +135,13 @@ export class CompassComponent extends SvgDialBase {
     this.updateDial(changes);
   }
 
-  updateDial(changes: SimpleChanges = null) {
+  updateDial(changes?: SimpleChanges) {
     const d: {
-      heading: number;
-      needle: number;
-      windtrue: number;
-      windapparent: number;
-      speed: number;
+      heading: number | null;
+      needle: number | null;
+      windtrue: number | null;
+      windapparent: number | null;
+      speed: number | null;
     } = {
       heading: null,
       needle: null,
@@ -171,7 +173,7 @@ export class CompassComponent extends SvgDialBase {
       this.speedunits
     );
     if (this.pointers.value) {
-      if (isNaN(d.heading)) {
+      if (isNaN(d.heading as number)) {
         d.heading = null;
       }
       this.ptrOffset = d.heading !== null ? d.heading : 0;
@@ -203,7 +205,7 @@ export class CompassComponent extends SvgDialBase {
       }
     }
     if (this.pointers.value2) {
-      if (isNaN(d.needle)) {
+      if (isNaN(d.needle as number)) {
         d.needle = null;
       }
       if (d.needle !== null) {
@@ -216,7 +218,7 @@ export class CompassComponent extends SvgDialBase {
       }
     }
     if (this.pointers.hi) {
-      if (isNaN(d.windtrue)) {
+      if (isNaN(d.windtrue as number)) {
         d.windtrue = null;
       }
       if (d.windtrue !== null) {
@@ -232,7 +234,7 @@ export class CompassComponent extends SvgDialBase {
       }
     }
     if (this.pointers.lo) {
-      if (isNaN(d.windapparent)) {
+      if (isNaN(d.windapparent as number)) {
         d.windapparent = null;
       }
       if (d.windapparent !== null) {
@@ -264,14 +266,14 @@ export class NorthUpCompassComponent extends SvgDialBase {
   @Input() label = '';
   @Input() speed: number | undefined;
   @Input() heading: number | undefined;
-  @Input() windtrue: boolean;
-  @Input() windapparent: boolean;
-  @ViewChild('labeltext', { static: true }) labeltext: ElementRef;
-  @ViewChild('headingtext', { static: true }) headingtext: ElementRef;
-  @ViewChild('speedtext', { static: true }) speedtext: ElementRef;
-  @ViewChild('pointer', { static: true }) pointer: ElementRef;
-  @ViewChild('needlehi', { static: true }) needlehi: ElementRef;
-  @ViewChild('needlelo', { static: true }) needlelo: ElementRef;
+  @Input() windtrue = false;
+  @Input() windapparent = false;
+  @ViewChild('labeltext', { static: true }) labeltext!: ElementRef;
+  @ViewChild('headingtext', { static: true }) headingtext!: ElementRef;
+  @ViewChild('speedtext', { static: true }) speedtext!: ElementRef;
+  @ViewChild('pointer', { static: true }) pointer!: ElementRef;
+  @ViewChild('needlehi', { static: true }) needlehi!: ElementRef;
+  @ViewChild('needlelo', { static: true }) needlelo!: ElementRef;
 
   public showPointer = true;
   public showWindTrue = true;
@@ -280,7 +282,7 @@ export class NorthUpCompassComponent extends SvgDialBase {
   private renderer = inject(Renderer2);
 
   constructor() {
-    super(null);
+    super();
   }
 
   ngOnInit() {
@@ -293,8 +295,12 @@ export class NorthUpCompassComponent extends SvgDialBase {
   }
 
   // render numeric value as string
-  renderValue(value: number, precision = 0, leadingZero = false): string {
-    if (isNaN(value) || typeof value !== 'number') {
+  renderValue(
+    value: number | null | undefined,
+    precision = 0,
+    leadingZero = false
+  ): string {
+    if (typeof value !== 'number' || isNaN(value)) {
       return '--';
     }
     const res =
@@ -308,9 +314,9 @@ export class NorthUpCompassComponent extends SvgDialBase {
     const d: {
       windtrue: boolean;
       windapparent: boolean;
-      label: string;
-      heading: number;
-      speed: number;
+      label: string | null;
+      heading: number | null;
+      speed: number | null;
     } = {
       windtrue: false,
       windapparent: false,
@@ -344,7 +350,8 @@ export class NorthUpCompassComponent extends SvgDialBase {
     }
 
     const rHeading = this.renderValue(d.heading, 0);
-    const rAngle = rHeading === '--' ? this.minValue : d.heading;
+    // renderValue() returns '--' for anything but a number
+    const rAngle = rHeading === '--' ? this.minValue : d.heading!;
 
     this.showPointer =
       (rHeading === '--' ? false : true) &&

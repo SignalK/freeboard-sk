@@ -491,21 +491,22 @@ export class S57PopoverComponent {
   closed = output<void>();
 
   private app = inject(AppFacade);
-  _title: string;
+  _title?: string;
   displayProps: { key: string; label: string; value: string }[] = [];
 
   constructor() {
     effect(() => {
-      if (!this.properties()) {
+      const properties = this.properties();
+      if (!properties) {
         return;
       }
-      const layer = this.properties()['layer'] || '';
+      const layer = properties['layer'] || '';
       this._title =
         this.title() || S57_NAMES[layer] || layer || 'Chart Feature';
 
       this.displayProps = [];
       for (const prop of PROP_DISPLAY) {
-        const val = this.properties()[prop.key];
+        const val = properties[prop.key];
         if (val === undefined || val === null || val === '') {
           continue;
         }
