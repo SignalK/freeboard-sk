@@ -13,7 +13,21 @@ import {
   chartTimeWindowEnd,
   initialChartTimeLoop
 } from './chart-time-dialog';
-import { chartTimeline, chartTimelineHeadMs } from '../../chart-time';
+import {
+  chartTimeline,
+  chartTimelineHeadMs,
+  type ChartTimeline
+} from '../../chart-time';
+import type { ChartTimeDimension } from 'src/app/types';
+
+/** The timeline of a dimension the test knows is valid. */
+function timelineOf(dim: ChartTimeDimension): ChartTimeline {
+  const timeline = chartTimeline(dim);
+  if (!timeline) {
+    throw new Error('expected a timeline');
+  }
+  return timeline;
+}
 
 /**
  * The Time palette's slider shows a window of the timeline, since a service
@@ -23,7 +37,7 @@ const STEP = 5 * 60 * 1000;
 const SPAN = CHART_TIME_WINDOW_MS;
 const FROM = Date.parse('1995-01-01T00:00:00.000Z');
 const TO = Date.parse('2026-12-31T00:00:00.000Z');
-const archive = chartTimeline({
+const archive = timelineOf({
   current: false,
   from: new Date(FROM).toISOString(),
   to: new Date(TO).toISOString(),
@@ -33,7 +47,7 @@ const archive = chartTimeline({
 describe('chartTimeWindowSpan', () => {
   it('is 12 hours of whole steps on a range', () => {
     expect(chartTimeWindowSpan(archive, TO)).toBe(SPAN);
-    const seven = chartTimeline({
+    const seven = timelineOf({
       current: true,
       from: '2026-09-18T00:00:00.000Z',
       to: '2026-09-19T00:00:00.000Z',
@@ -43,7 +57,7 @@ describe('chartTimeWindowSpan', () => {
   });
 
   it('counts the explicit frames in the last 12 hours', () => {
-    const frames = chartTimeline({
+    const frames = timelineOf({
       current: true,
       values: [
         '2026-09-17T00:00:00.000Z', // a day before: outside
@@ -79,7 +93,7 @@ describe('chartTimeWindow', () => {
   });
 
   it('is the whole timeline when that is shorter than the window', () => {
-    const short = chartTimeline({
+    const short = timelineOf({
       current: true,
       from: '2026-09-18T12:00:00.000Z',
       to: '2026-09-18T15:00:00.000Z',
@@ -203,7 +217,7 @@ describe('loop offsets (remembered between sessions)', () => {
   });
 
   it('picks the nearest explicit frames on a values timeline', () => {
-    const frames = chartTimeline({
+    const frames = timelineOf({
       current: true,
       values: [
         '2026-09-18T10:00:00.000Z',
@@ -225,7 +239,7 @@ describe('loop offsets (remembered between sessions)', () => {
 describe('initialChartTimeWindowEnd', () => {
   const H = 3600000;
   const now = Date.parse('2026-09-18T12:00:00.000Z');
-  const seven = chartTimeline({
+  const seven = timelineOf({
     current: true,
     from: '2026-09-11T00:00:00.000Z',
     to: '2026-09-19T00:00:00.000Z',
@@ -325,11 +339,11 @@ describe('chartTimeStateFollowingHead', () => {
   it('renumbers positions taken on a re-read values list', () => {
     const t = (n: number) => new Date(now + n * STEP).toISOString();
     // Twelve frames up to now, then the list rolled on by one.
-    const before = chartTimeline({
+    const before = timelineOf({
       current: true,
       values: Array.from({ length: 12 }, (_, i) => t(i - 11))
     });
-    const after = chartTimeline({
+    const after = timelineOf({
       current: true,
       values: Array.from({ length: 12 }, (_, i) => t(i - 10))
     });
@@ -355,7 +369,7 @@ describe('chartTimeStateFollowingHead', () => {
 describe('a forecast', () => {
   // Ten days ahead by the hour; "now" is faked at 13:07, an hour into the run.
   const H = 3600000;
-  const forecast = chartTimeline({
+  const forecast = timelineOf({
     current: true,
     forecast: true,
     from: '2026-09-18T12:00:00.000Z',

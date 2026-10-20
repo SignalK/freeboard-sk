@@ -118,7 +118,7 @@ export interface IAppConfig {
     muteSound: boolean;
     depthAlarm: { enabled: boolean; smoothing: number };
     plugins: {
-      instruments: string;
+      instruments: string | null;
       startOnOpen: boolean;
       parameters: string | null;
       favourites: string[];
@@ -285,13 +285,13 @@ export interface IAppConfig {
     chartImageAdjustment: Record<string, ChartImageAdjustment>;
     chartDisplayMinZoom: Record<string, number>;
     chartTimeLoop: Record<string, ChartTimeLoopOffsets>; // Time palette loop range per chart
-    aisTargets: string[];
+    aisTargets: string[] | null;
     aisTargetTypes: number[];
     aisFilterByShipType: boolean;
     aisState: string[]; // list of ais state values used to filter targets
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resourceSets: { [key: string]: any }; // additional resources
-    infolayers: string[];
+    infolayers: string[] | null;
     weatherWindEnabled: boolean;
     oceanCurrentsEnabled: boolean;
     tidalCurrentsEnabled: boolean;
@@ -346,17 +346,17 @@ export interface FBAppData {
     show: boolean;
     charts: FBCharts;
   };
-  selfId: string;
+  selfId: string | null;
   activeRoute: string | null;
   activeRouteReversed: boolean;
   activeRouteCircular: boolean;
   activeRouteIsEditing: boolean;
-  editingId: string;
+  editingId: string | null;
   activeWaypoint: string | null;
   serverTrail: boolean; // trail received from server
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  server: { [key: string]: any }; // SK server info
-  lastGet: Position; // map position of last resources GET
+  server: { [key: string]: any } | null; // SK server info
+  lastGet: Position | null; // map position of last resources GET
   map: {
     atClick: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -372,7 +372,7 @@ export interface FBAppData {
     self: SKVessel;
     aisTargets: Map<string, SKVessel>;
     aisTracks: Map<string, MultiLineString>; // AIS targets track (tracks plugin)
-    activeId: string;
+    activeId: string | null;
     active: SKVessel;
     closest: string[];
     cpaPositions: Map<string, CpaPositions>; // keyed by the ids in closest

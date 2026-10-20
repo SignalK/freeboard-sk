@@ -9,7 +9,7 @@ import { LocalStorage } from './localstorage.service';
   providedIn: 'root'
 })
 export class State {
-  private _appid: string;
+  private _appid?: string;
   private ls: LocalStorage;
 
   constructor() {
@@ -20,7 +20,7 @@ export class State {
     return this._appid;
   }
 
-  set appId(value: string) {
+  set appId(value: string | undefined) {
     if (value && value.length !== 0) {
       this._appid = value;
       this.ls.namespace = this._appid;
@@ -39,7 +39,9 @@ export class State {
 
   /** save info, config & data **
    * values= {info: xx, config: xx, data: xx }  **/
-  save(values: { info?: unknown; config?: unknown; data?: unknown } = null) {
+  save(
+    values: { info?: unknown; config?: unknown; data?: unknown } | null = null
+  ) {
     if (!values) {
       return;
     }

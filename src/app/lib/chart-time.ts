@@ -79,6 +79,9 @@ const RELATIVE_SPAN_MAX_MS = 31 * 86400000;
  * no usable range (the layer gets no Time control either) (#808).
  */
 export function chartTimeSummary(dim?: ChartTimeDimension): string {
+  if (!dim) {
+    return '';
+  }
   const timeline = chartTimeline(dim);
   if (!timeline) {
     return '';

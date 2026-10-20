@@ -351,10 +351,14 @@ export class AboutDialog {
 })
 export class LoginDialog implements OnInit {
   @ViewChild('username', { static: false })
-  username: ElementRef<HTMLInputElement>;
+  username!: ElementRef<HTMLInputElement>;
 
   protected imgSource = 'assets/img/success.png';
-  private result: { cancel: boolean; user: string; pwd: string } = {
+  private result: {
+    cancel: boolean;
+    user: string | null;
+    pwd: string | null;
+  } = {
     cancel: false,
     user: null,
     pwd: null

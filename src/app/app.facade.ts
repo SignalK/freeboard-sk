@@ -128,7 +128,7 @@ export class AppFacade extends InfoService {
    * Held in memory, never written to the cookie, so a link cannot overwrite
    * the persisted session token.
    */
-  private sessionToken: string;
+  private sessionToken?: string;
 
   public readonly STANDARD_RESOURCES = [
     'routes',
@@ -171,7 +171,7 @@ export class AppFacade extends InfoService {
   }
 
   public serverConfig = {
-    unitPreferences: signal<SKServerUnitPrefs>(undefined),
+    unitPreferences: signal<SKServerUnitPrefs | undefined>(undefined),
     // Per-path display-unit overrides keyed by Signal K path (server
     // `meta.displayUnits`). Populated from path metadata; consumed by
     // formatValueForDisplay() when a path is supplied.
@@ -191,7 +191,7 @@ export class AppFacade extends InfoService {
 
   public db: AppDB;
 
-  public watchingSKLogin: number; // watch interval timer
+  public watchingSKLogin?: number; // watch interval timer
 
   // signals
   kioskMode = signal<boolean>(false); // kiosk mode flag
@@ -580,7 +580,8 @@ export class AppFacade extends InfoService {
   formatLineDashArray(value: LineStyleDash): number[] | null {
     return value === 'none'
       ? null
-      : Array.from(this.lineDashMap.get(value))
+      : // every LineStyleDash has an entry
+        Array.from(this.lineDashMap.get(value)!)
           .filter((i) => i !== ' ')
           .map((i) => Number(i));
   }
@@ -716,7 +717,7 @@ export class AppFacade extends InfoService {
   /**
    * Align server unit prefernce settings with FB units config.
    */
-  public alignUnitPrefs(units: SKServerUnitPrefs) {
+  public alignUnitPrefs(units: SKServerUnitPrefs | undefined) {
     if (!this.config.units.useServerPrefs) return;
     this.debug('Aligning Unit preferences from server:', units);
     if (!units?.categories) {
@@ -907,7 +908,7 @@ export class AppFacade extends InfoService {
    * @param persist true = also persist token in a cookie bound to hostDef.url
    *  (the server that issued it), false = hold for this session only.
    */
-  setAuthToken(value: string, persist = true) {
+  setAuthToken(value: string | null, persist = true) {
     if (value) {
       this.signalk.authToken = value;
       this.worker.postMessage({
@@ -927,7 +928,8 @@ export class AppFacade extends InfoService {
     } else {
       this.hasAuthToken.set(false); // show login menu item
       this.sessionToken = undefined;
-      this.signalk.authToken = null;
+      // the client takes null as no token, though its setter is typed string
+      this.signalk.authToken = null!;
       this.isLoggedIn.set(false);
       document.cookie = `sktoken=${null}; SameSite=Strict; max-age=0;`;
       document.cookie = `sktokenhost=${null}; SameSite=Strict; max-age=0;`;
@@ -955,7 +957,7 @@ export class AppFacade extends InfoService {
    * provided it was issued by that same server. A token is never presented
    * to a server other than the one it was issued for.
    */
-  getFBToken(): string {
+  getFBToken(): string | undefined {
     if (this.sessionToken) {
       return this.sessionToken;
     }
@@ -1035,7 +1037,7 @@ export class AppFacade extends InfoService {
         return current;
       }
       this.stampTrailPoint(pt);
-      const st = [].concat(current);
+      const st = ([] as Position[]).concat(current);
       st.push(pt);
       return st;
     });
@@ -1109,6 +1111,10 @@ export class AppFacade extends InfoService {
     rotation?: number
   ): Position {
     const position = this.data.vessels.active.position;
+    // nothing to follow until the vessel reports a position: stay put
+    if (!position) {
+      return this.config.map.center;
+    }
     const offset = this.config.map.centerOffset;
     const viewport =
       applyOffset && (offset.x || offset.y) ? this.mapViewport(rotation) : null;
@@ -1128,14 +1134,11 @@ export class AppFacade extends InfoService {
    */
   applyPanGesture(mapCenter: Position): 'release' | 'adopted' | 'unchanged' {
     const viewport = this.mapViewport();
-    if (!viewport) {
+    const position = this.data.vessels.active.position;
+    if (!viewport || !position) {
       return 'unchanged';
     }
-    const outcome = resolvePan(
-      this.data.vessels.active.position,
-      mapCenter,
-      viewport
-    );
+    const outcome = resolvePan(position, mapCenter, viewport);
     if (outcome.action === 'release') {
       return 'release';
     }
@@ -1170,14 +1173,14 @@ export class AppFacade extends InfoService {
   override saveConfig() {
     super.saveConfig();
     if (this.isLoggedIn()) {
-      this.signalk.appDataSet('/', this.config).subscribe({
+      this.signalk.appDataSet('/', this.config)?.subscribe({
         next: () => this.debug('saveConfig: config saved to server.'),
         error: () => this.debug('saveConfig: Cannot save config to server!')
       });
     }
   }
 
-  private saveCfgTimer: ReturnType<typeof setTimeout>;
+  private saveCfgTimer?: ReturnType<typeof setTimeout>;
   /** Debounced saveConfig — collapses a flurry of saves (e.g. repeated map
    * pans or rapid UI toggles) into a single localStorage write + server PUT. */
   saveConfigDebounced(ms = 1000) {
@@ -1343,7 +1346,7 @@ export class AppFacade extends InfoService {
           // Malformed server-published displayUnits (e.g. unknown targetUnit) —
           // warn and fall back to the category preset.
           console.warn(
-            `formatValueForDisplay: invalid displayUnits for path "${options.path}" — falling back to category preset.`
+            `formatValueForDisplay: invalid displayUnits for path "${options?.path}" — falling back to category preset.`
           );
         }
       }
@@ -1467,13 +1470,17 @@ export class AppFacade extends InfoService {
    * @param precision Number of decimal places
    * @returns Formatted string value '--' when value is non-numeric
    */
-  formatNumericDisplay(value: number, precision?: number): string {
-    precision = Number.isFinite(precision) ? precision : 1;
-    return !Number.isFinite(value)
-      ? '---'.slice(0 - precision)
-      : Number.isFinite(precision)
-        ? value.toFixed(precision)
-        : `${value}`;
+  formatNumericDisplay(
+    value: number | null | undefined,
+    precision?: number
+  ): string {
+    const digits =
+      typeof precision === 'number' && Number.isFinite(precision)
+        ? precision
+        : 1;
+    return typeof value !== 'number' || !Number.isFinite(value)
+      ? '---'.slice(0 - digits)
+      : value.toFixed(digits);
   }
 
   /**
@@ -1499,20 +1506,21 @@ export class AppFacade extends InfoService {
   }
 
   // convert speed value and set the value of this.app.formattedSpeedUnits
-  formatSpeed(value: number, asString?: false): number;
+  formatSpeed(value: number, asString?: false): number | null;
   formatSpeed(value: number, asString: true): string;
-  formatSpeed(value: number, asString = false): string | number {
+  formatSpeed(value: number, asString = false): string | number | null {
     this.formattedSpeedUnits = Convert.getSymbol(this.config.units.speed);
+    let speed: number | null;
     try {
-      value = Convert.transform(
+      speed = Convert.transform(
         value,
         'm/s',
         this.config.units.speed as TARGET_UNIT
       );
     } catch {
-      value = null;
+      speed = null;
     }
-    return asString ? this.formatNumericDisplay(value) : value;
+    return asString ? this.formatNumericDisplay(speed) : speed;
   }
 
   formattedSpeedUnits = Convert.getSymbol('kn');

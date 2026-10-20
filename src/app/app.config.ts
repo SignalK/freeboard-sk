@@ -437,8 +437,10 @@ export function cleanConfig(
       }
       return w;
     })
-    .filter((w): w is PlotterExtensionWidget =>
-      ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
+    .filter(
+      (w): w is PlotterExtensionWidget =>
+        w.anchor !== undefined &&
+        ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
     );
 
   if (typeof settings.radars === 'undefined') {
@@ -724,7 +726,8 @@ export function defaultConfig(): IAppConfig {
       rodeLength: 50 // rode length setting
     },
     radars: {
-      deviceId: undefined,
+      // typed without undefined until every reader handles it (#869)
+      deviceId: undefined!,
       opacity: 1,
       rings: true
     },
@@ -788,7 +791,8 @@ export function initData(): FBAppData {
       aisTargets: new Map(),
       aisTracks: new Map(), // AIS targets track (tracks plugin)
       activeId: null,
-      active: null,
+      // typed without null until every reader handles it (#869)
+      active: null!,
       closest: [],
       cpaPositions: new Map(),
       prefAvailablePaths: {}, // preference paths available from source,

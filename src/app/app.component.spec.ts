@@ -7,12 +7,21 @@ import { MatMenuTrigger } from '@angular/material/menu';
 import { By } from '@angular/platform-browser';
 import { WritableSignal } from '@angular/core';
 import { RadarAPIService } from './modules/radar/radar-api.service';
-import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
+import {
+  InfoPanelFacade,
+  InfoPanelItem
+} from './modules/info-panel/info-panel.facade';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { Position } from './types';
 import { WhatsNewService } from './modules/features/whats-new.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
 import { connectExtension } from 'signalk-plotterext-bus/extension';
+
+/** The type of the item the info panel shows; its item signal is untyped
+ *  until the info-panel folder is strict (#869). */
+function shownType(infoPanel: InfoPanelFacade) {
+  return (infoPanel.item() as InfoPanelItem | undefined)?.type;
+}
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -25,6 +34,21 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('ignores text or a link dropped on the map', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const map = fixture.componentInstance as unknown as {
+      mapDrop(e: DragEvent): void;
+      processGPX(file: { name: string; data: string }): void;
+    };
+    const processGPX = vi.spyOn(map, 'processGPX');
+    const drop = {
+      preventDefault: (): void => undefined,
+      dataTransfer: { files: [] }
+    } as unknown as DragEvent;
+    expect(() => map.mapDrop(drop)).not.toThrow();
+    expect(processGPX).not.toHaveBeenCalled();
   });
 
   it('opens the feature browser from the main menu\'s "What\'s New" item', () => {
@@ -413,7 +437,7 @@ describe('AppComponent', () => {
       'closes the radar panel with the %s button that opened it',
       (_, fab, selector) => {
         const { fixture, infoPanel, connect, disconnect } = setup(fab);
-        const panelShown = () => infoPanel.item()?.type === 'radars';
+        const panelShown = () => shownType(infoPanel) === 'radars';
         const press = () => {
           fixture.debugElement.query(By.css(selector)).nativeElement.click();
           fixture.detectChanges();
@@ -444,12 +468,12 @@ describe('AppComponent', () => {
       showOverlay(true);
       menu.toggleRadarOverlay();
       expect(disconnect).toHaveBeenCalledTimes(1);
-      expect(infoPanel.item()?.type).not.toBe('radars');
+      expect(shownType(infoPanel)).not.toBe('radars');
 
       showOverlay(false);
       menu.toggleRadarOverlay();
       expect(connect).toHaveBeenCalledTimes(1);
-      expect(infoPanel.item()?.type).toBe('radars');
+      expect(shownType(infoPanel)).toBe('radars');
     });
   });
 

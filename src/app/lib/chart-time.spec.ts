@@ -16,8 +16,19 @@ import {
   defaultChartRefreshIntervalMs,
   nextChartPlaybackTime,
   resolveChartTime,
-  stepChartTime
+  stepChartTime,
+  type ChartTimeline
 } from './chart-time';
+import type { ChartTimeDimension } from 'src/app/types';
+
+/** The timeline of a dimension the test knows is valid. */
+function timelineOf(dim: ChartTimeDimension): ChartTimeline {
+  const timeline = chartTimeline(dim);
+  if (!timeline) {
+    throw new Error('expected a timeline');
+  }
+  return timeline;
+}
 
 const T0 = '2026-09-18T12:00:00.000Z';
 const T1 = '2026-09-18T12:05:00.000Z';
@@ -136,12 +147,12 @@ describe('resolveChartTime', () => {
 
 describe('chartTimeline', () => {
   it('is a frame index over explicit values, sorted ascending', () => {
-    const tl = chartTimeline({ current: true, values: [T2, T0, T1] });
+    const tl = timelineOf({ current: true, values: [T2, T0, T1] });
     expect(tl).toEqual({ min: 0, max: 2, step: 1, frames: [T0, T1, T2] });
   });
 
   it('drops invalid values and prefers values over a range', () => {
-    const tl = chartTimeline({
+    const tl = timelineOf({
       current: true,
       from: T0,
       to: T2,
@@ -151,7 +162,7 @@ describe('chartTimeline', () => {
   });
 
   it('is a millisecond range over from…to at the declared step', () => {
-    const tl = chartTimeline({ current: true, from: T0, to: T2, step: STEP });
+    const tl = timelineOf({ current: true, from: T0, to: T2, step: STEP });
     expect(tl).toEqual({
       min: Date.parse(T0),
       max: Date.parse(T2),
@@ -160,15 +171,15 @@ describe('chartTimeline', () => {
   });
 
   it('derives a step when none is declared, never below a minute', () => {
-    const hour = chartTimeline({
+    const hour = timelineOf({
       current: true,
       from: T0,
       to: '2026-09-18T13:00:00.000Z'
     });
     expect(hour?.step).toBe(60000); // 60 frames of an hour = 1 min
-    const short = chartTimeline({ current: true, from: T0, to: T1 });
+    const short = timelineOf({ current: true, from: T0, to: T1 });
     expect(short?.step).toBe(60000); // floor
-    const day = chartTimeline({
+    const day = timelineOf({
       current: true,
       from: T0,
       to: '2026-09-19T12:00:00.000Z'
@@ -186,8 +197,8 @@ describe('chartTimeline', () => {
 });
 
 describe('positions and instants', () => {
-  const range = chartTimeline({ current: true, from: T0, to: T2, step: STEP });
-  const discrete = chartTimeline({ current: true, values: [T0, T1, T2] });
+  const range = timelineOf({ current: true, from: T0, to: T2, step: STEP });
+  const discrete = timelineOf({ current: true, values: [T0, T1, T2] });
 
   it('maps an instant to its position and back on a range', () => {
     expect(chartTimelinePosition(range, T1)).toBe(Date.parse(T1));
@@ -211,7 +222,7 @@ describe('positions and instants', () => {
   it('places live at the newest frame at or before now', () => {
     expect(chartTimelinePosition(range, null)).toBe(Date.parse(T1));
     expect(chartTimelinePosition(discrete, null)).toBe(1); // T1 ≤ now < T2
-    const past = chartTimeline({
+    const past = timelineOf({
       current: true,
       from: '2026-09-17T00:00:00.000Z',
       to: T0,
@@ -226,7 +237,7 @@ describe('positions and instants', () => {
     expect(chartTimelineInstant(range, Date.parse(NOW))).toBe(T1);
     expect(chartTimelineInstant(range, Date.parse(T1) + 2.6 * 60000)).toBe(T2);
     // The grid is anchored at `from`, and never runs past `to`.
-    const ragged = chartTimeline({
+    const ragged = timelineOf({
       current: true,
       from: T0,
       to: '2026-09-18T12:12:00.000Z',
@@ -237,7 +248,7 @@ describe('positions and instants', () => {
 });
 
 describe('stepChartTime', () => {
-  const tl = chartTimeline({ current: true, from: T0, to: T2, step: STEP });
+  const tl = timelineOf({ current: true, from: T0, to: T2, step: STEP });
 
   it('steps one frame either way', () => {
     expect(stepChartTime(tl, T1, -1, true)).toBe(T0);
@@ -260,7 +271,7 @@ describe('stepChartTime', () => {
   describe('on an archival source, where null is the newest frame', () => {
     // IEM-shaped: the declared end runs ahead of now, so the newest frame is
     // the head (T1 at the faked clock), not the end of the range.
-    const archive = chartTimeline({
+    const archive = timelineOf({
       current: false,
       from: '2026-09-18T11:00:00.000Z',
       to: '2026-12-31T00:00:00.000Z',
@@ -290,7 +301,7 @@ describe('stepChartTime', () => {
 });
 
 describe('nextChartPlaybackTime', () => {
-  const tl = chartTimeline({ current: true, values: [T0, T1, T2] });
+  const tl = timelineOf({ current: true, values: [T0, T1, T2] });
 
   it('advances a frame and loops to the start past the end', () => {
     expect(nextChartPlaybackTime(tl, T0)).toBe(T1);
@@ -302,7 +313,7 @@ describe('nextChartPlaybackTime', () => {
   });
 
   it('loops within a window of the timeline when given one', () => {
-    const range = chartTimeline({
+    const range = timelineOf({
       current: true,
       from: '2026-09-18T00:00:00.000Z',
       to: T2,
@@ -491,7 +502,7 @@ describe('chartRefreshIntervalMs', () => {
 describe('the timeline head', () => {
   // A range running past now, as IEM's NEXRAD WMS-T declares: the head is
   // the newest grid instant at or before now, and moves by the clock.
-  const open = chartTimeline({
+  const open = timelineOf({
     current: false,
     from: T0,
     to: '2026-12-31T00:00:00.000Z',
@@ -501,7 +512,7 @@ describe('the timeline head', () => {
   it('is the newest frame that can exist now', () => {
     expect(chartTimelineHead(open)).toBe(Date.parse(T1));
     expect(chartTimelineHeadMs(open)).toBe(Date.parse(T1));
-    const listed = chartTimeline({ current: true, values: [T0, T1, T2] });
+    const listed = timelineOf({ current: true, values: [T0, T1, T2] });
     expect(chartTimelineHead(listed)).toBe(1);
     expect(chartTimelineHeadMs(listed)).toBe(Date.parse(T1));
   });
@@ -512,8 +523,8 @@ describe('the timeline head', () => {
   });
 
   it('never moves on a fixed timeline', () => {
-    const listed = chartTimeline({ current: true, values: [T0, T1] });
-    const ended = chartTimeline({
+    const listed = timelineOf({ current: true, values: [T0, T1] });
+    const ended = timelineOf({
       current: true,
       from: T0,
       to: T1,
@@ -530,7 +541,7 @@ describe('a forecast (time.forecast)', () => {
   const H = 3600000;
   const FROM = '2026-09-18T12:00:00.000Z';
   const TO = '2026-09-28T12:00:00.000Z';
-  const forecast = chartTimeline({
+  const forecast = timelineOf({
     current: true,
     forecast: true,
     from: FROM,
@@ -541,7 +552,7 @@ describe('a forecast (time.forecast)', () => {
   it('is marked on the timeline, and only when declared', () => {
     expect(forecast.forecast).toBe(true);
     expect(
-      chartTimeline({ current: true, from: FROM, to: TO, step: H }).forecast
+      timelineOf({ current: true, from: FROM, to: TO, step: H }).forecast
     ).toBeUndefined();
   });
 
@@ -578,7 +589,7 @@ describe('a forecast (time.forecast)', () => {
   });
 
   it('steps a listed forecast frame by frame from the one for now', () => {
-    const listed = chartTimeline({
+    const listed = timelineOf({
       current: false,
       forecast: true,
       values: [T0, T1, T2, '2026-09-18T15:00:00.000Z']

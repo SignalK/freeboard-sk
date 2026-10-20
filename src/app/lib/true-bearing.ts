@@ -18,7 +18,12 @@ export function magneticToTrue(
   magnetic: number | null | undefined,
   variation: number | null | undefined
 ): number | null {
-  if (!Number.isFinite(magnetic) || !Number.isFinite(variation)) {
+  if (
+    typeof magnetic !== 'number' ||
+    typeof variation !== 'number' ||
+    !Number.isFinite(magnetic) ||
+    !Number.isFinite(variation)
+  ) {
     return null;
   }
   return (((magnetic + variation) % TWO_PI) + TWO_PI) % TWO_PI;

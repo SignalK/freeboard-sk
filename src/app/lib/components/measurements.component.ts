@@ -141,9 +141,9 @@ export class Measurements {
   card = input<boolean>(false);
   cancel = output<void>();
 
-  protected totalDistance: string;
-  protected legDistance: string;
-  protected legBearing: string;
+  protected totalDistance?: string;
+  protected legDistance?: string;
+  protected legBearing?: string;
   protected btnDisable = {
     prev: false,
     next: false

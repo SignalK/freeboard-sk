@@ -11,8 +11,8 @@
     "noEmit": true
   },
   "include": [
-    "src/app/lib/components/map-toolbar",
-    "src/app/lib/pipes",
+    "src/app/*.ts",
+    "src/app/lib",
     "src/app/modules/alarms",
     "src/app/modules/buddies",
     "src/app/modules/course",
@@ -24,7 +24,8 @@
     "src/app/modules/map/ol/lib/radar",
     "src/app/modules/map/ol/lib/resources",
     "src/app/modules/map/ol/lib/vessel",
-    "src/app/modules/skresources/components/weather"
+    "src/app/modules/skresources/components/weather",
+    "src/app/types"
   ],
   "exclude": ["src/**/*.worker.ts"]
 }

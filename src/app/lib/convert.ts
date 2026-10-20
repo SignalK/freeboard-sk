@@ -150,18 +150,20 @@ export class Convert {
     baseUnit: SI_BASE_UNIT,
     targetUnit: TARGET_UNIT
   ): number {
-    if (!Number.isFinite(value)) return null;
+    // The return type leaves out null until every caller handles it (#869).
+    if (!Number.isFinite(value)) return null!;
     if ((baseUnit as string) === (targetUnit as string)) return value; // no conversion required
-    try {
-      return siBaseFn[baseUnit][targetUnit](value);
-    } catch {
+    const fn = siBaseFn[baseUnit]?.[targetUnit];
+    if (!fn) {
       throw new Error('Transformation not found!');
     }
+    return fn(value);
   }
 
   static setSymbol(unit: TARGET_UNIT, symbol: string) {
-    if (unit in symbolMap) {
-      symbolMap[unit].symbol = symbol ?? symbolMap[unit].symbol;
+    const entry = symbolMap[unit];
+    if (entry) {
+      entry.symbol = symbol ?? entry.symbol;
     }
   }
 
@@ -171,7 +173,7 @@ export class Convert {
    * @returns Symbol for unit e.g. 'nmi'
    */
   static getSymbol(unit: SI_BASE_UNIT | TARGET_UNIT): string {
-    return unit in symbolMap ? symbolMap[unit].symbol : unit;
+    return symbolMap[unit]?.symbol ?? unit;
   }
 
   /**
@@ -180,7 +182,7 @@ export class Convert {
    * @returns Angle in radians
    */
   static degreesToRadians(value: number): number {
-    return siBaseFn['deg']['radian'](value);
+    return siBaseFn.deg!.radian!(value);
   }
 
   /**
@@ -189,7 +191,7 @@ export class Convert {
    * @returns Angle in degrees
    */
   static radiansToDegrees(value = 0): number {
-    return siBaseFn['rad']['degree'](value);
+    return siBaseFn.rad!.degree!(value);
   }
 
   /**

@@ -4,19 +4,21 @@ import { magneticToTrue, trueWindDirection } from './true-bearing';
 
 const rad = Convert.degreesToRadians;
 const deg = Convert.radiansToDegrees;
+const toTrue = (magnetic: number, variation: number) =>
+  magneticToTrue(magnetic, variation) ?? NaN;
 
 describe('magneticToTrue (#858)', () => {
   it('adds an easterly (positive) variation', () => {
-    expect(deg(magneticToTrue(rad(17.2), rad(12.8)))).toBeCloseTo(30, 9);
+    expect(deg(toTrue(rad(17.2), rad(12.8)))).toBeCloseTo(30, 9);
   });
 
   it('subtracts a westerly (negative) variation', () => {
-    expect(deg(magneticToTrue(rad(40), rad(-10)))).toBeCloseTo(30, 9);
+    expect(deg(toTrue(rad(40), rad(-10)))).toBeCloseTo(30, 9);
   });
 
   it('wraps into 0..360', () => {
-    expect(deg(magneticToTrue(rad(355), rad(12.8)))).toBeCloseTo(7.8, 9);
-    expect(deg(magneticToTrue(rad(5), rad(-10)))).toBeCloseTo(355, 9);
+    expect(deg(toTrue(rad(355), rad(12.8)))).toBeCloseTo(7.8, 9);
+    expect(deg(toTrue(rad(5), rad(-10)))).toBeCloseTo(355, 9);
   });
 
   it('is null without a magnetic value or a variation', () => {
@@ -40,7 +42,7 @@ describe('trueWindDirection (#858)', () => {
       wind: { twd: null as number | null, mwd: rad(17.2) },
       magneticVariation: rad(12.8)
     };
-    expect(deg(trueWindDirection(v))).toBeCloseTo(30, 9);
+    expect(deg(trueWindDirection(v) ?? NaN)).toBeCloseTo(30, 9);
   });
 
   it('is null with only magnetic wind and no variation', () => {
