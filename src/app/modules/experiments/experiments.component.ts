@@ -32,7 +32,7 @@ import { MatMenu, MatMenuModule } from '@angular/material/menu';
   styles: [``]
 })
 export class ExperimentsComponent {
-  @ViewChild('experimentsmenu', { static: true }) menu: MatMenu;
+  @ViewChild('experimentsmenu', { static: true }) menu!: MatMenu;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() selected: EventEmitter<any> = new EventEmitter();

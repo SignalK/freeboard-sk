@@ -16,6 +16,8 @@ import { Position } from './types';
 import { WhatsNewService } from './modules/features/whats-new.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
 import { connectExtension } from 'signalk-plotterext-bus/extension';
+import { SignalKClient } from 'signalk-client-angular';
+import { config, throwError } from 'rxjs';
 
 /** The type of the item the info panel shows; its item signal is untyped
  *  until the info-panel folder is strict (#869). */
@@ -34,6 +36,31 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('keeps the login state when the login status cannot be fetched', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = TestBed.inject(AppFacade);
+    app.isLoggedIn.set(true);
+    vi.spyOn(TestBed.inject(SignalKClient), 'getLoginStatus').mockReturnValue(
+      throwError(() => new Error('unreachable'))
+    );
+    const unhandled = vi.fn();
+    const previous = config.onUnhandledError;
+    config.onUnhandledError = unhandled;
+    try {
+      (
+        fixture.componentInstance as unknown as {
+          handleSKAuthChange(): void;
+        }
+      ).handleSKAuthChange();
+      // rxjs reports an unhandled error on a later task
+      await new Promise((resolve) => setTimeout(resolve));
+    } finally {
+      config.onUnhandledError = previous;
+    }
+    expect(unhandled).not.toHaveBeenCalled();
+    expect(app.isLoggedIn()).toBe(true);
   });
 
   it('ignores text or a link dropped on the map', () => {

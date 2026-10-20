@@ -86,9 +86,16 @@ describe('PlotterExtensionService map.fitBounds', () => {
     service = TestBed.inject(PlotterExtensionService);
   });
 
+  /** The view the last fit asked for; a fit always sets centre and zoom. */
+  const fitted = () => {
+    const req = mapMoveRequest();
+    if (req?.zoom === undefined) throw new Error('no fit was requested');
+    return { center: req.center, zoom: req.zoom };
+  };
+
   it('centres a box across the antimeridian near 180, not on Greenwich', async () => {
     await fitBounds([175, -21, -175, -13]);
-    const req = mapMoveRequest();
+    const req = fitted();
     expect(Math.abs(req.center[0])).toBeCloseTo(180, 6);
     expect(req.center[1]).toBeGreaterThan(-21);
     expect(req.center[1]).toBeLessThan(-13);
@@ -96,19 +103,19 @@ describe('PlotterExtensionService map.fitBounds', () => {
 
   it('fits the unwrapped form of that box to the same view', async () => {
     await fitBounds([175, -21, -175, -13]);
-    const wrapped = mapMoveRequest();
+    const wrapped = fitted();
     await fitBounds([175, -21, 185, -13]);
-    const unwrapped = mapMoveRequest();
+    const unwrapped = fitted();
     expect(unwrapped.zoom).toBeCloseTo(wrapped.zoom, 6);
     expect(Math.abs(unwrapped.center[0])).toBeCloseTo(180, 6);
     // ten degrees wide, the same zoom as any other ten-degree box
     await fitBounds([-5, -21, 5, -13]);
-    expect(mapMoveRequest().zoom).toBeCloseTo(wrapped.zoom, 6);
+    expect(fitted().zoom).toBeCloseTo(wrapped.zoom, 6);
   });
 
   it('centres on the Web Mercator middle of the box', async () => {
     await fitBounds([-81, 20, -80, 60]);
-    const [lon, lat] = mapMoveRequest().center;
+    const [lon, lat] = fitted().center;
     expect(lon).toBeCloseTo(-80.5, 6);
     // the Mercator middle of 20..60 lies north of the plain average, 40
     expect(lat).toBeGreaterThan(40);
@@ -117,16 +124,16 @@ describe('PlotterExtensionService map.fitBounds', () => {
 
   it('fits the box as it lies on a rotated map', async () => {
     await fitBounds([-100, 20, -90, 21]); // wide and flat, on a wide map
-    const northUp = mapMoveRequest().zoom;
+    const northUp = fitted().zoom;
     rotation = Math.PI / 2; // now it runs up the map's short side
     await fitBounds([-100, 20, -90, 21]);
-    expect(mapMoveRequest().zoom).toBeLessThan(northUp - 1);
+    expect(fitted().zoom).toBeLessThan(northUp - 1);
   });
 
   it('zooms a single-point box no deeper than the fit cap, not the map maximum', async () => {
     await fitBounds([-81, 24, -81, 24]);
-    expect(mapMoveRequest().zoom).toBe(FIT_MAX_ZOOM);
-    const [lon, lat] = mapMoveRequest().center;
+    expect(fitted().zoom).toBe(FIT_MAX_ZOOM);
+    const [lon, lat] = fitted().center;
     expect(lon).toBeCloseTo(-81, 9);
     expect(lat).toBeCloseTo(24, 9);
   });

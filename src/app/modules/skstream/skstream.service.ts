@@ -12,7 +12,7 @@ interface IWorkerCommand {
 
 @Injectable({ providedIn: 'root' })
 export class SKWorkerService {
-  private worker: Worker;
+  private worker: Worker | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private messageSource = new Subject<any>();
   private notificationSource = new Subject<NotificationMessage>();
@@ -54,7 +54,7 @@ export class SKWorkerService {
   // ************ Worker Functions *********************
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   settings(value: any) {
-    this.worker.postMessage({ cmd: 'settings', options: value });
+    this.worker?.postMessage({ cmd: 'settings', options: value });
   }
 
   terminate() {

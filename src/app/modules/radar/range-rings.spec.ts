@@ -13,9 +13,9 @@ const toNm = (m: number) => m / NM;
 const toKm = (m: number) => m / 1000;
 const distances = (range: number, unit: 'naut-mile' | 'kilometer') =>
   rangeRingScale(range, unit)?.distances ?? [];
-const expectDistances = (actual: number[], expected: number[]) => {
+const expectDistances = (actual: number[] | undefined, expected: number[]) => {
   expect(actual).toHaveLength(expected.length);
-  actual.forEach((v, i) => expect(v).toBeCloseTo(expected[i], 6));
+  actual?.forEach((v, i) => expect(v).toBeCloseTo(expected[i], 6));
 };
 
 const radar = (controls: Record<string, object>): ActiveRadar => ({
@@ -55,7 +55,7 @@ describe('rangeRingScale', () => {
   it("uses the radar's unit when the user unit gives no round spacing", () => {
     const scale = rangeRingScale(0.5 * NM, 'kilometer');
     expect(scale?.unit).toBe('naut-mile');
-    expectDistances(scale.distances.map(toNm), [0.1, 0.2, 0.3, 0.4, 0.5]);
+    expectDistances(scale?.distances.map(toNm), [0.1, 0.2, 0.3, 0.4, 0.5]);
     expect(rangeRingScale(1500, 'naut-mile')?.unit).toBe('kilometer');
   });
 
@@ -64,7 +64,7 @@ describe('rangeRingScale', () => {
     [231, 232].forEach((range) => {
       const scale = rangeRingScale(range, 'kilometer');
       expect(scale?.unit).toBe('naut-mile');
-      expect(scale.distances.map((d) => ringLabel(d, scale.unit))).toEqual([
+      expect(scale?.distances.map((d) => ringLabel(d, scale.unit))).toEqual([
         '0.025nmi',
         '0.05nmi',
         '0.075nmi',
@@ -78,7 +78,7 @@ describe('rangeRingScale', () => {
     // 250 m is 0.135 NM, three rings of 0.045 NM, but was set in km
     const scale = rangeRingScale(250, 'naut-mile');
     expect(scale?.unit).toBe('kilometer');
-    expectDistances(scale.distances.map(toKm), [0.05, 0.1, 0.15, 0.2, 0.25]);
+    expectDistances(scale?.distances.map(toKm), [0.05, 0.1, 0.15, 0.2, 0.25]);
   });
 
   it('accepts whole-number spacings', () => {

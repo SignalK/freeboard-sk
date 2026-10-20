@@ -1,36 +1,33 @@
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import {
-  SKChart,
-  SKNote,
-  SKRegion,
+  SKResourceClass,
   SKResourceService,
-  SKResourceType,
-  SKRoute,
-  SKTrack,
-  SKWaypoint
+  SKResourceType
 } from '../skresources';
 import { FBResource } from 'src/app/types';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ActiveRadar } from '../radar/radar-api.service';
 
-export type InfoPanelResource =
-  SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack | ActiveRadar;
-
-export interface InfoPanelItem {
-  type: SKResourceType | 'radars';
+type ResourceItem<T extends SKResourceType> = {
+  type: T;
   id: string;
-  resource: InfoPanelResource;
-}
+  resource: SKResourceClass<T>;
+};
+
+/** The item the panel shows; its `type` names the class of its `resource`. */
+export type InfoPanelItem =
+  | { [T in SKResourceType]: ResourceItem<T> }[SKResourceType]
+  | { type: 'radars'; id: string; resource: ActiveRadar };
 
 @Injectable({ providedIn: 'root' })
 export class InfoPanelFacade {
   private _opened = signal<boolean>(false);
   readonly opened = this._opened.asReadonly();
 
-  private _item = signal(undefined);
+  private _item = signal<InfoPanelItem | undefined>(undefined);
   readonly item = this._item.asReadonly();
 
-  private _related = signal<string>(undefined);
+  private _related = signal<string | undefined>(undefined);
   readonly related = this._related.asReadonly();
 
   private worker = inject(SKWorkerService);
@@ -51,15 +48,17 @@ export class InfoPanelFacade {
         if (!update.value) {
           // deleted
           this.close();
-        } else {
+        } else if (item.type !== 'radars') {
+          // radars are not resources, so no resources delta updates one;
           // a resources.<type>.<id> delta carries that resource's definition
           const resource = update.value as Parameters<
             SKResourceService['transform']
           >[1];
+          // transform() does not tie its result class to item.type
           this._item.set({
             ...item,
             resource: this.skres.transform(item.type, resource, item.id)
-          });
+          } as InfoPanelItem);
         }
       }
       if (np[1] === 'groups' || (np[1] === 'notes' && item?.type !== 'notes')) {
@@ -99,15 +98,19 @@ export class InfoPanelFacade {
     if (!resourceType || !resource) {
       return;
     }
+    // FBResource does not tie its resource class to resourceType
     this._item.set({
       type: resourceType,
       id: resource[0],
       resource: resource[1]
-    });
+    } as InfoPanelItem);
     this._opened.set(true);
   }
 
-  public openRadar(radar: ActiveRadar) {
+  public openRadar(radar: ActiveRadar | undefined) {
+    if (!radar) {
+      return;
+    }
     this._item.set({
       type: 'radars',
       id: radar.device.id,

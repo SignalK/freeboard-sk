@@ -123,7 +123,7 @@ export class RadarAPIService {
   private _hasWebGL = false;
   private _selectedRadar = signal<string>('');
   readonly radarId = this._selectedRadar.asReadonly();
-  private _radar = signal<ActiveRadar>(undefined);
+  private _radar = signal<ActiveRadar | undefined>(undefined);
   readonly radar = this._radar.asReadonly();
   // every radar the server reported on the last init(), in its order
   private _radars = signal<SKRadar[]>([]);
@@ -205,7 +205,7 @@ export class RadarAPIService {
   }
 
   /** Initialise radar */
-  public async init(id?: string): Promise<string> {
+  public async init(id?: string): Promise<string | undefined> {
     // Selections can overlap (another radar picked before the last one has
     // loaded); only the latest may change the radar state.
     const call = ++this.initCalls;
@@ -242,13 +242,11 @@ export class RadarAPIService {
     const previous = this._radar()?.device?.id;
 
     // populate selected radar details
-    const rd: Partial<{
-      device: SKRadar;
-      capabilities: CapabilityManifest;
-      controls: Record<string, ControlValue>;
-    }> = {};
+    let device: SKRadar;
+    let capabilities: CapabilityManifest;
+    let values: Record<string, ControlValue>;
     try {
-      [rd['device'], rd['capabilities'], rd['controls']] = await Promise.all([
+      [device, capabilities, values] = await Promise.all([
         this.getRadar(selected),
         this.getCapabilities(selected),
         this.getControls(selected)
@@ -273,21 +271,17 @@ export class RadarAPIService {
     this.app.saveConfig();
     // Radar API 3.4.0: the discovery object is lean and carries no id; fold in
     // the selected id so consumers (info panel, render, panel) can read it.
-    rd['device'].id = selected;
+    device.id = selected;
     // keep the values of the controls the capabilities define
     const controls = new Map<string, ControlValue>();
-    const cdef = rd['capabilities']['controls'] ?? {};
-    Object.entries(rd['controls'] ?? {}).forEach(([id, value]) => {
+    const cdef = capabilities['controls'] ?? {};
+    Object.entries(values ?? {}).forEach(([id, value]) => {
       if (id in cdef) {
         controls.set(id, value);
       }
     });
 
-    this._radar.set({
-      device: rd['device'],
-      capabilities: rd['capabilities'],
-      controls
-    });
+    this._radar.set({ device, capabilities, controls });
 
     // A Range Units change while this loaded read the capabilities again,
     // and this load's own answer may be the older one, so read them once more.
@@ -313,7 +307,7 @@ export class RadarAPIService {
       controlId === 'rangeUnits' &&
       shown?.device?.id === radarId &&
       shown.controls?.has(controlId) &&
-      shown.controls.get(controlId).value !==
+      shown.controls.get(controlId)?.value !==
         (msg.value as ControlValue)?.value;
     this._radar.update((current) => {
       if (

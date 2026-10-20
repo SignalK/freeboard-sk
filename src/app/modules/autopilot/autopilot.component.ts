@@ -300,7 +300,7 @@ export class AutopilotComponent {
   protected stateOptions = signal<Array<{ name: string; engaged: boolean }>>(
     []
   );
-  private currentPilot: string;
+  private currentPilot: string | undefined;
 
   apData = input<{
     default?: string;

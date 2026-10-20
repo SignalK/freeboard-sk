@@ -92,7 +92,9 @@ describe('ExtWindowComponent', () => {
 
   /** A drag of the title bar that is still in progress. */
   const startBarDrag = () => {
-    const bar = withCapture(host.querySelector('.fb-pe-window__bar'));
+    const bar = withCapture(
+      host.querySelector<HTMLElement>('.fb-pe-window__bar')!
+    );
     pointer(bar, 'pointerdown', 200, 100);
     pointer(bar, 'pointermove', 300, 180);
     expect(service.gestureActive()).toBe(true);
@@ -100,12 +102,12 @@ describe('ExtWindowComponent', () => {
   };
 
   it("shows the extension's panel in an iframe with exactly the baseline sandbox", () => {
-    const iframe = host.querySelector('iframe');
+    const iframe = host.querySelector('iframe')!;
     expect(iframe.getAttribute('src')).toBe(
       'http://boat.local:3000/plotterext/ext-a/viewer.html'
     );
     expect(iframe.getAttribute('sandbox')).toBe(WINDOW_SANDBOX);
-    expect(iframe.getAttribute('sandbox').split(' ').sort().join(' ')).toBe(
+    expect(iframe.getAttribute('sandbox')?.split(' ').sort().join(' ')).toBe(
       'allow-forms allow-same-origin allow-scripts'
     );
   });
@@ -121,7 +123,7 @@ describe('ExtWindowComponent', () => {
 
   it('stacks by z-order, colours the front bar and takes focus on press', () => {
     expect(host.style.zIndex).toBe('4');
-    expect(host.querySelector('.fb-pe-window__bar').classList).toContain(
+    expect(host.querySelector('.fb-pe-window__bar')!.classList).toContain(
       'front'
     );
     pointer(host, 'pointerdown', 200, 100);
@@ -177,14 +179,16 @@ describe('ExtWindowComponent', () => {
     ['a secondary mouse button', { button: 2 }],
     ['a non-primary pointer', { pointerType: 'touch', isPrimary: false }]
   ])('does not start a drag from %s', (_, init) => {
-    const bar = withCapture(host.querySelector('.fb-pe-window__bar'));
+    const bar = withCapture(
+      host.querySelector<HTMLElement>('.fb-pe-window__bar')!
+    );
     pointer(bar, 'pointerdown', 200, 100, init);
     expect(service.gestureActive()).toBe(false);
   });
 
   it('resizes from the south-east corner', () => {
     const handle = withCapture(
-      host.querySelector('.fb-pe-window__handle[data-mode="se"]')
+      host.querySelector<HTMLElement>('.fb-pe-window__handle[data-mode="se"]')!
     );
     pointer(handle, 'pointerdown', 500, 480);
     pointer(handle, 'pointermove', 600, 560);
@@ -200,17 +204,21 @@ describe('ExtWindowComponent', () => {
   it('lets the user neither move nor resize a window that forbids it', () => {
     fixture.destroy();
     mount(extWindow({ movable: false, resizable: false }));
-    const bar = withCapture(host.querySelector('.fb-pe-window__bar'));
+    const bar = withCapture(
+      host.querySelector<HTMLElement>('.fb-pe-window__bar')!
+    );
     pointer(bar, 'pointerdown', 200, 100);
     expect(service.gestureActive()).toBe(false);
     expect(host.querySelector('.fb-pe-window__handle')).toBeNull();
   });
 
   it('does not start a drag from the title bar buttons', () => {
-    const bar = withCapture(host.querySelector('.fb-pe-window__bar'));
+    const bar = withCapture(
+      host.querySelector<HTMLElement>('.fb-pe-window__bar')!
+    );
     const collapse = bar.querySelector<HTMLElement>(
       'button[aria-label="Collapse"]'
-    );
+    )!;
     pointer(collapse, 'pointerdown', 200, 100);
     expect(service.gestureActive()).toBe(false);
   });
@@ -254,7 +262,7 @@ describe('ExtWindowComponent', () => {
     ).click();
     expect(service.setCollapsed).toHaveBeenCalledWith('w1', true);
     host
-      .querySelector('.fb-pe-window__title')
+      .querySelector('.fb-pe-window__title')!
       .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
     expect(service.setCollapsed).toHaveBeenCalledTimes(2);
   });
@@ -269,7 +277,9 @@ describe('ExtWindowComponent', () => {
 
   it('brings the bar back from the grip, which also drags the window', () => {
     idle(BAR_HIDE_DELAY_MS);
-    const grip = withCapture(host.querySelector('.fb-pe-window__grip'));
+    const grip = withCapture(
+      host.querySelector<HTMLElement>('.fb-pe-window__grip')!
+    );
     pointer(grip, 'pointerenter', 300, 85);
     expect(barHidden()).toBe(false);
     expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
@@ -291,12 +301,12 @@ describe('ExtWindowComponent', () => {
   it('brings the bar back from the top resize handle but not the bottom one', () => {
     idle(BAR_HIDE_DELAY_MS);
     pointer(
-      host.querySelector('.fb-pe-window__handle[data-mode="s"]'),
+      host.querySelector('.fb-pe-window__handle[data-mode="s"]')!,
       'pointerenter'
     );
     expect(barHidden()).toBe(true);
     pointer(
-      host.querySelector('.fb-pe-window__handle[data-mode="n"]'),
+      host.querySelector('.fb-pe-window__handle[data-mode="n"]')!,
       'pointerenter'
     );
     expect(barHidden()).toBe(false);
@@ -325,7 +335,7 @@ describe('ExtWindowComponent', () => {
     idle(BAR_HIDE_DELAY_MS);
     const button = host.querySelector<HTMLElement>(
       'button[aria-label="Collapse"]'
-    );
+    )!;
     // jsdom decides :focus-visible from the last key or mouse event it saw,
     // so the focus has to arrive the way keyboard focus does: by Tab.
     document.body.dispatchEvent(
@@ -366,7 +376,7 @@ describe('ExtWindowComponent', () => {
     fixture.detectChanges();
     const item = Array.from(
       document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')
-    ).find((b) => b.textContent.includes('60%'));
+    ).find((b) => b.textContent.includes('60%'))!;
     item.click();
     expect(service.setOpacity).toHaveBeenCalledWith('w1', 0.6);
   });
@@ -386,9 +396,9 @@ describe('ExtWindowComponent', () => {
       .spyOn(service, 'close')
       .mockImplementation((): void => undefined);
     const escapeInPanel = () => {
-      const iframe = host.querySelector('iframe');
+      const iframe = host.querySelector('iframe')!;
       iframe.dispatchEvent(new Event('load'));
-      iframe.contentWindow.dispatchEvent(
+      iframe.contentWindow!.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Escape' })
       );
     };
@@ -431,7 +441,9 @@ describe('ExtWindowComponent', () => {
     expect(host.querySelectorAll('.fb-pe-window__handle').length).toBe(8);
     expect(host.classList).toContain('bar-overlay');
     expect(idle(BAR_HIDE_DELAY_MS)).toBe(true);
-    const grip = withCapture(host.querySelector('.fb-pe-window__grip'));
+    const grip = withCapture(
+      host.querySelector<HTMLElement>('.fb-pe-window__grip')!
+    );
     pointer(grip, 'pointerdown', 180, 85, { pointerType: 'touch' });
     expect(service.gestureActive()).toBe(true);
     expect(barHidden()).toBe(false);

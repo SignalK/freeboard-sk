@@ -19,7 +19,7 @@ describe('ExtWindowLayerComponent', () => {
   let service: ExtWindowService;
 
   const windowEl = (id: string) =>
-    host.querySelector<HTMLElement>(`fb-pe-window[data-window-id="${id}"]`);
+    host.querySelector<HTMLElement>(`fb-pe-window[data-window-id="${id}"]`)!;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -55,10 +55,10 @@ describe('ExtWindowLayerComponent', () => {
     expect(windowEl('b').style.zIndex).toBe('2');
     expect(windowEl('a').style.zIndex).toBe('4');
     expect(
-      windowEl('a').querySelector('.fb-pe-window__bar').classList
+      windowEl('a').querySelector('.fb-pe-window__bar')!.classList
     ).toContain('front');
     expect(
-      windowEl('b').querySelector('.fb-pe-window__bar').classList
+      windowEl('b').querySelector('.fb-pe-window__bar')!.classList
     ).not.toContain('front');
   });
 
@@ -78,8 +78,8 @@ describe('ExtWindowLayerComponent', () => {
   });
 
   it('brings a window to the front when a click lands in its panel', () => {
-    windowEl('b').querySelector('iframe').focus();
-    expect(document.activeElement.tagName).toBe('IFRAME');
+    windowEl('b').querySelector('iframe')!.focus();
+    expect(document.activeElement?.tagName).toBe('IFRAME');
     window.dispatchEvent(new Event('blur'));
     vi.runOnlyPendingTimers();
     expect(service.focus).toHaveBeenCalledWith('b');
@@ -94,7 +94,7 @@ describe('ExtWindowLayerComponent', () => {
     const backdrop = host.querySelector<HTMLElement>('.fb-pe-window-backdrop');
     expect(backdrop).not.toBeNull();
     // above every other window, below the modal one
-    expect(backdrop.style.zIndex).toBe('5');
+    expect(backdrop?.style.zIndex).toBe('5');
     expect(windowEl('m').style.zIndex).toBe('6');
     const closed = vi.fn();
     service.changes.subscribe(closed);

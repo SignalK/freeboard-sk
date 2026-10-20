@@ -31,7 +31,7 @@ export class SKStreamAPI {
   private _error: Subject<Event>;
   private _message: Subject<SKStreamMessage>;
 
-  private ws: WebSocket | null;
+  private ws: WebSocket | null = null;
   private _filter: string = ''; // id of vessel to filter delta messages
   private _wsTimeout = 20000; // websocket connection timeout
   private _token: string = '';
@@ -163,13 +163,14 @@ export class SKStreamAPI {
 
   /** parse received message */
   private parseOnMessage(e: MessageEvent) {
+    if (typeof e.data !== 'string') {
+      return;
+    }
     let data: SKStreamMessage;
-    if (typeof e.data === 'string') {
-      try {
-        data = JSON.parse(e.data);
-      } catch {
-        return;
-      }
+    try {
+      data = JSON.parse(e.data);
+    } catch {
+      return;
     }
     if (this.isHello(data)) {
       this.selfId = data.self;
@@ -251,7 +252,8 @@ export class SKStreamAPI {
 
     let uValues: PathValue[] = [];
     if (typeof path === 'string') {
-      uValues.push({ path: path as Path, value: value });
+      // the overload taking a path string requires a value
+      uValues.push({ path: path as Path, value: value as Value });
     }
     if (typeof path === 'object' && Array.isArray(path)) {
       uValues = path;

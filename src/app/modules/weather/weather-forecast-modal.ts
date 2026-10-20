@@ -327,7 +327,8 @@ export class WeatherForecastModal implements OnInit {
           Object.values(forecasts)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .forEach((v: any) => {
-              const forecastData: WeatherData = { wind: {} };
+              const wind: NonNullable<WeatherData['wind']> = {};
+              const forecastData: WeatherData = { wind };
               forecastData.description = v['description'] ?? '';
               const d = new Date(v['date']);
               forecastData.time = d
@@ -368,17 +369,17 @@ export class WeatherForecastModal implements OnInit {
                   : '--';
 
               if (typeof v.wind !== 'undefined') {
-                forecastData.wind.speed =
+                wind.speed =
                   typeof v.wind.speedTrue !== 'undefined'
                     ? `${this.app.formatSpeed(v.wind.speedTrue, true)}`
                     : '--';
 
-                forecastData.wind.gust =
+                wind.gust =
                   typeof v.wind.gust !== 'undefined'
                     ? `${this.app.formatSpeed(v.wind.gust, true)}`
                     : '--';
 
-                forecastData.wind.direction =
+                wind.direction =
                   typeof v.wind.directionTrue !== 'undefined'
                     ? `${this.toCardinal(Convert.radiansToDegrees(v.wind.directionTrue))}`
                     : '--';

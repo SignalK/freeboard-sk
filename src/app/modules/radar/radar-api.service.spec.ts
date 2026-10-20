@@ -119,7 +119,7 @@ describe('RadarAPIService init() (#755)', () => {
     expect(id).toBe('radar-1');
     expect(app.config.radars.deviceId).toBe('radar-1');
 
-    const radar = service.radar();
+    const radar = service.radar()!;
     expect(radar.device).toEqual({ ...device, id: 'radar-1' });
     expect(radar.capabilities).toEqual(capabilities);
     expect(Array.from(radar.controls.keys())).toEqual([
@@ -163,7 +163,7 @@ describe('RadarAPIService init() (#755)', () => {
 
       await updateAt(RADAR_RETRY_MS);
       await vi.waitFor(() => expect(service.radarId()).toBe('radar-1'));
-      expect(service.radar().device.id).toBe('radar-1');
+      expect(service.radar()?.device.id).toBe('radar-1');
     });
 
     it('is looked for RADAR_RETRY_MS after start-up, then ever less often', async () => {
@@ -269,7 +269,7 @@ describe('RadarAPIService init() (#755)', () => {
       update('radars.radar-1.controls.gain', { value: 20, auto: false });
 
       expect(service.radar()).not.toBe(before);
-      expect(service.radar().controls.get('gain')).toEqual({
+      expect(service.radar()?.controls.get('gain')).toEqual({
         value: 20,
         auto: false
       });
@@ -283,7 +283,7 @@ describe('RadarAPIService init() (#755)', () => {
       update('radars.radar-1.controls.gain', { value: 20, auto: false });
       update('radars.radar-2.controls.gain', { value: 35, auto: false });
 
-      expect(service.radar().controls.get('gain')).toEqual({
+      expect(service.radar()?.controls.get('gain')).toEqual({
         value: 20,
         auto: false
       });
@@ -326,8 +326,8 @@ describe('RadarAPIService init() (#755)', () => {
         update('radars.radar-1.controls.rangeUnits', { value: 1 });
         await settle();
 
-        expect(service.radar().capabilities).toBe(metric);
-        expect(service.radar().controls.get('rangeUnits')).toEqual({
+        expect(service.radar()?.capabilities).toBe(metric);
+        expect(service.radar()?.controls.get('rangeUnits')).toEqual({
           value: 1
         });
       });
@@ -340,7 +340,7 @@ describe('RadarAPIService init() (#755)', () => {
         update('radars.radar-1.controls.rangeUnits', { value: 0 });
         await settle();
 
-        expect(service.radar().capabilities).toBe(nautical);
+        expect(service.radar()?.capabilities).toBe(nautical);
       });
 
       it('keeps the newest answer when an older read answers late', async () => {
@@ -358,7 +358,7 @@ describe('RadarAPIService init() (#755)', () => {
         late.complete();
         await settle();
 
-        expect(service.radar().capabilities).toBe(mixed);
+        expect(service.radar()?.capabilities).toBe(mixed);
       });
 
       it('drops a read that a reload of the radar overtook', async () => {
@@ -375,7 +375,7 @@ describe('RadarAPIService init() (#755)', () => {
         late.complete();
         await settle();
 
-        expect(service.radar().capabilities).toBe(reloaded);
+        expect(service.radar()?.capabilities).toBe(reloaded);
       });
 
       it('reads them again when they change while the radar loads', async () => {
@@ -394,7 +394,7 @@ describe('RadarAPIService init() (#755)', () => {
         await reload;
         await settle();
 
-        expect(service.radar().capabilities).toBe(metric);
+        expect(service.radar()?.capabilities).toBe(metric);
       });
 
       it("keeps them when another radar's Range Units change", async () => {
@@ -405,7 +405,7 @@ describe('RadarAPIService init() (#755)', () => {
         update('radars.radar-2.controls.rangeUnits', { value: 1 });
         await settle();
 
-        expect(service.radar().capabilities).toBe(nautical);
+        expect(service.radar()?.capabilities).toBe(nautical);
       });
     });
 
@@ -415,7 +415,7 @@ describe('RadarAPIService init() (#755)', () => {
 
       update('radars.radar-2.controls.gain', { value: 20, auto: false });
 
-      expect(service.radar().controls.get('gain')).toEqual({
+      expect(service.radar()?.controls.get('gain')).toEqual({
         timestamp: 't',
         value: 50,
         auto: true
@@ -428,7 +428,7 @@ describe('RadarAPIService init() (#755)', () => {
 
       update('radars.radar-1.controls.stray', { value: 8 });
 
-      expect(service.radar().controls.has('stray')).toBe(false);
+      expect(service.radar()?.controls.has('stray')).toBe(false);
     });
   });
 
@@ -445,7 +445,7 @@ describe('RadarAPIService init() (#755)', () => {
     await earlier;
 
     expect(service.radarId()).toBe('radar-1');
-    expect(service.radar().device.id).toBe('radar-1');
+    expect(service.radar()?.device.id).toBe('radar-1');
     expect(app.config.radars.deviceId).toBe('radar-1');
   });
 
@@ -458,7 +458,7 @@ describe('RadarAPIService init() (#755)', () => {
     await service.init('radar-2');
 
     expect(service.radarId()).toBe('radar-1');
-    expect(service.radar().device.id).toBe('radar-1');
+    expect(service.radar()?.device.id).toBe('radar-1');
     expect(app.config.radars.deviceId).toBe('radar-1');
     expect(saveConfig).not.toHaveBeenCalled();
   });

@@ -206,13 +206,11 @@ export class SettingsDialog implements OnInit {
 
   /** apply RADAR Options  */
   doRadar() {
-    this.radarApi
-      .init(this.facade.settings.radars.deviceId)
-      .then((id: string) => {
-        if (id) {
-          this.persistModel();
-        }
-      });
+    this.radarApi.init(this.facade.settings.radars.deviceId).then((id) => {
+      if (id) {
+        this.persistModel();
+      }
+    });
   }
 
   /** handle line style change */
@@ -265,7 +263,12 @@ export class SettingsDialog implements OnInit {
   private applyArrivalCircle() {
     const radius = this.facade.settings.course.arrivalCircle;
     const course = this.course.courseData();
-    if (course.position && radius > 0 && radius !== course.arrivalCircle) {
+    if (
+      course.position &&
+      radius !== null &&
+      radius > 0 &&
+      radius !== course.arrivalCircle
+    ) {
       this.course.setArrivalCircle(radius);
     }
   }

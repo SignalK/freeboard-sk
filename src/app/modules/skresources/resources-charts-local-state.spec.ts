@@ -164,3 +164,35 @@ describe('sending a chart with user display preferences to the server (#836)', (
     expect(internals.absorbChartDelta('my-chart', resource(0.5))).toBe(false);
   });
 });
+
+describe('a chart resource without a url', () => {
+  // The chart schema makes `url` optional for every type; one such chart
+  // must not stop the others from being listed.
+  it('is transformed, with the url left out', () => {
+    const { internals } = svcWithPrefs({}, {});
+    const chart = internals.transformChart(
+      { name: 'Coast', type: 'S-57', layers: [] },
+      'no-url'
+    );
+    expect(chart.name).toBe('Coast');
+    expect(chart.url).toBeUndefined();
+  });
+
+  it('still gets the host added to a relative url', () => {
+    const { internals } = svcWithPrefs({}, {});
+    const chart = internals.transformChart(
+      { name: 'Coast', type: 'tilelayer', url: '/charts/coast/{z}/{x}/{y}' },
+      'relative'
+    );
+    expect(chart.url).toBe('http://sk.local:3000/charts/coast/{z}/{x}/{y}');
+  });
+
+  it('gets the host added to a relative url when it has no type', () => {
+    const { internals } = svcWithPrefs({}, {});
+    const chart = internals.transformChart(
+      { name: 'Coast', url: '/charts/coast/{z}/{x}/{y}' },
+      'untyped'
+    );
+    expect(chart.url).toBe('http://sk.local:3000/charts/coast/{z}/{x}/{y}');
+  });
+});
