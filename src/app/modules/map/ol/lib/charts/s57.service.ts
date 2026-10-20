@@ -436,7 +436,7 @@ export class S57Service {
     const startIndex = this.lookupStartIndex.get(
       lookupTable + ',' + name.toUpperCase() + ',' + type
     );
-    if (startIndex) {
+    if (startIndex !== undefined) {
       let currentIndex = startIndex;
       let lup = this.lookups[currentIndex];
       let lmatch = 0;
