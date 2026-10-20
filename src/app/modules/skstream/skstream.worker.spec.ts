@@ -676,7 +676,8 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
     lon: number,
     recentOnly: boolean,
     provider = 'tracks',
-    trailDuration = TRAIL_DURATION_ALL
+    trailDuration = TRAIL_DURATION_ALL,
+    server = tracks
   ) => {
     urls = [];
     let next = lon;
@@ -692,7 +693,7 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
       })
     );
     getVesselTrailV2(
-      tracks,
+      server,
       {
         trailDuration,
         trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
@@ -747,6 +748,19 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
     await fetchTrail(10, false);
 
     await fetchTrail(20, true, 'questdb');
+    expect(urls).toHaveLength(3);
+  });
+
+  it('fetches every band from a server the older ones were not fetched from', async () => {
+    await fetchTrail(10, false);
+
+    await fetchTrail(
+      20,
+      true,
+      'tracks',
+      TRAIL_DURATION_ALL,
+      'http://other/signalk/v2/api/tracks'
+    );
     expect(urls).toHaveLength(3);
   });
 

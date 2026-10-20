@@ -602,6 +602,7 @@ export function getVesselTrailV2(
 ) {
   const now = Date.now();
   const key = JSON.stringify([
+    url,
     provider,
     opt.trailDuration,
     opt.trailResolution.next23,
