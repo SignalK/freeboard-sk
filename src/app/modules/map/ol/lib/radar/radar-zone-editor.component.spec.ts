@@ -22,7 +22,7 @@ describe('RadarZoneEditorComponent', () => {
 
   let interaction: PointerInteraction;
   let handleAtPointer: string | undefined;
-  let changes: GuardZone[];
+  let changes: Array<GuardZone | undefined>;
   let drawn: GuardZone[];
 
   const target = document.createElement('div');
@@ -38,8 +38,10 @@ describe('RadarZoneEditorComponent', () => {
     forEachFeatureAtPixel: (
       _pixel: number[],
       callback: (f: { get: () => string }) => string
-    ) =>
-      handleAtPointer ? callback({ get: () => handleAtPointer }) : undefined
+    ) => {
+      const handle = handleAtPointer;
+      return handle ? callback({ get: () => handle }) : undefined;
+    }
   };
 
   function open(edit: ZoneEdit) {
@@ -187,8 +189,8 @@ describe('RadarZoneEditorComponent', () => {
       pointer('pointerup', 0, 1500, [100, 40]);
 
       expect(changes.length).toBe(1);
-      expect(changes[0].endDistance).toBeCloseTo(1500, 0);
-      expect(changes[0].startDistance).toBe(stored.startDistance);
+      expect(changes[0]?.endDistance).toBeCloseTo(1500, 0);
+      expect(changes[0]?.startDistance).toBe(stored.startDistance);
       expect(drawn).toEqual([]);
     });
 

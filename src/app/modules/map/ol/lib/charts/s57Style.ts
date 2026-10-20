@@ -29,14 +29,14 @@ export class S57Style {
     this.s57Service = s57Service;
   }
 
-  private getSymbolStyle(symbolName: string): Style {
+  private getSymbolStyle(symbolName: string): Style | null {
     const symbol = this.s57Service.getSymbol(symbolName);
     if (symbol) {
       return new Style({
         image: new Icon({
           width: symbol.width,
           height: symbol.height,
-          img: symbol.image,
+          img: symbol.image ?? undefined,
           opacity: 1,
           anchorXUnits: 'pixels',
           anchorYUnits: 'pixels',
@@ -114,7 +114,7 @@ export class S57Style {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     featureProperties: any,
     parameters: string
-  ): string {
+  ): string | null {
     const params = parameters.split(',');
     const text = featureProperties[this.stripQuotes(params[1])];
     const format = this.stripQuotes(params[0]);
@@ -145,7 +145,7 @@ export class S57Style {
     });
   }
 
-  private getAreaStyle(colorName: string): Style {
+  private getAreaStyle(colorName: string): Style | null {
     const color = this.s57Service.getColor(colorName);
     if (color) {
       return new Style({
@@ -162,7 +162,7 @@ export class S57Style {
     const color = this.s57Service.getColor(parts[2]);
     const width = parseInt(parts[1]);
     const lineStyle = parts[0];
-    let lineDash = null;
+    let lineDash: number[] | undefined;
     switch (lineStyle) {
       case 'DASH':
         lineDash = [4, 4];
@@ -171,7 +171,7 @@ export class S57Style {
         lineDash = [2, 4];
         break;
       case 'SOLD':
-        lineDash = null;
+        lineDash = undefined;
         break;
       default:
         console.debug('Unsupported linestyle:', lineStyle);
@@ -265,9 +265,7 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2072
   private GetCSQUAPOS01(feature: FeatureLike): string[] {
-    const geometry = feature.getGeometry();
-
-    if (geometry.getType() === 'LineString') {
+    if (feature.getGeometry()?.getType() === 'LineString') {
       return this.GetCSQQUALIN01(feature);
     } else {
       return this.GetCSQQUAPNT01(feature);
@@ -287,14 +285,14 @@ export class S57Style {
       bquapos = true;
     }
 
-    if (geometry.getType() === 'Point') {
+    if (geometry?.getType() === 'Point') {
       if (bquapos) {
         if (2 <= quapos && quapos < 10) {
           retval.push('SY(LOWACC01)');
         }
       }
     } else {
-      if (geometry.getType() === 'Polygon') {
+      if (geometry?.getType() === 'Polygon') {
         retval.push('AP(CROSSX01');
       }
       if (bquapos) {
@@ -580,7 +578,7 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4494C40-L4494C40
   private GetCSLIGHTS05(feature: FeatureLike): string[] {
-    let rulestring: string = null;
+    let rulestring: string | null = null;
     const featureProperties = feature.getProperties();
 
     if (featureProperties['COLOUR']) {
@@ -666,7 +664,7 @@ export class S57Style {
       objl = parseInt(featureProperties['OBJL']);
     }
 
-    if (DEPARE === objl && geometry.getType() === 'LineString') {
+    if (DEPARE === objl && geometry?.getType() === 'LineString') {
       if (featureProperties['DRVAL1']) {
         drval1 = parseFloat(featureProperties['DRVAL1']);
       }
@@ -785,7 +783,7 @@ export class S57Style {
   private GetCSOBSTRN04(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const props = feature.getProperties();
-    const geomType = feature.getGeometry().getType();
+    const geomType = feature.getGeometry()?.getType();
     const layer = props['layer'];
 
     const valsou =
@@ -837,7 +835,7 @@ export class S57Style {
   private GetCSWRECKS02(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const props = feature.getProperties();
-    const geomType = feature.getGeometry().getType();
+    const geomType = feature.getGeometry()?.getType();
 
     const valsou =
       props['VALSOU'] !== undefined ? parseFloat(props['VALSOU']) : NaN;
@@ -999,7 +997,7 @@ export class S57Style {
       instructions.forEach((instruction) => {
         const instrParts = this.instructionMatch.exec(instruction);
         if (instrParts && instrParts.length > 1) {
-          let style: Style = null;
+          let style: Style | null | undefined = null;
           const cacheKey = instrParts[1] + '_' + instrParts[2];
           const isText = instrParts[1] === 'TX' || instrParts[1] === 'TE';
           if (!isText) {
@@ -1026,7 +1024,7 @@ export class S57Style {
                 //debugger
                 console.debug('Unsupported instruction:' + instruction);
             }
-            if (!isText) {
+            if (!isText && style) {
               this.s57Service.setStyle(cacheKey, style);
             }
           }
@@ -1035,12 +1033,15 @@ export class S57Style {
             if (instrParts[1] === 'TE') {
               style
                 .getText()
-                .setText(this.getTextStyleTEText(properties, instrParts[2]));
+                ?.setText(
+                  this.getTextStyleTEText(properties, instrParts[2]) ??
+                    undefined
+                );
             }
             if (instrParts[1] === 'TX') {
               style
                 .getText()
-                .setText(this.getTextStyleTXText(properties, instrParts[2]));
+                ?.setText(this.getTextStyleTXText(properties, instrParts[2]));
             }
             styles.push(style);
           }
@@ -1154,7 +1155,10 @@ export class S57Style {
     return 0;
   };
 
-  public getStyle = (feature: FeatureLike, resolution: number): Style[] => {
+  public getStyle = (
+    feature: FeatureLike,
+    resolution: number
+  ): Style[] | undefined => {
     this.currentResolution = resolution;
     const cached = feature as LookupCachedFeature;
     let lupIndex = cached[LOOKUPINDEXKEY];
@@ -1174,6 +1178,6 @@ export class S57Style {
         return this.getStylesFromRules(lup, feature);
       }
     }
-    return null;
+    return undefined;
   };
 }

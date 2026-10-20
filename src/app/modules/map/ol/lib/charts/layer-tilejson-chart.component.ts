@@ -34,12 +34,12 @@ import {
   standalone: false
 })
 export class TileJsonChartLayerComponent implements OnDestroy {
-  protected chart = input<FBChart>();
-  protected zIndex = input<number>();
+  protected chart = input.required<FBChart>();
+  protected zIndex = input.required<number>();
   protected overZoomTiles = input<boolean>(true);
   protected mapMaxZoom = input<number>();
 
-  private layer: TileLayer;
+  private layer?: TileLayer;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
@@ -128,8 +128,8 @@ export class TileJsonChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
       this.layer.setZIndex(this.zIndex());
-      this.layer.setMinZoom(zoom.min);
-      this.layer.setMaxZoom(zoom.max);
+      this.layer.setMinZoom(zoom.min ?? -Infinity);
+      this.layer.setMaxZoom(zoom.max ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }

@@ -71,27 +71,28 @@ function pointerIdOf(e: MapBrowserEvent): number {
 })
 export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   @Input() edit: ZoneEdit | undefined;
-  @Input() position: Coordinate;
+  @Input() position?: Coordinate;
   /** vessel heading, radians true: zone bearings are relative to the bow */
   @Input() heading = 0;
-  @Input() zIndex: number;
+  @Input({ required: true }) zIndex!: number;
 
-  /** the zone while it is drawn or a handle is dragged */
-  zoneChange = output<GuardZone>();
+  /** the zone while it is drawn or a handle is dragged, or the zone the
+   *  gesture started from (none while drawing the first one) on an abort */
+  zoneChange = output<GuardZone | undefined>();
   /** a zone drawn from corner to corner */
   zoneDrawn = output<GuardZone>();
 
-  protected layer: VectorLayer<VectorSource>;
-  protected source: VectorSource;
-  private interaction: PointerInteraction;
+  protected layer?: VectorLayer<VectorSource>;
+  protected source?: VectorSource;
+  private interaction?: PointerInteraction;
 
-  private drawStart: { polar: RadarPolar; pixel: number[] };
-  private drawing: GuardZone;
-  private dragging: ZoneHandle;
-  private dragged: GuardZone;
+  private drawStart?: { polar: RadarPolar; pixel: number[] };
+  private drawing?: GuardZone;
+  private dragging?: ZoneHandle;
+  private dragged?: GuardZone;
   // the finger that started the gesture, and the zone it started from
-  private pointerId: number;
-  private original: GuardZone;
+  private pointerId?: number;
+  private original?: GuardZone;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -115,7 +116,7 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (!this.layer) {
+    if (!this.layer || !this.source) {
       return;
     }
     if (changes['zIndex']) {
@@ -133,9 +134,13 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   ngOnDestroy() {
     this.reset();
     const map = this.mapComponent.getMap();
-    map?.removeInteraction(this.interaction);
-    map?.removeLayer(this.layer);
-    this.layer = null;
+    if (this.interaction) {
+      map?.removeInteraction(this.interaction);
+    }
+    if (this.layer) {
+      map?.removeLayer(this.layer);
+      this.layer = undefined;
+    }
     this.setCursor();
   }
 
@@ -148,7 +153,10 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private polarAt(e: MapBrowserEvent): RadarPolar {
+  private polarAt(e: MapBrowserEvent): RadarPolar | undefined {
+    if (!Array.isArray(this.position)) {
+      return undefined;
+    }
     return toRadarPolar(
       this.position,
       this.heading ?? 0,
@@ -159,13 +167,17 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   private onDown(e: MapBrowserEvent): boolean {
     // the primary button or first finger only: a right-click still opens the
     // chart menu
-    if (!this.edit || !Array.isArray(this.position) || !primaryAction(e)) {
+    if (!this.edit || !primaryAction(e)) {
+      return false;
+    }
+    const polar = this.polarAt(e);
+    if (!polar) {
       return false;
     }
     this.pointerId = pointerIdOf(e);
     this.original = this.edit.zone;
     if (this.edit.mode === 'draw') {
-      this.drawStart = { polar: this.polarAt(e), pixel: e.pixel };
+      this.drawStart = { polar, pixel: e.pixel };
       this.drawing = undefined;
       setHandleDrag(e.map, this.pointerId);
       return true;
@@ -192,6 +204,10 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
       this.abort();
       return;
     }
+    const polar = this.polarAt(e);
+    if (!polar) {
+      return;
+    }
     if (this.drawStart) {
       const [x0, y0] = this.drawStart.pixel;
       if (
@@ -200,10 +216,10 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
       ) {
         return;
       }
-      this.drawing = zoneFromDrag(this.drawStart.polar, this.polarAt(e));
+      this.drawing = zoneFromDrag(this.drawStart.polar, polar);
       this.zoneChange.emit(this.drawing);
-    } else if (this.dragging) {
-      this.dragged = dragHandle(this.dragged, this.dragging, this.polarAt(e));
+    } else if (this.dragging && this.dragged) {
+      this.dragged = dragHandle(this.dragged, this.dragging, polar);
       this.zoneChange.emit(this.dragged);
     }
   }
@@ -242,16 +258,15 @@ export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
 
   private buildHandles(): Feature[] {
     const zone = this.edit?.zone;
-    if (this.edit?.mode !== 'edit' || !zone || !Array.isArray(this.position)) {
+    const position = this.position;
+    if (this.edit?.mode !== 'edit' || !zone || !Array.isArray(position)) {
       return [];
     }
     const at = handlePositions(zone);
     return ZONE_HANDLES.map((handle) => {
       const f = new Feature({
         geometry: new Point(
-          fromLonLat(
-            fromRadarPolar(this.position, this.heading ?? 0, at[handle])
-          )
+          fromLonLat(fromRadarPolar(position, this.heading ?? 0, at[handle]))
         ),
         handle
       });

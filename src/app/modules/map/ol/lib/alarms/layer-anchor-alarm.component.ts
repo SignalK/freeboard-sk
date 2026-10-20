@@ -31,9 +31,9 @@ import { AsyncSubject } from 'rxjs';
   standalone: false
 })
 export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features: Array<Feature> = [];
 
   /**
    * This event is triggered after the layer is initialized
@@ -41,20 +41,20 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  protected radius = input<number>();
+  protected radius = input.required<number>();
   protected anchorPosition = input<Coordinate>();
   protected vesselPosition = input<Coordinate>();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() anchorStyles: { [key: string]: any };
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() anchorStyles?: { [key: string]: any };
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   protected mapifiedRadius = 0;
   protected mapifiedLine: Array<Coordinate> = [];
@@ -113,35 +113,37 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
   parseValues() {
+    const anchorPosition = this.anchorPosition();
+    if (!anchorPosition) {
+      this.features = [];
+      return;
+    }
     this.mapifiedRadius = mapifyRadius(
       this.radius() < 0 ? 0 : this.radius(),
-      this.anchorPosition()
+      anchorPosition
     );
-    this.mapifiedLine = mapifyCoords([
-      this.anchorPosition(),
-      this.vesselPosition()
-    ]);
     const fa: Feature[] = [];
-    const f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-    });
-    f.setStyle(this.buildStyle('line'));
-    fa.push(f);
+    const vesselPosition = this.vesselPosition();
+    if (vesselPosition) {
+      this.mapifiedLine = mapifyCoords([anchorPosition, vesselPosition]);
+      const f = new Feature({
+        geometry: new LineString(fromLonLatArray(this.mapifiedLine))
+      });
+      f.setStyle(this.buildStyle('line'));
+      fa.push(f);
+    }
     const fc = new Feature({
-      geometry: new Circle(
-        fromLonLat(this.anchorPosition()),
-        this.mapifiedRadius
-      )
+      geometry: new Circle(fromLonLat(anchorPosition), this.mapifiedRadius)
     });
     fc.setStyle(this.buildStyle('circle'));
     fa.push(fc);
     const fp = new Feature({
-      geometry: new Point(fromLonLat(this.anchorPosition()))
+      geometry: new Point(fromLonLat(anchorPosition))
     });
     fp.setId('anchor');
     fp.setStyle(this.buildStyle('anchor'));

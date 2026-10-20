@@ -45,7 +45,7 @@ describe('RasterChartLayerComponent — time-varying chart', () => {
   const source = (): XYZ =>
     (map.addLayer.mock.calls[0][0] as TileLayer).getSource() as XYZ;
   const tileUrl = (src: XYZ) =>
-    src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection());
+    src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection()!);
 
   const render = (chart: FBChart) => {
     const fixture = TestBed.createComponent(RasterChartLayerComponent);

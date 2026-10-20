@@ -14,7 +14,7 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke } from 'ol/style';
-import { Geometry, MultiLineString, LineString } from 'ol/geom';
+import { MultiLineString, LineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
@@ -28,9 +28,9 @@ import { AsyncSubject } from 'rxjs';
   standalone: false
 })
 export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features?: Array<Feature>;
 
   /**
    * This event is triggered after the layer is initialized
@@ -38,20 +38,20 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject();
 
-  @Input() localTrail: Array<Coordinate>;
-  @Input() serverTrail: Array<Array<Coordinate>>;
-  @Input() trailStyles: { [key: string]: Style };
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() localTrail?: Array<Coordinate>;
+  @Input() serverTrail?: Array<Array<Coordinate>>;
+  @Input() trailStyles?: { [key: string]: Style };
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
-  trailLocal: Feature;
-  trailServer: Feature;
+  trailLocal?: Feature;
+  trailServer?: Feature;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -118,7 +118,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
@@ -137,14 +137,13 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       this.trailLocal = new Feature(new LineString(c));
       this.trailLocal.setId('trail.self.local');
       this.trailLocal.setStyle(this.buildStyle('local'));
-    } else {
+    } else if (this.source) {
       //update feature
       this.trailLocal = this.source.getFeatureById(
         'trail.self.local'
       ) as Feature;
       if (this.localTrail && Array.isArray(this.localTrail)) {
-        const g: Geometry = this.trailLocal.getGeometry();
-        (g as LineString).setCoordinates(c);
+        (this.trailLocal.getGeometry() as LineString).setCoordinates(c);
       }
     }
   }
@@ -161,14 +160,13 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       this.trailServer = new Feature(new MultiLineString(ca));
       this.trailServer.setId('trail.self.server');
       this.trailServer.setStyle(this.buildStyle('server'));
-    } else {
+    } else if (this.source) {
       //update feature
       this.trailServer = this.source.getFeatureById(
         'trail.self.server'
       ) as Feature;
       if (this.serverTrail && Array.isArray(this.serverTrail)) {
-        const g: Geometry = this.trailServer.getGeometry();
-        (g as MultiLineString).setCoordinates(ca);
+        (this.trailServer.getGeometry() as MultiLineString).setCoordinates(ca);
       }
     }
   }

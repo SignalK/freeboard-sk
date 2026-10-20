@@ -25,10 +25,10 @@ import { extentFromBounds } from './chart-utils';
   standalone: false
 })
 export class S57ChartLayerComponent implements OnDestroy {
-  protected chart = input<FBChart>();
-  protected zIndex = input<number>();
+  protected chart = input.required<FBChart>();
+  protected zIndex = input.required<number>();
 
-  private layer: VectorTileLayer;
+  private layer?: VectorTileLayer;
   private vectorLayerStyleFactory = inject(VectorLayerStyleFactory);
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
@@ -60,6 +60,9 @@ export class S57ChartLayerComponent implements OnDestroy {
       const styleFactory = this.vectorLayerStyleFactory.CreateVectorLayerStyler(
         chart[1]
       );
+      if (!styleFactory) {
+        return;
+      }
       this.layer = styleFactory.CreateLayer();
       if (this.layer) {
         styleFactory.ApplyStyle(this.layer as VectorTileLayer<never>);

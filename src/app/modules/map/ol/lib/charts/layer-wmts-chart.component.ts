@@ -37,13 +37,13 @@ import {
   standalone: false
 })
 export class WmtsChartLayerComponent implements OnDestroy {
-  protected chart = input<FBChart>();
-  protected zIndex = input<number>();
+  protected chart = input.required<FBChart>();
+  protected zIndex = input.required<number>();
   protected overZoomTiles = input<boolean>(true);
   protected mapMaxZoom = input<number>();
 
-  private layer: TileLayer;
-  private capabilities: WmtsCapabilitiesDoc;
+  private layer?: TileLayer;
+  private capabilities?: WmtsCapabilitiesDoc;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
@@ -89,10 +89,12 @@ export class WmtsChartLayerComponent implements OnDestroy {
     }
     const generation = ++this.parseGeneration;
 
-    if (!this.capabilities) {
+    let capabilities = this.capabilities;
+    if (!capabilities) {
       try {
         const url = `${chart[1].url}`;
-        this.capabilities = await this.fetchWMTSCapabilities(url);
+        capabilities = await this.fetchWMTSCapabilities(url);
+        this.capabilities = capabilities;
       } catch (err) {
         console.log(err);
         return;
@@ -105,7 +107,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
       return;
     }
     const layer = chart[1].layers[0];
-    const options = this.sourceOptions(layer);
+    const options = this.sourceOptions(capabilities, layer);
     if (!options) {
       return;
     }
@@ -146,8 +148,8 @@ export class WmtsChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
       this.layer.setZIndex(this.zIndex());
-      this.layer.setMinZoom(zoom.min);
-      this.layer.setMaxZoom(zoom.max);
+      this.layer.setMinZoom(zoom.min ?? -Infinity);
+      this.layer.setMaxZoom(zoom.max ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }
@@ -183,12 +185,15 @@ export class WmtsChartLayerComponent implements OnDestroy {
    * cannot be drawn: warn and return `null` instead of leaving an unhandled
    * rejection behind.
    */
-  private sourceOptions(layer: string): Options | null {
+  private sourceOptions(
+    capabilities: WmtsCapabilitiesDoc,
+    layer: string
+  ): Options | null {
     let options: Options | null;
     try {
-      options = optionsFromCapabilities(this.capabilities, {
+      options = optionsFromCapabilities(capabilities, {
         layer,
-        matrixSet: webMercatorMatrixSet(this.capabilities, layer)
+        matrixSet: webMercatorMatrixSet(capabilities, layer)
       });
     } catch {
       console.warn(
@@ -223,7 +228,9 @@ export class WmtsChartLayerComponent implements OnDestroy {
   }
 
   /** Retrieve WMTS capabilities as JSON object*/
-  private async fetchWMTSCapabilities(hostUrl: string) {
+  private async fetchWMTSCapabilities(
+    hostUrl: string
+  ): Promise<WmtsCapabilitiesDoc> {
     const abortCtrl = new AbortController();
     const abortTimer = setTimeout(() => abortCtrl.abort(), 5000);
     try {

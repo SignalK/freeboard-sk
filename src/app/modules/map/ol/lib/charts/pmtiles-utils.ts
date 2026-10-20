@@ -37,6 +37,9 @@ export function initPMTilesWebGLLayer(
     y: number
   ): Promise<HTMLImageElement> {
     const response = await tiles.getZxy(z, x, y);
+    if (!response) {
+      throw new Error(`No PMTiles tile at ${z}/${x}/${y}`);
+    }
     const blob = new Blob([response.data]);
     const src = URL.createObjectURL(blob);
     const image = await loadImage(src);
@@ -62,14 +65,16 @@ export function initPMTilesXYZLayer(
   zIndex: number,
   className?: string
 ): TileLayer<XYZ> {
-  const tiles = new pmtiles.PMTiles(chart.url);
+  // callers pick the pmtiles layer by the chart's .pmtiles url
+  const tiles = new pmtiles.PMTiles(chart.url ?? '');
 
   function loader(tile: Tile, url: string) {
     tile.setState(1); // LOADING
     // the URL construction is done internally by OL, so we need to parse it
     // back out here using a hacky regex
     const re = new RegExp(/pmtiles:\/\/(.+)\/(\d+)\/(\d+)\/(\d+)/);
-    const result = url.match(re);
+    // OL builds the url from this source's own pmtiles:// template
+    const result = url.match(re)!;
     const z = +result[2];
     const x = +result[3];
     const y = +result[4];
@@ -119,14 +124,16 @@ export function initPMTilesVectorLayer(
   chart: SKChart,
   zIndex: number
 ): VectorTileLayer {
-  const tiles = new pmtiles.PMTiles(chart.url);
+  // callers pick the pmtiles layer by the chart's .pmtiles url
+  const tiles = new pmtiles.PMTiles(chart.url ?? '');
 
   function loader(loadTile: Tile, url: string) {
     const tile = loadTile as VectorTile<FeatureLike>;
     // the URL construction is done internally by OL, so we need to parse it
     // back out here using a hacky regex
     const re = new RegExp(/pmtiles:\/\/(.+)\/(\d+)\/(\d+)\/(\d+)/);
-    const result = url.match(re);
+    // OL builds the url from this source's own pmtiles:// template
+    const result = url.match(re)!;
     const z = +result[2];
     const x = +result[3];
     const y = +result[4];

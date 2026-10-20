@@ -29,15 +29,15 @@ import { MapComponent } from '../map.component';
 })
 export class RadarComponent implements OnInit, OnChanges, OnDestroy {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject();
-  @Input() position: Coordinate;
+  @Input() position?: Coordinate;
   @Input() heading = 0;
-  @Input() mapZoom: number;
-  @Input() zIndex: number;
-  @Input() visible: boolean;
-  @Input() layerProperties: Record<string, unknown>;
+  @Input() mapZoom?: number;
+  @Input() zIndex?: number;
+  @Input() visible?: boolean;
+  @Input() layerProperties?: Record<string, unknown>;
   @Input() opacity: number = 1;
   // the radar the overlay shows; the stream follows when another is selected
-  @Input() radarId: string;
+  @Input() radarId?: string;
 
   onError = output<Error>();
 
@@ -46,7 +46,7 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
     location: [0, 0],
     heading: 0
   });
-  protected layer: Layer;
+  protected layer?: Layer;
 
   private radarRenderService = inject(RadarRenderService);
   protected mapComponent = inject(MapComponent);
@@ -152,7 +152,7 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 }

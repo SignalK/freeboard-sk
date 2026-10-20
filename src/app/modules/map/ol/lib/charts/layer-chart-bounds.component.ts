@@ -137,7 +137,7 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
   // Transform bounds to a polygon. Bounds whose west edge lies east of their
   // east edge cross the antimeridian (RFC 7946 §5.2), so the box runs east from
   // the west edge across 180; any other box runs from west to east as given.
-  parseBoundsCoordinates(bounds: Array<number>) {
+  parseBoundsCoordinates(bounds?: Array<number>) {
     if (
       !Array.isArray(bounds) ||
       bounds.length !== 4 ||

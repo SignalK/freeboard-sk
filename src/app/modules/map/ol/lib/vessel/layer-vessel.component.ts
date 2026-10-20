@@ -14,7 +14,7 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Icon, Fill, Text } from 'ol/style';
-import { Geometry, Point } from 'ol/geom';
+import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
@@ -106,9 +106,9 @@ const staleVesselStyle = new Style({
   standalone: false
 })
 export class VesselComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features?: Array<Feature>;
 
   /**
    * This event is triggered after the layer is initialized
@@ -116,26 +116,26 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject();
 
-  @Input() id: string;
-  @Input() activeId: string;
-  @Input() position: Coordinate;
+  @Input() id?: string;
+  @Input() activeId?: string;
+  @Input() position?: Coordinate;
   @Input() heading = 0;
-  @Input() vesselStyles: { [key: string]: Style };
-  @Input() fixedLocation: boolean;
+  @Input() vesselStyles?: { [key: string]: Style };
+  @Input() fixedLocation?: boolean;
   /** Position is no longer being updated — dim the icon and flag it. */
   @Input() stale = false;
   @Input() iconScale = 1;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
-  vessel: Feature;
-  selfStyle: Style;
+  vessel?: Feature;
+  selfStyle?: Style;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -202,27 +202,25 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
   parseVessel() {
-    if (!this.vessel) {
-      // create feature
-      this.vessel = new Feature(
-        new Point(fromLonLat([this.position[0] ?? 0, this.position[1] ?? 0]))
-      );
+    const position = this.position;
+    if (!Array.isArray(position) || position.length < 2) {
+      if (this.vessel) {
+        this.source?.removeFeature(this.vessel);
+        this.vessel = undefined;
+      }
+      return;
     }
-    // update feature
-    if (
-      this.position &&
-      Array.isArray(this.position) &&
-      this.position.length > 1
-    ) {
-      const g: Geometry = this.vessel.getGeometry();
-      (g as Point).setCoordinates(
-        fromLonLat([this.position[0], this.position[1]])
-      );
+    const coords = fromLonLat([position[0], position[1]]);
+    if (!this.vessel) {
+      this.vessel = new Feature(new Point(coords));
+      this.source?.addFeature(this.vessel);
+    } else {
+      (this.vessel.getGeometry() as Point).setCoordinates(coords);
     }
     this.vessel.setId(this.id ?? 'self');
     const s = this.buildStyle();
@@ -250,7 +248,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildStyle(): Style {
+  buildStyle(): Style | undefined {
     if (!this.selfStyle) {
       this.generateSelfStyle();
     }

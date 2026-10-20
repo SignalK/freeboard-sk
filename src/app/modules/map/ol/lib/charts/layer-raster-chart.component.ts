@@ -45,12 +45,12 @@ const placeholderPreload = (chart: FBChart): number =>
   standalone: false
 })
 export class RasterChartLayerComponent implements OnDestroy {
-  protected chart = input<FBChart>();
-  protected zIndex = input<number>();
+  protected chart = input.required<FBChart>();
+  protected zIndex = input.required<number>();
   protected overZoomTiles = input<boolean>(true);
   protected mapMaxZoom = input<number>();
 
-  private layer: TileLayer | WebGLTileLayer;
+  private layer?: TileLayer | WebGLTileLayer;
   private setImageAdjustment?: (adj?: ChartImageAdjustment) => void;
   private stopRefresh?: () => void;
   private refreshIntervalMs?: number;
@@ -96,11 +96,11 @@ export class RasterChartLayerComponent implements OnDestroy {
       if (chart[0] === 'openstreetmap') {
         this.layer = osmLayer(chartLayerClassName(chart[0]));
         this.layer.setZIndex(this.zIndex());
-        this.layer.setMinZoom(zoom.min);
-        this.layer.setMaxZoom(zoom.max);
+        this.layer.setMinZoom(zoom.min ?? -Infinity);
+        this.layer.setMaxZoom(zoom.max ?? Infinity);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       } else {
-        if (chart[1].url.indexOf('.pmtiles') !== -1) {
+        if (chart[1].url?.includes('.pmtiles')) {
           this.layer = initPMTilesXYZLayer(
             chart[1],
             this.zIndex(),
@@ -123,8 +123,8 @@ export class RasterChartLayerComponent implements OnDestroy {
           });
         }
         if (this.layer) {
-          this.layer.setMinZoom(zoom.min);
-          this.layer.setMaxZoom(zoom.max);
+          this.layer.setMinZoom(zoom.min ?? -Infinity);
+          this.layer.setMaxZoom(zoom.max ?? Infinity);
         }
       }
       if (this.layer) {
@@ -147,8 +147,8 @@ export class RasterChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
       this.layer.setZIndex(this.zIndex());
-      this.layer.setMinZoom(zoom.min);
-      this.layer.setMaxZoom(zoom.max);
+      this.layer.setMinZoom(zoom.min ?? -Infinity);
+      this.layer.setMaxZoom(zoom.max ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }

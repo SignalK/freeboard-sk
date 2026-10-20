@@ -28,12 +28,12 @@ export interface RadarRenderDef {
 })
 export class RadarRenderService {
   public hasWebgl: boolean = false;
-  private worker: Worker;
+  private worker?: Worker;
 
   private app = inject(AppFacade);
   private radarApi = inject(RadarAPIService);
 
-  private shipStateSubscription: Subscription;
+  private shipStateSubscription?: Subscription;
 
   constructor() {
     const gl = new OffscreenCanvas(10, 10).getContext('webgl2');
@@ -43,32 +43,32 @@ export class RadarRenderService {
     }
   }
 
-  public async connect(): Promise<RadarRenderDef> {
+  public async connect(): Promise<RadarRenderDef | undefined> {
     if (!this.hasWebgl) {
       this.app.showMessage('Web-GL is not available!');
       return;
     }
-    if (!this.radarApi.radar()) {
+    const activeRadar = this.radarApi.radar();
+    if (!activeRadar) {
       this.app.showMessage('No Radar speciified!');
       return;
     }
     // map legend for rendering
     const legend: Record<string, SKRadarLegendEntry> = {};
     let idx = 0;
-    this.radarApi.radar().capabilities?.legend?.pixels?.forEach((i) => {
+    activeRadar.capabilities?.legend?.pixels?.forEach((i) => {
       legend[idx] = i;
       idx++;
     });
 
     return {
-      id: this.radarApi.radar().device.id,
-      name: this.radarApi.radar().device.name,
+      id: activeRadar.device.id,
+      name: activeRadar.device.name,
       // Spoke geometry comes from /capabilities (present on both old and new
       // servers). Radar API 3.4.0 streams binary spokes from …/{id}/spokes;
       // pre-3.4.0 servers (no version in the discovery envelope) use …/{id}/stream.
-      spokesPerRevolution:
-        this.radarApi.radar().capabilities.spokesPerRevolution,
-      maxSpokeLen: this.radarApi.radar().capabilities.maxSpokeLength,
+      spokesPerRevolution: activeRadar.capabilities.spokesPerRevolution,
+      maxSpokeLen: activeRadar.capabilities.maxSpokeLength,
       streamUrl: `${this.app.hostDef.ssl ? 'wss' : 'ws'}://${this.app.hostDef.name}:${
         this.app.hostDef.port
       }/signalk/v2/api/vessels/self/radars/${this.radarApi.radarId()}/${
@@ -129,18 +129,17 @@ export class RadarRenderService {
       })
     });
 
-    if (this.hasWebgl) {
-      this.worker = new Worker(new URL('./radar-gl.worker', import.meta.url));
-    }
+    const worker = new Worker(new URL('./radar-gl.worker', import.meta.url));
+    this.worker = worker;
 
-    this.worker.postMessage({ canvas: offscreenRadarCanvas, radar: radar }, [
+    worker.postMessage({ canvas: offscreenRadarCanvas, radar: radar }, [
       offscreenRadarCanvas
     ]);
 
     let lastRedraw = 0;
     const REDRAW_INTERVAL_MS = 33;
 
-    this.worker.onmessage = (event) => {
+    worker.onmessage = (event) => {
       if (event.data.redraw) {
         const now = Date.now();
         if (now - lastRedraw >= REDRAW_INTERVAL_MS) {
@@ -173,7 +172,7 @@ export class RadarRenderService {
         lastHeading === undefined ||
         Math.abs(state.heading - lastHeading) > 0.5
       ) {
-        this.worker.postMessage({
+        worker.postMessage({
           heading: state.heading
         });
         lastHeading = state.heading;

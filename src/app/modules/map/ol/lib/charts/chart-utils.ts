@@ -159,7 +159,10 @@ export function resolveLayerZoomRange(
 
   // Historic offset, kept so charts without a display minimum render exactly as
   // they did before.
-  const declaredLayerMin = declaredMin >= 0.1 ? declaredMin - 0.1 : declaredMin;
+  const declaredLayerMin =
+    typeof declaredMin === 'number' && declaredMin >= 0.1
+      ? declaredMin - 0.1
+      : declaredMin;
 
   return {
     min: displayMinApplies ? displayMin - MIN_ZOOM_EPSILON : declaredLayerMin,
@@ -1122,12 +1125,12 @@ export function applyChartTimeToTileSource(
   source: UrlTile,
   time: string | null,
   timeUrl: string | undefined,
-  live: string | UrlFunction
+  live: string | UrlFunction | undefined
 ): void {
   if (time === null) {
     if (typeof live === 'string') {
       source.setUrl(live);
-    } else {
+    } else if (live) {
       source.setTileUrlFunction(live, CHART_TIME_LIVE_KEY);
     }
     return;
@@ -1212,7 +1215,7 @@ export function webMercatorMatrixSet(
   if (linked.includes('EPSG:3857')) {
     return 'EPSG:3857';
   }
-  const webMercator = getProjection('EPSG:3857');
+  const webMercator = getProjection('EPSG:3857')!;
   return linked.find((id) => {
     const crs = contents?.TileMatrixSet?.find(
       (set) => set.Identifier === id

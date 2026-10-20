@@ -27,12 +27,12 @@ import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
   standalone: false
 })
 export class VectorChartLayerComponent implements OnDestroy {
-  protected chart = input<FBChart>();
-  protected zIndex = input<number>();
+  protected chart = input.required<FBChart>();
+  protected zIndex = input.required<number>();
   protected overZoomTiles = input<boolean>(true);
   protected mapMaxZoom = input<number>();
 
-  private layer: VectorTileLayer;
+  private layer?: VectorTileLayer;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -73,7 +73,7 @@ export class VectorChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
 
-      if (chart[1].url.indexOf('.pmtiles') !== -1) {
+      if (chart[1].url?.includes('.pmtiles')) {
         this.layer = initPMTilesVectorLayer(chart[1], this.zIndex());
       } else {
         this.layer = new VectorTileLayer({
@@ -83,7 +83,7 @@ export class VectorChartLayerComponent implements OnDestroy {
               layers:
                 Array.isArray(chart[1].layers) && chart[1].layers.length !== 0
                   ? chart[1].layers
-                  : null
+                  : undefined
             }),
             maxZoom: maxZ
           }),
@@ -97,7 +97,7 @@ export class VectorChartLayerComponent implements OnDestroy {
 
       if (this.layer) {
         this.layer.setMinZoom(minZ);
-        this.layer.setMaxZoom(layerMaxZ);
+        this.layer.setMaxZoom(layerMaxZ ?? Infinity);
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
         if (chart[1].style) {
           applyStyle(this.layer, chart[1].style);
@@ -121,7 +121,7 @@ export class VectorChartLayerComponent implements OnDestroy {
       );
       this.layer.setZIndex(this.zIndex());
       this.layer.setMinZoom(minZ);
-      this.layer.setMaxZoom(layerMaxZ);
+      this.layer.setMaxZoom(layerMaxZ ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       this.layer.setExtent(extentFromBounds(chart[1].bounds));
     }

@@ -8,7 +8,7 @@ import {
 } from '@angular/common/http/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Feature } from 'ol';
-import { Polygon } from 'ol/geom';
+import { Point, Polygon } from 'ol/geom';
 
 import { DefaultOptions, S57Service } from './s57.service';
 import { S57Style } from './s57Style';
@@ -60,5 +60,29 @@ describe('S57Service.selectLookup — last key of the lookup list', () => {
     const features = [area('WRECKS'), area('DEPARE')];
 
     expect(() => features.sort(style.renderOrder)).not.toThrow();
+  });
+});
+
+describe('S57Service.selectLookup — first key of the lookup list', () => {
+  it('finds a lookup for the object class that starts the list', () => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()]
+    });
+    const service = TestBed.inject(S57Service);
+    service.init({ ...DefaultOptions, graphicsStyle: 'Simplified' });
+    service.fetchSymbols();
+    TestBed.inject(HttpTestingController)
+      .expectOne('assets/s57/chartsymbols.xml')
+      .flush(chartSymbolsXml);
+    const first = service.getLookup(0);
+    const point = new Feature({
+      geometry: new Point([0, 0]),
+      layer: first.name
+    });
+
+    const index = service.selectLookup(point);
+
+    expect(index).toBeGreaterThanOrEqual(0);
+    expect(service.getLookup(index).name).toBe(first.name);
   });
 });

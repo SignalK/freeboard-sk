@@ -69,8 +69,8 @@ describe('resolveLayerZoomRange', () => {
     it('shows the chart at exactly the configured level', () => {
       const { min } = resolveLayerZoomRange(chart(12), 20, true);
       // OpenLayers' layer minimum is exclusive: visible while zoom > min.
-      expect(12).toBeGreaterThan(min);
-      expect(11.99).toBeLessThan(min);
+      expect(min).toBeLessThan(12);
+      expect(min).toBeGreaterThan(11.99);
     });
 
     it('does not inherit the legacy 0.1 offset', () => {
@@ -87,8 +87,8 @@ describe('resolveLayerZoomRange', () => {
       // The common case: the user picks the level the chart's data starts at.
       // The legacy 0.1 offset would draw it from 4.9, ignoring the bound.
       const { min } = resolveLayerZoomRange(chart(5), 20, true);
-      expect(5).toBeGreaterThan(min);
-      expect(4.99).toBeLessThan(min);
+      expect(min).toBeLessThan(5);
+      expect(min).toBeGreaterThan(4.99);
     });
 
     it('applies to a chart that declares no minimum', () => {
@@ -97,8 +97,8 @@ describe('resolveLayerZoomRange', () => {
         20,
         true
       );
-      expect(12).toBeGreaterThan(min);
-      expect(11.99).toBeLessThan(min);
+      expect(min).toBeLessThan(12);
+      expect(min).toBeGreaterThan(11.99);
     });
 
     it('leaves the maximum entirely alone', () => {
@@ -1275,7 +1275,7 @@ describe('startChartTileRefresh', () => {
     vi.advanceTimersByTime(interval);
     expect(beforeTick).toHaveBeenCalledTimes(1);
     // The retarget made in beforeTick is what the cache-busted tick requests.
-    const url = src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection());
+    const url = src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection()!);
     expect(url).toMatch(
       /^https:\/\/example\.test\/t2\/3\/1\/2\.png\?_refresh=/
     );
@@ -1327,7 +1327,7 @@ describe('startChartTileRefresh', () => {
   // public WMS servers (IEM NEXRAD). Each tick must change the URL itself.
   describe('cache-busts the tile URL', () => {
     const tileUrl = (src: XYZ) =>
-      src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection());
+      src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection()!) ?? '';
     const param = (url: string) =>
       new URL(url).searchParams.get(CHART_REFRESH_URL_PARAM);
 
@@ -1394,7 +1394,7 @@ describe('applying a chart time (temporal charts)', () => {
   // A tile the source would request, so the URL actually built is asserted —
   // not just that some setter ran.
   const tileUrl = (src: XYZ) =>
-    src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection());
+    src.getTileUrlFunction()([3, 1, 2], 1, src.getProjection()!);
 
   describe('URL-template source (tilelayer / tileJSON)', () => {
     const LIVE = 'https://r.test/{z}/{x}/{y}.png';
