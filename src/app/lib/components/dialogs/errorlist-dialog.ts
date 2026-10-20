@@ -16,7 +16,7 @@ import { MatListModule } from '@angular/material/list';
       <div>
         <h1 mat-dialog-title>
           <mat-icon style="color: orange;">warning</mat-icon>
-          &nbsp;{{ data.errorList?.length }} Errors Encountered
+          &nbsp;{{ data.errorList.length }} Errors Encountered
         </h1>
       </div>
       <mat-dialog-content>

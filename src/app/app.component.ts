@@ -42,11 +42,7 @@ import {
 } from './lib/components';
 
 import { AppFacade } from './app.facade';
-import {
-  InfoPanelFacade,
-  InfoPanelComponent,
-  InfoPanelItem
-} from './modules/info-panel';
+import { InfoPanelFacade, InfoPanelComponent } from './modules/info-panel';
 import { SignalKClient } from 'signalk-client-angular';
 import { WakeLockService } from 'src/app/lib/services';
 
@@ -535,8 +531,7 @@ export class AppComponent {
   /** Open the radar panel, or close it when it is already showing. Closing it
    *  leaves the radar overlay on; the overlay is switched off in the panel. */
   protected toggleRadarPanel() {
-    // the item signal is untyped until the info-panel folder is strict (#869)
-    const item = this.infoPanel.item() as InfoPanelItem | undefined;
+    const item = this.infoPanel.item();
     if (item?.type === 'radars') {
       this.infoPanel.close();
       this.closeDrawer();

@@ -217,7 +217,7 @@ interface DialogData {
                         a trigger — so a finger has nowhere to land that scrolls
                         it (#651). -->
                         <mat-icon
-                          [svgIcon]="i.svgIcon"
+                          [svgIcon]="i.svgIcon ?? ''"
                           [matTooltip]="i.svgIcon"
                           matTooltipTouchGestures="off"
                         ></mat-icon>

@@ -40,10 +40,7 @@ interface CellStyle {
   imports: [PlotterWidgetFrame, MatIconModule],
   template: `
     @if (service.filterChips().length) {
-      <div
-        class="pe-chips"
-        [class.pe-chips-low]="(byAnchor()['ct'] ?? []).length > 0"
-      >
+      <div class="pe-chips" [class.pe-chips-low]="byAnchor()['ct'].length > 0">
         @for (chip of service.filterChips(); track chip.type + chip.extension) {
           <div class="pe-chip">
             <mat-icon class="pe-chip-icon">filter_alt</mat-icon>

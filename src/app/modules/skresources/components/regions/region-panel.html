@@ -28,7 +28,7 @@
       <div>
         <button
           mat-button
-          [disabled]="_region()?.feature?.properties?.readOnly || interacting()"
+          [disabled]="_region().feature.properties?.readOnly || interacting()"
           (click)="onEdit()"
           matTooltip="Edit Region"
         >
@@ -48,7 +48,7 @@
         &nbsp;
         <button
           mat-button
-          [disabled]="_region()?.feature?.properties?.readOnly || interacting()"
+          [disabled]="_region().feature.properties?.readOnly || interacting()"
           (click)="onDelete()"
           matTooltip="Delete Region"
         >
@@ -69,7 +69,7 @@
       "
     >
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
-        {{_region()?.name}}
+        {{_region().name}}
       </div>
     </div>
   </div>

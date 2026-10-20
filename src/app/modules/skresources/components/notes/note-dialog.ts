@@ -39,7 +39,7 @@ interface DialogData {
   note: SKNote;
   editable: boolean;
   addMode: boolean;
-  position: SKPosition;
+  position?: SKPosition;
 }
 
 @Component({

@@ -41,9 +41,9 @@
         <mat-card-header>
           <mat-card-title-group>
             <mat-card-title>{{n[1].name}}</mat-card-title>
-            @if(n[1].properties?.skIcon) {
+            @if(n[1].properties.skIcon) {
             <mat-icon
-              [svgIcon]="n[1].properties?.skIcon | resolveSkIcon"
+              [svgIcon]="n[1].properties.skIcon | resolveSkIcon"
             ></mat-icon>
             } @else {
             <mat-icon class="icon-accent">local_offer</mat-icon>
@@ -59,7 +59,7 @@
             <div style="padding-bottom: 5px; display: flex">
               <div style="font-weight: bold; vertical-align: top">Date:</div>
               <div style="padding-left: 10px">
-                <i>{{n[1].timestamp?.slice(0,10)}}</i>
+                <i>{{n[1].timestamp.slice(0,10)}}</i>
               </div>
             </div>
             } @if(n[1].group) {
@@ -72,7 +72,7 @@
               <div style="font-weight: bold; vertical-align: top">
                 Description:
               </div>
-              @if(n[1].mimeType?.includes('markdown')) {
+              @if(n[1].mimeType.includes('markdown')) {
               <remark
                 [processor]="mdProcessor"
                 style="
@@ -86,7 +86,7 @@
                   line-clamp: 2;
                   text-overflow: ellipsis;
                 "
-                [markdown]="n[1].description ?? ''"
+                [markdown]="n[1].description"
               >
                 <ng-template remarkTemplate="heading" let-node>
                   <h1 [remarkNode]="node" style="font-size: 10pt"></h1>

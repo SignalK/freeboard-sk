@@ -57,8 +57,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class RouteListComponent extends ResourceListBase {
   protected readonly mdProcessor = markdownProcessor;
-  activeRoute = input<string>();
-  editingRouteId = input<string>();
+  activeRoute = input<string | null>(null);
+  editingRouteId = input<string | null>(null);
   select = output<FBResourceSelect>();
   delete = output<FBResourceSelect>();
   activate = output<FBResourceSelect>();

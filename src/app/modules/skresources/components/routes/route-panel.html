@@ -50,7 +50,7 @@
         } @else {
         <button
           mat-button
-          [disabled]="_route()?.feature?.properties?.readOnly  || interacting()"
+          [disabled]="_route().feature.properties?.readOnly  || interacting()"
           (click)="onEdit()"
           matTooltip="Edit Route"
         >
@@ -100,7 +100,7 @@
         &nbsp;
         <button
           mat-button
-          [disabled]="_route()?.feature?.properties?.readOnly || this.app.data.activeRoute === id() || interacting()"
+          [disabled]="_route().feature.properties?.readOnly || this.app.data.activeRoute === id() || interacting()"
           (click)="onDelete()"
           matTooltip="Delete Route"
         >
@@ -121,7 +121,7 @@
       "
     >
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
-        {{ _route()?.name }} @if (isUnsaved()) {
+        {{ _route().name }} @if (isUnsaved()) {
         <span style="color: gray; font-style: italic">&nbsp;(unsaved)</span>
         } @else if (isTemporary()) {
         <span

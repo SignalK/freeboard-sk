@@ -242,7 +242,7 @@ export class ChartListComponent extends ResourceListBase {
    * @description Returns icon to display to indicate chart is served from local server.
    * @param url Chart url
    */
-  protected isLocal(url: string): string {
+  protected isLocal(url: string | undefined): string {
     return url && url.indexOf(this.app.hostDef.name) !== -1
       ? 'map'
       : 'language';

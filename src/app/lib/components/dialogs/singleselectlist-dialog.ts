@@ -68,7 +68,7 @@ import { AppIconDef } from 'src/app/modules/icons';
 export class SingleSelectListDialog implements OnInit {
   protected dialogRef = inject(MatDialogRef<SingleSelectListDialog>);
   protected data = inject<{
-    title: string;
+    title?: string;
     items: [{ id: string; name: string }];
     icon: AppIconDef;
   }>(MAT_DIALOG_DATA);

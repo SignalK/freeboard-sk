@@ -17,20 +17,20 @@
         }
         <br />
         <span style="font-size: smaller; font-style: italic"
-          >{{_waypoint()?.type ? _waypoint()?.type : 'waypoint'}}</span
+          >{{_waypoint().type || 'waypoint'}}</span
         >
       </div>
       <div
         style="flex: 1; font-size: 10pt; padding: 0 0 0 10px; text-align: right"
       >
         <span style="font-weight: bold">Lat:</span>&nbsp;
-        {{_waypoint()?.feature?.geometry.coordinates[1] | coords :
+        {{_waypoint().feature.geometry.coordinates[1] | coords :
         app.config.units.positionFormat : true}}
 
         <br />
         <span>
           <span style="font-weight: bold">Lon:</span>&nbsp;
-          {{_waypoint().feature?.geometry.coordinates[0] | coords :
+          {{_waypoint().feature.geometry.coordinates[0] | coords :
           app.config.units.positionFormat : false}}
         </span>
       </div>
@@ -42,7 +42,7 @@
       <div>
         <button
           mat-button
-          [disabled]="_waypoint()?.feature?.properties?.readOnly || interacting()"
+          [disabled]="_waypoint().feature.properties?.readOnly || interacting()"
           (click)="onEdit()"
           matTooltip="Edit Waypoint"
         >
@@ -82,7 +82,7 @@
         &nbsp;
         <button
           mat-button
-          [disabled]="_waypoint()?.feature?.properties?.readOnly || this.app.data.activeWaypoint === id() || interacting()"
+          [disabled]="_waypoint().feature.properties?.readOnly || this.app.data.activeWaypoint === id() || interacting()"
           (click)="onDelete()"
           matTooltip="Delete Waypoint"
         >
@@ -103,7 +103,7 @@
       "
     >
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
-        {{_waypoint()?.name}}
+        {{_waypoint().name}}
       </div>
     </div>
   </div>

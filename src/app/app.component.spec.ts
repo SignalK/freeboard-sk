@@ -7,10 +7,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 import { By } from '@angular/platform-browser';
 import { WritableSignal } from '@angular/core';
 import { RadarAPIService } from './modules/radar/radar-api.service';
-import {
-  InfoPanelFacade,
-  InfoPanelItem
-} from './modules/info-panel/info-panel.facade';
+import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { Position } from './types';
 import { WhatsNewService } from './modules/features/whats-new.service';
@@ -19,10 +16,9 @@ import { connectExtension } from 'signalk-plotterext-bus/extension';
 import { SignalKClient } from 'signalk-client-angular';
 import { config, throwError } from 'rxjs';
 
-/** The type of the item the info panel shows; its item signal is untyped
- *  until the info-panel folder is strict (#869). */
+/** The type of the item the info panel shows. */
 function shownType(infoPanel: InfoPanelFacade) {
-  return (infoPanel.item() as InfoPanelItem | undefined)?.type;
+  return infoPanel.item()?.type;
 }
 
 describe('AppComponent', () => {

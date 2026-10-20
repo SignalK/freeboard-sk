@@ -88,11 +88,11 @@ import { getAisIcon } from 'src/app/modules/icons';
                 <div style="flex: 1 1 auto;">{{ data.target.port }}</div>
               </div>
             }
-            @if (data.target.registrations?.imo) {
+            @if (data.target.registrations.imo) {
               <div style="display:flex;">
                 <div class="key-label">IMO:</div>
                 <div style="flex: 1 1 auto;">
-                  {{ data.target.registrations?.imo }}
+                  {{ data.target.registrations.imo }}
                 </div>
               </div>
             }
@@ -109,7 +109,7 @@ import { getAisIcon } from 'src/app/modules/icons';
               </div>
             }
             @if (
-              data.target.design.length?.overall && data.target.design?.beam
+              data.target.design.length?.overall && data.target.design.beam
             ) {
               <div style="display:flex;">
                 <div class="key-label">Dimensions:</div>
@@ -135,7 +135,7 @@ import { getAisIcon } from 'src/app/modules/icons';
                 </div>
               </div>
             }
-            @if (data.target.design?.airHeight) {
+            @if (data.target.design.airHeight) {
               <div style="display:flex;">
                 <div class="key-label">Height:</div>
                 <div style="flex: 1 1 auto;">
@@ -149,7 +149,7 @@ import { getAisIcon } from 'src/app/modules/icons';
                 <div style="flex: 1 1 auto;">{{ data.target.state }}</div>
               </div>
             }
-            @if (data.target.destination?.name) {
+            @if (data.target.destination.name) {
               <div style="display:flex;">
                 <div class="key-label">Destination:</div>
                 <div style="flex: 1 1 auto;">
@@ -157,11 +157,11 @@ import { getAisIcon } from 'src/app/modules/icons';
                 </div>
               </div>
             }
-            @if (data.target.destination?.eta) {
+            @if (data.target.destination.eta; as eta) {
               <div style="display:flex;">
                 <div class="key-label">ETA:</div>
                 <div style="flex: 1 1 auto;">
-                  {{ data.target.destination.eta.toLocaleString() }}
+                  {{ eta.toLocaleString() }}
                 </div>
               </div>
             }
@@ -235,7 +235,7 @@ export class AISPropertiesModal {
    * @param id AIS shipType identifier
    * @returns mat-icon svgIcon value
    */
-  protected getShipIcon(id: number): string | undefined {
-    return getAisIcon(id).svgIcon;
+  protected getShipIcon(id: number | null | undefined): string {
+    return getAisIcon(id).svgIcon ?? '';
   }
 }

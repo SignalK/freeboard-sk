@@ -313,7 +313,9 @@ export const getAlertIcon = (alert: AlertData): AppIconDef => {
  * @param id AIS shipType
  * @returns Icon Definition object
  */
-export const getAisIcon = (id: number | string): AppIconDef => {
+export const getAisIcon = (
+  id: number | string | null | undefined
+): AppIconDef => {
   if (typeof id === 'number') {
     id = Math.floor(id / 10) * 10;
   }
