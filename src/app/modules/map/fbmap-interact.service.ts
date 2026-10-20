@@ -1,6 +1,7 @@
 /** Map interactions Service
  * ************************************/
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { Subject } from 'rxjs';
 import { Collection, Feature } from 'ol';
 import { Coordinate } from 'ol/coordinate';
 import { LineString as OLLineString, Point, Polygon } from 'ol/geom';
@@ -24,6 +25,8 @@ import { AlertData } from '../alarms';
 import { ActiveRoutePoint } from './route-point-pick';
 import type { PointMeta } from '../skresources/components/route-reorder.util';
 import type { ChartTarget } from './map-targets';
+import type { MapTarget, TargetRule } from '../plotterext/actions';
+import type { PickCancelReason } from '../plotterext/map-pick';
 
 export interface IPopover {
   id: string;
@@ -149,6 +152,23 @@ export interface ModifyUndoSnapshot {
   coordsMetadata?: PointMeta[];
 }
 
+/** A pick an extension asked for (capability `map.pick`). */
+export interface MapPick {
+  pickId: string;
+  /** Names the extension that asked, in the prompt. */
+  extensionName: string;
+  prompt?: string;
+  /** What may be picked. */
+  rules: TargetRule[];
+}
+
+/**
+ * How a pick ended: the target the user picked, or why there was none.
+ * `null` ends it without telling the extension (its context unloaded).
+ */
+export type MapPickOutcome =
+  { target: MapTarget } | { reason: PickCancelReason } | null;
+
 @Injectable({ providedIn: 'root' })
 export class FBMapInteractService {
   // signals
@@ -156,6 +176,30 @@ export class FBMapInteractService {
   readonly isDrawing = signal<boolean>(false);
   readonly isModifying = signal<boolean>(false);
   readonly isBoxSelecting = signal<boolean>(false);
+  /** A guard zone is being drawn or edited (fed by the map). */
+  private readonly isEditingZone = signal<boolean>(false);
+
+  /** The pick that is on, host-wide; at most one. */
+  private readonly _pick = signal<MapPick | null>(null);
+  readonly pick = this._pick.asReadonly();
+  /** Every pick that ends, however it ends. */
+  readonly pickEnded = new Subject<{
+    pickId: string;
+    outcome: MapPickOutcome;
+  }>();
+
+  /**
+   * Whether the user is in a modal interaction a pick must not interrupt:
+   * drawing, measuring, editing geometry or a guard zone, box-selecting.
+   */
+  readonly isBusyForPick = computed<boolean>(
+    () =>
+      this.isDrawing() ||
+      this.isMeasuring() ||
+      this.isModifying() ||
+      this.isBoxSelecting() ||
+      this.isEditingZone()
+  );
 
   readonly measurement = signal<MeasurementDef>({
     coords: [],
@@ -486,9 +530,52 @@ export class FBMapInteractService {
     ];
   }
 
+  /**
+   * Put the map into a pick. The next primary select the pick accepts ends
+   * it (see `endPick`). A pick already on is superseded.
+   */
+  startPick(pick: MapPick) {
+    const current = this._pick();
+    if (current) {
+      this.endPick(current.pickId, { reason: 'superseded' });
+    }
+    this.app.debug(`startPick()...`, pick.pickId);
+    this._pick.set(pick);
+  }
+
+  /** End the pick `pickId` if it is still on; a pick already over is left. */
+  endPick(pickId: string, outcome: MapPickOutcome) {
+    if (this._pick()?.pickId !== pickId) {
+      return;
+    }
+    this.app.debug(`endPick()...`, pickId, outcome);
+    this._pick.set(null);
+    this.pickEnded.next({ pickId, outcome });
+  }
+
+  /** End the pick that is on, if any, without a target. */
+  cancelPick(reason: PickCancelReason) {
+    const current = this._pick();
+    if (current) {
+      this.endPick(current.pickId, { reason });
+    }
+  }
+
+  /**
+   * The map reports guard zone edits, which the radar starts; one ends a
+   * pick as the host's own interactions do.
+   */
+  setZoneEditing(editing: boolean) {
+    this.isEditingZone.set(editing);
+    if (editing) {
+      this.cancelPick('host');
+    }
+  }
+
   /** Common interaction start tasks */
   private interactionStarted() {
     this.app.debug(`interactionStarted()...`);
+    this.cancelPick('host');
     this.clearUndo();
     this.measurement.set({
       coords: [],
