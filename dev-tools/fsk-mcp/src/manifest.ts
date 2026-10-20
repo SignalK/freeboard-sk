@@ -23,12 +23,19 @@
 // kind, the scratch layer's features included, and starts hidden, so it is in
 // no menu until an agent shows it with fsk_set_action_visibility; the runtime
 // records each choice (fsk_list_action_invocations).
+//
+// Its one toolbar button, the probe, likewise exists to exercise
+// `buttons.visibility`. It starts hidden, so the toolbar is unchanged until an
+// agent shows it with fsk_set_button_visibility. Pressing it toggles the window
+// probe, so hiding the button while that window is open shows that the window
+// stays.
 
 import pkg from '../package.json' with { type: 'json' };
 
 export const PLUGIN_ID = 'fsk-mcp';
 export const ASSET_BASE = `/plotterext/${PLUGIN_ID}`;
 export const PROBE_ACTION = 'probe';
+export const PROBE_BUTTON = 'probe';
 
 // Features take `color` and `label` properties; `global-state` `color` is the
 // colour of features without one (set it with fsk_set_overlay_state).
@@ -95,6 +102,8 @@ export function buildManifest() {
     requires: ['background.iframe'],
     optional: [
       'events.publish',
+      'buttons',
+      'buttons.visibility',
       'map',
       'routes',
       'resources',
@@ -131,6 +140,16 @@ export function buildManifest() {
         interactive: true,
         interactiveLayers: ['areas', 'lines', 'points'],
         titleProperty: 'label'
+      }
+    ],
+    buttons: [
+      {
+        id: PROBE_BUTTON,
+        title: 'FSK MCP probe (dev)',
+        slot: 'mapToolbar',
+        icon: 'bug_report',
+        visible: false,
+        action: { type: 'toggleWindow', panel: 'window-probe' }
       }
     ],
     actions: [

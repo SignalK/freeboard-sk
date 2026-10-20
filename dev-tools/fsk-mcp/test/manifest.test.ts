@@ -17,10 +17,24 @@ test('declares a version-1 background-runtime extension', () => {
   assert.ok(runtime.url.endsWith('.html'));
 });
 
-test('contributes no visible UI of its own (headless bridge only)', () => {
+test('contributes no UI that shows on its own (headless bridge only)', () => {
   const m = buildManifest();
   assert.ok(!('widgets' in m));
-  assert.ok(!('buttons' in m));
+  for (const button of m.buttons) assert.strictEqual(button.visible, false);
+});
+
+test('offers one toolbar button, the probe, hidden until an agent shows it', () => {
+  const m = buildManifest();
+  assert.ok(m.optional.includes('buttons.visibility'));
+  assert.ok(!m.requires.includes('buttons.visibility'));
+  assert.strictEqual(m.buttons.length, 1);
+  const probe = m.buttons[0];
+  assert.strictEqual(probe.id, 'probe');
+  assert.strictEqual(probe.slot, 'mapToolbar');
+  assert.deepStrictEqual(probe.action, {
+    type: 'toggleWindow',
+    panel: 'window-probe'
+  });
 });
 
 test('offers one panel, the window probe, for agents to open in windows', () => {

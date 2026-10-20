@@ -156,6 +156,26 @@ test('fsk_set_action_visibility defaults to the probe action', () => {
   ]);
 });
 
+test('fsk_set_button_visibility defaults to the probe button', () => {
+  assert.deepStrictEqual(run('fsk_set_button_visibility', { visible: true }), [
+    [
+      'buttons.setVisibility',
+      { ids: ['probe'], visible: true },
+      { session: undefined }
+    ]
+  ]);
+  assert.deepStrictEqual(
+    run('fsk_set_button_visibility', { visible: false, ids: ['x'] }),
+    [
+      [
+        'buttons.setVisibility',
+        { ids: ['x'], visible: false },
+        { session: undefined }
+      ]
+    ]
+  );
+});
+
 test('fsk_list_action_invocations reads what the runtime recorded', async () => {
   const calls: Call[] = [];
   const recorded = [{ actionId: 'probe' }];

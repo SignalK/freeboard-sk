@@ -124,6 +124,7 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_set_overlay_data` | `overlay.setData` | draw GeoJSON on the chart through the scratch layer, showing it (it starts hidden); a feature's `color` and `label` properties style it. The layer is interactive (`actions.overlay`): a feature with an `id` is selectable, headed by its `label`, once the probe action is shown |
 | `fsk_set_overlay_state` / `fsk_set_overlay_layer` | `overlay.setState` / `overlay.setLayer` | change the scratch layer's `global-state` (`color`) or one of its style layers (`areas`, `lines`, `points`, `labels`) |
 | `fsk_set_action_visibility` | `actions.setVisibility` | show (or hide) the bridge's **probe action**, which applies to every target kind and starts hidden; then choose "FSK MCP probe (dev)" in the chart menu or a feature popover |
+| `fsk_set_button_visibility` | `buttons.setVisibility` | show (or hide) the bridge's **probe button** (`bug_report`, "FSK MCP probe (dev)"), which starts hidden; shown, it joins the right-hand toolbar and toggles the window probe |
 | `fsk_list_action_invocations` | `state.get` | the latest choices of the probe: each `action.invoked` with the exact target object the host delivered, newest first |
 | `fsk_pick` | `map.pick` | ask the user to pick a point or a feature in Freeboard (prompt and `targets` as an action's); returns `{ pickId }` at once |
 | `fsk_cancel_pick` | `map.cancelPick` | end the bridge's pick if it is still on |
