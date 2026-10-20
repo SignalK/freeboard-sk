@@ -557,8 +557,9 @@ export function aisTracksQuery(req: AisTracksRequest): string | null {
 export const AIS_TRACK_BBOX_PAD = 0.5;
 
 /** Share of the viewport added on each side of the box the older own trail is
- * fetched for, as for AIS tracks. */
-export const TRAIL_BBOX_PAD = 0.5;
+ * fetched for. A whole viewport, so panning back and forth at one zoom stays
+ * inside the box: with "All" every fetch reads the trail's whole history. */
+export const TRAIL_BBOX_PAD = 1;
 
 /** Grow an extent by `factor` of its width / height on each side. */
 export function padExtent(
