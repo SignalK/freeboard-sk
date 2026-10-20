@@ -2551,10 +2551,14 @@ export class SKResourceService {
           if (r?.save) {
             try {
               const rte = await this.postToServer('routes', r.route);
-              if (rte.id) {
-                this.selectionAdd('routes', rte.id);
+              // Without an id the saved route cannot be found again, and
+              // resolving null would report it as cancelled.
+              if (!rte.id) {
+                reject(new Error('Route response did not include an id'));
+                return;
               }
-              resolve(rte.id ?? null);
+              this.selectionAdd('routes', rte.id);
+              resolve(rte.id);
             } catch (err) {
               // A server rejection is a real failure, not a cancel — reject so
               // callers don't mistake it for the user dismissing the dialog.
