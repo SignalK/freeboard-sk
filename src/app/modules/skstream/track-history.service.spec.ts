@@ -426,7 +426,9 @@ describe('TrackHistoryService', () => {
       const reply = new Subject<unknown>();
       answer = () => reply;
       let track: unknown = 'none';
-      service.wholeTrack('history', 'self')?.subscribe((t) => (track = t));
+      const obs = service.wholeTrack('history', 'self');
+      expect(obs).toBeDefined();
+      obs!.subscribe((t) => (track = t));
 
       service.setPreset('7d');
       reply.next(
@@ -446,7 +448,9 @@ describe('TrackHistoryService', () => {
       const reply = new Subject<unknown>();
       answer = () => reply;
       let track: unknown = 'none';
-      service.wholeTrack('ais', AIS)?.subscribe((t) => (track = t));
+      const obs = service.wholeTrack('ais', AIS);
+      expect(obs).toBeDefined();
+      obs!.subscribe((t) => (track = t));
 
       trackSource.set({ api: 'v2', provider: 'other' });
       reply.next(
@@ -540,7 +544,9 @@ describe('TrackHistoryService', () => {
       answer = () => bands;
 
       let track: unknown = 'pending';
-      service.wholeTrack('trail', 'self')?.subscribe((t) => (track = t));
+      const obs = service.wholeTrack('trail', 'self');
+      expect(obs).toBeDefined();
+      obs!.subscribe((t) => (track = t));
       config.vessels.trailDuration = 24;
       bands.next(
         trackFc(
