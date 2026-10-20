@@ -45,6 +45,7 @@ const olMapComponent = () => {
       getEventPixel: () => [120, 45],
       getPixelFromCoordinateInternal: () => [120, 45],
       getFeaturesAtPixel: (): unknown[] => [],
+      forEachFeatureAtPixel: (): undefined => undefined,
       getView: () => ({
         getProjection: () => ({
           getExtent: () => [

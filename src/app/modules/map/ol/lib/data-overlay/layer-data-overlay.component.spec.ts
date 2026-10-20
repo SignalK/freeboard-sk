@@ -27,6 +27,7 @@ import { MapComponent } from '../map.component';
 import { DataOverlayModel } from 'src/app/modules/plotterext/data-overlay-model';
 import { DataOverlayComponent } from './layer-data-overlay.component';
 import { mirrorLayers } from '../../../split-view/layer-mirror';
+import { DATA_OVERLAY_LAYER } from './overlay-hits';
 
 const point = (id: string, depth: number) => ({
   type: 'Feature' as const,
@@ -191,6 +192,85 @@ describe('DataOverlayComponent', () => {
         .getFeatures()
         .map((f) => f.getId())
     ).toEqual(['a']);
+  });
+
+  describe('interactive (actions.overlay)', () => {
+    const interactive = (layers?: string[]) => {
+      component.interactive = true;
+      component.interactiveLayers = layers;
+      component.ngOnChanges({
+        interactive: new SimpleChange(false, true, false)
+      });
+      return group().getLayers().getArray();
+    };
+    const tag = (l: BaseLayer) => l.get(DATA_OVERLAY_LAYER);
+
+    it('tags every vector layer of a non-interactive overlay as such', () => {
+      const layers = group().getLayers().getArray();
+      expect(layers.map((l) => tag(l))).toEqual([
+        {
+          overlayKey: 'ext/depth',
+          source: 'isobars',
+          interactive: false,
+          promoteId: undefined
+        },
+        {
+          overlayKey: 'ext/depth',
+          source: 'soundings',
+          interactive: false,
+          promoteId: undefined
+        }
+      ]);
+    });
+
+    it('makes every layer selectable without interactiveLayers', () => {
+      const layers = interactive();
+      expect(layers).toHaveLength(2);
+      expect(layers.map((l) => tag(l).interactive)).toEqual([true, true]);
+      expect(layers[1].get('mapbox-layers')).toEqual(['shoals', 'labels']);
+    });
+
+    it('splits a run so selectable layers and others never share an OL layer', () => {
+      const layers = interactive(['shoals']);
+      expect(layers.map((l) => l.get('mapbox-layers'))).toEqual([
+        ['lines'],
+        ['shoals'],
+        ['labels']
+      ]);
+      expect(layers.map((l) => tag(l).interactive)).toEqual([
+        false,
+        true,
+        false
+      ]);
+      // one source, still drawn from one OL source
+      expect((layers[1] as VectorLayer).getSource()).toBe(
+        (layers[2] as VectorLayer).getSource()
+      );
+    });
+
+    it('carries the source’s promoteId, and the tag to a split-view copy', () => {
+      const promoted = style();
+      (promoted.sources['soundings'] as Record<string, unknown>)['promoteId'] =
+        'code';
+      component.model = new DataOverlayModel(promoted, 'http://sk.local');
+      component.ngOnChanges({
+        model: new SimpleChange(model, component.model, false)
+      });
+      const layers = interactive();
+      expect(tag(layers[1]).promoteId).toBe('code');
+      const second = new OlMap({
+        view: new View({ center: [0, 0], zoom: 12 })
+      });
+      const stop = mirrorLayers(map, second);
+      const flat = (ls: BaseLayer[]): BaseLayer[] =>
+        ls.flatMap((l) =>
+          l instanceof LayerGroup ? flat(l.getLayers().getArray()) : [l]
+        );
+      expect(flat(second.getLayers().getArray()).map((l) => tag(l))).toEqual(
+        layers.map((l) => tag(l))
+      );
+      stop();
+    });
   });
 
   it('mirrors setData into the map source', () => {
