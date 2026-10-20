@@ -54,7 +54,7 @@ export class WaypointListComponent extends ResourceListBase {
   editingWaypointId = input<string>();
   select = output<FBResourceSelect>();
   goto = output<FBResourceSelect>();
-  deactivate = output<FBResourceSelect>();
+  deactivate = output<{ id: null }>();
   closed = output<void>();
   center = output<Position>();
   notes = output<{ id: string; readOnly: boolean }>();
@@ -85,10 +85,8 @@ export class WaypointListComponent extends ResourceListBase {
 
   ngOnChanges() {
     this.initItems();
-    if (
-      this.editingWaypointId() &&
-      this.editingWaypointId().indexOf('waypoint') !== -1
-    ) {
+    const editingId = this.editingWaypointId();
+    if (editingId && editingId.indexOf('waypoint') !== -1) {
       this.disableRefresh = true;
     } else {
       this.disableRefresh = false;

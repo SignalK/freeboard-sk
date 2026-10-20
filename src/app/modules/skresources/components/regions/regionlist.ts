@@ -51,7 +51,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class RegionListComponent extends ResourceListBase {
   protected readonly mdProcessor = markdownProcessor;
-  @Input() regions: FBRegions;
+  @Input() regions?: FBRegions;
   select = output<FBResourceSelect>();
   refresh = output<void>();
   closed = output<void>();
@@ -123,7 +123,7 @@ export class RegionListComponent extends ResourceListBase {
     // The least zoom that shows the place: a pane further in keeps its zoom.
     const zoomTo = this.app.config.resources.notes.minZoom;
 
-    let position: Position;
+    let position: Position | undefined;
     const geometry = region.feature.geometry;
     if (Array.isArray(geometry.coordinates) && geometry.coordinates.length) {
       position =
@@ -131,10 +131,12 @@ export class RegionListComponent extends ResourceListBase {
           ? geometry.coordinates[0][0][0]
           : geometry.coordinates[0][0];
     }
-    this.pan.emit({
-      center: position,
-      zoomLevel: zoomTo
-    });
+    if (position) {
+      this.pan.emit({
+        center: position,
+        zoomLevel: zoomTo
+      });
+    }
   }
 
   /**

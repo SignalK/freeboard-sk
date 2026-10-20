@@ -57,6 +57,9 @@ export class RouteReverseService {
         return true;
       case 'buffer': {
         const buffer = this.routeBuffers.getForRoute(id);
+        if (!buffer) {
+          return false;
+        }
         this.routeBuffers.replace(buffer.routeId, [...buffer.points].reverse());
         return true;
       }
@@ -76,7 +79,10 @@ export class RouteReverseService {
     }
     this.writing.add(id);
     try {
-      const route = this.skres.fromCache('routes', id)[1];
+      const route = this.skres.fromCache('routes', id)?.[1];
+      if (!route) {
+        return false;
+      }
       const meta = route.feature.properties?.coordinatesMeta;
       return await this.skres.updateRouteCoords(
         id,

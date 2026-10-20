@@ -50,8 +50,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class RegionPanel {
   protected readonly mdProcessor = markdownProcessor;
   region = input<SKRegion>(new SKRegion());
-  id = input<string>(undefined);
-  related = input<string>(undefined);
+  id = input<string>('');
+  related = input<string>('');
   interacting = input<boolean>(false);
 
   protected _region = linkedSignal(() => this.region());
@@ -64,7 +64,7 @@ export class RegionPanel {
     zoomLevel: number;
   }>();
 
-  protected icon: AppIconDef;
+  protected icon: AppIconDef = {};
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
   protected skgroups = inject(SKResourceGroupService);
@@ -119,7 +119,7 @@ export class RegionPanel {
     // The least zoom that shows the place: a pane further in keeps its zoom.
     const zoomTo = this.app.config.resources.notes.minZoom;
 
-    let position: Position;
+    let position: Position | undefined;
     const geometry = this._region().feature.geometry;
     if (Array.isArray(geometry.coordinates) && geometry.coordinates.length) {
       position =
@@ -127,10 +127,12 @@ export class RegionPanel {
           ? geometry.coordinates[0][0][0]
           : geometry.coordinates[0][0];
     }
-    this.panTo.emit({
-      center: position,
-      zoomLevel: zoomTo
-    });
+    if (position) {
+      this.panTo.emit({
+        center: position,
+        zoomLevel: zoomTo
+      });
+    }
   }
 
   protected showNote(id: string) {

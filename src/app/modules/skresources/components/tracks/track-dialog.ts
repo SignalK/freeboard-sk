@@ -98,8 +98,8 @@ interface DialogData {
   ]
 })
 export class TrackDialog implements OnInit {
-  protected name: string;
-  protected description: string;
+  protected name = '';
+  protected description = '';
   protected readOnly = false;
 
   protected data = inject<DialogData>(MAT_DIALOG_DATA);
@@ -115,8 +115,9 @@ export class TrackDialog implements OnInit {
 
   handleClose(save: boolean) {
     if (save) {
-      this.data.track.feature.properties.name = this.name;
-      this.data.track.feature.properties.description = this.description;
+      const props = (this.data.track.feature.properties ??= {});
+      props.name = this.name;
+      props.description = this.description;
       this.data.track.name = this.name;
       this.data.track.description = this.description;
     }

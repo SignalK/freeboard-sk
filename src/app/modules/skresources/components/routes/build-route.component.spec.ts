@@ -104,7 +104,7 @@ describe('BuildRouteComponent — drag handles', () => {
     const fixture = await render();
     const name = fixture.debugElement
       .queryAll(By.directive(MatTooltip))
-      .find((d) => d.nativeElement.classList.contains('wpt-text'));
+      .find((d) => d.nativeElement.classList.contains('wpt-text'))!;
     const tooltip = name.injector.get(MatTooltip);
 
     name.nativeElement.click();

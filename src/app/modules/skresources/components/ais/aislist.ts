@@ -47,8 +47,9 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
   focusId = input<string>();
   closed = output<void>();
   properties = output<string>();
-  focusVessel = output<string>();
-  pan = output<{ center: Position; zoomLevel: number }>();
+  // undefined clears the focus
+  focusVessel = output<string | undefined>();
+  pan = output<{ center: Position; zoomLevel: number | null }>();
 
   onlyIMO = false;
   onlyBuddies = false;
@@ -120,7 +121,7 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
    * @param id AIS shipType identifier
    * @returns mat-icon svgIcon value
    */
-  protected getShipIcon(id: number): string {
+  protected getShipIcon(id: number): string | undefined {
     return getAisIcon(id).svgIcon;
   }
 

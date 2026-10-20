@@ -207,7 +207,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
   protected selIndex = signal<number>(-1);
   protected clearButtonText = 'Clear';
   protected showClearButton = signal<boolean>(false);
-  protected readOnly: boolean;
+  protected readOnly = false;
   protected closestPoint = signal<number>(-1);
 
   protected app = inject(AppFacade);
@@ -230,9 +230,8 @@ export class ActiveResourcePropertiesModal implements OnInit {
       this.data.resource[1].feature.geometry.coordinates
     ) {
       if (this.data.type === 'route') {
-        this.points = [].concat(
-          this.data.resource[1].feature.geometry.coordinates
-        );
+        this.points =
+          this.data.resource[1].feature.geometry.coordinates.slice();
         this.legs = this.getLegs();
 
         this.data.title = this.data.resource[1].name
@@ -262,7 +261,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
 
   getLegs() {
     const pos = this.app.data.vessels.self.position;
-    return GeoUtils.routeLegs(this.points, pos).map((l) => {
+    return GeoUtils.routeLegs(this.points, pos ?? undefined).map((l) => {
       return {
         bearing: this.app.formatValueForDisplay(l.bearing, 'deg'),
         distance: this.app.formatValueForDisplay(l.distance, 'm')
@@ -273,7 +272,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
   getPointsMeta() {
     return routePointsMeta(
       this.points.length,
-      this.data.resource[1].feature.properties.coordinatesMeta,
+      this.data.resource[1].feature.properties?.coordinatesMeta,
       (id) => this.skres.fromCache('waypoints', id)?.[1]
     );
   }
@@ -283,19 +282,15 @@ export class ActiveResourcePropertiesModal implements OnInit {
       const selPosition = this.points[this.selIndex()];
       moveItemInArray(this.points, e.previousIndex, e.currentIndex);
       this.legs = this.getLegs();
-      if (this.data.resource[1].feature.properties.coordinatesMeta) {
-        moveItemInArray(
-          this.data.resource[1].feature.properties.coordinatesMeta,
-          e.previousIndex,
-          e.currentIndex
-        );
+      const meta = this.data.resource[1].feature.properties?.coordinatesMeta;
+      if (meta) {
+        moveItemInArray(meta, e.previousIndex, e.currentIndex);
       }
       moveItemInArray(this.pointMeta, e.previousIndex, e.currentIndex);
 
       this.updateFlag(selPosition);
       const id = this.data.resource[0];
-      const coordsMeta =
-        this.data.resource[1].feature.properties.coordinatesMeta;
+      const coordsMeta = meta;
       if (editsRouteBuffer(this.routeBuffers.get(id))) {
         // Unsaved draft / dirty route: reorder the edit buffer (emits
         // route.dirty). Persistence stays deferred to an explicit Save, matching
@@ -333,10 +328,14 @@ export class ActiveResourcePropertiesModal implements OnInit {
       return;
     }
     if (idx === -1) {
+      const position = this.app.data.vessels.self.position;
+      if (!position) {
+        return;
+      }
       const cpi = GeoUtils.closestForwardPoint(
         this.data.resource[1].feature.geometry.coordinates,
-        this.app.data.vessels.self.position,
-        Convert.radiansToDegrees(this.app.data.vessels.self.heading)
+        position,
+        Convert.radiansToDegrees(this.app.data.vessels.self.heading ?? 0)
       );
       if (cpi === -1) {
         this.app.showAlert('Start Route', 'Closest point is behind vessel!');

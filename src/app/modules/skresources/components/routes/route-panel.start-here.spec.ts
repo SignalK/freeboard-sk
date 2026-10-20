@@ -108,7 +108,7 @@ describe('RoutePanel Start here', () => {
       onGoto: (index?: number) => void;
     };
     // the point list's "Start here" button passes the point's index
-    panel.onGoto(panel.points().find((p) => p.name === listed).index);
+    panel.onGoto(panel.points().find((p) => p.name === listed)?.index);
   };
 
   const named = [{ name: 'One' }, { name: 'Two' }, { name: 'Three' }];

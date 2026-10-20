@@ -43,7 +43,7 @@ import { Position } from 'src/app/types';
 export class NotePanel {
   protected readonly mdProcessor = markdownProcessor;
   note = input<SKNote>(new SKNote());
-  id = input<string>(undefined);
+  id = input<string>('');
   interacting = input<boolean>(false);
 
   protected _note = linkedSignal(() => this.note());
@@ -55,7 +55,7 @@ export class NotePanel {
     zoomLevel: number;
   }>();
 
-  protected icon: AppIconDef;
+  protected icon: AppIconDef = {};
   protected app = inject(AppFacade);
   private course = inject(CourseService);
   private skres = inject(SKResourceService);
@@ -90,20 +90,19 @@ export class NotePanel {
   }
 
   onGoto() {
-    if (this._note().position) {
-      this.course.setDestination(this._note().position);
+    const position = this._note().position;
+    if (position) {
+      this.course.setDestination(position);
     }
   }
 
   onPanTo() {
-    if (this._note().position) {
+    const position = this._note().position;
+    if (position) {
       // The least zoom that shows the place: a pane further in keeps its zoom.
       const zoomTo = this.app.config.resources.notes.minZoom;
       this.panTo.emit({
-        center: [
-          this._note().position.longitude,
-          this._note().position.latitude
-        ],
+        center: [position.longitude, position.latitude],
         zoomLevel: zoomTo
       });
     }

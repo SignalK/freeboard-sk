@@ -57,9 +57,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   ]
 })
 export class RouteNextPointComponent {
-  index = input<number>();
-  total = input<number>();
-  circular = input<boolean>();
+  index = input.required<number>();
+  total = input.required<number>();
+  circular = input.required<boolean>();
   selected = output<number>();
 
   changeIndex(i: number) {

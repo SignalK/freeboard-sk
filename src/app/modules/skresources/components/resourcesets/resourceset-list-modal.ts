@@ -171,7 +171,7 @@ export class ResourceSetModal implements OnInit {
           this.app.config.selections.resourceSets[this.data.path].splice(i, 1);
         }
       }
-      return [].concat(current);
+      return [...current];
     });
     this.app.saveConfig();
     this.skresOther.refreshResourceSetsInBounds(this.data.path);

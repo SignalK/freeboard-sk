@@ -251,7 +251,8 @@ export class ChartListComponent extends ResourceListBase {
   /** Handle selection change triggered externally */
   protected externalSelection() {
     this.fullList.forEach(
-      (cht: FBChart) => (cht[2] = this.selectedCharts().includes(cht[0]))
+      (cht: FBChart) =>
+        (cht[2] = this.selectedCharts()?.includes(cht[0]) ?? false)
     );
     this.doFilter();
   }
@@ -552,7 +553,8 @@ export class ChartListComponent extends ResourceListBase {
    * @description Add new chart source to resources
    * */
   addChartSource(type: 'wms' | 'wmts' | 'json') {
-    let dref: MatDialogRef<WMTSDialog | WMSDialog | JsonMapSourceDialog>;
+    let dref:
+      MatDialogRef<WMTSDialog | WMSDialog | JsonMapSourceDialog> | undefined;
 
     if (type === 'wmts') {
       dref = this.dialog.open(WMTSDialog, {
@@ -607,6 +609,9 @@ export class ChartListComponent extends ResourceListBase {
    */
   selectCacheArea(id: string) {
     const cht = this.fullList.find((cht: FBChart) => cht[0] === id);
+    if (!cht) {
+      return;
+    }
     this.app.data.chartBounds.charts = [cht];
     this.app.data.chartBounds.show = true;
     this.mapInteract.startBoxSelection('seedChart', cht);

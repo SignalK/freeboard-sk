@@ -118,7 +118,7 @@ export class FBCustomResourceService {
             resolve([]);
           }
           list.forEach((i) => (i[1].id = i[0]));
-          let flist: Array<FBResourceSet>;
+          let flist: Array<FBResourceSet> = [];
           if (type === 'ResourceSet') {
             flist = list
               .filter((i) => this.isResourceSet(i[1]))
@@ -187,12 +187,14 @@ export class FBCustomResourceService {
     const collection = t[1];
     const rSetId = t[2];
     const index = Number(t[t.length - 1]);
-    if (!Array.isArray(this.resSetCacheSignal().get(collection))) {
+    const items = this.resSetCacheSignal().get(collection);
+    if (!Array.isArray(items)) {
       return;
     }
-    const item = this.resSetCacheSignal()
-      .get(collection)
-      .filter((i) => i[0] === rSetId)[0];
+    const item = items.find((i) => i[0] === rSetId);
+    if (!item) {
+      return;
+    }
     return getFeature ? item[1].values.features[index] : item[1];
   }
 

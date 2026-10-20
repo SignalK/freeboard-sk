@@ -270,7 +270,7 @@ export class WaypointDialog {
   protected wptReadOnly = false;
   protected wptLat: number;
   protected wptLon: number;
-  protected wptIcon = signal<AppIconDef>(undefined); // selected icon
+  protected wptIcon = signal<AppIconDef>({}); // selected icon, set in ngOnInit
 
   protected inpLat: FormControl;
   protected inpLon: FormControl;
@@ -372,7 +372,7 @@ export class WaypointDialog {
       // Only the 'waypoint' category participates in symbol overrides, so only
       // it gets the bare-vs-default: persistence treatment. Other categories
       // (start-pin, …) save their icon id verbatim.
-      this.data.waypoint.feature.properties.skIcon =
+      (this.data.waypoint.feature.properties ??= {}).skIcon =
         this.wptType === 'waypoint'
           ? persistSkIcon(this.wptIcon().svgIcon)
           : this.wptIcon().svgIcon;

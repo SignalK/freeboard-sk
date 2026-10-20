@@ -95,7 +95,7 @@ export class SignalKDetailsComponent {
     result.sort((a, b) => {
       return a[1] < b[1] ? -1 : 1;
     });
-    let prevParent: string = null;
+    let prevParent: string | null = null;
     const processedParents: string[] = [];
     u = [];
     result.forEach((i) => {

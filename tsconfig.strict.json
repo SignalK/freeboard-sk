@@ -39,7 +39,7 @@
     "src/app/modules/plotterext",
     "src/app/modules/radar",
     "src/app/modules/settings",
-    "src/app/modules/skresources/components/weather",
+    "src/app/modules/skresources",
     "src/app/modules/skstream",
     "src/app/modules/weather",
     "src/app/types"

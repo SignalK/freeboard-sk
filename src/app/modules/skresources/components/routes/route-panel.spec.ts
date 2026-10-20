@@ -235,7 +235,7 @@ describe('RoutePanel point names', () => {
     });
     // Set on the route rather than the resource: one entry has neither name
     // nor href, which the server's route schema does not allow.
-    route.feature.properties.coordinatesMeta = coordinatesMeta;
+    route.feature.properties = { ...route.feature.properties, coordinatesMeta };
     const fixture = TestBed.createComponent(RoutePanel);
     fixture.componentRef.setInput('id', 'rte-1');
     fixture.componentRef.setInput('route', route);
