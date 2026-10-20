@@ -135,6 +135,10 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
       this.refresh$.next();
       return;
     }
+    const map = this.mapComponent.getMap();
+    if (!map) {
+      return;
+    }
 
     this.source = new VectorSource();
     this.layer = new VectorLayer({
@@ -145,7 +149,7 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
     });
     this.layer.set('id', 'openmeteo-currents');
     this.layer.set('name', 'Open-Meteo Ocean Currents');
-    this.mapComponent.getMap().addLayer(this.layer);
+    map.addLayer(this.layer);
 
     this.refreshSub = this.refresh$
       .pipe(
@@ -155,9 +159,9 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
         switchMap((points) => this.fetchCurrents(points))
       )
       .subscribe();
-    this.mapComponent.getMap().on('moveend', this.onMoveEnd);
+    map.on('moveend', this.onMoveEnd);
     this.refresh$.next();
-    this.mapComponent.getMap().render();
+    map.render();
   }
 
   private removeLayer() {
@@ -203,8 +207,8 @@ export class LayerCurrentsWeatherComponent implements OnChanges, OnDestroy {
 
   private getSamplePoints(): CurrentSamplePoint[] {
     const map = this.mapComponent.getMap();
-    const size = map.getSize();
-    if (!size) {
+    const size = map?.getSize();
+    if (!map || !size) {
       return [];
     }
 

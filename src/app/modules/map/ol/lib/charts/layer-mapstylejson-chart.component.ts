@@ -45,7 +45,7 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
     this.destroyed = true;
     this.stopRecovery?.();
     const map = this.mapComponent.getMap();
-    if (this.layer) {
+    if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
     }

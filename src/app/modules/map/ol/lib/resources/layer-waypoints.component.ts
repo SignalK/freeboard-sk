@@ -52,11 +52,10 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['waypoint'];
-    this.leaveOverlap = joinOverlap(
-      this.mapComponent.getMap(),
-      'waypoints',
-      this.source
-    );
+    const map = this.mapComponent.getMap();
+    if (map && this.source) {
+      this.leaveOverlap = joinOverlap(map, 'waypoints', this.source);
+    }
     this.parseFBWaypoints(this.waypoints);
   }
 
@@ -87,7 +86,8 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
     const style = feature.get('baseStyle') as Style;
     const id = (feature.getId() as string).slice('waypoint.'.length);
     const pos = (feature.getGeometry() as Point).getCoordinates();
-    if (!isRouteEndAt(this.mapComponent.getMap(), id, pos, resolution)) {
+    const map = this.mapComponent.getMap();
+    if (!map || !isRouteEndAt(map, id, pos, resolution)) {
       return style;
     }
     const text = style.getText()?.clone();
@@ -127,7 +127,7 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
         fa.push(f);
       }
     }
-    this.source.addFeatures(fa);
+    this.source?.addFeatures(fa);
   }
 
   // build waypoint style

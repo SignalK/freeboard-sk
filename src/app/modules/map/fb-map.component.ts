@@ -801,11 +801,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // set map scale units
   private setScaleUnits() {
+    const map = this.olMap?.getMap();
+    if (!map) {
+      return;
+    }
     try {
-      const c = this.olMap.getMap().getControls().getArray();
+      const c = map.getControls().getArray();
       (c[0] as ScaleLine).setUnits(scaleLineUnits(this.scaleUnits()));
     } catch {
-      // no map or scale control
+      // no scale control
     }
   }
 
@@ -1745,13 +1749,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // Link the points snapped onto waypoints while the sketch is still in
     // render space, where a snapped point lies exactly on its waypoint (#881).
     const geom = e.feature?.getGeometry();
+    const map = this.olMap.getMap();
     if (
+      map &&
       this.mapInteract.draw.resourceType === 'route' &&
       geom instanceof OLLineString
     ) {
       this.mapInteract.draw.coordsMetadata = drawnRouteMeta(
         geom.getCoordinates() as Position[],
-        drawnWaypoints(this.olMap.getMap()),
+        drawnWaypoints(map),
         this.waypointLookup
       );
     }
@@ -2063,7 +2069,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const f = this.mapInteract.draw.features?.getArray()[0] as Feature;
     const geom = f?.getGeometry();
     const forSave = this.mapInteract.draw.forSave;
-    if (!f || geom?.getType() !== 'LineString' || !forSave) {
+    const map = this.olMap.getMap();
+    if (!f || geom?.getType() !== 'LineString' || !forSave || !map) {
       return;
     }
     const line = geom as OLLineString;
@@ -2073,8 +2080,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // click both inserts a vertex and appends an end point. getFeaturesAtPixel is
     // world-copy aware, matching what the user sees under wrapX.
     const tol = hitToleranceForPointer(e.originalEvent?.pointerType, 10, 15);
-    const onRoute = this.olMap
-      .getMap()
+    const onRoute = map
       .getFeaturesAtPixel(e.pixel, { hitTolerance: tol })
       .some((ft) => ft.getId() === f.getId());
     // A delete has already moved the line away from the clicked pixel, so the
@@ -2082,7 +2088,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (
       !shouldExtendRoute({
         onRoute,
-        vertexDeleted: vertexDeleted(this.olMap.getMap())
+        vertexDeleted: vertexDeleted(map)
       })
     ) {
       return;
@@ -2096,11 +2102,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     // A click near a waypoint appends the waypoint itself (#881).
-    const snap = waypointSnapAt(
-      this.olMap.getMap(),
-      e.pixel,
-      e.originalEvent?.pointerType
-    );
+    const snap = waypointSnapAt(map, e.pixel, e.originalEvent?.pointerType);
     const ext = line.getExtent();
     const result = extendRouteAtClick(
       line.getCoordinates() as Position[],
@@ -2113,7 +2115,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       result.after,
       result.after.length - 1,
       result.meta,
-      drawnWaypoints(this.olMap.getMap()),
+      drawnWaypoints(map),
       this.waypointLookup
     );
 
@@ -2161,12 +2163,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
     before: Position[],
     after: Position[]
   ) {
+    const map = this.olMap.getMap();
+    if (!map) {
+      return;
+    }
     const meta = forSave.coordsMetadata as RoutePointMeta[] | undefined;
     const linked = linkPointOnWaypoint(
       after,
       touchedVertex(before, after),
       meta,
-      drawnWaypoints(this.olMap.getMap()),
+      drawnWaypoints(map),
       this.waypointLookup
     );
     if (linked !== meta) {

@@ -120,8 +120,8 @@ export class InteractionModifyComponent {
   @Output() modifyStart: EventEmitter<ModifyEvent> = new EventEmitter();
   @Output() modifyEnd: EventEmitter<ModifyEvent> = new EventEmitter();
 
-  // Set in ngAfterViewInit; the parent map exists from its own ngOnInit.
-  private map!: Map;
+  // Set in ngAfterViewInit.
+  private map?: Map;
   private interaction: Modify | null = null;
 
   ngAfterViewInit() {
@@ -134,7 +134,7 @@ export class InteractionModifyComponent {
     if (!interaction) {
       return;
     }
-    this.map.removeInteraction(interaction);
+    this.map?.removeInteraction(interaction);
     interaction.un('change', this.emitChangeEvent);
     interaction.un('modifystart', this.emitModifyStartEvent);
     interaction.un('modifyend', this.emitModifyEndEvent);

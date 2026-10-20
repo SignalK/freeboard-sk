@@ -67,7 +67,7 @@ export class FreeboardNoteLayerComponent extends FBFeatureLayerComponent {
       f.setStyle(this.buildStyle(n[1]).clone());
       fa.push(f);
     }
-    this.source.addFeatures(fa);
+    this.source?.addFeatures(fa);
   }
 
   // build note feature style

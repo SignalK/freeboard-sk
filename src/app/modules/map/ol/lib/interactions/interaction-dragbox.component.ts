@@ -31,8 +31,8 @@ export class InteractionDragBoxComponent {
   @Output() boxDrag: EventEmitter<DragBoxEvent> = new EventEmitter();
   @Output() boxCancel: EventEmitter<DragBoxEvent> = new EventEmitter();
 
-  // Set in ngAfterViewInit; the parent map exists from its own ngOnInit.
-  private map!: Map;
+  // Set in ngAfterViewInit.
+  private map?: Map;
   private interaction: DragBox | null = null;
 
   ngAfterViewInit() {
@@ -45,7 +45,7 @@ export class InteractionDragBoxComponent {
     if (!interaction) {
       return;
     }
-    this.map.removeInteraction(interaction);
+    this.map?.removeInteraction(interaction);
     interaction.un('change', this.emitChangeEvent);
     interaction.un('boxstart', this.emitBoxStartEvent);
     interaction.un('boxend', this.emitBoxEndEvent);

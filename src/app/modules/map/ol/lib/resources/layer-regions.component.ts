@@ -66,7 +66,7 @@ export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
       f.setStyle(this.buildStyle(r[0], r[1]));
       fa.push(f);
     }
-    this.source.addFeatures(fa);
+    this.source?.addFeatures(fa);
   }
 
   // build region feature style

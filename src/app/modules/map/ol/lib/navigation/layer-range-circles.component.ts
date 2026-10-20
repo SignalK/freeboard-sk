@@ -167,6 +167,9 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     let range: number;
     if (!this.fixedMode()) {
       const map = this.mapComponent.getMap();
+      if (!map) {
+        return;
+      }
       const zoomResolution = map.getView().getResolutionForZoom(this.mapZoom);
       range =
         zoomResolution > 5000

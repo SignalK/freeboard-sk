@@ -63,7 +63,7 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
       f.setId('flag-' + id);
       f.set('name', label, true);
       f.setStyle(this.buildStyle(label).clone());
-      this.source.addFeature(f);
+      this.source?.addFeature(f);
     }
   }
 
@@ -94,9 +94,13 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
 
   // update flag when target updated
   override onUpdateTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((id: string) => {
       if (id.includes(this.targetContext) && this.flagged?.includes(id)) {
-        const f = this.source.getFeatureById('flag-' + id) as Feature;
+        const f = source.getFeatureById('flag-' + id) as Feature;
         if (this.okToRenderTarget(id)) {
           if (this.targets.has(id)) {
             if (f) {
@@ -109,7 +113,7 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
             }
           }
         } else {
-          this.source.removeFeature(f);
+          source.removeFeature(f);
         }
       }
     });
@@ -117,10 +121,14 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
 
   // remove flag when target removed
   override onRemoveTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((id) => {
-      const f = this.source.getFeatureById('flag-' + id) as Feature;
+      const f = source.getFeatureById('flag-' + id) as Feature;
       if (f) {
-        this.source.removeFeature(f);
+        source.removeFeature(f);
       }
     });
   }

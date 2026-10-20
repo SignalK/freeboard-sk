@@ -63,9 +63,13 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
 
   // update targets
   override onUpdateTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((id: string) => {
       if (id.includes(this.targetContext)) {
-        const f = this.source.getFeatureById(id) as Feature;
+        const f = source.getFeatureById(id) as Feature;
         if (this.okToRenderTarget(id)) {
           const target = this.targets.get(id);
           if (target) {
@@ -87,7 +91,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
             }
           }
         } else {
-          this.source.removeFeature(f);
+          source.removeFeature(f);
         }
       }
     });
@@ -95,11 +99,15 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
 
   // remove target features
   override onRemoveTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((id) => {
       if (id.includes(this.targetContext)) {
-        const f = this.source.getFeatureById(id) as Feature;
+        const f = source.getFeatureById(id) as Feature;
         if (f) {
-          this.source.removeFeature(f);
+          source.removeFeature(f);
         }
       }
     });
@@ -126,7 +134,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
           label
         )
       );
-      this.source.addFeature(f);
+      this.source?.addFeature(f);
     }
   }
 

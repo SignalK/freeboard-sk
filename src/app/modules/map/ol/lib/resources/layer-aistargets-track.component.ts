@@ -72,7 +72,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
               changes['mapZoom'].currentValue < this.tracksMinZoom &&
               changes['mapZoom'].previousValue >= this.tracksMinZoom
             ) {
-              this.source.clear();
+              this.source?.clear();
             }
           }
         }
@@ -101,10 +101,14 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
 
   // update track features
   override onUpdateTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     if (this.okToRenderTracks()) {
       ids.forEach((id: string) => {
         if (id.includes(this.targetContext)) {
-          const f = this.source.getFeatureById('track-' + id) as Feature;
+          const f = source.getFeatureById('track-' + id) as Feature;
           if (this.okToRenderTarget(id)) {
             if (this.tracks.has(id)) {
               const track = this.tracks.get(id);
@@ -118,7 +122,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
               }
             }
           } else if (f) {
-            this.source.removeFeature(f);
+            source.removeFeature(f);
           }
         }
       });
@@ -127,10 +131,14 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
 
   // remove track features
   override onRemoveTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((w) => {
-      const f = this.source.getFeatureById('track-' + w) as Feature;
+      const f = source.getFeatureById('track-' + w) as Feature;
       if (f) {
-        this.source.removeFeature(f);
+        source.removeFeature(f);
       }
     });
   }
@@ -146,7 +154,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
     });
     f.setId('track-' + id);
     f.setStyle(this.buildStyle(id));
-    this.source.addFeature(f);
+    this.source?.addFeature(f);
   }
 
   // build track style

@@ -35,7 +35,7 @@ export class ControlComponent implements OnInit, OnDestroy {
       this.element = this.elementRef.nativeElement;
       this.control = new Control({ element: this.element });
       this.map = this.mapComponent.getMap();
-      this.map.addControl(this.control);
+      this.map?.addControl(this.control);
     }
   }
 

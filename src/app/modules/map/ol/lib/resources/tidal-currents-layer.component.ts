@@ -97,6 +97,10 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       this.refresh$.next();
       return;
     }
+    const map = this.mapComponent.getMap();
+    if (!map) {
+      return;
+    }
 
     this.source = new VectorSource();
     this.layer = new VectorLayer({
@@ -107,7 +111,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       style: (feature) => this.currentsStyleFunction(feature)
     });
     this.layer.set('id', 'tidal-currents');
-    this.mapComponent.getMap().addLayer(this.layer);
+    map.addLayer(this.layer);
 
     this.refreshSub = this.refresh$
       .pipe(
@@ -115,9 +119,9 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
         switchMap(() => this.fetchCurrents())
       )
       .subscribe();
-    this.mapComponent.getMap().on('moveend', this.onMoveEnd);
+    map.on('moveend', this.onMoveEnd);
     this.refresh$.next();
-    this.mapComponent.getMap().render();
+    map.render();
   }
 
   private removeLayer() {
@@ -167,8 +171,8 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
 
   private getBbox(): [number, number, number, number] | null {
     const map = this.mapComponent.getMap();
-    const size = map.getSize();
-    if (!size) {
+    const size = map?.getSize();
+    if (!map || !size) {
       return null;
     }
 

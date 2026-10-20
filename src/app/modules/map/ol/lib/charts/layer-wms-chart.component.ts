@@ -49,7 +49,7 @@ export class WmsChartLayerComponent implements OnDestroy {
   private mapComponent = inject(MapComponent);
   private mapService = inject(MapService);
 
-  private map: Map;
+  private map?: Map;
   private featureUrl?: string;
 
   constructor() {
@@ -64,7 +64,7 @@ export class WmsChartLayerComponent implements OnDestroy {
     });
     effect(() => {
       const ev = this.mapComponent.pointerDownSignal();
-      if (!ev || !this.layer) {
+      if (!ev || !this.layer || !this.map) {
         return;
       }
       const view = this.map.getView();
@@ -92,7 +92,7 @@ export class WmsChartLayerComponent implements OnDestroy {
 
   ngOnDestroy() {
     this.stopRefresh?.();
-    if (this.layer) {
+    if (this.layer && this.map) {
       this.map.removeLayer(this.layer);
       this.map.render();
     }

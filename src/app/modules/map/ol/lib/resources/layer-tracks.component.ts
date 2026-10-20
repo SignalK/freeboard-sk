@@ -60,7 +60,7 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
       f.setStyle(this.buildStyle(t[1]));
       fa.push(f);
     }
-    this.source.addFeatures(fa);
+    this.source?.addFeatures(fa);
   }
 
   // build track style

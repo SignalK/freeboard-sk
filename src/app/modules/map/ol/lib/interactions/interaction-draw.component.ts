@@ -120,8 +120,8 @@ export class InteractionDrawComponent {
   @Output() drawEnd: EventEmitter<DrawEvent> = new EventEmitter();
   @Output() drawAbort: EventEmitter<DrawEvent> = new EventEmitter();
 
-  // Set in ngAfterViewInit; the parent map exists from its own ngOnInit.
-  private map!: Map;
+  // Set in ngAfterViewInit.
+  private map?: Map;
   private interaction: Draw | null = null;
 
   ngAfterViewInit() {
@@ -134,7 +134,7 @@ export class InteractionDrawComponent {
     if (!interaction) {
       return;
     }
-    this.map.removeInteraction(interaction);
+    this.map?.removeInteraction(interaction);
     interaction.un('change', this.emitChangeEvent);
     interaction.un('drawstart', this.emitDrawStartEvent);
     interaction.un('drawend', this.emitDrawEndEvent);

@@ -56,12 +56,13 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
 
   // update targets
   override onUpdateTargets(ids: Array<string>) {
-    if (!this.source) return;
+    const source = this.source;
+    if (!source) return;
     ids.forEach((id: string) => {
       if (id.includes(this.targetContext)) {
         if (this.okToRenderTarget(id)) {
           if (this.targets.has(id)) {
-            const f = this.source.getFeatureById('ais-' + id) as Feature;
+            const f = source.getFeatureById('ais-' + id) as Feature;
             if (f) {
               const target = this.targets.get(id) as SKVessel;
               const label = this.buildLabel(target);
@@ -94,15 +95,19 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
 
   // remove target features
   override onRemoveTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((id) => {
       if (id.includes(this.targetContext)) {
-        let f = this.source.getFeatureById('ais-' + id) as Feature;
+        let f = source.getFeatureById('ais-' + id) as Feature;
         if (f) {
-          this.source.removeFeature(f);
+          source.removeFeature(f);
         }
-        f = this.source.getFeatureById('cog-' + id) as Feature;
+        f = source.getFeatureById('cog-' + id) as Feature;
         if (f) {
-          this.source.removeFeature(f);
+          source.removeFeature(f);
         }
       }
     });
@@ -136,7 +141,7 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
       f.setStyle(
         this.setTextLabel(this.setRotation(s, target.orientation), label)
       );
-      this.source.addFeature(f);
+      this.source?.addFeature(f);
       this.parseCogLine(id, target);
     }
   }
@@ -294,9 +299,13 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
         this.parseCogLine(k, v as SKVessel);
       });
     } else {
-      this.source.forEachFeature((cl) => {
+      const source = this.source;
+      if (!source) {
+        return;
+      }
+      source.forEachFeature((cl) => {
         if ((cl.getId() as string).includes('cog-')) {
-          this.source.removeFeature(cl);
+          source.removeFeature(cl);
         }
       });
     }
