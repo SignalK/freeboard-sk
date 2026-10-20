@@ -882,14 +882,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           });
         });
       } else {
-        if (
-          (this.overlay().type === 'ais' &&
-            !this.dfeat.ais.has(this.overlay().id)) ||
-          (this.overlay().type === 'atons' &&
-            !this.dfeat.atons.has(this.overlay().id)) ||
-          (this.overlay().type === 'aircraft' &&
-            !this.dfeat.aircraft.has(this.overlay().id))
-        ) {
+        if (this.popoverTargetGone()) {
           this.overlay().show = false;
         } else {
           if (this.overlay().type === 'ais') {
@@ -910,6 +903,27 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.rotateMap();
     if (this.movingMap) {
       this.centerVessel();
+    }
+  }
+
+  /**
+   * Whether the AIS vessel, AtoN, SaR beacon or aircraft the open popover
+   * shows is no longer received. AtoN and SaR popovers share the 'aton' type,
+   * so the id's prefix says which list to look in.
+   */
+  private popoverTargetGone(): boolean {
+    const { id, type } = this.overlay();
+    switch (type) {
+      case 'ais':
+        return !this.dfeat.ais.has(id);
+      case 'aton':
+        return !(id.startsWith('sar.') ? this.dfeat.sar : this.dfeat.atons).has(
+          id
+        );
+      case 'aircraft':
+        return !this.dfeat.aircraft.has(id);
+      default:
+        return false;
     }
   }
 

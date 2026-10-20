@@ -1094,6 +1094,8 @@ function filterContext(
 //** POST message to App**
 function postUpdate(immediate = false) {
   if (!msgInterval || immediate) {
+    // drop expired targets first, so this update carries their removal
+    processAISStatus();
     const msg = new UpdateMessage();
     msg.watchDogAlarm = watchDog.alarm;
     msg.playback = playbackMode;
@@ -1107,7 +1109,6 @@ function postUpdate(immediate = false) {
     postMessage(msg);
     initAisTargetStatus();
     vessels.self.resourceUpdates = [];
-    processAISStatus(); // cleanup
     // extent calc
     if (extRecalcCounter === 0) {
       if (vessels.self.positionReceived && targetFilter?.signalk.maxRadius) {
