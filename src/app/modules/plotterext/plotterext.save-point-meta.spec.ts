@@ -172,4 +172,15 @@ describe('PlotterExtensionService.saveBuffer point metadata (#880)', () => {
 
     expect(savedMeta(post)).toBeUndefined();
   });
+
+  it('reports a create the server answers without an id as a failed save', async () => {
+    post.mockResolvedValueOnce({});
+    const { routeId } = registry.create({
+      points: COORDS.map((position) => ({ position }))
+    });
+
+    await expect(
+      service.saveBuffer(routeId, { name: 'No id' })
+    ).rejects.toMatchObject({ data: { reason: 'routes.saveFailed' } });
+  });
 });

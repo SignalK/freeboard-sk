@@ -1859,15 +1859,22 @@ export class PlotterExtensionService {
       try {
         const rte = await this.skres.postToServer('routes', route);
         savedId = rte.id ?? null;
-        // The dialog path (saveNewRoute) selects the new route; do the same for
-        // the headless path so it stays displayed after a refresh.
-        if (savedId) this.skres.selectionAdd('routes', savedId);
       } catch (err) {
         this.app.parseHttpErrorResponse(err);
         throw new RpcError('Failed to save route', {
           reason: 'routes.saveFailed'
         });
       }
+      // Without an id the new route cannot be found again; only a dismissed
+      // dialog counts as a cancel.
+      if (!savedId) {
+        throw new RpcError('Failed to save route', {
+          reason: 'routes.saveFailed'
+        });
+      }
+      // The dialog path (saveNewRoute) selects the new route; do the same for
+      // the headless path so it stays displayed after a refresh.
+      this.skres.selectionAdd('routes', savedId);
     }
     if (!savedId) {
       // Only the interactive dialog path returns null — the user cancelled.

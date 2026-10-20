@@ -167,6 +167,7 @@ export class DataOverlayModel {
     return this.verdicts.get(id)?.drawable === true;
   }
 
+  /** The layers that are not drawn, each with the reason it was skipped. */
   skippedLayers(): SkippedLayer[] {
     const out: SkippedLayer[] = [];
     for (const [id, v] of this.verdicts) {
