@@ -186,4 +186,13 @@ describe('a chart resource without a url', () => {
     );
     expect(chart.url).toBe('http://sk.local:3000/charts/coast/{z}/{x}/{y}');
   });
+
+  it('gets the host added to a relative url when it has no type', () => {
+    const { internals } = svcWithPrefs({}, {});
+    const chart = internals.transformChart(
+      { name: 'Coast', url: '/charts/coast/{z}/{x}/{y}' },
+      'untyped'
+    );
+    expect(chart.url).toBe('http://sk.local:3000/charts/coast/{z}/{x}/{y}');
+  });
 });
