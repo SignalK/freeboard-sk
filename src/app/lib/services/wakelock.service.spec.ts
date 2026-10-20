@@ -54,4 +54,26 @@ describe('WakeLockService', () => {
     expect(wakeLock.enabled()).toBe(true);
     expect(navigator.wakeLock.request).toHaveBeenCalledTimes(1);
   });
+  it('takes a new lock when re-enabled while a late grant is being released', async () => {
+    const wakeLock = TestBed.inject(WakeLockService);
+    let finishRelease = (): void => undefined;
+    sentinel.release = vi.fn(
+      () => new Promise<void>((resolve) => (finishRelease = resolve))
+    );
+    const enabling = wakeLock.enable();
+    await wakeLock.disable();
+    resolveRequest(sentinel as unknown as WakeLockSentinel);
+    await vi.waitFor(() => expect(sentinel.release).toHaveBeenCalled());
+    await wakeLock.enable();
+    finishRelease();
+    await vi.waitFor(() =>
+      expect(navigator.wakeLock.request).toHaveBeenCalledTimes(2)
+    );
+    resolveRequest({
+      ...sentinel,
+      release: vi.fn()
+    } as unknown as WakeLockSentinel);
+    await enabling;
+    expect(wakeLock.enabled()).toBe(true);
+  });
 });

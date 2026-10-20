@@ -42,6 +42,11 @@ export class WakeLockService {
       const sentinel = await navigator.wakeLock.request('screen');
       if (!this.wanted) {
         await sentinel.release();
+        // enable() during the release found a request still running
+        if (this.wanted) {
+          this.requesting = false;
+          await this.enable();
+        }
         return;
       }
       this.wakeLockRef = sentinel;
