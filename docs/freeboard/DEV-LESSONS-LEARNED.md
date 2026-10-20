@@ -1289,6 +1289,34 @@ Two snags:
 
 Delete the probe when you're done. It is a test fixture, not something to commit.
 
+### Clicking a map feature at a computed pixel: switch to North Up first
+
+**The trap.** An end-to-end test often has to click one particular feature: a
+waypoint for a pick, a vessel for an action. The obvious way to find it is to
+take its `[lon, lat]` and map it into the view's bounds from `map.getView`
+(linear in longitude, Mercator in latitude). That only works when the chart is
+north up. A dev server replaying a boat (the `esea-replay` settings) can
+start heading-up, with the map rotated, and then every computed pixel lands
+somewhere else. The miss is hard to see. In the agent's browser pane a
+screenshot can show the page as it was an action ago, and the status bar's
+Lat/Lon readout under a hover reports the previous hover. Both look like a
+map that is moving under you. In #1108 a waypoint pick took four missed
+clicks before the rotation turned up.
+
+**What to do instead.**
+
+- **Press Show North Up** (toolbar) before clicking anything by its computed
+  position. It is a view setting, not an interaction, so it ends nothing:
+  a pick or a measure in progress stays on.
+- **Scale to the click frame.** The browser pane's click coordinates are those
+  of its screenshot (800 × 600, say), not the page's CSS pixels. Multiply the
+  computed pixel by `800 / innerWidth`.
+- **Zoom a screenshot on that spot before clicking.** Seeing the marker there
+  confirms the mapping. Aim at a pin's body, a few pixels above its point (see
+  *Targeting a waypoint on the map* above).
+- **Judge the outcome from the DOM** (the probe's log, `fb-interact-help`,
+  `ap-popover`), not from the next screenshot.
+
 ### Driving Freeboard through `fsk-mcp`: target your own tab — a move sent to a background tab lands later
 
 **The trap.** `fsk_list_sessions` lists **every** connected Freeboard tab: the
