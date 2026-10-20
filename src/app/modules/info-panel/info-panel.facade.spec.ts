@@ -36,9 +36,11 @@ describe('InfoPanelFacade — resources delta', () => {
     delta.set({ path: 'resources.notes.n1', value: { name: 'New' } });
     TestBed.tick();
 
-    expect(facade.item()).not.toBe(before);
-    expect(facade.item().resource).toEqual({ name: 'New' });
-    expect(facade.item().id).toBe('n1');
+    const item = facade.item();
+    expect(item).not.toBe(before);
+    expect(item).toBeDefined();
+    expect(item!.resource).toEqual({ name: 'New' });
+    expect(item!.id).toBe('n1');
   });
 
   it('applies each delta once', () => {
