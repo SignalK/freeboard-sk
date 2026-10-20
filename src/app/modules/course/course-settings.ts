@@ -221,19 +221,13 @@ export class CourseSettingsModal implements OnInit {
     if (this.data.title === 'undefined') {
       this.data['title'] = 'Course Settings';
     }
-    this.frmArrivalCircle = this.course.courseData().arrivalCircle ?? 0;
+    const arrivalCircle = Convert.transform(
+      this.course.courseData().arrivalCircle ?? 0,
+      'm',
+      this.app.config.units.distance === 'kilometer' ? 'kilometer' : 'naut-mile'
+    );
     this.frmArrivalCircle =
-      this.app.config.units.distance === 'kilometer'
-        ? Number(
-            Convert.transform(this.frmArrivalCircle, 'm', 'kilometer').toFixed(
-              1
-            )
-          )
-        : Number(
-            Convert.transform(this.frmArrivalCircle, 'm', 'naut-mile').toFixed(
-              1
-            )
-          );
+      arrivalCircle === null ? 0 : Number(arrivalCircle.toFixed(1));
 
     this.deltaSub = this.stream.delta$().subscribe((e: UpdateMessage) => {
       if (e.action === 'update') {

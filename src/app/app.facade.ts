@@ -1414,7 +1414,7 @@ export class AppFacade extends InfoService {
               sourceUnit,
               this.config.units.distance
             );
-            if (nm < 0.5) {
+            if (nm === null || nm < 0.5) {
               ({ nv, symbol } = this.formatAsLengthUnit(value, sourceUnit, 0));
             } else {
               symbol = Convert.getSymbol(this.config.units.distance);

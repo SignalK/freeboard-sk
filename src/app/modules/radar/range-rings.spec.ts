@@ -104,6 +104,10 @@ describe('ringLabel', () => {
     expect(ringLabel(3 * NM, 'naut-mile')).toBe('3nmi');
     expect(ringLabel(500, 'kilometer')).toBe('0.5km');
   });
+
+  it('is empty for a distance that is not a number', () => {
+    expect(ringLabel(NaN, 'naut-mile')).toBe('');
+  });
 });
 
 describe('labelDecimals', () => {

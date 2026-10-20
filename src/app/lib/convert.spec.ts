@@ -1,6 +1,14 @@
 import { expect, describe, it } from 'vitest';
 import { Convert } from './convert';
 
+describe('Non-finite input', () => {
+  it('returns null for NaN and infinite values', () => {
+    expect(Convert.transform(NaN, 'm', 'kilometer')).toBeNull();
+    expect(Convert.transform(Infinity, 'm/s', 'kn')).toBeNull();
+    expect(Convert.transform(-Infinity, 'K', 'C')).toBeNull();
+  });
+});
+
 describe('Temperature Conversions', () => {
   it('Kelvin to Celcius', () => {
     expect(Convert.transform(0, 'K', 'C')).toBe(-273.15);
@@ -46,7 +54,7 @@ describe('Speed Conversions', () => {
     expect(Convert.transform(0.836 * 27, 'm/s', 'Bf')).toBeCloseTo(9);
   });
   it('m/s to Bf gives force 10 for a 25 m/s storm', () => {
-    expect(Math.round(Convert.transform(25, 'm/s', 'Bf'))).toBe(10);
+    expect(Convert.transform(25, 'm/s', 'Bf')).toBeCloseTo(10, 0);
   });
   it('m/s to fps', () => {
     expect(Convert.transform(1, 'm/s', 'fps')).toBe(3.280839895013124);

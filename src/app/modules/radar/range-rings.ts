@@ -59,7 +59,8 @@ export function rangeRingScale(
   const ringsOf = (count: number, spacing: number) =>
     Array.from({ length: count }, (_, i) => spacing * (i + 1));
   for (const unit of [userUnit, ...RADAR_UNITS]) {
-    const metresPerUnit = 1 / Convert.transform(1, 'm', unit);
+    // converting the finite constant 1 always yields a number
+    const metresPerUnit = 1 / Convert.transform(1, 'm', unit)!;
     // the range as set on the radar, e.g. 0.125 NM for 231 m
     const nominal = nearestRound(range / metresPerUnit, RANGE_STEP);
     if (Math.abs(nominal * metresPerUnit - range) > RANGE_TOLERANCE_M) {
@@ -97,6 +98,9 @@ export function labelDecimals(value: number): number {
  *  ones as formatValueForDisplay() does. */
 export function ringLabel(distance: number, unit: TARGET_UNIT): string {
   const value = Convert.transform(distance, 'm', unit);
+  if (value === null) {
+    return '';
+  }
   return `${value.toFixed(labelDecimals(value))}${Convert.getSymbol(unit)}`;
 }
 

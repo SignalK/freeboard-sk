@@ -131,7 +131,8 @@ export class TidalCurrentsService {
 
   /** Formats a current speed (in knots) for display in the user's preferred units. */
   formatSpeed(knots: number): string {
-    const driftMs = knots / Convert.transform(1, 'm/s', 'kn');
+    // converting the finite constant 1 always yields a number
+    const driftMs = knots / Convert.transform(1, 'm/s', 'kn')!;
     return this.app.formatValueForDisplay(driftMs, 'm/s', { precision: 1 });
   }
 

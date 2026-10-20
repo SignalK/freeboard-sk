@@ -277,11 +277,7 @@ export class RadarPanel {
   protected zoneField(zone: GuardZone, field: ZoneField): number {
     return field.endsWith('Angle')
       ? Math.round(Convert.radiansToDegrees(zone[field]))
-      : Number(
-          Convert.transform(zone[field], 'm', this.distanceUnit()).toFixed(
-            DISTANCE_DECIMALS
-          )
-        );
+      : Number((zone[field] * this.unitsPerMetre()).toFixed(DISTANCE_DECIMALS));
   }
 
   protected setZoneField(field: ZoneField, e: Event) {
@@ -299,7 +295,7 @@ export class RadarPanel {
         })
       : dragHandle(zone, FIELD_HANDLES[field], {
           angle: 0,
-          distance: input / Convert.transform(1, 'm', this.distanceUnit())
+          distance: input / this.unitsPerMetre()
         });
     this.zoneEdit.update(next);
     // when the rules hold the zone where it was, the binding does not change
@@ -309,6 +305,11 @@ export class RadarPanel {
 
   private distanceUnit(): TARGET_UNIT {
     return this.app.config.units?.distance ?? 'naut-mile';
+  }
+
+  private unitsPerMetre(): number {
+    // converting the finite constant 1 always yields a number
+    return Convert.transform(1, 'm', this.distanceUnit())!;
   }
 
   private send(controlId: string, change: ControlChange) {

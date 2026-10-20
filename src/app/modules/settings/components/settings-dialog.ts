@@ -170,7 +170,7 @@ export class SettingsDialog implements OnInit {
                 this.facade.settings.vessels.rangeCirclesDistance,
                 'm',
                 'naut-mile'
-              )
+              ) ?? 0
             )
     };
   }

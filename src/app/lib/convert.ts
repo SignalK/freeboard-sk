@@ -149,9 +149,8 @@ export class Convert {
     value: number,
     baseUnit: SI_BASE_UNIT,
     targetUnit: TARGET_UNIT
-  ): number {
-    // The return type leaves out null until every caller handles it (#869).
-    if (!Number.isFinite(value)) return null!;
+  ): number | null {
+    if (!Number.isFinite(value)) return null;
     if ((baseUnit as string) === (targetUnit as string)) return value; // no conversion required
     const fn = siBaseFn[baseUnit]?.[targetUnit];
     if (!fn) {
