@@ -189,7 +189,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       range = this.fixedDistance();
     }
     const fa: Feature[] = [];
-    if (this.minZoom !== undefined && this.mapZoom >= this.minZoom) {
+    if (this.minZoom === undefined || this.mapZoom >= this.minZoom) {
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;

@@ -186,12 +186,11 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
         const typeEntry = this.targetStyles[shipClass];
         if (typeEntry instanceof Style) {
           s = typeEntry;
-        } else {
-          const typeStyles = typeEntry as unknown as Record<string, Style>;
-          if (target.state && typeStyles[target.state]) {
-            s = typeStyles[target.state];
+        } else if (typeEntry) {
+          if (target.state && typeEntry[target.state]) {
+            s = typeEntry[target.state];
           } else {
-            s = typeStyles['default'];
+            s = typeEntry['default'];
           }
         }
       } else if (target.buddy && this.targetStyles.buddy) {
@@ -199,9 +198,12 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
         s = this.targetStyles.buddy;
       } else {
         // all others
-        if (target.state && this.targetStyles[target.state]) {
+        const stateStyle = target.state
+          ? this.targetStyles[target.state]
+          : undefined;
+        if (stateStyle instanceof Style) {
           // state only
-          s = this.targetStyles[target.state];
+          s = stateStyle;
         } else {
           s = this.targetStyles.default;
         }
