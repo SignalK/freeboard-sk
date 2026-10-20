@@ -119,6 +119,11 @@ import { ExtWindowService } from './windows/window.service';
 import { ExtWindow } from './windows/types';
 import { SKResourceGroupService } from 'src/app/modules/skresources/components/groups/groups.service';
 import {
+  FBMapInteractService,
+  type MapPickOutcome
+} from 'src/app/modules/map/fbmap-interact.service';
+import { type MapPickedEvent, parsePickParams } from './map-pick';
+import {
   buildRoutePoints,
   coordinatesMetaFromPoints,
   type PointMeta
@@ -379,6 +384,73 @@ export class PlotterExtensionService {
         return {};
       }
     };
+  }
+
+  // ---------- map picks (capability `map.pick`) ----------
+
+  /** The pick that is on and the context that asked for it. */
+  private pickOwner: { pickId: string; ctx: LiveContext } | null = null;
+
+  /**
+   * `map.pick` / `map.cancelPick` for one context. The pick itself is the
+   * map's (FBMapInteractService); this keeps who asked, so `map.picked`
+   * reaches only that context.
+   */
+  private pickMethods(ctx: LiveContext): Record<string, MethodHandler> {
+    return {
+      'map.pick': async (params) => {
+        const { prompt, rules } = parsePickParams(params);
+        if (this.mapInteract.isBusyForPick()) {
+          throw new RpcError('The user is in a modal interaction', {
+            reason: 'map.pickBusy'
+          });
+        }
+        const pickId = uuid.v4();
+        this.mapInteract.startPick({
+          pickId,
+          extensionName: this.pickerName(ctx.extension),
+          prompt,
+          rules
+        });
+        this.pickOwner = { pickId, ctx };
+        return { pickId };
+      },
+      'map.cancelPick': async (params) => {
+        const { pickId } = (params ?? {}) as { pickId?: unknown };
+        if (typeof pickId !== 'string') {
+          throw new RpcError('map.cancelPick requires a pickId', {
+            code: RPC_ERRORS.INVALID_PARAMS,
+            reason: 'map.badRequest'
+          });
+        }
+        if (this.pickOwner?.pickId === pickId && this.pickOwner.ctx === ctx) {
+          this.mapInteract.endPick(pickId, { reason: 'extension' });
+        }
+        return {};
+      }
+    };
+  }
+
+  /**
+   * Who the pick prompt says is asking: the extension's name, or, for the
+   * app Freeboard is embedded in, which has no manifest, a plain label.
+   */
+  private pickerName(extension: string): string {
+    if (extension === EMBEDDING_HOST_ID) return 'Embedding app';
+    return this.manifests()[extension]?.name || extension;
+  }
+
+  /** Tell the context that asked how its pick ended (none for a silent end). */
+  private onPickEnded(pickId: string, outcome: MapPickOutcome) {
+    const owner = this.pickOwner;
+    if (owner?.pickId !== pickId) return;
+    this.pickOwner = null;
+    if (!outcome || !this.contexts.has(owner.ctx)) return;
+    const event: MapPickedEvent =
+      'target' in outcome
+        ? { pickId, target: outcome.target }
+        : { pickId, cancelled: true, reason: outcome.reason };
+    owner.ctx.conn.publish('map.picked', event);
   }
 
   // ---------- map overlays (capabilities `overlays.image`, `overlays.data`) ----------
@@ -1090,6 +1162,7 @@ export class PlotterExtensionService {
 
   private contexts = new Set<LiveContext>();
   private windows = inject(ExtWindowService);
+  private mapInteract = inject(FBMapInteractService);
   // Detach handle for the embedding-host connection, if one was stood up.
   private embeddingHostDetach: (() => void) | null = null;
 
@@ -1124,6 +1197,10 @@ export class PlotterExtensionService {
     // to the extension that owns the window. App-lifetime singleton.
     this.windows.changes.subscribe((c) =>
       this.publishToExtension(c.extension, c.event, c.payload)
+    );
+    // Deliver `map.picked` to the context that asked. App-lifetime singleton.
+    this.mapInteract.pickEnded.subscribe(({ pickId, outcome }) =>
+      this.onPickEnded(pickId, outcome)
     );
     // Keep windows in step with the collection, whoever updates it.
     effect(() => {
@@ -2157,6 +2234,7 @@ export class PlotterExtensionService {
         ...createEventsMethods(this.eventsDeps, opts.extension),
         ...this.uiPanelMethods(opts.extension),
         ...this.actionMethods(opts.extension),
+        ...this.pickMethods(ctx),
         ...this.windowMethods(
           opts.extension,
           opts.context.kind === 'window'
@@ -2334,6 +2412,10 @@ export class PlotterExtensionService {
   private detach(ctx: LiveContext) {
     if (!this.contexts.has(ctx)) return;
     this.contexts.delete(ctx);
+    // A context that unloads ends its pick, without an event.
+    if (this.pickOwner?.ctx === ctx) {
+      this.mapInteract.endPick(this.pickOwner.pickId, null);
+    }
     for (const [, paths] of ctx.skSubs) {
       this.releasePaths(paths);
     }

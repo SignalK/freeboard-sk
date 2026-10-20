@@ -867,6 +867,11 @@
               (undo)="handleInteractionUndo()"
             >
             </fb-interact-help>
+          } @else if (mapInteract.pick()) {
+            <!-- An extension's pick: its prompt and a way to cancel. -->
+            <fb-interact-help
+              (cancel)="mapInteract.cancelPick('user')"
+            ></fb-interact-help>
           }
 
           <!-- *** Nav data panel ***-->

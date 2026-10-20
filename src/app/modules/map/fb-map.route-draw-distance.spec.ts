@@ -25,6 +25,7 @@ function drawingComponent(drawSketch: Feature): any {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.app = { data: { map: {} }, debug: (): void => undefined };
   cmp.mapInteract = {
+    pick: (): null => null,
     isMeasuring: () => false,
     isDrawing: () => true,
     isModifying: () => false,

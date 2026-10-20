@@ -223,3 +223,92 @@ describe('FBMapInteractService Bearing & Distance (#905)', () => {
     });
   });
 });
+
+describe('FBMapInteractService picks (map.pick)', () => {
+  let service: FBMapInteractService;
+  let ended: Array<{ pickId: string; outcome: unknown }>;
+
+  const pick = (pickId: string) => ({
+    pickId,
+    extensionName: 'Auto Route',
+    rules: [{ kind: 'position' as const }]
+  });
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        FBMapInteractService,
+        {
+          provide: AppFacade,
+          useValue: {
+            debug: (): void => undefined,
+            uiCtrl: signal({ suppressContextMenu: false })
+          }
+        }
+      ]
+    });
+    service = TestBed.inject(FBMapInteractService);
+    ended = [];
+    service.pickEnded.subscribe((e) => ended.push(e));
+  });
+
+  it('holds one pick at a time: a new one supersedes the old', () => {
+    service.startPick(pick('a'));
+    service.startPick(pick('b'));
+    expect(service.pick()?.pickId).toBe('b');
+    expect(ended).toEqual([{ pickId: 'a', outcome: { reason: 'superseded' } }]);
+  });
+
+  it('ends a pick once, with the outcome given', () => {
+    const target = {
+      kind: 'position' as const,
+      position: [1, 2] as [number, number]
+    };
+    service.startPick(pick('a'));
+    service.endPick('a', { target });
+    service.endPick('a', { reason: 'user' });
+    expect(service.pick()).toBeNull();
+    expect(ended).toEqual([{ pickId: 'a', outcome: { target } }]);
+  });
+
+  it('leaves the pick on for the id of a pick already over', () => {
+    service.startPick(pick('a'));
+    service.startPick(pick('b'));
+    service.endPick('a', { reason: 'extension' });
+    expect(service.pick()?.pickId).toBe('b');
+  });
+
+  it('ends the pick with reason host when the host starts a modal interaction', () => {
+    service.startPick(pick('a'));
+    service.startMeasuring();
+    expect(service.pick()).toBeNull();
+    expect(ended).toEqual([{ pickId: 'a', outcome: { reason: 'host' } }]);
+  });
+
+  it('ends the pick with reason host when a guard zone edit starts', () => {
+    service.startPick(pick('a'));
+    service.setZoneEditing(false);
+    expect(service.pick()?.pickId).toBe('a');
+    service.setZoneEditing(true);
+    expect(ended).toEqual([{ pickId: 'a', outcome: { reason: 'host' } }]);
+  });
+
+  it('is busy for a pick during drawing, measuring, editing or a zone edit', () => {
+    expect(service.isBusyForPick()).toBe(false);
+    service.startDrawing('route');
+    expect(service.isBusyForPick()).toBe(true);
+    service.stopDrawing();
+    service.setZoneEditing(true);
+    expect(service.isBusyForPick()).toBe(true);
+    service.setZoneEditing(false);
+    expect(service.isBusyForPick()).toBe(false);
+  });
+
+  it('cancelPick ends whatever pick is on with the reason given', () => {
+    service.cancelPick('user');
+    expect(ended).toEqual([]);
+    service.startPick(pick('a'));
+    service.cancelPick('user');
+    expect(ended).toEqual([{ pickId: 'a', outcome: { reason: 'user' } }]);
+  });
+});

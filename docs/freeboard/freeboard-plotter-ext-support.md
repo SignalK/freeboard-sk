@@ -40,7 +40,7 @@ package; Freeboard depends on it (`^0.23.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
-`overlays.image`, `overlays.data`, `actions`.
+`overlays.image`, `overlays.data`, `actions`, `map.pick`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -931,13 +931,14 @@ stations make no target.
   decides what opens. Freeboard's own items are left out where they always
   were: in kiosk mode, over an open popover, and while drawing, measuring,
   modifying or box-selecting. Extension actions show everywhere except during a
-  modal interaction (those four and guard-zone editing), so position actions
-  can be reached at every point. With nothing to show, no menu opens. The split view's second pane goes through the same path.
+  modal interaction (those four, guard-zone editing and a pick), so position
+  actions can be reached at every point. With nothing to show, no menu opens. The split view's second pane goes through the same path.
 - **Feature popovers.** `<fb-ext-actions>` (`ext-actions.component.ts`) is
   projected into the resource, vessel, aton and S-57 popovers and the track
   popover, for the target `formatPopover` stores in `IPopover.target`. The
   popover title names the target. Up to four actions show as buttons grouped
-  under their extension's name; more go into one menu.
+  under their extension's name; more go into one menu. A popover left open
+  when a pick starts shows none until the pick ends.
 - A touch long-press now emits the right-click before the menu event
   (`map.component.ts` `touchHold`), so the menu sees what is under the finger.
 
@@ -971,6 +972,71 @@ changes). The embedding host has no manifest, so every id it sends is unknown.
 | `src/app/modules/map/map-targets.ts` | feature id → target |
 | `src/app/modules/map/fb-map.component.ts` | context-menu content, popover targets |
 | `dev-tools/fsk-mcp/src/tools.ts` | `fsk_set_action_visibility` / `fsk_list_action_invocations` (the bridge's hidden probe action) |
+
+## The `map.pick` capability
+
+`map.pick` lets an extension ask the user to pick a point or a feature on the
+chart (spec: *Picking on the map*). It shares the target vocabulary of
+`actions` and builds its targets the same way, but does not need an action in
+the manifest. Not yet here: `overlayFeature` entries (`actions.overlay`, #1109).
+
+### The pick model
+
+The pick is the map's, in `FBMapInteractService` beside draw, measure and
+modify: `pick()` holds the one pick that is on (`pickId`, the asking
+extension's name, `prompt`, the parsed `rules`), host-wide. `startPick`
+supersedes a pick already on; `endPick(pickId, outcome)` ends it once, and
+every end goes out on `pickEnded`. The service keeps which context asked
+(`pickOwner`) and turns each end into `map.picked` for that context only.
+
+- **Request.** `parsePickParams` (`map-pick.ts`) reads `targets` with the
+  actions grammar (`parseTargetEntry`): entries Freeboard ignores are dropped,
+  and a `targets` that keeps none is `map.badRequest`. No `targets`: a point.
+- **The select.** While a pick is on, `onMapSingleClick` hands the click to
+  `selectForPick` before anything else, so it opens no popover, adds no point
+  and pins no cursor. The features under the pointer become targets through
+  `targetsAt` (the context menu's path), and `pickedTarget` takes the first, in
+  hit order, that a rule accepts, then the point if `position` is a rule.
+  When several pickable things are under the pointer, Freeboard takes the
+  topmost one; there is no chooser. A click on nothing the pick accepts is
+  ignored and the pick stays on. Pan, zoom and double-click zoom work as
+  usual; the split view's second pane goes through the same path.
+- **While it is on.** `fb-interact-help` shows the prompt under the asking
+  extension's name (Freeboard's own wording when there is no prompt) with a
+  **Cancel** button, and the cursor is a crosshair. No context menu opens,
+  and popovers show no extension actions. The toolbar stays live, so the
+  user can start something else, which ends the pick.
+
+### How a pick ends
+
+| `map.picked` | When |
+|--------------|------|
+| `{ pickId, target }` | the user picked |
+| `reason: 'user'` | the prompt's Cancel |
+| `reason: 'extension'` | `map.cancelPick` from the context that asked; from any other context it does nothing |
+| `reason: 'superseded'` | another `map.pick`, from any context |
+| `reason: 'host'` | Freeboard starts a modal interaction: draw, measure, modify, box select (`interactionStarted`) or a guard-zone edit (fed in by `fb-map` through `setZoneEditing`) |
+| none | the asking context detaches (`detach`) |
+
+### Error reasons
+
+`map.badRequest` (params not an object, `prompt` not a string, `targets` not
+a list or keeping no supported kind, a `map.cancelPick` without a string
+`pickId`), `map.pickBusy` (`isBusyForPick`: drawing, measuring, modifying, box
+selecting or editing a guard zone). Freeboard always has `map.pick`, so it
+never answers `map.notSupported`. The embedding host can pick too: it gets
+the full host API, and its prompt is headed "Embedding app".
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/map-pick.ts` | request parsing, what a select yields |
+| `src/app/modules/map/fbmap-interact.service.ts` | the pick state, busy check, host ends |
+| `src/app/modules/plotterext/plotterext.service.ts` | `map.pick` / `map.cancelPick`, `pickOwner`, `map.picked`, ending on detach |
+| `src/app/modules/map/fb-map.component.ts` | `selectForPick`, no menu during a pick, the guard-zone bridge |
+| `src/app/lib/components/interact-help.component.ts` | the prompt and Cancel |
+| `dev-tools/fsk-mcp/src/tools.ts` | `fsk_pick` / `fsk_cancel_pick` / `fsk_list_picks` |
 
 ## Extending the host API? Update the agent bridge
 

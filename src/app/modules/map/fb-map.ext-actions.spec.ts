@@ -38,6 +38,7 @@ const bareComponent = (offered: string[]) => {
     useInfoPanel: () => false
   };
   cmp.mapInteract = {
+    pick: (): null => null,
     isMeasuring: () => false,
     isDrawing: () => false,
     isModifying: () => false,

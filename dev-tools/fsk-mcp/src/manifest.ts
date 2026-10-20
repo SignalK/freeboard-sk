@@ -101,7 +101,8 @@ export function buildManifest() {
       'ui',
       'windows',
       'overlays.data',
-      'actions'
+      'actions',
+      'map.pick'
     ],
     panels: [
       {
