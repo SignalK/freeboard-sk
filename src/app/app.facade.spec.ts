@@ -47,7 +47,7 @@ describe('AppFacade.formatValueForDisplay', () => {
   // A meteo station or AtoN can publish null for a value it lost; the popover
   // and properties sheet must show the missing-value dash, not "nullK".
   it('shows -- for a missing value', () => {
-    const missing = [null, undefined] as unknown as number[];
+    const missing: Array<number | null | undefined> = [null, undefined];
     for (const value of missing) {
       expect(app.formatValueForDisplay(value, 'K')).toBe('--');
       expect(
