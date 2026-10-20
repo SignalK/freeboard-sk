@@ -105,7 +105,7 @@ export class GPXImportDialog implements OnInit {
 
   private errorCount = 0;
   private subCount = 0;
-  private gpx: GPX;
+  private gpx = new GPX();
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<GPXImportDialog>);
@@ -150,8 +150,8 @@ export class GPXImportDialog implements OnInit {
     this.display.expand = { routes: false, waypoints: false, tracks: false };
     this.display.notValid = false;
 
-    this.gpxData = await this.parseFileData(data);
-    if (!this.gpxData) {
+    const gpxData = await this.parseFileData(data);
+    if (!gpxData) {
       console.warn(
         'Selected file does not contain GPX data or\ndoes not correctly implement namespaced <extensions> attributes',
         'Invalid GPX Data:'
@@ -159,6 +159,7 @@ export class GPXImportDialog implements OnInit {
       this.display.notValid = true;
       return;
     }
+    this.gpxData = gpxData;
 
     this.gpxData.routes.forEach(() => {
       this.selRoutes.push(false);
@@ -274,7 +275,7 @@ export class GPXImportDialog implements OnInit {
 
   // ** delete GPX object data **
   public clear() {
-    this.gpx = null;
+    this.gpx = new GPX();
   }
 
   // ** parse GPX file
@@ -407,20 +408,21 @@ export class GPXImportDialog implements OnInit {
     rte.name = r.name ?? '';
     rte.description = r.desc ?? '';
     // ** route properties **
+    const properties = (rte.feature.properties ??= {});
     if (r.cmt) {
-      rte.feature.properties['cmt'] = r.cmt;
+      properties['cmt'] = r.cmt;
     }
     if (r.src) {
-      rte.feature.properties['src'] = r.src;
+      properties['src'] = r.src;
     }
     if (r.number) {
-      rte.feature.properties['number'] = r.number;
+      properties['number'] = r.number;
     }
     if (r.type) {
-      rte.feature.properties['type'] = r.type;
+      properties['type'] = r.type;
     }
-    rte.feature.properties['coordinatesMeta'] = [];
-    rte.feature.properties['coordinatesMeta'] = r.rtept.map((pt) => {
+    properties['coordinatesMeta'] = [];
+    properties['coordinatesMeta'] = r.rtept.map((pt) => {
       const ptMeta: { name: string; description?: string } = {
         name: pt.name ?? ''
       };
@@ -457,6 +459,7 @@ export class GPXImportDialog implements OnInit {
   private transformWaypoint(pt: GPXWaypoint) {
     const wptObj = this.skres.buildWaypoint([pt.lon, pt.lat]);
     const wpt = wptObj[1];
+    const properties = (wpt.feature.properties ??= {});
     if (pt.ele) {
       wpt.feature.geometry.coordinates.push(pt.ele);
     }
@@ -471,23 +474,23 @@ export class GPXImportDialog implements OnInit {
       // Preserve the imported GPX <type> for export; a symbol match below may
       // override the internal type to 'waypoint', but the file's type must
       // still round-trip via feature.properties['type'] (see sk2gpx).
-      wpt.feature.properties['type'] = pt.type;
+      properties['type'] = pt.type;
     }
     if (pt.cmt) {
-      wpt.feature.properties['cmt'] = pt.cmt;
+      properties['cmt'] = pt.cmt;
     }
     if (pt.src) {
-      wpt.feature.properties['src'] = pt.src;
+      properties['src'] = pt.src;
     }
     if (pt.sym) {
-      wpt.feature.properties['sym'] = pt.sym;
+      properties['sym'] = pt.sym;
       // Match the GPX <sym> to a symbol (by gpxSym, then local id). On a match,
       // use that symbol as the icon — as a 'waypoint' type so the override
       // resolves on the map. No match → leave the default (rule 3).
       const ref = this.symbols.resolveGpxSym(pt.sym);
       if (ref) {
         wpt.type = 'waypoint';
-        wpt.feature.properties['skIcon'] = ref;
+        properties['skIcon'] = ref;
       }
     }
 
@@ -524,11 +527,12 @@ export class GPXImportDialog implements OnInit {
   private transformTrack(gpxtrk: GPXTrack): {
     feature: MultiLineStringFeature;
   } {
+    const properties: Record<string, unknown> = {};
     const trk: { feature: MultiLineStringFeature } = {
       feature: {
         type: 'Feature',
         geometry: { type: 'MultiLineString', coordinates: [] as Position[][] },
-        properties: {} as Record<string, unknown>,
+        properties,
         id: ''
       }
     };
@@ -542,23 +546,21 @@ export class GPXImportDialog implements OnInit {
       });
     }
     if (gpxtrk.name && gpxtrk.name.length !== 0) {
-      trk.feature.properties['name'] = gpxtrk.name;
+      properties['name'] = gpxtrk.name;
     } else {
-      trk.feature.properties['name'] = `gpxtrk #${Math.random()
-        .toString()
-        .slice(-5)}`;
+      properties['name'] = `gpxtrk #${Math.random().toString().slice(-5)}`;
     }
     if (gpxtrk.desc && gpxtrk.desc.length !== 0) {
-      trk.feature.properties['description'] = gpxtrk.desc;
+      properties['description'] = gpxtrk.desc;
     }
     if (gpxtrk.cmt) {
-      trk.feature.properties['cmt'] = gpxtrk.cmt;
+      properties['cmt'] = gpxtrk.cmt;
     }
     if (gpxtrk.src) {
-      trk.feature.properties['src'] = gpxtrk.src;
+      properties['src'] = gpxtrk.src;
     }
     if (gpxtrk.type) {
-      trk.feature.properties['type'] = gpxtrk.type;
+      properties['type'] = gpxtrk.type;
     }
     return trk;
   }

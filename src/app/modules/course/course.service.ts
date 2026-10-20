@@ -410,14 +410,8 @@ export class CourseService {
         this.app.data.activeRoute = rteHref[rteHref.length - 1];
 
         this.app.data.activeWaypoint = null;
-        c.pointIndex =
-          value?.activeRoute.pointIndex === null
-            ? -1
-            : value?.activeRoute.pointIndex;
-        c.pointTotal =
-          value?.activeRoute.pointTotal === null
-            ? 0
-            : value?.activeRoute.pointTotal;
+        c.pointIndex = value.activeRoute.pointIndex ?? -1;
+        c.pointTotal = value.activeRoute.pointTotal ?? 0;
         this.app.data.activeRouteReversed = !value?.activeRoute.reverse
           ? false
           : value?.activeRoute.reverse;
@@ -534,8 +528,9 @@ export class CourseService {
   private updateActiveRoutePointDetails(c: CourseData, rte: FBRoute) {
     c.activeRoutePoints = rte[1].feature.geometry.coordinates;
 
-    if (Array.isArray(rte[1].feature.properties.coordinatesMeta)) {
-      c.pointNames = rte[1].feature.properties.coordinatesMeta.map((pt) => {
+    const coordinatesMeta = rte[1].feature.properties?.coordinatesMeta;
+    if (Array.isArray(coordinatesMeta)) {
+      c.pointNames = coordinatesMeta.map((pt) => {
         return pt?.name ?? '';
       });
       if (c.pointIndex !== -1 && c.pointIndex < c.pointNames.length) {
@@ -566,10 +561,7 @@ export class CourseService {
     if (!this.app.data.activeRoute) {
       return;
     }
-    const rte: FBRoute = this.skres.fromCache(
-      'routes',
-      this.app.data.activeRoute
-    );
+    const rte = this.skres.fromCache('routes', this.app.data.activeRoute);
     if (rte) {
       const c = this._courseData();
       this.updateActiveRoutePointDetails(c, rte);

@@ -11,7 +11,10 @@ import type { CourseInfo } from '@signalk/server-api';
 
 import { AppFacade } from 'src/app/app.facade';
 import { FBRoute } from 'src/app/types';
-import { InfoPanelFacade } from 'src/app/modules/info-panel/info-panel.facade';
+import {
+  InfoPanelFacade,
+  InfoPanelItem
+} from 'src/app/modules/info-panel/info-panel.facade';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
@@ -121,13 +124,13 @@ export class TemporaryRouteService {
           description: buffer.description ?? undefined,
           points: buffer.points
         });
-        if (this.infoPanel.item()?.id === bufferId) {
+        if (this.infoPanelShows(bufferId)) {
           this.infoPanel.close();
         }
       }
       return null;
     }
-    if (this.infoPanel.item()?.id === bufferId) {
+    if (this.infoPanelShows(bufferId)) {
       // Point the panel at the stored route so it offers STOP, not START.
       this.infoPanel.open('routes', saved.href);
     }
@@ -155,14 +158,16 @@ export class TemporaryRouteService {
     }
     const state = await this.serverState();
     const stored = state?.routes.find(([rid]) => rid === id);
-    if (!stored || id === state.active) {
+    if (!state || !stored || id === state.active) {
       return;
     }
     // Stamping it before deciding also lifts the grace period, which only
     // protects routes that have never been followed.
-    const marker = stored[1].feature.properties[
-      'temporary'
-    ] as TemporaryRouteMarker;
+    const marker = stored[1].feature.properties?.['temporary'] as
+      TemporaryRouteMarker | undefined;
+    if (!marker) {
+      return;
+    }
     marker.released = new Date().toISOString();
     const due = temporaryRoutesToDelete(state.routes, state.active, Date.now());
     if (!due.includes(id)) {
@@ -198,6 +203,11 @@ export class TemporaryRouteService {
     }
   }
 
+  private infoPanelShows(id: string): boolean {
+    // InfoPanelFacade.item() is not typed with its item yet
+    return (this.infoPanel.item() as InfoPanelItem | undefined)?.id === id;
+  }
+
   /** Delete `ids` unless the server reports one as the active route. */
   private async deleteUnlessActive(ids: string[]): Promise<string[]> {
     let active: string | null;
@@ -222,7 +232,7 @@ export class TemporaryRouteService {
         await this.skres.deleteFromServer('routes', id);
         deleted.push(id);
         this.skres.selectionRemove('routes', id);
-        if (this.infoPanel.item()?.id === id) {
+        if (this.infoPanelShows(id)) {
           this.infoPanel.close();
         }
       } catch (err) {

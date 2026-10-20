@@ -54,16 +54,17 @@ interface XmlTrackSegment {
   trkpt?: unknown[];
 }
 
+// The constructor sets every field through init().
 export class GPX {
-  private version: string; // ** GPX version
-  public creator: string;
+  private version!: string; // ** GPX version
+  public creator!: string;
 
-  public wpt: Array<GPXWaypoint>; // ** array of waypoints
-  public rte: Array<GPXRoute>; // ** array of routes
-  public trk: Array<GPXTrack>; // ** array of tracks
+  public wpt!: Array<GPXWaypoint>; // ** array of waypoints
+  public rte!: Array<GPXRoute>; // ** array of routes
+  public trk!: Array<GPXTrack>; // ** array of tracks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public extensions: any;
-  public metadata: GPXMetadataType;
+  public metadata!: GPXMetadataType;
 
   constructor() {
     this.init();
@@ -629,25 +630,25 @@ export class GPX {
 export class GPXWaypoint {
   public lat: number;
   public lon: number;
-  public ele: number;
-  public datetime: Date;
-  public magvar: number;
-  public geoidHeight: number;
-  public name: string;
-  public cmt: string;
-  public desc: string;
-  public src: string;
+  public ele?: number | null;
+  public datetime?: Date;
+  public magvar?: number | null;
+  public geoidHeight?: number | null;
+  public name?: string | null;
+  public cmt?: string | null;
+  public desc?: string | null;
+  public src?: string | null;
   public link: Array<GPXLinkType> = [];
-  public sym: string;
-  public type: string;
+  public sym?: string | null;
+  public type?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public fix: any;
-  public sat: number;
-  public hdop: number;
-  public vdop: number;
-  public pdop: number;
-  public ageOfGpsData: number;
-  public dgpsid: number;
+  public sat?: number | null;
+  public hdop?: number | null;
+  public vdop?: number | null;
+  public pdop?: number | null;
+  public ageOfGpsData?: number | null;
+  public dgpsid?: number | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public extensions: { [key: string]: any } = {};
 
@@ -660,12 +661,12 @@ export class GPXWaypoint {
 // ** GPX Route object **
 export class GPXRoute {
   public name: string;
-  public cmt: string;
-  public desc: string;
-  public src: string;
+  public cmt?: string | null;
+  public desc?: string | null;
+  public src?: string | null;
   public link: Array<GPXLinkType> = [];
-  public number: number;
-  public type: string;
+  public number?: number | null;
+  public type?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public extensions: { [key: string]: any } = {};
   public rtept: Array<GPXWaypoint> = [];
@@ -678,12 +679,12 @@ export class GPXRoute {
 // ** GPX Track Class **
 export class GPXTrack {
   public name: string;
-  public cmt: string;
-  public desc: string;
-  public src: string;
+  public cmt?: string | null;
+  public desc?: string | null;
+  public src?: string | null;
   public link: Array<GPXLinkType> = [];
-  public number: number;
-  public type: string;
+  public number?: number | null;
+  public type?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public extensions: { [key: string]: any } = {};
   public trkseg: Array<GPXTrackSegment> = [];
@@ -714,8 +715,8 @@ export enum GPXFixType {
 export class GPXMetadataType {
   public name = '';
   public desc = '';
-  public author: GPXPersonType; //= new GPXPersonType();
-  public copyright: GPXCopyrightType; //= new GPXCopyrightType();
+  public author?: GPXPersonType; //= new GPXPersonType();
+  public copyright?: GPXCopyrightType; //= new GPXCopyrightType();
   public link: Array<GPXLinkType> = []; //
   public time: string = new Date().toISOString();
   public keywords = '';

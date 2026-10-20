@@ -65,9 +65,13 @@ export function exportRange(
 }
 
 /** A custom range needs both ends, in order. */
-export function validCustomRange(range?: HistoryRange): boolean {
+export function validCustomRange(
+  range?: HistoryRange
+): range is { from: number; to: number } {
   return (
     !!range &&
+    typeof range.from === 'number' &&
+    typeof range.to === 'number' &&
     Number.isFinite(range.from) &&
     Number.isFinite(range.to) &&
     range.from < range.to
@@ -223,7 +227,7 @@ export function vesselLabel(
   if (name && mmsi) {
     return `${name} (${mmsi})`;
   }
-  return name || mmsi || context.split(':').pop();
+  return name || mmsi || (context.split(':').pop() ?? context);
 }
 
 /** The GPX track for a source and the track chosen for it. */

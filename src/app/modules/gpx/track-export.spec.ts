@@ -18,6 +18,14 @@ import {
 import { SK2GPX } from './sk2gpx';
 import type { Position } from '../../types';
 
+/** The value, failing the test when there is none. */
+function defined<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined) {
+    throw new Error('expected a value');
+  }
+  return value;
+}
+
 const DAY = 86400000;
 const NOW = Date.parse('2026-09-25T15:00:00.000Z');
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -339,7 +347,7 @@ describe('GPX track', () => {
   ];
 
   it('drops one-point segments and is undefined with nothing left', () => {
-    const t = gpxTrack('FERRY ONE', { lines, times }, NOW);
+    const t = defined(gpxTrack('FERRY ONE', { lines, times }, NOW));
     expect(t.lines).toEqual([lines[0], lines[2]]);
     expect(t.times).toEqual([times[0], times[2]]);
     expect(gpxTrack('FERRY ONE', { lines: [[[1, 1]]], times: [[]] }, NOW)).toBe(
@@ -348,14 +356,14 @@ describe('GPX track', () => {
   });
 
   it('escapes a vessel name in the track name', () => {
-    const t = gpxTrack('M&M <II>', { lines, times }, NOW);
+    const t = defined(gpxTrack('M&M <II>', { lines, times }, NOW));
     const gpx = new SK2GPX();
     gpx.setTracks({ id1: gpxTrackResource('id1', t) });
     expect(gpx.toXML()).toContain('<name>M&amp;M &lt;II&gt; ');
   });
 
   it('writes one track, a segment per line, and each known point time', () => {
-    const t = gpxTrack('FERRY ONE', { lines, times }, NOW);
+    const t = defined(gpxTrack('FERRY ONE', { lines, times }, NOW));
     const gpx = new SK2GPX();
     gpx.setTracks({ id1: gpxTrackResource('id1', t) });
     const xml = gpx.toXML();
@@ -364,7 +372,7 @@ describe('GPX track', () => {
     expect(xml).toContain(`<name>${t.name}</name>`);
     expect(xml.match(/<trkseg>/g)).toHaveLength(2);
     expect(xml.match(/<trkpt /g)).toHaveLength(4);
-    expect(xml.match(/<time>[^<]*<\/time>/g).slice(-3)).toEqual([
+    expect(xml.match(/<time>[^<]*<\/time>/g)?.slice(-3)).toEqual([
       '<time>2026-09-25T14:05:00.000Z</time>',
       '<time>2026-09-25T14:06:00.000Z</time>',
       '<time>2026-09-25T15:04:00.000Z</time>'
