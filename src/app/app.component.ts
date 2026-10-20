@@ -1110,24 +1110,28 @@ export class AppComponent {
   // ************************************************
   /** Handle SignalK Auth token value change */
   protected handleSKAuthChange() {
-    this.signalk.getLoginStatus().subscribe((r) => {
-      this.app.data.loginRequired = r.authenticationRequired ?? false;
-      this.app.isLoggedIn.update(() =>
-        r.status === 'loggedIn' ? true : false
-      );
-      // ** Request using cached auth token and display badge
-      this.signalk.get('/plugins/freeboard-sk').subscribe(
-        () => {
-          this.app.debug('User Authenticated');
-          this.app.isLoggedIn.set(true);
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status === 401) {
-            this.app.debug('User NOT Authenticated');
-            this.app.isLoggedIn.set(false);
+    this.signalk.getLoginStatus().subscribe({
+      next: (r) => {
+        this.app.data.loginRequired = r.authenticationRequired ?? false;
+        this.app.isLoggedIn.update(() =>
+          r.status === 'loggedIn' ? true : false
+        );
+        // ** Request using cached auth token and display badge
+        this.signalk.get('/plugins/freeboard-sk').subscribe(
+          () => {
+            this.app.debug('User Authenticated');
+            this.app.isLoggedIn.set(true);
+          },
+          (err: HttpErrorResponse) => {
+            if (err.status === 401) {
+              this.app.debug('User NOT Authenticated');
+              this.app.isLoggedIn.set(false);
+            }
           }
-        }
-      );
+        );
+      },
+      // an unreachable server leaves the login state as it is
+      error: () => this.app.debug('Login status not available')
     });
   }
 
