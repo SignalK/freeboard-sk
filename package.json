@@ -85,7 +85,7 @@
   "license": "Apache-v2",
   "dependencies": {
     "@signalk/server-api": "^2.24.0",
-    "geolib": "^3.3.3",
+    "geolib": "^4.0.0",
     "google-protobuf": "^4.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",

@@ -505,6 +505,86 @@ describe('region alarm areas — Region resource shapes (#755)', () => {
   });
 });
 
+// A hazard drawn across 180° has edges whose longitudes jump from +179.9 to
+// -179.9. Those edges cross the dateline the short way: the area is the strip
+// around 180°, not the rest of its latitude band.
+describe('area alarms across the antimeridian', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    shutdownAlarms();
+    vi.useRealTimers();
+  });
+
+  const datelineHazard = {
+    name: 'Dateline reef',
+    feature: {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [179.9, -17.0],
+            [-179.9, -17.0],
+            [-179.9, -16.9],
+            [179.9, -16.9],
+            [179.9, -17.0]
+          ]
+        ]
+      },
+      properties: { skIcon: 'hazard' }
+    }
+  };
+
+  // Loaded areas and their alarm state outlive shutdownAlarms(), so each case
+  // uses its own area id and reads back only that area's notifications.
+  const sailTo = async (id: string, longitude: number) => {
+    const env = makeServer(() => Promise.resolve({ [id]: datelineHazard }));
+    initAlarms(env.server, 'freeboard-sk');
+    await vi.advanceTimersByTimeAsync(5000);
+    env.handleMessage.mockClear();
+    env.deltas.handler({
+      updates: [
+        {
+          values: [
+            {
+              path: 'navigation.position',
+              value: { latitude: -16.95, longitude }
+            }
+          ]
+        }
+      ]
+    } as unknown as Delta);
+    return env.handleMessage.mock.calls
+      .map(([, delta]) => (delta as Delta).updates[0])
+      .filter(
+        (u) =>
+          'values' in u &&
+          u.values.some((v) => v.path === `notifications.area.${id}`)
+      );
+  };
+
+  it('raises the alarm on entering the area at the dateline', async () => {
+    const updates = await sailTo('near', -179.95);
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({
+      values: [
+        {
+          path: 'notifications.area.near',
+          value: { state: 'alarm' }
+        }
+      ]
+    });
+  });
+
+  it('stays quiet half a world away on the same latitude', async () => {
+    expect(await sailTo('far', 0)).toHaveLength(0);
+  });
+});
+
 describe('silencing an area alarm', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });

@@ -1,4 +1,8 @@
-import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
+import {
+  computeDestinationPoint,
+  earthRadius,
+  getGreatCircleBearing
+} from 'geolib';
 import { GuardZone, LonLat } from './guard-zones';
 
 /** A point around the radar: bearing relative to the bow (radians,
@@ -20,19 +24,20 @@ export const ZONE_HANDLES: ZoneHandle[] = [
 // the thinnest zone a drag can make, as in the MaYaRa radar GUI
 export const MIN_ZONE_DEPTH = 50;
 const FULL_TURN = 2 * Math.PI;
-// the sphere computeDestinationPoint() places the zone outlines on; reading
-// a distance back on the same sphere keeps handles under the finger
-const EARTH_RADIUS = 6371000;
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 
-/** Great-circle distance (m) on the sphere the zones are drawn on. */
+/**
+ * Great-circle distance (m) on geolib's sphere, the one
+ * computeDestinationPoint() draws the zones on, so a handle read back here
+ * stays under the finger.
+ */
 function sphereDistance(from: ArrayLike<number>, to: ArrayLike<number>) {
   const dLat = toRad(to[1] - from[1]);
   const dLon = toRad(to[0] - from[0]);
   const h =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(from[1])) * Math.cos(toRad(to[1])) * Math.sin(dLon / 2) ** 2;
-  return 2 * EARTH_RADIUS * Math.asin(Math.min(1, Math.sqrt(h)));
+  return 2 * earthRadius * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
 /** An angle brought into -π..π. */
