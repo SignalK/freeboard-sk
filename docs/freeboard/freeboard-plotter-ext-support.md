@@ -122,8 +122,11 @@ manifest order, leaving out each hidden one: the manifest `visible` (default
 `true`), overridden per button by `buttons.setVisibility`. The app builds the
 toolbar's items from that list, so a hidden button is not rendered at all and
 the toolbar closes the gap; shown again, it takes its manifest place back. The
-override is kept in memory only (`buttonVisibility`, by `<extension>/<id>`), so
-a reload starts from the manifest again.
+override is kept in memory only (`buttonVisibility`, by extension then button
+id), so a reload starts from the manifest again. An extension that leaves the
+collection loses its overrides (`dropDepartedVisibility`, for actions too), so
+when it comes back its buttons start from the manifest, as its reloaded runtime
+does.
 
 Hiding a button changes nothing it opened. Its panel stays in the drawer, and a
 window it opened stays open and stays tracked in `buttonWindows`, so the button

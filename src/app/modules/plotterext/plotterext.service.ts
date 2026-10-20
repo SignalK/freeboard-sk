@@ -139,6 +139,9 @@ const STATE_STORAGE_KEY = 'fb-plotterext-state';
 // The caller's asserted id is adopted into the handshake context.id, but state
 // stays under this single scope — one embedder per server in practice.
 const EMBEDDING_HOST_ID = 'embedding-host';
+
+/** `setVisibility` choices: extension id → item id → shown. */
+type VisibilityChoices = Record<string, Record<string, boolean>>;
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
 
 interface ExtensionStateStore {
@@ -217,10 +220,10 @@ export class PlotterExtensionService {
   });
 
   /**
-   * `buttons.setVisibility` choices, by `<extension>/<buttonId>`. Not
+   * `buttons.setVisibility` choices, by extension then button id. Not
    * persisted: every button starts as its manifest `visible` says.
    */
-  private readonly buttonVisibility = signal<Record<string, boolean>>({});
+  private readonly buttonVisibility = signal<VisibilityChoices>({});
 
   /**
    * The shown toolbar buttons of compatible extensions, in manifest order. A
@@ -243,7 +246,7 @@ export class PlotterExtensionService {
           continue;
         }
         const shown =
-          visibility[`${extension}/${button.id}`] ?? button.visible !== false;
+          visibility[extension]?.[button.id] ?? button.visible !== false;
         if (!shown) continue;
         result.push({ extension, extensionName: manifest.name, button });
       }
@@ -307,14 +310,14 @@ export class PlotterExtensionService {
   });
 
   /**
-   * `actions.setVisibility` choices, by `<extension>/<actionId>`. Not
+   * `actions.setVisibility` choices, by extension then action id. Not
    * persisted: every action starts as its manifest `visible` says.
    */
-  private readonly actionVisibility = signal<Record<string, boolean>>({});
+  private readonly actionVisibility = signal<VisibilityChoices>({});
 
   private actionVisible(a: UsableAction): boolean {
     return (
-      this.actionVisibility()[`${a.extension}/${a.action.id}`] ??
+      this.actionVisibility()[a.extension]?.[a.action.id] ??
       a.action.visible !== false
     );
   }
@@ -392,13 +395,13 @@ export class PlotterExtensionService {
 
   /**
    * Shows or hides the calling extension's own actions or buttons, recording
-   * the choice in `choices` by `<extension>/<id>`. Every id must be one of
+   * the choice in `choices`. Every id must be one of
    * the caller's manifest; otherwise nothing changes. The last call wins.
    */
   private setVisibilityMethod(
     extension: string,
     kind: 'actions' | 'buttons',
-    choices: WritableSignal<Record<string, boolean>>
+    choices: WritableSignal<VisibilityChoices>
   ): MethodHandler {
     const badRequest: ActionErrorReason | ButtonErrorReason =
       `${kind}.badRequest` as const;
@@ -422,9 +425,9 @@ export class PlotterExtensionService {
         );
       }
       choices.update((all) => {
-        const next = { ...all };
-        for (const id of ids) next[`${extension}/${id}`] = visible;
-        return next;
+        const own = { ...all[extension] };
+        for (const id of ids) own[id] = visible;
+        return { ...all, [extension]: own };
       });
       return {};
     };
@@ -1078,6 +1081,28 @@ export class PlotterExtensionService {
     }
   }
 
+  /**
+   * An extension that left the collection forgets its `setVisibility`
+   * choices, so when it comes back its buttons and actions start from the
+   * manifest again, as its reloaded runtime does.
+   */
+  private dropDepartedVisibility() {
+    const manifests = this.manifests();
+    const present = (extension: string) => {
+      const manifest = manifests[extension];
+      return !!manifest && this.isCompatible(manifest);
+    };
+    for (const choices of [this.actionVisibility, this.buttonVisibility]) {
+      const extensions = Object.keys(choices());
+      if (extensions.every(present)) continue;
+      choices.update((all) =>
+        Object.fromEntries(
+          Object.entries(all).filter(([extension]) => present(extension))
+        )
+      );
+    }
+  }
+
   handleButtonAction(extension: string, button: ButtonContribution) {
     const action = button.action;
     if (!action) return;
@@ -1247,10 +1272,14 @@ export class PlotterExtensionService {
     this.mapInteract.pickEnded.subscribe(({ pickId, outcome }) =>
       this.onPickEnded(pickId, outcome)
     );
-    // Keep windows in step with the collection, whoever updates it.
+    // Keep windows and visibility choices in step with the collection,
+    // whoever updates it.
     effect(() => {
       this.manifests();
-      untracked(() => this.syncWindows());
+      untracked(() => {
+        this.syncWindows();
+        this.dropDepartedVisibility();
+      });
     });
     // Relay every group apply — the user's Resource Groups checkbox or an
     // extension's resourceGroup.apply — as `resourceGroup.applied`

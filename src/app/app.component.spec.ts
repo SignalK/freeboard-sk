@@ -452,6 +452,7 @@ describe('AppComponent', () => {
       expect(infoPanel.item()?.type).toBe('radars');
     });
   });
+
   it('removes a button an extension hides from the right toolbar, and puts it back in its place', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = TestBed.inject(AppFacade);

@@ -355,6 +355,22 @@ describe('PlotterExtensionService button visibility', () => {
     ]);
   });
 
+  it('forgets the choices of an extension that leaves, keeping the others’', async () => {
+    const a = await runtime('ext-a');
+    const b = await runtime('ext-b');
+    await a.call('buttons.setVisibility', { ids: ['stop'], visible: true });
+    await b.call('buttons.setVisibility', { ids: ['open'], visible: false });
+
+    const both = service.manifests();
+    service.manifests.set({ 'ext-b': both['ext-b'] });
+    TestBed.tick();
+    service.manifests.set(both);
+    TestBed.tick();
+
+    expect(shown()).not.toContain('ext-a/stop');
+    expect(shown()).not.toContain('ext-b/open');
+  });
+
   it('leaves the panel a hidden button opened open', async () => {
     service.handleButtonAction('ext-a', button('ext-a', 'open'));
     expect(service.visiblePanel()?.key).toBe('ext-a/viewer');
