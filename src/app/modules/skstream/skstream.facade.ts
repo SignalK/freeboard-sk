@@ -355,18 +355,24 @@ export class SKStreamFacade {
 
   /**
    * Send command message to fetch vessel trail from server
-   * Trail message handler => this.parseSelfTrail() */
-  requestTrailFromServer() {
-    this.trailFetched = this.view && {
-      extent: padExtent(this.view.extent, TRAIL_BBOX_PAD),
-      zoom: this.view.zoom,
-      duration: this.app.config.vessels.trailDuration
-    };
+   * Trail message handler => this.parseSelfTrail()
+   *
+   * `recentOnly` refreshes the recent part alone and keeps the older bands
+   * fetched last, which were fetched for the view recorded then. */
+  requestTrailFromServer(recentOnly = false) {
+    if (!recentOnly) {
+      this.trailFetched = this.view && {
+        extent: padExtent(this.view.extent, TRAIL_BBOX_PAD),
+        zoom: this.view.zoom,
+        duration: this.app.config.vessels.trailDuration
+      };
+    }
     this.worker.postMessage({
       cmd: 'trail',
       options: {
         trailDuration: this.app.config.vessels.trailDuration,
-        trailResolution: this.app.config.vessels.trailResolution
+        trailResolution: this.app.config.vessels.trailResolution,
+        recentOnly
       }
     });
   }

@@ -1352,7 +1352,9 @@ export class AppComponent {
       // no server trail data supplied
       if (this.app.selfTrail().length % 60 === 0 && this.app.data.serverTrail) {
         if (this.app.serverTrailWanted()) {
-          this.stream.requestTrailFromServer(); // request trail from server
+          // Only the recent part has moved on; the older bands can reach
+          // back over the whole recorded history.
+          this.stream.requestTrailFromServer(true);
         }
       }
       this.app.selfTrail.update((current) => current.slice(-5000));

@@ -43,12 +43,14 @@ import {
   NO_TRACK_SOURCE,
   parseAisTracks,
   parseSelfTrail,
+  resolutionToIso,
   TrackSource,
   trackSourceUrls,
   tracksApiUrl,
   TRAIL_BBOX_PAD,
   TRAIL_DURATION_ALL,
   TRAIL_MAX_HOURS,
+  TrailBand,
   trailBands,
   trailBandUrl,
   v1TrailResolution,
@@ -178,6 +180,16 @@ const aisTracksGate = createRequestGate();
 // own-trail requests overlap (a zoom change with the trail length "All", a
 // new track source); only the latest answers
 const trailGate = createRequestGate();
+
+/** How long a refresh of the recent trail may reuse the older bands: their
+ * shared edge then moves on in steps of this, not with every refresh. */
+const OLDER_BANDS_REUSE_MS = 3600000;
+
+/** The older bands of the last full v2 trail fetch, with what the server
+ * answered for them, and where the recent band they were fetched with began. */
+let olderBands:
+  | { key: string; bands: TrailBand[]; results: unknown[]; until: number }
+  | undefined;
 const SERVER_TRACK_TAIL_CAP = 5000;
 
 // ** AIS target management **
@@ -404,7 +416,7 @@ function handleCommand(data: MsgFromApp) {
             data.options.trailResolution.beyond24 ?? '10s';
         }
       }
-      requestVesselTrail();
+      requestVesselTrail(data.options?.recentOnly === true);
       break;
     //** { cmd: 'view', options: {extent: Extent, zoom: number} }
     case 'view':
@@ -546,11 +558,17 @@ function refreshTrackSource() {
 /** Fetch the own-vessel trail from whichever interface the server offers.
  * With none, answer with an empty result so the app falls back to its local
  * trail. */
-function requestVesselTrail() {
+function requestVesselTrail(recentOnly = false) {
   const token = trailGate.begin();
   trackSourceReady.then((source) => {
     if (source.api === 'v2') {
-      getVesselTrailV2(tracksApiUrl(apiUrl), trailMgr, source.provider, token);
+      getVesselTrailV2(
+        tracksApiUrl(apiUrl),
+        trailMgr,
+        source.provider,
+        token,
+        recentOnly
+      );
     } else if (source.api === 'v1' && source.v1SelfTrack) {
       getVesselTrail(trailMgr, token);
     } else if (trailGate.isCurrent(token)) {
@@ -566,30 +584,67 @@ function requestVesselTrail() {
  * v1, as absolute from/to, from the default provider only. Every band but the
  * last hour is simplified by the server to a pixel at the map's zoom; with
  * "All" the oldest band is asked for only in the padded map view.
- * `token` is the request's trailGate token; it answers only while current. */
+ * `token` is the request's trailGate token; it answers only while current.
+ *
+ * `recentOnly` asks again for the recent band alone, from where the last full
+ * fetch's recent band began, and keeps that fetch's older bands: they change
+ * only at their edge, and with "All" they reach back over the whole recorded
+ * history. Their edge moves on once the recent band is an hour longer than
+ * usual, and whenever the settings or provider differ. */
 export function getVesselTrailV2(
   url: string,
   opt: VesselTrailConfig,
   provider?: string,
-  token = trailGate.begin()
+  token = trailGate.begin(),
+  recentOnly = false
 ) {
+  const now = Date.now();
+  const key = JSON.stringify([
+    provider,
+    opt.trailDuration,
+    opt.trailResolution.next23,
+    opt.trailResolution.beyond24
+  ]);
+  const reuse =
+    recentOnly &&
+    olderBands?.key === key &&
+    now - olderBands.until < 2 * OLDER_BANDS_REUSE_MS
+      ? olderBands
+      : undefined;
   // sized as for Track history: a pixel at the deepest zoom of the level
   const epsilon =
     (mapView && historyEpsilon(mapView.zoom, mapView.extent)) ?? undefined;
   const bbox =
     (mapView && viewportBbox(padExtent(mapView.extent, TRAIL_BBOX_PAD))) ??
     undefined;
-  const bands = trailBands(
-    opt.trailDuration,
-    opt.trailResolution,
-    Date.now(),
-    epsilon,
-    bbox
-  );
+  const bands = reuse
+    ? [
+        ...reuse.bands,
+        {
+          from: new Date(reuse.until).toISOString(),
+          resolution: resolutionToIso(opt.trailResolution.lastHour)
+        }
+      ]
+    : trailBands(opt.trailDuration, opt.trailResolution, now, epsilon, bbox);
   const msg = new TrailMessage();
   msg.playback = playbackMode;
-  Promise.all(bands.map((b) => trackApiGet(trailBandUrl(url, b, provider))))
+  Promise.all(
+    bands.map((b, i) =>
+      reuse && i < reuse.results.length
+        ? reuse.results[i]
+        : trackApiGet(trailBandUrl(url, b, provider))
+    )
+  )
     .then((fcs) => {
+      if (!reuse) {
+        const recent = bands[bands.length - 1];
+        olderBands = {
+          key,
+          bands: bands.slice(0, -1),
+          results: fcs.slice(0, -1),
+          until: recent.from ? Date.parse(recent.from) : now
+        };
+      }
       if (!trailGate.isCurrent(token)) {
         return;
       }

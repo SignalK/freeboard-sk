@@ -222,6 +222,7 @@ describe('SKStreamFacade.subscribe — what the stream asks for', () => {
 describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
   interface Msg {
     cmd: string;
+    options?: Record<string, unknown>;
   }
   const extent = [-1, 50, 1, 51];
 
@@ -235,7 +236,7 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
       app: unknown;
       worker: { postMessage: (msg: Msg) => void };
       postMapView: (extent: number[], zoom: number) => void;
-      requestTrailFromServer: () => void;
+      requestTrailFromServer: (recentOnly?: boolean) => void;
       refreshTrail: () => void;
       parseSelfTrail: (msg: { result: unknown }) => void;
     };
@@ -256,7 +257,7 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
       selfTrailTimed: { set: (): void => undefined }
     };
     const trailRequests = () => posted.filter((m) => m.cmd === 'trail').length;
-    return { facade, trailRequests, vessels: config.vessels };
+    return { facade, trailRequests, vessels: config.vessels, posted };
   };
 
   it('fetches the trail again when the zoom level changes', () => {
@@ -290,6 +291,18 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
     facade.requestTrailFromServer();
     facade.postMapView(extent, 10.6);
     expect(trailRequests()).toBe(2);
+  });
+
+  it('does not count a refresh of the recent part as a fetch for the view', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { facade, trailRequests, posted } = facadeWith();
+    facade.postMapView(extent, 10.2);
+    facade.parseSelfTrail({ result: null });
+    facade.requestTrailFromServer(true);
+    expect(posted.at(-1)?.options).toMatchObject({ recentOnly: true });
+    facade.postMapView([0, 50, 2, 51], 10.2);
+    expect(trailRequests()).toBe(3);
+    vi.restoreAllMocks();
   });
 
   it('tries again on the next view change when the fetch failed', () => {
