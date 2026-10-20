@@ -379,7 +379,7 @@ export interface FBAppData {
     active: SKVessel;
     closest: string[];
     cpaPositions: Map<string, CpaPositions>; // keyed by the ids in closest
-    prefAvailablePaths: { [key: string]: string }; // preference paths available from source
+    prefAvailablePaths: { [key: string]: null }; // preference paths available from source
     flagged: string[];
     showTrack: string[]; // ais targets to display track for (session-only, independent of aisShowTrack)
   };

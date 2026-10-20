@@ -8,15 +8,16 @@ import {
 } from './maplib';
 import { parseStringPromise } from 'xml2js';
 
+// The host always sends a url and both limits (`capabilitiesInWorker`).
 type WorkerMessage = {
   sourceType: 'wms' | 'wmts';
-  url?: string;
-  options?: WorkerMessageOptions;
+  url: string;
+  options: WorkerMessageOptions;
 };
 
 type WorkerMessageOptions = {
-  maxNodes?: number;
-  maxDepth?: number;
+  maxNodes: number;
+  maxDepth: number;
 };
 
 type WorkerResult =
@@ -67,7 +68,7 @@ const FETCH_ABORT_TIMEOUT = 8000;
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const { sourceType } = event.data;
   try {
-    let result: WorkerResult;
+    let result: WorkerResult | null;
     if (sourceType === 'wms') {
       const { url, options } = event.data;
       result = await wmsGetInfo(url, options);
@@ -175,7 +176,7 @@ export const parseWMSCapabilities = async (
   const processWMSLayer = (
     layer: WMSLayerElement,
     cList: LayerNode[],
-    parent: LayerNode = null,
+    parent: LayerNode | null = null,
     depth = 0
   ) => {
     if (nodeCount >= options.maxNodes || depth > options.maxDepth) {
@@ -194,7 +195,7 @@ export const parseWMSCapabilities = async (
     }
     if (Array.isArray(layer.Dimension)) {
       for (const d of layer.Dimension) {
-        if (d.$?.name.toLowerCase() === 'time' && d.$?.units === 'ISO8601') {
+        if (d.$?.name?.toLowerCase() === 'time' && d.$?.units === 'ISO8601') {
           node.time = Object.assign(
             { current: d.$?.default ?? null },
             parseTimeDimension(d._, d.$?.default)
@@ -204,10 +205,9 @@ export const parseWMSCapabilities = async (
       }
     }
     if (layer.Layer) {
-      node.children = [];
-      layer.Layer.forEach((l) =>
-        processWMSLayer(l, node.children, node, depth + 1)
-      );
+      const children: LayerNode[] = [];
+      node.children = children;
+      layer.Layer.forEach((l) => processWMSLayer(l, children, node, depth + 1));
     }
     cList.push(node);
   };
@@ -304,7 +304,7 @@ export const parseWMTSCapabilities = async (
    * Process WMTS layer into WMTSLayerDef
    * @param layer WMTS layer to parse
    */
-  const parseWMTSLayer = (layer: WMTSLayerElement): WMTSLayerDef => {
+  const parseWMTSLayer = (layer: WMTSLayerElement): WMTSLayerDef | null => {
     if (!hasValue(layer['ows:Identifier'])) {
       return null;
     }
@@ -391,7 +391,8 @@ export const parseWMTSCapabilities = async (
  * @param val Value to test
  * @returns true if value is an Array with length > 0
  */
-const hasValue = (val: unknown) => Array.isArray(val) && val.length !== 0;
+const hasValue = <T>(val: T[] | undefined): val is T[] =>
+  Array.isArray(val) && val.length !== 0;
 /**
  * Return the text of an xml2json element
  * @param val element: its text, or `{ _: text, $: attributes }`
@@ -401,13 +402,13 @@ const getValue = (val: XmlText): string =>
   typeof val === 'string' ? val : (val._ ?? '');
 
 interface DurationDef {
-  years?: number;
-  months?: number;
-  weeks?: number;
-  days?: number;
-  hours?: number;
-  minutes?: number;
-  seconds?: number;
+  years: number;
+  months: number;
+  weeks: number;
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
 }
 
 /**
@@ -542,7 +543,7 @@ const parseIsoTimeValue = (value: string): string => {
  */
 const parseTimeDimension = (
   value: string | string[],
-  defaultValue: string
+  defaultValue: string | undefined
 ): TimeDimension => {
   const parseRangeEnd = (value: string): string => {
     if (isYearOnly(value)) {
@@ -607,13 +608,17 @@ const parseTimeDimension = (
       });
       if (ranges.length) {
         // ranges provided... return a range
-        const dv = new Date(defaultValue).valueOf();
-        for (let i = 0; i < ranges.length; i++) {
+        const dv =
+          defaultValue === undefined ? NaN : new Date(defaultValue).valueOf();
+        for (const range of ranges) {
+          const { from, to } = range;
           if (
-            dv >= new Date(ranges[i].from).valueOf() &&
-            dv <= new Date(ranges[i].to).valueOf()
+            from !== null &&
+            to !== null &&
+            dv >= new Date(from).valueOf() &&
+            dv <= new Date(to).valueOf()
           ) {
-            return ranges[i];
+            return range;
           }
         }
         return ranges[ranges.length - 1];
@@ -640,7 +645,7 @@ const parseTimeDimension = (
         to: mv[mv.length - 1] ?? null,
         values: mv
       };
-    } else if (typeof value === 'string') {
+    } else {
       if (isRange(value)) {
         return parseRange(value.split('/'));
       } else {

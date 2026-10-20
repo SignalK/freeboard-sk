@@ -623,7 +623,10 @@ export const TRAIL_JOIN_GAP_MS = 10 * 60000;
  * `a`'s last one when it follows on within {@link TRAIL_JOIN_GAP_MS}, so a tap
  * reports the passage rather than where one request (or the local trail)
  * happened to start. */
-export function joinStretches(a: TimedTrack, b: TimedTrack): TimedTrack {
+export function joinStretches<T extends PointTime>(
+  a: { lines: Position[][]; times: T[][] },
+  b: { lines: Position[][]; times: T[][] }
+): { lines: Position[][]; times: T[][] } {
   const lines = [...a.lines];
   const times = [...a.times];
   b.lines.forEach((line, i) => {

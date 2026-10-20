@@ -147,7 +147,7 @@ const watchDog = {
 };
 
 let vessels: ResultPayload; // post message payload
-let stream: SKStreamAPI;
+let stream: SKStreamAPI | null = null;
 let skToken!: string;
 const unsubscribe: Subscription[] = [];
 let timers: ReturnType<typeof setInterval>[] = [];
@@ -212,9 +212,9 @@ const trailMgr: VesselTrailConfig = {
 };
 
 // current delta update $source
-let $source!: string;
+let $source: string | undefined;
 // current delta update timestamp
-let $timestamp: string;
+let $timestamp: string | undefined;
 // autopilot device id
 let apDeviceId = 'freeboard-sk';
 
@@ -347,7 +347,7 @@ function handleCommand(data: MsgFromApp) {
     //** { cmd: 'subscribe' , options: {context: string, path: Array<any>} }
     case 'subscribe':
       //console.log('Worker control: subscribing to paths...');
-      stream.subscribe(data.options.context, data.options.path);
+      stream?.subscribe(data.options.context, data.options.path);
       break;
     //** { cmd: 'settings' , options: {..}
     case 'settings':
@@ -363,7 +363,7 @@ function handleCommand(data: MsgFromApp) {
     case 'vessel':
       //console.log('Worker control: vessel setting...');
       if (data.options) {
-        let v: SKVessel;
+        let v: SKVessel | undefined;
         if (data.options.context === 'self') {
           v = vessels.self;
         } else {
@@ -621,12 +621,13 @@ export function timedTrail(
   let timed = { lines: [] as Position[][], times: [] as string[][] };
   for (const fc of bands) {
     const t = parseHistoryTrack('self', fc, provider);
-    if (t && !t.times) {
+    if (!t) {
+      continue;
+    }
+    if (!t.times) {
       return undefined;
     }
-    if (t) {
-      timed = joinStretches(timed, { lines: t.lines, times: t.times });
-    }
+    timed = joinStretches(timed, { lines: t.lines, times: t.times });
   }
   return timed.lines.length ? timed : undefined;
 }
@@ -673,7 +674,9 @@ function getAISTracksV2(provider?: string) {
     picks: aisTrackPicks,
     targets: vessels.aisTargets,
     radiusBox:
-      targetFilter.signalk.maxRadius && vessels.self.positionReceived
+      targetFilter.signalk.maxRadius &&
+      vessels.self.positionReceived &&
+      vessels.self.position
         ? GeoUtils.calcMapifiedExtent(
             vessels.self.position,
             targetFilter.signalk.maxRadius
@@ -748,9 +751,9 @@ function getAISTracks() {
     .then((r) => {
       // update ais vessels track data
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.entries(r).forEach((t: any) => {
-        if (vessels.aisTargets.has(t[0])) {
-          const v = vessels.aisTargets.get(t[0]);
+      Object.entries(r as object).forEach((t: any) => {
+        const v = vessels.aisTargets.get(t[0]);
+        if (v) {
           v.track = t[1].coordinates;
           appendTrack(v);
         }
@@ -897,41 +900,35 @@ function openStream(opt: OpenStreamOptions) {
   apiUrl = u.join('/');
 
   initVessels();
-  stream = new SKStreamAPI();
+  const s = new SKStreamAPI();
+  stream = s;
   unsubscribe.push(
-    stream.onConnect.subscribe((r) =>
+    s.onConnect.subscribe((r) =>
       handleStreamEvent({ action: 'onConnect', msg: r })
     )
   );
   unsubscribe.push(
-    stream.onClose.subscribe((r) =>
-      handleStreamEvent({ action: 'onClose', msg: r })
-    )
+    s.onClose.subscribe((r) => handleStreamEvent({ action: 'onClose', msg: r }))
   );
   unsubscribe.push(
-    stream.onError.subscribe((r) =>
-      handleStreamEvent({ action: 'onError', msg: r })
-    )
+    s.onError.subscribe((r) => handleStreamEvent({ action: 'onError', msg: r }))
   );
   unsubscribe.push(
-    stream.onMessage.subscribe((r) =>
+    s.onMessage.subscribe((r) =>
       handleStreamEvent({ action: 'onMessage', msg: r })
     )
   );
-  stream.authToken = skToken;
+  s.authToken = skToken;
   if (opt.playback) {
     //playback?subscribe=self&startTime=2018-08-24T15:19:09Z&playbackRate=5
-    const st = opt.playbackOptions.startTime
-      ? `?startTime=${opt.playbackOptions.startTime}`
-      : null;
-    let pbr = opt.playbackOptions.playbackRate
-      ? `playbackRate=${opt.playbackOptions.playbackRate}`
-      : null;
+    const pb = opt.playbackOptions ?? {};
+    const st = pb.startTime ? `?startTime=${pb.startTime}` : null;
+    let pbr = pb.playbackRate ? `playbackRate=${pb.playbackRate}` : null;
     pbr = pbr ? (st ? '&' + pbr : '?' + pbr) : null;
     const url = `${opt.url}${st ? st : ''}${pbr ? pbr : ''}`;
-    stream.open(url, opt.playbackOptions.subscribe, opt.token);
+    s.open(url, pb.subscribe, opt.token);
   } else {
-    stream.open(opt.url, opt.subscribe, opt.token);
+    s.open(opt.url, opt.subscribe, opt.token);
   }
 }
 
@@ -942,9 +939,13 @@ function actionAlarm(opt: AlarmOptions) {
       : opt.type;
   if (opt.raise) {
     // raise alarm
-    stream.raiseAlarm('self', n, new Alarm(opt.message, opt.state, true, true));
+    stream?.raiseAlarm(
+      'self',
+      n,
+      new Alarm(opt.message, opt.state, true, true)
+    );
   } else {
-    stream.clearAlarm('self', n);
+    stream?.clearAlarm('self', n);
   } // clear alarm
 }
 
@@ -952,7 +953,12 @@ function actionAlarm(opt: AlarmOptions) {
 
 // ** process Signal K message **
 function parseStreamMessage(data: SKStreamMessage) {
-  if (stream.isHello(data)) {
+  // messages only arrive while a stream is open
+  const s = stream;
+  if (!s) {
+    return;
+  }
+  if (s.isHello(data)) {
     // hello
     postMessage({
       action: 'hello',
@@ -963,7 +969,7 @@ function parseStreamMessage(data: SKStreamMessage) {
     if (msgInterval) {
       startTimers();
     }
-  } else if (stream.isDelta(data)) {
+  } else if (s.isDelta(data)) {
     // update
     updateReceived = true;
     data.updates.forEach((u) => {
@@ -973,7 +979,7 @@ function parseStreamMessage(data: SKStreamMessage) {
       $source = u.$source;
       $timestamp = u.timestamp;
       u.values.forEach((v) => {
-        playbackTime = u.timestamp;
+        playbackTime = u.timestamp ?? playbackTime;
         if (!data.context) {
           return;
         }
@@ -1018,7 +1024,7 @@ function parseStreamMessage(data: SKStreamMessage) {
             break;
 
           case 'vessels': // vessels
-            if (stream.isSelf(data)) {
+            if (s.isSelf(data)) {
               // self
               if (!vessels.self.id) {
                 vessels.self.id = data.context;
@@ -1043,7 +1049,7 @@ function parseStreamMessage(data: SKStreamMessage) {
       });
     });
     postUpdate();
-  } else if (stream.isResponse(data)) {
+  } else if (s.isResponse(data)) {
     // request response
     postMessage({
       action: 'response',
@@ -1062,15 +1068,16 @@ function filterContext(
   if (enabled) {
     let obj = group.get(context);
     // filter on state
-    if (obj && state.includes(obj?.state)) {
+    if (obj?.state !== undefined && state.includes(obj.state)) {
       //console.log(`state match => ${state}, ${context}`);
       targetStatus.expired[context] = true;
-      obj = null; // skip subsequent filters
+      obj = undefined; // skip subsequent filters
     }
     // filter on max radius
     if (obj && targetFilter.signalk.maxRadius) {
       if (
         obj.positionReceived &&
+        obj.position &&
         GeoUtils.inBounds(obj.position, targetExtent)
       ) {
         targetStatus.updated[context] = true;
@@ -1111,7 +1118,11 @@ function postUpdate(immediate = false) {
     vessels.self.resourceUpdates = [];
     // extent calc
     if (extRecalcCounter === 0) {
-      if (vessels.self.positionReceived && targetFilter?.signalk.maxRadius) {
+      if (
+        vessels.self.positionReceived &&
+        vessels.self.position &&
+        targetFilter?.signalk.maxRadius
+      ) {
         targetExtent = GeoUtils.calcMapifiedExtent(
           vessels.self.position,
           targetFilter.signalk.maxRadius
@@ -1168,13 +1179,14 @@ function clearTimers() {
 
 // ** return selected SKVessel from vessels.aisTargets
 function selectVessel(id: string): SKVessel {
-  if (!vessels.aisTargets.has(id)) {
-    const vessel = new SKVessel();
+  let vessel = vessels.aisTargets.get(id);
+  if (!vessel) {
+    vessel = new SKVessel();
     vessel.id = id;
     vessel.position = null;
     vessels.aisTargets.set(id, vessel);
   }
-  return vessels.aisTargets.get(id);
+  return vessel;
 }
 
 // ** process common vessel data and true / magnetic preference **
@@ -1507,18 +1519,16 @@ function processAtoN(id: string, v: PathValue): string {
   if (id.indexOf('shore.basestations') !== -1) {
     isBaseStation = true;
   }
-  if (!vessels.atons.has(id)) {
-    const aton = new SKAtoN();
-    aton.id = id;
-    aton.position = null;
-    aton.type.id = null;
-    if (isBaseStation) {
-      aton.type.id = -2;
-      aton.type.name = 'Basestation';
-    }
-    vessels.atons.set(id, aton);
+  let d = vessels.atons.get(id);
+  if (!d) {
+    d = new SKAtoN();
+    d.id = id;
+    d.position = null;
+    d.type = isBaseStation
+      ? { id: -2, name: 'Basestation' }
+      : { id: null, name: '' };
+    vessels.atons.set(id, d);
   }
-  const d = vessels.atons.get(id);
   if (v.path === '') {
     const info = v.value as TargetInfoValue;
     if (typeof info.name !== 'undefined') {
@@ -1549,15 +1559,14 @@ function processAtoN(id: string, v: PathValue): string {
 
 // process SaR values
 function processSaR(id: string, v: PathValue) {
-  if (!vessels.sar.has(id)) {
-    const sar = new SKSaR();
-    sar.id = id;
-    sar.position = null;
-    sar.type.id = -1;
-    sar.type.name = 'SaR Beacon';
-    vessels.sar.set(id, sar);
+  let d = vessels.sar.get(id);
+  if (!d) {
+    d = new SKSaR();
+    d.id = id;
+    d.position = null;
+    d.type = { id: -1, name: 'SaR Beacon' };
+    vessels.sar.set(id, d);
   }
-  const d = vessels.sar.get(id);
   if (v.path === '') {
     const info = v.value as TargetInfoValue;
     if (typeof info.name !== 'undefined') {
@@ -1583,15 +1592,14 @@ function processSaR(id: string, v: PathValue) {
 
 // process Meteo values
 function processMeteo(id: string, v: PathValue) {
-  if (!vessels.meteo.has(id)) {
-    const meteo = new SKMeteo();
-    meteo.id = id;
-    meteo.position = null;
-    meteo.type.id = -1;
-    meteo.type.name = 'Weather Station';
-    vessels.meteo.set(id, meteo);
+  let d = vessels.meteo.get(id);
+  if (!d) {
+    d = new SKMeteo();
+    d.id = id;
+    d.position = null;
+    d.type = { id: -1, name: 'Weather Station' };
+    vessels.meteo.set(id, d);
   }
-  const d = vessels.meteo.get(id);
   if (v.path === '') {
     const info = v.value as TargetInfoValue;
     if (typeof info.name !== 'undefined') {
@@ -1623,13 +1631,13 @@ function processMeteo(id: string, v: PathValue) {
 }
 
 function processAircraft(id: string, v: PathValue) {
-  if (!vessels.aircraft.has(id)) {
-    const aircraft = new SKAircraft();
-    aircraft.id = id;
-    aircraft.position = null;
-    vessels.aircraft.set(id, aircraft);
+  let d = vessels.aircraft.get(id);
+  if (!d) {
+    d = new SKAircraft();
+    d.id = id;
+    d.position = null;
+    vessels.aircraft.set(id, d);
   }
-  const d = vessels.aircraft.get(id);
   if (v.path === '') {
     const info = v.value as TargetInfoValue;
     if (typeof info.name !== 'undefined') {
@@ -1660,16 +1668,21 @@ function processAircraft(id: string, v: PathValue) {
 
 // ** append track data to up to value of maxTrack **
 function appendTrack(d: SKAircraft | SKVessel) {
+  const position = d.position;
+  if (!position) {
+    return;
+  }
   if (d.track && d.track.length === 0) {
-    d.track.push([d.position]);
+    d.track.push([position]);
   } else {
     const l = d.track[d.track.length - 1].length;
     const lastPoint = d.track[d.track.length - 1][l - 1];
-    if (lastPoint[0] !== d.position[0] || lastPoint[1] !== d.position[1]) {
-      d.track[d.track.length - 1].push(d.position);
+    if (lastPoint[0] !== position[0] || lastPoint[1] !== position[1]) {
+      d.track[d.track.length - 1].push(position);
     }
   }
+  const serverTrack = d.id !== undefined && serverTracked.has(d.id);
   d.track[d.track.length - 1] = d.track[d.track.length - 1].slice(
-    0 - (serverTracked.has(d.id) ? SERVER_TRACK_TAIL_CAP : aisMgr.maxTrack)
+    0 - (serverTrack ? SERVER_TRACK_TAIL_CAP : aisMgr.maxTrack)
   );
 }

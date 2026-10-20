@@ -13,7 +13,7 @@ type WorkerResult = object;
  */
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const { sourceType, value } = event.data;
-  let result: WorkerResult;
+  let result: WorkerResult | null;
   try {
     if (sourceType === 'xml') {
       //xml2json
