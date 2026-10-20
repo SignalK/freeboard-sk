@@ -857,6 +857,18 @@
                           </mat-radio-group>
                         </div>
                       </div>
+                      <div class="setting-card-row">
+                        <div class="setting-card-row-item">
+                          <mat-checkbox
+                            [(ngModel)]="facade.settings.vessels.iconActualSize"
+                            (change)="persistModel()"
+                            label="after"
+                            matTooltip="Scale the icon to the vessel's reported beam and length overall while zoomed in. It never shrinks below the icon size selected above. Needs design.beam and design.length.overall from the Signal K server."
+                          >
+                            Show vessel at actual size when zoomed in
+                          </mat-checkbox>
+                        </div>
+                      </div>
                     </fieldset>
                   </div>
                 </div>

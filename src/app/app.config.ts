@@ -275,6 +275,7 @@ export function cleanConfig(
       },
       aisCogLine: 10,
       iconScale: 0.9,
+      iconActualSize: false,
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000,
@@ -318,6 +319,9 @@ export function cleanConfig(
     delete settings.vessels.trailFromServer;
     if (typeof settings.vessels.aisTrackLength === 'undefined') {
       settings.vessels.aisTrackLength = 12;
+    }
+    if (typeof settings.vessels.iconActualSize === 'undefined') {
+      settings.vessels.iconActualSize = false;
     }
     if (typeof settings.vessels.rangeCircleCount === 'undefined') {
       settings.vessels.rangeCircleCount = 4;
@@ -669,6 +673,7 @@ export function defaultConfig(): IAppConfig {
       },
       aisCogLine: 10, // ais COG line time (mins)
       iconScale: 0.9,
+      iconActualSize: false,
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000, // distance in m

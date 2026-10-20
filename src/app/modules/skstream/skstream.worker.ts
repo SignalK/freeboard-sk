@@ -1273,6 +1273,10 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
     d.callsignHf = value;
   } else if (v.path === 'design.aisShipType') {
     d.type = value;
+  } else if (v.path === 'design.length') {
+    d.design.length = value ?? null;
+  } else if (v.path === 'design.beam') {
+    d.design.beam = value ?? null;
   } else if (v.path === 'navigation.position' && value) {
     // position is not null
     if (

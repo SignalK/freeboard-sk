@@ -285,6 +285,8 @@ export class SKStreamFacade {
           // matches subscriptions exactly — so without it here no target is
           // ever coloured, however many static reports it broadcasts.
           { path: 'design.aisShipType', period: 1000, policy: 'fixed' },
+          { path: 'design.length', period: 1000, policy: 'fixed' },
+          { path: 'design.beam', period: 1000, policy: 'fixed' },
           { path: 'environment.wind.*', period: 1000, policy: 'fixed' },
           { path: 'environment.mode', period: 1000, policy: 'fixed' },
           { path: 'environment.sun', period: 1000, policy: 'fixed' },

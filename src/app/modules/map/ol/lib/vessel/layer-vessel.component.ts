@@ -15,22 +15,25 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Icon, Fill, Text } from 'ol/style';
 import { Point } from 'ol/geom';
-import { fromLonLat } from 'ol/proj';
+import View from 'ol/View';
+import { fromLonLat, getPointResolution } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
 import { MapImageRegistry } from '../map-image-registry.service';
+import { actualSizeIconScale } from 'src/app/lib/vessel-icon-scale';
 
 /** Symbol id used to override the own-vessel marker. */
 export const VESSEL_SELF_MARKER = 'vessel-self';
+
+const SELF_ICON_SIZE = { width: 19, height: 45 };
 
 const vesselIconDef = {
   src: './assets/img/vessels/self.png',
   anchor: [9.5, 22.5],
   anchorXUnits: 'pixels',
   anchorYUnits: 'pixels',
-  size: [50, 50],
   scale: 0.9, //0.75,
   rotateWithView: true
 };
@@ -125,6 +128,9 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   /** Position is no longer being updated — dim the icon and flag it. */
   @Input() stale = false;
   @Input() iconScale = 1;
+  @Input() actualSize = false;
+  @Input() lengthOverall: number | null = null;
+  @Input() beam: number | null = null;
   @Input() opacity?: number;
   @Input() visible?: boolean;
   @Input() extent?: Extent;
@@ -136,6 +142,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   vessel?: Feature;
   selfStyle?: Style;
+  private view?: View;
+  private scaledIcon: Icon | null = null;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -164,6 +172,10 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
+    if (map) {
+      this.view = map.getView();
+      this.view.on('change:resolution', this.onResolutionChange);
+    }
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -180,9 +192,20 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           key === 'stale'
         ) {
           if (this.source) {
+            if (this.actualSize && key === 'position') {
+              // Metres per pixel is latitude-dependent, so the scale is stale
+              // after a position change even when the zoom has not moved.
+              this.generateSelfStyle();
+            }
             this.parseVessel();
           }
-        } else if (key === 'vesselStyles' || key === 'iconScale') {
+        } else if (
+          key === 'vesselStyles' ||
+          key === 'iconScale' ||
+          key === 'actualSize' ||
+          key === 'lengthOverall' ||
+          key === 'beam'
+        ) {
           if (this.source) {
             this.generateSelfStyle();
             this.parseVessel();
@@ -197,7 +220,34 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  private onResolutionChange = () => {
+    if (!this.actualSize || !this.vessel) {
+      return;
+    }
+    this.generateSelfStyle();
+    this.parseVessel();
+  };
+
+  /** A custom icon has no size until its image loads. Rebuild the style once
+   * it does so actual-size scaling uses the real dimensions. */
+  private onScaledIconChange = () => {
+    const icon = this.scaledIcon;
+    if (!icon || icon.getSize() === null) {
+      return;
+    }
+    this.scaledIcon = null;
+    icon.unlistenImageChange(this.onScaledIconChange);
+    if (this.actualSize && this.vessel) {
+      this.generateSelfStyle();
+      this.parseVessel();
+    }
+  };
+
   ngOnDestroy() {
+    this.view?.un('change:resolution', this.onResolutionChange);
+    this.scaledIcon?.unlistenImageChange(this.onScaledIconChange);
+    this.scaledIcon = null;
+    this.view = undefined;
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
       map.removeLayer(this.layer);
@@ -242,9 +292,49 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   // default self style with specified scale
   generateSelfStyle() {
-    this.selfStyle = new Style({
-      image: selfVesselIcon(this.mapImages, this.iconScale)
-    });
+    this.scaledIcon?.unlistenImageChange(this.onScaledIconChange);
+    this.scaledIcon = null;
+    const icon = selfVesselIcon(this.mapImages, this.iconScale);
+    if (this.actualSize) {
+      const size = icon.getSize();
+      const metresPerPixel = this.metresPerPixel();
+      if (metresPerPixel !== undefined) {
+        const metrics = size ?? [SELF_ICON_SIZE.width, SELF_ICON_SIZE.height];
+        icon.setScale(
+          actualSizeIconScale(
+            {
+              width: metrics[0],
+              height: metrics[1],
+              scale: this.iconScale
+            },
+            { lengthOverall: this.lengthOverall, beam: this.beam },
+            metresPerPixel
+          )
+        );
+      }
+      if (size === null) {
+        this.scaledIcon = icon;
+        icon.listenImageChange(this.onScaledIconChange);
+      }
+    }
+    this.selfStyle = new Style({ image: icon });
+  }
+
+  private metresPerPixel(): number | undefined {
+    const map = this.mapComponent.getMap();
+    const view = map?.getView();
+    const resolution = view?.getResolution();
+    const position = this.position;
+    if (!view || !resolution || !position || position.length < 2) {
+      return undefined;
+    }
+    const coordinate = fromLonLat([position[0], position[1]]);
+    return getPointResolution(
+      view.getProjection(),
+      resolution,
+      coordinate,
+      'm'
+    );
   }
 
   // build target style
