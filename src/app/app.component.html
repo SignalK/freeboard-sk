@@ -223,10 +223,7 @@
       </a>
       <mat-divider></mat-divider>
       @if (app.data.vessels.showSelf) {
-        <a
-          mat-menu-item
-          (click)="skres.newWaypointAt(app.data.vessels.active.position)"
-        >
+        <a mat-menu-item (click)="newWaypointAtVessel()">
           <mat-icon class="icon-waypoint">add_location</mat-icon>
           <span>Add Waypoint at Vessel</span>
         </a>
@@ -340,7 +337,7 @@
           position="end"
           [style.width]="app.instrumentPanel().open ? '350px' : '250px'"
         >
-          @if (this.infoPanel.item && !app.instrumentPanel().open) {
+          @if (!app.instrumentPanel().open) {
             <info-panel (closed)="closeDrawer()">
               @if (infoPanel.item(); as item) {
                 @if (item.type === 'radars') {
@@ -956,10 +953,10 @@
                     >
                     </ap-dial-text>
                   }
-                  @if (course.courseData().bearing.value) {
+                  @if (course.courseData().bearing.value; as brg) {
                     <ap-dial-text
                       [title]="'BRG'"
-                      [value]="course.courseData().bearing.value.toFixed(1)"
+                      [value]="brg.toFixed(1)"
                       [units]="
                         course.courseData().bearing.type === 'M'
                           ? 'deg (M)'
@@ -968,62 +965,45 @@
                     >
                     </ap-dial-text>
                   }
-                  @if (course.courseData().xte) {
+                  @if (course.courseData().xte; as xte) {
                     <ap-dial-text
                       [title]="'XTE'"
-                      [value]="
-                        course.courseData().xte > 10
-                          ? course.courseData().xte.toFixed(1)
-                          : course.courseData().xte.toFixed(3)
-                      "
+                      [value]="xte > 10 ? xte.toFixed(1) : xte.toFixed(3)"
                       [units]="convert.getSymbol(app.config.units.distance)"
                     >
                     </ap-dial-text>
                   }
                   @if (app.data.activeRoute) {
-                    @if (course.courseData().route.dtg) {
+                    @if (course.courseData().route.dtg; as dtg) {
                       <ap-dial-text
                         [title]="'DTG'"
                         subTitle="RT"
-                        [value]="course.courseData().route.dtg.toFixed(1)"
+                        [value]="dtg.toFixed(1)"
                         [units]="convert.getSymbol(app.config.units.distance)"
                       >
                       </ap-dial-text>
                     }
-                    @if (course.courseData().route.ttg) {
-                      <ap-dial-ttg
-                        subTitle="RT"
-                        [value]="course.courseData().route.ttg"
-                      >
-                      </ap-dial-ttg>
+                    @if (course.courseData().route.ttg; as ttg) {
+                      <ap-dial-ttg subTitle="RT" [value]="ttg"> </ap-dial-ttg>
                     }
-                    @if (course.courseData().route.eta) {
-                      <ap-dial-eta
-                        [title]="'ETA'"
-                        subTitle="RT"
-                        [value]="course.courseData().route.eta"
-                      >
+                    @if (course.courseData().route.eta; as eta) {
+                      <ap-dial-eta [title]="'ETA'" subTitle="RT" [value]="eta">
                       </ap-dial-eta>
                     }
                   }
-                  @if (course.courseData().dtg) {
+                  @if (course.courseData().dtg; as dtg) {
                     <ap-dial-text
                       [title]="'DTG'"
-                      [value]="course.courseData().dtg.toFixed(1)"
+                      [value]="dtg.toFixed(1)"
                       [units]="convert.getSymbol(app.config.units.distance)"
                     >
                     </ap-dial-text>
                   }
-                  @if (course.courseData().ttg) {
-                    <ap-dial-ttg [value]="course.courseData().ttg">
-                    </ap-dial-ttg>
+                  @if (course.courseData().ttg; as ttg) {
+                    <ap-dial-ttg [value]="ttg"> </ap-dial-ttg>
                   }
-                  @if (course.courseData().eta) {
-                    <ap-dial-eta
-                      [title]="'ETA'"
-                      [value]="course.courseData().eta"
-                    >
-                    </ap-dial-eta>
+                  @if (course.courseData().eta; as eta) {
+                    <ap-dial-eta [title]="'ETA'" [value]="eta"> </ap-dial-eta>
                   }
                 </div>
               }

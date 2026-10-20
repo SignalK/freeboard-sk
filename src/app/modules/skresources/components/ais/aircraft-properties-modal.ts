@@ -96,7 +96,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class AircraftPropertiesModal {
   protected showProperties = true;
-  protected properties: Record<string, Value>;
+  protected properties?: Record<string, Value>;
 
   private sk = inject(SignalKClient);
   private destroyRef = inject(DestroyRef);

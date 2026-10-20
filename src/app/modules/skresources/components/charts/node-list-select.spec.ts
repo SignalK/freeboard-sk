@@ -95,12 +95,12 @@ describe('NodeListSelect — time-varying indicator', () => {
     expect(
       rows()[0]
         .querySelector('mat-icon._ap-layer-time')
-        .getAttribute('aria-hidden')
+        ?.getAttribute('aria-hidden')
     ).toBe('true');
     expect(
       rows()[0]
         .querySelector('[matListItemTitle]')
-        .textContent.replace(/\s+/g, ' ')
+        ?.textContent?.replace(/\s+/g, ' ')
         .trim()
     ).toBe(
       'schedule MODIS True Color (modis) Time-varying: 2 frames, last 12 h'

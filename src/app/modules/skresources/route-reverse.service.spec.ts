@@ -152,8 +152,8 @@ describe('RouteReverseService', () => {
       expect(await service.reverse(routeId)).toBe(true);
 
       const buffer = registry.get(routeId);
-      expect(buffer.points).toEqual(reversedPoints);
-      expect(buffer.dirty).toBe(true);
+      expect(buffer?.points).toEqual(reversedPoints);
+      expect(buffer?.dirty).toBe(true);
       expect(updateRouteCoords).not.toHaveBeenCalled();
     });
 
@@ -166,8 +166,8 @@ describe('RouteReverseService', () => {
       expect(await service.reverse('rte-1')).toBe(true);
 
       const buffer = registry.get(routeId);
-      expect(buffer.points).toEqual(reversedPoints);
-      expect(buffer.dirty).toBe(true);
+      expect(buffer?.points).toEqual(reversedPoints);
+      expect(buffer?.dirty).toBe(true);
       expect(updateRouteCoords).not.toHaveBeenCalled();
     });
 
@@ -204,7 +204,7 @@ describe('RouteReverseService', () => {
 
     it('ignores a second REVERSE while the first write is on its way', async () => {
       store('rte-1');
-      let finish: (ok: boolean) => void;
+      let finish!: (ok: boolean) => void;
       updateRouteCoords.mockImplementationOnce(
         () => new Promise<boolean>((resolve) => (finish = resolve))
       );

@@ -12,6 +12,7 @@ import {
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
 import { TrailSource } from '../modules/skstream/track-source';
 import type { OverlayHit } from '../modules/map/ol/lib/data-overlay/overlay-hits';
+import { OwnVesselIconType } from '../modules/icons/vessels';
 import {
   ChartImageAdjustment,
   ChartTimeLoopOffsets
@@ -197,6 +198,7 @@ export interface IAppConfig {
     aisCogLine: number; // (minutes) length = cogLine * sog
     iconScale: number; // scale to apply to self Vessel icon
     iconActualSize: boolean; // scale self icon to the reported beam and length overall
+    iconType: OwnVesselIconType; // icon used for the owner's own vessel
     rangeCircles: boolean; //display range circles
     rangeCirclesFixed: boolean; // use a fixed distance rather than zoom level calc
     rangeCirclesDistance: number; // distance between circles when fixed is true

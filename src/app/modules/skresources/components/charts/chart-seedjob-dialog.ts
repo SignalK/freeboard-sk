@@ -127,9 +127,9 @@ interface DialogData {
   ]
 })
 export class ChartSeedJobDialog {
-  protected icon: string;
   protected zoomRange: number[] = [];
-  protected selZoom: number;
+  // set in ngOnInit, before the template first reads it
+  protected selZoom!: number;
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<ChartSeedJobDialog>);

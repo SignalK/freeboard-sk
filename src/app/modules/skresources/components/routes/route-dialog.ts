@@ -97,8 +97,8 @@ interface DialogData {
   ]
 })
 export class RouteDialog implements OnInit {
-  protected name: string;
-  protected description: string;
+  protected name = '';
+  protected description = '';
   protected readOnly = false;
 
   private dialogRef = inject(MatDialogRef<RouteDialog>);

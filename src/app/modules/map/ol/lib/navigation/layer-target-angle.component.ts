@@ -43,8 +43,8 @@ export class TargetAngleComponent implements OnInit, OnDestroy, OnChanges {
   @Input() mapZoom = 10;
 
   @Input() lineStyle?: Style;
-  @Input() position?: Position; // (change trigger)
-  @Input() twd?: number; //(change trigger)
+  @Input() position?: Position | null; // (change trigger)
+  @Input() twd?: number | null; //(change trigger)
   @Input() opacity?: number;
   @Input() visible?: boolean;
   @Input() extent?: Extent;

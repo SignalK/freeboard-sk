@@ -153,8 +153,8 @@ export class JsonMapSourceDialog {
   protected fetchError = false;
   protected errorMsg = '';
   protected hostUrl = '';
-  protected provider!: ChartProvider;
-  protected details: {
+  protected provider?: ChartProvider;
+  protected details?: {
     type: string;
     name: string;
     version: string;
@@ -191,17 +191,17 @@ export class JsonMapSourceDialog {
           } else {
             const c = this.parseFileContents(res, uri);
             if (c) {
-              this.provider = c as ChartProvider;
+              this.provider = c;
+              const style = res as MapboxStyle;
+              const tileJson = res as TileJson;
               this.details = {
-                type: (res as TileJson).tilejson ? 'TileJSON' : 'Mapbox Style',
+                type: tileJson.tilejson ? 'TileJSON' : 'Mapbox Style',
                 name: res.name,
-                version: (res as MapboxStyle).version
-                  ? (res as MapboxStyle).version
-                  : (res as TileJson).tilejson,
-                layers: (res as MapboxStyle).layers
-                  ? (res as MapboxStyle).layers.map((l) => l.id)
-                  : (res as TileJson).vector_layers
-                    ? (res as TileJson).vector_layers.map((l) => l.id)
+                version: style.version ? style.version : tileJson.tilejson,
+                layers: style.layers
+                  ? style.layers.map((l) => l.id)
+                  : tileJson.vector_layers
+                    ? tileJson.vector_layers.map((l) => l.id)
                     : []
               };
               this.dialogRef.close([this.provider]);
@@ -219,7 +219,10 @@ export class JsonMapSourceDialog {
       });
   }
 
-  parseFileContents(json: TileJson | MapboxStyle, uri: string): ChartProvider {
+  parseFileContents(
+    json: TileJson | MapboxStyle,
+    uri: string
+  ): ChartProvider | undefined {
     if ('tilejson' in json) {
       return {
         name: json.name ?? '',

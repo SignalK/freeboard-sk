@@ -69,11 +69,8 @@ measure: boolean= measure mode;
               </mat-icon>
             }
 
-            @if (icon?.svgIcon) {
-              <mat-icon
-                [class]="icon?.class"
-                [svgIcon]="icon.svgIcon"
-              ></mat-icon>
+            @if (icon?.svgIcon; as svgIcon) {
+              <mat-icon [class]="icon?.class" [svgIcon]="svgIcon"></mat-icon>
             } @else if (icon?.name) {
               <mat-icon [class]="icon?.class">{{ icon?.name }}</mat-icon>
             }
@@ -118,10 +115,10 @@ measure: boolean= measure mode;
   styleUrls: ['./popover.component.scss']
 })
 export class PopoverComponent {
-  @Input() title?: string;
+  @Input() title?: string | null;
   @Input() mmsi?: string;
   @Input() icon?: { class?: string; name?: string; svgIcon?: string };
-  @Input() canClose = true;
+  @Input() canClose: boolean | undefined = true;
   @Input() measure = false;
   @Input() compact = false;
   /** Render in place (no anchor arrow, static position) for use as a docked

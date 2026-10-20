@@ -42,7 +42,7 @@ export class DirectionOfTravelComponent
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() points: Array<Coordinate> = [];
+  @Input() points: Array<Coordinate> | null = [];
   @Input() reverse = false;
   @Input() pointIndex = 0;
   @Input() mapZoom = 10;
@@ -114,18 +114,19 @@ export class DirectionOfTravelComponent
   parseValues() {
     const fa: Feature[] = [];
     const arrows: number[] = [];
-    if (this.points && this.points.length !== 0) {
-      if (this.points.length < 4) {
+    const points = this.points;
+    if (points && points.length !== 0) {
+      if (points.length < 4) {
         arrows.push(0);
       } else {
-        for (let idx = 1; idx < this.points.length - 2; idx = idx + 2) {
+        for (let idx = 1; idx < points.length - 2; idx = idx + 2) {
           arrows.push(idx);
         }
       }
 
       arrows.forEach((idx: number) => {
         const pctr: SKPosition = getCenter(
-          this.points.slice(idx, idx + 2)
+          points.slice(idx, idx + 2)
         ) as SKPosition;
         const f = new Feature({
           geometry: new Point(fromLonLat([pctr.longitude, pctr.latitude]))
@@ -172,9 +173,10 @@ export class DirectionOfTravelComponent
   }
 
   getOrientation(idx: number) {
+    const points = this.points ?? [];
     const o = this.reverse
-      ? getRhumbLineBearing(this.points[idx + 1], this.points[idx])
-      : getRhumbLineBearing(this.points[idx], this.points[idx + 1]);
+      ? getRhumbLineBearing(points[idx + 1], points[idx])
+      : getRhumbLineBearing(points[idx], points[idx + 1]);
     return (Math.PI / 180) * o;
   }
 

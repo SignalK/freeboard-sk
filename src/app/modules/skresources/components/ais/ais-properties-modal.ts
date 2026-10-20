@@ -187,7 +187,7 @@ export class AISPropertiesModal {
   protected showFlag = signal<boolean>(true);
   protected display: Record<
     'length' | 'beam' | 'airHeight' | 'draftMax' | 'draftCurrent',
-    string
+    string | null
   > = {
     length: null,
     beam: null,
@@ -205,30 +205,21 @@ export class AISPropertiesModal {
 
   constructor() {
     this.flagIcon = `${this.app.hostDef.url}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
+    // The template shows only the dimensions the vessel reports.
+    const length = (value: number | null | undefined, path: string) =>
+      typeof value === 'number'
+        ? this.app.formatValueForDisplay(value, 'm', {
+            path,
+            category: 'length'
+          })
+        : null;
+    const design = this.data.target.design;
     this.display = {
-      length: this.app.formatValueForDisplay(
-        this.data.target.design.length?.overall,
-        'm',
-        { category: 'length' }
-      ),
-      beam: this.app.formatValueForDisplay(this.data.target.design.beam, 'm', {
-        category: 'length'
-      }),
-      draftMax: this.app.formatValueForDisplay(
-        this.data.target.design.draft?.maximum,
-        'm',
-        { category: 'length' }
-      ),
-      draftCurrent: this.app.formatValueForDisplay(
-        this.data.target.design.draft?.current,
-        'm',
-        { category: 'length' }
-      ),
-      airHeight: this.app.formatValueForDisplay(
-        this.data.target.design.airHeight,
-        'm',
-        { category: 'length' }
-      )
+      length: length(design.length?.overall, 'design.length.overall'),
+      beam: length(design.beam, 'design.beam'),
+      draftMax: length(design.draft?.maximum, 'design.draft.maximum'),
+      draftCurrent: length(design.draft?.current, 'design.draft.current'),
+      airHeight: length(design.airHeight, 'design.airHeight')
     };
   }
 
@@ -244,7 +235,7 @@ export class AISPropertiesModal {
    * @param id AIS shipType identifier
    * @returns mat-icon svgIcon value
    */
-  protected getShipIcon(id: number): string {
+  protected getShipIcon(id: number): string | undefined {
     return getAisIcon(id).svgIcon;
   }
 }

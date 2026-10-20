@@ -106,9 +106,9 @@ interface DialogData {
   ]
 })
 export class RegionDialog implements OnInit {
-  protected name: string;
-  protected description: string;
-  protected isHazard: boolean;
+  protected name = '';
+  protected description = '';
+  protected isHazard = false;
   protected readOnly = false;
 
   private dialogRef = inject(MatDialogRef<RegionDialog>);
@@ -131,10 +131,11 @@ export class RegionDialog implements OnInit {
     if (save) {
       this.data.region.name = this.name;
       this.data.region.description = this.description;
+      const props = (this.data.region.feature.properties ??= {});
       if (this.isHazard) {
-        this.data.region.feature.properties.skIcon = 'hazard';
+        props.skIcon = 'hazard';
       } else {
-        delete this.data.region.feature.properties.skIcon;
+        delete props.skIcon;
       }
     }
     this.dialogRef.close({ save: save, region: this.data.region });

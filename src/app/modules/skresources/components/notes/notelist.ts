@@ -41,7 +41,7 @@ import { ResolveSkIconPipe } from 'src/app/modules/icons';
   ]
 })
 export class NoteListComponent {
-  @Input() notes: FBNotes;
+  @Input() notes: FBNotes = [];
   select = output<FBResourceSelect>();
   refresh = output<void>();
   closed = output<void>();

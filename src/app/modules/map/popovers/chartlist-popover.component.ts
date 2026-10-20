@@ -41,7 +41,7 @@ import { PopoverComponent } from './popover.component';
   styleUrls: []
 })
 export class ChartListPopoverComponent {
-  features = input<Array<{ id: string; text: string }>>([]);
+  features = input<Array<{ id: string; text: string }> | null>([]);
   canClose = input<boolean>();
   closed = output<void>();
   selected = output<string>();

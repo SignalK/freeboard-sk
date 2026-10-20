@@ -220,6 +220,11 @@ interface NoteEditorData {
   createRegion: boolean | null;
 }
 
+/** A chart as written to the server: a resource without an opacity has none. */
+type OutboundChart = Omit<SKChart, 'defaultOpacity'> & {
+  defaultOpacity?: number;
+};
+
 export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
 /** Where a per-chart palette opens, below the map's top controls. */
@@ -230,7 +235,11 @@ const PALETTE_HEADER = 40;
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
 export class SKResourceService {
-  private reOpen: { key?: string; value?: string; readOnly?: boolean };
+  private reOpen?: {
+    key: string | null;
+    value: string | null;
+    readOnly?: boolean;
+  };
 
   private app = inject(AppFacade);
   private dialog = inject(MatDialog);
@@ -279,13 +288,11 @@ export class SKResourceService {
    * @returns true if identifier is in the selection list.
    */
   public selectionHas(collection: SKSelection, id: string) {
-    if (
-      !this.selectionLists[collection] ||
-      !this.selectionIsFiltered(collection)
-    ) {
+    const list = this.selectionLists[collection];
+    if (!list || !this.selectionIsFiltered(collection)) {
       return false;
     }
-    return this.selectionLists[collection].includes(id);
+    return list.includes(id);
   }
   /**
    * @description Add resource ids to selection list
@@ -293,14 +300,14 @@ export class SKResourceService {
    * @id Resource identifier or array of identifiers to add to selection list
    */
   public selectionAdd(collection: SKSelection, id: string | string[]) {
-    if (typeof this.selectionLists[collection] === 'undefined') {
+    const list = this.selectionLists[collection];
+    if (typeof list === 'undefined') {
       return;
     }
-    if (this.selectionIsFiltered(collection)) {
+    if (Array.isArray(list)) {
       let ids = typeof id === 'string' ? [id] : id;
-      ids = ids.filter((s) => !this.selectionLists[collection].includes(s));
-      this.selectionLists[collection] =
-        this.selectionLists[collection].concat(ids);
+      ids = ids.filter((s) => !list.includes(s));
+      this.selectionLists[collection] = list.concat(ids);
       this.app.saveConfig();
     }
   }
@@ -311,12 +318,13 @@ export class SKResourceService {
    * @id Resource identifier or array of identifiers to remove from selection list
    */
   public selectionRemove(collection: SKSelection, id: string | string[]) {
-    if (typeof this.selectionLists[collection] === 'undefined') {
+    const list = this.selectionLists[collection];
+    if (typeof list === 'undefined') {
       return;
     }
-    if (this.selectionIsFiltered(collection)) {
+    if (Array.isArray(list)) {
       const ids = typeof id === 'string' ? [id] : id;
-      this.selectionLists[collection] = this.selectionLists[collection].filter(
+      this.selectionLists[collection] = list.filter(
         (s: string) => !ids.includes(s)
       );
       this.app.saveConfig();
@@ -557,7 +565,14 @@ export class SKResourceService {
   public putToServer(
     collection: SKResourceType | 'tracks',
     id: string,
-    data: SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack,
+    data:
+      | SKRoute
+      | SKWaypoint
+      | SKRegion
+      | SKNote
+      | SKChart
+      | OutboundChart
+      | SKTrack,
     provider?: string
   ): Promise<ActionResult> {
     const p = provider ? `?provider=${provider}` : '';
@@ -583,7 +598,14 @@ export class SKResourceService {
    */
   public postToServer(
     collection: SKResourceType | 'tracks',
-    data: SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack
+    data:
+      | SKRoute
+      | SKWaypoint
+      | SKRegion
+      | SKNote
+      | SKChart
+      | OutboundChart
+      | SKTrack
   ): Promise<ResourceActionResult> {
     return new Promise((resolve, reject) => {
       this.signalk.api
@@ -621,13 +643,11 @@ export class SKResourceService {
         if (collection in action) {
           action[collection] = true;
         }
-        if (this.selectionIsFiltered(collection) && !item.value) {
+        const list = this.selectionLists[collection];
+        if (Array.isArray(list) && !item.value) {
           // deleted - remove from selections
-          if (this.selectionLists[collection].includes(id)) {
-            this.selectionLists[collection].splice(
-              this.selectionLists[collection].indexOf(id),
-              1
-            );
+          if (list.includes(id)) {
+            list.splice(list.indexOf(id), 1);
             this.app.saveConfig();
           }
         }
@@ -1111,10 +1131,11 @@ export class SKResourceService {
     // A time-varying chart's instant template is stated relative to the
     // server the same way; an untyped chart still renders (as raster tiles),
     // so it is resolved regardless of type.
-    const timeUrl = chart.time?.url;
-    if (typeof timeUrl === 'string' && !/^https?:\/\//i.test(timeUrl)) {
+    const time = chart.time;
+    const timeUrl = time?.url;
+    if (time && typeof timeUrl === 'string' && !/^https?:\/\//i.test(timeUrl)) {
       chart.time = {
-        ...chart.time,
+        ...time,
         url: `${this.app.hostDef.url.replace(/\/+$/, '')}/${timeUrl.replace(/^\/+/, '')}`
       };
     }
@@ -1503,10 +1524,10 @@ export class SKResourceService {
       }
     });
     wanted.forEach((c: FBChart, id: string) => {
-      if (this.chartTimeRefreshers.has(id)) {
+      const interval = chartRefreshIntervalMs(c[1].refreshInterval);
+      if (this.chartTimeRefreshers.has(id) || interval === undefined) {
         return;
       }
-      const interval = chartRefreshIntervalMs(c[1].refreshInterval);
       this.chartTimeRefreshers.set(id, {
         interval,
         timer: setInterval(() => this.chartRefreshTimeDimension(id), interval),
@@ -1628,6 +1649,9 @@ export class SKResourceService {
     chart: FBChart
   ): Promise<{ time?: ChartTimeDimension }> {
     const url = chart[1].url;
+    if (!url) {
+      throw new Error(`Chart ${chart[0]} has no url`);
+    }
     const capabilities =
       chart[1].type?.toLowerCase() === 'wmts'
         ? await wmtsCapabilitiesInWorker(url)
@@ -1785,11 +1809,13 @@ export class SKResourceService {
    */
   public openImageAdjustment(chart: FBChart) {
     const id = chart[0];
+    const saved: Partial<ChartImageAdjustment> | undefined =
+      this.app.config.selections.chartImageAdjustment[id] ??
+      chart[1]?.imageAdjustment;
     const original: ChartImageAdjustment = {
       brightness: 1,
       contrast: 1,
-      ...(this.app.config.selections.chartImageAdjustment[id] ??
-        chart[1]?.imageAdjustment)
+      ...saved
     };
 
     const ref = this.openChartPalette<
@@ -2163,7 +2189,9 @@ export class SKResourceService {
               'charts',
               this.withoutLocalState(r.chart)
             );
-            this.selectionAdd('charts', cht.id);
+            if (cht.id) {
+              this.selectionAdd('charts', cht.id);
+            }
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
           }
@@ -2229,8 +2257,8 @@ export class SKResourceService {
    * present on the object the properties dialog hands back.
    * @param chart Chart to strip
    */
-  private withoutLocalState(chart: SKChart): SKChart {
-    const outbound = { ...chart };
+  private withoutLocalState(chart: SKChart): OutboundChart {
+    const outbound: OutboundChart = { ...chart };
     if (chart.resourceOpacity === null) {
       delete outbound.defaultOpacity;
     } else if (typeof chart.resourceOpacity === 'number') {
@@ -2466,7 +2494,10 @@ export class SKResourceService {
     }
     const rte = this.buildRoute(coordinates);
     if (meta && Array.isArray(meta)) {
-      rte[1].feature.properties.coordinatesMeta = meta;
+      rte[1].feature.properties = {
+        ...rte[1].feature.properties,
+        coordinatesMeta: meta
+      };
     }
     this.newRoute(rte[1]);
   }
@@ -2492,7 +2523,9 @@ export class SKResourceService {
         if (r.save) {
           try {
             const rte = await this.postToServer('routes', r.route);
-            this.selectionAdd('routes', rte.id);
+            if (rte.id) {
+              this.selectionAdd('routes', rte.id);
+            }
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
           }
@@ -2678,21 +2711,21 @@ export class SKResourceService {
       return Promise.resolve(false);
     }
     const rte = r[1];
+    const props = (rte.feature.properties ??= {});
     // The cached route is changed before the write, so a failed write puts it
     // back: the chart must not show points the server never got.
     const before = {
       coordinates: rte.feature.geometry.coordinates,
       distance: rte.distance,
-      hadMeta: 'coordinatesMeta' in rte.feature.properties,
-      coordinatesMeta: rte.feature.properties.coordinatesMeta
+      hadMeta: 'coordinatesMeta' in props,
+      coordinatesMeta: props.coordinatesMeta
     };
     rte['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(coords);
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
 
     if (coordsMeta) {
-      rte['feature']['properties']['coordinatesMeta'] =
-        withPointNames(coordsMeta);
+      props.coordinatesMeta = withPointNames(coordsMeta);
     }
     // The chart redraws when the route cache signal changes, not when a cached
     // route is changed in place, so the change (and any undo) is published.
@@ -2705,9 +2738,9 @@ export class SKResourceService {
         rte.feature.geometry.coordinates = before.coordinates;
         rte.distance = before.distance;
         if (before.hadMeta) {
-          rte.feature.properties.coordinatesMeta = before.coordinatesMeta;
+          props.coordinatesMeta = before.coordinatesMeta;
         } else {
-          delete rte.feature.properties.coordinatesMeta;
+          delete props.coordinatesMeta;
         }
         this.routeCacheSignal.update((routes) => [...routes]);
         this.app.parseHttpErrorResponse(err);
@@ -2755,29 +2788,27 @@ export class SKResourceService {
     if (typeof wpt.position !== 'undefined') {
       delete wpt.position;
     }
-    if (wpt.feature && !wpt.feature.properties) {
-      wpt.feature.properties = {};
-    }
+    const props = (wpt.feature.properties ??= {});
     if (!wpt.name) {
-      if (wpt.feature.properties.name) {
-        wpt.name = wpt.feature.properties.name;
-        delete wpt.feature.properties.name;
+      if (props.name) {
+        wpt.name = props.name;
+        delete props.name;
       } else {
         const name = 'Wpt-' + id.slice(-6);
         wpt.name = name;
       }
     }
     if (!wpt.description) {
-      if (wpt.feature.properties.description) {
-        wpt.description = wpt.feature.properties.description;
-        delete wpt.feature.properties.description;
-      } else if (wpt.feature.properties.cmt) {
-        wpt.description = wpt.feature.properties.cmt;
+      if (props.description) {
+        wpt.description = props.description;
+        delete props.description;
+      } else if (props.cmt) {
+        wpt.description = props.cmt;
       }
     }
-    if (wpt.feature.properties.skType) {
-      wpt.type = wpt.feature.properties.skType;
-      delete wpt.feature.properties.skType;
+    if (props.skType) {
+      wpt.type = props.skType;
+      delete props.skType;
     }
     if (wpt.type) {
       wpt.type = wpt.type.toLowerCase();
@@ -2794,7 +2825,7 @@ export class SKResourceService {
       // add all waypoints retrieved from server
       this.selectionUnfilter('waypoints');
     } else {
-      if (this.selectionIsFiltered) {
+      if (this.selectionIsFiltered('waypoints')) {
         this.selectionAdd('waypoints', ids);
       }
     }
@@ -2879,7 +2910,9 @@ export class SKResourceService {
         if (r.save) {
           try {
             const w = await this.postToServer('waypoints', r.waypoint);
-            this.selectionAdd('waypoints', w.id);
+            if (w.id) {
+              this.selectionAdd('waypoints', w.id);
+            }
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
           }
@@ -3053,7 +3086,9 @@ export class SKResourceService {
         if (r.save) {
           try {
             const reg = await this.postToServer('regions', r.region);
-            this.selectionAdd('regions', reg.id);
+            if (reg.id) {
+              this.selectionAdd('regions', reg.id);
+            }
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
           }
@@ -3164,7 +3199,7 @@ export class SKResourceService {
       // add all regions retrieved from server
       this.selectionUnfilter('regions');
     } else {
-      if (this.selectionIsFiltered) {
+      if (this.selectionIsFiltered('regions')) {
         this.selectionAdd('regions', ids);
       }
     }
@@ -3396,7 +3431,7 @@ export class SKResourceService {
    * @param noReset true = does not reset reOpen object
    */
   private reopenRelatedDialog(noReset = false) {
-    if (this.reOpen && this.reOpen.key) {
+    if (this.reOpen?.key && this.reOpen.value !== null) {
       this.showRelatedNotes(
         this.reOpen.value,
         this.reOpen.key,
@@ -3505,7 +3540,7 @@ export class SKResourceService {
    * @description Display Add / Update Note Dialog
    * @param e The note to edit, or where to add a new one
    */
-  public async showNoteEditor(e: NoteEditorRequest = null) {
+  public async showNoteEditor(e: NoteEditorRequest | null = null) {
     let note: SKNote;
     const data: NoteEditorData = {
       noteId: null,
@@ -3548,7 +3583,7 @@ export class SKResourceService {
       // add note to exisitng resource or new/existing region
       note = new SKNote();
       note.href =
-        e.href.id.indexOf(e.type) === -1
+        !e.type || e.href.id.indexOf(e.type) === -1
           ? `/resources/${e.type}s/${e.href.id}`
           : e.href.id;
       note.name = '';
@@ -3563,7 +3598,7 @@ export class SKResourceService {
           ? true
           : false;
       this.openNoteForEdit(data);
-    } else {
+    } else if (e.id) {
       // edit selected note details
       this.app.sIsFetching.set(true);
       try {
@@ -3740,7 +3775,7 @@ export class SKResourceService {
    */
   public async listTracks(query?: string): Promise<FBTracks> {
     const flags = this.app.featureFlags();
-    const [stored, resources] = await Promise.all([
+    const [stored, resources]: [FBTracks, FBTracks] = await Promise.all([
       // one source failing still lists the other's tracks
       flags.trackStore
         ? this.listStoredTracks().catch((err): FBTracks => {
@@ -3774,7 +3809,7 @@ export class SKResourceService {
     );
     const features = await Promise.all(
       imports
-        .filter((i) => typeof i?.id === 'string')
+        .filter((i): i is { id: string } => typeof i?.id === 'string')
         .map(
           (i) =>
             new Promise<StoredTrackFeature | undefined>((resolve) => {
@@ -3818,7 +3853,7 @@ export class SKResourceService {
       return id;
     }
     const res = await this.postToServer('tracks', new SKTrack({ feature }));
-    if (Math.floor(res.statusCode / 100) !== 2) {
+    if (Math.floor(Number(res.statusCode) / 100) !== 2 || !res.id) {
       throw new Error(res.message ?? 'Track not stored');
     }
     return res.id;

@@ -44,11 +44,11 @@ export class AISBaseLayerComponent
   @Input() targets: Map<string, SKTarget> = new Map();
   @Input({ required: true }) targetContext!: string; // e.g. 'vessels', 'atons', 'aircraft', 'meteo'
   @Input() targetStyles?: AISTargetStyles;
-  @Input() focusId?: string;
+  @Input() focusId?: string | null;
   @Input() inactiveTime = 180000; // in ms (3 mins)
   @Input() filterByShipType?: boolean;
   @Input() filterShipTypes?: Array<number>;
-  @Input() filterIds?: Array<string>;
+  @Input() filterIds?: Array<string> | null;
   @Input() updateIds: Array<string> = [];
   @Input() staleIds: Array<string> = [];
   @Input() removeIds: Array<string> = [];

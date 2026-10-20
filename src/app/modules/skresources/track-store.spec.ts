@@ -131,8 +131,8 @@ describe('stored tracks', () => {
       }
     });
     expect(f?.id).toBe('tracks:imported:x');
-    expect(f?.properties['imported']).toBe('2026-10-14T12:00:00.000Z');
-    expect(isStoredTrack(f)).toBe(true);
+    expect(f?.properties?.['imported']).toBe('2026-10-14T12:00:00.000Z');
+    expect(isStoredTrack(f!)).toBe(true);
   });
 
   it('marks a stored track the provider does not date, or marks with true', () => {
@@ -142,7 +142,7 @@ describe('stored tracks', () => {
         geometry: { type: 'MultiLineString', coordinates: [[[1, 2]]] },
         properties: { id: 'tracks:imported:x', imported }
       });
-      expect(isStoredTrack(f)).toBe(true);
+      expect(isStoredTrack(f!)).toBe(true);
     }
   });
 

@@ -77,8 +77,8 @@ interface RoutePanelPoint {
 export class RoutePanel {
   protected readonly mdProcessor = markdownProcessor;
   route = input<SKRoute>(new SKRoute());
-  id = input<string>(undefined);
-  related = input<string>(undefined);
+  id = input<string>('');
+  related = input<string>('');
   interacting = input<boolean>(false);
 
   activate = output<string>();
@@ -125,7 +125,7 @@ export class RoutePanel {
 
   private routeReversed = false;
 
-  protected icon: AppIconDef;
+  protected icon: AppIconDef = {};
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
   private routeBuffers = inject(RouteBufferRegistry);
@@ -233,7 +233,7 @@ export class RoutePanel {
     const pos = this.app.data.vessels.self.position;
     return GeoUtils.routeLegs(
       this._route().feature.geometry.coordinates,
-      pos
+      pos ?? undefined
     ).map((l) => {
       return {
         bearing: this.app.formatValueForDisplay(l.bearing, 'deg'),
@@ -246,7 +246,7 @@ export class RoutePanel {
   private getPointsMeta() {
     return routePointsMeta(
       this._route().feature.geometry.coordinates.length,
-      this._route().feature.properties.coordinatesMeta,
+      this._route().feature.properties?.coordinatesMeta,
       (id) => this.skres.fromCache('waypoints', id)?.[1]
     ).map((meta, index) => ({ index, ...meta }));
   }

@@ -10,6 +10,49 @@ const VesselSelfIcons: AppIconSet = {
   files: ['ais_self.svg']
 };
 
+/** Selectable icons for the owner's own vessel. */
+export type OwnVesselIconType =
+  'classic' | 'monohull' | 'catamaran' | 'powerboat';
+
+export interface OwnVesselIconDef {
+  path: string;
+  scale: number;
+  /** Natural canvas size, used when scaling the icon to actual vessel size. */
+  width: number;
+  height: number;
+}
+
+export const DEFAULT_OWN_VESSEL_ICON: OwnVesselIconType = 'classic';
+
+/** The monohull and catamaran outlines are adapted from Hoeken's anchor alarm
+ * (Apache-2.0): https://github.com/hoeken/hoekens-anchor-alarm */
+export const OwnVesselIcons: Record<OwnVesselIconType, OwnVesselIconDef> = {
+  classic: {
+    path: './assets/img/vessels/self.png',
+    scale: 0.9,
+    width: 19,
+    height: 45
+  },
+  monohull: {
+    path: './assets/img/vessels/self_monohull.svg',
+    scale: 0.9,
+    width: 13,
+    height: 45
+  },
+  catamaran: {
+    path: './assets/img/vessels/self_catamaran.svg',
+    scale: 0.9,
+    width: 22.56,
+    height: 45
+  },
+  powerboat: {
+    path: './assets/img/vessels/self_powerboat.svg',
+    scale: 0.9,
+    width: 17,
+    height: 45
+  }
+};
+
 export const VesselAisIcons: AppIconSet = {
   path: './assets/img/vessels',
   scale: 1.0,

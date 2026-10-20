@@ -47,7 +47,7 @@ function svc(
       api: {
         get: (path: string) => {
           const id = path.split('/').pop();
-          return of(path === '/vessels' ? vessels : vessels[id]);
+          return of(path === '/vessels' ? vessels : vessels[id ?? '']);
         }
       }
     }

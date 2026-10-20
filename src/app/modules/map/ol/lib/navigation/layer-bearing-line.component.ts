@@ -64,8 +64,8 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  protected vesselPosition = input<Coordinate>();
-  protected markerPosition = input<Coordinate>();
+  protected vesselPosition = input<Coordinate | null>();
+  protected markerPosition = input<Coordinate | null>();
   protected showMarker = input<boolean>();
   /** draw a marker at the origin (when it is not the vessel, already drawn) */
   protected showOrigin = input<boolean>(false);

@@ -3,11 +3,11 @@ import { ResourceSet, CustomStyles } from 'src/app/types';
 
 // ** Freeboard / SK ResourceSet
 export class SKResourceSet {
-  id: string;
-  name: string;
-  description: string;
-  values;
-  styles: CustomStyles;
+  id?: string | null;
+  name?: string | null;
+  description?: string | null;
+  values: ResourceSet['values'] = { type: 'FeatureCollection', features: [] };
+  styles?: CustomStyles;
   type = 'ResourceSet';
 
   constructor(resSet?: ResourceSet) {

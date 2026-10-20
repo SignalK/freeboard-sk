@@ -24,7 +24,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface RListEntry {
   id: string;
-  name: string;
+  name?: string;
 }
 
 /** The group being edited: its members resolved to `{ id, name }` entries */
@@ -259,7 +259,8 @@ interface GroupItem {
   ]
 })
 export class ResourceGroupDialog implements OnInit {
-  protected gItem: GroupItem;
+  // set in ngOnInit, before the template first reads it
+  protected gItem!: GroupItem;
   protected selTab = 0;
   protected wpts: RListEntry[] = [];
   protected rtes: RListEntry[] = [];
@@ -297,9 +298,10 @@ export class ResourceGroupDialog implements OnInit {
   ngAfterViewInit() {
     this.mask.routes = this.data.group.routes ? true : false;
     this.skres.listFromServer<FBRoute>('routes').then((r) => {
-      if (this.data.group.routes) {
+      const ids = this.data.group.routes;
+      if (ids) {
         r.forEach((rte) => {
-          if (this.data.group.routes.includes(rte[0])) {
+          if (ids.includes(rte[0])) {
             this.gItem.routes.push({ id: rte[0], name: rte[1].name });
           }
         });
@@ -308,9 +310,10 @@ export class ResourceGroupDialog implements OnInit {
     });
     this.mask.waypoints = this.data.group.waypoints ? true : false;
     this.skres.listFromServer<FBWaypoint>('waypoints').then((w) => {
-      if (this.data.group.waypoints) {
+      const ids = this.data.group.waypoints;
+      if (ids) {
         w.forEach((wpt) => {
-          if (this.data.group.waypoints.includes(wpt[0])) {
+          if (ids.includes(wpt[0])) {
             this.gItem.waypoints.push({ id: wpt[0], name: wpt[1].name });
           }
         });
@@ -319,9 +322,10 @@ export class ResourceGroupDialog implements OnInit {
     });
     this.mask.regions = this.data.group.regions ? true : false;
     this.skres.listFromServer<FBRegion>('regions').then((c) => {
-      if (this.data.group.regions) {
+      const ids = this.data.group.regions;
+      if (ids) {
         c.forEach((region) => {
-          if (this.data.group.regions.includes(region[0])) {
+          if (ids.includes(region[0])) {
             this.gItem.regions.push({ id: region[0], name: region[1].name });
           }
         });
@@ -329,9 +333,10 @@ export class ResourceGroupDialog implements OnInit {
       }
     });
     this.skres.listFromServer<FBChart>('charts').then((c) => {
-      if (this.data.group.charts) {
+      const ids = this.data.group.charts;
+      if (ids) {
         c.forEach((cht) => {
-          if (this.data.group.charts.includes(cht[0])) {
+          if (ids.includes(cht[0])) {
             this.gItem.charts.push({ id: cht[0], name: cht[1].name });
           }
         });
@@ -416,8 +421,8 @@ export class ResourceGroupDialog implements OnInit {
    */
   sortIt(l: RListEntry[]) {
     return l.sort((a, b) => {
-      const x = a.name?.toLowerCase();
-      const y = b.name?.toLowerCase();
+      const x = a.name?.toLowerCase() ?? '';
+      const y = b.name?.toLowerCase() ?? '';
       return x > y ? 1 : -1;
     });
   }
@@ -426,9 +431,9 @@ export class ResourceGroupDialog implements OnInit {
    * Display list of resources for selection to add
    */
   addResources() {
-    let lTitle: string;
-    let icon: AppIconDef;
-    let rList: RListEntry[];
+    let lTitle: string | undefined;
+    let icon: AppIconDef | undefined;
+    let rList: RListEntry[] | undefined;
 
     if (this.selTab === 1) {
       lTitle = 'Routes';
@@ -455,6 +460,9 @@ export class ResourceGroupDialog implements OnInit {
       rList = this.charts.filter((i) => !chtIds.includes(i.id));
     }
 
+    if (!lTitle || !icon || !rList) {
+      return;
+    }
     this.dialog
       .open(MultiSelectListDialog, {
         data: {
@@ -469,22 +477,22 @@ export class ResourceGroupDialog implements OnInit {
         if (items) {
           // routes
           if (this.selTab === 1) {
-            this.gItem.routes = [].concat(this.gItem.routes, items);
+            this.gItem.routes = [...this.gItem.routes, ...items];
             this.sortIt(this.gItem.routes);
           }
           // waypoints
           if (this.selTab === 2) {
-            this.gItem.waypoints = [].concat(this.gItem.waypoints, items);
+            this.gItem.waypoints = [...this.gItem.waypoints, ...items];
             this.sortIt(this.gItem.waypoints);
           }
           // regions
           if (this.selTab === 3) {
-            this.gItem.regions = [].concat(this.gItem.regions, items);
+            this.gItem.regions = [...this.gItem.regions, ...items];
             this.sortIt(this.gItem.regions);
           }
           // charts
           if (this.selTab === 4) {
-            this.gItem.charts = [].concat(this.gItem.charts, items);
+            this.gItem.charts = [...this.gItem.charts, ...items];
             this.sortIt(this.gItem.charts);
           }
         }

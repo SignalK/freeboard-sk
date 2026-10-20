@@ -98,7 +98,7 @@ class SvgDialBase implements DialConfig {
   templateUrl: './compass.component.svg'
 })
 export class CompassComponent extends SvgDialBase {
-  @Input() speed?: number;
+  @Input() speed?: number | null;
   @Input() speedunits = 'knots';
   @Input() heading?: number;
   @Input() needle?: number;
@@ -264,7 +264,7 @@ export class CompassComponent extends SvgDialBase {
 })
 export class NorthUpCompassComponent extends SvgDialBase {
   @Input() label = '';
-  @Input() speed: number | undefined;
+  @Input() speed: number | null | undefined;
   @Input() heading: number | undefined;
   @Input() windtrue = false;
   @Input() windapparent = false;

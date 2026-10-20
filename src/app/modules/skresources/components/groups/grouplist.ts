@@ -100,7 +100,9 @@ export class GroupListComponent {
       this.fullList = await this.skgroups.listFromServer();
       if (this.selectedGroup) {
         const g = this.fullList.find((item) => item[0] === this.selectedGroup);
-        g[2] = true;
+        if (g) {
+          g[2] = true;
+        }
       }
       this.doFilter();
     } catch (err) {
@@ -149,8 +151,8 @@ export class GroupListComponent {
    * @param id group identifier
    */
   protected itemSelect(checked: boolean, id: string) {
-    let idx: number;
-    let group: SKResourceGroup;
+    let idx = -1;
+    let group: SKResourceGroup | undefined;
 
     // fullList update
     this.fullList.forEach((item) => {

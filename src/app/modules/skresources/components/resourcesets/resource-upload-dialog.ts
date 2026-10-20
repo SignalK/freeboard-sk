@@ -40,8 +40,12 @@ import { AppFacade } from 'src/app/app.facade';
 })
 export class ResourceImportDialog implements OnInit {
   public resPaths: Array<string> = [];
-  public targetPath: string = null;
-  public source: { type: string; name: string; data: string } = {
+  public targetPath: string | null = null;
+  public source: {
+    type: string | null;
+    name: string | null;
+    data: string | null;
+  } = {
     type: null,
     name: null,
     data: null

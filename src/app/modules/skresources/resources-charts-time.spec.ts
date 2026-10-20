@@ -422,7 +422,9 @@ describe('time dimension refresh', () => {
       fresh ??
       ((_c: string, id: string) =>
         Promise.resolve(
-          new SKChart(internals.chartCacheSignal().find((c) => c[0] === id)[1])
+          new SKChart(
+            internals.chartCacheSignal().find((c) => c[0] === id)?.[1]
+          )
         ));
     internals.chartTimeFromMapService =
       service ?? (() => Promise.reject(new Error('no worker here')));
@@ -454,7 +456,7 @@ describe('time dimension refresh', () => {
       ]
     ]);
     expect([...internals.chartTimeRefreshers.keys()]).toEqual(['nexrad']);
-    expect(internals.chartTimeRefreshers.get('nexrad').interval).toBe(STEP);
+    expect(internals.chartTimeRefreshers.get('nexrad')?.interval).toBe(STEP);
   });
 
   it('leaves an explicit instant where it was put as frames arrive', async () => {
@@ -771,7 +773,7 @@ describe('time dimension refresh', () => {
     ]);
     const second = internals.chartTimeRefreshers.get('nexrad');
     expect(second).not.toBe(first);
-    expect(second.interval).toBe(2 * STEP);
+    expect(second?.interval).toBe(2 * STEP);
     internals.syncChartTimeRefreshers([]);
     expect(internals.chartTimeRefreshers.size).toBe(0);
     expect(vi.getTimerCount()).toBe(0);

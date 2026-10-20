@@ -52,7 +52,7 @@
     >
     </ol-draw>
   }
-  @if (mapInteract.isDrawing()) {
+  @if (mapInteract.isDrawing() && mapInteract.draw.featureType) {
     <ol-draw
       #routeDraw
       [type]="mapInteract.draw.featureType"
@@ -254,6 +254,7 @@
     <fb-track-history-ghosts
       [ghosts]="trackHistory.ghosts()"
       [iconScale]="app.config.vessels.iconScale"
+      [iconType]="app.config.vessels.iconType"
       [zIndex]="995"
     >
     </fb-track-history-ghosts>
@@ -536,7 +537,6 @@
       [showRing]="true"
       [markerDraggable]="bd.fixed"
       (markerDrag)="onBearingTargetDrag($event.position, $event.worldOffset)"
-      [markerName]=""
       [bearingStyles]="featureStyles.bearingDistance"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
       [mapZoom]="mapZoomLevel()"
@@ -643,10 +643,10 @@
           @if (th?.start) {
             @for (
               row of [
-                ['From', th.start],
-                ['To', th.end],
-                ['Duration', th.duration],
-                ['Here at', th.at]
+                ['From', th?.start],
+                ['To', th?.end],
+                ['Duration', th?.duration],
+                ['Here at', th?.at]
               ];
               track row[0]
             ) {
@@ -740,24 +740,11 @@
             deleteFeature(overlay().id, overlay().type); popoverClosed()
           "
           (hide)="hideFeature(overlay().id, overlay().type); popoverClosed()"
-          (addNote)="
-            skres.showNoteEditor({
-              type: overlay().type,
-              href: { id: overlay().id, exists: true }
-            });
-            popoverClosed()
-          "
+          (addNote)="addNoteFromPopover(); popoverClosed()"
           (activated)="setActiveFeature(); popoverClosed()"
           (deactivated)="clearActiveFeature(); popoverClosed()"
           (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
-          (notes)="
-            skres.showRelatedNotes(
-              overlay().id,
-              overlay().type,
-              overlay().readOnly
-            );
-            popoverClosed()
-          "
+          (notes)="relatedNotesFromPopover(); popoverClosed()"
           (info)="popoverInfo(); popoverClosed()"
           (points)="popoverPoints(); popoverClosed()"
           (closed)="popoverClosed()"
@@ -827,10 +814,10 @@
         >
         </aircraft-popover>
       }
-      @if (overlay().type === 'rtept') {
+      @if (overlay().type === 'rtept' && overlay().routePoint; as point) {
         <route-point-popover
           [canClose]="app.config.map.popoverMulti"
-          [point]="overlay().routePoint"
+          [point]="point"
           (rejoin)="rejoinRouteAt($event); popoverClosed()"
           (skip)="skipRoutePoint($event); popoverClosed()"
           (closed)="popoverClosed()"
@@ -923,9 +910,9 @@
       >
       </fb-bearing-line>
     }
-    @if (course.courseData().arrivalCircle) {
+    @if (course.courseData().arrivalCircle; as radius) {
       <fb-arrival-circle
-        [radius]="course.courseData().arrivalCircle"
+        [radius]="radius"
         [position]="dfeat.navData.position"
         [zIndex]="335"
       >
@@ -977,7 +964,7 @@
     <fb-wind-lines
       [twd]="trueWindDirection(this.dfeat.active)"
       [tws]="this.dfeat.active.wind.tws"
-      [awa]="this.dfeat.active.wind.awa + this.dfeat.active.orientation"
+      [awa]="(this.dfeat.active.wind.awa ?? 0) + this.dfeat.active.orientation"
       [aws]="this.dfeat.active.wind.aws"
       [position]="dfeat.self.position"
       [zIndex]="350"
@@ -995,6 +982,7 @@
     [actualSize]="app.config.vessels.iconActualSize"
     [lengthOverall]="dfeat.self.design?.length?.overall"
     [beam]="dfeat.self.design?.beam"
+    [iconType]="app.config.vessels.iconType"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [stale]="
       skstream.selfPositionStale() && !app.config.vessels.fixedLocationMode

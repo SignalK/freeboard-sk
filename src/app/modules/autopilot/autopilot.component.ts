@@ -300,13 +300,13 @@ export class AutopilotComponent {
   protected stateOptions = signal<Array<{ name: string; engaged: boolean }>>(
     []
   );
-  private currentPilot: string | undefined;
+  private currentPilot: string | null | undefined;
 
   apData = input<{
-    default?: string;
-    mode?: string;
-    state?: string;
-    target?: number;
+    default?: string | null;
+    mode?: string | null;
+    state?: string | null;
+    target?: number | null;
     enabled?: boolean;
     availableActions?: string[];
   }>({});
@@ -455,11 +455,11 @@ export class AutopilotComponent {
     );
   }
 
-  formatLabel(value: string) {
+  formatLabel(value: string | null | undefined) {
     return value ? value.toUpperCase() : '...';
   }
 
-  formatTargetValue(value: number) {
+  formatTargetValue(value: number | null | undefined) {
     if (typeof value === 'number') {
       return Convert.radiansToDegrees(value)?.toFixed(1);
     } else return '--';

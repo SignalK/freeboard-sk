@@ -26,16 +26,17 @@ import { AlertData } from '../../alarms';
     PopoverComponent
   ],
   template: `
-    <ap-popover
-      [title]="_title"
-      [canClose]="canClose()"
-      [icon]="alarm().icon"
-      (closed)="handleClose()"
-    >
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Message:</div>
-        <div
-          style="flex: 1 1 auto;
+    @if (alarm(); as a) {
+      <ap-popover
+        [title]="_title"
+        [canClose]="canClose()"
+        [icon]="a.icon"
+        (closed)="handleClose()"
+      >
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Message:</div>
+          <div
+            style="flex: 1 1 auto;
                     text-align:left;
                     padding-left: 5px;
                     overflow: hidden;
@@ -44,64 +45,65 @@ import { AlertData } from '../../alarms';
                     -webkit-line-clamp: 2;
                     line-clamp: 2;
                     text-overflow:ellipsis;"
-        >
-          {{ alarm().message }}
-        </div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Type:</div>
-        <div style="flex: 1 1 auto;text-align:right;">{{ alarm().type }}</div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Latitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            alarm().properties.position.latitude
-              | coords: app.config.units.positionFormat : true
-          "
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Longitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            alarm().properties.position.longitude
-              | coords: app.config.units.positionFormat : false
-          "
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="flex:1 1 auto;">&nbsp;</div>
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="handleGoto()"
-            matTooltip="Navigate to here"
           >
-            <mat-icon>near_me</mat-icon>
-            GO TO
-          </button>
+            {{ a.message }}
+          </div>
         </div>
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="handleInfo()"
-            matTooltip="Show Properties"
-          >
-            <mat-icon>info_outline</mat-icon>
-            INFO
-          </button>
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Type:</div>
+          <div style="flex: 1 1 auto;text-align:right;">{{ a.type }}</div>
         </div>
-      </div>
-    </ap-popover>
+        @if (a.properties.position; as pos) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Latitude:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="
+                pos.latitude | coords: app.config.units.positionFormat : true
+              "
+            ></div>
+          </div>
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Longitude:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="
+                pos.longitude | coords: app.config.units.positionFormat : false
+              "
+            ></div>
+          </div>
+        }
+        <div style="display:flex;">
+          <div style="flex:1 1 auto;">&nbsp;</div>
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="handleGoto()"
+              matTooltip="Navigate to here"
+            >
+              <mat-icon>near_me</mat-icon>
+              GO TO
+            </button>
+          </div>
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="handleInfo()"
+              matTooltip="Show Properties"
+            >
+              <mat-icon>info_outline</mat-icon>
+              INFO
+            </button>
+          </div>
+        </div>
+      </ap-popover>
+    }
   `,
   styleUrls: []
 })
 export class AlarmPopoverComponent {
   title = input<string>();
-  id = input<string>();
+  id = input<string | null>();
   alarm = input<AlertData>();
   canClose = input<boolean>();
   info = output<string>();
