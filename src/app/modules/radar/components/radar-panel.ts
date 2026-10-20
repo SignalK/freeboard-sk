@@ -132,9 +132,9 @@ export class RadarPanel {
   constructor() {
     // the zone is drawn and edited on the radar layer, so hiding it or the
     // radar going to standby ends the edit rather than leaving an unsaved
-    // zone with no editor
+    // zone with no editor; that includes an edit a failed save puts back
     effect(() => {
-      if (!this.onChart()) {
+      if (!this.onChart() && this.zoneEdit.edit()) {
         this.zoneEdit.cancel();
       }
     });

@@ -527,6 +527,30 @@ describe('RadarPanel', () => {
       expect(button(el, 'Edit').disabled).toBe(true);
     });
 
+    it('keeps no edit that a failed save puts back in standby', async () => {
+      withZone(zone);
+      let refuse: (err: Error) => void;
+      api.setControl.mockImplementationOnce(
+        () => new Promise((_, reject) => (refuse = reject))
+      );
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      button(el, 'Edit').click();
+      fixture.detectChanges();
+      button(el, 'Save').click();
+      radar.update((r) => ({
+        ...r,
+        controls: new Map(r.controls).set('power', { value: 1 })
+      }));
+      fixture.detectChanges();
+
+      refuse(new Error('refused'));
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
+    });
+
     it('switches a zone off as the radar holds it', () => {
       withZone(zone);
       const el: HTMLElement = open().nativeElement;
