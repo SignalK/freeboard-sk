@@ -12,15 +12,49 @@ turn a dot on a map into a picture of where you are going.
 
 ## The vessel icon
 
+![Fig 2. Vessel Icon settings: the icon shape, its size, and the actual-size option](own-vessel-display-2.jpg)
+
 The icon sits at your reported position and rotates to your heading, so a glance tells
 you both where you are and which way you are pointing. It is drawn above everything else
 on the chart, so route lines and chart detail never hide it.
 
-**Settings → Vessels → Vessel Icon Size** scales it. Larger is easier to pick out on a
-helm tablet in daylight; smaller keeps more chart visible around you at close zoom.
+**Settings → Vessels → Vessel Icon** sets how it looks:
+
+- **Vessel icon** — the shape drawn for your boat: the **Original red sailboat** (the
+  default), a **Sailing Monohull**, a **Catamaran** or a **Powerboat**.
+- **Size** (S, M, L, XL) — larger is easier to pick out on a helm tablet in daylight;
+  smaller keeps more chart visible around you. The size buttons preview the chosen shape.
+- **Show vessel at actual size when zoomed in** — see below.
+
+When you select another vessel, such as an AIS target, your own icon keeps its shape but
+dims, so the selected vessel stands out.
 
 Want a different boat entirely? A symbol provider can replace the icon with your own
-artwork — see **Custom Map Symbols**.
+artwork — see **Custom Map Symbols**. A custom symbol takes the place of the icon chosen
+here.
+
+### Actual size
+
+![Fig 3. Zoomed in to a canal, the boat is drawn at its real length and beam](own-vessel-display-3.jpg)
+
+At most chart scales your boat is far smaller than its icon. Zoom in close — a marina, a
+canal, a tight anchorage — and the real boat outgrows the icon. With **Show vessel at
+actual size when zoomed in** turned on, the icon grows from that point to match your
+boat's length and beam on the chart, so you can judge your room to the dock, the boat
+alongside or the bank.
+
+It never shrinks below the size you selected, so zooming back out returns the normal
+icon. It keeps your boat's own proportions, so a catamaran is drawn wider for its length
+than a monohull.
+
+The dimensions come from your Signal K server: enter **Length** and **Beam** under
+**Vessel Base Data** in the server's settings.
+
+The icon is centered on your reported position, which is where your GPS antenna is, not
+necessarily the middle of the boat. On a stern arch the antenna can be several meters
+aft. To have the server move the position to the center of the boat, enter the
+antenna's location under **GNSS Antenna Positions** in the server admin and choose **In
+place correction** (Signal K server 2.31 or later).
 
 ## Lines drawn with your vessel
 
@@ -44,7 +78,7 @@ when the underlying data is available:
 
 ## When position data stops
 
-![Fig 2. Position data has stopped arriving — the boat dims and a red question mark marks the last known fix](own-vessel-display-2.jpg)
+![Fig 4. Position data has stopped arriving — the boat dims and a red question mark marks the last known fix](own-vessel-display-4.jpg)
 
 If nothing updates your position for **30 seconds**, the boat icon dims and a red
 question mark appears over it. The icon stays where it last was — that position is still
