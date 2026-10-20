@@ -24,12 +24,11 @@ the existing Signal K plugin/app-store flow.
 > extensions (`signalk-instrument-widgets`, `signalk-poi-search`): widgets,
 > panels, toolbar buttons, state storage, Signal K data relay, unit
 > preferences, resource display filters, map control, live route editing,
-> chart-layer management, headless background runtimes and image map overlays
-> (`overlays.image`). Host-drawn data overlays (`overlays.data`), map actions
+> chart-layer management, headless background runtimes, image map overlays
+> (`overlays.image`), host-drawn data overlays (`overlays.data`), map actions
 > (`actions`, `actions.overlay`), map picks (`map.pick`) and button
-> visibility (`buttons.visibility`) are specified ahead of the reference
-> host. Manifest-declared filter chains and host-into-runtime calls are out of
-> scope for this version (see Non-Goals).
+> visibility (`buttons.visibility`). Manifest-declared filter chains and
+> host-into-runtime calls are out of scope for this version (see Non-Goals).
 
 ---
 
