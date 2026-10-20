@@ -18,6 +18,7 @@
     "src/app/modules/course",
     "src/app/modules/features",
     "src/app/modules/gpx",
+    "src/app/modules/map/*.ts",
     "src/app/modules/map/ol/lib/*.ts",
     "src/app/modules/map/ol/lib/alarms",
     "src/app/modules/map/ol/lib/charts",

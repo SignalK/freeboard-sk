@@ -142,7 +142,9 @@ function simplifyM(path: Position[]): Position[] {
   const xy = path.map((p) => offsetM(path[0], p));
   // SimplifyAP returns the very points it keeps, so each maps back by identity
   const index = new Map(xy.map((q, i) => [q, i]));
-  return SimplifyAP(xy, ROUTE_TOLERANCE_M, true).map((q) => path[index.get(q)]);
+  return SimplifyAP(xy, ROUTE_TOLERANCE_M, true).map(
+    (q) => path[index.get(q)!]
+  );
 }
 
 /** The passage through a tapped point, as indices into the timed points. */
