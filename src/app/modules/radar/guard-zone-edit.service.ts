@@ -7,6 +7,7 @@ import {
   RadarGuardZone
 } from './guard-zones';
 import { limitZone, zoneControlValue } from './guard-zone-edit';
+import { powerState, sendsImage } from './radar-controls';
 
 /** A guard zone being drawn or edited on the chart. While drawing, `zone` is
  *  the zone the radar holds until the user drags out a new one. */
@@ -68,9 +69,17 @@ export class GuardZoneEditService {
   private latestChange = 0;
 
   /** The zones to draw: the radar's, with the edited or just saved zone in
-   *  place of its stored value. */
+   *  place of its stored value. None while the radar sends no picture, as in
+   *  standby: a zone on the chart would read as a watch nobody keeps. */
   readonly zones = computed<RadarGuardZone[]>(() => {
     const radar = this.radarApi.radar();
+    const power = powerState(
+      radar?.capabilities?.controls?.['power'],
+      radar?.controls?.get('power')?.value
+    );
+    if (!sendsImage(power)) {
+      return [];
+    }
     const id = radar?.device?.id;
     const zones = radarGuardZones(radar);
     if (!id) {

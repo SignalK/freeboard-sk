@@ -24,7 +24,8 @@ import {
   nextPowerValue,
   powerState,
   rangeOptions,
-  SectionControl
+  SectionControl,
+  sendsImage
 } from '../radar-controls';
 import { GuardZone, guardZoneFromControl } from '../guard-zones';
 import { GuardZoneEditService } from '../guard-zone-edit.service';
@@ -119,14 +120,21 @@ export class RadarPanel {
       : nextPowerValue(this.powerDef(), this.powerValue())
   );
 
+  /** The radar picture, its range rings and guard zones are on the chart:
+   *  the overlay is shown and the radar sends a picture. */
+  protected onChart = computed(
+    () => this.app.uiCtrl().radarLayer && sendsImage(this.power())
+  );
+
   protected rangeDef = computed(() => this.capabilities()?.controls?.['range']);
   protected rangeValue = computed(() => this.values().get('range')?.value);
 
   constructor() {
-    // the zone is drawn and edited on the radar layer, so hiding it ends the
-    // edit rather than leaving an unsaved zone with no editor
+    // the zone is drawn and edited on the radar layer, so hiding it or the
+    // radar going to standby ends the edit rather than leaving an unsaved
+    // zone with no editor; that includes an edit a failed save puts back
     effect(() => {
-      if (!this.app.uiCtrl().radarLayer) {
+      if (!this.onChart() && this.zoneEdit.edit()) {
         this.zoneEdit.cancel();
       }
     });
@@ -146,7 +154,20 @@ export class RadarPanel {
     }
   }
 
+  protected ringsLabel(): string {
+    if (!this.onChart()) {
+      return 'Range rings show with the radar picture on the chart';
+    }
+    return this.app.config.radars.rings
+      ? 'Hide range rings'
+      : 'Show range rings';
+  }
+
   protected toggleRings() {
+    // the button stays interactive while disabled, to show why in its tooltip
+    if (!this.onChart()) {
+      return;
+    }
     this.app.config.radars.rings = !this.app.config.radars.rings;
     this.app.saveConfig();
   }

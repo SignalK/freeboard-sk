@@ -32,12 +32,10 @@
       mat-icon-button
       class="rings-button"
       [class.rings-off]="!app.config.radars.rings"
-      [matTooltip]="
-        app.config.radars.rings ? 'Hide range rings' : 'Show range rings'
-      "
-      [attr.aria-label]="
-        app.config.radars.rings ? 'Hide range rings' : 'Show range rings'
-      "
+      [disabled]="!onChart()"
+      disabledInteractive
+      [matTooltip]="ringsLabel()"
+      [attr.aria-label]="ringsLabel()"
       [attr.aria-pressed]="app.config.radars.rings"
       (click)="toggleRings()"
     >
@@ -254,7 +252,7 @@
             >
             <button
               mat-stroked-button
-              [disabled]="disabled || !!edit || !app.uiCtrl().radarLayer"
+              [disabled]="disabled || !!edit || !onChart()"
               (click)="zoneEdit.draw(c.id)"
             >
               Draw
@@ -262,7 +260,7 @@
             <button
               mat-stroked-button
               [disabled]="
-                disabled || !!edit || !hasZone(c) || !app.uiCtrl().radarLayer
+                disabled || !!edit || !hasZone(c) || !onChart()
               "
               (click)="zoneEdit.editZone(c.id)"
             >
