@@ -250,7 +250,7 @@ export interface IAppConfig {
     proxied: boolean; // server behind a proxy server
   };
   radars: {
-    deviceId: string;
+    deviceId: string | undefined;
     opacity: number;
     rings: boolean; // range circles follow the radar range while it transmits
   };
