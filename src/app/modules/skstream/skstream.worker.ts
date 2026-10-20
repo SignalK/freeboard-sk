@@ -1661,7 +1661,7 @@ function appendTrack(d: SKAircraft | SKVessel) {
   } else {
     const l = d.track[d.track.length - 1].length;
     const lastPoint = d.track[d.track.length - 1][l - 1];
-    if (lastPoint[0] !== d.position[0] && lastPoint[1] !== d.position[1]) {
+    if (lastPoint[0] !== d.position[0] || lastPoint[1] !== d.position[1]) {
       d.track[d.track.length - 1].push(d.position);
     }
   }
