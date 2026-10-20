@@ -36,6 +36,21 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
+  it('ignores text or a link dropped on the map', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const map = fixture.componentInstance as unknown as {
+      mapDrop(e: DragEvent): void;
+      processGPX(file: { name: string; data: string }): void;
+    };
+    const processGPX = vi.spyOn(map, 'processGPX');
+    const drop = {
+      preventDefault: (): void => undefined,
+      dataTransfer: { files: [] }
+    } as unknown as DragEvent;
+    expect(() => map.mapDrop(drop)).not.toThrow();
+    expect(processGPX).not.toHaveBeenCalled();
+  });
+
   it('opens the feature browser from the main menu\'s "What\'s New" item', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();

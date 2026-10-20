@@ -2260,7 +2260,8 @@ export class AppComponent {
             `There was an error reading the file contents!`
           );
         };
-        if (!files[0].name) {
+        // text or a link dropped on the map arrives with no file
+        if (!files[0]?.name) {
           return;
         }
         const fname = files[0].name;
