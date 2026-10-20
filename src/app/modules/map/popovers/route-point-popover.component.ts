@@ -39,14 +39,13 @@ import { ActiveRoutePoint } from '../route-point-pick';
           }
         </div>
       </div>
-      @if (point().position) {
+      @if (point().position; as pos) {
         <div style="display:flex;">
           <div style="font-weight:bold;">Latitude:</div>
           <div
             style="flex: 1 1 auto;text-align:right;"
             [innerText]="
-              point().position[1]
-                | coords: app.config.units.positionFormat : true
+              pos[1] | coords: app.config.units.positionFormat : true
             "
           ></div>
         </div>
@@ -55,8 +54,7 @@ import { ActiveRoutePoint } from '../route-point-pick';
           <div
             style="flex: 1 1 auto;text-align:right;"
             [innerText]="
-              point().position[0]
-                | coords: app.config.units.positionFormat : false
+              pos[0] | coords: app.config.units.positionFormat : false
             "
           ></div>
         </div>

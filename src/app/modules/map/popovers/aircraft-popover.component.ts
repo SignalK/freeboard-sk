@@ -28,62 +28,67 @@ import { SKAircraft } from 'src/app/modules';
     PopoverComponent
   ],
   template: `
-    <ap-popover [title]="_title" [canClose]="canClose" (closed)="handleClose()">
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Name:</div>
-        <div style="flex: 1 1 auto;text-align:right;">{{ aircraft.name }}</div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Call sign VHF:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ aircraft.callsignVhf }}
+    @if (aircraft; as a) {
+      <ap-popover
+        [title]="_title"
+        [canClose]="canClose"
+        (closed)="handleClose()"
+      >
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Name:</div>
+          <div style="flex: 1 1 auto;text-align:right;">{{ a.name }}</div>
         </div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Call sign HF:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ aircraft.callsignHf }}
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Call sign VHF:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ a.callsignVhf }}
+          </div>
         </div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Latitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            aircraft.position[1]
-              | coords: app.config.units.positionFormat : true
-          "
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Longitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            aircraft.position[0] | coords: app.config.units.positionFormat
-          "
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Last Update:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ timeLastUpdate }} {{ timeAgo }}
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Call sign HF:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ a.callsignHf }}
+          </div>
         </div>
-      </div>
-      <div style="display:flex;">
-        <div style="flex:1 1 auto;">&nbsp;</div>
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="handleInfo()"
-            matTooltip="Show Properties"
-          >
-            <mat-icon>info_outline</mat-icon>
-            INFO
-          </button>
+        @if (a.position; as pos) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Latitude:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="
+                pos[1] | coords: app.config.units.positionFormat : true
+              "
+            ></div>
+          </div>
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Longitude:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="pos[0] | coords: app.config.units.positionFormat"
+            ></div>
+          </div>
+        }
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Last Update:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ timeLastUpdate }} {{ timeAgo }}
+          </div>
         </div>
-      </div>
-    </ap-popover>
+        <div style="display:flex;">
+          <div style="flex:1 1 auto;">&nbsp;</div>
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="handleInfo()"
+              matTooltip="Show Properties"
+            >
+              <mat-icon>info_outline</mat-icon>
+              INFO
+            </button>
+          </div>
+        </div>
+      </ap-popover>
+    }
   `,
   styleUrls: []
 })

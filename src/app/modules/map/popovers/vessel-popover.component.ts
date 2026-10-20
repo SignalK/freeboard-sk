@@ -45,254 +45,256 @@ import {
     CompassComponent
   ],
   template: `
-    <ap-popover
-      [title]="_title"
-      [mmsi]="vessel().mmsi"
-      [icon]="_icon"
-      [canClose]="canClose()"
-      (closed)="handleClose()"
-    >
-      <div style="display:flex;">
-        <div style="flex:1 1 auto;">
-          @if (isActive()) {
-            <button
-              mat-icon-button
-              (click)="handleMarkPosition()"
-              matTooltip="Add Waypoint at vessel location"
-            >
-              <mat-icon>add_location</mat-icon>
-            </button>
-          } @else {
-            <button
-              mat-icon-button
-              (click)="toggleFlag()"
-              [matTooltip]="isFlagged ? 'Un-flag vessel' : 'Flag vessel'"
-            >
-              <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
-            </button>
-
-            @if (!isSelf() && app.featureFlags().buddyList) {
+    @if (vessel(); as v) {
+      <ap-popover
+        [title]="_title"
+        [mmsi]="v.mmsi"
+        [icon]="_icon"
+        [canClose]="canClose()"
+        (closed)="handleClose()"
+      >
+        <div style="display:flex;">
+          <div style="flex:1 1 auto;">
+            @if (isActive()) {
               <button
                 mat-icon-button
-                (click)="toggleBuddy()"
-                matTooltip="Is Buddy"
+                (click)="handleMarkPosition()"
+                matTooltip="Add Waypoint at vessel location"
               >
-                <mat-icon>{{
-                  vessel().buddy ? 'group_remove' : 'group_add'
-                }}</mat-icon>
+                <mat-icon>add_location</mat-icon>
+              </button>
+            } @else {
+              <button
+                mat-icon-button
+                (click)="toggleFlag()"
+                [matTooltip]="isFlagged ? 'Un-flag vessel' : 'Flag vessel'"
+              >
+                <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
+              </button>
+
+              @if (!isSelf() && app.featureFlags().buddyList) {
+                <button
+                  mat-icon-button
+                  (click)="toggleBuddy()"
+                  matTooltip="Is Buddy"
+                >
+                  <mat-icon>{{
+                    v.buddy ? 'group_remove' : 'group_add'
+                  }}</mat-icon>
+                </button>
+              }
+              <button
+                mat-icon-button
+                (click)="focusVessel(true)"
+                matTooltip="Focus vessel"
+              >
+                <mat-icon>center_focus_weak</mat-icon>
               </button>
             }
-            <button
-              mat-icon-button
-              (click)="focusVessel(true)"
-              matTooltip="Focus vessel"
-            >
-              <mat-icon>center_focus_weak</mat-icon>
-            </button>
-          }
-          @if (isActive() && !isSelf()) {
-            <button
-              mat-icon-button
-              (click)="focusVessel(false)"
-              matTooltip="Clear vessel focus"
-            >
-              <mat-icon>clear_all</mat-icon>
-            </button>
-          }
-          @if (!isSelf()) {
-            @let trackShown = app.isVesselTrackShown(vessel().id);
-            <span
-              [matTooltip]="
-                app.config.vessels.aisShowTrack
-                  ? 'Turn off &quot;Show all tracks&quot; to enable'
-                  : trackShown
-                    ? 'Hide vessel track'
-                    : 'Show vessel track'
-              "
-            >
+            @if (isActive() && !isSelf()) {
               <button
                 mat-icon-button
-                (click)="toggleTrack()"
-                [disabled]="app.config.vessels.aisShowTrack"
+                (click)="focusVessel(false)"
+                matTooltip="Clear vessel focus"
               >
-                <mat-icon>{{ trackShown ? 'layers_clear' : 'route' }}</mat-icon>
+                <mat-icon>clear_all</mat-icon>
               </button>
-            </span>
-          }
-          @if (trackHistory.available()) {
-            @let historyCtx = historyContext();
-            @let historyShown = trackHistory.isShown(historyCtx);
-            @let noHistory = trackHistory.hasHistory(historyCtx) === false;
-            <span
-              [matTooltip]="
-                historyShown
-                  ? 'Hide track history'
-                  : noHistory
-                    ? 'No recorded track history'
-                    : 'Show track history'
-              "
-            >
+            }
+            @if (!isSelf()) {
+              @let trackShown = app.isVesselTrackShown(vesselId());
+              <span
+                [matTooltip]="
+                  app.config.vessels.aisShowTrack
+                    ? 'Turn off &quot;Show all tracks&quot; to enable'
+                    : trackShown
+                      ? 'Hide vessel track'
+                      : 'Show vessel track'
+                "
+              >
+                <button
+                  mat-icon-button
+                  (click)="toggleTrack()"
+                  [disabled]="app.config.vessels.aisShowTrack"
+                >
+                  <mat-icon>{{
+                    trackShown ? 'layers_clear' : 'route'
+                  }}</mat-icon>
+                </button>
+              </span>
+            }
+            @if (trackHistory.available()) {
+              @let historyCtx = historyContext();
+              @let historyShown = trackHistory.isShown(historyCtx);
+              @let noHistory = trackHistory.hasHistory(historyCtx) === false;
+              <span
+                [matTooltip]="
+                  historyShown
+                    ? 'Hide track history'
+                    : noHistory
+                      ? 'No recorded track history'
+                      : 'Show track history'
+                "
+              >
+                <button
+                  mat-icon-button
+                  (click)="toggleHistory(historyCtx)"
+                  [disabled]="noHistory && !historyShown"
+                >
+                  <mat-icon>{{
+                    historyShown ? 'history_toggle_off' : 'history'
+                  }}</mat-icon>
+                </button>
+              </span>
+            }
+            @let exportOffer = trackExportOffer();
+            @if (exportOffer) {
               <button
                 mat-icon-button
-                (click)="toggleHistory(historyCtx)"
-                [disabled]="noHistory && !historyShown"
+                (click)="exportTrack(exportOffer)"
+                [matTooltip]="
+                  isSelf() || !gpxExport.tailOnly(vesselId())
+                    ? 'Export track to GPX'
+                    : 'Export track to GPX (only the positions gathered while Freeboard was open)'
+                "
               >
-                <mat-icon>{{
-                  historyShown ? 'history_toggle_off' : 'history'
-                }}</mat-icon>
+                <mat-icon>download</mat-icon>
               </button>
-            </span>
-          }
-          @let exportOffer = trackExportOffer();
-          @if (exportOffer) {
+            }
+          </div>
+          <div style="text-align:right;">
             <button
               mat-icon-button
-              (click)="exportTrack(exportOffer)"
-              [matTooltip]="
-                isSelf() || !gpxExport.tailOnly(vessel().id)
-                  ? 'Export track to GPX'
-                  : 'Export track to GPX (only the positions gathered while Freeboard was open)'
-              "
+              (click)="handleInfo()"
+              matTooltip="Show Properties"
             >
-              <mat-icon>download</mat-icon>
+              <mat-icon>info_outline</mat-icon>
             </button>
-          }
+          </div>
         </div>
-        <div style="text-align:right;">
-          <button
-            mat-icon-button
-            (click)="handleInfo()"
-            matTooltip="Show Properties"
-          >
-            <mat-icon>info_outline</mat-icon>
-          </button>
-        </div>
-      </div>
-      <mat-divider></mat-divider>
-      @if (vessel().callsignVhf) {
-        <div style="display:flex;">
-          <div style="font-weight:bold;">Callsign (VHF):</div>
-          <div
-            style="flex: 1 1 auto;text-align:right;"
-            [innerText]="vessel().callsignVhf"
-          ></div>
-        </div>
-      } @else if (vessel().callsignHf) {
-        <div style="display:flex;">
-          <div style="font-weight:bold;">Callsign (HF):</div>
-          <div
-            style="flex: 1 1 auto;text-align:right;"
-            [innerText]="vessel().callsignHf"
-          ></div>
-        </div>
-      }
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Latitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            position[1] | coords: app.config.units.positionFormat : true
-          "
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Longitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="position[0] | coords: app.config.units.positionFormat"
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Last Position:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ positionTimestamp }}
-        </div>
-      </div>
-      @if (!isSelf()) {
-        @if (vessel().distanceToSelf) {
+        <mat-divider></mat-divider>
+        @if (v.callsignVhf) {
           <div style="display:flex;">
-            <div style="font-weight:bold;">Range:</div>
-            <div style="flex: 1 1 auto;text-align:right;">
-              {{ distToSelf }}
-            </div>
-          </div>
-        }
-        @if (vessel().closestApproach) {
-          <div style="display:flex;">
-            <div style="font-weight:bold;">CPA:</div>
-            <div style="flex: 1 1 auto;text-align:right;">
-              {{ cpa ?? '--' }}
-            </div>
-          </div>
-          <div style="display:flex;">
-            <div style="font-weight:bold;">TCPA:</div>
-            <div style="flex: 1 1 auto;text-align:right;">
-              {{ tcpa ?? '--' }}
-            </div>
-          </div>
-        }
-      }
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Last Update:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ timeLastUpdate }} {{ timeAgo }}
-        </div>
-      </div>
-      <div style="display:flex;flex-wrap:no-wrap;">
-        <div style="width:120px;">
-          <ap-compass
-            [heading]="convert.radiansToDegrees(vessel().orientation)"
-            [windtrue]="
-              vessel().wind.direction !== null
-                ? convert.radiansToDegrees(vessel().wind.direction)
-                : null
-            "
-            [windapparent]="
-              vessel().wind.awa !== null
-                ? convert.radiansToDegrees(vessel().wind.awa)
-                : null
-            "
-            [speed]="app.formatSpeed(vessel().sog)"
-            [speedunits]="app.formattedSpeedUnits"
-          >
-          </ap-compass>
-        </div>
-        <div style="text-align:right; flex:auto;">
-          &nbsp;<br />
-          <div>
-            <div style="border-right:olive 10px solid;padding-left: 5px;">
-              <span style="font-weight:bold">
-                Wind ({{ useMagnetic() ? 'M' : 'T' }}):</span
-              >
-            </div>
-            <div style="flex: 1 1 auto;text-align:right;">
-              {{ windSpeed(vessel().wind.tws, app.twsDisplayUnitPath()) }}
-            </div>
-          </div>
-          <div>
+            <div style="font-weight:bold;">Callsign (VHF):</div>
             <div
-              style="border-right:rgb(16, 75, 16) 10px solid;;padding-left: 5px;"
-            >
-              <span style="font-weight:bold;"> Wind (A):</span>
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="v.callsignVhf"
+            ></div>
+          </div>
+        } @else if (v.callsignHf) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Callsign (HF):</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="v.callsignHf"
+            ></div>
+          </div>
+        }
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Latitude:</div>
+          <div
+            style="flex: 1 1 auto;text-align:right;"
+            [innerText]="
+              position[1] | coords: app.config.units.positionFormat : true
+            "
+          ></div>
+        </div>
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Longitude:</div>
+          <div
+            style="flex: 1 1 auto;text-align:right;"
+            [innerText]="position[0] | coords: app.config.units.positionFormat"
+          ></div>
+        </div>
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Last Position:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ positionTimestamp }}
+          </div>
+        </div>
+        @if (!isSelf()) {
+          @if (v.distanceToSelf) {
+            <div style="display:flex;">
+              <div style="font-weight:bold;">Range:</div>
+              <div style="flex: 1 1 auto;text-align:right;">
+                {{ distToSelf }}
+              </div>
             </div>
-            <div style="flex: 1 1 auto;text-align:right;">
-              {{
-                windSpeed(vessel().wind.aws, 'environment.wind.speedApparent')
-              }}
+          }
+          @if (v.closestApproach) {
+            <div style="display:flex;">
+              <div style="font-weight:bold;">CPA:</div>
+              <div style="flex: 1 1 auto;text-align:right;">
+                {{ cpa ?? '--' }}
+              </div>
+            </div>
+            <div style="display:flex;">
+              <div style="font-weight:bold;">TCPA:</div>
+              <div style="flex: 1 1 auto;text-align:right;">
+                {{ tcpa ?? '--' }}
+              </div>
+            </div>
+          }
+        }
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Last Update:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ timeLastUpdate }} {{ timeAgo }}
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:no-wrap;">
+          <div style="width:120px;">
+            <ap-compass
+              [heading]="convert.radiansToDegrees(v.orientation)"
+              [windtrue]="
+                v.wind.direction !== null
+                  ? convert.radiansToDegrees(v.wind.direction)
+                  : null
+              "
+              [windapparent]="
+                v.wind.awa !== null
+                  ? convert.radiansToDegrees(v.wind.awa)
+                  : null
+              "
+              [speed]="app.formatSpeed(v.sog)"
+              [speedunits]="app.formattedSpeedUnits"
+            >
+            </ap-compass>
+          </div>
+          <div style="text-align:right; flex:auto;">
+            &nbsp;<br />
+            <div>
+              <div style="border-right:olive 10px solid;padding-left: 5px;">
+                <span style="font-weight:bold">
+                  Wind ({{ useMagnetic() ? 'M' : 'T' }}):</span
+                >
+              </div>
+              <div style="flex: 1 1 auto;text-align:right;">
+                {{ windSpeed(v.wind.tws, app.twsDisplayUnitPath()) }}
+              </div>
+            </div>
+            <div>
+              <div
+                style="border-right:rgb(16, 75, 16) 10px solid;;padding-left: 5px;"
+              >
+                <span style="font-weight:bold;"> Wind (A):</span>
+              </div>
+              <div style="flex: 1 1 auto;text-align:right;">
+                {{ windSpeed(v.wind.aws, 'environment.wind.speedApparent') }}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <!-- extension actions for this feature (plotterext actions) -->
-      <ng-content></ng-content>
-    </ap-popover>
+        <!-- extension actions for this feature (plotterext actions) -->
+        <ng-content></ng-content>
+      </ap-popover>
+    }
   `,
   styleUrls: []
 })
 export class VesselPopoverComponent {
   title = input<string>();
-  /** The template reads vessel() unguarded, so the methods it calls run only
-   * once a vessel is bound and may assert it. */
+  /** The template renders only once a vessel is bound, so the methods it
+   * calls may assert it. */
   vessel = input<SKVessel>();
   useMagnetic = input<boolean>();
   isActive = input<boolean>();
@@ -324,7 +326,7 @@ export class VesselPopoverComponent {
   private destroyRef = inject(DestroyRef);
 
   /** Vessels reach the map keyed by their id, so one shown here has an id. */
-  private vesselId(): string {
+  protected vesselId(): string {
     return this.vessel()!.id!;
   }
 
@@ -338,8 +340,8 @@ export class VesselPopoverComponent {
    * for `path` so wind speed can use a different unit than boat speed (#304).
    * Returns '--' when the value is unavailable.
    */
-  protected windSpeed(value: number, path: string): string {
-    return Number.isFinite(value)
+  protected windSpeed(value: number | null, path: string): string {
+    return value !== null && Number.isFinite(value)
       ? this.app.formatValueForDisplay(value, 'm/s', { path })
       : '--';
   }

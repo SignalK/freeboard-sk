@@ -51,7 +51,7 @@ interface FeatureDef {
               ></mat-icon>
             } @else {
               <mat-icon
-                [class]="f.icon.class"
+                [class]="f.icon.class ?? ''"
                 [ngClass]="{
                   'icon-warn': f.text && f.text.indexOf('self') !== -1
                 }"
@@ -68,8 +68,8 @@ interface FeatureDef {
   styleUrls: []
 })
 export class FeatureListPopoverComponent {
-  title = input<string>();
-  features = input<FeatureDef[]>([]);
+  title = input<string | null>();
+  features = input<FeatureDef[] | null>([]);
   canClose = input<boolean>();
   closed = output<void>();
   selected = output<FeatureDef>();

@@ -29,80 +29,82 @@ import { AppIconDef } from '../../icons';
     NorthUpCompassComponent
   ],
   template: `
-    <ap-popover
-      [title]="_title"
-      [canClose]="canClose()"
-      [icon]="_icon"
-      (closed)="handleClose()"
-    >
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Type:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ aton().type.name }}
-        </div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Latitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            aton().position[1] | coords: app.config.units.positionFormat : true
-          "
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Longitude:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            aton().position[0] | coords: app.config.units.positionFormat
-          "
-        ></div>
-      </div>
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Last Update:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ timeLastUpdate }} {{ timeAgo }}
-        </div>
-      </div>
-      @if (isMeteo && aton().temperature !== undefined) {
+    @if (aton(); as a) {
+      <ap-popover
+        [title]="_title"
+        [canClose]="canClose()"
+        [icon]="_icon"
+        (closed)="handleClose()"
+      >
         <div style="display:flex;">
-          <div style="font-weight:bold;">Temperature:</div>
+          <div style="font-weight:bold;">Type:</div>
           <div style="flex: 1 1 auto;text-align:right;">
-            {{ this.app.formatValueForDisplay(aton().temperature, 'K') }}
+            {{ a.type?.name }}
           </div>
         </div>
-      }
-      @if (isMeteo && aton().tws !== undefined && aton().twd !== undefined) {
-        <div style="display:flex;flex-wrap:no-wrap;">
-          <div style="font-weight:bold;">Wind:</div>
-          <div style="width:150px;">
-            <ap-compass-northup
-              [heading]="convert.radiansToDegrees(aton().twd)"
-              [speed]="app.formatSpeed(aton().tws)"
-              [label]="app.formattedSpeedUnits"
-              [windtrue]="true"
+        @if (a.position; as pos) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Latitude:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="
+                pos[1] | coords: app.config.units.positionFormat : true
+              "
+            ></div>
+          </div>
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Longitude:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="pos[0] | coords: app.config.units.positionFormat"
+            ></div>
+          </div>
+        }
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Last Update:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ timeLastUpdate }} {{ timeAgo }}
+          </div>
+        </div>
+        @if (isMeteo && a.temperature !== undefined) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Temperature:</div>
+            <div style="flex: 1 1 auto;text-align:right;">
+              {{ this.app.formatValueForDisplay(a.temperature, 'K') }}
+            </div>
+          </div>
+        }
+        @if (isMeteo && a.tws !== undefined && a.twd !== undefined) {
+          <div style="display:flex;flex-wrap:no-wrap;">
+            <div style="font-weight:bold;">Wind:</div>
+            <div style="width:150px;">
+              <ap-compass-northup
+                [heading]="convert.radiansToDegrees(a.twd)"
+                [speed]="app.formatSpeed(a.tws)"
+                [label]="app.formattedSpeedUnits"
+                [windtrue]="true"
+              >
+              </ap-compass-northup>
+            </div>
+          </div>
+        }
+        <div style="display:flex;">
+          <div style="flex:1 1 auto;">&nbsp;</div>
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="handleInfo()"
+              matTooltip="Show Properties"
             >
-            </ap-compass-northup>
+              <mat-icon>info_outline</mat-icon>
+              INFO
+            </button>
           </div>
         </div>
-      }
-      <div style="display:flex;">
-        <div style="flex:1 1 auto;">&nbsp;</div>
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="handleInfo()"
-            matTooltip="Show Properties"
-          >
-            <mat-icon>info_outline</mat-icon>
-            INFO
-          </button>
-        </div>
-      </div>
-      <!-- extension actions for this feature (plotterext actions) -->
-      <ng-content></ng-content>
-    </ap-popover>
+        <!-- extension actions for this feature (plotterext actions) -->
+        <ng-content></ng-content>
+      </ap-popover>
+    }
   `,
   styleUrls: []
 })
