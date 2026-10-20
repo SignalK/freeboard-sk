@@ -4,7 +4,7 @@ import {
   SKResourceService,
   SKResourceType
 } from '../skresources';
-import { FBResource } from 'src/app/types';
+import { DeltaSignal, FBResource } from 'src/app/types';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { ActiveRadar } from '../radar/radar-api.service';
 
@@ -41,26 +41,10 @@ export class InfoPanelFacade {
       if (np.length !== 3) {
         return;
       }
-      // read untracked: publishing the updated item below must not run this
-      // effect again for the same delta
+      // read untracked, as applyToItem() does: publishing an updated item
+      // must not run this effect again for the same delta
       const item = untracked(this._item);
-      if (np[1] === item?.type && np[2] === item?.id) {
-        if (!update.value) {
-          // deleted
-          this.close();
-        } else if (item.type !== 'radars') {
-          // radars are not resources, so no resources delta updates one;
-          // a resources.<type>.<id> delta carries that resource's definition
-          const resource = update.value as Parameters<
-            SKResourceService['transform']
-          >[1];
-          // transform() does not tie its result class to item.type
-          this._item.set({
-            ...item,
-            resource: this.skres.transform(item.type, resource, item.id)
-          } as InfoPanelItem);
-        }
-      }
+      this.applyToItem(update);
       if (np[1] === 'groups' || (np[1] === 'notes' && item?.type !== 'notes')) {
         this._related.set(`${np[1]}.${Date.now()}`);
       }
@@ -75,6 +59,15 @@ export class InfoPanelFacade {
     if (!id) {
       return;
     }
+    // a delta for it that arrives while fetching is newer than the fetched
+    // copy; the stream sees every delta, where the signal keeps only the last
+    let changed: DeltaSignal | undefined;
+    const deltas = this.worker.resourceDelta$().subscribe((update) => {
+      const np = update.path.split('.');
+      if (np.length === 3 && np[1] === resourceType && np[2] === id) {
+        changed = update;
+      }
+    });
     try {
       const r = await this.skres.fromServer(resourceType, id);
       if (r) {
@@ -83,10 +76,14 @@ export class InfoPanelFacade {
           this.skres.transform(resourceType, r, id),
           false
         ] as FBResource);
-        return;
+        if (changed) {
+          this.applyToItem(changed);
+        }
       }
     } catch {
       return;
+    } finally {
+      deltas.unsubscribe();
     }
   }
 
@@ -122,5 +119,29 @@ export class InfoPanelFacade {
   public close() {
     this._item.set(undefined);
     this._opened.set(false);
+  }
+
+  /** Apply a resources.<type>.<id> delta to the item, if it is the one
+   *  shown: a value replaces its resource, none means it was deleted. */
+  private applyToItem(update: DeltaSignal) {
+    const np = update.path.split('.');
+    const item = untracked(this._item);
+    if (np.length !== 3 || np[1] !== item?.type || np[2] !== item?.id) {
+      return;
+    }
+    if (!update.value) {
+      this.close();
+    } else if (item.type !== 'radars') {
+      // radars are not resources, so no resources delta updates one;
+      // a resources.<type>.<id> delta carries that resource's definition
+      const resource = update.value as Parameters<
+        SKResourceService['transform']
+      >[1];
+      // transform() does not tie its result class to item.type
+      this._item.set({
+        ...item,
+        resource: this.skres.transform(item.type, resource, item.id)
+      } as InfoPanelItem);
+    }
   }
 }
