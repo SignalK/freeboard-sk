@@ -405,7 +405,7 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
   readonly def = input.required<ExtWindow>();
 
   @ViewChild('frame', { static: true })
-  private frame: ElementRef<HTMLIFrameElement>;
+  private frame!: ElementRef<HTMLIFrameElement>;
 
   protected readonly resizeModes: GestureMode[] = [
     'n',
@@ -425,7 +425,7 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
   private zone = inject(NgZone);
   private el: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
 
-  protected src: SafeResourceUrl;
+  protected src?: SafeResourceUrl;
   private detach: (() => void) | null = null;
 
   /**

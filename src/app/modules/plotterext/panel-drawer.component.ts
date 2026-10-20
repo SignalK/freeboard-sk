@@ -56,18 +56,17 @@ export class PlotterPanelFrame implements OnInit, OnDestroy {
   invocation = input<ActionInvocation>();
 
   @ViewChild('frame', { static: true })
-  frame: ElementRef<HTMLIFrameElement>;
+  frame!: ElementRef<HTMLIFrameElement>;
 
-  url: SafeResourceUrl;
+  url?: SafeResourceUrl;
   private detach: (() => void) | null = null;
   private service = inject(PlotterExtensionService);
   private sanitizer = inject(DomSanitizer);
 
   ngOnInit() {
+    const { url } = this.panel();
     this.url = this.sanitizer.bypassSecurityTrustResourceUrl(
-      this.panel().url
-        ? this.service.resolveAssetUrl(this.panel().url)
-        : 'about:blank'
+      url ? this.service.resolveAssetUrl(url) : 'about:blank'
     );
     this.detach = this.service.attachPanel(this.frame.nativeElement, {
       extension: this.extension(),

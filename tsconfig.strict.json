@@ -32,6 +32,7 @@
     "src/app/modules/map/ol/lib/vessel",
     "src/app/modules/map/popovers",
     "src/app/modules/map/split-view",
+    "src/app/modules/plotterext",
     "src/app/modules/skresources/components/weather",
     "src/app/types"
   ],

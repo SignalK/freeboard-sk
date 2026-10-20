@@ -170,7 +170,7 @@ export class DataOverlayModel {
   skippedLayers(): SkippedLayer[] {
     const out: SkippedLayer[] = [];
     for (const [id, v] of this.verdicts) {
-      if (!v.drawable) {
+      if (!v.drawable && v.reason) {
         out.push({
           id,
           reason: v.reason,

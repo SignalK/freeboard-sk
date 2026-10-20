@@ -104,7 +104,7 @@ export class PlotterPanelDialog implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('frame')
   frame?: ElementRef<HTMLIFrameElement>;
 
-  url: SafeResourceUrl;
+  url?: SafeResourceUrl;
   private detach: (() => void) | null = null;
 
   constructor(

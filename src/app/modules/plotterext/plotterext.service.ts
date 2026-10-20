@@ -339,9 +339,9 @@ export class PlotterExtensionService {
     const a = this.extensionActions().find(
       (x) => x.extension === extension && x.action.id === actionId
     );
-    if (!a || !this.actionVisible(a)) return;
+    const action = a?.action.action;
+    if (!a || !action || !this.actionVisible(a)) return;
     const invocation: ActionInvocation = { actionId, target: sel.target };
-    const action = a.action.action;
     switch (action.type) {
       case 'publish':
       case 'sendMessage':
@@ -1813,20 +1813,21 @@ export class PlotterExtensionService {
     // buildRoute keeps only positions — carry the per-point names, descriptions
     // and waypoint links, and the route-level description, so they are not
     // silently dropped on save.
+    const properties = (route.feature.properties ??= {});
     const coordinatesMeta = coordinatesMetaFromPoints(buf.points);
     if (coordinatesMeta) {
-      route.feature.properties.coordinatesMeta = coordinatesMeta;
+      properties.coordinatesMeta = coordinatesMeta;
     }
     route.name = opts.name ?? buf.name ?? '';
     route.description = opts.description ?? buf.description ?? '';
     if (opts.temporary && !buf.href) {
-      route.feature.properties.temporary = temporaryRouteMarker(new Date());
+      properties.temporary = temporaryRouteMarker(new Date());
     }
     const stored = buf.href
       ? this.skres.fromCache('routes', buf.href)?.[1]
       : undefined;
     if (isTemporaryRoute(stored) && !opts.promote) {
-      route.feature.properties.temporary = stored.feature.properties.temporary;
+      properties.temporary = stored?.feature.properties?.temporary;
     }
     let savedId: string | null;
     if (buf.href) {
@@ -1857,10 +1858,10 @@ export class PlotterExtensionService {
       // Headless create: persist directly with the supplied (or buffer) name.
       try {
         const rte = await this.skres.postToServer('routes', route);
-        savedId = rte.id;
+        savedId = rte.id ?? null;
         // The dialog path (saveNewRoute) selects the new route; do the same for
         // the headless path so it stays displayed after a refresh.
-        this.skres.selectionAdd('routes', savedId);
+        if (savedId) this.skres.selectionAdd('routes', savedId);
       } catch (err) {
         this.app.parseHttpErrorResponse(err);
         throw new RpcError('Failed to save route', {

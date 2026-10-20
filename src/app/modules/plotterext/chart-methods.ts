@@ -172,9 +172,10 @@ export function createChartMethods(
         // A managed chart with no time dimension is a distinct error from a
         // stale id: the caller's list is fine, the chart just cannot be
         // retargeted.
-        const fixed = ids.find(
-          (id) => !deps.isTemporal(available.find((c) => c[0] === id))
-        );
+        const fixed = ids.find((id) => {
+          const chart = available.find((c) => c[0] === id);
+          return chart !== undefined && !deps.isTemporal(chart);
+        });
         if (fixed !== undefined) {
           throw new RpcError(`Chart has no time dimension: ${fixed}`, {
             reason: 'charts.notTemporal'
