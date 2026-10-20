@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@angular/core';
 
 import { FBMapComponent } from './fb-map.component';
+import { SKVessel } from '../skresources/resource-classes';
 
 // The popover of a vessel, AtoN, SaR beacon or aircraft closes once its target
 // is no longer received. Exercised on a bare prototype instance, as in
@@ -40,4 +41,58 @@ describe('FBMapComponent — popover target no longer received', () => {
     cmp.dfeat.atons.set('sar.urn:mrn:imo:mmsi:993456789', {});
     expect(cmp.popoverTargetGone()).toBe(true);
   });
+});
+
+describe('FBMapComponent — vessel update with the popover target gone', () => {
+  // onVessels() as the stream update reaches it: the app's lists are what the
+  // worker last posted.
+  const updatedComponent = (type: string, id: string) => {
+    const cmp = bareComponent(type, id);
+    cmp.dfeat.self = new SKVessel();
+    cmp.dfeat.navData = {};
+    cmp.app = {
+      data: {
+        vessels: {
+          self: new SKVessel(),
+          active: new SKVessel(),
+          aisTargets: new Map(),
+          closest: [],
+          cpaPositions: new Map()
+        },
+        aircraft: new Map(),
+        sar: new Map(),
+        meteo: new Map(),
+        atons: new Map()
+      }
+    };
+    cmp.course = { courseData: () => ({}) };
+    cmp.drawVesselLines = vi.fn();
+    cmp.rotateMap = vi.fn();
+    return cmp;
+  };
+
+  for (const [type, id] of [
+    ['aton', 'atons.urn:mrn:imo:mmsi:993456789'],
+    ['aton', 'sar.urn:mrn:imo:mmsi:970123456']
+  ]) {
+    it(`hides the ${id.split('.')[0]} popover once the update drops its target`, () => {
+      const cmp = updatedComponent(type, id);
+
+      cmp.onVessels();
+
+      expect(cmp.overlay().show).toBe(false);
+    });
+
+    it(`keeps the ${id.split('.')[0]} popover while the update still has its target`, () => {
+      const cmp = updatedComponent(type, id);
+      const list = id.startsWith('sar.')
+        ? cmp.app.data.sar
+        : cmp.app.data.atons;
+      list.set(id, {});
+
+      cmp.onVessels();
+
+      expect(cmp.overlay().show).toBe(true);
+    });
+  }
 });
