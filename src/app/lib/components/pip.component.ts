@@ -34,7 +34,7 @@ export class PiPVideoComponent implements OnInit {
   private pipWindow: any;
   pipMode = false;
   vidUrl?: string;
-  src = input<SafeResourceUrl>();
+  src = input<SafeResourceUrl | null>();
   muted = input<boolean>(true);
   _muted = linkedSignal(() => this.muted());
   resize = output<[number, number]>();
