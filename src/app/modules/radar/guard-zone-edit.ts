@@ -22,7 +22,7 @@ export const MIN_ZONE_DEPTH = 50;
 const FULL_TURN = 2 * Math.PI;
 // the sphere computeDestinationPoint() places the zone outlines on; reading
 // a distance back on the same sphere keeps handles under the finger
-const EARTH_RADIUS = 6371000;
+const EARTH_RADIUS = 6378137;
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 
 /** Great-circle distance (m) on the sphere the zones are drawn on. */
