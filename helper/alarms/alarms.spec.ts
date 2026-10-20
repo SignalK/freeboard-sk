@@ -506,9 +506,8 @@ describe('region alarm areas — Region resource shapes (#755)', () => {
 });
 
 // A hazard drawn across 180° has edges whose longitudes jump from +179.9 to
-// -179.9. geolib 3's isPointInPolygon read those edges as running the long way
-// round the globe, so the area covered the rest of its latitude band instead of
-// the strip around the dateline.
+// -179.9. Those edges cross the dateline the short way: the area is the strip
+// around 180°, not the rest of its latitude band.
 describe('area alarms across the antimeridian', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
