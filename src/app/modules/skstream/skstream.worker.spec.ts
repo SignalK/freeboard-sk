@@ -748,6 +748,37 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
     await fetchTrail(20, true, 'questdb');
     expect(urls).toHaveLength(3);
   });
+
+  it('keeps the older bands of the fetch that replaced a slower one', async () => {
+    const answers: Array<() => void> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) =>
+            answers.push(() =>
+              resolve({
+                ok: true,
+                json: () => Promise.resolve(line(0))
+              } as unknown as Response)
+            )
+          )
+      )
+    );
+    getVesselTrailV2(
+      tracks,
+      {
+        trailDuration: TRAIL_DURATION_ALL,
+        trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
+      },
+      'tracks'
+    );
+    expect(await fetchTrail(10, false)).toEqual([10, 11, 12]);
+    answers.forEach((answer) => answer());
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(await fetchTrail(20, true)).toEqual([10, 11, 20]);
+  });
 });
 
 describe('skstream.worker own trail — v1 resolution', () => {

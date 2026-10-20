@@ -636,6 +636,9 @@ export function getVesselTrailV2(
     )
   )
     .then((fcs) => {
+      if (!trailGate.isCurrent(token)) {
+        return;
+      }
       if (!reuse) {
         const recent = bands[bands.length - 1];
         olderBands = {
@@ -644,9 +647,6 @@ export function getVesselTrailV2(
           results: fcs.slice(0, -1),
           until: recent.from ? Date.parse(recent.from) : now
         };
-      }
-      if (!trailGate.isCurrent(token)) {
-        return;
       }
       msg.result = assembleTrail(
         fcs.map((fc) => parseSelfTrail(fc) ?? null),
