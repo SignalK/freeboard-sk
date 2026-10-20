@@ -20,9 +20,9 @@
 //
 // Its one action, the probe, is there to check what the host delivers when the
 // user chooses an action (capability `actions`). It applies to every target
-// kind, the scratch layer's features included, and starts hidden, so it is in no menu until an agent shows it with
-// fsk_set_action_visibility; the runtime records each choice
-// (fsk_list_action_invocations).
+// kind, the scratch layer's features included, and starts hidden, so it is in
+// no menu until an agent shows it with fsk_set_action_visibility; the runtime
+// records each choice (fsk_list_action_invocations).
 
 import pkg from '../package.json' with { type: 'json' };
 

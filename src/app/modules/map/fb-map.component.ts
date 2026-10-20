@@ -94,6 +94,7 @@ import {
   type TargetSources
 } from './map-targets';
 import type { OverlayHit } from './ol/lib/data-overlay/overlay-hits';
+import type { OverlayFeatureTarget } from 'signalk-plotterext-bus/host';
 import {
   SecondaryTap,
   SplitViewService
@@ -297,9 +298,11 @@ const OFFSET_GRACE_PERIOD = 2000;
 
 /**
  * Prefix of the ids Freeboard gives the data-overlay features it lists after a
- * click (capability `actions.overlay`). The ids are Freeboard's own, made per
- * click; an overlay feature's own id is the extension's and is never read as
- * one of the map's.
+ * click (capability `actions.overlay`), followed by the overlay, source and
+ * feature id. Only the prefix is read: an overlay feature's own id is the
+ * extension's and is never read as one of the map's. A list left open names
+ * its features by these ids, so a later click can make one unknown, never
+ * another feature.
  */
 const OVERLAY_FEATURE_ENTRY = 'overlay-feature.';
 
@@ -1010,12 +1013,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   private targetsAt(
     features: FeatureLike[],
-    overlayHits: OverlayHit[] = [],
+    overlayHits: OverlayHit[] | undefined,
     at: Position
   ): ChartTarget[] {
     const seen = new Set<string>();
     const targets: ChartTarget[] = [];
-    const overlays = this.overlayTargets(overlayHits, at);
+    const overlays = this.overlayTargets(overlayHits ?? [], at);
     let next = 0;
     features.forEach((feature, i) => {
       while (next < overlays.length && overlays[next].above <= i) {
@@ -2218,8 +2221,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         nextOverlay < overlays.length &&
         overlays[nextOverlay].above <= i
       ) {
-        const { target } = overlays[nextOverlay];
-        const id = `${OVERLAY_FEATURE_ENTRY}${nextOverlay++}`;
+        const { target } = overlays[nextOverlay++];
+        const t = target.target as OverlayFeatureTarget;
+        const id = `${OVERLAY_FEATURE_ENTRY}${t.overlayId}\n${t.source}\n${typeof t.featureId}:${t.featureId}`;
         this.overlayFeatures[id] = target;
         featureList.set(id, {
           id,

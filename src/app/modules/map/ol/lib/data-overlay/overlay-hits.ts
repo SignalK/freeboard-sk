@@ -18,7 +18,10 @@ export interface DataOverlayLayerTag {
   source: string;
   /** Whether its features are selectable. */
   interactive: boolean;
-  /** The source's `promoteId`: the property holding a feature's id. */
+  /**
+   * A vector source's `promoteId`: the property holding a feature's id. A
+   * GeoJSON feature's id is always its top-level `id`.
+   */
   promoteId?: unknown;
 }
 
@@ -54,10 +57,11 @@ const usableId = (v: unknown): v is string | number =>
   (typeof v === 'number' && Number.isFinite(v));
 
 /**
- * A data-overlay feature's id: its own (a GeoJSON feature's top-level `id`, a
- * vector tile feature's id), or the property the source's `promoteId` names,
- * as in the MapLibre Style Spec: one property for the source, or one per
- * source layer. Undefined when it has none, so it is not selectable.
+ * A data-overlay feature's id: a GeoJSON feature's top-level `id` (the id
+ * `overlay.setData` upserts and removes by), or for a vector tile feature its
+ * own id or the property the source's `promoteId` names, as in the MapLibre
+ * Style Spec: one property for the source, or one per source layer.
+ * Undefined when it has none, so it is not selectable.
  */
 export function overlayFeatureId(
   feature: FeatureLike,
@@ -65,7 +69,9 @@ export function overlayFeatureId(
 ): string | number | undefined {
   const props = feature.getProperties();
   let id: unknown;
-  if (typeof promoteId === 'string') {
+  if (feature instanceof Feature) {
+    id = feature.getId();
+  } else if (typeof promoteId === 'string') {
     id = props[promoteId];
   } else if (promoteId && typeof promoteId === 'object') {
     const byLayer = (promoteId as Record<string, unknown>)[

@@ -240,6 +240,34 @@ describe('FBMapComponent: selecting an interactive overlay feature', () => {
     expect(cmp.overlay().target.target.featureId).toBe(17);
   });
 
+  it('never resolves a list left open to a feature of a later click', () => {
+    const cmp = bareComponent({
+      buoys: [
+        ...manifests['buoys'],
+        {
+          id: 'open',
+          title: 'Open',
+          default: true,
+          targets: [
+            {
+              kind: 'overlayFeature',
+              match: [{ path: 'properties.kind', op: 'eq', value: 'buoy' }]
+            }
+          ],
+          action: publish
+        }
+      ]
+    });
+    click(cmp, [hit(17, { above: 1 })], [wptFeature()]);
+    const stale = cmp.overlay().content[1];
+    // a later click on another feature, whose default action runs
+    click(cmp, [hit(99, { properties: { kind: 'buoy' } })]);
+    expect(cmp.plotterExt.invokeAction).toHaveBeenCalledTimes(1);
+    // the first list's entry names feature 17, which that click did not hit
+    cmp.featureListSelection(stale);
+    expect(cmp.plotterExt.invokeAction).toHaveBeenCalledTimes(1);
+  });
+
   it('never mistakes an overlay feature for one of the map’s, whatever its id', () => {
     for (const id of ['waypoint.w1', 'anchor', 'dest.x', 'atons.urn:x']) {
       const cmp = bareComponent({ buoys: [] });

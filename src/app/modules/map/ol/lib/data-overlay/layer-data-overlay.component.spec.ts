@@ -248,16 +248,20 @@ describe('DataOverlayComponent', () => {
       );
     });
 
-    it('carries the source’s promoteId, and the tag to a split-view copy', () => {
+    it('carries a vector source’s promoteId, and the tag to a split-view copy', () => {
       const promoted = style();
-      (promoted.sources['soundings'] as Record<string, unknown>)['promoteId'] =
-        'code';
+      // a GeoJSON feature's id is its own: a geojson source's promoteId is not used
+      for (const src of ['soundings', 'isobars']) {
+        (promoted.sources[src] as Record<string, unknown>)['promoteId'] =
+          'code';
+      }
       component.model = new DataOverlayModel(promoted, 'http://sk.local');
       component.ngOnChanges({
         model: new SimpleChange(model, component.model, false)
       });
       const layers = interactive();
-      expect(tag(layers[1]).promoteId).toBe('code');
+      expect(tag(layers[0]).promoteId).toBe('code');
+      expect(tag(layers[1]).promoteId).toBeUndefined();
       const second = new OlMap({
         view: new View({ center: [0, 0], zoom: 12 })
       });

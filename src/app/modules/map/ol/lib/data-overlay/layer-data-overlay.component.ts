@@ -393,9 +393,13 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
       overlayKey: this.overlayKey,
       source,
       interactive,
-      promoteId: (
-        this.model.style.sources[source] as { promoteId?: unknown } | undefined
-      )?.promoteId
+      promoteId:
+        plan.type === 'geojson'
+          ? undefined
+          : (
+              this.model.style.sources[source] as
+                { promoteId?: unknown } | undefined
+            )?.promoteId
     };
     const properties = { [DATA_OVERLAY_LAYER]: tag };
     const olLayer =

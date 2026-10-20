@@ -787,8 +787,8 @@ drawn layers become OL layers in style order:
 - **`raster`** → canvas `TileLayer` over an `ImageTile` source.
 - **`fill` / `line` / `circle` / `symbol`** → one `VectorLayer` (geojson) or
   `VectorTileLayer` (MVT, 512-px grid) per run of consecutive layers on the same
-  source (and, for an interactive overlay, equally selectable), styled by ol-mapbox-style's `stylefunction`. It cannot evaluate
-  `global-state` (it evaluates with only zoom and distance-from-centre), so
+  source (and, for an interactive overlay, equally selectable), styled by
+  ol-mapbox-style's `stylefunction`. It cannot evaluate `global-state` (it evaluates with only zoom and distance-from-centre), so
   Freeboard **pre-resolves** it: `resolveLayer` replaces each `["global-state",
   name]` with `["get", name, ["literal", { name: value }]]` and every vector
   layer is re-styled on `overlay.setState`. `get` is typed `value` like
@@ -1065,15 +1065,16 @@ The map's clicks, right-clicks and long-presses (`map.component.ts`, and the
 split view's second pane) hit-test with `hitsAtPixel` instead of
 `getFeaturesAtPixel`. A layer tagged non-selectable is not hit-tested, so a
 click goes to what lies beneath it. A feature hit in a selectable layer goes
-into `overlayHits`, never into `features`, so no code that reads the map's
-own feature ids (`processMapClick`, `targetsAt`, route editing) ever sees it,
+into `overlayHits`, never into `features`, so the code that reads the map's
+own feature ids from a click (`processMapClick`, `targetsAt`) never sees it,
 whatever its id: `waypoint.x` or `anchor` from an extension is not misread.
 Each hit records how many of the map's features were hit above it, so the
 two lists merge back in hit order.
 
-The feature's id is its own (`getId()`: a GeoJSON feature's top-level `id`, a
-vector tile feature's id) or the property `promoteId` names (one for the
-source, or one per source layer). A string or a number is kept as it is; a
+The feature's id is a GeoJSON feature's top-level `id` (the id
+`overlay.setData` upserts by), or for a vector tile feature its own id or the
+property its source's `promoteId` names (one for the source, or one per
+source layer). A string or a number is kept as it is; a
 feature with no id is not selectable. Its `properties` leave out the geometry,
 and for a vector tile feature the `layer` key OL's MVT reader adds. A feature
 drawn by several selectable layers is hit once.
@@ -1093,8 +1094,10 @@ it has none.
 
 - **Select.** `processMapClick` lists a selectable feature only when at least
   one action applies to it; otherwise the click is handled as if the feature
-  were not there. A listed feature gets an entry id `overlay-feature.<n>`,
-  made per click and looked up in `overlayFeatures`. `formatPopover` for that
+  were not there. A listed feature gets an entry id: `overlay-feature.`
+  plus its overlay, source and feature id, looked up in the click's
+  `overlayFeatures`, so a list left open never resolves to a feature of a
+  later click. `formatPopover` for that
   id runs the first applying `default` action (and opens nothing), or opens
   an `overlayFeature` popover (`ap-popover` with `<fb-ext-actions>`). With
   several features under the pointer, overlay or Freeboard's own, the usual

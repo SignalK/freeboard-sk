@@ -137,13 +137,27 @@ describe('overlayFeatureId', () => {
     expect(overlayFeatureId(feature(0), undefined)).toBe(0);
   });
 
-  it('takes the property promoteId names, string or number', () => {
-    expect(overlayFeatureId(feature(1, { code: 'FWYF1' }), 'code')).toBe(
-      'FWYF1'
+  const tile = (props: Record<string, unknown>, id?: number) =>
+    new RenderFeature(
+      'Point',
+      [0, 0],
+      [],
+      2,
+      { layer: 'stations', ...props },
+      id
     );
-    expect(overlayFeatureId(feature(1, { wmo: 41009 }), 'wmo')).toBe(41009);
+
+  it('takes the property promoteId names on a vector tile feature', () => {
+    expect(overlayFeatureId(tile({ code: 'FWYF1' }, 9), 'code')).toBe('FWYF1');
+    expect(overlayFeatureId(tile({ wmo: 41009 }, 9), 'wmo')).toBe(41009);
     // promoteId names a property the feature lacks: no id, not selectable
-    expect(overlayFeatureId(feature(1, {}), 'code')).toBeUndefined();
+    expect(overlayFeatureId(tile({}, 9), 'code')).toBeUndefined();
+  });
+
+  it('keeps a GeoJSON feature’s top-level id, whatever promoteId says', () => {
+    expect(overlayFeatureId(feature('b17', { code: 'FWYF1' }), 'code')).toBe(
+      'b17'
+    );
   });
 
   it('takes a per-source-layer promoteId from a vector tile feature', () => {
@@ -161,8 +175,9 @@ describe('overlayFeatureId', () => {
   });
 
   it('has no id for an empty string or a non-finite number', () => {
-    expect(overlayFeatureId(feature(1, { code: '' }), 'code')).toBeUndefined();
-    expect(overlayFeatureId(feature(1, { n: NaN }), 'n')).toBeUndefined();
+    expect(overlayFeatureId(tile({ code: '' }), 'code')).toBeUndefined();
+    expect(overlayFeatureId(tile({ n: NaN }), 'n')).toBeUndefined();
+    expect(overlayFeatureId(feature(''), undefined)).toBeUndefined();
   });
 });
 

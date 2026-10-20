@@ -159,7 +159,11 @@ function usableConfigPanel(
 const positiveOrUndefined = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined;
 
-/** A manifest's `interactiveLayers` when it is a list of style layer ids. */
+/**
+ * A manifest's `interactiveLayers` when it is a list of style layer ids. It is
+ * the manifest's own array, never a copy: `entries` is recomputed on every
+ * show or fade, and a new array each time would rebuild the overlay's layers.
+ */
 const layerIds = (v: unknown): string[] | undefined =>
   Array.isArray(v) && v.every((id) => typeof id === 'string') ? v : undefined;
 
