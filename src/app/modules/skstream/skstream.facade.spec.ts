@@ -277,10 +277,18 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
     expect(trailRequests()).toBe(1);
   });
 
-  it('fetches it again when the view leaves the box it was fetched for', () => {
+  it('does not fetch it again for a pan by a whole view', () => {
     const { facade, trailRequests } = facadeWith();
     facade.postMapView(extent, 10.2);
     facade.postMapView([1, 50, 3, 51], 10.2);
+    facade.postMapView([-1, 51, 1, 52], 10.2);
+    expect(trailRequests()).toBe(1);
+  });
+
+  it('fetches it again when the view leaves the box it was fetched for', () => {
+    const { facade, trailRequests } = facadeWith();
+    facade.postMapView(extent, 10.2);
+    facade.postMapView([2, 50, 4, 51], 10.2);
     expect(trailRequests()).toBe(2);
   });
 
@@ -318,7 +326,7 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
   it('does not fetch a trail of a fixed length again for a pan out of the box', () => {
     const { facade, trailRequests } = facadeWith({ trailDuration: 24 });
     facade.postMapView(extent, 10.2);
-    facade.postMapView([1, 50, 3, 51], 10.2);
+    facade.postMapView([2, 50, 4, 51], 10.2);
     expect(trailRequests()).toBe(1);
   });
 
