@@ -39,7 +39,7 @@ import { AsyncSubject } from 'rxjs';
   standalone: false
 })
 export class LayerComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
+  protected layer?: Layer;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public source: any;
 
@@ -49,20 +49,20 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() layerType: LayerType;
-  @Input() sourceType: SourceType;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() layerType?: LayerType;
+  @Input() sourceType?: SourceType;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() sourceOptions: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() style: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() properties: { [index: string]: any };
+  @Input() properties?: { [index: string]: any };
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -133,11 +133,11 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
-  getLayer(): Layer {
+  getLayer(): Layer | undefined {
     return this.layer;
   }
 
@@ -145,23 +145,23 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
     return this.mapComponent.getMap();
   }
 
-  getSource(): Source {
-    let olSource = this.layer.getSource();
+  getSource(): Source | null | undefined {
+    let olSource = this.layer?.getSource();
     if (olSource instanceof Cluster) {
       olSource = olSource.getSource();
     }
     return olSource;
   }
 
-  getUrl(): string {
+  getUrl(): string | undefined {
     if (this.source instanceof ImageWMS) {
       return this.source.getUrl();
     }
     if (this.source instanceof WMTS) {
-      return this.source.getUrls()[0];
+      return this.source.getUrls()?.[0];
     }
     if (this.source instanceof TileWMS) {
-      return this.source.getUrls()[0];
+      return this.source.getUrls()?.[0];
     } else {
       return '';
     }

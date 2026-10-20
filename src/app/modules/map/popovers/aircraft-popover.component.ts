@@ -88,14 +88,14 @@ import { SKAircraft } from 'src/app/modules';
   styleUrls: []
 })
 export class AircraftPopoverComponent {
-  @Input() title: string;
-  @Input() aircraft: SKAircraft;
-  @Input() canClose: boolean;
+  @Input() title?: string;
+  @Input() aircraft?: SKAircraft;
+  @Input() canClose?: boolean;
   @Output() info: EventEmitter<string> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
-  _title: string;
-  timeLastUpdate: string;
-  timeAgo: string; // last update in minutes ago
+  _title?: string;
+  timeLastUpdate?: string;
+  timeAgo?: string; // last update in minutes ago
 
   protected app = inject(AppFacade);
 
@@ -121,6 +121,9 @@ export class AircraftPopoverComponent {
     this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
   }
   handleInfo() {
+    if (!this.aircraft) {
+      return;
+    }
     this.info.emit(this.aircraft.id);
   }
   handleClose() {

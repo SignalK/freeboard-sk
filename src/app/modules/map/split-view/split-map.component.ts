@@ -146,8 +146,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private panelSize: ResizeObserver | undefined;
   private gripFrame = 0;
   private gripRatio: number | null = null;
-  private vessels: Subscription;
-  private commands: Subscription;
+  private vessels: Subscription | undefined;
+  private commands: Subscription | undefined;
   private pressedAt = 0;
   private gripRect: DOMRect | null = null;
   private gripPanel: [number, number] | null = null;
@@ -293,9 +293,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
    * toolbar action; only focus the user moved with Tab.
    */
   private activateOnUse(map: OlMap, pane: SplitPane): () => void {
-    const viewport = map.getViewport();
+    // OL creates both elements when it creates the map
+    const viewport = map.getViewport()!;
     const onChart = (e: Event) =>
-      !map.getOverlayContainerStopEvent().contains(e.target as Node);
+      !map.getOverlayContainerStopEvent()!.contains(e.target as Node);
     const onPress = (e: PointerEvent) => {
       if (onChart(e)) {
         this.split.activate(pane);
@@ -448,7 +449,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
    * a popover on it, which does not make the pane the active one.
    */
   protected onKeydown(e: KeyboardEvent) {
-    if (!this.map?.getOverlayContainerStopEvent().contains(e.target as Node)) {
+    if (
+      // OL creates the element when it creates the map
+      !this.map?.getOverlayContainerStopEvent()!.contains(e.target as Node)
+    ) {
       this.split.activate('secondary');
     }
     const direction = zoomKeyDirection(e);
@@ -760,8 +764,9 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     // In the primary world, so the pane's wrapped copies show it wherever the
     // main chart has been panned to: OL repeats it only one world either side.
     const view = main.getView();
+    // a map that has rendered a footprint has a center
     const offset = worldCopyOffset(
-      view.getCenter()[0],
+      view.getCenter()![0],
       getWidth(view.getProjection().getExtent())
     );
     this.footprint.set(ring.map(([x, y]) => [x - offset, y]));

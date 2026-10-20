@@ -64,7 +64,7 @@ describe('choosePopoverPlacement (#827)', () => {
       metrics(330, { bottom: 360, height: 400 })
     );
     expect(layout).toEqual({ placement: 'top', maxHeight: 320 });
-    expect(330 - POPOVER_ANCHOR_GAP - layout.maxHeight).toBeGreaterThanOrEqual(
+    expect(330 - POPOVER_ANCHOR_GAP - layout.maxHeight!).toBeGreaterThanOrEqual(
       0
     );
   });

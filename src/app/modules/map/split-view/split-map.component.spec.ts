@@ -79,7 +79,7 @@ describe('SplitMapComponent: choosing the active pane', () => {
     const map = new OlMap();
     cmp.activateOnUse(map, 'secondary');
 
-    press(map.getViewport());
+    press(map.getViewport()!);
 
     expect(cmp.split.activate).toHaveBeenCalledWith('secondary');
   });
@@ -88,7 +88,7 @@ describe('SplitMapComponent: choosing the active pane', () => {
     const cmp = bareComponent();
     const map = new OlMap();
     const button = document.createElement('button');
-    map.getOverlayContainerStopEvent().appendChild(button);
+    map.getOverlayContainerStopEvent()!.appendChild(button);
     cmp.activateOnUse(map, 'main');
 
     press(button);
@@ -102,7 +102,7 @@ describe('SplitMapComponent: choosing the active pane', () => {
     const stop = cmp.activateOnUse(map, 'secondary');
 
     stop();
-    press(map.getViewport());
+    press(map.getViewport()!);
 
     expect(cmp.split.activate).not.toHaveBeenCalled();
   });
@@ -128,7 +128,7 @@ describe('SplitMapComponent: where the pane opens', () => {
     };
     cmp.heading = signal(0);
     cmp.split.lastView = () => ({
-      zoom: null as number,
+      zoom: null as number | null,
       center: o.stored ?? null
     });
     cmp.split.commands$ = new Subject();
@@ -250,7 +250,7 @@ describe('SplitMapComponent: the divider', () => {
         // An inline wrapper, as an Angular ol-control element is.
         const wrapper = document.createElement('span');
         wrapper.append(el);
-        map.getOverlayContainerStopEvent().append(wrapper);
+        map.getOverlayContainerStopEvent()!.append(wrapper);
         return el;
       };
       const pinned = control(() => 10);
@@ -594,11 +594,11 @@ describe('SplitMapComponent: keyboard focus', () => {
     const cmp = bareComponent();
     const map = new OlMap();
     const target = document.createElement('div');
-    target.appendChild(map.getViewport());
+    target.appendChild(map.getViewport()!);
     map.getTargetElement = () => target;
     cmp.activateOnUse(map, 'secondary');
     const focused = () =>
-      map.getViewport().dispatchEvent(new Event('focusin', { bubbles: true }));
+      map.getViewport()!.dispatchEvent(new Event('focusin', { bubbles: true }));
     return { cmp, focused, target };
   };
 

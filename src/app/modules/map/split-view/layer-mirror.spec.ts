@@ -25,6 +25,9 @@ import {
 import { ON_TWIN } from '../ol/lib/util';
 import { mirrorLayers } from './layer-mirror';
 
+/** OL's typings demand a render target, but a layer can draw without one. */
+const noTarget = null as unknown as HTMLElement;
+
 const vectorLayer = (id: string, zIndex = 0) => {
   const layer = new VectorLayer({
     source: new VectorSource<Feature>({
@@ -189,7 +192,7 @@ describe('mirrorLayers', () => {
     const main = new OlMap();
     const routes = vectorLayer('routes');
     main.addLayer(routes);
-    const source = routes.getSource();
+    const source = routes.getSource()!;
     const before = source.getListeners('change')?.length ?? 0;
     const second = new OlMap();
 
@@ -243,9 +246,9 @@ describe('mirrorLayers', () => {
     const frame = (resolution: number) =>
       ({ viewState: { resolution } }) as unknown as FrameState;
 
-    twin.render(frame(1000), null);
-    background.render(frame(10), null);
-    const drawn = twin.render(frame(1000), null);
+    twin.render(frame(1000), noTarget);
+    background.render(frame(10), noTarget);
+    const drawn = twin.render(frame(1000), noTarget)!;
 
     expect(drawn).not.toBe(div);
     expect(drawn.className).toBe('ol-mapbox-style-background');
@@ -268,8 +271,8 @@ describe('mirrorLayers', () => {
     background.on('change', redrawn);
     const frame = { viewState: { resolution: 1000 } } as unknown as FrameState;
 
-    twin.render(frame, null);
-    twin.render(frame, null);
+    twin.render(frame, noTarget);
+    twin.render(frame, noTarget);
 
     expect(redrawn).toHaveBeenCalledTimes(1);
   });
@@ -310,7 +313,7 @@ describe('mirrorLayers', () => {
   it('hands a layer that asks for it each twin, and tells it once the twin is gone', () => {
     const main = new OlMap();
     const overlay = new ImageLayer();
-    let twin: BaseLayer;
+    let twin: BaseLayer | undefined;
     let inPaneWhenGone: boolean | undefined;
     const second = new OlMap();
     const onTwin = vi.fn((t: BaseLayer) => {
@@ -323,7 +326,7 @@ describe('mirrorLayers', () => {
     mirrorLayers(main, second);
     expect(onTwin).toHaveBeenCalledTimes(1);
     expect(twinsOn(second)).toEqual([twin]);
-    expect(twin.get(ON_TWIN)).toBeUndefined();
+    expect(twin!.get(ON_TWIN)).toBeUndefined();
 
     main.removeLayer(overlay);
     expect(inPaneWhenGone).toBe(false);

@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit
 } from '@angular/core';
+import { Map as OlMap } from 'ol';
 import { Control } from 'ol/control';
 import { MapComponent } from './map.component';
 
@@ -16,8 +17,10 @@ import { MapComponent } from './map.component';
   standalone: false
 })
 export class ControlComponent implements OnInit, OnDestroy {
-  protected control: Control;
-  public element: HTMLElement;
+  protected control?: Control;
+  public element?: HTMLElement;
+  /** Kept: the map is gone from its component by the time this one goes. */
+  private map?: OlMap;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -31,14 +34,16 @@ export class ControlComponent implements OnInit, OnDestroy {
     if (this.elementRef.nativeElement) {
       this.element = this.elementRef.nativeElement;
       this.control = new Control({ element: this.element });
-      this.mapComponent.getMap().addControl(this.control);
+      this.map = this.mapComponent.getMap();
+      this.map.addControl(this.control);
     }
   }
 
   ngOnDestroy() {
     if (this.control) {
-      this.mapComponent.getMap().removeControl(this.control);
-      this.control = null;
+      this.map?.removeControl(this.control);
+      this.control = undefined;
     }
+    this.map = undefined;
   }
 }

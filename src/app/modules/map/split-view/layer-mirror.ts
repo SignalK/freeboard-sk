@@ -53,10 +53,12 @@ function elementTwin(layer: Layer): Layer {
   const own = document.createElement('div');
   let theirs: HTMLElement | null = null;
   return new Layer({
-    source: layer.getSource(),
+    source: layer.getSource() ?? undefined,
     render: (frameState: FrameState) => {
       const before = theirs?.style.cssText;
-      const drawn = layer.render(frameState, null);
+      // OL's typings demand a target, but without one the layer draws into
+      // an element of its own, which is what is copied here
+      const drawn = layer.render(frameState, null as unknown as HTMLElement);
       if (drawn instanceof HTMLElement) {
         theirs = drawn;
         own.className = drawn.className;
@@ -111,7 +113,10 @@ function createTwin(
   // hands its twin the style through ON_TWIN.
   if (layer instanceof WebGLTileLayer) {
     return {
-      twin: new WebGLTileLayer({ className, source: layer.getSource() })
+      twin: new WebGLTileLayer({
+        className,
+        source: layer.getSource() ?? undefined
+      })
     };
   }
   if (layer instanceof TileLayer) {

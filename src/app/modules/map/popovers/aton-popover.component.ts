@@ -108,49 +108,50 @@ import { AppIconDef } from '../../icons';
 })
 export class AtoNPopoverComponent {
   title = input<string>();
-  /** An AtoN, or a meteo station, which adds wind and temperature. */
+  /** An AtoN, or a meteo station, which adds wind and temperature. Both reach
+   * the map keyed by their id, so one shown here always has an id. */
   aton = input<
     SKAtoN & Partial<Pick<SKMeteo, 'twd' | 'tws' | 'temperature'>>
   >();
   canClose = input<boolean>();
   info = output<string>();
   closed = output<void>();
-  _title: string;
-  _icon: AppIconDef;
-  timeLastUpdate: string;
-  timeAgo: string; // last update in minutes ago
+  _title?: string;
+  _icon?: AppIconDef;
+  timeLastUpdate?: string;
+  timeAgo?: string; // last update in minutes ago
   protected convert = Convert;
-  isMeteo: boolean;
+  isMeteo?: boolean;
 
   protected app = inject(AppFacade);
 
   constructor() {
     effect(() => {
-      if (!this.aton()) {
+      const aton = this.aton();
+      if (!aton) {
         this.handleClose();
         return;
       }
-      this._title =
-        this.title() || this.aton().name || this.aton().mmsi || 'AtoN:';
-      this.isMeteo = this.aton().id.includes('meteo');
+      this._title = this.title() || aton.name || aton.mmsi || 'AtoN:';
+      this.isMeteo = aton.id!.includes('meteo');
       this._icon = {
         name: this.isMeteo ? 'air' : 'beenhere',
         svgIcon: undefined
       };
-      this.timeLastUpdate = `${this.aton().lastUpdated.getHours()}:${(
-        '00' + this.aton().lastUpdated.getMinutes()
+      this.timeLastUpdate = `${aton.lastUpdated.getHours()}:${(
+        '00' + aton.lastUpdated.getMinutes()
       ).slice(-2)}`;
-      const td =
-        (new Date().valueOf() - this.aton().lastUpdated.valueOf()) / 1000;
+      const td = (new Date().valueOf() - aton.lastUpdated.valueOf()) / 1000;
       this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
     });
   }
 
   ngOnInit() {
-    if (!this.aton()) {
+    const aton = this.aton();
+    if (!aton) {
       this.handleClose();
     } else {
-      this.isMeteo = this.aton().id.includes('meteo');
+      this.isMeteo = aton.id!.includes('meteo');
       this._icon = {
         name: this.isMeteo ? 'air' : 'beenhere',
         svgIcon: undefined
@@ -159,7 +160,11 @@ export class AtoNPopoverComponent {
   }
 
   handleInfo() {
-    this.info.emit(this.aton().id);
+    const aton = this.aton();
+    if (!aton) {
+      return;
+    }
+    this.info.emit(aton.id!);
   }
   handleClose() {
     this.closed.emit();

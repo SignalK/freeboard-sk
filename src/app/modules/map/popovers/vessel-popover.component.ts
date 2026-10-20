@@ -291,6 +291,8 @@ import {
 })
 export class VesselPopoverComponent {
   title = input<string>();
+  /** The template reads vessel() unguarded, so the methods it calls run only
+   * once a vessel is bound and may assert it. */
   vessel = input<SKVessel>();
   useMagnetic = input<boolean>();
   isActive = input<boolean>();
@@ -301,15 +303,15 @@ export class VesselPopoverComponent {
   focused = output<boolean>();
   markPosition = output<Position>();
 
-  protected _title: string;
-  protected _icon: AppIconDef;
+  protected _title?: string;
+  protected _icon?: AppIconDef;
   protected convert = Convert;
-  protected timeLastUpdate: string;
-  protected timeAgo: string; // last update in minutes ago
-  protected speedUnits: string;
-  protected distToSelf: string;
-  protected cpa: string;
-  protected tcpa: string;
+  protected timeLastUpdate?: string;
+  protected timeAgo?: string; // last update in minutes ago
+  protected speedUnits?: string;
+  protected distToSelf?: string;
+  protected cpa?: string;
+  protected tcpa?: string;
 
   protected position: Position = [0, 0];
   protected positionTimestamp = '';
@@ -321,9 +323,14 @@ export class VesselPopoverComponent {
   protected gpxExport = inject(GPXExportService);
   private destroyRef = inject(DestroyRef);
 
+  /** Vessels reach the map keyed by their id, so one shown here has an id. */
+  private vesselId(): string {
+    return this.vessel()!.id!;
+  }
+
   /** The Track API context: the own vessel is asked for as `self`. */
   protected historyContext(): string {
-    return this.isSelf() ? 'self' : this.vessel().id;
+    return this.isSelf() ? 'self' : this.vesselId();
   }
 
   /**
@@ -340,53 +347,57 @@ export class VesselPopoverComponent {
   constructor() {
     this.trackHistory.refreshRecorded();
     effect(() => {
-      if (!this.vessel()) {
+      const vessel = this.vessel();
+      if (!vessel) {
         this.handleClose();
         return;
       }
-      this.isFlagged = this.app.data.vessels.flagged.includes(this.vessel().id);
+      this.isFlagged = this.app.data.vessels.flagged.includes(this.vesselId());
       this._title =
         this.title() ??
-        this.vessel().name ??
-        this.vessel().mmsi ??
-        this.vessel().callsignVhf ??
-        this.vessel().callsignHf ??
+        vessel.name ??
+        vessel.mmsi ??
+        vessel.callsignVhf ??
+        vessel.callsignHf ??
         'Vessel:';
-      this._icon = this.vessel().type?.id
-        ? getAisIcon(this.vessel().type?.id)
+      this._icon = vessel.type?.id
+        ? getAisIcon(vessel.type?.id)
         : {
             name: 'directions_boat',
             svgIcon: undefined
           };
-      this.position = [this.vessel().position[0], this.vessel().position[1]];
-      this.position = GeoUtils.normaliseCoords(this.position);
-      if (this.vessel().positionTimestamp) {
-        const pts = new Date(this.vessel().positionTimestamp);
+      if (vessel.position) {
+        this.position = [vessel.position[0], vessel.position[1]];
+        this.position = GeoUtils.normaliseCoords(this.position);
+      }
+      if (vessel.positionTimestamp) {
+        const pts = new Date(vessel.positionTimestamp);
         this.positionTimestamp = `${pts.getHours()}:${(
           '00' + pts.getMinutes()
         ).slice(-2)}`;
       }
 
-      this.timeLastUpdate = `${this.vessel().lastUpdated.getHours()}:${(
-        '00' + this.vessel().lastUpdated.getMinutes()
+      this.timeLastUpdate = `${vessel.lastUpdated.getHours()}:${(
+        '00' + vessel.lastUpdated.getMinutes()
       ).slice(-2)}`;
-      const td =
-        (new Date().valueOf() - this.vessel().lastUpdated.valueOf()) / 1000;
+      const td = (new Date().valueOf() - vessel.lastUpdated.valueOf()) / 1000;
       this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
       this.distToSelf = this.app.formatValueForDisplay(
-        this.vessel().distanceToSelf,
+        // formatValueForDisplay() renders a missing value itself
+        vessel.distanceToSelf as number,
         'm'
       );
-      if (this.vessel().closestApproach) {
-        if (typeof this.vessel().closestApproach.distance === 'number') {
+      const closestApproach = vessel.closestApproach;
+      if (closestApproach) {
+        if (typeof closestApproach.distance === 'number') {
           this.cpa = this.app.formatValueForDisplay(
-            this.vessel().closestApproach.distance,
+            closestApproach.distance,
             'm'
           );
         }
-        if (typeof this.vessel().closestApproach.timeTo === 'number') {
+        if (typeof closestApproach.timeTo === 'number') {
           this.tcpa = this.app.formatValueForDisplay(
-            this.vessel().closestApproach.timeTo,
+            closestApproach.timeTo,
             's'
           );
         }
@@ -395,19 +406,24 @@ export class VesselPopoverComponent {
   }
 
   ngOnInit() {
-    if (!this.vessel()) {
+    const vessel = this.vessel();
+    if (!vessel) {
       this.handleClose();
       return;
     }
-    this.isFlagged = this.app.data.vessels.flagged.includes(this.vessel().id);
+    this.isFlagged = this.app.data.vessels.flagged.includes(this.vesselId());
   }
 
   handleMarkPosition() {
-    this.markPosition.emit(this.vessel().position);
+    const position = this.vessel()!.position;
+    if (!position) {
+      return;
+    }
+    this.markPosition.emit(position);
   }
 
   handleInfo() {
-    this.info.emit(this.vessel().id);
+    this.info.emit(this.vesselId());
   }
 
   focusVessel(setFocus: boolean) {
@@ -416,8 +432,8 @@ export class VesselPopoverComponent {
   }
 
   toggleBuddy() {
-    const urn = this.vessel().id.split('.').slice(1).join('.');
-    if (this.vessel().buddy) {
+    const urn = this.vesselId().split('.').slice(1).join('.');
+    if (this.vessel()!.buddy) {
       this.buddies
         .remove(urn)
         .pipe(takeUntilDestroyed(this.destroyRef))
@@ -432,9 +448,9 @@ export class VesselPopoverComponent {
         );
     } else {
       const name =
-        this.vessel().name ??
-        this.vessel().mmsi ??
-        this.vessel().callsignVhf ??
+        this.vessel()!.name ??
+        this.vessel()!.mmsi ??
+        this.vessel()!.callsignVhf ??
         urn.slice(-5);
       this.buddies
         .add(urn, name)
@@ -451,7 +467,7 @@ export class VesselPopoverComponent {
   }
 
   toggleTrack() {
-    this.app.toggleVesselTrack(this.vessel().id);
+    this.app.toggleVesselTrack(this.vesselId());
   }
 
   /** A vessel's track can be exported while it is displayed, as its track
@@ -467,7 +483,7 @@ export class VesselPopoverComponent {
           this.trackHistory.available() && this.trackHistory.isShown('self')
       });
     }
-    const id = this.vessel().id;
+    const id = this.vesselId();
     return vesselExportOffer({
       trackDisplayed: aisTrackDisplayed({
         showAll: this.app.config.vessels.aisShowTrack,
@@ -485,7 +501,7 @@ export class VesselPopoverComponent {
     if (this.isSelf()) {
       this.gpxExport.exportOwnTrail(choice);
     } else {
-      this.gpxExport.exportVesselTrack(this.vessel().id, choice);
+      this.gpxExport.exportVesselTrack(this.vesselId(), choice);
     }
   }
 
@@ -503,8 +519,8 @@ export class VesselPopoverComponent {
     if (this.isFlagged) {
       this.removeFlag();
     } else {
-      if (!this.app.data.vessels.flagged.includes(this.vessel().id)) {
-        this.app.data.vessels.flagged = [this.vessel().id].concat(
+      if (!this.app.data.vessels.flagged.includes(this.vesselId())) {
+        this.app.data.vessels.flagged = [this.vesselId()].concat(
           this.app.data.vessels.flagged
         );
       }
@@ -514,12 +530,14 @@ export class VesselPopoverComponent {
   }
 
   private removeFlag() {
-    if (this.app.data.vessels.flagged.includes(this.vessel().id)) {
+    if (this.app.data.vessels.flagged.includes(this.vesselId())) {
       this.app.data.vessels.flagged.splice(
-        this.app.data.vessels.flagged.indexOf(this.vessel().id),
+        this.app.data.vessels.flagged.indexOf(this.vesselId()),
         1
       );
-      this.app.data.vessels.flagged = [].concat(this.app.data.vessels.flagged);
+      this.app.data.vessels.flagged = ([] as string[]).concat(
+        this.app.data.vessels.flagged
+      );
     }
   }
 

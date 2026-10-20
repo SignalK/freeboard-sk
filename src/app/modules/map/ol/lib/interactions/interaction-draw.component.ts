@@ -110,8 +110,8 @@ export class InteractionDrawComponent {
   }
 
   @Input() type = 'LineString';
-  @Input() style: StyleLike;
-  @Input() stopClick: boolean;
+  @Input() style?: StyleLike;
+  @Input() stopClick?: boolean;
   /** Snap drawn points to the waypoints shown on the map. */
   @Input() snapToWaypoints = false;
 
@@ -120,8 +120,9 @@ export class InteractionDrawComponent {
   @Output() drawEnd: EventEmitter<DrawEvent> = new EventEmitter();
   @Output() drawAbort: EventEmitter<DrawEvent> = new EventEmitter();
 
-  private map: Map;
-  private interaction: Draw;
+  // Set in ngAfterViewInit; the parent map exists from its own ngOnInit.
+  private map!: Map;
+  private interaction: Draw | null = null;
 
   ngAfterViewInit() {
     this.map = this.mapComponent.getMap();
@@ -129,11 +130,15 @@ export class InteractionDrawComponent {
   }
 
   ngOnDestroy() {
-    this.map.removeInteraction(this.interaction);
-    this.interaction.un('change', this.emitChangeEvent);
-    this.interaction.un('drawstart', this.emitDrawStartEvent);
-    this.interaction.un('drawend', this.emitDrawEndEvent);
-    this.interaction.un('drawabort', this.emitDrawAbortEvent);
+    const interaction = this.interaction;
+    if (!interaction) {
+      return;
+    }
+    this.map.removeInteraction(interaction);
+    interaction.un('change', this.emitChangeEvent);
+    interaction.un('drawstart', this.emitDrawStartEvent);
+    interaction.un('drawend', this.emitDrawEndEvent);
+    interaction.un('drawabort', this.emitDrawAbortEvent);
     this.interaction = null;
   }
 

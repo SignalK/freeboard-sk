@@ -52,8 +52,8 @@ import { FrameBitmaps, frameSource } from './frame-bitmaps';
 })
 export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
   /** `<extension>/<overlay id>` */
-  @Input() overlayKey: string;
-  @Input() zIndex: number;
+  @Input({ required: true }) overlayKey!: string;
+  @Input({ required: true }) zIndex!: number;
   @Input() opacity = 1;
   @Input() minZoom: number | undefined;
   @Input() maxZoom: number | undefined;
@@ -64,7 +64,8 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
 
   private layer: ImageLayer<ImageSource> | null = null;
   private readonly twins = new Set<Layer>();
-  private projection = getProjection('EPSG:3857');
+  // OL registers EPSG:3857 itself
+  private projection = getProjection('EPSG:3857')!;
   private readonly bitmaps = new FrameBitmaps();
   private lastRequested: RequestedView | null = null;
   private hasFrame = false;

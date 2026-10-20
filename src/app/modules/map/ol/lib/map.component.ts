@@ -140,7 +140,7 @@ export const zoomOffsetLevel = [
   standalone: false
 })
 export class MapComponent implements OnInit, OnDestroy {
-  private map: Map;
+  private map?: Map;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timeoutId: any;
 
@@ -184,11 +184,11 @@ export class MapComponent implements OnInit, OnDestroy {
   @Output() mapPropertyChange: EventEmitter<ObjectEvent> =
     new EventEmitter<ObjectEvent>();
 
-  @Input() pixelRatio: number;
-  @Input() keyboardEventTarget: Element | string;
-  @Input() logo: string | boolean;
+  @Input() pixelRatio?: number;
+  @Input() keyboardEventTarget?: Element | string;
+  @Input() logo?: string | boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() properties: { [index: string]: any };
+  @Input() properties?: { [index: string]: any };
   @Input() setFocus = '';
   @Input() hitTolerance = HIT_TOLERANCE;
   @Input() touchHitTolerance = TOUCH_HIT_TOLERANCE;
@@ -216,14 +216,15 @@ export class MapComponent implements OnInit, OnDestroy {
     // outside the zone eliminates that; the specific handlers that must update
     // Angular state re-enter the zone via ngZone.run() (see below).
     this.ngZone.runOutsideAngular(() => {
-      this.map = new Map();
-      this.map.setTarget(target);
-      this.map.setProperties(this.properties, true);
+      const map = new Map();
+      this.map = map;
+      map.setTarget(target);
+      map.setProperties(this.properties ?? {}, true);
       // register the map in the injectable mapService
-      this.mapService.addMap(this.map, this.secondary);
+      this.mapService.addMap(map, this.secondary);
 
-      this.map.once('postrender', () => {
-        this.afterMapReady();
+      map.once('postrender', () => {
+        this.afterMapReady(map);
       });
     });
   }
@@ -249,15 +250,10 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.un('postrender', this.emitPostRenderEvent);
     this.map.un('precompose', this.emitPreComposeEvent);
     // right click handler
-    this.map
-      .getViewport()
-      .removeEventListener('contextmenu', this.rightClickHandler);
-    this.map
-      .getViewport()
-      .removeEventListener('pointerdown', this.pointerDownHandler);
-    this.map
-      .getViewport()
-      .removeEventListener('pointerup', this.pointerUpHandler);
+    const viewport = this.map.getViewport();
+    viewport?.removeEventListener('contextmenu', this.rightClickHandler);
+    viewport?.removeEventListener('pointerdown', this.pointerDownHandler);
+    viewport?.removeEventListener('pointerup', this.pointerUpHandler);
     window.removeEventListener('resize', this.updateSizeThrottle);
     window.removeEventListener('orientationchange', this.updateSizeThrottle);
 
@@ -265,7 +261,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // registered would keep a dead map in every getMaps() lookup.
     this.mapService.removeMap(this.map);
     this.map.setTarget(null);
-    this.map = null;
+    this.map = undefined;
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -276,27 +272,24 @@ export class MapComponent implements OnInit, OnDestroy {
     }
   }
 
-  afterMapReady() {
+  afterMapReady(map: Map) {
     // register map events
-    this.map.on('singleclick', this.emitSingleClickEvent);
-    this.map.on('dblclick', this.emitDblClickEvent);
-    this.map.on('click', this.emitClickEvent);
-    this.map.on('movestart', this.emitMoveStartEvent);
-    this.map.on('moveend', this.emitMoveEndEvent);
-    this.map.on('pointerdrag', this.emitPointerDragEvent);
-    this.map.on('pointermove', this.emitPointerMoveEvent);
-    this.map.on('postcompose', this.emitPostComposeEvent);
-    this.map.on('postrender', this.emitPostRenderEvent);
-    this.map.on('precompose', this.emitPreComposeEvent);
+    map.on('singleclick', this.emitSingleClickEvent);
+    map.on('dblclick', this.emitDblClickEvent);
+    map.on('click', this.emitClickEvent);
+    map.on('movestart', this.emitMoveStartEvent);
+    map.on('moveend', this.emitMoveEndEvent);
+    map.on('pointerdrag', this.emitPointerDragEvent);
+    map.on('pointermove', this.emitPointerMoveEvent);
+    map.on('postcompose', this.emitPostComposeEvent);
+    map.on('postrender', this.emitPostRenderEvent);
+    map.on('precompose', this.emitPreComposeEvent);
 
     // right click handler
-    this.map
-      .getViewport()
-      .addEventListener('contextmenu', this.rightClickHandler);
-    this.map
-      .getViewport()
-      .addEventListener('pointerdown', this.pointerDownHandler);
-    this.map.getViewport().addEventListener('pointerup', this.pointerUpHandler);
+    const viewport = map.getViewport();
+    viewport?.addEventListener('contextmenu', this.rightClickHandler);
+    viewport?.addEventListener('pointerdown', this.pointerDownHandler);
+    viewport?.addEventListener('pointerup', this.pointerUpHandler);
 
     // react on window events
     window.addEventListener('resize', this.updateSizeThrottle, false);
@@ -308,7 +301,7 @@ export class MapComponent implements OnInit, OnDestroy {
 
     this.updateSize();
 
-    this.mapReady.next({ map: this.map, mapService: this.mapService });
+    this.mapReady.next({ map, mapService: this.mapService });
     this.mapReady.complete();
 
     if (this.setFocus) {
@@ -333,8 +326,8 @@ export class MapComponent implements OnInit, OnDestroy {
   // unsupported or suppressed (iOS Safari; some WebView-based browsers), which
   // is harmless: the indicator turning red is the primary completion cue.
   private readonly VERTEX_DELETE_HAPTIC = [45, 40, 60];
-  private touchTimer: ReturnType<typeof setTimeout>;
-  private indicatorTimer: ReturnType<typeof setTimeout>;
+  private touchTimer?: ReturnType<typeof setTimeout>;
+  private indicatorTimer?: ReturnType<typeof setTimeout>;
   private indicatorShown = false;
   private pointerDownTime = 0;
   private evCache: { [id: number]: PointerEvent } = {};
@@ -434,15 +427,16 @@ export class MapComponent implements OnInit, OnDestroy {
     // runOutsideAngular, so without this the whole pointer-down path (including
     // the setTimeout that patches into the zone) would run outside it.
     this.ngZone.run(() => {
+      const map = this.getMap();
       this.evCache[event.pointerId] = event;
       this.lastPointerType = event.pointerType;
       this.pointerDownTime = performance.now();
-      startPointerGesture(this.map);
+      startPointerGesture(map);
       this.touchStartXY = { x: event.clientX, y: event.clientY };
       // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
       // pause mid-edit doesn't delete a point; the chart context-menu long-press
       // stays at 500 ms.
-      const modifying = this.map
+      const modifying = map
         .getInteractions()
         .getArray()
         .some((i) => i instanceof Modify && i.getActive());
@@ -456,12 +450,12 @@ export class MapComponent implements OnInit, OnDestroy {
           this.INDICATOR_FALLBACK_MS
         );
       }
-      const rawCoord = this.map.getEventCoordinate(event);
+      const rawCoord = map.getEventCoordinate(event);
       const c = toLonLat(rawCoord);
       const e: FBPointerDownEvent = Object.assign(event, {
         lonlat: c,
         coordinate: rawCoord,
-        pixel: this.map.getEventPixel(event),
+        pixel: map.getEventPixel(event),
         worldOffset: this.worldOffsetOf(rawCoord)
       });
       this.mapService.clearFeatureUrls();
@@ -471,7 +465,7 @@ export class MapComponent implements OnInit, OnDestroy {
   };
   private pointerUpHandler = (event: PointerEvent) => {
     this.clearTouchTimer();
-    clearHeldVertexOnRelease(this.map, event);
+    clearHeldVertexOnRelease(this.getMap(), event);
   };
   private rightClickHandler = (event: MouseEvent) => {
     // A finger long-press makes the WebView fire a native `contextmenu` at the OS
@@ -480,7 +474,11 @@ export class MapComponent implements OnInit, OnDestroy {
     // editing and let the hold run its course. This fires with the OS long-press
     // buzz, so it is also where the delete-progress indicator starts.
     if (
-      isTouchContextMenuWhileEditing(this.map, event.type, this.lastPointerType)
+      isTouchContextMenuWhileEditing(
+        this.getMap(),
+        event.type,
+        this.lastPointerType
+      )
     ) {
       this.showDeleteIndicator();
       event.preventDefault();
@@ -489,7 +487,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // A finger resting on a drag handle is starting a drag, not asking for
     // the chart menu. Stop it here too, before it reaches the map's host
     // element, which would open the menu from its own listener.
-    if (event.type === 'contextmenu' && isHandleDrag(this.map)) {
+    if (event.type === 'contextmenu' && isHandleDrag(this.getMap())) {
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -507,17 +505,22 @@ export class MapComponent implements OnInit, OnDestroy {
   private emitRightClickEvent = (event: MouseEvent) => {
     this.ngZone.run(() => {
       event.preventDefault();
-      const c = this.map.getEventCoordinate(event);
+      const map = this.getMap();
+      const c = map.getEventCoordinate(event);
+      // Null only before the map's first render, when nothing is drawn to hit.
+      const pixel = map.getPixelFromCoordinateInternal(c);
       this.mapRightClick.emit({
-        ...hitsAtPixel(
-          this.map,
-          this.map.getPixelFromCoordinateInternal(c),
-          hitToleranceForPointer(
-            (event as PointerEvent).pointerType,
-            this.hitTolerance,
-            this.touchHitTolerance
-          )
-        ),
+        ...(pixel
+          ? hitsAtPixel(
+              map,
+              pixel,
+              hitToleranceForPointer(
+                (event as PointerEvent).pointerType,
+                this.hitTolerance,
+                this.touchHitTolerance
+              )
+            )
+          : { features: [], overlayHits: [] }),
         lonlat: toLonLat(c),
         worldOffset: this.worldOffsetOf(c)
       });
@@ -529,13 +532,13 @@ export class MapComponent implements OnInit, OnDestroy {
     );
     // Consumers have now seen this click, so a vertex delete it completed is
     // spent and must not suppress the next one (#608).
-    clearVertexDeleted(this.map);
+    clearVertexDeleted(this.getMap());
   });
   private emitDblClickEvent = pointerGesture((event) => {
     this.ngZone.run(() => this.mapDblClick.emit(this.augmentClickEvent(event)));
     // A double click cancels the pending singleclick, so retire the marker here
     // instead (#608).
-    clearVertexDeleted(this.map);
+    clearVertexDeleted(this.getMap());
   });
 
   // Render-space offset (EPSG:3857 metres) of the world copy a click landed in,
@@ -544,7 +547,9 @@ export class MapComponent implements OnInit, OnDestroy {
   // overlay or hit-test a feature need this offset to work in that copy. It stays
   // in Mercator and never becomes a lon/lat, so it cannot leak into stored data.
   private worldOffsetOf(coordinate: Coordinate): number {
-    const worldWidth = getWidth(this.map.getView().getProjection().getExtent());
+    const worldWidth = getWidth(
+      this.getMap().getView().getProjection().getExtent()
+    );
     return worldCopyOffset(coordinate[0], worldWidth);
   }
 
@@ -552,7 +557,7 @@ export class MapComponent implements OnInit, OnDestroy {
   private augmentClickEvent(event: MapBrowserEvent<PointerEvent>) {
     return Object.assign(event, {
       ...hitsAtPixel(
-        this.map,
+        this.getMap(),
         event.pixel,
         hitToleranceForPointer(
           event.originalEvent?.pointerType,
@@ -565,9 +570,9 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  private zoomAtStart: number;
+  private zoomAtStart?: number;
   private emitMoveStartEvent = (event: MapEvent) => {
-    this.zoomAtStart = this.map.getView().getZoom();
+    this.zoomAtStart = this.getMap().getView().getZoom();
     this.mapMoveStart.emit(this.augmentMoveEvent(event));
   };
   private emitMoveEndEvent = (event: MapEvent) => {
@@ -577,17 +582,19 @@ export class MapComponent implements OnInit, OnDestroy {
   };
 
   // ** add {lonlat, zoom, extent, projCode, topCenter, rightCenter, rotation} fields to event
-  private augmentMoveEvent(event: MapEvent) {
-    const zoom = this.map.getView().getZoom();
+  private augmentMoveEvent(event: MapEvent): FBMapEvent {
+    const view = this.getMap().getView();
+    // A map only moves once its view has a resolution, so it has a zoom.
+    const zoom = view.getZoom()!;
     return Object.assign(event, {
       lonlat: this.getMapCenter(),
       zoom: zoom,
       zoomChanged: this.zoomAtStart !== zoom,
       extent: this.getMapExtent(),
-      projCode: this.map.getView().getProjection().getCode(),
+      projCode: view.getProjection().getCode(),
       topCenter: this.getMapViewTopCenter(),
       rightCenter: this.getMapViewRightCenter(),
-      rotation: this.map.getView().getRotation()
+      rotation: view.getRotation()
     });
   }
 
@@ -598,7 +605,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // A gesture that has dragged emits no click at all, so its own delete
     // marker has nothing left to consume it. Only this gesture's marker —
     // a later drag must not retire one whose click is still pending (#608).
-    clearVertexDeletedOnDrag(this.map);
+    clearVertexDeletedOnDrag(this.getMap());
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
   });
   private emitPointerMoveEvent = pointerGesture((event) => {
@@ -626,7 +633,7 @@ export class MapComponent implements OnInit, OnDestroy {
   private updateSizeThrottle = () => {
     clearTimeout(this.timeoutId);
     this.timeoutId = setTimeout(() => {
-      this.map.updateSize();
+      this.getMap().updateSize();
     }, 100);
   };
 
@@ -634,8 +641,11 @@ export class MapComponent implements OnInit, OnDestroy {
     this.element.nativeElement.firstElementChild.focus();
   }
 
-  getMap() {
-    return this.map;
+  // Called by content children and handlers between ngOnInit and ngOnDestroy,
+  // while the map exists. Children are torn down after this component and get
+  // undefined from their own ngOnDestroy; they guard for it (#869).
+  getMap(): Map {
+    return this.map!;
   }
 
   updateSize() {
@@ -646,7 +656,8 @@ export class MapComponent implements OnInit, OnDestroy {
     if (!this.map) {
       return [0, 0];
     }
-    return toLonLat(this.map.getView().getCenter());
+    const center = this.map.getView().getCenter();
+    return center ? toLonLat(center) : [0, 0];
   }
 
   getMapExtent() {
@@ -675,8 +686,13 @@ export class MapComponent implements OnInit, OnDestroy {
     }
     const v = this.map.getView();
     const center = v.getCenter();
+    const size = this.map.getSize();
+    const resolution = v.getResolution();
+    if (!center || !size || resolution === undefined) {
+      return [0, 0];
+    }
     const rot = v.getRotation();
-    const hh = (this.map.getSize()[1] / 2) * v.getResolution();
+    const hh = (size[1] / 2) * resolution;
     return toLonLat(
       [center[0] - hh * Math.sin(rot), center[1] + hh * Math.cos(rot)],
       v.getProjection()
@@ -695,8 +711,13 @@ export class MapComponent implements OnInit, OnDestroy {
     }
     const v = this.map.getView();
     const center = v.getCenter();
+    const size = this.map.getSize();
+    const resolution = v.getResolution();
+    if (!center || !size || resolution === undefined) {
+      return [0, 0];
+    }
     const rot = v.getRotation();
-    const hw = (this.map.getSize()[0] / 2) * v.getResolution();
+    const hw = (size[0] / 2) * resolution;
     return toLonLat(
       [center[0] + hw * Math.cos(rot), center[1] + hw * Math.sin(rot)],
       v.getProjection()

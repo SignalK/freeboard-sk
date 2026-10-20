@@ -26,8 +26,8 @@ export class RacingStartLineLayerComponent
   extends FBFeatureLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
-  @Input() startLine: LineString;
-  @Input() racecourseStyles: { [key: string]: Style };
+  @Input({ required: true }) startLine!: LineString;
+  @Input() racecourseStyles?: { [key: string]: Style };
 
   constructor(
     protected override changeDetectorRef: ChangeDetectorRef,
