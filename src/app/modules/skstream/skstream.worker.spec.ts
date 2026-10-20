@@ -804,3 +804,34 @@ describe('skstream.worker postUpdate — expired SaR beacons', () => {
     expect(sarInUpdates.at(-1)).toEqual([id]);
   });
 });
+
+// An AIS target's track gains a point for every new position. A position that
+// repeats the last one is skipped, but one that differs in only one axis is a
+// move: a target heading due north or south keeps its longitude.
+describe('skstream.worker processVessel — AIS track points', () => {
+  const at = (longitude: number, latitude: number) => ({
+    path: 'navigation.position',
+    value: { latitude, longitude }
+  });
+
+  it('adds a point that changes only the latitude or only the longitude', () => {
+    const vessel = new SKVessel();
+    processVessel(vessel, at(-80, 25));
+    processVessel(vessel, at(-80, 25.01));
+    processVessel(vessel, at(-79.99, 25.01));
+
+    expect(vessel.track[vessel.track.length - 1]).toEqual([
+      [-80, 25],
+      [-80, 25.01],
+      [-79.99, 25.01]
+    ]);
+  });
+
+  it('skips a position that repeats the last one', () => {
+    const vessel = new SKVessel();
+    processVessel(vessel, at(-80, 25));
+    processVessel(vessel, at(-80, 25));
+
+    expect(vessel.track[vessel.track.length - 1]).toEqual([[-80, 25]]);
+  });
+});
