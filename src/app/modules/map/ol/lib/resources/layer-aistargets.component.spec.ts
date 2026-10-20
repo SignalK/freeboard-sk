@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { AISTargetsLayerComponent } from './layer-aistargets.component';
 import { SKTarget } from './ais-base.component';
 import { Convert } from 'src/app/lib/convert';
+import { Icon, Style } from 'ol/style';
 
 // Stub the unit-preference formatter used for the speed label: mimic a user
 // configured for knots so the assertions read in a stable unit.
@@ -106,5 +107,31 @@ describe('AISTargetsLayerComponent arrow indicator (#513)', () => {
   it('keeps the plain name label when no wind is reported', () => {
     const c = layer('meteo', 'barb');
     expect(c.buildLabel({ name: 'Buoy' } as SKTarget)).toBe('Buoy');
+  });
+});
+
+describe('AISTargetsLayerComponent.buildStyle', () => {
+  const icon = new Icon({ src: 'aton.svg' });
+
+  function styled(targetStyles: Record<string, Style>) {
+    const c = Object.create(
+      AISTargetsLayerComponent.prototype
+    ) as AISTargetsLayerComponent;
+    Object.assign(c, {
+      targetContext: 'atons',
+      targetStyles,
+      mapImages: { getAtoN: () => icon },
+      isStale: () => false
+    });
+    return c.buildStyle({ type: { id: 1 } } as SKTarget);
+  }
+
+  it('uses the configured default style', () => {
+    const style = new Style();
+    expect(styled({ default: style })).toBe(style);
+  });
+
+  it('falls back to the target icon when no style is configured for it', () => {
+    expect(styled({}).getImage()).toBe(icon);
   });
 });

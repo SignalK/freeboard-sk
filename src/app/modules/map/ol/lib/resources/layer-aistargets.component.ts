@@ -188,8 +188,8 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       : this.targetContext === 'meteo'
         ? this.mapImages.getMeteoIcon((target as SKMeteo).tws, target.virtual)
         : this.mapImages.getAtoN(target.type?.id ?? '', target.virtual);
-    if (icon && typeof this.targetStyles === 'undefined') {
-      return new Style({
+    const iconStyle = () =>
+      new Style({
         image: icon,
         text: new Text({
           text: '',
@@ -197,8 +197,10 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
           offsetY: -18
         })
       });
+    if (icon && typeof this.targetStyles === 'undefined') {
+      return iconStyle();
     }
-    let s: Style;
+    let s: Style | undefined;
     const setStale = this.isStale(target);
     if (typeof this.targetStyles !== 'undefined') {
       if (setStale) {
@@ -222,6 +224,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
         })
       });
     }
-    return s;
+    // targetStyles without a default (or inactive) style for this target
+    return s ?? iconStyle();
   }
 }

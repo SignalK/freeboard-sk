@@ -143,7 +143,7 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
 
   // build target style
   buildVesselStyle(target: SKVessel, label?: string, setStale = false): Style {
-    let s: Style;
+    let s: Style | undefined;
     const isMoored = target.state === 'moored';
 
     const shipClass = target.type?.id
@@ -161,8 +161,8 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
               ? this.mapImages.getVessel('default', isMoored)
               : this.mapImages.getVessel(shipClass, isMoored);
 
-    if (icon && typeof this.targetStyles === 'undefined') {
-      return new Style({
+    const iconStyle = () =>
+      new Style({
         image: icon,
         text: new Text({
           text: '',
@@ -170,6 +170,8 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
           offsetY: isMoored ? 12 : 22
         })
       });
+    if (icon && typeof this.targetStyles === 'undefined') {
+      return iconStyle();
     }
 
     if (typeof this.targetStyles !== 'undefined') {
@@ -179,15 +181,18 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
         // stale
         s = this.targetStyles.inactive ?? this.targetStyles.default;
       } else if (target.type && this.targetStyles[shipClass]) {
-        // ship type & state: a ship type's entry holds a style per state
-        const typeStyles = this.targetStyles[shipClass] as unknown as Record<
-          string,
-          Style
-        >;
-        if (target.state && typeStyles[target.state]) {
-          s = typeStyles[target.state];
+        // ship type & state: a ship type's entry is either one style or a
+        // style per state
+        const typeEntry = this.targetStyles[shipClass];
+        if (typeEntry instanceof Style) {
+          s = typeEntry;
         } else {
-          s = typeStyles['default'];
+          const typeStyles = typeEntry as unknown as Record<string, Style>;
+          if (target.state && typeStyles[target.state]) {
+            s = typeStyles[target.state];
+          } else {
+            s = typeStyles['default'];
+          }
         }
       } else if (target.buddy && this.targetStyles.buddy) {
         // buddy
@@ -245,7 +250,8 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
         });
       }
     }
-    return s;
+    // targetStyles without a style for this vessel
+    return s ?? iconStyle();
   }
 
   // add update COG vector
