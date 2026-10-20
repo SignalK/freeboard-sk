@@ -3,6 +3,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/worker",
+    // The workers are excluded from tsconfig.strict.json, so they take the
+    // strict null flags here ahead of tsconfig.json.
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
     // The workers import shared app modules whose types refer to DOM globals.
     "lib": [
       "es2022",

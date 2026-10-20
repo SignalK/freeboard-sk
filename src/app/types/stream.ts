@@ -180,7 +180,8 @@ export interface ResultPayload {
     stale: AisIds;
     expired: AisIds;
   };
-  paths: { [key: string]: string };
+  // the preferred paths received: only the keys carry meaning
+  paths: { [key: string]: null };
   atons: Map<string, SKAtoN>;
   aircraft: Map<string, SKAircraft>;
   sar: Map<string, SKSaR>;
@@ -227,7 +228,7 @@ export class RadarMessage extends UpdateMessage<DeltaSignal> {
   }
 }
 
-export class TrailMessage extends UpdateMessage<MultiLineString> {
+export class TrailMessage extends UpdateMessage<MultiLineString | null> {
   /** The trail as recorded, with each point's time (`times[i][j]` is when
    * `lines[i][j]` was recorded), before the older bands are simplified for
    * drawing. v2 Track API only. */
