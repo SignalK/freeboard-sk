@@ -216,23 +216,26 @@ describe('GuardZoneEditService', () => {
 
   it('draws no zones while the radar sends no picture', () => {
     const inState = (value: number) =>
-      radar.update((r) => ({
-        ...r,
-        capabilities: {
-          controls: {
-            ...r.capabilities.controls,
-            power: {
-              id: 0,
-              name: 'Power',
-              description: '',
-              category: 'base',
-              dataType: 'enum',
-              descriptions: { 0: 'Off', 1: 'Standby', 2: 'Transmit' }
-            }
+      radar.update(
+        (r) =>
+          r && {
+            ...r,
+            capabilities: {
+              controls: {
+                ...r.capabilities.controls,
+                power: {
+                  id: 0,
+                  name: 'Power',
+                  description: '',
+                  category: 'base',
+                  dataType: 'enum',
+                  descriptions: { 0: 'Off', 1: 'Standby', 2: 'Transmit' }
+                }
+              }
+            } as unknown as CapabilityManifest,
+            controls: new Map(r.controls).set('power', { value })
           }
-        } as unknown as CapabilityManifest,
-        controls: new Map(r.controls).set('power', { value })
-      }));
+      );
 
     inState(2);
     expect(shown('guardZone1')).toBeDefined();

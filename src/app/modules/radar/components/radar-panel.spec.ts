@@ -538,7 +538,7 @@ describe('RadarPanel', () => {
 
     it('keeps no edit that a failed save puts back in standby', async () => {
       withZone(zone);
-      let refuse: (err: Error) => void;
+      let refuse: (err: Error) => void = () => undefined;
       api.setControl.mockImplementationOnce(
         () => new Promise((_, reject) => (refuse = reject))
       );

@@ -263,7 +263,12 @@ export class SettingsDialog implements OnInit {
   private applyArrivalCircle() {
     const radius = this.facade.settings.course.arrivalCircle;
     const course = this.course.courseData();
-    if (course.position && radius > 0 && radius !== course.arrivalCircle) {
+    if (
+      course.position &&
+      radius !== null &&
+      radius > 0 &&
+      radius !== course.arrivalCircle
+    ) {
       this.course.setArrivalCircle(radius);
     }
   }
