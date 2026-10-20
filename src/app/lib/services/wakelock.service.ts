@@ -4,6 +4,9 @@ import { Injectable, signal } from '@angular/core';
 export class WakeLockService {
   private wakeLockRef: WakeLockSentinel;
   private _enabled = signal<boolean>(false);
+  // whether the lock is wanted: disable() can run while a request is pending
+  private wanted = false;
+  private requesting = false;
   readonly enabled = this._enabled.asReadonly();
 
   constructor() {}
@@ -30,11 +33,18 @@ export class WakeLockService {
     if (!this.isAvailable) {
       return;
     }
-    if (this.wakeLockRef) {
+    this.wanted = true;
+    if (this.wakeLockRef || this.requesting) {
       return;
     }
+    this.requesting = true;
     try {
-      this.wakeLockRef = await navigator.wakeLock.request('screen');
+      const sentinel = await navigator.wakeLock.request('screen');
+      if (!this.wanted) {
+        await sentinel.release();
+        return;
+      }
+      this.wakeLockRef = sentinel;
 
       // listen for release
       this.wakeLockRef.addEventListener('release', () => this.handleRelease());
@@ -47,11 +57,14 @@ export class WakeLockService {
     } catch {
       this.wakeLockRef = null;
       this._enabled.set(false);
+    } finally {
+      this.requesting = false;
     }
   }
 
   /** release wakelock */
   async disable() {
+    this.wanted = false;
     if (this.wakeLockRef) {
       await this.wakeLockRef.release();
       this.wakeLockRef.removeEventListener('release', () =>
