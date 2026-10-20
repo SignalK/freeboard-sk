@@ -453,9 +453,15 @@ export class SKStreamFacade {
       this.app.data.vessels.prefAvailablePaths = msg.result.paths;
 
       // ** update active vessel map display **
-      this.app.data.vessels.active = this.app.data.vessels.activeId
-        ? this.app.data.vessels.aisTargets.get(this.app.data.vessels.activeId)
-        : this.app.data.vessels.self;
+      const vessels = this.app.data.vessels;
+      const active = vessels.activeId
+        ? vessels.aisTargets.get(vessels.activeId)
+        : undefined;
+      if (vessels.activeId && !active) {
+        // the followed target has expired, so follow the own vessel again
+        vessels.activeId = null;
+      }
+      vessels.active = active ?? vessels.self;
 
       // process AtoNs
       this.app.data.atons = msg.result.atons;
