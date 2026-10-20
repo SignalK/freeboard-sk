@@ -84,6 +84,7 @@ import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { ExtActionsComponent } from 'src/app/modules/plotterext/ext-actions.component';
 import type { UsableAction } from 'src/app/modules/plotterext/actions';
+import { pickedTarget } from 'src/app/modules/plotterext/map-pick';
 import {
   type ChartTarget,
   chartFeatureTarget,
@@ -665,6 +666,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     effect(() => {
       const pane = this.splitView.secondaryMap();
       untracked(() => this.onPaneChanged(pane));
+    });
+    // A guard zone edit is a modal interaction a pick must give way to.
+    effect(() => {
+      const editing = !!this.zoneEdit.edit();
+      untracked(() => this.mapInteract.setZoneEditing(editing));
     });
   }
 
@@ -1254,7 +1260,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       features: e.features,
       lonlat: e.lonlat
     };
-    if (this.mapInteract.isMeasuring()) {
+    if (this.mapInteract.pick()) {
+      this.selectForPick(e);
+    } else if (this.mapInteract.isMeasuring()) {
       // measuring
       if (this.mapInteract.measureGeometryType === 'BearingDistance') {
         this.bearingMap.set(map);
@@ -1288,6 +1296,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
       this.processMapClick(e);
       this.pinCursorAtTap(e.lonlat, e.worldOffset ?? 0);
+    }
+  }
+
+  /**
+   * A primary select during a pick (capability `map.pick`): the first
+   * feature under the pointer the pick accepts, or the point, ends it and
+   * does nothing else. A select it accepts nothing at leaves it on.
+   */
+  private selectForPick(e: FBClickEvent) {
+    const pick = this.mapInteract.pick();
+    if (!pick) return;
+    const at = GeoUtils.normaliseCoords(e.lonlat as Position);
+    const target = pickedTarget(
+      pick.rules,
+      this.targetsAt(e.features, at),
+      positionTarget(at)
+    );
+    if (target) {
+      this.mapInteract.endPick(pick.pickId, { target });
     }
   }
 
@@ -1393,6 +1420,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * which suppress them (the measure point is added by onMapRightClick,
    * which fires alongside the menu). Extension actions are offered at every
    * point, position actions included, except during a modal interaction.
+   * During a pick no menu opens at all.
    */
   private contextMenuContent(
     features: FeatureLike[],
@@ -1404,7 +1432,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.modifyMode) {
       return null;
     }
-    const host = !this.app.uiCtrl().suppressContextMenu && !this.overlay().show;
+    const host =
+      !this.app.uiCtrl().suppressContextMenu &&
+      !this.overlay().show &&
+      !this.mapInteract.pick();
     const ext = this.isModalInteraction()
       ? []
       : this.extensionActionGroups(features, at);
@@ -1413,11 +1444,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /**
    * Whether the user is in a modal interaction — drawing, measuring, editing
-   * geometry or a guard zone, box-selecting — during which no extension
-   * action is offered.
+   * geometry or a guard zone, box-selecting, picking — during which no
+   * extension action is offered.
    */
   private isModalInteraction(): boolean {
     return (
+      !!this.mapInteract.pick() ||
       this.mapInteract.isDrawing() ||
       this.mapInteract.isMeasuring() ||
       this.mapInteract.isModifying() ||

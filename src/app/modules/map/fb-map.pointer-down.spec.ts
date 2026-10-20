@@ -119,6 +119,7 @@ describe('FBMapComponent long-press before any pointer move (#979)', () => {
         actionsFor: (): unknown[] => []
       },
       mapInteract: {
+        pick: (): null => null,
         isMeasuring: () => false,
         isDrawing: () => false,
         isModifying: () => false,

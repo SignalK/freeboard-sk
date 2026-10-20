@@ -3,7 +3,8 @@
   [style.cursor]="
     mapInteract.isDrawing() ||
     mapInteract.isModifying() ||
-    mapInteract.isMeasuring()
+    mapInteract.isMeasuring() ||
+    mapInteract.pick()
       ? 'crosshair'
       : 'initial'
   "

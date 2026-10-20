@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { PlotterExtensionService } from './plotterext.service';
+import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
 import type { SelectedTarget, UsableAction } from './actions';
 
 /** More than this many actions go into a menu instead of a row of buttons. */
@@ -88,10 +89,12 @@ export class ExtActionsComponent {
 
   protected readonly maxButtons = POPOVER_ACTION_BUTTONS;
   private service = inject(PlotterExtensionService);
+  private mapInteract = inject(FBMapInteractService);
 
+  /** None during a pick, a modal interaction. */
   protected actions = computed<UsableAction[]>(() => {
     const t = this.target();
-    return t ? this.service.actionsFor(t) : [];
+    return t && !this.mapInteract.pick() ? this.service.actionsFor(t) : [];
   });
 
   protected groups = computed(() => {

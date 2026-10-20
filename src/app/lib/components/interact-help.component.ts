@@ -28,7 +28,32 @@ import { PopoverComponent } from 'src/app/modules/map/popovers/popover.component
     PopoverComponent
   ],
   template: `
-    @if (isRouteEditing()) {
+    @if (mapInteract.pick(); as pick) {
+      <!-- An extension's pick (map.pick): its prompt, attributed. -->
+      <div class="mat-app-background _ap_interact_help">
+        <div class="mat-app-background measurePanel">
+          <div>
+            <span style="font-weight: bold; padding: 5px">
+              <mat-icon>ads_click</mat-icon>
+              {{ pick.extensionName }}
+            </span>
+            <div style="padding: 5px">{{ pickPrompt() }}</div>
+          </div>
+          <div style="text-align: center; padding: 6px 0 8px">
+            <a
+              class="icon-warn"
+              mat-raised-button
+              (click)="close()"
+              matTooltip="Cancel the pick"
+              matTooltipPosition="left"
+            >
+              <mat-icon class="icon-warn">close</mat-icon>
+              CANCEL
+            </a>
+          </div>
+        </div>
+      </div>
+    } @else if (isRouteEditing()) {
       <!-- Unified route draw/modify helper: same ap-popover card as the
            feature popover (#2), docked in place. Finish = keep, ✕ = cancel. -->
       <div class="_ap_interact_dock">
@@ -236,6 +261,19 @@ export class InteractionHelpComponent {
   /** Enough drawn points for Finish to complete a route (always true once
    *  modifying). */
   protected canFinish: Signal<boolean>;
+  /** The pick's prompt, or Freeboard's own wording for what it accepts. */
+  protected pickPrompt = computed<string>(() => {
+    const pick = this.mapInteract.pick();
+    if (!pick) return '';
+    if (pick.prompt) return pick.prompt;
+    const point = pick.rules.some((r) => r.kind === 'position');
+    const item = pick.rules.some((r) => r.kind !== 'position');
+    return point && item
+      ? 'Click / tap the map to choose a point or an item.'
+      : item
+        ? 'Click / tap an item on the map to choose it.'
+        : 'Click / tap the map to choose a point.';
+  });
 
   protected mode: {
     iconName: string;

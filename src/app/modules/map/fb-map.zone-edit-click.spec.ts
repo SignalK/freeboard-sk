@@ -13,6 +13,7 @@ const bareComponent = (editing: boolean) => {
     config: { map: { popoverMulti: false } }
   };
   cmp.mapInteract = {
+    pick: (): null => null,
     isMeasuring: () => false,
     isDrawing: () => false,
     isModifying: () => false

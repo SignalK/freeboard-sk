@@ -19,6 +19,7 @@ const bareComponent = (secondPane: OlMap | null) => {
     debug: (): void => undefined
   };
   cmp.mapInteract = {
+    pick: (): null => null,
     isMeasuring: () => false,
     isDrawing: () => false,
     isModifying: () => false,
