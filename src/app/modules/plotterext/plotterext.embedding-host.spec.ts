@@ -10,6 +10,7 @@ import {
 } from 'signalk-plotterext-bus/extension';
 
 import { PlotterExtensionService } from './plotterext.service';
+import { FBMapInteractService } from '../map/fbmap-interact.service';
 import { RouteBufferRegistry } from './route-buffer.registry';
 import { AppFacade } from '../../app.facade';
 import { SKResourceService } from '../skresources/resources.service';
@@ -125,5 +126,14 @@ describe('PlotterExtensionService embedding host (reverse embedding, #507)', () 
   it('lists no panels: an embedder has no manifest', async () => {
     const client = await connect('kip');
     await expect(client.panels.list()).resolves.toEqual([]);
+  });
+
+  it('lets the embedder pick, named in the prompt as the embedding app', async () => {
+    const client = await connect('kip');
+    const { pickId } = await client.map.pick({ prompt: 'Tap a point' });
+    expect(TestBed.inject(FBMapInteractService).pick()).toMatchObject({
+      pickId,
+      extensionName: 'Embedding app'
+    });
   });
 });

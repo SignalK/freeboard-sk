@@ -1025,7 +1025,7 @@ a list or keeping no supported kind, a `map.cancelPick` without a string
 `pickId`), `map.pickBusy` (`isBusyForPick`: drawing, measuring, modifying, box
 selecting or editing a guard zone). Freeboard always has `map.pick`, so it
 never answers `map.notSupported`. The embedding host can pick too: it gets
-the full host API.
+the full host API, and its prompt is headed "Embedding app".
 
 ### Key files
 

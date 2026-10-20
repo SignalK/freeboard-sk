@@ -408,7 +408,7 @@ export class PlotterExtensionService {
         const pickId = uuid.v4();
         this.mapInteract.startPick({
           pickId,
-          extensionName: this.manifests()[ctx.extension]?.name || ctx.extension,
+          extensionName: this.pickerName(ctx.extension),
           prompt,
           rules
         });
@@ -429,6 +429,15 @@ export class PlotterExtensionService {
         return {};
       }
     };
+  }
+
+  /**
+   * Who the pick prompt says is asking: the extension's name, or, for the
+   * app Freeboard is embedded in, which has no manifest, a plain label.
+   */
+  private pickerName(extension: string): string {
+    if (extension === EMBEDDING_HOST_ID) return 'Embedding app';
+    return this.manifests()[extension]?.name || extension;
   }
 
   /** Tell the context that asked how its pick ended (none for a silent end). */
