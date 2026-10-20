@@ -9,6 +9,7 @@ import { FBMapComponent } from './fb-map.component';
 import { SKWaypoint } from '../skresources/resource-classes';
 import type { TargetRule } from '../plotterext/actions';
 import type { MapPick } from './fbmap-interact.service';
+import type { OverlayHit } from './ol/lib/data-overlay/overlay-hits';
 
 const waypoint = new SKWaypoint({
   name: 'Fuel dock',
@@ -24,6 +25,7 @@ const bareComponent = (rules: TargetRule[]) => {
   const cmp = Object.create(FBMapComponent.prototype);
   const pick = signal<MapPick | null>({
     pickId: 'p1',
+    extension: 'auto-route',
     extensionName: 'Auto Route',
     rules
   });
@@ -58,7 +60,28 @@ const bareComponent = (rules: TargetRule[]) => {
   cmp.dfeat = { self: { name: 'Self', position: [0, 0] }, ais: new Map() };
   cmp.plotterExt = {
     addableCellAt: (): null => null,
-    actionsFor: () => [{ extension: 'x', action: { id: 'a' } }]
+    actionsFor: () => [{ extension: 'x', action: { id: 'a' } }],
+    overlays: {
+      entry: (key: string) =>
+        ({
+          'auto-route/marks': {
+            key,
+            extension: 'auto-route',
+            id: 'marks',
+            title: 'Route marks',
+            interactive: true,
+            titleProperty: 'name'
+          },
+          'buoys/stations': {
+            key,
+            extension: 'buoys',
+            id: 'stations',
+            title: 'Buoys',
+            interactive: true,
+            titleProperty: 'name'
+          }
+        })[key]
+    }
   };
   cmp.processMapClick = vi.fn();
   cmp.pinCursorAtTap = vi.fn();
@@ -75,8 +98,18 @@ const wptFeature = () => {
 const clickOn = (
   cmp: ReturnType<typeof bareComponent>,
   features: FeatureLike[],
-  lonlat: [number, number] = [-80.11, 25.76]
-) => cmp.onMapSingleClick({ features, lonlat, worldOffset: 0 });
+  lonlat: [number, number] = [-80.11, 25.76],
+  overlayHits: OverlayHit[] = []
+) => cmp.onMapSingleClick({ features, overlayHits, lonlat, worldOffset: 0 });
+
+const overlayHit = (overlayKey: string, featureId: string | number) => ({
+  overlayKey,
+  source: 'marks',
+  featureId,
+  properties: { name: `Mark ${featureId}` },
+  feature: new Feature(new Point(fromLonLat([-80.11, 25.76]))),
+  above: 0
+});
 
 describe('FBMapComponent: a select during a pick (map.pick)', () => {
   afterEach(() => {
@@ -128,6 +161,40 @@ describe('FBMapComponent: a select during a pick (map.pick)', () => {
     } as unknown as MouseEvent;
     cmp.onContextMenu(e);
     expect(cmp.contextMenu.openMenu).not.toHaveBeenCalled();
+  });
+
+  it('yields its own overlay feature, the topmost thing it accepts', () => {
+    const cmp = bareComponent([
+      { kind: 'overlayFeature' },
+      { kind: 'waypoint' }
+    ]);
+    clickOn(cmp, [wptFeature()], undefined, [
+      overlayHit('auto-route/marks', 7)
+    ]);
+    expect(cmp.mapInteract.endPick).toHaveBeenCalledWith('p1', {
+      target: expect.objectContaining({
+        kind: 'overlayFeature',
+        overlayId: 'marks',
+        source: 'marks',
+        featureId: 7,
+        name: 'Mark 7'
+      })
+    });
+  });
+
+  it('never yields another extension’s overlay feature', () => {
+    const cmp = bareComponent([{ kind: 'overlayFeature' }]);
+    clickOn(cmp, [], undefined, [overlayHit('buoys/stations', 'b1')]);
+    expect(cmp.mapInteract.endPick).not.toHaveBeenCalled();
+    // with position among the targets, the select yields the point instead
+    cmp.mapInteract.pick.update((p: MapPick) => ({
+      ...p,
+      rules: [{ kind: 'overlayFeature' }, { kind: 'position' }]
+    }));
+    clickOn(cmp, [], undefined, [overlayHit('buoys/stations', 'b1')]);
+    expect(cmp.mapInteract.endPick).toHaveBeenCalledWith('p1', {
+      target: { kind: 'position', position: [-80.11, 25.76] }
+    });
   });
 
   it('handles clicks as before once the pick is over', () => {

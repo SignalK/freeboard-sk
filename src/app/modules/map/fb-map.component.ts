@@ -89,9 +89,11 @@ import {
   type ChartTarget,
   chartFeatureTarget,
   featureTarget,
+  overlayFeatureTarget,
   positionTarget,
   type TargetSources
 } from './map-targets';
+import type { OverlayHit } from './ol/lib/data-overlay/overlay-hits';
 import {
   SecondaryTap,
   SplitViewService
@@ -162,6 +164,7 @@ import {
   FBMapEvent,
   FBPointerDownEvent,
   FBPointerEvent,
+  FBRightClickEvent,
   zoomOffsetLevel,
   MapComponent
 } from './ol/lib/map.component';
@@ -291,6 +294,14 @@ enum INTERACTION_MODE {
 /** How long the vessel is held dead centre after follow mode is turned on,
  * before the configured centre offset is applied. */
 const OFFSET_GRACE_PERIOD = 2000;
+
+/**
+ * Prefix of the ids Freeboard gives the data-overlay features it lists after a
+ * click (capability `actions.overlay`). The ids are Freeboard's own, made per
+ * click; an overlay feature's own id is the extension's and is never read as
+ * one of the map's.
+ */
+const OVERLAY_FEATURE_ENTRY = 'overlay-feature.';
 
 @Component({
   selector: 'fb-map',
@@ -992,14 +1003,24 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * The targets of the features under a right-click or long-press, once each,
-   * in hit order: the map's own features by id, S-57 chart features by their
-   * tile properties.
+   * The targets of the features under the pointer, once each, in hit order:
+   * the map's own features by id, S-57 chart features by their tile
+   * properties, and the selectable features of interactive data overlays
+   * (capability `actions.overlay`), placed where they were hit.
    */
-  private targetsAt(features: FeatureLike[], at: Position): ChartTarget[] {
+  private targetsAt(
+    features: FeatureLike[],
+    overlayHits: OverlayHit[] = [],
+    at: Position
+  ): ChartTarget[] {
     const seen = new Set<string>();
     const targets: ChartTarget[] = [];
-    for (const feature of features) {
+    const overlays = this.overlayTargets(overlayHits, at);
+    let next = 0;
+    features.forEach((feature, i) => {
+      while (next < overlays.length && overlays[next].above <= i) {
+        targets.push(overlays[next++].target);
+      }
       const id = feature.getId();
       let key: string;
       let target: ChartTarget | null = null;
@@ -1009,19 +1030,53 @@ export class FBMapComponent implements OnInit, OnDestroy {
       } else {
         const props = feature.getProperties?.() ?? {};
         if (!props['RCID'] || !S57_CLICKABLE_LAYERS.has(props['layer'])) {
-          continue;
+          return;
         }
         key = `s57.${props['LNAM']}`;
         if (!seen.has(key)) target = chartFeatureTarget(props, at, feature);
       }
       seen.add(key);
       if (target) targets.push(target);
-    }
+    });
+    targets.push(...overlays.slice(next).map((o) => o.target));
     return targets;
+  }
+
+  /**
+   * The targets of the interactive data-overlay features under the pointer,
+   * each with its place in the hit order. A feature whose overlay is no
+   * longer drawn is left out.
+   */
+  private overlayTargets(
+    hits: OverlayHit[],
+    at: Position
+  ): Array<{ target: ChartTarget; above: number }> {
+    const result: Array<{ target: ChartTarget; above: number }> = [];
+    for (const hit of hits) {
+      const overlay = this.plotterExt.overlays.entry(hit.overlayKey);
+      if (!overlay?.interactive) continue;
+      result.push({
+        target: overlayFeatureTarget(
+          hit,
+          {
+            extension: overlay.extension,
+            id: overlay.id,
+            title: overlay.title,
+            titleProperty: overlay.titleProperty
+          },
+          at
+        ),
+        above: hit.above
+      });
+    }
+    return result;
   }
 
   /** The target a feature popover shows, for its extension actions. */
   private popoverTarget(id: string, at: Position): ChartTarget | undefined {
+    if (id.startsWith(OVERLAY_FEATURE_ENTRY)) {
+      return this.overlayFeatures[id];
+    }
     if (id.startsWith('s57.')) {
       const props = this.s57Features[id];
       return props
@@ -1037,11 +1092,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   private extensionActionGroups(
     features: FeatureLike[],
+    overlayHits: OverlayHit[],
     at: Position
   ): Array<{ target: ChartTarget; actions: UsableAction[] }> {
     const position = positionTarget(at);
     position.label = 'This position';
-    return [...this.targetsAt(features, at), position]
+    return [...this.targetsAt(features, overlayHits, at), position]
       .map((target) => ({
         target,
         actions: this.plotterExt.actionsFor(target)
@@ -1258,6 +1314,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.clickMercX = fromLonLat(e.lonlat)[0] + this.clickWorldOffset;
     this.app.data.map.atClick = {
       features: e.features,
+      overlayHits: e.overlayHits,
       lonlat: e.lonlat
     };
     if (this.mapInteract.pick()) {
@@ -1310,8 +1367,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const at = GeoUtils.normaliseCoords(e.lonlat as Position);
     const target = pickedTarget(
       pick.rules,
-      this.targetsAt(e.features, at),
-      positionTarget(at)
+      this.targetsAt(e.features, e.overlayHits, at),
+      positionTarget(at),
+      pick.extension
     );
     if (target) {
       this.mapInteract.endPick(pick.pickId, { target });
@@ -1320,11 +1378,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle right click / touch hold */
   protected onMapRightClick(
-    e: {
-      features: FeatureLike[];
-      lonlat: Coordinate;
-      worldOffset?: number;
-    },
+    e: Omit<FBRightClickEvent, 'worldOffset'> & { worldOffset?: number },
     map?: OlMap
   ) {
     this.clickMap = map;
@@ -1332,7 +1386,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const lonlat = e.lonlat as Position;
     this.clickWorldOffset = e.worldOffset ?? 0;
     this.clickMercX = fromLonLat(lonlat)[0] + this.clickWorldOffset;
-    this.app.data.map.atClick = { features: e.features, lonlat };
+    this.app.data.map.atClick = {
+      features: e.features,
+      overlayHits: e.overlayHits,
+      lonlat
+    };
     this.app.debug(`onRightClick()`, this.app.data.map.atClick);
     if (this.mapInteract.isMeasuring()) {
       this.parseClickInMeasureMode(lonlat);
@@ -1367,7 +1425,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } else {
       const at = GeoUtils.normaliseCoords(tap.lonlat as Position);
       // No menu, no move: leave the tap where it was.
-      if (!this.contextMenuContent(tap.features, at)) {
+      if (!this.contextMenuContent(tap.features, tap.overlayHits, at)) {
         return;
       }
       this.onMapRightClick(tap, tap.map);
@@ -1389,6 +1447,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const where = at ?? this.mouse().coords;
     const content = this.contextMenuContent(
       this.app.data.map.atClick?.features ?? [],
+      this.app.data.map.atClick?.overlayHits ?? [],
       where
     );
     if (!content) {
@@ -1424,6 +1483,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   private contextMenuContent(
     features: FeatureLike[],
+    overlayHits: OverlayHit[],
     at: Position
   ): {
     host: boolean;
@@ -1438,7 +1498,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       !this.mapInteract.pick();
     const ext = this.isModalInteraction()
       ? []
-      : this.extensionActionGroups(features, at);
+      : this.extensionActionGroups(features, overlayHits, at);
     return host || ext.length ? { host, ext } : null;
   }
 
@@ -2139,13 +2199,40 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.s57Features = {};
     this.s57FeatureLikes = {};
     this.trackHistoryFeatures = {};
+    this.overlayFeatures = {};
     const featureList: Map<string, FeatureListEntry> = new Map(); // features under pointer
     const chartBoundsFeatures: Map<string, FeatureListEntry> = new Map(); // chart bounds under pointer
     const fa: Feature[] = []; // features that can be the target of modify interaction
     let maskPopover = false; // suppress popover display
 
+    // Selectable data-overlay features join the list where they were hit.
+    // One that none of its extension's actions applies to is passed over, so
+    // the click goes to whatever lies beneath it.
+    const overlays = this.overlayTargets(
+      e.overlayHits ?? [],
+      GeoUtils.normaliseCoords(e.lonlat)
+    ).filter((o) => this.plotterExt.actionsFor(o.target).length > 0);
+    let nextOverlay = 0;
+    const listOverlaysAbove = (i: number) => {
+      while (
+        nextOverlay < overlays.length &&
+        overlays[nextOverlay].above <= i
+      ) {
+        const { target } = overlays[nextOverlay];
+        const id = `${OVERLAY_FEATURE_ENTRY}${nextOverlay++}`;
+        this.overlayFeatures[id] = target;
+        featureList.set(id, {
+          id,
+          coord: e.lonlat,
+          icon: { name: 'extension', svgIcon: undefined },
+          text: target.label
+        });
+      }
+    };
+
     // process list of features at click location
-    e.features.forEach((feature: FeatureLike) => {
+    e.features.forEach((feature: FeatureLike, i: number) => {
+      listOverlaysAbove(i);
       let id = feature.getId() as string;
       let addToFeatureList = false;
       let aton: SKAtoN;
@@ -2435,6 +2522,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         fa.push(feature as Feature);
       }
     });
+    listOverlaysAbove(Infinity);
 
     trackTimesHiddenByVessel(featureList.keys()).forEach((id) =>
       featureList.delete(id)
@@ -2474,6 +2562,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private s57Features: Record<string, Record<string, string | number>> = {};
+  /** The data-overlay features listed after the last click, by entry id. */
+  private overlayFeatures: Record<string, ChartTarget> = {};
   /** The S-57 features themselves, for a point feature's position. */
   private s57FeatureLikes: Record<string, FeatureLike> = {};
   private trackHistoryFeatures: Record<string, TrackHistoryFeature> = {};
@@ -2524,6 +2614,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
     let aid: string;
 
     switch (t[0]) {
+      case 'overlay-feature': {
+        // a selectable data-overlay feature: its extension's default action
+        // runs at once; without one, a popover offers its actions
+        const target = poData.target;
+        if (!target) return;
+        const actions = this.plotterExt.actionsFor(target);
+        const preferred = actions.find((a) => a.action.default === true);
+        if (preferred) {
+          this.popoverClosed();
+          this.plotterExt.invokeAction(
+            preferred.extension,
+            preferred.action.id,
+            target
+          );
+          return;
+        }
+        if (!actions.length) return;
+        poData.id = id;
+        poData.type = 'overlayFeature';
+        poData.title = target.label;
+        poData.readOnly = true;
+        poData.show = true;
+        break;
+      }
       case 's57':
         poData.id = id;
         poData.title = 'S57 Feature';

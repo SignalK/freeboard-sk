@@ -32,11 +32,27 @@ describe('parseTargetEntry', () => {
     });
   });
 
-  it('ignores kinds it does not offer, overlay features included', () => {
+  it('ignores kinds it does not offer', () => {
     expect(parseTargetEntry('rainbow')).toBeNull();
-    expect(parseTargetEntry('overlayFeature')).toBeNull();
-    expect(parseTargetEntry({ kind: 'overlayFeature' })).toBeNull();
+    expect(parseTargetEntry({ kind: 'sounding' })).toBeNull();
     expect(parseTargetEntry(42)).toBeNull();
+  });
+
+  it('takes overlay features, narrowed by overlays and match', () => {
+    const match = [{ path: 'properties.kind', op: 'eq', value: 'buoy' }];
+    expect(parseTargetEntry('overlayFeature')).toEqual({
+      kind: 'overlayFeature'
+    });
+    expect(
+      parseTargetEntry({ kind: 'overlayFeature', overlays: ['buoys'], match })
+    ).toEqual({ kind: 'overlayFeature', overlays: ['buoys'], match });
+    expect(
+      parseTargetEntry({ kind: 'overlayFeature', overlays: 'buoys' })
+    ).toBeNull();
+    expect(
+      parseTargetEntry({ kind: 'overlayFeature', overlays: [3] })
+    ).toBeNull();
+    expect(parseTargetEntry({ kind: 'overlayFeature', self: true })).toBeNull();
   });
 
   it('keeps match and self only on the kinds that take them', () => {
@@ -73,8 +89,8 @@ describe('usableActions', () => {
       ],
       '1'
     );
-    expect(list.map((a) => a.action.id)).toEqual(['a', 'c']);
-    expect(list[1].rules).toEqual([{ kind: 'route' }]);
+    expect(list.map((a) => a.action.id)).toEqual(['a', 'b', 'c']);
+    expect(list[2].rules).toEqual([{ kind: 'route' }]);
     expect(list[0]).toMatchObject({ extension: 'ext', extensionName: 'Ext' });
   });
 
@@ -189,6 +205,56 @@ describe('actionApplies', () => {
     };
     expect(actionApplies(a, feature('LNDMRK'))).toBe(true);
     expect(actionApplies(a, feature('BOYLAT'))).toBe(false);
+  });
+
+  describe('on an overlay feature', () => {
+    const buoy = (
+      owner: string | undefined,
+      overlayId = 'buoys',
+      kind = 'buoy'
+    ): SelectedTarget => {
+      const properties = { kind };
+      return {
+        target: {
+          kind: 'overlayFeature',
+          position: at,
+          overlayId,
+          source: 'stations',
+          featureId: 17,
+          properties
+        },
+        match: { id: 17, properties },
+        owner
+      };
+    };
+
+    it('applies only to the extension that owns the overlay', () => {
+      const a = one(['overlayFeature']);
+      expect(actionApplies(a, buoy('ext'))).toBe(true);
+      expect(actionApplies(a, buoy('other-ext'))).toBe(false);
+      expect(actionApplies(a, buoy(undefined))).toBe(false);
+    });
+
+    it('narrows to the listed overlays', () => {
+      const a = one([{ kind: 'overlayFeature', overlays: ['buoys'] }]);
+      expect(actionApplies(a, buoy('ext', 'buoys'))).toBe(true);
+      expect(actionApplies(a, buoy('ext', 'tides'))).toBe(false);
+    });
+
+    it('matches against the feature’s id and properties', () => {
+      const a = one([
+        {
+          kind: 'overlayFeature',
+          match: [{ path: 'properties.kind', op: 'eq', value: 'buoy' }]
+        }
+      ]);
+      expect(actionApplies(a, buoy('ext', 'buoys', 'buoy'))).toBe(true);
+      expect(actionApplies(a, buoy('ext', 'buoys', 'tide'))).toBe(false);
+      const byId = one([
+        { kind: 'overlayFeature', match: [{ path: 'id', op: 'eq', value: 17 }] }
+      ]);
+      expect(actionApplies(byId, buoy('ext'))).toBe(true);
+    });
   });
 });
 

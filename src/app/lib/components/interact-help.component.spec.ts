@@ -183,7 +183,13 @@ describe('InteractionHelpComponent — a pick', () => {
   });
 
   const render = (rules: TargetRule[], prompt?: string) => {
-    svc.startPick({ pickId: 'p1', extensionName: 'Auto Route', prompt, rules });
+    svc.startPick({
+      pickId: 'p1',
+      extension: 'auto-route',
+      extensionName: 'Auto Route',
+      prompt,
+      rules
+    });
     const fixture = TestBed.createComponent(InteractionHelpComponent);
     fixture.detectChanges();
     return fixture;

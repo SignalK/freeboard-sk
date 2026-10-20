@@ -607,6 +607,19 @@
         >
         </feature-list-popover>
       }
+      @if (this.overlay().type === 'overlayFeature') {
+        <ap-popover
+          [title]="overlay().title"
+          [icon]="{ class: '', name: 'extension' }"
+          [canClose]="app.config.map.popoverMulti"
+          (closed)="popoverClosed()"
+        >
+          <fb-ext-actions
+            [target]="overlay().target"
+            (chosen)="popoverClosed()"
+          ></fb-ext-actions>
+        </ap-popover>
+      }
       @if (this.overlay().type === 's57') {
         <s57-popover
           [canClose]="app.config.map.popoverMulti"

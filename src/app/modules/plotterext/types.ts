@@ -31,6 +31,7 @@ export const HOST_CAPABILITIES = [
   'overlays.image',
   'overlays.data',
   'actions',
+  'actions.overlay',
   'map.pick'
 ];
 

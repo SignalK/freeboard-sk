@@ -195,6 +195,7 @@ describe('PlotterExtensionService map picks', () => {
     expect(typeof pickId).toBe('string');
     expect(mapInteract.pick()).toEqual({
       pickId,
+      extension: 'ext-a',
       extensionName: 'Ext ext-a',
       prompt: 'Select the waypoint to route to',
       rules: [{ kind: 'waypoint' }]
@@ -287,7 +288,7 @@ describe('PlotterExtensionService map picks', () => {
       'map.badRequest'
     );
     expect(
-      await reason(client.call('map.pick', { targets: ['overlayFeature'] }))
+      await reason(client.call('map.pick', { targets: ['sounding'] }))
     ).toBe('map.badRequest');
     expect(await reason(client.call('map.cancelPick', {}))).toBe(
       'map.badRequest'

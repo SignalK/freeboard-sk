@@ -408,6 +408,7 @@ export class PlotterExtensionService {
         const pickId = uuid.v4();
         this.mapInteract.startPick({
           pickId,
+          extension: ctx.extension,
           extensionName: this.pickerName(ctx.extension),
           prompt,
           rules
