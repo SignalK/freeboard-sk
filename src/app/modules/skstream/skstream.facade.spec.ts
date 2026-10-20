@@ -93,6 +93,71 @@ describe('SKStreamFacade.parseVesselSelf — anchor', () => {
   });
 });
 
+// The worker drops an AIS target once it expires, and the map, the sidebar
+// and the course tools all read the active vessel.
+describe('SKStreamFacade.parseUpdateMessage — active vessel', () => {
+  const update = (activeId: string | null, targets: Map<string, SKVessel>) => {
+    const self = new SKVessel();
+    const facade = Object.create(SKStreamFacade.prototype) as unknown as {
+      app: {
+        data: {
+          vessels: {
+            self: SKVessel;
+            active?: SKVessel;
+            activeId: string | null;
+            aisTargets: Map<string, SKVessel>;
+            aisTracks: Map<string, unknown>;
+          };
+        };
+      };
+      aisLifecycle: ReturnType<typeof signal>;
+      vesselsUpdate: { next: () => void };
+      parseVesselSelf: (v: SKVessel) => void;
+      parseVesselOther: (targets: Map<string, SKVessel>) => void;
+      parseUpdateMessage: (msg: unknown) => void;
+    };
+    facade.app = {
+      data: {
+        vessels: {
+          self,
+          activeId,
+          aisTargets: new Map(),
+          aisTracks: new Map()
+        }
+      }
+    };
+    facade.aisLifecycle = signal({ updated: [], stale: [], expired: [] });
+    facade.vesselsUpdate = { next: (): void => undefined };
+    facade.parseVesselSelf = (): void => undefined;
+    facade.parseVesselOther = (t): void => {
+      facade.app.data.vessels.aisTargets = t;
+    };
+    facade.parseUpdateMessage({
+      action: 'update',
+      result: {
+        self,
+        aisTargets: targets,
+        paths: {},
+        aisStatus: { updated: [], stale: [], expired: [] }
+      }
+    });
+    return { vessels: facade.app.data.vessels, self };
+  };
+
+  it('follows the selected AIS target', () => {
+    const target = new SKVessel();
+    const { vessels } = update('ais1', new Map([['ais1', target]]));
+    expect(vessels.active).toBe(target);
+    expect(vessels.activeId).toBe('ais1');
+  });
+
+  it('follows the own vessel again once the selected target has expired', () => {
+    const { vessels, self } = update('ais1', new Map());
+    expect(vessels.active).toBe(self);
+    expect(vessels.activeId).toBeNull();
+  });
+});
+
 /**
  * Position age is measured against the client clock stamp applied when the
  * position delta arrived (#672), so it reports "no data" whether the
