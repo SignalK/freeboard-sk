@@ -18,6 +18,10 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { MapImageRegistry } from '../map-image-registry.service';
 import { selfVesselIcon } from './layer-vessel.component';
+import {
+  DEFAULT_OWN_VESSEL_ICON,
+  OwnVesselIconType
+} from 'src/app/modules/icons/vessels';
 import type { TrackHistoryGhost } from 'src/app/modules/skstream/track-history.service';
 
 /** Opacity of a vessel drawn where it was at the scrubbed time. */
@@ -39,6 +43,7 @@ export class TrackHistoryGhostLayerComponent
 
   @Input() ghosts: TrackHistoryGhost[] = [];
   @Input() iconScale?: number;
+  @Input() iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON;
   @Input({ required: true }) zIndex!: number;
 
   constructor(
@@ -59,7 +64,7 @@ export class TrackHistoryGhostLayerComponent
     if (!this.layer || !this.source) {
       return;
     }
-    if (changes['ghosts'] || changes['iconScale']) {
+    if (changes['ghosts'] || changes['iconScale'] || changes['iconType']) {
       this.source.clear();
       this.source.addFeatures(this.buildFeatures());
     }
@@ -91,7 +96,7 @@ export class TrackHistoryGhostLayerComponent
   /** The vessel's own icon, as a fresh instance to rotate and fade. */
   private icon(g: TrackHistoryGhost): ImageStyle {
     if (g.context === 'self') {
-      return selfVesselIcon(this.mapImages, this.iconScale);
+      return selfVesselIcon(this.mapImages, this.iconScale, this.iconType);
     }
     const shipClass =
       typeof g.typeId === 'number'

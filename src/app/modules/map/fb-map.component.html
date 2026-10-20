@@ -254,6 +254,7 @@
     <fb-track-history-ghosts
       [ghosts]="trackHistory.ghosts()"
       [iconScale]="app.config.vessels.iconScale"
+      [iconType]="app.config.vessels.iconType"
       [zIndex]="995"
     >
     </fb-track-history-ghosts>
@@ -981,6 +982,7 @@
     [actualSize]="app.config.vessels.iconActualSize"
     [lengthOverall]="dfeat.self.design?.length?.overall"
     [beam]="dfeat.self.design?.beam"
+    [iconType]="app.config.vessels.iconType"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [stale]="
       skstream.selfPositionStale() && !app.config.vessels.fixedLocationMode

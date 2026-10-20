@@ -38,6 +38,10 @@ import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
 import {
+  DEFAULT_OWN_VESSEL_ICON,
+  OwnVesselIcons
+} from 'src/app/modules/icons/vessels';
+import {
   serverTrailAvailable,
   TRAIL_DURATION_ALL,
   TRAIL_MAX_HOURS
@@ -116,6 +120,13 @@ export class SettingsDialog implements OnInit {
   private s57 = inject(S57Service);
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);
+
+  protected get selfIconPreview(): string {
+    return (
+      OwnVesselIcons[this.facade.settings.vessels.iconType]?.path ??
+      OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON].path
+    );
+  }
   private course = inject(CourseService);
 
   constructor() {

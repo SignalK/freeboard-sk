@@ -23,27 +23,22 @@ import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
 import { MapImageRegistry } from '../map-image-registry.service';
 import { actualSizeIconScale } from 'src/app/lib/vessel-icon-scale';
+import {
+  DEFAULT_OWN_VESSEL_ICON,
+  OwnVesselIconType,
+  OwnVesselIcons
+} from 'src/app/modules/icons/vessels';
 
 /** Symbol id used to override the own-vessel marker. */
 export const VESSEL_SELF_MARKER = 'vessel-self';
 
-const SELF_ICON_SIZE = { width: 19, height: 45 };
-
-const vesselIconDef = {
-  src: './assets/img/vessels/self.png',
-  anchor: [9.5, 22.5],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels',
-  scale: 0.9, //0.75,
-  rotateWithView: true
-};
-
 /** The own-vessel icon at `iconScale`: the external symbol override when one
- * is registered, else the built-in icon. A fresh instance, so per-render
- * heading rotation does not mutate a shared one. */
+ * is registered, else the built-in icon for `iconType`. A fresh instance, so
+ * per-render heading rotation does not mutate a shared one. */
 export function selfVesselIcon(
   mapImages: MapImageRegistry,
-  iconScale?: number
+  iconScale?: number,
+  iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON
 ): Icon {
   const ext = mapImages.getExternalSymbol(VESSEL_SELF_MARKER);
   if (ext) {
@@ -54,23 +49,17 @@ export function selfVesselIcon(
     }
     return img;
   }
+  const def =
+    OwnVesselIcons[iconType] ?? OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON];
   return new Icon({
-    ...vesselIconDef,
-    scale: iconScale ? Math.abs(iconScale) : vesselIconDef.scale
+    src: def.path,
+    anchor: [0.5, 0.5],
+    anchorXUnits: 'fraction',
+    anchorYUnits: 'fraction',
+    scale: iconScale ? Math.abs(iconScale) : def.scale,
+    rotateWithView: true
   } as Options);
 }
-
-const inactiveVesselStyle = new Style({
-  image: new Icon({
-    src: './assets/img/vessels/self_blur.png',
-    anchor: [9.5, 22.5],
-    anchorXUnits: 'pixels',
-    anchorYUnits: 'pixels',
-    size: [50, 50],
-    scale: 0.75,
-    rotateWithView: true
-  })
-});
 
 const fixedVesselStyle = new Style({
   image: new Icon({
@@ -86,6 +75,9 @@ const fixedVesselStyle = new Style({
 
 /** Opacity applied to the vessel icon while its position is stale. */
 export const STALE_VESSEL_OPACITY = 0.4;
+
+/** Opacity applied to the own-vessel icon while another vessel is selected. */
+export const INACTIVE_VESSEL_OPACITY = 0.5;
 
 /** Drawn over the vessel when its position is no longer being updated.
  * Deliberately unmissable: the whole point of #672 is that a transient
@@ -131,6 +123,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() actualSize = false;
   @Input() lengthOverall: number | null = null;
   @Input() beam: number | null = null;
+  @Input() iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON;
   @Input() opacity?: number;
   @Input() visible?: boolean;
   @Input() extent?: Extent;
@@ -144,6 +137,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   selfStyle?: Style;
   private view?: View;
   private scaledIcon: Icon | null = null;
+  inactiveStyle?: Style;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -204,7 +198,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           key === 'iconScale' ||
           key === 'actualSize' ||
           key === 'lengthOverall' ||
-          key === 'beam'
+          key === 'beam' ||
+          key === 'iconType'
         ) {
           if (this.source) {
             this.generateSelfStyle();
@@ -284,7 +279,13 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         }
         // set both ways: the styles are shared module-level instances, so a
         // dimmed icon would otherwise stay dimmed after position resumes
-        im.setOpacity(this.stale ? STALE_VESSEL_OPACITY : 1);
+        im.setOpacity(
+          this.stale
+            ? STALE_VESSEL_OPACITY
+            : s === this.inactiveStyle
+              ? INACTIVE_VESSEL_OPACITY
+              : 1
+        );
       }
       this.vessel.setStyle(this.stale ? [s, staleVesselStyle] : s);
     }
@@ -292,14 +293,26 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   // default self style with specified scale
   generateSelfStyle() {
+    this.selfStyle = new Style({ image: this.selfIcon() });
+    this.inactiveStyle = undefined;
+  }
+
+  private generateInactiveStyle() {
+    this.inactiveStyle = new Style({ image: this.selfIcon() });
+  }
+
+  private selfIcon(): Icon {
     this.scaledIcon?.unlistenImageChange(this.onScaledIconChange);
     this.scaledIcon = null;
-    const icon = selfVesselIcon(this.mapImages, this.iconScale);
+    const icon = selfVesselIcon(this.mapImages, this.iconScale, this.iconType);
     if (this.actualSize) {
       const size = icon.getSize();
       const metresPerPixel = this.metresPerPixel();
       if (metresPerPixel !== undefined) {
-        const metrics = size ?? [SELF_ICON_SIZE.width, SELF_ICON_SIZE.height];
+        const def =
+          OwnVesselIcons[this.iconType] ??
+          OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON];
+        const metrics = size ?? [def.width, def.height];
         icon.setScale(
           actualSizeIconScale(
             {
@@ -317,7 +330,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         icon.listenImageChange(this.onScaledIconChange);
       }
     }
-    this.selfStyle = new Style({ image: icon });
+    return icon;
   }
 
   private metresPerPixel(): number | undefined {
@@ -370,7 +383,10 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         cs = fixedVesselStyle;
       } else {
         if (this.activeId && this.activeId !== this.id) {
-          cs = inactiveVesselStyle;
+          if (!this.inactiveStyle) {
+            this.generateInactiveStyle();
+          }
+          cs = this.inactiveStyle;
         }
       }
     }

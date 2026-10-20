@@ -834,7 +834,27 @@
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
                     <fieldset>
-                      <legend>Vessel Icon Size</legend>
+                      <legend>Vessel Icon</legend>
+                      <div
+                        class="setting-card-row"
+                        style="padding-bottom: 10px"
+                      >
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Vessel icon</mat-label>
+                            <mat-select
+                              [(ngModel)]="facade.settings.vessels.iconType"
+                              (selectionChange)="persistModel()"
+                              matTooltip="Icon used to draw your own vessel."
+                            >
+                              @for(i of options.vessel.selfIconType; track i[0])
+                              {
+                              <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
+                      </div>
                       <div
                         class="setting-card-row"
                         style="padding-bottom: 10px"
@@ -848,7 +868,7 @@
                             {
                             <mat-radio-button [value]="i[0]">
                               <img
-                                src="./assets/img/vessels/self.png"
+                                [src]="selfIconPreview"
                                 [style]="`transform: scale(${i[0]})`"
                               />
                               ({{i[1]}})

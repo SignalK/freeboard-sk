@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="17" height="45" viewBox="0 0 32 64">
+  <title>Powerboat</title>
+  <path d="M16 2 C20 10 23 20 23.5 32 L23.5 57 C23.5 60 22 62 19.5 62 L12.5 62 C10 62 8.5 60 8.5 57 L8.5 32 C9 20 12 10 16 2 Z" fill="#d32f2f" stroke="#7f0000" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M16 9 C18.5 15 20 23 20.5 33 L20.5 56 C20.5 57.5 20 58 18.5 58 L13.5 58 C12 58 11.5 57.5 11.5 56 L11.5 33 C12 23 13.5 15 16 9 Z" fill="#fff5f5" stroke="#7f0000" stroke-width="1"/>
+  <path d="M9.5 31 Q16 28 22.5 31" fill="none" stroke="#7f0000" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M10.5 32 L21.5 32 L20 41 L12 41 Z" fill="#f3f3f3" stroke="#7f0000" stroke-width="1.6" stroke-linejoin="round"/>
+  <rect x="10.5" y="44" width="11" height="11" rx="1.5" fill="#ffffff" stroke="#7f0000" stroke-width="1.4"/>
+  <rect x="12" y="46.5" width="3.4" height="5" rx="0.8" fill="#e8e8e8" stroke="#7f0000" stroke-width="0.8"/>
+  <rect x="16.6" y="46.5" width="3.4" height="5" rx="0.8" fill="#e8e8e8" stroke="#7f0000" stroke-width="0.8"/>
+  <path d="M10.5 58 Q16 56 21.5 58" fill="none" stroke="#7f0000" stroke-width="1.2" stroke-linecap="round"/>
+</svg>
