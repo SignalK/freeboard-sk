@@ -36,7 +36,8 @@ package; Freeboard depends on it (`^0.23.0`) and imports its host entry point
 
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
-`widgets`, `panels.iframe`, `panels.state`, `buttons`, `events.publish`, `signalk.stream`,
+`widgets`, `panels.iframe`, `panels.state`, `buttons`, `buttons.visibility`,
+`events.publish`, `signalk.stream`,
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
@@ -106,6 +107,54 @@ the `bus.*` namespace, an unknown `scope`).
 |------|------|
 | `src/app/modules/plotterext/events-methods.ts` | the `events.publish` handler and `publishEvent()` routing |
 | `src/app/modules/plotterext/plotterext.service.ts` | binds it (`eventsDeps`), `broadcastMessage` / `publishToExtension`, the `publish` / `sendMessage` button |
+
+## The `buttons.visibility` capability
+
+`buttons.visibility` lets an extension show and hide its own toolbar buttons as
+its state changes (spec: *Showing and hiding buttons*), for example "Stop
+recording" only while a recording runs.
+
+### The button model
+
+Freeboard puts every `buttons` entry on the right-hand map toolbar, whatever its
+`slot`. `toolbarButtons` (service) lists the buttons of compatible manifests in
+manifest order, leaving out each hidden one: the manifest `visible` (default
+`true`), overridden per button by `buttons.setVisibility`. The app builds the
+toolbar's items from that list, so a hidden button is not rendered at all and
+the toolbar closes the gap; shown again, it takes its manifest place back. The
+override is kept in memory only (`buttonVisibility`, by extension then button
+id), so a reload starts from the manifest again. An extension that leaves the
+collection loses its overrides (`dropDepartedVisibility`, for actions too), so
+when it comes back its buttons start from the manifest, as its reloaded runtime
+does.
+
+Hiding a button changes nothing it opened. Its panel stays in the drawer, and a
+window it opened stays open and stays tracked in `buttonWindows`, so the button
+shown again still raises or toggles that window.
+
+### Methods
+
+`buttons.setVisibility({ ids, visible })` shares its handler with
+`actions.setVisibility` (`setVisibilityMethod`, params schema in
+`action-params.ts`): every id must be a button of the caller's manifest, any of
+the extension's contexts may call it, and the last call wins.
+
+### Error reasons
+
+`buttons.badRequest` (`ids` not a list of strings, or `visible` not a boolean),
+`buttons.unknownId` (an id that is not a button of the caller's manifest;
+nothing changes). The embedding host has no manifest, so every id it sends is
+unknown. Freeboard advertises the capability, so it never answers
+`buttons.notSupported`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/plotterext.service.ts` | `toolbarButtons`, `buttonVisibility`, `buttons.setVisibility` (`setVisibilityMethod`) |
+| `src/app/modules/plotterext/action-params.ts` | the `setVisibility` params schema, shared with actions |
+| `src/app/app.component.ts` | `rightToolbarItems`, the toolbar items built from `toolbarButtons` |
+| `dev-tools/fsk-mcp/src/tools.ts` | `fsk_set_button_visibility` (the bridge's hidden probe button) |
 
 ## The `routes` capability
 
@@ -967,7 +1016,7 @@ changes). The embedding host has no manifest, so every id it sends is unknown.
 | File | Role |
 |------|------|
 | `src/app/modules/plotterext/actions.ts` | target-entry parsing, usable actions, matching (target types come from the bus) |
-| `src/app/modules/plotterext/action-params.ts` | the `actions.setVisibility` params schema |
+| `src/app/modules/plotterext/action-params.ts` | the `actions.setVisibility` params schema (shared with `buttons.setVisibility`) |
 | `src/app/modules/plotterext/filter-condition.ts` | the condition evaluator shared with `resources.setFilter` |
 | `src/app/modules/plotterext/plotterext.service.ts` | `extensionActions`, `actionsFor`, `invokeAction`, `actions.setVisibility`, invocation in handshakes |
 | `src/app/modules/plotterext/ext-actions.component.ts` | the popover row / menu |

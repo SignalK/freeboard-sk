@@ -16,7 +16,7 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { BridgeHub } from './bridge-hub.ts';
-import { PROBE_ACTION } from './manifest.ts';
+import { PROBE_ACTION, PROBE_BUTTON } from './manifest.ts';
 
 // Where the runtime records action choices and pick answers (src/web/runtime.ts).
 const INVOCATIONS_KEY = 'actionInvocations';
@@ -738,6 +738,28 @@ export const TOOLS: ToolDef[] = [
       hub.call(
         'actions.setVisibility',
         { ids: a.ids ?? [PROBE_ACTION], visible: a.visible },
+        { session: a.session }
+      )
+  }),
+  tool({
+    name: 'fsk_set_button_visibility',
+    description:
+      "Show or hide the bridge's own toolbar buttons (capability `buttons.visibility`, method `buttons.setVisibility`). Its one button, the probe (id `probe`, icon bug_report, \"FSK MCP probe (dev)\"), starts hidden: show it and it joins Freeboard's right-hand toolbar after the host's own buttons; hide it and it leaves, closing the gap. Pressing it toggles the window probe; hiding the button leaves that window open. Not persisted: a reload starts it hidden again. Errors: buttons.unknownId for an id that is not one of the bridge's buttons (nothing changes).",
+    inputSchema: withSession(
+      {
+        visible: { type: 'boolean' },
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: "Button ids of the bridge's manifest. Default ['probe']."
+        }
+      },
+      ['visible']
+    ),
+    run: (hub, a: Session & { visible: boolean; ids?: string[] }) =>
+      hub.call(
+        'buttons.setVisibility',
+        { ids: a.ids ?? [PROBE_BUTTON], visible: a.visible },
         { session: a.session }
       )
   }),
