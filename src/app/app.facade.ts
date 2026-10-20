@@ -1523,7 +1523,7 @@ export class AppFacade extends InfoService {
     let speed: number | null;
     try {
       speed =
-        value == null
+        value === null || value === undefined
           ? null
           : Convert.transform(
               value,
