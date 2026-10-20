@@ -23,8 +23,8 @@ import { FBTracks } from 'src/app/types';
   standalone: false
 })
 export class TrackLayerComponent extends FBFeatureLayerComponent {
-  @Input() tracks: FBTracks;
-  @Input() trackStyles: { [key: string]: Style };
+  @Input({ required: true }) tracks!: FBTracks;
+  @Input() trackStyles?: { [key: string]: Style };
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -66,21 +66,21 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
   // build track style
   buildStyle(trk: SKTrack): Style {
     if (typeof this.trackStyles !== 'undefined') {
-      if (trk.feature.properties.skType) {
+      if (trk.feature.properties?.skType) {
         return this.setTextLabel(
-          this.trackStyles[trk.feature.properties.skType],
-          trk.feature.properties.name
+          this.trackStyles[trk.feature.properties?.skType],
+          trk.feature.properties?.name
         );
       } else {
         return this.setTextLabel(
           this.trackStyles.default,
-          trk.feature.properties.name
+          trk.feature.properties?.name
         );
       }
     } else if (this.layerProperties && this.layerProperties.style) {
       return this.setTextLabel(
         this.layerProperties.style,
-        trk.feature.properties.name
+        trk.feature.properties?.name
       );
     } else {
       // default styles
@@ -95,7 +95,7 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
           textAlign: 'center'
         })
       });
-      return this.setTextLabel(s, trk.feature.properties.name);
+      return this.setTextLabel(s, trk.feature.properties?.name);
     }
   }
 

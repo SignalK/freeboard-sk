@@ -67,9 +67,9 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       if (id.includes(this.targetContext)) {
         const f = this.source.getFeatureById(id) as Feature;
         if (this.okToRenderTarget(id)) {
-          if (this.targets.has(id)) {
+          const target = this.targets.get(id);
+          if (target) {
             if (f) {
-              const target = this.targets.get(id);
               const label = this.buildLabel(target);
               if (target.position) {
                 f.setGeometry(new Point(fromLonLat(target.position)));
@@ -107,10 +107,10 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
 
   // add new target
   addTargetWithId(id: string) {
-    if (!id.includes(this.targetContext) || !this.targets.has(id)) {
+    const target = this.targets.get(id);
+    if (!id.includes(this.targetContext) || !target) {
       return;
     }
-    const target = this.targets.get(id);
     const label = this.buildLabel(target);
     if (target.position) {
       const f = new Feature({
@@ -148,12 +148,11 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       return target.orientation;
     }
     const meteo = target as SKMeteo;
+    const twd = meteo.twd ?? NaN;
     if (this.isMeteoArrow(target)) {
-      return meteo.twd + Math.PI;
+      return twd + Math.PI;
     }
-    return meteoWindBucket(meteo.tws) && Number.isFinite(meteo.twd)
-      ? meteo.twd
-      : 0;
+    return meteoWindBucket(meteo.tws) && Number.isFinite(twd) ? twd : 0;
   }
 
   // Whether a meteo target reports a wind speed to display alongside its glyph.
@@ -172,7 +171,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       return label;
     }
     const speed = this.app.formatValueForDisplay(
-      (target as SKMeteo).tws,
+      (target as SKMeteo).tws ?? NaN,
       'm/s',
       {
         precision: 0,
@@ -188,21 +187,20 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       ? this.mapImages.getWindArrow()
       : this.targetContext === 'meteo'
         ? this.mapImages.getMeteoIcon((target as SKMeteo).tws, target.virtual)
-        : this.mapImages.getAtoN(target.type?.id, target.virtual);
+        : this.mapImages.getAtoN(target.type?.id ?? '', target.virtual);
+    const iconStyle = () =>
+      new Style({
+        image: icon,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: -18
+        })
+      });
     if (icon && typeof this.targetStyles === 'undefined') {
-      if (icon) {
-        return new Style({
-          image: icon,
-          text: new Text({
-            text: '',
-            offsetX: 0,
-            offsetY: -18
-          })
-        });
-      }
-      return;
+      return iconStyle();
     }
-    let s: Style;
+    let s: Style | undefined;
     const setStale = this.isStale(target);
     if (typeof this.targetStyles !== 'undefined') {
       if (setStale) {
@@ -226,6 +224,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
         })
       });
     }
-    return s;
+    // targetStyles without a default (or inactive) style for this target
+    return s ?? iconStyle();
   }
 }

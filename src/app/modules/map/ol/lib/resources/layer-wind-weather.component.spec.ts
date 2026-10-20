@@ -46,7 +46,7 @@ describe('LayerWindWeatherComponent.createWindStyle (#513)', () => {
     const icon = style.getImage() as Icon;
     expect(icon.getSrc()).toContain('weatherStation-10.svg');
     expect(icon.getRotation()).toBeCloseTo(1.2);
-    expect(style.getText().getText()).toBe('12 kn');
+    expect(style.getText()?.getText()).toBe('12 kn');
   });
 
   it('renders the arrow with a speed label in arrow mode', () => {
@@ -54,7 +54,7 @@ describe('LayerWindWeatherComponent.createWindStyle (#513)', () => {
     const icon = style.getImage() as Icon;
     expect(icon.getSrc()).toContain('data:image/svg+xml');
     expect(icon.getRotation()).toBeCloseTo(1.2 + Math.PI);
-    expect(style.getText().getText()).toBe('12 kn');
+    expect(style.getText()?.getText()).toBe('12 kn');
   });
 
   it('does not rotate the calm windsock in barb mode', () => {

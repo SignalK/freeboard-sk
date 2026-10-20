@@ -160,8 +160,8 @@ describe('BearingLineComponent marker drag', () => {
     pointer('pointerdrag', [-80.35, 25.15], 1);
     pointer('pointerdrag', [-80.3, 25.2], 2);
 
-    expect(drags.at(-1).position).toEqual(marker);
-    expect(drags.at(-1).worldOffset).toBeCloseTo(0, 6);
+    expect(drags.at(-1)?.position).toEqual(marker);
+    expect(drags.at(-1)?.worldOffset).toBeCloseTo(0, 6);
   });
 
   it('puts the marker back in the world copy it was grabbed in', () => {
@@ -171,7 +171,7 @@ describe('BearingLineComponent marker drag', () => {
     pointer('pointerdrag', [-80.35, 25.15], 1, 2 * WORLD);
     pointer('pointerdrag', [-80.3, 25.2], 2, 2 * WORLD);
 
-    expect(drags.at(-1).worldOffset).toBeCloseTo(WORLD, 3);
+    expect(drags.at(-1)?.worldOffset).toBeCloseTo(WORLD, 3);
   });
 
   it('ignores the rest of a pinch once the marker is put back', () => {
@@ -233,7 +233,9 @@ describe('BearingLineComponent destination marker', () => {
     fixture.componentRef.setInput('markerPosition', [-80.4, 25.1]);
     fixture.componentRef.setInput('showMarker', showMarker);
     fixture.detectChanges();
-    return !!fixture.componentInstance.source.getFeatureById('dest.point');
+    const source = fixture.componentInstance.source;
+    expect(source).toBeDefined();
+    return !!source?.getFeatureById('dest.point');
   }
 
   it('draws the marker when asked to', () => {

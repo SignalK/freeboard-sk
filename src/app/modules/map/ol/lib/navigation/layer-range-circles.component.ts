@@ -54,9 +54,9 @@ const LightTheme = {
   standalone: false
 })
 export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
+  protected layer?: Layer;
+  public source?: VectorSource;
+  protected features: Array<Feature> = [];
   private theme = LightTheme;
 
   protected darkMode = input<boolean>(false);
@@ -71,19 +71,19 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() position: Coordinate;
+  @Input({ required: true }) position!: Coordinate;
   @Input() maxCircles = 4;
-  @Input() mapZoom: number;
+  @Input({ required: true }) mapZoom!: number;
   @Input() units = 'm';
-  @Input() minZoom: number;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() minZoom?: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -146,7 +146,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
@@ -189,7 +189,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       range = this.fixedDistance();
     }
     const fa: Feature[] = [];
-    if (this.mapZoom >= this.minZoom) {
+    if (this.minZoom === undefined || this.mapZoom >= this.minZoom) {
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;

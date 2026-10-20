@@ -23,7 +23,7 @@ import { SKRegion } from 'src/app/modules/skresources';
 })
 export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
   @Input() regions: FBRegions = [];
-  @Input() regionStyles: { [key: string]: Style };
+  @Input() regionStyles?: { [key: string]: Style };
 
   constructor(
     protected override mapComponent: MapComponent,

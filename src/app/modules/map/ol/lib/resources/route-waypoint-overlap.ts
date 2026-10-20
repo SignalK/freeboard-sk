@@ -20,7 +20,8 @@ import type { DrawnWaypoint } from '../waypoint-snap';
 /** Points rendered within this many pixels of each other share a marker. */
 export const WAYPOINT_COVER_PX = 3;
 
-const WORLD_WIDTH = getWidth(getProjection('EPSG:3857').getExtent());
+// EPSG:3857 is built into OpenLayers, so the lookup always finds it
+const WORLD_WIDTH = getWidth(getProjection('EPSG:3857')!.getExtent());
 
 /** Per-point route metadata; only the waypoint link matters here. */
 export type PointLink = { href?: string } | null | undefined;

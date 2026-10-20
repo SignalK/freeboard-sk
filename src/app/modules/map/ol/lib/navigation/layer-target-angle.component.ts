@@ -29,8 +29,8 @@ import { Position } from 'src/app/types';
   standalone: false
 })
 export class TargetAngleComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
+  protected layer?: Layer;
+  public source?: VectorSource;
   protected features: Array<Feature> = [];
 
   /**
@@ -39,20 +39,20 @@ export class TargetAngleComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() line: Coordinate[];
+  @Input() line?: Coordinate[];
   @Input() mapZoom = 10;
 
-  @Input() lineStyle: Style;
-  @Input() position: Position; // (change trigger)
-  @Input() twd: number; //(change trigger)
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() lineStyle?: Style;
+  @Input() position?: Position; // (change trigger)
+  @Input() twd?: number; //(change trigger)
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   public mapifiedLine: Array<Coordinate> = [];
 
@@ -108,7 +108,7 @@ export class TargetAngleComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 
@@ -127,7 +127,7 @@ export class TargetAngleComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildStyle(): Style {
+  buildStyle(): Style | undefined {
     if (this.lineStyle) {
       return this.lineStyle;
     } else {

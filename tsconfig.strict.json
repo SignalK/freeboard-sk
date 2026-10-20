@@ -20,7 +20,9 @@
     "src/app/modules/gpx",
     "src/app/modules/map/ol/lib/alarms",
     "src/app/modules/map/ol/lib/charts",
+    "src/app/modules/map/ol/lib/navigation",
     "src/app/modules/map/ol/lib/radar",
+    "src/app/modules/map/ol/lib/resources",
     "src/app/modules/map/ol/lib/vessel",
     "src/app/modules/skresources/components/weather"
   ],

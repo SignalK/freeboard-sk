@@ -32,8 +32,8 @@ import { SKPosition } from 'src/app/types';
 export class DirectionOfTravelComponent
   implements OnInit, OnDestroy, OnChanges
 {
-  protected layer: Layer;
-  public source: VectorSource;
+  protected layer?: Layer;
+  public source?: VectorSource;
   protected features: Array<Feature> = [];
 
   /**
@@ -46,14 +46,14 @@ export class DirectionOfTravelComponent
   @Input() reverse = false;
   @Input() pointIndex = 0;
   @Input() mapZoom = 10;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
+  @Input() opacity?: number;
+  @Input() visible?: boolean;
+  @Input() extent?: Extent;
+  @Input() zIndex?: number;
+  @Input() minResolution?: number;
+  @Input() maxResolution?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
+  @Input() layerProperties?: { [index: string]: any };
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -107,7 +107,7 @@ export class DirectionOfTravelComponent
     if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
-      this.layer = null;
+      this.layer = undefined;
     }
   }
 

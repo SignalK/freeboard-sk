@@ -46,10 +46,10 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
   @Input() show = false;
   @Input() opacity = 0.7;
 
-  private layer: VectorLayer<VectorSource>;
-  private source: VectorSource;
+  private layer?: VectorLayer<VectorSource>;
+  private source?: VectorSource;
   private refresh$ = new Subject<void>();
-  private refreshSub: Subscription;
+  private refreshSub?: Subscription;
   private readonly destroyRef = inject(DestroyRef);
   private readonly zIndex = 50;
 
@@ -155,7 +155,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
     }
 
     return this.currents
-      .getGridCurrents(bbox, this.currents.selectedTime())
+      .getGridCurrents(bbox, this.currents.selectedTime() ?? undefined)
       .pipe(
         tap((response) => this.renderCurrents(response.points)),
         catchError(() => {

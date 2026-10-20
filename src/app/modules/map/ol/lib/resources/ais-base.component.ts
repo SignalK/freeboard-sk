@@ -16,6 +16,21 @@ import { FBFeatureLayerComponent } from '../sk-feature.component';
 export type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
 
 // ** Signal K AIS Target Base Compnent  **
+/** A ship type's styles, one per vessel state (e.g. `moored`) plus `default`. */
+export type AISStateStyles = Record<string, Style>;
+
+/**
+ * Styles for AIS targets: the named styles below, and per ship type (keyed by
+ * type id) or per vessel state either a single style or a style per state.
+ */
+export interface AISTargetStyles {
+  focus?: Style;
+  inactive?: Style;
+  default?: Style;
+  buddy?: Style;
+  [key: string]: Style | AISStateStyles | undefined;
+}
+
 @Component({
   selector: 'ol-map > sk-ais-target-base',
   template: '<ng-content></ng-content>',
@@ -27,13 +42,13 @@ export class AISBaseLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
   @Input() targets: Map<string, SKTarget> = new Map();
-  @Input() targetContext: string; // e.g. 'vessels', 'atons', 'aircraft', 'meteo'
-  @Input() targetStyles: { [key: string]: Style };
-  @Input() focusId: string;
+  @Input({ required: true }) targetContext!: string; // e.g. 'vessels', 'atons', 'aircraft', 'meteo'
+  @Input() targetStyles?: AISTargetStyles;
+  @Input() focusId?: string;
   @Input() inactiveTime = 180000; // in ms (3 mins)
-  @Input() filterByShipType: boolean;
-  @Input() filterShipTypes: Array<number>;
-  @Input() filterIds: Array<string>;
+  @Input() filterByShipType?: boolean;
+  @Input() filterShipTypes?: Array<number>;
+  @Input() filterIds?: Array<string>;
   @Input() updateIds: Array<string> = [];
   @Input() staleIds: Array<string> = [];
   @Input() removeIds: Array<string> = [];
@@ -135,7 +150,7 @@ export class AISBaseLayerComponent
       checkImo(id) && checkBuddy(id);
 
     if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
-      const st = Math.floor(this.targets.get(id).type.id / 10) * 10;
+      const st = Math.floor((this.targets.get(id)?.type?.id ?? NaN) / 10) * 10;
       return this.filterShipTypes.includes(st) && passesSentinelFilters(id);
     }
     if (!this.filterIds) {
