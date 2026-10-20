@@ -179,6 +179,25 @@ describe('CourseService course API data (#755)', () => {
     expect(app.data.activeWaypoint).toBeNull();
   });
 
+  it('leaves no destination once the course data is cleared', () => {
+    const { service } = setupWithData();
+    service.parseSelf(
+      vesselWithCourse({
+        arrivalCircle: 250,
+        activeRoute: null,
+        nextPoint: point(-80.1, 25.1, '/resources/waypoints/wpt-1'),
+        previousPoint: point(-80.2, 25.2)
+      })
+    );
+
+    service.initCourseData();
+
+    // the menu, the nav panel and the map take a position as a destination
+    const c = service.courseData();
+    expect(c.position).toBeNull();
+    expect(c.startPosition).toBeNull();
+  });
+
   it('parses ISO ETA strings and rejects unparseable ones', () => {
     const { service } = setupWithData();
     service.parseSelf({

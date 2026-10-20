@@ -316,11 +316,11 @@ export class CourseService {
         bearingMagnetic: null,
         xte: null,
         vmg: null,
-        position: [null, null],
+        position: null,
         pointIndex: current.pointIndex,
         pointTotal: 0,
         arrivalCircle: null,
-        startPosition: [null, null],
+        startPosition: null,
         pointNames: [],
         activeRoutePoints: null,
         destPointName: ''
