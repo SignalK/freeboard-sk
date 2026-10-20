@@ -387,6 +387,10 @@ export class VesselPopoverComponent {
         vessel.distanceToSelf as number,
         'm'
       );
+      // The popover stays open as its vessel updates or changes, so a value
+      // that is no longer reported must not keep showing the last one.
+      this.cpa = undefined;
+      this.tcpa = undefined;
       const closestApproach = vessel.closestApproach;
       if (closestApproach) {
         if (typeof closestApproach.distance === 'number') {
