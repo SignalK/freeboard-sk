@@ -298,8 +298,8 @@ const OFFSET_GRACE_PERIOD = 2000;
 
 /**
  * Prefix of the ids Freeboard gives the data-overlay features it lists after a
- * click (capability `actions.overlay`), followed by the overlay, source and
- * feature id. Only the prefix is read: an overlay feature's own id is the
+ * click (capability `actions.overlay`), followed by the owning extension,
+ * overlay, source and feature id. Only the prefix is read: an overlay feature's own id is the
  * extension's and is never read as one of the map's. A list left open names
  * its features by these ids, so a later click can make one unknown, never
  * another feature.
@@ -2223,7 +2223,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       ) {
         const { target } = overlays[nextOverlay++];
         const t = target.target as OverlayFeatureTarget;
-        const id = `${OVERLAY_FEATURE_ENTRY}${t.overlayId}\n${t.source}\n${typeof t.featureId}:${t.featureId}`;
+        const id = `${OVERLAY_FEATURE_ENTRY}${target.owner}/${t.overlayId}\n${t.source}\n${typeof t.featureId}:${t.featureId}`;
         this.overlayFeatures[id] = target;
         featureList.set(id, {
           id,

@@ -1095,7 +1095,7 @@ it has none.
 - **Select.** `processMapClick` lists a selectable feature only when at least
   one action applies to it; otherwise the click is handled as if the feature
   were not there. A listed feature gets an entry id: `overlay-feature.`
-  plus its overlay, source and feature id, looked up in the click's
+  plus its extension, overlay, source and feature id, looked up in the click's
   `overlayFeatures`, so a list left open never resolves to a feature of a
   later click. `formatPopover` for that
   id runs the first applying `default` action (and opens nothing), or opens

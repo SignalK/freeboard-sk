@@ -64,6 +64,13 @@ const entries: Record<string, object> = {
     interactive: true,
     titleProperty: 'station'
   },
+  'other/stations': {
+    extension: 'other',
+    id: 'stations',
+    title: 'Other stations',
+    interactive: true,
+    titleProperty: 'station'
+  },
   'buoys/quiet': {
     extension: 'buoys',
     id: 'quiet',
@@ -238,6 +245,25 @@ describe('FBMapComponent: selecting an interactive overlay feature', () => {
     cmp.featureListSelection(po.content[1]);
     expect(cmp.overlay().type).toBe('overlayFeature');
     expect(cmp.overlay().target.target.featureId).toBe(17);
+  });
+
+  it('lists same-id features of two extensions’ same-named overlays apart', () => {
+    const cmp = bareComponent();
+    click(cmp, [
+      hit(17),
+      hit(17, {
+        overlayKey: 'other/stations',
+        properties: { station: 'Other 17' }
+      })
+    ]);
+    const po = cmp.overlay();
+    expect(po.type).toBe('list');
+    expect(po.content.map((f: { text: string }) => f.text)).toEqual([
+      'Fowey Rocks',
+      'Other 17'
+    ]);
+    cmp.featureListSelection(po.content[1]);
+    expect(cmp.overlay().target.owner).toBe('other');
   });
 
   it('never resolves a list left open to a feature of a later click', () => {

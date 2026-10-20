@@ -762,7 +762,7 @@ export const TOOLS: ToolDef[] = [
         type: 'array',
         items: { type: ['string', 'object'] },
         description:
-          "What may be picked, as an action's targets: kinds (position, waypoint, note, route, track, region, vessel, aton, chartFeature) or { kind, match } / { kind: 'vessel', self }. Default ['position']. With position among them, a click on no accepted feature yields the point."
+          "What may be picked, as an action's targets: kinds (position, waypoint, note, route, track, region, vessel, aton, chartFeature, overlayFeature — the bridge's own scratch features only) or { kind, match } / { kind: 'vessel', self } / { kind: 'overlayFeature', overlays }. Default ['position']. With position among them, a click on no accepted feature yields the point."
       }
     }),
     run: (hub, a: Session & { prompt?: string; targets?: unknown[] }) =>
