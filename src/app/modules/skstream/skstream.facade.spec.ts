@@ -287,11 +287,14 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
   it('fetches once for a zoom through several levels, at the level it stops on', () => {
     const { facade, trailRequests } = facadeWith();
     view(facade, extent, 10.2);
-    [11.2, 12.2, 13.2, 14.2].forEach((zoom) =>
-      facade.postMapView(extent, zoom)
-    );
-    expect(trailRequests()).toBe(1);
-    vi.advanceTimersByTime(TRAIL_REFRESH_DEBOUNCE);
+    // Each zoom restarts the wait, so steps closer together than the wait
+    // fetch nothing until it has passed after the last one.
+    for (const zoom of [11.2, 12.2, 13.2, 14.2]) {
+      facade.postMapView(extent, zoom);
+      vi.advanceTimersByTime(TRAIL_REFRESH_DEBOUNCE / 2);
+      expect(trailRequests()).toBe(1);
+    }
+    vi.advanceTimersByTime(TRAIL_REFRESH_DEBOUNCE / 2);
     expect(trailRequests()).toBe(2);
     view(facade, extent, 14.6);
     expect(trailRequests()).toBe(2);
