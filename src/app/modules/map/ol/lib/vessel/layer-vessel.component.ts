@@ -137,7 +137,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   selfStyle?: Style;
   private view?: View;
   private scaledIcon: Icon | null = null;
-  inactiveStyle: Style | null = null;
+  inactiveStyle?: Style;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -294,7 +294,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   // default self style with specified scale
   generateSelfStyle() {
     this.selfStyle = new Style({ image: this.selfIcon() });
-    this.inactiveStyle = null;
+    this.inactiveStyle = undefined;
   }
 
   private generateInactiveStyle() {

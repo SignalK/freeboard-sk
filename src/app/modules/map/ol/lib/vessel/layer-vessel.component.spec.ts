@@ -223,7 +223,7 @@ describe('own-vessel icon while another vessel is selected', () => {
 
     c.parseVessel();
 
-    const image = (c.vessel.getStyle() as Style).getImage() as Icon;
+    const image = (c.vessel?.getStyle() as Style).getImage() as Icon;
     expect(image.getSrc()).toContain('self_catamaran.svg');
     expect(image.getOpacity()).toBe(INACTIVE_VESSEL_OPACITY);
   });
