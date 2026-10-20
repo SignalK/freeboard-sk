@@ -351,7 +351,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Input() measureMode?: boolean;
   @Input() drawMode?: boolean;
   @Input() modifyMode = false;
-  @Input() activeRoute?: string;
+  @Input() activeRoute?: string | null;
   @Input() vesselTrail: Array<Position> = [];
   @Input() dblClickZoom = false;
   @Input() overZoomTiles = true;
@@ -3177,7 +3177,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Popover title for the Bearing & Distance measurement (#905). */
-  protected bearingDistanceTitle(origin: Position, target: Position): string {
+  protected bearingDistanceTitle(
+    origin: Position | null,
+    target: Position
+  ): string {
+    if (!origin) return '';
     const r = bearingDistanceReadout(origin, target);
     const fmt = (v: number, unit: SI_BASE_UNIT) =>
       this.app.formatValueForDisplay(v, unit);
@@ -3456,7 +3460,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ********************
 
   // ** delete selected feature **
-  protected async deleteFeature(id: string, type: string) {
+  protected async deleteFeature(id: string | null, type: string | null) {
+    if (id === null) {
+      return;
+    }
     switch (type) {
       case 'waypoint':
         this.skres.deleteWaypoint(id);
@@ -3489,8 +3496,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** hide a displayed feature (non-destructive; resource is untouched)
-  protected hideFeature(id: string, type: string) {
-    if (type === 'route') {
+  protected hideFeature(id: string | null, type: string | null) {
+    if (id !== null && type === 'route') {
       // Same effect as unchecking "Show on Map" in the Routes list — remove the
       // route from the displayed set; it reappears when re-selected there.
       this.skres.routeHide(id);
@@ -3528,12 +3535,31 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** emit info event **
-  protected itemInfo(id: string, type: string, isSelf = false) {
+  protected itemInfo(id: string | null, type: string | null, isSelf = false) {
     if (type === 'ais' && isSelf) {
-      this.info.emit({ id: id, type: 'self' });
-    } else {
+      // the own vessel is looked up by its type, not an id
+      this.info.emit({ id: id ?? '', type: 'self' });
+    } else if (id !== null && type !== null) {
       this.info.emit({ id: id, type: type });
     }
+  }
+
+  // ** add a note linked to the popover's resource
+  protected addNoteFromPopover() {
+    const { id, type } = this.overlay();
+    if (id === null || type === null) {
+      return;
+    }
+    this.skres.showNoteEditor({ type, href: { id, exists: true } });
+  }
+
+  // ** list the notes linked to the popover's resource
+  protected relatedNotesFromPopover() {
+    const { id, type, readOnly } = this.overlay();
+    if (id === null || type === null) {
+      return;
+    }
+    this.skres.showRelatedNotes(id, type, readOnly);
   }
 
   /**

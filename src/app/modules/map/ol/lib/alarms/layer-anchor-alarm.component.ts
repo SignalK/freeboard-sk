@@ -42,8 +42,8 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
   protected radius = input.required<number>();
-  protected anchorPosition = input<Coordinate>();
-  protected vesselPosition = input<Coordinate>();
+  protected anchorPosition = input<Coordinate | null>();
+  protected vesselPosition = input<Coordinate | null>();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() anchorStyles?: { [key: string]: any };

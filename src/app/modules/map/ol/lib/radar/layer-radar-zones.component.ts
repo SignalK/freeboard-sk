@@ -56,7 +56,7 @@ export function guardZoneStyle(zone: RadarGuardZone): Style {
 })
 export class RadarZonesComponent implements OnInit, OnChanges, OnDestroy {
   @Input() zones: RadarGuardZone[] = [];
-  @Input() position?: Coordinate;
+  @Input() position?: Coordinate | null;
   /** vessel heading, radians true: the zones' bearings are relative to the bow */
   @Input() heading = 0;
   @Input({ required: true }) zIndex!: number;
