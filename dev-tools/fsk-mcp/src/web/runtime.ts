@@ -99,18 +99,28 @@ async function main(): Promise<void> {
   }
 
   // Keep the latest entries under `key`, newest first, in the extension state.
-  async function record(key: string, entry: unknown): Promise<void> {
-    const saved = (await client.state.get([key], 'extension'))[key];
-    const list = Array.isArray(saved) ? saved : [];
-    await client.state.set(
-      {
-        [key]: [
-          { at: new Date().toISOString(), ...(entry as object) },
-          ...list
-        ].slice(0, MAX_RECORDED)
-      },
-      'extension'
-    );
+  // Each key's read-modify-write waits for the one before, so two events in
+  // quick succession (a superseded pick and the next one's answer) both stay.
+  const recording = new Map<string, Promise<void>>();
+  function record(key: string, entry: unknown): Promise<void> {
+    const at = new Date().toISOString();
+    const next = (recording.get(key) ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(async () => {
+        const saved = (await client.state.get([key], 'extension'))[key];
+        const list = Array.isArray(saved) ? saved : [];
+        await client.state.set(
+          {
+            [key]: [{ at, ...(entry as object) }, ...list].slice(
+              0,
+              MAX_RECORDED
+            )
+          },
+          'extension'
+        );
+      });
+    recording.set(key, next);
+    return next;
   }
 
   let config: BridgeConfig;
