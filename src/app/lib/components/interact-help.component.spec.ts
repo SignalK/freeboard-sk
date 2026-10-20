@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { InteractionHelpComponent } from './interact-help.component';
 import { FBMapInteractService } from '../../modules/map/fbmap-interact.service';
 import { AppFacade } from '../../app.facade';
+import type { TargetRule } from '../../modules/plotterext/actions';
 
 /**
  * Route drawing and modifying share one docked popover card (issue #545). These
@@ -156,5 +158,68 @@ describe('FBMapInteractService — route editing undo', () => {
     svc.startDrawing('route');
     expect(svc.popModifyUndo()).toBeUndefined();
     expect(svc.canUndo()).toBe(false);
+  });
+});
+
+// A pick (map.pick): rendered, since what is under test is what the user
+// sees — the asking extension, the prompt — and the Cancel that ends it.
+describe('InteractionHelpComponent — a pick', () => {
+  let svc: FBMapInteractService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            debug: (): void => undefined,
+            formatValueForDisplay: () => '',
+            uiCtrl: signal({ suppressContextMenu: false })
+          }
+        }
+      ]
+    });
+    svc = TestBed.inject(FBMapInteractService);
+  });
+
+  const render = (rules: TargetRule[], prompt?: string) => {
+    svc.startPick({ pickId: 'p1', extensionName: 'Auto Route', prompt, rules });
+    const fixture = TestBed.createComponent(InteractionHelpComponent);
+    fixture.detectChanges();
+    return fixture;
+  };
+
+  it('shows the extension’s prompt under its name', () => {
+    const text = render(
+      [{ kind: 'waypoint' }],
+      'Select the waypoint to route to'
+    ).nativeElement.textContent;
+    expect(text).toContain('Auto Route');
+    expect(text).toContain('Select the waypoint to route to');
+  });
+
+  it('words its own prompt by what the pick accepts', () => {
+    const prompt = (rules: TargetRule[]) =>
+      render(rules).componentInstance['pickPrompt']();
+    expect(prompt([{ kind: 'position' }])).toBe(
+      'Click / tap the map to choose a point.'
+    );
+    expect(prompt([{ kind: 'waypoint' }, { kind: 'note' }])).toBe(
+      'Click / tap an item on the map to choose it.'
+    );
+    expect(prompt([{ kind: 'waypoint' }, { kind: 'position' }])).toBe(
+      'Click / tap the map to choose a point or an item.'
+    );
+  });
+
+  it('emits cancel from its Cancel button', () => {
+    const fixture = render([{ kind: 'position' }]);
+    let cancelled = false;
+    fixture.componentInstance.cancel.subscribe(() => (cancelled = true));
+    const button = [
+      ...(fixture.nativeElement as HTMLElement).querySelectorAll('button')
+    ].find((b) => /CANCEL/.test(b.textContent ?? ''));
+    button!.click();
+    expect(cancelled).toBe(true);
   });
 });

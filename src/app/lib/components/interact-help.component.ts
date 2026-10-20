@@ -30,17 +30,18 @@ import { PopoverComponent } from 'src/app/modules/map/popovers/popover.component
   template: `
     @if (mapInteract.pick(); as pick) {
       <!-- An extension's pick (map.pick): its prompt, attributed. -->
-      <div class="mat-app-background _ap_interact_help">
+      <div class="mat-app-background _ap_interact_help _ap_pick">
         <div class="mat-app-background measurePanel">
           <div>
             <span style="font-weight: bold; padding: 5px">
               <mat-icon>ads_click</mat-icon>
               {{ pick.extensionName }}
             </span>
-            <div style="padding: 5px">{{ pickPrompt() }}</div>
+            <div class="_ap_pick_prompt">{{ pickPrompt() }}</div>
           </div>
           <div style="text-align: center; padding: 6px 0 8px">
-            <a
+            <button
+              type="button"
               class="icon-warn"
               mat-raised-button
               (click)="close()"
@@ -49,7 +50,7 @@ import { PopoverComponent } from 'src/app/modules/map/popovers/popover.component
             >
               <mat-icon class="icon-warn">close</mat-icon>
               CANCEL
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -200,6 +201,18 @@ import { PopoverComponent } from 'src/app/modules/map/popovers/popover.component
         border: black 1px solid;
         font-family: roboto;
         font-size: 10pt;
+      }
+
+      /* The prompt is the extension's text: keep the box on screen and
+         Cancel reachable whatever its length. */
+      ._ap_pick {
+        max-width: min(360px, calc(100vw - 66px));
+        overflow-wrap: anywhere;
+      }
+      ._ap_pick_prompt {
+        padding: 5px;
+        max-height: 6em;
+        overflow-y: auto;
       }
 
       ._ap_interact_dock {
