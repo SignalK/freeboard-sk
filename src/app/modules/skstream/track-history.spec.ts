@@ -740,9 +740,9 @@ describe('track-history extent (zoom to a recorded track)', () => {
   });
 
   it('ignores a missing or malformed bbox', () => {
-    expect(
-      parseHistorySpan({ features: [meta('tracks', undefined)] })?.bbox
-    ).toBeUndefined();
+    const span = parseHistorySpan({ features: [meta('tracks', undefined)] });
+    expect(span).toBeDefined();
+    expect(span?.bbox).toBeUndefined();
     expect(validBbox([1, 2, 3])).toBeUndefined();
     expect(validBbox([1, 2, 3, 'x'])).toBeUndefined();
     expect(validBbox([-190, 0, 0, 1])).toBeUndefined();
