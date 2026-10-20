@@ -40,6 +40,12 @@ export const SELF_POSITION_STALE_AGE = 30000;
  * connection drops there are no messages left to derive it from. */
 const SELF_POSITION_STALE_CHECK_INTERVAL = 2000;
 
+/** How long the zoom must hold still (ms) before a view change fetches the
+ * trail again. A wheel zoom passes several levels, and each fetch reads the
+ * trail's whole history on the server, so only the level the zoom stops on is
+ * fetched. The same delay as the AIS tracks' in the stream worker. */
+export const TRAIL_REFRESH_DEBOUNCE = 1000;
+
 /** Determine whether a position stamped at `positionUpdatedAt` is stale.
  * A vessel that has never reported a position is not stale — there is no
  * position to have gone out of date. */
@@ -117,6 +123,7 @@ export class SKStreamFacade {
     zoom: number;
     duration: number;
   } | null = null;
+  private trailRefreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   private positionStaleSignal = signal<boolean>(false);
   /** True when self position has not been updated for
@@ -382,11 +389,22 @@ export class SKStreamFacade {
    * older than an hour to the zoom it was fetched for, so a trail that reaches
    * back further is fetched again when the zoom level changes. With the trail
    * length set to "All" the oldest part is also asked for only in a padded box
-   * around the view, so it is fetched again when the view leaves that box. */
+   * around the view, so it is fetched again when the view leaves that box.
+   * Either happens once the zoom has settled (TRAIL_REFRESH_DEBOUNCE). Only a
+   * zoom change restarts that wait: a heading-up chart under way re-rotates on
+   * every heading update, each ending in its own view change, and those would
+   * otherwise hold the refresh off for as long as the boat is moving. */
   postMapView(extent: number[], zoom: number) {
+    const zoomed = this.view?.zoom !== zoom;
     this.worker.postMessage({ cmd: 'view', options: { extent, zoom } });
     this.view = { extent, zoom };
-    this.refreshTrail();
+    if (zoomed || this.trailRefreshTimer === undefined) {
+      clearTimeout(this.trailRefreshTimer);
+      this.trailRefreshTimer = setTimeout(() => {
+        this.trailRefreshTimer = undefined;
+        this.refreshTrail();
+      }, TRAIL_REFRESH_DEBOUNCE);
+    }
   }
 
   /** Fetch a trail longer than an hour again unless it was fetched at this
