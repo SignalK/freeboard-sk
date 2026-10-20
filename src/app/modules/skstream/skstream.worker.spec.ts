@@ -675,7 +675,8 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
   const fetchTrail = async (
     lon: number,
     recentOnly: boolean,
-    provider = 'tracks'
+    provider = 'tracks',
+    trailDuration = TRAIL_DURATION_ALL
   ) => {
     urls = [];
     let next = lon;
@@ -693,7 +694,7 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
     getVesselTrailV2(
       tracks,
       {
-        trailDuration: TRAIL_DURATION_ALL,
+        trailDuration,
         trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
       },
       provider,
@@ -747,6 +748,17 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
 
     await fetchTrail(20, true, 'questdb');
     expect(urls).toHaveLength(3);
+  });
+
+  it('keeps a trail of an hour to its length', async () => {
+    await fetchTrail(10, false, 'tracks', 1);
+
+    vi.setSystemTime(start + 30 * 60000);
+    await fetchTrail(20, true, 'tracks', 1);
+    expect(urls).toHaveLength(1);
+    expect(param(urls[0], 'from')).toBe(
+      new Date(start + 30 * 60000 - HOUR).toISOString()
+    );
   });
 
   it('keeps the older bands of the fetch that replaced a slower one', async () => {

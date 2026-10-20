@@ -590,7 +590,9 @@ function requestVesselTrail(recentOnly = false) {
  * fetch's recent band began, and keeps that fetch's older bands: they change
  * only at their edge, and with "All" they reach back over the whole recorded
  * history. Their edge moves on once the recent band is an hour longer than
- * usual, and whenever the settings or provider differ. */
+ * usual, and whenever the settings or provider differ. A trail of an hour or
+ * less has no older bands and is fetched whole, so it never grows past its
+ * length. */
 export function getVesselTrailV2(
   url: string,
   opt: VesselTrailConfig,
@@ -608,6 +610,7 @@ export function getVesselTrailV2(
   const reuse =
     recentOnly &&
     olderBands?.key === key &&
+    olderBands.bands.length > 0 &&
     now - olderBands.until < 2 * OLDER_BANDS_REUSE_MS
       ? olderBands
       : undefined;
