@@ -48,9 +48,9 @@ export class PlotterWidgetFrame implements OnInit, OnDestroy {
   placed = input.required<PlacedWidget>();
 
   @ViewChild('frame', { static: true })
-  frame: ElementRef<HTMLIFrameElement>;
+  frame!: ElementRef<HTMLIFrameElement>;
 
-  url: SafeResourceUrl;
+  url?: SafeResourceUrl;
   private detach: (() => void) | null = null;
 
   constructor(

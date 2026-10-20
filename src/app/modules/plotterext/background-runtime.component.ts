@@ -56,9 +56,9 @@ export class PlotterBackgroundFrame implements OnInit, OnDestroy {
   entry = input.required<RuntimeEntry>();
 
   @ViewChild('frame', { static: true })
-  frame: ElementRef<HTMLIFrameElement>;
+  frame!: ElementRef<HTMLIFrameElement>;
 
-  url: SafeResourceUrl;
+  url?: SafeResourceUrl;
   private detach: (() => void) | null = null;
 
   constructor(
