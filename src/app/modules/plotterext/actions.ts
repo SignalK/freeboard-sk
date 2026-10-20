@@ -6,6 +6,7 @@
 import type {
   ActionInvocation,
   MapTarget,
+  OverlayFeatureTarget,
   TargetKind,
   VesselTarget
 } from 'signalk-plotterext-bus/host';
@@ -22,17 +23,20 @@ export type {
  * A target and the data its `match` conditions are evaluated against: the
  * stored resource for a waypoint, note, route or region; `{ name }` for a
  * draft route; `{ name, description }` for a track; the target itself for a
- * chart feature. The match data is the host's own and is never delivered.
+ * chart feature; `{ id, properties }` for an overlay feature. The match data
+ * is the host's own and is never delivered.
  */
 export interface SelectedTarget {
   target: MapTarget;
   match?: unknown;
+  /**
+   * The extension whose overlay an overlay feature belongs to: only that
+   * extension's target entries apply to it.
+   */
+  owner?: string;
 }
 
-/**
- * The kinds this host offers actions on. `overlayFeature` needs capability
- * `actions.overlay`, which this host does not have yet.
- */
+/** The kinds this host offers actions on. */
 export const OFFERED_TARGET_KINDS: ReadonlySet<string> = new Set<TargetKind>([
   'position',
   'waypoint',
@@ -42,7 +46,8 @@ export const OFFERED_TARGET_KINDS: ReadonlySet<string> = new Set<TargetKind>([
   'region',
   'vessel',
   'aton',
-  'chartFeature'
+  'chartFeature',
+  'overlayFeature'
 ]);
 
 /** The kinds a target entry may narrow with `match`. */
@@ -89,6 +94,8 @@ export interface TargetRule {
   kind: TargetKind;
   match?: ResourceFilterCondition[];
   self?: boolean;
+  /** `overlayFeature`: the declaring extension's overlay ids it is limited to. */
+  overlays?: string[];
 }
 
 /**
@@ -124,7 +131,16 @@ export function parseTargetEntry(entry: unknown): TargetRule | null {
     if (rule.kind !== 'vessel' || typeof e.self !== 'boolean') return null;
     rule.self = e.self;
   }
-  if (e.overlays !== undefined) return null;
+  if (e.overlays !== undefined) {
+    if (
+      rule.kind !== 'overlayFeature' ||
+      !Array.isArray(e.overlays) ||
+      !e.overlays.every((id) => typeof id === 'string')
+    ) {
+      return null;
+    }
+    rule.overlays = e.overlays as string[];
+  }
   return rule;
 }
 
@@ -170,19 +186,32 @@ export function usableActions(
   return result;
 }
 
-/** Whether one target entry applies to the selected target. */
-export function ruleApplies(rule: TargetRule, sel: SelectedTarget): boolean {
+/**
+ * Whether one target entry of `extension` (the manifest that declares it, or
+ * the context that asked for a pick) applies to the selected target. An
+ * overlay feature is a target only for the extension that owns its overlay.
+ */
+export function ruleApplies(
+  rule: TargetRule,
+  sel: SelectedTarget,
+  extension: string
+): boolean {
   const { target } = sel;
   if (rule.kind !== target.kind) return false;
   if (rule.self !== undefined && rule.self !== (target as VesselTarget).self) {
     return false;
+  }
+  if (target.kind === 'overlayFeature') {
+    if (sel.owner === undefined || sel.owner !== extension) return false;
+    const { overlayId } = target as OverlayFeatureTarget;
+    if (rule.overlays && !rule.overlays.includes(overlayId)) return false;
   }
   return (rule.match ?? []).every((c) => evalCondition(c, sel.match));
 }
 
 /** Whether an action applies to the selected target. */
 export function actionApplies(a: UsableAction, sel: SelectedTarget): boolean {
-  return a.rules.some((r) => ruleApplies(r, sel));
+  return a.rules.some((r) => ruleApplies(r, sel, a.extension));
 }
 
 /** A shallow copy of `params` with the invocation added, for a `publish` action. */

@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import Feature from 'ol/Feature';
+import Feature, { type FeatureLike } from 'ol/Feature';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 
+import { LineString } from 'ol/geom';
 import {
   chartFeatureTarget,
   featureTarget,
+  overlayFeatureTarget,
   positionTarget,
+  type TargetOverlay,
   type TargetSources
 } from './map-targets';
+import type { OverlayHit } from './ol/lib/data-overlay/overlay-hits';
 import {
   SKAtoN,
   SKNote,
@@ -274,5 +278,76 @@ describe('chartFeatureTarget', () => {
     expect(t.target.name).toBeUndefined();
     expect(t.target.featurePosition).toBeUndefined();
     expect(t.label).toBeTruthy();
+  });
+});
+
+describe('overlayFeatureTarget', () => {
+  const buoys: TargetOverlay = {
+    extension: 'signalk-buoys',
+    id: 'buoys',
+    title: 'Weather buoys',
+    titleProperty: 'station'
+  };
+  const hit = (
+    featureId: string | number,
+    properties: Record<string, unknown>,
+    feature: FeatureLike = new Feature(new Point(fromLonLat([-80.09, 25.59])))
+  ): OverlayHit => ({
+    overlayKey: 'signalk-buoys/buoys',
+    source: 'stations',
+    featureId,
+    properties,
+    feature,
+    above: 0
+  });
+
+  it('makes the owning extension’s target, named by titleProperty', () => {
+    const t = overlayFeatureTarget(
+      hit(17, { station: 'Fowey Rocks', kind: 'buoy' }),
+      buoys,
+      [-80.1, 25.6]
+    );
+    expect(t.target).toMatchObject({
+      kind: 'overlayFeature',
+      position: [-80.1, 25.6],
+      overlayId: 'buoys',
+      source: 'stations',
+      featureId: 17,
+      properties: { station: 'Fowey Rocks', kind: 'buoy' },
+      name: 'Fowey Rocks'
+    });
+    const [lon, lat] = t.target.featurePosition!;
+    expect(lon).toBeCloseTo(-80.09);
+    expect(lat).toBeCloseTo(25.59);
+    expect(t.owner).toBe('signalk-buoys');
+    expect(t.label).toBe('Fowey Rocks');
+    // match conditions see the feature as { id, properties }
+    expect(t.match).toEqual({
+      id: 17,
+      properties: { station: 'Fowey Rocks', kind: 'buoy' }
+    });
+  });
+
+  it('keeps the id’s type: a string stays a string, a number a number', () => {
+    expect(overlayFeatureTarget(hit('17', {}), buoys, at).target).toMatchObject(
+      { featureId: '17' }
+    );
+    expect(overlayFeatureTarget(hit(17, {}), buoys, at).target).toMatchObject({
+      featureId: 17
+    });
+  });
+
+  it('heads an unnamed feature with the overlay’s title', () => {
+    const t = overlayFeatureTarget(hit('b1', { name: 'x' }), buoys, at);
+    expect(t.target.name).toBeUndefined();
+    expect(t.label).toBe('Weather buoys');
+  });
+
+  it('gives a line no featurePosition', () => {
+    const line = new Feature(
+      new LineString([fromLonLat([-80, 25]), fromLonLat([-80.1, 25.1])])
+    );
+    const t = overlayFeatureTarget(hit('l1', {}, line), buoys, at);
+    expect(t.target.featurePosition).toBeUndefined();
   });
 });

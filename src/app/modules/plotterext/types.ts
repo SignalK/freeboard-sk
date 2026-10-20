@@ -31,6 +31,7 @@ export const HOST_CAPABILITIES = [
   'overlays.image',
   'overlays.data',
   'actions',
+  'actions.overlay',
   'map.pick'
 ];
 
@@ -230,6 +231,12 @@ export interface OverlayContribution {
   configPanel?: string;
   /** Image overlays: pixel density it looks right at, used instead of the screen's. */
   preferredPixelRatio?: number;
+  /** Data overlays: its features are selectable (capability `actions.overlay`). */
+  interactive?: boolean;
+  /** Data overlays: the style layers whose features are selectable; all when unset. */
+  interactiveLayers?: string[];
+  /** Data overlays: the feature property that names a feature. Default `name`. */
+  titleProperty?: string;
   apiVersion?: string;
 }
 

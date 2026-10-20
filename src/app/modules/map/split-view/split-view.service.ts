@@ -4,6 +4,7 @@ import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
 import { Subject } from 'rxjs';
 import { FBClickEvent } from 'src/app/modules/map/ol/lib/map.component';
+import type { OverlayHit } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hits';
 import { Position } from 'src/app/types';
 import {
   clampRatio,
@@ -32,6 +33,7 @@ export type SecondaryTap =
       kind: 'contextmenu';
       event: MouseEvent;
       features: FeatureLike[];
+      overlayHits: OverlayHit[];
       lonlat: Coordinate;
       worldOffset: number;
       map: OlMap;

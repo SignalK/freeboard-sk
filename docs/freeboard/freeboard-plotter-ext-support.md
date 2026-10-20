@@ -40,7 +40,7 @@ package; Freeboard depends on it (`^0.23.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
-`overlays.image`, `overlays.data`, `actions`, `map.pick`.
+`overlays.image`, `overlays.data`, `actions`, `actions.overlay`, `map.pick`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -787,8 +787,8 @@ drawn layers become OL layers in style order:
 - **`raster`** → canvas `TileLayer` over an `ImageTile` source.
 - **`fill` / `line` / `circle` / `symbol`** → one `VectorLayer` (geojson) or
   `VectorTileLayer` (MVT, 512-px grid) per run of consecutive layers on the same
-  source, styled by ol-mapbox-style's `stylefunction`. It cannot evaluate
-  `global-state` (it evaluates with only zoom and distance-from-centre), so
+  source (and, for an interactive overlay, equally selectable), styled by
+  ol-mapbox-style's `stylefunction`. It cannot evaluate `global-state` (it evaluates with only zoom and distance-from-centre), so
   Freeboard **pre-resolves** it: `resolveLayer` replaces each `["global-state",
   name]` with `["get", name, ["literal", { name: value }]]` and every vector
   layer is re-styled on `overlay.setState`. `get` is typed `value` like
@@ -886,7 +886,8 @@ draw).
 `actions` lets an extension declare things the user can do to something on the
 chart, with the kinds of target each applies to (spec: *Actions*). Freeboard
 offers them in its chart context menu and in feature popovers, and reports the
-choice. Not yet here: `overlayFeature` targets (`actions.overlay`, #1109).
+choice. Overlay features as targets (`actions.overlay`) are described in
+their own section below.
 
 ### Which actions apply
 
@@ -916,6 +917,7 @@ ids, the same ones `processMapClick` reads:
 | `ais-vessels.<urn>` | `context: 'vessels.<urn>'`, `self: false` | — |
 | `atons.*`, `aton.*`, `shore.*` | `context` = the feature id | — |
 | an S-57 feature (`s57.<LNAM>`) | `class` = its tile `layer`, `name` = `OBJNAM`, `properties` = its attributes, a point's `featurePosition` | the target |
+| a feature of an interactive data overlay (by the layer it was hit in, never its id) | `overlayId`, `source`, `featureId`, `properties`, `name` from `titleProperty`, a point's `featurePosition` (see *The `actions.overlay` capability*) | `{ id, properties }` |
 
 Every target's `position` is the canonical click point, never the world-copy
 offset. A chart feature carries no `chart.id` yet (optional in the spec): the
@@ -978,13 +980,14 @@ changes). The embedding host has no manifest, so every id it sends is unknown.
 `map.pick` lets an extension ask the user to pick a point or a feature on the
 chart (spec: *Picking on the map*). It shares the target vocabulary of
 `actions` and builds its targets the same way, but does not need an action in
-the manifest. Not yet here: `overlayFeature` entries (`actions.overlay`, #1109).
+the manifest. An `overlayFeature` entry picks among the asking extension's
+own interactive overlay features only (`MapPick.extension`).
 
 ### The pick model
 
 The pick is the map's, in `FBMapInteractService` beside draw, measure and
 modify: `pick()` holds the one pick that is on (`pickId`, the asking
-extension's name, `prompt`, the parsed `rules`), host-wide. `startPick`
+extension and its name, `prompt`, the parsed `rules`), host-wide. `startPick`
 supersedes a pick already on; `endPick(pickId, outcome)` ends it once, and
 every end goes out on `pickEnded`. The service keeps which context asked
 (`pickOwner`) and turns each end into `map.picked` for that context only.
@@ -1037,6 +1040,87 @@ the full host API, and its prompt is headed "Embedding app".
 | `src/app/modules/map/fb-map.component.ts` | `selectForPick`, no menu during a pick, the guard-zone bridge |
 | `src/app/lib/components/interact-help.component.ts` | the prompt and Cancel |
 | `dev-tools/fsk-mcp/src/tools.ts` | `fsk_pick` / `fsk_cancel_pick` / `fsk_list_picks` |
+
+## The `actions.overlay` capability
+
+`actions.overlay` lets a data overlay opt in to having its features selected,
+so an extension's actions apply to them (spec: *Interactive overlay
+features*). It builds on `overlays.data`, `actions` and `map.pick`.
+
+### Which features are selectable
+
+The overlay registry reads the manifest's `interactive` (default `false`),
+`interactiveLayers` (a list of style layer ids, else every layer) and
+`titleProperty` (default `name`), for data overlays only.
+`<fb-data-overlay>` never puts a selectable style layer and a non-selectable
+one in the same OL layer: a run of vector layers on one source is split where
+selectability changes. Every vector OL layer of a data overlay carries a
+`DATA_OVERLAY_LAYER` property (`overlay-hits.ts`): the overlay key, the
+source, whether it is selectable, and the source's `promoteId`. The split view
+copies it with the layer's other properties.
+
+### Hit-testing (`overlay-hits.ts`)
+
+The map's clicks, right-clicks and long-presses (`map.component.ts`, and the
+split view's second pane) hit-test with `hitsAtPixel` instead of
+`getFeaturesAtPixel`. A layer tagged non-selectable is not hit-tested, so a
+click goes to what lies beneath it. A feature hit in a selectable layer goes
+into `overlayHits`, never into `features`, so the code that reads the map's
+own feature ids from a click (`processMapClick`, `targetsAt`) never sees it,
+whatever its id: `waypoint.x` or `anchor` from an extension is not misread.
+Each hit records how many of the map's features were hit above it, so the
+two lists merge back in hit order.
+
+The feature's id is a GeoJSON feature's top-level `id` (the id
+`overlay.setData` upserts by), or for a vector tile feature its own id or the
+property its source's `promoteId` names (one for the source, or one per
+source layer). A string or a number is kept as it is; a
+feature with no id is not selectable. Its `properties` leave out the geometry,
+and for a vector tile feature the `layer` key OL's MVT reader adds. A feature
+drawn by several selectable layers is hit once.
+
+### Targets and ownership
+
+`overlayFeatureTarget` (`map-targets.ts`) makes the target and sets
+`SelectedTarget.owner` to the extension that owns the overlay. `ruleApplies`
+(`actions.ts`) takes the extension whose entry it is checking: an
+`overlayFeature` entry applies only when that extension is the owner, and only
+to the overlays listed in `overlays`. So another extension's actions never
+apply to the feature, and another extension's pick never yields it. The menu
+header and popover title are the feature's name, or the overlay's title when
+it has none.
+
+### Primary select, popover, context menu
+
+- **Select.** `processMapClick` lists a selectable feature only when at least
+  one action applies to it; otherwise the click is handled as if the feature
+  were not there. A listed feature gets an entry id: `overlay-feature.`
+  plus its extension, overlay, source and feature id, looked up in the click's
+  `overlayFeatures`, so a list left open never resolves to a feature of a
+  later click. `formatPopover` for that
+  id runs the first applying `default` action (and opens nothing), or opens
+  an `overlayFeature` popover (`ap-popover` with `<fb-ext-actions>`). With
+  several features under the pointer, overlay or Freeboard's own, the usual
+  feature list opens, and choosing the overlay feature from it does the same.
+  Freeboard draws no selection highlight.
+- **Context menu.** `targetsAt` includes overlay targets, so a right-click or
+  long-press on the feature shows its actions as a group in the chart menu,
+  before the position's.
+- **Pick.** `selectForPick` goes through `targetsAt` too, with the asking
+  extension (`MapPick.extension`) for ownership. The topmost feature the pick
+  accepts wins, as for any pick.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/map/ol/lib/data-overlay/overlay-hits.ts` | the layer tag, `hitsAtPixel`, feature id (`promoteId`) and properties |
+| `src/app/modules/map/ol/lib/data-overlay/layer-data-overlay.component.ts` | splits vector runs by selectability, tags each OL layer |
+| `src/app/modules/plotterext/overlay-registry.ts` | `interactive` / `interactiveLayers` / `titleProperty` |
+| `src/app/modules/map/map-targets.ts` | `overlayFeatureTarget` |
+| `src/app/modules/plotterext/actions.ts` | `overlayFeature` entries, ownership in `ruleApplies` |
+| `src/app/modules/map/fb-map.component.ts` | `overlayTargets`, the select / default / popover flow, menu and pick |
+| `dev-tools/fsk-mcp/src/manifest.ts` | the scratch layer is interactive, and the probe action targets `overlayFeature` |
 
 ## Extending the host API? Update the agent bridge
 

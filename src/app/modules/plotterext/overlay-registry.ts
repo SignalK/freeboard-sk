@@ -84,6 +84,12 @@ export interface OverlayEntry {
   /** Id of the overlay's configuration panel, set only when it is usable. */
   configPanel?: string;
   preferredPixelRatio?: number;
+  /** Data overlays: its features are selectable (capability `actions.overlay`). */
+  interactive: boolean;
+  /** Interactive overlays: the style layers whose features are selectable; all when unset. */
+  interactiveLayers?: string[];
+  /** Interactive overlays: the feature property that names a feature. */
+  titleProperty: string;
 }
 
 export type OverlaySettings = Record<
@@ -152,6 +158,14 @@ function usableConfigPanel(
 
 const positiveOrUndefined = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined;
+
+/**
+ * A manifest's `interactiveLayers` when it is a list of style layer ids. It is
+ * the manifest's own array, never a copy: `entries` is recomputed on every
+ * show or fade, and a new array each time would rebuild the overlay's layers.
+ */
+const layerIds = (v: unknown): string[] | undefined =>
+  Array.isArray(v) && v.every((id) => typeof id === 'string') ? v : undefined;
 
 @Injectable({ providedIn: 'root' })
 export class OverlayRegistry {
@@ -228,7 +242,13 @@ export class OverlayRegistry {
         configPanel: usableConfigPanel(def, panels),
         preferredPixelRatio: model
           ? undefined
-          : positiveOrUndefined(def.preferredPixelRatio)
+          : positiveOrUndefined(def.preferredPixelRatio),
+        interactive: !!model && def.interactive === true,
+        interactiveLayers: model ? layerIds(def.interactiveLayers) : undefined,
+        titleProperty:
+          typeof def.titleProperty === 'string' && def.titleProperty
+            ? def.titleProperty
+            : 'name'
       });
     }
     const ordered: OverlayEntry[] = [];

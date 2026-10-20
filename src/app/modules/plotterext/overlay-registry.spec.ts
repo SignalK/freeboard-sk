@@ -225,6 +225,62 @@ describe('OverlayRegistry configuration panels', () => {
   });
 });
 
+describe('OverlayRegistry interactive data overlays (actions.overlay)', () => {
+  // only a data overlay has a model; its contents do not matter here
+  const data = (d: OverlayContribution): OverlayDefinition => ({
+    extension: 'ext-a',
+    extensionName: 'ext-a plugin',
+    def: { ...d, type: 'data' },
+    model: {} as never
+  });
+
+  it('carries interactive, interactiveLayers and titleProperty', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions([
+      data(
+        def('a', {
+          interactive: true,
+          interactiveLayers: ['icons'],
+          titleProperty: 'station'
+        })
+      )
+    ]);
+    expect(r.entries()[0]).toMatchObject({
+      interactive: true,
+      interactiveLayers: ['icons'],
+      titleProperty: 'station'
+    });
+  });
+
+  it('defaults to not interactive, every layer, and the name property', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions([
+      data(def('a')),
+      data(def('b', { interactive: 'yes' as never })),
+      data(
+        def('c', {
+          interactive: true,
+          interactiveLayers: 'icons' as never,
+          titleProperty: '' as never
+        })
+      )
+    ]);
+    expect(r.entries().map((e) => e.interactive)).toEqual([false, false, true]);
+    expect(r.entries()[2].interactiveLayers).toBeUndefined();
+    expect(r.entries().map((e) => e.titleProperty)).toEqual([
+      'name',
+      'name',
+      'name'
+    ]);
+  });
+
+  it('never makes an image overlay interactive', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(defs('ext-a', def('a', { interactive: true })));
+    expect(r.entries()[0].interactive).toBe(false);
+  });
+});
+
 describe('OverlayRegistry frames', () => {
   function rig(now = () => 0) {
     const r = new OverlayRegistry();

@@ -25,6 +25,7 @@ import type {
   SelectedTarget
 } from 'src/app/modules/plotterext/actions';
 import { isStoredTrack } from 'src/app/modules/skresources/track-store';
+import type { OverlayHit } from './ol/lib/data-overlay/overlay-hits';
 import { S57_NAMES } from './popovers';
 
 /** What the map knows about the features a target can be made from. */
@@ -271,6 +272,50 @@ export function chartFeatureTarget(
     target,
     match: target,
     label: name ?? S57_NAMES[cls] ?? (cls || 'Chart feature')
+  };
+}
+
+/** What a target needs to know about the data overlay a feature belongs to. */
+export interface TargetOverlay {
+  /** The extension that owns the overlay. */
+  extension: string;
+  id: string;
+  title: string;
+  /** The feature property that names a feature. */
+  titleProperty: string;
+}
+
+/**
+ * The target of a selectable data-overlay feature (capability
+ * `actions.overlay`). It is the owning extension's alone: `owner` keeps any
+ * other extension's actions and picks off it. Named by its `titleProperty`,
+ * and headed by the overlay's title when it has none.
+ */
+export function overlayFeatureTarget(
+  hit: OverlayHit,
+  overlay: TargetOverlay,
+  at: Position
+): ChartTarget {
+  const title = hit.properties[overlay.titleProperty];
+  const named =
+    (typeof title === 'string' && title.length > 0) ||
+    (typeof title === 'number' && Number.isFinite(title));
+  const name = named ? String(title) : undefined;
+  const target = defined({
+    kind: 'overlayFeature',
+    position: canon(at),
+    overlayId: overlay.id,
+    source: hit.source,
+    featureId: hit.featureId,
+    properties: hit.properties,
+    name,
+    featurePosition: featurePoint(hit.feature)
+  }) as MapTarget;
+  return {
+    target,
+    match: { id: hit.featureId, properties: hit.properties },
+    owner: overlay.extension,
+    label: name ?? overlay.title
   };
 }
 

@@ -46,14 +46,17 @@ describe('parsePickParams', () => {
     expect(
       parsePickParams({
         targets: [
-          'overlayFeature',
-          { kind: 'overlayFeature', overlays: ['buoys'] },
           'sounding',
           { kind: 'position', match: [] },
-          'waypoint'
+          { kind: 'waypoint', overlays: ['buoys'] },
+          'waypoint',
+          { kind: 'overlayFeature', overlays: ['buoys'] }
         ]
       }).rules
-    ).toEqual([{ kind: 'waypoint' }]);
+    ).toEqual([
+      { kind: 'waypoint' },
+      { kind: 'overlayFeature', overlays: ['buoys'] }
+    ]);
   });
 
   it('treats a blank prompt as none, so the host uses its own wording', () => {
@@ -77,7 +80,7 @@ describe('parsePickParams', () => {
       'map.badRequest'
     );
     expect(
-      reasonOf(() => parsePickParams({ targets: ['overlayFeature', 'x'] }))
+      reasonOf(() => parsePickParams({ targets: ['sounding', 'x'] }))
     ).toBe('map.badRequest');
   });
 });
@@ -116,7 +119,9 @@ describe('pickedTarget', () => {
   };
 
   it('yields the point for a position pick, whatever is under it', () => {
-    expect(pickedTarget([{ kind: 'position' }], [fuel], at)).toBe(at.target);
+    expect(pickedTarget([{ kind: 'position' }], [fuel], at, 'ext')).toBe(
+      at.target
+    );
   });
 
   it('yields the first accepted feature in hit order', () => {
@@ -124,15 +129,16 @@ describe('pickedTarget', () => {
       pickedTarget(
         [{ kind: 'waypoint' }, { kind: 'note' }],
         [anchorage, fuel],
-        at
+        at,
+        'ext'
       )
     ).toBe(anchorage.target);
   });
 
   it('skips features the pick does not accept', () => {
-    expect(pickedTarget([{ kind: 'waypoint' }], [anchorage, fuel], at)).toBe(
-      fuel.target
-    );
+    expect(
+      pickedTarget([{ kind: 'waypoint' }], [anchorage, fuel], at, 'ext')
+    ).toBe(fuel.target);
   });
 
   it('applies match against the stored resource', () => {
@@ -142,23 +148,85 @@ describe('pickedTarget', () => {
         match: [{ path: 'properties.skIcon', op: 'eq' as const, value: 'reef' }]
       }
     ];
-    expect(pickedTarget(rules, [anchorage], at)).toBeNull();
+    expect(pickedTarget(rules, [anchorage], at, 'ext')).toBeNull();
     rules[0].match[0].value = 'anchorage';
-    expect(pickedTarget(rules, [anchorage], at)).toBe(anchorage.target);
+    expect(pickedTarget(rules, [anchorage], at, 'ext')).toBe(anchorage.target);
   });
 
   it('applies self to vessels', () => {
-    expect(pickedTarget([{ kind: 'vessel', self: false }], [ownBoat], at)).toBe(
-      null
-    );
-    expect(pickedTarget([{ kind: 'vessel', self: true }], [ownBoat], at)).toBe(
-      ownBoat.target
-    );
+    expect(
+      pickedTarget([{ kind: 'vessel', self: false }], [ownBoat], at, 'ext')
+    ).toBe(null);
+    expect(
+      pickedTarget([{ kind: 'vessel', self: true }], [ownBoat], at, 'ext')
+    ).toBe(ownBoat.target);
   });
 
   it('ignores a select on nothing it accepts, so the pick stays on', () => {
-    expect(pickedTarget([{ kind: 'waypoint' }], [], at)).toBeNull();
-    expect(pickedTarget([{ kind: 'waypoint' }], [anchorage], at)).toBeNull();
+    expect(pickedTarget([{ kind: 'waypoint' }], [], at, 'ext')).toBeNull();
+    expect(
+      pickedTarget([{ kind: 'waypoint' }], [anchorage], at, 'ext')
+    ).toBeNull();
+  });
+
+  describe('an overlay feature', () => {
+    const buoy = (owner: string, overlayId = 'buoys'): SelectedTarget => {
+      const properties = { name: 'Station 17' };
+      return {
+        target: {
+          kind: 'overlayFeature',
+          position: [-80.11, 25.76],
+          overlayId,
+          source: 'stations',
+          featureId: 'b17',
+          properties
+        },
+        match: { id: 'b17', properties },
+        owner
+      };
+    };
+
+    it('is pickable by the extension that owns its overlay', () => {
+      const own = buoy('ext');
+      expect(pickedTarget([{ kind: 'overlayFeature' }], [own], at, 'ext')).toBe(
+        own.target
+      );
+    });
+
+    it('is never pickable by another extension', () => {
+      expect(
+        pickedTarget([{ kind: 'overlayFeature' }], [buoy('other')], at, 'ext')
+      ).toBeNull();
+      expect(
+        pickedTarget(
+          [{ kind: 'overlayFeature' }, { kind: 'position' }],
+          [buoy('other')],
+          at,
+          'ext'
+        )
+      ).toBe(at.target);
+    });
+
+    it('narrows to the listed overlays', () => {
+      const rules = [{ kind: 'overlayFeature' as const, overlays: ['tides'] }];
+      expect(pickedTarget(rules, [buoy('ext')], at, 'ext')).toBeNull();
+      expect(pickedTarget(rules, [buoy('ext', 'tides')], at, 'ext')).not.toBe(
+        null
+      );
+    });
+
+    it('takes the topmost of several features it accepts', () => {
+      const top = buoy('ext');
+      const below = buoy('ext', 'tides');
+      expect(
+        pickedTarget(
+          [{ kind: 'overlayFeature' }, { kind: 'waypoint' }],
+          [top, fuel, below],
+          at,
+          'ext'
+        )
+      ).toBe(top.target);
+    });
   });
 
   it('falls back to the point when position is among the targets', () => {
@@ -166,11 +234,17 @@ describe('pickedTarget', () => {
       pickedTarget(
         [{ kind: 'waypoint' }, { kind: 'position' }],
         [anchorage],
-        at
+        at,
+        'ext'
       )
     ).toBe(at.target);
     expect(
-      pickedTarget([{ kind: 'position' }, { kind: 'waypoint' }], [fuel], at)
+      pickedTarget(
+        [{ kind: 'position' }, { kind: 'waypoint' }],
+        [fuel],
+        at,
+        'ext'
+      )
     ).toBe(fuel.target);
   });
 });

@@ -155,6 +155,8 @@ export interface ModifyUndoSnapshot {
 /** A pick an extension asked for (capability `map.pick`). */
 export interface MapPick {
   pickId: string;
+  /** The extension that asked: only its own overlay features are pickable. */
+  extension: string;
   /** Names the extension that asked, in the prompt. */
   extensionName: string;
   prompt?: string;

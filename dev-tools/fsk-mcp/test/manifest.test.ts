@@ -53,6 +53,21 @@ test('offers one data overlay, the scratch layer, for the overlay tools to drive
   assert.strictEqual(scratch.visible, false);
   assert.strictEqual(scratch.style.version, 8);
   assert.strictEqual(scratch.style.sources.scratch.type, 'geojson');
+  // its drawn features can be selected, labels excluded (actions.overlay)
+  assert.ok(m.optional.includes('actions.overlay'));
+  assert.strictEqual(scratch.interactive, true);
+  assert.deepStrictEqual(scratch.interactiveLayers, [
+    'areas',
+    'lines',
+    'points'
+  ]);
+  assert.strictEqual(scratch.titleProperty, 'label');
+  for (const id of scratch.interactiveLayers) {
+    assert.ok(
+      scratch.style.layers.some((l) => l.id === id),
+      id
+    );
+  }
   for (const layer of scratch.style.layers) {
     assert.strictEqual(layer.source, 'scratch');
   }

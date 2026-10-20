@@ -51,6 +51,7 @@ import {
   resolutionRange
 } from './style-to-ol';
 import { TileFetcher } from './tile-fetcher';
+import { DATA_OVERLAY_LAYER, type DataOverlayLayerTag } from './overlay-hits';
 
 type TiledPlan = Extract<SourcePlan, { tiles: string[] }>;
 type DemPlan = Extract<SourcePlan, { type: 'raster-dem' }>;
@@ -64,6 +65,8 @@ interface Part {
   /** Style layer ids, in draw order; one for color-relief and raster. */
   layerIds: string[];
   olLayer: BaseLayer;
+  /** vector: whether its features are selectable (`actions.overlay`). */
+  interactive?: boolean;
   /** color-relief / raster: how it resamples, fixed per OL source. */
   interpolate?: boolean;
   /** color-relief: the ramp it draws with. */
@@ -124,7 +127,10 @@ function emptyTile(size: number): HTMLCanvasElement {
  *   layer per run of consecutive layers on one source, styled by
  *   ol-mapbox-style. ol-mapbox-style cannot evaluate `global-state`, so each
  *   run's layers are handed over with `global-state` already replaced by its
- *   value, and handed over again when a value changes.
+ *   value, and handed over again when a value changes. A run never mixes
+ *   selectable layers with others (capability `actions.overlay`), so a click
+ *   can tell them apart by the OL layer it hit, which says so in its
+ *   {@link DATA_OVERLAY_LAYER} property.
  *
  * Tiles are fetched by a {@link TileFetcher} per source, which keeps them in
  * memory: refreshing some tiles bumps the OL source key, so OL re-renders
@@ -150,6 +156,10 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() opacity = 1;
   @Input() minZoom: number | undefined;
   @Input() maxZoom: number | undefined;
+  /** Whether the overlay's features are selectable (`actions.overlay`). */
+  @Input() interactive = false;
+  /** The style layers whose features are selectable; all when unset. */
+  @Input() interactiveLayers: string[] | undefined;
 
   private mapComponent = inject(MapComponent);
 
@@ -222,6 +232,7 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['zIndex']) this.group.setZIndex(this.zIndex);
     if (changes['minZoom'] || changes['maxZoom']) this.applyZoomRange();
+    if (changes['interactive'] || changes['interactiveLayers']) this.build();
   }
 
   ngOnDestroy() {
@@ -273,6 +284,14 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     return this.model.layers().filter((l) => this.model.isDrawn(l.id));
   }
 
+  /** Whether a style layer's features are selectable. */
+  private selectable(layerId: string): boolean {
+    return (
+      this.interactive &&
+      (!this.interactiveLayers || this.interactiveLayers.includes(layerId))
+    );
+  }
+
   /** (Re)create the OL layers for the style's drawn layers; sources are kept. */
   private build() {
     this.clearParts();
@@ -280,15 +299,17 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     this.drawnSignature = drawn.map((l) => l.id).join('\n');
     for (const layer of drawn) {
       const last = this.parts[this.parts.length - 1];
+      const interactive = this.selectable(layer.id);
       if (
         VECTOR_TYPES.has(layer.type) &&
         last?.kind === 'vector' &&
-        last.source === layer.source
+        last.source === layer.source &&
+        last.interactive === interactive
       ) {
         last.layerIds.push(layer.id);
         continue;
       }
-      const part = this.createPart(layer);
+      const part = this.createPart(layer, interactive);
       if (part) this.parts.push(part);
     }
     const vectorParts = this.parts.filter((p) => p.kind === 'vector');
@@ -336,7 +357,7 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
     return plan && !('error' in plan) ? plan : null;
   }
 
-  private createPart(layer: StyleLayer): Part | null {
+  private createPart(layer: StyleLayer, interactive: boolean): Part | null {
     const source = layer.source as string;
     const plan = this.plan(source);
     if (!plan) return null;
@@ -368,16 +389,40 @@ export class DataOverlayComponent implements OnInit, OnChanges, OnDestroy {
       };
     }
     const declutter = this.overlayKey;
+    const tag: DataOverlayLayerTag = {
+      overlayKey: this.overlayKey,
+      source,
+      interactive,
+      promoteId:
+        plan.type === 'geojson'
+          ? undefined
+          : (
+              this.model.style.sources[source] as
+                { promoteId?: unknown } | undefined
+            )?.promoteId
+    };
+    const properties = { [DATA_OVERLAY_LAYER]: tag };
     const olLayer =
       plan.type === 'geojson'
-        ? new VectorLayer({ source: this.geojsonSource(source), declutter })
+        ? new VectorLayer({
+            source: this.geojsonSource(source),
+            declutter,
+            properties
+          })
         : new VectorTileLayer({
             source: this.vectorTileSource(source, plan as TiledPlan),
             declutter,
+            properties,
             // nothing is drawn below the source's minzoom (OL would underzoom)
             ...resolutionRange((plan as TiledPlan).minzoom, undefined)
           });
-    return { kind: 'vector', source, layerIds: [layer.id], olLayer };
+    return {
+      kind: 'vector',
+      source,
+      layerIds: [layer.id],
+      olLayer,
+      interactive
+    };
   }
 
   private interpolates(layer: StyleLayer): boolean {

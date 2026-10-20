@@ -11,6 +11,7 @@ import {
 } from '../modules/skresources/resource-classes';
 import { Options } from '../modules/map/ol/lib/charts/s57.service';
 import { TrailSource } from '../modules/skstream/track-source';
+import type { OverlayHit } from '../modules/map/ol/lib/data-overlay/overlay-hits';
 import {
   ChartImageAdjustment,
   ChartTimeLoopOffsets
@@ -360,6 +361,8 @@ export interface FBAppData {
     atClick: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       features: any[];
+      /** Selectable data-overlay features under the click. */
+      overlayHits?: OverlayHit[];
       lonlat: Position;
     };
   };

@@ -121,7 +121,7 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_open_window` / `fsk_update_window` | `ui.openWindow` / `ui.updateWindow` | open the bridge's **window probe** in a window over the chart (pass `url` to embed a page from the server, e.g. a webapp), then move, resize, show or hide it |
 | `fsk_list_windows` / `fsk_close_window` | `ui.listWindows` / `ui.closeWindow` | list and close the windows the bridge opened |
 | `fsk_list_overlays` | `overlay.list` | list the bridge's own overlays — its **scratch layer** (`scratch`), with any `skippedLayers` |
-| `fsk_set_overlay_data` | `overlay.setData` | draw GeoJSON on the chart through the scratch layer, showing it (it starts hidden); a feature's `color` and `label` properties style it |
+| `fsk_set_overlay_data` | `overlay.setData` | draw GeoJSON on the chart through the scratch layer, showing it (it starts hidden); a feature's `color` and `label` properties style it. The layer is interactive (`actions.overlay`): a feature with an `id` is selectable, headed by its `label`, once the probe action is shown |
 | `fsk_set_overlay_state` / `fsk_set_overlay_layer` | `overlay.setState` / `overlay.setLayer` | change the scratch layer's `global-state` (`color`) or one of its style layers (`areas`, `lines`, `points`, `labels`) |
 | `fsk_set_action_visibility` | `actions.setVisibility` | show (or hide) the bridge's **probe action**, which applies to every target kind and starts hidden; then choose "FSK MCP probe (dev)" in the chart menu or a feature popover |
 | `fsk_list_action_invocations` | `state.get` | the latest choices of the probe: each `action.invoked` with the exact target object the host delivered, newest first |

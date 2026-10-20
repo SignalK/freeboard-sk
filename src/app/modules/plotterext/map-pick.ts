@@ -28,7 +28,7 @@ const badRequest = (message: string) =>
 
 /**
  * Read the params of `map.pick`. Entries of `targets` this host ignores (an
- * unknown kind, an `overlayFeature`, a narrowing a kind does not take) are
+ * unknown kind, a narrowing a kind does not take) are
  * dropped, as for an action; a `targets` that is not a list, or keeps no
  * entry, is a bad request. Without `targets`, a point.
  */
@@ -62,15 +62,17 @@ export function parsePickParams(params: unknown): PickRequest {
 /**
  * What a select yields: the first feature under the pointer, in hit order,
  * that an entry accepts, else the point when `position` is among them, else
- * nothing, and the pick stays on.
+ * nothing, and the pick stays on. `extension` asked for the pick: an overlay
+ * feature is pickable only by the extension that owns its overlay.
  */
 export function pickedTarget(
   rules: TargetRule[],
   features: SelectedTarget[],
-  position: SelectedTarget
+  position: SelectedTarget,
+  extension: string
 ): MapTarget | null {
   const hit = [...features, position].find((sel) =>
-    rules.some((r) => ruleApplies(r, sel))
+    rules.some((r) => ruleApplies(r, sel, extension))
   );
   return hit?.target ?? null;
 }

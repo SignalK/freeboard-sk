@@ -38,6 +38,11 @@ import {
 } from './vertex-delete';
 import { isHandleDrag } from './handle-drag';
 import {
+  hitsAtPixel,
+  type MapHits,
+  type OverlayHit
+} from './data-overlay/overlay-hits';
+import {
   completeVertexDeleteIndicator,
   hideVertexDeleteIndicator,
   showVertexDeleteIndicator
@@ -69,8 +74,18 @@ function pointerGesture(
 }
 
 export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
+  /** The map's own features under the pointer, topmost first. */
   features: Array<FeatureLike>;
+  /** Selectable data-overlay features under the pointer (`actions.overlay`). */
+  overlayHits: OverlayHit[];
   lonlat: Position;
+  /** EPSG:3857-metre offset of the clicked world copy from the primary world. */
+  worldOffset: number;
+}
+
+/** A right-click or long-press on the map. */
+export interface FBRightClickEvent extends MapHits {
+  lonlat: Coordinate;
   /** EPSG:3857-metre offset of the clicked world copy from the primary world. */
   worldOffset: number;
 }
@@ -142,15 +157,8 @@ export class MapComponent implements OnInit, OnDestroy {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() mapClick: EventEmitter<any> = new EventEmitter<any>();
-  @Output() mapRightClick: EventEmitter<{
-    features: FeatureLike[];
-    lonlat: Coordinate;
-    worldOffset: number;
-  }> = new EventEmitter<{
-    features: FeatureLike[];
-    lonlat: Coordinate;
-    worldOffset: number;
-  }>();
+  @Output() mapRightClick: EventEmitter<FBRightClickEvent> =
+    new EventEmitter<FBRightClickEvent>();
   @Output() mapContextMenu: EventEmitter<PointerEvent> =
     new EventEmitter<PointerEvent>();
   @Output() mapSingleClick: EventEmitter<FBClickEvent> =
@@ -501,15 +509,14 @@ export class MapComponent implements OnInit, OnDestroy {
       event.preventDefault();
       const c = this.map.getEventCoordinate(event);
       this.mapRightClick.emit({
-        features: this.map.getFeaturesAtPixel(
+        ...hitsAtPixel(
+          this.map,
           this.map.getPixelFromCoordinateInternal(c),
-          {
-            hitTolerance: hitToleranceForPointer(
-              (event as PointerEvent).pointerType,
-              this.hitTolerance,
-              this.touchHitTolerance
-            )
-          }
+          hitToleranceForPointer(
+            (event as PointerEvent).pointerType,
+            this.hitTolerance,
+            this.touchHitTolerance
+          )
         ),
         lonlat: toLonLat(c),
         worldOffset: this.worldOffsetOf(c)
@@ -541,16 +548,18 @@ export class MapComponent implements OnInit, OnDestroy {
     return worldCopyOffset(coordinate[0], worldWidth);
   }
 
-  // ** add {lonlat, worldOffset, features} fields to event
+  // ** add {lonlat, worldOffset, features, overlayHits} fields to event
   private augmentClickEvent(event: MapBrowserEvent<PointerEvent>) {
     return Object.assign(event, {
-      features: this.map.getFeaturesAtPixel(event.pixel, {
-        hitTolerance: hitToleranceForPointer(
+      ...hitsAtPixel(
+        this.map,
+        event.pixel,
+        hitToleranceForPointer(
           event.originalEvent?.pointerType,
           this.hitTolerance,
           this.touchHitTolerance
         )
-      }),
+      ),
       lonlat: toLonLat(event.coordinate) as Position,
       worldOffset: this.worldOffsetOf(event.coordinate)
     });

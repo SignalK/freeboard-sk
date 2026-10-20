@@ -230,6 +230,7 @@ describe('FBMapInteractService picks (map.pick)', () => {
 
   const pick = (pickId: string) => ({
     pickId,
+    extension: 'auto-route',
     extensionName: 'Auto Route',
     rules: [{ kind: 'position' as const }]
   });

@@ -47,6 +47,7 @@ import { ScaleLine } from 'ol/control';
 import { isPanKey } from 'src/app/lib/pan-keys';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
+import { hitsAtPixel } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hits';
 import {
   fitRatio,
   ratioFromPointer,
@@ -385,13 +386,15 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.split.forwardTap({
       kind: 'contextmenu',
       event: e,
-      features: map.getFeaturesAtPixel(map.getEventPixel(e), {
-        hitTolerance: hitToleranceForPointer(
+      ...hitsAtPixel(
+        map,
+        map.getEventPixel(e),
+        hitToleranceForPointer(
           (e as PointerEvent).pointerType,
           HIT_TOLERANCE,
           TOUCH_HIT_TOLERANCE
         )
-      }),
+      ),
       lonlat: toLonLat(coordinate),
       worldOffset: worldCopyOffset(coordinate[0], worldWidth),
       map,
