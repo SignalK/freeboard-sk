@@ -219,9 +219,7 @@ import { NodeListSelect } from './node-list-select';
               </div>
             </div>
           }
-          @if (
-            isEditable() && ['wms', 'wmts'].includes(data.type.toLowerCase())
-          ) {
+          @if (isEditable() && ['wms', 'wmts'].includes(chartType())) {
             <div style="">
               <div class="key-label">Layers:</div>
               <div style="flex: 1 1 auto;">
@@ -236,7 +234,7 @@ import { NodeListSelect } from './node-list-select';
                         {{ data.layers }}
                       </div>
                     </div>
-                  } @else if (data.type.toLowerCase() === 'wms') {
+                  } @else if (chartType() === 'wms') {
                     <node-tree-select
                       [layers]="wmsLayers()"
                       [preSelect]="data.layers"
@@ -244,7 +242,7 @@ import { NodeListSelect } from './node-list-select';
                       (selected)="handleLayerSelection($event)"
                     >
                     </node-tree-select>
-                  } @else if (data.type.toLowerCase() === 'wmts') {
+                  } @else if (chartType() === 'wmts') {
                     <node-list-select
                       [layers]="wmtsLayers()"
                       [preSelect]="data.layers"
@@ -272,7 +270,7 @@ import { NodeListSelect } from './node-list-select';
             [disabled]="
               inpname.invalid ||
               refreshInvalid() ||
-              (['wms', 'wmts'].includes(data.type.toLowerCase()) &&
+              (['wms', 'wmts'].includes(chartType()) &&
                 data.layers.length === 0)
             "
             (click)="handleClose(true)"
@@ -365,7 +363,11 @@ export class ChartPropertiesDialog {
    * so a Mapbox-style vector source gets no interval field.
    */
   protected supportsRefresh(): boolean {
-    return this.data.type?.toLowerCase() !== 'mapstylejson';
+    return this.chartType() !== 'mapstylejson';
+  }
+
+  protected chartType(): string {
+    return this.data.type?.toLowerCase() ?? '';
   }
 
   /** A blank field means never; anything else must be whole, non-negative minutes. */
@@ -374,7 +376,7 @@ export class ChartPropertiesDialog {
   }
 
   ngOnInit() {
-    const type = this.data.type?.toLowerCase();
+    const type = this.chartType();
     if (type === 'wms' || type === 'wmts') {
       this.capabilitiesParam.update(() => {
         return {
@@ -385,7 +387,7 @@ export class ChartPropertiesDialog {
     }
   }
 
-  isLocal(url: string) {
+  isLocal(url: string | undefined) {
     return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
   }
 
@@ -421,7 +423,7 @@ export class ChartPropertiesDialog {
     // The time dimension follows the selected layer(s): a chart re-pointed at a
     // layer without one stops being time-varying.
     let picked: { title: string; description: string } | undefined;
-    if (this.data.type?.toLowerCase() === 'wmts') {
+    if (this.chartType() === 'wmts') {
       const l: WMTSLayerDef | undefined = (
         this.capabilities.layers as WMTSLayerDef[]
       ).find((i: WMTSLayerDef) => i.id === e[0]);

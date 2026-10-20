@@ -96,7 +96,7 @@
                   line-clamp: 2;
                   text-overflow: ellipsis;
                 "
-                [markdown]="r[1].description ?? ''"
+                [markdown]="r[1].description"
               >
                 <ng-template remarkTemplate="heading" let-node>
                   <h1 [remarkNode]="node" style="font-size: 10pt"></h1>

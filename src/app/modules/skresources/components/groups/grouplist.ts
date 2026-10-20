@@ -190,7 +190,7 @@ export class GroupListComponent {
    * @description Show / edit group properties
    * @param id group identifier
    */
-  protected itemProperties(id: string) {
+  protected itemProperties(id?: string) {
     this.skgroups.editGroupInfo(id);
   }
 

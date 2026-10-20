@@ -44,7 +44,7 @@ import { TrackHistoryService } from 'src/app/modules/skstream/track-history.serv
   ]
 })
 export class AISListComponent extends ResourceListBase<FBVessel> {
-  focusId = input<string>();
+  focusId = input<string | null>(null);
   closed = output<void>();
   properties = output<string>();
   // undefined clears the focus
@@ -121,8 +121,8 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
    * @param id AIS shipType identifier
    * @returns mat-icon svgIcon value
    */
-  protected getShipIcon(id: number): string | undefined {
-    return getAisIcon(id).svgIcon;
+  protected getShipIcon(id: number | null | undefined): string {
+    return getAisIcon(id).svgIcon ?? '';
   }
 
   protected app = inject(AppFacade);
@@ -256,7 +256,10 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
    * @description Center map at the supplied position
    * @param position vessel position
    */
-  protected emitCenter(position: Position) {
+  protected emitCenter(position: Position | null) {
+    if (!position) {
+      return;
+    }
     // No zoom: the chart it centres keeps its own.
     this.pan.emit({ center: position, zoomLevel: null });
   }

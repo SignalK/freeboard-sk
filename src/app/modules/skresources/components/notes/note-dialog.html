@@ -42,8 +42,8 @@
   <mat-toolbar style="background-color: transparent">
     <span>
       @if(!data.editable) {
-      <mat-icon [class]="icon?.class" [svgIcon]="icon?.svgIcon"
-        >{{icon?.name}}</mat-icon
+      <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon ?? ''"
+        >{{icon.name}}</mat-icon
       >
       }
     </span>
@@ -71,13 +71,13 @@
         <div style="display: flex; flex-direction: column">
           <div style="padding-bottom: 5px; display: flex">
             <div style="font-weight: bold; vertical-align: top">Name:</div>
-            <div style="padding-left: 10px">{{data.note?.name}}</div>
+            <div style="padding-left: 10px">{{data.note.name}}</div>
           </div>
           @if(data.note.group) {
           <div style="padding-bottom: 5px; display: flex">
             <div style="font-weight: bold; vertical-align: top">Group:</div>
             <div style="padding-left: 10px; flex: 1 1 auto">
-              {{data.note?.group}}
+              {{data.note.group}}
             </div>
             @if(data.note.group && app.config.resources.notes.groupNameEdit) {
             <div>
@@ -151,20 +151,18 @@
             </button>
             }
           </div>
-          @if(data.note.position) {
+          @if(data.note.position; as pos) {
           <div
             class="nosmall block"
             style="flex: 1; font-size: 10pt; padding: 0 0 0 10px"
           >
-            <span style="font-weight: bold">Lat:</span>&nbsp;
-            {{data.note?.position?.latitude | coords :
-            app.config.units.positionFormat : true}}
+            <span style="font-weight: bold">Lat:</span>&nbsp; {{pos.latitude |
+            coords : app.config.units.positionFormat : true}}
 
             <br />
             <span>
-              <span style="font-weight: bold">Lon:</span>&nbsp;
-              {{data.note?.position?.longitude | coords :
-              app.config.units.positionFormat : false}}
+              <span style="font-weight: bold">Lon:</span>&nbsp; {{pos.longitude
+              | coords : app.config.units.positionFormat : false}}
             </span>
           </div>
           }
@@ -246,10 +244,10 @@
                 (ngModelChange)="onIconSelected($event)"
               >
                 <mat-select-trigger>
-                  @if(icon?.svgIcon?.length) {
-                  <mat-icon [svgIcon]="icon?.svgIcon"></mat-icon>
+                  @if(icon.svgIcon?.length) {
+                  <mat-icon [svgIcon]="icon.svgIcon ?? ''"></mat-icon>
                   } @else {
-                  <mat-icon>{{icon?.name}}</mat-icon>
+                  <mat-icon>{{icon.name}}</mat-icon>
                   }
                 </mat-select-trigger>
                 @for(i of poiIcons; track i.id) {
@@ -285,7 +283,7 @@
               </mat-select>
             </mat-form-field>
           </div>
-          @if(data.position) {
+          @if(data.position && data.note.position) {
           <div style="font-size: 10pt">
             <div style="display: flex">
               <div style="width: 45px; font-weight: bold">Lat:</div>

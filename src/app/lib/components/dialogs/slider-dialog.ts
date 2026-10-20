@@ -85,14 +85,14 @@ export class SliderInputDialog implements OnInit {
 
   protected dialogRef = inject(MatDialogRef<SliderInputDialog>);
   protected data = inject<{
-    title: string;
+    title?: string;
     text: string;
-    max: number;
-    min: number;
-    step: number;
+    max?: number;
+    min?: number;
+    step?: number;
     value: number;
-    suffix: string;
-    icon: AppIconDef;
+    suffix?: string;
+    icon?: AppIconDef;
     onChange: (value: number) => void;
   }>(MAT_DIALOG_DATA);
 

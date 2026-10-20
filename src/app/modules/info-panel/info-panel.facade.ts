@@ -27,7 +27,7 @@ export class InfoPanelFacade {
   private _item = signal<InfoPanelItem | undefined>(undefined);
   readonly item = this._item.asReadonly();
 
-  private _related = signal<string | undefined>(undefined);
+  private _related = signal('');
   readonly related = this._related.asReadonly();
 
   private worker = inject(SKWorkerService);

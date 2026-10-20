@@ -50,8 +50,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   ]
 })
 export class WaypointListComponent extends ResourceListBase {
-  activeWaypoint = input<string>();
-  editingWaypointId = input<string>();
+  activeWaypoint = input<string | null>(null);
+  editingWaypointId = input<string | null>(null);
   select = output<FBResourceSelect>();
   goto = output<FBResourceSelect>();
   deactivate = output<{ id: null }>();

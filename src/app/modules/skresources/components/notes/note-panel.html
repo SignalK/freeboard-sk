@@ -20,19 +20,17 @@
           >{{_note().properties.skIcon ?? ''}}</span
         >
       </div>
-      @if(_note().position) {
+      @if(_note().position; as pos) {
       <div
         style="flex: 1; font-size: 10pt; padding: 0 0 0 10px; text-align: right"
       >
-        <span style="font-weight: bold">Lat:</span>&nbsp;
-        {{_note()?.position?.latitude | coords : app.config.units.positionFormat
-        : true}}
+        <span style="font-weight: bold">Lat:</span>&nbsp; {{pos.latitude |
+        coords : app.config.units.positionFormat : true}}
 
         <br />
         <span>
-          <span style="font-weight: bold">Lon:</span>&nbsp;
-          {{_note()?.position?.longitude | coords :
-          app.config.units.positionFormat : false}}
+          <span style="font-weight: bold">Lon:</span>&nbsp; {{pos.longitude |
+          coords : app.config.units.positionFormat : false}}
         </span>
       </div>
       }
@@ -44,7 +42,7 @@
       <div>
         <button
           mat-button
-          [disabled]="_note().properties?.readOnly || interacting()"
+          [disabled]="_note().properties.readOnly || interacting()"
           (click)="onEdit()"
           matTooltip="Edit Note"
         >
@@ -61,7 +59,7 @@
           <mat-icon>open_in_new</mat-icon>
           LINK
         </button>
-        } @if(_note().position) { &nbsp;
+        } @if(_note().position; as pos) { &nbsp;
         <button
           mat-button
           [disabled]="interacting()"
@@ -84,7 +82,7 @@
         &nbsp;
         <button
           mat-button
-          [disabled]="_note().properties?.readOnly || interacting()"
+          [disabled]="_note().properties.readOnly || interacting()"
           (click)="onMove()"
           matTooltip="Move Note"
         >
@@ -94,7 +92,7 @@
         &nbsp;
         <button
           mat-button
-          [disabled]="_note().properties?.readOnly  || interacting()"
+          [disabled]="_note().properties.readOnly  || interacting()"
           (click)="onDelete()"
           matTooltip="Delete Note"
         >
@@ -116,7 +114,7 @@
       "
     >
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
-        {{_note()?.name}}
+        {{_note().name}}
       </div>
     </div>
   </div>

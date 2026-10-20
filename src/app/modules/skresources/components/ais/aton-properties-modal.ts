@@ -60,7 +60,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             </div>
             <div style="display:flex;">
               <div class="key-label">Type:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.type.name }}</div>
+              <div style="flex: 1 1 auto;">{{ data.target.type?.name }}</div>
             </div>
             <button mat-stroked-button (click)="toggleProperties()">
               <span>Show {{ showProperties ? 'Less' : 'More' }}</span>

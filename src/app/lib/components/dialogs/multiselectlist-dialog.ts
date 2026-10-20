@@ -64,7 +64,7 @@ import { AppIconDef } from 'src/app/modules/icons';
 export class MultiSelectListDialog implements OnInit {
   protected dialogRef = inject(MatDialogRef<MultiSelectListDialog>);
   protected data = inject<{
-    title: string;
+    title?: string;
     items: [{ id: string; name: string }];
     icon: AppIconDef;
   }>(MAT_DIALOG_DATA);

@@ -95,7 +95,7 @@ interface TileJson {
             <mat-error>Error retrieving data from server!</mat-error>
           } @else {
             <div>
-              @if (provider) {
+              @if (provider && details) {
                 <br />
                 <div style="height: 200px;overflow-x: hidden;overflow-y: auto;">
                   <div class="row">

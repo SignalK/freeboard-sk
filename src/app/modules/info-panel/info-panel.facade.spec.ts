@@ -59,6 +59,19 @@ describe('InfoPanelFacade — resources delta', () => {
 
     expect(facade.item()).toBe(before);
   });
+
+  // The resource panels read related() as a string: a panel opened before any
+  // group or note changed must not see undefined.
+  it('reports no related change before a group or note changes', () => {
+    expect(facade.related()).toBe('');
+  });
+
+  it('reports a group change as related', () => {
+    delta.set({ path: 'resources.groups.g1', value: {} });
+    TestBed.tick();
+
+    expect(facade.related()).toMatch(/^groups\./);
+  });
 });
 
 describe('InfoPanelFacade.open — a delta while fetching', () => {
