@@ -887,7 +887,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (this.overlay().isSelf) {
         this.overlay.update((current) => {
           return Object.assign({}, current, {
-            position: this.dfeat.self.position,
+            position: this.dfeat.self.position ?? current.position,
             vessel: this.dfeat.self
           });
         });
@@ -900,7 +900,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           if (vessel) {
             this.overlay.update((current) => {
               return Object.assign({}, current, {
-                position: vessel.position,
+                position: vessel.position ?? current.position,
                 vessel
               });
             });

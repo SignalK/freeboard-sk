@@ -95,4 +95,34 @@ describe('FBMapComponent — vessel update with the popover target gone', () => 
       expect(cmp.overlay().show).toBe(true);
     });
   }
+
+  it('keeps the AIS popover where it was when the vessel has no position', () => {
+    const id = 'vessels.urn:mrn:imo:mmsi:123456789';
+    const cmp = updatedComponent('ais', id);
+    cmp.overlay.update((o: object) => ({ ...o, position: [1, 2] }));
+    // the worker's selectVessel() starts a vessel with a null position, which
+    // SKVessel's type does not admit
+    const vessel = Object.assign(new SKVessel(), { position: null });
+    cmp.app.data.vessels.aisTargets.set(id, vessel);
+
+    cmp.onVessels();
+
+    expect(cmp.overlay().position).toEqual([1, 2]);
+    expect(cmp.overlay().vessel).toBe(vessel);
+  });
+
+  it('keeps the own-vessel popover where it was without a self position', () => {
+    const cmp = updatedComponent('ais', '');
+    cmp.overlay.update((o: object) => ({
+      ...o,
+      isSelf: true,
+      position: [1, 2]
+    }));
+    cmp.dfeat.self.position = null;
+    cmp.app.data.vessels.self.position = null;
+
+    cmp.onVessels();
+
+    expect(cmp.overlay().position).toEqual([1, 2]);
+  });
 });
