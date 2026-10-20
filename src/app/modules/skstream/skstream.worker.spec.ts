@@ -764,6 +764,17 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
     expect(urls).toHaveLength(3);
   });
 
+  it('keeps a trail of a fixed length to its length', async () => {
+    await fetchTrail(10, false, 'tracks', 2);
+
+    vi.setSystemTime(start + 30 * 60000);
+    await fetchTrail(20, true, 'tracks', 2);
+    expect(urls).toHaveLength(2);
+    expect(param(urls[0], 'from')).toBe(
+      new Date(start + 30 * 60000 - 2 * HOUR).toISOString()
+    );
+  });
+
   it('keeps a trail of an hour to its length', async () => {
     await fetchTrail(10, false, 'tracks', 1);
 

@@ -586,13 +586,12 @@ function requestVesselTrail(recentOnly = false) {
  * "All" the oldest band is asked for only in the padded map view.
  * `token` is the request's trailGate token; it answers only while current.
  *
- * `recentOnly` asks again for the recent band alone, from where the last full
- * fetch's recent band began, and keeps that fetch's older bands: they change
- * only at their edge, and with "All" they reach back over the whole recorded
- * history. Their edge moves on once the recent band is an hour longer than
- * usual, and whenever the settings or provider differ. A trail of an hour or
- * less has no older bands and is fetched whole, so it never grows past its
- * length. */
+ * `recentOnly` with the length "All" asks again for the recent band alone,
+ * from where the last full fetch's recent band began, and keeps that fetch's
+ * older bands: they reach back over the whole recorded history and change
+ * only at their edge. Their edge moves on once the recent band is an hour
+ * longer than usual, and whenever the settings or provider differ. A trail of
+ * a fixed length is fetched whole, so its start keeps up with now. */
 export function getVesselTrailV2(
   url: string,
   opt: VesselTrailConfig,
@@ -610,8 +609,8 @@ export function getVesselTrailV2(
   ]);
   const reuse =
     recentOnly &&
+    opt.trailDuration === TRAIL_DURATION_ALL &&
     olderBands?.key === key &&
-    olderBands.bands.length > 0 &&
     now - olderBands.until < 2 * OLDER_BANDS_REUSE_MS
       ? olderBands
       : undefined;
