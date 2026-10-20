@@ -70,12 +70,12 @@
     }
   </mat-menu>
 
-  @if (rangeDef() && ranges().length) {
+  @let rangeControl = rangeDef(); @if (rangeControl && ranges().length) {
   <mat-form-field class="compact range" subscriptSizing="dynamic">
     <mat-label>Range</mat-label>
     <mat-select
       [value]="rangeValue()"
-      [disabled]="isDisabled(rangeDef(), values().get('range'))"
+      [disabled]="isDisabled(rangeControl, values().get('range'))"
       (selectionChange)="setRange($event.value)"
     >
       @for (o of ranges(); track o.value) {
@@ -199,9 +199,8 @@
           />
         </mat-form-field>
         } @case ('area') { @if (isGuardZone(c)) { @let edit = zoneEdit.edit();
-        @let editing = edit?.controlId === c.id;
         <div class="zone-edit">
-          @if (editing) {
+          @if (edit && edit.controlId === c.id) {
           <span class="zone-hint"
             >{{ edit.mode === 'draw' ? 'Drag across the chart from one corner of
             the zone to the other.' : 'Drag the handles on the chart to adjust

@@ -61,7 +61,7 @@ import {
             [matTooltip]="a.tooltip"
             [attr.aria-label]="a.tooltip"
             [matTooltipPosition]="tooltipPosition()"
-            [matMenuTriggerFor]="a.menu"
+            [matMenuTriggerFor]="a.menu ?? null"
             matBadge="!"
             matBadgeSize="small"
             matBadgeOverlap="true"

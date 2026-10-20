@@ -29,7 +29,7 @@ import { MapComponent } from '../map.component';
 })
 export class RadarComponent implements OnInit, OnChanges, OnDestroy {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject();
-  @Input() position?: Coordinate;
+  @Input() position?: Coordinate | null;
   @Input() heading = 0;
   @Input() mapZoom?: number;
   @Input() zIndex?: number;

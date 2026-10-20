@@ -73,7 +73,7 @@ type PopoverProperty =
                                   -webkit-line-clamp: 2;
                                   line-clamp: 2;
                                   text-overflow:ellipsis;"
-          [markdown]="resource()[1].description ?? ''"
+          [markdown]="resource()?.[1]?.description ?? ''"
         >
           <ng-template remarkTemplate="heading" let-node>
             <h1 [remarkNode]="node" style="font-size:10pt;"></h1>
@@ -87,7 +87,7 @@ type PopoverProperty =
                                   -webkit-line-clamp: 2;
                                   line-clamp: 2;
                                   text-overflow:ellipsis;"
-          [innerHTML]="resource()[1].description ?? ''"
+          [innerHTML]="resource()?.[1]?.description ?? ''"
         ></div>
       }
       @for (p of properties; track p) {
@@ -320,12 +320,12 @@ type PopoverProperty =
 })
 export class ResourcePopoverComponent {
   protected readonly mdProcessor = markdownProcessor;
-  title = input<string>(); // popover title text
+  title = input<string | null>(); // popover title text
   resource = input<FBRoute | FBWaypoint | FBNote | FBRegion>();
-  type = input<string>(); // resource type
+  type = input<string | null>(); // resource type
   /** Id of the route or waypoint being followed. */
-  active = input<string>();
-  featureCount = input<number>(0);
+  active = input<string | null>();
+  featureCount = input<number | undefined>(0);
   units = input<string>('m');
   canClose = input<boolean>();
   /** Host-set: this route is an unsaved draft → show the Save shortcut. */
@@ -385,7 +385,7 @@ export class ResourcePopoverComponent {
     this.active();
     this.parse();
     this.ctrl.showModifyButton =
-      this.type() !== 'destination' && this.featureCount() > 0;
+      this.type() !== 'destination' && (this.featureCount() ?? 0) > 0;
     // Routes/regions are shape-edited ("Modify"); points are moved ("Move").
     this.ctrl.modifyLabel =
       this.type() === 'route' || this.type() === 'region' ? 'MODIFY' : 'MOVE';
@@ -671,7 +671,7 @@ export class ResourcePopoverComponent {
   styleUrls: [`./popover.component.scss`]
 })
 export class ResourceSetPopoverComponent {
-  title = input<string>();
+  title = input<string | null>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resource = input<any>();
   canClose = input<boolean>();

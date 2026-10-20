@@ -19,7 +19,7 @@ import { AppIconDef } from 'src/app/modules/icons';
         <div style="padding: 15px 0 0 10px;">
           @if (this.data.icon) {
             <mat-icon
-              [svgIcon]="this.data.icon.svgIcon"
+              [svgIcon]="this.data.icon.svgIcon ?? ''"
               [class]="this.data.icon.class"
               >{{ this.data.icon.name }}</mat-icon
             >

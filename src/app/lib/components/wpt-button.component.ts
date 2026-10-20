@@ -23,7 +23,7 @@ import { Position } from 'src/app/types';
   styles: []
 })
 export class WptButtonComponent {
-  protected position = input<Position>([0, 0]);
+  protected position = input<Position | null>([0, 0]);
   protected active = input<boolean>(false);
 
   private skres = inject(SKResourceService);
@@ -31,6 +31,9 @@ export class WptButtonComponent {
   constructor() {}
 
   protected dropWaypoint() {
-    this.skres.newWaypointAt(this.position());
+    const position = this.position();
+    if (position) {
+      this.skres.newWaypointAt(position);
+    }
   }
 }

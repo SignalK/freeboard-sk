@@ -38,7 +38,7 @@ export const ROUTE_MARKER_END = 'route-end';
 })
 export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   @Input() routeStyles?: { [key: string]: Style };
-  @Input() activeRoute?: string;
+  @Input() activeRoute?: string | null;
   @Input() routes: FBRoutes = [];
 
   private leaveOverlap?: () => void;

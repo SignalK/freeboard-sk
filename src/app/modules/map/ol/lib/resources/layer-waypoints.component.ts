@@ -36,7 +36,7 @@ const ROUTE_END_LABEL_OFFSET_Y = -12;
 })
 export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() waypointStyles?: { [key: string]: Style };
-  @Input() activeWaypoint?: string;
+  @Input() activeWaypoint?: string | null;
   @Input() waypoints: FBWaypoints = [];
 
   private leaveOverlap?: () => void;

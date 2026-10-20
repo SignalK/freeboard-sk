@@ -46,8 +46,8 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() mapZoom = 10;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() laylineStyles?: { [key: string]: any };
-  @Input() position?: Position; //(change trigger)
-  @Input() twd?: number; //(change trigger)
+  @Input() position?: Position | null; //(change trigger)
+  @Input() twd?: number | null; //(change trigger)
   @Input() opacity?: number;
   @Input() visible?: boolean;
   @Input() extent?: Extent;

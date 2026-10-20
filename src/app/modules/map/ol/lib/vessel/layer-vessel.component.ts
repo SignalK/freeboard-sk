@@ -120,8 +120,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject();
 
   @Input() id?: string;
-  @Input() activeId?: string;
-  @Input() position?: Coordinate;
+  @Input() activeId?: string | null;
+  @Input() position?: Coordinate | null;
   @Input() heading = 0;
   @Input() vesselStyles?: { [key: string]: Style };
   @Input() fixedLocation?: boolean;

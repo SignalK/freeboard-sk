@@ -189,7 +189,7 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() logo?: string | boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() properties?: { [index: string]: any };
-  @Input() setFocus = '';
+  @Input() setFocus?: string;
   @Input() hitTolerance = HIT_TOLERANCE;
   @Input() touchHitTolerance = TOUCH_HIT_TOLERANCE;
   /** A second chart beside the main one (the split view); see MapService.addMap. */

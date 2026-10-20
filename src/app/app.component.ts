@@ -1943,9 +1943,9 @@ export class AppComponent {
    * @param zoomTo The least zoom the place needs: a pane already further in
    * keeps its zoom
    */
-  protected centerAndZoom(position: Position, zoomTo?: number) {
+  protected centerAndZoom(position: Position, zoomTo?: number | null) {
     if (this.splitView.secondaryActive()) {
-      this.splitView.centerOn(position, zoomTo);
+      this.splitView.centerOn(position, zoomTo ?? undefined);
       return;
     }
     this.centerMainChart(
@@ -2367,6 +2367,14 @@ export class AppComponent {
    */
   protected drawFeature(f: DrawFeatureType) {
     this.mapInteract.startDrawing(f);
+  }
+
+  /** Add a waypoint at the active vessel, once it reports a position. */
+  protected newWaypointAtVessel() {
+    const position = this.app.data.vessels.active.position;
+    if (position) {
+      this.skres.newWaypointAt(position);
+    }
   }
 
   /** Handle feature DrawEnded event and prompt to save */

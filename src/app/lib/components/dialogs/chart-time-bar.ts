@@ -165,12 +165,9 @@ export function moveLoopHandle(
             (keydown)="onKeyDown($event, 'end')"
           ></div>
         </div>
-        @if (hasHead()) {
-          <div
-            class="head"
-            [style.left.%]="headPct()"
-            [title]="label()(position())"
-          >
+        @let head = position();
+        @if (head !== null) {
+          <div class="head" [style.left.%]="headPct()" [title]="label()(head)">
             <div
               class="knob"
               role="slider"
@@ -179,8 +176,8 @@ export function moveLoopHandle(
               aria-label="Instant shown"
               [attr.aria-valuemin]="min()"
               [attr.aria-valuemax]="max()"
-              [attr.aria-valuenow]="position()"
-              [attr.aria-valuetext]="label()(position())"
+              [attr.aria-valuenow]="head"
+              [attr.aria-valuetext]="label()(head)"
               (keydown)="onKeyDown($event, 'head')"
             ></div>
           </div>

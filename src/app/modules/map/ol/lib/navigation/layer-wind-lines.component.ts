@@ -39,11 +39,11 @@ export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  protected twd = input<number>();
+  protected twd = input<number | null>();
   protected awa = input<number>();
-  protected tws = input<number>(0);
-  protected aws = input<number>(0);
-  protected position = input<Coordinate>();
+  protected tws = input<number | null>(0);
+  protected aws = input<number | null>(0);
+  protected position = input<Coordinate | null>();
 
   @Input() opacity?: number;
   @Input() visible?: boolean;
@@ -110,7 +110,8 @@ export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
     const fa: Feature[] = [];
     const position = this.position();
     if (Array.isArray(position)) {
-      if (typeof this.twd() === 'number' && this.tws() > 0) {
+      const twd = this.twd();
+      if (typeof twd === 'number' && (this.tws() ?? 0) > 0) {
         const twdArrow = new Feature({
           geometry: new Point(fromLonLat(position))
         });
@@ -124,13 +125,13 @@ export class WindLinesComponent implements OnInit, OnDestroy, OnChanges {
               anchorXUnits: 'pixels',
               anchorYUnits: 'pixels',
               rotateWithView: true,
-              rotation: this.twd()
+              rotation: twd
             })
           })
         );
         fa.push(twdArrow);
       }
-      if (typeof this.awa() === 'number' && this.aws() > 0) {
+      if (typeof this.awa() === 'number' && (this.aws() ?? 0) > 0) {
         const awaArrow = new Feature({
           geometry: new Point(fromLonLat(position))
         });

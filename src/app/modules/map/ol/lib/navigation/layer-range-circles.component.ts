@@ -71,7 +71,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input({ required: true }) position!: Coordinate;
+  @Input({ required: true }) position!: Coordinate | null;
   @Input() maxCircles = 4;
   @Input({ required: true }) mapZoom!: number;
   @Input() units = 'm';
@@ -151,11 +151,16 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
+    const position = this.position;
+    if (!position) {
+      this.features = [];
+      return;
+    }
     const rings = this.rings();
     if (rings) {
       const st = this.buildCircleStyle();
       this.features = rings.flatMap((r) =>
-        this.buildCircle(r.distance, r.label, st)
+        this.buildCircle(position, r.distance, r.label, st)
       );
       return;
     }
@@ -193,19 +198,24 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;
-        fa.push(...this.buildCircle(d, this.formatLabel(d), st));
+        fa.push(...this.buildCircle(position, d, this.formatLabel(d), st));
       }
     }
     this.features = fa;
   }
 
-  private buildCircle(distance: number, label: string, style: Style) {
-    const geodesicCircle = circular(this.position, distance, 1024);
+  private buildCircle(
+    position: Coordinate,
+    distance: number,
+    label: string,
+    style: Style
+  ) {
+    const geodesicCircle = circular(position, distance, 1024);
     geodesicCircle.transform('EPSG:4326', 'EPSG:3857'); // Transform from ol default projection (EPSG:4326) to map projection (EPSG:3857)
     const circle = new Feature({ geometry: geodesicCircle });
     circle.setStyle(style);
     // point for text display
-    const tp = computeDestinationPoint(this.position, distance, 180);
+    const tp = computeDestinationPoint(position, distance, 180);
     const text = new Feature({
       geometry: new Point(fromLonLat([tp.longitude, tp.latitude]))
     });

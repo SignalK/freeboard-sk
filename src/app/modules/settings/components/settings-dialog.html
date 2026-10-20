@@ -172,7 +172,7 @@
                       @for(fav of facade.favouritesList; track fav) {
                       <mat-list-option
                         [disabled]="fav.url==facade.settings.display.plugins.instruments"
-                        [selected]="facade.settings.display.plugins.favourites.includes(fav.url)"
+                        [selected]="fav.url !== null && facade.settings.display.plugins.favourites.includes(fav.url)"
                         [value]="fav.url"
                       >
                         {{fav.name}}

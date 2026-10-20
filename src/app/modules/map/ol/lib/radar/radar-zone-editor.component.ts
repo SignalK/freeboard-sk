@@ -71,7 +71,7 @@ function pointerIdOf(e: MapBrowserEvent): number {
 })
 export class RadarZoneEditorComponent implements OnInit, OnChanges, OnDestroy {
   @Input() edit: ZoneEdit | undefined;
-  @Input() position?: Coordinate;
+  @Input() position?: Coordinate | null;
   /** vessel heading, radians true: zone bearings are relative to the bow */
   @Input() heading = 0;
   @Input({ required: true }) zIndex!: number;

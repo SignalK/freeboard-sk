@@ -34,7 +34,7 @@ import { NotificationManager } from '../notification-manager';
         <span>
           <mat-icon
             [class]="data.alert.icon.class"
-            [svgIcon]="data.alert.icon.svgIcon"
+            [svgIcon]="data.alert.icon.svgIcon ?? ''"
           >
             {{ data.alert.icon.name }}</mat-icon
           >
