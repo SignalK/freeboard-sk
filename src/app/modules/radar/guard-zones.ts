@@ -71,7 +71,7 @@ export function radarGuardZones(
       ([id, def]) => id.startsWith(GUARD_ZONE_PREFIX) && def.dataType === 'zone'
     )
     .map(([id]) => ({ id, zone: guardZoneFromControl(radar.controls.get(id)) }))
-    .filter((z) => z.zone !== undefined)
+    .filter((z): z is RadarGuardZone => z.zone !== undefined)
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 

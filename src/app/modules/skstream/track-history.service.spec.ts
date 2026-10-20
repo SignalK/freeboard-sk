@@ -154,8 +154,8 @@ describe('TrackHistoryService', () => {
     expect(params(path).from).toBeUndefined();
     // the viewport padded by half its size on each side
     expect(params(path).bbox).toBe('-82.5,23.5,-80.5,25.5');
-    expect(service.tracks().get('self').lines.length).toBe(1);
-    expect(service.spans().get('self').from).toBe(
+    expect(service.tracks().get('self')?.lines.length).toBe(1);
+    expect(service.spans().get('self')?.from).toBe(
       Date.parse('2026-09-17T00:00:00Z')
     );
     expect(open).toHaveBeenCalledTimes(1);
@@ -230,7 +230,7 @@ describe('TrackHistoryService', () => {
       ])
     );
     replies[0].complete();
-    expect(service.tracks().get('self').lines).toEqual([
+    expect(service.tracks().get('self')?.lines).toEqual([
       [
         [1, 1],
         [2, 2]
@@ -401,9 +401,9 @@ describe('TrackHistoryService', () => {
 
     it('asks for the history by vessel, not by box, at route detail', () => {
       service.setView([-120, -60, 120, 60], 3);
-      service.wholeTrack('history', 'self').subscribe();
+      service.wholeTrack('history', 'self')?.subscribe();
 
-      const p = params(historyCalls().pop());
+      const p = params(historyCalls().pop() ?? '');
       expect(p.context).toBe('self');
       expect(p.bbox).toBeUndefined();
       expect(p.epsilon).toBe('10');
@@ -417,7 +417,7 @@ describe('TrackHistoryService', () => {
         to: Date.UTC(2026, 8, 3)
       });
 
-      const p = params(historyCalls().pop());
+      const p = params(historyCalls().pop() ?? '');
       expect(p.from).toBe('2026-09-01T00:00:00.000Z');
       expect(p.to).toBe('2026-09-03T00:00:00.000Z');
     });
@@ -426,7 +426,9 @@ describe('TrackHistoryService', () => {
       const reply = new Subject<unknown>();
       answer = () => reply;
       let track: unknown = 'none';
-      service.wholeTrack('history', 'self').subscribe((t) => (track = t));
+      const obs = service.wholeTrack('history', 'self');
+      expect(obs).toBeDefined();
+      obs!.subscribe((t) => (track = t));
 
       service.setPreset('7d');
       reply.next(
@@ -446,7 +448,9 @@ describe('TrackHistoryService', () => {
       const reply = new Subject<unknown>();
       answer = () => reply;
       let track: unknown = 'none';
-      service.wholeTrack('ais', AIS).subscribe((t) => (track = t));
+      const obs = service.wholeTrack('ais', AIS);
+      expect(obs).toBeDefined();
+      obs!.subscribe((t) => (track = t));
 
       trackSource.set({ api: 'v2', provider: 'other' });
       reply.next(
@@ -465,9 +469,9 @@ describe('TrackHistoryService', () => {
       showTrack(true);
 
       let track: unknown;
-      service.wholeTrack('ais', AIS).subscribe((t) => (track = t));
+      service.wholeTrack('ais', AIS)?.subscribe((t) => (track = t));
 
-      const p = params(historyCalls().pop());
+      const p = params(historyCalls().pop() ?? '');
       expect(p.contexts).toBe(AIS);
       expect(p.bbox).toBeUndefined();
       expect(p.duration).toBe('PT2H');
@@ -496,7 +500,7 @@ describe('TrackHistoryService', () => {
         );
 
       let track: unknown;
-      service.wholeTrack('trail', 'self').subscribe((t) => (track = t));
+      service.wholeTrack('trail', 'self')?.subscribe((t) => (track = t));
 
       const calls = historyCalls();
       expect(calls.length).toBe(1);
@@ -520,9 +524,9 @@ describe('TrackHistoryService', () => {
       const from = Date.parse('2026-09-17T00:00:00Z');
       const to = Date.parse('2026-09-17T06:00:00Z');
 
-      service.wholeTrack('trail', 'self', { from, to }).subscribe();
+      service.wholeTrack('trail', 'self', { from, to })?.subscribe();
 
-      const p = params(historyCalls().pop());
+      const p = params(historyCalls().pop() ?? '');
       expect(p.from).toBe(new Date(from).toISOString());
       expect(p.to).toBe(new Date(to).toISOString());
       expect(p.epsilon).toBe('10');
@@ -540,7 +544,9 @@ describe('TrackHistoryService', () => {
       answer = () => bands;
 
       let track: unknown = 'pending';
-      service.wholeTrack('trail', 'self').subscribe((t) => (track = t));
+      const obs = service.wholeTrack('trail', 'self');
+      expect(obs).toBeDefined();
+      obs!.subscribe((t) => (track = t));
       config.vessels.trailDuration = 24;
       bands.next(
         trackFc(
@@ -601,7 +607,7 @@ describe('TrackHistoryService', () => {
       expect(metaCalls().length).toBe(2);
       expect(params(metaCalls()[1]).from).toBeDefined();
       expect(service.extents().get('self')).toEqual([-90, 30, -89, 31]);
-      expect(service.spans().get('self').bbox).toEqual([-100, 20, -99, 21]);
+      expect(service.spans().get('self')?.bbox).toEqual([-100, 20, -99, 21]);
 
       service.setPreset('all');
       vi.advanceTimersByTime(1000);
@@ -717,11 +723,11 @@ describe('TrackHistoryService', () => {
       expect(mapMoveRequest()).toBeNull(); // never moved unasked
       service.zoomTo(['self']);
       const req = mapMoveRequest();
-      expect(req.center[0]).toBeCloseTo(-99.5, 6);
-      expect(req.center[1]).toBeGreaterThan(20);
-      expect(req.center[1]).toBeLessThan(21);
-      expect(req.zoom).toBeGreaterThan(8);
-      expect(req.zoom).toBeLessThanOrEqual(16);
+      expect(req?.center[0]).toBeCloseTo(-99.5, 6);
+      expect(req?.center[1]).toBeGreaterThan(20);
+      expect(req?.center[1]).toBeLessThan(21);
+      expect(req?.zoom).toBeGreaterThan(8);
+      expect(req?.zoom).toBeLessThanOrEqual(16);
     });
 
     it('fits a track across the antimeridian near 180, and several tracks at once', () => {
@@ -729,13 +735,13 @@ describe('TrackHistoryService', () => {
       meta = () => metaWith([178, -18, -178, -16]);
       service.toggle(AIS);
       service.zoomTo([AIS]);
-      expect(Math.abs(mapMoveRequest().center[0])).toBeCloseTo(180, 6);
+      expect(Math.abs(mapMoveRequest()?.center[0] ?? NaN)).toBeCloseTo(180, 6);
 
       meta = () => metaWith([-176, -18, -175, -16]);
       service.toggle('self');
       service.zoomTo(service.offscreen());
       // the two together, the short way round: 178 east to 175 west
-      expect(mapMoveRequest().center[0]).toBeCloseTo(-178.5, 6);
+      expect(mapMoveRequest()?.center[0]).toBeCloseTo(-178.5, 6);
     });
 
     it('fits the track as it lies on a rotated (heading-up) map', () => {
@@ -750,17 +756,17 @@ describe('TrackHistoryService', () => {
         ] as never;
       service.toggle('self');
       service.zoomTo(['self']);
-      const northUp = mapMoveRequest().zoom;
+      const northUp = mapMoveRequest()?.zoom ?? NaN;
       rotation = Math.PI / 2; // the wide track now runs up the short side
       service.zoomTo(['self']);
-      expect(mapMoveRequest().zoom).toBeLessThan(northUp - 1);
+      expect(mapMoveRequest()?.zoom).toBeLessThan(northUp - 1);
     });
 
     it('caps the zoom for a track of a single point', () => {
       meta = () => metaWith([-81.5, 24.5, -81.5, 24.5]);
       service.toggle('self');
       service.zoomTo(['self']);
-      expect(mapMoveRequest().zoom).toBe(16);
+      expect(mapMoveRequest()?.zoom).toBe(16);
     });
 
     it('drops an extent answer superseded by a newer range', () => {

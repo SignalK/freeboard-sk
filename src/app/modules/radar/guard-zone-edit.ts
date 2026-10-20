@@ -173,7 +173,7 @@ export function zoneControlValue(zone: GuardZone) {
 /** The zone kept within the radar's reach (`maxDistance`, m), when it
  *  reports one. */
 export function limitZone(zone: GuardZone, maxDistance?: number): GuardZone {
-  if (!(maxDistance > MIN_ZONE_DEPTH)) {
+  if (maxDistance === undefined || !(maxDistance > MIN_ZONE_DEPTH)) {
     return zone;
   }
   const endDistance = Math.min(zone.endDistance, maxDistance);

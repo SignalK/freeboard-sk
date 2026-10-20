@@ -67,7 +67,7 @@ describe('settings dialog — arrival circle', () => {
       dialog.querySelectorAll<HTMLButtonElement>('button')
     ).find((b) => (b.textContent ?? '').trim() === 'close');
     expect(close, 'no close button').toBeTruthy();
-    close.click();
+    close?.click();
   };
 
   beforeEach(async () => {

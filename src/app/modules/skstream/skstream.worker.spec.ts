@@ -389,14 +389,14 @@ describe('skstream.worker timedTrail — trail recording times (#821)', () => {
       ],
       'tracks'
     );
-    expect(t.lines).toEqual([
+    expect(t?.lines).toEqual([
       [
         [1, 1],
         [2, 2]
       ],
       [[3, 3]]
     ]);
-    expect(t.times).toEqual([
+    expect(t?.times).toEqual([
       ['2026-09-23T00:00:00Z', '2026-09-23T01:00:00Z'],
       ['2026-09-24T00:00:00Z']
     ]);
@@ -419,7 +419,7 @@ describe('skstream.worker timedTrail — trail recording times (#821)', () => {
       ),
       band([[[5, 5]]], [['2026-09-23T09:00:00Z']])
     ]);
-    expect(t.lines).toEqual([
+    expect(t?.lines).toEqual([
       [
         [1, 1],
         [2, 2],
@@ -428,7 +428,7 @@ describe('skstream.worker timedTrail — trail recording times (#821)', () => {
       [[4, 4]],
       [[5, 5]]
     ]);
-    expect(t.times[0]).toEqual([
+    expect(t?.times[0]).toEqual([
       '2026-09-23T00:00:00Z',
       '2026-09-23T01:00:00Z',
       '2026-09-23T01:00:05Z'

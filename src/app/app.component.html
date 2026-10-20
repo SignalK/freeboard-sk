@@ -342,56 +342,58 @@
         >
           @if (this.infoPanel.item && !app.instrumentPanel().open) {
             <info-panel (closed)="closeDrawer()">
-              @if (infoPanel.item()?.type === 'radars') {
-                <radar-panel
-                  (connect)="connectRadar()"
-                  (disconnect)="disconnectRadar()"
-                />
-              }
-              @if (infoPanel.item()?.type === 'notes') {
-                <note-panel
-                  [note]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [interacting]="isInteracting()"
-                  (edit)="
-                    skres.showNoteEditor({
-                      id: $event
-                    })
-                  "
-                  (move)="onNoteMove($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
-              }
-              @if (infoPanel.item()?.type === 'regions') {
-                <region-panel
-                  [region]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [related]="infoPanel.related()"
-                  [interacting]="isInteracting()"
-                  (edit)="skres.editRegionInfo($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
-              }
-              @if (infoPanel.item()?.type === 'waypoints') {
-                <waypoint-panel
-                  [waypoint]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [related]="infoPanel.related()"
-                  [interacting]="isInteracting()"
-                  (edit)="skres.editWaypointInfo($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
-              }
-              @if (infoPanel.item()?.type === 'routes') {
-                <route-panel
-                  [route]="infoPanel.item().resource"
-                  [id]="infoPanel.item().id"
-                  [related]="infoPanel.related()"
-                  [interacting]="isInteracting()"
-                  (edit)="onRouteInfoEdit($event)"
-                  (activate)="activateRoute($event)"
-                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-                />
+              @if (infoPanel.item(); as item) {
+                @if (item.type === 'radars') {
+                  <radar-panel
+                    (connect)="connectRadar()"
+                    (disconnect)="disconnectRadar()"
+                  />
+                }
+                @if (item.type === 'notes') {
+                  <note-panel
+                    [note]="item.resource"
+                    [id]="item.id"
+                    [interacting]="isInteracting()"
+                    (edit)="
+                      skres.showNoteEditor({
+                        id: $event
+                      })
+                    "
+                    (move)="onNoteMove($event)"
+                    (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                  />
+                }
+                @if (item.type === 'regions') {
+                  <region-panel
+                    [region]="item.resource"
+                    [id]="item.id"
+                    [related]="infoPanel.related()"
+                    [interacting]="isInteracting()"
+                    (edit)="skres.editRegionInfo($event)"
+                    (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                  />
+                }
+                @if (item.type === 'waypoints') {
+                  <waypoint-panel
+                    [waypoint]="item.resource"
+                    [id]="item.id"
+                    [related]="infoPanel.related()"
+                    [interacting]="isInteracting()"
+                    (edit)="skres.editWaypointInfo($event)"
+                    (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                  />
+                }
+                @if (item.type === 'routes') {
+                  <route-panel
+                    [route]="item.resource"
+                    [id]="item.id"
+                    [related]="infoPanel.related()"
+                    [interacting]="isInteracting()"
+                    (edit)="onRouteInfoEdit($event)"
+                    (activate)="activateRoute($event)"
+                    (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                  />
+                }
               }
             </info-panel>
           } @else {

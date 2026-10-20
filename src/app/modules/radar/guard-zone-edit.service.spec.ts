@@ -35,7 +35,7 @@ describe('GuardZoneEditService', () => {
     enabled: false
   };
 
-  let radar: WritableSignal<ActiveRadar>;
+  let radar: WritableSignal<ActiveRadar | undefined>;
   let setControl: ReturnType<typeof vi.fn>;
   let service: GuardZoneEditService;
 
@@ -50,10 +50,9 @@ describe('GuardZoneEditService', () => {
     controls: new Map(Object.entries(values))
   });
   const report = (controlId: string, value: ControlValue) =>
-    radar.update((r) => ({
-      ...r,
-      controls: new Map(r.controls).set(controlId, value)
-    }));
+    radar.update(
+      (r) => r && { ...r, controls: new Map(r.controls).set(controlId, value) }
+    );
   const shown = (id: string) => service.zones().find((z) => z.id === id)?.zone;
 
   beforeEach(() => {
@@ -76,7 +75,7 @@ describe('GuardZoneEditService', () => {
 
   it('shows the zone being drawn in place of the stored one', () => {
     service.draw('guardZone1');
-    expect(shown('guardZone1').endDistance).toBe(800);
+    expect(shown('guardZone1')?.endDistance).toBe(800);
     service.update(drawn);
     expect(shown('guardZone1')).toEqual(drawn);
   });
@@ -91,8 +90,8 @@ describe('GuardZoneEditService', () => {
   it('arms a drawn zone and goes on to edit it', () => {
     service.draw('guardZone2');
     service.drawn(drawn);
-    expect(service.edit().mode).toBe('edit');
-    expect(service.edit().zone.enabled).toBe(true);
+    expect(service.edit()?.mode).toBe('edit');
+    expect(service.edit()?.zone?.enabled).toBe(true);
   });
 
   it('saves the whole zone in one change, within the radar reach', async () => {
@@ -126,7 +125,7 @@ describe('GuardZoneEditService', () => {
     TestBed.tick();
     // the radar's own value is shown from now on
     report('guardZone1', stored);
-    expect(shown('guardZone1').endDistance).toBe(800);
+    expect(shown('guardZone1')?.endDistance).toBe(800);
   });
 
   it('stops showing a saved zone the radar never reports back', async () => {
@@ -134,7 +133,7 @@ describe('GuardZoneEditService', () => {
     service.update(drawn);
     await service.save();
     vi.advanceTimersByTime(5000);
-    expect(shown('guardZone1').endDistance).toBe(800);
+    expect(shown('guardZone1')?.endDistance).toBe(800);
   });
 
   it('keeps the edit when saving fails', async () => {
@@ -151,7 +150,7 @@ describe('GuardZoneEditService', () => {
   });
 
   it('lets a change made while a save is on its way outlast the save failing', async () => {
-    let reject: (err: Error) => void;
+    let reject: (err: Error) => void = () => undefined;
     setControl.mockImplementationOnce(
       () => new Promise((_, r) => (reject = r))
     );
@@ -217,23 +216,26 @@ describe('GuardZoneEditService', () => {
 
   it('draws no zones while the radar sends no picture', () => {
     const inState = (value: number) =>
-      radar.update((r) => ({
-        ...r,
-        capabilities: {
-          controls: {
-            ...r.capabilities.controls,
-            power: {
-              id: 0,
-              name: 'Power',
-              description: '',
-              category: 'base',
-              dataType: 'enum',
-              descriptions: { 0: 'Off', 1: 'Standby', 2: 'Transmit' }
-            }
+      radar.update(
+        (r) =>
+          r && {
+            ...r,
+            capabilities: {
+              controls: {
+                ...r.capabilities.controls,
+                power: {
+                  id: 0,
+                  name: 'Power',
+                  description: '',
+                  category: 'base',
+                  dataType: 'enum',
+                  descriptions: { 0: 'Off', 1: 'Standby', 2: 'Transmit' }
+                }
+              }
+            } as unknown as CapabilityManifest,
+            controls: new Map(r.controls).set('power', { value })
           }
-        } as unknown as CapabilityManifest,
-        controls: new Map(r.controls).set('power', { value })
-      }));
+      );
 
     inState(2);
     expect(shown('guardZone1')).toBeDefined();

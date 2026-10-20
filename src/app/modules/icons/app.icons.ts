@@ -129,7 +129,7 @@ export const getBuiltinIconIds = (): Set<string> => {
  * @returns Icon definition object
  */
 export const getResourceIcon = (
-  resourceType: SKResourceType,
+  resourceType: Exclude<SKResourceType, 'charts' | 'tracks'>,
   resource?: SKRoute | SKWaypoint | SKRegion | SKNote | string
 ): AppIconDef => {
   if (resourceType === 'routes') {
@@ -181,50 +181,48 @@ export const getResourceIcon = (
     }
     return { class: undefined, svgIcon: `${icon}`, name: undefined };
   }
-  if (resourceType === 'waypoints') {
-    const wptDefs = getWaypointDefs();
-    const skIcon =
-      typeof resource === 'string' || typeof resource === 'undefined'
-        ? undefined
-        : ((resource as SKWaypoint).feature.properties?.skIcon ?? undefined);
-    const wptType =
-      typeof resource === 'string' || typeof resource === 'undefined'
-        ? resource
-        : (resource as SKWaypoint).type;
-    const wid = skIcon ?? wptType ?? 'default';
+  const wptDefs = getWaypointDefs();
+  const skIcon =
+    typeof resource === 'string' || typeof resource === 'undefined'
+      ? undefined
+      : ((resource as SKWaypoint).feature.properties?.skIcon ?? undefined);
+  const wptType =
+    typeof resource === 'string' || typeof resource === 'undefined'
+      ? resource
+      : (resource as SKWaypoint).type;
+  const wid = skIcon ?? wptType ?? 'default';
 
-    if (!resource || wid === 'default') {
-      return {
-        class: undefined,
-        svgIcon: 'waypoint',
-        name: undefined
-      };
-    }
-    // The 'waypoint' type — and typeless resources, treated as generic
-    // waypoints — participate in symbol overrides; other types (start-pin,
-    // pseudoaton, …) always render their built-in icon. Ignore the
-    // 'no-such-symbol' fallback so an unresolved/foreign value (e.g. a GPX
-    // <type>) falls back to the default waypoint icon, not the missing marker.
-    const isGenericWaypoint = !wptType || wptType === 'waypoint';
-    if (_symbolRegistry && isGenericWaypoint) {
-      const resolved = _symbolRegistry.resolveDisplayIcon(wid);
-      if (resolved && resolved.svgIcon !== 'no-such-symbol') {
-        return { class: undefined, ...resolved, name: undefined };
-      }
-    }
-    if (!wptDefs[wid]) {
-      return {
-        class: undefined,
-        svgIcon: 'waypoint',
-        name: undefined
-      };
-    }
+  if (!resource || wid === 'default') {
     return {
       class: undefined,
-      svgIcon: wid,
+      svgIcon: 'waypoint',
       name: undefined
     };
   }
+  // The 'waypoint' type — and typeless resources, treated as generic
+  // waypoints — participate in symbol overrides; other types (start-pin,
+  // pseudoaton, …) always render their built-in icon. Ignore the
+  // 'no-such-symbol' fallback so an unresolved/foreign value (e.g. a GPX
+  // <type>) falls back to the default waypoint icon, not the missing marker.
+  const isGenericWaypoint = !wptType || wptType === 'waypoint';
+  if (_symbolRegistry && isGenericWaypoint) {
+    const resolved = _symbolRegistry.resolveDisplayIcon(wid);
+    if (resolved && resolved.svgIcon !== 'no-such-symbol') {
+      return { class: undefined, ...resolved, name: undefined };
+    }
+  }
+  if (!wptDefs[wid]) {
+    return {
+      class: undefined,
+      svgIcon: 'waypoint',
+      name: undefined
+    };
+  }
+  return {
+    class: undefined,
+    svgIcon: wid,
+    name: undefined
+  };
 };
 
 /**
@@ -253,6 +251,7 @@ export const resolveSkIcon = (ref?: string): string => {
  */
 export const getAlertIcon = (alert: AlertData): AppIconDef => {
   if (
+    alert.type !== undefined &&
     ['mob', 'fire', 'abandon', 'aground', 'cpa', 'depth'].includes(alert.type)
   ) {
     return {
@@ -391,7 +390,7 @@ export const selListNoteIcons = (
       // "default" entries for overridden built-in POIs (saved as default:<id>).
       const replacedDefaults = PoiIcons.files
         .map((f) => f.slice(0, f.lastIndexOf('.')))
-        .filter((id) => _symbolRegistry.hasExternalVersion(id))
+        .filter((id) => _symbolRegistry?.hasExternalVersion(id))
         .map((id) => ({ id, name: id }));
       icons.push(...replacedDefaults);
     }
@@ -489,7 +488,7 @@ export const selListWaypointIcons = (
         ...PoiIcons.files.map((f) => f.slice(0, f.lastIndexOf('.')))
       ];
       const replacedDefaults = waypointBuiltinIds
-        .filter((id) => _symbolRegistry.hasExternalVersion(id))
+        .filter((id) => _symbolRegistry?.hasExternalVersion(id))
         .map((id) => ({ svgIcon: id, name: id }));
       iconList.waypoint.icons =
         iconList.waypoint.icons.concat(replacedDefaults);
