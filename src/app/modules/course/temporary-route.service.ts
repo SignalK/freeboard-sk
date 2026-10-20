@@ -11,10 +11,7 @@ import type { CourseInfo } from '@signalk/server-api';
 
 import { AppFacade } from 'src/app/app.facade';
 import { FBRoute } from 'src/app/types';
-import {
-  InfoPanelFacade,
-  InfoPanelItem
-} from 'src/app/modules/info-panel/info-panel.facade';
+import { InfoPanelFacade } from 'src/app/modules/info-panel/info-panel.facade';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
@@ -204,8 +201,7 @@ export class TemporaryRouteService {
   }
 
   private infoPanelShows(id: string): boolean {
-    // InfoPanelFacade.item() is not typed with its item yet
-    return (this.infoPanel.item() as InfoPanelItem | undefined)?.id === id;
+    return this.infoPanel.item()?.id === id;
   }
 
   /** Delete `ids` unless the server reports one as the active route. */

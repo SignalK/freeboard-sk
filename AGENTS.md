@@ -92,9 +92,8 @@ live.)
 - **Self-documenting code.** Comments explain *why*, not *what*. No echo comments.
   Documentation describes current state, not development history.
 - **TypeScript.** New code is TypeScript with real types; avoid `any`. Reuse
-  existing types over inventing local ones. The folders listed in
-  `tsconfig.strict.json` are also checked with `strictNullChecks` (as part of
-  `build:all`); code in them must handle `null` and `undefined`.
+  existing types over inventing local ones. `strictNullChecks` is on, so code
+  must handle `null` and `undefined`.
 - **Angular conventions.** Standalone components and **signals** are the norm here.
   Prefer signals/`computed`/`effect` over manual change detection. Keep components
   focused; push logic into services.
