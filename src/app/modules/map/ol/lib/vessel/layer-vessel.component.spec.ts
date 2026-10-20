@@ -1,9 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SimpleChange } from '@angular/core';
+import { SimpleChange, type ChangeDetectorRef } from '@angular/core';
 import Style from 'ol/style/Style';
+import type Icon from 'ol/style/Icon';
 import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
+import type { MapComponent } from '../map.component';
+import type { MapImageRegistry } from '../map-image-registry.service';
 import {
   VesselComponent,
   STALE_VESSEL_OPACITY
@@ -95,6 +98,74 @@ describe('VesselComponent without a position', () => {
     c.parseVessel();
     expect(c.source?.getFeatures()).toEqual([]);
     expect(c.vessel).toBeUndefined();
+  });
+
+  describe('actual-size scaling with a custom icon', () => {
+    const fakeIcon = () => {
+      const icon = {
+        size: null as [number, number] | null,
+        scale: 1 as number | [number, number],
+        change: null as (() => void) | null,
+        clone: () => icon,
+        setRotateWithView: () => icon,
+        getSize: () => icon.size,
+        setScale: (scale: number | [number, number]) => {
+          icon.scale = scale;
+          return icon;
+        },
+        getScale: () => icon.scale,
+        listenImageChange: (cb: () => void) => {
+          icon.change = cb;
+        },
+        unlistenImageChange: (cb: () => void) => {
+          if (icon.change === cb) {
+            icon.change = null;
+          }
+        }
+      };
+      return icon;
+    };
+
+    it('recalculates once the icon reports its size', () => {
+      const icon = fakeIcon();
+      const c = new VesselComponent(
+        { detach: (): void => undefined } as unknown as ChangeDetectorRef,
+        {
+          getMap: () => ({
+            getView: () => ({
+              getResolution: () => 0.5,
+              getProjection: () => 'EPSG:3857'
+            })
+          })
+        } as unknown as MapComponent,
+        {
+          getExternalSymbol: () => icon as unknown as Icon
+        } as unknown as MapImageRegistry
+      );
+      Object.assign(c, {
+        position: [0, 0],
+        heading: 0,
+        stale: false,
+        vessel: {},
+        actualSize: true,
+        iconScale: 1,
+        lengthOverall: 120,
+        beam: 10
+      });
+      vi.spyOn(c, 'parseVessel').mockImplementation(() => undefined);
+
+      c.generateSelfStyle();
+      expect(icon.change).toBeTruthy();
+
+      icon.size = [30, 60];
+      icon.change?.();
+
+      expect(icon.change).toBeNull();
+      expect(icon.scale).toEqual([
+        expect.closeTo(20 / 30, 6),
+        expect.closeTo(240 / 60, 6)
+      ]);
+    });
   });
 
   describe('actual-size scaling follows the vessel latitude', () => {
