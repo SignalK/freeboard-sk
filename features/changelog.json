@@ -137,5 +137,7 @@
   { "feature": "split-view", "pr": 1025, "kind": "new", "since": "v3.4.0-beta.1", "date": "2026-10-16", "title": "feat(map): add a split view with a second chart pane" },
   { "feature": null, "pr": 1027, "kind": "skip", "reason": "performance only: shared data-overlay tiles decode once; no user-facing change" },
   { "feature": "toolbar-overflow", "pr": 1035, "kind": "new", "since": "v3.4.0-beta.1", "date": "2026-10-17", "title": "feat(map): fit the map toolbars to the screen with an overflow menu" },
-  { "feature": "split-view", "pr": 1045, "kind": "enhanced", "date": "2026-10-17", "title": "feat(map): show the status bar in the active split-view pane" }
+  { "feature": "split-view", "pr": 1045, "kind": "enhanced", "date": "2026-10-17", "title": "feat(map): show the status bar in the active split-view pane" },
+  { "feature": "own-vessel-display", "pr": 1089, "kind": "enhanced", "date": "2026-10-20", "title": "feat(vessels): add own-vessel icon types" },
+  { "feature": "own-vessel-display", "pr": 1088, "kind": "enhanced", "date": "2026-10-20", "title": "feat(vessels): scale own-vessel icon to actual size" }
 ]
