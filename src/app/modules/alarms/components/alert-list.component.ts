@@ -107,7 +107,7 @@ import { NotificationManager } from '../notification-manager';
                   >
                     <mat-icon
                       [class]="item[1].icon.class"
-                      [svgIcon]="item[1].icon.svgIcon"
+                      [svgIcon]="item[1].icon.svgIcon ?? ''"
                       >{{ item[1].icon.name }}</mat-icon
                     >
                   </div>
@@ -188,7 +188,7 @@ import { NotificationManager } from '../notification-manager';
   `
 })
 export class AlertListComponent {
-  alerts = input([]);
+  alerts = input<Array<[string, AlertData]>>([]);
 
   @Output() closed: EventEmitter<void> = new EventEmitter();
 

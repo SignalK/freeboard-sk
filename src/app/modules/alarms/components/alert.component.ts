@@ -85,7 +85,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                 <div style="width:35px;">
                   <mat-icon
                     [class]="this.alert().icon.class"
-                    [svgIcon]="this.alert().icon.svgIcon"
+                    [svgIcon]="this.alert().icon.svgIcon ?? ''"
                     >{{ this.alert().icon.name }}</mat-icon
                   >
                 </div>
