@@ -30,7 +30,8 @@ export const HOST_CAPABILITIES = [
   'windows',
   'overlays.image',
   'overlays.data',
-  'actions'
+  'actions',
+  'map.pick'
 ];
 
 export type WidgetSize = '1x1' | '2x1' | '1x2' | '2x2';
