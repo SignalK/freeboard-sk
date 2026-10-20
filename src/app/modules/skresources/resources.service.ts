@@ -2518,6 +2518,12 @@ export class SKResourceService {
           if (r?.save) {
             try {
               const rte = await this.postToServer('routes', r.route);
+              // Without an id the saved route cannot be found again, and
+              // resolving null would report it as cancelled.
+              if (!rte.id) {
+                reject(new Error('Route response did not include an id'));
+                return;
+              }
               this.selectionAdd('routes', rte.id);
               resolve(rte.id);
             } catch (err) {
