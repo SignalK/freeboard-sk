@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import {
   SKResourceClass,
   SKResourceService,
@@ -36,34 +36,32 @@ export class InfoPanelFacade {
   constructor() {
     // resources delta handler
     effect(() => {
-      const np = this.worker.resourceUpdate().path.split('.');
+      const update = this.worker.resourceUpdate();
+      const np = update.path.split('.');
       if (np.length !== 3) {
         return;
       }
-      if (np[1] === this._item()?.type && np[2] === this._item()?.id) {
-        if (!this.worker.resourceUpdate().value) {
+      // read untracked: publishing the updated item below must not run this
+      // effect again for the same delta
+      const item = untracked(this._item);
+      if (np[1] === item?.type && np[2] === item?.id) {
+        if (!update.value) {
           // deleted
           this.close();
-        } else {
-          this._item.update((current) => {
-            // radars are not resources, so no resources delta updates one
-            if (!current || current.type === 'radars') {
-              return current;
-            }
-            // a resources.<type>.<id> delta carries that resource's definition
-            const resource = this.worker.resourceUpdate().value as Parameters<
-              SKResourceService['transform']
-            >[1];
-            const item: ResourceItem<SKResourceType> = current;
-            item.resource = this.skres.transform(item.type, resource, item.id);
-            return current;
-          });
+        } else if (item.type !== 'radars') {
+          // radars are not resources, so no resources delta updates one;
+          // a resources.<type>.<id> delta carries that resource's definition
+          const resource = update.value as Parameters<
+            SKResourceService['transform']
+          >[1];
+          // transform() does not tie its result class to item.type
+          this._item.set({
+            ...item,
+            resource: this.skres.transform(item.type, resource, item.id)
+          } as InfoPanelItem);
         }
       }
-      if (
-        np[1] === 'groups' ||
-        (np[1] === 'notes' && this._item()?.type !== 'notes')
-      ) {
+      if (np[1] === 'groups' || (np[1] === 'notes' && item?.type !== 'notes')) {
         this._related.set(`${np[1]}.${Date.now()}`);
       }
     });
