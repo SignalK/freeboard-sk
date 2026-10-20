@@ -207,23 +207,20 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseVessel() {
-    if (!this.vessel) {
-      // create feature
-      this.vessel = new Feature(
-        new Point(
-          fromLonLat([this.position?.[0] ?? 0, this.position?.[1] ?? 0])
-        )
-      );
+    const position = this.position;
+    if (!Array.isArray(position) || position.length < 2) {
+      if (this.vessel) {
+        this.source?.removeFeature(this.vessel);
+        this.vessel = undefined;
+      }
+      return;
     }
-    // update feature
-    if (
-      this.position &&
-      Array.isArray(this.position) &&
-      this.position.length > 1
-    ) {
-      (this.vessel.getGeometry() as Point).setCoordinates(
-        fromLonLat([this.position[0], this.position[1]])
-      );
+    const coords = fromLonLat([position[0], position[1]]);
+    if (!this.vessel) {
+      this.vessel = new Feature(new Point(coords));
+      this.source?.addFeature(this.vessel);
+    } else {
+      (this.vessel.getGeometry() as Point).setCoordinates(coords);
     }
     this.vessel.setId(this.id ?? 'self');
     const s = this.buildStyle();
