@@ -233,7 +233,9 @@ describe('BearingLineComponent destination marker', () => {
     fixture.componentRef.setInput('markerPosition', [-80.4, 25.1]);
     fixture.componentRef.setInput('showMarker', showMarker);
     fixture.detectChanges();
-    return !!fixture.componentInstance.source?.getFeatureById('dest.point');
+    const source = fixture.componentInstance.source;
+    expect(source).toBeDefined();
+    return !!source?.getFeatureById('dest.point');
   }
 
   it('draws the marker when asked to', () => {
