@@ -25,7 +25,8 @@ import {
   inject,
   isDevMode,
   signal,
-  untracked
+  untracked,
+  type WritableSignal
 } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -38,7 +39,9 @@ import { MapService } from 'src/app/modules/map/ol/lib/map.service';
 import { FIT_MAX_ZOOM, fitBbox, type LonLatBox } from 'src/app/lib/map-fit';
 import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
+  type ActionErrorReason,
   type BusPort,
+  type ButtonErrorReason,
   type HandshakeContext,
   HostConnection,
   type WindowState,
@@ -51,6 +54,7 @@ import {
   RoutePoint,
   RpcError,
   RPC_ERRORS,
+  type SetVisibilityParams,
   windowPort
 } from 'signalk-plotterext-bus/host';
 import {
@@ -212,8 +216,18 @@ export class PlotterExtensionService {
     return rows * cellHeightPx() + (rows - 1) * WIDGET_CELL_GAP + 4;
   });
 
-  /** Toolbar buttons contributed by compatible extensions. */
+  /**
+   * `buttons.setVisibility` choices, by `<extension>/<buttonId>`. Not
+   * persisted: every button starts as its manifest `visible` says.
+   */
+  private readonly buttonVisibility = signal<Record<string, boolean>>({});
+
+  /**
+   * The shown toolbar buttons of compatible extensions, in manifest order. A
+   * hidden button is left out, so the toolbar closes its gap.
+   */
   readonly toolbarButtons = computed(() => {
+    const visibility = this.buttonVisibility();
     const result: Array<{
       extension: string;
       extensionName: string;
@@ -228,6 +242,9 @@ export class PlotterExtensionService {
         ) {
           continue;
         }
+        const shown =
+          visibility[`${extension}/${button.id}`] ?? button.visible !== false;
+        if (!shown) continue;
         result.push({ extension, extensionName: manifest.name, button });
       }
     }
@@ -357,32 +374,59 @@ export class PlotterExtensionService {
     this.publishToExtension(extension, 'action.invoked', invocation);
   }
 
-  /** `actions.setVisibility` for an extension context. */
-  private actionMethods(extension: string): Record<string, MethodHandler> {
+  /** `actions.setVisibility` and `buttons.setVisibility` for an extension context. */
+  private visibilityMethods(extension: string): Record<string, MethodHandler> {
     return {
-      'actions.setVisibility': async (params) => {
-        const { ids, visible } = await parseParams(
-          (await import('./action-params')).SetVisibilityParams,
-          params,
-          'actions.badRequest'
+      'actions.setVisibility': this.setVisibilityMethod(
+        extension,
+        'actions',
+        this.actionVisibility
+      ),
+      'buttons.setVisibility': this.setVisibilityMethod(
+        extension,
+        'buttons',
+        this.buttonVisibility
+      )
+    };
+  }
+
+  /**
+   * Shows or hides the calling extension's own actions or buttons, recording
+   * the choice in `choices` by `<extension>/<id>`. Every id must be one of
+   * the caller's manifest; otherwise nothing changes. The last call wins.
+   */
+  private setVisibilityMethod(
+    extension: string,
+    kind: 'actions' | 'buttons',
+    choices: WritableSignal<Record<string, boolean>>
+  ): MethodHandler {
+    const badRequest: ActionErrorReason | ButtonErrorReason =
+      `${kind}.badRequest` as const;
+    const unknownId: ActionErrorReason | ButtonErrorReason =
+      `${kind}.unknownId` as const;
+    return async (params) => {
+      const { ids, visible }: SetVisibilityParams = await parseParams(
+        (await import('./action-params')).SetVisibilityParams,
+        params,
+        badRequest
+      );
+      const items = this.manifests()[extension]?.[kind];
+      const own = new Set<unknown>(
+        Array.isArray(items) ? items.map((item) => item?.id) : []
+      );
+      const unknown = ids.filter((id) => !own.has(id));
+      if (unknown.length) {
+        throw new RpcError(
+          `Unknown ${kind.slice(0, -1)} id: ${unknown.join(', ')}`,
+          { reason: unknownId }
         );
-        const actions = this.manifests()[extension]?.actions;
-        const own = new Set(
-          Array.isArray(actions) ? actions.map((a) => a?.id) : []
-        );
-        const unknown = ids.filter((id) => !own.has(id));
-        if (unknown.length) {
-          throw new RpcError(`Unknown action id: ${unknown.join(', ')}`, {
-            reason: 'actions.unknownId'
-          });
-        }
-        this.actionVisibility.update((all) => {
-          const next = { ...all };
-          for (const id of ids) next[`${extension}/${id}`] = visible;
-          return next;
-        });
-        return {};
       }
+      choices.update((all) => {
+        const next = { ...all };
+        for (const id of ids) next[`${extension}/${id}`] = visible;
+        return next;
+      });
+      return {};
     };
   }
 
@@ -2234,7 +2278,7 @@ export class PlotterExtensionService {
         ...createOverlayMethods(this.overlays, opts.extension, ctx.runtime),
         ...createEventsMethods(this.eventsDeps, opts.extension),
         ...this.uiPanelMethods(opts.extension),
-        ...this.actionMethods(opts.extension),
+        ...this.visibilityMethods(opts.extension),
         ...this.pickMethods(ctx),
         ...this.windowMethods(
           opts.extension,

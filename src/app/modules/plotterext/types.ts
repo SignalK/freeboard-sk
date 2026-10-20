@@ -13,6 +13,7 @@ export const HOST_CAPABILITIES = [
   'panels.iframe',
   'panels.state',
   'buttons',
+  'buttons.visibility',
   'events.publish',
   'signalk.stream',
   'signalk.put',
@@ -138,6 +139,8 @@ export interface ButtonContribution {
     /** `openWindow` / `toggleWindow`: any `ui.openWindow` option. */
     [option: string]: unknown;
   };
+  /** Shown before the extension says otherwise (`buttons.visibility`). Default `true`. */
+  visible?: boolean;
   apiVersion?: string;
 }
 

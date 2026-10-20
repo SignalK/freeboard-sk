@@ -11,6 +11,8 @@ import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { Position } from './types';
 import { WhatsNewService } from './modules/features/whats-new.service';
+import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
+import { connectExtension } from 'signalk-plotterext-bus/extension';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -449,5 +451,77 @@ describe('AppComponent', () => {
       expect(connect).toHaveBeenCalledTimes(1);
       expect(infoPanel.item()?.type).toBe('radars');
     });
+  });
+  it('removes a button an extension hides from the right toolbar, and puts it back in its place', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = TestBed.inject(AppFacade);
+    const plotterExt = TestBed.inject(PlotterExtensionService);
+    app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
+    const button = (id: string, visible?: boolean) => ({
+      id,
+      title: id,
+      slot: 'mapToolbar',
+      icon: 'extension',
+      ...(visible === undefined ? {} : { visible }),
+      action: { type: 'publish', topic: `rec.${id}` }
+    });
+    plotterExt.manifests.set({
+      rec: {
+        name: 'Recorder',
+        apiVersion: '1',
+        buttons: [button('a'), button('b'), button('c', false)]
+      }
+    });
+    fixture.detectChanges();
+    const extButtons = () =>
+      fixture.debugElement
+        .queryAll(By.css('fb-map-toolbar.right [data-toolbar-item^="ext:"]'))
+        .map((de) => de.nativeElement.getAttribute('data-toolbar-item'));
+    expect(extButtons()).toEqual(['ext:rec/a', 'ext:rec/b']);
+
+    // the extension's runtime, over a jsdom iframe as in the plotterext specs
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    const win = iframe.contentWindow as Window;
+    const detach = plotterExt.attachBackground(iframe, {
+      extension: 'rec',
+      runtime: { id: 'rt', title: 'rt', type: 'iframe', url: '/rec/rt.html' }
+    });
+    const client = await connectExtension({
+      port: {
+        post: (data) =>
+          window.dispatchEvent(
+            new MessageEvent('message', {
+              data,
+              origin: window.location.origin,
+              source: win
+            })
+          ),
+        listen: (handler) => {
+          const fn = (ev: MessageEvent) => handler(ev.data);
+          win.addEventListener('message', fn);
+          return () => win.removeEventListener('message', fn);
+        }
+      },
+      timeoutMs: 2000,
+      onError: () => {}
+    });
+    try {
+      await client.call('buttons.setVisibility', {
+        ids: ['a'],
+        visible: false
+      });
+      await client.call('buttons.setVisibility', { ids: ['c'], visible: true });
+      fixture.detectChanges();
+      expect(extButtons()).toEqual(['ext:rec/b', 'ext:rec/c']);
+
+      await client.call('buttons.setVisibility', { ids: ['a'], visible: true });
+      fixture.detectChanges();
+      expect(extButtons()).toEqual(['ext:rec/a', 'ext:rec/b', 'ext:rec/c']);
+    } finally {
+      client.close();
+      detach();
+      iframe.remove();
+    }
   });
 });
