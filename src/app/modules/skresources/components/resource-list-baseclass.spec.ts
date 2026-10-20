@@ -128,3 +128,15 @@ describe('ResourceListBase — alignSelections() takes no reactive dependency (#
     expect(comp.flags).toEqual({ all: true, some: false });
   });
 });
+
+describe('ResourceListBase — sorting', () => {
+  it('sorts an entry without a name first instead of throwing', () => {
+    TestBed.configureTestingModule({});
+    const comp = TestBed.runInInjectionContext(() => new TestList());
+    comp.seed([entry('b', false), ['x', {}, false]]);
+
+    TestBed.tick();
+
+    expect(comp.list.map((e) => e[0])).toEqual(['x', 'b']);
+  });
+});
