@@ -206,17 +206,20 @@ export class AISPropertiesModal {
   constructor() {
     this.flagIcon = `${this.app.hostDef.url}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
     // The template shows only the dimensions the vessel reports.
-    const length = (value: number | null | undefined) =>
+    const length = (value: number | null | undefined, path: string) =>
       typeof value === 'number'
-        ? this.app.formatValueForDisplay(value, 'm', { category: 'length' })
+        ? this.app.formatValueForDisplay(value, 'm', {
+            path,
+            category: 'length'
+          })
         : null;
     const design = this.data.target.design;
     this.display = {
-      length: length(design.length?.overall),
-      beam: length(design.beam),
-      draftMax: length(design.draft?.maximum),
-      draftCurrent: length(design.draft?.current),
-      airHeight: length(design.airHeight)
+      length: length(design.length?.overall, 'design.length.overall'),
+      beam: length(design.beam, 'design.beam'),
+      draftMax: length(design.draft?.maximum, 'design.draft.maximum'),
+      draftCurrent: length(design.draft?.current, 'design.draft.current'),
+      airHeight: length(design.airHeight, 'design.airHeight')
     };
   }
 
