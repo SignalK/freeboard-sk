@@ -3,10 +3,12 @@ import type { RoutePoint } from 'signalk-plotterext-bus/host';
 
 const RouteId = Type.String({ minLength: 1 });
 
-// Only lon and lat are checked: a third element is the bus's optional altitude.
+// [lon, lat] plus the bus's optional altitude, which may arrive as an explicit
+// undefined.
 const Position = Type.Unsafe<RoutePoint['position']>(
-  Type.Array(Type.Unknown(), {
+  Type.Array(Type.Union([Type.Number(), Type.Undefined()]), {
     minItems: 2,
+    maxItems: 3,
     prefixItems: [Type.Number(), Type.Number()]
   })
 );

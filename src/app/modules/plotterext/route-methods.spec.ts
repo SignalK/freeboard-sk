@@ -232,6 +232,20 @@ describe('route methods (host handlers)', () => {
     ).rejects.toHaveProperty('reason', 'routes.badRequest');
   });
 
+  it('route.create rejects a non-numeric altitude or extra elements', async () => {
+    const { call } = setup();
+    await expect(
+      call('route.create', {
+        points: [{ position: [0, 0] }, { position: [1, 1, 'x'] }]
+      })
+    ).rejects.toHaveProperty('reason', 'routes.badRequest');
+    await expect(
+      call('route.create', {
+        points: [{ position: [0, 0] }, { position: [1, 1, 2, 3] }]
+      })
+    ).rejects.toHaveProperty('reason', 'routes.badRequest');
+  });
+
   it('route.create accepts a position whose altitude is left out', async () => {
     const { call, registry } = setup();
     const { routeId } = (await call('route.create', {
