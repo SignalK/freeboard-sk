@@ -172,6 +172,24 @@ describe('route methods (host handlers)', () => {
     ).rejects.toHaveProperty('reason', 'routes.notSupported');
   });
 
+  it('route.save rejects malformed name, description or dialog without saving', async () => {
+    const registry = new RouteBufferRegistry();
+    const saved: string[] = [];
+    const methods = createRouteMethods(registry, {
+      onSave: async (routeId) => {
+        saved.push(routeId);
+        return { href: 'routes/abc', rev: 1 };
+      }
+    });
+    const { routeId } = registry.create();
+    for (const bad of [{ name: 1 }, { description: {} }, { dialog: 'yes' }]) {
+      await expect(
+        (async () => methods['route.save']({ routeId, ...bad }, {} as never))()
+      ).rejects.toHaveProperty('reason', 'routes.badRequest');
+    }
+    expect(saved).toEqual([]);
+  });
+
   it('route.save on an unknown id rejects routes.unknownId', async () => {
     const registry = new RouteBufferRegistry();
     const methods = createRouteMethods(registry, {
@@ -203,6 +221,37 @@ describe('route methods (host handlers)', () => {
         points: [{ position: [0, 0] }, { position: ['x', 1] }]
       })
     ).rejects.toHaveProperty('reason', 'routes.badRequest');
+  });
+
+  it('route.create rejects a position that is not finite', async () => {
+    const { call } = setup();
+    await expect(
+      call('route.create', {
+        points: [{ position: [0, 0] }, { position: [NaN, 1] }]
+      })
+    ).rejects.toHaveProperty('reason', 'routes.badRequest');
+  });
+
+  it('route.create rejects a non-numeric altitude or extra elements', async () => {
+    const { call } = setup();
+    await expect(
+      call('route.create', {
+        points: [{ position: [0, 0] }, { position: [1, 1, 'x'] }]
+      })
+    ).rejects.toHaveProperty('reason', 'routes.badRequest');
+    await expect(
+      call('route.create', {
+        points: [{ position: [0, 0] }, { position: [1, 1, 2, 3] }]
+      })
+    ).rejects.toHaveProperty('reason', 'routes.badRequest');
+  });
+
+  it('route.create accepts a position whose altitude is left out', async () => {
+    const { call, registry } = setup();
+    const { routeId } = (await call('route.create', {
+      points: [{ position: [0, 0, undefined] }, { position: [1, 1, 5] }]
+    })) as { routeId: string };
+    expect(registry.get(routeId)?.points).toHaveLength(2);
   });
 
   it('route.create rejects non-string name/description metadata', async () => {

@@ -19,8 +19,10 @@ describe('PlotterExtensionService nightMode capability', () => {
   let appStub: {
     config: {
       display: { nightMode: boolean };
+      map: { center: [number, number]; zoomLevel: number };
       plotterExtensions: { widgets: [] };
     };
+    mapExtent: WritableSignal<number[]>;
     uiCtrl: WritableSignal<{ forceNightMode: boolean }>;
     uiConfig: WritableSignal<{ autoNightMode: boolean }>;
     debug: () => void;
@@ -43,8 +45,12 @@ describe('PlotterExtensionService nightMode capability', () => {
     appStub = {
       config: {
         display: { nightMode: false },
+        map: { center: [0, 0], zoomLevel: 5 },
         plotterExtensions: { widgets: [] }
       },
+      // The service's map.view effect reads these once the handler's
+      // validator has loaded.
+      mapExtent: signal<number[]>([]),
       uiCtrl: signal({ forceNightMode: false }),
       uiConfig: signal({ autoNightMode: false }),
       debug: () => {}

@@ -1,10 +1,6 @@
-import {
-  RPC_ERRORS,
-  RpcError,
-  type MethodHandler,
-  type RoutePoint
-} from 'signalk-plotterext-bus/host';
+import { RpcError, type MethodHandler } from 'signalk-plotterext-bus/host';
 import { RouteBufferRegistry } from './route-buffer.registry';
+import { parseParams } from './method-params';
 
 /**
  * Host method handlers for the `routes` capability (Slice 0 surface:
@@ -43,12 +39,11 @@ export type RouteHideHandler = (routeId: string) => Promise<void> | void;
  *  Host-specific (deletes the resource). */
 export type RouteDeleteHandler = (routeId: string) => Promise<void> | void;
 
-/** A route point's waypoint link: `/resources/waypoints/<id>`. */
-const WAYPOINT_HREF = /^\/resources\/waypoints\/[^/]+$/;
+// The schemas load with the validator on the first call, keeping TypeBox out
+// of the initial bundle.
+const schemas = () => import('./route-params');
 
-function isWaypointHref(v: unknown): v is string {
-  return typeof v === 'string' && WAYPOINT_HREF.test(v);
-}
+const BAD_REQUEST = 'routes.badRequest';
 
 export function createRouteMethods(
   registry: RouteBufferRegistry,
@@ -59,92 +54,35 @@ export function createRouteMethods(
     onDelete?: RouteDeleteHandler;
   } = {}
 ): Record<string, MethodHandler> {
-  const requireRouteId = (params: unknown): string => {
-    const routeId = (params as { routeId?: unknown } | null)?.routeId;
-    if (typeof routeId !== 'string' || routeId.length === 0) {
-      throw new RpcError('route method requires a routeId', {
-        code: RPC_ERRORS.INVALID_PARAMS,
-        reason: 'routes.badRequest'
-      });
-    }
-    return routeId;
-  };
+  const requireRouteId = async (params: unknown): Promise<string> =>
+    (await parseParams((await schemas()).RouteIdParams, params, BAD_REQUEST))
+      .routeId;
 
   const unknownId = () =>
     new RpcError('Unknown route buffer', { reason: 'routes.unknownId' });
 
-  const badRequest = (message: string) =>
-    new RpcError(message, {
-      code: RPC_ERRORS.INVALID_PARAMS,
-      reason: 'routes.badRequest'
-    });
-
-  // Reject a non-string metadata field at the boundary so it can't be stored in
-  // the registry and later emitted/persisted, breaking the routes API contract.
-  const requireOptString = (v: unknown, field: string): void => {
-    if (v !== undefined && typeof v !== 'string') {
-      throw badRequest(`${field} must be a string`);
-    }
-  };
-
-  // A route needs at least two points, and every point must be a numeric
-  // [lon, lat] tuple with string metadata — otherwise the registry blows up in
-  // clonePoint() and the caller sees an internal error instead of badRequest.
-  const requireValidPoints = (points: unknown): RoutePoint[] => {
-    if (!Array.isArray(points) || points.length < 2) {
-      throw badRequest('a route needs at least two points');
-    }
-    for (const p of points) {
-      const pos = (p as RoutePoint)?.position;
-      if (
-        !Array.isArray(pos) ||
-        pos.length < 2 ||
-        !Number.isFinite(pos[0]) ||
-        !Number.isFinite(pos[1])
-      ) {
-        throw badRequest(
-          'each route point needs a numeric [lon, lat] position'
-        );
-      }
-      requireOptString((p as RoutePoint).name, 'point name');
-      requireOptString((p as RoutePoint).description, 'point description');
-      const href = (p as RoutePoint).href;
-      if (href !== undefined && !isWaypointHref(href)) {
-        throw badRequest(
-          'point href must be a waypoint reference (/resources/waypoints/<id>)'
-        );
-      }
-    }
-    return points as RoutePoint[];
-  };
-
   return {
     'route.list': () => ({ routes: registry.list() }),
 
-    'route.create': (params) => {
-      const { name, description, points } = (params ?? {}) as {
-        name?: string;
-        description?: string;
-        points?: RoutePoint[];
-      };
-      requireOptString(name, 'name');
-      requireOptString(description, 'description');
-      const validPoints = requireValidPoints(points);
-      const buffer = registry.create({
-        name,
-        description,
-        points: validPoints
-      });
+    'route.create': async (params) => {
+      const { name, description, points } = await parseParams(
+        (await schemas()).CreateParams,
+        params,
+        BAD_REQUEST
+      );
+      const buffer = registry.create({ name, description, points });
       return { routeId: buffer.routeId, rev: buffer.rev };
     },
 
-    'route.replace': (params) => {
-      const routeId = requireRouteId(params);
-      const { points } = (params ?? {}) as { points?: RoutePoint[] };
+    'route.replace': async (params) => {
       // Same invariants as route.create — never let a replace wipe a route down
       // to an invalid geometry or feed the registry malformed points.
-      const validPoints = requireValidPoints(points);
-      const updated = registry.replace(routeId, validPoints);
+      const { routeId, points } = await parseParams(
+        (await schemas()).ReplaceParams,
+        params,
+        BAD_REQUEST
+      );
+      const updated = registry.replace(routeId, points);
       if (!updated) {
         throw unknownId();
       }
@@ -152,7 +90,7 @@ export function createRouteMethods(
     },
 
     'route.save': async (params) => {
-      const routeId = requireRouteId(params);
+      const routeId = await requireRouteId(params);
       if (!registry.has(routeId)) {
         throw unknownId();
       }
@@ -161,16 +99,11 @@ export function createRouteMethods(
           reason: 'routes.notSupported'
         });
       }
-      const { name, description, dialog } = (params ?? {}) as {
-        name?: string;
-        description?: string;
-        dialog?: boolean;
-      };
-      requireOptString(name, 'name');
-      requireOptString(description, 'description');
-      if (dialog !== undefined && typeof dialog !== 'boolean') {
-        throw badRequest('dialog must be a boolean');
-      }
+      const { name, description, dialog } = await parseParams(
+        (await schemas()).SaveParams,
+        params,
+        BAD_REQUEST
+      );
       const result = await opts.onSave(routeId, { name, description, dialog });
       if (!result) {
         throw new RpcError('Route save was cancelled', {
@@ -180,8 +113,8 @@ export function createRouteMethods(
       return result;
     },
 
-    'route.get': (params) => {
-      const buffer = registry.get(requireRouteId(params));
+    'route.get': async (params) => {
+      const buffer = registry.get(await requireRouteId(params));
       if (!buffer) {
         throw unknownId();
       }
@@ -189,7 +122,7 @@ export function createRouteMethods(
     },
 
     'route.hide': async (params) => {
-      const routeId = requireRouteId(params);
+      const routeId = await requireRouteId(params);
       if (!registry.has(routeId)) {
         throw unknownId();
       }
@@ -204,7 +137,7 @@ export function createRouteMethods(
     },
 
     'route.delete': async (params) => {
-      const routeId = requireRouteId(params);
+      const routeId = await requireRouteId(params);
       if (!registry.has(routeId)) {
         throw unknownId();
       }
@@ -218,14 +151,12 @@ export function createRouteMethods(
       return {};
     },
 
-    'route.show': (params) => {
-      const ref = (params as { ref?: unknown } | null)?.ref;
-      if (typeof ref !== 'string' || ref.length === 0) {
-        throw new RpcError('route.show requires a ref', {
-          code: RPC_ERRORS.INVALID_PARAMS,
-          reason: 'routes.badRef'
-        });
-      }
+    'route.show': async (params) => {
+      const { ref } = await parseParams(
+        (await schemas()).ShowParams,
+        params,
+        'routes.badRef'
+      );
       if (!opts.onShow) {
         throw new RpcError('route.show is not supported by this host', {
           reason: 'routes.notSupported'

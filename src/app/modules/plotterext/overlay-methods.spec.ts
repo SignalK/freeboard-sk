@@ -177,6 +177,40 @@ describe('data overlay methods', () => {
     expect(await call(setup().methods, name, params)).toEqual({ reason });
   });
 
+  it.each([
+    ['overlay.setVisibility', { ids: [], visible: true }],
+    ['overlay.setVisibility', { ids: ['depth'], visible: 'yes' }],
+    ['overlay.setOpacity', { ids: ['depth'], opacity: 1.5 }],
+    ['overlay.setOpacity', { ids: 'depth', opacity: 0.5 }]
+  ])('%s(%j) is refused as a bad request', async (name, params) => {
+    expect(await call(setup().methods, name, params)).toEqual({
+      reason: 'overlays.badRequest'
+    });
+  });
+
+  it.each([
+    [{ extent: [0, 0, 1, 1] }],
+    [{ overlayId: 'radar', extent: [1, 0, 0, 1] }],
+    [{ overlayId: 'radar', extent: [0, 0, 1] }],
+    [{ overlayId: 'radar', extent: [0, 0, 1, 1], requestId: 7 }]
+  ])('refuses a malformed frame %j and releases its image', async (frame) => {
+    const image = { width: 1, height: 1, close: vi.fn() };
+    const res = await call(setup().methods, 'overlay.frame', {
+      ...frame,
+      image
+    });
+    expect(res).toEqual({ reason: 'overlays.badRequest' });
+    expect(image.close).toHaveBeenCalled();
+  });
+
+  it('refuses a frame without an image', async () => {
+    const res = await call(setup().methods, 'overlay.frame', {
+      overlayId: 'radar',
+      extent: [0, 0, 1, 1]
+    });
+    expect(res).toEqual({ reason: 'overlays.badRequest' });
+  });
+
   it('refuses a frame for a data overlay as the wrong kind', async () => {
     const image = { width: 1, height: 1, close: vi.fn() };
     const res = await call(setup().methods, 'overlay.frame', {

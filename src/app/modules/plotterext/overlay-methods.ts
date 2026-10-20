@@ -10,6 +10,13 @@ import {
   type OverlayFrameInput
 } from './overlay-registry';
 import { DataOverlayRefusal } from './data-overlay-model';
+import { parseParams } from './method-params';
+
+// The schemas load with the validator on the first call, keeping TypeBox out
+// of the initial bundle.
+const schemas = () => import('./overlay-params');
+
+const BAD_REQUEST = 'overlays.badRequest';
 
 /**
  * Host method handlers for map overlays: `overlay.list`,
@@ -28,28 +35,16 @@ import { DataOverlayRefusal } from './data-overlay-model';
 const badRequest = (message: string) =>
   new RpcError(message, {
     code: RPC_ERRORS.INVALID_PARAMS,
-    reason: 'overlays.badRequest'
+    reason: BAD_REQUEST
   });
 
 function asRpc(err: unknown): unknown {
   if (err instanceof OverlayRefusal || err instanceof DataOverlayRefusal) {
-    return err.reason === 'overlays.badRequest'
+    return err.reason === BAD_REQUEST
       ? badRequest(err.message)
       : new RpcError(err.message, { reason: err.reason });
   }
   return err;
-}
-
-function requireIds(params: unknown): string[] {
-  const ids = (params as { ids?: unknown })?.ids;
-  if (
-    !Array.isArray(ids) ||
-    ids.length === 0 ||
-    !ids.every((id) => typeof id === 'string')
-  ) {
-    throw badRequest('`ids` must be a non-empty array of overlay ids');
-  }
-  return ids;
 }
 
 /**
@@ -70,46 +65,25 @@ export function isImageBitmap(v: unknown): v is ImageBitmap {
   );
 }
 
-function asParams(params: unknown): Record<string, unknown> {
-  if (!params || typeof params !== 'object' || Array.isArray(params)) {
-    throw badRequest('params must be an object');
+async function toFrame(params: unknown): Promise<OverlayFrameInput> {
+  try {
+    const { overlayId, requestId, extent, image } = await parseParams(
+      (await schemas()).FrameParams,
+      params,
+      BAD_REQUEST
+    );
+    return { overlayId, requestId, extent, image };
+  } catch (err) {
+    // A refused frame is never drawn, so its bitmap is released here.
+    const image = (params as { image?: unknown } | null)?.image;
+    if (isImageBitmap(image)) image.close();
+    throw err;
   }
-  return params as Record<string, unknown>;
 }
 
-function toFrame(params: unknown): OverlayFrameInput {
-  const p = (params ?? {}) as Record<string, unknown>;
-  const image = p['image'];
-  if (!isImageBitmap(image)) {
-    throw badRequest('`image` must be a transferred ImageBitmap');
-  }
-  const fail = (message: string) => {
-    image.close();
-    return badRequest(message);
-  };
-  if (typeof p['overlayId'] !== 'string') {
-    throw fail('`overlayId` is required');
-  }
-  if (p['requestId'] !== undefined && typeof p['requestId'] !== 'string') {
-    throw fail('`requestId` must be a string when given');
-  }
-  const extent = p['extent'];
-  if (
-    !Array.isArray(extent) ||
-    extent.length !== 4 ||
-    !extent.every((n) => typeof n === 'number' && Number.isFinite(n)) ||
-    !(extent[2] > extent[0] && extent[3] > extent[1])
-  ) {
-    throw fail(
-      '`extent` must be [minX, minY, maxX, maxY] in EPSG:3857 with max > min'
-    );
-  }
-  return {
-    overlayId: p['overlayId'],
-    requestId: p['requestId'] as string | undefined,
-    extent: extent as [number, number, number, number],
-    image
-  };
+/** The params of the `overlays.data` methods, which the model checks further. */
+async function dataParams(params: unknown): Promise<Record<string, unknown>> {
+  return parseParams((await schemas()).DataParams, params, BAD_REQUEST);
 }
 
 export function createOverlayMethods(
@@ -119,9 +93,9 @@ export function createOverlayMethods(
 ): Record<string, MethodHandler> {
   const guard =
     (fn: (params: unknown) => unknown): MethodHandler =>
-    (params) => {
+    async (params) => {
       try {
-        return fn(params);
+        return await fn(params);
       } catch (err) {
         throw asRpc(err);
       }
@@ -130,12 +104,12 @@ export function createOverlayMethods(
   return {
     'overlay.list': guard(() => ({ overlays: registry.list(extension) })),
 
-    'overlay.setVisibility': guard((params) => {
-      const ids = requireIds(params);
-      const visible = (params as { visible?: unknown }).visible;
-      if (typeof visible !== 'boolean') {
-        throw badRequest('`visible` must be a boolean');
-      }
+    'overlay.setVisibility': guard(async (params) => {
+      const { ids, visible } = await parseParams(
+        (await schemas()).SetVisibilityParams,
+        params,
+        BAD_REQUEST
+      );
       registry.requireOwn(extension, ids);
       registry.setVisibility(
         ids.map((id) => overlayKey(extension, id)),
@@ -144,17 +118,12 @@ export function createOverlayMethods(
       return {};
     }),
 
-    'overlay.setOpacity': guard((params) => {
-      const ids = requireIds(params);
-      const opacity = (params as { opacity?: unknown }).opacity;
-      if (
-        typeof opacity !== 'number' ||
-        !Number.isFinite(opacity) ||
-        opacity < 0 ||
-        opacity > 1
-      ) {
-        throw badRequest('`opacity` must be a number from 0 to 1');
-      }
+    'overlay.setOpacity': guard(async (params) => {
+      const { ids, opacity } = await parseParams(
+        (await schemas()).SetOpacityParams,
+        params,
+        BAD_REQUEST
+      );
       registry.requireOwn(extension, ids);
       registry.setOpacity(
         ids.map((id) => overlayKey(extension, id)),
@@ -163,12 +132,12 @@ export function createOverlayMethods(
       return {};
     }),
 
-    'overlay.frame': guard((params) =>
-      registry.acceptFrame(extension, runtime, toFrame(params))
+    'overlay.frame': guard(async (params) =>
+      registry.acceptFrame(extension, runtime, await toFrame(params))
     ),
 
-    'overlay.refresh': guard((params) => {
-      const p = asParams(params);
+    'overlay.refresh': guard(async (params) => {
+      const p = await dataParams(params);
       registry.dataModel(extension, p['overlayId']).refresh({
         source: p['source'],
         tiles: p['tiles']
@@ -176,8 +145,8 @@ export function createOverlayMethods(
       return {};
     }),
 
-    'overlay.setData': guard((params) => {
-      const p = asParams(params);
+    'overlay.setData': guard(async (params) => {
+      const p = await dataParams(params);
       registry.dataModel(extension, p['overlayId']).setData({
         source: p['source'],
         data: p['data'],
@@ -187,8 +156,8 @@ export function createOverlayMethods(
       return {};
     }),
 
-    'overlay.setLayer': guard((params) => {
-      const p = asParams(params);
+    'overlay.setLayer': guard(async (params) => {
+      const p = await dataParams(params);
       const model = registry.dataModel(extension, p['overlayId']);
       model.setLayer({
         layer: p['layer'],
@@ -199,8 +168,8 @@ export function createOverlayMethods(
       return {};
     }),
 
-    'overlay.setState': guard((params) => {
-      const p = asParams(params);
+    'overlay.setState': guard(async (params) => {
+      const p = await dataParams(params);
       registry.dataModel(extension, p['overlayId']).setState(p['values']);
       return {};
     })
