@@ -49,7 +49,6 @@
             "namedChunks": true,
             "webWorkerTsConfig": "tsconfig.worker.json",
             "allowedCommonJsDependencies": [
-              "geolib",
               "simplify-ts"
            ]
           },
