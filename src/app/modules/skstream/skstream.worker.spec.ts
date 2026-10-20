@@ -12,6 +12,7 @@ import {
 } from './skstream.worker';
 import { SKVessel } from '../skresources/resource-classes';
 import { PathValue, Position } from 'src/app/types';
+import { SKStreamMessage } from 'src/app/types/stream';
 import { TRAIL_DURATION_ALL } from './track-source';
 
 // getVesselTrail() fetches the server-side "self" track with several apiGet()
@@ -714,5 +715,92 @@ describe('skstream.worker processVessel — resource deltas', () => {
 
     expect(vessel.resourceUpdates).toEqual([]);
     expect(posted).not.toHaveBeenCalled();
+  });
+});
+
+// A SaR beacon that stops reporting is dropped when it expires. The update that
+// drops it has to carry the removal: the update is posted (copied to the app)
+// before the next one, so a removal made after posting would only reach the
+// map with a later delta, and an AtoN / SaR popover would stay open until then.
+describe('skstream.worker postUpdate — expired SaR beacons', () => {
+  const id = 'sar.urn:mrn:imo:mmsi:970123456';
+  let sarInUpdates: string[][];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    // the stream only needs to exist for its deltas to be parsed
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        readyState = 1;
+        close() {}
+        send() {}
+      }
+    );
+    initVessels();
+    sarInUpdates = [];
+    vi.stubGlobal(
+      'postMessage',
+      vi.fn(
+        (msg: { action?: string; result?: { sar?: Map<string, unknown> } }) => {
+          // copy what the app would receive at the time of posting
+          if (msg.action === 'update' && msg.result?.sar) {
+            sarInUpdates.push([...msg.result.sar.keys()]);
+          }
+        }
+      )
+    );
+    dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          cmd: 'open',
+          options: {
+            url: 'ws://localhost:3000/signalk/v1/stream',
+            config: {
+              units: {},
+              vessels: { aisShowTrack: false },
+              signalk: { maxRadius: 0, sar: true },
+              selections: {}
+            }
+          }
+        }
+      })
+    );
+    handleStreamEvent({
+      action: 'onMessage',
+      msg: {
+        context: id,
+        updates: [
+          {
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: -17.7, longitude: 177.4 }
+              }
+            ]
+          }
+        ]
+      } as unknown as SKStreamMessage
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('leaves out a beacon in the update that expires it', () => {
+    vi.advanceTimersByTime(10 * 60000);
+
+    handleStreamEvent({ action: 'onClose', msg: new Event('close') });
+
+    expect(sarInUpdates.at(-1)).toEqual([]);
+  });
+
+  it('keeps a beacon that is still reporting', () => {
+    handleStreamEvent({ action: 'onClose', msg: new Event('close') });
+
+    expect(sarInUpdates.at(-1)).toEqual([id]);
   });
 });
