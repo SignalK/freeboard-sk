@@ -1303,7 +1303,7 @@ export class AppFacade extends InfoService {
    * preset is used.
    */
   formatValueForDisplay(
-    value: number,
+    value: number | null | undefined,
     sourceUnit: SI_BASE_UNIT,
     options?: {
       path?: string;
@@ -1454,6 +1454,10 @@ export class AppFacade extends InfoService {
       }
       return `${nv}${options?.noSymbol ? '' : symbol}`;
     } else {
+      // Signal K publishes null when a source loses a value
+      if (value === null || value === undefined) {
+        return '--';
+      }
       // timestamp
       if (typeof value === 'string') {
         if (value[String(value).length - 1] === 'Z' && value[10] === 'T') {
