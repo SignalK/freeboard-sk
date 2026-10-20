@@ -178,3 +178,55 @@ test('fsk_list_action_invocations reads what the runtime recorded', async () => 
   ]);
   assert.deepStrictEqual(result, recorded);
 });
+
+test('fsk_pick relays only the fields it was given', () => {
+  assert.deepStrictEqual(run('fsk_pick', {}), [
+    ['map.pick', {}, { session: undefined }]
+  ]);
+  assert.deepStrictEqual(
+    run('fsk_pick', {
+      prompt: 'Tap the destination',
+      targets: ['waypoint', { kind: 'vessel', self: false }],
+      session: 's1'
+    }),
+    [
+      [
+        'map.pick',
+        {
+          prompt: 'Tap the destination',
+          targets: ['waypoint', { kind: 'vessel', self: false }]
+        },
+        { session: 's1' }
+      ]
+    ]
+  );
+});
+
+test('fsk_cancel_pick relays the pick id', () => {
+  assert.deepStrictEqual(run('fsk_cancel_pick', { pickId: 'p1' }), [
+    ['map.cancelPick', { pickId: 'p1' }, { session: undefined }]
+  ]);
+});
+
+test('fsk_list_picks reads what the runtime recorded', async () => {
+  const calls: Call[] = [];
+  const recorded = [{ pickId: 'p1', cancelled: true, reason: 'user' }];
+  const result = await find('fsk_list_picks').run(
+    {
+      call: (...a) => {
+        calls.push(a);
+        return Promise.resolve({ values: { mapPicks: recorded } });
+      },
+      listSessions: () => []
+    },
+    {}
+  );
+  assert.deepStrictEqual(calls, [
+    [
+      'state.get',
+      { scope: 'extension', keys: ['mapPicks'] },
+      { session: undefined }
+    ]
+  ]);
+  assert.deepStrictEqual(result, recorded);
+});

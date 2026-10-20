@@ -32,10 +32,12 @@ type HubMessage =
   | { type: 'ping'; id?: string };
 
 const CONFIG_URL = 'bridge-config.json'; // resolved against this iframe's origin
-// Extension state key of the recorded action choices; fsk_list_action_invocations
-// (src/tools.ts) reads it back with state.get.
+// Extension state keys of the recorded action choices and pick answers;
+// fsk_list_action_invocations and fsk_list_picks (src/tools.ts) read them back
+// with state.get.
 const INVOCATIONS_KEY = 'actionInvocations';
-const MAX_INVOCATIONS = 20;
+const PICKS_KEY = 'mapPicks';
+const MAX_RECORDED = 20;
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 15000;
 
@@ -81,24 +83,31 @@ async function main(): Promise<void> {
 
   if (client.capabilities.includes('actions')) {
     await client.subscribe(['action.invoked'], (_name, invocation) => {
-      recordInvocation(invocation).catch((err: unknown) =>
+      record(INVOCATIONS_KEY, invocation).catch((err: unknown) =>
         log('cannot record an action invocation:', messageOf(err))
       );
     });
   }
 
-  // Keep the latest action choices, newest first, in the extension state.
-  async function recordInvocation(invocation: unknown): Promise<void> {
-    const saved = (await client.state.get([INVOCATIONS_KEY], 'extension'))[
-      INVOCATIONS_KEY
-    ];
+  // A pick an agent starts (fsk_pick) is this runtime's, so its answer comes here.
+  if (client.capabilities.includes('map.pick')) {
+    await client.subscribe(['map.picked'], (_name, picked) => {
+      record(PICKS_KEY, picked).catch((err: unknown) =>
+        log('cannot record a pick:', messageOf(err))
+      );
+    });
+  }
+
+  // Keep the latest entries under `key`, newest first, in the extension state.
+  async function record(key: string, entry: unknown): Promise<void> {
+    const saved = (await client.state.get([key], 'extension'))[key];
     const list = Array.isArray(saved) ? saved : [];
     await client.state.set(
       {
-        [INVOCATIONS_KEY]: [
-          { at: new Date().toISOString(), ...(invocation as object) },
+        [key]: [
+          { at: new Date().toISOString(), ...(entry as object) },
           ...list
-        ].slice(0, MAX_INVOCATIONS)
+        ].slice(0, MAX_RECORDED)
       },
       'extension'
     );

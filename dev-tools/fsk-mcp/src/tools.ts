@@ -18,8 +18,23 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { BridgeHub } from './bridge-hub.ts';
 import { PROBE_ACTION } from './manifest.ts';
 
-// Where the runtime records action choices (src/web/runtime.ts).
+// Where the runtime records action choices and pick answers (src/web/runtime.ts).
 const INVOCATIONS_KEY = 'actionInvocations';
+const PICKS_KEY = 'mapPicks';
+
+// Read one list the runtime records in its extension state.
+async function recorded(
+  hub: ToolHub,
+  key: string,
+  session?: string
+): Promise<unknown> {
+  const result = (await hub.call(
+    'state.get',
+    { scope: 'extension', keys: [key] },
+    { session }
+  )) as { values?: Record<string, unknown> } | undefined;
+  return result?.values?.[key] ?? [];
+}
 
 export type ToolHub = Pick<BridgeHub, 'call' | 'listSessions'>;
 export type ToolArgs = Record<string, unknown>;
@@ -731,13 +746,48 @@ export const TOOLS: ToolDef[] = [
     description:
       "The latest choices of the bridge's actions, newest first: each `action.invoked` the bridge runtime heard, { at, actionId, target }. The target is exactly what the host delivers to an extension (kind, position, name, featurePosition, and id/href, routeId, context/self or class/properties by kind). The runtime keeps the last 20 in its extension state.",
     inputSchema: withSession(),
-    run: async (hub, a: Session) => {
-      const result = (await hub.call(
-        'state.get',
-        { scope: 'extension', keys: [INVOCATIONS_KEY] },
+    run: (hub, a: Session) => recorded(hub, INVOCATIONS_KEY, a.session)
+  }),
+  tool({
+    name: 'fsk_pick',
+    description:
+      'Ask the user to pick a point or a feature on the chart (capability `map.pick`). Returns { pickId } at once; Freeboard shows the prompt and a Cancel control, and the next click on something the pick accepts ends it. Read the answer with fsk_list_picks. One pick is on at a time: a new one supersedes the last (reason `superseded`). Errors: map.pickBusy while the user draws, measures or edits; map.badRequest when targets keeps no kind the host supports.',
+    inputSchema: withSession({
+      prompt: {
+        type: 'string',
+        description:
+          "Shown while the pick is on. Omit for Freeboard's own wording."
+      },
+      targets: {
+        type: 'array',
+        items: { type: ['string', 'object'] },
+        description:
+          "What may be picked, as an action's targets: kinds (position, waypoint, note, route, track, region, vessel, aton, chartFeature) or { kind, match } / { kind: 'vessel', self }. Default ['position']. With position among them, a click on no accepted feature yields the point."
+      }
+    }),
+    run: (hub, a: Session & { prompt?: string; targets?: unknown[] }) =>
+      hub.call(
+        'map.pick',
+        {
+          ...(a.prompt !== undefined ? { prompt: a.prompt } : {}),
+          ...(a.targets !== undefined ? { targets: a.targets } : {})
+        },
         { session: a.session }
-      )) as { values?: Record<string, unknown> } | undefined;
-      return result?.values?.[INVOCATIONS_KEY] ?? [];
-    }
+      )
+  }),
+  tool({
+    name: 'fsk_cancel_pick',
+    description:
+      "End the bridge's pick if it is still on (map.cancelPick); its answer is then cancelled with reason `extension`. Resolves either way.",
+    inputSchema: withSession({ pickId: { type: 'string' } }, ['pickId']),
+    run: (hub, a: Session & { pickId: string }) =>
+      hub.call('map.cancelPick', { pickId: a.pickId }, { session: a.session })
+  }),
+  tool({
+    name: 'fsk_list_picks',
+    description:
+      "The latest answers to the bridge's picks, newest first: each `map.picked` the bridge runtime heard, { at, pickId, target } or { at, pickId, cancelled: true, reason } (user, extension, superseded or host). The target is exactly what the host delivers (kind, position, name, featurePosition, and id/href, routeId, context/self or class/properties by kind). A pick that is still on has no entry yet. The runtime keeps the last 20 in its extension state.",
+    inputSchema: withSession(),
+    run: (hub, a: Session) => recorded(hub, PICKS_KEY, a.session)
   })
 ];

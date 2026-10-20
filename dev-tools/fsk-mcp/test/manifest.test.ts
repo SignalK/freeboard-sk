@@ -69,3 +69,9 @@ test('offers one action, the probe, hidden until an agent shows it', () => {
   assert.ok(probe.targets.includes('position'));
   assert.strictEqual(probe.action.type, 'publish');
 });
+
+test('offers map.pick, so an agent can start a pick and read its answer', () => {
+  const m = buildManifest();
+  assert.ok(m.optional.includes('map.pick'));
+  assert.ok(!m.requires.includes('map.pick'));
+});
