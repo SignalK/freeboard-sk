@@ -863,9 +863,9 @@
                             [(ngModel)]="facade.settings.vessels.iconActualSize"
                             (change)="persistModel()"
                             label="after"
-                            matTooltip="Scale the icon to the vessel's reported beam and length overall. It never shrinks below the icon size selected above. Needs design.beam and design.length.overall from the Signal K server."
+                            matTooltip="Scale the icon to the vessel's reported beam and length overall while zoomed in. It never shrinks below the icon size selected above. Needs design.beam and design.length.overall from the Signal K server."
                           >
-                            Never make vessel smaller than actual size
+                            Show vessel at actual size when zoomed in
                           </mat-checkbox>
                         </div>
                       </div>
