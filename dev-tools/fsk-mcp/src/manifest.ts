@@ -12,11 +12,15 @@
 // Its one data overlay, the scratch layer, likewise exists for the agent: the
 // overlay methods only reach the caller's own overlays, so the bridge needs one
 // of its own to exercise `overlays.data`, and it doubles as a way to draw any
-// GeoJSON on the chart while debugging (fsk_set_overlay_data).
+// GeoJSON on the chart while debugging (fsk_set_overlay_data). It is
+// interactive (capability `actions.overlay`): a drawn feature with an `id` can
+// be selected, named by its `label`. Only its areas, lines and points are
+// selectable, not its labels. With the probe hidden no action applies, so a
+// click on a feature goes to what lies beneath, as if it were not interactive.
 //
 // Its one action, the probe, is there to check what the host delivers when the
 // user chooses an action (capability `actions`). It applies to every target
-// kind and starts hidden, so it is in no menu until an agent shows it with
+// kind, the scratch layer's features included, and starts hidden, so it is in no menu until an agent shows it with
 // fsk_set_action_visibility; the runtime records each choice
 // (fsk_list_action_invocations).
 
@@ -102,6 +106,7 @@ export function buildManifest() {
       'windows',
       'overlays.data',
       'actions',
+      'actions.overlay',
       'map.pick'
     ],
     panels: [
@@ -122,7 +127,10 @@ export function buildManifest() {
         // hidden until fsk_set_overlay_data draws on it, so an empty scratch
         // layer never counts against the host's active-overlay budget
         visible: false,
-        style: SCRATCH_STYLE
+        style: SCRATCH_STYLE,
+        interactive: true,
+        interactiveLayers: ['areas', 'lines', 'points'],
+        titleProperty: 'label'
       }
     ],
     actions: [
