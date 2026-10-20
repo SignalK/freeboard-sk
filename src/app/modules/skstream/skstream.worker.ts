@@ -614,6 +614,11 @@ export function getVesselTrailV2(
     now - olderBands.until < 2 * OLDER_BANDS_REUSE_MS
       ? olderBands
       : undefined;
+  if (!reuse) {
+    // A full fetch is for the current view: bands fetched for an earlier one
+    // must not be reused while it is in flight.
+    olderBands = undefined;
+  }
   // sized as for Track history: a pixel at the deepest zoom of the level
   const epsilon =
     (mapView && historyEpsilon(mapView.zoom, mapView.extent)) ?? undefined;

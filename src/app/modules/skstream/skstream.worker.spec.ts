@@ -761,6 +761,25 @@ describe('skstream.worker own trail — refreshing the recent part', () => {
     );
   });
 
+  it('fetches every band while a full fetch for a new view is in flight', async () => {
+    await fetchTrail(10, false);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>(() => undefined))
+    );
+    getVesselTrailV2(
+      tracks,
+      {
+        trailDuration: TRAIL_DURATION_ALL,
+        trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
+      },
+      'tracks'
+    );
+
+    await fetchTrail(20, true);
+    expect(urls).toHaveLength(3);
+  });
+
   it('keeps the older bands of the fetch that replaced a slower one', async () => {
     const answers: Array<() => void> = [];
     vi.stubGlobal(
