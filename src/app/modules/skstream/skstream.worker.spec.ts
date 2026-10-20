@@ -638,6 +638,205 @@ describe('skstream.worker own trail — overlapping fetches', () => {
   });
 });
 
+// The periodic refresh of the own trail asks again for the recent part only:
+// with "All" the older bands reach back over the whole recorded history, and
+// only their edge has moved since they were fetched.
+describe('skstream.worker own trail — refreshing the recent part', () => {
+  const tracks = 'http://h/signalk/v2/api/tracks';
+  const HOUR = 3600000;
+  const start = Date.parse('2026-10-20T12:00:00Z');
+  let posted: Array<{ action: string; result: unknown }>;
+  let urls: string[];
+
+  const line = (lon: number) => ({
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'MultiLineString',
+          coordinates: [
+            [
+              [lon, 0],
+              [lon + 1, 0]
+            ]
+          ]
+        },
+        properties: {
+          isSelf: true,
+          providerId: 'tracks',
+          from: '2026-09-01T00:00:00Z'
+        }
+      }
+    ]
+  });
+  /** Fetch the trail and wait for it to be posted; each band answers with a
+   * line starting at the next longitude counted from `lon`. */
+  const fetchTrail = async (
+    lon: number,
+    recentOnly: boolean,
+    provider = 'tracks',
+    trailDuration = TRAIL_DURATION_ALL,
+    server = tracks
+  ) => {
+    urls = [];
+    let next = lon;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        urls.push(url);
+        const body = line(next++);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(body)
+        } as unknown as Response);
+      })
+    );
+    getVesselTrailV2(
+      server,
+      {
+        trailDuration,
+        trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
+      },
+      provider,
+      undefined,
+      recentOnly
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    const trail = posted.filter((m) => m.action === 'trail').pop();
+    return (trail?.result as Position[][]).map((l) => l[0][0]);
+  };
+  const param = (url: string, name: string) =>
+    new URL(url).searchParams.get(name);
+
+  beforeEach(() => {
+    posted = [];
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(start);
+    vi.stubGlobal(
+      'postMessage',
+      vi.fn((msg: { action: string; result: unknown }) => posted.push(msg))
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('fetches only the recent band and keeps the older ones', async () => {
+    expect(await fetchTrail(10, false)).toEqual([10, 11, 12]);
+    expect(urls).toHaveLength(3);
+
+    vi.setSystemTime(start + 10 * 60000);
+    expect(await fetchTrail(20, true)).toEqual([10, 11, 20]);
+    expect(urls).toHaveLength(1);
+    // from where the full fetch's recent band began, so nothing falls between
+    expect(param(urls[0], 'from')).toBe(new Date(start - HOUR).toISOString());
+    expect(param(urls[0], 'to')).toBeNull();
+  });
+
+  it('fetches every band once the recent one has grown by an hour', async () => {
+    await fetchTrail(10, false);
+
+    vi.setSystemTime(start + HOUR);
+    await fetchTrail(20, true);
+    expect(urls).toHaveLength(3);
+  });
+
+  it('fetches every band when nothing was fetched for the provider yet', async () => {
+    await fetchTrail(10, false);
+
+    await fetchTrail(20, true, 'questdb');
+    expect(urls).toHaveLength(3);
+  });
+
+  it('fetches every band from a server the older ones were not fetched from', async () => {
+    await fetchTrail(10, false);
+
+    await fetchTrail(
+      20,
+      true,
+      'tracks',
+      TRAIL_DURATION_ALL,
+      'http://other/signalk/v2/api/tracks'
+    );
+    expect(urls).toHaveLength(3);
+  });
+
+  it('keeps a trail of a fixed length to its length', async () => {
+    await fetchTrail(10, false, 'tracks', 2);
+
+    vi.setSystemTime(start + 30 * 60000);
+    await fetchTrail(20, true, 'tracks', 2);
+    expect(urls).toHaveLength(2);
+    expect(param(urls[0], 'from')).toBe(
+      new Date(start + 30 * 60000 - 2 * HOUR).toISOString()
+    );
+  });
+
+  it('keeps a trail of an hour to its length', async () => {
+    await fetchTrail(10, false, 'tracks', 1);
+
+    vi.setSystemTime(start + 30 * 60000);
+    await fetchTrail(20, true, 'tracks', 1);
+    expect(urls).toHaveLength(1);
+    expect(param(urls[0], 'from')).toBe(
+      new Date(start + 30 * 60000 - HOUR).toISOString()
+    );
+  });
+
+  it('fetches every band while a full fetch for a new view is in flight', async () => {
+    await fetchTrail(10, false);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>(() => undefined))
+    );
+    getVesselTrailV2(
+      tracks,
+      {
+        trailDuration: TRAIL_DURATION_ALL,
+        trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
+      },
+      'tracks'
+    );
+
+    await fetchTrail(20, true);
+    expect(urls).toHaveLength(3);
+  });
+
+  it('keeps the older bands of the fetch that replaced a slower one', async () => {
+    const answers: Array<() => void> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) =>
+            answers.push(() =>
+              resolve({
+                ok: true,
+                json: () => Promise.resolve(line(0))
+              } as unknown as Response)
+            )
+          )
+      )
+    );
+    getVesselTrailV2(
+      tracks,
+      {
+        trailDuration: TRAIL_DURATION_ALL,
+        trailResolution: { lastHour: '5s', next23: '5s', beyond24: '10s' }
+      },
+      'tracks'
+    );
+    expect(await fetchTrail(10, false)).toEqual([10, 11, 12]);
+    answers.forEach((answer) => answer());
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(await fetchTrail(20, true)).toEqual([10, 11, 20]);
+  });
+});
+
 describe('skstream.worker own trail — v1 resolution', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
