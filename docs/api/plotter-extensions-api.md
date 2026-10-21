@@ -1461,6 +1461,14 @@ returns to `null`.
 Time selections are **session state**: a host starts every chart at its live
 frame on load and need not persist a selection.
 
+A chart that is **not shown** keeps its instant, whether set while it was
+hidden or showing when it was hidden: the host shows the chart at it when it is
+next made visible, rather than on its live frame, and `chart.list` reports it
+as the chart's `time.value` meanwhile. An
+extension switching a set of charts (a weather preset, say) can therefore set
+the time first and show the charts after, with no live frame in between. No
+`chart.time` event is emitted for a chart that is not shown.
+
 **Following changes.** The host emits `chart.time` `{ id, time }` for **every**
 retarget — an extension's `chart.setTime`, another extension's, or the user's
 own time control in the host's chart UI — with the same origin-transparency as

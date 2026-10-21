@@ -40,7 +40,8 @@ function svcWithCache() {
   Object.assign(svc as unknown as Record<string, unknown>, {
     chartCacheSignal: signal(cachedCharts()),
     // Field initialisers do not run on a bare prototype instance.
-    chartTimeRefreshers: new Map()
+    chartTimeRefreshers: new Map(),
+    hiddenChartInstants: new Map()
   });
   return svc;
 }
@@ -224,6 +225,127 @@ describe('refreshing the chart list', () => {
 
     expect(cache(svc)[0][1].timeValue).toBe(T0);
     expect(cache(svc)[1][1].timeValue).toBeNull();
+  });
+});
+
+describe('a chart that is not shown', () => {
+  // The server lists every chart; the cache holds only the shown ones.
+  const listing = (shown: boolean): FBCharts => [
+    ['radar', radar(), shown],
+    [
+      'static',
+      new SKChart({ name: 'S', url: 'http://s/{z}/{x}/{y}.png' }),
+      true
+    ]
+  ];
+
+  function svcHidingRadar() {
+    const svc = svcWithCache();
+    const served = { list: listing(false) };
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      chartCacheSignal: signal(listing(false).filter((c) => c[2])),
+      app: {
+        debug: (): void => undefined,
+        uiConfig: () => ({}),
+        MAP_ZOOM_EXTENT: {}
+      },
+      listChartsFromServer: vi.fn(async () => served.list),
+      appendOSM: (l: FBCharts) => l,
+      sortByScaleDesc: (l: FBCharts) => l,
+      arrangeChartLayers: (l: FBCharts) => l,
+      setMapZoomRange: (): void => undefined,
+      migrateAdoptedOverlays: (): void => undefined
+    });
+    const show = async () => {
+      served.list = listing(true);
+      await svc.refreshCharts();
+    };
+    const hide = async () => {
+      served.list = listing(false);
+      await svc.refreshCharts();
+    };
+    return { svc, show, hide };
+  }
+
+  const shownRadar = (svc: SKResourceService) =>
+    cache(svc).find((c) => c[0] === 'radar');
+
+  it('opens at the instant it was set to while hidden', async () => {
+    const { svc, show } = svcHidingRadar();
+    svc.setChartsTime(['radar'], T0);
+    await show();
+    expect(shownRadar(svc)?.[1].timeValue).toBe(T0);
+  });
+
+  it('opens at that instant when ticked in the chart list', () => {
+    const { svc } = svcHidingRadar();
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      selectionIsFiltered: () => false
+    });
+    svc.chartSetTime('radar', T0);
+    svc.chartAdd([['radar', radar(), true]]);
+    expect(shownRadar(svc)?.[1].timeValue).toBe(T0);
+  });
+
+  it('reports that instant in the host API listing while still hidden', async () => {
+    const { svc } = svcHidingRadar();
+    svc.chartSetTime('radar', T1);
+    const listed = await svc.chartsForHostApi();
+    expect(listed.find((c) => c[0] === 'radar')?.[1].timeValue).toBe(T1);
+  });
+
+  it('opens on its newest frame when set back to null while hidden', async () => {
+    const { svc, show } = svcHidingRadar();
+    svc.chartSetTime('radar', T0);
+    svc.chartSetTime('radar', null);
+    await show();
+    expect(shownRadar(svc)?.[1].timeValue).toBeNull();
+  });
+
+  it('keeps the instant it showed when hidden, and opens at it again', async () => {
+    const { svc, show, hide } = svcHidingRadar();
+    await show();
+    svc.chartSetTime('radar', T1);
+    await hide();
+    expect(shownRadar(svc)).toBeUndefined();
+    await show();
+    expect(shownRadar(svc)?.[1].timeValue).toBe(T1);
+  });
+
+  it('keeps that instant when unticked in the chart list', () => {
+    const { svc } = svcHidingRadar();
+    Object.assign(svc as unknown as Record<string, unknown>, {
+      selectionIsFiltered: () => false,
+      selectionRemove: (): void => undefined
+    });
+    svc.chartAdd([['radar', radar(), true]]);
+    svc.chartSetTime('radar', T1);
+    svc.chartRemove(['radar']);
+    svc.chartAdd([['radar', radar(), true]]);
+    expect(shownRadar(svc)?.[1].timeValue).toBe(T1);
+  });
+
+  it('keeps its instant through a chart list that could not be fetched', async () => {
+    const { svc, show } = svcHidingRadar();
+    await show();
+    svc.chartSetTime('radar', T1);
+    const list = (svc as unknown as { listChartsFromServer: () => unknown })
+      .listChartsFromServer as ReturnType<typeof vi.fn>;
+    list.mockRejectedValueOnce(new Error('offline'));
+    await svc.refreshCharts();
+    expect(shownRadar(svc)).toBeUndefined();
+    await show();
+    expect(shownRadar(svc)?.[1].timeValue).toBe(T1);
+  });
+
+  it('opens live once its instant has been moved back to null', async () => {
+    const { svc, show, hide } = svcHidingRadar();
+    svc.chartSetTime('radar', T0);
+    await show();
+    svc.chartSetTime('radar', null);
+    await hide();
+    await show();
+    expect(shownRadar(svc)?.[1].timeValue).toBeNull();
   });
 });
 
