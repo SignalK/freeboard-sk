@@ -25,8 +25,9 @@
 // records each choice (fsk_list_action_invocations).
 //
 // Its one toolbar button, the probe, likewise exists to exercise
-// `buttons.visibility`. It starts hidden, so the toolbar is unchanged until an
-// agent shows it with fsk_set_button_visibility. Pressing it toggles the window
+// `buttons.visibility` and `buttons.decorations`. It starts hidden, so the
+// toolbar is unchanged until an agent shows it with fsk_set_button_visibility
+// (and decorates it with fsk_decorate_button). Pressing it toggles the window
 // probe, so hiding the button while that window is open shows that the window
 // stays.
 
@@ -104,6 +105,7 @@ export function buildManifest() {
       'events.publish',
       'buttons',
       'buttons.visibility',
+      'buttons.decorations',
       'map',
       'routes',
       'resources',

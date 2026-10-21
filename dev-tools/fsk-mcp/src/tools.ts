@@ -764,6 +764,42 @@ export const TOOLS: ToolDef[] = [
       )
   }),
   tool({
+    name: 'fsk_decorate_button',
+    description:
+      "Set the style, custom colours or badge of the bridge's own toolbar buttons (capability `buttons.decorations`, method `buttons.decorate`). Show the probe first with fsk_set_button_visibility. Only the decorations given change; null returns one to the manifest value (normal, no colours, no badge). style: normal | active (the function is switched on) | warning | alarm, in Freeboard's own colours. colors: { fg?, bg? } as #rrggbb, replaced as a whole. badge: a whole number, 0 for none. Not persisted. Errors: buttons.badRequest (no decoration, or an invalid one), buttons.unknownId.",
+    inputSchema: withSession({
+      style: {
+        type: ['string', 'null'],
+        enum: ['normal', 'active', 'warning', 'alarm', null]
+      },
+      colors: {
+        type: ['object', 'null'],
+        properties: {
+          fg: { type: 'string', description: '#rrggbb' },
+          bg: { type: 'string', description: '#rrggbb' }
+        }
+      },
+      badge: { type: ['integer', 'null'], minimum: 0 },
+      ids: {
+        type: 'array',
+        items: { type: 'string' },
+        description: "Button ids of the bridge's manifest. Default ['probe']."
+      }
+    }),
+    run: (
+      hub,
+      { session, ids, ...decorations }: Session & { ids?: string[] } & Record<
+          'style' | 'colors' | 'badge',
+          unknown
+        >
+    ) =>
+      hub.call(
+        'buttons.decorate',
+        { ids: ids ?? [PROBE_BUTTON], ...decorations },
+        { session }
+      )
+  }),
+  tool({
     name: 'fsk_list_action_invocations',
     description:
       "The latest choices of the bridge's actions, newest first: each `action.invoked` the bridge runtime heard, { at, actionId, target }. The target is exactly what the host delivers to an extension (kind, position, name, featurePosition, and id/href, routeId, context/self or class/properties by kind). The runtime keeps the last 20 in its extension state.",

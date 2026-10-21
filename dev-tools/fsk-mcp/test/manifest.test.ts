@@ -27,6 +27,7 @@ test('offers one toolbar button, the probe, hidden until an agent shows it', () 
   const m = buildManifest();
   assert.ok(m.optional.includes('buttons.visibility'));
   assert.ok(!m.requires.includes('buttons.visibility'));
+  assert.ok(m.optional.includes('buttons.decorations'));
   assert.strictEqual(m.buttons.length, 1);
   const probe = m.buttons[0];
   assert.strictEqual(probe.id, 'probe');
