@@ -640,7 +640,12 @@ export class AppFacade extends InfoService {
             );
             (this.signalk.appDataGet('/') as Observable<IAppConfig>).subscribe({
               next: (serverSettings) => {
-                if (Object.keys(serverSettings).length === 0) {
+                if (
+                  typeof serverSettings !== 'object' ||
+                  serverSettings === null ||
+                  Array.isArray(serverSettings) ||
+                  Object.keys(serverSettings).length === 0
+                ) {
                   resolve(false);
                   return;
                 }

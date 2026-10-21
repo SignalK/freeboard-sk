@@ -500,6 +500,18 @@ describe('AppFacade.loadUserConfigfromServer', () => {
     expect(client.appDataSet).not.toHaveBeenCalled();
   });
 
+  it('keeps the local settings when the server holds something else', async () => {
+    for (const stored of ['settings', [1, 2], null]) {
+      TestBed.resetTestingModule();
+      const { app } = setup(stored as unknown as object);
+      app.config.ui.mapNorthUp = false;
+
+      await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+      expect(app.config.ui.mapNorthUp).toBe(false);
+    }
+  });
+
   it('applies the settings the server holds', async () => {
     const saved = defaultConfig();
     saved.ui.mapNorthUp = false;
