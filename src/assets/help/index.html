@@ -777,6 +777,10 @@
           <br />
           Additionally resources can be exported to a GPX file by selecting the
           <b><i class="material-icons">save</i> Export</b> menu.
+          <br />
+          Tracks imported from GPX or GeoJSON files are listed under
+          <i class="material-icons">show_chart</i> <b>Tracks</b>. See the
+          Feature Browser &rarr; <i>Imported Tracks</i>.
           <hr />
           <ul>
             <li class="nobullet">
@@ -1483,7 +1487,7 @@
           <h5>GPX File</h5>
           <div>
             <div style="padding-left: 15px">
-              Select some or all of the Route and Waypoint resources contained
+              Select some or all of the Waypoints, Routes and Tracks contained
               in the file.<br />
               <ul>
                 <li>
@@ -1493,6 +1497,10 @@
                 <li>
                   <b>Routes:</b> Click the checkbox to select all Routes or
                   expand the list and select the Routes to import.
+                </li>
+                <li>
+                  <b>Tracks:</b> Click the checkbox to select all Tracks or
+                  expand the list and select the Tracks to import.
                 </li>
               </ul>
               After selecting the resources click <b>Load Selected</b> to load
@@ -1589,7 +1597,9 @@
 </pre>
             <br />&nbsp;<br />
             <i
-              >For Track data see <a href="#resourcepaths">Resource Paths</a></i
+              >A <i>MultiLineString</i> track can carry the time of each point
+              in a <i>coordTimes</i> property. For how tracks are stored and
+              listed, see the Feature Browser &rarr; Imported Tracks.</i
             >
             <br />&nbsp;<br />
           </div>
@@ -2707,13 +2717,6 @@
           /><br />
 
           <br />&nbsp;<br />
-          Two types of resource layers are supported:
-          <ol>
-            <li>Tracks</li>
-            <li>Resource Sets</li>
-          </ol>
-
-          <br />
           <ul>
             <li>
               <b>Fetch Radius</b>: When set, will only fetch resource set
@@ -2722,36 +2725,15 @@
               features.
             </li>
           </ul>
+          <i
+            >Note: Tracks are not selected here. Freeboard finds where the
+            server keeps tracks by itself; see the Feature Browser &rarr;
+            Imported Tracks.</i
+          >
+          <br />&nbsp;<br />
 
-          <h5>Tracks:</h5>
-          The Track data structure supported by Freeboard is generated via the
-          <b>Load from GPX</b> functionality.<br />
-          What Freeboard requires is that the
-          <i>/signalk/v2/api/resources/tracks</i> path is available from which
-          to write and retrieve track data.<br />
-          This requires the following action:
-          <ul>
-            <li>
-              Configure the
-              <b>Resources Provider</b> plugin to serve the <b>tracks</b> path.
-            </li>
-            <li>Re-start the Signal K server</li>
-            <li>
-              Once the server has re-started <b>Tracks</b> will appear in the
-              list of available resource paths.
-            </li>
-            <li>
-              Select <b>Tracks</b> and this will display the
-              <i class="material-icons">show_chart</i> <b>Tracks</b> entry in
-              the
-              <i class="material-icons">layers</i>
-              layers list.
-            </li>
-          </ul>
-          &nbsp;<br />
-
-          Data from all other resource paths that you enable in Freeboard
-          Settings will be treated as ResourceSets.<br />
+          Data from the resource paths that you enable in Freeboard Settings is
+          treated as ResourceSets.<br />
 
           ResourceSets are a non-standard Signal K resource format that can be
           created to form collections of features that can be displayed in
