@@ -770,6 +770,27 @@ MapLibre does. ol-mapbox-style already catches filter compile errors (they evalu
 to false), so filters need nothing extra. See `olStyleLayer` in
 `src/app/modules/map/ol/lib/data-overlay/style-to-ol.ts`.
 
+### Clearing a timer: `clearTimeout` for a timeout, `clearInterval` for an interval
+
+**The trap.** In a plain browser, `clearTimeout` and `clearInterval` are
+interchangeable: both kinds of timer share one pool of ids, and either call cancels
+either kind. It's tempting to keep one handle field and clear it with whichever call
+is to hand. Freeboard runs under Zone.js (`provideZoneChangeDetection` in
+`main.ts`), and Zone patches each pair separately, with its own table of the tasks
+it's tracking. Call `clearInterval` on a `setTimeout` id, and Zone doesn't find the
+id in its interval table. It passes the call to the browser, which cancels the
+timer, but Zone's task is never cancelled. The callback never runs, so nothing
+looks wrong, but Zone counts the task as pending forever. The zone then never
+reports stable, so `fixture.whenStable()` and anything waiting on
+`ApplicationRef.isStable` waits indefinitely. CodeRabbit caught this in the
+auto-advance countdown (`timer-button.component.ts`, #1155), which starts a timeout
+for a zero delay and an interval otherwise. The first version cleared both with
+`clearInterval`, under a comment saying that was fine.
+
+**What to do instead.** Keep a separate handle for each kind of timer, and clear
+each with its matching call. A shared `stopTimer()` that checks and clears both
+handles is simplest.
+
 ## When testing
 
 ### `ng test` / `ng build` don't exit
