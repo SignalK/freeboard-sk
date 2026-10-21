@@ -59,7 +59,12 @@ import {
   LengthUnitDef
 } from './types';
 
-import { defaultConfig, cleanConfig, initData } from './app.config';
+import {
+  defaultConfig,
+  cleanConfig,
+  initData,
+  isSavedConfig
+} from './app.config';
 
 import { getSvgList } from './modules/icons';
 import { PLOTTER_EXTENSIONS_RESOURCE } from './modules/plotterext/types';
@@ -640,12 +645,7 @@ export class AppFacade extends InfoService {
             );
             (this.signalk.appDataGet('/') as Observable<IAppConfig>).subscribe({
               next: (serverSettings) => {
-                if (
-                  typeof serverSettings !== 'object' ||
-                  serverSettings === null ||
-                  Array.isArray(serverSettings) ||
-                  Object.keys(serverSettings).length === 0
-                ) {
+                if (!isSavedConfig(serverSettings)) {
                   resolve(false);
                   return;
                 }

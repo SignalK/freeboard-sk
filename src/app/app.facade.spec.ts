@@ -501,7 +501,14 @@ describe('AppFacade.loadUserConfigfromServer', () => {
   });
 
   it('keeps the local settings when the server holds something else', async () => {
-    for (const stored of ['settings', [1, 2], null]) {
+    for (const stored of [
+      'settings',
+      [1, 2],
+      null,
+      { units: {} },
+      { units: {}, map: 'chart' },
+      { ui: { mapNorthUp: true } }
+    ]) {
       TestBed.resetTestingModule();
       const { app } = setup(stored as unknown as object);
       app.config.ui.mapNorthUp = false;

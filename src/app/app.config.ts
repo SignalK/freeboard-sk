@@ -16,6 +16,13 @@ const isSection = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
+ * Whether settings read from the server are a saved config at all, so that a
+ * malformed one, cleaned to the defaults, never replaces the local settings.
+ */
+export const isSavedConfig = (value: unknown): boolean =>
+  isSection(value) && isSection(value.units) && isSection(value.map);
+
+/**
  * Fills each setting that is missing, or stored with the wrong JSON type, with
  * its default. Keys the schema doesn't know stay, so a setting a later release
  * added survives this one saving the shared config. A list or a per-id map
