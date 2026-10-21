@@ -1,27 +1,225 @@
+import { Type, type TSchema } from 'typebox';
+import { Check, Clone, Create } from 'typebox/value';
 import {
   FBAppData,
   IAppConfig,
   LegacyAppConfig,
-  PlotterExtensionWidget,
   TemperatureUnitDef
 } from './types';
+import { AppConfigSchema } from './app.config.schema';
 import { Convert } from './lib/convert';
 import { legacyPanBehavior, normaliseCenterOffset } from './lib/follow-offset';
 import { SKVessel } from './modules';
-import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
-import { DEFAULT_TAP_FADE_SPEED } from './modules/map/cursor-marker';
 import { migrateTrailSource } from './modules/skstream/track-source';
 
-// validate supplied settings against base config
-export function validateConfig(settings: IAppConfig): boolean {
-  let result = true;
-  const skeys = Object.keys(settings);
-  Object.keys(defaultConfig()).forEach((i) => {
-    if (!skeys.includes(i)) {
-      result = false;
+const isSection = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * Whether settings read from the server are a saved config at all, so that a
+ * malformed one, cleaned to the defaults, never replaces the local settings.
+ * Every release since 2.13 saves the speed unit and the zoom level.
+ */
+export const isSavedConfig = (value: unknown): boolean =>
+  isSection(value) &&
+  isSection(value.units) &&
+  typeof value.units.speed === 'string' &&
+  isSection(value.map) &&
+  typeof value.map.zoomLevel === 'number';
+
+/**
+ * Fills each setting that is missing, or stored with the wrong JSON type, with
+ * its default. Keys the schema doesn't know stay, so a setting a later release
+ * added survives this one saving the shared config. A list or a per-id map
+ * loses only its entries of the wrong type, not the rest of the user's work.
+ */
+function applyDefaults(schema: TSchema, value: unknown): unknown {
+  if (Type.IsObject(schema)) {
+    const section = isSection(value) ? value : {};
+    for (const [key, property] of Object.entries(schema.properties)) {
+      const setting = applyDefaults(property, section[key]);
+      if (setting === undefined) {
+        delete section[key];
+      } else {
+        section[key] = setting;
+      }
     }
-  });
-  return result;
+    return section;
+  }
+  if (Type.IsRecord(schema) && isSection(value)) {
+    const entry = Type.RecordValue(schema);
+    for (const [key, item] of Object.entries(value)) {
+      if (!Check(entry, item)) {
+        delete value[key];
+      }
+    }
+    return value;
+  }
+  const list = Type.IsUnion(schema)
+    ? schema.anyOf.find((member) => Type.IsArray(member))
+    : schema;
+  const setting =
+    list && Type.IsArray(list) && Array.isArray(value)
+      ? value.filter((item) => Check(list.items, item))
+      : value;
+  if (setting !== undefined && Check(schema, setting)) {
+    return setting;
+  }
+  return 'default' in schema ? Clone(schema.default) : undefined;
+}
+
+/**
+ * Upgrades settings stored by an earlier release. Runs before the defaults are
+ * applied, as some steps read settings a default would otherwise fill in.
+ */
+function migrate(settings: LegacyAppConfig) {
+  const { units, map, vessels, resources, selections } = settings;
+  const depth = units?.depth === 'ft' ? 'foot' : units?.depth;
+  if (isSection(units)) {
+    if (depth) {
+      units.depth = depth;
+    }
+    if (typeof units.temperature === 'string') {
+      units.temperature = units.temperature.toUpperCase() as TemperatureUnitDef;
+    }
+    units.length ??= depth ?? 'm';
+    if (units.speed === 'msec') {
+      units.speed = 'm/s';
+    } else if (units.speed === 'kmh') {
+      units.speed = 'km/h';
+    }
+    if (units.distance === 'm') {
+      units.distance = 'kilometer';
+    } else if (units.distance === 'ft') {
+      units.distance = 'naut-mile';
+    }
+    if (!units.positionFormat) {
+      delete (units as Partial<typeof units>).positionFormat;
+    }
+    // Orientation defaulted to COG, which points the boat at GPS noise when it
+    // is stationary (#704, #338). Move existing installs onto 'auto' once: a
+    // stored value equal to the old default was almost never a deliberate
+    // choice, but after this runs a genuine choice of COG must stick, hence
+    // the one-time flag rather than an unconditional coercion.
+    // @todo remove (implemented) v2.32.0
+    if (!units.autoHeadingApplied) {
+      if (units.preferredPaths?.heading === 'navigation.courseOverGroundTrue') {
+        units.preferredPaths.heading = 'auto';
+      }
+      units.autoHeadingApplied = true;
+    }
+  }
+
+  if (isSection(map)) {
+    // The chart depth unit started out as the depth unit.
+    if (isSection(map.s57Options)) {
+      map.s57Options.depthUnit ??= depth ?? 'm';
+    } else {
+      map.s57Options = {
+        depthUnit: depth ?? 'm'
+      } as typeof map.s57Options;
+    }
+    const legacy = map as unknown as {
+      lockMoveMap?: boolean;
+      centerOffsetAbeam?: number;
+    };
+    if (typeof map.panBehavior === 'undefined') {
+      map.panBehavior = legacyPanBehavior(legacy.lockMoveMap);
+      delete legacy.lockMoveMap;
+    }
+    // Coerce every superseded shape — the vessel-frame {ahead, abeam} pair, an
+    // even older single along-course percentage, or the 0-0.7 fractional
+    // preset — to the screen-fixed {x, y} offset.
+    map.centerOffset = normaliseCenterOffset(
+      map.centerOffset,
+      legacy.centerOffsetAbeam
+    );
+    delete legacy.centerOffsetAbeam;
+  }
+
+  if (isSection(vessels)) {
+    // The trail older than an hour is simplified by the server to the map's
+    // zoom, so it can be sampled finely. Move installs still on the old coarse
+    // defaults (1 min, 5 min) to the new ones once: after this, a deliberate
+    // choice of a coarse resolution must stick, hence the one-time flag.
+    if (!vessels.trailResolutionApplied) {
+      const r = vessels.trailResolution;
+      if (r?.next23 === '1m') {
+        r.next23 = '5s';
+      }
+      if (r?.beyond24 === '5m') {
+        r.beyond24 = '10s';
+      }
+      vessels.trailResolutionApplied = true;
+    }
+    // legacy boolean trailFromServer -> tri-state trailSource (#820)
+    if (typeof vessels.trailSource === 'undefined') {
+      vessels.trailSource = migrateTrailSource(
+        vessels.trailFromServer,
+        vessels.trailSource
+      );
+    }
+    delete vessels.trailFromServer;
+    // @todo remove (implemented) v2.22.2
+    if (typeof vessels.selfLines === 'undefined') {
+      vessels.selfLines = {
+        cog: { length: vessels.cogLine ?? 10 },
+        heading: { length: vessels.headingLineSize ?? -1 }
+      } as LegacyAppConfig['vessels']['selfLines'];
+      delete vessels.cogLine;
+      delete vessels.headingLineSize;
+    }
+  }
+
+  // A section saved before these settings existed takes the values earlier
+  // releases gave it, which differ from a fresh install's.
+  if (typeof resources === 'undefined') {
+    settings.resources = {
+      notes: { groupRequiresPosition: false }
+    } as typeof settings.resources;
+  }
+  const legacyResources = settings.resources;
+  if (
+    isSection(legacyResources) &&
+    typeof legacyResources.video === 'undefined'
+  ) {
+    legacyResources.video = { url: '' } as typeof legacyResources.video;
+  }
+  if (isSection(selections)) {
+    for (const key of ['chartOrder', 'tracks', 'infolayers'] as const) {
+      if (typeof selections[key] === 'undefined') {
+        selections[key] = [];
+      }
+    }
+    // legacy notes selections section
+    delete selections.notes;
+  }
+  if (typeof settings.radars === 'undefined') {
+    settings.radars = { deviceId: '' } as typeof settings.radars;
+  }
+
+  // early plotterExtensions shape
+  const extensions = settings.plotterExtensions;
+  if (isSection(extensions)) {
+    delete extensions.enabled;
+    if (Array.isArray(extensions.widgets)) {
+      extensions.widgets = extensions.widgets
+        .filter((w) => isSection(w))
+        .map((w) => {
+          // early builds used `corner` with a `tl` option
+          if (w.corner && !w.anchor) {
+            w.anchor = w.corner === 'tl' ? 'tr' : w.corner;
+            delete w.corner;
+          }
+          return w;
+        })
+        .filter(
+          (w) =>
+            w.anchor !== undefined &&
+            ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
+        );
+    }
+  }
 }
 
 // clean loaded app config (migrates legacy shapes in place)
@@ -29,536 +227,24 @@ export function cleanConfig(
   settings: LegacyAppConfig,
   hostParams: { [key: string]: unknown }
 ) {
-  /** v2 formatting */
-  if (typeof settings.ui === 'undefined') {
-    settings.ui = {
-      mapNorthUp: true,
-      mapMove: false,
-      mapConstrainZoom: false,
-      invertColor: false,
-      toolbarButtons: true,
-      showCourseData: true,
-      showAisTargets: true,
-      showNotes: true,
-      autoNightMode: true
-    };
-  } else {
-    if (typeof settings.ui.showCourseData === 'undefined') {
-      settings.ui.showCourseData = true;
-    }
-    if (typeof settings.ui.showAisTargets === 'undefined') {
-      settings.ui.showAisTargets = true;
-    }
-    if (typeof settings.ui.showNotes === 'undefined') {
-      settings.ui.showNotes = true;
-    }
-    if (typeof settings.ui.autoNightMode === 'undefined') {
-      settings.ui.autoNightMode = true;
-    }
-  }
-  if (typeof settings.imageAdjustPalettePos === 'undefined') {
-    settings.imageAdjustPalettePos = null;
-  }
-  if (typeof settings.timePalettePos === 'undefined') {
-    settings.timePalettePos = null;
-  }
-  if (typeof settings.trackHistoryPalettePos === 'undefined') {
-    settings.trackHistoryPalettePos = null;
-  }
-
-  if (typeof settings.display === 'undefined') {
-    settings.display = {
-      fab: 'wpt',
-      disableWakelock: false,
-      darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
-      nightMode: true, // auto set night mode based on environment.mode
-      muteSound: false,
-      depthAlarm: {
-        enabled: false,
-        smoothing: 10000
-      },
-      plugins: {
-        instruments: '/@signalk/instrumentpanel',
-        startOnOpen: true,
-        parameters: null,
-        favourites: []
-      },
-      preferInfoPanel: true,
-      splitView: false,
-      singleClickNoteDetails: false,
-      windIndicator: 'barb',
-      statusBar: {
-        liveEta: false,
-        referenceSpeed: 6,
-        tapFadeSpeed: DEFAULT_TAP_FADE_SPEED
-      }
-    };
-  } else {
-    if (typeof settings.display.nightMode === 'undefined') {
-      settings.display.nightMode = true;
-    }
-    if (typeof settings.display.preferInfoPanel === 'undefined') {
-      settings.display.preferInfoPanel = true;
-    }
-    if (typeof settings.display.splitView === 'undefined') {
-      settings.display.splitView = false;
-    }
-    // Configs saved without `display.plugins` exist, and it is read on startup.
-    if (typeof settings.display.plugins === 'undefined') {
-      settings.display.plugins = {
-        instruments: '/@signalk/instrumentpanel',
-        startOnOpen: true,
-        parameters: null,
-        favourites: []
-      };
-    }
-    if (typeof settings.display.singleClickNoteDetails === 'undefined') {
-      settings.display.singleClickNoteDetails = false;
-    }
-    if (typeof settings.display.windIndicator === 'undefined') {
-      settings.display.windIndicator = 'barb';
-    }
-    if (typeof settings.display.statusBar === 'undefined') {
-      settings.display.statusBar = {
-        liveEta: false,
-        referenceSpeed: 6,
-        tapFadeSpeed: DEFAULT_TAP_FADE_SPEED
-      };
-    } else if (typeof settings.display.statusBar.tapFadeSpeed === 'undefined') {
-      settings.display.statusBar.tapFadeSpeed = DEFAULT_TAP_FADE_SPEED;
-    }
-  }
-
-  if (typeof settings.units.temperature === 'undefined') {
-    settings.units.temperature = 'C';
-  }
-  settings.units.temperature =
-    settings.units.temperature.toUpperCase() as TemperatureUnitDef;
-  settings.units.depth =
-    settings.units.depth === 'ft' ? 'foot' : settings.units.depth;
-  if (typeof settings.units.length === 'undefined') {
-    settings.units.length = settings.units.depth ?? 'm';
-  }
-  settings.units.speed =
-    settings.units.speed === 'msec'
-      ? 'm/s'
-      : settings.units.speed === 'kmh'
-        ? 'km/h'
-        : settings.units.speed;
-  settings.units.distance =
-    settings.units.distance === 'm'
-      ? 'kilometer'
-      : settings.units.distance === 'ft'
-        ? 'naut-mile'
-        : settings.units.distance;
-
-  if (typeof settings.map.s57Options === 'undefined') {
-    settings.map.s57Options = {
-      graphicsStyle: 'Paper',
-      boundaries: 'Plain',
-      colors: 4,
-      shallowDepth: 2,
-      safetyDepth: 3,
-      deepDepth: 6,
-      colorTable: 0,
-      otherLayers: DefaultOptions.otherLayers,
-      depthUnit: settings.units.depth ?? 'm'
-    };
-  } else {
-    if (typeof settings.map.s57Options.otherLayers === 'undefined') {
-      settings.map.s57Options.otherLayers = DefaultOptions.otherLayers;
-    }
-    if (typeof settings.map.s57Options.depthUnit === 'undefined') {
-      settings.map.s57Options.depthUnit = settings.units.depth ?? 'm';
-    }
-  }
-
-  if (typeof settings.map.labelsMinZoom === 'undefined') {
-    settings.map.labelsMinZoom = 8;
-  }
-  if (typeof settings.map.panBehavior === 'undefined') {
-    const legacy = settings.map as unknown as { lockMoveMap?: boolean };
-    settings.map.panBehavior = legacyPanBehavior(legacy.lockMoveMap);
-    delete legacy.lockMoveMap;
-  }
-  if (typeof settings.map.refollowDelay !== 'number') {
-    settings.map.refollowDelay = 0;
-  }
-  if (typeof settings.map.popoverMulti === 'undefined') {
-    settings.map.popoverMulti = false;
-  }
-  // Coerce every superseded shape — the vessel-frame {ahead, abeam} pair, an
-  // even older single along-course percentage, or the 0-0.7 fractional preset —
-  // to the screen-fixed {x, y} offset.
-  const legacyAbeam = (
-    settings.map as unknown as { centerOffsetAbeam?: number }
-  ).centerOffsetAbeam;
-  settings.map.centerOffset = normaliseCenterOffset(
-    settings.map.centerOffset,
-    legacyAbeam
-  );
-  delete (settings.map as unknown as { centerOffsetAbeam?: number })
-    .centerOffsetAbeam;
-  if (typeof settings.map.doubleClickZoom === 'undefined') {
-    settings.map.doubleClickZoom = false;
-  }
-  if (typeof settings.map.overZoomTiles === 'undefined') {
-    settings.map.overZoomTiles = true;
-  }
-
-  if (!settings.units.positionFormat) {
-    settings.units.positionFormat = 'XY';
-  }
-  if (typeof settings.units.headingAttribute === 'undefined') {
-    settings.units.headingAttribute = 'navigation.headingTrue';
-  }
-  if (typeof settings.units.preferredPaths === 'undefined') {
-    settings.units.preferredPaths = {
-      tws: 'environment.wind.speedTrue',
-      twd: 'environment.wind.directionTrue',
-      heading: 'auto',
-      course: 'navigation.courseGreatCircle'
-    };
-  }
-  // Orientation defaulted to COG, which points the boat at GPS noise when it is
-  // stationary (#704, #338). Move existing installs onto 'auto' once: a stored
-  // value equal to the old default was almost never a deliberate choice, but
-  // after this runs a genuine choice of COG must stick, hence the one-time
-  // flag rather than an unconditional coercion.
-  // @todo remove (implemented) v2.32.0
-  if (!settings.units.autoHeadingApplied) {
-    if (
-      settings.units.preferredPaths.heading ===
-      'navigation.courseOverGroundTrue'
-    ) {
-      settings.units.preferredPaths.heading = 'auto';
-    }
-    settings.units.autoHeadingApplied = true;
-  }
-  if (typeof settings.units.useServerPrefs === 'undefined') {
-    settings.units.useServerPrefs = false;
-  }
-
-  if (typeof settings.course === 'undefined') {
-    settings.course = {
-      autoNextPointOnArrival: false,
-      autoNextPointDelay: 5000,
-      autoNextPointTrigger: 'perpendicularPassed',
-      arrivalCircle: 100
-    };
-  } else {
-    if (typeof settings.course.arrivalCircle === 'undefined') {
-      settings.course.arrivalCircle = 100;
-    }
-  }
-
-  if (typeof settings.vessels === 'undefined') {
-    settings.vessels = {
-      fixedLocationMode: false,
-      fixedPosition: [0, 0],
-      trail: true,
-      windVectors: true,
-      laylines: false,
-      selfLines: {
-        cog: {
-          length: 10, // (minutes) length = cogLine * sog
-          color: 'rgba(204, 12, 225, 0.7)',
-          weight: 1,
-          dash: 'none'
-        },
-        heading: {
-          length: -1, // mode for display of heading line -1 = default
-          color: 'rgba(221, 99, 0, 0.5)',
-          weight: 4,
-          dash: 'none'
-        }
-      },
-      aisCogLine: 10,
-      iconScale: 0.9,
-      iconActualSize: false,
-      iconType: 'classic',
-      rangeCircles: false,
-      rangeCirclesFixed: false,
-      rangeCirclesDistance: 1000,
-      rangeCircleCount: 4,
-      rangeCircleMinZoom: 8,
-      aisStaleAge: 360000,
-      aisMaxAge: 540000,
-      aisWindApparent: false,
-      aisWindMinZoom: 15,
-      aisShowTrack: false,
-      aisTrackLength: 12,
-      trailSource: 'auto',
-      trailDuration: 24,
-      trailResolution: {
-        lastHour: '5s',
-        next23: '5s',
-        beyond24: '10s'
-      },
-      trailResolutionApplied: true
-    };
-  } else {
-    // The trail older than an hour is simplified by the server to the map's
-    // zoom, so it can be sampled finely. Move installs still on the old coarse
-    // defaults (1 min, 5 min) to the new ones once: after this, a deliberate
-    // choice of a coarse resolution must stick, hence the one-time flag.
-    if (!settings.vessels.trailResolutionApplied) {
-      const r = settings.vessels.trailResolution;
-      if (r?.next23 === '1m') {
-        r.next23 = '5s';
-      }
-      if (r?.beyond24 === '5m') {
-        r.beyond24 = '10s';
-      }
-      settings.vessels.trailResolutionApplied = true;
-    }
-    // legacy boolean trailFromServer -> tri-state trailSource (#820)
-    settings.vessels.trailSource = migrateTrailSource(
-      settings.vessels.trailFromServer,
-      settings.vessels.trailSource
-    );
-    delete settings.vessels.trailFromServer;
-    if (typeof settings.vessels.aisTrackLength === 'undefined') {
-      settings.vessels.aisTrackLength = 12;
-    }
-    if (typeof settings.vessels.iconActualSize === 'undefined') {
-      settings.vessels.iconActualSize = false;
-    }
-    if (typeof settings.vessels.iconType === 'undefined') {
-      settings.vessels.iconType = 'classic';
-    }
-    if (typeof settings.vessels.rangeCircleCount === 'undefined') {
-      settings.vessels.rangeCircleCount = 4;
-    }
-    if (typeof settings.vessels.rangeCircleMinZoom === 'undefined') {
-      settings.vessels.rangeCircleMinZoom = 8;
-    }
-    if (typeof settings.vessels.rangeCirclesFixed === 'undefined') {
-      settings.vessels.rangeCirclesFixed = false;
-    }
-    if (typeof settings.vessels.rangeCirclesDistance === 'undefined') {
-      settings.vessels.rangeCirclesDistance = 1000;
-    }
-    if (typeof settings.vessels.selfLines === 'undefined') {
-      settings.vessels.selfLines = {
-        cog: {
-          length: settings.vessels.cogLine ?? 10,
-          color: 'rgba(204, 12, 225, 0.7)',
-          weight: 1,
-          dash: 'none'
-        },
-        heading: {
-          length: settings.vessels.headingLineSize ?? -1,
-          color: 'rgba(221, 99, 0, 0.5)',
-          weight: 4,
-          dash: 'none'
-        }
-      };
-      // @todo remove (implemented) v2.22.2
-      delete settings.vessels.cogLine;
-      delete settings.vessels.headingLineSize;
-    }
-  }
-
-  if (typeof settings.resources === 'undefined') {
-    settings.resources = {
-      fetchFilter:
-        '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
-      fetchRadius: 0,
-      notes: {
-        rootFilter:
-          '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%',
-        getRadius: 20,
-        groupNameEdit: false,
-        groupRequiresPosition: false,
-        minZoom: 10
-      },
-      video: {
-        enable: false,
-        url: ''
-      },
-      paths: []
-    };
-  } else {
-    if (typeof settings.resources.notes.minZoom === 'undefined') {
-      settings.resources.notes.minZoom = 10;
-    }
-    if (typeof settings.resources.video === 'undefined') {
-      settings.resources.video = { enable: false, url: '' };
-    }
-    if (typeof settings.resources.paths === 'undefined') {
-      settings.resources.paths = [];
-    }
-    if (typeof settings.resources.fetchFilter === 'undefined') {
-      settings.resources.fetchFilter =
-        '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%';
-    }
-    if (typeof settings.resources.fetchRadius === 'undefined') {
-      settings.resources.fetchRadius = 0;
-    }
-  }
-
-  if (typeof settings.signalk === 'undefined') {
-    settings.signalk = {
-      vessels: true,
-      atons: true,
-      aircraft: false,
-      sar: false,
-      meteo: true,
-      maxRadius: 0,
-      proxied: true
-    };
-  } else {
-    // force proxied = true for stored config.
-    settings.signalk.proxied = true;
-  }
-
-  if (typeof settings.anchor === 'undefined') {
-    settings.anchor = {
-      radius: 40,
-      setRadius: false,
-      manualSet: false,
-      rodeLength: 50
-    };
-  }
-
-  if (
-    !settings.plotterExtensions ||
-    typeof settings.plotterExtensions !== 'object' ||
-    Array.isArray(settings.plotterExtensions)
-  ) {
-    settings.plotterExtensions = {
-      widgets: []
-    };
-  }
-  // migrate early plotterExtensions config shape
-  delete settings.plotterExtensions.enabled;
-  if (!Array.isArray(settings.plotterExtensions.widgets)) {
-    settings.plotterExtensions.widgets = [];
-  }
-  settings.plotterExtensions.widgets = settings.plotterExtensions.widgets
-    .map((w) => {
-      // early builds used `corner` with a `tl` option
-      if (w.corner && !w.anchor) {
-        w.anchor = w.corner === 'tl' ? 'tr' : w.corner;
-        delete w.corner;
-      }
-      return w;
-    })
-    .filter(
-      (w): w is PlotterExtensionWidget =>
-        w.anchor !== undefined &&
-        ['tr', 'ct', 'cb', 'bl', 'br'].includes(w.anchor)
-    );
-
-  if (typeof settings.radars === 'undefined') {
-    settings.radars = {
-      deviceId: '',
-      opacity: 1,
-      rings: true
-    };
-  } else {
-    if (typeof settings.radars.opacity === 'undefined') {
-      settings.radars.opacity = 1;
-    }
-    if (typeof settings.radars.rings === 'undefined') {
-      settings.radars.rings = true;
-    }
-  }
-
-  // ************************************************
-
-  if (typeof settings.selections === 'undefined') {
-    settings.selections = {
-      routes: [],
-      waypoints: [],
-      regions: [],
-      tracks: null,
-      charts: ['openstreetmap', 'openseamap'],
-      chartOrder: ['openstreetmap', 'openseamap'],
-      chartOpacity: {},
-      chartImageAdjustment: {},
-      chartDisplayMinZoom: {},
-      chartTimeLoop: {},
-      aisTargets: null,
-      aisTargetTypes: [],
-      aisFilterByShipType: false,
-      aisState: [],
-      resourceSets: {},
-      infolayers: null,
-      weatherWindEnabled: false,
-      oceanCurrentsEnabled: false,
-      tidalCurrentsEnabled: false,
-      chartsInViewOnly: false
-    };
-  }
-
-  if (typeof settings.selections.aisTargetTypes === 'undefined') {
-    settings.selections.aisTargetTypes = [];
-  }
-  if (typeof settings.selections.aisFilterByShipType === 'undefined') {
-    settings.selections.aisFilterByShipType = false;
-  }
-  if (typeof settings.selections.aisState === 'undefined') {
-    settings.selections.aisState = [];
-  }
-
-  if (typeof settings.selections.chartOrder === 'undefined') {
-    settings.selections.chartOrder = [];
-  }
-  if (typeof settings.selections.chartOpacity === 'undefined') {
-    settings.selections.chartOpacity = {};
-  }
-  if (typeof settings.selections.chartImageAdjustment === 'undefined') {
-    settings.selections.chartImageAdjustment = {};
-  }
-  if (typeof settings.selections.chartDisplayMinZoom === 'undefined') {
-    settings.selections.chartDisplayMinZoom = {};
-  }
-  if (typeof settings.selections.chartTimeLoop === 'undefined') {
-    settings.selections.chartTimeLoop = {};
-  }
-
-  if (typeof settings.selections.tracks === 'undefined') {
-    settings.selections.tracks = [];
-  }
-  if (typeof settings.selections.resourceSets === 'undefined') {
-    settings.selections.resourceSets = {};
-  }
-  if (typeof settings.selections.infolayers === 'undefined') {
-    settings.selections.infolayers = [];
-  }
-  if (typeof settings.selections.regions === 'undefined') {
-    settings.selections.regions = [];
-  }
-  if (typeof settings.selections.weatherWindEnabled === 'undefined') {
-    settings.selections.weatherWindEnabled = false;
-  }
-  if (typeof settings.selections.oceanCurrentsEnabled === 'undefined') {
-    settings.selections.oceanCurrentsEnabled = false;
-  }
-  if (typeof settings.selections.tidalCurrentsEnabled === 'undefined') {
-    settings.selections.tidalCurrentsEnabled = false;
-  }
-  if (typeof settings.selections.chartsInViewOnly === 'undefined') {
-    settings.selections.chartsInViewOnly = false;
-  }
-
-  // ensure legacy notes selections section is removed
-  delete settings.selections.notes;
+  migrate(settings);
+  applyDefaults(AppConfigSchema, settings);
+  const config = settings as IAppConfig;
+  // force proxied = true for stored config.
+  config.signalk.proxied = true;
 
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {
-    settings.ui.mapNorthUp = hostParams.northup === '0' ? false : true;
+    config.ui.mapNorthUp = hostParams.northup === '0' ? false : true;
   }
   if (typeof hostParams.movemap !== 'undefined') {
-    settings.ui.mapMove = hostParams.movemap === '0' ? false : true;
+    config.ui.mapMove = hostParams.movemap === '0' ? false : true;
   }
   if (hostParams.zoom) {
     try {
       const z = parseInt(hostParams.zoom as string);
       if (!isNaN(z)) {
-        settings.map.zoomLevel = z > 28 ? 28 : z < 1 ? 1 : z;
+        config.map.zoomLevel = z > 28 ? 28 : z < 1 ? 1 : z;
       }
     } catch {
       console.warn(
@@ -570,203 +256,7 @@ export function cleanConfig(
 
 // initialise default configuration
 export function defaultConfig(): IAppConfig {
-  return {
-    ui: {
-      mapNorthUp: true,
-      mapMove: false,
-      mapConstrainZoom: false,
-      toolbarButtons: true,
-      invertColor: false, // invert map feature label colors
-      showCourseData: true, // show/hide course data
-      showAisTargets: true, // show/hide ais targets
-      showNotes: true, // show/hide notes
-      autoNightMode: true
-    },
-    imageAdjustPalettePos: null,
-    timePalettePos: null,
-    trackHistoryPalettePos: null,
-    display: {
-      fab: 'wpt', // default FAB button
-      disableWakelock: false,
-      darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
-      nightMode: true, // auto set night mode based on environment.mode
-      muteSound: false,
-      depthAlarm: { enabled: false, smoothing: 10000 },
-      plugins: {
-        instruments: '/@signalk/instrumentpanel',
-        startOnOpen: true,
-        parameters: null,
-        favourites: []
-      },
-      preferInfoPanel: true,
-      splitView: false,
-      singleClickNoteDetails: false,
-      windIndicator: 'barb',
-      statusBar: {
-        liveEta: false,
-        referenceSpeed: 6,
-        tapFadeSpeed: DEFAULT_TAP_FADE_SPEED
-      }
-    },
-    units: {
-      distance: 'kilometer',
-      depth: 'm',
-      length: 'm',
-      speed: 'kn',
-      temperature: 'C',
-      positionFormat: 'XY',
-      headingAttribute: 'navigation.headingTrue',
-      preferredPaths: {
-        tws: 'environment.wind.speedTrue',
-        twd: 'environment.wind.directionTrue',
-        heading: 'auto',
-        course: 'navigation.courseGreatCircle'
-      },
-      autoHeadingApplied: true,
-      useServerPrefs: false
-    },
-    map: {
-      zoomLevel: 2,
-      center: [0, 0],
-      rotation: 0,
-      panBehavior: 'offset',
-      refollowDelay: 0,
-      animate: false,
-      labelsMinZoom: 8,
-      doubleClickZoom: false, // true=zoom
-      overZoomTiles: true, // keep tiles visible beyond chart max zoom
-      centerOffset: { x: 0, y: 0 },
-      s57Options: {
-        graphicsStyle: 'Paper',
-        boundaries: 'Plain',
-        colors: 4,
-        shallowDepth: 2,
-        safetyDepth: 3,
-        deepDepth: 6,
-        colorTable: 0,
-        otherLayers: DefaultOptions.otherLayers,
-        depthUnit: 'm'
-      },
-      popoverMulti: false // close popovers using cose button
-    },
-    course: {
-      autoNextPointOnArrival: false,
-      autoNextPointDelay: 5000,
-      autoNextPointTrigger: 'perpendicularPassed',
-      arrivalCircle: 100
-    },
-    vessels: {
-      fixedLocationMode: false,
-      fixedPosition: [0, 0],
-      trail: true, // display trail (from the server when it can supply one, #820)
-      windVectors: true, // display vessel TWD, AWD vectors
-      laylines: false,
-      selfLines: {
-        cog: {
-          length: 10, // (minutes) length = cogLine * sog
-          color: 'rgba(204, 12, 225, 0.7)',
-          weight: 1,
-          dash: 'none'
-        },
-        heading: {
-          length: -1, // mode for display of heading line -1 = default
-          color: 'rgba(221, 99, 0, 0.5)',
-          weight: 4,
-          dash: 'none'
-        }
-      },
-      aisCogLine: 10, // ais COG line time (mins)
-      iconScale: 0.9,
-      iconActualSize: false,
-      iconType: 'classic',
-      rangeCircles: false,
-      rangeCirclesFixed: false,
-      rangeCirclesDistance: 1000, // distance in m
-      rangeCircleCount: 4,
-      rangeCircleMinZoom: 8,
-      aisStaleAge: 360000, // time since last update in ms (6 min)
-      aisMaxAge: 540000, // time since last update in ms (9 min)
-      aisWindApparent: false,
-      aisWindMinZoom: 15,
-      aisShowTrack: false,
-      aisTrackLength: 12, // hours of track for a vessel picked with its TRACK toggle
-      trailSource: 'auto',
-      trailDuration: 24, // hours of trail to fetch from server; TRAIL_DURATION_ALL for the whole recorded track
-      trailResolution: {
-        // resolution of server trail at defined time horizons
-        lastHour: '5s',
-        next23: '5s',
-        beyond24: '10s'
-      },
-      trailResolutionApplied: true // one-time move off the old 1 min / 5 min defaults
-    },
-    resources: {
-      // ** resource options
-      fetchFilter:
-        '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
-      fetchRadius: 0, // radius (nmi/km) within which to return resources
-      notes: {
-        rootFilter:
-          '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%', // param string to provide record filtering
-        getRadius: 20, // radius (nmi/km) within which to return notes
-        groupNameEdit: false,
-        groupRequiresPosition: true,
-        minZoom: 10
-      },
-      video: {
-        enable: false,
-        url: null
-      },
-      paths: []
-    },
-    signalk: {
-      // signal k connection options
-      vessels: true,
-      atons: true,
-      aircraft: false,
-      sar: false,
-      meteo: true,
-      maxRadius: 0, // max radius within which AIS targets are displayed
-      proxied: true // server behind a proxy server
-    },
-    anchor: {
-      radius: 40, // most recent anchor radius setting
-      setRadius: false,
-      manualSet: false, // checks manual set setting
-      rodeLength: 50 // rode length setting
-    },
-    radars: {
-      deviceId: undefined,
-      opacity: 1,
-      rings: true
-    },
-    experiments: false,
-    plotterExtensions: {
-      widgets: []
-    },
-    selections: {
-      routes: [],
-      waypoints: [],
-      regions: [],
-      tracks: null,
-      charts: ['openstreetmap', 'openseamap'],
-      chartOrder: ['openstreetmap', 'openseamap'], // chart layer ordering
-      chartOpacity: {},
-      chartImageAdjustment: {},
-      chartDisplayMinZoom: {},
-      chartTimeLoop: {},
-      aisTargets: null,
-      aisTargetTypes: [],
-      aisFilterByShipType: false,
-      aisState: [], // list of ais state values used to filter targets
-      resourceSets: {}, // additional resources
-      infolayers: null,
-      weatherWindEnabled: false,
-      oceanCurrentsEnabled: false,
-      tidalCurrentsEnabled: false,
-      chartsInViewOnly: false
-    }
-  };
+  return Create(AppConfigSchema);
 }
 
 // initialise state data

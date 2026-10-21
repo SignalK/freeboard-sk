@@ -5,6 +5,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
 import { AppFacade } from './app.facade';
+import { defaultConfig } from './app.config';
+import { LineStyleDash } from './modules/settings/components/linestyle-select.component';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
 import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
 import { SignalKClient } from 'signalk-client-angular';
@@ -450,5 +452,82 @@ describe('AppFacade.parseHttpErrorResponse', () => {
       'Error',
       expect.stringContaining('Operation could not be completed!')
     );
+  });
+});
+
+describe('AppFacade.formatLineDashArray', () => {
+  let app: AppFacade;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    app = TestBed.inject(AppFacade);
+  });
+
+  it('turns a dash style into its dash pattern', () => {
+    expect(app.formatLineDashArray('alt')).toEqual([8, 4, 2, 4]);
+    expect(app.formatLineDashArray('none')).toBeNull();
+  });
+
+  it('draws a dash style saved by a later release as a solid line', () => {
+    expect(app.formatLineDashArray('later-style' as LineStyleDash)).toBeNull();
+  });
+});
+
+describe('AppFacade.loadUserConfigfromServer', () => {
+  const setup = (serverSettings: object) => {
+    const client = {
+      get: vi.fn(() => EMPTY),
+      setAppId: vi.fn(),
+      setAppVersion: vi.fn(),
+      isLoggedIn: vi.fn(() => of(true)),
+      appDataGet: vi.fn(() => of(serverSettings)),
+      appDataSet: vi.fn(() => EMPTY),
+      api: { get: vi.fn(() => EMPTY) }
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: client }]
+    });
+    return { app: TestBed.inject(AppFacade), client };
+  };
+
+  it('keeps the local settings when the server holds none', async () => {
+    const { app, client } = setup({});
+    app.config.ui.mapNorthUp = false;
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.ui.mapNorthUp).toBe(false);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it('keeps the local settings when the server holds something else', async () => {
+    for (const stored of [
+      'settings',
+      [1, 2],
+      null,
+      { units: {} },
+      { units: {}, map: 'chart' },
+      { units: {}, map: {} },
+      { units: { speed: 'kn' }, map: { zoomLevel: '5' } },
+      { ui: { mapNorthUp: true } }
+    ]) {
+      TestBed.resetTestingModule();
+      const { app } = setup(stored as unknown as object);
+      app.config.ui.mapNorthUp = false;
+
+      await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+      expect(app.config.ui.mapNorthUp).toBe(false);
+    }
+  });
+
+  it('applies the settings the server holds', async () => {
+    const saved = defaultConfig();
+    saved.ui.mapNorthUp = false;
+    const { app } = setup(saved);
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.config.ui.mapNorthUp).toBe(false);
   });
 });

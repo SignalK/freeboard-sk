@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { cleanConfig, defaultConfig } from './app.config';
+import { cleanConfig, defaultConfig, isSavedConfig } from './app.config';
 import { TRAIL_DURATION_ALL } from './modules/skstream/track-source';
 import { IAppConfig, LegacyAppConfig } from './types';
+import savedConfigs from './app.config.saved.json';
 
 /** Removes a setting, as from a config saved before the setting existed. */
 function unset<T>(section: T, key: keyof T) {
@@ -143,6 +144,18 @@ describe('cleanConfig() legacy migration', () => {
     ]);
   });
 
+  it('drops a plotter extension widget entry that is not an object', () => {
+    const cfg = legacyConfig();
+    const widgets = cfg.plotterExtensions.widgets as unknown[];
+    widgets.push(null, 'x');
+    cleanConfig(cfg, {});
+    expect(cfg.plotterExtensions.widgets?.map((w) => w.instanceId)).toEqual([
+      'a',
+      'b',
+      'c'
+    ]);
+  });
+
   it.each([
     [true, 'server'],
     [false, 'auto']
@@ -163,6 +176,13 @@ describe('cleanConfig() legacy migration', () => {
     cfg.vessels.trailSource = 'local';
     cleanConfig(cfg, {});
     expect(cfg.vessels.trailSource).toBe('local');
+  });
+
+  it('keeps a trail source a later release added', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    (cfg.vessels.trailSource as string) = 'later-source';
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.trailSource).toBe('later-source');
   });
 
   it('defaults the trail source to auto', () => {
@@ -306,5 +326,174 @@ describe('cleanConfig() legacy migration', () => {
     cleanConfig(cfg, {});
     const current: IAppConfig = defaultConfig();
     expect(Object.keys(cfg).sort()).toEqual(Object.keys(current).sort());
+  });
+});
+
+/**
+ * Configs as earlier releases saved them, rebuilt from the git history of
+ * each release's `defaultConfig()` and `cleanConfig()`: a fresh install of
+ * every release since 2.17, configs upgraded release by release, and 2.13 /
+ * 2.15 configs from before the 2.17 settings layout. `cleaned` holds what
+ * `cleanConfig()` made of each before it was built on the settings schema.
+ */
+describe('cleanConfig() on configs saved by earlier releases', () => {
+  for (const { savedBy, saved, cleaned } of savedConfigs.configs) {
+    it(`gives the same settings as before for ${savedBy}`, () => {
+      const cfg = structuredClone(saved) as unknown as LegacyAppConfig;
+      cleanConfig(cfg, {});
+      expect(cfg).toEqual(
+        savedConfigs.cleaned[cleaned as keyof typeof savedConfigs.cleaned]
+      );
+    });
+  }
+});
+
+describe('isSavedConfig()', () => {
+  it('accepts the config of every earlier release', () => {
+    for (const { saved } of savedConfigs.configs) {
+      expect(isSavedConfig(saved)).toBe(true);
+    }
+    expect(isSavedConfig(defaultConfig())).toBe(true);
+  });
+});
+
+describe('cleanConfig() defaults', () => {
+  it('leaves a fresh install unchanged', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cleanConfig(cfg, {});
+    expect(cfg).toEqual(defaultConfig());
+  });
+
+  it('hands out a separate copy of the defaults each time', () => {
+    const cfg = defaultConfig();
+    cfg.selections.charts.push('my-chart');
+    cfg.map.s57Options.otherLayers.pop();
+    expect(defaultConfig().selections.charts).toEqual([
+      'openstreetmap',
+      'openseamap'
+    ]);
+    expect(defaultConfig().map.s57Options.otherLayers).toHaveLength(7);
+  });
+
+  it('fills a setting saved without a value', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.ui, 'mapNorthUp');
+    unset(cfg.vessels, 'aisCogLine');
+    cleanConfig(cfg, {});
+    expect(cfg.ui.mapNorthUp).toBe(true);
+    expect(cfg.vessels.aisCogLine).toBe(10);
+  });
+
+  it('fills a whole section saved without it', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg, 'units');
+    unset(cfg, 'map');
+    cleanConfig(cfg, {});
+    expect(cfg.units).toEqual(defaultConfig().units);
+    expect(cfg.map).toEqual(defaultConfig().map);
+  });
+
+  it('puts back the default of a setting stored with the wrong type', () => {
+    const cfg = defaultConfig() as unknown as {
+      ui: { mapNorthUp: unknown };
+      vessels: { aisCogLine: unknown; fixedPosition: unknown };
+      units: { distance: unknown };
+      display: unknown;
+    };
+    cfg.ui.mapNorthUp = 'false';
+    cfg.vessels.aisCogLine = null;
+    cfg.vessels.fixedPosition = [1, 'x'];
+    cfg.units.distance = 3;
+    cfg.display = 'none';
+    cleanConfig(cfg as unknown as LegacyAppConfig, {});
+    const current = cfg as unknown as IAppConfig;
+    const defaults = defaultConfig();
+    expect(current.ui.mapNorthUp).toBe(true);
+    expect(current.vessels.aisCogLine).toBe(10);
+    expect(current.vessels.fixedPosition).toEqual([0, 0]);
+    expect(current.units.distance).toBe('kilometer');
+    expect(current.display).toEqual(defaults.display);
+  });
+
+  it('drops only the entries of the wrong type from a list or a per-chart map', () => {
+    const cfg = defaultConfig();
+    (cfg.selections.charts as unknown[]) = ['a', null, 'b'];
+    (cfg.selections.chartOpacity as Record<string, unknown>) = {
+      a: 0.5,
+      b: 'x'
+    };
+    cleanConfig(cfg, {});
+    expect(cfg.selections.charts).toEqual(['a', 'b']);
+    expect(cfg.selections.chartOpacity).toEqual({ a: 0.5 });
+  });
+
+  it('drops only the entries of the wrong type from a list that may be null', () => {
+    const cfg = defaultConfig();
+    (cfg.selections.tracks as unknown[]) = ['a', null, 'b'];
+    (cfg.selections.aisTargets as unknown[]) = [1, 'c'];
+    cfg.selections.infolayers = null;
+    cleanConfig(cfg, {});
+    expect(cfg.selections.tracks).toEqual(['a', 'b']);
+    expect(cfg.selections.aisTargets).toEqual(['c']);
+    expect(cfg.selections.infolayers).toBeNull();
+  });
+
+  it('keeps settings and choices this release does not know', () => {
+    const cfg = defaultConfig() as IAppConfig & { later?: unknown };
+    cfg.later = { kept: true };
+    (cfg.ui as Record<string, unknown>).laterSetting = 1;
+    (cfg.display.fab as string) = 'later-choice';
+    cleanConfig(cfg, {});
+    expect(cfg.later).toEqual({ kept: true });
+    expect((cfg.ui as Record<string, unknown>).laterSetting).toBe(1);
+    expect(cfg.display.fab).toBe('later-choice');
+  });
+
+  it('keeps an optional setting only while it has the right type', () => {
+    const cfg = defaultConfig();
+    cfg.radars.deviceId = 'radar-1';
+    cleanConfig(cfg, {});
+    expect(cfg.radars.deviceId).toBe('radar-1');
+    (cfg.radars as { deviceId?: unknown }).deviceId = 5;
+    cleanConfig(cfg, {});
+    expect(cfg.radars).not.toHaveProperty('deviceId');
+  });
+});
+
+describe('cleanConfig() for sections saved before a setting existed', () => {
+  it('takes the chart depth unit and length unit from the depth unit', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.units.depth = 'ft';
+    unset(cfg.units, 'length');
+    unset(cfg.map.s57Options, 'depthUnit');
+    cleanConfig(cfg, {});
+    expect(cfg.units.length).toBe('foot');
+    expect(cfg.map.s57Options.depthUnit).toBe('foot');
+  });
+
+  it('gives selections saved without chart order, tracks or info layers empty lists', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.selections, 'chartOrder');
+    unset(cfg.selections, 'tracks');
+    unset(cfg.selections, 'infolayers');
+    cleanConfig(cfg, {});
+    expect(cfg.selections.chartOrder).toEqual([]);
+    expect(cfg.selections.tracks).toEqual([]);
+    expect(cfg.selections.infolayers).toEqual([]);
+  });
+
+  it('keeps note groups free of a position for a config saved without resources', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg, 'resources');
+    cleanConfig(cfg, {});
+    expect(cfg.resources.notes.groupRequiresPosition).toBe(false);
+    expect(cfg.resources.video.url).toBe('');
+  });
+
+  it('starts radars saved without the section with no device chosen', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg, 'radars');
+    cleanConfig(cfg, {});
+    expect(cfg.radars).toEqual({ deviceId: '', opacity: 1, rings: true });
   });
 });

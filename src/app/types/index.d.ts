@@ -1,5 +1,7 @@
 // ** Resource Types **
 
+import type { Static } from 'typebox';
+import type { AppConfigSchema } from '../app.config.schema';
 import { Position, LineString, MultiLineString } from './resources/geojson';
 import { FBCharts } from './resources/freeboard';
 import {
@@ -9,14 +11,7 @@ import {
   SKAircraft,
   SKVessel
 } from '../modules/skresources/resource-classes';
-import { Options } from '../modules/map/ol/lib/charts/s57.service';
-import { TrailSource } from '../modules/skstream/track-source';
 import type { OverlayHit } from '../modules/map/ol/lib/data-overlay/overlay-hits';
-import { OwnVesselIconType } from '../modules/icons/vessels';
-import {
-  ChartImageAdjustment,
-  ChartTimeLoopOffsets
-} from './resources/signalk';
 
 export * from './resources/signalk';
 export * from './resources/custom';
@@ -96,211 +91,8 @@ export interface CpaPositions {
   target: Position;
 }
 
-export interface IAppConfig {
-  ui: {
-    mapNorthUp: boolean;
-    mapMove: boolean; // keep vessel centered
-    mapConstrainZoom: boolean; // constrain zooming to map min / max values
-    toolbarButtons: boolean; // show/hide toolbar buttons
-    invertColor: boolean; // invert map feature label colors
-    showCourseData: boolean; // show/hide course data
-    showAisTargets: boolean; // show/hide AIS targets
-    showNotes: boolean; // show/hide notes
-    autoNightMode: boolean;
-  };
-  imageAdjustPalettePos: PalettePosition | null; // remembered drag offset of the chart Image Adjustment palette
-  timePalettePos: PalettePosition | null; // remembered drag offset of the chart Time palette
-  trackHistoryPalettePos: PalettePosition | null; // remembered drag offset of the Track history palette
-  display: {
-    fab: MFBAction; // FAB button selection
-    disableWakelock: boolean;
-    darkMode: { enabled: boolean; source: 0 | 1 | -1 }; // source: 0= browser default, 1= Signal K mode, -1=manual)
-    nightMode: boolean; // auto set night mode based on environment.mode
-    muteSound: boolean;
-    depthAlarm: { enabled: boolean; smoothing: number };
-    plugins: {
-      instruments: string | null;
-      startOnOpen: boolean;
-      parameters: string | null;
-      favourites: string[];
-    };
-    preferInfoPanel: boolean;
-    splitView: boolean; // offer the Split view button: a second chart pane
-    singleClickNoteDetails: boolean;
-    windIndicator: WindIndicator; // glyph used to render wind direction/speed
-    statusBar: {
-      liveEta: boolean; // show cursor bearing/distance/ETA in the status bar
-      tapFadeSpeed: number; // seconds a tapped-point marker takes to fade (and the readout stays held on it)
-      referenceSpeed: number; // fallback boat speed (in display speed units) for ETA when SOG is ~0
-    };
-  };
-  units: {
-    distance: DistanceUnitDef;
-    depth: DepthUnitDef;
-    length: LengthUnitDef;
-    speed: SpeedUnitDef;
-    temperature: TemperatureUnitDef;
-    positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
-    headingAttribute: 'navigation.headingTrue' | 'navigation.headingMagnetic';
-    preferredPaths: {
-      tws: string;
-      twd: string;
-      /** A Signal K path, or 'auto' to resolve the best available source. */
-      heading: string;
-      course: string;
-    };
-    /** One-time marker for the COG -> 'auto' orientation migration (#704). */
-    // @todo remove (implemented) v2.32.0
-    autoHeadingApplied: boolean;
-    useServerPrefs: boolean;
-  };
-  map: {
-    // ** map config
-    zoomLevel: number;
-    center: Position;
-    rotation: number;
-    panBehavior: MapPanBehavior; // what panning the chart does while following the vessel
-    refollowDelay: number; // secs of idle before a pan-released follow mode resumes; 0 = never
-    animate: boolean;
-    labelsMinZoom: number;
-    doubleClickZoom: boolean; // true=zoom
-    overZoomTiles: boolean; // keep tiles visible beyond chart max zoom
-    centerOffset: MapCenterOffset; // screen-fixed map-centre offset from the vessel
-    s57Options: Options; // S57 chart Options
-    popoverMulti: boolean; // close popovers using cose button
-  };
-  course: {
-    autoNextPointOnArrival: boolean;
-    autoNextPointDelay: number;
-    autoNextPointTrigger: 'perpendicularPassed' | 'arrivalCircleEntered';
-    arrivalCircle: number | null;
-  };
-  vessels: {
-    fixedLocationMode: boolean;
-    fixedPosition: Position;
-    trail: boolean; // display trail
-    windVectors: boolean; // display vessel TWD, AWD vectors
-    laylines: boolean;
-    selfLines: {
-      cog: {
-        length: number; // (minutes) length = cogLine * sog
-        color: string;
-        weight: number;
-        dash: LineStyleDash;
-      };
-      heading: {
-        length: number; // mode for display of heading line -1 = default
-        color: string;
-        weight: number;
-        dash: LineStyleDash;
-      };
-    };
-    aisCogLine: number; // (minutes) length = cogLine * sog
-    iconScale: number; // scale to apply to self Vessel icon
-    iconActualSize: boolean; // scale self icon to the reported beam and length overall
-    iconType: OwnVesselIconType; // icon used for the owner's own vessel
-    rangeCircles: boolean; //display range circles
-    rangeCirclesFixed: boolean; // use a fixed distance rather than zoom level calc
-    rangeCirclesDistance: number; // distance between circles when fixed is true
-    rangeCircleCount: number; // number of circles to display
-    rangeCircleMinZoom: number; // min zoom level where they are displayed
-    aisStaleAge: number; // time since last update in ms (6 min)
-    aisMaxAge: number; // time since last update in ms (9 min)
-    aisWindApparent: boolean;
-    aisWindMinZoom: number;
-    aisShowTrack: boolean;
-    aisTrackLength: number; // hours of track for a vessel picked with its TRACK toggle (Track API v2)
-    trailSource: TrailSource; // own-vessel trail source: auto | server | local (this device)
-    trailDuration: number; // hours of trail to fetch from server; 0 (TRAIL_DURATION_ALL) for the whole recorded track
-    trailResolution: {
-      // resolution of server trail at defined time horizons
-      lastHour: string;
-      next23: string;
-      beyond24: string;
-    };
-    /** One-time marker for the move off the old 1 min / 5 min trail
-     * resolution defaults. */
-    trailResolutionApplied: boolean;
-  };
-  resources: {
-    // ** resource options
-    fetchFilter: string; // param string to provide record filtering
-    fetchRadius: number; // radius (nmi/km) within which to return resources
-    notes: {
-      rootFilter: string; // param string to provide record filtering
-      getRadius: number; // radius (nmi/km) within which to return notes
-      groupNameEdit: boolean;
-      groupRequiresPosition: boolean;
-      minZoom: number;
-    };
-    video: {
-      enable: boolean;
-      url: string | null;
-    };
-    paths: string[];
-  };
-  signalk: {
-    // signal k connection options
-    vessels: boolean;
-    atons: boolean;
-    aircraft: boolean;
-    sar: boolean;
-    meteo: boolean;
-    maxRadius: number; // max radius within which AIS targets are displayed
-    proxied: boolean; // server behind a proxy server
-  };
-  radars: {
-    deviceId: string | undefined;
-    opacity: number;
-    rings: boolean; // range circles follow the radar range while it transmits
-  };
-  experiments: boolean;
-  plotterExtensions: {
-    // ** plotter extension host (plotterExtensions resource type).
-    // No enabled list: extension availability is controlled on the server
-    // (plugin install/enable); presence in the resources response = enabled.
-    // user's show/fade choice per image overlay, keyed `<extension>/<overlay id>`
-    overlays?: Record<string, { visible: boolean; opacity: number }>;
-    widgets: Array<{
-      instanceId: string; // host-assigned GUID for this placement
-      extension: string; // extension (resource) id
-      widget: string; // manifest-local widget id
-      anchor: 'tr' | 'ct' | 'cb' | 'bl' | 'br';
-      col: number; // origin cell column (0 | 1)
-      row: number; // origin cell row (0 | 1)
-    }>;
-  };
-  anchor: {
-    radius: number; // most recent anchor radius setting
-    setRadius: boolean; // checks inital anchor radius setting
-    manualSet: boolean; // checks manual set setting
-    rodeLength: number; // rode length setting
-  };
-  selections: {
-    // ** saved selections
-    routes: string[];
-    waypoints: string[];
-    regions: string[];
-    tracks: string[] | null;
-    charts: string[];
-    chartOrder: string[]; // chart layer ordering
-    chartOpacity: Record<string, number>;
-    chartImageAdjustment: Record<string, ChartImageAdjustment>;
-    chartDisplayMinZoom: Record<string, number>;
-    chartTimeLoop: Record<string, ChartTimeLoopOffsets>; // Time palette loop range per chart
-    aisTargets: string[] | null;
-    aisTargetTypes: number[];
-    aisFilterByShipType: boolean;
-    aisState: string[]; // list of ais state values used to filter targets
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resourceSets: { [key: string]: any }; // additional resources
-    infolayers: string[] | null;
-    weatherWindEnabled: boolean;
-    oceanCurrentsEnabled: boolean;
-    tidalCurrentsEnabled: boolean;
-    chartsInViewOnly: boolean; // chart list shows only charts in the map view
-  };
-}
+/** The app settings, as defined with their defaults by `AppConfigSchema`. */
+export type IAppConfig = Static<typeof AppConfigSchema>;
 
 /** A plotter extension widget placement (`IAppConfig.plotterExtensions.widgets`). */
 export type PlotterExtensionWidget =

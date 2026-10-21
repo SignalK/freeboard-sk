@@ -61,9 +61,9 @@ import {
 
 import {
   defaultConfig,
-  validateConfig,
   cleanConfig,
-  initData
+  initData,
+  isSavedConfig
 } from './app.config';
 
 import { getSvgList } from './modules/icons';
@@ -577,13 +577,12 @@ export class AppFacade extends InfoService {
   }
 
   // line dash style format helpers
+  // A style this release doesn't know, saved by a later one, draws solid.
   formatLineDashArray(value: LineStyleDash): number[] | null {
-    return value === 'none'
+    const pattern = this.lineDashMap.get(value);
+    return !pattern || pattern === 'none'
       ? null
-      : // every LineStyleDash has an entry
-        Array.from(this.lineDashMap.get(value)!)
-          .filter((i) => i !== ' ')
-          .map((i) => Number(i));
+      : pattern.split(' ').map((i) => Number(i));
   }
 
   /** Initialise and raise "settings$.load" event */
@@ -646,17 +645,16 @@ export class AppFacade extends InfoService {
             );
             (this.signalk.appDataGet('/') as Observable<IAppConfig>).subscribe({
               next: (serverSettings) => {
-                if (Object.keys(serverSettings).length === 0) {
+                if (!isSavedConfig(serverSettings)) {
                   resolve(false);
+                  return;
                 }
                 cleanConfig(serverSettings, this.hostDef.params);
-                if (validateConfig(serverSettings)) {
-                  this.config = serverSettings;
-                  this.doPostConfigLoad();
-                  this.alignCustomResourcesPaths();
-                  this.alignUnitPrefs(this.serverConfig.unitPreferences());
-                  this.saveConfig();
-                }
+                this.config = serverSettings;
+                this.doPostConfigLoad();
+                this.alignCustomResourcesPaths();
+                this.alignUnitPrefs(this.serverConfig.unitPreferences());
+                this.saveConfig();
                 resolve(true);
               },
               error: () => {
