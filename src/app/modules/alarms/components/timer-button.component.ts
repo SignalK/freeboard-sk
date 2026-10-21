@@ -45,7 +45,8 @@ export class TimerButtonComponent {
   @Input() disabled?: boolean;
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
 
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private interval: ReturnType<typeof setInterval> | null = null;
+  private timeout: ReturnType<typeof setTimeout> | null = null;
   protected timeLeft = signal<number>(this.period ?? 5);
   protected cancelled = signal<boolean>(false);
 
@@ -61,10 +62,10 @@ export class TimerButtonComponent {
     if (secs === 0) {
       // No countdown: act on the next tick rather than inside the change
       // detection pass that is creating this button.
-      this.timer = setTimeout(() => this.expire(), 0);
+      this.timeout = setTimeout(() => this.expire(), 0);
       return;
     }
-    this.timer = setInterval(() => {
+    this.interval = setInterval(() => {
       this.timeLeft.update((current) => current - 1);
       if (this.timeLeft() <= 0) {
         this.expire();
@@ -87,11 +88,16 @@ export class TimerButtonComponent {
     this.action();
   }
 
+  // Zone.js tracks timeouts and intervals separately, so each needs its own
+  // clear call or Zone keeps the cancelled task pending.
   private stopTimer() {
-    if (this.timer) {
-      // clearInterval also clears a setTimeout id.
-      clearInterval(this.timer);
-      this.timer = null;
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
     }
   }
 
