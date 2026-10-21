@@ -2492,6 +2492,14 @@ move and resize its own windows with `ui.updateWindow`.
 - **The host clamps.** It keeps every window inside the window area and within
   its own minimum usable size, and may ignore a request it cannot honor. The
   window's **actual** position and size are always in its state (`bounds`).
+- **Beyond the window area.** A host whose window area leaves out some of its
+  own controls may still let a window reach over them: when the user moves or
+  resizes it there, or, on a small screen, when the window's `minWidth` /
+  `minHeight` would not otherwise fit. Requested geometry is still resolved
+  against the window area, so a window only covers host controls when the
+  user or its minimum size puts it there. Set `minWidth` to the narrowest
+  width your content works at rather than relying on this. A window never
+  covers the host's safety UI (alarms, alerts, man-overboard).
 
 #### Window state
 
@@ -2514,7 +2522,9 @@ event all describe a window the same way:
 ```
 
 - `bounds` — the actual position and size, in CSS pixels from the top-left of
-  the window area; `area` is the window area's current size.
+  the window area; `area` is the window area's current size. A window that
+  reaches beyond the window area (see *Geometry*) has `bounds` partly outside
+  `area`: `x` or `y` below `0`, or `x + width` / `y + height` past it.
 - `presentation` — how the host is showing the window: `floating` (a free
   window), `sheet` (docked full-width along an edge) or `fullscreen`. A host may
   choose `sheet` or `fullscreen` whenever a floating window would not fit, for
