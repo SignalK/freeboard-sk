@@ -132,6 +132,7 @@ function harness(opts: {
     overlayMigrationTried: false,
     chartCacheSignal: signal<FBCharts>([]),
     chartTimeRefreshers: new Map(),
+    hiddenChartInstants: new Map(),
     listFromServer,
     postToServer,
     deleteFromServer,

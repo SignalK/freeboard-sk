@@ -14,8 +14,8 @@ import { FBCharts } from 'src/app/types';
  * `setMapZoomRange` / `refreshCharts` only touch `this.app`, the cache signal and
  * a few list helpers, so exercise them on a bare prototype instance with a mock
  * app — no Angular DI needed (same approach as the chart opacity specs). Class
- * field initializers don't run under `Object.create`, so the cache signal is
- * supplied explicitly.
+ * field initializers don't run under `Object.create`, so the cache signal and
+ * the hidden charts' instants are supplied explicitly.
  */
 const DEFAULT_EXTENT = { min: 2, max: 28 };
 
@@ -33,6 +33,8 @@ function svcWithCharts(mapConstrainZoom: boolean, cache: FBCharts = []) {
   };
   (svc as unknown as { chartCacheSignal: unknown }).chartCacheSignal =
     signal<FBCharts>(cache);
+  (svc as unknown as { hiddenChartInstants: unknown }).hiddenChartInstants =
+    new Map();
   return svc;
 }
 

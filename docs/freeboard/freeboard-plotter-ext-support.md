@@ -306,6 +306,11 @@ row) makes; the two stay in sync through the chart cache.
   stays where it is put -- a refresh tick re-reads the chart's timeline but never
   moves the selection -- until another `chart.setTime`, or the native Time
   palette closing, which returns the chart to `null`.
+- **Charts not shown.** The chart cache holds only the shown charts, so an
+  instant set on a hidden chart, or showing on a chart when it is hidden, is
+  held beside it (`hiddenChartInstants`) and handed to the chart when it is
+  next shown; until then `chart.list` reports it
+  as `time.value`. Setting `null` on a hidden chart drops it.
 - **Non-destructive swap.** The layer rotates the tile source's key rather than
   refreshing it, so the previous frame stays on screen until the requested one has
   loaded — the same path `refreshInterval` uses.
@@ -315,7 +320,7 @@ row) makes; the two stay in sync through the chart cache.
 
 `chart.time` (`{id, time}`) is emitted for every retarget, from any origin — an
 extension's `chart.setTime`, another extension's, or the user's palette — one
-event per *changed* chart. Error reasons add `charts.notTemporal` (an id names a
+event per *changed* shown chart. Error reasons add `charts.notTemporal` (an id names a
 managed chart with no time dimension); a `time` that is neither `null` nor a
 parseable instant is `charts.badRequest`.
 

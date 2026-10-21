@@ -750,6 +750,11 @@ export class SKResourceService {
     }
   >();
 
+  // The instants of charts that are not shown, which the cache does not
+  // hold: set while hidden, or showing when hidden. A chart takes its instant
+  // over when it is next shown.
+  private hiddenChartInstants = new Map<string, string>();
+
   /**
    * @description Add OSM charts to supplied chart list
    * @param chtList List of FBChart objects
@@ -1094,15 +1099,64 @@ export class SKResourceService {
         shown.set(c[0], c[1].timeValue);
       }
     });
+    const listed = new Set(charts.map((c: FBChart) => c[0]));
+    this.holdInstants(
+      this.chartCacheSignal().filter((c: FBChart) => !listed.has(c[0]))
+    );
     return charts.map((c: FBChart) => {
+      if (this.hiddenChartInstants.has(c[0])) {
+        return this.withHiddenInstant(c, true);
+      }
       const instant = shown.get(c[0]);
       if (instant === undefined || !c[1]?.time) {
         return c;
       }
-      const updated = new SKChart(c[1]);
-      updated.timeValue = instant;
-      return [c[0], updated, c[2]];
+      return this.chartAtInstant(c, instant);
     });
+  }
+
+  /**
+   * @description Hold the instant each of a set of charts leaving the map is
+   * showing, so it is shown at that instant again rather than live.
+   * @param charts Chart entries no longer shown
+   */
+  private holdInstants(charts: FBCharts) {
+    charts.forEach((c: FBChart) => {
+      if (typeof c[1]?.timeValue === 'string') {
+        this.hiddenChartInstants.set(c[0], c[1].timeValue);
+      }
+    });
+  }
+
+  /**
+   * @description A chart entry showing the instant held for it while it was
+   * not shown, if any (see `chartSetTime`).
+   * @param chart Chart entry
+   * @param take true when the chart is being shown, so the held instant
+   * passes to the cache and is no longer held
+   */
+  private withHiddenInstant(chart: FBChart, take: boolean): FBChart {
+    const instant = this.hiddenChartInstants.get(chart[0]);
+    if (instant === undefined) {
+      return chart;
+    }
+    if (take) {
+      this.hiddenChartInstants.delete(chart[0]);
+    }
+    return this.chartIsTemporal(chart)
+      ? this.chartAtInstant(chart, instant)
+      : chart;
+  }
+
+  /**
+   * @description A copy of a chart entry showing the given instant.
+   * @param chart Chart entry
+   * @param instant ISO 8601 instant, or null for the newest frame
+   */
+  private chartAtInstant(chart: FBChart, instant: string | null): FBChart {
+    const updated = new SKChart(chart[1]);
+    updated.timeValue = instant;
+    return [chart[0], updated, chart[2]];
   }
 
   /**
@@ -1355,6 +1409,7 @@ export class SKResourceService {
    * @param charts FBChart array
    */
   public chartAdd(charts: FBCharts) {
+    charts = charts.map((c: FBChart) => this.withHiddenInstant(c, true));
     this.chartCacheSignal.update((current: FBCharts) => {
       if (this.selectionIsFiltered('charts')) {
         this.selectionAdd(
@@ -1371,6 +1426,11 @@ export class SKResourceService {
    * @param ids Array of chart identifiers. If not supplied all charts are removed.
    */
   public chartRemove(ids?: string[]) {
+    this.holdInstants(
+      ids
+        ? this.chartCacheSignal().filter((c: FBChart) => ids.includes(c[0]))
+        : this.chartCacheSignal()
+    );
     this.chartCacheSignal.update((current: FBCharts) => {
       if (!ids) {
         // remove all entries
@@ -1467,6 +1527,9 @@ export class SKResourceService {
    * frame on load. An explicit instant stays where it is put: nothing moves
    * it but another call here, or the time control closing (see
    * `openChartTime`). Charts without a time dimension are left untouched.
+   * A chart that is not shown is not in the cache: its instant is held until
+   * the chart is next shown, so it opens at that instant rather than live --
+   * as does a chart hidden while showing one.
    * @param id Chart identifier
    * @param time ISO 8601 instant, or null for the newest frame. Passed
    * through to the source unchanged (no snapping or clamping): resolving it
@@ -1477,18 +1540,21 @@ export class SKResourceService {
       return;
     }
     const entry = this.chartCacheSignal().find((c: FBChart) => c[0] === id);
-    if (!entry || !this.chartIsTemporal(entry) || entry[1].timeValue === time) {
+    if (!entry) {
+      if (time === null) {
+        this.hiddenChartInstants.delete(id);
+      } else {
+        this.hiddenChartInstants.set(id, time);
+      }
+      return;
+    }
+    if (!this.chartIsTemporal(entry) || entry[1].timeValue === time) {
       return;
     }
     this.chartCacheSignal.update((current: FBCharts) => {
-      return current.map((c: FBChart) => {
-        if (c[0] !== id) {
-          return c;
-        }
-        const updated = new SKChart(c[1]);
-        updated.timeValue = time;
-        return [c[0], updated, c[2]];
-      });
+      return current.map((c: FBChart) =>
+        c[0] === id ? this.chartAtInstant(c, time) : c
+      );
     });
   }
 
@@ -2068,7 +2134,9 @@ export class SKResourceService {
       .reverse()
       .filter((c: FBChart) => availableIds.has(c[0]));
     const seen = new Set(visibleKnown.map((c: FBChart) => c[0]));
-    const hidden = available.filter((c: FBChart) => !seen.has(c[0]));
+    const hidden = available
+      .filter((c: FBChart) => !seen.has(c[0]))
+      .map((c: FBChart) => this.withHiddenInstant(c, false));
     return visibleKnown.concat(hidden);
   }
 
