@@ -2454,7 +2454,7 @@
           <b>COURSE:</b><br />
           This section provides settings for course navigation.<br />
 
-          <b>Auto-advance to nextpoint on arrival</b>: Check this option to
+          <b>Auto-advance to next point on arrival</b>: Check this option to
           automatically advance to the next route point once the target
           notification has been received.<br />
 
@@ -2463,23 +2463,24 @@
           Choose either:
           <ul>
             <li>
-              <b><i>perpendicularPassed</i></b> (advancement occurs immediately
-              notification is received.)
+              <b><i>perpendicularPassed</i></b> (the vessel has passed the line
+              through the destination, perpendicular to the leg.)
             </li>
             <li>
-              <b><i>arrivalCircleEntered</i></b> (advancement occurs once
-              <i>Time to Wait</i> has elapsed after notification has been
-              receieved.)
+              <b><i>arrivalCircleEntered</i></b> (the vessel has entered the
+              arrival circle.)
             </li>
           </ul>
-          <b>Arrival Circle Radius</b> Distance in meters from the destination
-          at which to trigger arrival notification.
+          <b>Arrival Circle</b>: Distance in meters from the destination at
+          which to trigger arrival notification.
           <br />
-          <b>Time to Wait</b>: Note: This option is only available when
-          <i>arrivalCircleEntered</i> has been selected as the notification
-          type.<br />
-          Select the period of time to elapse before the destination is set to
-          the next route point.<br />
+          <b>Time to wait before advancing</b>: Select the period of time to
+          elapse after the notification is received before the destination is
+          set to the next route point: <b>Immediately</b>, or 1 to 30 seconds
+          (default 5 secs). Available when
+          <i>Auto-advance to next point on arrival</i> is checked. See the
+          Feature Browser &rarr; <i>Following a Route</i> for the arrival
+          countdown and how to cancel an advance.<br />
           <hr />
 
           <b>VESSELS:</b><br />

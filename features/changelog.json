@@ -148,5 +148,9 @@
   { "feature": "extension-panels", "pr": 1164, "kind": "enhanced", "date": "2026-10-21", "title": "feat(plotterext): implement button decorations in the reference host" },
   { "feature": "imported-tracks", "kind": "new", "since": "v1.11.0", "date": "2020-08-06", "title": "GPX Track experiment" },
   { "feature": "imported-tracks", "kind": "enhanced", "since": "v1.14.0", "date": "2020-12-19", "title": "Move from experiments" },
-  { "feature": "imported-tracks", "pr": 1005, "kind": "enhanced", "date": "2026-10-19", "title": "feat(tracks): keep Freeboard's tracks in the Track API" }
+  { "feature": "imported-tracks", "pr": 1005, "kind": "enhanced", "date": "2026-10-19", "title": "feat(tracks): keep Freeboard's tracks in the Track API" },
+  { "feature": "route-following", "pr": 1155, "kind": "enhanced", "date": "2026-10-21", "title": "feat(course): add shorter auto-advance delay options" },
+  { "feature": null, "pr": 1143, "kind": "skip", "reason": "performance only: the periodic trail refresh refetches just the recent band; no user-facing change" },
+  { "feature": null, "pr": 1146, "kind": "skip", "reason": "performance only: the older trail is fetched for a whole view around the map, so panning refetches less; no user-facing change" },
+  { "feature": null, "pr": 1147, "kind": "skip", "reason": "performance only: the trail is refetched once the zoom settles instead of once per level; no new capability" }
 ]
