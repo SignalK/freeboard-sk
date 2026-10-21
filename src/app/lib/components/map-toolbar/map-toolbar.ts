@@ -125,6 +125,12 @@ export function needsAttention(item: ToolbarItem): boolean {
   return !!item.active || !!item.badge || !!item.tone;
 }
 
+/** The badge as drawn on the button: a count over 99 does not fit, so it shows as `99+`. */
+export function toolbarBadgeText(item: ToolbarItem): string {
+  if (!item.badge) return '';
+  return item.badge > 99 ? '99+' : String(item.badge);
+}
+
 /** An overflow menu entry's text: the tooltip, plus the badge count if any. */
 export function toolbarMenuLabel(item: ToolbarItem): string {
   return item.badge ? `${item.tooltip} (${item.badge})` : item.tooltip;

@@ -5,6 +5,7 @@ import {
   needsAttention,
   sameToolbarItems,
   splitToolbar,
+  toolbarBadgeText,
   toolbarSlots
 } from './map-toolbar';
 
@@ -82,6 +83,17 @@ describe('needsAttention', () => {
     );
     expect(needsAttention({ id: 'a', tooltip: '', badge: 0 })).toBe(false);
     expect(needsAttention({ id: 'a', tooltip: '' })).toBe(false);
+  });
+});
+
+describe('toolbarBadgeText', () => {
+  it('shows a count up to 99, and 99+ above it', () => {
+    expect(toolbarBadgeText({ id: 'a', tooltip: '' })).toBe('');
+    expect(toolbarBadgeText({ id: 'a', tooltip: '', badge: 0 })).toBe('');
+    expect(toolbarBadgeText({ id: 'a', tooltip: '', badge: 99 })).toBe('99');
+    expect(toolbarBadgeText({ id: 'a', tooltip: '', badge: 12345 })).toBe(
+      '99+'
+    );
   });
 });
 

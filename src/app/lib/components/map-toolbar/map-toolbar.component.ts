@@ -19,6 +19,7 @@ import {
   needsAttention,
   sameToolbarItems,
   splitToolbar,
+  toolbarBadgeText,
   toolbarMenuLabel,
   toolbarSlots
 } from './map-toolbar';
@@ -152,7 +153,7 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
           [attr.aria-pressed]="item.pressed ? 'true' : null"
           [matTooltipPosition]="tooltipPosition()"
           [matMenuTriggerFor]="item.menu"
-          [matBadge]="item.badge"
+          [matBadge]="badgeText(item)"
           matBadgeOverlap="true"
           [matBadgeHidden]="!item.badge"
           aria-hidden="false"
@@ -175,7 +176,7 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
           [attr.aria-label]="menuLabel(item)"
           [attr.aria-pressed]="item.pressed ? 'true' : null"
           [matTooltipPosition]="tooltipPosition()"
-          [matBadge]="item.badge"
+          [matBadge]="badgeText(item)"
           matBadgeOverlap="true"
           [matBadgeHidden]="!item.badge"
           aria-hidden="false"
@@ -292,6 +293,10 @@ export class MapToolbarComponent {
     this.items()
       .find((i) => i.id === item.id)
       ?.action?.();
+  }
+
+  protected badgeText(item: ToolbarItem): string {
+    return toolbarBadgeText(item);
   }
 
   protected menuLabel(item: ToolbarItem): string {
