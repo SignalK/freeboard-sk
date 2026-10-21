@@ -31,7 +31,7 @@ import { MatIconModule } from '@angular/material/icon';
         </button>
       } @else {
         <button mat-button [disabled]="disabled" (click)="cancel()">
-          {{ label }} {{ timeLeft() }} secs
+          {{ label }} {{ timeLeft() }} {{ timeLeft() === 1 ? 'sec' : 'secs' }}
         </button>
       }
     </div>
@@ -45,41 +45,60 @@ export class TimerButtonComponent {
   @Input() disabled?: boolean;
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
 
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private interval: ReturnType<typeof setInterval> | null = null;
+  private timeout: ReturnType<typeof setTimeout> | null = null;
   protected timeLeft = signal<number>(this.period ?? 5);
   protected cancelled = signal<boolean>(false);
 
   constructor() {}
 
   ngOnInit() {
-    this.timeLeft.update(() => (isNaN(this.period) ? 5 : this.period / 1000));
+    const secs = Number.isFinite(this.period)
+      ? Math.max(0, Math.ceil(this.period / 1000))
+      : 5;
+    this.timeLeft.set(secs);
     this.label = this.label ?? 'Action in ';
     this.cancelledLabel = this.cancelledLabel ?? 'OK';
-    this.timer = setInterval(() => {
+    if (secs === 0) {
+      // No countdown: act on the next tick rather than inside the change
+      // detection pass that is creating this button.
+      this.timeout = setTimeout(() => this.expire(), 0);
+      return;
+    }
+    this.interval = setInterval(() => {
       this.timeLeft.update((current) => current - 1);
-      if (this.timeLeft() === 0) {
-        this.disabled = true;
-        this.action();
-        if (this.timer) {
-          clearInterval(this.timer);
-        }
-        this.timer = null;
+      if (this.timeLeft() <= 0) {
+        this.expire();
       }
     }, 1000);
   }
 
   ngOnDestroy() {
-    if (this.timer) {
-      clearInterval(this.timer);
-    }
+    this.stopTimer();
   }
 
   cancel() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
+    this.stopTimer();
     this.cancelled.set(true);
+  }
+
+  private expire() {
+    this.stopTimer();
+    this.disabled = true;
+    this.action();
+  }
+
+  // Zone.js tracks timeouts and intervals separately, so each needs its own
+  // clear call or Zone keeps the cancelled task pending.
+  private stopTimer() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
   }
 
   action() {
