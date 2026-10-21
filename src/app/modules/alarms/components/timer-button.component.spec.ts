@@ -53,6 +53,15 @@ describe('TimerButtonComponent', () => {
     expect(fired).toHaveBeenCalledTimes(1);
   });
 
+  it('falls back to 5 seconds for a period that is not a number', () => {
+    const { fired } = start(null as unknown as number);
+
+    vi.advanceTimersByTime(4999);
+    expect(fired).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(fired).toHaveBeenCalledTimes(1);
+  });
+
   it('counts down the seconds left', () => {
     const { fixture } = start(3000);
     const text = () => fixture.nativeElement.textContent;

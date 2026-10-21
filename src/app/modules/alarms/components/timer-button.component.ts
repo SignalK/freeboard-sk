@@ -52,9 +52,9 @@ export class TimerButtonComponent {
   constructor() {}
 
   ngOnInit() {
-    const secs = isNaN(this.period)
-      ? 5
-      : Math.max(0, Math.ceil(this.period / 1000));
+    const secs = Number.isFinite(this.period)
+      ? Math.max(0, Math.ceil(this.period / 1000))
+      : 5;
     this.timeLeft.set(secs);
     this.label = this.label ?? 'Action in ';
     this.cancelledLabel = this.cancelledLabel ?? 'OK';
