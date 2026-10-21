@@ -188,6 +188,7 @@ describe('FBMapComponent — a route from a recorded track', () => {
       const drawn = tap(cmp, HISTORY_ID, 'self', clipped(track));
       // a route read from the clipped track would start at the view's edge
       expect(drawn.route).toBeUndefined();
+      expect(drawn.routePending).toBe(true);
 
       answer.next({ context: 'self', lines: track.lines, times: track.times });
 
@@ -199,6 +200,37 @@ describe('FBMapComponent — a route from a recorded track', () => {
       expect(near(th.route[0], A)).toBe(true);
       expect(near(th.route[th.route.length - 1], track.end)).toBe(true);
       expect(th.start).not.toBe(drawn.start);
+      expect(th.routePending).toBe(false);
+    });
+
+    it('makes the route once the whole track is in, when chosen while it loaded', () => {
+      const track = passage(0);
+      const { cmp, answer } = withWholeTrack();
+      tap(cmp, HISTORY_ID, 'self', clipped(track));
+
+      cmp.routeFromTrack();
+
+      expect(cmp.routeBuffers.all()).toEqual([]);
+      expect(cmp.overlay().trackHistory.routeRequested).toBe(true);
+
+      answer.next({ context: 'self', lines: track.lines, times: track.times });
+
+      const [draft]: RouteBuffer[] = cmp.routeBuffers.all();
+      const route = draft.points.map((p) => p.position);
+      expect(near(route[0], A)).toBe(true);
+      expect(near(route[route.length - 1], track.end)).toBe(true);
+      expect(cmp.infoPanel.openWith).toHaveBeenCalledWith(
+        'routes',
+        expect.anything()
+      );
+    });
+
+    it('offers no route for a drawn track without recording times', () => {
+      const { cmp } = withWholeTrack();
+      const drawn = tap(cmp, HISTORY_ID, 'self', clipped(passage(0)), false);
+
+      expect(drawn.route).toBeUndefined();
+      expect(drawn.routePending).toBe(false);
     });
 
     it('asks for the whole AIS track by vessel', () => {
@@ -242,15 +274,21 @@ describe('FBMapComponent — a route from a recorded track', () => {
       expect(cmp.trackHistory.wholeTrack).not.toHaveBeenCalled();
     });
 
-    it('offers no route when the whole track cannot be had', () => {
+    it('withdraws MAKE ROUTE, chosen or not, when the whole track cannot be had', () => {
       const { cmp, answer } = withWholeTrack();
       const drawn = tap(cmp, HISTORY_ID, 'self', clipped(passage(0)));
+      cmp.routeFromTrack();
 
       answer.error(new Error('offline'));
 
-      expect(cmp.overlay().trackHistory).toEqual(drawn);
+      expect(cmp.overlay().trackHistory).toEqual({
+        ...drawn,
+        routePending: false,
+        routeRequested: false
+      });
       expect(drawn.route).toBeUndefined();
       expect(drawn.start).toBeDefined();
+      expect(cmp.routeBuffers.all()).toEqual([]);
     });
 
     it('keeps to the voyage tapped where the vessel crossed its own track', () => {
