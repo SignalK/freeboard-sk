@@ -1,9 +1,10 @@
-import { expect, describe, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, describe, it, vi } from 'vitest';
 import { signal } from '@angular/core';
 import {
   SKStreamFacade,
   isPositionStale,
-  SELF_POSITION_STALE_AGE
+  SELF_POSITION_STALE_AGE,
+  TRAIL_REFRESH_DEBOUNCE
 } from './skstream.facade';
 import { SKVessel } from '../skresources/resource-classes';
 import { TRAIL_DURATION_ALL, TrackSource } from './track-source';
@@ -226,6 +227,19 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
   }
   const extent = [-1, 50, 1, 51];
 
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  /** A view change, and then the view holding still. */
+  const view = (
+    facade: { postMapView: (extent: number[], zoom: number) => void },
+    viewExtent: number[],
+    zoom: number
+  ) => {
+    facade.postMapView(viewExtent, zoom);
+    vi.advanceTimersByTime(TRAIL_REFRESH_DEBOUNCE);
+  };
+
   const facadeWith = (
     vessels: { trail?: boolean; trailDuration?: number } = {},
     serverTrailWanted = true,
@@ -262,53 +276,80 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
 
   it('fetches the trail again when the zoom level changes', () => {
     const { facade, trailRequests } = facadeWith();
-    facade.postMapView(extent, 10.2);
+    view(facade, extent, 10.2);
     expect(trailRequests()).toBe(1);
-    facade.postMapView(extent, 12.4);
+    view(facade, extent, 12.4);
     expect(trailRequests()).toBe(2);
-    facade.postMapView(extent, 11.7);
+    view(facade, extent, 11.7);
     expect(trailRequests()).toBe(3);
+  });
+
+  it('fetches once for a zoom through several levels, at the level it stops on', () => {
+    const { facade, trailRequests } = facadeWith();
+    view(facade, extent, 10.2);
+    // Each zoom restarts the wait, so steps closer together than the wait
+    // fetch nothing until it has passed after the last one.
+    for (const zoom of [11.2, 12.2, 13.2, 14.2]) {
+      facade.postMapView(extent, zoom);
+      vi.advanceTimersByTime(TRAIL_REFRESH_DEBOUNCE / 2);
+      expect(trailRequests()).toBe(1);
+    }
+    vi.advanceTimersByTime(TRAIL_REFRESH_DEBOUNCE / 2);
+    expect(trailRequests()).toBe(2);
+    view(facade, extent, 14.6);
+    expect(trailRequests()).toBe(2);
+  });
+
+  it('is not held off by view changes that keep the zoom, as a heading-up chart sends under way', () => {
+    const { facade, trailRequests } = facadeWith();
+    view(facade, extent, 10.2);
+    facade.postMapView(extent, 12.2);
+    for (let i = 0; i < 4; i++) {
+      vi.advanceTimersByTime(TRAIL_REFRESH_DEBOUNCE / 2);
+      facade.postMapView(extent, 12.2);
+    }
+    expect(trailRequests()).toBe(2);
   });
 
   it('does not fetch it again for a pan or a zoom within the level', () => {
     const { facade, trailRequests } = facadeWith();
-    facade.postMapView(extent, 10.2);
-    facade.postMapView([0, 50, 2, 51], 10.2);
-    facade.postMapView(extent, 10.9);
+    view(facade, extent, 10.2);
+    view(facade, [0, 50, 2, 51], 10.2);
+    view(facade, extent, 10.9);
     expect(trailRequests()).toBe(1);
   });
 
   it('does not fetch it again for a pan by a whole view', () => {
     const { facade, trailRequests } = facadeWith();
-    facade.postMapView(extent, 10.2);
-    facade.postMapView([1, 50, 3, 51], 10.2);
-    facade.postMapView([-1, 51, 1, 52], 10.2);
+    view(facade, extent, 10.2);
+    view(facade, [1, 50, 3, 51], 10.2);
+    view(facade, [-1, 51, 1, 52], 10.2);
     expect(trailRequests()).toBe(1);
   });
 
   it('fetches it again when the view leaves the box it was fetched for', () => {
     const { facade, trailRequests } = facadeWith();
-    facade.postMapView(extent, 10.2);
-    facade.postMapView([2, 50, 4, 51], 10.2);
+    view(facade, extent, 10.2);
+    view(facade, [2, 50, 4, 51], 10.2);
     expect(trailRequests()).toBe(2);
   });
 
   it('counts a fetch made for another reason as made for the current zoom', () => {
     const { facade, trailRequests } = facadeWith();
-    facade.postMapView(extent, 10.2);
+    view(facade, extent, 10.2);
     facade.requestTrailFromServer();
-    facade.postMapView(extent, 10.6);
+    view(facade, extent, 10.6);
     expect(trailRequests()).toBe(2);
   });
 
   it('does not count a refresh of the recent part as a fetch for the view', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const { facade, trailRequests, posted } = facadeWith();
-    facade.postMapView(extent, 10.2);
+    view(facade, extent, 10.2);
     facade.parseSelfTrail({ result: null });
     facade.requestTrailFromServer(true);
     expect(posted.at(-1)?.options).toMatchObject({ recentOnly: true });
-    facade.postMapView([0, 50, 2, 51], 10.2);
+    view(facade, [0, 50, 2, 51], 10.2);
     expect(trailRequests()).toBe(3);
     vi.restoreAllMocks();
   });
@@ -316,9 +357,9 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
   it('tries again on the next view change when the fetch failed', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const { facade, trailRequests } = facadeWith();
-    facade.postMapView(extent, 10.2);
+    view(facade, extent, 10.2);
     facade.parseSelfTrail({ result: null });
-    facade.postMapView([0, 50, 2, 51], 10.2);
+    view(facade, [0, 50, 2, 51], 10.2);
     expect(trailRequests()).toBe(2);
     vi.restoreAllMocks();
   });
@@ -327,7 +368,7 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
     const { facade, trailRequests, vessels } = facadeWith({
       trailDuration: 24
     });
-    facade.postMapView(extent, 10.2);
+    view(facade, extent, 10.2);
     expect(trailRequests()).toBe(1);
     vessels.trailDuration = TRAIL_DURATION_ALL;
     facade.refreshTrail();
@@ -338,37 +379,37 @@ describe('SKStreamFacade.postMapView — trail fetched for the zoom', () => {
 
   it('does not fetch a trail of a fixed length again for a pan out of the box', () => {
     const { facade, trailRequests } = facadeWith({ trailDuration: 24 });
-    facade.postMapView(extent, 10.2);
-    facade.postMapView([2, 50, 4, 51], 10.2);
+    view(facade, extent, 10.2);
+    view(facade, [2, 50, 4, 51], 10.2);
     expect(trailRequests()).toBe(1);
   });
 
   it('fetches a trail of a fixed length again when the zoom level changes', () => {
     const { facade, trailRequests } = facadeWith({ trailDuration: 24 });
-    facade.postMapView(extent, 10.2);
-    facade.postMapView(extent, 13.2);
+    view(facade, extent, 10.2);
+    view(facade, extent, 13.2);
     expect(trailRequests()).toBe(2);
   });
 
   it('leaves a one-hour trail alone, which is drawn as recorded', () => {
     const { facade, trailRequests } = facadeWith({ trailDuration: 1 });
-    facade.postMapView(extent, 10.2);
-    facade.postMapView(extent, 13.2);
+    view(facade, extent, 10.2);
+    view(facade, extent, 13.2);
     expect(trailRequests()).toBe(0);
   });
 
   it('leaves a trail from the v1 interface alone, which has no zoom to follow', () => {
     const { facade, trailRequests } = facadeWith({}, true, 'v1');
-    facade.postMapView(extent, 10.2);
-    facade.postMapView(extent, 13.2);
+    view(facade, extent, 10.2);
+    view(facade, extent, 13.2);
     expect(trailRequests()).toBe(0);
   });
 
   it('fetches nothing with the trail hidden or kept on this device', () => {
     [facadeWith({ trail: false }), facadeWith({}, false)].forEach(
       ({ facade, trailRequests }) => {
-        facade.postMapView(extent, 10.2);
-        facade.postMapView(extent, 13.2);
+        view(facade, extent, 10.2);
+        view(facade, extent, 13.2);
         expect(trailRequests()).toBe(0);
       }
     );
