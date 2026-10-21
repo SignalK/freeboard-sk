@@ -19,7 +19,7 @@ export interface LineStyleDef {
 export interface LineStyleConfig {
   color: string;
   weight: number;
-  dash: string;
+  dash: LineStyleDash;
 }
 
 export type LineStyleDash = 'none' | 'short' | 'medium' | 'long' | 'alt';
