@@ -64,6 +64,10 @@ export interface IPopover {
     at?: string;
     /** The tapped passage as a route (see trackSectionRoute). */
     route?: Position[];
+    /** The route waits for the vessel's whole track, offered meanwhile. */
+    routePending?: boolean;
+    /** MAKE ROUTE was chosen while the route was pending. */
+    routeRequested?: boolean;
   };
   readOnly: boolean;
   /** The target extension actions apply to (plotterext capability `actions`). */

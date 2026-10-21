@@ -22,6 +22,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -317,6 +318,7 @@ const OVERLAY_FEATURE_ENTRY = 'overlay-feature.';
     MatListModule,
     MatIconModule,
     MatButtonModule,
+    MatProgressSpinnerModule,
     MatTooltipModule,
     CoordsPipe,
     NgTemplateOutlet,
@@ -2827,9 +2829,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
           source && this.trackHistory.wholeTrack(source, hf.context);
         const trackHistory = this.trackPopover(hf);
         // a route read from a clipped track could stop at the edge of the
-        // view, so it waits for the whole track
+        // view, so it waits for the whole track; MAKE ROUTE is offered
+        // meanwhile wherever the drawn track holds a passage
         poData.trackHistory = whole
-          ? { ...trackHistory, route: undefined }
+          ? {
+              ...trackHistory,
+              route: undefined,
+              routePending: trackHistory.route !== undefined
+            }
           : trackHistory;
         this.showPopover(poData);
         this.loadWholeTrack(id, source, whole, hf);
@@ -3081,10 +3088,32 @@ export class FBMapComponent implements OnInit, OnDestroy {
         hf.at;
       return { ...hf, lines: timed.lines, times: timed.times, at };
     };
+    // the route the popover waits for, made at once if MAKE ROUTE was chosen
+    // while it loaded; none withdraws the offer
+    const settleRoute = (route: Position[] | undefined) => {
+      const open = this.overlay();
+      const th = open.trackHistory;
+      if (open.id !== id || !open.show || !th) {
+        return;
+      }
+      this.overlay.set({
+        ...open,
+        trackHistory: {
+          ...th,
+          route,
+          routePending: false,
+          routeRequested: false
+        }
+      });
+      if (th.routeRequested && route) {
+        this.routeFromTrack();
+      }
+    };
     this.wholeTrackSub = whole.subscribe({
       next: (track) => {
         const tapped = onTrack(track);
         if (!tapped || !track) {
+          settleRoute(undefined);
           return;
         }
         const trackHistory = this.trackPopover(tapped);
@@ -3111,28 +3140,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
             : undefined;
         this.overlay.update((o) => ({
           ...o,
-          trackHistory: passage
-            ? { ...trackHistory, route: undefined }
-            : trackHistory
+          trackHistory: {
+            ...trackHistory,
+            route: undefined,
+            routePending: o.trackHistory?.routePending,
+            routeRequested: o.trackHistory?.routeRequested
+          }
         }));
-        this.passageSub = passage?.subscribe({
+        if (!passage) {
+          settleRoute(trackHistory.route);
+          return;
+        }
+        this.passageSub = passage.subscribe({
           next: (detail) => {
             const tappedPassage = onTrack(detail);
-            if (tappedPassage) {
-              const { route } = this.trackPopover(tappedPassage);
-              this.overlay.update((o) =>
-                o.trackHistory
-                  ? { ...o, trackHistory: { ...o.trackHistory, route } }
-                  : o
-              );
-            }
+            settleRoute(
+              tappedPassage && this.trackPopover(tappedPassage).route
+            );
           },
-          error: () => undefined
+          error: () => settleRoute(undefined)
         });
       },
       // without the whole track the popover keeps what the drawn one shows,
       // and offers no route that could stop at the edge of the view
-      error: () => undefined
+      error: () => settleRoute(undefined)
     });
   }
 
@@ -3140,6 +3171,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * route, opened as a drawn one is, to be started or saved. */
   protected routeFromTrack() {
     const th = this.overlay().trackHistory;
+    if (th?.routePending) {
+      // made when the whole track is in (loadWholeTrack)
+      this.overlay.update((o) => ({
+        ...o,
+        trackHistory: { ...th, routeRequested: true }
+      }));
+      return;
+    }
     if (!th?.route) {
       return;
     }
