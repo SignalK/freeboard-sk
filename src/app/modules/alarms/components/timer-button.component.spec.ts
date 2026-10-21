@@ -70,6 +70,10 @@ describe('TimerButtonComponent', () => {
     vi.advanceTimersByTime(1000);
     fixture.detectChanges();
     expect(text()).toContain('2 secs');
+    vi.advanceTimersByTime(1000);
+    fixture.detectChanges();
+    expect(text()).toContain('1 sec');
+    expect(text()).not.toContain('1 secs');
   });
 
   it('does not fire once cancelled', () => {

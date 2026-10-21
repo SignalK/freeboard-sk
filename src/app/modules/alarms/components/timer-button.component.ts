@@ -31,7 +31,7 @@ import { MatIconModule } from '@angular/material/icon';
         </button>
       } @else {
         <button mat-button [disabled]="disabled" (click)="cancel()">
-          {{ label }} {{ timeLeft() }} secs
+          {{ label }} {{ timeLeft() }} {{ timeLeft() === 1 ? 'sec' : 'secs' }}
         </button>
       }
     </div>
