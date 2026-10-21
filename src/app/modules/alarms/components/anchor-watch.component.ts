@@ -193,14 +193,25 @@ export class AnchorWatchComponent {
     this.app.saveConfig();
   }
 
-  onDefaultRadiusChange(e: number) {
-    this.app.config.anchor.radius = Math.round(
+  /**
+   * The field shows an error for an empty value or one below 1; the saved
+   * radius stays until a valid one is entered, as it is the one a drop uses.
+   */
+  onDefaultRadiusChange(e: number | null) {
+    if (e === null) {
+      return;
+    }
+    const radius = Math.round(
       Convert.transform(
         e,
         this.app.config.units.length as SI_BASE_UNIT,
         'm' as TARGET_UNIT
       ) ?? 0
     );
+    if (Number.isNaN(radius) || radius < 1) {
+      return;
+    }
+    this.app.config.anchor.radius = radius;
   }
 
   onSetManualCheck(e: MatCheckboxChange) {
