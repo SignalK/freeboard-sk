@@ -32,9 +32,10 @@ Freeboard's own.
 
 ## Nothing switched on is out of sight
 
-When a hidden button is switched on or carries a count — radar on, Heading Up, Follow
-Vessel, alarms — the **…** or **More actions** button shows a small dot. In the menu, a
-switched-on button's icon is highlighted, and a count follows its name, for example
+When a hidden button is switched on, carries a count, or shows a warning — radar on,
+Heading Up, Follow Vessel, alarms, or a plugin's button turned orange or red — the **…**
+or **More actions** button shows a small dot. In the menu, a switched-on button's icon is
+highlighted, a warning colors its icon, and a count follows its name, for example
 "Alarms (3)".
 
 ## Things to know
