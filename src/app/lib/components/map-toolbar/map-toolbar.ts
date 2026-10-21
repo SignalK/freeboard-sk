@@ -3,6 +3,13 @@ import { MatMenuPanel } from '@angular/material/menu';
 /** Vertical distance between toolbar buttons: a 40 px FAB in a 48 px item with 5 px padding above and below. */
 export const TOOLBAR_ITEM_PITCH = 58;
 
+export type ToolbarTone = 'warning' | 'alarm';
+
+export interface ToolbarColors {
+  fg?: string;
+  bg?: string;
+}
+
 /** One button on a map toolbar, shown either as a button or as an overflow menu entry. */
 export interface ToolbarItem {
   id: string;
@@ -13,10 +20,20 @@ export interface ToolbarItem {
   iconClass?: string;
   /** Shown as the button's tooltip, and as its label in the overflow menu. */
   tooltip: string;
-  /** Button colour class. When omitted, `active` picks `button-primary` or `button-toolbar`. */
+  /** Button colour class. When omitted, `tone`, then `active`, picks it. */
   buttonClass?: string;
   /** An engaged mode or pending indicator. A hidden active item puts a dot on the overflow button. */
   active?: boolean;
+  /**
+   * Something needs the user's attention: drawn in the warning (`button-accent`)
+   * or alarm (`button-warn`) colours. A hidden item with a tone puts a dot on
+   * the overflow button.
+   */
+  tone?: ToolbarTone;
+  /** `#rrggbb` colours drawn over those of the button's class; one left out keeps the class's. */
+  colors?: ToolbarColors;
+  /** Exposed as `aria-pressed`: the button is a toggle that is switched on. */
+  pressed?: boolean;
   disabled?: boolean;
   /** Count shown on the button. A hidden item with a badge puts a dot on the overflow button. */
   badge?: number;
@@ -74,6 +91,8 @@ const COMPARED_KEYS = [
   'tooltip',
   'buttonClass',
   'active',
+  'tone',
+  'pressed',
   'disabled',
   'badge',
   'menu',
@@ -92,13 +111,24 @@ export function sameToolbarItems(
 ): boolean {
   return (
     a.length === b.length &&
-    a.every((item, i) => COMPARED_KEYS.every((k) => item[k] === b[i][k]))
+    a.every(
+      (item, i) =>
+        COMPARED_KEYS.every((k) => item[k] === b[i][k]) &&
+        item.colors?.fg === b[i].colors?.fg &&
+        item.colors?.bg === b[i].colors?.bg
+    )
   );
 }
 
 /** Whether a hidden item needs the overflow button to show a dot. */
 export function needsAttention(item: ToolbarItem): boolean {
-  return !!item.active || !!item.badge;
+  return !!item.active || !!item.badge || !!item.tone;
+}
+
+/** The badge as drawn on the button: a count over 99 does not fit, so it shows as `99+`. */
+export function toolbarBadgeText(item: ToolbarItem): string {
+  if (!item.badge) return '';
+  return item.badge > 99 ? '99+' : String(item.badge);
 }
 
 /** An overflow menu entry's text: the tooltip, plus the badge count if any. */

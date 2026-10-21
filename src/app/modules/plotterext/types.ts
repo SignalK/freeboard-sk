@@ -14,6 +14,7 @@ export const HOST_CAPABILITIES = [
   'panels.state',
   'buttons',
   'buttons.visibility',
+  'buttons.decorations',
   'events.publish',
   'signalk.stream',
   'signalk.put',
@@ -141,6 +142,15 @@ export interface ButtonContribution {
   };
   /** Shown before the extension says otherwise (`buttons.visibility`). Default `true`. */
   visible?: boolean;
+  /**
+   * How the button starts out drawn (`buttons.decorations`): `normal`,
+   * `active`, `warning` or `alarm`. Default `normal`.
+   */
+  style?: string;
+  /** Custom `#rrggbb` colours over the style's (`buttons.decorations`). */
+  colors?: { fg?: string; bg?: string };
+  /** A starting count shown on the button (`buttons.decorations`). Default `0`, none. */
+  badge?: number;
   apiVersion?: string;
 }
 

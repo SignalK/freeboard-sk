@@ -42,6 +42,7 @@ import {
   type ActionErrorReason,
   type BusPort,
   type ButtonErrorReason,
+  type DecorateButtonsParams,
   type HandshakeContext,
   HostConnection,
   type WindowState,
@@ -76,6 +77,12 @@ import {
   cellHeightPx,
   parseSize
 } from './types';
+import {
+  applyDecorate,
+  type ButtonDecoration,
+  type DecorationOverride,
+  resolveDecoration
+} from './button-decorations';
 import {
   isTemporaryRoute,
   temporaryRouteMarker
@@ -142,6 +149,7 @@ const EMBEDDING_HOST_ID = 'embedding-host';
 
 /** `setVisibility` choices: extension id → item id → shown. */
 type VisibilityChoices = Record<string, Record<string, boolean>>;
+type DecorationChoices = Record<string, Record<string, DecorationOverride>>;
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
 
 interface ExtensionStateStore {
@@ -226,15 +234,24 @@ export class PlotterExtensionService {
   private readonly buttonVisibility = signal<VisibilityChoices>({});
 
   /**
-   * The shown toolbar buttons of compatible extensions, in manifest order. A
-   * hidden button is left out, so the toolbar closes its gap.
+   * `buttons.decorate` choices, by extension then button id. Not persisted:
+   * every button starts as its manifest says. Kept while a button is hidden.
+   */
+  private readonly buttonDecorations = signal<DecorationChoices>({});
+
+  /**
+   * The shown toolbar buttons of compatible extensions, in manifest order,
+   * each with the decoration it is drawn with. A hidden button is left out,
+   * so the toolbar closes its gap.
    */
   readonly toolbarButtons = computed(() => {
     const visibility = this.buttonVisibility();
+    const decorations = this.buttonDecorations();
     const result: Array<{
       extension: string;
       extensionName: string;
       button: ButtonContribution;
+      decoration: ButtonDecoration;
     }> = [];
     for (const [extension, manifest] of Object.entries(this.manifests())) {
       if (!this.isCompatible(manifest)) continue;
@@ -248,7 +265,15 @@ export class PlotterExtensionService {
         const shown =
           visibility[extension]?.[button.id] ?? button.visible !== false;
         if (!shown) continue;
-        result.push({ extension, extensionName: manifest.name, button });
+        result.push({
+          extension,
+          extensionName: manifest.name,
+          button,
+          decoration: resolveDecoration(
+            button,
+            decorations[extension]?.[button.id]
+          )
+        });
       }
     }
     return result;
@@ -377,7 +402,7 @@ export class PlotterExtensionService {
     this.publishToExtension(extension, 'action.invoked', invocation);
   }
 
-  /** `actions.setVisibility` and `buttons.setVisibility` for an extension context. */
+  /** `actions.setVisibility`, `buttons.setVisibility` and `buttons.decorate` for an extension context. */
   private visibilityMethods(extension: string): Record<string, MethodHandler> {
     return {
       'actions.setVisibility': this.setVisibilityMethod(
@@ -389,7 +414,50 @@ export class PlotterExtensionService {
         extension,
         'buttons',
         this.buttonVisibility
-      )
+      ),
+      'buttons.decorate': this.decorateMethod(extension)
+    };
+  }
+
+  /**
+   * Sets the style, colours and badge of the calling extension's own buttons.
+   * Every id must be one of the caller's manifest and at least one decoration
+   * must be given; otherwise nothing changes. The last call wins.
+   */
+  private decorateMethod(extension: string): MethodHandler {
+    return async (params) => {
+      const { ids, ...decorations }: DecorateButtonsParams = await parseParams(
+        (await import('./action-params')).DecorateButtonsParams,
+        params,
+        'buttons.badRequest' satisfies ButtonErrorReason
+      );
+      const given = {
+        style: decorations.style,
+        colors: decorations.colors,
+        badge: decorations.badge
+      };
+      if (Object.values(given).every((value) => value === undefined)) {
+        throw new RpcError('No decoration given', {
+          code: RPC_ERRORS.INVALID_PARAMS,
+          reason: 'buttons.badRequest' satisfies ButtonErrorReason
+        });
+      }
+      const buttons = this.manifests()[extension]?.buttons;
+      const own = new Set<unknown>(
+        Array.isArray(buttons) ? buttons.map((button) => button?.id) : []
+      );
+      const unknown = ids.filter((id) => !own.has(id));
+      if (unknown.length) {
+        throw new RpcError(`Unknown button id: ${unknown.join(', ')}`, {
+          reason: 'buttons.unknownId' satisfies ButtonErrorReason
+        });
+      }
+      this.buttonDecorations.update((all) => {
+        const mine = { ...all[extension] };
+        for (const id of ids) mine[id] = applyDecorate(mine[id] ?? {}, given);
+        return { ...all, [extension]: mine };
+      });
+      return {};
     };
   }
 
@@ -1082,17 +1150,22 @@ export class PlotterExtensionService {
   }
 
   /**
-   * An extension that left the collection forgets its `setVisibility`
-   * choices, so when it comes back its buttons and actions start from the
-   * manifest again, as its reloaded runtime does.
+   * An extension that left the collection forgets its `setVisibility` and
+   * `buttons.decorate` choices, so when it comes back its buttons and actions
+   * start from the manifest again, as its reloaded runtime does.
    */
-  private dropDepartedVisibility() {
+  private dropDepartedChoices() {
     const manifests = this.manifests();
     const present = (extension: string) => {
       const manifest = manifests[extension];
       return !!manifest && this.isCompatible(manifest);
     };
-    for (const choices of [this.actionVisibility, this.buttonVisibility]) {
+    const all: WritableSignal<Record<string, unknown>>[] = [
+      this.actionVisibility,
+      this.buttonVisibility,
+      this.buttonDecorations
+    ];
+    for (const choices of all) {
       const extensions = Object.keys(choices());
       if (extensions.every(present)) continue;
       choices.update((all) =>
@@ -1278,7 +1351,7 @@ export class PlotterExtensionService {
       this.manifests();
       untracked(() => {
         this.syncWindows();
-        this.dropDepartedVisibility();
+        this.dropDepartedChoices();
       });
     });
     // Relay every group apply — the user's Resource Groups checkbox or an

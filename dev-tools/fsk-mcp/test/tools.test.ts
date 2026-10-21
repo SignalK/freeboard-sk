@@ -176,6 +176,27 @@ test('fsk_set_button_visibility defaults to the probe button', () => {
   );
 });
 
+test('fsk_decorate_button sends only the decorations given, to the probe by default', () => {
+  assert.deepStrictEqual(run('fsk_decorate_button', { badge: 3 }), [
+    ['buttons.decorate', { ids: ['probe'], badge: 3 }, { session: undefined }]
+  ]);
+  assert.deepStrictEqual(
+    run('fsk_decorate_button', {
+      ids: ['x'],
+      style: null,
+      colors: { bg: '#ffd600' },
+      session: 's1'
+    }),
+    [
+      [
+        'buttons.decorate',
+        { ids: ['x'], style: null, colors: { bg: '#ffd600' } },
+        { session: 's1' }
+      ]
+    ]
+  );
+});
+
 test('fsk_list_action_invocations reads what the runtime recorded', async () => {
   const calls: Call[] = [];
   const recorded = [{ actionId: 'probe' }];
