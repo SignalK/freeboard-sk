@@ -32,16 +32,12 @@ import {
 /** The most windows open at once, across all extensions (`windows.limit`). */
 export const MAX_WINDOWS = 12;
 /**
- * Below this window-area width a modal window that does not fit is shown full
- * screen, as a dialog would be on a phone. Every other window always floats
- * (see `presentation`).
+ * A window area narrower than this is a phone's. There a modal window that
+ * does not fit is shown full screen, as a dialog would be (every other window
+ * always floats, see `presentation`), and a window whose minimum width does
+ * not fit may cover the right toolbar column (see `layoutArea`).
  */
-export const MODAL_FULLSCREEN_BREAKPOINT = 600;
-/**
- * Below this window-area width a window whose minimum width does not fit the
- * area may cover the right toolbar column instead of being drawn narrower.
- */
-export const MIN_WIDTH_REACH_BREAKPOINT = 600;
+export const NARROW_AREA_BREAKPOINT = 600;
 /** Device-local store of remembered geometry: extension -> restoreKey -> geometry. */
 export const WINDOW_GEOMETRY_KEY = 'fb-plotterext-windows';
 /** Marks a remembered geometry the user placed (`ExtWindow.userPlaced`). */
@@ -135,7 +131,7 @@ export class ExtWindowService {
   presentation(w: ExtWindow, area = this.area()): WindowPresentation {
     if (
       !w.modal ||
-      area.w >= MODAL_FULLSCREEN_BREAKPOINT ||
+      area.w >= NARROW_AREA_BREAKPOINT ||
       fitsArea(w.geometry, area)
     ) {
       return 'floating';
@@ -144,19 +140,20 @@ export class ExtWindowService {
   }
 
   /**
-   * What a window's geometry resolves against: the window area, or the reach
-   * area when the user placed it or, on a narrow area, its minimum width does
-   * not fit. A modal window stays in the area, clear of the toolbars its
-   * backdrop leaves usable.
+   * What a window's geometry resolves against. Normally the window area. The
+   * reach area when the user left the window over the toolbar column. On a
+   * narrow area, a window whose minimum width does not fit gets an area just
+   * that much wider (up to the reach area), so it covers no more of the
+   * column than its minimum needs. A modal window stays in the area, clear of
+   * the toolbars its backdrop leaves usable.
    */
   layoutArea(w: ExtWindow, area = this.area()): ViewportSize {
     if (w.modal || !this.reach()) return area;
-    if (
-      w.userPlaced ||
-      (area.w < MIN_WIDTH_REACH_BREAKPOINT &&
-        requiredWidth(w.geometry, area) > area.w)
-    ) {
-      return reachArea(area, this.reach());
+    const reach = reachArea(area, this.reach());
+    if (w.userPlaced) return reach;
+    if (area.w < NARROW_AREA_BREAKPOINT) {
+      const need = requiredWidth(w.geometry, area);
+      if (need > area.w) return { w: Math.min(need, reach.w), h: area.h };
     }
     return area;
   }
@@ -334,15 +331,25 @@ export class ExtWindowService {
   }
 
   /**
-   * A user move or resize ended at `r` (px, window area). The geometry is
-   * anchored in the area the gesture could reach, so a window left over the
-   * toolbar column stays there when the area changes.
+   * A user move or resize ended at `r` (px, window area). A window left over
+   * the toolbar column is anchored in the reach area, so it stays there when
+   * the area changes. One left inside the area is anchored in the area, as
+   * before, so a smaller area never pushes it onto the column.
    */
   setRectFromGesture(id: string, r: PxRect) {
-    this.patch(id, (w) => ({
-      geometry: anchoredGeometry(r, this.gestureArea(w), w.geometry),
-      userPlaced: !w.modal
-    }));
+    this.patch(id, (w) => {
+      const area = this.area();
+      const over =
+        !w.modal && this.reach() > 0 && r.x + r.w > Math.ceil(area.w);
+      return {
+        geometry: anchoredGeometry(
+          r,
+          over ? this.gestureArea(w, area) : area,
+          w.geometry
+        ),
+        userPlaced: over
+      };
+    });
     this.remember(id);
   }
 

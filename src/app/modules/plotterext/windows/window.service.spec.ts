@@ -337,8 +337,7 @@ describe('ExtWindowService', () => {
           anchor: 'bottom-left',
           offset: { x: 20, y: 20 },
           width: 300,
-          height: 180,
-          fbUserPlaced: true
+          height: 180
         }
       }
     });
@@ -406,10 +405,18 @@ describe('ExtWindowService', () => {
         geometry: { width: 320, minWidth: 320, height: 300 }
       });
       expect(service.stateOf(wide).bounds).toEqual({
-        x: 16,
+        x: 0,
         y: 0,
         width: 320,
         height: 300
+      });
+      // asked wider than its minimum: it covers only what the minimum needs
+      const wider = open({
+        geometry: { width: 400, minWidth: 300, height: 300 }
+      });
+      expect(service.stateOf(wider).bounds).toMatchObject({
+        x: 0,
+        width: 300
       });
       // without a minimum it is shrunk to fit, as before
       const shrunk = open({ geometry: { width: 320, height: 300 } });
@@ -420,6 +427,28 @@ describe('ExtWindowService', () => {
       service.setArea({ w: 700, h: 700 }, 54);
       const w = open({ geometry: { minWidth: 740, height: 300 } });
       expect(service.stateOf(w).bounds.width).toBe(700);
+    });
+
+    it('never pushes a window the user left inside the area onto the column', () => {
+      service.setArea({ w: 700, h: 800 }, 54);
+      const w = open();
+      service.setRectFromGesture(w.id, { x: 300, y: 16, w: 350, h: 280 });
+      expect(service.get(w.id)?.userPlaced).toBe(false);
+      service.setArea({ w: 500, h: 800 }, 54);
+      const b = service.stateOf(service.get(w.id)!).bounds;
+      expect(b.x + b.width).toBeLessThanOrEqual(500);
+      // a phone rotated to portrait shrinks it to the area, not the reach
+      service.setArea({ w: 736, h: 400 }, 54);
+      service.setRectFromGesture(w.id, { x: 193, y: 16, w: 350, h: 280 });
+      service.setArea({ w: 282, h: 700 }, 54);
+      expect(service.stateOf(service.get(w.id)!).bounds.width).toBe(282);
+    });
+
+    it('treats a window moved back inside the area as inside again', () => {
+      const w = open();
+      service.setRectFromGesture(w.id, { x: 704, y: 16, w: 350, h: 280 });
+      service.setRectFromGesture(w.id, { x: 650, y: 16, w: 350, h: 280 });
+      expect(service.get(w.id)?.userPlaced).toBe(false);
     });
 
     it('hands placement back to the extension when it changes the geometry', () => {

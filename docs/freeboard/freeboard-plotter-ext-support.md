@@ -466,7 +466,7 @@ back after a reload opens them again (typically from a background runtime).
   itself is kept, so the window grows back on a larger area or after a
   rotation; a user move or resize there stores the new size as usual. Freeboard
   never uses `sheet`. Only a modal window that does not fit an area narrower
-  than `MODAL_FULLSCREEN_BREAKPOINT` (600 px) goes `fullscreen`, as a dialog
+  than `NARROW_AREA_BREAKPOINT` (600 px) goes `fullscreen`, as a dialog
   would; the choice is re-made whenever the area changes.
 - **Ownership.** A window belongs to its extension (`ExtWindow.extension`): any
   of the extension's contexts can manage it, and no other extension can see it.
@@ -504,13 +504,20 @@ default geometry resolve against the window area, so automated placement never
 covers a toolbar. A window resolves against the wider *reach area* instead
 (the spec's *Beyond the window area*) when:
 
-- the user moved or resized it (`ExtWindow.userPlaced`, remembered with a
-  `restoreKey`; cleared when the extension next changes its geometry). Its
-  geometry is anchored in the reach area, so a window left over the column
-  stays there as the area changes, and a move snaps to the column's edge as
-  well as the screen's;
-- on an area narrower than 600 px, its `minWidth` does not fit the area. It is
-  drawn at its minimum over the column rather than shrunk below it.
+- the user's move or resize left it over the column (`ExtWindow.userPlaced`,
+  remembered with a `restoreKey`; cleared by a move back inside, or when the
+  extension next changes its geometry). Its geometry is anchored in the reach
+  area, so it stays over the column as the area changes. A window the user
+  left inside the area is anchored in the area as before, so a smaller area
+  never pushes it onto the column. A move snaps to the column's edge as well
+  as the screen's;
+- on an area narrower than `NARROW_AREA_BREAKPOINT`, its `minWidth` does not
+  fit the area. It resolves against an area just `minWidth` wide (at most the
+  reach area), so it covers only as much of the column as its minimum needs.
+
+A modal window makes every other window `inert` while it is open: the backdrop
+does not cover the right column, so it cannot block a window the user put
+there.
 
 The left column holds the Alarms button and is never covered. Nor is anything
 safety-related on the right: its mute button only repeats the Alarms button's.
