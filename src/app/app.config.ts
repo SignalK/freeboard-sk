@@ -43,9 +43,12 @@ function applyDefaults(schema: TSchema, value: unknown): unknown {
     }
     return value;
   }
+  const list = Type.IsUnion(schema)
+    ? schema.anyOf.find((member) => Type.IsArray(member))
+    : schema;
   const setting =
-    Type.IsArray(schema) && Array.isArray(value)
-      ? value.filter((item) => Check(schema.items, item))
+    list && Type.IsArray(list) && Array.isArray(value)
+      ? value.filter((item) => Check(list.items, item))
       : value;
   if (setting !== undefined && Check(schema, setting)) {
     return setting;

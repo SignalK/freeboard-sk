@@ -418,6 +418,17 @@ describe('cleanConfig() defaults', () => {
     expect(cfg.selections.chartOpacity).toEqual({ a: 0.5 });
   });
 
+  it('drops only the entries of the wrong type from a list that may be null', () => {
+    const cfg = defaultConfig();
+    (cfg.selections.tracks as unknown[]) = ['a', null, 'b'];
+    (cfg.selections.aisTargets as unknown[]) = [1, 'c'];
+    cfg.selections.infolayers = null;
+    cleanConfig(cfg, {});
+    expect(cfg.selections.tracks).toEqual(['a', 'b']);
+    expect(cfg.selections.aisTargets).toEqual(['c']);
+    expect(cfg.selections.infolayers).toBeNull();
+  });
+
   it('keeps settings and choices this release does not know', () => {
     const cfg = defaultConfig() as IAppConfig & { later?: unknown };
     cfg.later = { kept: true };
