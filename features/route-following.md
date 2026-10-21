@@ -54,7 +54,12 @@ Both are unavailable while the route has unsaved edits.
 point**. To move on without touching anything, turn on **Auto-advance to next
 point on arrival** in Settings → Course, then choose which notification
 triggers it (passing the perpendicular, or entering the arrival circle) and
-how long to wait. Advancing on arrival, by hand or automatically, follows the
+how long to wait: **Immediately**, or 1 to 30 seconds. While it waits, the
+alert counts down ("Next point in 5 secs", or "End Route in 5 secs" at the
+last point). Press the countdown to cancel, and the alert offers **Next
+point** (or **End Route**) for when you're ready. With **Immediately** there
+is no countdown: the next point is selected, or the route ended, as soon as
+the alert arrives. Advancing on arrival, by hand or automatically, follows the
 planned leg rather than steering straight from the boat. The **Arrival
 Circle** size is set in the same place.
 
