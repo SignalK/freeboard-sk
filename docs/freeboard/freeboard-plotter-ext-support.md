@@ -37,7 +37,7 @@ package; Freeboard depends on it (`^0.23.0`) and imports its host entry point
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
 `widgets`, `panels.iframe`, `panels.state`, `buttons`, `buttons.visibility`,
-`events.publish`, `signalk.stream`,
+`buttons.decorations`, `events.publish`, `signalk.stream`,
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
@@ -124,7 +124,7 @@ toolbar's items from that list, so a hidden button is not rendered at all and
 the toolbar closes the gap; shown again, it takes its manifest place back. The
 override is kept in memory only (`buttonVisibility`, by extension then button
 id), so a reload starts from the manifest again. An extension that leaves the
-collection loses its overrides (`dropDepartedVisibility`, for actions too), so
+collection loses its overrides (`dropDepartedChoices`, for actions too), so
 when it comes back its buttons start from the manifest, as its reloaded runtime
 does.
 
@@ -155,6 +155,78 @@ unknown. Freeboard advertises the capability, so it never answers
 | `src/app/modules/plotterext/action-params.ts` | the `setVisibility` params schema, shared with actions |
 | `src/app/app.component.ts` | `rightToolbarItems`, the toolbar items built from `toolbarButtons` |
 | `dev-tools/fsk-mcp/src/tools.ts` | `fsk_set_button_visibility` (the bridge's hidden probe button) |
+
+## The `buttons.decorations` capability
+
+`buttons.decorations` lets an extension show state on its own toolbar buttons
+(spec: *Decorating buttons*): a function switched on, a warning, a count waiting.
+
+### The decoration model
+
+Each `toolbarButtons` entry carries the `decoration` it is drawn with,
+`{ style, colors?, badge }` (`resolveDecoration` in `button-decorations.ts`):
+the button's `buttons.decorate` choices over its manifest `style`, `colors` and
+`badge`, with an invalid manifest value ignored as though unset. The choices are
+kept in memory only (`buttonDecorations`, by extension then button id), so a
+reload starts from the manifest. They survive the button being hidden, and an
+extension that leaves the collection loses them with its visibility choices
+(`dropDepartedChoices`).
+
+`decorationToolbarFields` turns a decoration into toolbar item fields, and
+`rightToolbarItems` spreads them into the extension button's `ToolbarItem`:
+
+| `style` | Toolbar item | Button class | Overflow menu icon |
+|---------|--------------|--------------|--------------------|
+| `normal` | — | `button-toolbar` | plain |
+| `active` | `active`, `pressed` | `button-primary` | `icon-primary` |
+| `warning` | `tone: 'warning'` | `button-accent` | `icon-accent` |
+| `alarm` | `tone: 'alarm'` | `button-warn` | `icon-warn` |
+
+The toolbar (`fb-map-toolbar`) owns the drawing, so built-in buttons can use
+`tone`, `colors` and `pressed` too:
+
+- **Custom colours.** The theme's button classes set their colours with
+  `!important`, so `colors` is drawn through the component's `custom-bg` /
+  `custom-fg` classes, whose rules read the `--toolbar-button-bg` / `-fg`
+  properties bound on the button. A colour left out keeps the class's. Night
+  mode is a filter over the whole app, so custom colours dim with everything
+  else.
+- **Overflow.** A hidden item that is `active`, has a badge or has a `tone`
+  puts the dot on the overflow button (`needsAttention`); its menu entry shows
+  the badge in its label and the style in its icon.
+- **Screen readers.** The button's `aria-label` includes the badge count (the
+  menu label), and `pressed` sets `aria-pressed="true"`. Only extension buttons
+  set `pressed`: a built-in `active` item is not always a toggle.
+
+### Methods
+
+`buttons.decorate({ ids, style?, colors?, badge? })` (`decorateMethod`, params
+schema `DecorateButtonsParams` in `action-params.ts`): every id must be a button
+of the caller's manifest and at least one decoration must be given; any of the
+extension's contexts may call it, and the last call wins. `applyDecorate`
+applies it: a decoration left out is unchanged, `null` drops the choice, and
+`colors` is replaced as a whole (`{}` means the style's colours even over
+manifest ones).
+
+### Error reasons
+
+`buttons.badRequest` (`ids` not a list of strings, no decoration given, a
+`style` that is not one of the four, a colour that is not `#rrggbb`, or a
+`badge` that is not a whole number `0` or more), `buttons.unknownId` (an id that
+is not a button of the caller's manifest). A call that fails changes nothing.
+The embedding host has no manifest, so every id it sends is unknown. Freeboard
+advertises the capability, so it never answers `buttons.notSupported`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/button-decorations.ts` | `resolveDecoration`, `applyDecorate`, `decorationToolbarFields` |
+| `src/app/modules/plotterext/plotterext.service.ts` | `buttonDecorations`, `toolbarButtons`, `buttons.decorate` (`decorateMethod`) |
+| `src/app/modules/plotterext/action-params.ts` | the `DecorateButtonsParams` schema |
+| `src/app/lib/components/map-toolbar/` | `ToolbarItem.tone` / `colors` / `pressed` and how they are drawn |
+| `src/app/app.component.ts` | `rightToolbarItems`, which applies the decoration fields |
+| `dev-tools/fsk-mcp/src/tools.ts` | `fsk_decorate_button` (decorates the bridge's probe button) |
 
 ## The `routes` capability
 
