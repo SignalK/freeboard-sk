@@ -537,7 +537,7 @@ export class SKStreamFacade {
       this.app.data.aircraft = result.aircraft;
 
       // process sensor targets
-      this.app.data.targets = msg.result.targets;
+      this.app.data.targets = result.targets;
 
       // update AIS Lifecycle signal
       this.aisLifecycle.update(() => {

@@ -15,7 +15,8 @@ const bareComponent = (type: string, id: string) => {
     ais: new Map([['vessels.urn:mrn:imo:mmsi:123456789', {}]]),
     atons: new Map([['atons.urn:mrn:imo:mmsi:993456789', {}]]),
     sar: new Map([['sar.urn:mrn:imo:mmsi:970123456', {}]]),
-    aircraft: new Map([['aircraft.urn:mrn:imo:mmsi:111234567', {}]])
+    aircraft: new Map([['aircraft.urn:mrn:imo:mmsi:111234567', {}]]),
+    targets: new Map([['targets.radar:nav1-17', {}]])
   };
   return cmp;
 };
@@ -25,7 +26,8 @@ describe('FBMapComponent — popover target no longer received', () => {
     ['ais', 'vessels.urn:mrn:imo:mmsi:123456789', 'vessels.gone'],
     ['aton', 'atons.urn:mrn:imo:mmsi:993456789', 'atons.gone'],
     ['aton', 'sar.urn:mrn:imo:mmsi:970123456', 'sar.gone'],
-    ['aircraft', 'aircraft.urn:mrn:imo:mmsi:111234567', 'aircraft.gone']
+    ['aircraft', 'aircraft.urn:mrn:imo:mmsi:111234567', 'aircraft.gone'],
+    ['aton', 'targets.radar:nav1-17', 'targets.gone']
   ];
   for (const [type, present, gone] of cases) {
     it(`keeps the ${gone.split('.')[0]} popover while its target is received`, () => {
@@ -62,7 +64,8 @@ describe('FBMapComponent — vessel update with the popover target gone', () => 
         aircraft: new Map(),
         sar: new Map(),
         meteo: new Map(),
-        atons: new Map()
+        atons: new Map(),
+        targets: new Map()
       }
     };
     cmp.course = { courseData: () => ({}) };

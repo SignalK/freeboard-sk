@@ -67,7 +67,10 @@ export function processSensorTarget(
     d.id = id;
     d.position = null;
     const type = id.slice('targets.'.length).split(':')[0];
-    d.type.name = `${type.charAt(0).toUpperCase()}${type.slice(1)} target`;
+    d.type = {
+      id: -1,
+      name: `${type.charAt(0).toUpperCase()}${type.slice(1)} target`
+    };
     targets.set(id, d);
   }
   d.lastUpdated = new Date();
@@ -158,11 +161,12 @@ export function unlinkedTargets(
     }
   });
   freshest.forEach((target, root) => {
-    if (target.id !== root) {
+    const item = shown.get(root);
+    if (item && target.id !== root) {
       // shown with the course and speed of the target whose line it draws
       shown.set(
         root,
-        Object.assign(placedAt(shown.get(root), target), {
+        Object.assign(placedAt(item, target), {
           cog: target.cog,
           sog: target.sog,
           orientation: target.orientation
@@ -188,7 +192,7 @@ function rootOf(
   let current = id;
   for (;;) {
     visited.push(current);
-    const next = targets.get(current).sameAs;
+    const next = targets.get(current)?.sameAs ?? null;
     if (next !== null && charted(next)) {
       return next;
     }
@@ -215,15 +219,16 @@ export function fusedVessels(
 ): Map<string, SKVessel> {
   const freshest = new Map<string, SKSensorTarget>();
   targets.forEach((target) => {
-    const vessel = target.sameAs ? vessels.get(target.sameAs) : undefined;
+    const sameAs = target.sameAs;
+    const vessel = sameAs ? vessels.get(sameAs) : undefined;
     if (
+      sameAs &&
       vessel &&
       target.position &&
       target.positionUpdatedAt > vessel.positionUpdatedAt &&
-      target.positionUpdatedAt >
-        (freshest.get(target.sameAs)?.positionUpdatedAt ?? 0)
+      target.positionUpdatedAt > (freshest.get(sameAs)?.positionUpdatedAt ?? 0)
     ) {
-      freshest.set(target.sameAs, target);
+      freshest.set(sameAs, target);
     }
   });
   if (freshest.size === 0) {
@@ -231,7 +236,10 @@ export function fusedVessels(
   }
   const fused = new Map(vessels);
   freshest.forEach((target, id) => {
-    fused.set(id, placedAt(vessels.get(id), target));
+    const vessel = vessels.get(id);
+    if (vessel) {
+      fused.set(id, placedAt(vessel, target));
+    }
   });
   return fused;
 }
