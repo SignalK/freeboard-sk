@@ -152,5 +152,6 @@
   { "feature": "route-following", "pr": 1155, "kind": "enhanced", "date": "2026-10-21", "title": "feat(course): add shorter auto-advance delay options" },
   { "feature": null, "pr": 1143, "kind": "skip", "reason": "performance only: the periodic trail refresh refetches just the recent band; no user-facing change" },
   { "feature": null, "pr": 1146, "kind": "skip", "reason": "performance only: the older trail is fetched for a whole view around the map, so panning refetches less; no user-facing change" },
-  { "feature": null, "pr": 1147, "kind": "skip", "reason": "performance only: the trail is refetched once the zoom settles instead of once per level; no new capability" }
+  { "feature": null, "pr": 1147, "kind": "skip", "reason": "performance only: the trail is refetched once the zoom settles instead of once per level; no new capability" },
+  { "feature": "temporal-charts", "pr": 1076, "kind": "enhanced", "date": "2026-10-19", "title": "feat(charts): step through a forecast's hours ahead in the Time palette" }
 ]
