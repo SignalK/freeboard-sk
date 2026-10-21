@@ -572,13 +572,12 @@ export class AppFacade extends InfoService {
   }
 
   // line dash style format helpers
+  // A style this release doesn't know, saved by a later one, draws solid.
   formatLineDashArray(value: LineStyleDash): number[] | null {
-    return value === 'none'
+    const pattern = this.lineDashMap.get(value);
+    return !pattern || pattern === 'none'
       ? null
-      : // every LineStyleDash has an entry
-        Array.from(this.lineDashMap.get(value)!)
-          .filter((i) => i !== ' ')
-          .map((i) => Number(i));
+      : pattern.split(' ').map((i) => Number(i));
   }
 
   /** Initialise and raise "settings$.load" event */

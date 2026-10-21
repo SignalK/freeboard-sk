@@ -6,6 +6,7 @@ import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
 import { AppFacade } from './app.facade';
 import { defaultConfig } from './app.config';
+import { LineStyleDash } from './modules/settings/components/linestyle-select.component';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
 import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
 import { SignalKClient } from 'signalk-client-angular';
@@ -451,6 +452,24 @@ describe('AppFacade.parseHttpErrorResponse', () => {
       'Error',
       expect.stringContaining('Operation could not be completed!')
     );
+  });
+});
+
+describe('AppFacade.formatLineDashArray', () => {
+  let app: AppFacade;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    app = TestBed.inject(AppFacade);
+  });
+
+  it('turns a dash style into its dash pattern', () => {
+    expect(app.formatLineDashArray('alt')).toEqual([8, 4, 2, 4]);
+    expect(app.formatLineDashArray('none')).toBeNull();
+  });
+
+  it('draws a dash style saved by a later release as a solid line', () => {
+    expect(app.formatLineDashArray('later-style' as LineStyleDash)).toBeNull();
   });
 });
 
