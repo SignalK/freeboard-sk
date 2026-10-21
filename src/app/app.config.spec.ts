@@ -144,6 +144,18 @@ describe('cleanConfig() legacy migration', () => {
     ]);
   });
 
+  it('drops a plotter extension widget entry that is not an object', () => {
+    const cfg = legacyConfig();
+    const widgets = cfg.plotterExtensions.widgets as unknown[];
+    widgets.push(null, 'x');
+    cleanConfig(cfg, {});
+    expect(cfg.plotterExtensions.widgets?.map((w) => w.instanceId)).toEqual([
+      'a',
+      'b',
+      'c'
+    ]);
+  });
+
   it.each([
     [true, 'server'],
     [false, 'auto']

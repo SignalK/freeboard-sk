@@ -187,6 +187,7 @@ function migrate(settings: LegacyAppConfig) {
     delete extensions.enabled;
     if (Array.isArray(extensions.widgets)) {
       extensions.widgets = extensions.widgets
+        .filter((w) => isSection(w))
         .map((w) => {
           // early builds used `corner` with a `tl` option
           if (w.corner && !w.anchor) {
