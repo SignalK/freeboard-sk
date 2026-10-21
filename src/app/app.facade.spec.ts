@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
 import { AppFacade } from './app.facade';
+import { defaultConfig } from './app.config';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
 import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
 import { SignalKClient } from 'signalk-client-angular';
@@ -450,5 +451,43 @@ describe('AppFacade.parseHttpErrorResponse', () => {
       'Error',
       expect.stringContaining('Operation could not be completed!')
     );
+  });
+});
+
+describe('AppFacade.loadUserConfigfromServer', () => {
+  const setup = (serverSettings: object) => {
+    const client = {
+      get: vi.fn(() => EMPTY),
+      setAppId: vi.fn(),
+      setAppVersion: vi.fn(),
+      isLoggedIn: vi.fn(() => of(true)),
+      appDataGet: vi.fn(() => of(serverSettings)),
+      appDataSet: vi.fn(() => EMPTY),
+      api: { get: vi.fn(() => EMPTY) }
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: client }]
+    });
+    return { app: TestBed.inject(AppFacade), client };
+  };
+
+  it('keeps the local settings when the server holds none', async () => {
+    const { app, client } = setup({});
+    app.config.ui.mapNorthUp = false;
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.ui.mapNorthUp).toBe(false);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it('applies the settings the server holds', async () => {
+    const saved = defaultConfig();
+    saved.ui.mapNorthUp = false;
+    const { app } = setup(saved);
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.config.ui.mapNorthUp).toBe(false);
   });
 });

@@ -59,12 +59,7 @@ import {
   LengthUnitDef
 } from './types';
 
-import {
-  defaultConfig,
-  validateConfig,
-  cleanConfig,
-  initData
-} from './app.config';
+import { defaultConfig, cleanConfig, initData } from './app.config';
 
 import { getSvgList } from './modules/icons';
 import { PLOTTER_EXTENSIONS_RESOURCE } from './modules/plotterext/types';
@@ -648,15 +643,14 @@ export class AppFacade extends InfoService {
               next: (serverSettings) => {
                 if (Object.keys(serverSettings).length === 0) {
                   resolve(false);
+                  return;
                 }
                 cleanConfig(serverSettings, this.hostDef.params);
-                if (validateConfig(serverSettings)) {
-                  this.config = serverSettings;
-                  this.doPostConfigLoad();
-                  this.alignCustomResourcesPaths();
-                  this.alignUnitPrefs(this.serverConfig.unitPreferences());
-                  this.saveConfig();
-                }
+                this.config = serverSettings;
+                this.doPostConfigLoad();
+                this.alignCustomResourcesPaths();
+                this.alignUnitPrefs(this.serverConfig.unitPreferences());
+                this.saveConfig();
                 resolve(true);
               },
               error: () => {
