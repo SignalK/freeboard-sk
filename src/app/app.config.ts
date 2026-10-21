@@ -18,9 +18,14 @@ const isSection = (value: unknown): value is Record<string, unknown> =>
 /**
  * Whether settings read from the server are a saved config at all, so that a
  * malformed one, cleaned to the defaults, never replaces the local settings.
+ * Every release since 2.13 saves the speed unit and the zoom level.
  */
 export const isSavedConfig = (value: unknown): boolean =>
-  isSection(value) && isSection(value.units) && isSection(value.map);
+  isSection(value) &&
+  isSection(value.units) &&
+  typeof value.units.speed === 'string' &&
+  isSection(value.map) &&
+  typeof value.map.zoomLevel === 'number';
 
 /**
  * Fills each setting that is missing, or stored with the wrong JSON type, with

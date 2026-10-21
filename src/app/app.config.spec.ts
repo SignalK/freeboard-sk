@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cleanConfig, defaultConfig } from './app.config';
+import { cleanConfig, defaultConfig, isSavedConfig } from './app.config';
 import { TRAIL_DURATION_ALL } from './modules/skstream/track-source';
 import { IAppConfig, LegacyAppConfig } from './types';
 import savedConfigs from './app.config.saved.json';
@@ -346,6 +346,15 @@ describe('cleanConfig() on configs saved by earlier releases', () => {
       );
     });
   }
+});
+
+describe('isSavedConfig()', () => {
+  it('accepts the config of every earlier release', () => {
+    for (const { saved } of savedConfigs.configs) {
+      expect(isSavedConfig(saved)).toBe(true);
+    }
+    expect(isSavedConfig(defaultConfig())).toBe(true);
+  });
 });
 
 describe('cleanConfig() defaults', () => {

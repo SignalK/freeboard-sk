@@ -507,6 +507,8 @@ describe('AppFacade.loadUserConfigfromServer', () => {
       null,
       { units: {} },
       { units: {}, map: 'chart' },
+      { units: {}, map: {} },
+      { units: { speed: 'kn' }, map: { zoomLevel: '5' } },
       { ui: { mapNorthUp: true } }
     ]) {
       TestBed.resetTestingModule();
