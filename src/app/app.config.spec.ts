@@ -178,6 +178,13 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels.trailSource).toBe('local');
   });
 
+  it('keeps a trail source a later release added', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    (cfg.vessels.trailSource as string) = 'later-source';
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.trailSource).toBe('later-source');
+  });
+
   it('defaults the trail source to auto', () => {
     expect(defaultConfig().vessels.trailSource).toBe('auto');
   });

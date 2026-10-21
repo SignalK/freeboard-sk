@@ -138,10 +138,12 @@ function migrate(settings: LegacyAppConfig) {
       vessels.trailResolutionApplied = true;
     }
     // legacy boolean trailFromServer -> tri-state trailSource (#820)
-    vessels.trailSource = migrateTrailSource(
-      vessels.trailFromServer,
-      vessels.trailSource
-    );
+    if (typeof vessels.trailSource === 'undefined') {
+      vessels.trailSource = migrateTrailSource(
+        vessels.trailFromServer,
+        vessels.trailSource
+      );
+    }
     delete vessels.trailFromServer;
     // @todo remove (implemented) v2.22.2
     if (typeof vessels.selfLines === 'undefined') {
