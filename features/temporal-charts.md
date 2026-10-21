@@ -10,7 +10,8 @@ A weather radar, satellite or nowcast chart is not one picture but a run of them
 one every few minutes. Where a chart provider offers those earlier frames, Freeboard
 lets you scrub back through them, step frame by frame, and play the run as a loop —
 the way you would on a weather app — without the provider having to publish a
-separate chart for every frame.
+separate chart for every frame. A forecast chart works the same way, forward: you
+step through the hours ahead instead of back.
 
 ## Which charts
 
@@ -58,17 +59,36 @@ say so. While the palette is open, the frame you have selected stays exactly whe
 you put it: a chart that also auto-refreshes keeps its bar and loop current as new
 frames arrive, but never moves your selection.
 
+## Forecasts
+
+A forecast chart (a weather model's wind or waves for each hour of the next few days,
+for example) is a run of frames too, but nearly all of them are *ahead* of now. They
+all exist already, so on a forecast the palette covers the whole forecast:
+
+- **The bar** spans the whole forecast, not the last 12 hours.
+- **‹ ›** step from the frame being shown (the current hour, to begin with) through
+  the hours ahead, and stop at the first and last hours.
+- **Loop** starts as the run from now to the end of the forecast, so **Play** plays
+  through the hours ahead. A loop you have changed is remembered, as for any chart.
+- **NOW** returns to the frame for the current hour.
+
+Closing the palette also returns a forecast to the current hour, and that is the
+hour it opens on when Freeboard loads. The chart's provider marks it as a forecast
+(see *For chart-provider plugins*). Weather radar, satellite and other time-varying
+charts behave as described above.
+
 ## What the chart list shows
 
-While a chart is showing a past frame its row carries a small **"at …"** note with
-the frame's time, so a ticked chart drawing old weather says why. The note clears
-when the chart is back on its newest frame.
+While a chart is showing a past frame (or, on a forecast, any hour other than the
+current one) its row carries a small **"at …"** note with the frame's time, so a
+ticked chart drawing old weather says why. The note clears when the chart is back
+on its newest frame (on a forecast, the current hour).
 
 ## What is remembered
 
 - The **frame you are looking at is not remembered** — every time-varying chart
-  starts on its newest frame when Freeboard loads, and returns to it when the
-  palette closes.
+  starts on its newest frame (a forecast, on the current hour) when Freeboard
+  loads, and returns to it when the palette closes.
 - The **loop range is remembered per chart**, measured back from the newest frame,
   so a chart you loop over "the last three hours" opens on the last three hours
   next time too.
@@ -86,7 +106,10 @@ keeps up the same way.
 ## For chart-provider plugins
 
 Add a **`time`** block to the chart resource. `current: true` says the source serves
-a live frame (so NOW is offered); `from` / `to` / `step` (milliseconds) or an
+a live frame (so NOW is offered); `forecast: true` says the frames are a forecast:
+every one from `from` to `to` exists already, the ones ahead of now included.
+Without it, Freeboard takes frames after now as not there yet, which is right for
+a rolling radar product whose declared `to` runs ahead of the present. `from` / `to` / `step` (milliseconds) or an
 explicit `values` list describe the frames on offer. For **tile layers and TileJSON**
 sources, `time.url` is the tile URL template with a `{time}` placeholder that
 Freeboard fills with the ISO 8601 instant; the plain `url` stays the live frame.
