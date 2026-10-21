@@ -27,6 +27,13 @@ button, for example, may appear only while a recording runs. The buttons below c
 the gap, and a button that comes back returns to the same place. Hiding a button never
 closes the panel or window it opened.
 
+A plugin's button can also show its state, the way Freeboard's own Alarms
+button does. It can carry a count badge (shown as 99+ above 99), light up while
+something is switched on, turn orange for a warning or red for an alarm, or use
+the plugin's own colors. When the button has moved into the **…** menu, the
+same state shows there. In night mode the colors dim with the rest of the
+screen.
+
 A panel can also narrow down what's shown on the chart — for example,
 filtering the waypoints list to just the ones matching your search. When a
 panel does this, a small chip appears near the top of the screen describing
