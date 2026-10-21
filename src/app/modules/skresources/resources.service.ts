@@ -838,7 +838,7 @@ export class SKResourceService {
     } catch (err) {
       this.app.debug('** refreshCharts:', err);
       const flist = this.appendOSM([]);
-      this.chartCacheSignal.set(flist);
+      this.chartCacheSignal.set(this.withShownInstants(flist));
       this.setMapZoomRange();
     }
     this.migrateAdoptedOverlays();

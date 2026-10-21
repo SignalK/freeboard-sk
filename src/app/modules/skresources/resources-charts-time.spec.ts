@@ -325,6 +325,19 @@ describe('a chart that is not shown', () => {
     expect(shownRadar(svc)?.[1].timeValue).toBe(T1);
   });
 
+  it('keeps its instant through a chart list that could not be fetched', async () => {
+    const { svc, show } = svcHidingRadar();
+    await show();
+    svc.chartSetTime('radar', T1);
+    const list = (svc as unknown as { listChartsFromServer: () => unknown })
+      .listChartsFromServer as ReturnType<typeof vi.fn>;
+    list.mockRejectedValueOnce(new Error('offline'));
+    await svc.refreshCharts();
+    expect(shownRadar(svc)).toBeUndefined();
+    await show();
+    expect(shownRadar(svc)?.[1].timeValue).toBe(T1);
+  });
+
   it('opens live once its instant has been moved back to null', async () => {
     const { svc, show, hide } = svcHidingRadar();
     svc.chartSetTime('radar', T0);
