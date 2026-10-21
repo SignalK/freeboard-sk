@@ -88,15 +88,26 @@ export function applyGesture(
 /** Distance in px within which a moved window snaps to a viewport edge. */
 export const SNAP_DISTANCE = 12;
 
-/** Snap a window flush to any viewport edge it is within `threshold` of. */
+/**
+ * Snap a window flush to any viewport edge it is within `threshold` of. With
+ * `innerRight`, a window can also snap its right edge to that line: the edge
+ * of the window area when the viewport reaches past it (see `reachArea`).
+ */
 export function snapToEdges(
   r: PxRect,
   viewport: ViewportSize,
-  threshold = SNAP_DISTANCE
+  threshold = SNAP_DISTANCE,
+  innerRight?: number
 ): PxRect {
   let { x, y } = r;
   if (Math.abs(x) <= threshold) x = 0;
   else if (Math.abs(viewport.w - (x + r.w)) <= threshold) x = viewport.w - r.w;
+  else if (
+    innerRight !== undefined &&
+    Math.abs(innerRight - (x + r.w)) <= threshold
+  ) {
+    x = innerRight - r.w;
+  }
   if (Math.abs(y) <= threshold) y = 0;
   else if (Math.abs(viewport.h - (y + r.h)) <= threshold) y = viewport.h - r.h;
   return { ...r, x, y };
@@ -105,8 +116,8 @@ export function snapToEdges(
 /**
  * `applyGesture` for a live pointer: resize deltas are limited so the dragged
  * edge stops at the viewport edge (the opposite edge never moves), a move
- * snaps to nearby viewport edges, and the result is clamped with
- * `clampToViewport`.
+ * snaps to nearby viewport edges (and `innerRight`, see `snapToEdges`), and
+ * the result is clamped with `clampToViewport`.
  */
 export function boundedGesture(
   start: PxRect,
@@ -114,7 +125,8 @@ export function boundedGesture(
   dx: number,
   dy: number,
   viewport: ViewportSize,
-  limits: GeometryLimits = DEFAULT_LIMITS
+  limits: GeometryLimits = DEFAULT_LIMITS,
+  innerRight?: number
 ): PxRect {
   if (mode !== 'move') {
     if (mode.includes('e')) dx = Math.min(dx, viewport.w - start.x - start.w);
@@ -134,7 +146,9 @@ export function boundedGesture(
     bounds
   );
   // Snapping only ever moves a clamped window flush to an edge it fits on.
-  return mode === 'move' ? snapToEdges(r, viewport) : r;
+  return mode === 'move'
+    ? snapToEdges(r, viewport, SNAP_DISTANCE, innerRight)
+    : r;
 }
 
 /**
@@ -261,6 +275,24 @@ export function cleanGeometry(g: WindowGeometry): WindowGeometry {
     if (g[k] !== undefined) out[k] = g[k];
   }
   return out;
+}
+
+/**
+ * The window area plus the `reach` px past its right edge that a window may
+ * cover: the host's right toolbar column. Both share the area's top-left, so
+ * a rectangle means the same in either.
+ */
+export function reachArea(area: ViewportSize, reach: number): ViewportSize {
+  return { w: area.w + reach, h: area.h };
+}
+
+/** The narrowest a window may be drawn: the host's minimum or its `minWidth`. */
+export function requiredWidth(
+  g: WindowGeometry,
+  area: ViewportSize,
+  limits: GeometryLimits = DEFAULT_LIMITS
+): number {
+  return Math.max(limits.minW, lengthPx(g.minWidth, area.w) ?? 0);
 }
 
 /**

@@ -615,12 +615,16 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
   private onMove = (e: PointerEvent) => {
     const g = this.gesture;
     if (!g || e.pointerId !== g.pointerId) return;
+    const area = this.windows.area();
+    const reach = this.windows.gestureArea(this.def(), area);
     g.current = boundedGesture(
       g.start,
       g.mode,
       e.clientX - g.startX,
       e.clientY - g.startY,
-      this.windows.area()
+      reach,
+      DEFAULT_LIMITS,
+      reach.w > area.w ? area.w : undefined
     );
     if (!this.frameReq) {
       this.frameReq = requestAnimationFrame(() => {

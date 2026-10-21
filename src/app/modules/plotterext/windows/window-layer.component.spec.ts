@@ -109,11 +109,27 @@ describe('ExtWindowLayerComponent', () => {
     expect(host.querySelector('.fb-pe-window-backdrop')).toBeNull();
   });
 
-  it('keeps the toolbar columns out of the window area', () => {
+  it('starts clear of the left column and reaches over the right one', () => {
     fixture.componentRef.setInput('inset', 54);
     fixture.detectChanges();
     expect(host.style.left).toBe('54px');
-    expect(host.style.right).toBe('54px');
+    expect(host.style.right).toBe('');
+    vi.spyOn(host, 'getBoundingClientRect').mockReturnValue({
+      width: 336,
+      height: 700
+    } as DOMRect);
+    (fixture.componentInstance as unknown as { measure(): void }).measure();
+    expect(service.area()).toEqual({ w: 282, h: 700 });
+    expect(service.reach()).toBe(54);
+  });
+
+  it('keeps a modal backdrop off the right column', () => {
+    fixture.componentRef.setInput('inset', 54);
+    service.windows.set([extWindow({ id: 'm', modal: true })]);
+    service.zOrder.set(['m']);
+    fixture.detectChanges();
+    const backdrop = host.querySelector<HTMLElement>('.fb-pe-window-backdrop');
+    expect(backdrop?.style.right).toBe('54px');
   });
 
   it("leaves a modal window open when Escape is meant for the host's own menu", () => {
