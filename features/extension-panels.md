@@ -22,6 +22,11 @@ the right-hand side of the screen. Tap the button again, or use the panel's
 own close button, to put it away. Some plugins show their panel in a floating
 window instead — see below.
 
+A plugin can show and hide its buttons as its state changes: a **Stop recording**
+button, for example, may appear only while a recording runs. The buttons below close
+the gap, and a button that comes back returns to the same place. Hiding a button never
+closes the panel or window it opened.
+
 A panel can also narrow down what's shown on the chart — for example,
 filtering the waypoints list to just the ones matching your search. When a
 panel does this, a small chip appears near the top of the screen describing
@@ -54,11 +59,19 @@ back.
 A **modal** window dims the chart behind it until you dismiss it, with its
 **✕** or the Escape key.
 
-Windows never cover the toolbars, the Alarms button or alarm messages. On a
-narrow screen such as a phone, a window that fits still floats, and you can
-move and resize it as usual. A window too big for the screen opens as a sheet
-along the bottom instead, and a modal one fills the screen. Turning the phone
-can switch a window between the two.
+A window opens clear of the toolbars. For more room, drag its title bar, or its
+right edge, over the right-hand column of buttons; on a phone that adds about
+54 px of width. The window snaps flush to the column's edge or to the screen
+edge, and stays there when you turn the phone. The buttons beneath it are hidden
+until you move or collapse the window. That includes **Web Audio off**, which is
+how you turn alarm sounds on. Windows never cover the left-hand column, with the
+Alarms button, or alarm messages.
+
+On a narrow screen such as a phone, a window that fits still floats, and you can
+move and resize it as usual. A window that needs a minimum width opens over part
+of the right-hand column rather than squeezed below it. A window too big for the
+screen opens as a sheet along the bottom instead, and a modal one fills the
+screen. Turning the phone can switch a window between the two.
 
 Freeboard does not reopen windows after a reload; the plugin reopens them if
 it wants to. Some plugins remember where you left a window and how big it was,

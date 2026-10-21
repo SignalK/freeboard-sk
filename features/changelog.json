@@ -139,5 +139,10 @@
   { "feature": "toolbar-overflow", "pr": 1035, "kind": "new", "since": "v3.4.0-beta.1", "date": "2026-10-17", "title": "feat(map): fit the map toolbars to the screen with an overflow menu" },
   { "feature": "split-view", "pr": 1045, "kind": "enhanced", "date": "2026-10-17", "title": "feat(map): show the status bar in the active split-view pane" },
   { "feature": "own-vessel-display", "pr": 1089, "kind": "enhanced", "date": "2026-10-20", "title": "feat(vessels): add own-vessel icon types" },
-  { "feature": "own-vessel-display", "pr": 1088, "kind": "enhanced", "date": "2026-10-20", "title": "feat(vessels): scale own-vessel icon to actual size" }
+  { "feature": "own-vessel-display", "pr": 1088, "kind": "enhanced", "date": "2026-10-20", "title": "feat(vessels): scale own-vessel icon to actual size" },
+  { "feature": "extension-map-actions", "pr": 1119, "kind": "new", "date": "2026-10-19", "title": "feat(plotterext): implement map actions in the reference host" },
+  { "feature": "extension-map-actions", "pr": 1121, "kind": "enhanced", "date": "2026-10-20", "title": "feat(plotterext): implement map picks in the reference host" },
+  { "feature": "extension-map-layers", "pr": 1123, "kind": "enhanced", "date": "2026-10-20", "title": "feat(plotterext): make data-overlay features selectable" },
+  { "feature": "extension-panels", "pr": 1124, "kind": "enhanced", "date": "2026-10-20", "title": "feat(plotterext): let extensions show and hide toolbar buttons" },
+  { "feature": "extension-panels", "pr": 1162, "kind": "enhanced", "date": "2026-10-21", "title": "feat(plotterext): let windows reach over the right toolbar column" }
 ]
