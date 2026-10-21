@@ -193,13 +193,25 @@ export class AnchorWatchComponent {
     this.app.saveConfig();
   }
 
-  onDefaultRadiusChange(e: number) {
-    this.app.config.anchor.radius = Math.round(
-      Convert.transform(
-        e,
-        this.app.config.units.length as SI_BASE_UNIT,
-        'm' as TARGET_UNIT
-      ) ?? 0
+  /**
+   * The field shows an error for an empty value or one below 1; the saved
+   * radius stays until a valid one is entered, as it is the one a drop uses.
+   * A value the field accepts is always saved, at least 1 m, so a 1 ft entry
+   * is not lost to rounding.
+   */
+  onDefaultRadiusChange(e: number | null) {
+    if (e === null || !Number.isFinite(e) || e < 1) {
+      return;
+    }
+    this.app.config.anchor.radius = Math.max(
+      1,
+      Math.round(
+        Convert.transform(
+          e,
+          this.app.config.units.length as SI_BASE_UNIT,
+          'm' as TARGET_UNIT
+        ) ?? 0
+      )
     );
   }
 

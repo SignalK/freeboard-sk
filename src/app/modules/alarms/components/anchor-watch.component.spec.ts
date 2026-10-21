@@ -71,6 +71,41 @@ describe('AnchorWatchComponent default alarm radius', () => {
     expect(component['displayRadius']()).toBe('--');
   });
 
+  it('saves a default radius typed into the field', () => {
+    const component = create(true);
+
+    component.onDefaultRadiusChange(25);
+
+    expect(app().config.anchor.radius).toBe(25);
+  });
+
+  it('keeps the saved radius while the field is empty or below 1', () => {
+    const component = create(true);
+
+    for (const value of [null, 0, -5, 0.4, 0.5]) {
+      component.onDefaultRadiusChange(value);
+      expect(app().config.anchor.radius).toBe(40);
+    }
+  });
+
+  it('saves a default radius typed in feet in metres', () => {
+    const component = create(true);
+    app().config.units.length = 'foot';
+
+    component.onDefaultRadiusChange(100);
+
+    expect(app().config.anchor.radius).toBe(30);
+  });
+
+  it('saves a 1 ft default radius as 1 m rather than dropping it', () => {
+    const component = create(true);
+    app().config.units.length = 'foot';
+
+    component.onDefaultRadiusChange(1);
+
+    expect(app().config.anchor.radius).toBe(1);
+  });
+
   it('saves a radius that is set', () => {
     const component = create(false);
 
