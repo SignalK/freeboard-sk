@@ -466,7 +466,7 @@ back after a reload opens them again (typically from a background runtime).
   itself is kept, so the window grows back on a larger area or after a
   rotation; a user move or resize there stores the new size as usual. Freeboard
   never uses `sheet`. Only a modal window that does not fit an area narrower
-  than `MODAL_FULLSCREEN_BREAKPOINT` (600 px) goes `fullscreen`, as a dialog
+  than `NARROW_AREA_BREAKPOINT` (600 px) goes `fullscreen`, as a dialog
   would; the choice is re-made whenever the area changes.
 - **Ownership.** A window belongs to its extension (`ExtWindow.extension`): any
   of the extension's contexts can manage it, and no other extension can see it.
@@ -490,14 +490,45 @@ back after a reload opens them again (typically from a background runtime).
 The window layer (`fb-pe-window-layer`) is absolutely positioned inside the
 chart's `mat-sidenav-content`, so the **window area is the chart area**: it
 excludes the extension panel drawer, and whenever Freeboard shows its controls
-(not kiosk mode) it is inset 54 px left and right, clear of the toolbar columns
-(`fb-map-toolbar`, z-index 4800). Inside the chart's stacking context the layer
-sits at z-index 4850, above the map, and **below** the map buttons, nav data,
-alarm/bottom-sheet (4902), FAB (5000) and alert list (6100). So no window, sheet
-or modal backdrop can cover the toolbars (including the Alarms button) or the
-alarm UI: the spec's rule that host safety UI stays above and usable with every
-extension window, modal ones included. Windows stack at even z-indexes within the layer,
-leaving the odd one below the active modal window for its backdrop.
+(not kiosk mode) it is clear of both 54 px toolbar columns (`fb-map-toolbar`,
+z-index 4800). Inside the chart's stacking context the layer sits at z-index
+4850, above the map and the toolbars, and **below** the nav data,
+alarm/bottom-sheet (4902), FAB (5000) and alert list (6100). Windows stack at
+even z-indexes within the layer, leaving the odd one below the active modal
+window for its backdrop.
+
+**Reaching over the right column.** The layer itself starts clear of the left
+column and runs to the right edge; the window area is the layer less the right
+column, which `ExtWindowService.reach` holds (0 in kiosk mode). Requested and
+default geometry resolve against the window area, so automated placement never
+covers a toolbar. A window resolves against the wider *reach area* instead
+(the spec's *Beyond the window area*) when:
+
+- the user's move or resize left it over the column (`ExtWindow.userPlaced`,
+  remembered with a `restoreKey`; cleared by a move back inside, or when the
+  extension next changes its geometry). Its geometry is anchored in the reach
+  area, so it stays over the column as the area changes. A window the user
+  left inside the area is anchored in the area as before, so a smaller area
+  never pushes it onto the column. A move snaps to the column's edge as well
+  as the screen's;
+- on an area narrower than `NARROW_AREA_BREAKPOINT`, its `minWidth` does not
+  fit the area. It resolves against an area just `minWidth` wide (at most the
+  reach area), so it covers only as much of the column as its minimum needs.
+
+A modal window makes every other window `inert` while it is open: the backdrop
+does not cover the right column, so it cannot block a window the user put
+there.
+
+The left column holds the Alarms button and is never covered. The right
+column can be covered, by the user's choice or a window's `minWidth`, and that
+includes its *Web Audio off* button: the only control that resumes the audio
+context alarm sounds play through. Covering it is an accepted risk. Automated
+placement never covers it, and the user can always move or collapse a window
+to reach it.
+A modal window stays inside the window area, and its backdrop covers only the
+window area, so both columns stay usable while it is open. `bounds` are
+reported from the window area's top-left, so a window over the column has
+`x + width > area.width`.
 
 The widget overlay's press-and-hold handler ignores presses on `.fb-pe-window`
 and `.fb-pe-window-backdrop`, and while a window is moved or resized

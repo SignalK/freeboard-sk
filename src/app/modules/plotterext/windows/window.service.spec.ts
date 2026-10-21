@@ -364,4 +364,123 @@ describe('ExtWindowService', () => {
     service.setOpacity(w.id, Number.NaN);
     expect(service.get(w.id)?.opacity).toBe(1);
   });
+
+  describe('reaching over the right toolbar column', () => {
+    beforeEach(() => service.setArea({ w: 1000, h: 800 }, 54));
+
+    it('places windows clear of the column, whatever the extension asks', () => {
+      expect(service.stateOf(open()).bounds.x).toBe(634);
+      const pushed = open({
+        geometry: { anchor: 'top-right', offset: { x: -100 }, width: 350 }
+      });
+      const b = service.stateOf(pushed).bounds;
+      expect(b.x + b.width).toBe(1000);
+    });
+
+    it('lets the user put a window over the column, and keeps it there as the area changes', () => {
+      const w = open();
+      service.setRectFromGesture(w.id, { x: 704, y: 16, w: 350, h: 280 });
+      expect(service.get(w.id)?.userPlaced).toBe(true);
+      const s = service.stateOf(service.get(w.id)!);
+      expect(s.bounds).toEqual({ x: 704, y: 16, width: 350, height: 280 });
+      expect(s.area).toEqual({ width: 1000, height: 800 });
+      changes.length = 0;
+      service.setArea({ w: 800, h: 800 }, 54);
+      expect(service.stateOf(service.get(w.id)!).bounds.x).toBe(504);
+      expect(changes.map((c) => c.event)).toEqual(['window.bounds']);
+    });
+
+    it('keeps a modal window and its gestures inside the window area', () => {
+      const m = open({ modal: true });
+      expect(service.gestureArea(m)).toEqual({ w: 1000, h: 800 });
+      service.setRectFromGesture(m.id, { x: 650, y: 16, w: 350, h: 280 });
+      expect(service.get(m.id)?.userPlaced).toBe(false);
+      const b = service.stateOf(service.get(m.id)!).bounds;
+      expect(b.x + b.width).toBe(1000);
+    });
+
+    it('on a narrow area, lets a window whose minWidth does not fit cover the column', () => {
+      service.setArea({ w: 282, h: 700 }, 54);
+      const wide = open({
+        geometry: { width: 320, minWidth: 320, height: 300 }
+      });
+      expect(service.stateOf(wide).bounds).toEqual({
+        x: 0,
+        y: 0,
+        width: 320,
+        height: 300
+      });
+      // asked wider than its minimum: it covers only what the minimum needs
+      const wider = open({
+        geometry: { width: 400, minWidth: 300, height: 300 }
+      });
+      expect(service.stateOf(wider).bounds).toMatchObject({
+        x: 0,
+        width: 300
+      });
+      // without a minimum it is shrunk to fit, as before
+      const shrunk = open({ geometry: { width: 320, height: 300 } });
+      expect(service.stateOf(shrunk).bounds.width).toBe(282);
+    });
+
+    it('does not let a minWidth reach the column on a wide area', () => {
+      service.setArea({ w: 700, h: 700 }, 54);
+      const w = open({ geometry: { minWidth: 740, height: 300 } });
+      expect(service.stateOf(w).bounds.width).toBe(700);
+    });
+
+    it('never pushes a window the user left inside the area onto the column', () => {
+      service.setArea({ w: 700, h: 800 }, 54);
+      const w = open();
+      service.setRectFromGesture(w.id, { x: 300, y: 16, w: 350, h: 280 });
+      expect(service.get(w.id)?.userPlaced).toBe(false);
+      service.setArea({ w: 500, h: 800 }, 54);
+      const b = service.stateOf(service.get(w.id)!).bounds;
+      expect(b.x + b.width).toBeLessThanOrEqual(500);
+      // a phone rotated to portrait shrinks it to the area, not the reach
+      service.setArea({ w: 736, h: 400 }, 54);
+      service.setRectFromGesture(w.id, { x: 193, y: 16, w: 350, h: 280 });
+      service.setArea({ w: 282, h: 700 }, 54);
+      expect(service.stateOf(service.get(w.id)!).bounds.width).toBe(282);
+    });
+
+    it('treats a window moved back inside the area as inside again', () => {
+      const w = open();
+      service.setRectFromGesture(w.id, { x: 704, y: 16, w: 350, h: 280 });
+      service.setRectFromGesture(w.id, { x: 650, y: 16, w: 350, h: 280 });
+      expect(service.get(w.id)?.userPlaced).toBe(false);
+    });
+
+    it('hands placement back to the extension when it changes the geometry', () => {
+      const w = open();
+      service.setRectFromGesture(w.id, { x: 704, y: 16, w: 350, h: 280 });
+      service.update(w.id, { geometry: { height: 200 } });
+      expect(service.get(w.id)?.userPlaced).toBe(false);
+      const b = service.stateOf(service.get(w.id)!).bounds;
+      expect(b.x + b.width).toBeLessThanOrEqual(1000);
+    });
+
+    it('remembers that the user put a window over the column', () => {
+      const w = open({ restoreKey: 'sight' });
+      service.setRectFromGesture(w.id, { x: 704, y: 16, w: 350, h: 280 });
+      const stored = JSON.parse(
+        localStorage.getItem(WINDOW_GEOMETRY_KEY) ?? '{}'
+      )['ext-a'].sight;
+      expect(stored.fbUserPlaced).toBe(true);
+      service.close(w.id, 'user');
+      const again = open({ restoreKey: 'sight' });
+      expect(again.userPlaced).toBe(true);
+      expect(again.geometry).not.toHaveProperty('fbUserPlaced');
+      expect(service.stateOf(again).bounds.x).toBe(704);
+    });
+
+    it('lets nothing reach without a column (kiosk mode)', () => {
+      service.setArea({ w: 1000, h: 800 }, 0);
+      const w = open();
+      expect(service.gestureArea(w)).toEqual({ w: 1000, h: 800 });
+      service.setRectFromGesture(w.id, { x: 704, y: 16, w: 350, h: 280 });
+      const b = service.stateOf(service.get(w.id)!).bounds;
+      expect(b.x + b.width).toBe(1000);
+    });
+  });
 });

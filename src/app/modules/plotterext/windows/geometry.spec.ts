@@ -11,6 +11,8 @@ import {
   fitsArea,
   isValidGeometry,
   resolveGeometry,
+  reachArea,
+  requiredWidth,
   snapToEdges
 } from './geometry';
 
@@ -103,6 +105,34 @@ describe('snapToEdges', () => {
   it('snaps a dragged window but not a resize', () => {
     expect(boundedGesture(start, 'move', -92, 0, vp).x).toBe(0);
     expect(boundedGesture(start, 'w', -92, 0, vp).x).toBe(8);
+  });
+
+  it('also snaps the right edge to an inner line, the far edge first', () => {
+    const r = { x: 0, y: 300, w: 200, h: 100 };
+    expect(snapToEdges({ ...r, x: 742 }, vp, SNAP_DISTANCE, 946).x).toBe(746);
+    expect(snapToEdges({ ...r, x: 795 }, vp, SNAP_DISTANCE, 946).x).toBe(800);
+    expect(snapToEdges({ ...r, x: 700 }, vp, SNAP_DISTANCE, 946).x).toBe(700);
+  });
+
+  it('moves a window past an inner line up to the viewport edge', () => {
+    const moved = boundedGesture(start, 'move', 5000, 0, vp, undefined, 946);
+    expect(moved.x + moved.w).toBe(vp.w);
+    const parked = boundedGesture(start, 'move', 0, 0, vp, undefined, 946);
+    expect(parked.x).toBe(start.x);
+  });
+});
+
+describe('reachArea / requiredWidth', () => {
+  it('widens the area by the reach, keeping its height', () => {
+    expect(reachArea({ w: 282, h: 700 }, 54)).toEqual({ w: 336, h: 700 });
+  });
+
+  it('is the larger of the host minimum and the minWidth asked for', () => {
+    const area = { w: 400, h: 700 };
+    expect(requiredWidth({}, area)).toBe(160);
+    expect(requiredWidth({ minWidth: 320 }, area)).toBe(320);
+    expect(requiredWidth({ minWidth: '50%' }, area)).toBe(200);
+    expect(requiredWidth({ minWidth: 100 }, area)).toBe(160);
   });
 });
 
@@ -291,6 +321,14 @@ describe('anchoredGeometry', () => {
     const g = anchoredGeometry(r, vp);
     expect(g).toMatchObject({ anchor, offset, width: r.w, height: r.h });
     expect(resolveGeometry(g, vp)).toEqual(r);
+  });
+
+  it('reproduces a centred window exactly in an area of odd width', () => {
+    const area = { w: 321, h: 600 };
+    const r = { x: 107, y: 16, w: 160, h: 210 };
+    const g = anchoredGeometry(r, area);
+    expect(g).toMatchObject({ anchor: 'top-center', offset: { x: 26.5 } });
+    expect(resolveGeometry(g, area)).toEqual(r);
   });
 
   it('keeps the request limits', () => {

@@ -161,6 +161,40 @@ describe('ExtWindowComponent', () => {
     });
   });
 
+  it('drags over the right toolbar column up to the screen edge, snapping at the column', () => {
+    service.reach.set(54);
+    const bar = withCapture(
+      host.querySelector<HTMLElement>('.fb-pe-window__bar')!
+    );
+    pointer(bar, 'pointerdown', 200, 100);
+    pointer(bar, 'pointermove', 2200, 100);
+    pointer(bar, 'pointerup', 2200, 100);
+    expect(service.setRectFromGesture).toHaveBeenLastCalledWith(
+      'w1',
+      expect.objectContaining({ x: 654 })
+    );
+    // 5px past the column's edge snaps back flush to it
+    pointer(bar, 'pointerdown', 200, 100);
+    pointer(bar, 'pointermove', 705, 100);
+    pointer(bar, 'pointerup', 705, 100);
+    expect(service.setRectFromGesture).toHaveBeenLastCalledWith(
+      'w1',
+      expect.objectContaining({ x: 600 })
+    );
+  });
+
+  it('is inert behind an open modal window, and the modal one is not', () => {
+    expect(host.hasAttribute('inert')).toBe(false);
+    const modal = extWindow({ id: 'm', modal: true });
+    service.windows.set([def, modal]);
+    service.zOrder.set(['w1', 'm']);
+    fixture.detectChanges();
+    expect(host.hasAttribute('inert')).toBe(true);
+    fixture.componentRef.setInput('def', modal);
+    fixture.detectChanges();
+    expect(host.hasAttribute('inert')).toBe(false);
+  });
+
   it('commits the layout reached when the pointer is cancelled', () => {
     const bar = startBarDrag();
     pointer(bar, 'pointercancel', 300, 180);

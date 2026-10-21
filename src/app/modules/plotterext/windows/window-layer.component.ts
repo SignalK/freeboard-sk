@@ -19,12 +19,16 @@ import { ExtWindowService } from './window.service';
 export const WINDOW_GESTURE_CLASS = 'fb-pe-window-gesture';
 
 /**
- * The window area: a layer over the chart that the extension windows float
- * in. It takes no pointer events itself, only the windows (and, while a modal
- * window is open, the backdrop that blocks the chart) do. It sits inside the
- * chart's stacking context, below the host's own alarm and alert UI, and is
- * inset clear of the toolbar columns, so no extension window (nor a modal
- * backdrop) can cover the host's controls.
+ * The layer over the chart that the extension windows float in. It takes no
+ * pointer events itself, only the windows (and, while a modal window is open,
+ * the backdrop that blocks the chart) do. It sits inside the chart's stacking
+ * context, below the host's own alarm and alert UI.
+ *
+ * The layer starts clear of the left toolbar column, which holds the alarm
+ * controls, and runs to the right edge. The window area is the layer less the
+ * right column: windows are placed there, and the user may move them over
+ * the right column (the service's `reach`). A modal backdrop covers only the
+ * window area, leaving both columns usable.
  */
 @Component({
   selector: 'fb-pe-window-layer',
@@ -35,6 +39,7 @@ export const WINDOW_GESTURE_CLASS = 'fb-pe-window-gesture';
       <div
         class="fb-pe-window-backdrop"
         [style.z-index]="z"
+        [style.right.px]="inset()"
         (pointerdown)="$event.stopPropagation()"
       ></div>
     }
@@ -59,13 +64,12 @@ export const WINDOW_GESTURE_CLASS = 'fb-pe-window-gesture';
   `,
   host: {
     '[style.left.px]': 'inset()',
-    '[style.right.px]': 'inset()',
     '(window:blur)': 'onWindowBlur()',
     '(document:keydown.escape)': 'onEscape($event)'
   }
 })
 export class ExtWindowLayerComponent implements AfterViewInit, OnDestroy {
-  /** Keep this many px clear at the left and right: the host's toolbar columns. */
+  /** Width of each of the host's toolbar columns, left and right. */
   readonly inset = input(0);
 
   protected service = inject(ExtWindowService);
@@ -106,8 +110,9 @@ export class ExtWindowLayerComponent implements AfterViewInit, OnDestroy {
 
   private measure() {
     const r = this.el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0) {
-      this.service.setArea({ w: r.width, h: r.height });
+    const inset = this.inset();
+    if (r.width > inset && r.height > 0) {
+      this.service.setArea({ w: r.width - inset, h: r.height }, inset);
     }
   }
 

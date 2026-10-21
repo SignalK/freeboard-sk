@@ -395,6 +395,7 @@ interface ActiveGesture {
     '[class.bar-overlay]': 'autoHide()',
     '[class.bar-hidden]': 'autoHide() && !barShown()',
     '[style.z-index]': 'z()',
+    '[attr.inert]': "blocked() ? '' : null",
     '[style.opacity]': 'def().opacity',
     '(pointerdown)': 'windows.focus(def().id)',
     '(focusin)': 'onFocusIn($event)',
@@ -436,6 +437,14 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
   protected readonly z = computed(
     () => (this.windows.zOrder().indexOf(this.def().id) + 1) * 2
   );
+  /**
+   * Behind an open modal window. The backdrop leaves the right toolbar column
+   * usable, so a window the user put over the column is made inert instead.
+   */
+  protected readonly blocked = computed(() => {
+    const modal = this.windows.activeModal();
+    return !!modal && modal.id !== this.def().id;
+  });
   protected readonly front = computed(
     () => this.windows.zOrder().at(-1) === this.def().id
   );
@@ -615,12 +624,16 @@ export class ExtWindowComponent implements OnInit, OnDestroy {
   private onMove = (e: PointerEvent) => {
     const g = this.gesture;
     if (!g || e.pointerId !== g.pointerId) return;
+    const area = this.windows.area();
+    const reach = this.windows.gestureArea(this.def(), area);
     g.current = boundedGesture(
       g.start,
       g.mode,
       e.clientX - g.startX,
       e.clientY - g.startY,
-      this.windows.area()
+      reach,
+      DEFAULT_LIMITS,
+      reach.w > area.w ? area.w : undefined
     );
     if (!this.frameReq) {
       this.frameReq = requestAnimationFrame(() => {

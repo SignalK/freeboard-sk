@@ -23,6 +23,12 @@ export interface ExtWindow {
    * resizes. A user move or resize replaces it (see `anchoredGeometry`).
    */
   geometry: WindowGeometry;
+  /**
+   * The user's own move or resize left the window over the right toolbar
+   * column, so its geometry is resolved against the reach area. A later move
+   * back inside the area, or an extension's geometry change, clears it.
+   */
+  userPlaced?: boolean;
   modal: boolean;
   /** Whether the user may resize / move it; the extension always may. */
   resizable: boolean;

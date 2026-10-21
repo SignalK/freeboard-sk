@@ -88,15 +88,26 @@ export function applyGesture(
 /** Distance in px within which a moved window snaps to a viewport edge. */
 export const SNAP_DISTANCE = 12;
 
-/** Snap a window flush to any viewport edge it is within `threshold` of. */
+/**
+ * Snap a window flush to any viewport edge it is within `threshold` of. With
+ * `innerRight`, a window can also snap its right edge to that line: the edge
+ * of the window area when the viewport reaches past it (see `reachArea`).
+ */
 export function snapToEdges(
   r: PxRect,
   viewport: ViewportSize,
-  threshold = SNAP_DISTANCE
+  threshold = SNAP_DISTANCE,
+  innerRight?: number
 ): PxRect {
   let { x, y } = r;
   if (Math.abs(x) <= threshold) x = 0;
   else if (Math.abs(viewport.w - (x + r.w)) <= threshold) x = viewport.w - r.w;
+  else if (
+    innerRight !== undefined &&
+    Math.abs(innerRight - (x + r.w)) <= threshold
+  ) {
+    x = innerRight - r.w;
+  }
   if (Math.abs(y) <= threshold) y = 0;
   else if (Math.abs(viewport.h - (y + r.h)) <= threshold) y = viewport.h - r.h;
   return { ...r, x, y };
@@ -105,8 +116,8 @@ export function snapToEdges(
 /**
  * `applyGesture` for a live pointer: resize deltas are limited so the dragged
  * edge stops at the viewport edge (the opposite edge never moves), a move
- * snaps to nearby viewport edges, and the result is clamped with
- * `clampToViewport`.
+ * snaps to nearby viewport edges (and `innerRight`, see `snapToEdges`), and
+ * the result is clamped with `clampToViewport`.
  */
 export function boundedGesture(
   start: PxRect,
@@ -114,7 +125,8 @@ export function boundedGesture(
   dx: number,
   dy: number,
   viewport: ViewportSize,
-  limits: GeometryLimits = DEFAULT_LIMITS
+  limits: GeometryLimits = DEFAULT_LIMITS,
+  innerRight?: number
 ): PxRect {
   if (mode !== 'move') {
     if (mode.includes('e')) dx = Math.min(dx, viewport.w - start.x - start.w);
@@ -134,7 +146,9 @@ export function boundedGesture(
     bounds
   );
   // Snapping only ever moves a clamped window flush to an edge it fits on.
-  return mode === 'move' ? snapToEdges(r, viewport) : r;
+  return mode === 'move'
+    ? snapToEdges(r, viewport, SNAP_DISTANCE, innerRight)
+    : r;
 }
 
 /**
@@ -264,6 +278,24 @@ export function cleanGeometry(g: WindowGeometry): WindowGeometry {
 }
 
 /**
+ * The window area plus the `reach` px past its right edge that a window may
+ * cover: the host's right toolbar column. Both share the area's top-left, so
+ * a rectangle means the same in either.
+ */
+export function reachArea(area: ViewportSize, reach: number): ViewportSize {
+  return { w: area.w + reach, h: area.h };
+}
+
+/** The narrowest a window may be drawn: the host's minimum or its `minWidth`. */
+export function requiredWidth(
+  g: WindowGeometry,
+  area: ViewportSize,
+  limits: GeometryLimits = DEFAULT_LIMITS
+): number {
+  return Math.max(limits.minW, lengthPx(g.minWidth, area.w) ?? 0);
+}
+
+/**
  * The size a geometry request asks for in the window area: clamped to the
  * request's min/max and the host's minimum, but not yet to the area itself,
  * so it can be larger than the area.
@@ -379,14 +411,15 @@ export function anchoredGeometry(
   };
   const hz = pick(r.x, r.w, area.w);
   const v = pick(r.y, r.h, area.h);
+  // A centred window's offset is kept to the half pixel: in an area of odd
+  // width the centre itself is on a half pixel, so a whole-pixel offset would
+  // move the window off the edge it was just snapped to.
   const offset = (side: Side, start: number, len: number, total: number) =>
-    Math.round(
-      side === 'start'
-        ? start
-        : side === 'end'
-          ? total - start - len
-          : start - (total - len) / 2
-    );
+    side === 'start'
+      ? Math.round(start)
+      : side === 'end'
+        ? Math.round(total - start - len)
+        : Math.round((start - (total - len) / 2) * 2) / 2;
   const name = (s: Side, a: 'top' | 'left', b: 'bottom' | 'right') =>
     s === 'start' ? a : s === 'end' ? b : 'center';
   const vn = name(v, 'top', 'bottom');

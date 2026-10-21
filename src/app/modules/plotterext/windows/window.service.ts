@@ -18,6 +18,8 @@ import {
   cleanGeometry,
   fitsArea,
   isValidGeometry,
+  reachArea,
+  requiredWidth,
   resolveGeometry
 } from './geometry';
 import {
@@ -30,13 +32,16 @@ import {
 /** The most windows open at once, across all extensions (`windows.limit`). */
 export const MAX_WINDOWS = 12;
 /**
- * Below this window-area width a modal window that does not fit is shown full
- * screen, as a dialog would be on a phone. Every other window always floats
- * (see `presentation`).
+ * A window area narrower than this is a phone's. There a modal window that
+ * does not fit is shown full screen, as a dialog would be (every other window
+ * always floats, see `presentation`), and a window whose minimum width does
+ * not fit may cover the right toolbar column (see `layoutArea`).
  */
-export const MODAL_FULLSCREEN_BREAKPOINT = 600;
+export const NARROW_AREA_BREAKPOINT = 600;
 /** Device-local store of remembered geometry: extension -> restoreKey -> geometry. */
 export const WINDOW_GEOMETRY_KEY = 'fb-plotterext-windows';
+/** Marks a remembered geometry the user placed (`ExtWindow.userPlaced`). */
+const USER_PLACED_KEY = 'fbUserPlaced';
 
 /** What an extension asks for when it opens a window (already validated). */
 export interface WindowRequest {
@@ -76,11 +81,21 @@ export class ExtWindowService {
   readonly zOrder = signal<string[]>([]);
   /** True while a window is being moved or resized. */
   readonly gestureActive = signal(false);
-  /** The window area: the chart area windows float over. */
+  /**
+   * The window area: the chart area windows float over, clear of the host's
+   * toolbar columns. Requested geometry resolves against it and `bounds` are
+   * reported from its top-left.
+   */
   readonly area = signal<ViewportSize>({
     w: window.innerWidth,
     h: window.innerHeight
   });
+  /**
+   * How far past the area's right edge a window may reach: the right toolbar
+   * column, which the user may cover but automated placement avoids (see
+   * `layoutArea`).
+   */
+  readonly reach = signal(0);
 
   /** The front-most shown modal window, if any. */
   readonly activeModal = computed(() => {
@@ -116,7 +131,7 @@ export class ExtWindowService {
   presentation(w: ExtWindow, area = this.area()): WindowPresentation {
     if (
       !w.modal ||
-      area.w >= MODAL_FULLSCREEN_BREAKPOINT ||
+      area.w >= NARROW_AREA_BREAKPOINT ||
       fitsArea(w.geometry, area)
     ) {
       return 'floating';
@@ -124,11 +139,42 @@ export class ExtWindowService {
     return 'fullscreen';
   }
 
-  /** Where the window is on screen, in px from the window area's top-left. */
+  /**
+   * What a window's geometry resolves against. Normally the window area. The
+   * reach area when the user left the window over the toolbar column. On a
+   * narrow area, a window whose minimum width does not fit gets an area just
+   * that much wider (up to the reach area), so it covers no more of the
+   * column than its minimum needs. A modal window stays in the area, clear of
+   * the toolbars its backdrop leaves usable.
+   */
+  layoutArea(w: ExtWindow, area = this.area()): ViewportSize {
+    if (w.modal || !this.reach()) return area;
+    const reach = reachArea(area, this.reach());
+    if (w.userPlaced) return reach;
+    if (area.w < NARROW_AREA_BREAKPOINT) {
+      const need = requiredWidth(w.geometry, area);
+      if (need > area.w) return { w: Math.min(need, reach.w), h: area.h };
+    }
+    return area;
+  }
+
+  /** Where a user gesture may take a window. */
+  gestureArea(w: ExtWindow, area = this.area()): ViewportSize {
+    return w.modal ? area : reachArea(area, this.reach());
+  }
+
+  /**
+   * Where the window is on screen, in px from the window area's top-left. It
+   * can extend past the area's right edge (see `layoutArea`).
+   */
   rectOf(w: ExtWindow, area = this.area()): PxRect {
     if (this.presentation(w, area) === 'fullscreen')
       return { x: 0, y: 0, w: area.w, h: area.h };
-    return resolveGeometry(w.geometry, area, DEFAULT_LIMITS);
+    return resolveGeometry(
+      w.geometry,
+      this.layoutArea(w, area),
+      DEFAULT_LIMITS
+    );
   }
 
   stateOf(w: ExtWindow): WindowState {
@@ -180,13 +226,14 @@ export class ExtWindowService {
       params: req.params ?? {},
       title: req.title?.trim() || panel.title,
       geometry:
-        restored ??
+        restored?.geometry ??
         (req.geometry
           ? // A modal window that names no anchor is centred, like a dialog.
             { ...(modal ? { anchor: 'center' as const } : {}), ...req.geometry }
           : modal
             ? MODAL_GEOMETRY
             : DEFAULT_GEOMETRY),
+      ...(restored?.userPlaced && !modal ? { userPlaced: true } : {}),
       modal,
       resizable: req.resizable ?? true,
       movable: req.movable ?? true,
@@ -263,7 +310,11 @@ export class ExtWindowService {
 
   // ---------- changing ----------
 
-  /** Change a window on the extension's behalf (`ui.updateWindow`). */
+  /**
+   * Change a window on the extension's behalf (`ui.updateWindow`). A geometry
+   * change makes the placement the extension's again, so a window the user
+   * had put over the toolbar column comes back into the window area.
+   */
   update(
     id: string,
     change: { title?: string; geometry?: WindowGeometry; visible?: boolean }
@@ -271,7 +322,7 @@ export class ExtWindowService {
     this.patch(id, (w) => ({
       ...(change.title !== undefined ? { title: change.title } : {}),
       ...(change.geometry !== undefined
-        ? { geometry: { ...w.geometry, ...change.geometry } }
+        ? { geometry: { ...w.geometry, ...change.geometry }, userPlaced: false }
         : {}),
       ...(change.visible !== undefined ? { visible: change.visible } : {})
     }));
@@ -279,11 +330,26 @@ export class ExtWindowService {
     if (change.geometry) this.remember(id);
   }
 
-  /** A user move or resize ended at `r` (px, window area). */
+  /**
+   * A user move or resize ended at `r` (px, window area). A window left over
+   * the toolbar column is anchored in the reach area, so it stays there when
+   * the area changes. One left inside the area is anchored in the area, as
+   * before, so a smaller area never pushes it onto the column.
+   */
   setRectFromGesture(id: string, r: PxRect) {
-    this.patch(id, (w) => ({
-      geometry: anchoredGeometry(r, this.area(), w.geometry)
-    }));
+    this.patch(id, (w) => {
+      const area = this.area();
+      const over =
+        !w.modal && this.reach() > 0 && r.x + r.w > Math.ceil(area.w);
+      return {
+        geometry: anchoredGeometry(
+          r,
+          over ? this.gestureArea(w, area) : area,
+          w.geometry
+        ),
+        userPlaced: over
+      };
+    });
     this.remember(id);
   }
 
@@ -318,11 +384,15 @@ export class ExtWindowService {
     ];
   }
 
-  /** The window area was resized: re-resolve every window against it. */
-  setArea(area: ViewportSize) {
+  /**
+   * The window area or its reach changed: re-resolve every window against
+   * them.
+   */
+  setArea(area: ViewportSize, reach = 0) {
     const cur = this.area();
-    if (cur.w === area.w && cur.h === area.h) return;
+    if (cur.w === area.w && cur.h === area.h && this.reach() === reach) return;
     this.area.set(area);
+    this.reach.set(reach);
     this.windows().forEach((w) => this.report(w));
   }
 
@@ -388,16 +458,23 @@ export class ExtWindowService {
   private restoredGeometry(
     extension: string,
     key: string
-  ): WindowGeometry | undefined {
+  ): { geometry: WindowGeometry; userPlaced: boolean } | undefined {
     const g = this.readStore()[extension]?.[key];
-    return isValidGeometry(g) ? cleanGeometry(g) : undefined;
+    if (!isValidGeometry(g)) return undefined;
+    return {
+      geometry: cleanGeometry(g),
+      userPlaced: (g as Record<string, unknown>)[USER_PLACED_KEY] === true
+    };
   }
 
   private remember(id: string) {
     const w = this.get(id);
     if (!w?.restoreKey) return;
     const store = this.readStore();
-    store[w.extension] = { ...store[w.extension], [w.restoreKey]: w.geometry };
+    const saved = w.userPlaced
+      ? { ...w.geometry, [USER_PLACED_KEY]: true }
+      : w.geometry;
+    store[w.extension] = { ...store[w.extension], [w.restoreKey]: saved };
     try {
       localStorage.setItem(WINDOW_GEOMETRY_KEY, JSON.stringify(store));
     } catch {
