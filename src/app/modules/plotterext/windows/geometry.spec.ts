@@ -323,6 +323,14 @@ describe('anchoredGeometry', () => {
     expect(resolveGeometry(g, vp)).toEqual(r);
   });
 
+  it('reproduces a centred window exactly in an area of odd width', () => {
+    const area = { w: 321, h: 600 };
+    const r = { x: 107, y: 16, w: 160, h: 210 };
+    const g = anchoredGeometry(r, area);
+    expect(g).toMatchObject({ anchor: 'top-center', offset: { x: 26.5 } });
+    expect(resolveGeometry(g, area)).toEqual(r);
+  });
+
   it('keeps the request limits', () => {
     expect(
       anchoredGeometry({ x: 0, y: 0, w: 300, h: 200 }, vp, {

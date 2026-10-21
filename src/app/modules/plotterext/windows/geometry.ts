@@ -411,14 +411,15 @@ export function anchoredGeometry(
   };
   const hz = pick(r.x, r.w, area.w);
   const v = pick(r.y, r.h, area.h);
+  // A centred window's offset is kept to the half pixel: in an area of odd
+  // width the centre itself is on a half pixel, so a whole-pixel offset would
+  // move the window off the edge it was just snapped to.
   const offset = (side: Side, start: number, len: number, total: number) =>
-    Math.round(
-      side === 'start'
-        ? start
-        : side === 'end'
-          ? total - start - len
-          : start - (total - len) / 2
-    );
+    side === 'start'
+      ? Math.round(start)
+      : side === 'end'
+        ? Math.round(total - start - len)
+        : Math.round((start - (total - len) / 2) * 2) / 2;
   const name = (s: Side, a: 'top' | 'left', b: 'bottom' | 'right') =>
     s === 'start' ? a : s === 'end' ? b : 'center';
   const vn = name(v, 'top', 'bottom');
