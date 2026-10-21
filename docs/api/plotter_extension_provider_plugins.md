@@ -267,6 +267,7 @@ required and optional capabilities and lists your contributions. A real one
 | `panels.state`      | Know when your panels are on screen (`ui.listPanels`, `panel.state` event) |
 | `buttons`           | Add toolbar buttons                                           |
 | `buttons.visibility` | Show and hide your toolbar buttons as your state changes (`buttons.setVisibility`) |
+| `buttons.decorations` | Show state on your toolbar buttons — on/off, a warning, a count (`buttons.decorate`) |
 | `actions`           | Add your actions to the host's menus and popovers on chart targets (`action.invoked`) |
 | `events.publish`    | Publish your own events onto the bus (`client.publish`)       |
 | `signalk.stream`    | Subscribe to live SK path values (`client.signalk.subscribe`) |
@@ -294,7 +295,14 @@ required and optional capabilities and lists your contributions. A real one
 - **Button:** `id`, `title`, `slot` (`mapToolbar` is the well-known slot),
   `icon` (Material icon name), `visible?` (capability `buttons.visibility`:
   start hidden, then `client.call('buttons.setVisibility', { ids, visible })`
-  from your code; not remembered across reloads), `action` — one of
+  from your code; not remembered across reloads), `style?` / `colors?` /
+  `badge?` (capability `buttons.decorations`: the starting decorations, then
+  `client.call('buttons.decorate', { ids, style, colors, badge })` — `style`
+  is `normal`, `active` (the function is switched on), `warning` or `alarm`
+  and is drawn in the host's own colours; `colors: { fg, bg }` (`#rrggbb`)
+  overrides them, also at night, so follow `nightMode.changed` if you set
+  them; `badge` is a count, `0` hides it; not remembered across reloads),
+  `action` — one of
   `{ type: 'togglePanel'|'openPanel', panel }`,
   `{ type: 'openWindow'|'toggleWindow', panel, …window options }` (capability
   `windows`; see *Windows* below) or

@@ -26,8 +26,9 @@ the existing Signal K plugin/app-store flow.
 > preferences, resource display filters, map control, live route editing,
 > chart-layer management, headless background runtimes, image map overlays
 > (`overlays.image`), host-drawn data overlays (`overlays.data`), map actions
-> (`actions`, `actions.overlay`), map picks (`map.pick`) and button
-> visibility (`buttons.visibility`). Manifest-declared filter chains and
+> (`actions`, `actions.overlay`), map picks (`map.pick`), button
+> visibility (`buttons.visibility`) and button decorations
+> (`buttons.decorations`). Manifest-declared filter chains and
 > host-into-runtime calls are out of scope for this version (see Non-Goals).
 
 ---
@@ -118,6 +119,7 @@ extension id (the providing plugin's id is the recommended key):
 | `background.iframe` | Host supports headless background-runtime iframes (no UI, loaded while the extension is present).                                 |
 | `buttons`           | Host renders extension toolbar buttons in at least one slot.                                                                      |
 | `buttons.visibility` | Host lets an extension show and hide its own toolbar buttons (`buttons.setVisibility`) and honours a button's `visible`. Requires `buttons`. See *Showing and hiding buttons*. |
+| `buttons.decorations` | Host draws the style, custom colours and badge an extension sets on its own toolbar buttons (`buttons.decorate`) and honours a button's manifest `style`, `colors` and `badge`. Requires `buttons`. See *Decorating buttons*. |
 | `actions`           | Host offers manifest `actions` on chart targets — points, stored resources, vessels, aids to navigation, chart features — reports the user's choice (`action.invoked`, `context.invocation`) and lets the extension show and hide its actions (`actions.setVisibility`). See *Actions*. |
 | `events.publish`    | Host implements `events.publish` (extension-originated events) and the `scope` option on the `publish` button action. See *Publishing events*. |
 | `signalk.stream`    | Host streams Signal K path values to extension contexts over the message bus.                                                     |
@@ -315,6 +317,10 @@ An extension may contribute buttons to host-defined UI slots:
   (capability `buttons.visibility`; see *Showing and hiding buttons*). Default
   `true`. A host without `buttons.visibility` ignores it and always shows the
   button.
+- `style`, `colors`, `badge` — how the button starts out drawn (capability
+  `buttons.decorations`; see *Decorating buttons*). Default `normal`, the
+  style's colours and no badge. A host without `buttons.decorations` ignores
+  them.
 - `action` — what the button does:
 
   - `togglePanel` — open the named `panel` from the same manifest, or close
@@ -420,6 +426,75 @@ press that does not apply.
 (`ids` not a list of strings, or `visible` not a boolean), `buttons.unknownId`
 (an id that is not a button of the caller's manifest; nothing is changed),
 `buttons.notSupported` (host lacks `buttons.visibility`).
+
+### Decorating buttons
+
+A button can show state as well as start something: that the function it
+controls is switched on, that something needs the user's attention, or how
+many items are waiting ("3 sights to confirm"). With the
+**`buttons.decorations`** capability an extension sets three decorations on its
+own buttons:
+
+- `style` — how the host draws the button, from the host's own palette:
+  - `normal` — the host's ordinary toolbar button.
+  - `active` — the function the button controls is switched on (a toggle in
+    its on state). It is not about whether the button can be pressed.
+  - `warning` — something needs the user's attention.
+  - `alarm` — something needs the user's attention now.
+
+  The host chooses each style's colours to suit its theme and its day and
+  night display, as it does for its own buttons, so `style` is the preferred
+  way to show state. A host that supports the capability draws the four styles
+  so that each can be told apart from the others.
+- `colors` — `{ fg?, bg? }`, each a `#rrggbb` string: the button's foreground
+  (icon) and background colour, overriding those of its `style`. One that is
+  left out comes from the `style`. The host draws them as given, by day and by
+  night alike; an extension that wants other colours at night follows
+  `nightMode.changed` (capability `nightMode`) and sets them again. A host that
+  cannot draw custom colours ignores `colors` and draws the `style`, so an
+  extension that sets `colors` also sets the `style` closest in meaning.
+- `badge` — a count shown on the button: a whole number, `0` or more. `0`
+  shows no badge. The host may shorten a large count (for example to `99+`).
+
+```json
+{ "ids": ["pending-sights"], "badge": 3 }
+```
+
+```json
+{ "ids": ["dead-reckoning"], "style": "warning" }
+```
+
+**`buttons.decorate({ ids, style?, colors?, badge? })`** sets the given
+decorations on the calling extension's own buttons and resolves `{}`. Only the
+decorations present in the call change; `null` returns one to the button's
+manifest value. `colors` is replaced as a whole: `{ "colors": { "fg":
+"#000000" } }` also drops a custom `bg` set earlier.
+
+Decorations belong to the extension. The host never changes them itself — not
+even when the panel or window a button opened is shown — so an extension that
+wants a `togglePanel` button lit while its panel is open sets `active` from
+`panel.state` (capability `panels.state`). Like visibility, decorations are not
+persisted: when the host loads, every button starts as its manifest says, and
+the extension sets them again from its own state, typically from a background
+runtime as it starts. Any of the extension's contexts may call it; the last
+call wins. A hidden button keeps its decorations and shows them again when it
+is shown.
+
+A host that moves buttons it has no room for into an overflow menu SHOULD
+still show that a button there has a badge or a style other than `normal`, for
+example with a dot on the overflow button and the count in the menu entry. A
+host SHOULD include the badge count in the button's accessible name, and
+expose `active` as the pressed state of a toggle button.
+
+An extension that must also run on a host without `buttons.decorations` shows
+the same state somewhere it controls, such as its panel.
+
+**Errors** use the standard `error.data.reason` convention: `buttons.badRequest`
+(`ids` not a list of strings, no decoration given, `style` not one of the four
+values, a colour not a `#rrggbb` string, or `badge` not a whole number `0` or
+more), `buttons.unknownId` (an id that is not a button of the caller's
+manifest), `buttons.notSupported` (host lacks `buttons.decorations`). A call
+that fails changes nothing.
 
 ---
 
@@ -871,6 +946,7 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `map.cancelPick`        | `{ pickId }`                                   | `{}`                       |
 | `actions.setVisibility` | `{ ids: string[], visible: boolean }`          | `{}`                       |
 | `buttons.setVisibility` | `{ ids: string[], visible: boolean }`          | `{}`                       |
+| `buttons.decorate`      | `{ ids: string[], style?, colors?, badge? }`   | `{}`                       |
 | `nightMode.get`         | —                                              | `{ enabled, auto }`        |
 | `nightMode.set`         | `{ enabled?, auto? }`                           | `{}`                       |
 | `ui.openPanel`          | `{ panel }`                                    | `{}`                       |
