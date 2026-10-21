@@ -198,7 +198,7 @@ export class AnchorWatchComponent {
    * radius stays until a valid one is entered, as it is the one a drop uses.
    */
   onDefaultRadiusChange(e: number | null) {
-    if (e === null) {
+    if (e === null || !Number.isFinite(e) || e < 1) {
       return;
     }
     const radius = Math.round(
