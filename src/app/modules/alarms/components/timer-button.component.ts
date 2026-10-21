@@ -52,34 +52,47 @@ export class TimerButtonComponent {
   constructor() {}
 
   ngOnInit() {
-    this.timeLeft.update(() => (isNaN(this.period) ? 5 : this.period / 1000));
+    const secs = isNaN(this.period)
+      ? 5
+      : Math.max(0, Math.ceil(this.period / 1000));
+    this.timeLeft.set(secs);
     this.label = this.label ?? 'Action in ';
     this.cancelledLabel = this.cancelledLabel ?? 'OK';
+    if (secs === 0) {
+      // No countdown: act on the next tick rather than inside the change
+      // detection pass that is creating this button.
+      this.timer = setTimeout(() => this.expire(), 0);
+      return;
+    }
     this.timer = setInterval(() => {
       this.timeLeft.update((current) => current - 1);
-      if (this.timeLeft() === 0) {
-        this.disabled = true;
-        this.action();
-        if (this.timer) {
-          clearInterval(this.timer);
-        }
-        this.timer = null;
+      if (this.timeLeft() <= 0) {
+        this.expire();
       }
     }, 1000);
   }
 
   ngOnDestroy() {
-    if (this.timer) {
-      clearInterval(this.timer);
-    }
+    this.stopTimer();
   }
 
   cancel() {
+    this.stopTimer();
+    this.cancelled.set(true);
+  }
+
+  private expire() {
+    this.stopTimer();
+    this.disabled = true;
+    this.action();
+  }
+
+  private stopTimer() {
     if (this.timer) {
+      // clearInterval also clears a setTimeout id.
       clearInterval(this.timer);
       this.timer = null;
     }
-    this.cancelled.set(true);
   }
 
   action() {

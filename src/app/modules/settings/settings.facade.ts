@@ -256,7 +256,17 @@ export class SettingsOptions {
 
   course = {
     nextPointTrigger: ['perpendicularPassed', 'arrivalCircleEntered'],
-    nextPointDelay: this.alarm.smoothing
+    nextPointDelay: new Map([
+      [0, 'Immediately'],
+      [1000, '1 sec'],
+      [2000, '2 secs'],
+      [3000, '3 secs'],
+      [5000, '5 secs'],
+      [10000, '10 secs'],
+      [15000, '15 secs'],
+      [20000, '20 secs'],
+      [30000, '30 secs']
+    ])
   };
 
   resources = {
