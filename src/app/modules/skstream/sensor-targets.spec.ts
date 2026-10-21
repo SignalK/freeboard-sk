@@ -53,7 +53,7 @@ describe('processSensorTarget', () => {
       },
       COG_LINE
     );
-    const [lon, lat] = targets.get(RADAR).position;
+    const [lon, lat] = targets.get(RADAR)!.position!;
     expect(lon).toBeCloseTo(-179.97);
     expect(lat).toBe(-17.5);
   });
@@ -110,14 +110,14 @@ describe('processSensorTarget', () => {
       COG_LINE
     );
 
-    const t = targets.get(RADAR);
+    const t = targets.get(RADAR)!;
     expect(t.position).toEqual([4.2, 52.1]);
     expect(t.cog).toBe(1.5);
     expect(t.orientation).toBe(1.5);
     expect(t.sog).toBe(4);
     expect(t.name).toBe('Nordic Star');
     expect(t.mmsi).toBe('244060000');
-    expect(t.type.name).toBe('Radar target');
+    expect(t.type?.name).toBe('Radar target');
     expect(t.sameAs).toBeNull();
   });
 
@@ -129,7 +129,7 @@ describe('processSensorTarget', () => {
       { path: 'navigation.position', value: { latitude: 0, longitude: 0 } },
       COG_LINE
     );
-    expect(targets.get(RADAR).vectors.cog).toBeNull();
+    expect(targets.get(RADAR)!.vectors.cog).toBeNull();
     processSensorTarget(
       targets,
       RADAR,
@@ -142,7 +142,7 @@ describe('processSensorTarget', () => {
       { path: 'navigation.courseOverGroundTrue', value: Math.PI / 2 },
       COG_LINE
     );
-    const [start, end] = targets.get(RADAR).vectors.cog;
+    const [start, end] = targets.get(RADAR)!.vectors.cog!;
     expect(start).toEqual([0, 0]);
     // 5 m/s for 10 minutes due east: 3000 m, about 0.027 degrees at the equator
     expect(end[0]).toBeCloseTo(0.02698, 4);
@@ -175,7 +175,7 @@ describe('processSensorTarget', () => {
       { path: 'navigation.speedOverGround', value: 'fast' },
       COG_LINE
     );
-    const t = targets.get(RADAR);
+    const t = targets.get(RADAR)!;
     expect(t.cog).toBeUndefined();
     expect(t.orientation).toBe(0);
     expect(t.vectors.cog).toBeNull();
@@ -194,20 +194,20 @@ describe('processSensorTarget', () => {
       },
       COG_LINE
     );
-    expect(targets.get(RADAR).cog).toBeUndefined();
+    expect(targets.get(RADAR)!.cog).toBeUndefined();
   });
 
   it('records and withdraws the link to another context', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
-    expect(targets.get(RADAR).sameAs).toBe(VESSEL);
+    expect(targets.get(RADAR)!.sameAs).toBe(VESSEL);
     processSensorTarget(
       targets,
       RADAR,
       { path: 'sameAs', value: null },
       COG_LINE
     );
-    expect(targets.get(RADAR).sameAs).toBeNull();
+    expect(targets.get(RADAR)!.sameAs).toBeNull();
   });
 
   it('keeps a lost target dropped while its remaining null values arrive', () => {
@@ -276,21 +276,21 @@ describe('unlinkedTargets', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR);
     target(targets, CAMERA, RADAR);
-    targets.get(RADAR).positionUpdatedAt = 1000;
-    targets.get(CAMERA).positionUpdatedAt = 2000;
-    targets.get(CAMERA).position = [4.3, 52.2];
-    const shown = unlinkedTargets(targets, new Map()).get(RADAR);
+    targets.get(RADAR)!.positionUpdatedAt = 1000;
+    targets.get(CAMERA)!.positionUpdatedAt = 2000;
+    targets.get(CAMERA)!.position = [4.3, 52.2];
+    const shown = unlinkedTargets(targets, new Map()).get(RADAR)!;
     expect(shown.position).toEqual([4.3, 52.2]);
     expect(shown).toBeInstanceOf(SKSensorTarget);
-    expect(targets.get(RADAR).position).toEqual([4.2, 52.1]);
+    expect(targets.get(RADAR)!.position).toEqual([4.2, 52.1]);
   });
 
   it('keeps a target that reported after the targets linked to it', () => {
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR);
     target(targets, CAMERA, RADAR);
-    targets.get(RADAR).positionUpdatedAt = 3000;
-    targets.get(CAMERA).positionUpdatedAt = 2000;
+    targets.get(RADAR)!.positionUpdatedAt = 3000;
+    targets.get(CAMERA)!.positionUpdatedAt = 2000;
     const shown = unlinkedTargets(targets, new Map());
     expect(shown.get(RADAR)).toBe(targets.get(RADAR));
   });
@@ -319,7 +319,7 @@ describe('unlinkedTargets', () => {
     unplaced.position = null;
     const vessels = new Map([[VESSEL, unplaced]]);
     expect([...unlinkedTargets(targets, vessels).keys()]).toEqual([]);
-    expect(fusedVessels(vessels, targets).get(VESSEL).position).toEqual([
+    expect(fusedVessels(vessels, targets).get(VESSEL)!.position).toEqual([
       4.2, 52.1
     ]);
   });
@@ -340,13 +340,13 @@ describe('unlinkedTargets', () => {
       { path: 'navigation.speedOverGround', value: 3 },
       COG_LINE
     );
-    targets.get(CAMERA).positionUpdatedAt = 1000;
-    targets.get(RADAR).positionUpdatedAt = 2000;
-    const shown = unlinkedTargets(targets, new Map()).get(CAMERA);
+    targets.get(CAMERA)!.positionUpdatedAt = 1000;
+    targets.get(RADAR)!.positionUpdatedAt = 2000;
+    const shown = unlinkedTargets(targets, new Map()).get(CAMERA)!;
     expect(shown).toBeInstanceOf(SKSensorTarget);
     expect(shown.cog).toBe(1.5);
     expect(shown.sog).toBe(3);
-    expect(shown.vectors.cog).toEqual(targets.get(RADAR).vectors.cog);
+    expect(shown.vectors.cog).toEqual(targets.get(RADAR)!.vectors.cog);
   });
 
   it('draws a target whose linked target has no position', () => {
@@ -405,10 +405,10 @@ describe('fusedVessels', () => {
     v.positionUpdatedAt = 1000;
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
-    targets.get(RADAR).positionUpdatedAt = 2000;
+    targets.get(RADAR)!.positionUpdatedAt = 2000;
     const vessels = new Map([[VESSEL, v]]);
-    const fused = fusedVessels(vessels, targets).get(VESSEL);
-    expect(fused.position).toEqual(targets.get(RADAR).position);
+    const fused = fusedVessels(vessels, targets).get(VESSEL)!;
+    expect(fused.position).toEqual(targets.get(RADAR)!.position);
     expect(fused).toBeInstanceOf(SKVessel);
     expect(v.position).toEqual([4.21, 52.11]);
   });
@@ -419,9 +419,9 @@ describe('fusedVessels', () => {
     v.lastUpdated = new Date(1000);
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
-    targets.get(RADAR).positionUpdatedAt = 2000;
-    const fused = fusedVessels(new Map([[VESSEL, v]]), targets).get(VESSEL);
-    expect(fused.lastUpdated).toBe(targets.get(RADAR).lastUpdated);
+    targets.get(RADAR)!.positionUpdatedAt = 2000;
+    const fused = fusedVessels(new Map([[VESSEL, v]]), targets).get(VESSEL)!;
+    expect(fused.lastUpdated).toBe(targets.get(RADAR)!.lastUpdated);
   });
 
   it('keeps a vessel whose AIS reported after the linked target', () => {
@@ -429,7 +429,7 @@ describe('fusedVessels', () => {
     v.positionUpdatedAt = 3000;
     const targets = new Map<string, SKSensorTarget>();
     target(targets, RADAR, VESSEL);
-    targets.get(RADAR).positionUpdatedAt = 2000;
+    targets.get(RADAR)!.positionUpdatedAt = 2000;
     const vessels = new Map([[VESSEL, v]]);
     expect(fusedVessels(vessels, targets)).toBe(vessels);
   });
