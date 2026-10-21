@@ -519,8 +519,12 @@ A modal window makes every other window `inert` while it is open: the backdrop
 does not cover the right column, so it cannot block a window the user put
 there.
 
-The left column holds the Alarms button and is never covered. Nor is anything
-safety-related on the right: its mute button only repeats the Alarms button's.
+The left column holds the Alarms button and is never covered. The right
+column can be covered, by the user's choice or a window's `minWidth`, and that
+includes its *Web Audio off* button: the only control that resumes the audio
+context alarm sounds play through. Covering it is an accepted risk. Automated
+placement never covers it, and the user can always move or collapse a window
+to reach it.
 A modal window stays inside the window area, and its backdrop covers only the
 window area, so both columns stay usable while it is open. `bounds` are
 reported from the window area's top-left, so a window over the column has
