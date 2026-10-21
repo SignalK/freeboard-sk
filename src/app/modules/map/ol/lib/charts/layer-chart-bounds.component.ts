@@ -79,7 +79,7 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
       i++;
       i = i === this.boundStyles.length ? 0 : i;
     }
-    this.source.addFeatures(fa);
+    this.source?.addFeatures(fa);
   }
 
   buildBackdrop() {

@@ -31,10 +31,8 @@ import { LightTheme, DarkTheme } from './themes';
 })
 export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer?: Layer;
-  // Created in ngOnInit. The first ngOnChanges runs before it, so subclasses
-  // check for it there; it stays non-optional so the layers built on this
-  // class keep compiling unchanged (#869).
-  public source!: VectorSource;
+  // Created in ngOnInit; the first ngOnChanges runs before it.
+  public source?: VectorSource;
   protected theme = LightTheme;
   protected labelPrefixes: string[] = [];
 

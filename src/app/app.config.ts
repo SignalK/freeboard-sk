@@ -736,8 +736,7 @@ export function defaultConfig(): IAppConfig {
       rodeLength: 50 // rode length setting
     },
     radars: {
-      // typed without undefined until every reader handles it (#869)
-      deviceId: undefined!,
+      deviceId: undefined,
       opacity: 1,
       rings: true
     },
@@ -772,6 +771,8 @@ export function defaultConfig(): IAppConfig {
 
 // initialise state data
 export function initData(): FBAppData {
+  // the active vessel is own vessel until another is selected
+  const self = new SKVessel();
   return {
     loginRequired: false,
     chartBounds: {
@@ -797,12 +798,11 @@ export function initData(): FBAppData {
     vessels: {
       // received vessel data
       showSelf: false,
-      self: new SKVessel(),
+      self,
       aisTargets: new Map(),
       aisTracks: new Map(), // AIS targets track (tracks plugin)
       activeId: null,
-      // typed without null until every reader handles it (#869)
-      active: null!,
+      active: self,
       closest: [],
       cpaPositions: new Map(),
       prefAvailablePaths: {}, // preference paths available from source,

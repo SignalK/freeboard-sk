@@ -7,7 +7,6 @@ import { CourseService } from './course.service';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKVessel } from '../skresources';
-import { Convert } from 'src/app/lib/convert';
 import { DistanceUnitDef, SKCourseApi } from 'src/app/types';
 import type { CoursePointType } from '@signalk/server-api';
 
@@ -58,11 +57,8 @@ describe('CourseService route DTG (#414)', () => {
     service.parseSelf(vesselWith(200, 5000));
 
     const c = service.courseData();
-    expect(c.dtg).toBeCloseTo(Convert.transform(200, 'm', 'naut-mile'), 6);
-    expect(c.route.dtg).toBeCloseTo(
-      Convert.transform(5000, 'm', 'naut-mile'),
-      6
-    );
+    expect(c.dtg).toBeCloseTo(200 / 1852, 6);
+    expect(c.route.dtg).toBeCloseTo(5000 / 1852, 6);
   });
 });
 

@@ -99,10 +99,13 @@ const WindBarb = (kts: number): MapIconDef => ({
 export const meteoWindBucket = (
   tws: number | null | undefined
 ): number | null => {
-  if (typeof tws !== 'number' || !Number.isFinite(tws)) {
+  if (typeof tws !== 'number') {
     return null;
   }
   const kn = Convert.transform(tws, 'm/s', 'kn');
+  if (kn === null) {
+    return null;
+  }
   if (kn < METEO_WIND_MIN_KTS) {
     return 0;
   }

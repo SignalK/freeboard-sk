@@ -64,7 +64,7 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
         this.parseResources(r[1]);
       }
     }
-    this.source.addFeatures(this.features);
+    this.source?.addFeatures(this.features);
   }
 
   // process a resource set

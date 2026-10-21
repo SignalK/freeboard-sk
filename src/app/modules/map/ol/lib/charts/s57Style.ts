@@ -743,20 +743,19 @@ export class S57Style {
       depth = parseFloat(featureProperties['VALSOU']);
     }
 
-    if (isNaN(depth)) {
-      return retval;
-    }
-
     // Convert to user's preferred depth unit
-    depth = Convert.transform(
+    const unitDepth = Convert.transform(
       depth,
       'm',
       this.s57Service.options.depthUnit as TARGET_UNIT
     );
+    if (unitDepth === null) {
+      return retval;
+    }
 
     // Format: whole numbers for feet; other units show tenths only when zoomed in
-    const sign = depth < 0 ? '-' : '';
-    const absDepth = Math.abs(depth);
+    const sign = unitDepth < 0 ? '-' : '';
+    const absDepth = Math.abs(unitDepth);
     let str: string;
     if (this.s57Service.options.depthUnit === 'foot') {
       str = sign + Math.round(absDepth).toString();

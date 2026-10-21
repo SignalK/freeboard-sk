@@ -77,7 +77,10 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
       this.element = this.elementRef.nativeElement;
       const overlay = new Overlay(this as Options);
       this.overlay = overlay;
-      this.showOn(overlay, this.targetMap ?? this.mapComponent.getMap());
+      const map = this.targetMap ?? this.mapComponent.getMap();
+      if (map) {
+        this.showOn(overlay, map);
+      }
       if (this.position) {
         overlay.setPosition(this.toWorldPosition(this.position));
       }
@@ -112,7 +115,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges) {
     if (this.overlay && changes.targetMap) {
       const map = this.targetMap ?? this.mapComponent.getMap();
-      if (map !== this.shownOn) {
+      if (map && map !== this.shownOn) {
         this.showOn(this.overlay, map);
         this.repositioned.next();
       }

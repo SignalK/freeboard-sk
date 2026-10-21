@@ -7,8 +7,10 @@ import { Icon, Style } from 'ol/style';
 // Stub the unit-preference formatter used for the speed label: mimic a user
 // configured for knots so the assertions read in a stable unit.
 const appStub = {
-  formatValueForDisplay: (v: number) =>
-    `${Math.round(Convert.transform(v, 'm/s', 'kn'))} kn`,
+  formatValueForDisplay: (v: number) => {
+    const kn = Convert.transform(v, 'm/s', 'kn');
+    return kn === null ? '---' : `${Math.round(kn)} kn`;
+  },
   twsDisplayUnitPath: () => 'environment.wind.speedTrue'
 };
 

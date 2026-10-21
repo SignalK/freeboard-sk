@@ -162,7 +162,7 @@ type AisIds = Array<string>;
 interface WorkerMessageBase<T> {
   action: string;
   playback: boolean;
-  result: T;
+  result: T | null;
   self: string | null;
   timestamp: string;
 }
@@ -191,8 +191,7 @@ export interface ResultPayload {
 export class NotificationMessage implements WorkerMessageBase<DeltaSignal> {
   action = 'notification';
   playback = false;
-  // Typed without null until every consumer handles it (#869).
-  result: DeltaSignal = null!;
+  result: DeltaSignal | null = null;
   self: string | null = null;
   timestamp = new Date().toISOString();
   sourceRef!: string;
@@ -201,9 +200,8 @@ export class NotificationMessage implements WorkerMessageBase<DeltaSignal> {
 export class UpdateMessage<T = ResultPayload> implements WorkerMessageBase<T> {
   action: string;
   playback = false;
-  // Typed without null until every consumer handles it (#869); a trail
-  // result is null when no trail is available.
-  result: T = null!;
+  // a trail result is null when no trail is available
+  result: T | null = null;
   // timestamp and watchDogAlarm are set on every vessel update the worker posts
   timestamp!: string;
   self: string | null = null;

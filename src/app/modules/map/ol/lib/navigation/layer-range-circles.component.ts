@@ -167,6 +167,9 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     let range: number;
     if (!this.fixedMode()) {
       const map = this.mapComponent.getMap();
+      if (!map) {
+        return;
+      }
       const zoomResolution = map.getView().getResolutionForZoom(this.mapZoom);
       range =
         zoomResolution > 5000
@@ -269,10 +272,12 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
         value >= 1000 ? (this.units as TARGET_UNIT) : ('m' as TARGET_UNIT);
       const p = u === ('m' as TARGET_UNIT) ? 0 : 1;
       const tv = Convert.transform(value, 'm', u);
-      return `${tv.toFixed(p)}${Convert.getSymbol(u)}`;
+      return tv === null ? '' : `${tv.toFixed(p)}${Convert.getSymbol(u)}`;
     } else {
       const tv = Convert.transform(value, 'm', this.units as TARGET_UNIT);
-      return `${tv.toFixed(1)}${Convert.getSymbol(this.units as TARGET_UNIT)}`;
+      return tv === null
+        ? ''
+        : `${tv.toFixed(1)}${Convert.getSymbol(this.units as TARGET_UNIT)}`;
     }
   }
 }

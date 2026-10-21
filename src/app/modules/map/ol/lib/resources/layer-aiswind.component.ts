@@ -99,9 +99,13 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
 
   // update wind vector feature when target updated
   override onUpdateTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((id: string) => {
       if (id.includes(this.targetContext)) {
-        const f = this.source?.getFeatureById('wind-' + id) as Feature;
+        const f = source.getFeatureById('wind-' + id) as Feature;
         if (this.okToRenderTarget(id)) {
           if (this.targets.has(id)) {
             if (f) {
@@ -112,7 +116,7 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
                 // no direction for this vector type any more (e.g. apparent
                 // toggled to true on a target without true wind): drop it
                 // rather than leave the old line drawn in the new style
-                this.source.removeFeature(f);
+                source.removeFeature(f);
               } else {
                 if (position) {
                   f.setGeometry(new LineString(v));
@@ -124,7 +128,7 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
             }
           }
         } else {
-          this.source.removeFeature(f);
+          source.removeFeature(f);
         }
       }
     });
@@ -132,10 +136,14 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
 
   // remove flag when target removed
   override onRemoveTargets(ids: Array<string>) {
+    const source = this.source;
+    if (!source) {
+      return;
+    }
     ids.forEach((id) => {
-      const f = this.source.getFeatureById('wind-' + id) as Feature;
+      const f = source.getFeatureById('wind-' + id) as Feature;
       if (f) {
-        this.source.removeFeature(f);
+        source.removeFeature(f);
       }
     });
   }

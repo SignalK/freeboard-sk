@@ -53,11 +53,10 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['route'];
-    this.leaveOverlap = joinOverlap(
-      this.mapComponent.getMap(),
-      'routes',
-      this.source
-    );
+    const map = this.mapComponent.getMap();
+    if (map && this.source) {
+      this.leaveOverlap = joinOverlap(map, 'routes', this.source);
+    }
     this.parseFBRoutes(this.routes);
   }
 
@@ -91,10 +90,10 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     coord: number[],
     resolution: number
   ): boolean {
-    const wpt = drawnWaypointPosition(
-      this.mapComponent.getMap(),
-      linkedWaypointId(meta?.[index])
-    );
+    const map = this.mapComponent.getMap();
+    const wpt = map
+      ? drawnWaypointPosition(map, linkedWaypointId(meta?.[index]))
+      : undefined;
     return !!wpt && drawnTogether(coord, wpt, resolution);
   }
 
@@ -128,7 +127,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         fa.push(f);
       }
     }
-    this.source.addFeatures(fa);
+    this.source?.addFeatures(fa);
     this.updateLabels();
   }
 

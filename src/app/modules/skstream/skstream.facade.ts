@@ -469,14 +469,15 @@ export class SKStreamFacade {
 
   // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
   private parseUpdateMessage(msg: UpdateMessage) {
-    if (msg.action === 'update') {
+    const result = msg.result;
+    if (msg.action === 'update' && result) {
       // delta message
 
-      this.parseVesselSelf(msg.result.self);
+      this.parseVesselSelf(result.self);
 
-      this.parseVesselOther(msg.result.aisTargets);
+      this.parseVesselOther(result.aisTargets);
 
-      this.app.data.vessels.prefAvailablePaths = msg.result.paths;
+      this.app.data.vessels.prefAvailablePaths = result.paths;
 
       // ** update active vessel map display **
       const vessels = this.app.data.vessels;
@@ -490,23 +491,23 @@ export class SKStreamFacade {
       vessels.active = active ?? vessels.self;
 
       // process AtoNs
-      this.app.data.atons = msg.result.atons;
+      this.app.data.atons = result.atons;
 
       // process SaR
-      this.app.data.sar = msg.result.sar;
+      this.app.data.sar = result.sar;
 
       // process Meteo
-      this.app.data.meteo = msg.result.meteo;
+      this.app.data.meteo = result.meteo;
 
       // process Aircraft
-      this.app.data.aircraft = msg.result.aircraft;
+      this.app.data.aircraft = result.aircraft;
 
       // update AIS Lifecycle signal
       this.aisLifecycle.update(() => {
         return {
-          updated: msg.result.aisStatus.updated,
-          stale: msg.result.aisStatus.stale,
-          expired: msg.result.aisStatus.expired
+          updated: result.aisStatus.updated,
+          stale: result.aisStatus.stale,
+          expired: result.aisStatus.expired
         };
       });
 

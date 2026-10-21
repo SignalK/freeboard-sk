@@ -232,8 +232,9 @@ export class RadarAPIService {
       }
       this._selectedRadar.set(id);
     } else {
-      if (keys.includes(this.app.config.radars.deviceId)) {
-        this._selectedRadar.set(this.app.config.radars.deviceId);
+      const saved = this.app.config.radars.deviceId;
+      if (saved !== undefined && keys.includes(saved)) {
+        this._selectedRadar.set(saved);
       } else {
         this._selectedRadar.set(radars[0].id);
       }

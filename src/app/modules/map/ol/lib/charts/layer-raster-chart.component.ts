@@ -74,7 +74,7 @@ export class RasterChartLayerComponent implements OnDestroy {
   ngOnDestroy() {
     this.stopRefresh?.();
     const map = this.mapComponent.getMap();
-    if (this.layer) {
+    if (this.layer && map) {
       map.removeLayer(this.layer);
       map.render();
     }

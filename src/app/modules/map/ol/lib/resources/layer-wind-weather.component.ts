@@ -90,6 +90,10 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
       this.refresh$.next();
       return;
     }
+    const map = this.mapComponent.getMap();
+    if (!map) {
+      return;
+    }
 
     this.source = new VectorSource();
     this.layer = new VectorLayer({
@@ -100,7 +104,7 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
     });
     this.layer.set('id', 'signal-k-weather-wind');
     this.layer.set('name', 'Weather Wind');
-    this.mapComponent.getMap().addLayer(this.layer);
+    map.addLayer(this.layer);
 
     this.refreshSub = this.refresh$
       .pipe(
@@ -108,9 +112,9 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
         switchMap(() => this.fetchWind())
       )
       .subscribe();
-    this.mapComponent.getMap().on('moveend', this.onMoveEnd);
+    map.on('moveend', this.onMoveEnd);
     this.refresh$.next();
-    this.mapComponent.getMap().render();
+    map.render();
   }
 
   private removeLayer() {
@@ -158,8 +162,8 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
 
   private getSamplePoints() {
     const map = this.mapComponent.getMap();
-    const size = map.getSize();
-    if (!size) {
+    const size = map?.getSize();
+    if (!map || !size) {
       return [];
     }
 

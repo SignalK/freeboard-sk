@@ -90,12 +90,13 @@ export class AnchorWatchComponent {
   protected app = inject(AppFacade);
   private destroyRef = inject(DestroyRef);
 
-  protected radiusValue = signal<number>(0); // incoming alarm radius
+  protected radiusValue = signal<number | null>(0); // incoming alarm radius
   protected formattedRadiusValue = computed(() => {
-    if (!Number.isFinite(this.radiusValue()) || this.raised) {
+    const radius = this.radiusValue();
+    if (radius === null || this.raised) {
       return '--';
     } else {
-      return `${Math.round(this.radiusValue())}${Convert.getSymbol(this.app.config.units.length)}`;
+      return `${Math.round(radius)}${Convert.getSymbol(this.app.config.units.length)}`;
     }
   });
   protected displayRadius = signal<string>('--');
@@ -110,10 +111,10 @@ export class AnchorWatchComponent {
     this.useSetManual =
       this.app.config.anchor.manualSet && this.anchor.supportsManualSet();
     this.defaultRodeLength.update(() => {
-      return Math.round(this.transformValue(this.app.config.anchor.rodeLength));
+      return this.roundedValue(this.app.config.anchor.rodeLength);
     });
     this.defaultAlarmRadius.update(() => {
-      return Math.round(this.transformValue(this.app.config.anchor.radius));
+      return this.roundedValue(this.app.config.anchor.radius);
     });
   }
 
@@ -152,12 +153,17 @@ export class AnchorWatchComponent {
    * @param value to convert
    * @returns Transformed value
    */
-  transformValue(value: number): number {
+  transformValue(value: number): number | null {
     return Convert.transform(
       value,
       'm',
       this.app.config.units.length as TARGET_UNIT
     );
+  }
+
+  /** The converted value rounded, or 0 when it does not convert. */
+  private roundedValue(value: number): number {
+    return Math.round(this.transformValue(value) ?? 0);
   }
 
   /**
@@ -166,7 +172,7 @@ export class AnchorWatchComponent {
    * @returns Formatted string of transformed for display
    */
   formatTransformedValue(value: number): string {
-    return `${Math.round(this.transformValue(value))} ${Convert.getSymbol(this.app.config.units.length)}`;
+    return `${this.roundedValue(value)} ${Convert.getSymbol(this.app.config.units.length)}`;
   }
 
   /** Format slider thumb value for display */
@@ -181,7 +187,7 @@ export class AnchorWatchComponent {
     this.app.config.anchor.setRadius = e.checked;
     if (!e.checked) {
       this.defaultAlarmRadius.update(() => {
-        return Math.round(this.transformValue(this.app.config.anchor.radius));
+        return this.roundedValue(this.app.config.anchor.radius);
       });
     }
     this.app.saveConfig();
@@ -193,7 +199,7 @@ export class AnchorWatchComponent {
         e,
         this.app.config.units.length as SI_BASE_UNIT,
         'm' as TARGET_UNIT
-      )
+      ) ?? 0
     );
   }
 
@@ -202,9 +208,7 @@ export class AnchorWatchComponent {
     this.app.config.anchor.manualSet = e.checked;
     if (!e.checked) {
       this.defaultRodeLength.update(() => {
-        return Math.round(
-          this.transformValue(this.app.config.anchor.rodeLength)
-        );
+        return this.roundedValue(this.app.config.anchor.rodeLength);
       });
     }
     this.disableRaiseDrop = this.raised && this.useSetManual;
@@ -246,17 +250,19 @@ export class AnchorWatchComponent {
    * @description Set anchor position using the rode length
    */
   setManualAnchor() {
-    if (typeof this.defaultRodeLength() !== 'number') {
+    const rodeLength =
+      typeof this.defaultRodeLength() === 'number'
+        ? Convert.transform(
+            this.defaultRodeLength(),
+            this.app.config.units.length as SI_BASE_UNIT,
+            'm' as TARGET_UNIT
+          )
+        : null;
+    if (rodeLength === null) {
       this.app.showAlert('Error', 'Rode length value is not a number!');
       return;
     }
-    this.app.config.anchor.rodeLength = Math.round(
-      Convert.transform(
-        this.defaultRodeLength(),
-        this.app.config.units.length as SI_BASE_UNIT,
-        'm' as TARGET_UNIT
-      )
-    );
+    this.app.config.anchor.rodeLength = Math.round(rodeLength);
     this.anchor
       .setManualAnchor(this.app.config.anchor.rodeLength)
       .pipe(takeUntilDestroyed(this.destroyRef))

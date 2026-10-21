@@ -165,7 +165,8 @@ export class ViewDirective
     this.timerCenterId = setTimeout(() => {
       const view: View = e.target;
       const center = view.getCenter();
-      if (!center) {
+      const map = this.mapComponent.getMap();
+      if (!center || !map) {
         return;
       }
       this.centerChange.emit(
@@ -173,7 +174,7 @@ export class ViewDirective
           lonlat: toLonLat(center),
           zoom: view.getZoom(),
           extent: transformExtent(
-            view.calculateExtent(this.mapComponent.getMap().getSize()),
+            view.calculateExtent(map.getSize()),
             view.getProjection().getCode(),
             'EPSG:4326'
           ),
@@ -190,7 +191,8 @@ export class ViewDirective
     this.timerZoomId = setTimeout(() => {
       const view: View = e.target;
       const center = view.getCenter();
-      if (!center) {
+      const map = this.mapComponent.getMap();
+      if (!center || !map) {
         return;
       }
       this.zoomChange.emit(
@@ -198,7 +200,7 @@ export class ViewDirective
           lonlat: toLonLat(center),
           zoom: view.getZoom(),
           extent: transformExtent(
-            view.calculateExtent(this.mapComponent.getMap().getSize()),
+            view.calculateExtent(map.getSize()),
             view.getProjection().getCode(),
             'EPSG:4326'
           ),
