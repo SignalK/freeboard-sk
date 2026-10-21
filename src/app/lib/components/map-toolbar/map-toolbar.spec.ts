@@ -74,9 +74,12 @@ describe('splitToolbar', () => {
 });
 
 describe('needsAttention', () => {
-  it('flags an active item or one with a badge', () => {
+  it('flags an active item, one with a badge or one with a tone', () => {
     expect(needsAttention({ id: 'a', tooltip: '', active: true })).toBe(true);
     expect(needsAttention({ id: 'a', tooltip: '', badge: 2 })).toBe(true);
+    expect(needsAttention({ id: 'a', tooltip: '', tone: 'warning' })).toBe(
+      true
+    );
     expect(needsAttention({ id: 'a', tooltip: '', badge: 0 })).toBe(false);
     expect(needsAttention({ id: 'a', tooltip: '' })).toBe(false);
   });
@@ -96,5 +99,18 @@ describe('sameToolbarItems', () => {
     expect(sameToolbarItems(build(false), build(true))).toBe(false);
     expect(sameToolbarItems(build(false), build(false).slice(1))).toBe(false);
     expect(sameToolbarItems(build(false), build(false).reverse())).toBe(false);
+  });
+
+  it('compares colours by value', () => {
+    const colored = (bg: string): ToolbarItem[] => [
+      { id: 'a', tooltip: 'A', colors: { bg } }
+    ];
+    expect(sameToolbarItems(colored('#ffd600'), colored('#ffd600'))).toBe(true);
+    expect(sameToolbarItems(colored('#ffd600'), colored('#000000'))).toBe(
+      false
+    );
+    expect(
+      sameToolbarItems(colored('#ffd600'), [{ id: 'a', tooltip: 'A' }])
+    ).toBe(false);
   });
 });

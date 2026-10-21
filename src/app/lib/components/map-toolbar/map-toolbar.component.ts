@@ -15,12 +15,25 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   ToolbarItem,
+  ToolbarTone,
   needsAttention,
   sameToolbarItems,
   splitToolbar,
   toolbarMenuLabel,
   toolbarSlots
 } from './map-toolbar';
+
+const TONE_BUTTON_CLASS: Record<ToolbarTone, string> = {
+  warning: 'button-accent',
+  alarm: 'button-warn'
+};
+
+// In the menu the icon shows the state that the button colour shows on the
+// toolbar.
+const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
+  warning: 'icon-accent',
+  alarm: 'icon-warn'
+};
 
 /**
  * A column of map toolbar buttons that never scrolls. It shows as many items
@@ -129,9 +142,14 @@ import {
           mat-mini-fab
           [attr.data-toolbar-item]="item.id"
           [class]="buttonClass(item)"
+          [class.custom-bg]="!!item.colors?.bg"
+          [class.custom-fg]="!!item.colors?.fg"
+          [style.--toolbar-button-bg]="item.colors?.bg ?? null"
+          [style.--toolbar-button-fg]="item.colors?.fg ?? null"
           [disabled]="item.disabled"
           [matTooltip]="item.tooltip"
-          [attr.aria-label]="item.tooltip"
+          [attr.aria-label]="menuLabel(item)"
+          [attr.aria-pressed]="item.pressed ? 'true' : null"
           [matTooltipPosition]="tooltipPosition()"
           [matMenuTriggerFor]="item.menu"
           [matBadge]="item.badge"
@@ -148,9 +166,14 @@ import {
           mat-mini-fab
           [attr.data-toolbar-item]="item.id"
           [class]="buttonClass(item)"
+          [class.custom-bg]="!!item.colors?.bg"
+          [class.custom-fg]="!!item.colors?.fg"
+          [style.--toolbar-button-bg]="item.colors?.bg ?? null"
+          [style.--toolbar-button-fg]="item.colors?.fg ?? null"
           [disabled]="item.disabled"
           [matTooltip]="item.tooltip"
-          [attr.aria-label]="item.tooltip"
+          [attr.aria-label]="menuLabel(item)"
+          [attr.aria-pressed]="item.pressed ? 'true' : null"
           [matTooltipPosition]="tooltipPosition()"
           [matBadge]="item.badge"
           matBadgeOverlap="true"
@@ -195,6 +218,14 @@ import {
       }
       :host(.right) {
         right: 0;
+      }
+      /* Beat the theme's !important button classes; the colours come from
+         the item through these properties. */
+      .custom-bg {
+        background-color: var(--toolbar-button-bg) !important;
+      }
+      .custom-fg {
+        color: var(--toolbar-button-fg) !important;
       }
       .toolbarItem {
         text-align: center;
@@ -268,16 +299,17 @@ export class MapToolbarComponent {
   }
 
   protected buttonClass(item: ToolbarItem): string {
-    return (
-      item.buttonClass ?? (item.active ? 'button-primary' : 'button-toolbar')
-    );
+    if (item.buttonClass) return item.buttonClass;
+    if (item.tone) return TONE_BUTTON_CLASS[item.tone];
+    return item.active ? 'button-primary' : 'button-toolbar';
   }
 
   protected iconClass(item: ToolbarItem, inMenu: boolean): string {
-    const classes = [
-      item.iconClass,
-      inMenu && item.active ? 'icon-primary' : ''
-    ];
-    return classes.filter(Boolean).join(' ');
+    const state = item.tone
+      ? TONE_ICON_CLASS[item.tone]
+      : item.active
+        ? 'icon-primary'
+        : '';
+    return [item.iconClass, inMenu ? state : ''].filter(Boolean).join(' ');
   }
 }

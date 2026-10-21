@@ -146,6 +146,59 @@ describe('MapToolbarComponent', () => {
     expect(dot()).toBe(true);
   });
 
+  it('draws a tone in the warning or alarm colours, over active', () => {
+    mount([
+      item('a', { tone: 'warning' }),
+      item('b', { tone: 'alarm', active: true }),
+      item('c', { active: true }),
+      item('d')
+    ]);
+    fitSlots(4);
+    expect(buttons().map((b) => b.classList.contains('button-accent'))).toEqual(
+      [true, false, false, false]
+    );
+    expect(buttons()[1].classList).toContain('button-warn');
+    expect(buttons()[2].classList).toContain('button-primary');
+    expect(buttons()[3].classList).toContain('button-toolbar');
+  });
+
+  it('shows a tone in the "…" menu icon, and dots "…" for it', () => {
+    mount([item('a'), item('b'), item('c', { tone: 'alarm' })]);
+    fitSlots(2);
+    expect(lastButton().classList.contains('mat-badge-hidden')).toBe(false);
+    const [, alarm] = openOverflowMenu();
+    expect(alarm.querySelector('mat-icon')?.classList).toContain('icon-warn');
+  });
+
+  it('draws custom colours over the button class', () => {
+    mount([
+      item('a', { colors: { fg: '#000000', bg: '#ffd600' } }),
+      item('b', { colors: { bg: '#112233' } }),
+      item('c')
+    ]);
+    fitSlots(3);
+    const [a, b, c] = buttons();
+    expect(a.classList).toContain('custom-bg');
+    expect(a.classList).toContain('custom-fg');
+    expect(a.classList).toContain('button-toolbar');
+    expect(a.style.getPropertyValue('--toolbar-button-bg')).toBe('#ffd600');
+    expect(a.style.getPropertyValue('--toolbar-button-fg')).toBe('#000000');
+    expect(b.classList).toContain('custom-bg');
+    expect(b.classList).not.toContain('custom-fg');
+    expect(c.classList).not.toContain('custom-bg');
+    expect(c.style.getPropertyValue('--toolbar-button-bg')).toBe('');
+  });
+
+  it('exposes a pressed toggle and the badge count to screen readers', () => {
+    mount([item('a', { pressed: true, badge: 3 }), item('b')]);
+    fitSlots(2);
+    const [a, b] = buttons();
+    expect(a.getAttribute('aria-pressed')).toBe('true');
+    expect(a.getAttribute('aria-label')).toBe('Label a (3)');
+    expect(b.hasAttribute('aria-pressed')).toBe(false);
+    expect(b.getAttribute('aria-label')).toBe('Label b');
+  });
+
   describe('with an anchor item', () => {
     const left = () => [
       item('a'),
