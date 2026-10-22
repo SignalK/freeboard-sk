@@ -1,4 +1,6 @@
+import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { getDistance } from 'geolib';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnchorWatchComponent } from './anchor-watch.component';
 import { AnchorService } from '../anchor.service';
 import { AppFacade } from 'src/app/app.facade';
+import { Position } from 'src/app/types';
 
 /**
  * The default alarm radius is kept in the config. Dropping the anchor, or
@@ -113,5 +116,122 @@ describe('AnchorWatchComponent default alarm radius', () => {
 
     expect(app().config.anchor.radius).toBe(55);
     expect(component['displayRadius']()).toBe('55 m');
+  });
+});
+
+describe('AnchorWatchComponent shift anchor', () => {
+  let position: WritableSignal<Position | null>;
+  let pending: { resolve: () => void; reject: (e: unknown) => void }[];
+  let setAnchorPosition: ReturnType<typeof vi.fn>;
+  let parseHttpErrorResponse: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    position = signal<Position | null>([0, 0]);
+    pending = [];
+    setAnchorPosition = vi.fn(
+      () =>
+        new Promise<boolean>((resolve, reject) =>
+          pending.push({ resolve: () => resolve(true), reject })
+        )
+    );
+    parseHttpErrorResponse = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            config: { anchor: { radius: 40 }, units: { length: 'm' } },
+            parseHttpErrorResponse
+          }
+        },
+        {
+          provide: AnchorService,
+          useValue: { position, setAnchorPosition }
+        }
+      ]
+    });
+    TestBed.overrideComponent(AnchorWatchComponent, { set: { template: '' } });
+  });
+
+  const create = () => {
+    const fixture = TestBed.createComponent(AnchorWatchComponent);
+    TestBed.tick();
+    return fixture.componentInstance;
+  };
+
+  /** Answer the request in flight and let its follow-up go out. */
+  const answer = async () => {
+    pending.shift()?.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  };
+
+  const sent = (call: number): Position =>
+    setAnchorPosition.mock.calls[call][0] as Position;
+
+  it('sends one position at a time and adds up the steps between', async () => {
+    const component = create();
+
+    component.shiftAnchor(0);
+    component.shiftAnchor(0);
+    component.shiftAnchor(0);
+    expect(setAnchorPosition).toHaveBeenCalledTimes(1);
+
+    await answer();
+    expect(setAnchorPosition).toHaveBeenCalledTimes(2);
+    expect(getDistance(sent(0), [0, 0])).toBe(1);
+    expect(getDistance(sent(1), [0, 0])).toBe(3);
+
+    await answer();
+    expect(setAnchorPosition).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores a lagging server position while a step is unanswered', async () => {
+    const component = create();
+
+    component.shiftAnchor(90);
+    position.set([0, 0]);
+    TestBed.tick();
+    component.shiftAnchor(90);
+    await answer();
+
+    expect(getDistance(sent(1), [0, 0])).toBe(2);
+  });
+
+  it('ignores a lagging server position after the step is answered', async () => {
+    const component = create();
+
+    component.shiftAnchor(0);
+    await answer();
+    position.set([0, 0]);
+    TestBed.tick();
+    component.shiftAnchor(0);
+
+    expect(getDistance(sent(1), [0, 0])).toBe(2);
+  });
+
+  it('shifts from a position the anchor was moved to elsewhere', async () => {
+    const component = create();
+
+    component.shiftAnchor(90);
+    await answer();
+    position.set([1, 1]);
+    TestBed.tick();
+    component.shiftAnchor(90);
+
+    expect(getDistance(sent(1), [1, 1])).toBe(1);
+  });
+
+  it('drops the queued steps when a request fails', async () => {
+    const component = create();
+
+    component.shiftAnchor(0);
+    component.shiftAnchor(0);
+    pending.shift()?.reject(new Error('down'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(parseHttpErrorResponse).toHaveBeenCalled();
+    expect(setAnchorPosition).toHaveBeenCalledTimes(1);
   });
 });
