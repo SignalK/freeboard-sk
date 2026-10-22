@@ -74,8 +74,8 @@ features:
 - A marker the plugin offers no commands on stays out of the way: a click goes to
   whatever is beneath it.
 
-A marker only ever offers the commands of the plugin that drew it. See *Extension Map
-Actions*.
+A marker only ever offers the commands of the plugin that drew it. See *Extension Menu
+Commands & Chart Picks*.
 
 If you haven't installed a plugin that provides a map layer, the **Plugin layers**
 heading doesn't appear, and the Chart List looks and works exactly as it always has.

@@ -1,13 +1,14 @@
 ---
 id: extension-map-actions
-title: Extension Map Actions
+title: Extension Menu Commands & Chart Picks
 category: Extensions
 ---
 
-A Signal K server plugin can add its own commands to the chart, for a spot on it or for
-something drawn on it. A routing plugin might offer **Smart route to here**, say, or a
+Plugins you install on your Signal K server can add their own commands to the chart's
+right-click menu, and to the popover that opens when you tap a waypoint, vessel, light
+or other object. A routing plugin might offer **Smart route to here**, say, or a
 dead-reckoning plugin **Take bearing** on a charted tower. A plugin can also ask you to
-pick a spot or an object on the chart for it.
+tap a place or object on the chart, such as the destination of a route it will plan.
 
 ## Commands in the chart menu
 
