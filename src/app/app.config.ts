@@ -74,6 +74,14 @@ function applyDefaults(schema: TSchema, value: unknown): unknown {
  */
 function migrate(settings: LegacyAppConfig) {
   const { units, map, vessels, resources, selections } = settings;
+  // the alarm radius is the one setting of the layout before 2.17 kept, as it
+  // is the radius last used rather than a preference
+  if (typeof settings.anchorRadius === 'number') {
+    if (!isSection(settings.anchor)) {
+      settings.anchor = {} as LegacyAppConfig['anchor'];
+    }
+    settings.anchor.radius ??= settings.anchorRadius;
+  }
   const depth = units?.depth === 'ft' ? 'foot' : units?.depth;
   if (isSection(units)) {
     if (depth) {

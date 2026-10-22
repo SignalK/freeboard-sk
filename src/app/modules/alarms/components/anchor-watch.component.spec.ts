@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
-import { of } from 'rxjs';
+import { SimpleChange } from '@angular/core';
+import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AnchorWatchComponent } from './anchor-watch.component';
@@ -33,7 +34,8 @@ describe('AnchorWatchComponent default alarm radius', () => {
           provide: AppFacade,
           useValue: {
             config: { anchor: { radius: 40 }, units: { length: 'm' } },
-            saveConfig
+            saveConfig,
+            parseHttpErrorResponse: vi.fn()
           }
         },
         { provide: AnchorService, useValue: anchor }
@@ -113,5 +115,146 @@ describe('AnchorWatchComponent default alarm radius', () => {
 
     expect(app().config.anchor.radius).toBe(55);
     expect(component['displayRadius']()).toBe('55 m');
+  });
+
+  const reportRadius = (
+    component: AnchorWatchComponent,
+    radius: number,
+    previous = -1
+  ) => {
+    component.radius = radius;
+    component.ngOnChanges({
+      radius: new SimpleChange(previous, radius, false)
+    });
+  };
+
+  it('steps the alarm radius from the one the server reports', () => {
+    const component = create(false);
+    reportRadius(component, 32);
+
+    component.stepRadius(10);
+    component.stepRadius(-1);
+
+    expect(anchor.setRadius).toHaveBeenNthCalledWith(1, 42);
+    expect(anchor.setRadius).toHaveBeenNthCalledWith(2, 41);
+    expect(app().config.anchor.radius).toBe(41);
+    expect(component['displayRadius']()).toBe('41 m');
+  });
+
+  it('steps from the saved radius while the server reports none', () => {
+    const component = create(false);
+    reportRadius(component, -1, 0);
+
+    component.stepRadius(1);
+
+    expect(anchor.setRadius).toHaveBeenCalledWith(41);
+  });
+
+  it('does not step the radius below the minimum', () => {
+    const component = create(false);
+    reportRadius(component, 8);
+
+    component.stepRadius(-10);
+
+    expect(anchor.setRadius).toHaveBeenCalledWith(5);
+  });
+
+  it('sends nothing for a step at the minimum', () => {
+    const component = create(false);
+    reportRadius(component, 5);
+
+    component.stepRadius(-1);
+
+    expect(anchor.setRadius).not.toHaveBeenCalled();
+  });
+
+  it('steps the radius in feet when lengths show in feet', () => {
+    const component = create(false);
+    app().config.units.length = 'foot';
+    reportRadius(component, 30.48);
+
+    component.stepRadius(10);
+
+    expect(anchor.setRadius.mock.calls[0][0]).toBeCloseTo(33.528);
+    expect(component['displayRadius']()).toBe('110 ft');
+  });
+
+  it('keeps stepping from its own radius when the server reports late', () => {
+    const component = create(false);
+    reportRadius(component, 30);
+
+    component.stepRadius(1);
+    component.stepRadius(1);
+    reportRadius(component, 30, 30);
+    reportRadius(component, 31, 30);
+    component.stepRadius(1);
+
+    expect(anchor.setRadius).toHaveBeenLastCalledWith(33);
+  });
+
+  it('shows the radius it steps from, not a late report', () => {
+    const component = create(false);
+    reportRadius(component, 30);
+
+    component.stepRadius(1);
+    component.stepRadius(1);
+    reportRadius(component, 31, 30);
+
+    expect(component['displayRadius']()).toBe('32 m');
+  });
+
+  it('goes on from the reported radius when a step is refused', () => {
+    const component = create(false);
+    reportRadius(component, 30);
+    anchor.setRadius.mockReturnValueOnce(throwError(() => new Error('no')));
+
+    component.stepRadius(10);
+
+    expect(component['displayRadius']()).toBe('30 m');
+    component.stepRadius(1);
+    expect(anchor.setRadius).toHaveBeenLastCalledWith(31);
+  });
+
+  it('sends one radius at a time and adds up the steps between', () => {
+    const response = new Subject<void>();
+    anchor.setRadius.mockReturnValue(response);
+    const component = create(false);
+    reportRadius(component, 30);
+
+    component.stepRadius(1);
+    component.stepRadius(1);
+    component.stepRadius(10);
+    expect(anchor.setRadius).toHaveBeenCalledTimes(1);
+
+    response.next();
+    expect(anchor.setRadius).toHaveBeenCalledTimes(2);
+    expect(anchor.setRadius).toHaveBeenLastCalledWith(42);
+    expect(component['displayRadius']()).toBe('42 m');
+  });
+
+  it('takes up a radius set elsewhere after stepping back and forth', () => {
+    const component = create(false);
+    reportRadius(component, 30);
+    component.stepRadius(1);
+    component.stepRadius(-1);
+    reportRadius(component, 31, 30);
+    reportRadius(component, 30, 31);
+
+    reportRadius(component, 31, 30);
+    component.stepRadius(1);
+
+    expect(anchor.setRadius).toHaveBeenLastCalledWith(32);
+  });
+
+  it('takes up a radius set elsewhere', () => {
+    const component = create(false);
+    reportRadius(component, 30);
+    component.stepRadius(1);
+    reportRadius(component, 31, 30);
+
+    reportRadius(component, 25, 31);
+    component.stepRadius(1);
+
+    expect(anchor.setRadius).toHaveBeenLastCalledWith(26);
   });
 });

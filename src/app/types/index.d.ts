@@ -133,6 +133,7 @@ export type LegacyAppConfig = Omit<
     chartsInViewOnly?: IAppConfig['selections']['chartsInViewOnly']; // added later; filled in as false
     notes?: unknown; // legacy notes selections section; dropped
   };
+  anchorRadius?: number; // layout before 2.17 -> anchor.radius
 };
 
 export interface FBAppData {

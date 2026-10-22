@@ -220,7 +220,7 @@ export const AppConfigSchema = Type.Object({
     proxied: bool(true) // server behind a proxy server
   }),
   anchor: Type.Object({
-    radius: num(40), // most recent anchor radius setting
+    radius: num(60), // most recent anchor radius setting
     setRadius: bool(false),
     manualSet: bool(false),
     rodeLength: num(50)

@@ -24,3 +24,18 @@
     bottom: 0;
     top: 50px;
 }
+.anchorwatch .radius-value {
+    font-size: 14pt;
+    padding: 4px 0;
+}
+
+.anchorwatch .radius-steps {
+    display: flex;
+    gap: 6px;
+}
+
+.anchorwatch .radius-steps button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+}
