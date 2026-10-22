@@ -168,6 +168,24 @@ describe('AnchorWatchComponent default alarm radius', () => {
     expect(anchor.setRadius).not.toHaveBeenCalled();
   });
 
+  it('does not raise a radius below the minimum with a step down', () => {
+    const component = create(false);
+    app().config.anchor.radius = 1;
+    reportRadius(component, -1, 0);
+
+    component.stepRadius(-1);
+
+    expect(anchor.setRadius).not.toHaveBeenCalled();
+  });
+
+  it('shows the saved radius it steps from while the server reports none', () => {
+    const component = create(false);
+
+    reportRadius(component, -1, 0);
+
+    expect(component['displayRadius']()).toBe('40 m');
+  });
+
   it('steps the radius in feet when lengths show in feet', () => {
     const component = create(false);
     app().config.units.length = 'foot';

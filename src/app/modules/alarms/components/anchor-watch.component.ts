@@ -191,10 +191,13 @@ export class AnchorWatchComponent {
     }
   }
 
-  /** Show the radius the step buttons go on from, else the reported one. */
+  /** Show the radius the step buttons go on from. */
   private showAdjustRadius(reported: number) {
     this.displayRadius.update(() =>
-      this.formatTransformedValue(this.adjustRadius ?? reported)
+      this.formatTransformedValue(
+        this.adjustRadius ??
+          (reported > 0 ? reported : this.app.config.anchor.radius)
+      )
     );
   }
 
@@ -219,7 +222,8 @@ export class AnchorWatchComponent {
         'm' as TARGET_UNIT
       ) ?? step;
     const radius = Math.max(this.min, base + delta);
-    if (radius === base) {
+    // a step down from below the minimum must not raise the radius
+    if (step < 0 ? radius >= base : radius <= base) {
       return;
     }
     if (this.steppedRadii.length === 0) {
