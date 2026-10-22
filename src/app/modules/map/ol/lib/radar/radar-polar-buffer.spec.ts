@@ -83,6 +83,14 @@ describe('RadarPolarBuffer', () => {
     expect(rows(buffer, 0, 2)).toEqual([[9], [9]]);
   });
 
+  it('wraps a bearing past north either way', () => {
+    const buffer = new RadarPolarBuffer(1024, 1, 4096);
+    buffer.write(-2, spoke(5));
+    expect(row(buffer, 1022)).toEqual([5]);
+    buffer.write(1024 + 3, spoke(6));
+    expect(row(buffer, 3)).toEqual([6]);
+  });
+
   it('reports the rows written since it was last asked, across north', () => {
     const buffer = new RadarPolarBuffer(1024, 1, 4096);
     expect(buffer.takeDirtyRows()).toEqual([]);

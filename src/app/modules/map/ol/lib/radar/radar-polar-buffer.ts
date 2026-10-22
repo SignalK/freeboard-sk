@@ -32,9 +32,11 @@ export class RadarPolarBuffer {
     this.dirty = new Uint8Array(this.rows);
   }
 
-  /** Writes a spoke at `bearing`, counted in spokes clockwise from north. */
+  /** Writes a spoke at `bearing`, counted in spokes clockwise from north;
+   *  one past north either way, as a heading offset can give, wraps round. */
   write(bearing: number, spoke: Uint8Array) {
-    const row = Math.floor((bearing * this.rows) / this.spokesPerRevolution);
+    const n = this.spokesPerRevolution;
+    const row = Math.floor(((((bearing % n) + n) % n) * this.rows) / n);
     if (this.lastRow >= 0) {
       const gap = (row - this.lastRow + this.rows) % this.rows;
       if (gap > 1 && gap < this.rows * MAX_GAP_FRACTION) {
