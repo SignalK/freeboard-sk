@@ -107,6 +107,7 @@ export class NSEWButtonsComponent implements OnDestroy {
 
   private delay: ReturnType<typeof setTimeout> | null = null;
   private repeat: ReturnType<typeof setInterval> | null = null;
+  private pointerId: number | null = null;
 
   constructor() {}
 
@@ -127,12 +128,13 @@ export class NSEWButtonsComponent implements OnDestroy {
       return;
     }
     this.release();
+    this.pointerId = e.pointerId;
     this.action(value);
     this.delay = setTimeout(() => {
       this.repeat = setInterval(() => this.action(value), REPEAT_INTERVAL);
     }, REPEAT_DELAY);
-    window.addEventListener('pointerup', this.release);
-    window.addEventListener('pointercancel', this.release);
+    window.addEventListener('pointerup', this.onPointerEnd);
+    window.addEventListener('pointercancel', this.onPointerEnd);
   }
 
   /** Enter and Space click without a pointer press. */
@@ -142,7 +144,15 @@ export class NSEWButtonsComponent implements OnDestroy {
     }
   }
 
-  private release = () => {
+  /** Only the pointer that pressed the button ends its repeat. */
+  private onPointerEnd = (e: PointerEvent) => {
+    if (e.pointerId === this.pointerId) {
+      this.release();
+    }
+  };
+
+  private release() {
+    this.pointerId = null;
     if (this.delay) {
       clearTimeout(this.delay);
       this.delay = null;
@@ -151,7 +161,7 @@ export class NSEWButtonsComponent implements OnDestroy {
       clearInterval(this.repeat);
       this.repeat = null;
     }
-    window.removeEventListener('pointerup', this.release);
-    window.removeEventListener('pointercancel', this.release);
-  };
+    window.removeEventListener('pointerup', this.onPointerEnd);
+    window.removeEventListener('pointercancel', this.onPointerEnd);
+  }
 }

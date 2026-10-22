@@ -11,9 +11,12 @@ describe('NSEWButtonsComponent', () => {
   let component: NSEWButtonsComponent;
   let steps: number[];
 
-  const press = (direction: number) =>
-    component.press(direction, { button: 0 } as PointerEvent);
-  const lift = () => window.dispatchEvent(new Event('pointerup'));
+  const pointerEvent = (type: string, pointerId: number) =>
+    Object.assign(new Event(type), { pointerId });
+  const press = (direction: number, pointerId = 1) =>
+    component.press(direction, { button: 0, pointerId } as PointerEvent);
+  const lift = (pointerId = 1) =>
+    window.dispatchEvent(pointerEvent('pointerup', pointerId));
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -47,10 +50,19 @@ describe('NSEWButtonsComponent', () => {
   it('stops when the press is cancelled', () => {
     press(180);
     vi.advanceTimersByTime(REPEAT_DELAY + REPEAT_INTERVAL);
-    window.dispatchEvent(new Event('pointercancel'));
+    window.dispatchEvent(pointerEvent('pointercancel', 1));
     vi.advanceTimersByTime(5 * REPEAT_INTERVAL);
 
     expect(steps).toEqual([180, 180]);
+  });
+
+  it('keeps stepping when another pointer is lifted', () => {
+    press(0);
+    lift(2);
+    vi.advanceTimersByTime(REPEAT_DELAY + 2 * REPEAT_INTERVAL);
+    lift();
+
+    expect(steps).toEqual([0, 0, 0]);
   });
 
   it('stops when it is destroyed while held', () => {

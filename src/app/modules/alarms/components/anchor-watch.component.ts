@@ -399,8 +399,11 @@ export class AnchorWatchComponent {
     this.shiftedPositions.push(target);
     request
       .catch((err: HttpErrorResponse) => {
-        this.shiftTarget = null;
-        this.shiftedPositions = [];
+        // a position taken up from the server since starts a shift of its own
+        if (this.shiftedPositions.includes(target)) {
+          this.shiftTarget = null;
+          this.shiftedPositions = [];
+        }
         this.app.parseHttpErrorResponse(err);
       })
       .finally(() => {
