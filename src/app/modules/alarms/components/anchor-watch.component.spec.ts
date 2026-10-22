@@ -383,6 +383,21 @@ describe('AnchorWatchComponent shift anchor', () => {
     expect(getDistance(sent(1), [1, 1])).toBe(1);
   });
 
+  it('keeps a shift from a newer position when an older request fails', async () => {
+    const component = create();
+
+    component.shiftAnchor(0);
+    position.set([1, 1]);
+    TestBed.tick();
+    component.shiftAnchor(90);
+    pending.shift()?.reject(new Error('down'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(setAnchorPosition).toHaveBeenCalledTimes(2);
+    expect(getDistance(sent(1), [1, 1])).toBe(1);
+  });
+
   it('drops the queued steps when a request fails', async () => {
     const component = create();
 
