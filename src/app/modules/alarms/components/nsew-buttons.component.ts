@@ -122,9 +122,15 @@ export class NSEWButtonsComponent implements OnDestroy {
   /**
    * Step once, then keep stepping while the button is held. The release is
    * listened for on the window, as a finger or pointer can leave the button.
+   * While one pointer holds an arrow, presses by any other are ignored; a
+   * press by the same pointer means its release was missed, and restarts.
    */
   press(value: number, e: PointerEvent) {
-    if (this.disabled || e.button !== 0) {
+    if (
+      this.disabled ||
+      e.button !== 0 ||
+      (this.pointerId !== null && e.pointerId !== this.pointerId)
+    ) {
       return;
     }
     this.release();

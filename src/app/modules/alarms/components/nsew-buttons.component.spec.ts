@@ -65,6 +65,28 @@ describe('NSEWButtonsComponent', () => {
     expect(steps).toEqual([0, 0, 0]);
   });
 
+  it('keeps the first finger in charge when a second presses an arrow', () => {
+    press(0, 1);
+    press(90, 2);
+    vi.advanceTimersByTime(REPEAT_DELAY + REPEAT_INTERVAL);
+    lift(2);
+    vi.advanceTimersByTime(REPEAT_INTERVAL);
+    lift(1);
+    vi.advanceTimersByTime(5 * REPEAT_INTERVAL);
+
+    expect(steps).toEqual([0, 0, 0]);
+  });
+
+  it('restarts when the holding pointer presses again', () => {
+    press(0);
+    press(90);
+    vi.advanceTimersByTime(REPEAT_DELAY + REPEAT_INTERVAL);
+    lift();
+    vi.advanceTimersByTime(5 * REPEAT_INTERVAL);
+
+    expect(steps).toEqual([0, 90, 90]);
+  });
+
   it('stops when it is destroyed while held', () => {
     press(270);
     component.ngOnDestroy();
