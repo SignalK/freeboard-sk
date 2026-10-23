@@ -122,6 +122,9 @@ export class NSEWButtonsComponent implements OnDestroy {
   /**
    * Step once, then keep stepping while the button is held. The release is
    * listened for on the window, as a finger or pointer can leave the button.
+   * The button captures the pointer, so a release outside this document (in
+   * a page that embeds Freeboard) still ends the press, as
+   * `lostpointercapture` when the browser cannot report it as `pointerup`.
    * While one pointer holds an arrow, presses by any other are ignored; a
    * press by the same pointer means its release was missed, and restarts.
    */
@@ -135,12 +138,14 @@ export class NSEWButtonsComponent implements OnDestroy {
     }
     this.release();
     this.pointerId = e.pointerId;
+    (e.currentTarget as Element | null)?.setPointerCapture(e.pointerId);
     this.action(value);
     this.delay = setTimeout(() => {
       this.repeat = setInterval(() => this.action(value), REPEAT_INTERVAL);
     }, REPEAT_DELAY);
     window.addEventListener('pointerup', this.onPointerEnd);
     window.addEventListener('pointercancel', this.onPointerEnd);
+    window.addEventListener('lostpointercapture', this.onPointerEnd);
   }
 
   /** Enter and Space click without a pointer press. */
@@ -169,5 +174,6 @@ export class NSEWButtonsComponent implements OnDestroy {
     }
     window.removeEventListener('pointerup', this.onPointerEnd);
     window.removeEventListener('pointercancel', this.onPointerEnd);
+    window.removeEventListener('lostpointercapture', this.onPointerEnd);
   }
 }

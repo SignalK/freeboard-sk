@@ -87,6 +87,29 @@ describe('NSEWButtonsComponent', () => {
     expect(steps).toEqual([0, 90, 90]);
   });
 
+  it('lets a new pointer take over once the holding one lost its capture', () => {
+    press(0, 1);
+    vi.advanceTimersByTime(REPEAT_DELAY);
+    window.dispatchEvent(pointerEvent('lostpointercapture', 1));
+    vi.advanceTimersByTime(5 * REPEAT_INTERVAL);
+    press(90, 2);
+    lift(2);
+
+    expect(steps).toEqual([0, 90]);
+  });
+
+  it('captures the pointer on the button it pressed', () => {
+    const button = { setPointerCapture: vi.fn() };
+    component.press(0, {
+      button: 0,
+      pointerId: 7,
+      currentTarget: button
+    } as unknown as PointerEvent);
+    lift(7);
+
+    expect(button.setPointerCapture).toHaveBeenCalledWith(7);
+  });
+
   it('stops when it is destroyed while held', () => {
     press(270);
     component.ngOnDestroy();
