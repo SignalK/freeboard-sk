@@ -11,14 +11,14 @@ const rows = (buffer: RadarPolarBuffer, first: number, end: number) =>
 
 describe('RadarPolarBuffer', () => {
   it('writes a spoke at its bearing and clears the samples past its end', () => {
-    const buffer = new RadarPolarBuffer(16, 4, 4096);
+    const buffer = new RadarPolarBuffer(16, 4, 4096, true);
     buffer.write(3, spoke(5, 6, 7, 8));
     buffer.write(3, spoke(1));
     expect(row(buffer, 3)).toEqual([1, 0, 0, 0]);
   });
 
   it('repeats a spoke over the bearings a sparse radar skipped', () => {
-    const buffer = new RadarPolarBuffer(1024, 2, 4096);
+    const buffer = new RadarPolarBuffer(1024, 2, 4096, true);
     buffer.write(100, spoke(1, 1));
     buffer.write(108, spoke(2, 2));
     expect(row(buffer, 100)).toEqual([1, 1]);
@@ -26,8 +26,16 @@ describe('RadarPolarBuffer', () => {
     expect(row(buffer, 109)).toEqual([0, 0]);
   });
 
+  it('leaves the skipped rows alone for a radar that sends every spoke', () => {
+    const buffer = new RadarPolarBuffer(2048, 1, 4096, false);
+    buffer.write(100, spoke(1));
+    buffer.write(133, spoke(2));
+    expect(rows(buffer, 101, 133)).toEqual(Array(32).fill([0]));
+    expect(row(buffer, 133)).toEqual([2]);
+  });
+
   it('does not fill across a repeated angle, a step back or a jump', () => {
-    const buffer = new RadarPolarBuffer(1024, 1, 4096);
+    const buffer = new RadarPolarBuffer(1024, 1, 4096, true);
     buffer.write(100, spoke(1));
     buffer.write(100, spoke(2));
     expect(row(buffer, 101)).toEqual([0]);
@@ -57,7 +65,7 @@ describe('RadarPolarBuffer', () => {
     };
 
     it('covers every bearing in one sweep', () => {
-      const buffer = new RadarPolarBuffer(8192, 2, 4096);
+      const buffer = new RadarPolarBuffer(8192, 2, 4096, true);
       sweep(buffer, 3, 0);
       expect(rows(buffer, 0, buffer.rows)).toEqual(
         Array(buffer.rows).fill([3, 3])
@@ -65,7 +73,7 @@ describe('RadarPolarBuffer', () => {
     });
 
     it('replaces every echo of the sweep before', () => {
-      const buffer = new RadarPolarBuffer(8192, 2, 4096);
+      const buffer = new RadarPolarBuffer(8192, 2, 4096, true);
       sweep(buffer, 3, 0);
       sweep(buffer, 0, 5);
       expect(rows(buffer, 0, buffer.rows)).toEqual(
@@ -75,7 +83,7 @@ describe('RadarPolarBuffer', () => {
   });
 
   it('folds the bearings into fewer rows when a texture cannot hold one per spoke', () => {
-    const buffer = new RadarPolarBuffer(8192, 1, 4096);
+    const buffer = new RadarPolarBuffer(8192, 1, 4096, true);
     expect(buffer.rows).toBe(4096);
     buffer.write(8191, spoke(7));
     expect(row(buffer, 4095)).toEqual([7]);
@@ -84,7 +92,7 @@ describe('RadarPolarBuffer', () => {
   });
 
   it('wraps a bearing past north either way', () => {
-    const buffer = new RadarPolarBuffer(1024, 1, 4096);
+    const buffer = new RadarPolarBuffer(1024, 1, 4096, true);
     buffer.write(-2, spoke(5));
     expect(row(buffer, 1022)).toEqual([5]);
     buffer.write(1024 + 3, spoke(6));
@@ -92,7 +100,7 @@ describe('RadarPolarBuffer', () => {
   });
 
   it('reports the rows written since it was last asked, across north', () => {
-    const buffer = new RadarPolarBuffer(1024, 1, 4096);
+    const buffer = new RadarPolarBuffer(1024, 1, 4096, true);
     expect(buffer.takeDirtyRows()).toEqual([]);
     buffer.write(1022, spoke(1));
     buffer.write(1, spoke(1));
@@ -104,7 +112,7 @@ describe('RadarPolarBuffer', () => {
   });
 
   it('empties the picture and starts a new sweep on a clear', () => {
-    const buffer = new RadarPolarBuffer(1024, 1, 4096);
+    const buffer = new RadarPolarBuffer(1024, 1, 4096, true);
     buffer.write(10, spoke(1));
     buffer.takeDirtyRows();
     buffer.clear();

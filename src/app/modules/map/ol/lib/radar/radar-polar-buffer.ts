@@ -13,7 +13,9 @@ const MAX_GAP_FRACTION = 1 / 32;
  * nothing writes. Drawn as they are, those rows show as dark stripes, and
  * whatever an earlier sweep left in them stays. So each spoke is also written
  * over the rows skipped since the previous one, which every sweep then
- * renews.
+ * renews. A radar that sends every spoke leaves no such rows; a gap there is
+ * a message the server dropped for a slow client, and keeping the last sweep
+ * in it beats painting one spoke across it.
  */
 export class RadarPolarBuffer {
   /** Fewer than the spokes per revolution when a texture cannot be that tall. */
@@ -25,7 +27,8 @@ export class RadarPolarBuffer {
   constructor(
     readonly spokesPerRevolution: number,
     readonly samples: number,
-    maxRows: number
+    maxRows: number,
+    private readonly sparseSpokes: boolean
   ) {
     this.rows = Math.min(spokesPerRevolution, maxRows);
     this.data = new Uint8Array(this.rows * samples);
@@ -37,7 +40,7 @@ export class RadarPolarBuffer {
   write(bearing: number, spoke: Uint8Array) {
     const n = this.spokesPerRevolution;
     const row = Math.floor(((((bearing % n) + n) % n) * this.rows) / n);
-    if (this.lastRow >= 0) {
+    if (this.sparseSpokes && this.lastRow >= 0) {
       const gap = (row - this.lastRow + this.rows) % this.rows;
       if (gap > 1 && gap < this.rows * MAX_GAP_FRACTION) {
         for (let i = 1; i < gap; i++) {

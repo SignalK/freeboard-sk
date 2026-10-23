@@ -148,7 +148,8 @@ addEventListener('message', (event) => {
     const polar = new RadarPolarBuffer(
       radar.spokesPerRevolution,
       radar.maxSpokeLen,
-      gl.getParameter(gl.MAX_TEXTURE_SIZE)
+      gl.getParameter(gl.MAX_TEXTURE_SIZE),
+      radar.hasSparseSpokes
     );
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());

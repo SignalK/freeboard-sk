@@ -19,6 +19,7 @@ export interface RadarRenderDef {
   name: string;
   spokesPerRevolution: number;
   maxSpokeLen: number;
+  hasSparseSpokes: boolean;
   streamUrl: string;
   legend: Record<string, SKRadarLegendEntry>;
 }
@@ -69,6 +70,7 @@ export class RadarRenderService {
       // pre-3.4.0 servers (no version in the discovery envelope) use …/{id}/stream.
       spokesPerRevolution: activeRadar.capabilities.spokesPerRevolution,
       maxSpokeLen: activeRadar.capabilities.maxSpokeLength,
+      hasSparseSpokes: activeRadar.capabilities.hasSparseSpokes,
       streamUrl: `${this.app.hostDef.ssl ? 'wss' : 'ws'}://${this.app.hostDef.name}:${
         this.app.hostDef.port
       }/signalk/v2/api/vessels/self/radars/${this.radarApi.radarId()}/${
