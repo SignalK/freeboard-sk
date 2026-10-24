@@ -285,11 +285,12 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
     // overlay's own chrome: placed widget cells (.pe-cell) and the filter-chip
     // bar (.pe-chips, which covers the chip body, label and clear button),
     // and extension windows floating over the map (.fb-pe-window, plus the
-    // backdrop behind a modal one).
+    // backdrop behind a modal one). A panel the user moves by holding it
+    // ([fbMovablePanel]) is app chrome too.
     const target = e.target as HTMLElement | null;
     if (
       target?.closest(
-        '.cdk-overlay-container, mat-dialog-container, button, mat-toolbar, .pe-cell, .pe-chips, .fb-pe-window, .fb-pe-window-backdrop'
+        '.cdk-overlay-container, mat-dialog-container, button, mat-toolbar, .pe-cell, .pe-chips, .fb-pe-window, .fb-pe-window-backdrop, [fbMovablePanel]'
       )
     ) {
       return;
