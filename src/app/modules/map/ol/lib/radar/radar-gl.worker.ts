@@ -2,211 +2,206 @@
 
 import { RadarRenderDef } from './radar-render.service';
 import { RadarMessage } from './RadarMessage';
+import { RadarPolarBuffer } from './radar-polar-buffer';
 import { fromString } from 'ol/color';
 
 let vHeading = 0;
-const spokePointSize = 2.0;
+// Spokes arrive hundreds of times a second; the picture is redrawn at most
+// this often, which is also how often the map takes a new frame.
+const FRAME_INTERVAL_MS = 33;
+
+// Each pixel looks up its bearing and distance in the polar texture, so
+// every pixel inside the range circle is drawn whatever the spacing of the
+// spokes.
+const vertCode = `#version 300 es
+  in vec2 a_position;
+  out vec2 v_position;
+  void main() {
+    v_position = a_position;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+  }
+`;
+
+const fragCode = `#version 300 es
+  precision highp float;
+  precision highp int;
+  precision highp usampler2D;
+  in vec2 v_position;
+  uniform usampler2D u_polar;
+  uniform sampler2D u_colors;
+  uniform int u_colorCount;
+  out vec4 color;
+  const float TWO_PI = 6.28318530718;
+  void main() {
+    float r = length(v_position);
+    if (r >= 1.0) {
+      discard;
+    }
+    float bearing = atan(v_position.x, v_position.y);
+    if (bearing < 0.0) {
+      bearing += TWO_PI;
+    }
+    ivec2 size = textureSize(u_polar, 0);
+    int row = min(int(bearing / TWO_PI * float(size.y)), size.y - 1);
+    int bin = min(int(r * float(size.x)), size.x - 1);
+    int index = int(texelFetch(u_polar, ivec2(bin, row), 0).r);
+    if (index >= u_colorCount) {
+      discard;
+    }
+    vec4 c = texelFetch(u_colors, ivec2(index, 0), 0);
+    color = vec4(c.rgb * c.a, c.a);
+  }
+`;
+
+function compile(
+  gl: WebGL2RenderingContext,
+  type: number,
+  source: string
+): WebGLShader | null {
+  const shader = gl.createShader(type);
+  if (shader === null) {
+    return null;
+  }
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(shader));
+  }
+  return shader;
+}
 
 addEventListener('message', (event) => {
   if (event.data.heading !== undefined) {
     vHeading = event.data.heading;
   }
   if (event.data.canvas) {
-    const radarOnScreenCanvas = event.data.canvas;
-    const radarCanvas = radarOnScreenCanvas;
-    if (radarCanvas === null) {
-      console.error('Error creating offscreencanvas radar');
-      return;
-    }
+    const radarCanvas = event.data.canvas as OffscreenCanvas;
     const radar = event.data.radar as RadarRenderDef;
 
-    const maxColorIndex =
-      Math.max(...Object.keys(radar.legend).map(Number)) + 1;
-    const colorLookup = new Float32Array(maxColorIndex * 4);
-    Object.keys(radar.legend).forEach((n) => {
-      const idx = parseInt(n);
-      const c = fromString(radar.legend[n].color);
-      colorLookup[idx * 4 + 0] = c[0] / 255;
-      colorLookup[idx * 4 + 1] = c[1] / 255;
-      colorLookup[idx * 4 + 2] = c[2] / 255;
-      colorLookup[idx * 4 + 3] = c[3];
-    });
-
-    const radarContext = radarOnScreenCanvas.getContext('webgl2', {
+    const context = radarCanvas.getContext('webgl2', {
       preserveDrawingBuffer: true
     });
-    if (radarContext === null) {
+    if (context === null) {
       console.error('Error creating Webgl2 context for radar');
       return;
     }
-    const vertexBuffer = radarContext.createBuffer();
-    if (vertexBuffer === null) {
-      console.error('Error creating vertexbuffer');
+    const gl: WebGL2RenderingContext = context;
+    const vertShader = compile(gl, gl.VERTEX_SHADER, vertCode);
+    const fragShader = compile(gl, gl.FRAGMENT_SHADER, fragCode);
+    const program = gl.createProgram();
+    if (vertShader === null || fragShader === null || program === null) {
+      console.error('Error creating the radar shaders');
       return;
     }
-    const colorBuffer = radarContext.createBuffer();
-    if (colorBuffer === null) {
-      console.error('Error creating colorBuffer');
-      return;
+    gl.attachShader(program, vertShader);
+    gl.attachShader(program, fragShader);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(program));
     }
+    gl.useProgram(program);
+    gl.viewport(0, 0, radarCanvas.width, radarCanvas.height);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
 
-    radarContext.viewport(0, 0, radarCanvas.width, radarCanvas.height);
-
-    /*=========================Shaders========================*/
-
-    // vertex shader source code
-    const vertCode = `
-      attribute vec3 coordinates;
-      attribute vec4 color;
-      varying vec4 vColor;
-      uniform float u_BasePointSize;
-      void main(void) {
-        gl_Position = vec4(coordinates, 1.0);
-        vColor = color;
-        gl_PointSize = u_BasePointSize;
-      }
-    `;
-
-    // Create a vertex shader object
-    const vertShader = radarContext.createShader(radarContext.VERTEX_SHADER);
-
-    // Attach vertex shader source code
-    radarContext.shaderSource(vertShader, vertCode);
-
-    // Compile the vertex shader
-    radarContext.compileShader(vertShader);
-    if (
-      !radarContext.getShaderParameter(vertShader, radarContext.COMPILE_STATUS)
-    ) {
-      console.error(radarContext.getShaderInfoLog(vertShader));
-    }
-    // fragment shader source code
-    const fragCode = `
-      precision mediump float;
-      varying vec4 vColor;
-      void main(void) {
-        gl_FragColor = vColor;
-      }
-    `;
-
-    // Create fragment shader object
-    const fragShader = radarContext.createShader(radarContext.FRAGMENT_SHADER);
-
-    // Attach fragment shader source code
-    radarContext.shaderSource(fragShader, fragCode);
-
-    // Compile the fragment shader
-    radarContext.compileShader(fragShader);
-    if (
-      !radarContext.getShaderParameter(fragShader, radarContext.COMPILE_STATUS)
-    ) {
-      console.error(radarContext.getShaderInfoLog(fragShader));
-    }
-
-    // Create a shader program object to store
-    // the combined shader program
-    const shaderProgram = radarContext.createProgram();
-
-    // Attach and link vertex & fragment shaders
-    radarContext.attachShader(shaderProgram, vertShader);
-    radarContext.attachShader(shaderProgram, fragShader);
-    radarContext.linkProgram(shaderProgram);
-    if (
-      !radarContext.getProgramParameter(shaderProgram, radarContext.LINK_STATUS)
-    ) {
-      console.error(radarContext.getProgramInfoLog(shaderProgram));
-    }
-
-    // Use the combined shader program object
-    radarContext.useProgram(shaderProgram);
-    // Set point size
-    const u_BasePointSize = radarContext.getUniformLocation(
-      shaderProgram,
-      'u_BasePointSize'
+    // One quad over the whole canvas.
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+      gl.STATIC_DRAW
     );
-    radarContext.uniform1f(u_BasePointSize, spokePointSize);
+    const positionAttr = gl.getAttribLocation(program, 'a_position');
+    gl.enableVertexAttribArray(positionAttr);
+    gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0);
 
-    /*======== Associating shaders to buffer objects ========*/
-
-    radarContext.bindBuffer(radarContext.ARRAY_BUFFER, vertexBuffer);
-    const coordAttr = radarContext.getAttribLocation(
-      shaderProgram,
-      'coordinates'
-    );
-    // Point an attribute to the currently bound VBO
-    radarContext.vertexAttribPointer(
-      coordAttr,
-      3,
-      radarContext.FLOAT,
-      false,
+    // Spoke samples are legend indices, so the texture holds them as
+    // integers and the colour comes from a lookup texture.
+    const colorCount = Math.max(...Object.keys(radar.legend).map(Number)) + 1;
+    const colors = new Uint8Array(colorCount * 4);
+    Object.keys(radar.legend).forEach((n) => {
+      const idx = parseInt(n);
+      const c = fromString(radar.legend[n].color);
+      colors[idx * 4 + 0] = c[0];
+      colors[idx * 4 + 1] = c[1];
+      colors[idx * 4 + 2] = c[2];
+      colors[idx * 4 + 3] = Math.round(c[3] * 255);
+    });
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
       0,
-      0
-    );
-    radarContext.enableVertexAttribArray(coordAttr);
-
-    radarContext.bindBuffer(radarContext.ARRAY_BUFFER, colorBuffer);
-    const colorAttr = radarContext.getAttribLocation(shaderProgram, 'color');
-    // point attribute to the color buffer object
-    radarContext.vertexAttribPointer(
-      colorAttr,
-      4,
-      radarContext.FLOAT,
-      false,
+      gl.RGBA8,
+      colorCount,
+      1,
       0,
-      0
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      colors
     );
-    radarContext.enableVertexAttribArray(colorAttr);
-    radarContext.clearColor(0.0, 0.0, 0.0, 0.0);
-    radarContext.clear(radarContext.COLOR_BUFFER_BIT);
+    gl.uniform1i(gl.getUniformLocation(program, 'u_colors'), 1);
+    gl.uniform1i(gl.getUniformLocation(program, 'u_colorCount'), colorCount);
 
-    const maxVertices = radar.spokesPerRevolution * radar.maxSpokeLen;
-    radarContext.bindBuffer(radarContext.ARRAY_BUFFER, vertexBuffer);
-    radarContext.bufferData(
-      radarContext.ARRAY_BUFFER,
-      maxVertices * 3 * Float32Array.BYTES_PER_ELEMENT,
-      radarContext.DYNAMIC_DRAW
+    const polar = new RadarPolarBuffer(
+      radar.spokesPerRevolution,
+      radar.maxSpokeLen,
+      gl.getParameter(gl.MAX_TEXTURE_SIZE),
+      radar.hasSparseSpokes
     );
-    radarContext.bindBuffer(radarContext.ARRAY_BUFFER, colorBuffer);
-    radarContext.bufferData(
-      radarContext.ARRAY_BUFFER,
-      maxVertices * 4 * Float32Array.BYTES_PER_ELEMENT,
-      radarContext.DYNAMIC_DRAW
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R8UI,
+      polar.samples,
+      polar.rows,
+      0,
+      gl.RED_INTEGER,
+      gl.UNSIGNED_BYTE,
+      polar.data
     );
-    radarContext.bindBuffer(radarContext.ARRAY_BUFFER, null);
+    gl.uniform1i(gl.getUniformLocation(program, 'u_polar'), 0);
 
-    /*======== Build positions ========*/
-    const x = new Float32Array(radar.spokesPerRevolution * radar.maxSpokeLen);
-    const y = new Float32Array(radar.spokesPerRevolution * radar.maxSpokeLen);
-    const cx = 0;
-    const cy = 0;
-    const maxRadius = 1;
-    const angleShift = (2 * Math.PI) / radar.spokesPerRevolution / 2;
-    const radiusShift = 0.0; // (1 / radar.maxSpokeLen)/2
-
-    for (let a = 0; a < radar.spokesPerRevolution; a++) {
-      for (let r = 0; r < radar.maxSpokeLen; r++) {
-        const angle =
-          a * ((2 * Math.PI) / radar.spokesPerRevolution) + angleShift;
-        const radius = r * (maxRadius / radar.maxSpokeLen);
-        const x1 = cx + (radius + radiusShift) * Math.cos(angle);
-        const y1 = cy + (radius + radiusShift) * Math.sin(angle);
-        x[a * radar.maxSpokeLen + r] = x1;
-        y[a * radar.maxSpokeLen + r] = -y1;
+    let frameScheduled = false;
+    function drawFrame() {
+      frameScheduled = false;
+      for (const [first, end] of polar.takeDirtyRows()) {
+        gl.texSubImage2D(
+          gl.TEXTURE_2D,
+          0,
+          0,
+          first,
+          polar.samples,
+          end - first,
+          gl.RED_INTEGER,
+          gl.UNSIGNED_BYTE,
+          polar.data.subarray(first * polar.samples, end * polar.samples)
+        );
+      }
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      postMessage({ redraw: true });
+    }
+    function scheduleFrame() {
+      if (!frameScheduled) {
+        frameScheduled = true;
+        setTimeout(drawFrame, FRAME_INTERVAL_MS);
       }
     }
 
+    // The spoke angle counts from the bow; the picture is north up.
     function toBearing(angle: number): number {
-      let h = vHeading - 90;
-      if (h < 0) {
-        h += 360;
-      }
-      angle += Math.round(h / (360 / radar.spokesPerRevolution));
-      angle = angle % radar.spokesPerRevolution;
-      return angle;
+      const headingSpokes = Math.round(
+        vHeading / (360 / radar.spokesPerRevolution)
+      );
+      return (angle + headingSpokes) % radar.spokesPerRevolution;
     }
-
-    const vertices = new Float32Array(maxVertices * 3);
-    const verticeColors = new Float32Array(maxVertices * 4);
 
     // The stream opens every time the radar starts transmitting, so only a
     // reconnect after a lost connection is worth telling the user about.
@@ -220,57 +215,15 @@ addEventListener('message', (event) => {
 
       socket.onmessage = (event) => {
         const message = RadarMessage.deserialize(event.data);
-        let vertexCount = 0;
-        let colorCount = 0;
-
-        for (let si = 0; si < message.spokes.length; si++) {
-          const spoke = message.spokes[si];
-
+        for (const spoke of message.spokes) {
           if (lastRange !== spoke.range) {
-            radarContext.clear(radarContext.COLOR_BUFFER_BIT);
+            polar.clear();
             lastRange = spoke.range;
             postMessage({ range: spoke.range });
           }
-
-          // Convert angle value to bearing & draw current spoke
-          const spokeBearing = toBearing(spoke.angle);
-          const spokeOffset = spokeBearing * radar.maxSpokeLen;
-
-          for (let i = 0; i < spoke.data.length; i++) {
-            vertices[vertexCount++] = x[spokeOffset + i];
-            vertices[vertexCount++] = y[spokeOffset + i];
-            vertices[vertexCount++] = 0.0;
-            const ci = spoke.data[i] * 4;
-            if (ci < colorLookup.length) {
-              verticeColors[colorCount++] = colorLookup[ci];
-              verticeColors[colorCount++] = colorLookup[ci + 1];
-              verticeColors[colorCount++] = colorLookup[ci + 2];
-              verticeColors[colorCount++] = colorLookup[ci + 3];
-            } else {
-              verticeColors[colorCount++] = 1.0;
-              verticeColors[colorCount++] = 1.0;
-              verticeColors[colorCount++] = 1.0;
-              verticeColors[colorCount++] = 0;
-            }
-          }
+          polar.write(toBearing(spoke.angle), spoke.data);
         }
-
-        // Draw buffer
-        radarContext.bindBuffer(radarContext.ARRAY_BUFFER, vertexBuffer);
-        radarContext.bufferSubData(
-          radarContext.ARRAY_BUFFER,
-          0,
-          vertices.subarray(0, vertexCount)
-        );
-        radarContext.bindBuffer(radarContext.ARRAY_BUFFER, colorBuffer);
-        radarContext.bufferSubData(
-          radarContext.ARRAY_BUFFER,
-          0,
-          verticeColors.subarray(0, colorCount)
-        );
-        radarContext.bindBuffer(radarContext.ARRAY_BUFFER, null);
-        radarContext.drawArrays(radarContext.POINTS, 0, vertexCount / 3);
-        postMessage({ redraw: true });
+        scheduleFrame();
       };
 
       socket.onopen = () => {
@@ -285,16 +238,17 @@ addEventListener('message', (event) => {
         postMessage({
           msg: `Radar ${radar.name} disconnected retry in 3 seconds`
         });
-        radarContext.clear(radarContext.COLOR_BUFFER_BIT);
+        polar.clear();
+        scheduleFrame();
         setTimeout(function () {
           connect();
         }, 3000);
       };
 
       socket.onerror = () => {
-        radarContext.clear(radarContext.COLOR_BUFFER_BIT);
+        polar.clear();
+        scheduleFrame();
         postMessage({
-          redraw: true,
           msg: `Error on radar ${radar.name} stopping`
         });
       };
