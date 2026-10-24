@@ -22,6 +22,9 @@ the right-hand side of the screen. Tap the button again, or use the panel's
 own close button, to put it away. Some plugins show their panel in a floating
 window instead — see below.
 
+To keep a plugin's button in sight on a small screen, you can make it the
+Action Button in the bottom-right corner — see Action Button.
+
 A plugin can show and hide its buttons as its state changes: a **Stop recording**
 button, for example, may appear only while a recording runs. The buttons below close
 the gap, and a button that comes back returns to the same place. Hiding a button never
