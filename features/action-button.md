@@ -4,12 +4,14 @@ title: Action Button
 category: Display
 ---
 
-![Fig 1. The Action Button in the bottom-right corner of the chart](action-button-1.jpg)
+![Fig 1. A plugin's button as the Action Button, in the bottom-right corner of the chart](action-button-1.jpg)
 
 The Action Button is the large round button in the bottom-right corner of the
 chart. It is the one control that is always in the same place and always in
 reach, so it holds whichever single action you want fastest on your boat.
 Choose it in **Settings → Display → Action Button**:
+
+![Fig 2. The Action Button choices in Settings, with a plugin's button last](action-button-2.jpg)
 
 - **Waypoint at vessel** — marks your boat's current position. It opens the
   new-waypoint dialog with the position filled in, ready to name and save. It
