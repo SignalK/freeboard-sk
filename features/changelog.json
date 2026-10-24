@@ -153,5 +153,8 @@
   { "feature": null, "pr": 1143, "kind": "skip", "reason": "performance only: the periodic trail refresh refetches just the recent band; no user-facing change" },
   { "feature": null, "pr": 1146, "kind": "skip", "reason": "performance only: the older trail is fetched for a whole view around the map, so panning refetches less; no user-facing change" },
   { "feature": null, "pr": 1147, "kind": "skip", "reason": "performance only: the trail is refetched once the zoom settles instead of once per level; no new capability" },
-  { "feature": "temporal-charts", "pr": 1076, "kind": "enhanced", "since": "v3.4.0-beta.2", "date": "2026-10-19", "title": "feat(charts): step through a forecast's hours ahead in the Time palette" }
+  { "feature": "temporal-charts", "pr": 1076, "kind": "enhanced", "since": "v3.4.0-beta.2", "date": "2026-10-19", "title": "feat(charts): step through a forecast's hours ahead in the Time palette" },
+  { "feature": "action-button", "kind": "new", "since": "v2.17.0", "date": "2025-08-18", "title": "Action Button: Waypoint at vessel, Person Overboard or Autopilot Console" },
+  { "feature": "action-button", "kind": "enhanced", "since": "v2.19.7", "date": "2026-01-15", "title": "Radar Overlay as an Action Button choice" },
+  { "feature": "action-button", "pr": 1180, "kind": "enhanced", "date": "2026-10-24", "title": "feat(plotterext): let an extension button be the action button" }
 ]
