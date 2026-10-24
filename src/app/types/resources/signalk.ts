@@ -105,17 +105,12 @@ export interface ChartTimeLoopOffsets {
   end: number;
 }
 
-type SKTileLayerChart = Extract<SKChartResource, { type: 'tilelayer' }>;
-
 /**
- * A chart as the server lists it. The schema declares bounds, zooms, format and
- * scale for tilelayer charts only, but providers send them with every chart
- * type (charts-provider-simple does for S-57 charts), so they apply to all.
- * `type` and `format` stay plain strings: Freeboard matches both
- * case-insensitively, accepts formats the schema does not list (`mvt`), and
- * still draws a chart that has no type.
+ * A chart as the server lists it. `type` and `format` stay plain strings:
+ * Freeboard matches both case-insensitively, accepts formats the schema does
+ * not list (`mvt`), and still draws a chart that has no type.
  */
-export type ChartResource = Omit<SKTileLayerChart, 'type' | 'format'> & {
+export type ChartResource = Omit<SKChartResource, 'type' | 'format'> & {
   type?: string;
   format?: string;
   tileSize?: number;
