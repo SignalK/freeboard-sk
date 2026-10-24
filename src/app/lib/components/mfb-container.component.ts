@@ -13,6 +13,7 @@ import {
   toolbarButtonClass,
   toolbarMenuLabel
 } from './map-toolbar/map-toolbar';
+import { isExtensionAction } from 'src/app/modules/plotterext/action-button';
 import { POBButtonComponent } from './pob-button.component';
 import { WptButtonComponent } from './wpt-button.component';
 import { AutopilotButtonComponent } from './autopilot-button.component';
@@ -60,7 +61,8 @@ import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.s
           (click)="radarClick.emit()"
         ></radar-button>
       }
-      @if (extensionButton(); as item) {
+      @if (isExtensionAction(action()) && extensionButton(); as item) {
+        <!-- drawn as fb-map-toolbar draws the item; keep the two in step -->
         <button
           mat-fab
           data-action-button="extension"
@@ -92,7 +94,7 @@ import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.s
         right: 5px;
         z-index: 5000;
       }
-      /* Beat the theme's !important button classes, as the toolbar does. */
+      /* Beat the theme's !important button classes; a copy of fb-map-toolbar's. */
       .custom-bg {
         background-color: var(--toolbar-button-bg) !important;
       }
@@ -122,6 +124,7 @@ export class MFBContainerComponent {
     return lift > 0 ? lift : 23;
   });
 
+  protected isExtensionAction = isExtensionAction;
   protected buttonClass = toolbarButtonClass;
   protected badgeText = toolbarBadgeText;
   protected label = toolbarMenuLabel;

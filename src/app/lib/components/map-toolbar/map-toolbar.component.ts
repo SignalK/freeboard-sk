@@ -217,7 +217,8 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
         right: 0;
       }
       /* Beat the theme's !important button classes; the colours come from
-         the item through these properties. */
+         the item through these properties. mfb-container draws an extension
+         button the same way; keep the two in step. */
       .custom-bg {
         background-color: var(--toolbar-button-bg) !important;
       }

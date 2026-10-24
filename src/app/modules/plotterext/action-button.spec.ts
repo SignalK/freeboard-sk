@@ -80,7 +80,7 @@ describe('extension buttons as the Action Button', () => {
     const options = actionButtonOptions(BUILT_IN, [], 'ext:@acme/poi/search');
     expect(options.at(-1)).toEqual([
       'ext:@acme/poi/search',
-      '@acme/poi/search (unavailable)'
+      'Not available: @acme/poi/search'
     ]);
     expect(options).toHaveLength(3);
   });

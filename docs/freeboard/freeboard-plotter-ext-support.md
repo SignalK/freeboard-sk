@@ -117,7 +117,7 @@ recording" only while a recording runs.
 ### The button model
 
 Freeboard puts every `buttons` entry on the right-hand map toolbar, whatever its
-`slot`. `toolbarButtons` (service) lists the buttons of compatible manifests in
+`slot`, except the one the user chose as the Action Button (below). `toolbarButtons` (service) lists the buttons of compatible manifests in
 manifest order, leaving out each hidden one: the manifest `visible` (default
 `true`), overridden per button by `buttons.setVisibility`. The app builds the
 toolbar's items from that list, so a hidden button is not rendered at all and
@@ -127,6 +127,19 @@ id), so a reload starts from the manifest again. An extension that leaves the
 collection loses its overrides (`dropDepartedChoices`, for actions too), so
 when it comes back its buttons start from the manifest, as its reloaded runtime
 does.
+
+### The Action Button
+
+The user may pick any extension button for the bottom-right Action Button
+(Settings → Display). `display.fab` then holds `ext:<extension>/<button id>`
+(`extensionButtonId`, the same id as the button's toolbar item), and
+`takeActionButton` moves that item from the toolbar to `mfb-container`, which
+draws it as a `mat-fab` with its decoration and runs the same action. The
+Settings choices come from `actionButtonChoices`, which offers hidden buttons
+too: the extension still decides when its button shows, wherever it is. While
+the chosen button is hidden or its extension is gone, the corner stays empty
+and the setting is kept, so the button returns by itself; the dropdown lists
+the saved choice as not available.
 
 Hiding a button changes nothing it opened. Its panel stays in the drawer, and a
 window it opened stays open and stays tracked in `buttonWindows`, so the button
@@ -153,7 +166,9 @@ unknown. Freeboard advertises the capability, so it never answers
 |------|------|
 | `src/app/modules/plotterext/plotterext.service.ts` | `toolbarButtons`, `buttonVisibility`, `buttons.setVisibility` (`setVisibilityMethod`) |
 | `src/app/modules/plotterext/action-params.ts` | the `setVisibility` params schema, shared with actions |
-| `src/app/app.component.ts` | `rightToolbarItems`, the toolbar items built from `toolbarButtons` |
+| `src/app/app.component.ts` | `rightToolbarItems`, the toolbar items built from `toolbarButtons`; `extensionActionButton` |
+| `src/app/modules/plotterext/action-button.ts` | `extensionButtonId`, `takeActionButton`, the Action Button choices |
+| `src/app/lib/components/mfb-container.component.ts` | draws an extension button as the Action Button |
 | `dev-tools/fsk-mcp/src/tools.ts` | `fsk_set_button_visibility` (the bridge's hidden probe button) |
 
 ## The `buttons.decorations` capability
@@ -183,7 +198,10 @@ extension that leaves the collection loses them with its visibility choices
 | `alarm` | `tone: 'alarm'` | `button-warn` | `icon-warn` |
 
 The toolbar (`fb-map-toolbar`) owns the drawing, so built-in buttons can use
-`tone`, `colors` and `pressed` too:
+`tone`, `colors` and `pressed` too. An extension button chosen as the Action
+Button is drawn by `mfb-container` from the same `ToolbarItem` fields and
+`toolbarButtonClass`, with its own copy of the custom-colour rules, so a new
+decoration field has to be drawn in both places:
 
 - **Custom colours.** The theme's button classes set their colours with
   `!important`, so `colors` is drawn through the component's `custom-bg` /

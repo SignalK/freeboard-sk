@@ -1,5 +1,7 @@
 import type { MFBAction } from 'src/app/types';
 
+const EXTENSION_PREFIX = 'ext:';
+
 /**
  * The id of an extension's button: its toolbar item id, and the Action Button
  * setting that puts it in the bottom-right corner instead.
@@ -8,12 +10,12 @@ export function extensionButtonId(
   extension: string,
   buttonId: string
 ): `ext:${string}` {
-  return `ext:${extension}/${buttonId}`;
+  return `${EXTENSION_PREFIX}${extension}/${buttonId}`;
 }
 
 /** Whether the Action Button setting names an extension's button. */
 export function isExtensionAction(action: MFBAction | undefined): boolean {
-  return !!action?.startsWith('ext:');
+  return !!action?.startsWith(EXTENSION_PREFIX);
 }
 
 /**
@@ -65,7 +67,13 @@ export function actionButtonOptions(
     isExtensionAction(selected) &&
     !options.some(([id]) => id === selected)
   ) {
-    options.push([selected, `${selected.slice(4)} (unavailable)`]);
+    // the extension's name is gone with its manifest; the package and button
+    // id are all that is left to recognise it by. The status goes first, as
+    // the select cuts long text short.
+    options.push([
+      selected,
+      `Not available: ${selected.slice(EXTENSION_PREFIX.length)}`
+    ]);
   }
   return options;
 }
