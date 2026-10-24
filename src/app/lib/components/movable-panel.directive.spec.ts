@@ -228,6 +228,39 @@ describe('MovablePanelDirective', () => {
     expect(shown(panel)).toEqual({ x: 10, y: 470 });
   });
 
+  it('lifts the panel while it is dragged', async () => {
+    await mount();
+    pointer(label, 'pointerdown', { x: 50, y: 500 });
+    pointer(window, 'pointermove', { x: 300, y: 300 });
+    expect(panel.style.boxShadow).not.toBe('');
+    pointer(window, 'pointerup', { x: 300, y: 300 });
+    expect(panel.style.boxShadow).toBe('');
+  });
+
+  it('keeps where a cancelled drag left it', async () => {
+    await mount();
+    pointer(label, 'pointerdown', { x: 50, y: 500 });
+    pointer(window, 'pointermove', { x: 150, y: 200 });
+    pointer(window, 'pointercancel', { x: 150, y: 200 });
+
+    expect(shown(panel)).toEqual({ x: 110, y: 170 });
+    expect(loadPlacement(KEY)).toEqual({ corner: 'top-left', x: 110, y: 170 });
+    pointer(window, 'pointermove', { x: 400, y: 400 });
+    expect(shown(panel)).toEqual({ x: 110, y: 170 });
+  });
+
+  it('stops following the pointer once its host is destroyed', async () => {
+    await mount();
+    pointer(label, 'pointerdown', { x: 50, y: 500 });
+    pointer(window, 'pointermove', { x: 150, y: 200 });
+    fixture.destroy();
+
+    pointer(window, 'pointermove', { x: 400, y: 400 });
+    pointer(window, 'pointerup', { x: 400, y: 400 });
+    expect(panel.style.transform).toBe('');
+    expect(loadPlacement(KEY)).toBeNull();
+  });
+
   describe('on touch', () => {
     it('lets a quick swipe scroll instead of moving the panel', async () => {
       await mount();
@@ -256,6 +289,19 @@ describe('MovablePanelDirective', () => {
         x: 110,
         y: 170
       });
+    });
+
+    it('leaves the panel to its CSS after a long-press without a move', async () => {
+      await mount();
+      vi.useFakeTimers();
+      pointer(label, 'pointerdown', { x: 50, y: 500, pointerType: 'touch' });
+      vi.advanceTimersByTime(LONG_PRESS_MS);
+      pointer(window, 'pointerup', { x: 50, y: 500, pointerType: 'touch' });
+
+      expect(loadPlacement(KEY)).toBeNull();
+      expect(panel.style.left).toBe('');
+      expect(panel.style.bottom).toBe('');
+      expect(panel.style.boxShadow).toBe('');
     });
 
     it('stops the page scrolling while the panel is dragged', async () => {

@@ -40,6 +40,9 @@ interface Gesture {
   /** Where the drag has the panel's top-left, in px of the area. */
   x: number;
   y: number;
+  /** The panel has left where the drag found it. */
+  moved: boolean;
+  touch: boolean;
   timer?: ReturnType<typeof setTimeout>;
 }
 
@@ -161,7 +164,9 @@ export class MovablePanelDirective implements OnDestroy {
       originX: this.el.offsetLeft,
       originY: this.el.offsetTop,
       x: this.el.offsetLeft,
-      y: this.el.offsetTop
+      y: this.el.offsetTop,
+      moved: false,
+      touch
     };
     if (touch) {
       this.gesture.timer = setTimeout(() => this.startDrag(), LONG_PRESS_MS);
@@ -192,7 +197,12 @@ export class MovablePanelDirective implements OnDestroy {
       return;
     }
     g.state = 'dragging';
+    // Lift the panel so a finger that has held long enough knows it can move.
     this.el.style.setProperty('cursor', 'grabbing');
+    this.el.style.setProperty('box-shadow', '0 4px 16px rgba(0, 0, 0, 0.45)');
+    if (g.touch) {
+      navigator.vibrate?.(10);
+    }
     try {
       this.el.setPointerCapture(g.pointerId);
     } catch {
@@ -232,6 +242,7 @@ export class MovablePanelDirective implements OnDestroy {
       );
       g.x = pos.x;
       g.y = pos.y;
+      g.moved ||= pos.x !== g.originX || pos.y !== g.originY;
       this.el.style.transform = `translate(${pos.x - g.originX}px, ${pos.y - g.originY}px)`;
     }
   };
@@ -241,7 +252,8 @@ export class MovablePanelDirective implements OnDestroy {
     if (!g || e.pointerId !== g.pointerId) {
       return;
     }
-    if (g.state === 'dragging') {
+    // A long-press lifted without moving leaves the panel to its own CSS.
+    if (g.state === 'dragging' && g.moved) {
       this.drop(g);
     }
     this.endGesture();
@@ -297,6 +309,7 @@ export class MovablePanelDirective implements OnDestroy {
     this.gesture = null;
     this.el.style.transform = '';
     this.el.style.setProperty('cursor', 'grab');
+    this.el.style.removeProperty('box-shadow');
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onEnd);
     window.removeEventListener('pointercancel', this.onEnd);
