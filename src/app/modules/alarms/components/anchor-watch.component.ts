@@ -43,6 +43,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 import { Position } from 'src/app/types';
 
+const samePosition = (a: Position | null, b: Position | null): boolean =>
+  !!a && !!b && a[0] === b[0] && a[1] === b[1];
+
 /** Radius step buttons, in the user's length unit. */
 const RADIUS_STEPS = [-10, -1, 1, 10];
 
@@ -439,14 +442,18 @@ export class AnchorWatchComponent {
    * position, such as one the anchor was dragged to, is shifted from next.
    */
   private takeUpPosition(position: Position | null) {
-    const shifted = this.shiftedPositions.findIndex(
-      (p) => position && p[0] === position[0] && p[1] === position[1]
-    );
+    const shifted = this.shiftedPositions
+      .map((p) => samePosition(p, position))
+      .lastIndexOf(true);
     if (shifted === -1) {
       this.shiftTarget = null;
       this.shiftedPositions = [];
-    } else if (shifted === this.shiftedPositions.length - 1) {
-      this.shiftedPositions = [this.shiftedPositions[shifted]];
+    } else if (
+      shifted === this.shiftedPositions.length - 1 &&
+      !this.shiftSending &&
+      samePosition(position, this.shiftTarget)
+    ) {
+      this.shiftedPositions = [];
     }
   }
 

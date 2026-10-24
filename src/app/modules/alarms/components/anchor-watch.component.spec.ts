@@ -1,8 +1,7 @@
-import { signal, WritableSignal } from '@angular/core';
+import { signal, SimpleChange, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { getDistance } from 'geolib';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
-import { SimpleChange } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -369,6 +368,20 @@ describe('AnchorWatchComponent shift anchor', () => {
     component.shiftAnchor(0);
 
     expect(getDistance(sent(1), [0, 0])).toBe(2);
+  });
+
+  it('shifts from a position moved back to elsewhere after shifting', async () => {
+    const component = create();
+
+    component.shiftAnchor(0);
+    await answer();
+    position.set(sent(0));
+    TestBed.tick();
+    position.set([0, 0]);
+    TestBed.tick();
+    component.shiftAnchor(0);
+
+    expect(getDistance(sent(1), [0, 0])).toBe(1);
   });
 
   it('shifts from a position the anchor was moved to elsewhere', async () => {
