@@ -12,3 +12,4 @@ export * from './autopilot-button.component';
 export * from './interact-help.component';
 export * from './map-toolbar/map-toolbar';
 export * from './map-toolbar/map-toolbar.component';
+export * from './movable-panel.directive';

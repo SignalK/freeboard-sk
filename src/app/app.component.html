@@ -875,7 +875,10 @@
 
           <!-- *** Nav data panel ***-->
           @if (!isInteracting()) {
-            <div class="navdataPanel">
+            <div
+              class="navdataPanel"
+              fbMovablePanel="fb-navdata-panel-position"
+            >
               @if (navDataPanel().nextPointCtrl) {
                 <route-nextpoint
                   [index]="course.courseData().pointIndex"
