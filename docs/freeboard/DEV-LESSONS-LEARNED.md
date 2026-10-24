@@ -475,6 +475,27 @@ Check a suspect pixel with `document.elementFromPoint(x, y)` in the console: a
 `DIV.arrow` or popover element where you expected the map's `CANVAS` is this trap.
 Remember that the overlay's anchor, not the popover box, is where the pointer is.
 
+### New UI floating over the map: tell the widget overlay's press-and-hold to ignore it
+
+**The trap.** The plotter-extension widget overlay (`widget-overlay.component.ts`)
+listens for `pointerdown` on the whole **document**, in the capture phase, not on
+its own elements. A press that stays within 8px for 1.5 s on an empty cell of a
+widget anchor area (every corner but the top-left, plus top and bottom centre)
+opens the *Add widget* picker whenever an installed extension offers an addable
+widget there. It skips only the
+app chrome named in one `closest(...)` selector in `pointerDown()`: dialogs,
+buttons, toolbars, placed widget cells, the filter chips, extension windows. Any
+new floating UI is not on that list, so a press-and-hold on it opens the picker.
+Nothing near your component hints at this, and you won't see it on a dev server
+with no widget-providing extension installed. It surfaced on the movable route
+navigation panel (#1173), where holding still is exactly how a touch user picks
+the panel up.
+
+**What to do instead.** When you add UI over the map that people press or hold
+(a draggable panel, a long-press control, a palette), add a selector for it to
+that `closest(...)` list, as `[fbMovablePanel]` and `.fb-pe-window` are. Buttons
+are already covered by `button`, so a plain button needs nothing.
+
 ### Adding a draggable handle to the map — three things a `PointerInteraction` won't do for you
 
 **The trap.** The pattern for a handle the user drags on the chart is an OL
