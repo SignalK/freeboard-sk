@@ -79,7 +79,6 @@ import {
 } from './types';
 import {
   applyDecorate,
-  type ButtonDecoration,
   type DecorationOverride,
   resolveDecoration
 } from './button-decorations';
@@ -125,6 +124,7 @@ import {
   type SelectedTarget,
   type UsableAction
 } from './actions';
+import { actionButtonLabel, extensionButtonId } from './action-button';
 import { createWindowMethods, parseOpenWindow } from './window-methods';
 import { ExtWindowService } from './windows/window.service';
 import { ExtWindow } from './windows/types';
@@ -239,19 +239,12 @@ export class PlotterExtensionService {
    */
   private readonly buttonDecorations = signal<DecorationChoices>({});
 
-  /**
-   * The shown toolbar buttons of compatible extensions, in manifest order,
-   * each with the decoration it is drawn with. A hidden button is left out,
-   * so the toolbar closes its gap.
-   */
-  readonly toolbarButtons = computed(() => {
-    const visibility = this.buttonVisibility();
-    const decorations = this.buttonDecorations();
+  /** Every button of compatible extensions, shown or hidden, in manifest order. */
+  private readonly availableButtons = computed(() => {
     const result: Array<{
       extension: string;
       extensionName: string;
       button: ButtonContribution;
-      decoration: ButtonDecoration;
     }> = [];
     for (const [extension, manifest] of Object.entries(this.manifests())) {
       if (!this.isCompatible(manifest)) continue;
@@ -262,21 +255,44 @@ export class PlotterExtensionService {
         ) {
           continue;
         }
-        const shown =
-          visibility[extension]?.[button.id] ?? button.visible !== false;
-        if (!shown) continue;
-        result.push({
-          extension,
-          extensionName: manifest.name,
-          button,
-          decoration: resolveDecoration(
-            button,
-            decorations[extension]?.[button.id]
-          )
-        });
+        result.push({ extension, extensionName: manifest.name, button });
       }
     }
     return result;
+  });
+
+  /**
+   * The extension buttons the user may pick for the Action Button. A hidden
+   * button is offered too: the extension decides when it shows, wherever the
+   * user puts it.
+   */
+  readonly actionButtonChoices = computed(() =>
+    this.availableButtons().map(({ extension, extensionName, button }) => ({
+      id: extensionButtonId(extension, button.id),
+      label: actionButtonLabel(extensionName, button.title)
+    }))
+  );
+
+  /**
+   * The shown toolbar buttons of compatible extensions, in manifest order,
+   * each with the decoration it is drawn with. A hidden button is left out,
+   * so the toolbar closes its gap.
+   */
+  readonly toolbarButtons = computed(() => {
+    const visibility = this.buttonVisibility();
+    const decorations = this.buttonDecorations();
+    return this.availableButtons()
+      .filter(
+        ({ extension, button }) =>
+          visibility[extension]?.[button.id] ?? button.visible !== false
+      )
+      .map((entry) => ({
+        ...entry,
+        decoration: resolveDecoration(
+          entry.button,
+          decorations[entry.extension]?.[entry.button.id]
+        )
+      }));
   });
 
   /**

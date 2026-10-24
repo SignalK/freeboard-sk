@@ -123,6 +123,10 @@ import {
 import { RadarAPIService } from './modules/radar/radar-api.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
 import { decorationToolbarFields } from './modules/plotterext/button-decorations';
+import {
+  extensionButtonId,
+  takeActionButton
+} from './modules/plotterext/action-button';
 import { WhatsNewService } from './modules/features/whats-new.service';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { TemporaryRouteService } from './modules/course/temporary-route.service';
@@ -824,18 +828,33 @@ export class AppComponent {
         action: () => this.toggleRadarPanel()
       });
     }
-    for (const entry of this.plotterExt.toolbarButtons()) {
-      items.push({
-        id: `ext:${entry.extension}/${entry.button.id}`,
-        icon: entry.button.icon || 'extension',
-        // the title becomes a visible menu label, so never leave it blank
-        tooltip: entry.button.title || entry.extensionName,
-        ...decorationToolbarFields(entry.decoration),
-        action: () =>
-          this.plotterExt.handleButtonAction(entry.extension, entry.button)
-      });
-    }
+    items.push(
+      ...takeActionButton(
+        this.extensionToolbarItems(),
+        this.app.config.display.fab
+      ).toolbar
+    );
     return items;
+  }
+
+  /** The extension button the user put in the Action Button's place, if available. */
+  protected extensionActionButton(): ToolbarItem | undefined {
+    return takeActionButton(
+      this.extensionToolbarItems(),
+      this.app.config.display.fab
+    ).actionButton;
+  }
+
+  private extensionToolbarItems(): ToolbarItem[] {
+    return this.plotterExt.toolbarButtons().map((entry) => ({
+      id: extensionButtonId(entry.extension, entry.button.id),
+      icon: entry.button.icon || 'extension',
+      // the title becomes a visible menu label, so never leave it blank
+      tooltip: entry.button.title || entry.extensionName,
+      ...decorationToolbarFields(entry.decoration),
+      action: () =>
+        this.plotterExt.handleButtonAction(entry.extension, entry.button)
+    }));
   }
 
   /**

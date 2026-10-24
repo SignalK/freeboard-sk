@@ -56,7 +56,7 @@
                         matTooltip="Action button selection."
                         (selectionChange)="persistModel()"
                       >
-                        @for(i of options.buttons.fab; track i[0]) {
+                        @for(i of fabOptions(); track i[0]) {
                         <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                         }
                       </mat-select>

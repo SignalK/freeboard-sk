@@ -1012,6 +1012,7 @@
           @if (!isInteracting() && !app.kioskMode()) {
             <mfb-container
               [action]="app.config.display.fab"
+              [extensionButton]="extensionActionButton()"
               (radarClick)="toggleRadarPanel()"
             >
             </mfb-container>
