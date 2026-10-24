@@ -10,6 +10,7 @@ import {
   inject,
   signal,
   computed,
+  effect,
   DestroyRef
 } from '@angular/core';
 
@@ -40,6 +41,10 @@ import { AnchorService } from '../anchor.service';
 import { AppFacade } from 'src/app/app.facade';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
+import { Position } from 'src/app/types';
+
+const samePosition = (a: Position | null, b: Position | null): boolean =>
+  !!a && !!b && a[0] === b[0] && a[1] === b[1];
 
 /** Radius step buttons, in the user's length unit. */
 const RADIUS_STEPS = [-10, -1, 1, 10];
@@ -113,7 +118,18 @@ export class AnchorWatchComponent {
     this.anchor.supportsManualSet()
   );
 
-  constructor() {}
+  /** Where the shift buttons have moved the anchor to, ahead of the server. */
+  private shiftTarget: Position | null = null;
+  /**
+   * Positions the shift started from or sent, which the server can still
+   * report after a later step, as its deltas lag behind the requests.
+   */
+  private shiftedPositions: Position[] = [];
+  private shiftSending = false;
+
+  constructor() {
+    effect(() => this.takeUpPosition(this.anchor.position()));
+  }
 
   ngOnInit() {
     this.useDefaultRadius = this.app.config.anchor.setRadius;
@@ -421,20 +437,70 @@ export class AnchorWatchComponent {
   }
 
   /**
-   * @description Shift anchor position n,s,e,w
+   * Follow an anchor position the server reports unless it is one the shift
+   * already passed, which would undo the steps made since. Any other
+   * position, such as one the anchor was dragged to, is shifted from next.
+   */
+  private takeUpPosition(position: Position | null) {
+    const shifted = this.shiftedPositions
+      .map((p) => samePosition(p, position))
+      .lastIndexOf(true);
+    if (shifted === -1) {
+      this.shiftTarget = null;
+      this.shiftedPositions = [];
+    } else if (
+      shifted === this.shiftedPositions.length - 1 &&
+      !this.shiftSending &&
+      samePosition(position, this.shiftTarget)
+    ) {
+      this.shiftedPositions = [];
+    }
+  }
+
+  /**
+   * @description Shift anchor position n,s,e,w. Steps that come quicker than
+   * the server answers add up here, and only the latest position is sent.
    * @param direction (degrees) 0 | 90 | 180 | 270
    */
   shiftAnchor(direction: number) {
     const inc = 1;
-    const anchor = this.anchor.position();
+    const anchor = this.shiftTarget ?? this.anchor.position();
     if (!anchor) {
       return;
     }
+    if (this.shiftedPositions.length === 0) {
+      this.shiftedPositions.push(anchor);
+    }
     const position = computeDestinationPoint(anchor, inc, direction);
-    this.anchor
-      .setAnchorPosition([position.longitude, position.latitude])
-      ?.catch((err: HttpErrorResponse) => {
+    this.shiftTarget = [position.longitude, position.latitude];
+    this.sendShift();
+  }
+
+  private sendShift() {
+    const target = this.shiftTarget;
+    if (this.shiftSending || !target) {
+      return;
+    }
+    const request = this.anchor.setAnchorPosition(target);
+    if (!request) {
+      return;
+    }
+    this.shiftSending = true;
+    this.shiftedPositions.push(target);
+    request
+      .catch((err: HttpErrorResponse) => {
+        // a position taken up from the server since starts a shift of its own
+        if (this.shiftedPositions.includes(target)) {
+          this.shiftTarget = null;
+          this.shiftedPositions = [];
+        }
         this.app.parseHttpErrorResponse(err);
+      })
+      .finally(() => {
+        this.shiftSending = false;
+        if (this.shiftTarget && this.shiftTarget !== target) {
+          this.sendShift();
+        }
       });
   }
 
