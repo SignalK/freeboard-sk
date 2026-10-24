@@ -30,7 +30,6 @@ import {
   MatSlideToggleModule
 } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSliderModule } from '@angular/material/slider';
 import { MatStepperModule } from '@angular/material/stepper';
 
 import { NSEWButtonsComponent } from './nsew-buttons.component';
@@ -42,6 +41,9 @@ import { AppFacade } from 'src/app/app.facade';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 
+/** Radius step buttons, in the user's length unit. */
+const RADIUS_STEPS = [-10, -1, 1, 10];
+
 @Component({
   selector: 'anchor-watch',
   imports: [
@@ -52,7 +54,6 @@ import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
     FormsModule,
     MatInputModule,
     MatSlideToggleModule,
-    MatSliderModule,
     MatTooltipModule,
     MatStepperModule,
     NSEWButtonsComponent
@@ -64,7 +65,6 @@ import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 export class AnchorWatchComponent {
   @Input() radius?: number;
   @Input() min = 5;
-  @Input() max = 250;
   @Input() raised = true;
   @Input() showSelf = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
@@ -74,7 +74,6 @@ export class AnchorWatchComponent {
   slideCtl!: ElementRef<MatSlideToggle>;
 
   protected bgImage?: string;
-  protected sliderValue?: number;
   protected rodeOut = false;
   protected convert = Convert;
 
@@ -89,6 +88,16 @@ export class AnchorWatchComponent {
   private anchor = inject(AnchorService);
   protected app = inject(AppFacade);
   private destroyRef = inject(DestroyRef);
+
+  protected readonly radiusSteps = RADIUS_STEPS;
+  /** The radius the step buttons start from, in metres. */
+  private adjustRadius: number | null = null;
+  /**
+   * Radii the step buttons started from or sent, which the server can still
+   * report after a later tap, as its deltas lag behind the requests.
+   */
+  private steppedRadii: number[] = [];
+  private radiusSending = false;
 
   protected radiusValue = signal<number | null>(0); // incoming alarm radius
   protected formattedRadiusValue = computed(() => {
@@ -120,22 +129,11 @@ export class AnchorWatchComponent {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.radius) {
-      if (changes.radius.previousValue === -1) {
-        this.sliderValue = Math.round(changes.radius.currentValue);
-        this.max = this.sliderValue + 100;
-      } else if (
-        changes.radius.firstChange &&
-        changes.radius.currentValue !== -1
-      ) {
-        this.sliderValue = Math.round(changes.radius.currentValue);
-        this.max = this.sliderValue + 100;
-      }
+      this.takeUpRadius(changes.radius.currentValue);
       this.radiusValue.update(() =>
         this.transformValue(changes.radius.currentValue)
       );
-      this.displayRadius.update(() =>
-        this.formatTransformedValue(changes.radius.currentValue)
-      );
+      this.showAdjustRadius(changes.radius.currentValue);
     }
 
     this.bgImage = `url('${
@@ -175,11 +173,96 @@ export class AnchorWatchComponent {
     return `${this.roundedValue(value)} ${Convert.getSymbol(this.app.config.units.length)}`;
   }
 
-  /** Format slider thumb value for display */
-  get formatSliderLabel() {
-    return (value: number): string => {
-      return this.formatTransformedValue(value);
-    };
+  /**
+   * Follow a radius the server reports unless it is one the step buttons
+   * already passed, which would undo the taps made since.
+   */
+  private takeUpRadius(radius: number) {
+    const stepped = this.steppedRadii.lastIndexOf(radius);
+    if (stepped === -1) {
+      this.adjustRadius = radius > 0 ? radius : null;
+      this.steppedRadii = [];
+    } else if (
+      stepped === this.steppedRadii.length - 1 &&
+      !this.radiusSending &&
+      radius === this.adjustRadius
+    ) {
+      this.steppedRadii = [];
+    }
+  }
+
+  /** Show the radius the step buttons go on from. */
+  private showAdjustRadius(reported: number) {
+    this.displayRadius.update(() =>
+      this.formatTransformedValue(
+        this.adjustRadius ??
+          (reported > 0 ? reported : this.app.config.anchor.radius)
+      )
+    );
+  }
+
+  /** Sign the step for its button label. */
+  protected stepLabel(step: number): string {
+    return step > 0 ? `+${step}` : `${step}`;
+  }
+
+  /**
+   * Change the alarm radius by a step in the user's length unit, from the
+   * radius last set here or reported by the server, else the saved one. Steps
+   * that come quicker than the server answers add up, and only the latest
+   * radius is sent, one request at a time.
+   * @param step Change in the user's length unit
+   */
+  stepRadius(step: number) {
+    const base = this.adjustRadius ?? this.app.config.anchor.radius;
+    const delta =
+      Convert.transform(
+        step,
+        this.app.config.units.length as SI_BASE_UNIT,
+        'm' as TARGET_UNIT
+      ) ?? step;
+    const radius = Math.max(this.min, base + delta);
+    // a step down from below the minimum must not raise the radius
+    if (step < 0 ? radius >= base : radius <= base) {
+      return;
+    }
+    if (this.steppedRadii.length === 0) {
+      this.steppedRadii.push(base);
+    }
+    this.adjustRadius = radius;
+    this.showAdjustRadius(radius);
+    this.sendRadius();
+  }
+
+  private sendRadius() {
+    const radius = this.adjustRadius;
+    if (this.radiusSending || radius === null || this.raised) {
+      return;
+    }
+    this.radiusSending = true;
+    this.steppedRadii.push(radius);
+    this.anchor
+      .setRadius(radius)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.radiusSending = false;
+          this.app.config.anchor.radius = radius;
+          this.app.saveConfig();
+          if (this.adjustRadius !== radius) {
+            this.sendRadius();
+          }
+        },
+        error: (err: HttpErrorResponse) => {
+          this.radiusSending = false;
+          // go on from the radius the server has, not the one it refused
+          const reported = this.radius ?? -1;
+          this.steppedRadii = [];
+          this.takeUpRadius(reported);
+          this.showAdjustRadius(reported);
+          this.app.parseHttpErrorResponse(err);
+        }
+      });
   }
 
   onDefaultRadiusChecked(e: MatCheckboxChange) {

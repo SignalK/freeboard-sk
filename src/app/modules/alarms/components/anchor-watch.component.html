@@ -175,34 +175,17 @@
               <br />
               <b>Adjust Radius:</b>
             </div>
-            <div style="display: flex">
-              <div>
-                <mat-slider
-                  discrete
+            <div class="radius-value">{{ displayRadius() }}</div>
+            <div class="radius-steps">
+              @for (step of radiusSteps; track step) {
+                <button
+                  mat-stroked-button
                   [disabled]="disableRaiseDrop"
-                  [displayWith]="formatSliderLabel"
-                  [min]="min"
-                  [max]="max"
-                  step="1"
-                  tickInterval="1"
+                  (click)="stepRadius(step)"
                 >
-                  <input
-                    matSliderThumb
-                    [value]="sliderValue"
-                    (valueChange)="setRadius($event)"
-                  />
-                </mat-slider>
-              </div>
-              <div
-                style="
-                  flex: 1;
-                  font-size: 10pt;
-                  line-height: 3em;
-                  text-align: right;
-                "
-              >
-                {{ displayRadius() }}
-              </div>
+                  {{ stepLabel(step) }}
+                </button>
+              }
             </div>
           </div>
           <div>
