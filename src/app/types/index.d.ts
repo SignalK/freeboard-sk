@@ -22,7 +22,8 @@ export * from './vessel';
 
 export type ErrorList = Array<{ status?: number; message: string }>;
 
-export type MFBAction = 'wpt' | 'pob' | 'autopilot' | 'radar';
+// `ext:<extension>/<button id>` puts a plotter extension's button there.
+export type MFBAction = 'wpt' | 'pob' | 'autopilot' | 'radar' | `ext:${string}`;
 
 // Glyph used to render wind direction/speed on the weather overlays and meteo
 // targets. Shared by the display config, the settings option map, and the layer

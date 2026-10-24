@@ -12,6 +12,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { WakeLockService } from 'src/app/lib/services';
 import { S57Service } from '../../map/ol';
 import { RadarAPIService } from '../../radar/radar-api.service';
+import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { CourseService } from 'src/app/modules/course/course.service';
 import { defaultConfig, initData } from 'src/app/app.config';
 import {
@@ -122,6 +123,10 @@ describe('settings dialog — arrival circle', () => {
         {
           provide: RadarAPIService,
           useValue: { listRadars: () => Promise.resolve([]) }
+        },
+        {
+          provide: PlotterExtensionService,
+          useValue: { actionButtonChoices: () => [] }
         },
         { provide: MatDialogRef, useValue: { close: (): void => undefined } },
         {

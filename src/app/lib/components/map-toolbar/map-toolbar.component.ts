@@ -20,14 +20,10 @@ import {
   sameToolbarItems,
   splitToolbar,
   toolbarBadgeText,
+  toolbarButtonClass,
   toolbarMenuLabel,
   toolbarSlots
 } from './map-toolbar';
-
-const TONE_BUTTON_CLASS: Record<ToolbarTone, string> = {
-  warning: 'button-accent',
-  alarm: 'button-warn'
-};
 
 // In the menu the icon shows the state that the button colour shows on the
 // toolbar.
@@ -221,7 +217,8 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
         right: 0;
       }
       /* Beat the theme's !important button classes; the colours come from
-         the item through these properties. */
+         the item through these properties. mfb-container draws an extension
+         button the same way; keep the two in step. */
       .custom-bg {
         background-color: var(--toolbar-button-bg) !important;
       }
@@ -304,9 +301,7 @@ export class MapToolbarComponent {
   }
 
   protected buttonClass(item: ToolbarItem): string {
-    if (item.buttonClass) return item.buttonClass;
-    if (item.tone) return TONE_BUTTON_CLASS[item.tone];
-    return item.active ? 'button-primary' : 'button-toolbar';
+    return toolbarButtonClass(item);
   }
 
   protected iconClass(item: ToolbarItem, inMenu: boolean): string {

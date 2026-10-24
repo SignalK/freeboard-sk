@@ -1,0 +1,89 @@
+import type { MFBAction } from 'src/app/types';
+
+const EXTENSION_PREFIX = 'ext:';
+
+/**
+ * The id of an extension's button: its toolbar item id, and the Action Button
+ * setting that puts it in the bottom-right corner instead.
+ */
+export function extensionButtonId(
+  extension: string,
+  buttonId: string
+): `ext:${string}` {
+  return `${EXTENSION_PREFIX}${extension}/${buttonId}`;
+}
+
+/** Whether the Action Button setting names an extension's button. */
+export function isExtensionAction(action: MFBAction | undefined): boolean {
+  return !!action?.startsWith(EXTENSION_PREFIX);
+}
+
+/**
+ * How an extension's button is named in the Action Button choices. An
+ * extension's only button is often titled after the extension; it is named
+ * once.
+ */
+export function actionButtonLabel(extensionName: string, title: string) {
+  return title && title !== extensionName
+    ? `${extensionName}: ${title}`
+    : extensionName;
+}
+
+/**
+ * Takes the item the Action Button shows out of the toolbar items, so the
+ * button appears in one place only. `actionButton` is undefined when the
+ * chosen button is not available, and the corner stays empty until it is.
+ */
+export function takeActionButton<T extends { id: string }>(
+  items: readonly T[],
+  action: MFBAction | undefined
+): { actionButton?: T; toolbar: T[] } {
+  if (!isExtensionAction(action)) {
+    return { toolbar: [...items] };
+  }
+  return {
+    actionButton: items.find((item) => item.id === action),
+    toolbar: items.filter((item) => item.id !== action)
+  };
+}
+
+const NOT_AVAILABLE = 'Not available: ';
+
+/**
+ * The Action Button choices for the Settings dialog: the built-in actions,
+ * then the extensions' buttons. A button its extension hides right now is
+ * marked as not available, as the corner stays empty while it is chosen. A
+ * chosen button whose extension is gone is kept, marked the same way, so the
+ * setting is not lost while its plugin is disabled.
+ */
+export function actionButtonOptions(
+  builtIn: ReadonlyMap<string, string>,
+  extensionButtons: ReadonlyArray<{
+    id: string;
+    label: string;
+    shown: boolean;
+  }>,
+  selected: MFBAction | undefined
+): Array<[string, string]> {
+  const options: Array<[string, string]> = [
+    ...builtIn,
+    ...extensionButtons.map((b): [string, string] => [
+      b.id,
+      b.shown ? b.label : NOT_AVAILABLE + b.label
+    ])
+  ];
+  if (
+    selected &&
+    isExtensionAction(selected) &&
+    !options.some(([id]) => id === selected)
+  ) {
+    // the extension's name is gone with its manifest; the package and button
+    // id are all that is left to recognise it by. The status goes first, as
+    // the select cuts long text short.
+    options.push([
+      selected,
+      NOT_AVAILABLE + selected.slice(EXTENSION_PREFIX.length)
+    ]);
+  }
+  return options;
+}

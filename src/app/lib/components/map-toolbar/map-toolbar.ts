@@ -135,3 +135,15 @@ export function toolbarBadgeText(item: ToolbarItem): string {
 export function toolbarMenuLabel(item: ToolbarItem): string {
   return item.badge ? `${item.tooltip} (${item.badge})` : item.tooltip;
 }
+
+const TONE_BUTTON_CLASS: Record<ToolbarTone, string> = {
+  warning: 'button-accent',
+  alarm: 'button-warn'
+};
+
+/** The colour class of the item's button. */
+export function toolbarButtonClass(item: ToolbarItem): string {
+  if (item.buttonClass) return item.buttonClass;
+  if (item.tone) return TONE_BUTTON_CLASS[item.tone];
+  return item.active ? 'button-primary' : 'button-toolbar';
+}

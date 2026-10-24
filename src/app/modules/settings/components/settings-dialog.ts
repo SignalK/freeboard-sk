@@ -54,6 +54,8 @@ import {
 import { RadarAPIService, SKRadar } from '../../radar/radar-api.service';
 import { CourseService } from 'src/app/modules/course/course.service';
 import { IAppConfig } from 'src/app/types';
+import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import { actionButtonOptions } from 'src/app/modules/plotterext/action-button';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -120,6 +122,15 @@ export class SettingsDialog implements OnInit {
   private s57 = inject(S57Service);
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);
+  private plotterExt = inject(PlotterExtensionService);
+
+  protected fabOptions(): Array<[string, string]> {
+    return actionButtonOptions(
+      this.options.buttons.fab,
+      this.plotterExt.actionButtonChoices(),
+      this.facade.settings.display.fab
+    );
+  }
 
   protected get selfIconPreview(): string {
     return (
