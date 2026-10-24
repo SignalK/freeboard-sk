@@ -261,17 +261,30 @@ export class PlotterExtensionService {
     return result;
   });
 
+  /** Whether a button shows: its `buttons.setVisibility` choice, else its manifest. */
+  private isShown(
+    visibility: VisibilityChoices,
+    extension: string,
+    button: ButtonContribution
+  ): boolean {
+    return visibility[extension]?.[button.id] ?? button.visible !== false;
+  }
+
   /**
    * The extension buttons the user may pick for the Action Button. A hidden
-   * button is offered too: the extension decides when it shows, wherever the
-   * user puts it.
+   * button is offered too, with `shown` false: the extension decides when it
+   * shows, wherever the user puts it.
    */
-  readonly actionButtonChoices = computed(() =>
-    this.availableButtons().map(({ extension, extensionName, button }) => ({
-      id: extensionButtonId(extension, button.id),
-      label: actionButtonLabel(extensionName, button.title)
-    }))
-  );
+  readonly actionButtonChoices = computed(() => {
+    const visibility = this.buttonVisibility();
+    return this.availableButtons().map(
+      ({ extension, extensionName, button }) => ({
+        id: extensionButtonId(extension, button.id),
+        label: actionButtonLabel(extensionName, button.title),
+        shown: this.isShown(visibility, extension, button)
+      })
+    );
+  });
 
   /**
    * The shown toolbar buttons of compatible extensions, in manifest order,
@@ -282,9 +295,8 @@ export class PlotterExtensionService {
     const visibility = this.buttonVisibility();
     const decorations = this.buttonDecorations();
     return this.availableButtons()
-      .filter(
-        ({ extension, button }) =>
-          visibility[extension]?.[button.id] ?? button.visible !== false
+      .filter(({ extension, button }) =>
+        this.isShown(visibility, extension, button)
       )
       .map((entry) => ({
         ...entry,

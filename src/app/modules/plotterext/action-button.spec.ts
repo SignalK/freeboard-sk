@@ -66,13 +66,34 @@ describe('extension buttons as the Action Button', () => {
     expect(
       actionButtonOptions(
         BUILT_IN,
-        [{ id: 'ext:@acme/poi/search', label: 'POI Search: Search nearby' }],
+        [
+          {
+            id: 'ext:@acme/poi/search',
+            label: 'POI Search: Search nearby',
+            shown: true
+          }
+        ],
         'wpt'
       )
     ).toEqual([
       ['wpt', 'Waypoint at vessel'],
       ['pob', 'Person Overboard'],
       ['ext:@acme/poi/search', 'POI Search: Search nearby']
+    ]);
+  });
+
+  it('marks a button its extension hides as not available', () => {
+    const options = actionButtonOptions(
+      BUILT_IN,
+      [
+        { id: 'ext:rec/start', label: 'Recorder: Start', shown: true },
+        { id: 'ext:rec/stop', label: 'Recorder: Stop', shown: false }
+      ],
+      'ext:rec/stop'
+    );
+    expect(options.slice(2)).toEqual([
+      ['ext:rec/start', 'Recorder: Start'],
+      ['ext:rec/stop', 'Not available: Recorder: Stop']
     ]);
   });
 

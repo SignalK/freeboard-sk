@@ -250,10 +250,18 @@ describe('PlotterExtensionService button visibility', () => {
 
     const choices = service.actionButtonChoices();
     expect(choices.slice(0, 4)).toEqual([
-      { id: 'ext:ext-a/open', label: 'Ext ext-a: Open viewer' },
-      { id: 'ext:ext-a/start', label: 'Ext ext-a: Start recording' },
-      { id: 'ext:ext-a/stop', label: 'Ext ext-a: Stop recording' },
-      { id: 'ext:ext-a/window', label: 'Ext ext-a: Viewer window' }
+      { id: 'ext:ext-a/open', label: 'Ext ext-a: Open viewer', shown: true },
+      {
+        id: 'ext:ext-a/start',
+        label: 'Ext ext-a: Start recording',
+        shown: false
+      },
+      {
+        id: 'ext:ext-a/stop',
+        label: 'Ext ext-a: Stop recording',
+        shown: false
+      },
+      { id: 'ext:ext-a/window', label: 'Ext ext-a: Viewer window', shown: true }
     ]);
     expect(choices).toHaveLength(9);
   });

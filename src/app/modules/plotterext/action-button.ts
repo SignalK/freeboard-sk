@@ -47,20 +47,30 @@ export function takeActionButton<T extends { id: string }>(
   };
 }
 
+const NOT_AVAILABLE = 'Not available: ';
+
 /**
  * The Action Button choices for the Settings dialog: the built-in actions,
- * then the extensions' buttons. A chosen extension button that is not
- * available is kept, marked as such, so the setting is not lost while its
- * plugin is disabled.
+ * then the extensions' buttons. A button its extension hides right now is
+ * marked as not available, as the corner stays empty while it is chosen. A
+ * chosen button whose extension is gone is kept, marked the same way, so the
+ * setting is not lost while its plugin is disabled.
  */
 export function actionButtonOptions(
   builtIn: ReadonlyMap<string, string>,
-  extensionButtons: ReadonlyArray<{ id: string; label: string }>,
+  extensionButtons: ReadonlyArray<{
+    id: string;
+    label: string;
+    shown: boolean;
+  }>,
   selected: MFBAction | undefined
 ): Array<[string, string]> {
   const options: Array<[string, string]> = [
     ...builtIn,
-    ...extensionButtons.map((b): [string, string] => [b.id, b.label])
+    ...extensionButtons.map((b): [string, string] => [
+      b.id,
+      b.shown ? b.label : NOT_AVAILABLE + b.label
+    ])
   ];
   if (
     selected &&
@@ -72,7 +82,7 @@ export function actionButtonOptions(
     // the select cuts long text short.
     options.push([
       selected,
-      `Not available: ${selected.slice(EXTENSION_PREFIX.length)}`
+      NOT_AVAILABLE + selected.slice(EXTENSION_PREFIX.length)
     ]);
   }
   return options;
