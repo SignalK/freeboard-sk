@@ -38,7 +38,7 @@ import {
 import { ErrorListDialog } from './lib/components/dialogs/errorlist-dialog';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
-import { SignalKClient } from 'signalk-client-angular';
+import { APPDATA_CONTEXT, SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
 // Package version — single source of truth is package.json, bumped by `npm version`
@@ -633,47 +633,65 @@ export class AppFacade extends InfoService {
     this.suppressPersist = false; // allow persisting of config.
   }
 
-  /** Retrieve and apply saved config from server */
+  /**
+   * Retrieve and apply the user's saved config from the server. Without one,
+   * neither on the server nor in this browser, the server's global default
+   * config (applicationData `global`, written by an admin) applies, so a
+   * server can preset what a first-time visitor sees.
+   */
   public async loadUserConfigfromServer(): Promise<boolean> {
-    return new Promise((resolve) => {
+    const loggedIn = await new Promise<boolean>((resolve) => {
       this.signalk.isLoggedIn().subscribe({
-        next: (r: boolean) => {
-          this.isLoggedIn.set(r);
-          if (r) {
-            this.debug(
-              'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
-            );
-            (this.signalk.appDataGet('/') as Observable<IAppConfig>).subscribe({
-              next: (serverSettings) => {
-                if (!isSavedConfig(serverSettings)) {
-                  resolve(false);
-                  return;
-                }
-                cleanConfig(serverSettings, this.hostDef.params);
-                this.config = serverSettings;
-                this.doPostConfigLoad();
-                this.alignCustomResourcesPaths();
-                this.alignUnitPrefs(this.serverConfig.unitPreferences());
-                this.saveConfig();
-                resolve(true);
-              },
-              error: () => {
-                console.info(
-                  'applicationData: Unable to retrieve settings from server!'
-                );
-                resolve(false);
-              }
-            });
-          } else {
-            this.debug(
-              'loadUserConfigfromServer(): Not authenticated to SK Server!'
-            );
-            return resolve(false);
+        next: (r: boolean) => resolve(r),
+        error: () => {
+          this.debug('loadUserConfigfromServer(): Error fetching loginStatus!');
+          resolve(false);
+        }
+      });
+    });
+    this.isLoggedIn.set(loggedIn);
+    if (loggedIn) {
+      this.debug(
+        'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
+      );
+      if (await this.applyServerConfig(APPDATA_CONTEXT.USER)) {
+        return true;
+      }
+    } else {
+      this.debug('loadUserConfigfromServer(): Not authenticated to SK Server!');
+    }
+    if (this.hasStoredConfig) {
+      return false;
+    }
+    this.debug('loadUserConfigfromServer(): Fetching global default config...');
+    return this.applyServerConfig(APPDATA_CONTEXT.GLOBAL);
+  }
+
+  /** Fetch a config stored on the server and apply it if it is a saved one */
+  private applyServerConfig(context: APPDATA_CONTEXT): Promise<boolean> {
+    return new Promise((resolve) => {
+      (
+        this.signalk.appDataGet('/', context) as Observable<IAppConfig>
+      ).subscribe({
+        next: (serverSettings) => {
+          if (!isSavedConfig(serverSettings)) {
+            resolve(false);
+            return;
           }
+          cleanConfig(serverSettings, this.hostDef.params);
+          this.config = serverSettings;
+          this.doPostConfigLoad();
+          this.alignCustomResourcesPaths();
+          this.alignUnitPrefs(this.serverConfig.unitPreferences());
+          this.saveConfig();
+          // what the visitor changes from here on is theirs, even on a later login
+          this.hasStoredConfig = true;
+          resolve(true);
         },
         error: () => {
-          this.isLoggedIn.set(false);
-          this.debug('loadUserConfigfromServer(): Error fetching loginStatus!');
+          console.info(
+            `applicationData: Unable to retrieve ${context} settings from server!`
+          );
           resolve(false);
         }
       });

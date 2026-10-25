@@ -189,6 +189,12 @@ To make experimental features available from within the Freeboard-SK user interf
 
 _Note: Some experiments will require configuration of Freeboard-SK via the _Plugin Config_ screen of the Signal K Server Admin UI._
 
+### Default Settings:
+
+A server admin can preset the settings that people start with. Freeboard-SK uses the settings stored as global application data on the Signal K server (`/signalk/v1/applicationData/global/freeboard/1.0.0`) whenever it has none of its own: neither saved in the browser nor, for a logged-in user, saved on the server.
+
+To create them, set Freeboard-SK up as wanted while logged in, then copy the saved file `~/.signalk/applicationData/users/<user>/freeboard/1.0.0.json` to `~/.signalk/applicationData/global/freeboard/1.0.0.json`.
+
 ---
 
 ## System Requirements:

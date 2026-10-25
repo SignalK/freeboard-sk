@@ -9,7 +9,7 @@ import { defaultConfig } from './app.config';
 import { LineStyleDash } from './modules/settings/components/linestyle-select.component';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
 import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
-import { SignalKClient } from 'signalk-client-angular';
+import { APPDATA_CONTEXT, SignalKClient } from 'signalk-client-angular';
 import { version as PACKAGE_VERSION } from '../../package.json';
 
 describe('AppFacade app version (#458)', () => {
@@ -529,5 +529,107 @@ describe('AppFacade.loadUserConfigfromServer', () => {
     await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
 
     expect(app.config.ui.mapNorthUp).toBe(false);
+  });
+});
+
+describe('AppFacade global default config', () => {
+  const STORED_CONFIG_KEY = 'freeboard_config';
+
+  const setup = (
+    loggedIn: boolean,
+    stored: { user?: object; global?: object }
+  ) => {
+    const client = {
+      get: vi.fn(() => EMPTY),
+      setAppId: vi.fn(),
+      setAppVersion: vi.fn(),
+      isLoggedIn: vi.fn(() => of(loggedIn)),
+      appDataGet: vi.fn((_path: string, context: APPDATA_CONTEXT) =>
+        of(
+          (context === APPDATA_CONTEXT.GLOBAL ? stored.global : stored.user) ??
+            {}
+        )
+      ),
+      appDataSet: vi.fn(() => EMPTY),
+      api: { get: vi.fn(() => EMPTY) }
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: client }]
+    });
+    return { app: TestBed.inject(AppFacade), client };
+  };
+
+  const globalDefaults = () => {
+    const cfg = defaultConfig();
+    cfg.selections.charts = ['enc'];
+    return cfg;
+  };
+
+  beforeEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+  afterEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+
+  it('gives a first-time visitor the global defaults', async () => {
+    const { app, client } = setup(false, { global: globalDefaults() });
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.config.selections.charts).toEqual(['enc']);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it('keeps the settings a visitor stored in this browser', async () => {
+    const own = defaultConfig();
+    own.selections.charts = ['mine'];
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(own));
+    const { app, client } = setup(false, { global: globalDefaults() });
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.selections.charts).toEqual(['mine']);
+    expect(client.appDataGet).not.toHaveBeenCalled();
+  });
+
+  it('keeps the global defaults a visitor started from when they log in', async () => {
+    const { app, client } = setup(false, { global: globalDefaults() });
+    await app.loadUserConfigfromServer();
+    app.config.ui.mapNorthUp = false;
+    client.isLoggedIn.mockReturnValue(of(true));
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.ui.mapNorthUp).toBe(false);
+    expect(client.appDataGet).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives a user without saved settings the global defaults', async () => {
+    const { app } = setup(true, { global: globalDefaults() });
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.config.selections.charts).toEqual(['enc']);
+  });
+
+  it("prefers the user's saved settings over the global defaults", async () => {
+    const user = defaultConfig();
+    user.selections.charts = ['mine'];
+    const { app, client } = setup(true, {
+      user,
+      global: globalDefaults()
+    });
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.config.selections.charts).toEqual(['mine']);
+    expect(client.appDataGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the built-in defaults when the server holds no global defaults', async () => {
+    const { app } = setup(false, {});
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.selections.charts).toEqual(
+      defaultConfig().selections.charts
+    );
   });
 });
