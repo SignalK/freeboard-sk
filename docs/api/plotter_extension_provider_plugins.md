@@ -12,9 +12,10 @@ This guide is the how-to for **writing one**. The wire contract it builds on —
 the `plotterExtensions` resource type, the manifest shape, capability
 negotiation, the message bus and the host API — is defined in the
 [Plotter Extensions API](./plotter-extensions-api.md); keep
-it open alongside this guide. General plugin mechanics (`package.json`
-keywords, `start`/`stop`, `schema`, `npm link`, debugging) are **not** repeated
-here — see [Server plugins](https://github.com/SignalK/signalk-server/blob/master/docs/develop/plugins/README.md) for those.
+it open alongside this guide. General plugin mechanics (`start`/`stop`,
+`schema`, `npm link`, debugging) are **not** repeated here — see [Server plugins](https://github.com/SignalK/signalk-server/blob/master/docs/develop/plugins/README.md) for those.
+The one exception is the [package keywords](#package-keywords) an extension
+must declare.
 
 ## It is more than "iframes on a chart"
 
@@ -1177,6 +1178,36 @@ well pointed at the spec plus one of these as a template):
   resource queries, display filters and map control.
 - [`signalk-plotterext-bus`](https://github.com/joelkoz/signalk-plotterext-bus)
   — the client/host library and the authoritative wire-format documentation.
+
+## Package keywords
+
+Your `package.json` `keywords` decide whether users can find your extension.
+Declare:
+
+```json
+{
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-category-plotter-extensions",
+    "signalk-category-chart-plotters"
+  ]
+}
+```
+
+- **`signalk-node-server-plugin`** (required) — lists the package in the
+  Signal K App Store and makes the server start it, which is when your plugin
+  registers its manifest and mounts its assets. A package without it can be
+  neither installed from the App Store nor run.
+- **`signalk-category-plotter-extensions`** (required) — marks the package as
+  a plotter extension. Hosts find installable extensions by searching the npm
+  registry for this keyword (`keywords:signalk-category-plotter-extensions`),
+  so a host can offer to send the user to the App Store to install one.
+- **At least one existing `signalk-category-*` keyword** (recommended) — the
+  App Store category that fits what your extension does: `chart-plotters`,
+  `weather`, `ais`, `utility`, and so on. The server only shows categories it
+  knows and silently ignores the rest; the current list is
+  `CAT_KEYWORDS_TO_NAMES` in the server's
+  [`src/categories.ts`](https://github.com/SignalK/signalk-server/blob/master/src/categories.ts).
 
 ## Declaring companion plugins
 

@@ -2801,6 +2801,15 @@ A Signal K plugin:
    rather than hard dependencies — e.g. an extension that searches another
    provider's resources.
 
+4. Declares the `signalk-node-server-plugin` and
+   `signalk-category-plotter-extensions` keywords in `package.json`, plus
+   any existing App Store category that fits (e.g.
+   `signalk-category-chart-plotters`, `signalk-category-weather`). A host
+   discovers installable extensions by searching the npm registry for
+   `keywords:signalk-category-plotter-extensions` and hands installation to
+   the server's App Store; see
+   [Package keywords](./plotter_extension_provider_plugins.md#package-keywords).
+
 ---
 
 ## Security and Trust
