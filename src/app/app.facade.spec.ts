@@ -623,6 +623,17 @@ describe('AppFacade global default config', () => {
     expect(client.appDataGet).toHaveBeenCalledTimes(1);
   });
 
+  it('stores nothing in this browser before the server was asked', async () => {
+    const { app } = setup(false, {});
+
+    app.saveConfig();
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+
+    await app.loadUserConfigfromServer();
+    app.saveConfig();
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
+  });
+
   it('keeps the built-in defaults when the server holds no global defaults', async () => {
     const { app } = setup(false, {});
 

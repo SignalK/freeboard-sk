@@ -640,6 +640,14 @@ export class AppFacade extends InfoService {
    * server can preset what a first-time visitor sees.
    */
   public async loadUserConfigfromServer(): Promise<boolean> {
+    try {
+      return await this.loadConfigFromServer();
+    } finally {
+      this.startConfigKnown = true;
+    }
+  }
+
+  private async loadConfigFromServer(): Promise<boolean> {
     const loggedIn = await new Promise<boolean>((resolve) => {
       this.signalk.isLoggedIn().subscribe({
         next: (r: boolean) => resolve(r),
@@ -683,6 +691,7 @@ export class AppFacade extends InfoService {
           this.doPostConfigLoad();
           this.alignCustomResourcesPaths();
           this.alignUnitPrefs(this.serverConfig.unitPreferences());
+          this.startConfigKnown = true;
           this.saveConfig();
           // what the visitor changes from here on is theirs, even on a later login
           this.hasStoredConfig = true;
@@ -1185,8 +1194,19 @@ export class AppFacade extends InfoService {
       });
   }
 
+  /**
+   * Set once the server has been asked for the config to start from. Saving
+   * before then would store the built-in defaults in this browser, which then
+   * count as the visitor's own and keep the server's global defaults out.
+   */
+  private startConfigKnown = false;
+
   /** overloaded saveConfig() */
   override saveConfig() {
+    if (!this.startConfigKnown) {
+      this.debug('saveConfig: start config not known yet, not saved.');
+      return;
+    }
     super.saveConfig();
     if (this.isLoggedIn()) {
       this.signalk.appDataSet('/', this.config)?.subscribe({
