@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EMPTY, of } from 'rxjs';
+import { EMPTY, of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
@@ -607,6 +607,24 @@ describe('AppFacade global default config', () => {
     await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
 
     expect(app.config.selections.charts).toEqual(['enc']);
+  });
+
+  it("leaves a user's settings alone when the server cannot read them", async () => {
+    const { app, client } = setup(true, { global: globalDefaults() });
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.USER
+          ? throwError(() => new Error('offline'))
+          : of(globalDefaults())
+    );
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.selections.charts).toEqual(
+      defaultConfig().selections.charts
+    );
+    expect(client.appDataGet).toHaveBeenCalledTimes(1);
+    expect(client.appDataSet).not.toHaveBeenCalled();
   });
 
   it("prefers the user's saved settings over the global defaults", async () => {

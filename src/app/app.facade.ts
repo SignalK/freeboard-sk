@@ -662,8 +662,14 @@ export class AppFacade extends InfoService {
       this.debug(
         'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
       );
-      if (await this.applyServerConfig(APPDATA_CONTEXT.USER)) {
+      const user = await this.applyServerConfig(APPDATA_CONTEXT.USER);
+      if (user === 'applied') {
         return true;
+      }
+      // the user may have settings the server could not hand out just now,
+      // which the global defaults must not replace
+      if (user === 'unreadable') {
+        return false;
       }
     } else {
       this.debug('loadUserConfigfromServer(): Not authenticated to SK Server!');
@@ -672,18 +678,20 @@ export class AppFacade extends InfoService {
       return false;
     }
     this.debug('loadUserConfigfromServer(): Fetching global default config...');
-    return this.applyServerConfig(APPDATA_CONTEXT.GLOBAL);
+    return (await this.applyServerConfig(APPDATA_CONTEXT.GLOBAL)) === 'applied';
   }
 
   /** Fetch a config stored on the server and apply it if it is a saved one */
-  private applyServerConfig(context: APPDATA_CONTEXT): Promise<boolean> {
+  private applyServerConfig(
+    context: APPDATA_CONTEXT
+  ): Promise<'applied' | 'none' | 'unreadable'> {
     return new Promise((resolve) => {
       (
         this.signalk.appDataGet('/', context) as Observable<IAppConfig>
       ).subscribe({
         next: (serverSettings) => {
           if (!isSavedConfig(serverSettings)) {
-            resolve(false);
+            resolve('none');
             return;
           }
           cleanConfig(serverSettings, this.hostDef.params);
@@ -695,13 +703,13 @@ export class AppFacade extends InfoService {
           this.saveConfig();
           // what the visitor changes from here on is theirs, even on a later login
           this.hasStoredConfig = true;
-          resolve(true);
+          resolve('applied');
         },
         error: () => {
           console.info(
             `applicationData: Unable to retrieve ${context} settings from server!`
           );
-          resolve(false);
+          resolve('unreadable');
         }
       });
     });
