@@ -76,7 +76,7 @@ export class State {
   }
 
   //** load app config **
-  loadConfig(defaultValue = {}) {
+  loadConfig(defaultValue: unknown = {}) {
     const config = this.ls.read('config');
     //return config ? this.merge(config,defaultValue) : defaultValue;
     return config ? config : defaultValue;

@@ -38,7 +38,7 @@ import {
 import { ErrorListDialog } from './lib/components/dialogs/errorlist-dialog';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
-import { SignalKClient } from 'signalk-client-angular';
+import { APPDATA_CONTEXT, SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
 // Package version — single source of truth is package.json, bumped by `npm version`
@@ -415,11 +415,17 @@ export class AppFacade extends InfoService {
     this.parseLocalConfig();
 
     // respond to signals
+    // the first run only reads the config just loaded: saving it would store
+    // the built-in defaults as if the visitor had chosen them
+    let uiConfigLoaded = false;
     effect(() => {
       this.uiConfig();
       this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
       this.config.ui = this.uiConfig();
-      this.saveConfigDebounced();
+      if (uiConfigLoaded) {
+        this.saveConfigDebounced();
+      }
+      uiConfigLoaded = true;
     });
     effect(() => {
       this.alignUnitPrefs(this.serverConfig.unitPreferences());
@@ -633,48 +639,106 @@ export class AppFacade extends InfoService {
     this.suppressPersist = false; // allow persisting of config.
   }
 
-  /** Retrieve and apply saved config from server */
+  /**
+   * Retrieve and apply the user's saved config from the server. Without one,
+   * neither on the server nor in this browser, the server's global default
+   * config (applicationData `global`, written by an admin) applies, so a
+   * server can preset what a first-time visitor sees.
+   */
   public async loadUserConfigfromServer(): Promise<boolean> {
-    return new Promise((resolve) => {
+    // connecting and logging in can each start a load; only the latest applies
+    const load = ++this.configLoads;
+    try {
+      return await this.loadConfigFromServer(load);
+    } finally {
+      if (load === this.configLoads) {
+        this.startConfigKnown = true;
+        if (this.configSavePending) {
+          this.saveConfig();
+        }
+      }
+    }
+  }
+
+  private configLoads = 0;
+
+  private async loadConfigFromServer(load: number): Promise<boolean> {
+    const loggedIn = await new Promise<boolean>((resolve) => {
       this.signalk.isLoggedIn().subscribe({
-        next: (r: boolean) => {
-          this.isLoggedIn.set(r);
-          if (r) {
-            this.debug(
-              'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
-            );
-            (this.signalk.appDataGet('/') as Observable<IAppConfig>).subscribe({
-              next: (serverSettings) => {
-                if (!isSavedConfig(serverSettings)) {
-                  resolve(false);
-                  return;
-                }
-                cleanConfig(serverSettings, this.hostDef.params);
-                this.config = serverSettings;
-                this.doPostConfigLoad();
-                this.alignCustomResourcesPaths();
-                this.alignUnitPrefs(this.serverConfig.unitPreferences());
-                this.saveConfig();
-                resolve(true);
-              },
-              error: () => {
-                console.info(
-                  'applicationData: Unable to retrieve settings from server!'
-                );
-                resolve(false);
-              }
-            });
-          } else {
-            this.debug(
-              'loadUserConfigfromServer(): Not authenticated to SK Server!'
-            );
-            return resolve(false);
-          }
-        },
+        next: (r: boolean) => resolve(r),
         error: () => {
-          this.isLoggedIn.set(false);
           this.debug('loadUserConfigfromServer(): Error fetching loginStatus!');
           resolve(false);
+        }
+      });
+    });
+    if (load !== this.configLoads) {
+      return false;
+    }
+    this.isLoggedIn.set(loggedIn);
+    if (loggedIn) {
+      this.debug(
+        'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
+      );
+      const user = await this.applyServerConfig(APPDATA_CONTEXT.USER, load);
+      if (user === 'stale') {
+        return false;
+      }
+      this.userConfigUnreadable = user === 'unreadable';
+      if (user === 'applied') {
+        return true;
+      }
+      // the user may have settings the server could not hand out just now,
+      // which the global defaults must not replace
+      if (user === 'unreadable') {
+        return false;
+      }
+    } else {
+      this.debug('loadUserConfigfromServer(): Not authenticated to SK Server!');
+    }
+    if (this.hasStoredConfig) {
+      return false;
+    }
+    this.debug('loadUserConfigfromServer(): Fetching global default config...');
+    return (
+      (await this.applyServerConfig(APPDATA_CONTEXT.GLOBAL, load)) === 'applied'
+    );
+  }
+
+  /** Fetch a config stored on the server and apply it if it is a saved one */
+  private applyServerConfig(
+    context: APPDATA_CONTEXT,
+    load: number
+  ): Promise<'applied' | 'none' | 'unreadable' | 'stale'> {
+    return new Promise((resolve) => {
+      (
+        this.signalk.appDataGet('/', context) as Observable<IAppConfig>
+      ).subscribe({
+        next: (serverSettings) => {
+          if (load !== this.configLoads) {
+            resolve('stale');
+            return;
+          }
+          if (!isSavedConfig(serverSettings)) {
+            resolve('none');
+            return;
+          }
+          cleanConfig(serverSettings, this.hostDef.params);
+          this.config = serverSettings;
+          this.doPostConfigLoad();
+          this.alignCustomResourcesPaths();
+          this.alignUnitPrefs(this.serverConfig.unitPreferences());
+          this.startConfigKnown = true;
+          this.saveConfig();
+          // what the visitor changes from here on is theirs, even on a later login
+          this.hasStoredConfig = true;
+          resolve('applied');
+        },
+        error: () => {
+          console.info(
+            `applicationData: Unable to retrieve ${context} settings from server!`
+          );
+          resolve(load === this.configLoads ? 'unreadable' : 'stale');
         }
       });
     });
@@ -1167,10 +1231,32 @@ export class AppFacade extends InfoService {
       });
   }
 
+  /**
+   * Set once the server has been asked for the config to start from. Saving
+   * before then would store the built-in defaults in this browser, which then
+   * count as the visitor's own and keep the server's global defaults out.
+   */
+  private startConfigKnown = false;
+
+  /**
+   * Set while the logged-in user's server settings could not be read: saving
+   * this browser's config to the server then would overwrite them.
+   */
+  private userConfigUnreadable = false;
+
+  /** A save was asked for before the start config was known */
+  private configSavePending = false;
+
   /** overloaded saveConfig() */
   override saveConfig() {
+    if (!this.startConfigKnown) {
+      this.debug('saveConfig: start config not known yet, saved once it is.');
+      this.configSavePending = true;
+      return;
+    }
+    this.configSavePending = false;
     super.saveConfig();
-    if (this.isLoggedIn()) {
+    if (this.isLoggedIn() && !this.userConfigUnreadable) {
       this.signalk.appDataSet('/', this.config)?.subscribe({
         next: () => this.debug('saveConfig: config saved to server.'),
         error: () => this.debug('saveConfig: Cannot save config to server!')

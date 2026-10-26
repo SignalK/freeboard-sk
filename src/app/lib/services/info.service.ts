@@ -124,9 +124,14 @@ export class InfoService {
     });
   }
 
+  /** whether this browser held a stored config at launch */
+  protected hasStoredConfig = false;
+
   /** load app config */
   loadConfig() {
-    this.config = this.state.loadConfig(this.config);
+    const stored = this.state.loadConfig(null);
+    this.hasStoredConfig = stored !== null;
+    this.config = stored ?? this.config;
   }
 
   /** persist app config */
