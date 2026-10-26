@@ -46,7 +46,8 @@ rode-length placement.
 
 Lengths are in your chosen distance units. Freeboard remembers your
 **Set Radius** and **Manual Set** choices, the radius and the rode length for
-next time.
+next time, including a radius you adjust after the anchor is set. Until you
+set one, the radius starts at 60 m.
 
 ## Adjusting the watch
 
@@ -55,7 +56,9 @@ next time.
 Once the anchor is set, the anchor and its alarm circle are drawn on the chart,
 and the panel's status shows the current radius.
 
-- **Adjust Radius**: drag the slider to widen or tighten the alarm circle.
+- **Adjust Radius**: tap **-10**, **-1**, **+1** or **+10** to widen or
+  tighten the alarm circle by that many of your length units. The radius is
+  shown above the buttons, and it can't go below 5 m.
 - **Shift Anchor**: the arrow buttons move the anchor one meter north, south,
   east or west, for when the mark isn't quite where the anchor went down.
 - **Drag the anchor**: tap the anchor on the chart to make it movable, drag
