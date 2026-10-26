@@ -624,6 +624,14 @@ describe('AppFacade global default config', () => {
       defaultConfig().selections.charts
     );
     expect(client.appDataGet).toHaveBeenCalledTimes(1);
+
+    vi.useFakeTimers();
+    try {
+      app.saveConfigDebounced();
+      vi.advanceTimersByTime(1000);
+    } finally {
+      vi.useRealTimers();
+    }
     expect(client.appDataSet).not.toHaveBeenCalled();
   });
 

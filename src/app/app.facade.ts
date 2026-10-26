@@ -663,6 +663,7 @@ export class AppFacade extends InfoService {
         'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
       );
       const user = await this.applyServerConfig(APPDATA_CONTEXT.USER);
+      this.userConfigUnreadable = user === 'unreadable';
       if (user === 'applied') {
         return true;
       }
@@ -1209,6 +1210,12 @@ export class AppFacade extends InfoService {
    */
   private startConfigKnown = false;
 
+  /**
+   * Set while the logged-in user's server settings could not be read: saving
+   * this browser's config to the server then would overwrite them.
+   */
+  private userConfigUnreadable = false;
+
   /** overloaded saveConfig() */
   override saveConfig() {
     if (!this.startConfigKnown) {
@@ -1216,7 +1223,7 @@ export class AppFacade extends InfoService {
       return;
     }
     super.saveConfig();
-    if (this.isLoggedIn()) {
+    if (this.isLoggedIn() && !this.userConfigUnreadable) {
       this.signalk.appDataSet('/', this.config)?.subscribe({
         next: () => this.debug('saveConfig: config saved to server.'),
         error: () => this.debug('saveConfig: Cannot save config to server!')
