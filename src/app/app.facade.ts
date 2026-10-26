@@ -415,11 +415,17 @@ export class AppFacade extends InfoService {
     this.parseLocalConfig();
 
     // respond to signals
+    // the first run only reads the config just loaded: saving it would store
+    // the built-in defaults as if the visitor had chosen them
+    let uiConfigLoaded = false;
     effect(() => {
       this.uiConfig();
       this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
       this.config.ui = this.uiConfig();
-      this.saveConfigDebounced();
+      if (uiConfigLoaded) {
+        this.saveConfigDebounced();
+      }
+      uiConfigLoaded = true;
     });
     effect(() => {
       this.alignUnitPrefs(this.serverConfig.unitPreferences());

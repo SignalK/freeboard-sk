@@ -660,6 +660,24 @@ describe('AppFacade global default config', () => {
     expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
   });
 
+  it('leaves the built-in defaults out of this browser until the visitor changes something', async () => {
+    vi.useFakeTimers();
+    try {
+      const { app } = setup(false, {});
+      TestBed.tick();
+      await app.loadUserConfigfromServer();
+      vi.advanceTimersByTime(1000);
+      expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+
+      app.uiConfig.update((ui) => ({ ...ui, mapNorthUp: false }));
+      TestBed.tick();
+      vi.advanceTimersByTime(1000);
+      expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('keeps the built-in defaults when the server holds no global defaults', async () => {
     const { app } = setup(false, {});
 
