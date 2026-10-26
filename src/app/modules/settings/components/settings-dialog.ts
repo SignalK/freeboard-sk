@@ -186,6 +186,17 @@ export class SettingsDialog implements OnInit {
     };
   }
 
+  /**
+   * The unit choices follow the server only when it publishes preferences;
+   * without them the local choices stay editable.
+   */
+  unitsFromServer(): boolean {
+    return (
+      this.facade.settings.units.useServerPrefs &&
+      !!this.app.serverConfig.unitPreferences()
+    );
+  }
+
   raiseChange() {
     this.app.alignUnitPrefs(this.app.serverConfig.unitPreferences());
     this.unitsChangedSignal.update((current) => current + 1);
