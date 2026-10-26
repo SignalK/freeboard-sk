@@ -109,10 +109,14 @@ export type LegacyAppConfig = Omit<
   IAppConfig,
   'units' | 'vessels' | 'plotterExtensions' | 'selections'
 > & {
-  units: Omit<IAppConfig['units'], 'depth' | 'speed' | 'distance'> & {
+  units: Omit<
+    IAppConfig['units'],
+    'depth' | 'speed' | 'distance' | 'useServerPrefs'
+  > & {
     depth: DepthUnitDef | 'ft'; // 'ft' -> 'foot'
     speed: SpeedUnitDef | 'msec' | 'kmh'; // 'msec' -> 'm/s', 'kmh' -> 'km/h'
     distance: DistanceUnitDef | 'm' | 'ft'; // 'm' -> 'kilometer', 'ft' -> 'naut-mile'
+    useServerPrefs?: boolean; // absent before 2.20 -> false
   };
   vessels: Omit<IAppConfig['vessels'], 'selfLines' | 'trailSource'> & {
     selfLines?: IAppConfig['vessels']['selfLines']; // created from cogLine / headingLineSize

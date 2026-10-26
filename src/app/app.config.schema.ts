@@ -118,7 +118,7 @@ export const AppConfigSchema = Type.Object({
     /** One-time marker for the COG -> 'auto' orientation migration (#704). */
     // @todo remove (implemented) v2.32.0
     autoHeadingApplied: bool(true),
-    useServerPrefs: bool(false)
+    useServerPrefs: bool(true)
   }),
   map: Type.Object({
     zoomLevel: num(2),
