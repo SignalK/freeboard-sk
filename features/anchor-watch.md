@@ -59,8 +59,10 @@ and the panel's status shows the current radius.
 - **Adjust Radius**: tap **-10**, **-1**, **+1** or **+10** to widen or
   tighten the alarm circle by that many of your length units. The radius is
   shown above the buttons, and it can't go below 5 m.
-- **Shift Anchor**: the arrow buttons move the anchor one meter north, south,
-  east or west, for when the mark isn't quite where the anchor went down.
+- **Shift Anchor**: tap an arrow to move the anchor one meter north, south,
+  east or west, or hold it down to keep the anchor moving that way, about
+  10 meters a second, until you let go. Use it when the mark isn't quite where
+  the anchor went down.
 - **Drag the anchor**: tap the anchor on the chart to make it movable, drag
   it to where the anchor really lies, then tap **Finish**.
 
