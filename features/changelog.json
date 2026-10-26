@@ -159,5 +159,6 @@
   { "feature": "action-button", "pr": 1180, "kind": "enhanced", "date": "2026-10-24", "title": "feat(plotterext): let an extension button be the action button" },
   { "feature": "anchor-watch", "pr": 1176, "kind": "enhanced", "date": "2026-10-24", "title": "feat(anchor): replace the radius slider with step buttons" },
   { "feature": "anchor-watch", "pr": 1177, "kind": "enhanced", "date": "2026-10-24", "title": "feat(anchor): keep shifting the anchor while an arrow is held" },
-  { "feature": "route-following", "pr": 1182, "kind": "enhanced", "date": "2026-10-24", "title": "feat(routes): let the route navigation panel be moved" }
+  { "feature": "route-following", "pr": 1182, "kind": "enhanced", "date": "2026-10-24", "title": "feat(routes): let the route navigation panel be moved" },
+  { "feature": null, "pr": 1192, "kind": "skip", "reason": "server-admin setup: Freeboard starts from the server's global default settings when a device has none of its own; no change to what the user can do in the app" }
 ]
