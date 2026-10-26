@@ -156,9 +156,9 @@
   { "feature": "temporal-charts", "pr": 1076, "kind": "enhanced", "since": "v3.4.0-beta.2", "date": "2026-10-19", "title": "feat(charts): step through a forecast's hours ahead in the Time palette" },
   { "feature": "action-button", "kind": "new", "since": "v2.17.0", "date": "2025-08-18", "title": "Action Button: Waypoint at vessel, Person Overboard or Autopilot Console" },
   { "feature": "action-button", "kind": "enhanced", "since": "v2.19.7", "date": "2026-01-15", "title": "Radar Overlay as an Action Button choice" },
-  { "feature": "action-button", "pr": 1180, "kind": "enhanced", "date": "2026-10-24", "title": "feat(plotterext): let an extension button be the action button" },
-  { "feature": "anchor-watch", "pr": 1176, "kind": "enhanced", "date": "2026-10-24", "title": "feat(anchor): replace the radius slider with step buttons" },
-  { "feature": "anchor-watch", "pr": 1177, "kind": "enhanced", "date": "2026-10-24", "title": "feat(anchor): keep shifting the anchor while an arrow is held" },
-  { "feature": "route-following", "pr": 1182, "kind": "enhanced", "date": "2026-10-24", "title": "feat(routes): let the route navigation panel be moved" },
+  { "feature": "action-button", "pr": 1180, "kind": "enhanced", "since": "v3.4.0-beta.3", "date": "2026-10-24", "title": "feat(plotterext): let an extension button be the action button" },
+  { "feature": "anchor-watch", "pr": 1176, "kind": "enhanced", "since": "v3.4.0-beta.3", "date": "2026-10-24", "title": "feat(anchor): replace the radius slider with step buttons" },
+  { "feature": "anchor-watch", "pr": 1177, "kind": "enhanced", "since": "v3.4.0-beta.3", "date": "2026-10-24", "title": "feat(anchor): keep shifting the anchor while an arrow is held" },
+  { "feature": "route-following", "pr": 1182, "kind": "enhanced", "since": "v3.4.0-beta.3", "date": "2026-10-24", "title": "feat(routes): let the route navigation panel be moved" },
   { "feature": null, "pr": 1192, "kind": "skip", "reason": "server-admin setup: Freeboard starts from the server's global default settings when a device has none of its own; no change to what the user can do in the app" }
 ]
