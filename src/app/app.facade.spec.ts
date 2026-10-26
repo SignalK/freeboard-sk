@@ -698,6 +698,20 @@ describe('AppFacade global default config', () => {
     expect(app.config.selections.charts).toEqual(['mine']);
   });
 
+  it('keeps the login state of the latest load', async () => {
+    const { app, client } = setup(false, {});
+    const firstStatus = new Subject<boolean>();
+    client.isLoggedIn.mockReturnValueOnce(firstStatus);
+
+    const firstLoad = app.loadUserConfigfromServer();
+    client.isLoggedIn.mockReturnValue(of(true));
+    await app.loadUserConfigfromServer();
+    firstStatus.next(false);
+
+    await expect(firstLoad).resolves.toBe(false);
+    expect(app.isLoggedIn()).toBe(true);
+  });
+
   it('saves a change made before the server was asked once it has been', async () => {
     const { app } = setup(false, {});
 

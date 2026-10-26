@@ -672,6 +672,9 @@ export class AppFacade extends InfoService {
         }
       });
     });
+    if (load !== this.configLoads) {
+      return false;
+    }
     this.isLoggedIn.set(loggedIn);
     if (loggedIn) {
       this.debug(
