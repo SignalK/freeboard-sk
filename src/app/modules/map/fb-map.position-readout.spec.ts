@@ -1,12 +1,13 @@
 import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
+import { fromLonLat } from 'ol/proj';
 
 import { FBMapComponent } from './fb-map.component';
 import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
 import { Position } from 'src/app/types';
 
 // A bare prototype instance, as in fb-map.split-zoom.spec.ts: only what the
-// move-end and pointer-move handlers touch is stubbed.
+// map-ready, move-end and pointer-move handlers touch is stubbed.
 const bareComponent = () => {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
@@ -33,6 +34,26 @@ const moveEnd = (lonlat: Position) =>
   ({ zoom: 10, lonlat, extent: [] }) as unknown as FBMapEvent;
 
 describe('FBMapComponent: position readout', () => {
+  it('shows the restored chart centre as soon as the map is ready', () => {
+    // An untouched reload: no move-end may have reached the component yet.
+    const cmp = bareComponent();
+    cmp.olMap = {
+      getMap: () => ({
+        getView: () => ({
+          getZoom: () => 10,
+          getCenter: () => fromLonLat([178.4, -18.1])
+        })
+      }),
+      getMapExtent: (): number[] => []
+    };
+
+    cmp.onMapReady();
+
+    const [lon, lat] = cmp.mouse().coords;
+    expect(lon).toBeCloseTo(178.4);
+    expect(lat).toBeCloseTo(-18.1);
+  });
+
   it('shows the chart centre before any pointer has been over the chart', () => {
     // A cold load on a touch screen: the view is restored and drawn, but no
     // finger has touched the chart yet.

@@ -1149,10 +1149,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Tell the stream worker the initial view: a fresh map emits no move-end
    * until the user moves it, and the AIS tracks request is scoped to the view. */
   protected onMapReady() {
-    const zoom = this.olMap?.getMap()?.getView().getZoom();
+    const view = this.olMap?.getMap()?.getView();
+    const zoom = view?.getZoom();
     if (typeof zoom === 'number') {
       this.skstream.postMapView(this.olMap.getMapExtent(), zoom);
       this.trackHistory.setView(this.olMap.getMapExtent(), zoom);
+    }
+    const center = view?.getCenter();
+    if (center) {
+      this.showCentreUntilPointer(toLonLat(center) as Position);
+    }
+  }
+
+  private showCentreUntilPointer(center: Position) {
+    if (!this.pointerSeen) {
+      const coords = GeoUtils.normaliseCoords(center);
+      this.mouse.update((mouse) => ({ ...mouse, coords }));
     }
   }
 
@@ -1173,10 +1185,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
     this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
-    if (!this.pointerSeen) {
-      const coords = GeoUtils.normaliseCoords(e.lonlat as Position);
-      this.mouse.update((mouse) => ({ ...mouse, coords }));
-    }
+    this.showCentreUntilPointer(e.lonlat as Position);
 
     if (this.userPanned) {
       // Adopt where the user left the vessel on screen only once the pan (and
