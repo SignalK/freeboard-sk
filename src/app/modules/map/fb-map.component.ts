@@ -534,6 +534,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: [0, 0],
     xy: null
   });
+  // A touch screen raises no pointer event until it is touched, so until one
+  // arrives the readout shows the chart centre rather than a blank 0,0.
+  private pointerSeen = false;
   // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
   // when the "Live ETA at cursor" option is enabled (null = hidden).
   protected cursorInfo = signal<CursorEtaInfo | null>(null);
@@ -1146,10 +1149,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Tell the stream worker the initial view: a fresh map emits no move-end
    * until the user moves it, and the AIS tracks request is scoped to the view. */
   protected onMapReady() {
-    const zoom = this.olMap?.getMap()?.getView().getZoom();
+    const view = this.olMap?.getMap()?.getView();
+    const zoom = view?.getZoom();
     if (typeof zoom === 'number') {
       this.skstream.postMapView(this.olMap.getMapExtent(), zoom);
       this.trackHistory.setView(this.olMap.getMapExtent(), zoom);
+    }
+    const center = view?.getCenter();
+    if (center) {
+      this.showCentreUntilPointer(toLonLat(center) as Position);
+    }
+  }
+
+  private showCentreUntilPointer(center: Position) {
+    if (!this.pointerSeen) {
+      const coords = GeoUtils.normaliseCoords(center);
+      this.mouse.update((mouse) => ({ ...mouse, coords }));
     }
   }
 
@@ -1170,6 +1185,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
     this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
+    this.showCentreUntilPointer(e.lonlat as Position);
 
     if (this.userPanned) {
       // Adopt where the user left the vessel on screen only once the pan (and
@@ -1210,6 +1226,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // pointer events
   protected onMapPointerMove(e: FBPointerEvent) {
+    this.pointerSeen = true;
     this.mouse.set({
       pixel: e.pixel,
       xy: e.coordinate,
@@ -1331,6 +1348,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   protected onMapPointerDown(e: FBPointerDownEvent) {
     this.pointerDownAt = Date.now();
+    this.pointerSeen = true;
     // A finger raises no pointer moves before it drags, so the press is the
     // only position a long-press has: record all of it, as a move would.
     this.mouse.set({
@@ -1447,6 +1465,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * its own menu.
    */
   private onSecondaryPointer(lonlat: Position) {
+    this.pointerSeen = true;
     const coords = GeoUtils.normaliseCoords(lonlat);
     this.mouse.update((mouse) => ({ ...mouse, coords }));
     this.updateCursorInfo(coords);
@@ -1457,6 +1476,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * this chart's, so its features are this chart's own and are handled here.
    */
   private onSecondaryTap(tap: SecondaryTap) {
+    // A finger on the second pane raises no pointer move before the tap.
+    this.onSecondaryPointer(
+      tap.kind === 'click' ? tap.event.lonlat : (tap.lonlat as Position)
+    );
     if (tap.kind === 'click') {
       this.pointerDownAt = tap.pressedAt;
       this.onMapSingleClick(tap.event, tap.map);

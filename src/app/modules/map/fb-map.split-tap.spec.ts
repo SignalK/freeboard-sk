@@ -42,6 +42,8 @@ const bareComponent = (secondPane: OlMap | null) => {
   // Stands in for a tap on a feature: it opens that feature's popover.
   cmp.processMapClick = vi.fn(() => cmp.formatPopover('s57.x', [23.5, 60.1]));
   cmp.pinCursorAtTap = vi.fn();
+  cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
+  cmp.updateCursorInfo = vi.fn();
   cmp.plotterExt = {
     addableCellAt: (): null => null,
     actionsFor: (): unknown[] => []
