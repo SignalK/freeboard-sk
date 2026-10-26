@@ -534,6 +534,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: [0, 0],
     xy: null
   });
+  // A touch screen raises no pointer event until it is touched, so until one
+  // arrives the readout shows the chart centre rather than a blank 0,0.
+  private pointerSeen = false;
   // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
   // when the "Live ETA at cursor" option is enabled (null = hidden).
   protected cursorInfo = signal<CursorEtaInfo | null>(null);
@@ -1170,6 +1173,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
     this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
+    if (!this.pointerSeen) {
+      const coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+      this.mouse.update((mouse) => ({ ...mouse, coords }));
+    }
 
     if (this.userPanned) {
       // Adopt where the user left the vessel on screen only once the pan (and
@@ -1210,6 +1217,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // pointer events
   protected onMapPointerMove(e: FBPointerEvent) {
+    this.pointerSeen = true;
     this.mouse.set({
       pixel: e.pixel,
       xy: e.coordinate,
@@ -1331,6 +1339,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   protected onMapPointerDown(e: FBPointerDownEvent) {
     this.pointerDownAt = Date.now();
+    this.pointerSeen = true;
     // A finger raises no pointer moves before it drags, so the press is the
     // only position a long-press has: record all of it, as a move would.
     this.mouse.set({
@@ -1447,6 +1456,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * its own menu.
    */
   private onSecondaryPointer(lonlat: Position) {
+    this.pointerSeen = true;
     const coords = GeoUtils.normaliseCoords(lonlat);
     this.mouse.update((mouse) => ({ ...mouse, coords }));
     this.updateCursorInfo(coords);
