@@ -52,6 +52,7 @@ const bareComponent = (offered: string[]) => {
   cmp.mapZoomLevel = signal(10);
   cmp.modifyMode = false;
   cmp.mouse = signal({ pixel: [10, 10], coords: [-80.11, 25.76], xy: [1, 1] });
+  cmp.updateCursorInfo = vi.fn();
   cmp.contextMenu = { openMenu: vi.fn(), closeMenu: vi.fn(), menuData: null };
   cmp.contextMenuPosition = { x: '0px', y: '0px' };
   cmp.infoPanel = { opened: () => false };

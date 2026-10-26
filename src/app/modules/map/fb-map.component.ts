@@ -1476,6 +1476,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * this chart's, so its features are this chart's own and are handled here.
    */
   private onSecondaryTap(tap: SecondaryTap) {
+    // A finger on the second pane raises no pointer move before the tap.
+    this.onSecondaryPointer(
+      tap.kind === 'click' ? tap.event.lonlat : (tap.lonlat as Position)
+    );
     if (tap.kind === 'click') {
       this.pointerDownAt = tap.pressedAt;
       this.onMapSingleClick(tap.event, tap.map);

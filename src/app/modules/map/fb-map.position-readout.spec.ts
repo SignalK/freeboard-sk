@@ -11,6 +11,8 @@ import { Position } from 'src/app/types';
 const bareComponent = () => {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
+  // Object.create() skips the field initialisers.
+  cmp.pointerSeen = false;
   cmp.app = {
     config: { map: { zoomLevel: 10, center: [0, 0] } },
     mapZoom: signal(10),
@@ -72,6 +74,17 @@ describe('FBMapComponent: position readout', () => {
       lonlat: [5, 50]
     } as unknown as FBPointerEvent);
 
+    cmp.onMapMoveEnd(moveEnd([178.4, -18.1]));
+
+    expect(cmp.mouse().coords).toEqual([5, 50]);
+  });
+
+  it('shows a tap on the split view second pane, and keeps it', () => {
+    // A finger raises no pointer move before it taps, on either pane.
+    const cmp = bareComponent();
+    cmp.contextMenuContent = (): null => null;
+
+    cmp.onSecondaryTap({ kind: 'contextmenu', lonlat: [5, 50] });
     cmp.onMapMoveEnd(moveEnd([178.4, -18.1]));
 
     expect(cmp.mouse().coords).toEqual([5, 50]);
