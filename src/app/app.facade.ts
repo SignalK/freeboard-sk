@@ -646,14 +646,23 @@ export class AppFacade extends InfoService {
    * server can preset what a first-time visitor sees.
    */
   public async loadUserConfigfromServer(): Promise<boolean> {
+    // connecting and logging in can each start a load; only the latest applies
+    const load = ++this.configLoads;
     try {
-      return await this.loadConfigFromServer();
+      return await this.loadConfigFromServer(load);
     } finally {
-      this.startConfigKnown = true;
+      if (load === this.configLoads) {
+        this.startConfigKnown = true;
+        if (this.configSavePending) {
+          this.saveConfig();
+        }
+      }
     }
   }
 
-  private async loadConfigFromServer(): Promise<boolean> {
+  private configLoads = 0;
+
+  private async loadConfigFromServer(load: number): Promise<boolean> {
     const loggedIn = await new Promise<boolean>((resolve) => {
       this.signalk.isLoggedIn().subscribe({
         next: (r: boolean) => resolve(r),
@@ -668,7 +677,10 @@ export class AppFacade extends InfoService {
       this.debug(
         'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
       );
-      const user = await this.applyServerConfig(APPDATA_CONTEXT.USER);
+      const user = await this.applyServerConfig(APPDATA_CONTEXT.USER, load);
+      if (user === 'stale') {
+        return false;
+      }
       this.userConfigUnreadable = user === 'unreadable';
       if (user === 'applied') {
         return true;
@@ -685,18 +697,25 @@ export class AppFacade extends InfoService {
       return false;
     }
     this.debug('loadUserConfigfromServer(): Fetching global default config...');
-    return (await this.applyServerConfig(APPDATA_CONTEXT.GLOBAL)) === 'applied';
+    return (
+      (await this.applyServerConfig(APPDATA_CONTEXT.GLOBAL, load)) === 'applied'
+    );
   }
 
   /** Fetch a config stored on the server and apply it if it is a saved one */
   private applyServerConfig(
-    context: APPDATA_CONTEXT
-  ): Promise<'applied' | 'none' | 'unreadable'> {
+    context: APPDATA_CONTEXT,
+    load: number
+  ): Promise<'applied' | 'none' | 'unreadable' | 'stale'> {
     return new Promise((resolve) => {
       (
         this.signalk.appDataGet('/', context) as Observable<IAppConfig>
       ).subscribe({
         next: (serverSettings) => {
+          if (load !== this.configLoads) {
+            resolve('stale');
+            return;
+          }
           if (!isSavedConfig(serverSettings)) {
             resolve('none');
             return;
@@ -716,7 +735,7 @@ export class AppFacade extends InfoService {
           console.info(
             `applicationData: Unable to retrieve ${context} settings from server!`
           );
-          resolve('unreadable');
+          resolve(load === this.configLoads ? 'unreadable' : 'stale');
         }
       });
     });
@@ -1222,12 +1241,17 @@ export class AppFacade extends InfoService {
    */
   private userConfigUnreadable = false;
 
+  /** A save was asked for before the start config was known */
+  private configSavePending = false;
+
   /** overloaded saveConfig() */
   override saveConfig() {
     if (!this.startConfigKnown) {
-      this.debug('saveConfig: start config not known yet, not saved.');
+      this.debug('saveConfig: start config not known yet, saved once it is.');
+      this.configSavePending = true;
       return;
     }
+    this.configSavePending = false;
     super.saveConfig();
     if (this.isLoggedIn() && !this.userConfigUnreadable) {
       this.signalk.appDataSet('/', this.config)?.subscribe({

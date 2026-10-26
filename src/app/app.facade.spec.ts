@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EMPTY, of, throwError } from 'rxjs';
+import { EMPTY, of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
@@ -676,6 +676,39 @@ describe('AppFacade global default config', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('ignores global defaults that arrive after a later load applied user settings', async () => {
+    const { app, client } = setup(false, {});
+    const globalReply = new Subject<object>();
+    const user = defaultConfig();
+    user.selections.charts = ['mine'];
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.GLOBAL ? globalReply : of(user)
+    );
+
+    const visitorLoad = app.loadUserConfigfromServer();
+    await Promise.resolve();
+    client.isLoggedIn.mockReturnValue(of(true));
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+    globalReply.next(globalDefaults());
+
+    await expect(visitorLoad).resolves.toBe(false);
+    expect(app.config.selections.charts).toEqual(['mine']);
+  });
+
+  it('saves a change made before the server was asked once it has been', async () => {
+    const { app } = setup(false, {});
+
+    app.config.ui.mapNorthUp = false;
+    app.saveConfig();
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+
+    await app.loadUserConfigfromServer();
+    expect(
+      JSON.parse(localStorage.getItem(STORED_CONFIG_KEY) ?? '{}').ui.mapNorthUp
+    ).toBe(false);
   });
 
   it('keeps the built-in defaults when the server holds no global defaults', async () => {
