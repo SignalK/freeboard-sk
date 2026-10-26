@@ -38,6 +38,18 @@ Alongside them, **Reverse route direction** follows the route back the other
 way, **Restart XTE** measures cross-track error from your current position,
 and **Course Settings** opens the course options.
 
+**Moving the course panel.** The panel holding these controls, with the
+course data beside them (VMG, bearing, cross-track error, distance and time
+to go, ETA), opens in the lower left corner of the chart. If it hides
+something you need, drag it somewhere else: press anywhere on it that isn't
+a button — a reading, or the "2 of 9" point count — and move it. On a
+touchscreen, hold your finger on it until it lifts (it gains a shadow, and
+buzzes on devices that can), then drag; a quick swipe still scrolls the
+panel sideways when its readings don't fit. It stays near whichever corner
+you leave it by when the screen resizes or turns, and it reopens there the
+next time a course is active. The position is remembered on each device
+separately, so a tablet and a laptop can each keep it where it suits them.
+
 ![Fig 3. Clicking a point on the route you're following — Rejoin here, or Skip to the point after it](route-following-3.jpg)
 
 **Rejoining or skipping a point.** Click a point on the route you're following
