@@ -19,6 +19,8 @@ import { Coordinate, Extent } from './models';
 import { MapComponent } from './map.component';
 import { ProjectionLike } from 'ol/proj';
 import { worldCopyOffset } from './util';
+import type { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
 
 const animateDuration = 500;
 
@@ -64,6 +66,14 @@ export class ViewDirective
   // keeps the others on their way.
   private pending: ViewTarget = {};
   private animationId = 0;
+  // Changes that arrived while an OpenLayers gesture animation ran, applied
+  // once it ends.
+  private deferred: ViewTarget = {};
+  private deferredKey?: EventsKey;
+  // Absent where the browser has no matchMedia (the unit tests' DOM).
+  private reducedMotion = globalThis.matchMedia?.(
+    '(prefers-reduced-motion: reduce)'
+  );
   private lastMoveAt = -Infinity;
   private animationEndsAt = 0;
   private easing = easeOut;
@@ -99,6 +109,7 @@ export class ViewDirective
   }
 
   ngOnInit() {
+    this.reducedMotion?.addEventListener('change', this.onReducedMotionChange);
     const view = new View(this.viewProperties);
     this.view = view;
     view.setRotation(this.rotation ?? 0);
@@ -123,14 +134,15 @@ export class ViewDirective
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const properties: { [index: string]: any } = {};
     const view = this.view;
-    const animate = !!view && this.enableAnimation;
+    const animate =
+      !!view && this.enableAnimation && !this.reducedMotion?.matches;
     const target: ViewTarget = {};
 
     for (const key in changes) {
       const value = changes[key].currentValue;
       if (key === 'enableAnimation') {
         if (view && !value) {
-          view.cancelAnimations();
+          this.finishAnimation(view);
         }
       } else if (!view) {
         properties[key] = key === 'center' ? fromLonLat(value) : value;
@@ -202,13 +214,17 @@ export class ViewDirective
     }
 
     // An animation OpenLayers started for a gesture (a wheel or pinch zoom
-    // settling) finishes first; the next change catches up.
+    // settling) finishes first, then the change is applied.
     const ownAnimation = Object.keys(this.pending).length > 0;
     if (view.getAnimating() && !ownAnimation) {
+      this.deferUntilMoveEnd(view, target);
       return;
     }
     // Under the user's finger the view follows the gesture, not an animation.
+    // The gesture cancelled any animation of ours; its target is gone.
     if (view.getInteracting()) {
+      this.pending = {};
+      ++this.animationId;
       if (target.center) view.setCenter(target.center);
       if (target.zoom !== undefined) view.setZoom(target.zoom);
       if (target.rotation !== undefined) view.setRotation(target.rotation);
@@ -248,7 +264,44 @@ export class ViewDirective
     });
   }
 
+  private deferUntilMoveEnd(view: View, target: ViewTarget) {
+    this.deferred = { ...this.deferred, ...target };
+    if (this.deferredKey) {
+      return;
+    }
+    this.deferredKey = this.mapComponent.getMap()?.once('moveend', () => {
+      this.deferredKey = undefined;
+      const deferred = this.deferred;
+      this.deferred = {};
+      this.animateTo(view, deferred);
+    });
+  }
+
+  // Stops an animation of ours where it was heading, not part way there.
+  private finishAnimation(view: View) {
+    const pending = this.pending;
+    this.pending = {};
+    ++this.animationId;
+    view.cancelAnimations();
+    if (pending.center) view.setCenter(pending.center);
+    if (pending.zoom !== undefined) view.setZoom(pending.zoom);
+    if (pending.rotation !== undefined) view.setRotation(pending.rotation);
+  }
+
+  private onReducedMotionChange = (e: MediaQueryListEvent) => {
+    if (e.matches && this.view) {
+      this.finishAnimation(this.view);
+    }
+  };
+
   ngOnDestroy() {
+    this.reducedMotion?.removeEventListener(
+      'change',
+      this.onReducedMotionChange
+    );
+    if (this.deferredKey) {
+      unByKey(this.deferredKey);
+    }
     // A map can go while a change is still settling (the split view's second
     // pane closed just after a pan); its emit would read the map it no longer has.
     clearTimeout(this.timerCenterId);

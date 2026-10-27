@@ -169,6 +169,28 @@ describe('ViewDirective: animation', () => {
     change('center', [10, 20]);
 
     expect(animate).not.toHaveBeenCalled();
+    // The gesture animation ends: the change is applied then.
+    view.cancelAnimations();
+    map.dispatchEvent('moveend');
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(animate.mock.calls[0][0]).toMatchObject({
+      center: fromLonLat([10, 20])
+    });
+  });
+
+  it('forgets its target once the user takes over the view', () => {
+    const { view, animate, change } = mounted(true);
+    change('center', [10, 20]);
+    view.setHint(ViewHint.INTERACTING, 1);
+    change('center', [11, 20]);
+    view.setHint(ViewHint.INTERACTING, -1);
+    // Back to the target the gesture cancelled: still a move.
+    change('center', [10, 20]);
+
+    expect(animate).toHaveBeenCalledTimes(2);
+    expect(animate.mock.calls[1][0]).toMatchObject({
+      center: fromLonLat([10, 20])
+    });
   });
 
   it('follows the gesture while the user interacts', () => {
@@ -178,5 +200,73 @@ describe('ViewDirective: animation', () => {
 
     expect(animate).not.toHaveBeenCalled();
     expect(view.getCenter()).toEqual(fromLonLat([10, 20]));
+  });
+});
+
+describe('ViewDirective: reduced motion', () => {
+  let listener: ((e: { matches: boolean }) => void) | undefined;
+  const query = {
+    matches: false,
+    addEventListener: (_: string, l: (e: { matches: boolean }) => void) => {
+      listener = l;
+    },
+    removeEventListener: vi.fn()
+  };
+
+  beforeEach(() => {
+    query.matches = false;
+    listener = undefined;
+    vi.stubGlobal('matchMedia', () => query);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const mounted = () => {
+    const directive = new ViewDirective(
+      { detach: (): void => undefined } as never,
+      { getMap: () => new OlMap({}) } as unknown as MapComponent
+    );
+    directive.enableAnimation = true;
+    directive.ngOnChanges({
+      center: new SimpleChange(undefined, [0, 0], true),
+      zoom: new SimpleChange(undefined, 10, true)
+    });
+    directive.ngOnInit();
+    const view = directive.getView()!;
+    const animate = vi.spyOn(view, 'animate');
+    const change = (key: string, value: unknown) => {
+      Object.assign(directive, { [key]: value });
+      directive.ngOnChanges({
+        [key]: new SimpleChange(undefined, value, false)
+      });
+    };
+    return { directive, view, animate, change };
+  };
+
+  it('moves the view at once when the user asks for reduced motion', () => {
+    query.matches = true;
+    const { view, animate, change } = mounted();
+    change('center', [10, 20]);
+
+    expect(animate).not.toHaveBeenCalled();
+    expect(view.getCenter()).toEqual(fromLonLat([10, 20]));
+  });
+
+  it('finishes a running animation when reduced motion is turned on', () => {
+    const { view, change } = mounted();
+    change('center', [10, 20]);
+    expect(view.getAnimating()).toBe(true);
+
+    query.matches = true;
+    listener?.({ matches: true });
+
+    expect(view.getAnimating()).toBe(false);
+    expect(view.getCenter()).toEqual(fromLonLat([10, 20]));
+  });
+
+  it('stops listening when destroyed', () => {
+    const { directive } = mounted();
+    directive.ngOnDestroy();
+
+    expect(query.removeEventListener).toHaveBeenCalledWith('change', listener);
   });
 });
