@@ -548,11 +548,7 @@ export class AppComponent {
   }
 
   protected connectRadar() {
-    if (!this.app.uiCtrl().radarLayer) {
-      this.app.uiCtrl.update((current) => {
-        return Object.assign({}, current, { radarLayer: true });
-      });
-    }
+    this.app.showRadarOverlay(true);
   }
 
   /** The Radar Overlay menu item: hides the radar on this screen when it is
@@ -566,11 +562,7 @@ export class AppComponent {
   }
 
   protected disconnectRadar() {
-    if (this.app.uiCtrl().radarLayer) {
-      this.app.uiCtrl.update((current) => {
-        return Object.assign({}, current, { radarLayer: false });
-      });
-    }
+    this.app.showRadarOverlay(false);
   }
 
   protected toggleMoveMap(exit = false) {

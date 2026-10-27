@@ -334,7 +334,8 @@ describe('cleanConfig() legacy migration', () => {
  * each release's `defaultConfig()` and `cleanConfig()`: a fresh install of
  * every release since 2.17, configs upgraded release by release, and 2.13 /
  * 2.15 configs from before the 2.17 settings layout. `cleaned` holds what
- * `cleanConfig()` made of each before it was built on the settings schema.
+ * `cleanConfig()` made of each before it was built on the settings schema,
+ * plus each setting added since then at its default (`radars.overlay`).
  */
 describe('cleanConfig() on configs saved by earlier releases', () => {
   for (const { savedBy, saved, cleaned } of savedConfigs.configs) {
@@ -494,6 +495,28 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
     const cfg: LegacyAppConfig = defaultConfig();
     unset(cfg, 'radars');
     cleanConfig(cfg, {});
-    expect(cfg.radars).toEqual({ deviceId: '', opacity: 1, rings: true });
+    expect(cfg.radars).toEqual({
+      deviceId: '',
+      opacity: 1,
+      rings: true,
+      overlay: false
+    });
+  });
+
+  it('starts radars saved before the overlay setting with the overlay off', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    Object.assign(cfg.radars, {
+      deviceId: 'radar-1',
+      opacity: 0.5,
+      rings: false
+    });
+    unset(cfg.radars, 'overlay');
+    cleanConfig(cfg, {});
+    expect(cfg.radars).toEqual({
+      deviceId: 'radar-1',
+      opacity: 0.5,
+      rings: false,
+      overlay: false
+    });
   });
 });

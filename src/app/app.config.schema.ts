@@ -228,7 +228,8 @@ export const AppConfigSchema = Type.Object({
   radars: Type.Object({
     deviceId: Type.Optional(Type.String()),
     opacity: num(1),
-    rings: bool(true) // range circles follow the radar range while it transmits
+    rings: bool(true), // range circles follow the radar range while it transmits
+    overlay: bool(false) // radar picture shown on the chart, again after a reload
   }),
   experiments: bool(false),
   plotterExtensions: Type.Object({

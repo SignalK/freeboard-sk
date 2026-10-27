@@ -735,3 +735,203 @@ describe('AppFacade global default config', () => {
     );
   });
 });
+
+describe('AppFacade radar overlay (#1200)', () => {
+  const STORED_CONFIG_KEY = 'freeboard_config';
+
+  let client: {
+    isLoggedIn: ReturnType<typeof vi.fn>;
+    appDataGet: ReturnType<typeof vi.fn>;
+    appDataSet: ReturnType<typeof vi.fn>;
+  };
+
+  const setup = (user?: object) => {
+    client = {
+      isLoggedIn: vi.fn(() => of(user !== undefined)),
+      // a fresh copy per read, as from the server
+      appDataGet: vi.fn(() => of(structuredClone(user ?? {}))),
+      appDataSet: vi.fn(() => EMPTY)
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SignalKClient,
+          useValue: {
+            ...client,
+            get: vi.fn(() => EMPTY),
+            setAppId: vi.fn(),
+            setAppVersion: vi.fn(),
+            api: { get: vi.fn(() => EMPTY) }
+          }
+        }
+      ]
+    });
+    return TestBed.inject(AppFacade);
+  };
+
+  const storedOverlay = () =>
+    JSON.parse(localStorage.getItem(STORED_CONFIG_KEY) ?? '{}').radars?.overlay;
+
+  beforeEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+  afterEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+
+  it('starts with the radar overlay off', () => {
+    expect(setup().uiCtrl().radarLayer).toBe(false);
+  });
+
+  it('shows the radar overlay again after a reload when it was left on', () => {
+    const saved = defaultConfig();
+    saved.radars.overlay = true;
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(saved));
+
+    expect(setup().uiCtrl().radarLayer).toBe(true);
+  });
+
+  it("shows the radar overlay when the user's settings on the server have it on", async () => {
+    const user = defaultConfig();
+    user.radars.overlay = true;
+    const app = setup(user);
+    expect(app.uiCtrl().radarLayer).toBe(false);
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.uiCtrl().radarLayer).toBe(true);
+  });
+
+  it('keeps the overlay choice made while the server settings load', async () => {
+    const user = defaultConfig();
+    user.radars.overlay = true;
+    const app = setup(user);
+
+    app.showRadarOverlay(false);
+    app.showRadarOverlay(true);
+    app.showRadarOverlay(false);
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.uiCtrl().radarLayer).toBe(false);
+    expect(storedOverlay()).toBe(false);
+  });
+
+  it('keeps the overlay choice made while a later login loads the settings', async () => {
+    const user = defaultConfig();
+    const app = setup(user);
+    await app.loadUserConfigfromServer();
+    const answer = new Subject<object>();
+    client.appDataGet.mockReturnValue(answer);
+
+    const login = app.loadUserConfigfromServer();
+    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(2));
+    app.showRadarOverlay(true);
+    answer.next(defaultConfig());
+    answer.complete();
+    await expect(login).resolves.toBe(true);
+
+    expect(app.uiCtrl().radarLayer).toBe(true);
+    expect(storedOverlay()).toBe(true);
+  });
+
+  it("saves nothing to the server while a login loads the user's settings", async () => {
+    const app = setup();
+    await app.loadUserConfigfromServer();
+    const answer = new Subject<object>();
+    client.isLoggedIn.mockReturnValue(of(true));
+    client.appDataGet.mockReturnValue(answer);
+    client.appDataSet.mockClear();
+
+    const login = app.loadUserConfigfromServer();
+    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(2));
+    app.showRadarOverlay(true);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+
+    const user = defaultConfig();
+    user.units.speed = 'm/s';
+    answer.next(user);
+    answer.complete();
+    await login;
+
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+    const saved = client.appDataSet.mock.lastCall?.[1];
+    expect(saved.units.speed).toBe('m/s');
+    expect(saved.radars.overlay).toBe(true);
+  });
+
+  it('holds a queued server save while a login loads the settings', async () => {
+    const app = setup(defaultConfig());
+    await app.loadUserConfigfromServer();
+    const first = new Subject<object>();
+    client.appDataSet.mockClear();
+    client.appDataSet.mockReturnValueOnce(first);
+    app.showRadarOverlay(true);
+    app.showRadarOverlay(false);
+
+    const answer = new Subject<object>();
+    client.appDataGet.mockReturnValue(answer);
+    const login = app.loadUserConfigfromServer();
+    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(2));
+    first.next({});
+    first.complete();
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+
+    const user = defaultConfig();
+    user.units.speed = 'm/s';
+    answer.next(user);
+    answer.complete();
+    await login;
+
+    expect(client.appDataSet).toHaveBeenCalledTimes(2);
+    expect(client.appDataSet.mock.lastCall?.[1].units.speed).toBe('m/s');
+  });
+
+  it('keeps the radar picked while the server settings load', async () => {
+    const user = defaultConfig();
+    user.radars.deviceId = 'radar-A';
+    const app = setup(user);
+
+    app.keepRadarChoice({ deviceId: 'radar-B' });
+    await app.loadUserConfigfromServer();
+
+    expect(app.config.radars.deviceId).toBe('radar-B');
+  });
+
+  it('lets the settings name the radar once they have loaded', async () => {
+    const user = defaultConfig();
+    user.radars.deviceId = 'radar-A';
+    const app = setup(user);
+    app.keepRadarChoice({ deviceId: 'radar-B' });
+    await app.loadUserConfigfromServer();
+
+    app.keepRadarChoice({ deviceId: 'radar-C' });
+    await app.loadUserConfigfromServer();
+
+    expect(app.config.radars.deviceId).toBe('radar-A');
+  });
+
+  it('sends one save to the server at a time, the latest settings last', async () => {
+    const app = setup(defaultConfig());
+    await app.loadUserConfigfromServer();
+    const first = new Subject<object>();
+    client.appDataSet.mockClear();
+    client.appDataSet.mockReturnValueOnce(first);
+
+    app.showRadarOverlay(true);
+    app.showRadarOverlay(false);
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+
+    first.next({});
+    first.complete();
+    expect(client.appDataSet).toHaveBeenCalledTimes(2);
+  });
+
+  it('saves showing and hiding the radar overlay', async () => {
+    const app = setup();
+    await app.loadUserConfigfromServer();
+
+    app.showRadarOverlay(true);
+    expect(app.uiCtrl().radarLayer).toBe(true);
+    expect(storedOverlay()).toBe(true);
+
+    app.showRadarOverlay(false);
+    expect(app.uiCtrl().radarLayer).toBe(false);
+    expect(storedOverlay()).toBe(false);
+  });
+});

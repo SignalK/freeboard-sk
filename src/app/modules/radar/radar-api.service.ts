@@ -149,6 +149,27 @@ export class RadarAPIService {
     this._hasWebGL = this.testForWebGL();
     this.skstream.vessels$().subscribe(() => this.onVessels());
     this.worker.radar$().subscribe((msg) => this.parseRadarDelta(msg));
+    this.app.config$.subscribe((event) => {
+      if (event === 'ready') {
+        this.onConfigLoaded();
+      }
+    });
+  }
+
+  /**
+   * Settings from the server can arrive after the radars were listed, and
+   * name another radar than the one picked then. Switch to it, so a restored
+   * overlay shows the radar the user chose.
+   */
+  private onConfigLoaded() {
+    const saved = this.app.config.radars.deviceId;
+    if (
+      saved &&
+      saved !== this._selectedRadar() &&
+      this._radars().some((r) => r.id === saved)
+    ) {
+      this.init(saved);
+    }
   }
 
   private testForWebGL(): boolean {
@@ -210,6 +231,9 @@ export class RadarAPIService {
     // loaded); only the latest may change the radar state.
     const call = ++this.initCalls;
     const reads = this.capabilityReads;
+    if (id) {
+      this.app.keepRadarChoice({ deviceId: id });
+    }
     const radars = await this.listRadars();
     if (call !== this.initCalls) {
       return;

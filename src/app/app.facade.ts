@@ -13,7 +13,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, finalize } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -215,7 +215,7 @@ export class AppFacade extends InfoService {
   uiCtrl = signal<{
     alertList: boolean; // display AlertList
     autopilotConsole: boolean; // display AutopilotConsole
-    radarLayer: boolean; // display Radar map Layer
+    radarLayer: boolean; // display Radar map Layer; starts from config.radars.overlay
     routeBuilder: boolean; // display BuildRoute
     suppressContextMenu: boolean; // prevent display of context menu
     forceNightMode: boolean; // force setting of night mode
@@ -595,6 +595,10 @@ export class AppFacade extends InfoService {
   private doPostConfigLoad() {
     // initialise signals
     this.uiConfig.update(() => this.config.ui);
+    Object.assign(this.config.radars, this.radarChoicesWhileLoading);
+    this.uiCtrl.update((current) =>
+      Object.assign({}, current, { radarLayer: this.config.radars.overlay })
+    );
     if (this.config.vessels.fixedLocationMode) {
       this.data.vessels.self.position = [
         ...this.config.vessels.fixedPosition
@@ -648,10 +652,13 @@ export class AppFacade extends InfoService {
   public async loadUserConfigfromServer(): Promise<boolean> {
     // connecting and logging in can each start a load; only the latest applies
     const load = ++this.configLoads;
+    this.configLoading = true;
     try {
       return await this.loadConfigFromServer(load);
     } finally {
       if (load === this.configLoads) {
+        this.configLoading = false;
+        this.radarChoicesWhileLoading = {};
         this.startConfigKnown = true;
         if (this.configSavePending) {
           this.saveConfig();
@@ -1244,24 +1251,59 @@ export class AppFacade extends InfoService {
    */
   private userConfigUnreadable = false;
 
-  /** A save was asked for before the start config was known */
+  /**
+   * A save was asked for before the start config was known, or while a
+   * settings load was under way: saving then could store settings the load
+   * is about to replace, over the user's own ones on the server.
+   */
   private configSavePending = false;
 
   /** overloaded saveConfig() */
   override saveConfig() {
-    if (!this.startConfigKnown) {
-      this.debug('saveConfig: start config not known yet, saved once it is.');
+    if (!this.startConfigKnown || this.configLoading) {
+      this.debug('saveConfig: settings still loading, saved once they are.');
       this.configSavePending = true;
       return;
     }
     this.configSavePending = false;
     super.saveConfig();
-    if (this.isLoggedIn() && !this.userConfigUnreadable) {
-      this.signalk.appDataSet('/', this.config)?.subscribe({
+    this.saveConfigToServer();
+  }
+
+  /**
+   * One save to the server at a time: two requests in flight can land in
+   * either order, and an older config landing last would undo the newer one.
+   */
+  private serverSave: 'idle' | 'busy' | 'again' = 'idle';
+
+  private saveConfigToServer() {
+    if (!this.isLoggedIn() || this.userConfigUnreadable) {
+      return;
+    }
+    if (this.serverSave !== 'idle') {
+      this.serverSave = 'again';
+      return;
+    }
+    const request = this.signalk.appDataSet('/', this.config);
+    if (!request) {
+      return;
+    }
+    this.serverSave = 'busy';
+    request
+      .pipe(
+        finalize(() => {
+          const again = this.serverSave === 'again';
+          this.serverSave = 'idle';
+          // through saveConfig(), which holds it while a settings load runs
+          if (again) {
+            this.saveConfig();
+          }
+        })
+      )
+      .subscribe({
         next: () => this.debug('saveConfig: config saved to server.'),
         error: () => this.debug('saveConfig: Cannot save config to server!')
       });
-    }
   }
 
   private saveCfgTimer?: ReturnType<typeof setTimeout>;
@@ -1270,6 +1312,38 @@ export class AppFacade extends InfoService {
   saveConfigDebounced(ms = 1000) {
     clearTimeout(this.saveCfgTimer);
     this.saveCfgTimer = setTimeout(() => this.saveConfig(), ms);
+  }
+
+  private configLoading = false;
+
+  /**
+   * Radar choices made before the server settings are known, or while they
+   * load, are the user's latest ones, which the settings arriving after them
+   * must not undo.
+   */
+  private radarChoicesWhileLoading: Partial<IAppConfig['radars']> = {};
+
+  /** Keep a radar choice through a settings load that is under way */
+  keepRadarChoice(choice: Partial<IAppConfig['radars']>) {
+    if (!this.startConfigKnown || this.configLoading) {
+      Object.assign(this.radarChoicesWhileLoading, choice);
+    }
+  }
+
+  /** Show or hide the radar picture on the chart. The choice is saved, so a
+   *  screen that reloads unattended (a kiosk after a restart) shows the radar
+   *  again once it transmits. */
+  showRadarOverlay(show: boolean) {
+    this.keepRadarChoice({ overlay: show });
+    if (this.uiCtrl().radarLayer !== show) {
+      this.uiCtrl.update((current) =>
+        Object.assign({}, current, { radarLayer: show })
+      );
+    }
+    if (this.config.radars.overlay !== show) {
+      this.config.radars.overlay = show;
+      this.saveConfig();
+    }
   }
 
   /** show Help at specified anchor */
