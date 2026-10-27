@@ -191,6 +191,19 @@ describe('ViewDirective: animation', () => {
     expect(view.getCenter()).toEqual(fromLonLat([10, 20]));
   });
 
+  it('applies a centre that arrives with animation turned off', () => {
+    const { directive, view, change } = mounted(true);
+    change('center', [10, 20]);
+    Object.assign(directive, { enableAnimation: false, center: [30, 40] });
+    directive.ngOnChanges({
+      center: new SimpleChange([10, 20], [30, 40], false),
+      enableAnimation: new SimpleChange(true, false, false)
+    });
+
+    expect(view.getAnimating()).toBe(false);
+    expect(view.getCenter()).toEqual(fromLonLat([30, 40]));
+  });
+
   it('forgets its target once the user takes over the view', () => {
     const { view, animate, change } = mounted(true);
     change('center', [10, 20]);

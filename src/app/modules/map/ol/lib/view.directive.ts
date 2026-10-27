@@ -137,12 +137,15 @@ export class ViewDirective
     const animate = !!view && this.animates();
     const target: ViewTarget = {};
 
+    // Settle the old glide first, or it would overwrite a centre or zoom
+    // arriving in the same change.
+    if (view && changes['enableAnimation'] && !this.enableAnimation) {
+      this.finishAnimation(view);
+    }
     for (const key in changes) {
       const value = changes[key].currentValue;
       if (key === 'enableAnimation') {
-        if (view && !value) {
-          this.finishAnimation(view);
-        }
+        continue;
       } else if (!view) {
         properties[key] = key === 'center' ? fromLonLat(value) : value;
       } else if (key === 'zoom') {
