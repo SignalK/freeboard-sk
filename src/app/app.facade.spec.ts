@@ -784,6 +784,20 @@ describe('AppFacade radar overlay (#1200)', () => {
     expect(app.uiCtrl().radarLayer).toBe(true);
   });
 
+  it('keeps the overlay choice made while the server settings load', async () => {
+    const user = defaultConfig();
+    user.radars.overlay = true;
+    const app = setup(user);
+
+    app.showRadarOverlay(false);
+    app.showRadarOverlay(true);
+    app.showRadarOverlay(false);
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.uiCtrl().radarLayer).toBe(false);
+    expect(storedOverlay()).toBe(false);
+  });
+
   it('saves showing and hiding the radar overlay', async () => {
     const app = setup();
     await app.loadUserConfigfromServer();
