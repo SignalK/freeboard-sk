@@ -63,7 +63,7 @@ export class ViewDirective
   // What the running animation is heading for, so a change to one property
   // keeps the others on their way.
   private pending: ViewTarget = {};
-  private cancellingOwnAnimation = false;
+  private animationId = 0;
   private lastMoveAt = -Infinity;
   private animationEndsAt = 0;
   private easing = easeOut;
@@ -236,13 +236,13 @@ export class ViewDirective
     this.easing = easing;
 
     const pending = { ...this.pending, ...target };
-    this.cancellingOwnAnimation = true;
+    const animationId = ++this.animationId;
     view.cancelAnimations();
-    this.cancellingOwnAnimation = false;
     this.pending = pending;
     view.animate({ ...pending, duration, easing }, () => {
-      // Finished, or cancelled by a gesture: nothing is pending any more.
-      if (!this.cancellingOwnAnimation) {
+      // OpenLayers runs the callback in a later task, so one for an animation
+      // replaced in the meantime must leave the newer target alone.
+      if (animationId === this.animationId) {
         this.pending = {};
       }
     });

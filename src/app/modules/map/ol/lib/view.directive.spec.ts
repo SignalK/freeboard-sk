@@ -117,6 +117,17 @@ describe('ViewDirective: animation', () => {
     expect(view.getAnimating()).toBe(true);
   });
 
+  it('keeps gliding after the replaced animation reports its cancel', () => {
+    const { animate, change } = mounted(true);
+    change('center', [10, 20]);
+    change('center', [10.001, 20]);
+    // OpenLayers reports the cancelled animation in a zero-delay timeout.
+    vi.advanceTimersByTime(0);
+    change('center', [10.002, 20]);
+
+    expect(animate).toHaveBeenCalledTimes(3);
+  });
+
   it('glides continuously while the centre changes once a second', () => {
     const { animate, change } = mounted(true);
     change('center', [10, 20]);
