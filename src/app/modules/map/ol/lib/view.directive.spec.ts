@@ -178,6 +178,19 @@ describe('ViewDirective: animation', () => {
     });
   });
 
+  it('applies a deferred change at once if animation was turned off', () => {
+    const { view, animate, change } = mounted(true);
+    view.animate({ zoom: 11, duration: 250 });
+    animate.mockClear();
+    change('center', [10, 20]);
+    change('enableAnimation', false);
+    view.cancelAnimations();
+    map.dispatchEvent('moveend');
+
+    expect(animate).not.toHaveBeenCalled();
+    expect(view.getCenter()).toEqual(fromLonLat([10, 20]));
+  });
+
   it('forgets its target once the user takes over the view', () => {
     const { view, animate, change } = mounted(true);
     change('center', [10, 20]);

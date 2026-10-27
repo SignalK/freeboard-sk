@@ -134,8 +134,7 @@ export class ViewDirective
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const properties: { [index: string]: any } = {};
     const view = this.view;
-    const animate =
-      !!view && this.enableAnimation && !this.reducedMotion?.matches;
+    const animate = !!view && this.animates();
     const target: ViewTarget = {};
 
     for (const key in changes) {
@@ -225,9 +224,7 @@ export class ViewDirective
     if (view.getInteracting()) {
       this.pending = {};
       ++this.animationId;
-      if (target.center) view.setCenter(target.center);
-      if (target.zoom !== undefined) view.setZoom(target.zoom);
-      if (target.rotation !== undefined) view.setRotation(target.rotation);
+      this.setTarget(view, target);
       return;
     }
 
@@ -273,7 +270,12 @@ export class ViewDirective
       this.deferredKey = undefined;
       const deferred = this.deferred;
       this.deferred = {};
-      this.animateTo(view, deferred);
+      // Animation may have been turned off while the gesture settled.
+      if (this.animates()) {
+        this.animateTo(view, deferred);
+      } else {
+        this.setTarget(view, deferred);
+      }
     });
   }
 
@@ -283,9 +285,17 @@ export class ViewDirective
     this.pending = {};
     ++this.animationId;
     view.cancelAnimations();
-    if (pending.center) view.setCenter(pending.center);
-    if (pending.zoom !== undefined) view.setZoom(pending.zoom);
-    if (pending.rotation !== undefined) view.setRotation(pending.rotation);
+    this.setTarget(view, pending);
+  }
+
+  private animates(): boolean {
+    return this.enableAnimation && !this.reducedMotion?.matches;
+  }
+
+  private setTarget(view: View, target: ViewTarget) {
+    if (target.center) view.setCenter(target.center);
+    if (target.zoom !== undefined) view.setZoom(target.zoom);
+    if (target.rotation !== undefined) view.setRotation(target.rotation);
   }
 
   private onReducedMotionChange = (e: MediaQueryListEvent) => {
