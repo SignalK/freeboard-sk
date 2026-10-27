@@ -21,6 +21,9 @@ import { ProjectionLike } from 'ol/proj';
 import { worldCopyOffset } from './util';
 import type { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
+import type BaseLayer from 'ol/layer/Base';
+import type RenderEvent from 'ol/render/Event';
+import { apply as applyTransform } from 'ol/transform';
 
 const animateDuration = 500;
 
@@ -39,6 +42,9 @@ const SAME_MOVE_MS = 200;
 const MIN_ANIMATION_MS = 100;
 // Mercator metres; smaller centre changes are not a move.
 const CENTER_EPSILON = 0.01;
+// Layer property marking a layer drawn at the vessel, which is already where
+// a follow glide is heading.
+export const FOLLOWS_VESSEL = 'followsVessel';
 
 interface ViewTarget {
   center?: MercatorCoordinate;
@@ -66,6 +72,10 @@ export class ViewDirective
   // keeps the others on their way.
   private pending: ViewTarget = {};
   private animationId = 0;
+  // The centre a follow glide is heading for, while one runs.
+  private glideTarget?: MercatorCoordinate;
+  private readonly followLayers = new WeakSet<BaseLayer>();
+  private precomposeKey?: EventsKey;
   // Changes that arrived while an OpenLayers gesture animation ran, applied
   // once it ends.
   private deferred: ViewTarget = {};
@@ -127,6 +137,15 @@ export class ViewDirective
       this.view.on('change:center', this.emitCenterChange);
       this.view.on('change:resolution', this.emitZoomChange);
       this.view.on('change:rotation', this.emitRotationChange);
+      this.precomposeKey = map.on('precompose', () => {
+        for (const layer of map.getAllLayers()) {
+          if (layer.get(FOLLOWS_VESSEL) && !this.followLayers.has(layer)) {
+            this.followLayers.add(layer);
+            layer.on('prerender', this.offsetByGlide);
+            layer.on('postrender', this.restoreOffset);
+          }
+        }
+      });
     }
   }
 
@@ -226,6 +245,7 @@ export class ViewDirective
     // The gesture cancelled any animation of ours; its target is gone.
     if (view.getInteracting()) {
       this.pending = {};
+      this.glideTarget = undefined;
       ++this.animationId;
       this.setTarget(view, target);
       return;
@@ -255,11 +275,13 @@ export class ViewDirective
     const animationId = ++this.animationId;
     view.cancelAnimations();
     this.pending = pending;
+    this.glideTarget = easing === linear ? pending.center : undefined;
     view.animate({ ...pending, duration, easing }, () => {
       // OpenLayers runs the callback in a later task, so one for an animation
       // replaced in the meantime must leave the newer target alone.
       if (animationId === this.animationId) {
         this.pending = {};
+        this.glideTarget = undefined;
       }
     });
   }
@@ -286,6 +308,7 @@ export class ViewDirective
   private finishAnimation(view: View) {
     const pending = this.pending;
     this.pending = {};
+    this.glideTarget = undefined;
     ++this.animationId;
     view.cancelAnimations();
     this.setTarget(view, pending);
@@ -301,6 +324,38 @@ export class ViewDirective
     if (target.rotation !== undefined) view.setRotation(target.rotation);
   }
 
+  // The vessel moves once per fix while the chart glides towards it, so a
+  // layer drawn at the vessel is shifted by the rest of the glide: the vessel
+  // keeps its place on screen instead of jumping ahead of the chart.
+  private offsetByGlide = (e: RenderEvent) => {
+    const context = e.context as CanvasRenderingContext2D | undefined;
+    const frameState = e.frameState;
+    if (!context || !frameState || !('translate' in context)) {
+      return;
+    }
+    context.save();
+    if (!this.glideTarget) {
+      return;
+    }
+    const transform = frameState.coordinateToPixelTransform;
+    const [nowX, nowY] = applyTransform(
+      transform,
+      frameState.viewState.center.slice()
+    );
+    const [toX, toY] = applyTransform(transform, this.glideTarget.slice());
+    context.translate(
+      (nowX - toX) * frameState.pixelRatio,
+      (nowY - toY) * frameState.pixelRatio
+    );
+  };
+
+  private restoreOffset = (e: RenderEvent) => {
+    const context = e.context as CanvasRenderingContext2D | undefined;
+    if (context && 'restore' in context) {
+      context.restore();
+    }
+  };
+
   private onReducedMotionChange = (e: MediaQueryListEvent) => {
     if (e.matches && this.view) {
       this.finishAnimation(this.view);
@@ -314,6 +369,9 @@ export class ViewDirective
     );
     if (this.deferredKey) {
       unByKey(this.deferredKey);
+    }
+    if (this.precomposeKey) {
+      unByKey(this.precomposeKey);
     }
     // A map can go while a change is still settling (the split view's second
     // pane closed just after a pan); its emit would read the map it no longer has.

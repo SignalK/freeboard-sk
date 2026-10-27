@@ -4,8 +4,12 @@ import { Map as OlMap } from 'ol';
 import type { AnimationOptions } from 'ol/View';
 import ViewHint from 'ol/ViewHint';
 import { fromLonLat } from 'ol/proj';
+import VectorLayer from 'ol/layer/Vector';
+import RenderEvent from 'ol/render/Event';
+import type { FrameState } from 'ol/Map';
+import { create as createTransform } from 'ol/transform';
 import { MapComponent } from './map.component';
-import { ViewDirective } from './view.directive';
+import { FOLLOWS_VESSEL, ViewDirective } from './view.directive';
 
 describe('ViewDirective: settled view changes', () => {
   let map: OlMap | null;
@@ -226,6 +230,117 @@ describe('ViewDirective: animation', () => {
 
     expect(animate).not.toHaveBeenCalled();
     expect(view.getCenter()).toEqual(fromLonLat([10, 20]));
+  });
+});
+
+describe('ViewDirective: layers drawn at the vessel', () => {
+  let map: OlMap;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    map = new OlMap({});
+  });
+  afterEach(() => vi.useRealTimers());
+
+  // A frame with the view at `center`, one Mercator metre a pixel.
+  const render = (layer: VectorLayer, center: number[]) => {
+    const context = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn()
+    };
+    const transform = createTransform();
+    transform[0] = 1;
+    transform[3] = -1;
+    transform[4] = -center[0];
+    transform[5] = center[1];
+    const frameState = {
+      coordinateToPixelTransform: transform,
+      pixelRatio: 2,
+      viewState: { center }
+    } as unknown as FrameState;
+    map.dispatchEvent(new RenderEvent('precompose', undefined, frameState));
+    const args = [undefined, frameState, context as never] as const;
+    layer.dispatchEvent(new RenderEvent('prerender', ...args));
+    layer.dispatchEvent(new RenderEvent('postrender', ...args));
+    return context;
+  };
+
+  const mounted = (follows: boolean) => {
+    const directive = new ViewDirective(
+      { detach: (): void => undefined } as never,
+      { getMap: () => map } as unknown as MapComponent
+    );
+    directive.enableAnimation = true;
+    directive.ngOnChanges({
+      center: new SimpleChange(undefined, [0, 0], true),
+      zoom: new SimpleChange(undefined, 10, true)
+    });
+    directive.ngOnInit();
+    directive.ngAfterViewInit();
+    const layer = new VectorLayer({
+      properties: { [FOLLOWS_VESSEL]: follows }
+    });
+    map.addLayer(layer);
+    const change = (value: unknown) => {
+      Object.assign(directive, { center: value });
+      directive.ngOnChanges({
+        center: new SimpleChange(undefined, value, false)
+      });
+    };
+    return { directive, layer, change };
+  };
+
+  it('keeps the vessel in place while the chart follows it', () => {
+    const { directive, layer, change } = mounted(true);
+    change([10, 20]);
+    vi.advanceTimersByTime(1000);
+    change([10.001, 20]);
+    const target = fromLonLat([10.001, 20]);
+    const now = directive.getView()!.getCenter()!;
+
+    const context = render(layer, now);
+
+    // The rest of the glide, east, in device pixels.
+    const [dx, dy] = context.translate.mock.calls[0];
+    expect(dx).toBeCloseTo((now[0] - target[0]) * 2);
+    expect(dy).toBeCloseTo((target[1] - now[1]) * 2);
+    expect(context.restore).toHaveBeenCalledTimes(
+      context.save.mock.calls.length
+    );
+  });
+
+  it('leaves the vessel where it is drawn once the glide ends', () => {
+    const { directive, layer, change } = mounted(true);
+    change([10, 20]);
+    vi.advanceTimersByTime(1000);
+    change([10.001, 20]);
+    vi.runAllTimers();
+
+    const context = render(layer, directive.getView()!.getCenter()!);
+
+    expect(context.translate).not.toHaveBeenCalled();
+  });
+
+  it('leaves the vessel where it is drawn on a single move', () => {
+    const { directive, layer, change } = mounted(true);
+    change([10, 20]);
+
+    const context = render(layer, directive.getView()!.getCenter()!);
+
+    expect(context.translate).not.toHaveBeenCalled();
+  });
+
+  it('leaves other layers alone', () => {
+    const { directive, layer, change } = mounted(false);
+    change([10, 20]);
+    vi.advanceTimersByTime(1000);
+    change([10.001, 20]);
+
+    const context = render(layer, directive.getView()!.getCenter()!);
+
+    expect(context.save).not.toHaveBeenCalled();
+    expect(context.translate).not.toHaveBeenCalled();
   });
 });
 
