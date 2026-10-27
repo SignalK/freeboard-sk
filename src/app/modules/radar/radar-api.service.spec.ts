@@ -58,8 +58,10 @@ describe('RadarAPIService init() (#755)', () => {
   let put: ReturnType<typeof vi.fn>;
   // responses a test holds back, answered in order before the defaults
   let held: Map<string, Array<Observable<unknown>>>;
+  let configEvents: Subject<'saved' | 'ready'>;
   let app: {
     config: { radars: { deviceId: string } };
+    config$: Observable<'saved' | 'ready'>;
     skApiVersion: number;
     saveConfig: () => void;
     debug: () => void;
@@ -73,8 +75,10 @@ describe('RadarAPIService init() (#755)', () => {
     gets = [];
     put = vi.fn(() => of(undefined));
     held = new Map();
+    configEvents = new Subject();
     app = {
       config: { radars: { deviceId: '' } },
+      config$: configEvents.asObservable(),
       skApiVersion: 2,
       saveConfig: () => undefined,
       debug: () => undefined
@@ -447,6 +451,43 @@ describe('RadarAPIService init() (#755)', () => {
     expect(service.radarId()).toBe('radar-1');
     expect(service.radar()?.device.id).toBe('radar-1');
     expect(app.config.radars.deviceId).toBe('radar-1');
+  });
+
+  describe('settings that arrive after the radars were listed (#1200)', () => {
+    const radar2 = {
+      'vessels/self/radars/radar-2': { name: 'Bridge B' },
+      'vessels/self/radars/radar-2/capabilities': capabilities,
+      'vessels/self/radars/radar-2/controls': controls
+    };
+    beforeEach(() => Object.assign(responses, radar2));
+    afterEach(() => {
+      Object.keys(radar2).forEach((path) => delete responses[path]);
+    });
+
+    it('switches to the radar the loaded settings name', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      expect(service.radarId()).toBe('radar-1');
+
+      app.config.radars.deviceId = 'radar-2';
+      configEvents.next('ready');
+      await vi.waitFor(() =>
+        expect(service.radar()?.device.id).toBe('radar-2')
+      );
+      expect(service.radarId()).toBe('radar-2');
+    });
+
+    it('keeps the shown radar when the loaded settings name one that is not there', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      gets.length = 0;
+
+      app.config.radars.deviceId = 'radar-3';
+      configEvents.next('ready');
+
+      expect(gets).toEqual([]);
+      expect(service.radar()?.device.id).toBe('radar-1');
+    });
   });
 
   it('keeps the shown radar when another fails to load', async () => {
