@@ -28,7 +28,7 @@
   [rotation]="mapRotation()"
   [minZoom]="app.MAP_ZOOM_EXTENT.min"
   [maxZoom]="app.MAP_ZOOM_EXTENT.max"
-  [enableAnimation]="false"
+  [enableAnimation]="app.config.map.animation"
 >
   <!-- Draw / modify / select-->
   @if (mapInteract.isBoxSelecting()) {

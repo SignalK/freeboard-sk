@@ -126,7 +126,9 @@ export const AppConfigSchema = Type.Object({
     rotation: num(0),
     panBehavior: choice<MapPanBehavior>('offset'), // what panning does while following the vessel
     refollowDelay: num(0), // secs of idle before a pan-released follow resumes; 0 = never
-    animate: bool(false),
+    // glide the chart to each new centre, zoom and rotation; a new key, as
+    // configs saved since 2021 hold an `animate: false` nothing ever used
+    animation: bool(true),
     labelsMinZoom: num(8),
     doubleClickZoom: bool(false),
     overZoomTiles: bool(true), // keep tiles visible beyond chart max zoom

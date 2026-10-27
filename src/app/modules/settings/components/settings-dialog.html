@@ -545,6 +545,16 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
+                      [(ngModel)]="facade.settings.map.animation"
+                      (change)="persistModel()"
+                      matTooltip="Glide the chart when it follows the vessel, rotates or zooms. Turn off on a slow device."
+                      label="after"
+                    >
+                      Animate map movement
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
                       [(ngModel)]="facade.settings.map.doubleClickZoom"
                       (change)="persistModel()"
                       matTooltip="Double Click map to zoom"

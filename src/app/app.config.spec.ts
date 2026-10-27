@@ -491,6 +491,14 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
     expect(cfg.resources.video.url).toBe('');
   });
 
+  it('animates the map for a config saved with the unused animate: false', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    Object.assign(cfg.map, { animate: false });
+    unset(cfg.map, 'animation');
+    cleanConfig(cfg, {});
+    expect(cfg.map.animation).toBe(true);
+  });
+
   it('starts radars saved without the section with no device chosen', () => {
     const cfg: LegacyAppConfig = defaultConfig();
     unset(cfg, 'radars');
