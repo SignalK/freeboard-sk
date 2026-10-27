@@ -830,6 +830,31 @@ describe('AppFacade radar overlay (#1200)', () => {
     expect(storedOverlay()).toBe(true);
   });
 
+  it("saves nothing to the server while a login loads the user's settings", async () => {
+    const app = setup();
+    await app.loadUserConfigfromServer();
+    const answer = new Subject<object>();
+    client.isLoggedIn.mockReturnValue(of(true));
+    client.appDataGet.mockReturnValue(answer);
+    client.appDataSet.mockClear();
+
+    const login = app.loadUserConfigfromServer();
+    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(2));
+    app.showRadarOverlay(true);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+
+    const user = defaultConfig();
+    user.units.speed = 'm/s';
+    answer.next(user);
+    answer.complete();
+    await login;
+
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+    const saved = client.appDataSet.mock.lastCall?.[1];
+    expect(saved.units.speed).toBe('m/s');
+    expect(saved.radars.overlay).toBe(true);
+  });
+
   it('keeps the radar picked while the server settings load', async () => {
     const user = defaultConfig();
     user.radars.deviceId = 'radar-A';

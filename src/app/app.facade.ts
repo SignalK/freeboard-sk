@@ -1251,13 +1251,17 @@ export class AppFacade extends InfoService {
    */
   private userConfigUnreadable = false;
 
-  /** A save was asked for before the start config was known */
+  /**
+   * A save was asked for before the start config was known, or while a
+   * settings load was under way: saving then could store settings the load
+   * is about to replace, over the user's own ones on the server.
+   */
   private configSavePending = false;
 
   /** overloaded saveConfig() */
   override saveConfig() {
-    if (!this.startConfigKnown) {
-      this.debug('saveConfig: start config not known yet, saved once it is.');
+    if (!this.startConfigKnown || this.configLoading) {
+      this.debug('saveConfig: settings still loading, saved once they are.');
       this.configSavePending = true;
       return;
     }
