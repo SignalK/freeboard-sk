@@ -215,7 +215,7 @@ export class AppFacade extends InfoService {
   uiCtrl = signal<{
     alertList: boolean; // display AlertList
     autopilotConsole: boolean; // display AutopilotConsole
-    radarLayer: boolean; // display Radar map Layer
+    radarLayer: boolean; // display Radar map Layer; starts from config.radars.overlay
     routeBuilder: boolean; // display BuildRoute
     suppressContextMenu: boolean; // prevent display of context menu
     forceNightMode: boolean; // force setting of night mode
@@ -595,6 +595,9 @@ export class AppFacade extends InfoService {
   private doPostConfigLoad() {
     // initialise signals
     this.uiConfig.update(() => this.config.ui);
+    this.uiCtrl.update((current) =>
+      Object.assign({}, current, { radarLayer: this.config.radars.overlay })
+    );
     if (this.config.vessels.fixedLocationMode) {
       this.data.vessels.self.position = [
         ...this.config.vessels.fixedPosition
@@ -1270,6 +1273,21 @@ export class AppFacade extends InfoService {
   saveConfigDebounced(ms = 1000) {
     clearTimeout(this.saveCfgTimer);
     this.saveCfgTimer = setTimeout(() => this.saveConfig(), ms);
+  }
+
+  /** Show or hide the radar picture on the chart. The choice is saved, so a
+   *  screen that reloads unattended (a kiosk after a restart) shows the radar
+   *  again once it transmits. */
+  showRadarOverlay(show: boolean) {
+    if (this.uiCtrl().radarLayer !== show) {
+      this.uiCtrl.update((current) =>
+        Object.assign({}, current, { radarLayer: show })
+      );
+    }
+    if (this.config.radars.overlay !== show) {
+      this.config.radars.overlay = show;
+      this.saveConfig();
+    }
   }
 
   /** show Help at specified anchor */

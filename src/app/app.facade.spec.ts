@@ -735,3 +735,65 @@ describe('AppFacade global default config', () => {
     );
   });
 });
+
+describe('AppFacade radar overlay (#1200)', () => {
+  const STORED_CONFIG_KEY = 'freeboard_config';
+
+  const setup = (user?: object) => {
+    const client = {
+      get: vi.fn(() => EMPTY),
+      setAppId: vi.fn(),
+      setAppVersion: vi.fn(),
+      isLoggedIn: vi.fn(() => of(user !== undefined)),
+      appDataGet: vi.fn(() => of(user ?? {})),
+      appDataSet: vi.fn(() => EMPTY),
+      api: { get: vi.fn(() => EMPTY) }
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: client }]
+    });
+    return TestBed.inject(AppFacade);
+  };
+
+  const storedOverlay = () =>
+    JSON.parse(localStorage.getItem(STORED_CONFIG_KEY) ?? '{}').radars?.overlay;
+
+  beforeEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+  afterEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+
+  it('starts with the radar overlay off', () => {
+    expect(setup().uiCtrl().radarLayer).toBe(false);
+  });
+
+  it('shows the radar overlay again after a reload when it was left on', () => {
+    const saved = defaultConfig();
+    saved.radars.overlay = true;
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(saved));
+
+    expect(setup().uiCtrl().radarLayer).toBe(true);
+  });
+
+  it("shows the radar overlay when the user's settings on the server have it on", async () => {
+    const user = defaultConfig();
+    user.radars.overlay = true;
+    const app = setup(user);
+    expect(app.uiCtrl().radarLayer).toBe(false);
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+
+    expect(app.uiCtrl().radarLayer).toBe(true);
+  });
+
+  it('saves showing and hiding the radar overlay', async () => {
+    const app = setup();
+    await app.loadUserConfigfromServer();
+
+    app.showRadarOverlay(true);
+    expect(app.uiCtrl().radarLayer).toBe(true);
+    expect(storedOverlay()).toBe(true);
+
+    app.showRadarOverlay(false);
+    expect(app.uiCtrl().radarLayer).toBe(false);
+    expect(storedOverlay()).toBe(false);
+  });
+});
