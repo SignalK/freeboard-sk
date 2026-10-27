@@ -13,7 +13,7 @@ Freeboard doesn't work out collision risk itself. It draws the closest approach
 alarms (`notifications.navigation.closestApproach`) raised by a plugin on your
 Signal K server. How much it can draw depends on the plugin:
 
-- [signalk-collision-alerts](https://www.npmjs.com/package/signalk-collision-alerts)
+- [@signalk/collision-alerts](https://www.npmjs.com/package/@signalk/collision-alerts)
   reports where both boats will be at closest approach, so Freeboard can show
   the full picture described below.
 - Other producers, such as the CPA alarm in
