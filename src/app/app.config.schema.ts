@@ -80,6 +80,8 @@ export const AppConfigSchema = Type.Object({
     nightMode: bool(true), // follow environment.mode
     muteSound: bool(false),
     depthAlarm: Type.Object({ enabled: bool(false), smoothing: num(10000) }),
+    // Retired instruments panel settings. Unused here, but older releases read
+    // them unguarded at startup from the config they share with this build.
     plugins: Type.Object({
       instruments: nullable(Type.String(), '/@signalk/instrumentpanel'),
       startOnOpen: bool(true),

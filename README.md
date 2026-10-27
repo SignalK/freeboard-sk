@@ -5,7 +5,6 @@ Use it to display:
 - Alarms & notifications
 - AIS information
 - Weather information
-- Signal K instrument WebApps.
 
 and more from any web enabled device.
 
@@ -126,20 +125,6 @@ _See OpenAPI documentation in Signal K Server Admin UI for details._
 ### History Playback
 
 Freeboard-SK supports the Signal K `playback` api and can replay recorded time-series data captured on a Signal K server equipped with the `signalk-to-infludb` plugin.
-
----
-
-### Instruments: 
-
-Freeboard-SK allows you to use your favourite instrumentation apps installed on the Signal K server.
-
-Select one or more installed applications listed in the `settings` screen and they will displayed in the instrument drawer.
-
-When more than one app is selected you can cycle through them within the instrument drawer.
-
-_Note: The `Signal K Instrument Panel` app will be displayed if no user selection has been made._
-
-![instruments](https://user-images.githubusercontent.com/38519157/128668406-02cbb8d8-2353-4e93-ae5e-12e0c7d507fe.png)
 
 ---
 
