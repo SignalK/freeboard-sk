@@ -13,7 +13,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, finalize } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -1263,12 +1263,42 @@ export class AppFacade extends InfoService {
     }
     this.configSavePending = false;
     super.saveConfig();
-    if (this.isLoggedIn() && !this.userConfigUnreadable) {
-      this.signalk.appDataSet('/', this.config)?.subscribe({
+    this.saveConfigToServer();
+  }
+
+  /**
+   * One save to the server at a time: two requests in flight can land in
+   * either order, and an older config landing last would undo the newer one.
+   */
+  private serverSave: 'idle' | 'busy' | 'again' = 'idle';
+
+  private saveConfigToServer() {
+    if (!this.isLoggedIn() || this.userConfigUnreadable) {
+      return;
+    }
+    if (this.serverSave !== 'idle') {
+      this.serverSave = 'again';
+      return;
+    }
+    const request = this.signalk.appDataSet('/', this.config);
+    if (!request) {
+      return;
+    }
+    this.serverSave = 'busy';
+    request
+      .pipe(
+        finalize(() => {
+          const again = this.serverSave === 'again';
+          this.serverSave = 'idle';
+          if (again) {
+            this.saveConfigToServer();
+          }
+        })
+      )
+      .subscribe({
         next: () => this.debug('saveConfig: config saved to server.'),
         error: () => this.debug('saveConfig: Cannot save config to server!')
       });
-    }
   }
 
   private saveCfgTimer?: ReturnType<typeof setTimeout>;

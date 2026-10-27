@@ -854,6 +854,22 @@ describe('AppFacade radar overlay (#1200)', () => {
     expect(app.config.radars.deviceId).toBe('radar-A');
   });
 
+  it('sends one save to the server at a time, the latest settings last', async () => {
+    const app = setup(defaultConfig());
+    await app.loadUserConfigfromServer();
+    const first = new Subject<object>();
+    client.appDataSet.mockClear();
+    client.appDataSet.mockReturnValueOnce(first);
+
+    app.showRadarOverlay(true);
+    app.showRadarOverlay(false);
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+
+    first.next({});
+    first.complete();
+    expect(client.appDataSet).toHaveBeenCalledTimes(2);
+  });
+
   it('saves showing and hiding the radar overlay', async () => {
     const app = setup();
     await app.loadUserConfigfromServer();
