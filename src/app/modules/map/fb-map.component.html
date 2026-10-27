@@ -531,7 +531,6 @@
     <!-- Bearing & Distance (#905): from a picked origin, or the vessel. -->
     <fb-bearing-line
       [vesselPosition]="bd.origin ?? dfeat.self.position"
-      [layerProperties]="followsVessel"
       [markerPosition]="bd.target"
       [showMarker]="true"
       [showOrigin]="!!bd.origin"
@@ -850,7 +849,6 @@
   <!-- Alarms -->
   @if (!anchor.raised()) {
     <fb-anchor-alarm
-      [layerProperties]="followsVessel"
       [radius]="anchor.radius()"
       [anchorPosition]="anchor.position()"
       [vesselPosition]="dfeat.self.position"
@@ -883,13 +881,12 @@
         [destPosition]="dfeat.navData.position"
         [zIndex]="340"
         [visible]="true"
-        [layerProperties]="followsVessel"
+        [layerProperties]=""
       >
       </fb-xte-path>
     }
     @if (app.config.vessels.laylines && perfTargetAngle().length !== 0) {
       <fb-target-angle
-        [layerProperties]="followsVessel"
         [line]="perfTargetAngle()"
         [lineStyle]="featureStyles.targetAngle"
         [position]="app.data.vessels.active.position"
@@ -899,7 +896,6 @@
       >
       </fb-target-angle>
       <fb-layline
-        [layerProperties]="followsVessel"
         [lines]="perfLaylines()"
         [laylineStyles]="featureStyles.layline"
         [position]="app.data.vessels.active.position"
@@ -912,7 +908,6 @@
     @if (dfeat.navData.position) {
       <fb-bearing-line
         [markerPosition]="dfeat.navData.position"
-        [layerProperties]="followsVessel"
         [vesselPosition]="dfeat.active.position"
         [showMarker]="!app.data.activeWaypoint"
         [markerName]="course.courseData().destPointName"
@@ -1011,7 +1006,6 @@
 
   @if (app.config.vessels.trail && app.data.vessels.showSelf) {
     <fb-vessel-trail
-      [layerProperties]="followsVessel"
       [localTrail]="app.selfTrail()"
       [serverTrail]="app.selfTrailFromServer()"
       [trailStyles]=""
