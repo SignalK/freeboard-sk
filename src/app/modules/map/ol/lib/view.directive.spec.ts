@@ -182,6 +182,20 @@ describe('ViewDirective: animation', () => {
     });
   });
 
+  it('drops a deferred change that a newer one replaces', () => {
+    const { view, animate, change } = mounted(true);
+    view.animate({ zoom: 11, duration: 250 });
+    animate.mockClear();
+    change('center', [10, 20]);
+    // Back where the view already is: nothing to defer, nothing to replay.
+    change('center', [0, 0]);
+    view.cancelAnimations();
+    map.dispatchEvent('moveend');
+
+    expect(animate).not.toHaveBeenCalled();
+    expect(view.getCenter()).toEqual(fromLonLat([0, 0]));
+  });
+
   it('applies a deferred change at once if animation was turned off', () => {
     const { view, animate, change } = mounted(true);
     view.animate({ zoom: 11, duration: 250 });
@@ -256,11 +270,14 @@ describe('ViewDirective: layers drawn at the vessel', () => {
     transform[5] = center[1];
     const frameState = {
       coordinateToPixelTransform: transform,
-      pixelRatio: 2,
       viewState: { center }
     } as unknown as FrameState;
     map.dispatchEvent(new RenderEvent('precompose', undefined, frameState));
-    const args = [undefined, frameState, context as never] as const;
+    // Device pixels at twice the CSS pixels.
+    const toCanvas = createTransform();
+    toCanvas[0] = 2;
+    toCanvas[3] = 2;
+    const args = [toCanvas, frameState, context as never] as const;
     layer.dispatchEvent(new RenderEvent('prerender', ...args));
     layer.dispatchEvent(new RenderEvent('postrender', ...args));
     return context;

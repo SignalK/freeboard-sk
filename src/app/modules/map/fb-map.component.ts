@@ -655,16 +655,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   // Layers drawn at the vessel take each fix at once, not when the glide
-  // towards it ends, and are shifted along with the glide (ViewDirective).
-  // The view follows the active vessel; layers drawn at our own vessel only
-  // move with it while that is the active one.
+  // towards it ends, and are shifted along with the glide (ViewDirective)
+  // while the map follows the active vessel. Layers drawn at our own vessel
+  // only move with it while that is the active one.
   protected readonly followsVessel = {
     updateWhileAnimating: true,
-    [FOLLOWS_VESSEL]: true satisfies FollowsVessel
+    [FOLLOWS_VESSEL]: (() => this.movingMap) satisfies FollowsVessel
   };
   protected readonly followsSelf = {
     updateWhileAnimating: true,
     [FOLLOWS_VESSEL]: (() =>
+      this.movingMap &&
       this.app.data.vessels.activeId === null) satisfies FollowsVessel
   };
   // Radar rings are drawn at our own vessel, other range circles at the
@@ -672,8 +673,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected readonly followsRangeCircles = {
     updateWhileAnimating: true,
     [FOLLOWS_VESSEL]: (() =>
-      !this.showsRadarRings() ||
-      this.app.data.vessels.activeId === null) satisfies FollowsVessel
+      this.movingMap &&
+      (!this.showsRadarRings() ||
+        this.app.data.vessels.activeId === null)) satisfies FollowsVessel
   };
   private ngZone = inject(NgZone);
   // range circles at the radar range, while the radar shows on this screen

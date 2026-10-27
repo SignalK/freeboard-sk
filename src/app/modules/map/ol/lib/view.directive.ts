@@ -158,6 +158,13 @@ export class ViewDirective
     const animate = !!view && this.animates();
     const target: ViewTarget = {};
 
+    // A value waiting for a gesture to settle is stale once a newer one
+    // arrives, whichever way that one is applied.
+    for (const key of ['center', 'zoom', 'rotation'] as const) {
+      if (changes[key]) {
+        delete this.deferred[key];
+      }
+    }
     // Settle the old glide first, or it would overwrite a centre or zoom
     // arriving in the same change.
     if (view && changes['enableAnimation'] && !this.enableAnimation) {
@@ -332,7 +339,8 @@ export class ViewDirective
   private offsetByGlide = (e: RenderEvent) => {
     const context = e.context as CanvasRenderingContext2D | undefined;
     const frameState = e.frameState;
-    if (!context || !frameState || !('translate' in context)) {
+    const toCanvas = e.inversePixelTransform;
+    if (!context || !frameState || !toCanvas || !('translate' in context)) {
       return;
     }
     context.save();
@@ -342,16 +350,16 @@ export class ViewDirective
     if (!this.glideTarget || (typeof follows === 'function' && !follows())) {
       return;
     }
-    const transform = frameState.coordinateToPixelTransform;
-    const [nowX, nowY] = applyTransform(
-      transform,
-      frameState.viewState.center.slice()
+    const toPixel = frameState.coordinateToPixelTransform;
+    const now = applyTransform(
+      toCanvas,
+      applyTransform(toPixel, frameState.viewState.center.slice())
     );
-    const [toX, toY] = applyTransform(transform, this.glideTarget.slice());
-    context.translate(
-      (nowX - toX) * frameState.pixelRatio,
-      (nowY - toY) * frameState.pixelRatio
+    const to = applyTransform(
+      toCanvas,
+      applyTransform(toPixel, this.glideTarget.slice())
     );
+    context.translate(now[0] - to[0], now[1] - to[1]);
   };
 
   private restoreOffset = (e: RenderEvent) => {
