@@ -231,6 +231,9 @@ export class RadarAPIService {
     // loaded); only the latest may change the radar state.
     const call = ++this.initCalls;
     const reads = this.capabilityReads;
+    if (id) {
+      this.app.keepRadarChoice({ deviceId: id });
+    }
     const radars = await this.listRadars();
     if (call !== this.initCalls) {
       return;

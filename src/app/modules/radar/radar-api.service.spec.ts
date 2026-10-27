@@ -64,6 +64,7 @@ describe('RadarAPIService init() (#755)', () => {
     config$: Observable<'saved' | 'ready'>;
     skApiVersion: number;
     saveConfig: () => void;
+    keepRadarChoice: (choice: { deviceId?: string }) => void;
     debug: () => void;
   };
 
@@ -81,6 +82,7 @@ describe('RadarAPIService init() (#755)', () => {
       config$: configEvents.asObservable(),
       skApiVersion: 2,
       saveConfig: () => undefined,
+      keepRadarChoice: () => undefined,
       debug: () => undefined
     };
     TestBed.configureTestingModule({
@@ -475,6 +477,15 @@ describe('RadarAPIService init() (#755)', () => {
         expect(service.radar()?.device.id).toBe('radar-2')
       );
       expect(service.radarId()).toBe('radar-2');
+    });
+
+    it('keeps a radar picked while the settings load through that load', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      const keepRadarChoice = vi.spyOn(app, 'keepRadarChoice');
+
+      await service.init('radar-2');
+
+      expect(keepRadarChoice).toHaveBeenCalledWith({ deviceId: 'radar-2' });
     });
 
     it('keeps the shown radar when the loaded settings name one that is not there', async () => {

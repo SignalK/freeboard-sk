@@ -595,9 +595,7 @@ export class AppFacade extends InfoService {
   private doPostConfigLoad() {
     // initialise signals
     this.uiConfig.update(() => this.config.ui);
-    if (this.overlayChoiceBeforeStart !== undefined) {
-      this.config.radars.overlay = this.overlayChoiceBeforeStart;
-    }
+    Object.assign(this.config.radars, this.radarChoicesWhileLoading);
     this.uiCtrl.update((current) =>
       Object.assign({}, current, { radarLayer: this.config.radars.overlay })
     );
@@ -654,10 +652,13 @@ export class AppFacade extends InfoService {
   public async loadUserConfigfromServer(): Promise<boolean> {
     // connecting and logging in can each start a load; only the latest applies
     const load = ++this.configLoads;
+    this.configLoading = true;
     try {
       return await this.loadConfigFromServer(load);
     } finally {
       if (load === this.configLoads) {
+        this.configLoading = false;
+        this.radarChoicesWhileLoading = {};
         this.startConfigKnown = true;
         if (this.configSavePending) {
           this.saveConfig();
@@ -1261,7 +1262,6 @@ export class AppFacade extends InfoService {
       return;
     }
     this.configSavePending = false;
-    this.overlayChoiceBeforeStart = undefined;
     super.saveConfig();
     if (this.isLoggedIn() && !this.userConfigUnreadable) {
       this.signalk.appDataSet('/', this.config)?.subscribe({
@@ -1279,19 +1279,27 @@ export class AppFacade extends InfoService {
     this.saveCfgTimer = setTimeout(() => this.saveConfig(), ms);
   }
 
+  private configLoading = false;
+
   /**
-   * Showing or hiding the radar while the server settings still load is the
-   * user's latest choice, which the settings arriving after it must not undo.
+   * Radar choices made before the server settings are known, or while they
+   * load, are the user's latest ones, which the settings arriving after them
+   * must not undo.
    */
-  private overlayChoiceBeforeStart?: boolean;
+  private radarChoicesWhileLoading: Partial<IAppConfig['radars']> = {};
+
+  /** Keep a radar choice through a settings load that is under way */
+  keepRadarChoice(choice: Partial<IAppConfig['radars']>) {
+    if (!this.startConfigKnown || this.configLoading) {
+      Object.assign(this.radarChoicesWhileLoading, choice);
+    }
+  }
 
   /** Show or hide the radar picture on the chart. The choice is saved, so a
    *  screen that reloads unattended (a kiosk after a restart) shows the radar
    *  again once it transmits. */
   showRadarOverlay(show: boolean) {
-    if (!this.startConfigKnown) {
-      this.overlayChoiceBeforeStart = show;
-    }
+    this.keepRadarChoice({ overlay: show });
     if (this.uiCtrl().radarLayer !== show) {
       this.uiCtrl.update((current) =>
         Object.assign({}, current, { radarLayer: show })
