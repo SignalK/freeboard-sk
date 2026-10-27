@@ -42,9 +42,11 @@ const SAME_MOVE_MS = 200;
 const MIN_ANIMATION_MS = 100;
 // Mercator metres; smaller centre changes are not a move.
 const CENTER_EPSILON = 0.01;
-// Layer property marking a layer drawn at the vessel, which is already where
-// a follow glide is heading.
+// Layer property marking a layer drawn at the vessel the view follows, which
+// is already where a follow glide is heading: true, or a function saying
+// whether it is drawn at that vessel now.
 export const FOLLOWS_VESSEL = 'followsVessel';
+export type FollowsVessel = boolean | (() => boolean);
 
 interface ViewTarget {
   center?: MercatorCoordinate;
@@ -334,7 +336,10 @@ export class ViewDirective
       return;
     }
     context.save();
-    if (!this.glideTarget) {
+    const follows = (e.target as BaseLayer).get(
+      FOLLOWS_VESSEL
+    ) as FollowsVessel;
+    if (!this.glideTarget || (typeof follows === 'function' && !follows())) {
       return;
     }
     const transform = frameState.coordinateToPixelTransform;

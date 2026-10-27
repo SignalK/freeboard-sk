@@ -9,7 +9,7 @@ import RenderEvent from 'ol/render/Event';
 import type { FrameState } from 'ol/Map';
 import { create as createTransform } from 'ol/transform';
 import { MapComponent } from './map.component';
-import { FOLLOWS_VESSEL, ViewDirective } from './view.directive';
+import { FOLLOWS_VESSEL, FollowsVessel, ViewDirective } from './view.directive';
 
 describe('ViewDirective: settled view changes', () => {
   let map: OlMap | null;
@@ -266,7 +266,7 @@ describe('ViewDirective: layers drawn at the vessel', () => {
     return context;
   };
 
-  const mounted = (follows: boolean) => {
+  const mounted = (follows: FollowsVessel) => {
     const directive = new ViewDirective(
       { detach: (): void => undefined } as never,
       { getMap: () => map } as unknown as MapComponent
@@ -329,6 +329,22 @@ describe('ViewDirective: layers drawn at the vessel', () => {
     const context = render(layer, directive.getView()!.getCenter()!);
 
     expect(context.translate).not.toHaveBeenCalled();
+  });
+
+  it('leaves a layer drawn at a vessel the view does not follow', () => {
+    let followed = true;
+    const { directive, layer, change } = mounted(() => followed);
+    change([10, 20]);
+    vi.advanceTimersByTime(1000);
+    change([10.001, 20]);
+    followed = false;
+
+    const context = render(layer, directive.getView()!.getCenter()!);
+
+    expect(context.translate).not.toHaveBeenCalled();
+    expect(context.restore).toHaveBeenCalledTimes(
+      context.save.mock.calls.length
+    );
   });
 
   it('leaves other layers alone', () => {
