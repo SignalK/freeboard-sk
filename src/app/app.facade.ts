@@ -1294,8 +1294,9 @@ export class AppFacade extends InfoService {
         finalize(() => {
           const again = this.serverSave === 'again';
           this.serverSave = 'idle';
+          // through saveConfig(), which holds it while a settings load runs
           if (again) {
-            this.saveConfigToServer();
+            this.saveConfig();
           }
         })
       )
