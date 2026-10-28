@@ -361,7 +361,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** The main chart's position readout follows the pointer here too. */
   protected onPointerMove(e: FBPointerEvent) {
-    this.split.forwardPointer(e.lonlat as Position);
+    this.split.forwardPointer(
+      e.lonlat as Position,
+      e.originalEvent?.pointerType
+    );
   }
 
   protected onTap(e: FBClickEvent) {

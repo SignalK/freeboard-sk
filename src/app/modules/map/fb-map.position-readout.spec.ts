@@ -17,7 +17,7 @@ const bareComponent = () => {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
   // Object.create() skips the field initialisers.
-  cmp.pointerSeen = false;
+  cmp.readoutOnPointer = false;
   cmp.pointerResting = false;
   cmp.pointerType = 'mouse';
   cmp.cursorHidden = signal(false);
@@ -127,7 +127,7 @@ describe('FBMapComponent: position readout', () => {
     const cmp = bareComponent();
     cmp.contextMenuContent = (): null => null;
 
-    cmp.onSecondaryTap({ kind: 'contextmenu', lonlat: [5, 50] });
+    cmp.onSecondaryTap({ kind: 'contextmenu', lonlat: [5, 50], event: {} });
     cmp.onMapMoveEnd(moveEnd([178.4, -18.1]));
 
     expect(cmp.mouse().coords).toEqual([5, 50]);
@@ -227,6 +227,49 @@ describe('FBMapComponent: position readout while following the vessel (#1203)', 
 
     expect(cmp.mouse().coords).toEqual([5, 50]);
     expect(cmp.cursorHidden()).toBe(false);
+  });
+
+  it('shows the mouse again when following stops', () => {
+    const cmp = following();
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+    cmp.stopSaveTimer = vi.fn();
+    cmp.stopOffsetGrace = vi.fn();
+
+    cmp.movingMap = false;
+    cmp.ngOnChanges({
+      movingMap: { currentValue: false, firstChange: false }
+    });
+
+    expect(cmp.cursorHidden()).toBe(false);
+  });
+
+  it('hands a tap on the second pane back after its fade, by its pointer type', () => {
+    const cmp = following();
+
+    cmp.onSecondaryPointer([5, 50], 'touch');
+    vi.advanceTimersByTime(2000);
+
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+  });
+
+  it('hands a tap back when the pane it is pinned on closes', () => {
+    const cmp = following();
+    const pane = {};
+    cmp.popoverMap = signal(undefined);
+    cmp.bearingMap = signal(undefined);
+    cmp.pinMap = signal(pane);
+    cmp.onSecondaryPointer([5, 50], 'touch');
+    vi.advanceTimersByTime(250);
+    cmp.cursorPin.pin([5, 50], 0, 2000);
+    cmp.cursorInfo.set({ bearing: 1, distance: 2, timeToGo: null });
+    // The rest time runs out while the pin still holds the readout.
+    vi.advanceTimersByTime(1800);
+
+    cmp.onPaneChanged(null);
+
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+    expect(cmp.cursorInfo()).toBeNull();
   });
 
   it('hands an already resting pointer back when following starts', () => {

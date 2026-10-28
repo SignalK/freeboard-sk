@@ -31,6 +31,7 @@ const bareComponent = (secondPane: OlMap | null) => {
   cmp.overlay = signal({ show: false });
   cmp.pointerType = 'mouse';
   cmp.cursorHidden = signal(false);
+  cmp.cursorInfo = signal(null);
   cmp.popoverMap = signal(undefined);
   cmp.pinMap = signal(undefined);
   cmp.bearingMap = signal(undefined);

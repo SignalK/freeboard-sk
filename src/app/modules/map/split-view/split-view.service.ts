@@ -21,6 +21,12 @@ import {
  * the second pane shows the main chart's own features (see layer-mirror), so
  * the same popovers and actions apply.
  */
+/** The pointer over the second pane, for the main chart's position readout. */
+export interface SecondaryPointer {
+  lonlat: Position;
+  pointerType?: string;
+}
+
 export type SecondaryTap =
   | {
       kind: 'click';
@@ -55,7 +61,7 @@ export class SplitViewService {
   private state = signal<SplitViewState>(this.read());
   private secondary = signal<OlMap | null>(null);
   private taps = new Subject<SecondaryTap>();
-  private pointer = new Subject<Position>();
+  private pointer = new Subject<SecondaryPointer>();
   private active = signal<SplitPane>('main');
   private commands = new Subject<PaneCommand>();
   private panel = signal<{ width: number; height: number } | null>(null);
@@ -176,8 +182,8 @@ export class SplitViewService {
     this.taps.next(tap);
   }
 
-  forwardPointer(lonlat: Position) {
-    this.pointer.next(lonlat);
+  forwardPointer(lonlat: Position, pointerType?: string) {
+    this.pointer.next({ lonlat, pointerType });
   }
 
   zoomBy(step: number) {

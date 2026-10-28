@@ -544,7 +544,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // vessel while following and the chart centre otherwise, rather than a blank
   // 0,0 (a touch screen raises no pointer event until it is touched). While
   // following it goes back to the vessel once the pointer rests (#1203).
-  private pointerSeen = false;
+  private readoutOnPointer = false;
   private pointerRestTimer: ReturnType<typeof setTimeout> | undefined;
   private pointerResting = false;
   private pointerType = 'mouse';
@@ -600,6 +600,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (gone(this.pinMap())) {
       this.pinMap.set(undefined);
       this.cursorPin.release();
+      // Released, not expired, so run what its expiry would have.
+      this.onPinExpired();
     }
     if (gone(this.bearingMap())) {
       this.bearingMap.set(undefined);
@@ -760,8 +762,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // chart's features
     this.obsList.push(
       this.splitView.taps$.subscribe((tap) => this.onSecondaryTap(tap)),
-      this.splitView.pointer$.subscribe((lonlat) =>
-        this.onSecondaryPointer(lonlat)
+      this.splitView.pointer$.subscribe(({ lonlat, pointerType }) =>
+        this.onSecondaryPointer(lonlat, pointerType)
       )
     );
     // SETTINGS settings.change$ event
@@ -1211,7 +1213,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * `center` when given.
    */
   private showIdlePosition(center?: Position) {
-    if (this.pointerSeen) {
+    if (this.readoutOnPointer) {
       return;
     }
     const self = this.app.data.vessels.self;
@@ -1231,7 +1233,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * fade has had time to run.
    */
   private notePointerActivity(pointerType?: string) {
-    this.pointerSeen = true;
+    this.readoutOnPointer = true;
     this.pointerResting = false;
     this.cursorHidden.set(false);
     if (pointerType) {
@@ -1262,14 +1264,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
    */
   private resumeVesselReadout() {
     if (
-      !this.pointerSeen ||
+      !this.readoutOnPointer ||
       !this.pointerResting ||
       !this.movingMap ||
       this.cursorPin.active
     ) {
       return;
     }
-    this.pointerSeen = false;
+    this.readoutOnPointer = false;
     this.cursorInfo.set(null);
     this.cursorHidden.set(this.pointerType === 'mouse');
     this.showIdlePosition();
@@ -1571,8 +1573,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * bearing and distance: the pixel and map coordinate stay this chart's, for
    * its own menu.
    */
-  private onSecondaryPointer(lonlat: Position) {
-    this.notePointerActivity();
+  private onSecondaryPointer(lonlat: Position, pointerType?: string) {
+    this.notePointerActivity(pointerType);
     const coords = GeoUtils.normaliseCoords(lonlat);
     this.mouse.update((mouse) => ({ ...mouse, coords }));
     this.updateCursorInfo(coords);
@@ -1585,7 +1587,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private onSecondaryTap(tap: SecondaryTap) {
     // A finger on the second pane raises no pointer move before the tap.
     this.onSecondaryPointer(
-      tap.kind === 'click' ? tap.event.lonlat : (tap.lonlat as Position)
+      tap.kind === 'click' ? tap.event.lonlat : (tap.lonlat as Position),
+      tap.kind === 'click'
+        ? tap.event.originalEvent?.pointerType
+        : (tap.event as Partial<PointerEvent>).pointerType
     );
     if (tap.kind === 'click') {
       this.pointerDownAt = tap.pressedAt;

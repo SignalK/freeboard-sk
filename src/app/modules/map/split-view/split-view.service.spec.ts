@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap } from 'ol';
 
 import { MIN_PANE_PX, SPLIT_VIEW_STORAGE_KEY } from './split-view';
-import { PaneCommand, SplitViewService } from './split-view.service';
+import {
+  PaneCommand,
+  SecondaryPointer,
+  SplitViewService
+} from './split-view.service';
 
 describe('SplitViewService: the active pane', () => {
   beforeEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
@@ -63,12 +67,12 @@ describe('SplitViewService: the active pane', () => {
 describe('SplitViewService: the pointer over the second pane', () => {
   it('passes it on for the position readout', () => {
     const split = new SplitViewService();
-    const seen: number[][] = [];
-    split.pointer$.subscribe((lonlat) => seen.push(lonlat));
+    const seen: SecondaryPointer[] = [];
+    split.pointer$.subscribe((pointer) => seen.push(pointer));
 
-    split.forwardPointer([23.5, 60.1]);
+    split.forwardPointer([23.5, 60.1], 'touch');
 
-    expect(seen).toEqual([[23.5, 60.1]]);
+    expect(seen).toEqual([{ lonlat: [23.5, 60.1], pointerType: 'touch' }]);
   });
 });
 
