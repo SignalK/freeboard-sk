@@ -235,6 +235,16 @@ export class MapImageRegistry {
   }
 
   /**
+   * Forget every external symbol and the icons built from them. SymbolService
+   * calls this before a reload, so a changed or removed provider symbol stops
+   * drawing from its old definition.
+   */
+  clearSymbolMarkers(): void {
+    this.symbolDefs = Object.create(null);
+    this.icons.symbols = Object.create(null);
+  }
+
+  /**
    * @description Returns image for the supplied symbol/POI identifier.
    * Checks external symbol defs (namespace:id or bare local id) before falling
    * back to built-in POI icons.

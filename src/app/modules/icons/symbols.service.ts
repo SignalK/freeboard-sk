@@ -60,6 +60,10 @@ export class SymbolService implements SymbolRegistryLike {
   /** True after load() has completed (success or error). */
   readonly loaded = signal(false);
 
+  /** Bumped after every load(). load() runs again after a login, so consumers
+   * that cache an override watch this rather than `loaded`. */
+  readonly revision = signal(0);
+
   /** Index by render ref ("custom:id" / "fsk:id") for qualified lookups. */
   private byRef = new Map<string, IndexedSymbol>();
   /** Built-in id -> the fsk override symbol for it (first alias wins). */
@@ -76,14 +80,17 @@ export class SymbolService implements SymbolRegistryLike {
   /** Fetch /resources/symbols, index, and register all renderable symbols. */
   async load(): Promise<void> {
     try {
-      // Reset indexes so a reload reflects removed/changed provider symbols
-      // rather than accumulating stale entries across calls.
-      this.byRef.clear();
-      this.overrides.clear();
-      this.userSymbols = [];
       const result = (await firstValueFrom(
         this.signalk.api.get(this.app.skApiVersion, '/resources/symbols')
       )) as Record<string, unknown>;
+
+      // Reset only once a response arrives: a reload then reflects removed or
+      // changed provider symbols, while a failed one keeps the last good set
+      // and the map never draws from an empty registry mid-request.
+      this.byRef.clear();
+      this.overrides.clear();
+      this.userSymbols = [];
+      this.mapImages.clearSymbolMarkers();
 
       if (!result || typeof result !== 'object') {
         if (isDevMode())
@@ -105,6 +112,7 @@ export class SymbolService implements SymbolRegistryLike {
       }
     } finally {
       this.loaded.set(true);
+      this.revision.update((n) => n + 1);
     }
   }
 

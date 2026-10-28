@@ -13,6 +13,8 @@ import { WakeLockService } from 'src/app/lib/services';
 import { S57Service } from '../../map/ol';
 import { RadarAPIService } from '../../radar/radar-api.service';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import { MapImageRegistry } from 'src/app/modules/map/ol/lib/map-image-registry.service';
+import { VESSEL_SELF_MARKER } from 'src/app/modules/map/ol/lib/vessel/layer-vessel.component';
 import { defaultConfig, initData } from 'src/app/app.config';
 import {
   NO_TRACK_SOURCE,
@@ -341,6 +343,39 @@ describe('settings dialog — note details option placement', () => {
       fixture.componentInstance.ngOnInit();
       fixture.componentInstance.onAisStateFilter();
       expect(settings.selections.aisState).toEqual(['moored']);
+    });
+  });
+
+  describe('own vessel icon with a symbol override (#1202)', () => {
+    /** The icon drawn beside each size choice. */
+    const previews = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLImageElement>('mat-radio-button img')
+      ).map((i) => i.getAttribute('src'));
+
+    beforeEach(() => {
+      TestBed.inject(MapImageRegistry).registerSymbolMarker(
+        VESSEL_SELF_MARKER,
+        { path: '/plugin/self.svg' }
+      );
+    });
+
+    it('previews the override for the default vessel symbol', async () => {
+      settings.vessels.iconType = 'classic';
+      await selectTab('Vessels');
+
+      expect(previews().length).toBeGreaterThan(0);
+      expect(previews().every((p) => p === '/plugin/self.svg')).toBe(true);
+    });
+
+    it('previews the chosen built-in for any other icon type', async () => {
+      settings.vessels.iconType = 'powerboat';
+      await selectTab('Vessels');
+
+      expect(previews().length).toBeGreaterThan(0);
+      expect(previews().every((p) => p?.includes('self_powerboat.svg'))).toBe(
+        true
+      );
     });
   });
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { SimpleChange, type ChangeDetectorRef } from '@angular/core';
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
@@ -208,6 +208,61 @@ describe('VesselComponent without a position', () => {
   });
 });
 
+describe('own-vessel symbol override loading after the map (#1202)', () => {
+  const overrides: { [id: string]: Icon } = {};
+  const component = () => {
+    const c = Object.create(VesselComponent.prototype) as VesselComponent;
+    Object.assign(c, {
+      id: 'self',
+      position: [1, 2],
+      heading: 0,
+      stale: false,
+      iconType: 'classic',
+      layer: { setProperties: (): void => undefined },
+      source: new VectorSource(),
+      mapImages: {
+        getExternalSymbol: (id: string): Icon | null => overrides[id] ?? null
+      }
+    });
+    c.parseVessel();
+    return c;
+  };
+  const src = (c: VesselComponent) =>
+    ((c.vessel?.getStyle() as Style).getImage() as Icon).getSrc();
+  const symbolsLoad = (c: VesselComponent) => {
+    const previous = c.symbolsRevision;
+    c.symbolsRevision = previous + 1;
+    c.ngOnChanges({
+      symbolsRevision: new SimpleChange(previous, c.symbolsRevision, false)
+    });
+  };
+
+  beforeEach(() => {
+    delete overrides['vessel-self'];
+  });
+
+  it('switches to the override once symbols have loaded', () => {
+    const c = component();
+    expect(src(c)).toContain('self.png');
+
+    overrides['vessel-self'] = new Icon({ src: './plugin-self.svg' });
+    symbolsLoad(c);
+
+    expect(src(c)).toContain('plugin-self.svg');
+  });
+
+  it('picks up an override that only arrives on a later load (login)', () => {
+    const c = component();
+    symbolsLoad(c);
+    expect(src(c)).toContain('self.png');
+
+    overrides['vessel-self'] = new Icon({ src: './plugin-self.svg' });
+    symbolsLoad(c);
+
+    expect(src(c)).toContain('plugin-self.svg');
+  });
+});
+
 describe('own-vessel icon while another vessel is selected', () => {
   it('keeps the chosen shape and dims it', () => {
     const c = Object.create(VesselComponent.prototype) as VesselComponent;
@@ -249,14 +304,21 @@ describe('selfVesselIcon own-vessel types', () => {
     expect(selfVesselIcon(noOverrides).getSrc()).toContain('self.png');
   });
 
-  it('still prefers a registered external override', () => {
+  describe('with a symbol provider override (#1202)', () => {
     const override = new Icon({ src: './custom-self.svg' });
     const withOverride = {
       getExternalSymbol: (): Icon => override
     } as unknown as MapImageRegistry;
 
-    const icon = selfVesselIcon(withOverride, 1.2, 'catamaran');
-    expect(icon.getSrc()).toContain('custom-self.svg');
-    expect(icon.getScale()).toBe(1.2);
+    it('draws the override for the default vessel symbol', () => {
+      const icon = selfVesselIcon(withOverride, 1.2, 'classic');
+      expect(icon.getSrc()).toContain('custom-self.svg');
+      expect(icon.getScale()).toBe(1.2);
+    });
+
+    it('draws the chosen built-in for any other icon type', () => {
+      const icon = selfVesselIcon(withOverride, 1.2, 'catamaran');
+      expect(icon.getSrc()).toContain('self_catamaran.svg');
+    });
   });
 });

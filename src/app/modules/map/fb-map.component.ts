@@ -213,7 +213,7 @@ import {
   preferredRoutePoint,
   ROUTE_POINT_PICK_PX
 } from './route-point-pick';
-import { AppIconDef } from '../icons';
+import { AppIconDef, SymbolService } from '../icons';
 import {
   coordinatesMetaFromPoints,
   editsRouteBuffer
@@ -629,6 +629,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected notiMgr = inject(NotificationManager);
   protected plotterExt = inject(PlotterExtensionService);
   protected course = inject(CourseService);
+  protected symbols = inject(SymbolService);
   private routeReverse = inject(RouteReverseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);

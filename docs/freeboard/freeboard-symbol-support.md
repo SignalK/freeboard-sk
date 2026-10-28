@@ -103,7 +103,9 @@ navigation-structure   fuel        tunnel      waterway-guage
 **Generic waypoint marker:** `waypoint` (the default for the Waypoints category).
 
 **Own vessel:** `vessel-self` (rotates to heading; upright when position is fixed
-/ no heading).
+/ no heading). It replaces only the **Default vessel symbol** choice in
+Settings → Vessels → Vessel icon; the other icon types always draw their
+built-in shape.
 
 **AIS vessel icons** (by ship class/state; rotate to `orientation`):
 
