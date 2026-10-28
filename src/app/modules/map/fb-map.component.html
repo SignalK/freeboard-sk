@@ -28,7 +28,7 @@
   [rotation]="mapRotation()"
   [minZoom]="app.MAP_ZOOM_EXTENT.min"
   [maxZoom]="app.MAP_ZOOM_EXTENT.max"
-  [enableAnimation]="false"
+  [enableAnimation]="app.config.map.animation"
 >
   <!-- Draw / modify / select-->
   @if (mapInteract.isBoxSelecting()) {
@@ -927,9 +927,10 @@
       </fb-arrival-circle>
     }
   }
-  @let showRadarRings = app.config.radars.rings && radarRings().length > 0;
+  @let showRadarRings = showsRadarRings();
   @if (app.config.vessels.rangeCircles || showRadarRings) {
     <fb-range-circles
+      [layerProperties]="followsRangeCircles"
       [position]="showRadarRings ? dfeat.self.position : dfeat.active.position"
       [rings]="showRadarRings ? radarRings() : undefined"
       [maxCircles]="this.app.config.vessels.rangeCircleCount"
@@ -946,6 +947,7 @@
 
   @if (app.config.vessels.selfLines.cog.length !== 0) {
     <fb-heading-line
+      [layerProperties]="followsVessel"
       [coords]="vesselLines().heading"
       [lineStyle]="app.selfLines().heading"
       [mapZoom]="mapZoomLevel()"
@@ -956,6 +958,7 @@
 
   @if (app.config.vessels.selfLines.cog.length !== 0) {
     <fb-cog-line
+      [layerProperties]="followsVessel"
       [coords]="vesselLines().cog"
       [cogTime]="app.config.vessels.selfLines.cog.length"
       [lineStyle]="app.selfLines().cog"
@@ -970,6 +973,7 @@
   @if (app.config.vessels.windVectors) {
     <!-- twd: TRUE wind, not wind.direction (follows the true/magnetic display setting, #857) -->
     <fb-wind-lines
+      [layerProperties]="followsSelf"
       [twd]="trueWindDirection(this.dfeat.active)"
       [tws]="this.dfeat.active.wind.tws"
       [awa]="(this.dfeat.active.wind.awa ?? 0) + this.dfeat.active.orientation"
@@ -982,6 +986,7 @@
 
   <!-- Vessel (self) -->
   <fb-vessel
+    [layerProperties]="followsSelf"
     [position]="dfeat.self.position"
     [heading]="dfeat.self.orientation"
     [id]="'' + app.data.selfId"

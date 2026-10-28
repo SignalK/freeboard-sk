@@ -11,12 +11,48 @@ import {
   SimpleChanges
 } from '@angular/core';
 import View from 'ol/View';
+import type { Coordinate as MercatorCoordinate } from 'ol/coordinate';
+import { easeOut, linear } from 'ol/easing';
+import { getWidth } from 'ol/extent';
 import { transformExtent, toLonLat, fromLonLat } from 'ol/proj';
 import { Coordinate, Extent } from './models';
 import { MapComponent } from './map.component';
 import { ProjectionLike } from 'ol/proj';
+import { worldCopyOffset } from './util';
+import type { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
+import type BaseLayer from 'ol/layer/Base';
+import type RenderEvent from 'ol/render/Event';
+import { apply as applyTransform } from 'ol/transform';
 
 const animateDuration = 500;
+
+const ZOOM_ANIMATION_MS = 250;
+const MOVE_ANIMATION_MS = 500;
+// Changes closer together than this are one moving view (following the
+// vessel): each glides for most of the time until the next arrives, so the
+// chart moves continuously. The rest of the interval lets the view come to
+// rest, which is when OpenLayers fires the moveend that refreshes what
+// depends on the map extent.
+const FOLLOW_MAX_INTERVAL_MS = 1500;
+const FOLLOW_DURATION_SHARE = 0.9;
+// Changes closer together than this are parts of one move (the centre and
+// the rotation of one vessel update arriving apart) and finish together.
+const SAME_MOVE_MS = 200;
+const MIN_ANIMATION_MS = 100;
+// Mercator metres; smaller centre changes are not a move.
+const CENTER_EPSILON = 0.01;
+// Layer property marking a layer drawn at the vessel the view follows, which
+// is already where a follow glide is heading: true, or a function saying
+// whether it is drawn at that vessel now.
+export const FOLLOWS_VESSEL = 'followsVessel';
+export type FollowsVessel = boolean | (() => boolean);
+
+interface ViewTarget {
+  center?: MercatorCoordinate;
+  zoom?: number;
+  rotation?: number;
+}
 
 @Directive({
   selector: 'ol-map > [olView]',
@@ -34,6 +70,25 @@ export class ViewDirective
   private view?: View;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private viewProperties: { [index: string]: any } = {};
+  // What the running animation is heading for, so a change to one property
+  // keeps the others on their way.
+  private pending: ViewTarget = {};
+  private animationId = 0;
+  // The centre a follow glide is heading for, while one runs.
+  private glideTarget?: MercatorCoordinate;
+  private readonly followLayers = new WeakSet<BaseLayer>();
+  private precomposeKey?: EventsKey;
+  // Changes that arrived while an OpenLayers gesture animation ran, applied
+  // once it ends.
+  private deferred: ViewTarget = {};
+  private deferredKey?: EventsKey;
+  // Absent where the browser has no matchMedia (the unit tests' DOM).
+  private reducedMotion = globalThis.matchMedia?.(
+    '(prefers-reduced-motion: reduce)'
+  );
+  private lastMoveAt = -Infinity;
+  private animationEndsAt = 0;
+  private easing = easeOut;
 
   @Output() centerChange: EventEmitter<Coordinate> =
     new EventEmitter<Coordinate>();
@@ -66,6 +121,7 @@ export class ViewDirective
   }
 
   ngOnInit() {
+    this.reducedMotion?.addEventListener('change', this.onReducedMotionChange);
     const view = new View(this.viewProperties);
     this.view = view;
     view.setRotation(this.rotation ?? 0);
@@ -83,64 +139,253 @@ export class ViewDirective
       this.view.on('change:center', this.emitCenterChange);
       this.view.on('change:resolution', this.emitZoomChange);
       this.view.on('change:rotation', this.emitRotationChange);
+      this.precomposeKey = map.on('precompose', () => {
+        for (const layer of map.getAllLayers()) {
+          if (layer.get(FOLLOWS_VESSEL) && !this.followLayers.has(layer)) {
+            this.followLayers.add(layer);
+            layer.on('prerender', this.offsetByGlide);
+            layer.on('postrender', this.restoreOffset);
+          }
+        }
+      });
     }
   }
 
   ngOnChanges(changes: SimpleChanges) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const properties: { [index: string]: any } = {};
+    const view = this.view;
+    const animate = !!view && this.animates();
+    const target: ViewTarget = {};
 
+    // A value waiting for a gesture to settle is stale once a newer one
+    // arrives, whichever way that one is applied.
+    for (const key of ['center', 'zoom', 'rotation'] as const) {
+      if (changes[key]) {
+        delete this.deferred[key];
+      }
+    }
+    // Settle the old glide first, or it would overwrite a centre or zoom
+    // arriving in the same change.
+    if (view && changes['enableAnimation'] && !this.enableAnimation) {
+      this.finishAnimation(view);
+    }
     for (const key in changes) {
-      if (key === 'zoom') {
-        if (this.view) {
-          if (this.enableAnimation) {
-            this.view.animate({
-              zoom: changes[key].currentValue,
-              duration: animateDuration
-            });
-          } else {
-            this.view.setZoom(changes[key].currentValue);
-          }
+      const value = changes[key].currentValue;
+      if (key === 'enableAnimation') {
+        continue;
+      } else if (!view) {
+        properties[key] = key === 'center' ? fromLonLat(value) : value;
+      } else if (key === 'zoom') {
+        if (animate) {
+          target.zoom = value;
         } else {
-          properties[key] = changes[key].currentValue;
+          view.setZoom(value);
         }
       } else if (key === 'center') {
-        if (this.view) {
-          if (this.enableAnimation) {
-            this.view.animate({
-              center: changes[key].currentValue,
-              duration: animateDuration
-            });
-          } else {
-            this.view.setCenter(fromLonLat(changes[key].currentValue));
-          }
+        if (animate) {
+          target.center = fromLonLat(value);
         } else {
-          properties[key] = fromLonLat(changes[key].currentValue);
+          view.setCenter(fromLonLat(value));
         }
+      } else if (key === 'rotation' && animate) {
+        target.rotation = value ?? 0;
       } else if (key === 'minZoom') {
-        if (this.view) {
-          this.view.setMinZoom(changes[key].currentValue);
-        } else {
-          properties[key] = changes[key].currentValue;
-        }
+        view.setMinZoom(value);
       } else if (key === 'maxZoom') {
-        if (this.view) {
-          this.view.setMaxZoom(changes[key].currentValue);
-        } else {
-          properties[key] = changes[key].currentValue;
-        }
+        view.setMaxZoom(value);
       } else {
-        properties[key] = changes[key].currentValue;
+        properties[key] = value;
       }
     }
     this.viewProperties = properties;
-    if (this.view) {
-      this.view.setProperties(this.viewProperties, false);
-      this.view.setRotation(this.rotation ?? 0);
+    if (view) {
+      view.setProperties(this.viewProperties, false);
+      if (animate) {
+        this.animateTo(view, target);
+      } else {
+        view.setRotation(this.rotation ?? 0);
+      }
     }
   }
 
+  private animateTo(view: View, target: ViewTarget) {
+    const center = view.getCenter();
+    if (target.center && center) {
+      // The input is canonical; glide to the world copy on screen rather than
+      // across the globe when the vessel crosses the antimeridian.
+      const width = getWidth(view.getProjection().getExtent());
+      target.center = [
+        target.center[0] + worldCopyOffset(center[0] - target.center[0], width),
+        target.center[1]
+      ];
+    }
+    const fromCenter = this.pending.center ?? center;
+    if (
+      target.center &&
+      fromCenter &&
+      Math.abs(target.center[0] - fromCenter[0]) < CENTER_EPSILON &&
+      Math.abs(target.center[1] - fromCenter[1]) < CENTER_EPSILON
+    ) {
+      delete target.center;
+    }
+    if (target.zoom === (this.pending.zoom ?? view.getZoom())) {
+      delete target.zoom;
+    }
+    if (target.rotation === (this.pending.rotation ?? view.getRotation())) {
+      delete target.rotation;
+    }
+    if (
+      target.center === undefined &&
+      target.zoom === undefined &&
+      target.rotation === undefined
+    ) {
+      return;
+    }
+
+    // An animation OpenLayers started for a gesture (a wheel or pinch zoom
+    // settling) finishes first, then the change is applied.
+    const ownAnimation = Object.keys(this.pending).length > 0;
+    if (view.getAnimating() && !ownAnimation) {
+      this.deferUntilMoveEnd(view, target);
+      return;
+    }
+    // Under the user's finger the view follows the gesture, not an animation.
+    // The gesture cancelled any animation of ours; its target is gone.
+    if (view.getInteracting()) {
+      this.pending = {};
+      this.glideTarget = undefined;
+      ++this.animationId;
+      this.setTarget(view, target);
+      return;
+    }
+
+    const now = Date.now();
+    const interval = now - this.lastMoveAt;
+    let duration = MOVE_ANIMATION_MS;
+    let easing = easeOut;
+    if (target.zoom !== undefined) {
+      duration = ZOOM_ANIMATION_MS;
+      this.lastMoveAt = now;
+    } else if (interval < SAME_MOVE_MS) {
+      duration = Math.max(this.animationEndsAt - now, MIN_ANIMATION_MS);
+      easing = this.easing;
+    } else {
+      if (interval <= FOLLOW_MAX_INTERVAL_MS) {
+        duration = interval * FOLLOW_DURATION_SHARE;
+        easing = linear;
+      }
+      this.lastMoveAt = now;
+    }
+    this.animationEndsAt = now + duration;
+    this.easing = easing;
+
+    const pending = { ...this.pending, ...target };
+    const animationId = ++this.animationId;
+    view.cancelAnimations();
+    this.pending = pending;
+    this.glideTarget = easing === linear ? pending.center : undefined;
+    view.animate({ ...pending, duration, easing }, () => {
+      // OpenLayers runs the callback in a later task, so one for an animation
+      // replaced in the meantime must leave the newer target alone.
+      if (animationId === this.animationId) {
+        this.pending = {};
+        this.glideTarget = undefined;
+      }
+    });
+  }
+
+  private deferUntilMoveEnd(view: View, target: ViewTarget) {
+    this.deferred = { ...this.deferred, ...target };
+    if (this.deferredKey) {
+      return;
+    }
+    this.deferredKey = this.mapComponent.getMap()?.once('moveend', () => {
+      this.deferredKey = undefined;
+      const deferred = this.deferred;
+      this.deferred = {};
+      // Animation may have been turned off while the gesture settled.
+      if (this.animates()) {
+        this.animateTo(view, deferred);
+      } else {
+        this.setTarget(view, deferred);
+      }
+    });
+  }
+
+  // Stops an animation of ours where it was heading, not part way there.
+  private finishAnimation(view: View) {
+    const pending = this.pending;
+    this.pending = {};
+    this.glideTarget = undefined;
+    ++this.animationId;
+    view.cancelAnimations();
+    this.setTarget(view, pending);
+  }
+
+  private animates(): boolean {
+    return this.enableAnimation && !this.reducedMotion?.matches;
+  }
+
+  private setTarget(view: View, target: ViewTarget) {
+    if (target.center) view.setCenter(target.center);
+    if (target.zoom !== undefined) view.setZoom(target.zoom);
+    if (target.rotation !== undefined) view.setRotation(target.rotation);
+  }
+
+  // The vessel moves once per fix while the chart glides towards it, so a
+  // layer drawn at the vessel is shifted by the rest of the glide: the vessel
+  // keeps its place on screen instead of jumping ahead of the chart.
+  private offsetByGlide = (e: RenderEvent) => {
+    const context = e.context as CanvasRenderingContext2D | undefined;
+    const frameState = e.frameState;
+    const toCanvas = e.inversePixelTransform;
+    if (!context || !frameState || !toCanvas || !('translate' in context)) {
+      return;
+    }
+    context.save();
+    const follows = (e.target as BaseLayer).get(
+      FOLLOWS_VESSEL
+    ) as FollowsVessel;
+    if (!this.glideTarget || (typeof follows === 'function' && !follows())) {
+      return;
+    }
+    const toPixel = frameState.coordinateToPixelTransform;
+    const now = applyTransform(
+      toCanvas,
+      applyTransform(toPixel, frameState.viewState.center.slice())
+    );
+    const to = applyTransform(
+      toCanvas,
+      applyTransform(toPixel, this.glideTarget.slice())
+    );
+    context.translate(now[0] - to[0], now[1] - to[1]);
+  };
+
+  private restoreOffset = (e: RenderEvent) => {
+    const context = e.context as CanvasRenderingContext2D | undefined;
+    if (context && 'restore' in context) {
+      context.restore();
+    }
+  };
+
+  private onReducedMotionChange = (e: MediaQueryListEvent) => {
+    if (e.matches && this.view) {
+      this.finishAnimation(this.view);
+    }
+  };
+
   ngOnDestroy() {
+    this.reducedMotion?.removeEventListener(
+      'change',
+      this.onReducedMotionChange
+    );
+    if (this.deferredKey) {
+      unByKey(this.deferredKey);
+    }
+    if (this.precomposeKey) {
+      unByKey(this.precomposeKey);
+    }
     // A map can go while a change is still settling (the split view's second
     // pane closed just after a pan); its emit would read the map it no longer has.
     clearTimeout(this.timerCenterId);

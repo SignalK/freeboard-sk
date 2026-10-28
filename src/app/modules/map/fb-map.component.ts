@@ -181,6 +181,7 @@ import {
 import { ScaleLine } from 'ol/control';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
+import { FOLLOWS_VESSEL, FollowsVessel } from './ol/lib/view.directive';
 import { InteractionDrawComponent } from './ol/lib/interactions/interaction-draw.component';
 import {
   hitToleranceForPointer,
@@ -653,9 +654,35 @@ export class FBMapComponent implements OnInit, OnDestroy {
   });
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
+  // Layers drawn at the vessel take each fix at once, not when the glide
+  // towards it ends, and are shifted along with the glide (ViewDirective)
+  // while the map follows the active vessel. Layers drawn at our own vessel
+  // only move with it while that is the active one.
+  protected readonly followsVessel = {
+    updateWhileAnimating: true,
+    [FOLLOWS_VESSEL]: (() => this.movingMap) satisfies FollowsVessel
+  };
+  protected readonly followsSelf = {
+    updateWhileAnimating: true,
+    [FOLLOWS_VESSEL]: (() =>
+      this.movingMap &&
+      this.app.data.vessels.activeId === null) satisfies FollowsVessel
+  };
+  // Radar rings are drawn at our own vessel, other range circles at the
+  // active one.
+  protected readonly followsRangeCircles = {
+    updateWhileAnimating: true,
+    [FOLLOWS_VESSEL]: (() =>
+      this.movingMap &&
+      (!this.showsRadarRings() ||
+        this.app.data.vessels.activeId === null)) satisfies FollowsVessel
+  };
   private ngZone = inject(NgZone);
   // range circles at the radar range, while the radar shows on this screen
   // and transmits
+  protected showsRadarRings(): boolean {
+    return this.app.config.radars.rings && this.radarRings().length > 0;
+  }
   protected radarRings = computed<RangeRing[]>(
     () => {
       const radar = this.radarApi.radar();
