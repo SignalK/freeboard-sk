@@ -175,10 +175,50 @@ describe('settings dialog — note details option placement', () => {
       expect(unitSelects()).toHaveLength(5);
     };
 
+    /** A server preset publishing the given target unit for each category. */
+    const preset = (targets: Record<string, string>): SKServerUnitPrefs => ({
+      name: 'preset',
+      categories: Object.fromEntries(
+        Object.entries(targets).map(([category, targetUnit]) => [
+          category,
+          { baseUnit: '', targetUnit, displayFormat: '0.0', symbol: '' }
+        ])
+      )
+    });
+    const nautical = preset({
+      distance: 'naut-mile',
+      depth: 'm',
+      length: 'm',
+      temperature: 'C',
+      speed: 'kn'
+    });
+
     it('follow the server when it publishes unit preferences', async () => {
       settings.units.useServerPrefs = true;
-      await showUnits({ name: 'nautical', categories: {} });
+      await showUnits(nautical);
       expect(unitSelects().every(disabled)).toBe(true);
+    });
+
+    it('keep a choice editable when the server unit is not offered', async () => {
+      settings.units.useServerPrefs = true;
+      // Imperial (US): statute miles are not a distance choice
+      await showUnits(
+        preset({
+          distance: 'mile',
+          depth: 'foot',
+          length: 'foot',
+          temperature: 'F',
+          speed: 'mph'
+        })
+      );
+      // pickers in template order: distance, depth, length, temperature, speed
+      expect(unitSelects().map(disabled)).toEqual([
+        false,
+        true,
+        true,
+        true,
+        true
+      ]);
     });
 
     it('stay editable when the server publishes none', async () => {
@@ -189,7 +229,7 @@ describe('settings dialog — note details option placement', () => {
 
     it('stay editable once server preferences are turned off', async () => {
       settings.units.useServerPrefs = false;
-      await showUnits({ name: 'nautical', categories: {} });
+      await showUnits(nautical);
       expect(unitSelects().some(disabled)).toBe(false);
     });
   });

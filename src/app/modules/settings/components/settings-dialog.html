@@ -347,7 +347,7 @@
                             <mat-label>Distance units</mat-label>
                             <mat-select
                               #distunits
-                              [disabled]="unitsFromServer()"
+                              [disabled]="unitFromServer('distance')"
                               [(ngModel)]="facade.settings.units.distance"
                               (selectionChange)="raiseChange();persistModel()"
                             >
@@ -363,7 +363,7 @@
                           <mat-form-field style="width: 100%">
                             <mat-label>Depth units</mat-label>
                             <mat-select
-                              [disabled]="unitsFromServer()"
+                              [disabled]="unitFromServer('depth')"
                               [(ngModel)]="facade.settings.units.depth"
                               (selectionChange)="raiseChange();doS57()"
                             >
@@ -379,7 +379,7 @@
                           <mat-form-field style="width: 100%">
                             <mat-label>Length units</mat-label>
                             <mat-select
-                              [disabled]="unitsFromServer()"
+                              [disabled]="unitFromServer('length')"
                               [(ngModel)]="facade.settings.units.length"
                               (selectionChange)="raiseChange();persistModel()"
                             >
@@ -395,7 +395,7 @@
                           <mat-form-field style="width: 100%">
                             <mat-label>Temperature units</mat-label>
                             <mat-select
-                              [disabled]="unitsFromServer()"
+                              [disabled]="unitFromServer('temperature')"
                               [(ngModel)]="facade.settings.units.temperature"
                               (selectionChange)="raiseChange();persistModel()"
                             >
@@ -411,7 +411,7 @@
                           <mat-form-field style="width: 100%">
                             <mat-label>Speed units</mat-label>
                             <mat-select
-                              [disabled]="unitsFromServer()"
+                              [disabled]="unitFromServer('speed')"
                               [(ngModel)]="facade.settings.units.speed"
                               (selectionChange)="raiseChange();persistModel()"
                             >
