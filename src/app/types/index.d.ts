@@ -79,7 +79,7 @@ export interface CourseData {
 }
 
 export type TemperatureUnitDef = 'C' | 'F';
-export type DepthUnitDef = 'm' | 'foot';
+export type DepthUnitDef = 'm' | 'foot' | 'fathom';
 export type LengthUnitDef = 'm' | 'foot';
 export type SpeedUnitDef = 'kn' | 'm/s' | 'km/h' | 'mph';
 export type DistanceUnitDef = 'kilometer' | 'naut-mile';

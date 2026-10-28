@@ -6,7 +6,7 @@ import { SKServerUnitPrefs } from '../types';
  */
 const SERVER_UNIT_CHOICES = {
   distance: ['kilometer', 'naut-mile'],
-  depth: ['m', 'foot'],
+  depth: ['m', 'foot', 'fathom'],
   length: ['m', 'foot'],
   speed: ['kn', 'm/s', 'km/h', 'mph'],
   temperature: ['C', 'F']

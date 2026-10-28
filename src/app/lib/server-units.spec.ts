@@ -15,6 +15,7 @@ describe('serverUnit', () => {
       'naut-mile'
     );
     expect(serverUnit(prefs('speed', 'mph'), 'speed')).toBe('mph');
+    expect(serverUnit(prefs('depth', 'fathom'), 'depth')).toBe('fathom');
   });
 
   it('ignores a server unit the setting does not offer', () => {

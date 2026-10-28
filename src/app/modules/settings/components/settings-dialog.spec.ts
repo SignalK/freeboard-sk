@@ -199,6 +199,20 @@ describe('settings dialog — note details option placement', () => {
       expect(unitSelects().every(disabled)).toBe(true);
     });
 
+    it('follow a server depth in fathoms', async () => {
+      settings.units.useServerPrefs = true;
+      await showUnits(
+        preset({
+          distance: 'naut-mile',
+          depth: 'fathom',
+          length: 'm',
+          temperature: 'C',
+          speed: 'kn'
+        })
+      );
+      expect(unitSelects().every(disabled)).toBe(true);
+    });
+
     it('keep a choice editable when the server unit is not offered', async () => {
       settings.units.useServerPrefs = true;
       // Imperial (US): statute miles are not a distance choice

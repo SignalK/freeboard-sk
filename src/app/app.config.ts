@@ -90,7 +90,7 @@ function migrate(settings: LegacyAppConfig) {
     if (typeof units.temperature === 'string') {
       units.temperature = units.temperature.toUpperCase() as TemperatureUnitDef;
     }
-    units.length ??= depth ?? 'm';
+    units.length ??= depth === 'foot' ? 'foot' : 'm';
     if (units.speed === 'msec') {
       units.speed = 'm/s';
     } else if (units.speed === 'kmh') {

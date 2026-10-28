@@ -489,6 +489,14 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
     expect(cfg.map.s57Options.depthUnit).toBe('foot');
   });
 
+  it('keeps metres for length when the depth unit is fathoms', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.units.depth = 'fathom';
+    unset(cfg.units, 'length');
+    cleanConfig(cfg, {});
+    expect(cfg.units.length).toBe('m');
+  });
+
   it('gives selections saved without chart order, tracks or info layers empty lists', () => {
     const cfg: LegacyAppConfig = defaultConfig();
     unset(cfg.selections, 'chartOrder');
