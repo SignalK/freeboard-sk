@@ -44,7 +44,7 @@ choice and won't swap your custom icon back in later.
 |------|:---:|
 | Notes | Yes |
 | Waypoints | Yes |
-| Your own vessel | Yes |
+| Your own vessel | Yes (default icon) |
 | AIS vessels | Yes |
 | Aids to navigation | Yes |
 | Route start / turn / end points | Yes |
@@ -74,7 +74,8 @@ navigation-structure   fuel        tunnel      waterway-guage
 
 **Generic waypoint marker:** `waypoint`
 
-**Your own vessel:** `vessel-self`
+**Your own vessel:** `vessel-self` — replaces the **Default vessel symbol** only; a
+Monohull, Catamaran or Powerboat chosen in **Settings → Vessels** is still drawn.
 
 **AIS vessels** (by type):
 
