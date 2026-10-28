@@ -68,7 +68,12 @@ import { shownFromZoom } from './ol/lib/charts/chart-utils';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
 import { isRefollowActivity, RefollowTimer } from 'src/app/lib/refollow-timer';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
-import { CursorPin, tapFadeMs, TAP_MAX_DURATION } from './cursor-marker';
+import {
+  CursorPin,
+  MOUSE_REST_MS,
+  tapFadeMs,
+  TAP_MAX_DURATION
+} from './cursor-marker';
 import {
   FBRoute,
   FBRoutes,
@@ -535,9 +540,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: [0, 0],
     xy: null
   });
-  // A touch screen raises no pointer event until it is touched, so until one
-  // arrives the readout shows the chart centre rather than a blank 0,0.
+  // Whether the readout shows the pointer. Until one arrives it shows the
+  // vessel while following and the chart centre otherwise, rather than a blank
+  // 0,0 (a touch screen raises no pointer event until it is touched). While
+  // following it goes back to the vessel once the pointer rests (#1203).
   private pointerSeen = false;
+  private pointerRestTimer: ReturnType<typeof setTimeout> | undefined;
+  private pointerResting = false;
+  private pointerType = 'mouse';
+  /** The mouse rested and the readout went back to the vessel: hide its cursor. */
+  protected cursorHidden = signal(false);
   // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
   // when the "Live ETA at cursor" option is enabled (null = hidden).
   protected cursorInfo = signal<CursorEtaInfo | null>(null);
@@ -546,7 +558,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * (#546). Expiring drops the readout with the marker so a bearing is never
    * left on screen with nothing identifying the point it refers to.
    */
-  private cursorPin = new CursorPin(() => this.cursorInfo.set(null));
+  private cursorPin = new CursorPin(() => this.onPinExpired());
   /**
    * The pin's marker as a 0-or-1 element list: the fade is a CSS animation, so
    * the template tracks by id to get a *new* element per tap rather than
@@ -772,6 +784,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.stopOffsetGrace();
     this.refollow.cancel();
     this.cursorPin.release();
+    clearTimeout(this.pointerRestTimer);
     this.obsList.forEach((i) => i.unsubscribe());
   }
 
@@ -798,7 +811,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.refollow.cancel();
         this.startSaveTimer();
         this.startOffsetGrace();
+        this.resumeVesselReadout();
       } else {
+        this.cursorHidden.set(false);
         this.stopSaveTimer();
         // Leave the chart where it is when follow mode is released — snapping
         // back to the vessel would undo the pan that just released it.
@@ -949,6 +964,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // these updates) draws it in the right copy (#572).
     }
     this.drawVesselLines(this.app.data.vessels.self.positionReceived);
+    this.showIdlePosition();
     this.rotateMap();
     if (this.movingMap) {
       this.centerVessel();
@@ -1185,15 +1201,78 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     const center = view?.getCenter();
     if (center) {
-      this.showCentreUntilPointer(toLonLat(center) as Position);
+      this.showIdlePosition(toLonLat(center) as Position);
     }
   }
 
-  private showCentreUntilPointer(center: Position) {
-    if (!this.pointerSeen) {
-      const coords = GeoUtils.normaliseCoords(center);
+  /**
+   * The readout with no pointer to show: the vessel while the chart follows it
+   * (not the chart centre, which a vessel offset moves off the vessel), else
+   * `center` when given.
+   */
+  private showIdlePosition(center?: Position) {
+    if (this.pointerSeen) {
+      return;
+    }
+    const self = this.app.data.vessels.self;
+    const at =
+      this.movingMap && self?.positionReceived && self.position
+        ? self.position
+        : center;
+    if (at) {
+      const coords = GeoUtils.normaliseCoords(at);
       this.mouse.update((mouse) => ({ ...mouse, coords }));
     }
+  }
+
+  /**
+   * A pointer moved or pressed on the chart: the readout follows it, until it
+   * rests — a mouse left still for MOUSE_REST_MS, or a finger once the tap's
+   * fade has had time to run.
+   */
+  private notePointerActivity(pointerType?: string) {
+    this.pointerSeen = true;
+    this.pointerResting = false;
+    this.cursorHidden.set(false);
+    if (pointerType) {
+      this.pointerType = pointerType;
+    }
+    clearTimeout(this.pointerRestTimer);
+    this.pointerRestTimer = setTimeout(
+      () => {
+        this.pointerRestTimer = undefined;
+        this.pointerResting = true;
+        this.resumeVesselReadout();
+      },
+      this.pointerType === 'mouse'
+        ? MOUSE_REST_MS
+        : tapFadeMs(this.app.config.display.statusBar?.tapFadeSpeed)
+    );
+  }
+
+  private onPinExpired() {
+    this.cursorInfo.set(null);
+    this.resumeVesselReadout();
+  }
+
+  /**
+   * Hand the readout back to the vessel once the pointer rests while the chart
+   * follows it (#1203). A pinned tap holds it until the pin expires, which
+   * calls here again, so the bearing never outlives its marker or vice versa.
+   */
+  private resumeVesselReadout() {
+    if (
+      !this.pointerSeen ||
+      !this.pointerResting ||
+      !this.movingMap ||
+      this.cursorPin.active
+    ) {
+      return;
+    }
+    this.pointerSeen = false;
+    this.cursorInfo.set(null);
+    this.cursorHidden.set(this.pointerType === 'mouse');
+    this.showIdlePosition();
   }
 
   // handle map move / zoom
@@ -1213,7 +1292,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
     this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
-    this.showCentreUntilPointer(e.lonlat as Position);
+    this.showIdlePosition(e.lonlat as Position);
 
     if (this.userPanned) {
       // Adopt where the user left the vessel on screen only once the pan (and
@@ -1254,7 +1333,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // pointer events
   protected onMapPointerMove(e: FBPointerEvent) {
-    this.pointerSeen = true;
+    this.notePointerActivity(e.originalEvent?.pointerType);
     this.mouse.set({
       pixel: e.pixel,
       xy: e.coordinate,
@@ -1376,7 +1455,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   protected onMapPointerDown(e: FBPointerDownEvent) {
     this.pointerDownAt = Date.now();
-    this.pointerSeen = true;
+    this.notePointerActivity(e.pointerType);
     // A finger raises no pointer moves before it drags, so the press is the
     // only position a long-press has: record all of it, as a move would.
     this.mouse.set({
@@ -1493,7 +1572,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * its own menu.
    */
   private onSecondaryPointer(lonlat: Position) {
-    this.pointerSeen = true;
+    this.notePointerActivity();
     const coords = GeoUtils.normaliseCoords(lonlat);
     this.mouse.update((mouse) => ({ ...mouse, coords }));
     this.updateCursorInfo(coords);

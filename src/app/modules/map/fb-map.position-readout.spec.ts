@@ -1,20 +1,35 @@
 import { signal } from '@angular/core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fromLonLat } from 'ol/proj';
 
 import { FBMapComponent } from './fb-map.component';
-import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
+import {
+  FBMapEvent,
+  FBPointerDownEvent,
+  FBPointerEvent
+} from './ol/lib/map.component';
+import { CursorPin, MOUSE_REST_MS } from './cursor-marker';
 import { Position } from 'src/app/types';
 
 // A bare prototype instance, as in fb-map.split-zoom.spec.ts: only what the
-// map-ready, move-end and pointer-move handlers touch is stubbed.
+// map-ready, move-end, pointer and follow-mode handlers touch is stubbed.
 const bareComponent = () => {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.mouse = signal({ pixel: null, coords: [0, 0], xy: null });
   // Object.create() skips the field initialisers.
   cmp.pointerSeen = false;
+  cmp.pointerResting = false;
+  cmp.pointerType = 'mouse';
+  cmp.cursorHidden = signal(false);
+  cmp.cursorInfo = signal(null);
+  cmp.cursorPin = new CursorPin(() => cmp.onPinExpired());
+  cmp.contextMenuPosition = { x: '', y: '' };
   cmp.app = {
-    config: { map: { zoomLevel: 10, center: [0, 0] } },
+    config: {
+      map: { zoomLevel: 10, center: [0, 0] },
+      display: { statusBar: { tapFadeSpeed: 2 } }
+    },
+    data: { vessels: { self: { positionReceived: true, position: VESSEL } } },
     mapZoom: signal(10),
     mapExtent: signal([]),
     mapViewTopCenter: signal([0, 0]),
@@ -24,7 +39,9 @@ const bareComponent = () => {
   };
   cmp.skstream = { postMapView: vi.fn() };
   cmp.trackHistory = { setView: vi.fn() };
-  cmp.refollow = { reset: vi.fn() };
+  cmp.refollow = { reset: vi.fn(), cancel: vi.fn() };
+  cmp.startSaveTimer = vi.fn();
+  cmp.startOffsetGrace = vi.fn();
   cmp.drawVesselLines = vi.fn();
   cmp.renderMapContents = vi.fn();
   cmp.updateCursorInfo = vi.fn();
@@ -32,8 +49,34 @@ const bareComponent = () => {
   return cmp;
 };
 
+// The vessel, and a chart centre a vessel offset has moved off it.
+const VESSEL: Position = [-80.1, 25.7];
+const OFFSET_CENTRE: Position = [-80.0, 25.8];
+
+const mouseMove = (lonlat: Position) =>
+  ({
+    pixel: [10, 20],
+    coordinate: [0, 0],
+    lonlat,
+    originalEvent: { pointerType: 'mouse' }
+  }) as unknown as FBPointerEvent;
+
+const touchDown = (lonlat: Position) =>
+  ({
+    pointerType: 'touch',
+    pixel: [10, 20],
+    coordinate: [0, 0],
+    lonlat,
+    clientX: 10,
+    clientY: 20
+  }) as unknown as FBPointerDownEvent;
+
 const moveEnd = (lonlat: Position) =>
   ({ zoom: 10, lonlat, extent: [] }) as unknown as FBMapEvent;
+
+// Every pointer arms the rest timer; keep it from firing into a later test.
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
 
 describe('FBMapComponent: position readout', () => {
   it('shows the restored chart centre as soon as the map is ready', () => {
@@ -88,5 +131,114 @@ describe('FBMapComponent: position readout', () => {
     cmp.onMapMoveEnd(moveEnd([178.4, -18.1]));
 
     expect(cmp.mouse().coords).toEqual([5, 50]);
+  });
+});
+
+describe('FBMapComponent: position readout while following the vessel (#1203)', () => {
+  const following = () => {
+    const cmp = bareComponent();
+    cmp.movingMap = true;
+    return cmp;
+  };
+
+  it('shows the vessel, not a chart centre the vessel offset moved off it', () => {
+    const cmp = following();
+
+    cmp.onMapMoveEnd(moveEnd(OFFSET_CENTRE));
+
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+  });
+
+  it('hands a resting mouse back to the vessel, and keeps following it', () => {
+    const cmp = following();
+    cmp.cursorInfo.set({ bearing: 1, distance: 2, timeToGo: null });
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+
+    vi.advanceTimersByTime(MOUSE_REST_MS - 1);
+    expect(cmp.mouse().coords).toEqual([5, 50]);
+    expect(cmp.cursorHidden()).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+    expect(cmp.cursorInfo()).toBeNull();
+    expect(cmp.cursorHidden()).toBe(true);
+
+    // The vessel moves on, and the chart with it.
+    cmp.app.data.vessels.self.position = [-80.2, 25.6];
+    cmp.onMapMoveEnd(moveEnd(OFFSET_CENTRE));
+    expect(cmp.mouse().coords).toEqual([-80.2, 25.6]);
+  });
+
+  it('shows the mouse and its position again once it moves', () => {
+    const cmp = following();
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+
+    cmp.onMapPointerMove(mouseMove([6, 51]));
+
+    expect(cmp.cursorHidden()).toBe(false);
+    expect(cmp.mouse().coords).toEqual([6, 51]);
+    cmp.onMapMoveEnd(moveEnd(OFFSET_CENTRE));
+    expect(cmp.mouse().coords).toEqual([6, 51]);
+  });
+
+  it('hands a tap back once its pinned readout has faded, not before', () => {
+    const cmp = following();
+    cmp.onMapPointerDown(touchDown([5, 50]));
+    // The pin lands on singleclick, after OpenLayers' double-tap wait.
+    vi.advanceTimersByTime(250);
+    cmp.cursorPin.pin([5, 50], 0, 2000);
+
+    vi.advanceTimersByTime(1999);
+    expect(cmp.mouse().coords).toEqual([5, 50]);
+
+    vi.advanceTimersByTime(1);
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+    // A finger leaves no cursor to hide.
+    expect(cmp.cursorHidden()).toBe(false);
+  });
+
+  it('hands a plain tap back after the fade time when nothing is pinned', () => {
+    const cmp = following();
+    cmp.onMapPointerDown(touchDown([5, 50]));
+
+    vi.advanceTimersByTime(2000);
+
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+  });
+
+  it('waits for a pin that outlasts the mouse rest', () => {
+    const cmp = following();
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+    cmp.cursorPin.pin([5, 50], 0, MOUSE_REST_MS + 5000);
+
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+    expect(cmp.mouse().coords).toEqual([5, 50]);
+
+    vi.advanceTimersByTime(5000);
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+  });
+
+  it('leaves a resting pointer on the readout while not following', () => {
+    const cmp = bareComponent();
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+
+    expect(cmp.mouse().coords).toEqual([5, 50]);
+    expect(cmp.cursorHidden()).toBe(false);
+  });
+
+  it('hands an already resting pointer back when following starts', () => {
+    const cmp = bareComponent();
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+
+    cmp.movingMap = true;
+    cmp.ngOnChanges({
+      movingMap: { currentValue: true, firstChange: false }
+    });
+
+    expect(cmp.mouse().coords).toEqual(VESSEL);
   });
 });

@@ -32,6 +32,12 @@
     height: 45px;
 }
 
+/* A mouse left resting over a chart that follows the vessel (#1203). Only the
+   chart itself: controls and overlays sit outside .ol-layers and keep theirs. */
+.cursor-hidden ::ng-deep .ol-layers {
+  cursor: none;
+}
+
 ::ng-deep .ol-dragbox {
   background-color: rgba(255,255,255,0.4) !important;
   border-color: rgba(100,150,0,1) !important;

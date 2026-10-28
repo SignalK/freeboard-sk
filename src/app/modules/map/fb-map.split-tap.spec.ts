@@ -29,6 +29,8 @@ const bareComponent = (secondPane: OlMap | null) => {
   cmp.s57Features = {};
   cmp.zoneEdit = { edit: (): void => undefined };
   cmp.overlay = signal({ show: false });
+  cmp.pointerType = 'mouse';
+  cmp.cursorHidden = signal(false);
   cmp.popoverMap = signal(undefined);
   cmp.pinMap = signal(undefined);
   cmp.bearingMap = signal(undefined);
