@@ -134,6 +134,17 @@ export function hitToleranceForPointer(
   return pointerType === 'touch' ? touchTolerance : mouseTolerance;
 }
 
+/**
+ * Whether a press of this pointer starts the long-press hold (context menu, or
+ * vertex delete while editing). A mouse has its own gestures for both, a
+ * right-click and Ctrl-Click, so only touch and pen presses start the hold. A
+ * mouse press held still would otherwise hit-test the map, which on a slow GPU
+ * stalls the page for as long as the readbacks take.
+ */
+export function longPressForPointer(pointerType: string | undefined): boolean {
+  return pointerType !== 'mouse';
+}
+
 // ** return adjusted radius to correctly render circle on ground at given position.
 export function mapifyRadius(radius: number, position: Coordinate): number {
   if (typeof radius === 'undefined' || typeof position === 'undefined') {

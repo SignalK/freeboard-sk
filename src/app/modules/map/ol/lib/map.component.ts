@@ -26,7 +26,11 @@ import { Coordinate } from 'ol/coordinate';
 import type { Position } from 'src/app/types';
 import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
-import { hitToleranceForPointer, worldCopyOffset } from './util';
+import {
+  hitToleranceForPointer,
+  longPressForPointer,
+  worldCopyOffset
+} from './util';
 import {
   clearHeldVertexOnRelease,
   clearVertexDeleted,
@@ -436,22 +440,8 @@ export class MapComponent implements OnInit, OnDestroy {
       this.pointerDownTime = performance.now();
       startPointerGesture(map);
       this.touchStartXY = { x: event.clientX, y: event.clientY };
-      // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
-      // pause mid-edit doesn't delete a point; the chart context-menu long-press
-      // stays at 500 ms.
-      const modifying = map
-        .getInteractions()
-        .getArray()
-        .some((i) => i instanceof Modify && i.getActive());
-      this.touchTimer = setTimeout(
-        this.touchHold,
-        modifying ? this.MODIFY_HOLD_MS : this.MENU_HOLD_MS
-      );
-      if (modifying) {
-        this.indicatorTimer = setTimeout(
-          this.showDeleteIndicator,
-          this.INDICATOR_FALLBACK_MS
-        );
+      if (longPressForPointer(event.pointerType)) {
+        this.startLongPress(map);
       }
       const rawCoord = map.getEventCoordinate(event);
       const c = toLonLat(rawCoord);
@@ -466,6 +456,25 @@ export class MapComponent implements OnInit, OnDestroy {
       this._pointerDown.update(() => e);
     });
   };
+  private startLongPress(map: Map) {
+    // A vertex delete during Modify needs a deliberate long hold (1500 ms) so a
+    // pause mid-edit doesn't delete a point; the chart context-menu long-press
+    // stays at 500 ms.
+    const modifying = map
+      .getInteractions()
+      .getArray()
+      .some((i) => i instanceof Modify && i.getActive());
+    this.touchTimer = setTimeout(
+      this.touchHold,
+      modifying ? this.MODIFY_HOLD_MS : this.MENU_HOLD_MS
+    );
+    if (modifying) {
+      this.indicatorTimer = setTimeout(
+        this.showDeleteIndicator,
+        this.INDICATOR_FALLBACK_MS
+      );
+    }
+  }
   private pointerUpHandler = (event: PointerEvent) => {
     this.clearTouchTimer();
     if (this.map) {

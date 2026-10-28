@@ -6,6 +6,7 @@ import XYZ from 'ol/source/XYZ';
 import type Tile from 'ol/Tile';
 import {
   hitToleranceForPointer,
+  longPressForPointer,
   mapifyCoords,
   releaseTiles,
   worldCopyOffset
@@ -52,6 +53,17 @@ describe('worldCopyOffset', () => {
     expect(worldCopyOffset(Infinity, W)).toBe(0);
     expect(worldCopyOffset(NaN, W)).toBe(0);
     expect(worldCopyOffset(1000, 0)).toBe(0);
+  });
+});
+
+describe('longPressForPointer', () => {
+  it('starts the hold for a finger or a pen', () => {
+    expect(longPressForPointer('touch')).toBe(true);
+    expect(longPressForPointer('pen')).toBe(true);
+  });
+
+  it('leaves a mouse to its right-click and Ctrl-Click', () => {
+    expect(longPressForPointer('mouse')).toBe(false);
   });
 });
 
