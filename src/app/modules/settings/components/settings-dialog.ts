@@ -125,6 +125,7 @@ export class SettingsDialog implements OnInit {
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);
   private plotterExt = inject(PlotterExtensionService);
+  private mapImages = inject(MapImageRegistry);
 
   protected fabOptions(): Array<[string, string]> {
     return actionButtonOptions(
@@ -133,8 +134,6 @@ export class SettingsDialog implements OnInit {
       this.facade.settings.display.fab
     );
   }
-
-  private mapImages = inject(MapImageRegistry);
 
   protected get selfIconPreview(): string {
     const iconType = this.facade.settings.vessels.iconType;

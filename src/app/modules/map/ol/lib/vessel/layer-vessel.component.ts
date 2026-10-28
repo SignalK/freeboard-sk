@@ -135,10 +135,11 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() lengthOverall: number | null = null;
   @Input() beam: number | null = null;
   @Input() iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON;
-  /** Symbol overrides load after the map starts, so the style is rebuilt once
-   * they do. Without this a `vessel-self` override only appears on the next
-   * unrelated style change, which then looks as if that setting was ignored. */
-  @Input() symbolsLoaded = false;
+  /** Symbol overrides load after the map starts, and again after a login, so
+   * the style is rebuilt each time they do. Without this a `vessel-self`
+   * override only appears on the next unrelated style change, which then looks
+   * as if that setting was ignored. */
+  @Input() symbolsRevision = 0;
   @Input() opacity?: number;
   @Input() visible?: boolean;
   @Input() extent?: Extent;
@@ -215,7 +216,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           key === 'lengthOverall' ||
           key === 'beam' ||
           key === 'iconType' ||
-          key === 'symbolsLoaded'
+          key === 'symbolsRevision'
         ) {
           if (this.source) {
             this.generateSelfStyle();

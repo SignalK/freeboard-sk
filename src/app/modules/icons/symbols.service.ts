@@ -60,6 +60,10 @@ export class SymbolService implements SymbolRegistryLike {
   /** True after load() has completed (success or error). */
   readonly loaded = signal(false);
 
+  /** Bumped after every load(). load() runs again after a login, so consumers
+   * that cache an override watch this rather than `loaded`. */
+  readonly revision = signal(0);
+
   /** Index by render ref ("custom:id" / "fsk:id") for qualified lookups. */
   private byRef = new Map<string, IndexedSymbol>();
   /** Built-in id -> the fsk override symbol for it (first alias wins). */
@@ -105,6 +109,7 @@ export class SymbolService implements SymbolRegistryLike {
       }
     } finally {
       this.loaded.set(true);
+      this.revision.update((n) => n + 1);
     }
   }
 

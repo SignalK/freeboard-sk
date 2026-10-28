@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { SimpleChange, type ChangeDetectorRef } from '@angular/core';
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
@@ -209,8 +209,8 @@ describe('VesselComponent without a position', () => {
 });
 
 describe('own-vessel symbol override loading after the map (#1202)', () => {
-  it('switches to the override once symbols have loaded', () => {
-    const overrides: { [id: string]: Icon } = {};
+  const overrides: { [id: string]: Icon } = {};
+  const component = () => {
     const c = Object.create(VesselComponent.prototype) as VesselComponent;
     Object.assign(c, {
       id: 'self',
@@ -225,15 +225,41 @@ describe('own-vessel symbol override loading after the map (#1202)', () => {
       }
     });
     c.parseVessel();
-    const src = () =>
-      ((c.vessel?.getStyle() as Style).getImage() as Icon).getSrc();
-    expect(src()).toContain('self.png');
+    return c;
+  };
+  const src = (c: VesselComponent) =>
+    ((c.vessel?.getStyle() as Style).getImage() as Icon).getSrc();
+  const symbolsLoad = (c: VesselComponent) => {
+    const previous = c.symbolsRevision;
+    c.symbolsRevision = previous + 1;
+    c.ngOnChanges({
+      symbolsRevision: new SimpleChange(previous, c.symbolsRevision, false)
+    });
+  };
+
+  beforeEach(() => {
+    delete overrides['vessel-self'];
+  });
+
+  it('switches to the override once symbols have loaded', () => {
+    const c = component();
+    expect(src(c)).toContain('self.png');
 
     overrides['vessel-self'] = new Icon({ src: './plugin-self.svg' });
-    c.symbolsLoaded = true;
-    c.ngOnChanges({ symbolsLoaded: new SimpleChange(false, true, false) });
+    symbolsLoad(c);
 
-    expect(src()).toContain('plugin-self.svg');
+    expect(src(c)).toContain('plugin-self.svg');
+  });
+
+  it('picks up an override that only arrives on a later load (login)', () => {
+    const c = component();
+    symbolsLoad(c);
+    expect(src(c)).toContain('self.png');
+
+    overrides['vessel-self'] = new Icon({ src: './plugin-self.svg' });
+    symbolsLoad(c);
+
+    expect(src(c)).toContain('plugin-self.svg');
   });
 });
 
