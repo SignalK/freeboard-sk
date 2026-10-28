@@ -20,6 +20,7 @@ import {
   TrackSource,
   TRAIL_DURATION_ALL
 } from 'src/app/modules/skstream/track-source';
+import { SKServerUnitPrefs } from 'src/app/types';
 
 /**
  * "Single Click for Note Details" configures how a note responds to a tap, so it
@@ -44,6 +45,7 @@ describe('settings dialog — note details option placement', () => {
   let settings: ReturnType<typeof defaultConfig>;
   let applied: number;
   const trackSource = signal<TrackSource | null>(null);
+  const unitPreferences = signal<SKServerUnitPrefs | undefined>(undefined);
 
   /** Activate a tab by its visible label and let its body attach. */
   const selectTab = async (label: string) => {
@@ -60,6 +62,7 @@ describe('settings dialog — note details option placement', () => {
   beforeEach(async () => {
     settings = defaultConfig();
     trackSource.set(null);
+    unitPreferences.set(undefined);
     applied = 0;
 
     const facadeStub = {
@@ -82,7 +85,7 @@ describe('settings dialog — note details option placement', () => {
       data: initData(),
       featureFlags: () => ({ radarApi: false }),
       uiCtrl: () => ({ radarLayer: false }),
-      serverConfig: { unitPreferences: () => ({}) },
+      serverConfig: { unitPreferences },
       alignUnitPrefs: (): void => undefined,
       lineDashMap: new Map([['none', 'none']]),
       formatLineDashArray: (): null => null
@@ -152,6 +155,97 @@ describe('settings dialog — note details option placement', () => {
 
     expect(settings.display.singleClickNoteDetails).toBe(true);
     expect(applied).toBeGreaterThan(before);
+  });
+
+  describe('unit choices', () => {
+    /** The unit pickers grouped under "Use Server Unit Preferences". */
+    const unitSelects = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>('#sectUnits fieldset mat-select')
+      );
+    const disabled = (el: HTMLElement) =>
+      el.getAttribute('aria-disabled') === 'true';
+
+    const showUnits = async (prefs: SKServerUnitPrefs | undefined) => {
+      unitPreferences.set(prefs);
+      await selectTab('Units');
+      // NgModel applies [disabled] a tick after the binding changes
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(unitSelects()).toHaveLength(5);
+    };
+
+    /** A server preset publishing the given target unit for each category. */
+    const preset = (targets: Record<string, string>): SKServerUnitPrefs => ({
+      name: 'preset',
+      categories: Object.fromEntries(
+        Object.entries(targets).map(([category, targetUnit]) => [
+          category,
+          { baseUnit: '', targetUnit, displayFormat: '0.0', symbol: '' }
+        ])
+      )
+    });
+    const nautical = preset({
+      distance: 'naut-mile',
+      depth: 'm',
+      length: 'm',
+      temperature: 'C',
+      speed: 'kn'
+    });
+
+    it('follow the server when it publishes unit preferences', async () => {
+      settings.units.useServerPrefs = true;
+      await showUnits(nautical);
+      expect(unitSelects().every(disabled)).toBe(true);
+    });
+
+    it('follow a server depth in fathoms', async () => {
+      settings.units.useServerPrefs = true;
+      await showUnits(
+        preset({
+          distance: 'naut-mile',
+          depth: 'fathom',
+          length: 'm',
+          temperature: 'C',
+          speed: 'kn'
+        })
+      );
+      expect(unitSelects().every(disabled)).toBe(true);
+    });
+
+    it('keep a choice editable when the server unit is not offered', async () => {
+      settings.units.useServerPrefs = true;
+      // Imperial (US): statute miles are not a distance choice
+      await showUnits(
+        preset({
+          distance: 'mile',
+          depth: 'foot',
+          length: 'foot',
+          temperature: 'F',
+          speed: 'mph'
+        })
+      );
+      // pickers in template order: distance, depth, length, temperature, speed
+      expect(unitSelects().map(disabled)).toEqual([
+        false,
+        true,
+        true,
+        true,
+        true
+      ]);
+    });
+
+    it('stay editable when the server publishes none', async () => {
+      settings.units.useServerPrefs = true;
+      await showUnits(undefined);
+      expect(unitSelects().some(disabled)).toBe(false);
+    });
+
+    it('stay editable once server preferences are turned off', async () => {
+      settings.units.useServerPrefs = false;
+      await showUnits(nautical);
+      expect(unitSelects().some(disabled)).toBe(false);
+    });
   });
 
   describe('vessel track source (#820)', () => {

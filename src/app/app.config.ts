@@ -90,7 +90,7 @@ function migrate(settings: LegacyAppConfig) {
     if (typeof units.temperature === 'string') {
       units.temperature = units.temperature.toUpperCase() as TemperatureUnitDef;
     }
-    units.length ??= depth ?? 'm';
+    units.length ??= depth === 'foot' ? 'foot' : 'm';
     if (units.speed === 'msec') {
       units.speed = 'm/s';
     } else if (units.speed === 'kmh') {
@@ -101,6 +101,9 @@ function migrate(settings: LegacyAppConfig) {
     } else if (units.distance === 'ft') {
       units.distance = 'naut-mile';
     }
+    // Releases before 2.20 always showed the units set in Freeboard; keep
+    // showing them rather than switching to the server's on upgrade.
+    units.useServerPrefs ??= false;
     if (!units.positionFormat) {
       delete (units as Partial<typeof units>).positionFormat;
     }

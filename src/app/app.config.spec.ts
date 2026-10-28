@@ -213,6 +213,24 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.ui.autoNightMode).toBe(false);
   });
 
+  it("follows the server's unit preferences by default", () => {
+    expect(defaultConfig().units.useServerPrefs).toBe(true);
+  });
+
+  it('keeps local units for a config saved before the setting existed', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.units, 'useServerPrefs');
+    cleanConfig(cfg, {});
+    expect(cfg.units.useServerPrefs).toBe(false);
+  });
+
+  it('keeps local units once the user turned server preferences off', () => {
+    const cfg = defaultConfig();
+    cfg.units.useServerPrefs = false;
+    cleanConfig(cfg, {});
+    expect(cfg.units.useServerPrefs).toBe(false);
+  });
+
   it('leaves split view off by default', () => {
     expect(defaultConfig().display.splitView).toBe(false);
   });
@@ -470,6 +488,14 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
     cleanConfig(cfg, {});
     expect(cfg.units.length).toBe('foot');
     expect(cfg.map.s57Options.depthUnit).toBe('foot');
+  });
+
+  it('keeps metres for length when the depth unit is fathoms', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.units.depth = 'fathom';
+    unset(cfg.units, 'length');
+    cleanConfig(cfg, {});
+    expect(cfg.units.length).toBe('m');
   });
 
   it('gives selections saved without chart order, tracks or info layers empty lists', () => {

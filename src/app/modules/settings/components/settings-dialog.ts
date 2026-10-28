@@ -47,6 +47,7 @@ import {
   TRAIL_MAX_HOURS
 } from 'src/app/modules/skstream/track-source';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
+import { ServerUnitCategory, serverUnit } from 'src/app/lib/server-units';
 import {
   CENTER_OFFSET_LIMIT,
   clampCenterOffset
@@ -184,6 +185,17 @@ export class SettingsDialog implements OnInit {
               ) ?? 0
             )
     };
+  }
+
+  /**
+   * A unit choice follows the server only when the server publishes a
+   * preference for it that the choice offers; otherwise it stays editable.
+   */
+  unitFromServer(category: ServerUnitCategory): boolean {
+    return (
+      this.facade.settings.units.useServerPrefs &&
+      !!serverUnit(this.app.serverConfig.unitPreferences(), category)
+    );
   }
 
   raiseChange() {

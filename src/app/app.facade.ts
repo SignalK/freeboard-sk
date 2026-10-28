@@ -38,6 +38,7 @@ import {
 import { ErrorListDialog } from './lib/components/dialogs/errorlist-dialog';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
+import { serverUnit } from './lib/server-units';
 import { APPDATA_CONTEXT, SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
@@ -51,12 +52,7 @@ import {
   LineString,
   MultiLineString,
   SKServerUnitPrefs,
-  SKPathDisplayUnits,
-  TemperatureUnitDef,
-  DepthUnitDef,
-  SpeedUnitDef,
-  DistanceUnitDef,
-  LengthUnitDef
+  SKPathDisplayUnits
 } from './types';
 
 import {
@@ -794,22 +790,16 @@ export class AppFacade extends InfoService {
       return;
     }
     if (units.categories.speed) {
-      this.config.units.speed = ['kn', 'm/s', 'km/h', 'mph'].includes(
-        units.categories.speed.targetUnit
-      )
-        ? (units.categories.speed.targetUnit as SpeedUnitDef)
-        : this.config.units.speed;
+      this.config.units.speed =
+        serverUnit(units, 'speed') ?? this.config.units.speed;
       Convert.setSymbol(
         units.categories.speed.targetUnit as TARGET_UNIT,
         units.categories.speed.symbol
       );
     }
     if (units.categories.temperature) {
-      this.config.units.temperature = ['C', 'F'].includes(
-        units.categories.temperature.targetUnit
-      )
-        ? (units.categories.temperature.targetUnit as TemperatureUnitDef)
-        : this.config.units.temperature;
+      this.config.units.temperature =
+        serverUnit(units, 'temperature') ?? this.config.units.temperature;
 
       Convert.setSymbol(
         units.categories.temperature.targetUnit as TARGET_UNIT,
@@ -818,11 +808,8 @@ export class AppFacade extends InfoService {
     }
 
     if (units.categories.distance) {
-      this.config.units.distance = ['kilometer', 'naut-mile'].includes(
-        units.categories.distance.targetUnit
-      )
-        ? (units.categories.distance.targetUnit as DistanceUnitDef)
-        : this.config.units.distance;
+      this.config.units.distance =
+        serverUnit(units, 'distance') ?? this.config.units.distance;
 
       Convert.setSymbol(
         units.categories.distance.targetUnit as TARGET_UNIT,
@@ -831,11 +818,8 @@ export class AppFacade extends InfoService {
     }
 
     if (units.categories.depth) {
-      this.config.units.depth = ['m', 'foot'].includes(
-        units.categories.depth.targetUnit
-      )
-        ? (units.categories.depth.targetUnit as DepthUnitDef)
-        : this.config.units.depth;
+      this.config.units.depth =
+        serverUnit(units, 'depth') ?? this.config.units.depth;
 
       Convert.setSymbol(
         units.categories.depth.targetUnit as TARGET_UNIT,
@@ -844,11 +828,8 @@ export class AppFacade extends InfoService {
     }
 
     if (units.categories.length) {
-      this.config.units.length = ['m', 'foot'].includes(
-        units.categories.length.targetUnit
-      )
-        ? (units.categories.length.targetUnit as LengthUnitDef)
-        : this.config.units.length;
+      this.config.units.length =
+        serverUnit(units, 'length') ?? this.config.units.length;
 
       Convert.setSymbol(
         units.categories.length.targetUnit as TARGET_UNIT,
