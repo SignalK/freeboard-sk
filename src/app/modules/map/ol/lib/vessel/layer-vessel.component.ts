@@ -32,15 +32,26 @@ import {
 /** Symbol id used to override the own-vessel marker. */
 export const VESSEL_SELF_MARKER = 'vessel-self';
 
-/** The own-vessel icon at `iconScale`: the external symbol override when one
- * is registered, else the built-in icon for `iconType`. A fresh instance, so
- * per-render heading rotation does not mutate a shared one. */
+/** A symbol provider's own-vessel override, which stands in for the default
+ * icon only: choosing any other icon type draws that built-in instead. */
+export function selfVesselOverride(
+  mapImages: MapImageRegistry,
+  iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON
+): Icon | null {
+  return iconType === DEFAULT_OWN_VESSEL_ICON
+    ? mapImages.getExternalSymbol(VESSEL_SELF_MARKER)
+    : null;
+}
+
+/** The own-vessel icon at `iconScale`: the symbol provider override for the
+ * default icon type, else the built-in icon for `iconType`. A fresh instance,
+ * so per-render heading rotation does not mutate a shared one. */
 export function selfVesselIcon(
   mapImages: MapImageRegistry,
   iconScale?: number,
   iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON
 ): Icon {
-  const ext = mapImages.getExternalSymbol(VESSEL_SELF_MARKER);
+  const ext = selfVesselOverride(mapImages, iconType);
   if (ext) {
     const img = ext.clone();
     img.setRotateWithView(true);
@@ -124,6 +135,10 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() lengthOverall: number | null = null;
   @Input() beam: number | null = null;
   @Input() iconType: OwnVesselIconType = DEFAULT_OWN_VESSEL_ICON;
+  /** Symbol overrides load after the map starts, so the style is rebuilt once
+   * they do. Without this a `vessel-self` override only appears on the next
+   * unrelated style change, which then looks as if that setting was ignored. */
+  @Input() symbolsLoaded = false;
   @Input() opacity?: number;
   @Input() visible?: boolean;
   @Input() extent?: Extent;
@@ -199,7 +214,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           key === 'actualSize' ||
           key === 'lengthOverall' ||
           key === 'beam' ||
-          key === 'iconType'
+          key === 'iconType' ||
+          key === 'symbolsLoaded'
         ) {
           if (this.source) {
             this.generateSelfStyle();

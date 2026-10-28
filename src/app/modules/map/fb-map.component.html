@@ -996,6 +996,7 @@
     [lengthOverall]="dfeat.self.design.length?.overall ?? null"
     [beam]="dfeat.self.design.beam"
     [iconType]="app.config.vessels.iconType"
+    [symbolsLoaded]="symbols.loaded()"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [stale]="
       skstream.selfPositionStale() && !app.config.vessels.fixedLocationMode

@@ -36,6 +36,8 @@ import { WakeLockService } from 'src/app/lib/services';
 import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
+import { MapImageRegistry } from 'src/app/modules/map/ol/lib/map-image-registry.service';
+import { selfVesselOverride } from 'src/app/modules/map/ol/lib/vessel/layer-vessel.component';
 import { AppFacade } from 'src/app/app.facade';
 import {
   DEFAULT_OWN_VESSEL_ICON,
@@ -132,9 +134,13 @@ export class SettingsDialog implements OnInit {
     );
   }
 
+  private mapImages = inject(MapImageRegistry);
+
   protected get selfIconPreview(): string {
+    const iconType = this.facade.settings.vessels.iconType;
     return (
-      OwnVesselIcons[this.facade.settings.vessels.iconType]?.path ??
+      selfVesselOverride(this.mapImages, iconType)?.getSrc() ??
+      OwnVesselIcons[iconType]?.path ??
       OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON].path
     );
   }
