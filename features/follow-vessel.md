@@ -84,3 +84,16 @@ that stays off, so you can still park the chart somewhere deliberately.
 Worth setting when the display is out of easy reach, or when whoever is watching it would
 rather not hunt for the Follow button: a quick pan to check the water ahead, then back to
 the boat without touching anything.
+
+## Smooth movement
+
+While following, the chart glides from one position fix to the next instead of jumping
+once a second, and your boat holds its spot on screen while the chart moves under it. In
+heading-up mode the chart turns smoothly as your heading changes, and the zoom buttons
+glide rather than snap.
+
+That smoothness costs some rendering on the device showing the chart. On a slower display,
+or a tablet you want to stretch on battery, **Settings → Map → Animate map movement** turns
+it off and brings back the old once-per-fix redraw. It is on by default. If your device is
+set to reduce motion (an accessibility setting), Freeboard moves the chart at once
+whatever this setting says.
