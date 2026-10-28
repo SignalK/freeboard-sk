@@ -9,6 +9,9 @@ import {
 } from './layer-bearing-line.component';
 import { MapComponent } from '../map.component';
 import { isHandleDrag } from '../handle-drag';
+import { SHIFT_VESSEL_END, ShiftVesselEnd } from '../view.directive';
+import VectorLayer from 'ol/layer/Vector';
+import { LineString } from 'ol/geom';
 
 // Bearing & Distance (#905): the placed end point can be dragged.
 describe('BearingLineComponent marker drag', () => {
@@ -245,5 +248,48 @@ describe('BearingLineComponent destination marker', () => {
   // a destination that is a waypoint already shows the waypoint's icon
   it('leaves the marker out when not asked to', () => {
     expect(markerDrawn(false)).toBe(false);
+  });
+});
+
+describe('BearingLineComponent during a follow glide', () => {
+  const vessel: [number, number] = [-80.5, 25.0];
+  const marker: [number, number] = [-80.4, 25.1];
+  let layer: VectorLayer;
+
+  beforeEach(async () => {
+    const map = {
+      addLayer: (l: VectorLayer) => (layer = l),
+      removeLayer: vi.fn(),
+      render: vi.fn(),
+      addInteraction: vi.fn(),
+      removeInteraction: vi.fn(),
+      getTargetElement: () => document.createElement('div')
+    };
+    await TestBed.configureTestingModule({
+      declarations: [BearingLineComponent],
+      providers: [{ provide: MapComponent, useValue: { getMap: () => map } }]
+    }).compileComponents();
+  });
+
+  it('moves the line end at the vessel and leaves the marker end', () => {
+    const fixture = TestBed.createComponent(BearingLineComponent);
+    fixture.componentRef.setInput('vesselPosition', vessel);
+    fixture.componentRef.setInput('markerPosition', marker);
+    fixture.detectChanges();
+    const shiftVesselEnd = layer.get(SHIFT_VESSEL_END) as ShiftVesselEnd;
+
+    shiftVesselEnd([40, -30]);
+
+    const line = layer
+      .getSource()!
+      .getFeatures()
+      .map((f) => f.getGeometry())
+      .find((g) => g instanceof LineString)!;
+    const [start, end] = line.getCoordinates();
+    const at = fromLonLat(vessel);
+    expect(start[0]).toBeCloseTo(at[0] + 40);
+    expect(start[1]).toBeCloseTo(at[1] - 30);
+    expect(end[0]).toBeCloseTo(fromLonLat(marker)[0]);
+    expect(end[1]).toBeCloseTo(fromLonLat(marker)[1]);
   });
 });

@@ -903,6 +903,7 @@
         [twd]="trueWindDirection(app.data.vessels.self)"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="330"
+        [layerProperties]="followsVessel"
       >
       </fb-layline>
     }
@@ -916,6 +917,7 @@
         [labelMinZoom]="this.app.config.map.labelsMinZoom"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="335"
+        [layerProperties]="followsVessel"
       >
       </fb-bearing-line>
     }

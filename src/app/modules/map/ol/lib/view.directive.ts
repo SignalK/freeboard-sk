@@ -47,6 +47,12 @@ const CENTER_EPSILON = 0.01;
 // whether it is drawn at that vessel now.
 export const FOLLOWS_VESSEL = 'followsVessel';
 export type FollowsVessel = boolean | (() => boolean);
+// Layer property for a layer drawn at that vessel only at some vertices (a
+// line from it to a fixed point): instead of the whole layer, those vertices
+// are moved, by the shift handed to this function before each frame.
+export const SHIFT_VESSEL_END = 'shiftVesselEnd';
+export type ShiftVesselEnd = (shift: MercatorCoordinate) => void;
+const NO_SHIFT: MercatorCoordinate = [0, 0];
 
 interface ViewTarget {
   center?: MercatorCoordinate;
@@ -139,9 +145,16 @@ export class ViewDirective
       this.view.on('change:center', this.emitCenterChange);
       this.view.on('change:resolution', this.emitZoomChange);
       this.view.on('change:rotation', this.emitRotationChange);
-      this.precomposeKey = map.on('precompose', () => {
+      this.precomposeKey = map.on('precompose', (e) => {
         for (const layer of map.getAllLayers()) {
-          if (layer.get(FOLLOWS_VESSEL) && !this.followLayers.has(layer)) {
+          const shiftVesselEnd = layer.get(SHIFT_VESSEL_END) as
+            ShiftVesselEnd | undefined;
+          if (shiftVesselEnd) {
+            shiftVesselEnd(this.glideShift(e, layer));
+          } else if (
+            layer.get(FOLLOWS_VESSEL) &&
+            !this.followLayers.has(layer)
+          ) {
             this.followLayers.add(layer);
             layer.on('prerender', this.offsetByGlide);
             layer.on('postrender', this.restoreOffset);
@@ -333,6 +346,21 @@ export class ViewDirective
     if (target.rotation !== undefined) view.setRotation(target.rotation);
   }
 
+  private follows(layer: BaseLayer): boolean {
+    const follows = layer.get(FOLLOWS_VESSEL) as FollowsVessel | undefined;
+    return typeof follows === 'function' ? follows() : !!follows;
+  }
+
+  // The rest of the glide in Mercator metres, for a layer drawn at the vessel
+  // the view follows.
+  private glideShift(e: RenderEvent, layer: BaseLayer): MercatorCoordinate {
+    const center = e.frameState?.viewState.center;
+    if (!this.glideTarget || !center || !this.follows(layer)) {
+      return NO_SHIFT;
+    }
+    return [center[0] - this.glideTarget[0], center[1] - this.glideTarget[1]];
+  }
+
   // The vessel moves once per fix while the chart glides towards it, so a
   // layer drawn at the vessel is shifted by the rest of the glide: the vessel
   // keeps its place on screen instead of jumping ahead of the chart.
@@ -344,10 +372,7 @@ export class ViewDirective
       return;
     }
     context.save();
-    const follows = (e.target as BaseLayer).get(
-      FOLLOWS_VESSEL
-    ) as FollowsVessel;
-    if (!this.glideTarget || (typeof follows === 'function' && !follows())) {
+    if (!this.glideTarget || !this.follows(e.target as BaseLayer)) {
       return;
     }
     const toPixel = frameState.coordinateToPixelTransform;

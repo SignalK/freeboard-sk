@@ -35,6 +35,8 @@ import {
 } from '../util';
 import { Position } from 'src/app/types';
 import { setHandleDrag } from '../handle-drag';
+import { SHIFT_VESSEL_END } from '../view.directive';
+import { VesselEnds } from '../vessel-ends';
 import { AsyncSubject } from 'rxjs';
 
 // EPSG:3857 is built into OpenLayers, so the lookup always finds it
@@ -93,6 +95,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   public mapifiedRadius = 0;
   public mapifiedLine: Array<Coordinate> = [];
+  private readonly vesselEnds = new VesselEnds();
 
   private interaction?: PointerInteraction;
   // the finger that grabbed the marker, and where the marker was before
@@ -132,6 +135,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
+    this.layer.set(SHIFT_VESSEL_END, this.vesselEnds.shiftBy);
 
     const map = this.mapComponent.getMap();
     this.interaction = new PointerInteraction({
@@ -184,6 +188,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     const fa: Feature[] = [];
     const vesselPosition = this.vesselPosition();
     const markerPosition = this.markerPosition();
+    this.vesselEnds.clear();
     if (this.showOrigin() && Array.isArray(vesselPosition)) {
       const fo = new Feature({
         geometry: new Point(fromLonLat(vesselPosition))
@@ -194,9 +199,9 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     }
     if (Array.isArray(vesselPosition) && Array.isArray(markerPosition)) {
       this.mapifiedLine = mapifyCoords([vesselPosition, markerPosition]);
-      const fl = new Feature({
-        geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-      });
+      const line = new LineString(fromLonLatArray(this.mapifiedLine));
+      this.vesselEnds.add(line, 0);
+      const fl = new Feature({ geometry: line });
       fl.setStyle(this.buildStyle('line'));
       fa.push(fl);
       let fp = new Feature({

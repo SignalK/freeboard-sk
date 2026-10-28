@@ -674,7 +674,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   // Layers drawn at the vessel take each fix at once, not when the glide
   // towards it ends, and are shifted along with the glide (ViewDirective)
-  // while the map follows the active vessel. Layers drawn at our own vessel
+  // while the map follows the active vessel; lines from the vessel to a fixed
+  // point move only their end at the vessel. Layers drawn at our own vessel
   // only move with it while that is the active one.
   protected readonly followsVessel = {
     updateWhileAnimating: true,
