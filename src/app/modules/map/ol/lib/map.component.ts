@@ -501,8 +501,13 @@ export class MapComponent implements OnInit, OnDestroy {
 
   // Discrete user actions (clicks) re-enter the Angular zone so consumers that
   // mutate Angular state / open popovers trigger change detection.
+  // A hit test reads the map back from the GPU, which on a slow GPU waits for
+  // all the drawing queued before it, so it only runs for an event that has a
+  // listener.
   private emitClickEvent = pointerGesture((event) => {
-    this.ngZone.run(() => this.mapClick.emit(this.augmentClickEvent(event)));
+    if (this.mapClick.observed) {
+      this.ngZone.run(() => this.mapClick.emit(this.augmentClickEvent(event)));
+    }
   });
 
   private emitRightClickEvent = (map: Map, event: MouseEvent) => {
@@ -537,7 +542,11 @@ export class MapComponent implements OnInit, OnDestroy {
     clearVertexDeleted(event.map);
   });
   private emitDblClickEvent = pointerGesture((event) => {
-    this.ngZone.run(() => this.mapDblClick.emit(this.augmentClickEvent(event)));
+    if (this.mapDblClick.observed) {
+      this.ngZone.run(() =>
+        this.mapDblClick.emit(this.augmentClickEvent(event))
+      );
+    }
     // A double click cancels the pending singleclick, so retire the marker here
     // instead (#608).
     clearVertexDeleted(event.map);
