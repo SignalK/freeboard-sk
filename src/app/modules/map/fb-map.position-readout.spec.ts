@@ -29,7 +29,7 @@ const bareComponent = () => {
       map: { zoomLevel: 10, center: [0, 0] },
       display: { statusBar: { tapFadeSpeed: 2 } }
     },
-    data: { vessels: { self: { positionReceived: true, position: VESSEL } } },
+    data: { vessels: { active: { positionReceived: true, position: VESSEL } } },
     mapZoom: signal(10),
     mapExtent: signal([]),
     mapViewTopCenter: signal([0, 0]),
@@ -157,6 +157,18 @@ describe('FBMapComponent: position readout while following the vessel (#1203)', 
     expect(cmp.mouse().coords).toEqual(VESSEL);
   });
 
+  it('shows the followed vessel when another vessel is made active', () => {
+    const cmp = following();
+    cmp.app.data.vessels.active = {
+      positionReceived: true,
+      position: [-79.9, 26.0]
+    };
+
+    cmp.onMapMoveEnd(moveEnd(OFFSET_CENTRE));
+
+    expect(cmp.mouse().coords).toEqual([-79.9, 26.0]);
+  });
+
   it('hands a resting mouse back to the vessel, and keeps following it', () => {
     const cmp = following();
     cmp.cursorInfo.set({ bearing: 1, distance: 2, timeToGo: null });
@@ -172,7 +184,7 @@ describe('FBMapComponent: position readout while following the vessel (#1203)', 
     expect(cmp.cursorHidden()).toBe(true);
 
     // The vessel moves on, and the chart with it.
-    cmp.app.data.vessels.self.position = [-80.2, 25.6];
+    cmp.app.data.vessels.active.position = [-80.2, 25.6];
     cmp.onMapMoveEnd(moveEnd(OFFSET_CENTRE));
     expect(cmp.mouse().coords).toEqual([-80.2, 25.6]);
   });

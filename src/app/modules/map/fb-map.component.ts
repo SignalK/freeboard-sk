@@ -1211,18 +1211,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * The readout with no pointer to show: the vessel while the chart follows it
-   * (not the chart centre, which a vessel offset moves off the vessel), else
-   * `center` when given.
+   * The readout with no pointer to show: the followed (active) vessel while
+   * the chart follows it (not the chart centre, which a vessel offset moves
+   * off the vessel), else `center` when given.
    */
   private showIdlePosition(center?: Position) {
     if (this.readoutOnPointer) {
       return;
     }
-    const self = this.app.data.vessels.self;
+    const active = this.app.data.vessels.active;
     const at =
-      this.movingMap && self?.positionReceived && self.position
-        ? self.position
+      this.movingMap && active?.positionReceived && active.position
+        ? active.position
         : center;
     if (at) {
       const coords = GeoUtils.normaliseCoords(at);
