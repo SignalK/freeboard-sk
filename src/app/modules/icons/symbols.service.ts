@@ -80,15 +80,17 @@ export class SymbolService implements SymbolRegistryLike {
   /** Fetch /resources/symbols, index, and register all renderable symbols. */
   async load(): Promise<void> {
     try {
-      // Reset indexes so a reload reflects removed/changed provider symbols
-      // rather than accumulating stale entries across calls.
+      const result = (await firstValueFrom(
+        this.signalk.api.get(this.app.skApiVersion, '/resources/symbols')
+      )) as Record<string, unknown>;
+
+      // Reset only once a response arrives: a reload then reflects removed or
+      // changed provider symbols, while a failed one keeps the last good set
+      // and the map never draws from an empty registry mid-request.
       this.byRef.clear();
       this.overrides.clear();
       this.userSymbols = [];
       this.mapImages.clearSymbolMarkers();
-      const result = (await firstValueFrom(
-        this.signalk.api.get(this.app.skApiVersion, '/resources/symbols')
-      )) as Record<string, unknown>;
 
       if (!result || typeof result !== 'object') {
         if (isDevMode())

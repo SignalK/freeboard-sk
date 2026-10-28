@@ -72,4 +72,21 @@ describe('SymbolService reloads', () => {
     await symbols.load();
     expect(drawn()).toBeUndefined();
   });
+
+  it('keeps the last good symbols when a reload fails', async () => {
+    const symbols = service([
+      () => of({ [vesselSelf.uuid]: vesselSelf }),
+      () => throwError(() => ({ status: 503 }))
+    ]);
+    const mapImages = TestBed.inject(MapImageRegistry);
+
+    await symbols.load();
+    await symbols.load();
+
+    expect(symbols.revision()).toBe(2);
+    expect(symbols.hasExternalVersion('vessel-self')).toBe(true);
+    expect(mapImages.getExternalSymbol('vessel-self')?.getSrc()).toBe(
+      '/plugin/self.svg'
+    );
+  });
 });
