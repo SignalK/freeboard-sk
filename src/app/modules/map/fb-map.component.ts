@@ -599,9 +599,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     if (gone(this.pinMap())) {
       this.pinMap.set(undefined);
+      const pinned = this.cursorPin.active;
       this.cursorPin.release();
       // Released, not expired, so run what its expiry would have.
-      this.onPinExpired();
+      if (pinned) {
+        this.onPinExpired();
+      }
     }
     if (gone(this.bearingMap())) {
       this.bearingMap.set(undefined);
@@ -1242,21 +1245,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.armPointerRest();
   }
 
-  /**
-   * Time the pointer's rest. During a modal interaction (drawing, measuring,
-   * editing, picking) the pointer is what is being worked with, so its rest is
-   * timed again instead of handed back: that also catches the interaction
-   * ending while the pointer stays still.
-   */
   private armPointerRest() {
     clearTimeout(this.pointerRestTimer);
     this.pointerRestTimer = setTimeout(
       () => {
         this.pointerRestTimer = undefined;
-        if (this.movingMap && this.isModalInteraction()) {
-          this.armPointerRest();
-          return;
-        }
         this.pointerResting = true;
         this.resumeVesselReadout();
       },
@@ -1275,6 +1268,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * Hand the readout back to the vessel once the pointer rests while the chart
    * follows it (#1203). A pinned tap holds it until the pin expires, which
    * calls here again, so the bearing never outlives its marker or vice versa.
+   *
+   * During a modal interaction (drawing, measuring, editing, picking) the
+   * pointer is what is being worked with, so it keeps the readout and its rest
+   * is timed again: that catches the interaction ending while the pointer
+   * stays still. Checked here, not in the timer, so following starting or a
+   * pin expiring mid-interaction is held too.
    */
   private resumeVesselReadout() {
     if (
@@ -1283,6 +1282,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
       !this.movingMap ||
       this.cursorPin.active
     ) {
+      return;
+    }
+    if (this.isModalInteraction()) {
+      this.pointerResting = false;
+      this.armPointerRest();
       return;
     }
     this.readoutOnPointer = false;

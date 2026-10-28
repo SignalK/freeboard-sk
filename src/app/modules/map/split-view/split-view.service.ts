@@ -16,17 +16,17 @@ import {
   SPLIT_VIEW_STORAGE_KEY
 } from './split-view';
 
-/**
- * A tap on the second pane, handed to the main chart to handle as its own:
- * the second pane shows the main chart's own features (see layer-mirror), so
- * the same popovers and actions apply.
- */
 /** The pointer over the second pane, for the main chart's position readout. */
 export interface SecondaryPointer {
   lonlat: Position;
   pointerType?: string;
 }
 
+/**
+ * A tap on the second pane, handed to the main chart to handle as its own:
+ * the second pane shows the main chart's own features (see layer-mirror), so
+ * the same popovers and actions apply.
+ */
 export type SecondaryTap =
   | {
       kind: 'click';

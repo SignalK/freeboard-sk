@@ -253,6 +253,38 @@ describe('FBMapComponent: position readout while following the vessel (#1203)', 
     expect(cmp.cursorHidden()).toBe(true);
   });
 
+  it('keeps the readout and cursor when following starts mid-drawing', () => {
+    const cmp = bareComponent();
+    cmp.modal = true;
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+
+    cmp.movingMap = true;
+    cmp.ngOnChanges({
+      movingMap: { currentValue: true, firstChange: false }
+    });
+    expect(cmp.mouse().coords).toEqual([5, 50]);
+    expect(cmp.cursorHidden()).toBe(false);
+
+    cmp.modal = false;
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+  });
+
+  it('leaves a live bearing alone when a pane whose pin lapsed closes', () => {
+    const cmp = following();
+    cmp.popoverMap = signal(undefined);
+    cmp.bearingMap = signal(undefined);
+    cmp.pinMap = signal({});
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+    const live = { bearing: 1, distance: 2, timeToGo: null };
+    cmp.cursorInfo.set(live);
+
+    cmp.onPaneChanged(null);
+
+    expect(cmp.cursorInfo()).toBe(live);
+  });
+
   it('shows the mouse again when following stops', () => {
     const cmp = following();
     cmp.onMapPointerMove(mouseMove([5, 50]));
