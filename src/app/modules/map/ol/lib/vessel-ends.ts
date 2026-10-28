@@ -44,7 +44,8 @@ export class VesselEnds {
     const coordinates = end.line.getCoordinates();
     coordinates[end.index] = [
       end.at[0] + this.shift[0],
-      end.at[1] + this.shift[1]
+      end.at[1] + this.shift[1],
+      ...end.at.slice(2)
     ];
     end.line.setCoordinates(coordinates);
   }

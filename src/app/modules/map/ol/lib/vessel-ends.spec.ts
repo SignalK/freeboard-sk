@@ -47,6 +47,23 @@ describe('VesselEnds', () => {
     ]);
   });
 
+  it('keeps the altitude of a line in three dimensions', () => {
+    const ends = new VesselEnds();
+    const l = new LineString([
+      [0, 0, 7],
+      [100, 100, 9]
+    ]);
+    ends.add(l, 0);
+
+    ends.shiftBy([5, -3]);
+
+    expect(l.getLayout()).toBe('XYZ');
+    expect(l.getCoordinates()).toEqual([
+      [5, -3, 7],
+      [100, 100, 9]
+    ]);
+  });
+
   it('changes nothing for the same shift', () => {
     const ends = new VesselEnds();
     const l = line();
