@@ -2318,10 +2318,11 @@
           This section provides choices about the units and values used when
           displaying data.<br />
 
-          <b>Use Server Unit Preferences</b>: When checked sets the Distance,
-          Depth, Length, Speed and Temperature units to those selected on the
-          Signal K server, and disables the selections below. Only available
-          when the server publishes unit preferences.<br />
+          <b>Use Server Unit Preferences</b>: On by default. When checked sets
+          the Distance, Depth, Length, Speed and Temperature units to those
+          selected on the Signal K server, and disables each selection below
+          that the server sets. Only available when the server publishes unit
+          preferences; without them the selections below stay editable.<br />
           <i
             >Note: The server can also publish a unit for an individual path,
             which overrides the category setting for that value. Wind speed is
@@ -2797,6 +2798,7 @@
           there are multiple RADAR devices available.<br />
           Click the <b>REFRESH</b> button to fetch the list of RADARs from the
           Signal K Server.<br />
+          The device list is locked while the RADAR is shown on the map.<br />
           <b>Draw range circles at the radar range while it transmits</b>:
           Select to draw range circles at the RADAR range around the vessel
           while the RADAR transmits, in place of the vessel range circles.
