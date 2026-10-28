@@ -84,6 +84,27 @@ validates each `coordinatesMeta` entry as either a name entry (`name` required, 
 fields allowed, so `{ name, href }` is fine) or a bare `{ href }`. An entry with
 neither, such as `{}` or `{ description }`, is rejected with a 400.
 
+### An icon that ignores its setting may be a symbol provider override
+
+**The trap.** A plugin installed on the server can act as a symbol provider. KIP
+is one. It publishes symbols at `/signalk/v2/api/resources/symbols`, and any
+symbol with an `fsk:<id>` alias replaces Freeboard's built-in icon of that id:
+`vessel-self` for the own vessel, the `ais_*` icons, waypoints, the wind and
+current arrows. Nothing in Freeboard's UI says an override is active. They also
+load after the map starts, so a layer that caches its style can draw the
+built-in first and switch to the override on its next restyle. Change a setting,
+see the "wrong" icon, and it looks as if the setting did nothing. A reload hits
+the same race and appears to fix it. This cost a long debugging session on #1202
+before anyone looked at what the server was supplying.
+
+**What to do instead.** When what's drawn doesn't match the setting, check the
+server's symbols first. Look at the `/resources/symbols` response in the
+browser's network tab, or log what the layer actually resolves, for example the
+`Icon`'s `getSrc()`. A `src` under another package's path (such as
+`/@mxtommy/kip/...`) is an override. Your own dev server may have plugins
+installed that boaters' servers don't, so reproduce with and without the
+provider.
+
 ---
 
 ## When coding
