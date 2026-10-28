@@ -9,7 +9,12 @@ import RenderEvent from 'ol/render/Event';
 import type { FrameState } from 'ol/Map';
 import { create as createTransform } from 'ol/transform';
 import { MapComponent } from './map.component';
-import { FOLLOWS_VESSEL, FollowsVessel, ViewDirective } from './view.directive';
+import {
+  FOLLOWS_VESSEL,
+  FollowsVessel,
+  SHIFT_VESSEL_END,
+  ViewDirective
+} from './view.directive';
 
 describe('ViewDirective: settled view changes', () => {
   let map: OlMap | null;
@@ -362,6 +367,52 @@ describe('ViewDirective: layers drawn at the vessel', () => {
     expect(context.restore).toHaveBeenCalledTimes(
       context.save.mock.calls.length
     );
+  });
+
+  it('moves only the vessel end of a line from the vessel', () => {
+    const { directive, layer, change } = mounted(true);
+    const shiftVesselEnd = vi.fn();
+    layer.set(SHIFT_VESSEL_END, shiftVesselEnd);
+    change([10, 20]);
+    vi.advanceTimersByTime(1000);
+    change([10.001, 20]);
+    const target = fromLonLat([10.001, 20]);
+    const now = directive.getView()!.getCenter()!;
+
+    const context = render(layer, now);
+
+    const [[dx, dy]] = shiftVesselEnd.mock.calls[0];
+    expect(dx).toBeCloseTo(now[0] - target[0]);
+    expect(dy).toBeCloseTo(now[1] - target[1]);
+    expect(dx).not.toBe(0);
+    expect(context.translate).not.toHaveBeenCalled();
+  });
+
+  it('puts the vessel end back once the glide ends', () => {
+    const { directive, layer, change } = mounted(true);
+    const shiftVesselEnd = vi.fn();
+    layer.set(SHIFT_VESSEL_END, shiftVesselEnd);
+    change([10, 20]);
+    vi.advanceTimersByTime(1000);
+    change([10.001, 20]);
+    vi.runAllTimers();
+
+    render(layer, directive.getView()!.getCenter()!);
+
+    expect(shiftVesselEnd).toHaveBeenCalledWith([0, 0]);
+  });
+
+  it('leaves the end of a line from a vessel the view does not follow', () => {
+    const { directive, layer, change } = mounted(() => false);
+    const shiftVesselEnd = vi.fn();
+    layer.set(SHIFT_VESSEL_END, shiftVesselEnd);
+    change([10, 20]);
+    vi.advanceTimersByTime(1000);
+    change([10.001, 20]);
+
+    render(layer, directive.getView()!.getCenter()!);
+
+    expect(shiftVesselEnd).toHaveBeenCalledWith([0, 0]);
   });
 
   it('leaves other layers alone', () => {

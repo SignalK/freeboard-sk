@@ -20,6 +20,8 @@ import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Position } from 'src/app/types';
+import { SHIFT_VESSEL_END } from '../view.directive';
+import { VesselEnds } from '../vessel-ends';
 
 // ** Freeboard Layline component **
 @Component({
@@ -58,6 +60,7 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() layerProperties?: { [index: string]: any };
 
   public mapifiedLine: Array<Coordinate> = [];
+  private readonly vesselEnds = new VesselEnds();
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -72,6 +75,7 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
+    this.layer.set(SHIFT_VESSEL_END, this.vesselEnds.shiftBy);
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -118,14 +122,12 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   parseValues() {
     const fa: Feature[] = [];
     let idx = 0;
+    this.vesselEnds.clear();
 
     if (this.lines) {
       if (this.lines.port && Array.isArray(this.lines.port)) {
         this.lines.port.forEach((l: Coordinate[]) => {
-          const mapifiedLine = mapifyCoords(l);
-          const f = new Feature({
-            geometry: new LineString(fromLonLatArray(mapifiedLine))
-          });
+          const f = new Feature({ geometry: this.buildLine(l) });
           f.setStyle(this.buildStyle(idx === 0 ? 'port' : 'starboard'));
           fa.push(f);
           idx++;
@@ -134,10 +136,7 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
       idx = 0;
       if (this.lines.starboard && Array.isArray(this.lines.starboard)) {
         this.lines.starboard.forEach((l: Coordinate[]) => {
-          const mapifiedLine = mapifyCoords(l);
-          const f = new Feature({
-            geometry: new LineString(fromLonLatArray(mapifiedLine))
-          });
+          const f = new Feature({ geometry: this.buildLine(l) });
           f.setStyle(this.buildStyle(idx === 0 ? 'port' : 'starboard'));
           fa.push(f);
           idx++;
@@ -145,6 +144,20 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
     this.features = fa;
+  }
+
+  // The vessel's laylines end at the vessel, which follows a glide.
+  private buildLine(l: Coordinate[]): LineString {
+    const line = new LineString(fromLonLatArray(mapifyCoords(l)));
+    const position = this.position;
+    if (position) {
+      l.forEach((c, i) => {
+        if (c[0] === position[0] && c[1] === position[1]) {
+          this.vesselEnds.add(line, i);
+        }
+      });
+    }
+    return line;
   }
 
   // build target style
