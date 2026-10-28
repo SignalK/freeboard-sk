@@ -3,6 +3,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
+import { MapImageRegistry } from 'src/app/modules/map/ol/lib/map-image-registry.service';
 import { SymbolService } from './symbols.service';
 
 /**
@@ -50,5 +51,25 @@ describe('SymbolService reloads', () => {
     await symbols.load();
     expect(symbols.revision()).toBe(2);
     expect(symbols.hasExternalVersion('vessel-self')).toBe(true);
+  });
+
+  it('draws the latest provider symbol after a reload, or none once removed', async () => {
+    const moved = { ...vesselSelf, url: '/plugin/self-v2.svg' };
+    const symbols = service([
+      () => of({ [vesselSelf.uuid]: vesselSelf }),
+      () => of({ [moved.uuid]: moved }),
+      () => of({})
+    ]);
+    const mapImages = TestBed.inject(MapImageRegistry);
+    const drawn = () => mapImages.getExternalSymbol('vessel-self')?.getSrc();
+
+    await symbols.load();
+    expect(drawn()).toBe('/plugin/self.svg');
+
+    await symbols.load();
+    expect(drawn()).toBe('/plugin/self-v2.svg');
+
+    await symbols.load();
+    expect(drawn()).toBeUndefined();
   });
 });

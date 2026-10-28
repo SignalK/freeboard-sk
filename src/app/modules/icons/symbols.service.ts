@@ -85,6 +85,7 @@ export class SymbolService implements SymbolRegistryLike {
       this.byRef.clear();
       this.overrides.clear();
       this.userSymbols = [];
+      this.mapImages.clearSymbolMarkers();
       const result = (await firstValueFrom(
         this.signalk.api.get(this.app.skApiVersion, '/resources/symbols')
       )) as Record<string, unknown>;
