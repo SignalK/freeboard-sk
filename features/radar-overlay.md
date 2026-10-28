@@ -31,8 +31,16 @@ button.
 **The picture follows the radar.** Returns are drawn only while the radar
 transmits (or is warming up). Put it in standby and the picture goes; transmit
 again and it comes back — whether the change was made here, at the MFD, or from
-another device. Showing or hiding the radar is a choice per screen, so one
-screen can keep a clean chart while the radar keeps running for the others.
+another device.
+
+**Your choice is remembered.** Whether the radar is shown on the chart is saved
+with your other Freeboard settings — in this browser and, when you are signed
+in, with your user on the server. After a page reload, a browser restart or a
+server restart it comes back as you left it: the picture appears as soon as the
+radar transmits. Hiding it is remembered the same way. Showing or hiding the
+radar doesn't change screens that are already open, so one screen can keep a
+clean chart while the radar keeps running for the others; a kiosk display that
+signs in as its own user keeps its own choice.
 
 ![Fig 2. The radar control panel, transmitting](radar-overlay-2.jpg)
 
@@ -83,11 +91,14 @@ setting, on by default.
 **More than one radar.** Besides the radar name in the panel, the radar can be
 chosen in **Settings → Radar → Radar Devices**, with **REFRESH** to re-query
 the server for the current list. That list is locked while the radar shows on
-the chart. Your choice is remembered for next time; if that radar is no longer
+the chart — including straight after a load when the radar was left showing.
+Hide the radar to change it there, or pick another from the radar name in the
+panel. Your choice is remembered for next time; if that radar is no longer
 present, the first one found is used.
 
 **Server versions.** Both Radar API 3.4.0 and earlier servers are supported.
 Freeboard detects the version when it discovers the radars and talks to the
 right endpoint automatically — there is nothing to configure.
 
-If the radar stream fails, Freeboard reports the error and hides the radar.
+If the radar stream fails, Freeboard reports the error and hides the radar for
+now; your saved choice is untouched, so the next load tries again.

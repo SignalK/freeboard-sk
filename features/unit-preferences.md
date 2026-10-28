@@ -31,19 +31,23 @@ Sounder depth and charted depth always agree.
 ## Taking your units from the Signal K server
 
 The server keeps its own unit preferences, set per user in **Server Admin** under
-**Server &rarr; Configuration &rarr; Settings &rarr; Unit Preferences**. Tick
-**Use Server Unit Preferences** and Freeboard follows those instead: the five
-selections above grey out and take their values from the server.
+**Server &rarr; Configuration &rarr; Settings &rarr; Unit Preferences**.
+**Use Server Unit Preferences** is on by default, so Freeboard follows those: each of
+the five selections above that the server sets greys out and takes its value from the
+server. Untick it to choose your own units instead. A device that already has saved
+Freeboard settings keeps the choice it had.
 
 The point of this is to set your units once, on the server, and have every app that
 honours them agree - Freeboard included. Change a unit on the server and Freeboard
 picks it up; there is nothing to update here.
 
 The checkbox is only available if your server actually publishes unit preferences. On
-a server without them it stays greyed out and your own selections apply.
+a server without them it stays greyed out and your own selections apply - they stay
+editable whatever the checkbox shows.
 
-If the server asks for a unit Freeboard doesn't offer, Freeboard keeps your existing
-choice for that category rather than showing a value it cannot convert.
+If the server asks for a unit Freeboard doesn't offer (statute miles, say), Freeboard
+keeps your own choice for that category rather than showing a value it cannot convert,
+and leaves that selection editable.
 
 ## When one value needs a different unit
 
