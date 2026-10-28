@@ -11,6 +11,14 @@ import { Position } from 'src/app/types';
  */
 export const TAP_MAX_DURATION = 500;
 
+/**
+ * How long a mouse left still over a chart that follows the vessel keeps the
+ * position readout on the cursor before handing it back to the vessel (#1203).
+ * A finger has no resting position to keep, so touch hands it back as soon as
+ * the tap's fade ends instead.
+ */
+export const MOUSE_REST_MS = 15000;
+
 /** Fade duration (seconds) when the setting is unset. */
 export const DEFAULT_TAP_FADE_SPEED = 1.5;
 

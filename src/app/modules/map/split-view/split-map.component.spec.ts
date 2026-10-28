@@ -806,9 +806,15 @@ describe('SplitMapComponent: the position readout', () => {
     const cmp = bareComponent();
     cmp.split.forwardPointer = vi.fn();
 
-    cmp.onPointerMove({ lonlat: [23.5, 60.1] });
+    cmp.onPointerMove({
+      lonlat: [23.5, 60.1],
+      originalEvent: { pointerType: 'touch' }
+    });
 
-    expect(cmp.split.forwardPointer).toHaveBeenCalledWith([23.5, 60.1]);
+    expect(cmp.split.forwardPointer).toHaveBeenCalledWith(
+      [23.5, 60.1],
+      'touch'
+    );
   });
 });
 

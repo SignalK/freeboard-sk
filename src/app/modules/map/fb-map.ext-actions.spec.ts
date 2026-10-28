@@ -47,6 +47,8 @@ const bareComponent = (offered: string[]) => {
   };
   cmp.zoneEdit = { edit: (): null => null };
   cmp.overlay = signal({ show: false });
+  cmp.pointerType = 'mouse';
+  cmp.cursorHidden = signal(false);
   cmp.popoverMap = signal(undefined);
   cmp.menuZoom = signal(0);
   cmp.mapZoomLevel = signal(10);

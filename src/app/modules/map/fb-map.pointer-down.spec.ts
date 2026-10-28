@@ -14,6 +14,9 @@ const bareComponent = () => {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.mouse = signal({ coords: [0, 0] });
   cmp.contextMenuPosition = { x: '0px', y: '0px' };
+  // Object.create() skips the field initialisers.
+  cmp.pointerType = 'mouse';
+  cmp.cursorHidden = signal(false);
   return cmp;
 };
 
