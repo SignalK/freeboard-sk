@@ -1239,10 +1239,24 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (pointerType) {
       this.pointerType = pointerType;
     }
+    this.armPointerRest();
+  }
+
+  /**
+   * Time the pointer's rest. During a modal interaction (drawing, measuring,
+   * editing, picking) the pointer is what is being worked with, so its rest is
+   * timed again instead of handed back: that also catches the interaction
+   * ending while the pointer stays still.
+   */
+  private armPointerRest() {
     clearTimeout(this.pointerRestTimer);
     this.pointerRestTimer = setTimeout(
       () => {
         this.pointerRestTimer = undefined;
+        if (this.movingMap && this.isModalInteraction()) {
+          this.armPointerRest();
+          return;
+        }
         this.pointerResting = true;
         this.resumeVesselReadout();
       },

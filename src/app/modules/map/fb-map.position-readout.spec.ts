@@ -45,7 +45,15 @@ const bareComponent = () => {
   cmp.drawVesselLines = vi.fn();
   cmp.renderMapContents = vi.fn();
   cmp.updateCursorInfo = vi.fn();
-  cmp.mapInteract = { isMeasuring: () => false };
+  cmp.modal = false;
+  cmp.mapInteract = {
+    pick: () => null,
+    isDrawing: () => cmp.modal,
+    isMeasuring: () => false,
+    isModifying: () => false,
+    isBoxSelecting: () => false
+  };
+  cmp.zoneEdit = { edit: (): null => null };
   return cmp;
 };
 
@@ -227,6 +235,22 @@ describe('FBMapComponent: position readout while following the vessel (#1203)', 
 
     expect(cmp.mouse().coords).toEqual([5, 50]);
     expect(cmp.cursorHidden()).toBe(false);
+  });
+
+  it('keeps the readout and cursor while drawing, until the drawing ends', () => {
+    const cmp = following();
+    cmp.modal = true;
+    cmp.onMapPointerMove(mouseMove([5, 50]));
+
+    vi.advanceTimersByTime(MOUSE_REST_MS * 3);
+    expect(cmp.mouse().coords).toEqual([5, 50]);
+    expect(cmp.cursorHidden()).toBe(false);
+
+    // Finished from the toolbar or a key: the pointer never moved.
+    cmp.modal = false;
+    vi.advanceTimersByTime(MOUSE_REST_MS);
+    expect(cmp.mouse().coords).toEqual(VESSEL);
+    expect(cmp.cursorHidden()).toBe(true);
   });
 
   it('shows the mouse again when following stops', () => {
