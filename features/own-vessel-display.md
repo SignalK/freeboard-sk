@@ -20,8 +20,9 @@ on the chart, so route lines and chart detail never hide it.
 
 **Settings → Vessels → Vessel Icon** sets how it looks:
 
-- **Vessel icon** — the shape drawn for your boat: the **Original red sailboat** (the
-  default), a **Sailing Monohull**, a **Catamaran** or a **Powerboat**.
+- **Vessel icon** — the shape drawn for your boat: the **Default vessel symbol**, a
+  **Sailing Monohull**, a **Catamaran** or a **Powerboat**. The default is the original
+  red sailboat, or your symbol provider's own-vessel icon when one is installed.
 - **Size** (S, M, L, XL) — larger is easier to pick out on a helm tablet in daylight;
   smaller keeps more chart visible around you. The size buttons preview the chosen shape.
 - **Show vessel at actual size when zoomed in** — see below.
@@ -29,9 +30,9 @@ on the chart, so route lines and chart detail never hide it.
 When you select another vessel, such as an AIS target, your own icon keeps its shape but
 dims, so the selected vessel stands out.
 
-Want a different boat entirely? A symbol provider can replace the icon with your own
-artwork — see **Custom Map Symbols**. A custom symbol takes the place of the icon chosen
-here.
+Want a different boat entirely? A symbol provider can supply your own artwork — see
+**Custom Map Symbols**. It replaces only the **Default vessel symbol**: choose Sailing
+Monohull, Catamaran or Powerboat and that shape is drawn even with a provider installed.
 
 ### Actual size
 
