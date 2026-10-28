@@ -96,9 +96,9 @@
   },
   "devDependencies": {
     "@angular/animations": "^21.2.25",
-    "@angular/build": "^21.2.25",
+    "@angular/build": "^21.2.29",
     "@angular/cdk": "^21.0.3",
-    "@angular/cli": "^21.2.25",
+    "@angular/cli": "^21.2.29",
     "@angular/common": "^21.2.25",
     "@angular/compiler": "^21.2.25",
     "@angular/compiler-cli": "^21.2.25",
