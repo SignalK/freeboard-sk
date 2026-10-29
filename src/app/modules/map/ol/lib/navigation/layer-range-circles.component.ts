@@ -40,6 +40,11 @@ export function sameRings(a: RangeRing[], b: RangeRing[]): boolean {
   );
 }
 
+// The olive of the range circles hardly shows on the chart's shallows, where
+// the radar rings are read, so radar rings are drawn dark grey
+const RADAR_RING_COLOR = 'rgba(64, 64, 64, 1)';
+const RANGE_CIRCLE_COLOR = 'rgba(152, 153, 10, 1)';
+
 const LightTheme = {
   labelText: {
     color: 'rgba(26, 26, 1, 1)'
@@ -244,7 +249,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       cs = new Style({
         fill: new Fill({ color: 'transparent' }),
         stroke: new Stroke({
-          color: 'rgba(152, 153, 10, 1)',
+          color: this.rings() ? RADAR_RING_COLOR : RANGE_CIRCLE_COLOR,
           width: 1.5,
           lineDash: [2, 3]
         })
