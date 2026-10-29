@@ -353,7 +353,8 @@ describe('cleanConfig() legacy migration', () => {
  * every release since 2.17, configs upgraded release by release, and 2.13 /
  * 2.15 configs from before the 2.17 settings layout. `cleaned` holds what
  * `cleanConfig()` made of each before it was built on the settings schema,
- * plus each setting added since then at its default (`radars.overlay`).
+ * plus each setting added since then at its default (`radars.overlay`,
+ * `radars.ringColor`).
  */
 describe('cleanConfig() on configs saved by earlier releases', () => {
   for (const { savedBy, saved, cleaned } of savedConfigs.configs) {
@@ -533,6 +534,7 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
       deviceId: '',
       opacity: 1,
       rings: true,
+      ringColor: '#404040',
       overlay: false
     });
   });
@@ -550,7 +552,15 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
       deviceId: 'radar-1',
       opacity: 0.5,
       rings: false,
+      ringColor: '#404040',
       overlay: false
     });
+  });
+
+  it('draws radar rings of radars saved before the ring colour setting in dark grey', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.radars, 'ringColor');
+    cleanConfig(cfg, {});
+    expect(cfg.radars.ringColor).toBe('#404040');
   });
 });

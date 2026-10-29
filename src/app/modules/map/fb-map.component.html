@@ -936,6 +936,7 @@
       [layerProperties]="followsRangeCircles"
       [position]="showRadarRings ? dfeat.self.position : dfeat.active.position"
       [rings]="showRadarRings ? radarRings() : undefined"
+      [ringColor]="app.config.radars.ringColor"
       [maxCircles]="this.app.config.vessels.rangeCircleCount"
       [fixedMode]="this.app.config.vessels.rangeCirclesFixed"
       [fixedDistance]="this.app.config.vessels.rangeCirclesDistance"
