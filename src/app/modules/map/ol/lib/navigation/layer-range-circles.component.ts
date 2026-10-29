@@ -40,9 +40,6 @@ export function sameRings(a: RangeRing[], b: RangeRing[]): boolean {
   );
 }
 
-// The olive of the range circles hardly shows on the chart's shallows, where
-// the radar rings are read, so radar rings are drawn dark grey
-const RADAR_RING_COLOR = 'rgba(64, 64, 64, 1)';
 const RANGE_CIRCLE_COLOR = 'rgba(152, 153, 10, 1)';
 
 const LightTheme = {
@@ -69,6 +66,8 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   protected fixedDistance = input<number>(1000);
   // when set, these circles are drawn instead of the zoom or fixed ones
   protected rings = input<RangeRing[] | undefined>(undefined);
+  // stroke colour of `rings`; the zoom or fixed circles keep their own
+  protected ringColor = input<string | undefined>(undefined);
 
   /**
    * This event is triggered after the layer is initialized
@@ -104,6 +103,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       this.fixedMode();
       this.fixedDistance();
       this.rings();
+      this.ringColor();
       this.processChange();
     });
   }
@@ -249,7 +249,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       cs = new Style({
         fill: new Fill({ color: 'transparent' }),
         stroke: new Stroke({
-          color: this.rings() ? RADAR_RING_COLOR : RANGE_CIRCLE_COLOR,
+          color: (this.rings() && this.ringColor()) || RANGE_CIRCLE_COLOR,
           width: 1.5,
           lineDash: [2, 3]
         })

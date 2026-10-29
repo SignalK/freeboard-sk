@@ -66,18 +66,23 @@ describe('RangeCirclesComponent fixed-distance circles', () => {
 
 describe('RangeCirclesComponent circle colour', () => {
   function strokeColor(
-    rings: { distance: number; label: string }[] | undefined
+    rings: { distance: number; label: string }[] | undefined,
+    ringColor?: string
   ) {
     const c = Object.create(
       RangeCirclesComponent.prototype
     ) as RangeCirclesComponent;
-    Object.assign(c, { rings: () => rings });
+    Object.assign(c, { rings: () => rings, ringColor: () => ringColor });
     return c.buildCircleStyle().getStroke()?.getColor();
   }
+  const ring = [{ distance: 1852, label: '1 nm' }];
 
-  it('draws radar rings in a different colour from the range circles', () => {
-    const radar = strokeColor([{ distance: 1852, label: '1 nm' }]);
-    expect(radar).toBe('rgba(64, 64, 64, 1)');
-    expect(strokeColor(undefined)).not.toBe(radar);
+  it('draws radar rings in the chosen colour', () => {
+    expect(strokeColor(ring, '#404040')).toBe('#404040');
+  });
+
+  it('keeps the range circle colour for the zoom or fixed circles', () => {
+    expect(strokeColor(undefined, '#404040')).toBe(strokeColor(undefined));
+    expect(strokeColor(ring)).toBe(strokeColor(undefined));
   });
 });
