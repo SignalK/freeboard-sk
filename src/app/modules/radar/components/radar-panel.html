@@ -184,16 +184,16 @@
             (change)="setNumber(c, $event)"
           />
         </mat-slider>
-        } @case ('number') { @let b = bounds(c.def, cv);
+        } @case ('number') { @let b = fieldBounds(c.def, cv);
         <mat-form-field class="compact" subscriptSizing="dynamic">
           <input
             matInput
             type="number"
             [attr.aria-label]="c.def.name"
-            [min]="b[0]"
-            [max]="b[1]"
-            [step]="c.def.stepValue || 1"
-            [value]="current(c.def, cv) ?? ''"
+            [min]="b.min"
+            [max]="b.max"
+            [step]="b.step"
+            [value]="fieldValue(c.def, cv)"
             [disabled]="disabled"
             (change)="setNumber(c, $event)"
           />

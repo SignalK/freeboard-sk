@@ -21,11 +21,13 @@ import {
   ControlOption,
   controlSections,
   ControlWidget,
+  fromField,
   nextPowerValue,
   powerState,
   rangeOptions,
   SectionControl,
-  sendsImage
+  sendsImage,
+  toField
 } from '../radar-controls';
 import { GuardZone, guardZoneFromControl } from '../guard-zones';
 import { GuardZoneEditService } from '../guard-zone-edit.service';
@@ -223,7 +225,7 @@ export class RadarPanel {
     if (input.value === '' || !Number.isFinite(input.valueAsNumber)) {
       return;
     }
-    let value = input.valueAsNumber;
+    let value = fromField(c.def, input.valueAsNumber);
     const [min, max] = this.bounds(c.def, this.values().get(c.id));
     if (Number.isFinite(min)) value = Math.max(value, min);
     if (Number.isFinite(max)) value = Math.min(value, max);
@@ -329,6 +331,40 @@ export class RadarPanel {
       return [def.autoAdjustMinValue ?? min, def.autoAdjustMaxValue ?? max];
     }
     return [min, max];
+  }
+
+  /** A value field's bounds and step, in the unit it is typed in. */
+  protected fieldBounds(
+    def: ControlDef,
+    cv: ControlValue | undefined
+  ): { min: number; max: number; step: number } {
+    const [min, max] = this.bounds(def, cv);
+    return {
+      min: toField(def, min),
+      max: toField(def, max),
+      step: toField(def, def.stepValue || fromField(def, 1))
+    };
+  }
+
+  /** The value a field shows, in the unit it is typed in. */
+  protected fieldValue(
+    def: ControlDef,
+    cv: ControlValue | undefined
+  ): number | string {
+    const value = this.current(def, cv);
+    if (typeof value === 'number') {
+      return toField(def, value);
+    }
+    // a number may arrive as a numeric string, which still needs converting
+    if (
+      def.dataType === 'number' &&
+      typeof value === 'string' &&
+      value.trim() !== '' &&
+      Number.isFinite(Number(value))
+    ) {
+      return toField(def, Number(value));
+    }
+    return value ?? '';
   }
 
   /** The value a slider or field shows: the auto adjustment while on auto. */

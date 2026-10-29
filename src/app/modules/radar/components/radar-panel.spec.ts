@@ -254,6 +254,54 @@ describe('RadarPanel', () => {
     ).toBe('A0');
   });
 
+  it('shows and takes an angle in degrees while the radar uses radians', () => {
+    radar.update((r) => ({
+      ...r,
+      capabilities: {
+        ...r.capabilities,
+        controls: {
+          ...r.capabilities.controls,
+          bearingAlignment: {
+            id: 50,
+            name: 'Bearing alignment',
+            description: 'Heading offset of the antenna',
+            category: 'base',
+            dataType: 'number',
+            minValue: -Math.PI,
+            maxValue: Math.PI,
+            stepValue: Math.PI / 1800,
+            units: 'rad'
+          }
+        }
+      },
+      controls: new Map(r.controls).set('bearingAlignment', {
+        value: Math.PI / 36
+      })
+    }));
+    const fixture = open();
+    const row = control(fixture.nativeElement, 'Bearing alignment');
+    expect(row.querySelector('mat-slider')).toBeNull();
+    const field = row.querySelector<HTMLInputElement>('input[type=number]')!;
+    expect(field.value).toBe('5');
+    expect([field.min, field.max, field.step]).toEqual(['-180', '180', '0.1']);
+
+    field.value = '-12.5';
+    field.dispatchEvent(new Event('change'));
+
+    const [, id, change] = api.setControl.mock.calls.at(-1)!;
+    expect(id).toBe('bearingAlignment');
+    expect(change.value).toBeCloseTo((-12.5 * Math.PI) / 180, 10);
+
+    radar.update((r) => ({
+      ...r,
+      controls: new Map(r.controls).set('bearingAlignment', {
+        value: String(Math.PI / 18)
+      })
+    }));
+    fixture.detectChanges();
+    expect(field.value).toBe('10');
+  });
+
   it('switches auto off with an { auto } change', () => {
     const fixture = open();
     control(fixture.nativeElement, 'Gain')
