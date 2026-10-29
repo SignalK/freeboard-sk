@@ -355,6 +355,15 @@ export class RadarPanel {
     if (typeof value === 'number') {
       return toField(def, value);
     }
+    // a number may arrive as a numeric string, which still needs converting
+    if (
+      def.dataType === 'number' &&
+      typeof value === 'string' &&
+      value.trim() !== '' &&
+      Number.isFinite(Number(value))
+    ) {
+      return toField(def, Number(value));
+    }
     return value ?? '';
   }
 

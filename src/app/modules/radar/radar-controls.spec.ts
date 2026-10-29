@@ -347,4 +347,10 @@ describe('radar control fields', () => {
     expect(toField(def, 12)).toBe(12);
     expect(fromField(def, 12)).toBe(12);
   });
+
+  it('keeps fractional values and steps of other units unrounded', () => {
+    const def = { ...controls['antennaHeight'], stepValue: 1e-7 };
+    expect(toField(def, 0.1234567)).toBe(0.1234567);
+    expect(toField(def, def.stepValue)).toBe(1e-7);
+  });
 });

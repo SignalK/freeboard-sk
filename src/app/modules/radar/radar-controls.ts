@@ -44,7 +44,7 @@ const MAX_STEPS = 10;
 // gets a value field instead of a slider.
 const MEASURED_UNITS = ['m', 'm/s', 'deg', 'rad'];
 
-// Field values are rounded to this many decimals, so a converted step such as
+// Converted field values are rounded to this many decimals, so a step such as
 // 0.1 degree does not show as 0.09999999999999999.
 const FIELD_DECIMALS = 6;
 
@@ -148,7 +148,8 @@ export function fieldScale(def: ControlDef): number {
 
 /** A control's API value as its field shows it. */
 export function toField(def: ControlDef, value: number): number {
-  return Number((value * fieldScale(def)).toFixed(FIELD_DECIMALS));
+  const scale = fieldScale(def);
+  return scale === 1 ? value : Number((value * scale).toFixed(FIELD_DECIMALS));
 }
 
 /** A typed field value as the control's API value. */

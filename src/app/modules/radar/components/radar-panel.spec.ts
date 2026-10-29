@@ -291,6 +291,15 @@ describe('RadarPanel', () => {
     const [, id, change] = api.setControl.mock.calls.at(-1)!;
     expect(id).toBe('bearingAlignment');
     expect(change.value).toBeCloseTo((-12.5 * Math.PI) / 180, 10);
+
+    radar.update((r) => ({
+      ...r,
+      controls: new Map(r.controls).set('bearingAlignment', {
+        value: String(Math.PI / 18)
+      })
+    }));
+    fixture.detectChanges();
+    expect(field.value).toBe('10');
   });
 
   it('switches auto off with an { auto } change', () => {
