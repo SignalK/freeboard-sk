@@ -816,6 +816,7 @@
           [canClose]="app.config.map.popoverMulti"
           [aton]="overlay().aton"
           (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
+          (untrack)="cancelRadarTarget(overlay().id); popoverClosed()"
           (closed)="popoverClosed()"
         >
           <fb-ext-actions
@@ -1138,6 +1139,18 @@
         <mat-icon>straighten</mat-icon>
         Measure
       </button>
+      @if (
+        radarImage() && app.uiCtrl().radarLayer && app.data.vessels.showSelf
+      ) {
+        <button
+          mat-menu-item
+          (click)="onContextMenuAction('radar_acquire', item)"
+          (contextmenu)="$event.preventDefault()"
+        >
+          <mat-icon>track_changes</mat-icon>
+          Track Radar Target
+        </button>
+      }
       <mat-divider></mat-divider>
 
       @if (app.config.vessels.trail && app.selfTrail().length !== 0) {

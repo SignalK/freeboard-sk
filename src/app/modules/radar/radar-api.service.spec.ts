@@ -56,6 +56,8 @@ describe('RadarAPIService init() (#755)', () => {
   // every GET path, in order
   let gets: string[];
   let put: ReturnType<typeof vi.fn>;
+  let post: ReturnType<typeof vi.fn>;
+  let del: ReturnType<typeof vi.fn>;
   // responses a test holds back, answered in order before the defaults
   let held: Map<string, Array<Observable<unknown>>>;
   let app: {
@@ -72,6 +74,8 @@ describe('RadarAPIService init() (#755)', () => {
     vesselUpdates = new Subject<void>();
     gets = [];
     put = vi.fn(() => of(undefined));
+    post = vi.fn(() => of({ state: 'COMPLETED', targetId: 7 }));
+    del = vi.fn(() => of(undefined));
     held = new Map();
     app = {
       config: { radars: { deviceId: '' } },
@@ -96,7 +100,9 @@ describe('RadarAPIService init() (#755)', () => {
                     : throwError(() => new Error(`unexpected GET ${path}`)))
                 );
               },
-              put
+              put,
+              post,
+              delete: del
             }
           }
         },
@@ -492,5 +498,35 @@ describe('RadarAPIService init() (#755)', () => {
   it('resolves the current control values from /controls', async () => {
     const service = TestBed.inject(RadarAPIService);
     await expect(service.getControls('radar-1')).resolves.toEqual(controls);
+  });
+  describe('radar targets', () => {
+    const request = { bearing: 1, distance: 1852 };
+
+    it('acquires on the chosen radar and resolves with the target number', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await expect(service.acquireTarget('radar-1', request)).resolves.toBe(7);
+      expect(post).toHaveBeenCalledWith(
+        2,
+        'vessels/self/radars/radar-1/targets',
+        request
+      );
+    });
+
+    it('says a sign-in is needed when the server refuses the write', async () => {
+      post.mockReturnValue(throwError(() => ({ status: 403 })));
+      const service = TestBed.inject(RadarAPIService);
+      await expect(service.acquireTarget('radar-1', request)).rejects.toThrow(
+        /signed-in/
+      );
+    });
+
+    it('cancels a target by its number', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.cancelTarget('radar-1', 3);
+      expect(del).toHaveBeenCalledWith(
+        2,
+        'vessels/self/radars/radar-1/targets/3'
+      );
+    });
   });
 });

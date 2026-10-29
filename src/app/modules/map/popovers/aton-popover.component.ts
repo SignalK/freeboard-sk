@@ -16,6 +16,7 @@ import { SKAtoN, SKMeteo, SKSensorTarget } from 'src/app/modules';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import { AppIconDef } from '../../icons';
+import { radarTargetRef } from '../../radar/radar-targets';
 
 @Component({
   selector: 'aton-popover',
@@ -114,6 +115,18 @@ import { AppIconDef } from '../../icons';
         }
         <div style="display:flex;">
           <div style="flex:1 1 auto;">&nbsp;</div>
+          @if (isRadarTarget) {
+            <div class="popover-action-button">
+              <button
+                mat-button
+                (click)="untrack.emit()"
+                matTooltip="Stop the radar tracking this target"
+              >
+                <mat-icon>cancel</mat-icon>
+                STOP TRACKING
+              </button>
+            </div>
+          }
           <div class="popover-action-button">
             <button
               mat-button
@@ -146,6 +159,8 @@ export class AtoNPopoverComponent {
   >();
   canClose = input<boolean>();
   info = output<string>();
+  /** The user asked the radar to stop tracking this radar target. */
+  untrack = output<void>();
   closed = output<void>();
   _title?: string;
   _icon?: AppIconDef;
@@ -154,6 +169,7 @@ export class AtoNPopoverComponent {
   protected convert = Convert;
   isMeteo?: boolean;
   isTarget?: boolean;
+  isRadarTarget?: boolean;
 
   protected app = inject(AppFacade);
 
@@ -186,6 +202,7 @@ export class AtoNPopoverComponent {
   private setKind(id: string) {
     this.isMeteo = id.includes('meteo');
     this.isTarget = id.startsWith('targets.');
+    this.isRadarTarget = radarTargetRef(id) !== null;
     this._icon = {
       name: this.isMeteo ? 'air' : this.isTarget ? 'radar' : 'beenhere',
       svgIcon: undefined

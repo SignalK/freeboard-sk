@@ -5,6 +5,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { DeltaSignal } from 'src/app/types';
+import { AcquireRequest } from './radar-targets';
 
 // While no radar is listed, vessel updates look for one again: the radar
 // provider (a plugin or its container) can start after Freeboard. The wait
@@ -462,4 +463,58 @@ export class RadarAPIService {
         });
     });
   }
+
+  /**
+   * Ask the radar to acquire and track the echo at `request` (MARPA). Resolves
+   * with the new target's number when the provider reports it.
+   */
+  public acquireTarget(
+    radarId: string = this._selectedRadar(),
+    request: AcquireRequest
+  ): Promise<number | undefined> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .post(
+          this.app.skApiVersion,
+          `${this.getPath(radarId)}/targets`,
+          request
+        )
+        .subscribe({
+          next: (res: { targetId?: number }) => resolve(res?.targetId),
+          error: (err: { status?: number }) =>
+            reject(new Error(radarTargetError(err?.status, 'acquire')))
+        });
+    });
+  }
+
+  /** Stop tracking radar target `targetId`. */
+  public cancelTarget(radarId: string, targetId: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .delete(
+          this.app.skApiVersion,
+          `${this.getPath(radarId)}/targets/${targetId}`
+        )
+        .subscribe({
+          next: () => resolve(),
+          error: (err: { status?: number }) =>
+            reject(new Error(radarTargetError(err?.status, 'cancel')))
+        });
+    });
+  }
+}
+
+function radarTargetError(
+  status: number | undefined,
+  what: 'acquire' | 'cancel'
+): string {
+  if (status === 401 || status === 403) {
+    return 'Tracking radar targets needs a signed-in user with write access.';
+  }
+  if (status === 501) {
+    return 'This radar does not support target tracking.';
+  }
+  return what === 'acquire'
+    ? 'The radar could not acquire a target there.'
+    : 'The radar could not stop tracking this target.';
 }

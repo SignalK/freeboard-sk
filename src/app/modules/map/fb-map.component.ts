@@ -81,6 +81,10 @@ import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { GuardZoneEditService } from 'src/app/modules/radar/guard-zone-edit.service';
 import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
+import {
+  acquireRequest,
+  radarTargetRef
+} from 'src/app/modules/radar/radar-targets';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { ExtActionsComponent } from 'src/app/modules/plotterext/ext-actions.component';
 import type { UsableAction } from 'src/app/modules/plotterext/actions';
@@ -1046,9 +1050,39 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'get_feature_info':
         this.getFeatureInfo();
         break;
+      case 'radar_acquire':
+        this.acquireRadarTarget(pos);
+        break;
       default:
         this.menuItemSelected.emit(action);
         break;
+    }
+  }
+
+  /** Have the shown radar acquire and track the echo at `pos`. */
+  private async acquireRadarTarget(pos: Position) {
+    const request = acquireRequest(this.app.data.vessels.self.position, pos);
+    if (!request) {
+      return;
+    }
+    try {
+      await this.radarApi.acquireTarget(this.radarApi.radarId(), request);
+      this.app.showMessage('Radar target acquired.');
+    } catch (err) {
+      this.app.showAlert('Radar', (err as Error).message);
+    }
+  }
+
+  /** Stop the radar tracking the target with context `id`. */
+  protected async cancelRadarTarget(id: string | null) {
+    const ref = radarTargetRef(id);
+    if (!ref) {
+      return;
+    }
+    try {
+      await this.radarApi.cancelTarget(ref.radarId, ref.targetId);
+    } catch (err) {
+      this.app.showAlert('Radar', (err as Error).message);
     }
   }
 
