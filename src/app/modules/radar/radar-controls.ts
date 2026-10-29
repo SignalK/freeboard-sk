@@ -42,7 +42,11 @@ const MAX_STEPS = 10;
 
 // Units for which a 0-100 control is a measurement rather than a level, so it
 // gets a value field instead of a slider.
-const MEASURED_UNITS = ['m', 'm/s', 'deg'];
+const MEASURED_UNITS = ['m', 'm/s', 'deg', 'rad'];
+
+// Field values are rounded to this many decimals, so a converted step such as
+// 0.1 degree does not show as 0.09999999999999999.
+const FIELD_DECIMALS = 6;
 
 const POWER_STANDBY = 1;
 const POWER_TRANSMIT = 2;
@@ -133,6 +137,23 @@ export function controlWidget(def: ControlDef): ControlWidget {
     return 'slider';
   }
   return 'number';
+}
+
+/** The factor from a control's API value to the value its field shows.
+ *  MaYaRa reports angles in radians, its SI unit, while people and the MaYaRa
+ *  GUI read and type them in degrees. */
+export function fieldScale(def: ControlDef): number {
+  return def.units === 'rad' ? 180 / Math.PI : 1;
+}
+
+/** A control's API value as its field shows it. */
+export function toField(def: ControlDef, value: number): number {
+  return Number((value * fieldScale(def)).toFixed(FIELD_DECIMALS));
+}
+
+/** A typed field value as the control's API value. */
+export function fromField(def: ControlDef, value: number): number {
+  return value / fieldScale(def);
 }
 
 /** The power state a `power` control value stands for. */

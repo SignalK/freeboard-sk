@@ -5,10 +5,12 @@ import {
   controlOptions,
   controlSections,
   controlWidget,
+  fromField,
   nextPowerValue,
   powerState,
   rangeOptions,
-  sendsImage
+  sendsImage,
+  toField
 } from './radar-controls';
 
 // Control definitions as a Furuno DRS4D-NXT reports them through MaYaRa
@@ -135,6 +137,17 @@ const controls: Record<string, ControlDef> = {
     stepValue: 1,
     units: 'm'
   },
+  bearingAlignment: {
+    id: 51,
+    name: 'Bearing alignment',
+    description: 'Heading offset of the antenna',
+    category: 'installation',
+    dataType: 'number',
+    minValue: -Math.PI,
+    maxValue: Math.PI,
+    stepValue: Math.PI / 1800,
+    units: 'rad'
+  },
   operatingTime: {
     id: 57,
     name: 'Operating time',
@@ -223,6 +236,7 @@ describe('radar controlWidget()', () => {
     ['clearTargets', 'button'],
     ['tune', 'number'],
     ['antennaHeight', 'number'],
+    ['bearingAlignment', 'number'],
     ['operatingTime', 'readonly'],
     ['userName', 'string']
   ])('shows %s as %s', (id, widget) => {
@@ -317,5 +331,20 @@ describe('sendsImage', () => {
     expect(sendsImage('transmit')).toBe(true);
     expect(sendsImage('preparing')).toBe(true);
     expect(sendsImage('unknown')).toBe(true);
+  });
+});
+
+describe('radar control fields', () => {
+  it('edits an angle in degrees and sends it in radians', () => {
+    const def = controls['bearingAlignment'];
+    expect(toField(def, Math.PI / 2)).toBe(90);
+    expect(toField(def, Math.PI / 1800)).toBe(0.1);
+    expect(fromField(def, 180)).toBeCloseTo(Math.PI, 12);
+  });
+
+  it('leaves other units as the radar reports them', () => {
+    const def = controls['antennaHeight'];
+    expect(toField(def, 12)).toBe(12);
+    expect(fromField(def, 12)).toBe(12);
   });
 });
