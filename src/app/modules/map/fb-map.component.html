@@ -475,6 +475,25 @@
     </sk-ais-targets>
   }
 
+  <!-- Radar, camera and other sensor targets -->
+  @if (app.config.ui.showAisTargets) {
+    <sk-ais-targets
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="dfeat.targets"
+      [targetStyles]="featureStyles.sensorTarget"
+      targetContext="targets"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
+      [zIndex]="970"
+      [cogLineLength]="app.config.vessels.aisCogLine"
+    >
+    </sk-ais-targets>
+  }
+
   <!-- SAR targets -->
   @if (app.config.ui.showAisTargets) {
     <sk-ais-targets
@@ -806,6 +825,7 @@
           [canClose]="app.config.map.popoverMulti"
           [aton]="overlay().aton"
           (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
+          (untrack)="cancelRadarTarget(overlay().id); popoverClosed()"
           (closed)="popoverClosed()"
         >
           <fb-ext-actions
@@ -1136,6 +1156,18 @@
         <mat-icon>straighten</mat-icon>
         Measure
       </button>
+      @if (
+        radarImage() && app.uiCtrl().radarLayer && app.data.vessels.showSelf
+      ) {
+        <button
+          mat-menu-item
+          (click)="onContextMenuAction('radar_acquire', item)"
+          (contextmenu)="$event.preventDefault()"
+        >
+          <mat-icon>track_changes</mat-icon>
+          Track Radar Target
+        </button>
+      }
       <mat-divider></mat-divider>
 
       @if (app.config.vessels.trail && app.selfTrail().length !== 0) {
