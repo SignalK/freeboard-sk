@@ -231,6 +231,7 @@ export const AppConfigSchema = Type.Object({
     deviceId: Type.Optional(Type.String()),
     opacity: num(1),
     rings: bool(true), // range circles follow the radar range while it transmits
+    ringColor: str('#404040'),
     overlay: bool(false) // radar picture shown on the chart, again after a reload
   }),
   experiments: bool(false),

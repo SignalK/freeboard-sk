@@ -40,6 +40,8 @@ export function sameRings(a: RangeRing[], b: RangeRing[]): boolean {
   );
 }
 
+const RANGE_CIRCLE_COLOR = 'rgba(152, 153, 10, 1)';
+
 const LightTheme = {
   labelText: {
     color: 'rgba(26, 26, 1, 1)'
@@ -64,6 +66,8 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   protected fixedDistance = input<number>(1000);
   // when set, these circles are drawn instead of the zoom or fixed ones
   protected rings = input<RangeRing[] | undefined>(undefined);
+  // stroke colour of `rings`; the zoom or fixed circles keep their own
+  protected ringColor = input<string | undefined>(undefined);
 
   /**
    * This event is triggered after the layer is initialized
@@ -99,6 +103,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       this.fixedMode();
       this.fixedDistance();
       this.rings();
+      this.ringColor();
       this.processChange();
     });
   }
@@ -244,7 +249,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       cs = new Style({
         fill: new Fill({ color: 'transparent' }),
         stroke: new Stroke({
-          color: 'rgba(152, 153, 10, 1)',
+          color: (this.rings() && this.ringColor()) || RANGE_CIRCLE_COLOR,
           width: 1.5,
           lineDash: [2, 3]
         })
