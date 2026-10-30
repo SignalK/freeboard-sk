@@ -1,19 +1,15 @@
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  Component,
-  Input,
-  SimpleChanges
+  Component
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, RegularShape, Fill, Stroke, Circle, Text } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Text } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
-import { Point, LineString } from 'ol/geom';
-import { Coordinate } from 'ol/coordinate';
+import { Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { AISBaseLayerComponent } from './ais-base.component';
 import { SKVessel } from 'src/app/modules/skresources';
-import { fromLonLatArray } from '../util';
 import { MapImageRegistry } from '../map-image-registry.service';
 
 // ** Signal K AIS Vessel targets **
@@ -24,8 +20,6 @@ import { MapImageRegistry } from '../map-image-registry.service';
   standalone: false
 })
 export class AISVesselsLayerComponent extends AISBaseLayerComponent {
-  @Input() cogLineLength = 0;
-
   constructor(
     protected override mapComponent: MapComponent,
     protected override changeDetectorRef: ChangeDetectorRef,
@@ -37,14 +31,6 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['ais-'];
-  }
-
-  override ngOnChanges(changes: SimpleChanges) {
-    super.ngOnChanges(changes);
-    if ('cogLineLength' in changes) {
-      this.cogLineLength = changes['cogLineLength'].currentValue ?? 0;
-      this.onUpdateTargets(this.extractKeys(this.targets));
-    }
   }
 
   // reload all Features from this.targets
@@ -101,22 +87,13 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
     }
     ids.forEach((id) => {
       if (id.includes(this.targetContext)) {
-        let f = source.getFeatureById('ais-' + id) as Feature;
+        const f = source.getFeatureById('ais-' + id) as Feature;
         if (f) {
           source.removeFeature(f);
         }
-        f = source.getFeatureById('cog-' + id) as Feature;
-        if (f) {
-          source.removeFeature(f);
-        }
+        this.removeCogLine(id);
       }
     });
-  }
-
-  // label zoom threshold crossed
-  override onLabelZoomThreshold(entered: boolean) {
-    super.updateLabels();
-    this.toggleCogLines(entered);
   }
 
   // add new target
@@ -259,94 +236,5 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
     }
     // targetStyles without a style for this vessel
     return s ?? iconStyle();
-  }
-
-  // add update COG vector
-  parseCogLine(id: string, target: SKVessel) {
-    if (!this.source || !target.vectors.cog) {
-      return;
-    }
-
-    let cf = this.source.getFeatureById('cog-' + id) as Feature;
-    if (
-      !this.okToRenderCogLines ||
-      !this.okToRenderTarget(id) ||
-      !target.position
-    ) {
-      if (cf) {
-        this.source.removeFeature(cf);
-      }
-      return;
-    }
-
-    if (cf) {
-      // update vector
-      cf.setGeometry(new LineString(fromLonLatArray(target.vectors.cog)));
-      cf.setStyle(this.buildCogLineStyle(id, cf));
-    } else {
-      // create vector
-      cf = new Feature(new LineString(fromLonLatArray(target.vectors.cog)));
-      cf.setId('cog-' + id);
-      cf.setStyle(this.buildCogLineStyle(id, cf));
-      this.source.addFeature(cf);
-    }
-  }
-
-  // show / hide cog vector
-  toggleCogLines(show: boolean) {
-    if (show) {
-      this.targets.forEach((v, k) => {
-        this.parseCogLine(k, v as SKVessel);
-      });
-    } else {
-      const source = this.source;
-      if (!source) {
-        return;
-      }
-      source.forEachFeature((cl) => {
-        if ((cl.getId() as string).includes('cog-')) {
-          source.removeFeature(cl);
-        }
-      });
-    }
-  }
-
-  // build COG vector style
-  buildCogLineStyle(id: string, feature: Feature) {
-    const opacity =
-      this.okToRenderTarget(id) && this.okToRenderCogLines() ? 0.7 : 0;
-    const geometry = feature.getGeometry() as LineString;
-    const color = `rgba(0,0,0, ${opacity})`;
-    const styles = [];
-    styles.push(
-      new Style({
-        stroke: new Stroke({
-          color: color,
-          width: 1,
-          lineDash: [5, 5]
-        })
-      })
-    );
-    geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
-      styles.push(
-        new Style({
-          geometry: new Point(end),
-          image: new Circle({
-            radius: 2,
-            stroke: new Stroke({
-              color: color,
-              width: 1
-            }),
-            fill: new Fill({ color: 'transparent' })
-          })
-        })
-      );
-    });
-    return styles;
-  }
-
-  // ok to show cog lines
-  okToRenderCogLines() {
-    return this.cogLineLength !== 0 && this.mapZoom >= this.labelMinZoom;
   }
 }
