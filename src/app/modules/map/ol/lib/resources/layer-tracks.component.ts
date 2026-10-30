@@ -14,6 +14,7 @@ import { Coordinate } from '../models';
 import { SKTrack } from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBTracks } from 'src/app/types';
+import { viewClippedLines } from '../clip-lines';
 
 // ** Freeboard Track resources collection format **
 @Component({
@@ -25,6 +26,8 @@ import { FBTracks } from 'src/app/types';
 export class TrackLayerComponent extends FBFeatureLayerComponent {
   @Input({ required: true }) tracks!: FBTracks;
   @Input() trackStyles?: { [key: string]: Style };
+
+  private clipToView = viewClippedLines(() => this.mapComponent.getMap());
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -57,7 +60,9 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
         name: t[1].name
       });
       f.setId('track.' + t[0]);
-      f.setStyle(this.buildStyle(t[1]));
+      const style = this.buildStyle(t[1]);
+      style.setGeometry(this.clipToView);
+      f.setStyle(style);
       fa.push(f);
     }
     this.source?.addFeatures(fa);
