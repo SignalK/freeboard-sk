@@ -72,7 +72,9 @@ _Path(s): `/resources/notes`, `/resources/regions`_
 
 __Tracks:__
 
-Whilst not specifically defined in the Signal K specification, Freeboard-SK supports the import and display of tracks from GPX files which are available under the `/resources/tracks` path.
+_Path(s): `/signalk/v2/api/tracks` (Track API), or `/resources/tracks` on older servers_
+
+Freeboard-SK imports tracks from GPX and GeoJSON files and displays them. On a Signal K server whose Track API can store tracks (server 2.34 or later, with the Tracks plugin 3.3 or later), they are kept in the Track API. Tracks imported into earlier versions of Freeboard-SK under `/resources/tracks` are moved there once, when Freeboard-SK connects. For a signed-in user the move waits until their settings have been read from the server, so if that fails it runs on a later connection. A track the Track API won't accept stays where it was and is still listed. On older servers tracks are kept in the custom `/resources/tracks` collection.
 
 - Show / Hide Tracks
 - Delete Tracks
