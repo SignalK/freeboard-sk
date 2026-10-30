@@ -174,6 +174,41 @@ describe('PlotterExtensionService iframe contexts', () => {
     expect(localStorage.getItem('fb-plotterext-state')).toBeNull();
   });
 
+  it("keeps this browser's earlier state of widgets the config has no state for", async () => {
+    localStorage.setItem(
+      'fb-plotterext-state',
+      JSON.stringify({
+        'ext-a': { instances: { 'inst-1': { v: 1 }, 'inst-2': { v: 2 } } }
+      })
+    );
+    config.plotterExtensions.state = {
+      'ext-a': { instances: { 'inst-1': { v: 3 } } }
+    };
+    const client = await connect(attachGauge);
+    await expect(client.state.get()).resolves.toEqual({ v: 3 });
+    await client.state.set({ w: 4 });
+    expect(stored()).toMatchObject({
+      'ext-a': { instances: { 'inst-1': { v: 3, w: 4 }, 'inst-2': { v: 2 } } }
+    });
+  });
+
+  it("keeps this browser's earlier state when the config cannot be saved", async () => {
+    const earlier = JSON.stringify({ 'ext-a': { extension: { v: 1 } } });
+    localStorage.setItem('fb-plotterext-state', earlier);
+    saveConfig.mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    const client = await connect(attachGauge);
+    await expect(client.state.set({ w: 2 })).rejects.toBeDefined();
+    expect(localStorage.getItem('fb-plotterext-state')).toBe(earlier);
+  });
+
+  it('refuses state values JSON cannot hold', async () => {
+    const client = await connect(attachGauge);
+    expect(await reason(client.state.set({ n: BigInt(1) }))).toBe(-32602);
+    expect(stored()).toBeUndefined();
+  });
+
   it('gives a widget its instance context, instance state and config-panel methods', async () => {
     const client = await connect((iframe) =>
       service.attachWidget(iframe, {

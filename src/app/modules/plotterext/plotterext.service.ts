@@ -2774,15 +2774,29 @@ export class PlotterExtensionService {
   // preset the widgets it places.
 
   private loadStore(): ExtensionStateStore {
-    return structuredClone(
-      this.app.config.plotterExtensions.state ?? this.browserStore()
-    );
+    const store = this.browserStore();
+    for (const [id, saved] of Object.entries(
+      structuredClone(this.app.config.plotterExtensions.state ?? {})
+    )) {
+      const kept = store[id] ?? {};
+      store[id] = {
+        extension: { ...kept.extension, ...saved.extension },
+        instances: { ...kept.instances, ...saved.instances }
+      };
+    }
+    return store;
   }
 
   private saveStore(store: ExtensionStateStore) {
     this.app.config.plotterExtensions.state = store;
-    localStorage.removeItem(STATE_STORAGE_KEY);
+    // the config save throws when the browser's storage is full, which keeps
+    // the earlier state as it was
     this.app.saveConfig();
+    try {
+      localStorage.removeItem(STATE_STORAGE_KEY);
+    } catch {
+      // storage unavailable: the earlier state is merged under the config's
+    }
   }
 
   /** What this browser kept before the state moved into the config. */
@@ -2791,6 +2805,18 @@ export class PlotterExtensionService {
       return JSON.parse(localStorage.getItem(STATE_STORAGE_KEY) ?? '{}');
     } catch {
       return {};
+    }
+  }
+
+  /** State is saved as JSON with the config: refuse values JSON can't hold. */
+  private jsonValues(values: Record<string, unknown>): Record<string, unknown> {
+    try {
+      return JSON.parse(JSON.stringify(values));
+    } catch {
+      throw new RpcError('state.set values must be JSON', {
+        code: RPC_ERRORS.INVALID_PARAMS,
+        reason: 'INVALID_VALUES'
+      });
     }
   }
 
@@ -2854,7 +2880,7 @@ export class PlotterExtensionService {
         }
         const store = this.loadStore();
         const target = resolve(store, scope);
-        Object.assign(target, values);
+        Object.assign(target, this.jsonValues(values));
         this.saveStore(store);
         const useInstance =
           (scope ?? (instanceId ? 'instance' : 'extension')) === 'instance';
