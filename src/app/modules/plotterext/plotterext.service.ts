@@ -2802,7 +2802,12 @@ export class PlotterExtensionService {
   /** What this browser kept before the state moved into the config. */
   private browserStore(): ExtensionStateStore {
     try {
-      return JSON.parse(localStorage.getItem(STATE_STORAGE_KEY) ?? '{}');
+      const stored = JSON.parse(
+        localStorage.getItem(STATE_STORAGE_KEY) ?? '{}'
+      );
+      return stored && typeof stored === 'object' && !Array.isArray(stored)
+        ? stored
+        : {};
     } catch {
       return {};
     }

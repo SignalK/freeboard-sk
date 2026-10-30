@@ -203,6 +203,16 @@ describe('PlotterExtensionService iframe contexts', () => {
     expect(localStorage.getItem('fb-plotterext-state')).toBe(earlier);
   });
 
+  it("ignores this browser's earlier state when it is not an object", async () => {
+    localStorage.setItem('fb-plotterext-state', 'null');
+    const client = await connect(attachGauge);
+    await client.state.set({ v: 1 });
+    expect(stored()).toEqual({
+      'ext-a': { instances: { 'inst-1': { v: 1 } } }
+    });
+    expect(localStorage.getItem('fb-plotterext-state')).toBeNull();
+  });
+
   it('refuses state values JSON cannot hold', async () => {
     const client = await connect(attachGauge);
     expect(await reason(client.state.set({ n: BigInt(1) }))).toBe(-32602);
