@@ -37,7 +37,13 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
 import { FIT_MAX_ZOOM, fitBbox, type LonLatBox } from 'src/app/lib/map-fit';
-import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
+import {
+  FBCharts,
+  FBNotes,
+  IAppConfig,
+  LineString,
+  Position
+} from 'src/app/types';
 import {
   type ActionErrorReason,
   type BusPort,
@@ -152,12 +158,9 @@ type VisibilityChoices = Record<string, Record<string, boolean>>;
 type DecorationChoices = Record<string, Record<string, DecorationOverride>>;
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
 
-interface ExtensionStateStore {
-  [extensionId: string]: {
-    extension?: Record<string, unknown>;
-    instances?: { [instanceId: string]: Record<string, unknown> };
-  };
-}
+type ExtensionStateStore = NonNullable<
+  IAppConfig['plotterExtensions']['state']
+>;
 
 interface LiveContext {
   extension: string;
@@ -2766,20 +2769,60 @@ export class PlotterExtensionService {
 
   // ---------- state storage ----------
   //
-  // v0 persistence is browser localStorage. TODO(phase 2 follow-up): persist
-  // through the server's applicationData so widget config follows the user
-  // across devices, mirroring how Freeboard persists its own config.
+  // Kept in the app config, so it is saved wherever the config is: it follows
+  // a signed-in user across devices, and a server's global default config can
+  // preset the widgets it places.
 
   private loadStore(): ExtensionStateStore {
+    const store = this.browserStore();
+    for (const [id, saved] of Object.entries(
+      structuredClone(this.app.config.plotterExtensions.state ?? {})
+    )) {
+      const kept = store[id] ?? {};
+      store[id] = {
+        extension: { ...kept.extension, ...saved.extension },
+        instances: { ...kept.instances, ...saved.instances }
+      };
+    }
+    return store;
+  }
+
+  private saveStore(store: ExtensionStateStore) {
+    this.app.config.plotterExtensions.state = store;
+    // the config save throws when the browser's storage is full, which keeps
+    // the earlier state as it was
+    this.app.saveConfig();
     try {
-      return JSON.parse(localStorage.getItem(STATE_STORAGE_KEY) ?? '{}');
+      localStorage.removeItem(STATE_STORAGE_KEY);
+    } catch {
+      // storage unavailable: the earlier state is merged under the config's
+    }
+  }
+
+  /** What this browser kept before the state moved into the config. */
+  private browserStore(): ExtensionStateStore {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem(STATE_STORAGE_KEY) ?? '{}'
+      );
+      return stored && typeof stored === 'object' && !Array.isArray(stored)
+        ? stored
+        : {};
     } catch {
       return {};
     }
   }
 
-  private saveStore(store: ExtensionStateStore) {
-    localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(store));
+  /** State is saved as JSON with the config: refuse values JSON can't hold. */
+  private jsonValues(values: Record<string, unknown>): Record<string, unknown> {
+    try {
+      return JSON.parse(JSON.stringify(values));
+    } catch {
+      throw new RpcError('state.set values must be JSON', {
+        code: RPC_ERRORS.INVALID_PARAMS,
+        reason: 'INVALID_VALUES'
+      });
+    }
   }
 
   private clearInstanceState(extension: string, instanceId: string) {
@@ -2842,7 +2885,7 @@ export class PlotterExtensionService {
         }
         const store = this.loadStore();
         const target = resolve(store, scope);
-        Object.assign(target, values);
+        Object.assign(target, this.jsonValues(values));
         this.saveStore(store);
         const useInstance =
           (scope ?? (instanceId ? 'instance' : 'extension')) === 'instance';

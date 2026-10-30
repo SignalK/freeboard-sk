@@ -254,6 +254,22 @@ export const AppConfigSchema = Type.Object({
         row: Type.Number() // origin cell row (0 | 1)
       }),
       { default: [] }
+    ),
+    // what extensions keep through the host API's `state.*`, per extension:
+    // its own values and each of its widget placements' values
+    state: Type.Optional(
+      Type.Record(
+        Type.String(),
+        Type.Object({
+          extension: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+          instances: Type.Optional(
+            Type.Record(
+              Type.String(),
+              Type.Record(Type.String(), Type.Unknown())
+            )
+          )
+        })
+      )
     )
   }),
   selections: Type.Object({

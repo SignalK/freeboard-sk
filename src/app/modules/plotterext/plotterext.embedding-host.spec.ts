@@ -44,6 +44,7 @@ describe('PlotterExtensionService embedding host (reverse embedding, #507)', () 
               map: { center: [0, 0], zoomLevel: 10 }
             },
             mapExtent: signal([]),
+            saveConfig: () => {},
             debug: () => {},
             isTopWindow: () => false,
             uiCtrl: signal({ forceNightMode: false })
