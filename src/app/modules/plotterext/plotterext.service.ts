@@ -37,7 +37,13 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
 import { FIT_MAX_ZOOM, fitBbox, type LonLatBox } from 'src/app/lib/map-fit';
-import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
+import {
+  FBCharts,
+  FBNotes,
+  IAppConfig,
+  LineString,
+  Position
+} from 'src/app/types';
 import {
   type ActionErrorReason,
   type BusPort,
@@ -152,12 +158,9 @@ type VisibilityChoices = Record<string, Record<string, boolean>>;
 type DecorationChoices = Record<string, Record<string, DecorationOverride>>;
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
 
-interface ExtensionStateStore {
-  [extensionId: string]: {
-    extension?: Record<string, unknown>;
-    instances?: { [instanceId: string]: Record<string, unknown> };
-  };
-}
+type ExtensionStateStore = NonNullable<
+  IAppConfig['plotterExtensions']['state']
+>;
 
 interface LiveContext {
   extension: string;
@@ -2766,20 +2769,29 @@ export class PlotterExtensionService {
 
   // ---------- state storage ----------
   //
-  // v0 persistence is browser localStorage. TODO(phase 2 follow-up): persist
-  // through the server's applicationData so widget config follows the user
-  // across devices, mirroring how Freeboard persists its own config.
+  // Kept in the app config, so it is saved wherever the config is: it follows
+  // a signed-in user across devices, and a server's global default config can
+  // preset the widgets it places.
 
   private loadStore(): ExtensionStateStore {
+    return structuredClone(
+      this.app.config.plotterExtensions.state ?? this.browserStore()
+    );
+  }
+
+  private saveStore(store: ExtensionStateStore) {
+    this.app.config.plotterExtensions.state = store;
+    localStorage.removeItem(STATE_STORAGE_KEY);
+    this.app.saveConfig();
+  }
+
+  /** What this browser kept before the state moved into the config. */
+  private browserStore(): ExtensionStateStore {
     try {
       return JSON.parse(localStorage.getItem(STATE_STORAGE_KEY) ?? '{}');
     } catch {
       return {};
     }
-  }
-
-  private saveStore(store: ExtensionStateStore) {
-    localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(store));
   }
 
   private clearInstanceState(extension: string, instanceId: string) {

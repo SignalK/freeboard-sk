@@ -33,6 +33,13 @@ package; Freeboard depends on it (`^0.24.0`) and imports its host entry point
 - **Capability negotiation.** The host advertises `HOST_API_VERSION = '1'` and a
   `HOST_CAPABILITIES` set; an extension declares what it `requires` and the host
   only mounts it when compatible.
+- **State lives in the app config.** What extensions keep through `state.*`
+  is stored under `plotterExtensions.state`, beside the widget placements, so
+  it is saved wherever Freeboard's settings are: with a signed-in user's
+  settings on the server, and in a server's global default settings, which can
+  preset the widgets they place (keyed by placement `instanceId`). State a
+  browser kept under the earlier `fb-plotterext-state` localStorage key is
+  read until the first `state.set` moves it into the config.
 
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 

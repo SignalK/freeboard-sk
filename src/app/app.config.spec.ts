@@ -156,6 +156,19 @@ describe('cleanConfig() legacy migration', () => {
     ]);
   });
 
+  it('keeps plotter extension state, dropping an entry that is not an object', () => {
+    const cfg: IAppConfig = defaultConfig();
+    const state = {
+      'ext-a': { instances: { a: { path: 'navigation.speedOverGround' } } },
+      'ext-b': 'x'
+    };
+    cfg.plotterExtensions.state = state as typeof cfg.plotterExtensions.state;
+    cleanConfig(cfg, {});
+    expect(cfg.plotterExtensions.state).toEqual({
+      'ext-a': { instances: { a: { path: 'navigation.speedOverGround' } } }
+    });
+  });
+
   it.each([
     [true, 'server'],
     [false, 'auto']
