@@ -163,5 +163,6 @@
   { "feature": null, "pr": 1192, "kind": "skip", "reason": "server-admin setup: Freeboard starts from the server's global default settings when a device has none of its own; no change to what the user can do in the app" },
   { "feature": "follow-vessel", "pr": 1204, "kind": "enhanced", "since": "v3.4.0", "date": "2026-10-28", "title": "feat(map): animate the chart when it follows, rotates or zooms" },
   { "feature": "unit-preferences", "pr": 1198, "kind": "enhanced", "since": "v3.4.0", "date": "2026-10-28", "title": "feat(settings): use the server's unit preferences by default" },
-  { "feature": "radar-overlay", "pr": 1201, "kind": "enhanced", "since": "v3.4.0", "date": "2026-10-27", "title": "feat(radar): remember whether radar overlay is shown" }
+  { "feature": "radar-overlay", "pr": 1201, "kind": "enhanced", "since": "v3.4.0", "date": "2026-10-27", "title": "feat(radar): remember whether radar overlay is shown" },
+  { "feature": null, "pr": 1226, "kind": "skip", "reason": "performance only: track lines are clipped to the view before drawing, so a long track no longer slows panning and zooming; no user-facing change" }
 ]
