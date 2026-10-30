@@ -82,7 +82,7 @@ describe('RangeCirclesComponent circle colour', () => {
   });
 
   it('keeps the range circle colour for the zoom or fixed circles', () => {
-    expect(strokeColor(undefined, '#404040')).toBe(strokeColor(undefined));
-    expect(strokeColor(ring)).toBe(strokeColor(undefined));
+    expect(strokeColor(undefined, '#404040')).toBe('rgba(152, 153, 10, 1)');
+    expect(strokeColor(ring)).toBe('rgba(152, 153, 10, 1)');
   });
 });
