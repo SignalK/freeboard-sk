@@ -12,6 +12,7 @@ import { Style } from 'ol/style';
 import { MapComponent } from '../map.component';
 import { SKAircraft, SKAtoN, SKSaR, SKVessel, SKMeteo } from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
+import { aisTargetShown } from 'src/app/lib/ais-filter';
 
 export type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
 
@@ -117,50 +118,11 @@ export class AISBaseLayerComponent
    * @returns true if target should be rendered
    */
   protected okToRenderTarget(id: string): boolean {
-    // IMO only
-    const checkImo = (id: string) => {
-      const imo =
-        Array.isArray(this.filterShipTypes) &&
-        this.filterShipTypes.includes(-999);
-      if (imo) {
-        const t = this.targets.get(id);
-        if ('imo' in (t as SKVessel).registrations) {
-          return true;
-        } else {
-          return false;
-        }
-      } else {
-        return true;
-      }
-    };
-
-    // Buddies only
-    const checkBuddy = (id: string) => {
-      const buddiesOnly =
-        Array.isArray(this.filterShipTypes) &&
-        this.filterShipTypes.includes(-998);
-      if (buddiesOnly) {
-        return (this.targets.get(id) as SKVessel).buddy === true;
-      } else {
-        return true;
-      }
-    };
-
-    const passesSentinelFilters = (id: string) =>
-      checkImo(id) && checkBuddy(id);
-
-    if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
-      const st = Math.floor((this.targets.get(id)?.type?.id ?? NaN) / 10) * 10;
-      return this.filterShipTypes.includes(st) && passesSentinelFilters(id);
-    }
-    if (!this.filterIds) {
-      return passesSentinelFilters(id);
-    }
-    if (Array.isArray(this.filterIds)) {
-      return this.filterIds.includes(id) && passesSentinelFilters(id);
-    } else {
-      return passesSentinelFilters(id);
-    }
+    return aisTargetShown(id, this.targets.get(id), {
+      filterIds: this.filterIds,
+      filterByShipType: this.filterByShipType,
+      filterShipTypes: this.filterShipTypes
+    });
   }
 
   /** Determine if target is stale
