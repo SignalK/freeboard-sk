@@ -540,6 +540,10 @@ export type PointTime = string | undefined;
 export interface TimedTrack {
   lines: Position[][];
   times: PointTime[][];
+  /** A provider's answer, which may leave points out, thinning by time or
+   * simplifying by shape: a long step within a line is then one of those,
+   * not the recording going quiet. */
+  thinned?: boolean;
 }
 
 const timeMs = (t: PointTime) => (t ? Date.parse(t) : NaN);

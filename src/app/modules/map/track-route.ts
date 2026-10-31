@@ -77,9 +77,13 @@ function stationaryRuns(pts: TimedPoint[], minMs: number): [number, number][] {
 /** Where a passage can begin or end: the points `a..b` of one stationary run,
  * or of several back to back. Runs back to back are a vessel creeping along
  * too slowly to count as under way, or swinging wider than STOP_RADIUS_M at
- * anchor, so they make one stop rather than a passage between each pair. A
- * passage leaves from the centre of the stop's `last` run and arrives at the
- * centre of its `first`, where the vessel stopped creeping. */
+ * anchor, so they make one stop rather than a passage between each pair. Not
+ * where the step from one run to the next is faster than a vessel moves while
+ * stopped, STOP_RADIUS_M in `minMs`, or longer than twice STOP_RADIUS_M,
+ * however long it took: there the points between two anchorages were left
+ * out, as a straight leg simplified to its ends. A passage leaves
+ * from the centre of the stop's `last` run and arrives at the centre of its
+ * `first`, where the vessel stopped creeping. */
 interface Stop {
   a: number;
   b: number;
@@ -91,7 +95,13 @@ function stopsOf(pts: TimedPoint[], minMs: number): Stop[] {
   const stops: Stop[] = [];
   for (const run of stationaryRuns(pts, minMs)) {
     const prev = stops[stops.length - 1];
-    if (prev && prev.b + 1 === run[0]) {
+    if (
+      prev &&
+      prev.b + 1 === run[0] &&
+      distM(pts[prev.b].p, pts[run[0]].p) <=
+        STOP_RADIUS_M *
+          Math.min(2, Math.max(1, (pts[run[0]].t - pts[prev.b].t) / minMs))
+    ) {
       prev.b = run[1];
       prev.last = run;
     } else {
@@ -215,13 +225,15 @@ function findPassage(
   // between is unknown, so the passage stops short of it. A gap is where the
   // recording broke into a new line, or, within one line (the local trail is
   // a single one), went quiet for longer than a stretch of it is joined
-  // across. Only gaps between the stops count; a tap on a stop stands for
-  // the start of the passage.
+  // across. In a thinned track only a new line is one: its long steps are
+  // points left out, as a straight leg simplified to its ends. Only gaps
+  // between the stops count; a tap on a stop stands for the start of the
+  // passage.
   const tapped = Math.min(Math.max(k, start), end);
   for (let g = Math.max(start, 1); g <= end + 1 && g < pts.length; g++) {
     if (
       (pts[g].line !== pts[g - 1].line ||
-        pts[g].t - pts[g - 1].t > TRAIL_JOIN_GAP_MS) &&
+        (!track.thinned && pts[g].t - pts[g - 1].t > TRAIL_JOIN_GAP_MS)) &&
       distM(pts[g - 1].p, pts[g].p) > STOP_RADIUS_M
     ) {
       if (g <= tapped) {

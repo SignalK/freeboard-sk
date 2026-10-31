@@ -252,6 +252,59 @@ describe('trackSectionRoute', () => {
     });
   });
 
+  describe('a track a provider thinned or simplified', () => {
+    /** `track` as a provider leaves it: only the points `keep` keeps. */
+    const leftOut = (
+      track: TimedTrack,
+      keep: (i: number) => boolean
+    ): TimedTrack => ({
+      lines: track.lines.map((line) => line.filter((_, i) => keep(i))),
+      times: track.times.map((line) => line.filter((_, i) => keep(i))),
+      thinned: true
+    });
+
+    it('runs between the anchorages either side with its points 40 minutes apart', () => {
+      const track = leftOut(day().track, (i) => i % 40 === 0);
+      const route = routeOf(track, at(A, 5000, 0), OWN_STOP_MS);
+
+      expect(distM(route[0], A)).toBeLessThan(100);
+      expect(distM(route[route.length - 1], B)).toBeLessThan(100);
+    });
+
+    it('carries on along a straight leg simplified to its ends', () => {
+      // anchored at A, sailed straight to B in 90 minutes, anchored at B
+      const rec = new Recorder(A).stay(120).sail(10000, 0, 90).stay(120);
+      const track = leftOut(rec.track, (i) => i < 120 || i >= 209);
+      const route = routeOf(track, at(A, 3000, 0), OWN_STOP_MS);
+
+      expect(distM(route[0], A)).toBeLessThan(30);
+      expect(distM(route[route.length - 1], B)).toBeLessThan(30);
+    });
+
+    it('spans the passage across the points left out', () => {
+      const track = leftOut(day().track, (i) => i % 40 === 0);
+      const span = spanOf(track, at(A, 5000, 0), OWN_STOP_MS);
+
+      expect(span.from).toBeLessThanOrEqual(T0 + 120 * MIN);
+      expect(span.to).toBeGreaterThanOrEqual(T0 + 180 * MIN);
+      // the stop at B, not the leg on to C
+      expect(span.to).toBeLessThan(T0 + 300 * MIN);
+    });
+
+    it('still stops short of a new line the vessel moved across', () => {
+      const rec = new Recorder(A).stay(120).sail(4000, 0, 30);
+      const lastBeforeGap = rec.pos;
+      rec.gap(120, 3000, 0).sail(3000, 0, 30).stay(120);
+      const route = routeOf(
+        { ...rec.track, thinned: true },
+        at(A, 2000, 0),
+        OWN_STOP_MS
+      );
+
+      expect(distM(route[route.length - 1], lastBeforeGap)).toBeLessThan(1);
+    });
+  });
+
   describe('a vessel creeping along too slowly to be under way', () => {
     // 0.3 kn: 200 m takes 22 minutes, longer than another vessel's stop
     const CREEP_M_PER_MIN = 9.26;
@@ -302,6 +355,39 @@ describe('trackSectionRoute', () => {
       expect(distM(route[0], A)).toBeLessThan(30);
       expect(distM(route[route.length - 1], B)).toBeLessThan(30);
     });
+  });
+
+  it('keeps one stop where a pause parts its two sides of the anchor', () => {
+    // lying 120 m west of the anchor, the recording pauses for eight hours
+    // and resumes with the vessel swung 120 m east of it
+    const rec = new Recorder(at(A, -10000, 0))
+      .sail(9880, 0, 60)
+      .stay(180, 0)
+      .gap(480, 240, 0)
+      .stay(180, 0)
+      .sail(9880, 0, 60)
+      .stay(120);
+    const route = routeOf(rec.track, at(A, -120, 0), OWN_STOP_MS);
+
+    // one stop: the passage leaves where it lay last, east of the anchor
+    expect(distM(route[0], at(A, 120, 0))).toBeLessThan(10);
+    expect(distM(route[route.length - 1], B)).toBeLessThan(30);
+  });
+
+  it('keeps apart two anchorages a kilometre apart, however long between their points', () => {
+    // seven hours between points: lying at A, a hop of a kilometre east to
+    // lie at D, then on to B
+    const D = at(A, 1000, 0);
+    const places = [A, A, A, D, D, D, at(D, 4500, 0), B, B, B];
+    const track: TimedTrack = {
+      lines: [places],
+      times: [places.map((_, i) => new Date(T0 + i * 420 * MIN).toISOString())],
+      thinned: true
+    };
+    const route = routeOf(track, at(A, 400, 0), OWN_STOP_MS);
+
+    expect(distM(route[0], A)).toBeLessThan(1);
+    expect(distM(route[route.length - 1], D)).toBeLessThan(1);
   });
 
   it('gives the passage leaving a stop for a tap on the stop', () => {
