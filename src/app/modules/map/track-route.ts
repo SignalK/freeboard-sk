@@ -79,8 +79,9 @@ function stationaryRuns(pts: TimedPoint[], minMs: number): [number, number][] {
  * too slowly to count as under way, or swinging wider than STOP_RADIUS_M at
  * anchor, so they make one stop rather than a passage between each pair. Not
  * where the step from one run to the next is faster than a vessel moves while
- * stopped, STOP_RADIUS_M in `minMs`: there the points between two anchorages
- * were left out, as a straight leg simplified to its ends. A passage leaves
+ * stopped, STOP_RADIUS_M in `minMs`, or longer than twice STOP_RADIUS_M,
+ * however long it took: there the points between two anchorages were left
+ * out, as a straight leg simplified to its ends. A passage leaves
  * from the centre of the stop's `last` run and arrives at the centre of its
  * `first`, where the vessel stopped creeping. */
 interface Stop {
@@ -98,7 +99,8 @@ function stopsOf(pts: TimedPoint[], minMs: number): Stop[] {
       prev &&
       prev.b + 1 === run[0] &&
       distM(pts[prev.b].p, pts[run[0]].p) <=
-        STOP_RADIUS_M * Math.max(1, (pts[run[0]].t - pts[prev.b].t) / minMs)
+        STOP_RADIUS_M *
+          Math.min(2, Math.max(1, (pts[run[0]].t - pts[prev.b].t) / minMs))
     ) {
       prev.b = run[1];
       prev.last = run;

@@ -374,6 +374,22 @@ describe('trackSectionRoute', () => {
     expect(distM(route[route.length - 1], B)).toBeLessThan(30);
   });
 
+  it('keeps apart two anchorages a kilometre apart, however long between their points', () => {
+    // seven hours between points: lying at A, a hop of a kilometre east to
+    // lie at D, then on to B
+    const D = at(A, 1000, 0);
+    const places = [A, A, A, D, D, D, at(D, 4500, 0), B, B, B];
+    const track: TimedTrack = {
+      lines: [places],
+      times: [places.map((_, i) => new Date(T0 + i * 420 * MIN).toISOString())],
+      thinned: true
+    };
+    const route = routeOf(track, at(A, 400, 0), OWN_STOP_MS);
+
+    expect(distM(route[0], A)).toBeLessThan(1);
+    expect(distM(route[route.length - 1], D)).toBeLessThan(1);
+  });
+
   it('gives the passage leaving a stop for a tap on the stop', () => {
     const route = routeOf(day().track, B, OWN_STOP_MS);
 
