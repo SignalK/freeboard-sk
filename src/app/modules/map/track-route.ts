@@ -215,13 +215,15 @@ function findPassage(
   // between is unknown, so the passage stops short of it. A gap is where the
   // recording broke into a new line, or, within one line (the local trail is
   // a single one), went quiet for longer than a stretch of it is joined
-  // across. Only gaps between the stops count; a tap on a stop stands for
-  // the start of the passage.
+  // across. In a thinned track only a new line is one: its long steps are
+  // points left out, as a straight leg simplified to its ends. Only gaps
+  // between the stops count; a tap on a stop stands for the start of the
+  // passage.
   const tapped = Math.min(Math.max(k, start), end);
   for (let g = Math.max(start, 1); g <= end + 1 && g < pts.length; g++) {
     if (
       (pts[g].line !== pts[g - 1].line ||
-        pts[g].t - pts[g - 1].t > TRAIL_JOIN_GAP_MS) &&
+        (!track.thinned && pts[g].t - pts[g - 1].t > TRAIL_JOIN_GAP_MS)) &&
       distM(pts[g - 1].p, pts[g].p) > STOP_RADIUS_M
     ) {
       if (g <= tapped) {

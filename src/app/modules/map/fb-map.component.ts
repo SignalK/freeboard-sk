@@ -290,6 +290,8 @@ interface TrackHistoryFeature {
   name?: string;
   lines: Position[][];
   times?: PointTime[][];
+  /** A provider's answer, thinned or simplified (see TimedTrack). */
+  thinned?: boolean;
   at: Position;
 }
 
@@ -2639,6 +2641,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               context: feature.get('context'),
               lines: [feature.get('line')],
               times: feature.get('times') ? [feature.get('times')] : undefined,
+              thinned: true,
               at: e.lonlat
             };
             break;
@@ -2674,6 +2677,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 context,
                 lines: timed.lines,
                 times: timed.times,
+                thinned: true,
                 at: e.lonlat
               };
             }
@@ -2684,11 +2688,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
             // the time each point was logged
             // the local trail carries on from the server trail, so both answer
             // from the two joined into one passage
+            const serverShown = this.app.selfTrailFromServer().length > 0;
             const timed =
               id === 'trail.self.server' || id === 'trail.self.local'
                 ? trailTapTrack(
                     this.app.selfTrailTimed(),
-                    this.app.selfTrailFromServer().length > 0,
+                    serverShown,
                     this.app.localTrailTimed()
                   )
                 : null;
@@ -2700,6 +2705,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 context: 'self',
                 lines: timed.lines,
                 times: timed.times,
+                // the server thins its trail by time; this device logs its own
+                thinned: serverShown && !!this.app.selfTrailTimed(),
                 at: e.lonlat
               };
             }
@@ -3180,7 +3187,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       route:
         hf.times &&
         trackSectionRoute(
-          { lines: hf.lines, times: hf.times },
+          { lines: hf.lines, times: hf.times, thinned: hf.thinned },
           hf.at,
           stopMs(hf.context)
         )
@@ -3240,7 +3247,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
         (atTime !== undefined &&
           poseAt(timed.lines, timed.times, atTime)?.position) ||
         hf.at;
-      return { ...hf, lines: timed.lines, times: timed.times, at };
+      // a provider's answer, to which the local trail adds only its tail
+      return {
+        ...hf,
+        lines: timed.lines,
+        times: timed.times,
+        thinned: true,
+        at
+      };
     };
     // the route the popover waits for, made at once if MAKE ROUTE was chosen
     // while it loaded; none withdraws the offer
@@ -3279,7 +3293,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
           thinned &&
           trackHistory.route
             ? trackSectionSpan(
-                { lines: tapped.lines, times: tapped.times },
+                {
+                  lines: tapped.lines,
+                  times: tapped.times,
+                  thinned: tapped.thinned
+                },
                 tapped.at,
                 stopMs(hf.context)
               )
