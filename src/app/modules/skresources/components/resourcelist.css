@@ -143,3 +143,21 @@
     color: var(--mat-app-text-color);
     border-bottom: silver 1px outset;
 }
+
+/* Vessel list: names how many vessels the chart draws while a filter hides
+   some. The scroller is inset below it. */
+.resourcelist .resources.vessels .filter-hint {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    background: var(--mat-app-background-color);
+    color: var(--mat-app-text-color);
+    font-weight: 500;
+    border-bottom: silver 1px outset;
+}
+
+.resourcelist .resources.vessels .vscroller.hinted {
+    top: 28px;
+}
