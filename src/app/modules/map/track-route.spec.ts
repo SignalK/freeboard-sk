@@ -271,6 +271,16 @@ describe('trackSectionRoute', () => {
       expect(distM(route[route.length - 1], B)).toBeLessThan(100);
     });
 
+    it('carries on along a straight leg simplified to its ends', () => {
+      // anchored at A, sailed straight to B in 90 minutes, anchored at B
+      const rec = new Recorder(A).stay(120).sail(10000, 0, 90).stay(120);
+      const track = leftOut(rec.track, (i) => i < 120 || i >= 209);
+      const route = routeOf(track, at(A, 3000, 0), OWN_STOP_MS);
+
+      expect(distM(route[0], A)).toBeLessThan(30);
+      expect(distM(route[route.length - 1], B)).toBeLessThan(30);
+    });
+
     it('spans the passage across the points left out', () => {
       const track = leftOut(day().track, (i) => i % 40 === 0);
       const span = spanOf(track, at(A, 5000, 0), OWN_STOP_MS);
@@ -345,6 +355,23 @@ describe('trackSectionRoute', () => {
       expect(distM(route[0], A)).toBeLessThan(30);
       expect(distM(route[route.length - 1], B)).toBeLessThan(30);
     });
+  });
+
+  it('keeps one stop where a pause parts its two sides of the anchor', () => {
+    // lying 120 m west of the anchor, the recording pauses for eight hours
+    // and resumes with the vessel swung 120 m east of it
+    const rec = new Recorder(at(A, -10000, 0))
+      .sail(9880, 0, 60)
+      .stay(180, 0)
+      .gap(480, 240, 0)
+      .stay(180, 0)
+      .sail(9880, 0, 60)
+      .stay(120);
+    const route = routeOf(rec.track, at(A, -120, 0), OWN_STOP_MS);
+
+    // one stop: the passage leaves where it lay last, east of the anchor
+    expect(distM(route[0], at(A, 120, 0))).toBeLessThan(10);
+    expect(distM(route[route.length - 1], B)).toBeLessThan(30);
   });
 
   it('gives the passage leaving a stop for a tap on the stop', () => {
