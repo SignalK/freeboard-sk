@@ -1,9 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import {
+  AbstractControl,
   FormsModule,
   FormControl,
+  FormGroup,
+  ValidationErrors,
+  ValidatorFn,
   Validators,
   ReactiveFormsModule
 } from '@angular/forms';
@@ -33,6 +37,50 @@ import {
   persistSkIcon,
   selListWaypointIcons
 } from 'src/app/modules/icons';
+import {
+  COORD_ENTRY_FORMATS,
+  CoordAxis,
+  CoordEntryFormat,
+  entryFormatFor,
+  formatAngle,
+  fromUtm,
+  parseAngle,
+  toUtm
+} from 'src/app/lib/coord-entry';
+
+const ENTRY_EXAMPLES: Record<
+  Exclude<CoordEntryFormat, 'UTM'>,
+  { lat: string; lon: string }
+> = {
+  DD: { lat: '47.6375', lon: '-3.5' },
+  DDM: { lat: `47° 38.250' N`, lon: `3° 30.000' W` },
+  DMS: { lat: `47° 38' 15" N`, lon: `3° 30' 00" W` }
+};
+
+const angleValidator =
+  (axis: CoordAxis): ValidatorFn =>
+  (c: AbstractControl): ValidationErrors | null =>
+    parseAngle(c.value, axis) === null ? { coord: true } : null;
+
+interface UtmForm {
+  zone: FormControl<number | null>;
+  hemisphere: FormControl<'N' | 'S'>;
+  easting: FormControl<number | null>;
+  northing: FormControl<number | null>;
+}
+
+const utmOf = (g: FormGroup<UtmForm>) => {
+  const v = g.getRawValue();
+  return fromUtm({
+    zone: v.zone ?? NaN,
+    hemisphere: v.hemisphere,
+    easting: v.easting ?? NaN,
+    northing: v.northing ?? NaN
+  });
+};
+
+const utmValidator: ValidatorFn = (c: AbstractControl) =>
+  utmOf(c as FormGroup<UtmForm>) === null ? { utm: true } : null;
 
 interface DialogData {
   title: string; // title text,
@@ -107,9 +155,9 @@ interface DialogData {
               </mat-form-field>
             </div>
 
-            <div style="font-size: 10pt;display:flex;flex-wrap:wrap">
-              <div style="display:flex;">
-                @if (wptReadOnly) {
+            @if (wptReadOnly) {
+              <div style="font-size: 10pt;display:flex;flex-wrap:wrap">
+                <div style="display:flex;">
                   <div style="width:45px;font-weight:bold;">Lat:</div>
                   <div
                     style="flex: 1 1 auto;"
@@ -117,28 +165,8 @@ interface DialogData {
                       wptLat | coords: app.config.units.positionFormat : true
                     "
                   ></div>
-                } @else {
-                  <div style="flex: 1 1 auto;">
-                    <mat-form-field floatLabel="always">
-                      <mat-label>Latitude</mat-label>
-                      <input
-                        matInput
-                        type="number"
-                        min="-90"
-                        max="90"
-                        required
-                        [formControl]="inpLat"
-                        (blur)="updateErrorMessage()"
-                      />
-                      @if (inpLat.invalid && (inpLat.dirty || inpLat.touched)) {
-                        <mat-error>{{ errorMessage() }}</mat-error>
-                      }
-                    </mat-form-field>
-                  </div>
-                }
-              </div>
-              <div style="display:flex;padding-left: 5px;">
-                @if (wptReadOnly) {
+                </div>
+                <div style="display:flex;padding-left: 5px;">
                   <div style="width:45px;font-weight:bold;">Lon:</div>
                   <div
                     style="flex: 1 1 auto;"
@@ -146,26 +174,116 @@ interface DialogData {
                       wptLon | coords: app.config.units.positionFormat
                     "
                   ></div>
+                </div>
+              </div>
+            } @else {
+              <div class="_ap-wpt-position">
+                <mat-chip-listbox
+                  aria-label="Position format"
+                  (change)="setEntryFormat($event.value)"
+                >
+                  @for (f of entryFormats; track f.id) {
+                    <!-- The active chip is not selectable, so clicking it
+                    again cannot leave the dialog with no format. -->
+                    <mat-chip-option
+                      [value]="f.id"
+                      [selected]="entryFormat() === f.id"
+                      [selectable]="entryFormat() !== f.id"
+                      [matTooltip]="f.description"
+                      >{{ f.label }}</mat-chip-option
+                    >
+                  }
+                </mat-chip-listbox>
+
+                @if (entryFormat() === 'UTM') {
+                  <div class="_ap-wpt-coords" [formGroup]="inpUtm">
+                    <mat-form-field floatLabel="always" style="width:80px;">
+                      <mat-label>Zone</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        min="1"
+                        max="60"
+                        step="1"
+                        required
+                        formControlName="zone"
+                      />
+                    </mat-form-field>
+                    <mat-form-field floatLabel="always" style="width:80px;">
+                      <mat-label>Hemisphere</mat-label>
+                      <mat-select formControlName="hemisphere">
+                        <mat-option value="N">N</mat-option>
+                        <mat-option value="S">S</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field floatLabel="always">
+                      <mat-label>Easting (m)</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        required
+                        formControlName="easting"
+                      />
+                    </mat-form-field>
+                    <mat-form-field floatLabel="always">
+                      <mat-label>Northing (m)</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        required
+                        formControlName="northing"
+                      />
+                    </mat-form-field>
+                  </div>
+                  @if (inpUtm.invalid && (inpUtm.dirty || inpUtm.touched)) {
+                    <div class="_ap-wpt-error">
+                      Not a valid UTM position (zone 1-60, between 80°S and
+                      84°N).
+                    </div>
+                  } @else if (utmUnavailable()) {
+                    <div class="_ap-wpt-error">
+                      UTM covers 80°S to 84°N only. Use another format for this
+                      position.
+                    </div>
+                  }
                 } @else {
-                  <div style="flex: 1 1 auto;">
+                  <div class="_ap-wpt-coords">
+                    <mat-form-field floatLabel="always">
+                      <mat-label>Latitude</mat-label>
+                      <input
+                        matInput
+                        type="text"
+                        inputmode="text"
+                        autocomplete="off"
+                        required
+                        [placeholder]="example().lat"
+                        [formControl]="inpLat"
+                      />
+                      <mat-hint>e.g. {{ example().lat }}</mat-hint>
+                      @if (inpLat.invalid) {
+                        <mat-error>Not a valid latitude.</mat-error>
+                      }
+                    </mat-form-field>
                     <mat-form-field floatLabel="always">
                       <mat-label>Longitude</mat-label>
                       <input
                         matInput
-                        type="number"
-                        min="-180"
-                        max="180"
+                        type="text"
+                        inputmode="text"
+                        autocomplete="off"
+                        required
+                        [placeholder]="example().lon"
                         [formControl]="inpLon"
-                        (blur)="updateErrorMessage()"
                       />
-                      @if (inpLon.invalid && (inpLon.dirty || inpLon.touched)) {
-                        <mat-error>{{ errorMessage() }}</mat-error>
+                      <mat-hint>e.g. {{ example().lon }}</mat-hint>
+                      @if (inpLon.invalid) {
+                        <mat-error>Not a valid longitude.</mat-error>
                       }
                     </mat-form-field>
                   </div>
                 }
               </div>
-            </div>
+            }
 
             <div style="font-size: 10pt;display:flex;flex-wrap:wrap">
               <div>
@@ -234,9 +352,7 @@ interface DialogData {
         <mat-dialog-actions align="end">
           <button
             mat-flat-button
-            [disabled]="
-              inpLat.invalid || inpLon.invalid || inpName.invalid || wptReadOnly
-            "
+            [disabled]="positionInvalid() || inpName.invalid || wptReadOnly"
             (click)="handleClose(true)"
           >
             SAVE
@@ -249,6 +365,22 @@ interface DialogData {
     `
       ._ap-waypoint {
         min-width: 300px;
+      }
+
+      ._ap-wpt-position {
+        padding-bottom: 10px;
+      }
+
+      ._ap-wpt-coords {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 8px;
+        padding-top: 10px;
+      }
+
+      ._ap-wpt-error {
+        color: var(--mat-sys-error);
+        font-size: 9pt;
       }
 
       ._ap-waypoint .selected-icon {
@@ -268,12 +400,39 @@ export class WaypointDialog {
   protected wptType: string;
   protected wptDescription: string;
   protected wptReadOnly = false;
+  // Last valid position entered, in any format. The text controls show it
+  // rounded to their notation; this keeps full precision, so switching format
+  // without editing never moves the waypoint.
   protected wptLat: number;
   protected wptLon: number;
   protected wptIcon = signal<AppIconDef>({}); // selected icon, set in ngOnInit
 
-  protected inpLat: FormControl;
-  protected inpLon: FormControl;
+  protected readonly entryFormats = COORD_ENTRY_FORMATS;
+  protected entryFormat = signal<CoordEntryFormat>('DD');
+  protected example = computed(() => {
+    const f = this.entryFormat();
+    return ENTRY_EXAMPLES[f === 'UTM' ? 'DD' : f];
+  });
+  /** The current position lies outside the UTM latitude band. */
+  protected utmUnavailable = signal(false);
+
+  protected inpLat = new FormControl('', {
+    nonNullable: true,
+    validators: [angleValidator('lat')]
+  });
+  protected inpLon = new FormControl('', {
+    nonNullable: true,
+    validators: [angleValidator('lon')]
+  });
+  protected inpUtm = new FormGroup<UtmForm>(
+    {
+      zone: new FormControl<number | null>(null),
+      hemisphere: new FormControl<'N' | 'S'>('N', { nonNullable: true }),
+      easting: new FormControl<number | null>(null),
+      northing: new FormControl<number | null>(null)
+    },
+    { validators: utmValidator }
+  );
   protected inpName: FormControl;
 
   protected errorMessage = signal('');
@@ -328,36 +487,69 @@ export class WaypointDialog {
     this.wptLat = coords[1];
     this.wptLon = coords[0];
 
-    this.inpLat = new FormControl(this.wptLat, [Validators.required]);
-    this.inpLon = new FormControl(this.wptLon, [Validators.required]);
     this.inpName = new FormControl(this.data.waypoint.name ?? '', [
       Validators.required
     ]);
 
-    merge(
-      this.inpLat.statusChanges,
-      this.inpLat.valueChanges,
-      this.inpLon.statusChanges,
-      this.inpLon.valueChanges,
-      this.inpName.statusChanges,
-      this.inpName.valueChanges
-    )
+    this.setEntryFormat(entryFormatFor(this.app.config.units.positionFormat));
+
+    this.inpLat.valueChanges.pipe(takeUntilDestroyed()).subscribe((v) => {
+      this.wptLat = parseAngle(v, 'lat') ?? this.wptLat;
+    });
+    this.inpLon.valueChanges.pipe(takeUntilDestroyed()).subscribe((v) => {
+      this.wptLon = parseAngle(v, 'lon') ?? this.wptLon;
+    });
+    this.inpUtm.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      const pos = utmOf(this.inpUtm);
+      if (pos) {
+        [this.wptLon, this.wptLat] = pos;
+        this.utmUnavailable.set(false);
+      }
+    });
+
+    merge(this.inpName.statusChanges, this.inpName.valueChanges)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.updateErrorMessage());
   }
 
-  protected updateErrorMessage() {
-    if (this.inpLat.hasError('required') || this.inpLon.hasError('required')) {
-      this.errorMessage.set('You must enter a value.');
-    } else if (this.inpName.hasError('required')) {
-      this.errorMessage.set('Please enter a waypoint name.');
-    } else if (this.inpLat.hasError('min') || this.inpLat.hasError('max')) {
-      this.errorMessage.set(`Value must be > -90 and < 90`);
-    } else if (this.inpLon.hasError('min') || this.inpLon.hasError('max')) {
-      this.errorMessage.set(`Value must be > -180 and < 180`);
+  /**
+   * Show the position in another notation. The controls are written without
+   * emitting, so the rounded text does not overwrite the precise position.
+   */
+  protected setEntryFormat(format: CoordEntryFormat) {
+    this.entryFormat.set(format);
+    if (format === 'UTM') {
+      const utm = toUtm(this.wptLon, this.wptLat);
+      this.utmUnavailable.set(utm === null);
+      this.inpUtm.setValue(
+        {
+          zone: utm?.zone ?? null,
+          hemisphere: utm?.hemisphere ?? (this.wptLat < 0 ? 'S' : 'N'),
+          easting: utm ? Math.round(utm.easting) : null,
+          northing: utm ? Math.round(utm.northing) : null
+        },
+        { emitEvent: false }
+      );
     } else {
-      this.errorMessage.set('');
+      this.inpLat.setValue(formatAngle(this.wptLat, format, 'lat'), {
+        emitEvent: false
+      });
+      this.inpLon.setValue(formatAngle(this.wptLon, format, 'lon'), {
+        emitEvent: false
+      });
     }
+  }
+
+  protected positionInvalid(): boolean {
+    return this.entryFormat() === 'UTM'
+      ? this.inpUtm.invalid
+      : this.inpLat.invalid || this.inpLon.invalid;
+  }
+
+  protected updateErrorMessage() {
+    this.errorMessage.set(
+      this.inpName.hasError('required') ? 'Please enter a waypoint name.' : ''
+    );
   }
 
   protected handleClose(save: boolean) {
@@ -366,8 +558,8 @@ export class WaypointDialog {
       this.data.waypoint.description = this.wptDescription;
       this.data.waypoint.type = this.wptType;
       this.data.waypoint.feature.geometry.coordinates = [
-        this.inpLon.value,
-        this.inpLat.value
+        this.wptLon,
+        this.wptLat
       ];
       // Only the 'waypoint' category participates in symbol overrides, so only
       // it gets the bare-vs-default: persistence treatment. Other categories
