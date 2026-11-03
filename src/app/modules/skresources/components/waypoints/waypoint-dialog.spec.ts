@@ -184,6 +184,8 @@ describe('waypoint dialog position entry', () => {
     expect(
       el(fixture).querySelector('._ap-wpt-error[role="alert"]')?.textContent
     ).toContain('Not a valid UTM position');
+    type(fixture, zone, '31');
+    expect(saveButton(fixture).disabled).toBe(false);
   });
 
   it('disables SAVE while a coordinate is not valid', async () => {
@@ -214,6 +216,19 @@ describe('waypoint dialog position entry', () => {
     await choose(fixture, 'UTM');
     expect(el(fixture).textContent).toContain('UTM covers 80°S to 84°N only');
     expect(saveButton(fixture).disabled).toBe(true);
+  });
+
+  it('shows both the coverage hint and an invalid UTM entry', async () => {
+    const { fixture } = await open([10, 85]);
+    await choose(fixture, 'UTM');
+    const [zone] = positionInputs(fixture);
+    type(fixture, zone, '61');
+    const alerts = Array.from(
+      el(fixture).querySelectorAll('._ap-wpt-error[role="alert"]')
+    ).map((a) => a.textContent ?? '');
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0]).toContain('UTM covers 80°S to 84°N only');
+    expect(alerts[1]).toContain('Not a valid UTM position');
   });
 
   it('keeps telling the user to switch format while they edit a polar UTM', async () => {
