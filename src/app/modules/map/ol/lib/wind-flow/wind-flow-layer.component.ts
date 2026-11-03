@@ -269,7 +269,7 @@ export class WindFlowLayerComponent implements OnDestroy {
     map.addLayer(this.layer);
 
     this.refreshSub = merge(
-      this.refresh$.pipe(debounceTime(400)),
+      this.refresh$.pipe(debounceTime(250)),
       interval(REFRESH_MS).pipe(rxMap(() => true))
     )
       .pipe(
@@ -369,6 +369,8 @@ export class WindFlowLayerComponent implements OnDestroy {
         canvas.height = Math.round(height * pixelRatio);
       }
       this.particles.reset(particleCountFor(width, height), this.view);
+    } else if (previous && previous.resolution !== this.view.resolution) {
+      this.particles.zoomed(previous, this.view);
     }
     if (resized || moved || this.shadeDirty) {
       this.drawShading();

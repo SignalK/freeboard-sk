@@ -64,11 +64,21 @@ describe('WindParticles', () => {
     expect(p.x[0] - x1).toBeCloseTo(-12, 6);
   });
 
-  it('is reborn where there is no wind data', () => {
+  it('waits unseen where there is no wind data yet, then is reborn', () => {
+    // Centre of the view, shortest life (1.5 s), age 0; reborn at (10, 20).
     const p = new WindParticles(sequence(0.5, 0.5, 0, 0, 0.1, 0.2, 0));
     p.reset(1, view());
-    p.step(0.05, () => false, view());
-    expect([p.x[0], p.y[0]]).toEqual([10, 80]); // pixel (10, 20)
+    for (let n = 0; n < 3; n++) {
+      p.step(RECORD_INTERVAL, blowing(10, 0), view());
+    }
+    const x = p.x[0];
+
+    p.step(RECORD_INTERVAL, () => false, view());
+    expect(p.x[0]).toBe(x);
+    expect(segments(p)).toEqual([]);
+
+    p.step(1.5, () => false, view());
+    expect([p.x[0], p.y[0]]).toEqual([10, 80]);
   });
 
   it('is reborn once it leaves the view', () => {
@@ -134,6 +144,81 @@ describe('WindParticles', () => {
 
     p.step(RECORD_INTERVAL, blowing(2, 0), view());
     expect(p.x[0]).not.toBe(stoppedAt);
+  });
+});
+
+describe('WindParticles after a zoom', () => {
+  /** The same 100×100 px view at another resolution, centred on (50, 50). */
+  function zoomedView(resolution: number): FlowView {
+    const coordinateToPixel: Transform = [
+      1 / resolution,
+      0,
+      0,
+      -1 / resolution,
+      50 - 50 / resolution,
+      50 + 50 / resolution
+    ];
+    return {
+      width: 100,
+      height: 100,
+      coordinateToPixel,
+      pixelToCoordinate: makeInverse(create(), coordinateToPixel),
+      resolution
+    };
+  }
+
+  /** On-screen length of each trail segment. */
+  const pixelLengths = (p: WindParticles, v: FlowView) =>
+    segments(p).map(([, , x0, y0, x1, y1]) => {
+      const t = v.coordinateToPixel;
+      return Math.hypot(
+        t[0] * (x1 - x0) + t[2] * (y1 - y0),
+        t[1] * (x1 - x0) + t[3] * (y1 - y0)
+      );
+    });
+
+  it('keeps the on-screen length of trails', () => {
+    const p = new WindParticles(sequence(0.5, 0.5, 0.99, 0));
+    p.reset(1, zoomedView(1));
+    for (let n = 0; n < 4; n++) {
+      p.step(RECORD_INTERVAL, blowing(10, 0), zoomedView(1));
+    }
+    const before = pixelLengths(p, zoomedView(1));
+
+    p.zoomed(zoomedView(1), zoomedView(0.5)); // zoom in ×2, particle stays on screen
+    const after = pixelLengths(p, zoomedView(0.5));
+    expect(after.length).toBe(before.length);
+    after.forEach((len, i) => expect(len).toBeCloseTo(before[i], 6));
+  });
+
+  it('scatters again the particles a zoom in pushed off screen', () => {
+    // Starts near the right edge, which a ×2 zoom in pushes off screen.
+    const p = new WindParticles(sequence(0.95, 0.5, 0.99, 0, 0.3, 0.6, 0, 0.5));
+    p.reset(1, zoomedView(1));
+    p.zoomed(zoomedView(1), zoomedView(0.5));
+    const pixel = [p.x[0], p.y[0]];
+    const t = zoomedView(0.5).coordinateToPixel;
+    expect(t[0] * pixel[0] + t[4]).toBeCloseTo(30, 6);
+    expect(t[3] * pixel[1] + t[5]).toBeCloseTo(60, 6);
+  });
+
+  it('spreads particles back to the edges after a zoom out', () => {
+    const p = new WindParticles();
+    p.reset(2000, zoomedView(1));
+    p.zoomed(zoomedView(1), zoomedView(2)); // all of them now in the middle quarter
+    const t = zoomedView(2).coordinateToPixel;
+    let outer = 0;
+    for (let i = 0; i < p.count; i++) {
+      const px = t[0] * p.x[i] + t[4];
+      const py = t[3] * p.y[i] + t[5];
+      if (px < 25 || px > 75 || py < 25 || py > 75) {
+        outer++;
+      }
+    }
+    // Three quarters of the area lies outside the middle, so about three
+    // quarters of the particles should be there: as dense as the middle.
+    expect(outer / p.count).toBeGreaterThan(0.7);
+    expect(outer / p.count).toBeLessThan(0.8);
   });
 });
 

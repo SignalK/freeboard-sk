@@ -88,8 +88,7 @@ export class WindParticles {
     this.hNext = new Uint8Array(count);
     this.hCount = new Uint8Array(count);
     for (let i = 0; i < count; i++) {
-      this.respawn(i, view);
-      this.age[i] = this.random() * this.life[i];
+      this.respawn(i, view, true);
     }
   }
 
@@ -113,7 +112,13 @@ export class WindParticles {
       }
       this.age[i] += dt;
       if (!sample(this.x[i], this.y[i], this.wind)) {
-        this.respawn(i, view);
+        // No wind known here yet, as at the new edges of a view zoomed out
+        // until their data arrives: wait unseen rather than move, or every
+        // particle would end up crowding the part that has data.
+        this.hCount[i] = 0;
+        if (this.age[i] >= this.life[i]) {
+          this.respawn(i, view);
+        }
         continue;
       }
       const [u, v] = this.wind;
@@ -196,14 +201,94 @@ export class WindParticles {
     }
   }
 
-  private respawn(i: number, view: FlowView) {
-    this.pixel[0] = this.random() * view.width;
-    this.pixel[1] = this.random() * view.height;
+  /**
+   * Keeps the flow even after the view zoomed from `previous` to `view`.
+   * Trails are scaled about their particle so they keep their length on
+   * screen instead of stretching into streaks or shrinking to dots.
+   *
+   * Zooming in pushes most particles off screen; they are scattered again
+   * over the view. Zooming out packs every particle into the area that was
+   * on screen before; only the share that keeps that area as dense as the
+   * rest stays, and the others are reborn around it. Reborn particles get
+   * random ages, so they don't all die together afterwards.
+   */
+  zoomed(previous: FlowView, view: FlowView) {
+    const ratio = view.resolution / previous.resolution;
+    const keep = ratio > 1 ? 1 / (ratio * ratio) : 1;
+    const before = ratio > 1 ? this.footprint(previous, view) : undefined;
+    for (let i = 0; i < this.count; i++) {
+      this.pixel[0] = this.x[i];
+      this.pixel[1] = this.y[i];
+      apply(view.coordinateToPixel, this.pixel);
+      const offScreen =
+        this.pixel[0] < 0 ||
+        this.pixel[1] < 0 ||
+        this.pixel[0] > view.width ||
+        this.pixel[1] > view.height;
+      if (offScreen || this.random() >= keep) {
+        this.respawn(i, view, true, before);
+        continue;
+      }
+      const base = i * TRAIL_POINTS;
+      for (let k = 0; k < TRAIL_POINTS; k++) {
+        this.hx[base + k] = this.x[i] + (this.hx[base + k] - this.x[i]) * ratio;
+        this.hy[base + k] = this.y[i] + (this.hy[base + k] - this.y[i]) * ratio;
+      }
+    }
+  }
+
+  /** The pixel box, in `view`, of what `previous` showed. */
+  private footprint(previous: FlowView, view: FlowView) {
+    const box = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const [px, py] of [
+      [0, 0],
+      [previous.width, 0],
+      [0, previous.height],
+      [previous.width, previous.height]
+    ]) {
+      this.pixel[0] = px;
+      this.pixel[1] = py;
+      apply(previous.pixelToCoordinate, this.pixel);
+      apply(view.coordinateToPixel, this.pixel);
+      box[0] = Math.min(box[0], this.pixel[0]);
+      box[1] = Math.min(box[1], this.pixel[1]);
+      box[2] = Math.max(box[2], this.pixel[0]);
+      box[3] = Math.max(box[3], this.pixel[1]);
+    }
+    return box;
+  }
+
+  /** Places particle `i` at a random point of the view, outside the pixel
+   *  box `avoid` if given; `staggered` gives it a random age, for particles
+   *  placed in bulk. */
+  private respawn(
+    i: number,
+    view: FlowView,
+    staggered = false,
+    avoid?: number[]
+  ) {
+    // Outside `avoid` when there is room: give up after a few tries.
+    for (let n = 0; n < 8; n++) {
+      this.pixel[0] = this.random() * view.width;
+      this.pixel[1] = this.random() * view.height;
+      if (
+        !avoid ||
+        this.pixel[0] < avoid[0] ||
+        this.pixel[1] < avoid[1] ||
+        this.pixel[0] > avoid[2] ||
+        this.pixel[1] > avoid[3]
+      ) {
+        break;
+      }
+    }
     apply(view.pixelToCoordinate, this.pixel);
     this.x[i] = this.pixel[0];
     this.y[i] = this.pixel[1];
     this.age[i] = 0;
     this.life[i] = LIFE_MIN + this.random() * (LIFE_MAX - LIFE_MIN);
+    if (staggered) {
+      this.age[i] = this.random() * this.life[i];
+    }
     this.dying[i] = 0;
     this.hCount[i] = 0;
     this.hNext[i] = 0;
