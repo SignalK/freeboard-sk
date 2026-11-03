@@ -160,12 +160,14 @@ describe('UTM', () => {
     expect(utmZoneFor(5, 60)).toBe(32);
     expect(utmZoneFor(5, 50)).toBe(31);
     expect(utmZoneFor(15, 78)).toBe(33);
+    expect(utmZoneFor(10, 78)).toBe(33);
     expect(utmZoneFor(180, 0)).toBe(60);
   });
 
   it('converts into the exception zones', () => {
     expect(toUtm(5, 60)?.zone).toBe(32);
     expect(toUtm(15, 78)?.zone).toBe(33);
+    expect(toUtm(10, 78)?.zone).toBe(33);
   });
 
   it('rejects out-of-range input', () => {
