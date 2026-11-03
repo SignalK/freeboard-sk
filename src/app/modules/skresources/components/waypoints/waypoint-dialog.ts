@@ -235,15 +235,17 @@ interface DialogData {
                       />
                     </mat-form-field>
                   </div>
-                  @if (inpUtm.invalid && (inpUtm.dirty || inpUtm.touched)) {
-                    <div class="_ap-wpt-error">
-                      Not a valid UTM position (zone 1-60, between 80°S and
-                      84°N).
-                    </div>
-                  } @else if (utmUnavailable()) {
-                    <div class="_ap-wpt-error">
+                  @if (utmUnavailable()) {
+                    <div class="_ap-wpt-error" role="alert">
                       UTM covers 80°S to 84°N only. Use another format for this
                       position.
+                    </div>
+                  } @else if (
+                    inpUtm.invalid && (inpUtm.dirty || inpUtm.touched)
+                  ) {
+                    <div class="_ap-wpt-error" role="alert">
+                      Not a valid UTM position (zone 1-60, between 80°S and
+                      84°N).
                     </div>
                   }
                 } @else {
