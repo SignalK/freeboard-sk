@@ -163,6 +163,159 @@ describe('RadarPanel', () => {
     ).toBe('Off');
   });
 
+  describe('a step set on the panel', () => {
+    const report = (id: string, cv: ControlValue) =>
+      radar.update((r) => ({
+        ...r,
+        controls: new Map(r.controls).set(id, cv)
+      }));
+    const thumb = (el: HTMLElement) =>
+      control(el, 'Doppler').querySelector<HTMLInputElement>(
+        'input[matSliderThumb]'
+      )!;
+    const choose = (
+      fixture: ReturnType<typeof open>,
+      el: HTMLElement,
+      step: number
+    ) => {
+      thumb(el).value = String(step);
+      thumb(el).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    };
+
+    it('goes back to the value the radar reports when it refuses the change', () => {
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      choose(fixture, el, 2);
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'doppler', {
+        value: 2
+      });
+
+      report('doppler', { value: 0 });
+      fixture.detectChanges();
+
+      expect(thumb(el).value).toBe('0');
+      expect(
+        control(el, 'Doppler').querySelector('.ctl-value')!.textContent?.trim()
+      ).toBe('Off');
+    });
+
+    it('keeps the same control when the radar takes the change', () => {
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      const before = thumb(el);
+      choose(fixture, el, 2);
+
+      report('doppler', { value: 2 });
+      fixture.detectChanges();
+
+      expect(thumb(el)).toBe(before);
+      expect(thumb(el).value).toBe('2');
+    });
+
+    it('stays where it was set while only other controls are reported', () => {
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      choose(fixture, el, 2);
+
+      report('gain', { auto: true, value: 30 });
+      fixture.detectChanges();
+
+      expect(thumb(el).value).toBe('2');
+      expect(
+        control(el, 'Doppler').querySelector('.ctl-value')!.textContent?.trim()
+      ).toBe('Off');
+    });
+
+    it('goes back when the change does not reach the radar', async () => {
+      // the request fails after a round trip, as it does on the network
+      api.setControl.mockImplementationOnce(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('offline')))
+          )
+      );
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      choose(fixture, el, 2);
+      expect(thumb(el).value).toBe('2');
+
+      await new Promise((resolve) => setTimeout(resolve));
+      fixture.detectChanges();
+
+      expect(thumb(el).value).toBe('0');
+    });
+  });
+
+  it('sets the auto adjustment once Auto is switched on, before the radar answers', () => {
+    radar.update((r) => ({
+      ...r,
+      capabilities: {
+        ...r.capabilities,
+        controls: {
+          ...r.capabilities.controls,
+          sea: {
+            id: 6,
+            name: 'Sea clutter',
+            description: 'Sea clutter suppression',
+            category: 'base',
+            dataType: 'number',
+            hasAuto: true,
+            hasAutoAdjustable: true,
+            autoAdjustMinValue: -50,
+            autoAdjustMaxValue: 50,
+            minValue: 0,
+            maxValue: 100
+          }
+        }
+      },
+      controls: new Map(r.controls).set('sea', { auto: false, value: 50 })
+    }));
+    const fixture = open();
+    const el: HTMLElement = fixture.nativeElement;
+    control(el, 'Sea clutter')
+      .querySelector<HTMLElement>('mat-slide-toggle button')!
+      .click();
+    fixture.detectChanges();
+
+    const field = control(el, 'Sea clutter').querySelector<HTMLInputElement>(
+      'input[type=number]'
+    )!;
+    field.value = '-20';
+    field.dispatchEvent(new Event('change'));
+
+    expect(api.setControl).toHaveBeenLastCalledWith('fur6424A', 'sea', {
+      auto: true,
+      autoValue: -20
+    });
+  });
+
+  it('keeps a change made on one radar off the next one', () => {
+    radar.update((r) => {
+      const controls = new Map(r.controls);
+      controls.delete('gain');
+      return { ...r, controls };
+    });
+    const fixture = open();
+    const el: HTMLElement = fixture.nativeElement;
+    const field = () =>
+      control(el, 'Gain').querySelector<HTMLInputElement>(
+        'input[type=number]'
+      )!;
+    field().value = '40';
+    field().dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    radar.update((r) => ({
+      ...r,
+      device: { ...r.device, id: 'fur6424B', name: 'DRS4D-NXT 6424 B' },
+      controls: new Map(r.controls)
+    }));
+    fixture.detectChanges();
+
+    expect(field().value).toBe('');
+  });
+
   it('shows an enum the radar has not reported as a drop-down, not as its first step', () => {
     radar.update((r) => {
       const controls = new Map(r.controls);

@@ -1,4 +1,11 @@
-import { Component, computed, effect, inject, output } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  output,
+  signal
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -103,6 +110,29 @@ export class RadarPanel {
   protected values = computed(
     () => this.radar()?.controls ?? new Map<string, ControlValue>()
   );
+  // Each change sent from a control, with the radar and the report it was
+  // made over. A radar that refuses a change reports its old value again,
+  // and a control only moves back when its binding changes, so the control
+  // shows the sent change until the radar reports it again and then the
+  // reported value. The value beside the control's name always shows the
+  // report.
+  private sent = signal(
+    new Map<
+      string,
+      { radarId?: string; change: ControlChange; over?: ControlValue }
+    >()
+  );
+  protected shownValues = computed(() => {
+    const radarId = this.radar()?.device?.id;
+    const values = this.values();
+    const shown = new Map(values);
+    this.sent().forEach((sent, id) => {
+      if (sent.radarId === radarId && values.get(id) === sent.over) {
+        shown.set(id, { ...sent.over, ...sent.change });
+      }
+    });
+    return shown;
+  });
 
   private powerDef = computed(() => this.capabilities()?.controls?.['power']);
   private powerValue = computed(() => this.values().get('power')?.value);
@@ -197,9 +227,11 @@ export class RadarPanel {
     );
   }
 
-  /** Set a control's value, or its auto adjustment while it is on auto. */
+  /** Set a control's value, or its auto adjustment while it is on auto, as
+   *  the control shows it: an Auto switch the radar has not answered yet
+   *  already decides which one the slider sets. */
   protected setValue(c: SectionControl, value: number | string) {
-    const cv = this.values().get(c.id);
+    const cv = this.shownValues().get(c.id);
     if (!c.def.hasAuto) {
       this.send(c.id, { value });
     } else if (cv?.auto && c.def.hasAutoAdjustable) {
@@ -226,7 +258,7 @@ export class RadarPanel {
       return;
     }
     let value = fromField(c.def, input.valueAsNumber);
-    const [min, max] = this.bounds(c.def, this.values().get(c.id));
+    const [min, max] = this.bounds(c.def, this.shownValues().get(c.id));
     if (Number.isFinite(min)) value = Math.max(value, min);
     if (Number.isFinite(max)) value = Math.min(value, max);
     this.setValue(c, value);
@@ -315,9 +347,21 @@ export class RadarPanel {
   }
 
   private send(controlId: string, change: ControlChange) {
-    this.radarApi
-      .setControl(this.radar()?.device?.id, controlId, change)
-      .catch((err) => this.app.parseHttpErrorResponse(err));
+    const radarId = this.radar()?.device?.id;
+    const sent = { radarId, change, over: this.values().get(controlId) };
+    this.sent.update((all) => new Map(all).set(controlId, sent));
+    this.radarApi.setControl(radarId, controlId, change).catch((err) => {
+      // a change that did not reach the radar is not reported back
+      this.sent.update((all) => {
+        if (all.get(controlId) !== sent) {
+          return all;
+        }
+        const rest = new Map(all);
+        rest.delete(controlId);
+        return rest;
+      });
+      this.app.parseHttpErrorResponse(err);
+    });
   }
 
   /** The slider bounds: the auto adjustment's while adjusting on auto. */

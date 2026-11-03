@@ -106,8 +106,8 @@
       <mat-expansion-panel-header>
         <mat-panel-title>{{ s.title }}</mat-panel-title>
       </mat-expansion-panel-header>
-      @for (c of s.controls; track c.id) { @let cv = values().get(c.id); @let
-      disabled = isDisabled(c.def, cv); @if (c.widget === 'button') {
+      @for (c of s.controls; track c.id) { @let cv = shownValues().get(c.id);
+      @let disabled = isDisabled(c.def, cv); @if (c.widget === 'button') {
       <button
         mat-stroked-button
         class="ctl-button"
@@ -137,7 +137,9 @@
             >Auto</mat-slide-toggle
           >
           }
-          <span class="ctl-value">{{ display(c.def, cv) }}</span>
+          <span class="ctl-value"
+            >{{ display(c.def, values().get(c.id)) }}</span
+          >
         </div>
         @if (!onAuto(c.def, cv)) { @switch (widgetFor(c, cv)) { @case ('steps')
         {
