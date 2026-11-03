@@ -1,4 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { OverlayContainer } from '@angular/cdk/overlay';
+import { MatSelect } from '@angular/material/select';
+import { By } from '@angular/platform-browser';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
@@ -7,6 +10,7 @@ import { describe, expect, it, vi, type Mock } from 'vitest';
 
 import { AppFacade } from 'src/app/app.facade';
 import { WaypointDialog } from './waypoint-dialog';
+import { fromUtm } from 'src/app/lib/coord-entry';
 
 /**
  * The waypoint dialog takes a position in DD, DDM, DMS or UTM, and always
@@ -139,6 +143,49 @@ describe('waypoint dialog position entry', () => {
     expect(y).toBeCloseTo(48.8584, 4);
   });
 
+  it('saves a southern UTM entry with a negative latitude', async () => {
+    const { fixture, close } = await open([0, 0]);
+    await choose(fixture, 'UTM');
+    fixture.debugElement
+      .query(By.directive(MatSelect))
+      .componentInstance.open();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const south = Array.from(
+      TestBed.inject(OverlayContainer)
+        .getContainerElement()
+        .querySelectorAll('mat-option')
+    ).find((o) => o.textContent?.trim() === 'S') as HTMLElement;
+    south.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const [zone, easting, northing] = positionInputs(fixture);
+    type(fixture, zone, '56');
+    type(fixture, easting, '334901');
+    type(fixture, northing, '6252289');
+    const expected = fromUtm({
+      zone: 56,
+      hemisphere: 'S',
+      easting: 334901,
+      northing: 6252289
+    });
+    const [x, y] = save(fixture, close);
+    expect(y).toBeLessThan(0);
+    expect([x, y]).toEqual(expected);
+  });
+
+  it('disables SAVE when the UTM zone is out of range', async () => {
+    const { fixture } = await open([0, 0]);
+    await choose(fixture, 'UTM');
+    const [zone] = positionInputs(fixture);
+    type(fixture, zone, '61');
+    expect(saveButton(fixture).disabled).toBe(true);
+    expect(
+      el(fixture).querySelector('._ap-wpt-error[role="alert"]')?.textContent
+    ).toContain('Not a valid UTM position');
+  });
+
   it('disables SAVE while a coordinate is not valid', async () => {
     const { fixture } = await open([0, 0]);
     const [lat] = positionInputs(fixture);
@@ -167,5 +214,14 @@ describe('waypoint dialog position entry', () => {
     await choose(fixture, 'UTM');
     expect(el(fixture).textContent).toContain('UTM covers 80°S to 84°N only');
     expect(saveButton(fixture).disabled).toBe(true);
+  });
+
+  it('keeps telling the user to switch format while they edit a polar UTM', async () => {
+    const { fixture } = await open([10, 85]);
+    await choose(fixture, 'UTM');
+    const [zone] = positionInputs(fixture);
+    type(fixture, zone, '33');
+    const alert = el(fixture).querySelector('._ap-wpt-error[role="alert"]');
+    expect(alert?.textContent).toContain('UTM covers 80°S to 84°N only');
   });
 });

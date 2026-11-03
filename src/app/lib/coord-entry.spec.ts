@@ -150,6 +150,8 @@ describe('UTM', () => {
   it('is undefined beyond 80°S and 84°N', () => {
     expect(toUtm(0, 84.5)).toBeNull();
     expect(toUtm(0, -80.5)).toBeNull();
+    expect(toUtm(0, 84)).not.toBeNull();
+    expect(toUtm(0, -80)).not.toBeNull();
   });
 
   it('applies the Norway and Svalbard zone exceptions', () => {
@@ -157,6 +159,11 @@ describe('UTM', () => {
     expect(utmZoneFor(5, 50)).toBe(31);
     expect(utmZoneFor(15, 78)).toBe(33);
     expect(utmZoneFor(180, 0)).toBe(60);
+  });
+
+  it('converts into the exception zones', () => {
+    expect(toUtm(5, 60)?.zone).toBe(32);
+    expect(toUtm(15, 78)?.zone).toBe(33);
   });
 
   it('rejects out-of-range input', () => {
