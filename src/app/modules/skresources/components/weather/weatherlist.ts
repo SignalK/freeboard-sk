@@ -158,6 +158,22 @@ export class WeatherListComponent implements OnDestroy {
     this.app.saveConfig();
   }
 
+  protected toggleWindFlow(checked: boolean) {
+    if (!this.app.config?.selections) {
+      return;
+    }
+    this.app.config.selections.windFlowEnabled = checked;
+    this.app.saveConfig();
+  }
+
+  protected toggleWindFlowShading(checked: boolean) {
+    if (!this.app.config?.selections) {
+      return;
+    }
+    this.app.config.selections.windFlowShading = checked;
+    this.app.saveConfig();
+  }
+
   protected toggleOceanCurrents(checked: boolean) {
     if (!this.app.config?.selections) {
       return;

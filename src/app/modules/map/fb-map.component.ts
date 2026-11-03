@@ -226,6 +226,7 @@ import {
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 import { TidalCurrentsLayerComponent } from './ol/lib/resources/tidal-currents-layer.component';
+import { WindFlowLayerComponent } from './ol/lib/wind-flow/wind-flow-layer.component';
 import {
   TidalCurrentsService,
   GridSample
@@ -345,7 +346,8 @@ const OVERLAY_FEATURE_ENTRY = 'overlay-feature.';
     S57PopoverComponent,
     LayerWindWeatherComponent,
     LayerCurrentsWeatherComponent,
-    TidalCurrentsLayerComponent
+    TidalCurrentsLayerComponent,
+    WindFlowLayerComponent
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']

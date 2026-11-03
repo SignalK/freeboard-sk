@@ -1019,6 +1019,13 @@
   }
 
   <!-- weather overlays -->
+  <fb-wind-flow
+    [show]="app.config.selections.windFlowEnabled"
+    [shading]="app.config.selections.windFlowShading"
+    [speedUnit]="app.config.units.speed"
+  >
+  </fb-wind-flow>
+
   <fb-weather-wind
     [show]="app.config.selections.weatherWindEnabled"
     [opacity]="0.55"

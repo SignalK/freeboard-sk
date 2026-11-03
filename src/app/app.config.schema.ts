@@ -287,6 +287,8 @@ export const AppConfigSchema = Type.Object({
     weatherWindEnabled: bool(false),
     oceanCurrentsEnabled: bool(false),
     tidalCurrentsEnabled: bool(false),
+    windFlowEnabled: bool(false), // animated wind particles (Open-Meteo)
+    windFlowShading: bool(true), // wind flow: shade the map by wind speed
     chartsInViewOnly: bool(false) // chart list shows only charts in the map view
   })
 });

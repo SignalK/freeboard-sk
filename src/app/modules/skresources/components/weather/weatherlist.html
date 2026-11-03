@@ -37,6 +37,34 @@
       <div
         style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888"
       >
+        WIND FLOW (OPEN-METEO)
+      </div>
+      <div style="display: flex; align-items: center; padding: 2px 0">
+        <mat-checkbox
+          [checked]="app.config.selections.windFlowEnabled"
+          (change)="toggleWindFlow($event.checked)"
+          matTooltip="Animate the wind across the chart"
+          matTooltipPosition="right"
+        >
+          Enable animated wind flow
+        </mat-checkbox>
+      </div>
+      @if (app.config.selections.windFlowEnabled) {
+      <div style="display: flex; align-items: center; padding: 2px 0 2px 24px">
+        <mat-checkbox
+          [checked]="app.config.selections.windFlowShading"
+          (change)="toggleWindFlowShading($event.checked)"
+          matTooltip="Shade the chart by wind speed; off, the particles carry the colours"
+          matTooltipPosition="right"
+        >
+          Shade by wind speed
+        </mat-checkbox>
+      </div>
+      }
+      <div style="border-bottom: 1px solid #ccc; margin: 8px 0"></div>
+      <div
+        style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888"
+      >
         OCEAN CURRENTS (OPEN-METEO)
       </div>
       <div style="display: flex; align-items: center; padding: 2px 0">
