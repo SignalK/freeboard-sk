@@ -138,7 +138,9 @@ describe('UTM', () => {
       [2.2945, 48.8584],
       [151.2153, -33.8568],
       [-70.6693, -33.4489],
-      [179.9, 10]
+      [179.9, 10],
+      [5, 60], // Norway: zone 32, not 31
+      [10, 78] // Svalbard: zone 33, not 32
     ]) {
       const back = fromUtm(toUtm(lon, lat)!);
       expect(back).not.toBeNull();
