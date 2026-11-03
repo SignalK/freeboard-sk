@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { create, makeInverse, Transform } from 'ol/transform';
 
+import { WIND_COLOR_MAX } from 'src/app/modules/weather/wind-field';
+
 import {
   colorBand,
   COLOR_BANDS,
@@ -84,8 +86,39 @@ describe('WindParticles', () => {
   it('is reborn once it leaves the view', () => {
     const p = new WindParticles(sequence(0.5, 0.5, 0, 0, 0.1, 0.2, 0));
     p.reset(1, view());
-    p.step(1, blowing(20, 0), view()); // 120 px east: off the 100 px view
+    // 108 px east in one step: past the 100 px view and its margin.
+    p.step(RECORD_INTERVAL, blowing(300, 0), view());
+    p.step(RECORD_INTERVAL, blowing(300, 0), view());
     expect([p.x[0], p.y[0]]).toEqual([10, 80]);
+  });
+
+  it('is reborn at once when a pan leaves it off screen without wind data', () => {
+    const p = new WindParticles(sequence(0.5, 0.5, 0.99, 0, 0.1, 0.2, 0));
+    p.reset(1, view());
+    // The same view panned 200 px: the particle, at x = 50, is now off screen.
+    const toPixel: Transform = [1, 0, 0, -1, -200, 100];
+    const panned: FlowView = {
+      ...view(),
+      coordinateToPixel: toPixel,
+      pixelToCoordinate: makeInverse(create(), toPixel)
+    };
+    p.step(RECORD_INTERVAL, () => false, panned);
+    expect([p.x[0], p.y[0]]).toEqual([210, 80]); // pixel (10, 20)
+  });
+
+  it('spaces trail points the same at a low frame rate', () => {
+    const p = new WindParticles(sequence(0.5, 0.5, 0.99, 0));
+    p.reset(1, view());
+    for (let n = 0; n < 20; n++) {
+      p.step(0.1, blowing(1, 0), view()); // 10 frames a second
+    }
+    // A full trail spans TRAIL_POINTS intervals at most: at 1 m/s, 6 px/s.
+    const length = segments(p).reduce(
+      (sum, [, , x0, y0, x1, y1]) => sum + Math.hypot(x1 - x0, y1 - y0),
+      0
+    );
+    expect(length).toBeGreaterThan(6 * (TRAIL_POINTS - 2) * RECORD_INTERVAL);
+    expect(length).toBeLessThanOrEqual(6 * TRAIL_POINTS * RECORD_INTERVAL);
   });
 
   it('draws a trail from its oldest point to the particle, brightest last', () => {
@@ -191,6 +224,20 @@ describe('WindParticles after a zoom', () => {
     after.forEach((len, i) => expect(len).toBeCloseTo(before[i], 6));
   });
 
+  it('keeps the on-screen length of vertical trails', () => {
+    const p = new WindParticles(sequence(0.5, 0.5, 0.99, 0));
+    p.reset(1, zoomedView(1));
+    for (let n = 0; n < 4; n++) {
+      p.step(RECORD_INTERVAL, blowing(0, 10), zoomedView(1));
+    }
+    const before = pixelLengths(p, zoomedView(1));
+
+    p.zoomed(zoomedView(1), zoomedView(0.5));
+    const after = pixelLengths(p, zoomedView(0.5));
+    expect(after.length).toBe(before.length);
+    after.forEach((len, i) => expect(len).toBeCloseTo(before[i], 6));
+  });
+
   it('scatters again the particles a zoom in pushed off screen', () => {
     // Starts near the right edge, which a ×2 zoom in pushes off screen.
     const p = new WindParticles(sequence(0.95, 0.5, 0.99, 0, 0.3, 0.6, 0, 0.5));
@@ -234,6 +281,8 @@ describe('colorBand', () => {
   it('maps speeds onto the bands, clamped at both ends', () => {
     expect(colorBand(-1)).toBe(0);
     expect(colorBand(0)).toBe(0);
+    expect(colorBand(WIND_COLOR_MAX / COLOR_BANDS)).toBe(1);
+    expect(colorBand(WIND_COLOR_MAX / 2)).toBe(COLOR_BANDS / 2);
     expect(colorBand(1000)).toBe(COLOR_BANDS - 1);
   });
 });

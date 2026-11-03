@@ -75,7 +75,7 @@ interface LegendTick {
 @Component({
   selector: 'ol-map > fb-wind-flow',
   template: `
-    <div #legend class="fb-wind-legend" aria-hidden="true">
+    <div #legend class="fb-wind-legend">
       <div class="head">
         <span class="title">Wind</span>
         <span class="unit">{{ unit() }}</span>

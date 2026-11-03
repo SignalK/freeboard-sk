@@ -92,13 +92,25 @@ export class WindParticles {
     }
   }
 
-  /** Moves every particle `dt` seconds along the wind. */
+  /** Moves every particle `dt` seconds along the wind. A slow frame is
+   *  split into steps no longer than `RECORD_INTERVAL`, so trail points stay
+   *  that far apart and a trail covers the same time at any frame rate. */
   step(dt: number, sample: FlowSampler, view: FlowView) {
+    while (dt > RECORD_INTERVAL) {
+      this.advance(RECORD_INTERVAL, sample, view);
+      dt -= RECORD_INTERVAL;
+    }
+    this.advance(dt, sample, view);
+  }
+
+  private advance(dt: number, sample: FlowSampler, view: FlowView) {
     const scale = PX_PER_SECOND_PER_MPS * view.resolution * dt;
     this.sinceRecord += dt;
     const record = this.sinceRecord >= RECORD_INTERVAL;
     if (record) {
-      this.sinceRecord = 0;
+      // Keep the remainder, or frames that don't divide the interval would
+      // stretch it.
+      this.sinceRecord -= RECORD_INTERVAL;
     }
     for (let i = 0; i < this.count; i++) {
       if (this.dying[i] > 0) {
@@ -111,6 +123,20 @@ export class WindParticles {
         continue;
       }
       this.age[i] += dt;
+      // Off screen, from the wind or from a pan: recycle it before anything
+      // else, even where no wind is known.
+      this.pixel[0] = this.x[i];
+      this.pixel[1] = this.y[i];
+      apply(view.coordinateToPixel, this.pixel);
+      if (
+        this.pixel[0] < -VIEW_MARGIN ||
+        this.pixel[1] < -VIEW_MARGIN ||
+        this.pixel[0] > view.width + VIEW_MARGIN ||
+        this.pixel[1] > view.height + VIEW_MARGIN
+      ) {
+        this.respawn(i, view);
+        continue;
+      }
       if (!sample(this.x[i], this.y[i], this.wind)) {
         // No wind known here yet, as at the new edges of a view zoomed out
         // until their data arrives: wait unseen rather than move, or every
@@ -125,18 +151,6 @@ export class WindParticles {
       this.speed[i] = Math.hypot(u, v);
       this.x[i] += u * scale;
       this.y[i] += v * scale;
-      this.pixel[0] = this.x[i];
-      this.pixel[1] = this.y[i];
-      apply(view.coordinateToPixel, this.pixel);
-      if (
-        this.pixel[0] < -VIEW_MARGIN ||
-        this.pixel[1] < -VIEW_MARGIN ||
-        this.pixel[0] > view.width + VIEW_MARGIN ||
-        this.pixel[1] > view.height + VIEW_MARGIN
-      ) {
-        this.respawn(i, view);
-        continue;
-      }
       if (record) {
         this.push(i);
       }
