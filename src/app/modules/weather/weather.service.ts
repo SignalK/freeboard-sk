@@ -4,6 +4,8 @@ import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, finalize, map, shareReplay, tap } from 'rxjs/operators';
 import { SignalKClient } from 'signalk-client-angular';
 
+import { WindGridNode } from './wind-field';
+
 export interface WeatherWindSample {
   latitude: number;
   longitude: number;
@@ -24,6 +26,34 @@ interface OpenMeteoMarineItem {
     ocean_current_velocity?: number;
     ocean_current_direction?: number;
   };
+}
+
+interface OpenMeteoForecastItem {
+  error?: boolean;
+  current?: {
+    time?: string;
+    wind_speed_10m?: number;
+    wind_direction_10m?: number;
+  };
+}
+
+/** Wind at a grid node: speed in m/s, direction it blows from in degrees. */
+export interface WindGridValue {
+  speed: number;
+  direction: number;
+}
+
+export interface WindGridResult {
+  /** One entry per requested node; `null` where no wind is known. */
+  values: Array<WindGridValue | null>;
+  /** When the model data is valid (ms since epoch), if known. */
+  time?: number;
+}
+
+interface WindGridEntry {
+  at: number;
+  value: WindGridValue | null;
+  time?: number;
 }
 
 interface OceanCurrentValue {
@@ -75,6 +105,14 @@ export class WeatherService {
     string,
     Observable<WindValue | null | undefined>
   >();
+  // The wind-flow grid, keyed by node. Open-Meteo refreshes its current
+  // conditions every 15 minutes, so a node is kept for 30.
+  private readonly windGridTtlMs = 30 * 60 * 1000;
+  private readonly windGridCacheMax = 4096;
+  // Open-Meteo takes many locations per request; keep each URL well inside
+  // what servers and proxies accept.
+  private readonly windGridBatch = 200;
+  private windGridCache = new Map<string, WindGridEntry>();
 
   constructor(
     private http: HttpClient,
@@ -256,6 +294,104 @@ export class WeatherService {
       // Still render whatever is already cached when the fetch fails.
       catchError(() => of(this.buildCurrentSamples(points, cellKeys)))
     );
+  }
+
+  /** Wind at each node of the wind-flow grid, from the public Open-Meteo
+   *  forecast API.
+   *
+   *  The Signal K Weather API answers one position per request, which is
+   *  fine for a handful of barbs but not for a grid of a few hundred nodes.
+   *  Open-Meteo answers them all in one request, needs no key, and its
+   *  default `best_match` model blends the best regional models available
+   *  (AROME, ICON-D2, HRRR...) with the global ones.
+   *
+   *  Nodes are cached for 30 minutes. Only the nodes not in the cache are
+   *  fetched, so a pan, or a zoom out to a coarser grid, costs little or
+   *  nothing. A failed or rate-limited response caches nothing, and the
+   *  result still carries whatever was cached. */
+  getWindGrid(nodes: WindGridNode[]): Observable<WindGridResult> {
+    const now = Date.now();
+    const keys = nodes.map((n) => `${n.latitude},${n.longitude}`);
+    const missing = new Map<string, WindGridNode>();
+    keys.forEach((key, i) => {
+      const entry = this.windGridCache.get(key);
+      if (!entry || now - entry.at >= this.windGridTtlMs) {
+        missing.set(key, nodes[i]);
+      }
+    });
+
+    const build = (): WindGridResult => {
+      let time: number | undefined;
+      const values = keys.map((key) => {
+        const entry = this.windGridCache.get(key);
+        if (entry?.time !== undefined && (time ?? 0) < entry.time) {
+          time = entry.time;
+        }
+        return entry?.value ?? null;
+      });
+      return { values, time };
+    };
+
+    if (missing.size === 0) {
+      return of(build());
+    }
+
+    const pending = Array.from(missing.entries());
+    const batches: Array<Array<[string, WindGridNode]>> = [];
+    for (let i = 0; i < pending.length; i += this.windGridBatch) {
+      batches.push(pending.slice(i, i + this.windGridBatch));
+    }
+    return forkJoin(batches.map((batch) => this.fetchWindBatch(batch))).pipe(
+      map(() => build())
+    );
+  }
+
+  private fetchWindBatch(batch: Array<[string, WindGridNode]>) {
+    const url =
+      'https://api.open-meteo.com/v1/forecast' +
+      `?latitude=${batch.map(([, n]) => n.latitude).join(',')}` +
+      `&longitude=${batch.map(([, n]) => n.longitude).join(',')}` +
+      '&current=wind_speed_10m,wind_direction_10m' +
+      '&wind_speed_unit=ms&timezone=GMT';
+    return this.http
+      .get<OpenMeteoForecastItem | OpenMeteoForecastItem[]>(url)
+      .pipe(
+        map((response) => (Array.isArray(response) ? response : [response])),
+        tap((items) => {
+          // Response order mirrors request order; an error body or a count
+          // mismatch must not be pinned as "no wind" for the whole TTL.
+          if (items.length !== batch.length || items.some((i) => i?.error)) {
+            return;
+          }
+          items.forEach((item, i) => {
+            const speed = item?.current?.wind_speed_10m;
+            const direction = item?.current?.wind_direction_10m;
+            const time = item?.current?.time
+              ? Date.parse(`${item.current.time}Z`)
+              : NaN;
+            this.cacheWindNode(batch[i][0], {
+              at: Date.now(),
+              value:
+                typeof speed === 'number' && typeof direction === 'number'
+                  ? { speed, direction }
+                  : null,
+              time: Number.isNaN(time) ? undefined : time
+            });
+          });
+        }),
+        catchError(() => of([]))
+      );
+  }
+
+  private cacheWindNode(key: string, entry: WindGridEntry) {
+    this.windGridCache.delete(key);
+    if (this.windGridCache.size >= this.windGridCacheMax) {
+      const oldest = this.windGridCache.keys().next().value;
+      if (oldest !== undefined) {
+        this.windGridCache.delete(oldest);
+      }
+    }
+    this.windGridCache.set(key, entry);
   }
 
   /** One sample per display point, valued from its lattice cell; points whose

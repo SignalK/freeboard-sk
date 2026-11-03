@@ -265,3 +265,125 @@ describe('WeatherService wind lattice cache', () => {
     expect(samples.length).toBe(600);
   });
 });
+
+describe('WeatherService wind-flow grid (Open-Meteo forecast)', () => {
+  const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+  const isForecast = (url: string) => url.startsWith(FORECAST_URL);
+  const node = (latitude: number, longitude: number) => ({
+    latitude,
+    longitude
+  });
+  const item = (speed: number, direction: number) => ({
+    current: {
+      time: '2026-11-03T12:15',
+      wind_speed_10m: speed,
+      wind_direction_10m: direction
+    }
+  });
+
+  let service: WeatherService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        WeatherService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SignalKClient, useValue: {} }
+      ]
+    });
+    service = TestBed.inject(WeatherService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  it('asks for every node in one request, in m/s, and values them in order', () => {
+    let result;
+    service
+      .getWindGrid([node(46, -5), node(46, -4.75)])
+      .subscribe((r) => (result = r));
+    const req = httpMock.expectOne((r) => isForecast(r.url));
+    expect(req.request.url).toContain('latitude=46,46');
+    expect(req.request.url).toContain('longitude=-5,-4.75');
+    expect(req.request.url).toContain('wind_speed_unit=ms');
+    req.flush([item(5, 270), item(7, 280)]);
+
+    expect(result).toEqual({
+      values: [
+        { speed: 5, direction: 270 },
+        { speed: 7, direction: 280 }
+      ],
+      time: Date.UTC(2026, 10, 3, 12, 15)
+    });
+  });
+
+  it('fetches only the nodes not already cached', () => {
+    service.getWindGrid([node(46, -5)]).subscribe();
+    httpMock.expectOne((r) => isForecast(r.url)).flush(item(5, 270));
+
+    let result;
+    service
+      .getWindGrid([node(46, -5), node(46.25, -5)])
+      .subscribe((r) => (result = r));
+    const req = httpMock.expectOne((r) => isForecast(r.url));
+    expect(req.request.url).toContain('latitude=46.25&');
+    req.flush(item(6, 260));
+    expect(result!.values).toEqual([
+      { speed: 5, direction: 270 },
+      { speed: 6, direction: 260 }
+    ]);
+
+    // Fully cached: no request at all.
+    service.getWindGrid([node(46.25, -5)]).subscribe();
+    httpMock.expectNone((r) => isForecast(r.url));
+  });
+
+  it('asks once for a node repeated in another world copy', () => {
+    service.getWindGrid([node(0, 179.75), node(0, 179.75)]).subscribe();
+    const req = httpMock.expectOne((r) => isForecast(r.url));
+    expect(req.request.url).toContain('longitude=179.75&');
+    req.flush(item(3, 90));
+  });
+
+  it('splits a large grid into several requests', () => {
+    const nodes = Array.from({ length: 450 }, (_, i) => node(0, i * 0.25));
+    service.getWindGrid(nodes).subscribe();
+    const reqs = httpMock.match((r) => isForecast(r.url));
+    expect(reqs.length).toBe(3);
+    reqs.forEach((r) => {
+      const count = new URL(r.request.url).searchParams
+        .get('latitude')!
+        .split(',').length;
+      r.flush(Array.from({ length: count }, () => item(1, 0)));
+    });
+  });
+
+  it('caches nothing from a rate-limited response, and still answers', () => {
+    let result;
+    service.getWindGrid([node(46, -5)]).subscribe((r) => (result = r));
+    httpMock
+      .expectOne((r) => isForecast(r.url))
+      .flush({ error: true, reason: 'Too many requests' });
+    expect(result).toEqual({ values: [null], time: undefined });
+
+    service.getWindGrid([node(46, -5)]).subscribe();
+    httpMock.expectOne((r) => isForecast(r.url)).flush(item(5, 270));
+  });
+
+  it('answers with what is cached when the request fails', () => {
+    service.getWindGrid([node(46, -5)]).subscribe();
+    httpMock.expectOne((r) => isForecast(r.url)).flush(item(5, 270));
+
+    let result;
+    service
+      .getWindGrid([node(46, -5), node(47, -5)])
+      .subscribe((r) => (result = r));
+    httpMock
+      .expectOne((r) => isForecast(r.url))
+      .flush('down', { status: 503, statusText: 'Unavailable' });
+    expect(result!.values).toEqual([{ speed: 5, direction: 270 }, null]);
+  });
+});
