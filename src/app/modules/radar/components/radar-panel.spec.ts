@@ -290,6 +290,36 @@ describe('RadarPanel', () => {
     });
   });
 
+  it('keeps a value set before Auto is switched on and off again, before the radar answers', () => {
+    radar.update((r) => ({
+      ...r,
+      controls: new Map(r.controls).set('gain', { auto: false, value: 28 })
+    }));
+    const fixture = open();
+    const el: HTMLElement = fixture.nativeElement;
+    const thumb = () =>
+      control(el, 'Gain').querySelector<HTMLInputElement>(
+        'input[matSliderThumb]'
+      )!;
+    const toggle = () =>
+      control(el, 'Gain').querySelector<HTMLElement>(
+        'mat-slide-toggle button'
+      )!;
+    thumb().value = '40';
+    thumb().dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    toggle().click();
+    fixture.detectChanges();
+    toggle().click();
+    fixture.detectChanges();
+
+    expect(api.setControl).toHaveBeenLastCalledWith('fur6424A', 'gain', {
+      auto: false
+    });
+    expect(thumb().value).toBe('40');
+  });
+
   it('keeps a change made on one radar off the next one', () => {
     radar.update((r) => {
       const controls = new Map(r.controls);

@@ -348,7 +348,15 @@ export class RadarPanel {
 
   private send(controlId: string, change: ControlChange) {
     const radarId = this.radar()?.device?.id;
-    const sent = { radarId, change, over: this.values().get(controlId) };
+    const over = this.values().get(controlId);
+    // an Auto switch sends only { auto }, so a value sent over the same
+    // report is kept with it
+    const before = this.sent().get(controlId);
+    const kept =
+      before && before.radarId === radarId && before.over === over
+        ? before.change
+        : {};
+    const sent = { radarId, change: { ...kept, ...change }, over };
     this.sent.update((all) => new Map(all).set(controlId, sent));
     this.radarApi.setControl(radarId, controlId, change).catch((err) => {
       // a change that did not reach the radar is not reported back
