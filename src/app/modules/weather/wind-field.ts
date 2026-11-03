@@ -10,8 +10,8 @@
  *  resolution of the global models (GFS, ECMWF) behind the data. */
 const GRID_STEPS = [0.25, 0.5, 1, 2, 4, 8, 16];
 
-/** Web Mercator stops at about ±85.05°; nodes past it are never drawn. */
-const MAX_LATITUDE = 85;
+/** Where Web Mercator stops, atan(sinh(π)); nodes past it are never drawn. */
+const MAX_LATITUDE = 85.0511287798;
 
 const EARTH_RADIUS = 6378137;
 const DEG = 180 / Math.PI;
@@ -205,9 +205,10 @@ export function mercatorYToLat(y: number) {
 }
 
 /** Catmull-Rom interpolation over the 4×4 nodes around a cell, the edge
- *  nodes repeated at the border of the grid. A grid spaced a few degrees
- *  apart is coarse on screen: bilinear interpolation shows it as diamonds,
- *  where this curve stays smooth across cells. */
+ *  nodes repeated at the border of the grid, and held within the cell's
+ *  corners. A grid spaced a few degrees apart is coarse on screen: bilinear
+ *  interpolation shows it as diamonds, where this curve stays smooth across
+ *  cells. */
 function bicubic(
   a: Float32Array,
   cols: number,
@@ -219,6 +220,9 @@ function bicubic(
 ) {
   const wx = catmullRom(tx, WX);
   const wy = catmullRom(ty, WY);
+  const k = j * cols + i;
+  const lo = Math.min(a[k], a[k + 1], a[k + cols], a[k + cols + 1]);
+  const hi = Math.max(a[k], a[k + 1], a[k + cols], a[k + cols + 1]);
   let sum = 0;
   for (let n = 0; n < 4; n++) {
     const row = Math.min(rows - 1, Math.max(0, j - 1 + n)) * cols;
@@ -228,7 +232,10 @@ function bicubic(
     }
     sum += wy[n] * line;
   }
-  return sum;
+  // The curve overshoots next to a sharp change: between two calm nodes
+  // beside a strong one it would even reverse the wind. Keep it within the
+  // cell's own corners.
+  return Math.min(hi, Math.max(lo, sum));
 }
 
 // Weight buffers reused by every sample: it runs per particle per frame.

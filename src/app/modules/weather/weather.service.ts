@@ -113,6 +113,11 @@ export class WeatherService {
   // what servers and proxies accept.
   private readonly windGridBatch = 200;
   private windGridCache = new Map<string, WindGridEntry>();
+  // The request each node is waiting on. It runs to completion even if the
+  // caller unsubscribes (the layer's switchMap cancels on every new move),
+  // and a later call wanting the same node waits on it instead of asking
+  // again.
+  private windGridInflight = new Map<string, Observable<void>>();
 
   constructor(
     private http: HttpClient,
@@ -336,24 +341,32 @@ export class WeatherService {
       return of(build());
     }
 
-    const pending = Array.from(missing.entries());
-    const batches: Array<Array<[string, WindGridNode]>> = [];
-    for (let i = 0; i < pending.length; i += this.windGridBatch) {
-      batches.push(pending.slice(i, i + this.windGridBatch));
+    const waits = new Set<Observable<void>>();
+    const toFetch: Array<[string, WindGridNode]> = [];
+    missing.forEach((node, key) => {
+      const pending = this.windGridInflight.get(key);
+      if (pending) {
+        waits.add(pending);
+      } else {
+        toFetch.push([key, node]);
+      }
+    });
+    for (let i = 0; i < toFetch.length; i += this.windGridBatch) {
+      waits.add(this.fetchWindBatch(toFetch.slice(i, i + this.windGridBatch)));
     }
-    return forkJoin(batches.map((batch) => this.fetchWindBatch(batch))).pipe(
-      map(() => build())
-    );
+    return forkJoin(Array.from(waits)).pipe(map(() => build()));
   }
 
-  private fetchWindBatch(batch: Array<[string, WindGridNode]>) {
+  private fetchWindBatch(
+    batch: Array<[string, WindGridNode]>
+  ): Observable<void> {
     const url =
       'https://api.open-meteo.com/v1/forecast' +
       `?latitude=${batch.map(([, n]) => n.latitude).join(',')}` +
       `&longitude=${batch.map(([, n]) => n.longitude).join(',')}` +
       '&current=wind_speed_10m,wind_direction_10m' +
       '&wind_speed_unit=ms&timezone=GMT';
-    return this.http
+    const request: Observable<void> = this.http
       .get<OpenMeteoForecastItem | OpenMeteoForecastItem[]>(url)
       .pipe(
         map((response) => (Array.isArray(response) ? response : [response])),
@@ -379,8 +392,19 @@ export class WeatherService {
             });
           });
         }),
-        catchError(() => of([]))
+        map(() => undefined),
+        catchError(() => of(undefined)),
+        finalize(() =>
+          batch.forEach(([key]) => {
+            if (this.windGridInflight.get(key) === request) {
+              this.windGridInflight.delete(key);
+            }
+          })
+        ),
+        shareReplay({ bufferSize: 1, refCount: false })
       );
+    batch.forEach(([key]) => this.windGridInflight.set(key, request));
+    return request;
   }
 
   private cacheWindNode(key: string, entry: WindGridEntry) {

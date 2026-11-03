@@ -45,6 +45,10 @@ describe('windGridFor', () => {
     expect(grid.lat0 + (grid.rows - 1) * grid.step).toBeLessThanOrEqual(90);
   });
 
+  it('covers a view in the last few hundredths of a degree of Web Mercator', () => {
+    expect(windGridFor(extent(10, 85.01, 12, 85.04))).not.toBeNull();
+  });
+
   it('returns null for an empty extent', () => {
     expect(windGridFor([0, 0, 0, 0])).toBeNull();
   });
@@ -100,6 +104,18 @@ describe('WindField', () => {
     expect(ramp.sample(1.25, 0.5, out)).toBe(true);
     expect(out[0]).toBeCloseTo(12.5, 5);
     expect(out[1]).toBeCloseTo(0, 5);
+  });
+
+  it('never overshoots the corners of the cell', () => {
+    // Two calm nodes beside a strong one: the plain curve would turn the
+    // wind round between them.
+    const field = new WindField(
+      { lon0: 0, lat0: 0, step: 1, cols: 4, rows: 2 },
+      [0, 0, 0, 20, 0, 0, 0, 20].map(westerly)
+    );
+    const out = [0, 0];
+    expect(field.sample(1.5, 0.5, out)).toBe(true);
+    expect(out[0]).toBeCloseTo(0, 9);
   });
 
   it('falls back to the nearest four nodes next to a node without data', () => {

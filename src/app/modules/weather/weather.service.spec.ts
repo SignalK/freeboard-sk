@@ -7,7 +7,7 @@ import {
 import { beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { Observable, of, Subject, throwError } from 'rxjs';
 
-import { WeatherService } from './weather.service';
+import { WeatherService, WindGridResult } from './weather.service';
 import { SignalKClient } from 'signalk-client-angular';
 
 const MARINE_URL = 'https://marine-api.open-meteo.com/v1/marine';
@@ -350,7 +350,8 @@ describe('WeatherService wind-flow grid (Open-Meteo forecast)', () => {
 
   it('splits a large grid into several requests', () => {
     const nodes = Array.from({ length: 450 }, (_, i) => node(0, i * 0.25));
-    service.getWindGrid(nodes).subscribe();
+    const emitted: WindGridResult[] = [];
+    service.getWindGrid(nodes).subscribe((r) => emitted.push(r));
     const reqs = httpMock.match((r) => isForecast(r.url));
     expect(reqs.length).toBe(3);
     reqs.forEach((r) => {
@@ -359,6 +360,40 @@ describe('WeatherService wind-flow grid (Open-Meteo forecast)', () => {
         .split(',').length;
       r.flush(Array.from({ length: count }, () => item(1, 0)));
     });
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].values).toHaveLength(450);
+    expect(emitted[0].values.every((v) => v?.speed === 1)).toBe(true);
+  });
+
+  it('shares a node already being fetched with an overlapping call', () => {
+    let first: WindGridResult | undefined;
+    let second: WindGridResult | undefined;
+    service
+      .getWindGrid([node(46, -5), node(46, -4.75)])
+      .subscribe((r) => (first = r));
+    service
+      .getWindGrid([node(46, -4.75), node(46, -4.5)])
+      .subscribe((r) => (second = r));
+    const reqs = httpMock.match((r) => isForecast(r.url));
+    expect(reqs.length).toBe(2);
+    expect(reqs[1].request.url).toContain('longitude=-4.5&');
+    reqs[0].flush([item(5, 270), item(6, 270)]);
+    reqs[1].flush(item(7, 270));
+    expect(first!.values.map((v) => v?.speed)).toEqual([5, 6]);
+    expect(second!.values.map((v) => v?.speed)).toEqual([6, 7]);
+  });
+
+  it('still caches a node when the caller cancels (switchMap on a new move)', () => {
+    service
+      .getWindGrid([node(46, -5)])
+      .subscribe()
+      .unsubscribe();
+    httpMock.expectOne((r) => isForecast(r.url)).flush(item(5, 270));
+
+    let result;
+    service.getWindGrid([node(46, -5)]).subscribe((r) => (result = r));
+    httpMock.expectNone((r) => isForecast(r.url));
+    expect(result!.values).toEqual([{ speed: 5, direction: 270 }]);
   });
 
   it('caches nothing from a rate-limited response, and still answers', () => {
