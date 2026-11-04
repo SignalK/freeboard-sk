@@ -106,6 +106,43 @@ describe('WindParticles', () => {
     expect([p.x[0], p.y[0]]).toEqual([210, 80]); // pixel (10, 20)
   });
 
+  it('keeps trail points evenly spaced when frames do not divide the interval', () => {
+    const p = new WindParticles(sequence(0.5, 0.5, 0.99, 0));
+    p.reset(1, view());
+    for (let n = 0; n < 12; n++) {
+      p.step(0.1, blowing(10, 0), view());
+    }
+    // Every recorded piece is one interval long: 10 m/s → 60 px/s.
+    const pieces = segments(p)
+      .slice(0, -1) // the last piece runs to the particle, wherever it is
+      .map(([, , x0, , x1]) => x1 - x0);
+    expect(pieces.length).toBeGreaterThan(5);
+    pieces.forEach((len) => expect(len).toBeCloseTo(60 * RECORD_INTERVAL, 6));
+  });
+
+  it('recycles a dying particle that a pan leaves off screen', () => {
+    // Shortest life, 1.5 s: run it to its end, then pan it away.
+    const p = new WindParticles(sequence(0.5, 0.5, 0, 0, 0.1, 0.2, 0));
+    p.reset(1, view());
+    let x = p.x[0];
+    for (;;) {
+      p.step(RECORD_INTERVAL, blowing(2, 0), view());
+      if (p.x[0] === x) {
+        break; // stopped: dying, its trail catching up
+      }
+      x = p.x[0];
+    }
+    const toPixel: Transform = [1, 0, 0, -1, -200, 100];
+    const panned: FlowView = {
+      ...view(),
+      coordinateToPixel: toPixel,
+      pixelToCoordinate: makeInverse(create(), toPixel)
+    };
+    p.step(RECORD_INTERVAL, blowing(2, 0), panned);
+    expect(p.x[0]).toBeGreaterThanOrEqual(200);
+    expect(p.x[0]).toBeLessThanOrEqual(300);
+  });
+
   it('spaces trail points the same at a low frame rate', () => {
     const p = new WindParticles(sequence(0.5, 0.5, 0.99, 0));
     p.reset(1, view());

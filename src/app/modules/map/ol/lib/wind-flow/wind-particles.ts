@@ -92,39 +92,32 @@ export class WindParticles {
     }
   }
 
-  /** Moves every particle `dt` seconds along the wind. A slow frame is
-   *  split into steps no longer than `RECORD_INTERVAL`, so trail points stay
-   *  that far apart and a trail covers the same time at any frame rate. */
+  /** Moves every particle `dt` seconds along the wind. A frame is split at
+   *  each recording time it crosses, so trail points are always exactly
+   *  `RECORD_INTERVAL` apart and a trail covers the same time at any frame
+   *  rate. */
   step(dt: number, sample: FlowSampler, view: FlowView) {
-    while (dt > RECORD_INTERVAL) {
-      this.advance(RECORD_INTERVAL, sample, view);
-      dt -= RECORD_INTERVAL;
+    while (this.sinceRecord + dt >= RECORD_INTERVAL) {
+      const part = RECORD_INTERVAL - this.sinceRecord;
+      this.advance(part, true, sample, view);
+      dt -= part;
     }
-    this.advance(dt, sample, view);
+    if (dt > 0) {
+      this.advance(dt, false, sample, view);
+    }
   }
 
-  private advance(dt: number, sample: FlowSampler, view: FlowView) {
+  private advance(
+    dt: number,
+    record: boolean,
+    sample: FlowSampler,
+    view: FlowView
+  ) {
     const scale = PX_PER_SECOND_PER_MPS * view.resolution * dt;
-    this.sinceRecord += dt;
-    const record = this.sinceRecord >= RECORD_INTERVAL;
-    if (record) {
-      // Keep the remainder, or frames that don't divide the interval would
-      // stretch it.
-      this.sinceRecord -= RECORD_INTERVAL;
-    }
+    this.sinceRecord = record ? 0 : this.sinceRecord + dt;
     for (let i = 0; i < this.count; i++) {
-      if (this.dying[i] > 0) {
-        if (record) {
-          this.push(i);
-          if (--this.dying[i] === 0) {
-            this.respawn(i, view);
-          }
-        }
-        continue;
-      }
-      this.age[i] += dt;
       // Off screen, from the wind or from a pan: recycle it before anything
-      // else, even where no wind is known.
+      // else, even while it is dying or where no wind is known.
       this.pixel[0] = this.x[i];
       this.pixel[1] = this.y[i];
       apply(view.coordinateToPixel, this.pixel);
@@ -137,6 +130,16 @@ export class WindParticles {
         this.respawn(i, view);
         continue;
       }
+      if (this.dying[i] > 0) {
+        if (record) {
+          this.push(i);
+          if (--this.dying[i] === 0) {
+            this.respawn(i, view);
+          }
+        }
+        continue;
+      }
+      this.age[i] += dt;
       if (!sample(this.x[i], this.y[i], this.wind)) {
         // No wind known here yet, as at the new edges of a view zoomed out
         // until their data arrives: wait unseen rather than move, or every
