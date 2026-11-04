@@ -110,7 +110,7 @@ async function pick(
 
 /** The text each format chip shows. */
 const LABEL = {
-  DD: 'DD.DDDD°',
+  DD: 'Latitude / Longitude',
   DDM: "DD° MM.MMM'",
   DMS: `DD° MM' SS.SS"`
 };

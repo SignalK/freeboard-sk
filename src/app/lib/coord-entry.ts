@@ -12,7 +12,7 @@ export const COORD_ENTRY_FORMATS: ReadonlyArray<{
   label: string;
   description: string;
 }> = [
-  { id: 'DD', label: 'DD.DDDD°', description: 'Decimal degrees' },
+  { id: 'DD', label: 'Latitude / Longitude', description: 'Decimal degrees' },
   { id: 'DDM', label: "DD° MM.MMM'", description: 'Degrees, decimal minutes' },
   {
     id: 'DMS',

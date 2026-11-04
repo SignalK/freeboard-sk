@@ -410,6 +410,8 @@ interface DialogData {
       ._ap-wpt-axis {
         display: flex;
         gap: 0 8px;
+        /* Room under the "e.g." hint, which otherwise touches what follows. */
+        padding-bottom: 12px;
       }
 
       ._ap-wpt-hem {
