@@ -124,6 +124,21 @@ describe('WindField', () => {
     expect(out[0]).toBeCloseTo(0, 9);
   });
 
+  it('places a row past the pole at the pole', () => {
+    // 16 deg grid from -16 deg: its last row, at 96 deg, holds the pole wind.
+    const rows = [0, 0, 0, 0, 0, 0, 0, 10];
+    const field = new WindField(
+      { lon0: 0, lat0: -16, step: 16, cols: 2, rows: 8 },
+      rows.flatMap((speed) => [westerly(speed), westerly(speed)])
+    );
+    const out = [0, 0];
+    // Halfway between the 80 deg row and the pole.
+    expect(field.sample(8, 85, out)).toBe(true);
+    expect(out[0]).toBeCloseTo(5, 6);
+    expect(field.sample(8, 90, out)).toBe(true);
+    expect(out[0]).toBeCloseTo(10, 6);
+  });
+
   it('falls back to the nearest four nodes next to a node without data', () => {
     const field = new WindField(
       { lon0: 0, lat0: 0, step: 1, cols: 3, rows: 2 },

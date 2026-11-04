@@ -139,7 +139,14 @@ export class WindField {
       return false;
     }
     const tx = fx - i;
-    const ty = fy - j;
+    // The row past a pole holds the wind at the pole (see windGridNodes):
+    // measure the position in the last cell against its true latitude.
+    const south = lat0 + j * step;
+    const north = Math.min(90, south + step);
+    const ty = (lat - south) / (north - south);
+    if (ty > 1) {
+      return false;
+    }
     let u = bicubic(this.u, cols, rows, i, j, tx, ty);
     let v = bicubic(this.v, cols, rows, i, j, tx, ty);
     if (Number.isNaN(u) || Number.isNaN(v)) {

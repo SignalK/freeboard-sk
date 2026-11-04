@@ -406,8 +406,10 @@ describe('WeatherService wind-flow grid (Open-Meteo forecast)', () => {
       expect(stalled.cancelled).toBe(true);
       expect(result).toEqual({ values: [null], time: undefined });
 
-      service.getWindGrid([node(46, -5)]).subscribe();
+      let retried;
+      service.getWindGrid([node(46, -5)]).subscribe((r) => (retried = r));
       httpMock.expectOne((r) => isForecast(r.url)).flush(item(5, 270));
+      expect(retried!.values).toEqual([{ speed: 5, direction: 270 }]);
     } finally {
       vi.useRealTimers();
     }
