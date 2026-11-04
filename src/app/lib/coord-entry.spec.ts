@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   entryFormatFor,
   formatAngle,
+  formatMagnitude,
+  hemisphereOf,
+  namesDirection,
+  withoutDirection,
   fromUtm,
   parseAngle,
   toUtm,
@@ -64,6 +68,23 @@ describe('parseAngle', () => {
     ['N 47 E', 'lat']
   ] as const)('rejects %j as a %s', (text, axis) => {
     expect(parseAngle(text, axis)).toBeNull();
+  });
+});
+
+describe('hemisphere helpers', () => {
+  it('splits a value into its magnitude and hemisphere', () => {
+    expect(formatMagnitude(-3.5, 'DDM')).toBe(`3° 30.000'`);
+    expect(formatMagnitude(47.6375, 'DD')).toBe('47.6375°');
+    expect(hemisphereOf(-3.5, 'lon')).toBe('W');
+    expect(hemisphereOf(0, 'lat')).toBe('N');
+  });
+
+  it('tells whether text gives its own direction, and removes it', () => {
+    expect(namesDirection(`47° 38.25'`)).toBe(false);
+    expect(namesDirection(`47° 38.25' s`)).toBe(true);
+    expect(namesDirection('-3.5')).toBe(true);
+    expect(withoutDirection(`N 47° 38.25'`)).toBe(`47° 38.25'`);
+    expect(withoutDirection('-3.5')).toBe('3.5');
   });
 });
 

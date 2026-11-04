@@ -79,6 +79,35 @@ function type(
   f.detectChanges();
 }
 
+/** The hemisphere shown by each list, latitude first. A list shows its
+ *  value once its options exist, one change detection after the first. */
+function hemispheres(f: ComponentFixture<WaypointDialog>) {
+  f.detectChanges();
+  return Array.from(el(f).querySelectorAll('._ap-wpt-hem mat-select')).map(
+    (s) => s.textContent?.trim()
+  );
+}
+
+/** Picks `option` in the `index`th list of the dialog. */
+async function pick(
+  f: ComponentFixture<WaypointDialog>,
+  index: number,
+  option: string
+) {
+  const lists = f.debugElement.queryAll(By.directive(MatSelect));
+  lists[index].componentInstance.open();
+  f.detectChanges();
+  await f.whenStable();
+  const item = Array.from(
+    TestBed.inject(OverlayContainer)
+      .getContainerElement()
+      .querySelectorAll('mat-option')
+  ).find((o) => o.textContent?.trim() === option) as HTMLElement;
+  item.click();
+  f.detectChanges();
+  await f.whenStable();
+}
+
 /** The text each format chip shows. */
 const LABEL = {
   DD: 'DD.DDDD°',
@@ -114,8 +143,38 @@ describe('waypoint dialog position entry', () => {
   it('opens in the notation of the position display setting', async () => {
     const { fixture } = await open([-3.5, 47.6375], 'DMdH');
     const [lat, lon] = positionInputs(fixture);
-    expect(lat.value).toBe(`47° 38.250' N`);
-    expect(lon.value).toBe(`3° 30.000' W`);
+    expect(lat.value).toBe(`47° 38.250'`);
+    expect(lon.value).toBe(`3° 30.000'`);
+    expect(hemispheres(fixture)).toEqual(['N', 'W']);
+  });
+
+  it('takes the hemisphere from its list', async () => {
+    const { fixture, close } = await open([0, 0]);
+    const [lat, lon] = positionInputs(fixture);
+    type(fixture, lat, '47.6375');
+    type(fixture, lon, '3.5');
+    await pick(fixture, 0, 'S');
+    await pick(fixture, 1, 'W');
+    const [x, y] = save(fixture, close);
+    expect(y).toBeCloseTo(-47.6375, 9);
+    expect(x).toBeCloseTo(-3.5, 9);
+  });
+
+  it('moves the list to a hemisphere typed or pasted into the value', async () => {
+    const { fixture, close } = await open([0, 0]);
+    const [lat] = positionInputs(fixture);
+    type(fixture, lat, `47° 38.25' S`);
+    expect(hemispheres(fixture)[0]).toBe('S');
+    expect(save(fixture, close)[1]).toBeCloseTo(-47.6375, 9);
+  });
+
+  it('lets the list override a hemisphere typed into the value', async () => {
+    const { fixture, close } = await open([0, 0]);
+    const [lat] = positionInputs(fixture);
+    type(fixture, lat, '47.6375 S');
+    await pick(fixture, 0, 'N');
+    expect(lat.value).toBe('47.6375');
+    expect(save(fixture, close)[1]).toBeCloseTo(47.6375, 9);
   });
 
   it('saves the original position untouched when only the format changes', async () => {
@@ -209,7 +268,7 @@ describe('waypoint dialog position entry', () => {
     const { fixture } = await open([-3.5, 47.6375], 'DMdH');
     await choose(fixture, LABEL.DDM);
     const [lat] = positionInputs(fixture);
-    expect(lat.value).toBe(`47° 38.250' N`);
+    expect(lat.value).toBe(`47° 38.250'`);
     const selected = el(fixture).querySelectorAll(
       '._ap-wpt-position mat-chip-option.mat-mdc-chip-selected'
     );

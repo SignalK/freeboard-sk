@@ -36,7 +36,7 @@ export function entryFormatFor(positionFormat: string): CoordEntryFormat {
 }
 
 const AXIS_LIMIT: Record<CoordAxis, number> = { lat: 90, lon: 180 };
-const HEMISPHERES: Record<CoordAxis, { pos: string; neg: string }> = {
+export const HEMISPHERES: Record<CoordAxis, { pos: string; neg: string }> = {
   lat: { pos: 'N', neg: 'S' },
   lon: { pos: 'E', neg: 'W' }
 };
@@ -131,12 +131,33 @@ export function formatAngle(
   format: Exclude<CoordEntryFormat, 'UTM'>,
   axis: CoordAxis
 ): string {
-  const { pos, neg } = HEMISPHERES[axis];
-  const h = value < 0 ? neg : pos;
-  const abs = Math.abs(value);
+  return `${formatMagnitude(value, format)} ${hemisphereOf(value, axis)}`;
+}
 
+/** The N/S or E/W letter of a signed value; 0 counts as N or E. */
+export function hemisphereOf(value: number, axis: CoordAxis): string {
+  const { pos, neg } = HEMISPHERES[axis];
+  return value < 0 ? neg : pos;
+}
+
+/** True when the text gives its own direction: a sign or a letter. */
+export function namesDirection(text: string): boolean {
+  return /^\s*[+-]|[A-Z]/i.test(text ?? '');
+}
+
+/** The text without the sign or hemisphere letter it may carry. */
+export function withoutDirection(text: string): string {
+  return (text ?? '').replace(/^\s*[+-]|[A-Z]/gi, '').trim();
+}
+
+/** `formatAngle` without the hemisphere: the unsigned value only. */
+export function formatMagnitude(
+  value: number,
+  format: Exclude<CoordEntryFormat, 'UTM'>
+): string {
+  const abs = Math.abs(value);
   if (format === 'DD') {
-    return `${Number(abs.toFixed(6))}° ${h}`;
+    return `${Number(abs.toFixed(6))}°`;
   }
 
   if (format === 'DDM') {
@@ -144,7 +165,7 @@ export function formatAngle(
     const total = Math.round(abs * 60 * scale);
     const deg = Math.floor(total / (60 * scale));
     const min = (total - deg * 60 * scale) / scale;
-    return `${deg}° ${min.toFixed(3).padStart(6, '0')}' ${h}`;
+    return `${deg}° ${min.toFixed(3).padStart(6, '0')}'`;
   }
 
   const scale = 100; // units of 1/100 second
@@ -154,7 +175,7 @@ export function formatAngle(
   const sec = (total - deg * 3600 * scale - min * 60 * scale) / scale;
   return `${deg}° ${String(min).padStart(2, '0')}' ${sec
     .toFixed(2)
-    .padStart(5, '0')}" ${h}`;
+    .padStart(5, '0')}"`;
 }
 
 export interface UtmPosition {
