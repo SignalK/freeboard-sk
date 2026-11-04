@@ -68,15 +68,16 @@ describe('parseAngle', () => {
 });
 
 describe('formatAngle', () => {
-  it('formats decimal degrees as a signed number', () => {
-    expect(formatAngle(47.6375, 'DD', 'lat')).toBe('47.6375');
-    expect(formatAngle(-3.123456789, 'DD', 'lon')).toBe('-3.123457');
+  it('formats decimal degrees with the hemisphere', () => {
+    expect(formatAngle(47.6375, 'DD', 'lat')).toBe('47.6375° N');
+    expect(formatAngle(-3.123456789, 'DD', 'lon')).toBe('3.123457° W');
+    expect(formatAngle(0, 'DD', 'lon')).toBe('0° E');
   });
 
   it('formats degrees and decimal minutes with the hemisphere', () => {
-    expect(formatAngle(47.6375, 'DDM', 'lat')).toBe(`47° 38.2500' N`);
-    expect(formatAngle(-3.5, 'DDM', 'lon')).toBe(`3° 30.0000' W`);
-    expect(formatAngle(-0.05, 'DDM', 'lat')).toBe(`0° 03.0000' S`);
+    expect(formatAngle(47.6375, 'DDM', 'lat')).toBe(`47° 38.250' N`);
+    expect(formatAngle(-3.5, 'DDM', 'lon')).toBe(`3° 30.000' W`);
+    expect(formatAngle(-0.05, 'DDM', 'lat')).toBe(`0° 03.000' S`);
   });
 
   it('formats degrees, minutes and seconds with the hemisphere', () => {
@@ -85,7 +86,7 @@ describe('formatAngle', () => {
   });
 
   it('carries a rounded-up minute or second into the next part', () => {
-    expect(formatAngle(47.99999999, 'DDM', 'lat')).toBe(`48° 00.0000' N`);
+    expect(formatAngle(47.99999999, 'DDM', 'lat')).toBe(`48° 00.000' N`);
     expect(formatAngle(47.99999999, 'DMS', 'lat')).toBe(`48° 00' 00.00" N`);
   });
 

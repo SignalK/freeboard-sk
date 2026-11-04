@@ -79,6 +79,13 @@ function type(
   f.detectChanges();
 }
 
+/** The text each format chip shows. */
+const LABEL = {
+  DD: 'DD.DDDD°',
+  DDM: "DD° MM.MMM'",
+  DMS: `DD° MM' SS.SS"`
+};
+
 async function choose(f: ComponentFixture<WaypointDialog>, label: string) {
   const btn = Array.from(
     el(f).querySelectorAll('._ap-wpt-position mat-chip-option button')
@@ -107,22 +114,22 @@ describe('waypoint dialog position entry', () => {
   it('opens in the notation of the position display setting', async () => {
     const { fixture } = await open([-3.5, 47.6375], 'DMdH');
     const [lat, lon] = positionInputs(fixture);
-    expect(lat.value).toBe(`47° 38.2500' N`);
-    expect(lon.value).toBe(`3° 30.0000' W`);
+    expect(lat.value).toBe(`47° 38.250' N`);
+    expect(lon.value).toBe(`3° 30.000' W`);
   });
 
   it('saves the original position untouched when only the format changes', async () => {
     const original: [number, number] = [-3.123456789, 47.987654321];
     const { fixture, close } = await open(original);
-    await choose(fixture, 'DMS');
+    await choose(fixture, LABEL.DMS);
     await choose(fixture, 'UTM');
-    await choose(fixture, 'DDM');
+    await choose(fixture, LABEL.DDM);
     expect(save(fixture, close)).toEqual(original);
   });
 
   it('saves typed degrees, minutes and seconds as decimal degrees', async () => {
     const { fixture, close } = await open([0, 0]);
-    await choose(fixture, 'DMS');
+    await choose(fixture, LABEL.DMS);
     const [lat, lon] = positionInputs(fixture);
     type(fixture, lat, `47° 38' 15" S`);
     type(fixture, lon, `003° 30' 00" W`);
@@ -200,14 +207,14 @@ describe('waypoint dialog position entry', () => {
 
   it('keeps the active format when its chip is clicked again', async () => {
     const { fixture } = await open([-3.5, 47.6375], 'DMdH');
-    await choose(fixture, 'DDM');
+    await choose(fixture, LABEL.DDM);
     const [lat] = positionInputs(fixture);
-    expect(lat.value).toBe(`47° 38.2500' N`);
+    expect(lat.value).toBe(`47° 38.250' N`);
     const selected = el(fixture).querySelectorAll(
       '._ap-wpt-position mat-chip-option.mat-mdc-chip-selected'
     );
     expect(Array.from(selected).map((c) => c.textContent?.trim())).toEqual([
-      'DDM'
+      LABEL.DDM
     ]);
   });
 

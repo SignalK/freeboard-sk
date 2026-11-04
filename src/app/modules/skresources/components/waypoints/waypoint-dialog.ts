@@ -52,7 +52,7 @@ const ENTRY_EXAMPLES: Record<
   Exclude<CoordEntryFormat, 'UTM'>,
   { lat: string; lon: string }
 > = {
-  DD: { lat: '47.6375', lon: '-3.5' },
+  DD: { lat: '47.6375° N', lon: '3.5° W' },
   DDM: { lat: `47° 38.250' N`, lon: `3° 30.000' W` },
   DMS: { lat: `47° 38' 15" N`, lon: `3° 30' 00" W` }
 };

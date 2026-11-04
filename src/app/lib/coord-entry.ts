@@ -12,9 +12,13 @@ export const COORD_ENTRY_FORMATS: ReadonlyArray<{
   label: string;
   description: string;
 }> = [
-  { id: 'DD', label: 'DD', description: 'Decimal degrees' },
-  { id: 'DDM', label: 'DDM', description: 'Degrees, decimal minutes' },
-  { id: 'DMS', label: 'DMS', description: 'Degrees, minutes, seconds' },
+  { id: 'DD', label: 'DD.DDDD°', description: 'Decimal degrees' },
+  { id: 'DDM', label: "DD° MM.MMM'", description: 'Degrees, decimal minutes' },
+  {
+    id: 'DMS',
+    label: `DD° MM' SS.SS"`,
+    description: 'Degrees, minutes, seconds'
+  },
   { id: 'UTM', label: 'UTM', description: 'UTM zone, easting, northing' }
 ];
 
@@ -117,27 +121,30 @@ export function parseAngle(text: string, axis: CoordAxis): number | null {
  * Format decimal degrees as editable text in the given notation, so that
  * `parseAngle` reads it back.
  *
- * Precision is ~0.1 m for DD, ~0.2 m for DDM and ~0.3 m for DMS. Rounding is
- * done on the smallest unit so a carry rolls into the next part (never 60').
+ * Every notation writes the hemisphere as N/S or E/W, as charts and GPS
+ * units show a position. Precision is ~0.1 m for DD, ~2 m for DDM (the usual
+ * MM.MMM') and ~0.3 m for DMS. Rounding is done on the smallest unit so a
+ * carry rolls into the next part (never 60').
  */
 export function formatAngle(
   value: number,
   format: Exclude<CoordEntryFormat, 'UTM'>,
   axis: CoordAxis
 ): string {
-  if (format === 'DD') {
-    return String(Number(value.toFixed(6)));
-  }
   const { pos, neg } = HEMISPHERES[axis];
   const h = value < 0 ? neg : pos;
   const abs = Math.abs(value);
 
+  if (format === 'DD') {
+    return `${Number(abs.toFixed(6))}° ${h}`;
+  }
+
   if (format === 'DDM') {
-    const scale = 10_000; // units of 1/10000 minute
+    const scale = 1000; // units of 1/1000 minute
     const total = Math.round(abs * 60 * scale);
     const deg = Math.floor(total / (60 * scale));
     const min = (total - deg * 60 * scale) / scale;
-    return `${deg}° ${min.toFixed(4).padStart(7, '0')}' ${h}`;
+    return `${deg}° ${min.toFixed(3).padStart(6, '0')}' ${h}`;
   }
 
   const scale = 100; // units of 1/100 second
