@@ -1,7 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, finalize, map, shareReplay, tap } from 'rxjs/operators';
+import {
+  catchError,
+  finalize,
+  map,
+  shareReplay,
+  tap,
+  timeout
+} from 'rxjs/operators';
 import { SignalKClient } from 'signalk-client-angular';
 
 import { WindGridNode } from './wind-field';
@@ -112,6 +119,7 @@ export class WeatherService {
   // Open-Meteo takes many locations per request; keep each URL well inside
   // what servers and proxies accept.
   private readonly windGridBatch = 200;
+  private readonly windGridTimeoutMs = 15000;
   private windGridCache = new Map<string, WindGridEntry>();
   // The request each node is waiting on. It runs to completion even if the
   // caller unsubscribes (the layer's switchMap cancels on every new move),
@@ -393,6 +401,9 @@ export class WeatherService {
           });
         }),
         map(() => undefined),
+        // A stalled request would hold its nodes in flight, and every later
+        // call wanting one of them would wait on it.
+        timeout(this.windGridTimeoutMs),
         catchError(() => of(undefined)),
         finalize(() =>
           batch.forEach(([key]) => {

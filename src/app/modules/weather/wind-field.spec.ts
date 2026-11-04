@@ -65,6 +65,12 @@ describe('windGridNodes', () => {
     ]);
   });
 
+  it('asks for the pole for a row past it on a coarse grid', () => {
+    const grid: WindGrid = { lon0: 0, lat0: -16, step: 16, cols: 1, rows: 8 };
+    const latitudes = windGridNodes(grid).map((n) => n.latitude);
+    expect(latitudes).toEqual([-16, 0, 16, 32, 48, 64, 80, 90]);
+  });
+
   it('normalises longitudes of another world copy for the data source', () => {
     const grid: WindGrid = {
       lon0: 179.5,

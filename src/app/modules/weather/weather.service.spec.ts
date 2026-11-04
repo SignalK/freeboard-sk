@@ -4,7 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting
 } from '@angular/common/http/testing';
-import { beforeEach, afterEach, describe, it, expect } from 'vitest';
+import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 import { Observable, of, Subject, throwError } from 'rxjs';
 
 import { WeatherService, WindGridResult } from './weather.service';
@@ -394,6 +394,23 @@ describe('WeatherService wind-flow grid (Open-Meteo forecast)', () => {
     service.getWindGrid([node(46, -5)]).subscribe((r) => (result = r));
     httpMock.expectNone((r) => isForecast(r.url));
     expect(result!.values).toEqual([{ speed: 5, direction: 270 }]);
+  });
+
+  it('gives up on a stalled request, so a later call asks again', () => {
+    vi.useFakeTimers();
+    try {
+      let result;
+      service.getWindGrid([node(46, -5)]).subscribe((r) => (result = r));
+      const stalled = httpMock.expectOne((r) => isForecast(r.url));
+      vi.advanceTimersByTime(15000);
+      expect(stalled.cancelled).toBe(true);
+      expect(result).toEqual({ values: [null], time: undefined });
+
+      service.getWindGrid([node(46, -5)]).subscribe();
+      httpMock.expectOne((r) => isForecast(r.url)).flush(item(5, 270));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('caches nothing from a rate-limited response, and still answers', () => {

@@ -71,11 +71,19 @@ export function windGridFor(
   };
 }
 
-/** The grid's nodes, row by row from the south-west corner, in data space. */
+/** The grid's nodes, row by row from the south-west corner, in data space.
+ *
+ *  On a coarse grid the last row can fall past a pole (96° on a 16° grid
+ *  starting at -16°). Its nodes ask for the wind at the pole instead: a
+ *  source rejects a latitude past 90°, and the pole is the right boundary
+ *  for the cell below it, which is all the map shows of that row anyway
+ *  (it stops at 85.05°). */
 export function windGridNodes(grid: WindGrid): WindGridNode[] {
   const nodes: WindGridNode[] = [];
   for (let row = 0; row < grid.rows; row++) {
-    const latitude = round(grid.lat0 + row * grid.step);
+    const latitude = round(
+      Math.max(-90, Math.min(90, grid.lat0 + row * grid.step))
+    );
     for (let col = 0; col < grid.cols; col++) {
       nodes.push({
         latitude,
