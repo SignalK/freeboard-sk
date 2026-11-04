@@ -178,6 +178,171 @@ export function formatMagnitude(
     .padStart(5, '0')}"`;
 }
 
+const PART_SYMBOLS = ['°', "'", '"'];
+const PART_COUNT: Record<Exclude<CoordEntryFormat, 'UTM'>, number> = {
+  DD: 1,
+  DDM: 2,
+  DMS: 3
+};
+const PART_DECIMALS: Record<Exclude<CoordEntryFormat, 'UTM'>, number> = {
+  DD: 6,
+  DDM: 3,
+  DMS: 2
+};
+// What a user may type to close a part early, e.g. "5 " for 5°.
+const PART_SEPARATORS = ` °º˚'′’"″:`;
+
+export interface MaskedAngle {
+  /** The text laid out in the notation, with its marks and spaces. */
+  text: string;
+  /** Where the caret goes in `text`. */
+  caret: number;
+  /** A hemisphere typed into the text: true for S or W (or `-`), false for
+   *  N or E (or `+`), null when none was typed. It is not kept in `text`. */
+  negative: boolean | null;
+}
+
+/**
+ * Lay typed text out in a notation as the user types, so they type digits
+ * only: `4738250` becomes `47° 38.250'` in DD° MM.MMM'.
+ *
+ * Digits fill degrees, minutes and seconds in turn. A part moves on once it
+ * is full (2 degree digits for a latitude, 3 for a longitude, 2 for minutes
+ * and seconds) or when a space or mark is typed, so `5 3` gives `5° 3'`.
+ * Digits past the last part become its decimals, and a `.` or `,` starts
+ * them. Marks are rebuilt each time, so typing one is never needed and never
+ * doubles it. A hemisphere letter or sign is taken out and reported.
+ *
+ * `deleting` is set for a deletion: a trailing space the user just erased is
+ * then not put back.
+ */
+export function maskAngle(
+  raw: string,
+  caret: number,
+  format: Exclude<CoordEntryFormat, 'UTM'>,
+  axis: CoordAxis,
+  deleting = false
+): MaskedAngle {
+  const parts = PART_COUNT[format];
+  const widths = [axis === 'lat' ? 2 : 3, 2, 2];
+  const { pos, neg } = HEMISPHERES[axis];
+  const ints = [''];
+  let frac: string | null = null;
+  // Whether the decimal point is in the typed text, or was put there by a
+  // digit overflowing the last part: only a typed one moves the caret.
+  let pointTyped = false;
+  let negative: boolean | null = null;
+  let kept = 0;
+  let keptBeforeCaret = 0;
+
+  const text = (raw ?? '').toUpperCase();
+  for (let k = 0; k < text.length; k++) {
+    const c = text[k];
+    const cur = ints.length - 1;
+    const last = cur === parts - 1;
+    let keep = false;
+    if (c >= '0' && c <= '9') {
+      if (frac !== null) {
+        if (frac.length < PART_DECIMALS[format]) {
+          frac += c;
+          keep = true;
+        }
+      } else if (ints[cur].length < widths[cur]) {
+        ints[cur] += c;
+        keep = true;
+      } else if (!last) {
+        ints.push(c);
+        keep = true;
+      } else {
+        frac = c;
+        keep = true;
+      }
+    } else if (c === '.' || c === ',') {
+      if (last && frac === null && ints[cur] !== '') {
+        frac = '';
+        pointTyped = true;
+        keep = true;
+      }
+    } else if (PART_SEPARATORS.includes(c)) {
+      // A mark closes the part only when a digit comes after it: the mark
+      // the layout itself puts after the digits must not. A space typed at
+      // the end does, so "5 " moves on to the minutes.
+      const closes = c === ' ' || /\d/.test(text.slice(k + 1));
+      if (closes && !last && ints[cur] !== '') {
+        ints.push('');
+      }
+    } else if (c === '-' || c === neg) {
+      negative = true;
+    } else if (c === '+' || c === pos) {
+      negative = false;
+    }
+    if (keep) {
+      kept++;
+      if (k < caret) {
+        keptBeforeCaret++;
+      }
+    }
+  }
+
+  // An empty part at the end means a separator was typed: show it ("5° ")
+  // unless the user is erasing it.
+  let open = ints.length > 1 && ints[ints.length - 1] === '';
+  if (open && deleting) {
+    ints.pop();
+    open = false;
+  }
+
+  let out = '';
+  const after = [0]; // after[n]: index just past the n-th kept character
+  ints.forEach((part, p) => {
+    if (p > 0) {
+      out += ' ';
+    }
+    for (const ch of part) {
+      out += ch;
+      after.push(out.length);
+    }
+    const hasFrac = p === parts - 1 && frac !== null;
+    if (hasFrac) {
+      out += '.';
+      if (pointTyped) {
+        after.push(out.length);
+      }
+      for (const ch of frac as string) {
+        out += ch;
+        after.push(out.length);
+      }
+    }
+    if (part !== '' || hasFrac) {
+      out += PART_SYMBOLS[p];
+    }
+  });
+
+  return {
+    text: out,
+    caret:
+      open && keptBeforeCaret === kept ? out.length : after[keptBeforeCaret],
+    negative
+  };
+}
+
+/**
+ * Remove the digit (or decimal point) just before `caret`. Erasing a mark or
+ * space alone changes nothing once the text is laid out again, so a deletion
+ * that only hit one of them takes the digit before it instead.
+ */
+export function dropDigitBefore(
+  text: string,
+  caret: number
+): { text: string; caret: number } {
+  for (let k = Math.min(caret, text.length) - 1; k >= 0; k--) {
+    if (/[\d.]/.test(text[k])) {
+      return { text: text.slice(0, k) + text.slice(k + 1), caret: k };
+    }
+  }
+  return { text, caret };
+}
+
 export interface UtmPosition {
   zone: number;
   hemisphere: 'N' | 'S';

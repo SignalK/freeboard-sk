@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   entryFormatFor,
+  dropDigitBefore,
   formatAngle,
+  maskAngle,
   formatMagnitude,
   hemisphereOf,
   namesDirection,
@@ -85,6 +87,91 @@ describe('hemisphere helpers', () => {
     expect(namesDirection('-3.5')).toBe(true);
     expect(withoutDirection(`N 47° 38.25'`)).toBe(`47° 38.25'`);
     expect(withoutDirection('-3.5')).toBe('3.5');
+  });
+});
+
+describe('maskAngle', () => {
+  const at = (raw: string, format: 'DD' | 'DDM' | 'DMS', axis: 'lat' | 'lon') =>
+    maskAngle(raw, raw.length, format, axis);
+
+  it('adds the marks to digits typed alone', () => {
+    expect(at('55', 'DD', 'lat').text).toBe('55°');
+    expect(at('4738250', 'DDM', 'lat').text).toBe(`47° 38.250'`);
+    expect(at('473815', 'DMS', 'lat').text).toBe(`47° 38' 15"`);
+    expect(at('0033', 'DDM', 'lon').text).toBe(`003° 3'`);
+  });
+
+  it('turns digits past the last part into its decimals', () => {
+    expect(at('556', 'DD', 'lat').text).toBe('55.6°');
+    expect(at('473825', 'DDM', 'lat').text).toBe(`47° 38.25'`);
+    expect(at('47381512', 'DMS', 'lat').text).toBe(`47° 38' 15.12"`);
+  });
+
+  it('keeps no more decimals than the notation shows', () => {
+    expect(at('47382501', 'DDM', 'lat').text).toBe(`47° 38.250'`);
+  });
+
+  it('closes a part early on a space or a mark', () => {
+    expect(at('5 3', 'DDM', 'lat').text).toBe(`5° 3'`);
+    expect(at(`5°3'`, 'DDM', 'lat').text).toBe(`5° 3'`);
+    expect(at('5 ', 'DDM', 'lat')).toEqual({
+      text: '5° ',
+      caret: 3,
+      negative: null
+    });
+  });
+
+  it('does not move on at a mark the layout added itself', () => {
+    // "00" typed as a longitude shows "00°"; the next digit lands before the
+    // mark and still belongs to the degrees.
+    expect(maskAngle('00°', 2, 'DDM', 'lon').text).toBe('00°');
+    expect(maskAngle('003°', 3, 'DDM', 'lon').text).toBe('003°');
+  });
+
+  it('does not put back a trailing space being erased', () => {
+    expect(maskAngle('5°', 2, 'DDM', 'lat', true)).toEqual({
+      text: '5°',
+      caret: 1,
+      negative: null
+    });
+  });
+
+  it('reads the same text back unchanged, marks and all', () => {
+    expect(at(`47° 38.250'`, 'DDM', 'lat').text).toBe(`47° 38.250'`);
+    expect(at(`47° 38' 15.00"`, 'DMS', 'lat').text).toBe(`47° 38' 15.00"`);
+  });
+
+  it('keeps the caret after the digit just typed', () => {
+    // "8" typed between "3" and the minute mark.
+    const typed = `47° 38'`;
+    expect(maskAngle(typed, 6, 'DDM', 'lat').caret).toBe(6);
+    // The caret before the closing mark after the last digit.
+    expect(at('55', 'DD', 'lat').caret).toBe(2);
+    // A digit that starts the decimals: the caret goes after it, not after
+    // the point the layout added.
+    expect(maskAngle(`47° 382'`, 7, 'DDM', 'lat')).toMatchObject({
+      text: `47° 38.2'`,
+      caret: 8
+    });
+  });
+
+  it('takes out a hemisphere letter or sign and reports it', () => {
+    expect(at('4738S', 'DDM', 'lat')).toMatchObject({
+      text: `47° 38'`,
+      negative: true
+    });
+    expect(at('-3.5', 'DD', 'lon')).toMatchObject({
+      text: '3.5°',
+      negative: true
+    });
+    expect(at('3.5E', 'DD', 'lon').negative).toBe(false);
+  });
+});
+
+describe('dropDigitBefore', () => {
+  it('removes the digit before the caret, skipping marks and spaces', () => {
+    expect(dropDigitBefore(`47° 38'`, 4)).toEqual({ text: `4° 38'`, caret: 1 });
+    expect(dropDigitBefore('°', 1)).toEqual({ text: '°', caret: 1 });
   });
 });
 

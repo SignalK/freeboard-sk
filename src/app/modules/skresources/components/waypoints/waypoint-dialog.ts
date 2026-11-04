@@ -44,8 +44,10 @@ import {
   entryFormatFor,
   formatMagnitude,
   fromUtm,
+  dropDigitBefore,
   hemisphereOf,
   HEMISPHERES,
+  maskAngle,
   namesDirection,
   parseAngle,
   toUtm,
@@ -259,11 +261,13 @@ interface DialogData {
                         <input
                           matInput
                           type="text"
-                          inputmode="text"
+                          inputmode="decimal"
                           autocomplete="off"
                           required
                           [placeholder]="example().lat"
                           [formControl]="inpLat"
+                          (input)="onAngleInput($event, 'lat')"
+                          (blur)="tidyAngle('lat')"
                         />
                         <mat-hint>e.g. {{ example().lat }}</mat-hint>
                         @if (inpLat.invalid) {
@@ -287,11 +291,13 @@ interface DialogData {
                         <input
                           matInput
                           type="text"
-                          inputmode="text"
+                          inputmode="decimal"
                           autocomplete="off"
                           required
                           [placeholder]="example().lon"
                           [formControl]="inpLon"
+                          (input)="onAngleInput($event, 'lon')"
+                          (blur)="tidyAngle('lon')"
                         />
                         <mat-hint>e.g. {{ example().lon }}</mat-hint>
                         @if (inpLon.invalid) {
@@ -585,9 +591,11 @@ export class WaypointDialog {
       );
     } else {
       const quiet = { emitEvent: false };
-      this.inpLat.setValue(formatMagnitude(this.wptLat, format), quiet);
+      this.shownText.lat = formatMagnitude(this.wptLat, format);
+      this.shownText.lon = formatMagnitude(this.wptLon, format);
+      this.inpLat.setValue(this.shownText.lat, quiet);
       this.inpLatHem.setValue(hemisphereOf(this.wptLat, 'lat'), quiet);
-      this.inpLon.setValue(formatMagnitude(this.wptLon, format), quiet);
+      this.inpLon.setValue(this.shownText.lon, quiet);
       this.inpLonHem.setValue(hemisphereOf(this.wptLon, 'lon'), quiet);
     }
   }
@@ -618,6 +626,77 @@ export class WaypointDialog {
     if (namesDirection(control.value)) {
       control.setValue(withoutDirection(control.value), { emitEvent: false });
     }
+  }
+
+  // The text each field showed before the current keystroke, to spot a
+  // deletion that only hit a mark the layout puts straight back.
+  private shownText: Record<CoordAxis, string> = { lat: '', lon: '' };
+
+  /**
+   * Lay the value out in the notation as it is typed, so only digits are
+   * needed: the degree, minute and second marks and the spaces come by
+   * themselves (see maskAngle). A pasted position in any notation is
+   * converted whole.
+   */
+  protected onAngleInput(event: Event, axis: CoordAxis) {
+    const format = this.entryFormat();
+    if (format === 'UTM') {
+      return;
+    }
+    const input = event.target as HTMLInputElement;
+    const control = axis === 'lat' ? this.inpLat : this.inpLon;
+    const hem = axis === 'lat' ? this.inpLatHem : this.inpLonHem;
+    const kind = (event as InputEvent).inputType ?? '';
+    const raw = input.value;
+
+    let text: string;
+    let caret: number;
+    const pasted = kind === 'insertFromPaste' ? parseAngle(raw, axis) : null;
+    if (pasted !== null) {
+      if (namesDirection(raw)) {
+        hem.setValue(hemisphereOf(pasted, axis), { emitEvent: false });
+      }
+      text = formatMagnitude(pasted, format);
+      caret = text.length;
+    } else {
+      const deleting = kind.startsWith('delete');
+      let masked = maskAngle(
+        raw,
+        input.selectionStart ?? raw.length,
+        format,
+        axis,
+        deleting
+      );
+      if (deleting && masked.text === this.shownText[axis]) {
+        const dropped = dropDigitBefore(masked.text, masked.caret);
+        masked = maskAngle(dropped.text, dropped.caret, format, axis, true);
+      }
+      if (masked.negative !== null) {
+        const { pos, neg } = HEMISPHERES[axis];
+        hem.setValue(masked.negative ? neg : pos, { emitEvent: false });
+      }
+      text = masked.text;
+      caret = masked.caret;
+    }
+
+    this.shownText[axis] = text;
+    control.setValue(text);
+    input.value = text;
+    input.setSelectionRange(caret, caret);
+  }
+
+  /** On leaving a field, write a valid value out in full: `55°` becomes
+   *  `55° 00.000'` in DD° MM.MMM'. */
+  protected tidyAngle(axis: CoordAxis) {
+    const format = this.entryFormat();
+    const control = axis === 'lat' ? this.inpLat : this.inpLon;
+    const value = parseAngle(control.value, axis);
+    if (format === 'UTM' || value === null) {
+      return;
+    }
+    const text = formatMagnitude(value, format);
+    this.shownText[axis] = text;
+    control.setValue(text, { emitEvent: false });
   }
 
   protected positionInvalid(): boolean {

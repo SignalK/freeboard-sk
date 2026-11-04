@@ -68,6 +68,40 @@ const positionInputs = (f: ComponentFixture<WaypointDialog>) =>
     el(f).querySelectorAll('._ap-wpt-coords input')
   ) as HTMLInputElement[];
 
+/** Types `text` one key at a time over the field's content, as a user
+ *  would after selecting it. */
+function keys(
+  f: ComponentFixture<WaypointDialog>,
+  input: HTMLInputElement,
+  text: string
+) {
+  input.focus();
+  input.select(); // typing replaces what the field held
+  for (const ch of text) {
+    const from = input.selectionStart ?? input.value.length;
+    const to = input.selectionEnd ?? from;
+    input.value = input.value.slice(0, from) + ch + input.value.slice(to);
+    input.setSelectionRange(from + 1, from + 1);
+    input.dispatchEvent(
+      new InputEvent('input', { inputType: 'insertText', data: ch })
+    );
+    f.detectChanges();
+  }
+}
+
+function paste(
+  f: ComponentFixture<WaypointDialog>,
+  input: HTMLInputElement,
+  value: string
+) {
+  input.value = value;
+  input.dispatchEvent(
+    new InputEvent('input', { inputType: 'insertFromPaste', data: value })
+  );
+  input.dispatchEvent(new Event('blur'));
+  f.detectChanges();
+}
+
 function type(
   f: ComponentFixture<WaypointDialog>,
   input: HTMLInputElement,
@@ -160,21 +194,43 @@ describe('waypoint dialog position entry', () => {
     expect(x).toBeCloseTo(-3.5, 9);
   });
 
-  it('moves the list to a hemisphere typed or pasted into the value', async () => {
+  it('converts a position pasted in another notation, hemisphere included', async () => {
     const { fixture, close } = await open([0, 0]);
     const [lat] = positionInputs(fixture);
-    type(fixture, lat, `47° 38.25' S`);
+    paste(fixture, lat, `47° 38.25' S`);
+    expect(lat.value).toBe('47.6375°');
     expect(hemispheres(fixture)[0]).toBe('S');
     expect(save(fixture, close)[1]).toBeCloseTo(-47.6375, 9);
   });
 
-  it('lets the list override a hemisphere typed into the value', async () => {
+  it('moves the list to a hemisphere letter typed after the value', async () => {
     const { fixture, close } = await open([0, 0]);
     const [lat] = positionInputs(fixture);
     type(fixture, lat, '47.6375 S');
+    expect(lat.value).toBe('47.6375°');
+    expect(hemispheres(fixture)[0]).toBe('S');
     await pick(fixture, 0, 'N');
-    expect(lat.value).toBe('47.6375');
     expect(save(fixture, close)[1]).toBeCloseTo(47.6375, 9);
+  });
+
+  it('adds the marks by itself: digits are enough', async () => {
+    const { fixture, close } = await open([0, 0], 'DMdH');
+    const [lat, lon] = positionInputs(fixture);
+    keys(fixture, lat, '4738250');
+    keys(fixture, lon, '00330');
+    expect(lat.value).toBe(`47° 38.250'`);
+    expect(lon.value).toBe(`003° 30'`);
+    await pick(fixture, 1, 'W');
+    const [x, y] = save(fixture, close);
+    expect(y).toBeCloseTo(47.6375, 9);
+    expect(x).toBeCloseTo(-3.5, 9);
+  });
+
+  it('writes a short entry out in full on leaving the field', async () => {
+    const { fixture } = await open([0, 0], 'DMdH');
+    const [lat] = positionInputs(fixture);
+    type(fixture, lat, '55');
+    expect(lat.value).toBe(`55° 00.000'`);
   });
 
   it('saves the original position untouched when only the format changes', async () => {
