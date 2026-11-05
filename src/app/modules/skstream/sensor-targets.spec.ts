@@ -7,6 +7,7 @@ import {
   aisReportInterval,
   fusedVessels,
   isAisCurrent,
+  isRadarTarget,
   isSilent,
   isStale,
   locateTarget,
@@ -527,6 +528,13 @@ describe('isStale', () => {
     t.lastUpdated = new Date(1000);
     expect(isStale(t, 1000 + 20_000)).toBe(false);
     expect(isStale(t, 1001 + 20_000)).toBe(true);
+  });
+});
+
+describe('isRadarTarget', () => {
+  it('tells radar targets from camera targets', () => {
+    expect(isRadarTarget(RADAR)).toBe(true);
+    expect(isRadarTarget(CAMERA)).toBe(false);
   });
 });
 

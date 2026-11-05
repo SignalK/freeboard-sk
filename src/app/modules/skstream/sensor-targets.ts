@@ -65,6 +65,11 @@ export function isStale(target: SKSensorTarget, now: number): boolean {
   return now - target.lastUpdated.valueOf() > TARGET_STALE_MS;
 }
 
+/** Whether `id` is a radar target, which shows with the radar image. */
+export function isRadarTarget(id: string): boolean {
+  return id.startsWith('targets.radar:');
+}
+
 /**
  * How often the vessel's AIS transponder reports its position at its current
  * speed and status. A vessel of unknown class is taken as class B, the less
