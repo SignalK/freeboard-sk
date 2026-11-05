@@ -485,6 +485,8 @@ describe('aisReportInterval', () => {
     v.sog = 12;
     expect(aisReportInterval(v)).toBe(2_000);
     v.state = 'anchored';
+    expect(aisReportInterval(v)).toBe(2_000);
+    v.sog = 1;
     expect(aisReportInterval(v)).toBe(180_000);
   });
 

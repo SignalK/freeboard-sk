@@ -35,6 +35,7 @@ const AIS_INTERVAL = {
   classBSlow: 180_000
 };
 const KNOTS_2 = 1.03;
+const KNOTS_3 = 1.54;
 const KNOTS_14 = 7.2;
 const KNOTS_23 = 11.83;
 
@@ -78,7 +79,12 @@ export function isRadarTarget(id: string): boolean {
 export function aisReportInterval(vessel: SKVessel): number {
   const sog = vessel.sog ?? 0;
   if (vessel.aisClass === 'A') {
-    if (vessel.state === 'anchored' || vessel.state === 'moored') {
+    // the moored rate applies only at 3 kn or less, so a status left at
+    // "moored" does not hold a moving vessel at the slow rate
+    if (
+      (vessel.state === 'anchored' || vessel.state === 'moored') &&
+      sog <= KNOTS_3
+    ) {
       return AIS_INTERVAL.classAMoored;
     }
     if (sog > KNOTS_23) {
