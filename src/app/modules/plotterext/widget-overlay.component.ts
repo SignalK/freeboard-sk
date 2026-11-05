@@ -27,6 +27,7 @@ import { PlotterExtensionService } from './plotterext.service';
 import { PlotterWidgetFrame } from './widget-frame.component';
 import {
   ANCHOR_GRID,
+  ANCHOR_LABELS,
   ANCHORS,
   AnchorId,
   PlacedWidget,
@@ -99,7 +100,14 @@ interface CellStyle {
             class="pe-slot"
             [class.pe-slot-hover]="isHovered(anchor, cell)"
             [style]="slotStyle(cell)"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'Move widget here: ' + anchorLabels[anchor]"
             (click)="service.dropMovingWidget(anchor, cell)"
+            (keydown.enter)="service.dropMovingWidget(anchor, cell)"
+            (keydown.space)="
+              $event.preventDefault(); service.dropMovingWidget(anchor, cell)
+            "
           ></div>
         }
       </div>
@@ -108,7 +116,7 @@ interface CellStyle {
       <div class="pe-move-bar">
         <mat-icon>open_with</mat-icon>
         <span>Drag the widget, or tap where it should go</span>
-        <button mat-button (click)="service.cancelMove()">Cancel</button>
+        <button mat-button (click)="cancelMove()">Cancel</button>
       </div>
     }
   `,
@@ -187,6 +195,9 @@ interface CellStyle {
         border: 2px dashed #29b6f6;
         background: rgba(41, 182, 246, 0.15);
         cursor: pointer;
+      }
+      .pe-slot:focus-visible {
+        outline: 3px solid #29b6f6;
       }
       .pe-slot-hover {
         background: rgba(41, 182, 246, 0.45);
@@ -269,6 +280,7 @@ interface CellStyle {
 })
 export class PlotterExtensionOverlay implements OnInit, OnDestroy {
   anchors = ANCHORS;
+  anchorLabels = ANCHOR_LABELS;
 
   byAnchor = computed(() => {
     const result: Record<string, PlacedWidget[]> = {};
@@ -417,11 +429,16 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
     if (!drag) return;
     if (!drag.moved) {
       // A tap on the widget being moved leaves it where it is.
-      this.service.cancelMove();
+      this.cancelMove();
       return;
     }
     const hit = this.hitTest(e.clientX, e.clientY);
     if (hit) this.service.dropMovingWidget(hit.anchor, hit.cell);
+  }
+
+  cancelMove() {
+    this.dragCancel();
+    this.service.cancelMove();
   }
 
   dragCancel() {
