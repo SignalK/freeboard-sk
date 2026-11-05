@@ -34,10 +34,11 @@ const AIS_INTERVAL = {
   classBMoving: 30_000,
   classBSlow: 180_000
 };
-const KNOTS_2 = 1.03;
-const KNOTS_3 = 1.54;
-const KNOTS_14 = 7.2;
-const KNOTS_23 = 11.83;
+const KNOT = 1852 / 3600; // m/s
+const KNOTS_2 = 2 * KNOT;
+const KNOTS_3 = 3 * KNOT;
+const KNOTS_14 = 14 * KNOT;
+const KNOTS_23 = 23 * KNOT;
 
 /**
  * An AIS position counts as current for twice its reporting interval, and at

@@ -488,6 +488,8 @@ describe('aisReportInterval', () => {
     expect(aisReportInterval(v)).toBe(2_000);
     v.sog = 1;
     expect(aisReportInterval(v)).toBe(180_000);
+    v.sog = (3 * 1852) / 3600;
+    expect(aisReportInterval(v)).toBe(180_000);
   });
 
   it('follows the class B rates, and takes an unknown class as B', () => {
