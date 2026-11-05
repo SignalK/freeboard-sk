@@ -266,7 +266,7 @@ export class AISBaseLayerComponent
         return;
       }
       source.forEachFeature((cl) => {
-        if ((cl.getId() as string).includes('cog-')) {
+        if ((cl.getId() as string).startsWith('cog-')) {
           source.removeFeature(cl);
         }
       });
