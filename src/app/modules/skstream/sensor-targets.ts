@@ -252,6 +252,23 @@ export function unlinkedTargets(
 }
 
 /**
+ * The contexts a target leads to through its `sameAs` links, in order, each
+ * once. A boat drawn at any of them may move when the target does.
+ */
+export function linkedContexts(
+  id: string,
+  targets: Map<string, SKSensorTarget>
+): string[] {
+  const found: string[] = [];
+  let next = targets.get(id)?.sameAs ?? null;
+  while (next !== null && next !== id && !found.includes(next)) {
+    found.push(next);
+    next = targets.get(next)?.sameAs ?? null;
+  }
+  return found;
+}
+
+/**
  * The context that stands for a target's object: links are followed to a
  * vessel on the chart or to a target without a usable link. A target without
  * a position is not a usable link. Targets linked in a loop agree on the
@@ -294,18 +311,19 @@ export function fusedVessels(
   now = Date.now()
 ): Map<string, SKVessel> {
   const freshest = new Map<string, SKSensorTarget>();
-  targets.forEach((target) => {
-    const sameAs = target.sameAs;
-    const vessel = sameAs ? vessels.get(sameAs) : undefined;
+  const charted = (context: string) => vessels.has(context);
+  targets.forEach((target, id) => {
+    // a target linked through other targets fuses with the vessel at the end
+    const root = rootOf(id, targets, charted);
+    const vessel = vessels.get(root);
     if (
-      sameAs &&
       vessel &&
       target.position &&
       !isAisCurrent(vessel, now) &&
       target.positionUpdatedAt > vessel.positionUpdatedAt &&
-      target.positionUpdatedAt > (freshest.get(sameAs)?.positionUpdatedAt ?? 0)
+      target.positionUpdatedAt > (freshest.get(root)?.positionUpdatedAt ?? 0)
     ) {
-      freshest.set(sameAs, target);
+      freshest.set(root, target);
     }
   });
   if (freshest.size === 0) {

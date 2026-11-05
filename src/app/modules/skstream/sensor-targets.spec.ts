@@ -10,6 +10,7 @@ import {
   isRadarTarget,
   isSilent,
   isStale,
+  linkedContexts,
   locateTarget,
   processSensorTarget,
   unlinkedTargets
@@ -450,6 +451,27 @@ describe('fusedVessels', () => {
     expect(fusedVessels(vessels, targets, 130_000)).toBe(vessels);
   });
 
+  it('places a vessel at a target linked to it through another target', () => {
+    const v = vessel(VESSEL);
+    v.positionUpdatedAt = 1000;
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, CAMERA, VESSEL);
+    target(targets, RADAR, CAMERA);
+    processSensorTarget(
+      targets,
+      RADAR,
+      {
+        path: 'navigation.position',
+        value: { latitude: 52.3, longitude: 4.3 }
+      },
+      COG_LINE
+    );
+    targets.get(CAMERA)!.positionUpdatedAt = 2000;
+    targets.get(RADAR)!.positionUpdatedAt = 3000;
+    const fused = fusedVessels(new Map([[VESSEL, v]]), targets).get(VESSEL)!;
+    expect(fused.position).toEqual(targets.get(RADAR)!.position);
+  });
+
   it('follows the radar with its course once AIS misses two reports', () => {
     const v = vessel(VESSEL);
     v.aisClass = 'B';
@@ -471,6 +493,17 @@ describe('fusedVessels', () => {
     expect(fused.position).toEqual(targets.get(RADAR)!.position);
     expect(fused.orientation).toBe(1.5);
     expect(fused.cog).toBe(1.5);
+  });
+});
+
+describe('linkedContexts', () => {
+  it('follows a chain of links and stops at a loop', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, CAMERA);
+    target(targets, CAMERA, VESSEL);
+    expect(linkedContexts(RADAR, targets)).toEqual([CAMERA, VESSEL]);
+    targets.get(CAMERA)!.sameAs = RADAR;
+    expect(linkedContexts(RADAR, targets)).toEqual([CAMERA]);
   });
 });
 

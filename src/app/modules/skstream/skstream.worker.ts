@@ -24,7 +24,12 @@ import {
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
 import { magneticToTrue } from 'src/app/lib/true-bearing';
-import { isSilent, isStale, processSensorTarget } from './sensor-targets';
+import {
+  isSilent,
+  isStale,
+  linkedContexts,
+  processSensorTarget
+} from './sensor-targets';
 import { IAppConfig, PathValue, Position } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
@@ -1089,43 +1094,39 @@ function parseStreamMessage(data: SKStreamMessage) {
             break;
 
           case 'targets': {
-            // radar, camera and other sensor targets
-            // A vessel or target a target is linked to is drawn at the
-            // freshest of their positions, so it is redrawn when the target
-            // moves.
-            const linkedTo = vessels.targets.get(data.context)?.sameAs;
-            if (
-              linkedTo &&
-              (vessels.aisTargets.has(linkedTo) ||
-                vessels.targets.has(linkedTo))
-            ) {
-              targetStatus.updated[linkedTo] = true;
-            }
-            if (
-              targetFilter?.signalk.vessels &&
-              !processSensorTarget(
-                vessels.targets,
-                data.context,
-                v,
-                vesselPrefs.aisCogLine
-              )
-            ) {
+            // radar, camera and other sensor targets, shown whatever the
+            // AIS vessel filter, as they come from the boat's own sensors
+            // A boat drawn at a context the target links to, directly or
+            // through other targets, may move with it, so it is redrawn,
+            // under the old link and the new one.
+            const before = linkedContexts(data.context, vessels.targets);
+            const kept = processSensorTarget(
+              vessels.targets,
+              data.context,
+              v,
+              vesselPrefs.aisCogLine
+            );
+            new Set([
+              ...before,
+              ...linkedContexts(data.context, vessels.targets)
+            ]).forEach((linked) => {
+              if (
+                vessels.aisTargets.has(linked) ||
+                vessels.targets.has(linked)
+              ) {
+                targetStatus.updated[linked] = true;
+              }
+            });
+            if (!kept) {
               targetStatus.expired[data.context] = true;
               break;
             }
             // The radius filter waits for the first position, so a link
             // that arrives before it is kept.
-            if (
-              targetFilter?.signalk.vessels &&
-              !vessels.targets.get(data.context)?.positionReceived
-            ) {
+            if (!vessels.targets.get(data.context)?.positionReceived) {
               break;
             }
-            filterContext(
-              data.context,
-              vessels.targets,
-              targetFilter?.signalk.vessels
-            );
+            filterContext(data.context, vessels.targets);
             break;
           }
 
@@ -1651,14 +1652,14 @@ function processAISStatus() {
   });
   vessels.targets.forEach((v, k) => {
     if (isSilent(v, now)) {
+      const linked = linkedContexts(k, vessels.targets);
       targetStatus.expired[k] = true;
       vessels.targets.delete(k);
-      if (
-        v.sameAs &&
-        (vessels.aisTargets.has(v.sameAs) || vessels.targets.has(v.sameAs))
-      ) {
-        targetStatus.updated[v.sameAs] = true;
-      }
+      linked.forEach((context) => {
+        if (vessels.aisTargets.has(context) || vessels.targets.has(context)) {
+          targetStatus.updated[context] = true;
+        }
+      });
     } else if (isStale(v, now)) {
       targetStatus.stale[k] = true;
     }

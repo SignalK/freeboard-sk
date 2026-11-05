@@ -1084,3 +1084,99 @@ describe('skstream.worker processVessel — environment.current', () => {
     });
   });
 });
+
+// Radar and camera targets come from the boat's own sensors, so they show
+// whatever the AIS vessel filter says, and a boat drawn at the end of a
+// chain of links is redrawn when any target in the chain moves.
+describe('skstream.worker sensor targets', () => {
+  const STERN = 'targets.camera:stern-2';
+  const CAMERA = 'targets.camera:bow-7';
+  const RADAR = 'targets.radar:nav1-17';
+  let updates: Array<{ targets: string[]; updated: string[] }>;
+
+  const send = (context: string, path: string, value: unknown) =>
+    handleStreamEvent({
+      action: 'onMessage',
+      msg: {
+        context,
+        updates: [{ values: [{ path, value }] }]
+      } as unknown as SKStreamMessage
+    });
+  const flush = () => vi.advanceTimersByTime(500);
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        readyState = 1;
+        close() {}
+        send() {}
+      }
+    );
+    initVessels();
+    updates = [];
+    vi.stubGlobal(
+      'postMessage',
+      vi.fn(
+        (msg: {
+          action?: string;
+          result?: {
+            targets?: Map<string, unknown>;
+            aisStatus?: { updated: string[] };
+          };
+        }) => {
+          if (msg.action === 'update' && msg.result?.targets) {
+            updates.push({
+              targets: [...msg.result.targets.keys()],
+              updated: [...(msg.result.aisStatus?.updated ?? [])]
+            });
+          }
+        }
+      )
+    );
+    dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          cmd: 'open',
+          options: {
+            url: 'ws://localhost:3000/signalk/v1/stream',
+            interval: 500,
+            config: {
+              units: {},
+              vessels: { aisShowTrack: false },
+              signalk: { maxRadius: 0, vessels: false },
+              selections: {}
+            }
+          }
+        }
+      })
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps targets with the AIS vessel filter off', () => {
+    send(RADAR, 'navigation.position', { latitude: 52.1, longitude: 4.2 });
+    flush();
+    expect(updates.at(-1)?.targets).toEqual([RADAR]);
+  });
+
+  it('redraws the target at the end of a chain when its first link moves', () => {
+    for (const id of [STERN, CAMERA, RADAR]) {
+      send(id, 'navigation.position', { latitude: 52.1, longitude: 4.2 });
+    }
+    send(RADAR, 'sameAs', CAMERA);
+    send(CAMERA, 'sameAs', STERN);
+    flush();
+    send(RADAR, 'navigation.position', { latitude: 52.2, longitude: 4.2 });
+    flush();
+    expect(updates.at(-1)?.updated).toEqual(
+      expect.arrayContaining([RADAR, CAMERA, STERN])
+    );
+  });
+});
