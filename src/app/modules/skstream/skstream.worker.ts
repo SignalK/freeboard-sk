@@ -1418,6 +1418,8 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
     d.callsignHf = value;
   } else if (v.path === 'design.aisShipType') {
     d.type = value;
+  } else if (v.path === 'sensors.ais.class') {
+    d.aisClass = value === 'A' || value === 'B' ? value : undefined;
   } else if (v.path === 'design.length') {
     d.design.length = value ?? null;
   } else if (v.path === 'design.beam') {

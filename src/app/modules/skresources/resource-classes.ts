@@ -266,6 +266,9 @@ export class SKVessel extends SKTargetBase {
     default: null,
     availableActions: []
   };
+  /** AIS transponder class from `sensors.ais.class`, which sets how often
+   * the vessel reports its position. */
+  aisClass?: 'A' | 'B';
   buddy = false;
   closestApproach: { distance: number | null; timeTo: number | null } = {
     distance: null,

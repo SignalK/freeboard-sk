@@ -19,6 +19,26 @@ import { PathValue, Position } from 'src/app/types';
  */
 export const TARGET_MAX_AGE_MS = 60_000;
 
+/** ITU-R M.1371 reporting intervals, in ms. */
+const AIS_INTERVAL = {
+  classAMoored: 180_000,
+  classASlow: 10_000,
+  classAFast: 6_000,
+  classAVeryFast: 2_000,
+  classBMoving: 30_000,
+  classBSlow: 180_000
+};
+const KNOTS_2 = 1.03;
+const KNOTS_14 = 7.2;
+const KNOTS_23 = 11.83;
+
+/**
+ * An AIS position counts as current for twice its reporting interval, and at
+ * least this long, so one or two slots lost on a busy channel do not move the
+ * boat to the radar and back.
+ */
+const AIS_MIN_GRACE_MS = 30_000;
+
 const CREATED_BY_MOTION_PATHS = new Set([
   'navigation.courseOverGroundTrue',
   'navigation.speedOverGround'
@@ -32,6 +52,37 @@ const CREATED_BY_MOTION_PATHS = new Set([
 export function isSilent(target: SKSensorTarget, now: number): boolean {
   const seen = target.positionUpdatedAt || target.lastUpdated.valueOf();
   return now - seen > TARGET_MAX_AGE_MS;
+}
+
+/**
+ * How often the vessel's AIS transponder reports its position at its current
+ * speed and status. A vessel of unknown class is taken as class B, the less
+ * frequent one.
+ */
+export function aisReportInterval(vessel: SKVessel): number {
+  const sog = vessel.sog ?? 0;
+  if (vessel.aisClass === 'A') {
+    if (vessel.state === 'anchored' || vessel.state === 'moored') {
+      return AIS_INTERVAL.classAMoored;
+    }
+    if (sog > KNOTS_23) {
+      return AIS_INTERVAL.classAVeryFast;
+    }
+    return sog > KNOTS_14 ? AIS_INTERVAL.classAFast : AIS_INTERVAL.classASlow;
+  }
+  return sog > KNOTS_2 ? AIS_INTERVAL.classBMoving : AIS_INTERVAL.classBSlow;
+}
+
+/**
+ * Whether the vessel's AIS position is still current: no more than two of
+ * its reporting intervals old.
+ */
+export function isAisCurrent(vessel: SKVessel, now: number): boolean {
+  if (!vessel.positionUpdatedAt) {
+    return false;
+  }
+  const grace = Math.max(2 * aisReportInterval(vessel), AIS_MIN_GRACE_MS);
+  return now - vessel.positionUpdatedAt <= grace;
 }
 
 /**
@@ -208,14 +259,16 @@ function rootOf(
 }
 
 /**
- * The vessels as drawn: a vessel that a sensor target is linked to is placed
- * at whichever of them reported its position last, with that one's course
- * line, so a boat whose AIS fell silent follows the radar still tracking it.
- * The others are returned as they are.
+ * The vessels as drawn: a vessel keeps its AIS position while that is
+ * current, as IMO MSC.192(79) asks for an associated target. Once its AIS
+ * falls silent it is placed at the linked sensor target that reported last,
+ * with that one's course, so a boat whose AIS stopped follows the radar still
+ * tracking it. The others are returned as they are.
  */
 export function fusedVessels(
   vessels: Map<string, SKVessel>,
-  targets: Map<string, SKSensorTarget>
+  targets: Map<string, SKSensorTarget>,
+  now = Date.now()
 ): Map<string, SKVessel> {
   const freshest = new Map<string, SKSensorTarget>();
   targets.forEach((target) => {
@@ -225,6 +278,7 @@ export function fusedVessels(
       sameAs &&
       vessel &&
       target.position &&
+      !isAisCurrent(vessel, now) &&
       target.positionUpdatedAt > vessel.positionUpdatedAt &&
       target.positionUpdatedAt > (freshest.get(sameAs)?.positionUpdatedAt ?? 0)
     ) {
@@ -238,7 +292,15 @@ export function fusedVessels(
   freshest.forEach((target, id) => {
     const vessel = vessels.get(id);
     if (vessel) {
-      fused.set(id, placedAt(vessel, target));
+      fused.set(
+        id,
+        Object.assign(placedAt(vessel, target), {
+          cog: target.cog ?? vessel.cog,
+          sog: target.sog ?? vessel.sog,
+          orientation:
+            target.cog === undefined ? vessel.orientation : target.orientation
+        })
+      );
     }
   });
   return fused;

@@ -4,7 +4,9 @@ import {
   SKVessel
 } from 'src/app/modules/skresources/resource-classes';
 import {
+  aisReportInterval,
   fusedVessels,
+  isAisCurrent,
   isSilent,
   locateTarget,
   processSensorTarget,
@@ -432,6 +434,89 @@ describe('fusedVessels', () => {
     targets.get(RADAR)!.positionUpdatedAt = 2000;
     const vessels = new Map([[VESSEL, v]]);
     expect(fusedVessels(vessels, targets)).toBe(vessels);
+  });
+
+  it('keeps a vessel at its AIS position while that is current', () => {
+    const v = vessel(VESSEL);
+    v.aisClass = 'B';
+    v.sog = 3;
+    v.positionUpdatedAt = 100_000;
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    targets.get(RADAR)!.positionUpdatedAt = 125_000;
+    const vessels = new Map([[VESSEL, v]]);
+    expect(fusedVessels(vessels, targets, 130_000)).toBe(vessels);
+  });
+
+  it('follows the radar with its course once AIS misses two reports', () => {
+    const v = vessel(VESSEL);
+    v.aisClass = 'B';
+    v.sog = 3;
+    v.orientation = 0.2;
+    v.positionUpdatedAt = 100_000;
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, VESSEL);
+    processSensorTarget(
+      targets,
+      RADAR,
+      { path: 'navigation.courseOverGroundTrue', value: 1.5 },
+      COG_LINE
+    );
+    targets.get(RADAR)!.positionUpdatedAt = 165_000;
+    const fused = fusedVessels(new Map([[VESSEL, v]]), targets, 165_000).get(
+      VESSEL
+    )!;
+    expect(fused.position).toEqual(targets.get(RADAR)!.position);
+    expect(fused.orientation).toBe(1.5);
+    expect(fused.cog).toBe(1.5);
+  });
+});
+
+describe('aisReportInterval', () => {
+  it('follows the class A rates by speed and status', () => {
+    const v = vessel(VESSEL);
+    v.aisClass = 'A';
+    v.sog = 5;
+    expect(aisReportInterval(v)).toBe(10_000);
+    v.sog = 8;
+    expect(aisReportInterval(v)).toBe(6_000);
+    v.sog = 12;
+    expect(aisReportInterval(v)).toBe(2_000);
+    v.state = 'anchored';
+    expect(aisReportInterval(v)).toBe(180_000);
+  });
+
+  it('follows the class B rates, and takes an unknown class as B', () => {
+    const v = vessel(VESSEL);
+    v.sog = 3;
+    expect(aisReportInterval(v)).toBe(30_000);
+    v.aisClass = 'B';
+    v.sog = 0.5;
+    expect(aisReportInterval(v)).toBe(180_000);
+  });
+});
+
+describe('isAisCurrent', () => {
+  it('allows twice the reporting interval', () => {
+    const v = vessel(VESSEL);
+    v.aisClass = 'B';
+    v.sog = 3;
+    v.positionUpdatedAt = 1000;
+    expect(isAisCurrent(v, 1000 + 60_000)).toBe(true);
+    expect(isAisCurrent(v, 1001 + 60_000)).toBe(false);
+  });
+
+  it('allows at least half a minute for a fast class A', () => {
+    const v = vessel(VESSEL);
+    v.aisClass = 'A';
+    v.sog = 12;
+    v.positionUpdatedAt = 1000;
+    expect(isAisCurrent(v, 1000 + 30_000)).toBe(true);
+    expect(isAisCurrent(v, 1001 + 30_000)).toBe(false);
+  });
+
+  it('does not count a vessel without a position', () => {
+    expect(isAisCurrent(vessel(VESSEL), Date.now())).toBe(false);
   });
 });
 
