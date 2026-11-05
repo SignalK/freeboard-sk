@@ -65,6 +65,14 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
     expect(openAddWidgetPicker).toHaveBeenCalledWith('cb', { col: 1, row: 0 });
   });
 
+  it('waits the full hold before opening the picker', () => {
+    press(250, 520);
+    vi.advanceTimersByTime(1499);
+    expect(openAddWidgetPicker).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(openAddWidgetPicker).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the hold through a finger drifting about 10 px', () => {
     press(250, 520);
     move(258, 526);
