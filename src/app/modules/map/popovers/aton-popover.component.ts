@@ -164,8 +164,13 @@ export class AtoNPopoverComponent {
         this.handleClose();
         return;
       }
-      this._title = this.title() || aton.name || aton.mmsi || 'AtoN:';
       this.setKind(aton.id!);
+      this._title =
+        this.title() ||
+        aton.name ||
+        aton.mmsi ||
+        (this.isTarget ? aton.type?.name : undefined) ||
+        'AtoN:';
       this.timeLastUpdate = `${aton.lastUpdated.getHours()}:${(
         '00' + aton.lastUpdated.getMinutes()
       ).slice(-2)}`;
