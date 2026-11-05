@@ -19,6 +19,12 @@ import { PathValue, Position } from 'src/app/types';
  */
 export const TARGET_MAX_AGE_MS = 60_000;
 
+/**
+ * A target its sensor has not updated for this long is drawn as inactive,
+ * well before it is dropped.
+ */
+export const TARGET_STALE_MS = 20_000;
+
 /** ITU-R M.1371 reporting intervals, in ms. */
 const AIS_INTERVAL = {
   classAMoored: 180_000,
@@ -52,6 +58,11 @@ const CREATED_BY_MOTION_PATHS = new Set([
 export function isSilent(target: SKSensorTarget, now: number): boolean {
   const seen = target.positionUpdatedAt || target.lastUpdated.valueOf();
   return now - seen > TARGET_MAX_AGE_MS;
+}
+
+/** Whether the target's sensor has not updated it for a while. */
+export function isStale(target: SKSensorTarget, now: number): boolean {
+  return now - target.lastUpdated.valueOf() > TARGET_STALE_MS;
 }
 
 /**

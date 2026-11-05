@@ -250,6 +250,7 @@ import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
   fusedVessels,
   locateTarget,
+  TARGET_STALE_MS,
   unlinkedTargets
 } from 'src/app/modules/skstream/sensor-targets';
 import {
@@ -688,6 +689,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   });
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
+  protected readonly targetStaleMs = TARGET_STALE_MS;
   // Layers drawn at the vessel take each fix at once, not when the glide
   // towards it ends, and are shifted along with the glide (ViewDirective)
   // while the map follows the active vessel; lines from the vessel to a fixed

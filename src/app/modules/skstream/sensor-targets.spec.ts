@@ -8,6 +8,7 @@ import {
   fusedVessels,
   isAisCurrent,
   isSilent,
+  isStale,
   locateTarget,
   processSensorTarget,
   unlinkedTargets
@@ -517,6 +518,15 @@ describe('isAisCurrent', () => {
 
   it('does not count a vessel without a position', () => {
     expect(isAisCurrent(vessel(VESSEL), Date.now())).toBe(false);
+  });
+});
+
+describe('isStale', () => {
+  it('greys a target after twenty seconds without an update', () => {
+    const t = new SKSensorTarget();
+    t.lastUpdated = new Date(1000);
+    expect(isStale(t, 1000 + 20_000)).toBe(false);
+    expect(isStale(t, 1001 + 20_000)).toBe(true);
   });
 });
 

@@ -24,7 +24,7 @@ import {
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
 import { magneticToTrue } from 'src/app/lib/true-bearing';
-import { isSilent, processSensorTarget } from './sensor-targets';
+import { isSilent, isStale, processSensorTarget } from './sensor-targets';
 import { IAppConfig, PathValue, Position } from 'src/app/types';
 import {
   AUTO_ORIENTATION,
@@ -1659,6 +1659,8 @@ function processAISStatus() {
       ) {
         targetStatus.updated[v.sameAs] = true;
       }
+    } else if (isStale(v, now)) {
+      targetStatus.stale[k] = true;
     }
   });
 }
