@@ -33,3 +33,19 @@ testGlobal.ResizeObserver = class ResizeObserverMock {
   unobserve() {}
   disconnect() {}
 };
+
+// Node 26 ships its own Web Storage globals, which are undefined unless Node
+// runs with --localstorage-file. They shadow jsdom's, so specs would find no
+// localStorage at all; hand them jsdom's in-memory storage instead.
+const domWindow = (
+  globalThis as typeof globalThis & { jsdom?: { window: Window } }
+).jsdom?.window;
+for (const name of ['localStorage', 'sessionStorage'] as const) {
+  if (domWindow && typeof globalThis[name] === 'undefined') {
+    Object.defineProperty(globalThis, name, {
+      value: domWindow[name],
+      configurable: true,
+      writable: true
+    });
+  }
+}
