@@ -179,6 +179,24 @@ export class AtoNPropertiesModal implements OnInit {
     if (data.navigation && data.navigation.position) {
       res['navigation.position'] = data.navigation.position.value;
     }
+    if (this.data.id.startsWith('targets.')) {
+      const sog = data.navigation?.speedOverGround?.value;
+      const cog = data.navigation?.courseOverGroundTrue?.value;
+      if (typeof sog === 'number') {
+        res['navigation.speedOverGround'] = this.app.formatValueForDisplay(
+          sog,
+          'm/s',
+          { path: 'navigation.speedOverGround' }
+        );
+      }
+      if (typeof cog === 'number') {
+        res['navigation.courseOverGroundTrue'] = this.app.formatValueForDisplay(
+          cog,
+          'rad',
+          { path: 'navigation.courseOverGroundTrue' }
+        );
+      }
+    }
     return Object.assign(res, this.data.target.properties);
   }
 }
