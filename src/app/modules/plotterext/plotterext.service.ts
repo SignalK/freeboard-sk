@@ -2156,19 +2156,26 @@ export class PlotterExtensionService {
    * Best valid origin for a widget at an anchor. When a pressed cell is
    * given, only placements covering that cell are considered, so the user's
    * press location disambiguates (e.g. stacking on top of an existing
-   * widget vs. filling the rest of the gravity row). The cells of the
-   * `ignore` instance count as free, so a widget being moved can land on
-   * or overlap its own current position.
+   * widget vs. filling the rest of the gravity row). For a widget being
+   * moved, its own cells count as free, so it can overlap where it is now,
+   * and its current origin is skipped.
    */
   private findOrigin(
     anchor: AnchorId,
     widget: WidgetContribution,
     pressedCell?: { col: number; row: number },
-    ignore?: string
+    moving?: PlacedWidget
   ): { col: number; row: number } | null {
     const size = parseSize(widget.size);
-    const occupied = this.occupancy(anchor, ignore);
+    const occupied = this.occupancy(anchor, moving?.instanceId);
     for (const origin of this.originOrder(anchor)) {
+      if (
+        moving?.anchor === anchor &&
+        moving.col === origin.col &&
+        moving.row === origin.row
+      ) {
+        continue;
+      }
       if (!this.isValidOrigin(anchor, size, origin, occupied)) continue;
       if (
         pressedCell &&
@@ -2334,8 +2341,8 @@ export class PlotterExtensionService {
   /**
    * The cells, per anchor, the moving widget can be dropped on. A cell
    * resolves to an origin the way a press does when adding a widget, so a
-   * drop follows the same packing rules; cells that would leave the widget
-   * where it is are left out.
+   * drop follows the same packing rules; cells that only fit the widget
+   * where it is now are left out.
    */
   readonly moveTargets = computed(() => {
     const targets = {} as Record<AnchorId, Array<{ col: number; row: number }>>;
@@ -2347,7 +2354,7 @@ export class PlotterExtensionService {
       const { cols, rows } = ANCHOR_GRID[anchor];
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-          const origin = this.moveOrigin(moving, def, anchor, { col, row });
+          const origin = this.findOrigin(anchor, def, { col, row }, moving);
           if (origin) targets[anchor].push({ col, row });
         }
       }
@@ -2378,7 +2385,7 @@ export class PlotterExtensionService {
     const moving = this.movingWidget();
     const def = moving && this.widgetDef(moving.extension, moving.widget);
     if (!moving || !def) return false;
-    const origin = this.moveOrigin(moving, def, anchor, cell);
+    const origin = this.findOrigin(anchor, def, cell, moving);
     if (!origin) return false;
     // In place: the widget's live connection holds this same object.
     moving.anchor = anchor;
@@ -2388,25 +2395,6 @@ export class PlotterExtensionService {
     this.app.saveConfig();
     this.refreshActiveWidgets();
     return true;
-  }
-
-  /** Where a moving widget lands for a cell, or null when it cannot. */
-  private moveOrigin(
-    moving: PlacedWidget,
-    def: WidgetContribution,
-    anchor: AnchorId,
-    cell: { col: number; row: number }
-  ): { col: number; row: number } | null {
-    const origin = this.findOrigin(anchor, def, cell, moving.instanceId);
-    if (
-      !origin ||
-      (anchor === moving.anchor &&
-        origin.col === moving.col &&
-        origin.row === moving.row)
-    ) {
-      return null;
-    }
-    return origin;
   }
 
   private refreshActiveWidgets() {

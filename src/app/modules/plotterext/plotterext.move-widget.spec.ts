@@ -31,6 +31,13 @@ describe('PlotterExtensionService moving a widget', () => {
         type: 'iframe',
         url: 'w.html',
         size: '1x2'
+      },
+      {
+        id: 'wide',
+        title: 'Wide',
+        type: 'iframe',
+        url: 'w.html',
+        size: '2x1'
       }
     ]
   };
@@ -106,6 +113,8 @@ describe('PlotterExtensionService moving a widget', () => {
   });
 
   it('moves the widget and saves the same placement shape', () => {
+    const state = { [ext]: { instances: { sog: { saved: true } } } };
+    localStorage.setItem('fb-plotterext-state', JSON.stringify(state));
     service.startMove('sog');
     expect(service.dropMovingWidget('bl', { col: 2, row: 1 })).toBe(true);
     expect(widgets.find((w) => w.instanceId === 'sog')).toEqual(
@@ -123,6 +132,11 @@ describe('PlotterExtensionService moving a widget', () => {
     expect(service.movingWidget()).toBeNull();
     expect(service.cellOccupied('cb', { col: 0, row: 0 })).toBe(false);
     expect(service.cellOccupied('bl', { col: 2, row: 0 })).toBe(true);
+    // the widget's own settings stay with it
+    expect(
+      JSON.parse(localStorage.getItem('fb-plotterext-state') ?? '{}')
+    ).toEqual(state);
+    localStorage.removeItem('fb-plotterext-state');
   });
 
   it('refuses a drop on an occupied cell and keeps the move going', () => {
@@ -133,11 +147,30 @@ describe('PlotterExtensionService moving a widget', () => {
     expect(service.movingWidget()?.instanceId).toBe('sog');
   });
 
-  it('lets a widget move within its own anchor onto its own cells', () => {
+  it('lets a widget move onto cells it partly covers now', () => {
+    // bottom-right is full, so the overlap case uses the empty bottom-left
+    widgets.push({
+      instanceId: 'wide',
+      extension: ext,
+      widget: 'wide',
+      anchor: 'bl',
+      col: 0,
+      row: 1
+    });
+    (
+      service as unknown as { refreshActiveWidgets(): void }
+    ).refreshActiveWidgets();
+    service.startMove('wide');
+    // col 1 is covered by the widget now; dropping there shifts it right
+    expect(service.dropMovingWidget('bl', { col: 1, row: 1 })).toBe(true);
+    const wide = widgets.find((w) => w.instanceId === 'wide');
+    expect([wide?.anchor, wide?.col, wide?.row]).toEqual(['bl', 1, 1]);
+  });
+
+  it('keeps the move going when another widget is removed', () => {
     service.startMove('br0');
     expect(service.moveTargets().br).toEqual([]);
     service.removeWidget('br1');
-    // removing another widget does not end the move
     expect(service.movingWidget()?.instanceId).toBe('br0');
     expect(service.dropMovingWidget('br', { col: 1, row: 1 })).toBe(true);
     expect(widgets.find((w) => w.instanceId === 'br0')?.col).toBe(1);
