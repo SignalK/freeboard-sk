@@ -81,6 +81,20 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
     expect(openAddWidgetPicker).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the hold at exactly 15 px of movement', () => {
+    press(250, 520);
+    move(265, 520);
+    vi.advanceTimersByTime(1500);
+    expect(openAddWidgetPicker).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels the hold just past 15 px of movement', () => {
+    press(250, 520);
+    move(266, 520);
+    vi.advanceTimersByTime(1500);
+    expect(openAddWidgetPicker).not.toHaveBeenCalled();
+  });
+
   it('cancels the hold when the pointer is dragged away', () => {
     press(250, 520);
     move(270, 520);
