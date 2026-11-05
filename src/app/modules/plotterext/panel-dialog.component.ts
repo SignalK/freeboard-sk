@@ -62,6 +62,9 @@ export interface PlotterPanelDialogData {
         <button mat-button class="pe-remove" (click)="removeWidget()">
           <mat-icon>delete</mat-icon> Remove widget
         </button>
+        <button mat-button (click)="moveWidget()">
+          <mat-icon>open_with</mat-icon> Move
+        </button>
       </mat-dialog-actions>
     }
   `,
@@ -124,7 +127,8 @@ export class PlotterPanelDialog implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    // No panel -> a settings-less widget; the dialog only offers Remove.
+    // No panel -> a settings-less widget; the dialog only offers Remove and
+    // Move.
     const panel = this.data.panel;
     if (!panel || !this.frame) return;
     this.detach = this.service.attachPanel(this.frame.nativeElement, {
@@ -140,6 +144,13 @@ export class PlotterPanelDialog implements OnInit, AfterViewInit, OnDestroy {
   removeWidget() {
     if (this.data.targetInstance) {
       this.service.removeWidget(this.data.targetInstance);
+    }
+    this.dialogRef.close();
+  }
+
+  moveWidget() {
+    if (this.data.targetInstance) {
+      this.service.startMove(this.data.targetInstance);
     }
     this.dialogRef.close();
   }

@@ -7,6 +7,9 @@
 // a document-level capture listener watches presses that geometrically fall
 // inside an anchor area (map interaction underneath is unaffected — the
 // gesture only fires after the pointer stays put for the hold duration).
+//
+// Moving a widget (started from its long-press dialog) marks the cells it
+// can go to; the user taps one, or drags the widget and lets go over one.
 
 import {
   Component,
@@ -15,8 +18,10 @@ import {
   OnDestroy,
   OnInit,
   computed,
-  inject
+  inject,
+  signal
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { PlotterExtensionService } from './plotterext.service';
 import { PlotterWidgetFrame } from './widget-frame.component';
@@ -40,7 +45,7 @@ interface CellStyle {
 
 @Component({
   selector: 'fb-plotterext-overlay',
-  imports: [PlotterWidgetFrame, MatIconModule],
+  imports: [PlotterWidgetFrame, MatButtonModule, MatIconModule],
   template: `
     @if (service.filterChips().length) {
       <div class="pe-chips" [class.pe-chips-low]="byAnchor()['ct'].length > 0">
@@ -67,10 +72,43 @@ interface CellStyle {
         [style]="anchorStyle(anchor)"
       >
         @for (placed of byAnchor()[anchor]; track placed.instanceId) {
-          <div class="pe-cell" [style]="cellStyle(placed)">
+          @let moving = placed === service.movingWidget();
+          <div
+            class="pe-cell"
+            [class.pe-moving]="moving"
+            [style]="cellStyle(placed)"
+            [style.transform]="moving ? dragTransform() : null"
+          >
             <fb-plotterext-widget [placed]="placed"></fb-plotterext-widget>
+            @if (moving) {
+              <div
+                class="pe-move-shield"
+                (pointerdown)="dragStart($event)"
+                (pointermove)="dragMove($event)"
+                (pointerup)="dragEnd($event)"
+                (pointercancel)="dragCancel()"
+              ></div>
+            }
           </div>
         }
+        @for (
+          cell of service.moveTargets()[anchor];
+          track cell.col + ',' + cell.row
+        ) {
+          <div
+            class="pe-slot"
+            [class.pe-slot-hover]="isHovered(anchor, cell)"
+            [style]="slotStyle(cell)"
+            (click)="service.dropMovingWidget(anchor, cell)"
+          ></div>
+        }
+      </div>
+    }
+    @if (service.movingWidget()) {
+      <div class="pe-move-bar">
+        <mat-icon>open_with</mat-icon>
+        <span>Drag the widget, or tap where it should go</span>
+        <button mat-button (click)="service.cancelMove()">Cancel</button>
       </div>
     }
   `,
@@ -129,6 +167,47 @@ interface CellStyle {
         overflow: hidden;
         border-radius: 10px;
         box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+      }
+      /* a widget being moved, and the cells it can be dropped on */
+      .pe-moving {
+        position: relative;
+        z-index: 2;
+        outline: 3px solid #29b6f6;
+        opacity: 0.85;
+      }
+      .pe-move-shield {
+        position: absolute;
+        inset: 0;
+        cursor: grab;
+        touch-action: none;
+      }
+      .pe-slot {
+        pointer-events: auto;
+        border-radius: 10px;
+        border: 2px dashed #29b6f6;
+        background: rgba(41, 182, 246, 0.15);
+        cursor: pointer;
+      }
+      .pe-slot-hover {
+        background: rgba(41, 182, 246, 0.45);
+      }
+      .pe-move-bar {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 4px 4px 12px;
+        border-radius: 20px;
+        background: rgba(20, 26, 32, 0.85);
+        color: #e8edf2;
+        pointer-events: auto;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+      }
+      .pe-move-bar button {
+        color: #29b6f6;
       }
       /* active resource-filter chips */
       .pe-chips {
@@ -274,8 +353,81 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
     };
   }
 
+  slotStyle(cell: { col: number; row: number }): CellStyle {
+    return {
+      'grid-column': `${cell.col + 1}`,
+      'grid-row': `${cell.row + 1}`
+    };
+  }
+
   clearChip(chip: { type: string; extension: string }) {
     this.service.clearResourceFilter(chip.extension, chip.type);
+  }
+
+  // ---------- dragging a widget being moved ----------
+
+  private drag: { x: number; y: number; moved: boolean } | null = null;
+  private readonly dragOffset = signal<{ x: number; y: number } | null>(null);
+  private readonly dragOver = signal<{
+    anchor: AnchorId;
+    cell: { col: number; row: number };
+  } | null>(null);
+
+  dragTransform = computed(() => {
+    const offset = this.dragOffset();
+    return offset ? `translate(${offset.x}px, ${offset.y}px)` : null;
+  });
+
+  isHovered(anchor: AnchorId, cell: { col: number; row: number }): boolean {
+    const over = this.dragOver();
+    return (
+      !!over &&
+      over.anchor === anchor &&
+      over.cell.col === cell.col &&
+      over.cell.row === cell.row
+    );
+  }
+
+  dragStart(e: PointerEvent) {
+    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    this.drag = { x: e.clientX, y: e.clientY, moved: false };
+  }
+
+  dragMove(e: PointerEvent) {
+    if (!this.drag) return;
+    const x = e.clientX - this.drag.x;
+    const y = e.clientY - this.drag.y;
+    if (!this.drag.moved && x * x + y * y <= MOVE_SLOP_PX * MOVE_SLOP_PX) {
+      return;
+    }
+    this.drag.moved = true;
+    this.dragOffset.set({ x, y });
+    const hit = this.hitTest(e.clientX, e.clientY);
+    const targets = hit ? this.service.moveTargets()[hit.anchor] : [];
+    const target = targets.some(
+      (c) => c.col === hit?.cell.col && c.row === hit?.cell.row
+    );
+    this.dragOver.set(target ? hit : null);
+  }
+
+  dragEnd(e: PointerEvent) {
+    const drag = this.drag;
+    this.dragCancel();
+    if (!drag) return;
+    if (!drag.moved) {
+      // A tap on the widget being moved leaves it where it is.
+      this.service.cancelMove();
+      return;
+    }
+    const hit = this.hitTest(e.clientX, e.clientY);
+    if (hit) this.service.dropMovingWidget(hit.anchor, hit.cell);
+  }
+
+  dragCancel() {
+    this.drag = null;
+    this.dragOffset.set(null);
+    this.dragOver.set(null);
   }
 
   // ---------- press-and-hold to add ----------
@@ -283,6 +435,7 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
   private pointerDown(e: PointerEvent) {
     this.cancelHold();
     if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if (this.service.movingWidget()) return;
     // Ignore presses on dialogs, menus, or other app chrome — only presses
     // that reach the map (or empty overlay space) count. This includes the
     // overlay's own chrome: placed widget cells (.pe-cell) and the filter-chip

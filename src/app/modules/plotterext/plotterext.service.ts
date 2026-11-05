@@ -68,6 +68,7 @@ import {
   ANCHOR_COL_ORDER,
   ANCHOR_GRAVITY,
   ANCHOR_GRID,
+  ANCHORS,
   AnchorId,
   BackgroundContribution,
   ButtonContribution,
@@ -2077,13 +2078,13 @@ export class PlotterExtensionService {
    * disabled, uninstalled, or renamed — is not drawn and must not block its
    * cell, otherwise the empty-looking cell stays un-longpressable (#433).
    */
-  private occupancy(anchor: AnchorId): boolean[][] {
+  private occupancy(anchor: AnchorId, ignore?: string): boolean[][] {
     const { cols, rows } = ANCHOR_GRID[anchor];
     const occupied = Array.from({ length: rows }, () =>
       Array.from({ length: cols }, () => false)
     );
     for (const placed of this.activeWidgets()) {
-      if (placed.anchor !== anchor) continue;
+      if (placed.anchor !== anchor || placed.instanceId === ignore) continue;
       const def = this.widgetDef(placed.extension, placed.widget);
       const size = parseSize(def?.size ?? '1x1');
       for (let r = placed.row; r < placed.row + size.rows && r < rows; r++) {
@@ -2155,15 +2156,18 @@ export class PlotterExtensionService {
    * Best valid origin for a widget at an anchor. When a pressed cell is
    * given, only placements covering that cell are considered, so the user's
    * press location disambiguates (e.g. stacking on top of an existing
-   * widget vs. filling the rest of the gravity row).
+   * widget vs. filling the rest of the gravity row). The cells of the
+   * `ignore` instance count as free, so a widget being moved can land on
+   * or overlap its own current position.
    */
   private findOrigin(
     anchor: AnchorId,
     widget: WidgetContribution,
-    pressedCell?: { col: number; row: number }
+    pressedCell?: { col: number; row: number },
+    ignore?: string
   ): { col: number; row: number } | null {
     const size = parseSize(widget.size);
-    const occupied = this.occupancy(anchor);
+    const occupied = this.occupancy(anchor, ignore);
     for (const origin of this.originOrder(anchor)) {
       if (!this.isValidOrigin(anchor, size, origin, occupied)) continue;
       if (
@@ -2322,22 +2326,107 @@ export class PlotterExtensionService {
     }
   }
 
+  // ---------- moving a placed widget ----------
+
+  /** The placed widget being moved, or null when no move is in progress. */
+  readonly movingWidget = signal<PlacedWidget | null>(null);
+
+  /**
+   * The cells, per anchor, the moving widget can be dropped on. A cell
+   * resolves to an origin the way a press does when adding a widget, so a
+   * drop follows the same packing rules; cells that would leave the widget
+   * where it is are left out.
+   */
+  readonly moveTargets = computed(() => {
+    const targets = {} as Record<AnchorId, Array<{ col: number; row: number }>>;
+    for (const anchor of ANCHORS) targets[anchor] = [];
+    const moving = this.movingWidget();
+    const def = moving && this.widgetDef(moving.extension, moving.widget);
+    if (!moving || !def) return targets;
+    for (const anchor of ANCHORS) {
+      const { cols, rows } = ANCHOR_GRID[anchor];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const origin = this.moveOrigin(moving, def, anchor, { col, row });
+          if (origin) targets[anchor].push({ col, row });
+        }
+      }
+    }
+    return targets;
+  });
+
+  /** Start moving a placed widget: the overlay shows where it can go. */
+  startMove(instanceId: string) {
+    const placed = this.activeWidgets().find(
+      (p) => p.instanceId === instanceId
+    );
+    this.movingWidget.set(placed ?? null);
+  }
+
+  cancelMove() {
+    this.movingWidget.set(null);
+  }
+
+  /**
+   * Drop the moving widget on a cell of an anchor area. Returns false, and
+   * keeps the move going, when the widget cannot go there.
+   */
+  dropMovingWidget(
+    anchor: AnchorId,
+    cell: { col: number; row: number }
+  ): boolean {
+    const moving = this.movingWidget();
+    const def = moving && this.widgetDef(moving.extension, moving.widget);
+    if (!moving || !def) return false;
+    const origin = this.moveOrigin(moving, def, anchor, cell);
+    if (!origin) return false;
+    // In place: the widget's live connection holds this same object.
+    moving.anchor = anchor;
+    moving.col = origin.col;
+    moving.row = origin.row;
+    this.movingWidget.set(null);
+    this.app.saveConfig();
+    this.refreshActiveWidgets();
+    return true;
+  }
+
+  /** Where a moving widget lands for a cell, or null when it cannot. */
+  private moveOrigin(
+    moving: PlacedWidget,
+    def: WidgetContribution,
+    anchor: AnchorId,
+    cell: { col: number; row: number }
+  ): { col: number; row: number } | null {
+    const origin = this.findOrigin(anchor, def, cell, moving.instanceId);
+    if (
+      !origin ||
+      (anchor === moving.anchor &&
+        origin.col === moving.col &&
+        origin.row === moving.row)
+    ) {
+      return null;
+    }
+    return origin;
+  }
+
   private refreshActiveWidgets() {
     const manifests = this.manifests();
-    this.activeWidgets.set(
-      this.placements().filter((p) => {
-        const manifest = manifests[p.extension];
-        return (
-          manifest &&
-          this.isCompatible(manifest) &&
-          manifest.widgets?.some(
-            (w) =>
-              w.id === p.widget &&
-              (w.apiVersion === undefined || w.apiVersion === HOST_API_VERSION)
-          )
-        );
-      })
-    );
+    const active = this.placements().filter((p) => {
+      const manifest = manifests[p.extension];
+      return (
+        manifest &&
+        this.isCompatible(manifest) &&
+        manifest.widgets?.some(
+          (w) =>
+            w.id === p.widget &&
+            (w.apiVersion === undefined || w.apiVersion === HOST_API_VERSION)
+        )
+      );
+    });
+    this.activeWidgets.set(active);
+    // A widget removed or no longer shown mid-move ends the move.
+    const moving = untracked(this.movingWidget);
+    if (moving && !active.includes(moving)) this.cancelMove();
   }
 
   // ---------- live contexts (one per iframe) ----------
