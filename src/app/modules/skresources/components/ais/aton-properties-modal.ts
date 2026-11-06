@@ -12,7 +12,10 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKAtoN } from 'src/app/modules/skresources/resource-classes';
+import {
+  SKAtoN,
+  SKSensorTarget
+} from 'src/app/modules/skresources/resource-classes';
 import { SignalKDetailsComponent } from '../../components/signalk-details.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -102,7 +105,7 @@ export class AtoNPropertiesModal implements OnInit {
   protected modalRef = inject(MatBottomSheetRef<AtoNPropertiesModal>);
   protected data = inject<{
     title: string;
-    target: SKAtoN;
+    target: SKAtoN | SKSensorTarget;
     id: string;
     icon: string;
     type: 'aton' | 'sar' | 'meteo';
@@ -180,18 +183,25 @@ export class AtoNPropertiesModal implements OnInit {
       res['navigation.position'] = data.navigation.position.value;
     }
     if (this.data.id.startsWith('targets.')) {
-      const sog = data.navigation?.speedOverGround?.value;
-      const cog = data.navigation?.courseOverGroundTrue?.value;
-      if (typeof sog === 'number') {
+      // as the chart shows it: a linked target is drawn with the position and
+      // motion of whichever of its sensors reported last
+      const target = this.data.target as SKSensorTarget;
+      if (target.position) {
+        res['navigation.position'] = {
+          longitude: target.position[0],
+          latitude: target.position[1]
+        };
+      }
+      if (target.sog !== undefined) {
         res['navigation.speedOverGround'] = this.app.formatValueForDisplay(
-          sog,
+          target.sog,
           'm/s',
           { path: 'navigation.speedOverGround' }
         );
       }
-      if (typeof cog === 'number') {
+      if (target.cog !== undefined) {
         res['navigation.courseOverGroundTrue'] = this.app.formatValueForDisplay(
-          cog,
+          target.cog,
           'rad',
           { path: 'navigation.courseOverGroundTrue' }
         );

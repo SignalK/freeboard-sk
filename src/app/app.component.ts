@@ -145,6 +145,7 @@ import {
 } from './modules/skresources';
 import { SKResourceSet } from './modules/skresources/custom-resource-classes';
 import { SymbolService, setSymbolRegistry } from './modules/icons';
+import { unlinkedTargets } from './modules/skstream/sensor-targets';
 import {
   trackApiNoticeMessage,
   TrackSource
@@ -2173,7 +2174,14 @@ export class AppComponent {
         icon = 'tour';
         atonType = 'sar';
       } else if (e.id.startsWith('targets.')) {
-        v = this.app.data.targets.get(e.id);
+        // the target as the chart draws it, which takes its position and
+        // motion from whichever linked sensor reported last
+        v =
+          unlinkedTargets(
+            this.app.data.targets,
+            new Map(),
+            this.app.data.vessels.self
+          ).get(e.id) ?? this.app.data.targets.get(e.id);
         title = 'Target Properties';
         icon = 'radar';
         atonType = 'aton';

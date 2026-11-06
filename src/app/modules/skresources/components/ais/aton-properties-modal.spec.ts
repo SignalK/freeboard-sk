@@ -51,10 +51,20 @@ describe('AtoNPropertiesModal — properties', () => {
     ).properties;
   };
 
-  it('lists the speed and course of a sensor target', () => {
-    const props = propertiesOf('targets.radar:nav1-17', new SKSensorTarget());
-    expect(props['navigation.speedOverGround']).toBe('3 m/s');
-    expect(props['navigation.courseOverGroundTrue']).toBe('1.5 rad');
+  it('lists the position, speed and course a sensor target is drawn with', () => {
+    // a linked target is drawn with its freshest sensor's values, which can
+    // differ from what the server holds for the target itself
+    const shown = new SKSensorTarget();
+    shown.position = [4.3, 52.3];
+    shown.sog = 4;
+    shown.cog = 0.5;
+    const props = propertiesOf('targets.radar:nav1-17', shown);
+    expect(props['navigation.position']).toEqual({
+      longitude: 4.3,
+      latitude: 52.3
+    });
+    expect(props['navigation.speedOverGround']).toBe('4 m/s');
+    expect(props['navigation.courseOverGroundTrue']).toBe('0.5 rad');
   });
 
   it('lists only the position of an AtoN', () => {
