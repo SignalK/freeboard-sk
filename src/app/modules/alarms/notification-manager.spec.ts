@@ -583,6 +583,54 @@ describe('NotificationManager alert actions', () => {
     expect(shown(mgr).silenced).toBe(false);
   });
 
+  it('does not silence an alert that cleared and returned before MUTE was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    clear();
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert that changed state and back before MUTE was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    arrive({ state: ALARM_STATE.alarm });
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert that cleared and returned before Silence All was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    clear();
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert that changed state and back before Silence All was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    arrive({ state: ALARM_STATE.alarm });
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
   it('keeps a refused Silence All when the server reports the alert silenced and then not', () => {
     const mgr = TestBed.inject(NotificationManager);
     arrive();
