@@ -377,10 +377,17 @@ export function locateTarget(
   vessels: Map<string, SKVessel>,
   targets: Map<string, SKSensorTarget>
 ): Position | undefined {
+  // direct links first, then targets that reach `id` through other targets
   const candidates = [
     vessels.get(id),
     targets.get(id),
-    ...[...targets.values()].filter((t) => t.sameAs === id)
+    ...[...targets.values()].filter((t) => t.sameAs === id),
+    ...[...targets.entries()]
+      .filter(
+        ([tid, t]) =>
+          t.sameAs !== id && linkedContexts(tid, targets).includes(id)
+      )
+      .map(([, t]) => t)
   ];
   return (
     candidates.find((c) => c?.positionReceived && c.position)?.position ??

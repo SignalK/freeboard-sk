@@ -399,6 +399,18 @@ describe('locateTarget', () => {
     ).toEqual([4.2, 52.1]);
   });
 
+  it('locates a vessel through a chain whose middle target has no position', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    processSensorTarget(
+      targets,
+      CAMERA,
+      { path: 'sameAs', value: VESSEL },
+      COG_LINE
+    );
+    target(targets, RADAR, CAMERA);
+    expect(locateTarget(VESSEL, new Map(), targets)).toEqual([4.2, 52.1]);
+  });
+
   it('returns undefined for a context it does not know', () => {
     expect(locateTarget(VESSEL, new Map(), new Map())).toBeUndefined();
   });
