@@ -44,6 +44,16 @@ interface CpaNotification extends SKNotification {
   other?: string;
 }
 
+/**
+ * Whether the server refused an action because the user may not change
+ * notifications, as on a display nobody is logged in to. Freeboard then keeps
+ * a silence in this browser only, so a sounding alarm can still be quietened.
+ * It lasts until the alarm changes state, as one the server silenced would.
+ */
+function isRefused(err: HttpErrorResponse): boolean {
+  return err?.status === 401 || err?.status === 403;
+}
+
 @Injectable({ providedIn: 'root' })
 export class NotificationManager {
   /** Alerts as last reported by the server */
@@ -387,7 +397,8 @@ export class NotificationManager {
    *
    * The action is therefore kept pending, shown over the server's status, until
    * a delta confirms it (settlePendingActions()). If the request fails it is
-   * dropped, and the alert shows the server's latest status again.
+   * dropped, and the alert shows the server's latest status again, except for a
+   * silence the server refuses to this user, which stays (isRefused()).
    * @param path Path of the alert
    * @param action Notifications API action
    * @param flag Alert status flag the action sets
@@ -418,6 +429,9 @@ export class NotificationManager {
           this.app.debug(`${action} ${id}, ${path}`);
         },
         (err: HttpErrorResponse) => {
+          if (action === 'silence' && isRefused(err)) {
+            return;
+          }
           if (pending.get(id) === entry) {
             pending.delete(id);
             this.emitSignals();
@@ -478,10 +492,24 @@ export class NotificationManager {
             this.app.debug(`Silenced All alerts`);
           },
           (err: HttpErrorResponse) => {
-            this.app.parseHttpErrorResponse(err);
+            if (isRefused(err)) {
+              this.silenceAllHere();
+            } else {
+              this.app.parseHttpErrorResponse(err);
+            }
           }
         );
     }
+  }
+
+  /** Silence every alert in this browser only; see isRefused(). */
+  private silenceAllHere() {
+    for (const alert of this.alertMap.values()) {
+      if (!alert.silenced && !this.pendingActions.silenced.has(alert.id)) {
+        this.pendingActions.silenced.set(alert.id, { state: alert.priority });
+      }
+    }
+    this.emitSignals();
   }
 
   /**

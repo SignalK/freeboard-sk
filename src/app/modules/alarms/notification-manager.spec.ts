@@ -534,6 +534,53 @@ describe('NotificationManager alert actions', () => {
     expect(posts.map((p) => p.path)).toEqual([`notifications/${ID}/silence`]);
     expect(shown(mgr).silenced).toBe(true);
   });
+
+  it('keeps the alert silenced in this browser when the server refuses MUTE', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    posts[0].response.error({ status: 401 });
+    arrive();
+
+    expect(shown(mgr).silenced).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  it('sounds again when an alarm silenced in this browser escalates', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    posts[0].response.error({ status: 403 });
+    arrive({ state: ALARM_STATE.alarm });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('still reports a refused ACK', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    const failure = { status: 401 };
+    posts[0].response.error(failure);
+
+    expect(shown(mgr).acknowledged).toBe(false);
+    expect(errors).toEqual([failure]);
+  });
+
+  it('silences every alert in this browser when the server refuses Silence All', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    posts[0].response.error({ status: 401 });
+
+    expect(posts.map((p) => p.path)).toEqual(['notifications/silenceAll']);
+    expect(shown(mgr).silenced).toBe(true);
+    expect(errors).toEqual([]);
+  });
 });
 
 /**
