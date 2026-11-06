@@ -53,6 +53,7 @@ describe('FBMapComponent — vessel update with the popover target gone', () => 
     cmp.dfeat.self = new SKVessel();
     cmp.dfeat.navData = {};
     cmp.app = {
+      config: { ui: { showAisTargets: true }, selections: {} },
       data: {
         vessels: {
           self: new SKVessel(),

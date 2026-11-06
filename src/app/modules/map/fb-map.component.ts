@@ -214,6 +214,7 @@ import {
 } from './route-waypoint-links';
 import { waypointSnapAt } from './ol/lib/waypoint-snap';
 import { drawnWaypoints } from './ol/lib/resources/route-waypoint-overlap';
+import { aisTargetShown } from 'src/app/lib/ais-filter';
 import {
   ActiveRoutePoint,
   distanceAlongRoute,
@@ -695,6 +696,31 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
   protected readonly targetStaleMs = TARGET_STALE_MS;
+
+  /**
+   * The AIS vessels the chart draws, under the AIS display setting and
+   * selections. A sensor target linked to a vessel left out stays on the
+   * chart, so the boat does not disappear.
+   */
+  private drawnAisVessels(): Map<string, SKVessel> {
+    if (!this.app.config.ui.showAisTargets) {
+      return new Map();
+    }
+    const selections = this.app.config.selections;
+    const drawn = new Map<string, SKVessel>();
+    this.app.data.vessels.aisTargets.forEach((vessel, id) => {
+      if (
+        aisTargetShown(id, vessel, {
+          filterIds: selections.aisTargets,
+          filterByShipType: selections.aisFilterByShipType,
+          filterShipTypes: selections.aisTargetTypes
+        })
+      ) {
+        drawn.set(id, vessel);
+      }
+    });
+    return drawn;
+  }
   // Layers drawn at the vessel take each fix at once, not when the glide
   // towards it ends, and are shifted along with the glide (ViewDirective)
   // while the map follows the active vessel; lines from the vessel to a fixed
@@ -935,7 +961,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.dfeat.atons = this.app.data.atons;
     this.dfeat.targets = unlinkedTargets(
       this.app.data.targets,
-      this.app.data.vessels.aisTargets,
+      this.drawnAisVessels(),
       this.app.data.vessels.self
     );
     this.dfeat.radarTargets = new Map();
