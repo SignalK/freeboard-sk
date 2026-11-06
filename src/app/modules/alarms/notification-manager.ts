@@ -481,35 +481,44 @@ export class NotificationManager {
   }
 
   /**
-   * @description Silence All alerts
+   * @description Silence All alerts. Each alert it covers shows silenced
+   * straight away, as for MUTE (see applyAlertAction()). Only the alerts there
+   * when it is pressed are covered, so an alarm raised or escalated while the
+   * request is under way still sounds.
    */
   public silenceAll() {
-    if (this.app.featureFlags().notificationApi) {
-      this.signalk.api
-        .post(this.app.skApiVersion, `notifications/silenceAll`, {})
-        .subscribe(
-          () => {
-            this.app.debug(`Silenced All alerts`);
-          },
-          (err: HttpErrorResponse) => {
-            if (isRefused(err)) {
-              this.silenceAllHere();
-            } else {
-              this.app.parseHttpErrorResponse(err);
-            }
-          }
-        );
+    if (!this.app.featureFlags().notificationApi) {
+      return;
     }
-  }
-
-  /** Silence every alert in this browser only; see isRefused(). */
-  private silenceAllHere() {
+    const pending = this.pendingActions.silenced;
+    const entries = new Map<string, PendingAction>();
     for (const alert of this.alertMap.values()) {
-      if (!alert.silenced && !this.pendingActions.silenced.has(alert.id)) {
-        this.pendingActions.silenced.set(alert.id, { state: alert.priority });
+      if (alert.canSilence && !alert.silenced && !pending.has(alert.id)) {
+        const entry: PendingAction = { state: alert.priority };
+        pending.set(alert.id, entry);
+        entries.set(alert.id, entry);
       }
     }
     this.emitSignals();
+    this.signalk.api
+      .post(this.app.skApiVersion, `notifications/silenceAll`, {})
+      .subscribe(
+        () => {
+          this.app.debug(`Silenced All alerts`);
+        },
+        (err: HttpErrorResponse) => {
+          if (isRefused(err)) {
+            return;
+          }
+          for (const [id, entry] of entries) {
+            if (pending.get(id) === entry) {
+              pending.delete(id);
+            }
+          }
+          this.emitSignals();
+          this.app.parseHttpErrorResponse(err);
+        }
+      );
   }
 
   /**

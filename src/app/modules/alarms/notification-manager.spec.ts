@@ -336,6 +336,7 @@ describe('NotificationManager alert actions', () => {
   });
 
   const arrive = ({
+    path = PATH,
     id = ID,
     state = ALARM_STATE.alert,
     acknowledged = false,
@@ -343,7 +344,7 @@ describe('NotificationManager alert actions', () => {
   } = {}) => {
     const msg = new NotificationMessage();
     msg.result = {
-      path: PATH,
+      path,
       value: {
         id,
         state,
@@ -372,10 +373,10 @@ describe('NotificationManager alert actions', () => {
     posts[i].response.complete();
   };
 
-  const shown = (mgr: NotificationManager) => {
-    const alert = mgr.getAlert(PATH);
+  const shown = (mgr: NotificationManager, path = PATH) => {
+    const alert = mgr.getAlert(path);
     if (!alert) {
-      throw new Error(`no alert at ${PATH}`);
+      throw new Error(`no alert at ${path}`);
     }
     return alert;
   };
@@ -570,16 +571,55 @@ describe('NotificationManager alert actions', () => {
     expect(errors).toEqual([failure]);
   });
 
-  it('silences every alert in this browser when the server refuses Silence All', () => {
+  const OTHER_PATH = 'notifications.navigation.anchor';
+  const OTHER_ID = '3f0c9a52-7d1e-4b8a-a6c2-5e9d8b7f1a24';
+
+  for (const status of [401, 403]) {
+    it(`silences every alert in this browser when the server refuses Silence All with ${status}`, () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+      arrive({ path: OTHER_PATH, id: OTHER_ID });
+
+      mgr.silenceAll();
+      posts[0].response.error({ status });
+
+      expect(posts.map((p) => p.path)).toEqual(['notifications/silenceAll']);
+      expect(shown(mgr).silenced).toBe(true);
+      expect(shown(mgr, OTHER_PATH).silenced).toBe(true);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  it('shows the alerts silenced as soon as Silence All is pressed', () => {
     const mgr = TestBed.inject(NotificationManager);
     arrive();
 
     mgr.silenceAll();
+
+    expect(shown(mgr).silenced).toBe(true);
+  });
+
+  it('does not silence an alert raised while Silence All is under way', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    arrive({ path: OTHER_PATH, id: OTHER_ID });
     posts[0].response.error({ status: 401 });
 
-    expect(posts.map((p) => p.path)).toEqual(['notifications/silenceAll']);
-    expect(shown(mgr).silenced).toBe(true);
-    expect(errors).toEqual([]);
+    expect(shown(mgr, OTHER_PATH).silenced).toBe(false);
+  });
+
+  it('reverts Silence All and reports the error when the request fails', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    const failure = { status: 500 };
+    posts[0].response.error(failure);
+
+    expect(shown(mgr).silenced).toBe(false);
+    expect(errors).toEqual([failure]);
   });
 });
 
