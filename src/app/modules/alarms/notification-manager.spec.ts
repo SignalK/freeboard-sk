@@ -599,6 +599,18 @@ describe('NotificationManager alert actions', () => {
     expect(shown(mgr).silenced).toBe(true);
   });
 
+  it('shows the server status again once a delta confirms Silence All', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    succeed();
+    arrive({ silenced: true });
+    arrive();
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
   it('does not silence an alert raised while Silence All is under way', () => {
     const mgr = TestBed.inject(NotificationManager);
     arrive();
