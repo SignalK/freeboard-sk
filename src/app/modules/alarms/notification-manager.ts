@@ -25,6 +25,8 @@ type AlertFlag = 'acknowledged' | 'silenced';
 /** An acknowledge / silence request and the alarm state it was sent for */
 interface PendingAction {
   state: AlertData['priority'];
+  /** A silence the server refused, kept in this browser only (isRefused()) */
+  local?: boolean;
 }
 
 /** The Notifications API gives every notification an id and a status. */
@@ -430,6 +432,7 @@ export class NotificationManager {
         },
         (err: HttpErrorResponse) => {
           if (action === 'silence' && isRefused(err)) {
+            this.silenceHere(id, entry.state);
             return;
           }
           if (pending.get(id) === entry) {
@@ -465,7 +468,10 @@ export class NotificationManager {
   private settlePendingActions(v: ApiNotification) {
     for (const flag of ['acknowledged', 'silenced'] as const) {
       const entry = this.pendingActions[flag].get(v.id);
-      if (entry && (v.status[flag] || v.state !== entry.state)) {
+      if (
+        entry &&
+        (v.state !== entry.state || (v.status[flag] && !entry.local))
+      ) {
         this.pendingActions[flag].delete(v.id);
       }
     }
@@ -508,6 +514,9 @@ export class NotificationManager {
         },
         (err: HttpErrorResponse) => {
           if (isRefused(err)) {
+            for (const [id, entry] of entries) {
+              this.silenceHere(id, entry.state);
+            }
             return;
           }
           for (const [id, entry] of entries) {
@@ -519,6 +528,19 @@ export class NotificationManager {
           this.app.parseHttpErrorResponse(err);
         }
       );
+  }
+
+  /**
+   * Keep a refused silence in this browser until the alert changes state or
+   * clears. A delta may already have settled the pending entry, so it is set
+   * again while the alert is still in the state the silence was asked for.
+   */
+  private silenceHere(id: string, state: AlertData['priority']) {
+    const alert = Array.from(this.alertMap.values()).find((a) => a.id === id);
+    if (alert?.priority === state) {
+      this.pendingActions.silenced.set(id, { state, local: true });
+      this.emitSignals();
+    }
   }
 
   /**
