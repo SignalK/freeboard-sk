@@ -1090,9 +1090,14 @@ describe('skstream.worker processVessel — environment.current', () => {
 // chain of links is redrawn when any target in the chain moves.
 describe('skstream.worker sensor targets', () => {
   const STERN = 'targets.camera:stern-2';
+  const MAST = 'targets.camera:mast-1';
   const CAMERA = 'targets.camera:bow-7';
   const RADAR = 'targets.radar:nav1-17';
-  let updates: Array<{ targets: string[]; updated: string[] }>;
+  let updates: Array<{
+    targets: string[];
+    updated: string[];
+    expired: string[];
+  }>;
 
   const send = (context: string, path: string, value: unknown) =>
     handleStreamEvent({
@@ -1103,6 +1108,8 @@ describe('skstream.worker sensor targets', () => {
       } as unknown as SKStreamMessage
     });
   const flush = () => vi.advanceTimersByTime(500);
+  const place = (id: string) =>
+    send(id, 'navigation.position', { latitude: 52.1, longitude: 4.2 });
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -1123,13 +1130,14 @@ describe('skstream.worker sensor targets', () => {
           action?: string;
           result?: {
             targets?: Map<string, unknown>;
-            aisStatus?: { updated: string[] };
+            aisStatus?: { updated: string[]; expired: string[] };
           };
         }) => {
           if (msg.action === 'update' && msg.result?.targets) {
             updates.push({
               targets: [...msg.result.targets.keys()],
-              updated: [...(msg.result.aisStatus?.updated ?? [])]
+              updated: [...(msg.result.aisStatus?.updated ?? [])],
+              expired: [...(msg.result.aisStatus?.expired ?? [])]
             });
           }
         }
@@ -1178,5 +1186,34 @@ describe('skstream.worker sensor targets', () => {
     expect(updates.at(-1)?.updated).toEqual(
       expect.arrayContaining([RADAR, CAMERA, STERN])
     );
+  });
+
+  it('redraws both the old and the new link when a link is moved', () => {
+    [STERN, CAMERA, RADAR].forEach(place);
+    send(RADAR, 'sameAs', CAMERA);
+    flush();
+    send(RADAR, 'sameAs', STERN);
+    flush();
+    expect(updates.at(-1)?.updated).toEqual(
+      expect.arrayContaining([CAMERA, STERN])
+    );
+  });
+
+  it('redraws what an expiring target linked to', () => {
+    [STERN, CAMERA, RADAR, MAST].forEach(place);
+    send(RADAR, 'sameAs', STERN);
+    send(CAMERA, 'sameAs', STERN);
+    flush();
+    vi.advanceTimersByTime(30_000);
+    [STERN, CAMERA].forEach(place);
+    flush();
+    vi.advanceTimersByTime(31_000);
+    // an unrelated target's report sends the update that expires the radar
+    place(MAST);
+    flush();
+    const last = updates.at(-1)!;
+    expect(last.expired).toContain(RADAR);
+    expect(last.targets).toContain(CAMERA);
+    expect(last.updated).toContain(STERN);
   });
 });
