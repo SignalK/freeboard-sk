@@ -15,7 +15,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke, Fill } from 'ol/style';
+import { Style, Stroke } from 'ol/style';
 import { LineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
@@ -130,24 +130,26 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildStyle(): Style {
-    let cs: Style;
+  buildStyle(): Style | Style[] {
     if (this.layerProperties && this.layerProperties.style) {
-      cs = this.layerProperties.style;
-    } else {
-      // default style
-      const color = this.color() ?? 'gray';
-      cs = new Style({
-        stroke: new Stroke({
-          width: 1,
-          color: color,
-          lineDash: [5, 5]
-        }),
-        fill: new Fill({
-          color: 'rgba(255,0,0,.2)'
-        })
-      });
+      return this.layerProperties.style;
     }
-    return cs;
+    // the leg the course is steered along, so it carries the weight a
+    // plotter gives its course line
+    const color = this.color() || 'rgba(221, 149, 0, 1)';
+    return [
+      new Style({
+        stroke: new Stroke({
+          color: 'white',
+          width: 6
+        })
+      }),
+      new Style({
+        stroke: new Stroke({
+          color: color,
+          width: 2
+        })
+      })
+    ];
   }
 }
