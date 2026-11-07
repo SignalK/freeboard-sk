@@ -8,6 +8,7 @@ import {
 } from './skstream.facade';
 import { SKVessel } from '../skresources/resource-classes';
 import { TRAIL_DURATION_ALL, TrackSource } from './track-source';
+import { CurrentSmoother, CurrentVector } from 'src/app/lib/current-vector';
 
 // AIS icons rotate by `orientation`. A crabbing target's heading and COG differ,
 // so the icon must follow heading, with COG only as a fallback when no heading
@@ -57,6 +58,45 @@ describe('SKStreamFacade.parseVesselOther — AIS target orientation', () => {
   });
 });
 
+// The current arrow on the own vessel reads selfCurrent, worked out from the
+// vessel's motion on every self update.
+describe('SKStreamFacade.refreshSelfCurrent', () => {
+  const facadeFor = () => {
+    const facade = Object.create(SKStreamFacade.prototype) as unknown as {
+      currentSmoother: CurrentSmoother;
+      selfCurrentSignal: ReturnType<typeof signal<CurrentVector | null>>;
+      selfCurrent: () => CurrentVector | null;
+      refreshSelfCurrent: (v: SKVessel) => void;
+    };
+    facade.currentSmoother = new CurrentSmoother();
+    facade.selfCurrentSignal = signal<CurrentVector | null>(null);
+    facade.selfCurrent = facade.selfCurrentSignal;
+    return facade;
+  };
+
+  it('publishes the current from log, heading, SOG and COG', () => {
+    const facade = facadeFor();
+    facade.refreshSelfCurrent(
+      Object.assign(new SKVessel(), {
+        sog: 3,
+        cogTrue: 0,
+        headingTrue: 0,
+        stw: 2,
+        stwUpdatedAt: Date.now()
+      })
+    );
+    expect(facade.selfCurrent()?.drift).toBeCloseTo(1);
+  });
+
+  it('publishes nothing without a log', () => {
+    const facade = facadeFor();
+    facade.refreshSelfCurrent(
+      Object.assign(new SKVessel(), { sog: 3, cogTrue: 0, headingTrue: 0 })
+    );
+    expect(facade.selfCurrent()).toBeNull();
+  });
+});
+
 // The anchor values the facade hands to the anchor watch come from the
 // navigation.anchor.* deltas, which carry plain numbers.
 describe('SKStreamFacade.parseVesselSelf — anchor', () => {
@@ -69,6 +109,7 @@ describe('SKStreamFacade.parseVesselSelf — anchor', () => {
       processVessel: () => void;
       refreshSelfNightMode: () => void;
       refreshSelfPositionStale: () => void;
+      refreshSelfCurrent: () => void;
       parseVesselSelf: (v: SKVessel) => void;
     };
     facade.app = {
@@ -81,6 +122,7 @@ describe('SKStreamFacade.parseVesselSelf — anchor', () => {
     facade.processVessel = (): void => undefined;
     facade.refreshSelfNightMode = (): void => undefined;
     facade.refreshSelfPositionStale = (): void => undefined;
+    facade.refreshSelfCurrent = (): void => undefined;
 
     const v = new SKVessel();
     v.anchor = { maxRadius: 40, radius: 25, position: null };

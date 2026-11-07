@@ -308,6 +308,17 @@ export class SKVessel extends SKTargetBase {
   registrations: SKRegistrations = {};
   resourceUpdates: PathValue[] = []; // resource deltas
   sog?: number;
+  // navigation.speedThroughWater and when it last arrived: a log that stops
+  // reporting must not keep feeding the current worked out from it
+  stw: number | null = null;
+  stwUpdatedAt = 0;
+  // environment.current, when a source on board publishes it
+  current: {
+    setTrue: number | null;
+    setMagnetic: number | null;
+    drift: number | null;
+  } = { setTrue: null, setMagnetic: null, drift: null };
+  currentUpdatedAt = 0;
   track: Array<Position[]> = [];
   vectors: { cog: Position[] } = {
     cog: [] // cog vector

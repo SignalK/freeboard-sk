@@ -1280,6 +1280,25 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
       d.performance.beatAngle = value;
     } else if (v.path === 'performance.gybeAngle') {
       d.performance.gybeAngle = value;
+    } else if (v.path === 'navigation.speedThroughWater') {
+      d.stw = value;
+      d.stwUpdatedAt = Date.now();
+    } else if (v.path === 'environment.current') {
+      d.current = {
+        setTrue: value?.setTrue ?? null,
+        setMagnetic: value?.setMagnetic ?? null,
+        drift: value?.drift ?? null
+      };
+      d.currentUpdatedAt = Date.now();
+    } else if (
+      v.path === 'environment.current.setTrue' ||
+      v.path === 'environment.current.setMagnetic' ||
+      v.path === 'environment.current.drift'
+    ) {
+      const key = v.path.slice('environment.current.'.length) as
+        'setTrue' | 'setMagnetic' | 'drift';
+      d.current = { ...d.current, [key]: value ?? null };
+      d.currentUpdatedAt = Date.now();
     }
     // ** course API data
     else if (v.path.startsWith('navigation.course.')) {

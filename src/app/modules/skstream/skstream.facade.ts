@@ -24,6 +24,11 @@ import {
   TrackSource
 } from './track-source';
 import { magneticToTrue } from 'src/app/lib/true-bearing';
+import {
+  CurrentSmoother,
+  CurrentVector,
+  currentSample
+} from 'src/app/lib/current-vector';
 
 export enum SKSTREAM_MODE {
   REALTIME = 0,
@@ -131,6 +136,11 @@ export class SKStreamFacade {
    * where the boat is. Covers both a dropped connection and a server that is
    * still talking but has lost its position source. */
   readonly selfPositionStale = this.positionStaleSignal.asReadonly();
+
+  private currentSmoother = new CurrentSmoother();
+  private selfCurrentSignal = signal<CurrentVector | null>(null);
+  /** Set and drift of the current at the own vessel, null when unknown. */
+  readonly selfCurrent = this.selfCurrentSignal.asReadonly();
 
   /** Re-evaluate self position age against the current time. */
   refreshSelfPositionStale(): void {
@@ -551,10 +561,18 @@ export class SKStreamFacade {
       };
     });
 
+    this.refreshSelfCurrent(v);
     this.refreshSelfNightMode();
     // clear the indication as soon as position resumes, rather than on the
     // next tick
     this.refreshSelfPositionStale();
+  }
+
+  private refreshSelfCurrent(v: SKVessel) {
+    const now = Date.now();
+    this.selfCurrentSignal.set(
+      this.currentSmoother.update(currentSample(v, now), now)
+    );
   }
 
   private parseSelfRacing(v: SKVessel) {
