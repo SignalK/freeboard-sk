@@ -90,7 +90,7 @@ import { canEndRouteAt } from 'src/app/modules/course/temporary-route';
           <div class="popover-action-button">
             <button
               mat-button
-              (click)="end.emit(point().index)"
+              (click)="end.emit(point())"
               matTooltip="Follow the route only as far as this point"
               matTooltipPosition="after"
             >
@@ -110,8 +110,8 @@ export class RoutePointPopoverComponent {
   rejoin = output<number>();
   /** Emits the index of the point to skip, as shown. */
   skip = output<number>();
-  /** Emits the index of the point to end the route at, as shown. */
-  end = output<number>();
+  /** Emits the point to end the route at, with the course as shown. */
+  end = output<ActiveRoutePoint>();
   closed = output<void>();
 
   protected app = inject(AppFacade);

@@ -354,7 +354,11 @@ export class RoutePanel {
   /** Follow the route only as far as point `index`, in the order it is
    *  followed; the stored route is left as it is. */
   protected onEnd(index: number) {
-    this.temporaryRoutes.endActiveRouteAt(index);
+    this.temporaryRoutes.endActiveRouteAt(
+      this.id(),
+      this.course.courseData().pointIndex,
+      index
+    );
   }
 
   protected async onDelete() {

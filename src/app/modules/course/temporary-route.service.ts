@@ -140,24 +140,33 @@ export class TemporaryRouteService {
   }
 
   /**
-   * Follow the active route only up to its point `endIndex`, counted in the
-   * order it is followed. The Course API always follows a route to its last
-   * point, so a temporary copy that ends there is followed instead, from the
-   * point being headed for; the stored route is left as it is. Resolves with
-   * the copy's id, or null if it could not be stored or followed.
+   * Follow active route `routeId` only up to its point `endIndex`, counted in
+   * the order it is followed like `nextIndex`, the point being headed for as
+   * the user saw it. The Course API always follows a route to its last point,
+   * so a temporary copy that ends there is followed instead, from that point;
+   * the stored route is left as it is. Nothing is followed if the course is no
+   * longer the one the user saw, before or after the copy is stored: another
+   * client, or an arrival, may change it meanwhile. Resolves with the copy's
+   * id, or null if it was not followed.
    */
-  async endActiveRouteAt(endIndex: number): Promise<string | null> {
-    const id = this.app.data.activeRoute;
-    const route = id ? this.skres.fromCache('routes', id)?.[1] : undefined;
-    if (!id || !route) {
+  async endActiveRouteAt(
+    routeId: string,
+    nextIndex: number,
+    endIndex: number
+  ): Promise<string | null> {
+    const reversed = this.app.data.activeRouteReversed;
+    const unchanged = () =>
+      this.app.data.activeRoute === routeId &&
+      this.app.data.activeRouteReversed === reversed &&
+      this.course.courseData().pointIndex === nextIndex;
+    const route = this.skres.fromCache('routes', routeId)?.[1];
+    if (!route || !unchanged()) {
       return null;
     }
     const coordinates = route.feature.geometry.coordinates;
-    const nextIndex = this.course.courseData().pointIndex;
     if (!canEndRouteAt(endIndex, nextIndex, coordinates.length)) {
       return null;
     }
-    const reversed = this.app.data.activeRouteReversed;
     const [, copy] = this.skres.buildRoute(
       followedRouteUpTo(coordinates, endIndex, reversed)
     );
@@ -183,11 +192,11 @@ export class TemporaryRouteService {
       return null;
     }
     this.skres.selectionAdd('routes', copyId);
-    if (!(await this.course.activateRoute(copyId, nextIndex))) {
+    if (!unchanged() || !(await this.course.activateRoute(copyId, nextIndex))) {
       await this.deleteUnlessActive([copyId]);
       return null;
     }
-    if (this.infoPanelShows(id)) {
+    if (this.infoPanelShows(routeId)) {
       this.infoPanel.open('routes', copyId);
     }
     this.sweep();

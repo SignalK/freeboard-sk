@@ -20,19 +20,37 @@ function popover(point: ActiveRoutePoint) {
 describe('RoutePointPopoverComponent — Skip', () => {
   it('offers SKIP on the point being headed for', () => {
     expect(
-      popover({ index: 1, total: 4, isNext: true, nextIndex: 1 }).canSkip()
+      popover({
+        index: 1,
+        total: 4,
+        isNext: true,
+        nextIndex: 1,
+        routeId: 'r'
+      }).canSkip()
     ).toBe(true);
   });
 
   it('does not offer SKIP on another point', () => {
     expect(
-      popover({ index: 2, total: 4, isNext: false, nextIndex: 1 }).canSkip()
+      popover({
+        index: 2,
+        total: 4,
+        isNext: false,
+        nextIndex: 1,
+        routeId: 'r'
+      }).canSkip()
     ).toBe(false);
   });
 
   it('does not offer SKIP on the last point', () => {
     expect(
-      popover({ index: 3, total: 4, isNext: true, nextIndex: 3 }).canSkip()
+      popover({
+        index: 3,
+        total: 4,
+        isNext: true,
+        nextIndex: 3,
+        routeId: 'r'
+      }).canSkip()
     ).toBe(false);
   });
 });
@@ -69,7 +87,8 @@ describe('RoutePointPopoverComponent — actions', () => {
       index: 1,
       total: 4,
       isNext: true,
-      nextIndex: 1
+      nextIndex: 1,
+      routeId: 'r'
     });
     let skipped: number | undefined;
     fixture.componentInstance.skip.subscribe((i) => (skipped = i));
@@ -85,6 +104,7 @@ describe('RoutePointPopoverComponent — actions', () => {
       total: 4,
       isNext: false,
       nextIndex: 1,
+      routeId: 'r',
       position: [24.95, 60.16]
     });
     let rejoined: number | undefined;
@@ -100,14 +120,15 @@ describe('RoutePointPopoverComponent — actions', () => {
       index: 2,
       total: 4,
       isNext: false,
-      nextIndex: 1
+      nextIndex: 1,
+      routeId: 'r'
     });
-    let ended: number | undefined;
-    fixture.componentInstance.end.subscribe((i) => (ended = i));
+    let ended: ActiveRoutePoint | undefined;
+    fixture.componentInstance.end.subscribe((p) => (ended = p));
 
     button('END HERE')?.click();
 
-    expect(ended).toBe(2);
+    expect(ended).toMatchObject({ index: 2, nextIndex: 1, routeId: 'r' });
   });
 });
 
@@ -116,18 +137,20 @@ describe('RoutePointPopoverComponent — End here', () => {
     (popover(point) as unknown as { canEnd: () => boolean }).canEnd();
 
   it('offers END HERE on the point headed for and points after it', () => {
-    expect(ends({ index: 1, total: 4, isNext: true, nextIndex: 1 })).toBe(true);
-    expect(ends({ index: 2, total: 4, isNext: false, nextIndex: 1 })).toBe(
-      true
-    );
+    expect(
+      ends({ index: 1, total: 4, isNext: true, nextIndex: 1, routeId: 'r' })
+    ).toBe(true);
+    expect(
+      ends({ index: 2, total: 4, isNext: false, nextIndex: 1, routeId: 'r' })
+    ).toBe(true);
   });
 
   it('does not offer END HERE behind the vessel or on the last point', () => {
-    expect(ends({ index: 1, total: 4, isNext: false, nextIndex: 2 })).toBe(
-      false
-    );
-    expect(ends({ index: 3, total: 4, isNext: false, nextIndex: 1 })).toBe(
-      false
-    );
+    expect(
+      ends({ index: 1, total: 4, isNext: false, nextIndex: 2, routeId: 'r' })
+    ).toBe(false);
+    expect(
+      ends({ index: 3, total: 4, isNext: false, nextIndex: 1, routeId: 'r' })
+    ).toBe(false);
   });
 });

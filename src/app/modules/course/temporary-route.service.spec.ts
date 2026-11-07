@@ -476,7 +476,7 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
   it('follows a temporary copy that ends at the point, from the point headed for', async () => {
     const t = following({ nextIndex: 1 });
 
-    expect(await t.service.endActiveRouteAt(3)).toBe('copy-1');
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBe('copy-1');
 
     const copy = posted(t);
     expect(copy.feature.geometry.coordinates).toEqual([
@@ -494,12 +494,13 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
     expect(copy.name).toBe('Old track → P4');
     expect(t.course.activateRoute).toHaveBeenCalledWith('copy-1', 1);
     expect(t.skres.putToServer).not.toHaveBeenCalled();
+    expect(t.routes()[0]).toEqual(namedRoute('old', 5));
   });
 
   it('lays a reversed route out in the order it is followed', async () => {
     const t = following({ reversed: true, nextIndex: 0 });
 
-    await t.service.endActiveRouteAt(2);
+    await t.service.endActiveRouteAt('old', 0, 2);
 
     const copy = posted(t);
     expect(copy.feature.geometry.coordinates).toEqual([
@@ -507,22 +508,55 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
       [23.3, 60],
       [23.2, 60]
     ]);
+    expect(
+      (copy.feature.properties?.coordinatesMeta as { name: string }[]).map(
+        (m) => m.name
+      )
+    ).toEqual(['P5', 'P4', 'P3']);
     expect(copy.name).toBe('Old track → P3');
   });
 
   it('does not end at a point behind the vessel or at the last point', async () => {
     const t = following({ nextIndex: 2 });
 
-    expect(await t.service.endActiveRouteAt(1)).toBeNull();
-    expect(await t.service.endActiveRouteAt(4)).toBeNull();
+    expect(await t.service.endActiveRouteAt('old', 2, 1)).toBeNull();
+    expect(await t.service.endActiveRouteAt('old', 2, 4)).toBeNull();
     expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('does nothing once another route is followed than the one shown', async () => {
+    const t = following();
+
+    expect(await t.service.endActiveRouteAt('other', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('does nothing once the point headed for is not the one shown', async () => {
+    const t = following({ nextIndex: 2 });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('drops the copy when the course changes while it is stored', async () => {
+    const t = following({ nextIndex: 1 });
+    t.skres.postToServer.mockImplementationOnce(() => {
+      t.course.courseData.set({ pointIndex: 2 });
+      return Promise.resolve({ id: 'copy-1' });
+    });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    await settle();
+
+    expect(t.course.activateRoute).not.toHaveBeenCalled();
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'copy-1');
   });
 
   it('removes the copy again when the server will not follow it', async () => {
     const t = following();
     t.course.activateRoute.mockResolvedValueOnce(false);
 
-    expect(await t.service.endActiveRouteAt(3)).toBeNull();
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
     await settle();
 
     expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'copy-1');
@@ -532,7 +566,7 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
     const t = following();
     t.infoPanel.item.set({ id: 'old' });
 
-    await t.service.endActiveRouteAt(3);
+    await t.service.endActiveRouteAt('old', 1, 3);
 
     expect(t.infoPanel.open).toHaveBeenCalledWith('routes', 'copy-1');
   });

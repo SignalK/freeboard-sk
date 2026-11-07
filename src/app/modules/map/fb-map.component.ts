@@ -2356,7 +2356,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       name: c.pointNames?.[stored] || undefined,
       position: c.activeRoutePoints?.[stored],
       isNext: index === c.pointIndex,
-      nextIndex: c.pointIndex
+      nextIndex: c.pointIndex,
+      routeId: this.app.data.activeRoute ?? ''
     };
   }
 
@@ -3736,8 +3737,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.course.skipRoutePoint(pointIndex);
   }
 
-  protected endRouteAt(pointIndex: number) {
-    this.temporaryRoutes.endActiveRouteAt(pointIndex);
+  protected endRouteAt(point: ActiveRoutePoint) {
+    this.temporaryRoutes.endActiveRouteAt(
+      point.routeId,
+      point.nextIndex,
+      point.index
+    );
   }
 
   // ** emit info event **
