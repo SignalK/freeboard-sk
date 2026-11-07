@@ -829,6 +829,7 @@
           [point]="point"
           (rejoin)="rejoinRouteAt($event); popoverClosed()"
           (skip)="skipRoutePoint($event); popoverClosed()"
+          (end)="endRouteAt($event); popoverClosed()"
           (closed)="popoverClosed()"
         >
         </route-point-popover>

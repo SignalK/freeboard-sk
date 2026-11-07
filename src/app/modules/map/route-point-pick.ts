@@ -13,6 +13,8 @@ export interface ActiveRoutePoint {
   position?: number[];
   /** Whether this is the point being headed for. */
   isNext: boolean;
+  /** The point being headed for, counted like `index`. */
+  nextIndex: number;
 }
 
 /** How close a click must be to a route point, in pixels. */

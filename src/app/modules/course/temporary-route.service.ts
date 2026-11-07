@@ -17,10 +17,13 @@ import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.reg
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
 import { CourseService } from './course.service';
 import {
+  canEndRouteAt,
+  followedRouteUpTo,
   isTemporaryRoute,
   routeIdFromHref,
   TEMPORARY_ROUTE_NAME,
   TemporaryRouteMarker,
+  temporaryRouteMarker,
   temporaryRoutesToDelete
 } from './temporary-route';
 
@@ -134,6 +137,61 @@ export class TemporaryRouteService {
     // The new route replaces the previous temporary route.
     this.sweep();
     return saved.href;
+  }
+
+  /**
+   * Follow the active route only up to its point `endIndex`, counted in the
+   * order it is followed. The Course API always follows a route to its last
+   * point, so a temporary copy that ends there is followed instead, from the
+   * point being headed for; the stored route is left as it is. Resolves with
+   * the copy's id, or null if it could not be stored or followed.
+   */
+  async endActiveRouteAt(endIndex: number): Promise<string | null> {
+    const id = this.app.data.activeRoute;
+    const route = id ? this.skres.fromCache('routes', id)?.[1] : undefined;
+    if (!id || !route) {
+      return null;
+    }
+    const coordinates = route.feature.geometry.coordinates;
+    const nextIndex = this.course.courseData().pointIndex;
+    if (!canEndRouteAt(endIndex, nextIndex, coordinates.length)) {
+      return null;
+    }
+    const reversed = this.app.data.activeRouteReversed;
+    const [, copy] = this.skres.buildRoute(
+      followedRouteUpTo(coordinates, endIndex, reversed)
+    );
+    const properties = (copy.feature.properties ??= {});
+    const meta = route.feature.properties?.coordinatesMeta;
+    if (Array.isArray(meta) && meta.length === coordinates.length) {
+      properties.coordinatesMeta = followedRouteUpTo(meta, endIndex, reversed);
+    }
+    properties.temporary = temporaryRouteMarker(new Date());
+    const endName =
+      properties.coordinatesMeta?.[endIndex]?.name || `point ${endIndex + 1}`;
+    copy.name = `${route.name || TEMPORARY_ROUTE_NAME} → ${endName}`;
+    copy.description = route.description ?? '';
+
+    let copyId: string | null;
+    try {
+      copyId = (await this.skres.postToServer('routes', copy)).id ?? null;
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+      return null;
+    }
+    if (!copyId) {
+      return null;
+    }
+    this.skres.selectionAdd('routes', copyId);
+    if (!(await this.course.activateRoute(copyId, nextIndex))) {
+      await this.deleteUnlessActive([copyId]);
+      return null;
+    }
+    if (this.infoPanelShows(id)) {
+      this.infoPanel.open('routes', copyId);
+    }
+    this.sweep();
+    return copyId;
   }
 
   /**

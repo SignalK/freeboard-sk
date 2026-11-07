@@ -122,3 +122,31 @@ export function routeIdFromHref(
   const parts = href.split('/');
   return parts[parts.length - 1] || null;
 }
+
+/**
+ * Whether the active route can end at point `endIndex`, both counted in the
+ * order the route is followed like `nextIndex`, the point being headed for:
+ * the point must not be behind the vessel, the shortened route needs two
+ * points, and ending at the last point changes nothing.
+ */
+export function canEndRouteAt(
+  endIndex: number,
+  nextIndex: number,
+  total: number
+): boolean {
+  return endIndex >= Math.max(nextIndex, 1) && endIndex < total - 1;
+}
+
+/**
+ * The stored route's `items` (its points, or their metadata) up to and
+ * including point `endIndex` in the order the route is followed, laid out in
+ * that order, so the copy is followed forwards.
+ */
+export function followedRouteUpTo<T>(
+  items: ReadonlyArray<T>,
+  endIndex: number,
+  reversed: boolean
+): T[] {
+  const followed = reversed ? [...items].reverse() : [...items];
+  return followed.slice(0, endIndex + 1);
+}

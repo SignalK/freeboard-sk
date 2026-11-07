@@ -65,9 +65,10 @@ const settle = async () => {
 
 function setup() {
   const app = {
-    data: { activeRoute: null as string | null },
+    data: { activeRoute: null as string | null, activeRouteReversed: false },
     skApiVersion: 2,
-    debug: (): void => undefined
+    debug: (): void => undefined,
+    parseHttpErrorResponse: vi.fn()
   };
   let serverCourse: { activeRoute: { href: string } | null } = {
     activeRoute: null
@@ -86,9 +87,28 @@ function setup() {
     listFromServer: vi.fn(() => Promise.resolve(server.routes)),
     putToServer: vi.fn(() => Promise.resolve({})),
     deleteFromServer: vi.fn(() => Promise.resolve()),
-    selectionRemove: vi.fn()
+    selectionRemove: vi.fn(),
+    selectionAdd: vi.fn(),
+    buildRoute: (coordinates: number[][]) =>
+      [
+        'new',
+        {
+          name: '',
+          description: '',
+          distance: 0,
+          feature: {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates },
+            properties: {}
+          }
+        },
+        true
+      ] as unknown as FBRoute,
+    postToServer: vi.fn((): Promise<{ id?: string }> =>
+      Promise.resolve({ id: 'copy-1' })
+    )
   };
-  const courseData = signal({});
+  const courseData = signal<{ pointIndex?: number }>({});
   const course = {
     courseData,
     activateRoute: vi.fn(() => Promise.resolve(true))
@@ -144,6 +164,7 @@ function setup() {
     course,
     plotterExt,
     infoPanel,
+    app,
     courseUpdate,
     setServerActiveRoute
   };
@@ -419,5 +440,100 @@ describe('TemporaryRouteService — cleaning up', () => {
       'routes',
       'rte-older'
     );
+  });
+});
+
+/** A stored route through `n` points named P1, P2, ... */
+function namedRoute(id: string, n: number): FBRoute {
+  const route = storedRoute(id);
+  route[1].name = 'Old track';
+  route[1].feature.geometry.coordinates = Array.from({ length: n }, (_, i) => [
+    23 + i / 10,
+    60
+  ]);
+  route[1].feature.properties = {
+    coordinatesMeta: Array.from({ length: n }, (_, i) => ({
+      name: `P${i + 1}`
+    }))
+  };
+  return route;
+}
+
+describe('TemporaryRouteService — ending the active route at a point', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const following = (opts: { reversed?: boolean; nextIndex?: number } = {}) => {
+    const t = setup();
+    t.routes.set([namedRoute('old', 5)]);
+    t.app.data.activeRoute = 'old';
+    t.app.data.activeRouteReversed = opts.reversed ?? false;
+    t.course.courseData.set({ pointIndex: opts.nextIndex ?? 1 });
+    return t;
+  };
+  const posted = (t: ReturnType<typeof setup>) =>
+    (t.skres.postToServer.mock.calls[0] as unknown[])[1] as FBRoute[1];
+
+  it('follows a temporary copy that ends at the point, from the point headed for', async () => {
+    const t = following({ nextIndex: 1 });
+
+    expect(await t.service.endActiveRouteAt(3)).toBe('copy-1');
+
+    const copy = posted(t);
+    expect(copy.feature.geometry.coordinates).toEqual([
+      [23, 60],
+      [23.1, 60],
+      [23.2, 60],
+      [23.3, 60]
+    ]);
+    expect(
+      (copy.feature.properties?.coordinatesMeta as { name: string }[]).map(
+        (m) => m.name
+      )
+    ).toEqual(['P1', 'P2', 'P3', 'P4']);
+    expect(copy.feature.properties?.['temporary']).toBeTruthy();
+    expect(copy.name).toBe('Old track → P4');
+    expect(t.course.activateRoute).toHaveBeenCalledWith('copy-1', 1);
+    expect(t.skres.putToServer).not.toHaveBeenCalled();
+  });
+
+  it('lays a reversed route out in the order it is followed', async () => {
+    const t = following({ reversed: true, nextIndex: 0 });
+
+    await t.service.endActiveRouteAt(2);
+
+    const copy = posted(t);
+    expect(copy.feature.geometry.coordinates).toEqual([
+      [23.4, 60],
+      [23.3, 60],
+      [23.2, 60]
+    ]);
+    expect(copy.name).toBe('Old track → P3');
+  });
+
+  it('does not end at a point behind the vessel or at the last point', async () => {
+    const t = following({ nextIndex: 2 });
+
+    expect(await t.service.endActiveRouteAt(1)).toBeNull();
+    expect(await t.service.endActiveRouteAt(4)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('removes the copy again when the server will not follow it', async () => {
+    const t = following();
+    t.course.activateRoute.mockResolvedValueOnce(false);
+
+    expect(await t.service.endActiveRouteAt(3)).toBeNull();
+    await settle();
+
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'copy-1');
+  });
+
+  it('moves an info panel showing the route to the copy', async () => {
+    const t = following();
+    t.infoPanel.item.set({ id: 'old' });
+
+    await t.service.endActiveRouteAt(3);
+
+    expect(t.infoPanel.open).toHaveBeenCalledWith('routes', 'copy-1');
   });
 });

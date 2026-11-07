@@ -88,6 +88,7 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { GuardZoneEditService } from 'src/app/modules/radar/guard-zone-edit.service';
 import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.service';
 import { ExtActionsComponent } from 'src/app/modules/plotterext/ext-actions.component';
 import type { UsableAction } from 'src/app/modules/plotterext/actions';
 import { pickedTarget } from 'src/app/modules/plotterext/map-pick';
@@ -646,6 +647,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected notiMgr = inject(NotificationManager);
   protected plotterExt = inject(PlotterExtensionService);
   protected course = inject(CourseService);
+  private temporaryRoutes = inject(TemporaryRouteService);
   protected symbols = inject(SymbolService);
   private routeReverse = inject(RouteReverseService);
   protected mapInteract = inject(FBMapInteractService);
@@ -2353,7 +2355,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       total: c.pointTotal,
       name: c.pointNames?.[stored] || undefined,
       position: c.activeRoutePoints?.[stored],
-      isNext: index === c.pointIndex
+      isNext: index === c.pointIndex,
+      nextIndex: c.pointIndex
     };
   }
 
@@ -3731,6 +3734,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   protected skipRoutePoint(pointIndex: number) {
     this.course.skipRoutePoint(pointIndex);
+  }
+
+  protected endRouteAt(pointIndex: number) {
+    this.temporaryRoutes.endActiveRouteAt(pointIndex);
   }
 
   // ** emit info event **

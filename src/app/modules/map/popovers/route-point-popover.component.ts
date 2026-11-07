@@ -12,6 +12,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { ActiveRoutePoint } from '../route-point-pick';
+import { canEndRouteAt } from 'src/app/modules/course/temporary-route';
 
 @Component({
   selector: 'route-point-popover',
@@ -85,6 +86,19 @@ import { ActiveRoutePoint } from '../route-point-pick';
             </button>
           </div>
         }
+        @if (canEnd()) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="end.emit(point().index)"
+              matTooltip="Follow the route only as far as this point"
+              matTooltipPosition="after"
+            >
+              <mat-icon>sports_score</mat-icon>
+              END HERE
+            </button>
+          </div>
+        }
       </div>
     </ap-popover>
   `
@@ -96,6 +110,8 @@ export class RoutePointPopoverComponent {
   rejoin = output<number>();
   /** Emits the index of the point to skip, as shown. */
   skip = output<number>();
+  /** Emits the index of the point to end the route at, as shown. */
+  end = output<number>();
   closed = output<void>();
 
   protected app = inject(AppFacade);
@@ -104,5 +120,10 @@ export class RoutePointPopoverComponent {
   /** Skip applies to the point being headed for, when another follows it. */
   protected canSkip() {
     return this.point().isNext && this.point().index < this.point().total - 1;
+  }
+
+  protected canEnd() {
+    const p = this.point();
+    return canEndRouteAt(p.index, p.nextIndex, p.total);
   }
 }

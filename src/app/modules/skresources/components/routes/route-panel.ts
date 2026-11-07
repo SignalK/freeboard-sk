@@ -12,7 +12,10 @@ import {
 } from '@angular/core';
 import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
 import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.service';
-import { isTemporaryRoute } from 'src/app/modules/course/temporary-route';
+import {
+  canEndRouteAt,
+  isTemporaryRoute
+} from 'src/app/modules/course/temporary-route';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -338,6 +341,20 @@ export class RoutePanel {
 
   protected onSkip(index: number) {
     this.course.skipRoutePoint(index);
+  }
+
+  protected canEnd(index: number) {
+    return canEndRouteAt(
+      index,
+      this.course.courseData().pointIndex,
+      this.points().length
+    );
+  }
+
+  /** Follow the route only as far as point `index`, in the order it is
+   *  followed; the stored route is left as it is. */
+  protected onEnd(index: number) {
+    this.temporaryRoutes.endActiveRouteAt(index);
   }
 
   protected async onDelete() {

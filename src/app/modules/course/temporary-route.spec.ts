@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  canEndRouteAt,
+  followedRouteUpTo,
   isTemporaryRoute,
   promoteTemporaryRoute,
   routeIdFromHref,
@@ -158,5 +160,30 @@ describe('routeIdFromHref', () => {
     expect(routeIdFromHref(undefined)).toBeNull();
     expect(routeIdFromHref(null)).toBeNull();
     expect(routeIdFromHref('')).toBeNull();
+  });
+});
+
+describe('ending a route at a point', () => {
+  it('ends at the point headed for or any point after it, short of the last', () => {
+    expect(canEndRouteAt(2, 2, 5)).toBe(true);
+    expect(canEndRouteAt(3, 2, 5)).toBe(true);
+    expect(canEndRouteAt(1, 2, 5)).toBe(false);
+    expect(canEndRouteAt(4, 2, 5)).toBe(false);
+  });
+
+  it('keeps at least two points', () => {
+    expect(canEndRouteAt(0, 0, 5)).toBe(false);
+    expect(canEndRouteAt(1, 0, 5)).toBe(true);
+  });
+
+  it('takes the points up to the end point in the order they are followed', () => {
+    expect(followedRouteUpTo(['a', 'b', 'c', 'd'], 1, false)).toEqual([
+      'a',
+      'b'
+    ]);
+    expect(followedRouteUpTo(['a', 'b', 'c', 'd'], 1, true)).toEqual([
+      'd',
+      'c'
+    ]);
   });
 });
