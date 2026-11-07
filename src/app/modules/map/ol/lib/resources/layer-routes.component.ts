@@ -214,7 +214,6 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         ? lineColor
         : 'green';
     const reverse = isActive && this.activeReversed;
-    const animate = this.animateFlow;
     styles.push(
       new Style({
         renderer: (pixelCoords, state) =>
@@ -225,7 +224,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
             {
               color: flowColor,
               reverse,
-              phase: flowPhase(animate, performance.now())
+              phase: flowPhase(this.animateFlow, performance.now())
             }
           )
       })

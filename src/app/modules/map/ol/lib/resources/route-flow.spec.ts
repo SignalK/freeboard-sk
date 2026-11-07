@@ -11,6 +11,37 @@ import {
 const everywhere: PixelBounds = [-1e9, -1e9, 1e9, 1e9];
 
 describe('flowMarks()', () => {
+  it('puts one chevron in the middle of a line shorter than the spacing', () => {
+    for (const phase of [0, 0.3, 0.5, 0.99]) {
+      expect(
+        flowMarks(
+          [
+            [0, 0],
+            [10, 0],
+            [10, 10]
+          ],
+          70,
+          phase,
+          everywhere
+        )
+      ).toEqual([{ x: 10, y: 0, dx: 1, dy: 0 }]);
+    }
+  });
+
+  it('leaves out the middle chevron of a short line off screen', () => {
+    expect(
+      flowMarks(
+        [
+          [500, 500],
+          [510, 500]
+        ],
+        70,
+        0.5,
+        [0, 0, 100, 100]
+      )
+    ).toEqual([]);
+  });
+
   it('spaces chevrons evenly, starting at the phase', () => {
     const marks = flowMarks(
       [

@@ -78,7 +78,9 @@ export function clipSegment(
  * Chevron positions every `spacing` pixels along the polyline, the first at
  * `phase * spacing` from its start. Distance is measured along the whole line,
  * so a growing phase moves every chevron forward smoothly across the turns.
- * Only chevrons inside `bounds` are returned.
+ * A line shorter than one spacing gets a single chevron at its middle, so
+ * even a short route always shows its direction. Only chevrons inside
+ * `bounds` are returned.
  */
 export function flowMarks(
   coords: number[][],
@@ -88,6 +90,16 @@ export function flowMarks(
 ): FlowMark[] {
   const marks: FlowMark[] = [];
   if (spacing <= 0) return marks;
+  const total = lineLength(coords);
+  if (total === 0) return marks;
+  if (total < spacing) {
+    const mid = pointAlong(coords, total / 2);
+    const [minX, minY, maxX, maxY] = bounds;
+    if (mid.x >= minX && mid.x <= maxX && mid.y >= minY && mid.y <= maxY) {
+      marks.push(mid);
+    }
+    return marks;
+  }
   // along-line distance of the next chevron, relative to the segment start
   let next = (((phase % 1) + 1) % 1) * spacing;
   for (let i = 0; i < coords.length - 1; i++) {
@@ -115,6 +127,36 @@ export function flowMarks(
     next -= len;
   }
   return marks;
+}
+
+function lineLength(coords: number[][]): number {
+  let total = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    total += Math.hypot(
+      coords[i + 1][0] - coords[i][0],
+      coords[i + 1][1] - coords[i][1]
+    );
+  }
+  return total;
+}
+
+/** The point `distance` along a polyline of non-zero length. */
+function pointAlong(coords: number[][], distance: number): FlowMark {
+  let left = distance;
+  let last: FlowMark | undefined;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [ax, ay] = coords[i];
+    const [bx, by] = coords[i + 1];
+    const len = Math.hypot(bx - ax, by - ay);
+    if (len === 0) continue;
+    const dx = (bx - ax) / len;
+    const dy = (by - ay) / len;
+    const t = Math.min(left, len);
+    last = { x: ax + dx * t, y: ay + dy * t, dx, dy };
+    if (left <= len) break;
+    left -= len;
+  }
+  return last as FlowMark;
 }
 
 /**
