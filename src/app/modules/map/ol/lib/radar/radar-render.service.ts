@@ -1,6 +1,5 @@
 import { inject, Injectable } from '@angular/core';
 import ImageSource from 'ol/source/Image';
-import Projection from 'ol/proj/Projection';
 import { circular } from 'ol/geom/Polygon';
 import { createLoader } from 'ol/source/static';
 import { Coordinate } from 'ol/coordinate';
@@ -109,11 +108,6 @@ export class RadarRenderService {
 
     updateExtent(location, range);
 
-    const projection = new Projection({
-      code: 'EPSG:3857', //'radar',
-      units: 'degrees' //'m'
-    });
-
     const radarCanvas = document.createElement('canvas');
     radarCanvas.width = 2 * radar.maxSpokeLen;
     radarCanvas.height = 2 * radar.maxSpokeLen;
@@ -121,7 +115,9 @@ export class RadarRenderService {
     const offscreenRadarCanvas = radarCanvas.transferControlToOffscreen();
 
     const radarSource = new ImageSource({
-      projection: projection,
+      // The view's own projection, so OpenLayers draws the radar canvas as is
+      // instead of reprojecting it on every refresh.
+      projection: 'EPSG:3857',
       loader: createLoader({
         imageExtent: rangeExtent,
         url: '',
