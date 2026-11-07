@@ -2359,11 +2359,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
         : undefined;
     return {
       index,
+      distance,
+      timeToGo: timeToGo(distance, self.sog),
       total: c.pointTotal,
       name: c.pointNames?.[stored] || undefined,
       position: c.activeRoutePoints?.[stored],
-      distance,
-      timeToGo: timeToGo(distance, self.sog),
       isNext: index === c.pointIndex
     };
   }
