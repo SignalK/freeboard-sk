@@ -305,6 +305,8 @@
     [routeStyles]="featureStyles.route"
     [routeStyle]="app.config.resources.routeStyle"
     [activeRoute]="activeRoute"
+    [activeReversed]="app.data.activeRouteReversed"
+    [animateFlow]="app.config.map.animateRoutes"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
@@ -318,23 +320,14 @@
     [routeStyles]="draftRouteStyles"
     [routeStyle]="app.config.resources.routeStyle"
     [activeRoute]="activeRoute"
+    [activeReversed]="app.data.activeRouteReversed"
+    [animateFlow]="app.config.map.animateRoutes"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [zIndex]="510"
   >
   </fb-routes>
-
-  <!-- Routes -->
-  @if (activeRoute && !app.data.activeRouteIsEditing) {
-    <fb-route-direction
-      [points]="course.courseData().activeRoutePoints"
-      [pointIndex]="course.courseData().pointIndex"
-      [reverse]="app.data.activeRouteReversed"
-      [zIndex]="550"
-    >
-    </fb-route-direction>
-  }
 
   <!-- Waypoints -->
   <fb-waypoints

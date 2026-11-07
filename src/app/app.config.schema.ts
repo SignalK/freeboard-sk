@@ -130,6 +130,7 @@ export const AppConfigSchema = Type.Object({
     // glide the chart to each new centre, zoom and rotation; a new key, as
     // configs saved since 2021 hold an `animate: false` nothing ever used
     animation: bool(true),
+    animateRoutes: bool(true), // move the direction chevrons along routes
     labelsMinZoom: num(8),
     doubleClickZoom: bool(false),
     overZoomTiles: bool(true), // keep tiles visible beyond chart max zoom
