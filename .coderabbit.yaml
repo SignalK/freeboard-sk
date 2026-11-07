@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Keep every setting made in the CodeRabbit UI; this file only adds to it.
+inheritance: true
+
+reviews:
+  # Code explains itself; comments say why, not what (AGENTS.md). A
+  # docstring on every function would be the echo comments that rules out.
+  pre_merge_checks:
+    docstrings:
+      mode: 'off'
+  finishing_touches:
+    docstrings:
+      enabled: false
+  path_instructions:
+    - path: '**/*'
+      instructions: |
+        Do not ask for docstrings or JSDoc. Code explains itself; a comment
+        says why, never what, and only where the code cannot.
