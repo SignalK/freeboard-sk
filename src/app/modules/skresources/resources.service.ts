@@ -2512,16 +2512,23 @@ export class SKResourceService {
   /**
    * @description Remove FBRoute objects from the Route Cache
    * @param ids Array of route identifiers. If not supplied all routes are removed.
+   * The active route is never removed.
    */
   public routeRemove(ids?: string[]) {
+    // The active route stays on the map while it is followed, as
+    // refreshRoutes() keeps it: its line shows the way ahead.
+    const active = this.app.data.activeRoute;
     this.routeCacheSignal.update((current: FBRoutes) => {
       if (!ids) {
-        // remove all entries
         this.selectionClear('routes');
-        return [];
+        if (active && current.some((r: FBRoute) => r[0] === active)) {
+          this.selectionAdd('routes', active);
+        }
+        return current.filter((r: FBRoute) => r[0] === active);
       } else {
-        this.selectionRemove('routes', ids);
-        return current.filter((r: FBRoute) => !ids.includes(r[0]));
+        const removed = ids.filter((id) => id !== active);
+        this.selectionRemove('routes', removed);
+        return current.filter((r: FBRoute) => !removed.includes(r[0]));
       }
     });
   }
