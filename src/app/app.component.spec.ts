@@ -174,10 +174,10 @@ describe('AppComponent', () => {
       const triggers = fixture.debugElement
         .queryAll(By.css('fb-map-toolbar.left button'))
         .map((de) => de.nativeElement as HTMLButtonElement);
-      // Alarms, Layers, Draw, then More holding North up and Follow
+      // Alarms, Layers, More holding Draw, North up and Follow, then MOB
       expect(
         triggers.map((b) => b.querySelector('mat-icon')?.textContent?.trim())
-      ).toEqual(['', 'layers', 'edit', 'more_horiz']);
+      ).toEqual(['', 'layers', 'more_horiz', '']);
 
       const more = fixture.debugElement
         .queryAll(By.directive(MatMenuTrigger))
@@ -192,7 +192,8 @@ describe('AppComponent', () => {
       const labels = Array.from(
         document.querySelectorAll<HTMLElement>('.mat-mdc-menu-item-text > span')
       ).map((el) => el.textContent?.trim());
-      expect(labels.slice(0, 2)).toEqual([
+      expect(labels.slice(0, 3)).toEqual([
+        'Draw / Measure / Select',
         'Show Heading Up',
         'Center & Follow Vessel'
       ]);

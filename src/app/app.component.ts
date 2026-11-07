@@ -69,6 +69,7 @@ import {
   WeatherForecastModal,
   CourseSettingsModal,
   NotificationManager,
+  MobService,
   CourseService,
   SettingsFacade,
   AutopilotService,
@@ -313,6 +314,7 @@ export class AppComponent {
   protected mapInteract = inject(FBMapInteractService);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
+  private mob = inject(MobService);
   protected course = inject(CourseService);
   protected stream = inject(SKStreamFacade);
   protected skres = inject(SKResourceService);
@@ -692,6 +694,17 @@ export class AppComponent {
         action: () => this.openFeatureBrowser()
       });
     }
+    // Last and pinned: away from Alarms, so neither is pressed for the other.
+    items.push({
+      id: 'mob',
+      svgIcon: 'alarm-mob',
+      iconClass: 'ob',
+      tooltip: 'Person Overboard',
+      buttonClass: 'button-warn',
+      disabled: !this.app.featureFlags().notificationApi,
+      pinned: true,
+      action: () => this.mob.raise()
+    });
     return items;
   }
 
