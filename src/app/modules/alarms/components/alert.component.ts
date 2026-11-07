@@ -9,7 +9,8 @@ import {
   signal,
   inject,
   ChangeDetectionStrategy,
-  NgZone
+  NgZone,
+  computed
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +18,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { TimerButtonComponent } from './timer-button.component';
+import { MobReadoutComponent } from './mob-readout.component';
 
 import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
@@ -65,13 +67,14 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
     MatButtonModule,
     MatCardModule,
     MatProgressBarModule,
-    TimerButtonComponent
+    TimerButtonComponent,
+    MobReadoutComponent
   ],
   template: `
     @if (app.uiCtrl().alertList || hidden()) {
       <span></span>
     } @else {
-      @if (alert().visual && !alert().acknowledged) {
+      @if (isMob() || (alert().visual && !alert().acknowledged)) {
         <div>
           @if (!alert().canAcknowledge) {
             <mat-progress-bar
@@ -100,9 +103,15 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   {{ alert().message }}
                 </div>
               </div>
+              @if (isMob()) {
+                <fb-mob-readout [alert]="alert()"></fb-mob-readout>
+              }
             </mat-card-content>
 
-            <mat-card-actions>
+            <!-- an acknowledged MOB stays up until it is ended, with its own actions only -->
+            <mat-card-actions
+              [style.display]="isMob() && alert().acknowledged ? 'none' : null"
+            >
               <div style="display:flex;flex-wrap: wrap;">
                 @if (alert().sound && alert().canSilence) {
                   <div style="text-align: left;">
@@ -215,6 +224,7 @@ export class AlertComponent {
   doNotPlaySound = input<boolean>(false); // config setting
 
   hidden = signal<boolean>(false); // alert card is hidden
+  protected isMob = computed(() => this.alert().type === 'mob');
   progressValue = signal<number>(100);
 
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
