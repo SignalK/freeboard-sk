@@ -983,6 +983,14 @@
                       </mat-checkbox>
 
                       <mat-checkbox
+                        [(ngModel)]="facade.settings.vessels.currentVector"
+                        (change)="persistModel()"
+                        label="after"
+                      >
+                        Display Current (Set &amp; Drift)
+                      </mat-checkbox>
+
+                      <mat-checkbox
                         [(ngModel)]="facade.settings.vessels.laylines"
                         (change)="persistModel()"
                         label="after"

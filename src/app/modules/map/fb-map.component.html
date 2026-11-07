@@ -987,6 +987,21 @@
     </fb-wind-lines>
   }
 
+  @if (
+    app.config.vessels.currentVector &&
+    !skstream.selfPositionStale() &&
+    !app.config.vessels.fixedLocationMode
+  ) {
+    <fb-current-vector
+      [layerProperties]="followsSelf"
+      [current]="skstream.selfCurrent()"
+      [position]="dfeat.self.position"
+      [label]="app.formatValueForDisplay(skstream.selfCurrent()?.drift, 'm/s')"
+      [zIndex]="351"
+    >
+    </fb-current-vector>
+  }
+
   <!-- Vessel (self) -->
   <fb-vessel
     [layerProperties]="followsSelf"

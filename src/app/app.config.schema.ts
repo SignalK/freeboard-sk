@@ -160,6 +160,7 @@ export const AppConfigSchema = Type.Object({
     fixedPosition: position(),
     trail: bool(true), // from the server when it can supply one (#820)
     windVectors: bool(true), // vessel TWD, AWD vectors
+    currentVector: bool(true), // set / drift arrow at the own vessel
     laylines: bool(false),
     selfLines: Type.Object({
       cog: selfLine(10, 'rgba(204, 12, 225, 0.7)', 1), // length in minutes at SOG

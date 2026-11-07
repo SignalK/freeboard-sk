@@ -265,6 +265,17 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.display.plugins.favourites).toEqual(['/@mxtommy/kip']);
   });
 
+  it('shows the current arrow on the vessel by default', () => {
+    expect(defaultConfig().vessels.currentVector).toBe(true);
+  });
+
+  it('shows the current arrow for a config saved without the setting', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.vessels, 'currentVector');
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.currentVector).toBe(true);
+  });
+
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
