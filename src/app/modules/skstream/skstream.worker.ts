@@ -28,6 +28,7 @@ import {
   isSilent,
   isStale,
   linkedContexts,
+  linkingTargets,
   processSensorTarget
 } from './sensor-targets';
 import { IAppConfig, PathValue, Position } from 'src/app/types';
@@ -1098,8 +1099,14 @@ function parseStreamMessage(data: SKStreamMessage) {
             // AIS vessel filter, as they come from the boat's own sensors
             // A boat drawn at a context the target links to, directly or
             // through other targets, may move with it, so it is redrawn,
-            // under the old link and the new one.
+            // under the old link and the new one. A position appearing or
+            // going also decides whether the targets linking to this one
+            // are drawn on their own.
             const before = linkedContexts(data.context, vessels.targets);
+            const dependants =
+              v.path === 'navigation.position'
+                ? linkingTargets(data.context, vessels.targets)
+                : [];
             const kept = processSensorTarget(
               vessels.targets,
               data.context,
@@ -1108,6 +1115,7 @@ function parseStreamMessage(data: SKStreamMessage) {
             );
             new Set([
               ...before,
+              ...dependants,
               ...linkedContexts(data.context, vessels.targets)
             ]).forEach((linked) => {
               if (
@@ -1652,7 +1660,10 @@ function processAISStatus() {
   });
   vessels.targets.forEach((v, k) => {
     if (isSilent(v, now)) {
-      const linked = linkedContexts(k, vessels.targets);
+      const linked = [
+        ...linkedContexts(k, vessels.targets),
+        ...linkingTargets(k, vessels.targets)
+      ];
       targetStatus.expired[k] = true;
       vessels.targets.delete(k);
       linked.forEach((context) => {

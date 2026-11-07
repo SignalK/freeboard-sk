@@ -1216,4 +1216,16 @@ describe('skstream.worker sensor targets', () => {
     expect(last.targets).toContain(CAMERA);
     expect(last.updated).toContain(STERN);
   });
+
+  it('redraws the targets linking to one that gets its first position', () => {
+    place(RADAR);
+    send(CAMERA, 'name', 'bow');
+    send(RADAR, 'sameAs', CAMERA);
+    flush();
+    place(CAMERA);
+    flush();
+    expect(updates.at(-1)?.updated).toEqual(
+      expect.arrayContaining([CAMERA, RADAR])
+    );
+  });
 });

@@ -269,6 +269,19 @@ export function linkedContexts(
 }
 
 /**
+ * The targets that lead to `id` through their `sameAs` links. Whether they
+ * are drawn on their own depends on `id` having a position.
+ */
+export function linkingTargets(
+  id: string,
+  targets: Map<string, SKSensorTarget>
+): string[] {
+  return [...targets.keys()].filter((tid) =>
+    linkedContexts(tid, targets).includes(id)
+  );
+}
+
+/**
  * The context that stands for a target's object: links are followed to a
  * vessel on the chart or to a target without a usable link. A target without
  * a position is not a usable link. Targets linked in a loop agree on the

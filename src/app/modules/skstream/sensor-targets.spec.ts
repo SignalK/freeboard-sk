@@ -11,6 +11,7 @@ import {
   isSilent,
   isStale,
   linkedContexts,
+  linkingTargets,
   locateTarget,
   processSensorTarget,
   unlinkedTargets
@@ -516,6 +517,18 @@ describe('linkedContexts', () => {
     expect(linkedContexts(RADAR, targets)).toEqual([CAMERA, VESSEL]);
     targets.get(CAMERA)!.sameAs = RADAR;
     expect(linkedContexts(RADAR, targets)).toEqual([CAMERA]);
+  });
+});
+
+describe('linkingTargets', () => {
+  it('finds the targets that lead to a context, directly or not', () => {
+    const targets = new Map<string, SKSensorTarget>();
+    target(targets, RADAR, CAMERA);
+    target(targets, CAMERA, VESSEL);
+    expect(linkingTargets(VESSEL, targets).sort()).toEqual(
+      [CAMERA, RADAR].sort()
+    );
+    expect(linkingTargets(RADAR, targets)).toEqual([]);
   });
 });
 
