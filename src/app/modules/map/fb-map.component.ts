@@ -2348,11 +2348,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const reversed = this.app.data.activeRouteReversed;
     const stored = followedPointIndex(index, c.pointTotal, reversed);
     const self = this.app.data.vessels.self;
-    const followed = c.activeRoutePoints
-      ? reversed
-        ? [...c.activeRoutePoints].reverse()
-        : c.activeRoutePoints
-      : null;
+    // The course's point index can arrive before the geometry of a newly
+    // followed route, so the distance is measured on the cached route only
+    // when its point count matches the course.
+    const geometry = this.app.data.activeRoute
+      ? this.skres.fromCache('routes', this.app.data.activeRoute)?.[1].feature
+          .geometry.coordinates
+      : undefined;
+    const followed =
+      geometry && geometry.length === c.pointTotal
+        ? reversed
+          ? [...geometry].reverse()
+          : geometry
+        : null;
     const distance =
       self.position && followed
         ? distanceAlongRoute(self.position, followed, c.pointIndex, index)

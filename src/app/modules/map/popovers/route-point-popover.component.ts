@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  computed,
   inject,
   input,
   output
@@ -56,7 +57,7 @@ import { ActiveRoutePoint } from '../route-point-pick';
         </div>
         <div style="display:flex;">
           <div style="font-weight:bold;">ETA:</div>
-          <div style="flex: 1 1 auto;text-align:right;">{{ eta(ttg) }}</div>
+          <div style="flex: 1 1 auto;text-align:right;">{{ arrival() }}</div>
         </div>
       }
       @if (point().position; as pos) {
@@ -120,6 +121,12 @@ export class RoutePointPopoverComponent {
 
   protected app = inject(AppFacade);
   protected readonly icon = { class: 'icon-route', name: 'location_on' };
+
+  /** The arrival time, taken when the point is shown like its time to go. */
+  protected arrival = computed(() => {
+    const ttg = this.point().timeToGo;
+    return ttg ? this.eta(ttg) : '';
+  });
 
   /** The time of arrival `ttg` seconds from now, with the date when it is not
    *  today. */
