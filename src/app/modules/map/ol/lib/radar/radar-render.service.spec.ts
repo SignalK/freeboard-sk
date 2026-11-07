@@ -5,7 +5,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { Subject } from 'rxjs';
 import ImageSource from 'ol/source/Image';
-import { get as getProjection } from 'ol/proj';
+import { fromLonLat, get as getProjection } from 'ol/proj';
 import ReprojImage from 'ol/reproj/Image';
 import { RadarRenderDef } from './radar-render.service';
 import { ShipState } from './ship-state.model';
@@ -45,6 +45,7 @@ describe('RadarRenderService', () => {
     let worker: { onmessage?: (event: { data: object }) => void };
     let sources: ImageSource[];
     let service: RadarRenderService;
+    let shipState: Subject<ShipState>;
     const radar: RadarRenderDef = {
       id: 'r1',
       name: 'Radar',
@@ -83,9 +84,8 @@ describe('RadarRenderService', () => {
       );
       sources = [];
       service = TestBed.inject(RadarRenderService);
-      service.startRadar(radar, new Subject<ShipState>(), (source) =>
-        sources.push(source)
-      );
+      shipState = new Subject<ShipState>();
+      service.startRadar(radar, shipState, (source) => sources.push(source));
     });
 
     afterEach(() => {
@@ -112,6 +112,20 @@ describe('RadarRenderService', () => {
       const [minX, , maxX] = image.getExtent();
       const [resolutionX] = [image.getResolution()].flat();
       expect((maxX - minX) / 2).toBeCloseTo(1852, -1);
+      expect(resolutionX).toBeCloseTo((maxX - minX) / (2 * radar.maxSpokeLen));
+    });
+
+    it('follows the vessel when it moves', async () => {
+      const before = await loaded(sources[0]);
+      shipState.next({ location: [10, 50], heading: 0 });
+
+      const image = await loaded(sources[sources.length - 1]);
+      const [minX, minY, maxX, maxY] = image.getExtent();
+      const [centreX, centreY] = fromLonLat([10, 50]);
+      const [resolutionX] = [image.getResolution()].flat();
+      expect(image).not.toBe(before);
+      expect((minX + maxX) / 2).toBeCloseTo(centreX, -1);
+      expect((minY + maxY) / 2).toBeCloseTo(centreY, -3);
       expect(resolutionX).toBeCloseTo((maxX - minX) / (2 * radar.maxSpokeLen));
     });
   });
