@@ -4,6 +4,7 @@ import { RadarRenderService } from './radar-render.service';
 import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { Subject } from 'rxjs';
+import ImageSource from 'ol/source/Image';
 import { get as getProjection } from 'ol/proj';
 import ReprojImage from 'ol/reproj/Image';
 import { RadarRenderDef } from './radar-render.service';
@@ -40,22 +41,10 @@ describe('RadarRenderService', () => {
     expect(showMessage).not.toHaveBeenCalled();
   });
 
-  // Reprojection draws the radar's live WebGL canvas once per triangle on every
-  // refresh, and each draw is a GPU readback in Firefox.
-  it('draws the radar image in the map projection without reprojecting', () => {
-    vi.stubGlobal(
-      'Worker',
-      class {
-        postMessage(): void {}
-        terminate(): void {}
-      }
-    );
-    // jsdom has no OffscreenCanvas transfer
-    Object.defineProperty(
-      HTMLCanvasElement.prototype,
-      'transferControlToOffscreen',
-      { configurable: true, value: () => ({}) }
-    );
+  describe('radar picture', () => {
+    let worker: { onmessage?: (event: { data: object }) => void };
+    let sources: ImageSource[];
+    let service: RadarRenderService;
     const radar: RadarRenderDef = {
       id: 'r1',
       name: 'Radar',
@@ -65,22 +54,65 @@ describe('RadarRenderService', () => {
       streamUrl: 'ws://localhost/spokes',
       legend: {}
     };
-    const service = TestBed.inject(RadarRenderService);
-    const source = service.createRadarSource(radar, new Subject<ShipState>());
+    const view = getProjection('EPSG:3857')!;
+    const loaded = async (source: ImageSource) => {
+      const image = source.getImage([-1, -1, 1, 1], 1, 1, view)!;
+      image.load();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return image;
+    };
 
-    const image = source.getImage(
-      [-1000, -1000, 1000, 1000],
-      10,
-      1,
-      getProjection('EPSG:3857')!
-    );
+    beforeEach(() => {
+      vi.stubGlobal(
+        'Worker',
+        class {
+          onmessage?: (event: { data: object }) => void;
+          constructor() {
+            // eslint-disable-next-line @typescript-eslint/no-this-alias
+            worker = this;
+          }
+          postMessage(): void {}
+          terminate(): void {}
+        }
+      );
+      // jsdom has no OffscreenCanvas transfer
+      Object.defineProperty(
+        HTMLCanvasElement.prototype,
+        'transferControlToOffscreen',
+        { configurable: true, value: () => ({}) }
+      );
+      sources = [];
+      service = TestBed.inject(RadarRenderService);
+      service.startRadar(radar, new Subject<ShipState>(), (source) =>
+        sources.push(source)
+      );
+    });
 
-    service.disconnect();
-    Reflect.deleteProperty(
-      HTMLCanvasElement.prototype,
-      'transferControlToOffscreen'
-    );
+    afterEach(() => {
+      service.disconnect();
+      Reflect.deleteProperty(
+        HTMLCanvasElement.prototype,
+        'transferControlToOffscreen'
+      );
+    });
 
-    expect(image).not.toBeInstanceOf(ReprojImage);
+    // Reprojection draws the live WebGL canvas once per triangle on every
+    // refresh, and each draw is a GPU readback in Firefox.
+    it('is drawn in the map projection without reprojecting', () => {
+      const image = sources[0].getImage([-1, -1, 1, 1], 1, 1, view);
+
+      expect(image).not.toBeInstanceOf(ReprojImage);
+    });
+
+    it('takes the scale of the new range', async () => {
+      await loaded(sources[0]);
+      worker.onmessage?.({ data: { range: 1852 } });
+
+      const image = await loaded(sources[sources.length - 1]);
+      const [minX, , maxX] = image.getExtent();
+      const [resolutionX] = [image.getResolution()].flat();
+      expect((maxX - minX) / 2).toBeCloseTo(1852, -1);
+      expect(resolutionX).toBeCloseTo((maxX - minX) / (2 * radar.maxSpokeLen));
+    });
   });
 });

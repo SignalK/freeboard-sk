@@ -104,8 +104,8 @@ export class RadarComponent implements OnInit, OnChanges, OnDestroy {
       .connect()
       .then((radar) => {
         if (radar && this.layer) {
-          this.layer.setSource(
-            this.radarRenderService.createRadarSource(radar, this.subject)
+          this.radarRenderService.startRadar(radar, this.subject, (source) =>
+            this.layer?.setSource(source)
           );
         }
       })
