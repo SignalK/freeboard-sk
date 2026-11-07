@@ -1229,3 +1229,139 @@ describe('skstream.worker sensor targets', () => {
     );
   });
 });
+
+// The buddy list plugin flags a buddy once, when it is first seen. A target
+// that goes quiet for longer than the AIS max age is dropped, and when it
+// reports again it is a new target: it must still be shown as a buddy.
+describe('skstream.worker AIS targets — buddy flag', () => {
+  const id = 'vessels.urn:mrn:imo:mmsi:123456789';
+  const other = 'vessels.urn:mrn:imo:mmsi:987654321';
+  const position = {
+    path: 'navigation.position',
+    value: { latitude: 25.7, longitude: -80.2 }
+  };
+  let buddyInUpdates: Array<boolean | undefined>;
+
+  const deliver = (context: string, ...values: PathValue[]) =>
+    handleStreamEvent({
+      action: 'onMessage',
+      msg: { context, updates: [{ values }] } as unknown as SKStreamMessage
+    });
+
+  const configure = (vessels: boolean) =>
+    dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          cmd: 'settings',
+          options: {
+            config: {
+              units: {},
+              vessels: { aisShowTrack: false },
+              signalk: { maxRadius: 0, vessels },
+              selections: {}
+            }
+          }
+        }
+      })
+    );
+
+  // Past the AIS max age the target is dropped in the next update, which
+  // another vessel's report brings about.
+  const expire = () => {
+    vi.advanceTimersByTime(10 * 60000);
+    deliver(other, position);
+    vi.advanceTimersByTime(1000);
+    expect(buddyInUpdates.at(-1)).toBeUndefined();
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        readyState = 1;
+        close() {}
+        send() {}
+      }
+    );
+    initVessels();
+    buddyInUpdates = [];
+    vi.stubGlobal(
+      'postMessage',
+      vi.fn(
+        (msg: {
+          action?: string;
+          result?: { aisTargets?: Map<string, SKVessel> };
+        }) => {
+          if (msg.action === 'update' && msg.result?.aisTargets) {
+            buddyInUpdates.push(msg.result.aisTargets.get(id)?.buddy);
+          }
+        }
+      )
+    );
+    dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          cmd: 'open',
+          options: {
+            url: 'ws://localhost:3000/signalk/v1/stream',
+            config: {
+              units: {},
+              vessels: { aisShowTrack: false },
+              signalk: { maxRadius: 0, vessels: true },
+              selections: {}
+            }
+          }
+        }
+      })
+    );
+    // the hello starts the timer that posts the updates
+    handleStreamEvent({
+      action: 'onMessage',
+      msg: {
+        version: '2.0.0',
+        self: 'vessels.urn:mrn:imo:mmsi:000000000'
+      } as unknown as SKStreamMessage
+    });
+  });
+
+  afterEach(() => {
+    dispatchEvent(new MessageEvent('message', { data: { cmd: 'close' } }));
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('shows a buddy that went quiet as a buddy when it reports again', () => {
+    deliver(id, { path: '', value: { buddy: true } }, position);
+    vi.advanceTimersByTime(1000);
+    expect(buddyInUpdates.at(-1)).toBe(true);
+
+    expire();
+
+    deliver(id, position);
+    vi.advanceTimersByTime(1000);
+    expect(buddyInUpdates.at(-1)).toBe(true);
+  });
+
+  it('does not show a vessel removed from the buddy list as a buddy again', () => {
+    deliver(id, { path: '', value: { buddy: true } }, position);
+    deliver(id, { path: '', value: { buddy: false } });
+    expire();
+
+    deliver(id, position);
+    vi.advanceTimersByTime(1000);
+    expect(buddyInUpdates.at(-1)).toBe(false);
+  });
+
+  it('takes a removal from the buddy list while AIS vessels are off', () => {
+    deliver(id, { path: '', value: { buddy: true } }, position);
+    configure(false);
+    deliver(id, { path: '', value: { buddy: false } });
+    configure(true);
+
+    deliver(id, position);
+    vi.advanceTimersByTime(1000);
+    expect(buddyInUpdates.at(-1)).toBe(false);
+  });
+});
