@@ -3,6 +3,12 @@
  * one point of the active route (navigate from here, skip).
  */
 
+import { GeoUtils } from 'src/app/lib/geoutils';
+import { Position } from 'src/app/types';
+
+/** Below this speed over ground (0.5 kn, in m/s) no time to go is estimated. */
+export const MIN_TIME_TO_GO_SOG = 0.2572;
+
 /** A point of the active route, counted in the order it is being followed. */
 export interface ActiveRoutePoint {
   /** 0 based position in the order the route is being followed. */
@@ -11,6 +17,10 @@ export interface ActiveRoutePoint {
   name?: string;
   /** [lon, lat] */
   position?: number[];
+  /** Metres from the vessel along the route; absent for a point passed. */
+  distance?: number;
+  /** Seconds to go at the current speed over ground; absent when stopped. */
+  timeToGo?: number;
   /** Whether this is the point being headed for. */
   isNext: boolean;
 }
@@ -77,4 +87,36 @@ export function followedPointIndex(
   reversed: boolean
 ): number {
   return reversed ? total - 1 - index : index;
+}
+
+/**
+ * Metres from `vessel` to point `index` along the route: straight to the point
+ * being headed for, `nextIndex`, then along the legs. `followed` holds the
+ * route's points in the order it is followed, as both indexes count. Undefined
+ * for a point already passed.
+ */
+export function distanceAlongRoute(
+  vessel: Position,
+  followed: ReadonlyArray<Position>,
+  nextIndex: number,
+  index: number
+): number | undefined {
+  if (nextIndex < 0 || index < nextIndex || index >= followed.length) {
+    return undefined;
+  }
+  let distance = GeoUtils.distanceTo(vessel, followed[nextIndex]);
+  for (let i = nextIndex + 1; i <= index; i++) {
+    distance += GeoUtils.distanceTo(followed[i - 1], followed[i]);
+  }
+  return distance;
+}
+
+/** Seconds to cover `distance` metres at `sog` m/s; undefined when stopped. */
+export function timeToGo(
+  distance: number | undefined,
+  sog: number | null | undefined
+): number | undefined {
+  return distance !== undefined && sog && sog >= MIN_TIME_TO_GO_SOG
+    ? distance / sog
+    : undefined;
 }

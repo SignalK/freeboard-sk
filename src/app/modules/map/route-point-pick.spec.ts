@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  distanceAlongRoute,
   followedPointIndex,
   pickRoutePoints,
-  preferredRoutePoint
+  preferredRoutePoint,
+  timeToGo
 } from './route-point-pick';
 
 // EPSG:3857 world width in metres.
@@ -96,5 +98,41 @@ describe('followedPointIndex', () => {
   it('counts from the end when the route is followed in reverse', () => {
     expect(followedPointIndex(0, 5, true)).toBe(4);
     expect(followedPointIndex(4, 5, true)).toBe(0);
+  });
+});
+
+describe('distanceAlongRoute', () => {
+  // About 1 nmi (1852 m) between neighbours along the equator.
+  const NM = 1 / 60;
+  const followed: [number, number][] = [
+    [0, 0],
+    [NM, 0],
+    [2 * NM, 0],
+    [3 * NM, 0]
+  ];
+
+  it('goes straight to the point headed for, then along the legs', () => {
+    const vessel: [number, number] = [NM / 2, 0];
+    expect(distanceAlongRoute(vessel, followed, 1, 1)).toBeCloseTo(926, -1);
+    expect(distanceAlongRoute(vessel, followed, 1, 3)).toBeCloseTo(
+      926 + 2 * 1853,
+      -2
+    );
+  });
+
+  it('has no distance to a point already passed', () => {
+    expect(distanceAlongRoute([NM, 0], followed, 2, 1)).toBeUndefined();
+  });
+});
+
+describe('timeToGo', () => {
+  it('divides the distance by the speed over ground', () => {
+    expect(timeToGo(1852, 2.572)).toBeCloseTo(720, 0);
+  });
+
+  it('gives no estimate when stopped or without a distance', () => {
+    expect(timeToGo(1852, 0.1)).toBeUndefined();
+    expect(timeToGo(1852, null)).toBeUndefined();
+    expect(timeToGo(undefined, 3)).toBeUndefined();
   });
 });

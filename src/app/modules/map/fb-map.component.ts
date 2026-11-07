@@ -213,10 +213,12 @@ import { waypointSnapAt } from './ol/lib/waypoint-snap';
 import { drawnWaypoints } from './ol/lib/resources/route-waypoint-overlap';
 import {
   ActiveRoutePoint,
+  distanceAlongRoute,
   followedPointIndex,
   pickRoutePoints,
   preferredRoutePoint,
-  ROUTE_POINT_PICK_PX
+  ROUTE_POINT_PICK_PX,
+  timeToGo
 } from './route-point-pick';
 import { AppIconDef, SymbolService } from '../icons';
 import {
@@ -2343,16 +2345,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private activeRoutePoint(index: number): ActiveRoutePoint {
     const c = this.course.courseData();
     // Point names are in the order the route is stored.
-    const stored = followedPointIndex(
-      index,
-      c.pointTotal,
-      this.app.data.activeRouteReversed
-    );
+    const reversed = this.app.data.activeRouteReversed;
+    const stored = followedPointIndex(index, c.pointTotal, reversed);
+    const self = this.app.data.vessels.self;
+    const followed = c.activeRoutePoints
+      ? reversed
+        ? [...c.activeRoutePoints].reverse()
+        : c.activeRoutePoints
+      : null;
+    const distance =
+      self.position && followed
+        ? distanceAlongRoute(self.position, followed, c.pointIndex, index)
+        : undefined;
     return {
       index,
       total: c.pointTotal,
       name: c.pointNames?.[stored] || undefined,
       position: c.activeRoutePoints?.[stored],
+      distance,
+      timeToGo: timeToGo(distance, self.sog),
       isNext: index === c.pointIndex
     };
   }
