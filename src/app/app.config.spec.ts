@@ -289,6 +289,17 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels.currentVector).toBe(true);
   });
 
+  it('hides the wind vectors on the vessel by default', () => {
+    expect(defaultConfig().vessels.windVectors).toBe(false);
+  });
+
+  it('keeps the wind vectors on once the user has them on', () => {
+    const cfg = defaultConfig();
+    cfg.vessels.windVectors = true;
+    cleanConfig(cfg, {});
+    expect(cfg.vessels.windVectors).toBe(true);
+  });
+
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
