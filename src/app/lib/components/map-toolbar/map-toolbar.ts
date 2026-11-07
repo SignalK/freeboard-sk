@@ -46,6 +46,11 @@ export interface ToolbarItem {
    * Without one, the toolbar adds its own overflow button.
    */
   overflowAnchor?: boolean;
+  /**
+   * Always shown, at the bottom of the toolbar after every other button,
+   * however few fit: an emergency button must stay where the crew expect it.
+   */
+  pinned?: boolean;
 }
 
 export interface ToolbarSplit<T> {
@@ -54,6 +59,8 @@ export interface ToolbarSplit<T> {
   /** Items that did not fit, in toolbar order. */
   overflow: T[];
   overflowed: boolean;
+  /** Pinned items, shown after everything else, the overflow button included. */
+  pinned: T[];
 }
 
 /** How many buttons fit in a toolbar whose content box is `height` px tall. */
@@ -64,22 +71,28 @@ export function toolbarSlots(height: number): number {
 /**
  * Splits toolbar items between the buttons that fit in `slots` and an overflow
  * menu. The order never changes: when the items don't all fit, the first
- * `slots - 1` are shown and the last slot goes to the overflow button.
+ * `slots - 1` are shown and the last slot goes to the overflow button. Pinned
+ * items take their slots first and are never moved into the menu.
  */
 export function splitToolbar<T>(
   items: readonly T[],
   slots: number,
-  isAnchor: (item: T) => boolean = () => false
+  isAnchor: (item: T) => boolean = () => false,
+  isPinned: (item: T) => boolean = () => false
 ): ToolbarSplit<T> {
-  if (items.length <= slots) {
-    return { shown: [...items], overflow: [], overflowed: false };
+  const pinned = items.filter(isPinned);
+  const free = items.filter((item) => !isPinned(item));
+  const room = slots - pinned.length;
+  if (free.length <= room) {
+    return { shown: free, overflow: [], overflowed: false, pinned };
   }
-  const rest = items.filter((item) => !isAnchor(item));
-  const keep = Math.max(0, slots - 1);
+  const rest = free.filter((item) => !isAnchor(item));
+  const keep = Math.max(0, room - 1);
   return {
     shown: rest.slice(0, keep),
     overflow: rest.slice(keep),
-    overflowed: true
+    overflowed: true,
+    pinned
   };
 }
 
@@ -96,7 +109,8 @@ const COMPARED_KEYS = [
   'disabled',
   'badge',
   'menu',
-  'overflowAnchor'
+  'overflowAnchor',
+  'pinned'
 ] as const;
 
 /**

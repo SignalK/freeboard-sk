@@ -102,6 +102,13 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
         }
       </div>
     }
+    @for (item of split().pinned; track item.id) {
+      <div class="toolbarItem">
+        <ng-container
+          *ngTemplateOutlet="button; context: { $implicit: item }"
+        ></ng-container>
+      </div>
+    }
 
     <mat-menu #overflowMenu="matMenu">
       @for (item of split().overflow; track item.id) {
@@ -246,7 +253,12 @@ export class MapToolbarComponent {
   });
 
   readonly split = computed(() =>
-    splitToolbar(this.stableItems(), this.slots(), (i) => !!i.overflowAnchor)
+    splitToolbar(
+      this.stableItems(),
+      this.slots(),
+      (i) => !!i.overflowAnchor,
+      (i) => !!i.pinned
+    )
   );
 
   /** Items that did not fit. A host with an anchor item renders these at the top of its menu. */
