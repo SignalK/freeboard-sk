@@ -199,6 +199,22 @@ describe('MapToolbarComponent', () => {
     expect(b.getAttribute('aria-label')).toBe('Label b');
   });
 
+  describe('with a pinned item', () => {
+    const items = () => [item('a'), item('b'), item('mob', { pinned: true })];
+
+    it('draws it below the "…" button', () => {
+      mount(items());
+      fitSlots(2);
+      expect(buttonIcons()).toEqual(['more_horiz', 'icon_mob']);
+    });
+
+    it('keeps only it when nothing else fits', () => {
+      mount(items());
+      fitSlots(1);
+      expect(buttonIcons()).toEqual(['icon_mob']);
+    });
+  });
+
   describe('with an anchor item', () => {
     const left = () => [
       item('a'),

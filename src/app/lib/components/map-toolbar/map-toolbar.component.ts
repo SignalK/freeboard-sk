@@ -60,7 +60,7 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
         ></ng-container>
       </div>
     }
-    @if (split().overflowed) {
+    @if (split().overflowed && overflowButtonFits()) {
       <div class="toolbarItem">
         @if (anchor(); as a) {
           <button
@@ -263,6 +263,11 @@ export class MapToolbarComponent {
 
   /** Items that did not fit. A host with an anchor item renders these at the top of its menu. */
   readonly overflow = computed(() => this.split().overflow);
+
+  /** A toolbar too short for the overflow button too keeps its pinned items. */
+  protected readonly overflowButtonFits = computed(
+    () => this.slots() > this.split().pinned.length
+  );
 
   protected readonly anchor = computed(() =>
     this.stableItems().find((i) => i.overflowAnchor)
