@@ -10,6 +10,9 @@ import { AlertData } from './components/alert.component';
 import { NotificationManager } from './notification-manager';
 import { mobBox } from './mob';
 
+/** How long after the server's answer the MOB this display raised may still move its chart. */
+const RAISE_ECHO_MS = 10000;
+
 /**
  * Person overboard actions. Nothing here changes the course on its own: an
  * autopilot following the destination turns the boat the moment it changes,
@@ -23,8 +26,10 @@ export class MobService {
   private mapService = inject(MapService);
   private splitView = inject(SplitViewService);
 
-  /** The MOB this display raised, until it has zoomed to it. */
-  private zoomPending: string | null = null;
+  /** The MOB this display raised, until its notification first arrives. */
+  private zoomPending: { id: string; until: number } | null = null;
+  /** A MOB request is on its way to the server. */
+  private raising = false;
   /**
    * Set while a history playback runs: the vessel it shows is not where the
    * boat is, so a fit to it could zoom far out from the MOB.
@@ -45,14 +50,26 @@ export class MobService {
    * view they are navigating on.
    */
   async raise() {
-    this.zoomPending = null;
-    const id = await this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
-    if (!id) {
+    // a second press before the server answers would raise a second MOB
+    if (this.raising) {
       return;
     }
-    // the notification may arrive before the server's answer to the request
-    this.zoomPending = id;
-    this.onMobAlerts(this.notiMgr.mobAlerts().map(([, a]) => a));
+    this.raising = true;
+    this.zoomPending = null;
+    try {
+      const id = await this.notiMgr.raiseServerAlarm(
+        'mob',
+        'Person Overboard!'
+      );
+      if (!id) {
+        return;
+      }
+      // the notification may arrive before the server's answer to the request
+      this.zoomPending = { id, until: Date.now() + RAISE_ECHO_MS };
+      this.onMobAlerts(this.notiMgr.mobAlerts().map(([, a]) => a));
+    } finally {
+      this.raising = false;
+    }
   }
 
   /** Fit the active chart pane to the vessel and the MOB, or to the MOB alone in playback. */
@@ -129,11 +146,15 @@ export class MobService {
   }
 
   private onMobAlerts(alerts: AlertData[]) {
-    const raised = alerts.find(
-      (a) => a.id === this.zoomPending && a.properties.position
-    );
-    if (raised) {
+    const pending = this.zoomPending;
+    if (!pending) {
+      return;
+    }
+    const raised = alerts.find((a) => a.id === pending.id);
+    if (raised || Date.now() > pending.until) {
       this.zoomPending = null;
+    }
+    if (raised) {
       this.zoomTo(raised);
     }
   }

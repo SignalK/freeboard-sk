@@ -65,6 +65,10 @@ const mobAlert = (id: string) =>
   ({ id, properties: { position: MOB } }) as AlertData;
 
 const alert = mobAlert('m1');
+const other = {
+  id: 'm2',
+  properties: { position: { latitude: 10, longitude: 20 } }
+} as AlertData;
 
 describe('MobService', () => {
   afterEach(() => TestBed.resetTestingModule());
@@ -92,21 +96,63 @@ describe('MobService', () => {
   });
 
   it('zooms to it when the notification beats the answer to the request', async () => {
-    const { mob, app, mobAlerts } = setup({});
+    const { mob, mobAlerts } = setup({});
+    const zoomTo = vi.spyOn(mob, 'zoomTo');
     const raised = mob.raise();
-    mobAlerts.set([['notifications.mob.m1', alert]]);
+    mobAlerts.set([
+      ['notifications.mob.m2', other],
+      ['notifications.mob.m1', alert]
+    ]);
     TestBed.tick();
     await raised;
-    expect(app.mapMoveRequest()).not.toBeNull();
+    expect(zoomTo).toHaveBeenCalledTimes(1);
+    expect(zoomTo).toHaveBeenCalledWith(alert);
+  });
+
+  it('raises one MOB however often it is pressed before the server answers', async () => {
+    const { mob, notiMgr } = setup({});
+    const first = mob.raise();
+    void mob.raise();
+    await first;
+    expect(notiMgr.raiseServerAlarm).toHaveBeenCalledTimes(1);
+    await mob.raise();
+    expect(notiMgr.raiseServerAlarm).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not move the chart later when its MOB first arrives without a position', async () => {
+    const { mob, app, mobAlerts } = setup({});
+    await mob.raise();
+    mobAlerts.set([
+      ['notifications.mob.m1', { id: 'm1', properties: {} } as AlertData]
+    ]);
+    TestBed.tick();
+    mobAlerts.set([['notifications.mob.m1', alert]]);
+    TestBed.tick();
+    expect(app.mapMoveRequest()).toBeNull();
+  });
+
+  it('gives up on a MOB the server never reports in time', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const { mob, app, mobAlerts } = setup({});
+      await mob.raise();
+      vi.setSystemTime(Date.now() + 11000);
+      mobAlerts.set([['notifications.mob.m2', other]]);
+      TestBed.tick();
+      mobAlerts.set([
+        ['notifications.mob.m2', other],
+        ['notifications.mob.m1', alert]
+      ]);
+      TestBed.tick();
+      expect(app.mapMoveRequest()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not zoom to a MOB another display raised meanwhile', async () => {
     const { mob, app, mobAlerts } = setup({});
     await mob.raise();
-    const other = {
-      id: 'm2',
-      properties: { position: { latitude: 10, longitude: 20 } }
-    } as AlertData;
     mobAlerts.set([['notifications.mob.m2', other]]);
     TestBed.tick();
     expect(app.mapMoveRequest()).toBeNull();
