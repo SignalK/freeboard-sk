@@ -1034,3 +1034,53 @@ describe('skstream.worker processVessel — AIS track points', () => {
     expect(vessel.track[vessel.track.length - 1]).toEqual([[-80, 25]]);
   });
 });
+
+// The current arrives as one environment.current object or as its separate
+// values; each value keeps its own receipt time so a stale one is not taken
+// for fresh because another one arrived.
+describe('skstream.worker processVessel — environment.current', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('stamps only the values the object carries', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1000);
+    const vessel = new SKVessel();
+    processVessel(
+      vessel,
+      { path: 'environment.current', value: { setTrue: 2.3, drift: 0.5 } },
+      true
+    );
+    expect(vessel.current).toEqual({
+      setTrue: 2.3,
+      setMagnetic: null,
+      drift: 0.5
+    });
+    expect(vessel.currentUpdatedAt).toEqual({
+      setTrue: 1000,
+      setMagnetic: 0,
+      drift: 1000
+    });
+  });
+
+  it('stamps a separate value on its own', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000);
+    const vessel = new SKVessel();
+    processVessel(
+      vessel,
+      { path: 'environment.current.drift', value: 0.5 },
+      true
+    );
+    now.mockReturnValue(2000);
+    processVessel(
+      vessel,
+      { path: 'environment.current.setTrue', value: 1 },
+      true
+    );
+    expect(vessel.currentUpdatedAt).toEqual({
+      setTrue: 2000,
+      setMagnetic: 0,
+      drift: 1000
+    });
+  });
+});

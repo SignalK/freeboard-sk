@@ -190,10 +190,15 @@ export class SKStreamFacade {
       }
     });
 
-    setInterval(
-      () => this.refreshSelfPositionStale(),
-      SELF_POSITION_STALE_CHECK_INTERVAL
-    );
+    setInterval(() => {
+      this.refreshSelfPositionStale();
+      // clears the current once its inputs age out, also when the stream
+      // has gone silent
+      const self = this.app.data.vessels.self;
+      if (self) {
+        this.refreshSelfCurrent(self);
+      }
+    }, SELF_POSITION_STALE_CHECK_INTERVAL);
 
     this.app.vesselTrackSelection$.subscribe((ids) =>
       this.worker.postMessage({ cmd: 'trackSelection', options: { ids } })
@@ -319,7 +324,11 @@ export class SKStreamFacade {
         context: 'vessels.self',
         path: [
           { path: 'notifications.*', period: 1000 },
-          { path: 'radars.*', period: 1000 }
+          { path: 'radars.*', period: 1000 },
+          // published as one object or as separate values; the server
+          // matches the parent and its children separately
+          { path: 'environment.current', period: 1000 },
+          { path: 'environment.current.*', period: 1000 }
         ]
       }
     });
@@ -570,8 +579,13 @@ export class SKStreamFacade {
 
   private refreshSelfCurrent(v: SKVessel) {
     const now = Date.now();
+    // the data's own time, so that playback smooths at its own rate
+    const dataTime = Date.parse(v.positionTimestamp);
     this.selfCurrentSignal.set(
-      this.currentSmoother.update(currentSample(v, now), now)
+      this.currentSmoother.update(
+        currentSample(v, now),
+        Number.isFinite(dataTime) ? dataTime : now
+      )
     );
   }
 

@@ -8,7 +8,11 @@ import {
 } from './skstream.facade';
 import { SKVessel } from '../skresources/resource-classes';
 import { TRAIL_DURATION_ALL, TrackSource } from './track-source';
-import { CurrentSmoother, CurrentVector } from 'src/app/lib/current-vector';
+import {
+  CURRENT_INPUT_MAX_AGE_MS,
+  CurrentSmoother,
+  CurrentVector
+} from 'src/app/lib/current-vector';
 
 // AIS icons rotate by `orientation`. A crabbing target's heading and COG differ,
 // so the icon must follow heading, with COG only as a fallback when no heading
@@ -86,6 +90,28 @@ describe('SKStreamFacade.refreshSelfCurrent', () => {
       })
     );
     expect(facade.selfCurrent()?.drift).toBeCloseTo(1);
+  });
+
+  it('clears the current once the log has gone silent', () => {
+    vi.useFakeTimers();
+    try {
+      const facade = facadeFor();
+      const v = Object.assign(new SKVessel(), {
+        sog: 3,
+        cogTrue: 0,
+        headingTrue: 0,
+        stw: 2,
+        stwUpdatedAt: Date.now()
+      });
+      facade.refreshSelfCurrent(v);
+      expect(facade.selfCurrent()).not.toBeNull();
+
+      vi.advanceTimersByTime(CURRENT_INPUT_MAX_AGE_MS + 1);
+      facade.refreshSelfCurrent(v);
+      expect(facade.selfCurrent()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('publishes nothing without a log', () => {

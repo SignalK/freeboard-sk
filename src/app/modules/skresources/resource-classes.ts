@@ -318,7 +318,8 @@ export class SKVessel extends SKTargetBase {
     setMagnetic: number | null;
     drift: number | null;
   } = { setTrue: null, setMagnetic: null, drift: null };
-  currentUpdatedAt = 0;
+  // per value, as the three can arrive in separate deltas
+  currentUpdatedAt = { setTrue: 0, setMagnetic: 0, drift: 0 };
   track: Array<Position[]> = [];
   vectors: { cog: Position[] } = {
     cog: [] // cog vector

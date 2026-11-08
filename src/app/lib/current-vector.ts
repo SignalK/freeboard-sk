@@ -22,7 +22,7 @@ export interface CurrentSource {
     setMagnetic: number | null;
     drift: number | null;
   };
-  currentUpdatedAt: number;
+  currentUpdatedAt: { setTrue: number; setMagnetic: number; drift: number };
 }
 
 /** A log or current value older than this is no longer used: when the log
@@ -82,13 +82,16 @@ export function currentSample(
   now: number
 ): { vector: CurrentVector; smoothed: boolean } | null {
   const variation = v.magneticVariation;
-  if (now - v.currentUpdatedAt <= CURRENT_INPUT_MAX_AGE_MS) {
-    const set = finite(v.current.setTrue)
-      ? v.current.setTrue
-      : magneticToTrue(v.current.setMagnetic, variation);
-    if (finite(set) && finite(v.current.drift)) {
-      return { vector: { set, drift: v.current.drift }, smoothed: false };
-    }
+  const fresh = (at: number) => now - at <= CURRENT_INPUT_MAX_AGE_MS;
+  const { current, currentUpdatedAt } = v;
+  const set =
+    finite(current.setTrue) && fresh(currentUpdatedAt.setTrue)
+      ? current.setTrue
+      : fresh(currentUpdatedAt.setMagnetic)
+        ? magneticToTrue(current.setMagnetic, variation)
+        : null;
+  if (finite(set) && finite(current.drift) && fresh(currentUpdatedAt.drift)) {
+    return { vector: { set, drift: current.drift }, smoothed: false };
   }
   if (now - v.stwUpdatedAt > CURRENT_INPUT_MAX_AGE_MS) {
     return null;
@@ -103,7 +106,9 @@ export function currentSample(
 }
 
 /** Exponential smoothing of the current, on its east and north components so
- * that a set either side of north averages correctly. */
+ * that a set either side of north averages correctly. Time is the data's own
+ * (epoch ms), so a playback at a higher rate smooths over the same stretch of
+ * the voyage as live data. */
 export class CurrentSmoother {
   private state: { east: number; north: number; at: number } | null = null;
 

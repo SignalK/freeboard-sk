@@ -989,6 +989,7 @@
 
   @if (
     app.config.vessels.currentVector &&
+    dfeat.self.positionReceived &&
     !skstream.selfPositionStale() &&
     !app.config.vessels.fixedLocationMode
   ) {

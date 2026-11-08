@@ -25,7 +25,7 @@ const source = (over: Partial<CurrentSource> = {}): CurrentSource => ({
   stw: 5 * KN,
   stwUpdatedAt: NOW,
   current: { setTrue: null, setMagnetic: null, drift: null },
-  currentUpdatedAt: 0,
+  currentUpdatedAt: { setTrue: 0, setMagnetic: 0, drift: 0 },
   ...over
 });
 
@@ -74,7 +74,7 @@ describe('currentSample()', () => {
     const s = currentSample(
       source({
         current: { setTrue: deg(45), setMagnetic: null, drift: 2 * KN },
-        currentUpdatedAt: NOW
+        currentUpdatedAt: { setTrue: NOW, setMagnetic: 0, drift: NOW }
       }),
       NOW
     );
@@ -88,7 +88,7 @@ describe('currentSample()', () => {
     const s = currentSample(
       source({
         current: { setTrue: null, setMagnetic: deg(40), drift: 2 * KN },
-        currentUpdatedAt: NOW,
+        currentUpdatedAt: { setTrue: 0, setMagnetic: NOW, drift: NOW },
         magneticVariation: deg(5)
       }),
       NOW
@@ -100,11 +100,47 @@ describe('currentSample()', () => {
     const s = currentSample(
       source({
         current: { setTrue: deg(45), setMagnetic: null, drift: 2 * KN },
-        currentUpdatedAt: NOW - CURRENT_INPUT_MAX_AGE_MS - 1
+        currentUpdatedAt: {
+          setTrue: NOW - CURRENT_INPUT_MAX_AGE_MS - 1,
+          setMagnetic: 0,
+          drift: NOW - CURRENT_INPUT_MAX_AGE_MS - 1
+        }
       }),
       NOW
     );
     expect(s?.smoothed).toBe(true);
+  });
+
+  it('needs both a fresh set and a fresh drift from a published current', () => {
+    const published = (setAt: number, driftAt: number) =>
+      currentSample(
+        source({
+          stw: null,
+          current: { setTrue: deg(45), setMagnetic: null, drift: 2 * KN },
+          currentUpdatedAt: { setTrue: setAt, setMagnetic: 0, drift: driftAt }
+        }),
+        NOW
+      );
+    const stale = NOW - CURRENT_INPUT_MAX_AGE_MS - 1;
+    expect(published(NOW, stale)).toBeNull();
+    expect(published(stale, NOW)).toBeNull();
+    expect(published(NOW, NOW)?.vector.drift).toBeCloseTo(2 * KN);
+  });
+
+  it('falls back to a fresh magnetic set when the true set is stale', () => {
+    const s = currentSample(
+      source({
+        current: { setTrue: deg(10), setMagnetic: deg(40), drift: 2 * KN },
+        currentUpdatedAt: {
+          setTrue: NOW - CURRENT_INPUT_MAX_AGE_MS - 1,
+          setMagnetic: NOW,
+          drift: NOW
+        },
+        magneticVariation: deg(5)
+      }),
+      NOW
+    );
+    expect(toDeg(s?.vector.set ?? 0)).toBeCloseTo(45);
   });
 
   it('uses magnetic heading and COG with the variation', () => {
