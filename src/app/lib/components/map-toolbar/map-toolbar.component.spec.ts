@@ -208,10 +208,12 @@ describe('MapToolbarComponent', () => {
       expect(buttonIcons()).toEqual(['more_horiz', 'icon_mob']);
     });
 
-    it('keeps only it when nothing else fits', () => {
+    it('keeps the "…" button and it when the toolbar is squeezed', () => {
       mount(items());
       fitSlots(1);
-      expect(buttonIcons()).toEqual(['icon_mob']);
+      expect(buttonIcons()).toEqual(['more_horiz', 'icon_mob']);
+      const host = fixture.nativeElement as HTMLElement;
+      expect(host.style.minHeight).toBe(`${2 * TOOLBAR_ITEM_PITCH}px`);
     });
   });
 
