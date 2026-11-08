@@ -66,13 +66,15 @@ export class MobService {
     if (!position) {
       return;
     }
-    const go = () => {
-      this.app.data.activeWaypoint = null;
-      this.course.setDestination(position);
+    const go = async () => {
+      // the waypoint stays the destination until the server takes the MOB
+      if (await this.course.setDestination(position)) {
+        this.app.data.activeWaypoint = null;
+      }
     };
     const pilot = this.app.data.vessels.self.autopilot;
     if (!pilot.enabled) {
-      go();
+      void go();
       return;
     }
     this.app
@@ -84,7 +86,7 @@ export class MobService {
       )
       .subscribe((res: { ok: boolean } | null) => {
         if (res?.ok) {
-          go();
+          void go();
         }
       });
   }
