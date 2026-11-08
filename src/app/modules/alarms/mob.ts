@@ -30,9 +30,13 @@ export function isMobDestination(
   destination: Position | null | undefined,
   mob: Position
 ): boolean {
+  if (!destination) {
+    return false;
+  }
+  // -180 and 180 are the same meridian
+  const dLon = Math.abs(((destination[0] - mob[0] + 540) % 360) - 180);
   return (
-    !!destination &&
-    Math.abs(destination[0] - mob[0]) < SAME_POINT_DEGREES &&
+    dLon < SAME_POINT_DEGREES &&
     Math.abs(destination[1] - mob[1]) < SAME_POINT_DEGREES
   );
 }

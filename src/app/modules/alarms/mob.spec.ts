@@ -46,3 +46,9 @@ describe('isMobDestination', () => {
     expect(isMobDestination(null, [178.4, -18.1])).toBe(false);
   });
 });
+
+describe('isMobDestination across the antimeridian', () => {
+  it('treats 180 and -180 as the same meridian', () => {
+    expect(isMobDestination([-180, -17], [180, -17])).toBe(true);
+  });
+});

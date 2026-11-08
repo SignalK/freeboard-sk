@@ -36,11 +36,11 @@ import { AlertData } from './alert.component';
         }
       </div>
       <div class="mob-actions">
-        <button mat-raised-button (click)="mob.zoomTo(alert())">
-          <mat-icon>zoom_in</mat-icon>
-          ZOOM
-        </button>
         @if (alert().properties.position) {
+          <button mat-raised-button (click)="mob.zoomTo(alert())">
+            <mat-icon>zoom_in</mat-icon>
+            ZOOM
+          </button>
           <button
             mat-raised-button
             [disabled]="navigating()"
