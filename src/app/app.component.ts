@@ -2795,6 +2795,7 @@ export class AppComponent {
     if (e.action === 'hello') {
       // ** hello message
       this.app.debug(e);
+      this.mob.playback = !!e.playback;
       if (e.playback) {
         this.mode = SKSTREAM_MODE.PLAYBACK;
       } else {

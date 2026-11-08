@@ -30,6 +30,11 @@ export class MobService {
   private known = new Set<string>();
   /** Until when a new MOB is the one this display raised. */
   private zoomUntil = 0;
+  /**
+   * Set while a history playback runs: the vessel it shows is not where the
+   * boat is, so a fit to it could zoom far out from the MOB.
+   */
+  playback = false;
 
   constructor() {
     effect(() => {
@@ -49,7 +54,7 @@ export class MobService {
     this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
   }
 
-  /** Fit the active chart pane to the vessel and the MOB. */
+  /** Fit the active chart pane to the vessel and the MOB, or to the MOB alone in playback. */
   zoomTo(alert: AlertData) {
     const mob = mobPosition(alert);
     if (!mob) {
@@ -134,7 +139,7 @@ export class MobService {
 
   private vesselPosition(): Position | null {
     const self = this.app.data.vessels.self;
-    return self.positionReceived ? self.position : null;
+    return !this.playback && self.positionReceived ? self.position : null;
   }
 }
 

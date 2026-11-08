@@ -91,6 +91,20 @@ describe('MobService', () => {
     });
   });
 
+  it('fits the vessel and the MOB live, and the MOB alone in playback', () => {
+    const { mob, app } = setup({});
+    mob.zoomTo(alert);
+    const live = app.mapMoveRequest() as { center: number[]; zoom: number };
+    expect(live.zoom).toBeLessThan(16);
+
+    mob.playback = true;
+    mob.zoomTo(alert);
+    const alone = app.mapMoveRequest() as { center: number[]; zoom: number };
+    expect(alone.zoom).toBe(16);
+    expect(alone.center[0]).toBeCloseTo(MOB.longitude);
+    expect(alone.center[1]).toBeCloseTo(MOB.latitude);
+  });
+
   it('keeps its view when another display raises a MOB', () => {
     const { app, mobAlerts } = setup({});
     mobAlerts.set([['notifications.mob.m1', alert]]);
