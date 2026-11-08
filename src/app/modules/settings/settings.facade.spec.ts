@@ -38,11 +38,12 @@ describe('SettingsFacade with a config loaded after it was created', () => {
   });
 
   it('keeps the loaded fixed position when saving an unrelated change', () => {
-    const { app, facade, saved } = setup();
-    facade.settings.vessels.windVectors = true;
+    const { app, facade, loaded, saved } = setup();
+    const windVectors = !loaded.vessels.windVectors;
+    facade.settings.vessels.windVectors = windVectors;
     facade.applySettings();
     expect(saved.at(-1)?.vessels.fixedPosition).toEqual([24.6, 59.8]);
-    expect(saved.at(-1)?.vessels.windVectors).toBe(true);
+    expect(saved.at(-1)?.vessels.windVectors).toBe(windVectors);
     expect(app.data.vessels.self.position).toEqual([24.6, 59.8]);
   });
 
