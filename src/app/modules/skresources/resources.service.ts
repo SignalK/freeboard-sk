@@ -2515,20 +2515,19 @@ export class SKResourceService {
    * The active route is never removed.
    */
   public routeRemove(ids?: string[]) {
-    // The active route stays on the map while it is followed, as
-    // refreshRoutes() keeps it: its line shows the way ahead.
+    // The active route stays on the map while it is followed: its line shows
+    // the way ahead. The selection still records the hide, so the route goes
+    // once following ends.
     const active = this.app.data.activeRoute;
     this.routeCacheSignal.update((current: FBRoutes) => {
       if (!ids) {
         this.selectionClear('routes');
-        if (active && current.some((r: FBRoute) => r[0] === active)) {
-          this.selectionAdd('routes', active);
-        }
         return current.filter((r: FBRoute) => r[0] === active);
       } else {
-        const removed = ids.filter((id) => id !== active);
-        this.selectionRemove('routes', removed);
-        return current.filter((r: FBRoute) => !removed.includes(r[0]));
+        this.selectionRemove('routes', ids);
+        return current.filter(
+          (r: FBRoute) => r[0] === active || !ids.includes(r[0])
+        );
       }
     });
   }

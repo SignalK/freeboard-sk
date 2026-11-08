@@ -5,8 +5,8 @@ import { FBRoute, FBRoutes } from 'src/app/types/resources/freeboard';
 
 /**
  * The route being followed stays on the map when routes are hidden from the
- * Route list, as refreshRoutes() already keeps it: its line and direction
- * chevrons show the way ahead. Exercised on a bare prototype with a mock app,
+ * Route list: its line and direction chevrons show the way ahead. The hide
+ * is still recorded in the selection, so it applies once following ends. Exercised on a bare prototype with a mock app,
  * as in resources-route-hide.spec.
  */
 const route = (id: string): FBRoute => [id, {}, true] as unknown as FBRoute;
@@ -45,14 +45,15 @@ describe('SKResourceService.routeRemove()', () => {
     const s = svc(null, [route('r1'), route('r2')], 'r2');
     s.routeRemove();
     expect(cacheIds(s)).toEqual(['r2']);
-    expect(selectionOf(s)).toEqual(['r2']);
+    // the hide is recorded, so the route goes once following ends
+    expect(selectionOf(s)).toEqual([]);
   });
 
   it('keeps the active route when it is hidden on its own', () => {
     const s = svc(['r1', 'r2'], [route('r1'), route('r2')], 'r2');
     s.routeRemove(['r1', 'r2']);
     expect(cacheIds(s)).toEqual(['r2']);
-    expect(selectionOf(s)).toEqual(['r2']);
+    expect(selectionOf(s)).toEqual([]);
   });
 
   it('hides every route when none is active', () => {

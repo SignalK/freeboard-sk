@@ -347,8 +347,17 @@ export class CourseService {
       value.pointTotal = 0;
       value.pointNames = [];
       value.destPointName = '';
+      const ended = this.app.data.activeRoute;
       this.app.data.activeRoute = null;
       this.app.data.activeRouteReversed = false;
+      // a route hidden while it was followed goes once following ends
+      if (
+        ended &&
+        this.skres.selectionIsFiltered('routes') &&
+        !this.skres.selectionHas('routes', ended)
+      ) {
+        this.skres.routeRemove([ended]);
+      }
       return value;
     };
 
