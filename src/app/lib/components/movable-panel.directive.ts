@@ -4,6 +4,7 @@ import {
   NgZone,
   OnDestroy,
   afterNextRender,
+  effect,
   inject,
   input
 } from '@angular/core';
@@ -53,7 +54,7 @@ interface Gesture {
  *
  * Touch needs a long-press first, so a quick swipe still scrolls a panel whose
  * content overflows it. Until the user moves it the panel stays where its own
- * CSS puts it.
+ * CSS puts it, or at `fbMovablePanelRestingBottom` when that is set.
  */
 @Directive({
   selector: '[fbMovablePanel]'
@@ -61,6 +62,8 @@ interface Gesture {
 export class MovablePanelDirective implements OnDestroy {
   /** The localStorage key the panel's placement is remembered under. */
   readonly fbMovablePanel = input.required<string>();
+  /** Bottom offset (px) for the panel while the user hasn't moved it. */
+  readonly fbMovablePanelRestingBottom = input<number | null>(null);
 
   private el: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
   private zone = inject(NgZone);
@@ -70,6 +73,10 @@ export class MovablePanelDirective implements OnDestroy {
   private resizeObserver?: ResizeObserver;
 
   constructor() {
+    effect(() => {
+      this.fbMovablePanelRestingBottom();
+      this.place();
+    });
     afterNextRender(() => {
       const s = this.el.style;
       s.setProperty('cursor', 'grab');
@@ -126,8 +133,12 @@ export class MovablePanelDirective implements OnDestroy {
    * itself to the space left of that point.
    */
   private place = () => {
+    if (!this.placement) {
+      this.rest();
+      return;
+    }
     const area = this.area();
-    if (!this.placement || !area || this.gesture?.state === 'dragging') {
+    if (!area || this.gesture?.state === 'dragging') {
       return;
     }
     const size = this.size();
@@ -140,6 +151,13 @@ export class MovablePanelDirective implements OnDestroy {
     s.top = bottom ? 'auto' : `${pos.y}px`;
     s.bottom = bottom ? `${area.h - size.h - pos.y}px` : 'auto';
   };
+
+  private rest() {
+    const bottom = this.fbMovablePanelRestingBottom();
+    if (bottom !== null) {
+      this.el.style.bottom = `${bottom}px`;
+    }
+  }
 
   private onDown = (e: PointerEvent) => {
     if (this.gesture || !e.isPrimary) {

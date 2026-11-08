@@ -13,7 +13,11 @@ const KEY = 'movable-panel-directive-spec';
   imports: [MovablePanelDirective],
   template: `
     <div id="area">
-      <div id="panel" fbMovablePanel="${KEY}">
+      <div
+        id="panel"
+        fbMovablePanel="${KEY}"
+        [fbMovablePanelRestingBottom]="resting"
+      >
         <button id="btn" (click)="clicks = clicks + 1">Go</button>
         <span id="label" (click)="labelClicks = labelClicks + 1">1 of 3</span>
       </div>
@@ -21,6 +25,7 @@ const KEY = 'movable-panel-directive-spec';
   `
 })
 class HostComponent {
+  resting: number | null = null;
   clicks = 0;
   labelClicks = 0;
 }
@@ -142,6 +147,22 @@ describe('MovablePanelDirective', () => {
     expect(panel.style.top).toBe('');
     expect(panel.style.right).toBe('');
     expect(panel.style.bottom).toBe('');
+  });
+
+  it('rests at the given bottom offset until it is moved', async () => {
+    await mount();
+    fixture.componentInstance.resting = 140;
+    fixture.detectChanges();
+    expect(panel.style.bottom).toBe('140px');
+
+    pointer(label, 'pointerdown', { x: 50, y: 400 });
+    pointer(window, 'pointermove', { x: 750, y: 520 });
+    pointer(window, 'pointerup', { x: 750, y: 520 });
+    expect(panel.style.bottom).toBe('20px');
+
+    fixture.componentInstance.resting = 60;
+    fixture.detectChanges();
+    expect(panel.style.bottom).toBe('20px');
   });
 
   it('moves with a mouse drag that starts off the controls, and remembers it', async () => {
