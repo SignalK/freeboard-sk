@@ -61,6 +61,7 @@ export const VesselAisIcons: AppIconSet = {
     'ais_active.svg',
     'ais_buddy.svg',
     'ais_cargo.svg',
+    'ais_fishing.svg',
     'ais_flag.svg',
     'ais_highspeed.svg',
     'ais_inactive.svg',
@@ -71,6 +72,10 @@ export const VesselAisIcons: AppIconSet = {
     'ais_self.svg'
   ]
 };
+
+// Fishing (30) shares the 30s with sailing (36) and pleasure craft (37), so it
+// gets its own icon instead of the one its tens bucket would give it.
+export const AIS_FISHING_TYPE_ID = 30;
 
 export const AIS_TYPE_IDS: Record<string, string> = {
   10: 'ais_active',
@@ -83,6 +88,7 @@ export const AIS_TYPE_IDS: Record<string, string> = {
   80: 'ais_tanker',
   90: 'ais_other',
   default: 'ais_active',
+  fishing: 'ais_fishing',
   inactive: 'ais_inactive',
   focused: 'ais_self',
   buddy: 'ais_buddy'
@@ -100,6 +106,7 @@ export const AIS_MOORED_STYLE_IDS: Record<string, [string, string]> = {
   80: ['#7F0000', '#FF0000'],
   90: ['#000000', '#808080'],
   default: ['white', '#FF00FF'],
+  fishing: ['#000000', '#FF8C00'],
   inactive: ['FF00DC', 'white'],
   buddy: ['white', '#4CFF00']
 };
