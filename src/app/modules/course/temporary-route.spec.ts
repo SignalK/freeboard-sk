@@ -230,5 +230,6 @@ describe('samePoints', () => {
     expect(samePoints([[181, 2]], [[-179, 2]])).toBe(true);
     expect(samePoints([[181.2, 2]], [[-178.8, 2]])).toBe(true);
     expect(samePoints([[181, 2]], [[-178, 2]])).toBe(false);
+    expect(samePoints([[181, 3]], [[-179, 2]])).toBe(false);
   });
 });

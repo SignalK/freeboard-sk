@@ -588,6 +588,9 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
 
     expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
     expect(t.skres.postToServer).not.toHaveBeenCalled();
+    expect(t.app.parseHttpErrorResponse).toHaveBeenCalledWith(
+      new Error('offline')
+    );
   });
 
   it('follows nothing when the server stores the copy without an id', async () => {
