@@ -151,7 +151,19 @@ export function followedRouteUpTo<T>(
   return followed.slice(0, endIndex + 1);
 }
 
-/** Whether two lists of route points hold the same positions in order. */
+/** Longitudes a whole turn apart can differ by rounding after the shift. */
+const LONGITUDE_EPSILON = 1e-9;
+
+function sameLongitude(a: number, b: number): boolean {
+  const turns = (a - b) / 360;
+  return Math.abs(turns - Math.round(turns)) * 360 < LONGITUDE_EPSILON;
+}
+
+/**
+ * Whether two lists of route points hold the same positions in order. A
+ * longitude matches its equivalents a whole turn away (181° is -179°), as a
+ * route edited across the antimeridian may store either.
+ */
 export function samePoints(
   a: ReadonlyArray<ReadonlyArray<number>>,
   b: ReadonlyArray<ReadonlyArray<number>>
@@ -159,7 +171,10 @@ export function samePoints(
   return (
     a.length === b.length &&
     a.every(
-      (p, i) => p.length === b[i].length && p.every((v, j) => v === b[i][j])
+      (p, i) =>
+        p.length === b[i].length &&
+        sameLongitude(p[0], b[i][0]) &&
+        p.every((v, j) => j === 0 || v === b[i][j])
     )
   );
 }

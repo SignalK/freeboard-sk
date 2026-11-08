@@ -580,6 +580,24 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
     expect(t.skres.postToServer).not.toHaveBeenCalled();
   });
 
+  it('does nothing when the route cannot be read from the server', async () => {
+    const t = following();
+    t.skres.fromServer.mockImplementation(() =>
+      Promise.reject(new Error('offline'))
+    );
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('follows nothing when the server stores the copy without an id', async () => {
+    const t = following();
+    t.skres.postToServer.mockImplementationOnce(() => Promise.resolve({}));
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.course.activateRoute).not.toHaveBeenCalled();
+  });
+
   it('does nothing when the server course has moved on', async () => {
     const t = following({ nextIndex: 1 });
     t.setServerActiveRoute('old', { pointIndex: 2, reverse: false });
