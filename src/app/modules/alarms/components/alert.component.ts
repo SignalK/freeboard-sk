@@ -263,6 +263,7 @@ export class AlertComponent {
       this.processAudio();
       if (
         !this.timerRef &&
+        !this.isMob() &&
         !['emergency', 'alarm'].includes(this.alert().priority) &&
         !this.showAutoNextPoint
       ) {

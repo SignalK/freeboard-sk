@@ -211,7 +211,11 @@ export class NotificationManager {
         canAcknowledge: v.status.canAcknowledge,
         canSilence: v.status.canSilence,
         canCancel: v.status.canClear,
-        createdAt: v.createdAt ? new Date(v.createdAt).valueOf() : Date.now()
+        createdAt: v.createdAt
+          ? new Date(v.createdAt).valueOf()
+          : replaced && replaced.id === v.id
+            ? replaced.createdAt
+            : Date.now()
       };
     } /* else {
       if (alertType === 'notification') {
