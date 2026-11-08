@@ -2415,8 +2415,8 @@ export class SKResourceService {
     try {
       // The followed route is shown even when hidden; the selection keeps
       // the hide for when following ends.
-      const active = this.app.data.activeRoute;
       const rtes = await this.listFromServer<FBRoute>('routes', query);
+      const active = this.app.data.activeRoute;
       const flist = rtes
         .filter((route: FBRoute) => route[2] || route[0] === active)
         .map((route: FBRoute): FBRoute => [route[0], route[1], true]);

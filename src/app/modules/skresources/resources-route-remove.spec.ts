@@ -86,6 +86,20 @@ describe('SKResourceService.refreshRoutes() and the followed route', () => {
     expect(selectionOf(s)).toEqual([]);
   });
 
+  it('leaves out a hidden route whose following ended during the fetch', async () => {
+    const s = svc([], [], 'r2');
+    Object.assign(s as unknown as Record<string, unknown>, {
+      listFromServer: async () => {
+        (
+          s as unknown as { app: { data: { activeRoute: string | null } } }
+        ).app.data.activeRoute = null;
+        return served({ r1: false, r2: false });
+      }
+    });
+    await s.refreshRoutes();
+    expect(cacheIds(s)).toEqual([]);
+  });
+
   it('shows only the selected routes when none is followed', async () => {
     const s = svc(['r1'], [], null);
     Object.assign(s as unknown as Record<string, unknown>, {
