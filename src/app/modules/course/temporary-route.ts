@@ -150,3 +150,16 @@ export function followedRouteUpTo<T>(
   const followed = reversed ? [...items].reverse() : [...items];
   return followed.slice(0, endIndex + 1);
 }
+
+/** Whether two lists of route points hold the same positions in order. */
+export function samePoints(
+  a: ReadonlyArray<ReadonlyArray<number>>,
+  b: ReadonlyArray<ReadonlyArray<number>>
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (p, i) => p.length === b[i].length && p.every((v, j) => v === b[i][j])
+    )
+  );
+}

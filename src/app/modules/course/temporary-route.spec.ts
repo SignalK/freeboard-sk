@@ -3,6 +3,7 @@ import {
   canEndRouteAt,
   followedRouteUpTo,
   isTemporaryRoute,
+  samePoints,
   promoteTemporaryRoute,
   routeIdFromHref,
   TEMPORARY_ROUTE_GRACE_MS,
@@ -185,5 +186,43 @@ describe('ending a route at a point', () => {
       'd',
       'c'
     ]);
+  });
+});
+
+describe('samePoints', () => {
+  it('matches the same positions in the same order only', () => {
+    expect(
+      samePoints(
+        [
+          [1, 2],
+          [3, 4]
+        ],
+        [
+          [1, 2],
+          [3, 4]
+        ]
+      )
+    ).toBe(true);
+    expect(
+      samePoints(
+        [
+          [1, 2],
+          [3, 4]
+        ],
+        [
+          [3, 4],
+          [1, 2]
+        ]
+      )
+    ).toBe(false);
+    expect(
+      samePoints(
+        [[1, 2]],
+        [
+          [1, 2],
+          [3, 4]
+        ]
+      )
+    ).toBe(false);
   });
 });
