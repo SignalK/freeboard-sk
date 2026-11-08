@@ -56,10 +56,12 @@ describe('SplitViewService: the active pane', () => {
 
     split.zoomBy(-1);
     split.centerOn([23.5, 60.1], 9);
+    split.centerOn([23.5, 60.1], 7, true);
 
     expect(seen).toEqual([
       { kind: 'zoom', step: -1 },
-      { kind: 'center', position: [23.5, 60.1], zoom: 9 }
+      { kind: 'center', position: [23.5, 60.1], zoom: 9, exactZoom: false },
+      { kind: 'center', position: [23.5, 60.1], zoom: 7, exactZoom: true }
     ]);
   });
 });

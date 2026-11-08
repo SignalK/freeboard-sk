@@ -60,6 +60,20 @@ describe('SplitMapComponent: the shared map buttons', () => {
     expect(cmp.zoom()).toBe(12);
   });
 
+  it('zooms out to a zoom that fits something', () => {
+    const cmp = bareComponent();
+    cmp.zoom.set(12);
+
+    cmp.onCommand({
+      kind: 'center',
+      position: [23.5, 60.1],
+      zoom: 9,
+      exactZoom: true
+    });
+
+    expect(cmp.zoom()).toBe(9);
+  });
+
   it('keeps the zoom when a place comes without one', () => {
     const cmp = bareComponent();
 

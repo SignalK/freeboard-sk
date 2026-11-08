@@ -1,13 +1,17 @@
-import { inject, Injectable } from '@angular/core';
+import { effect, inject, Injectable, untracked } from '@angular/core';
 
 import { AppFacade } from 'src/app/app.facade';
 import { FIT_MAX_ZOOM, fitBbox } from 'src/app/lib/map-fit';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
+import { SplitViewService } from 'src/app/modules/map/split-view/split-view.service';
 import { Position } from 'src/app/types';
 import { CourseService } from '../course';
 import { AlertData } from './components/alert.component';
 import { NotificationManager } from './notification-manager';
 import { mobBox } from './mob';
+
+/** How long the server may take to report a MOB this display raised. */
+const RAISE_ECHO_MS = 10000;
 
 /**
  * Person overboard actions. Nothing here changes the course on its own: an
@@ -20,30 +24,41 @@ export class MobService {
   private notiMgr = inject(NotificationManager);
   private course = inject(CourseService);
   private mapService = inject(MapService);
+  private splitView = inject(SplitViewService);
 
-  /**
-   * Raise a MOB alarm and zoom in on the vessel. Only this display moves:
-   * the others get the alarm but keep the view they are navigating on.
-   */
-  raise() {
-    this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
-    const vessel = this.vesselPosition();
-    if (vessel) {
-      this.app.mapMoveRequest.set({
-        center: vessel,
-        zoom: Math.min(this.app.MAP_ZOOM_EXTENT.max, FIT_MAX_ZOOM),
-        activePane: true
-      });
-    }
+  /** MOB alarms already on screen, so a new one can be told apart. */
+  private known = new Set<string>();
+  /** Until when a new MOB is the one this display raised. */
+  private zoomUntil = 0;
+
+  constructor() {
+    effect(() => {
+      const alerts = this.notiMgr.mobAlerts();
+      untracked(() => this.onMobAlerts(alerts.map(([, a]) => a)));
+    });
   }
 
-  /** Fit the map to the vessel and the MOB. */
+  /**
+   * Raise a MOB alarm. When the server reports it, this display zooms to it:
+   * the server places it where the vessel is now, which is not where a
+   * playback shows the vessel. The other displays get the alarm but keep the
+   * view they are navigating on.
+   */
+  raise() {
+    this.zoomUntil = Date.now() + RAISE_ECHO_MS;
+    this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
+  }
+
+  /** Fit the active chart pane to the vessel and the MOB. */
   zoomTo(alert: AlertData) {
     const mob = mobPosition(alert);
     if (!mob) {
       return;
     }
-    const map = this.mapService.getMaps()[0];
+    const map =
+      (this.splitView.secondaryActive()
+        ? this.mapService.getSecondaryMap()
+        : undefined) ?? this.mapService.getMaps()[0];
     const size = map?.getSize();
     const limits = this.app.MAP_ZOOM_EXTENT;
     const fit = fitBbox(
@@ -54,7 +69,7 @@ export class MobService {
       { min: limits.min, max: Math.min(limits.max, FIT_MAX_ZOOM) },
       map?.getView()?.getRotation() ?? 0
     );
-    this.app.mapMoveRequest.set({ ...fit, activePane: true });
+    this.app.mapMoveRequest.set({ ...fit, activePane: true, exactZoom: true });
   }
 
   /**
@@ -105,6 +120,16 @@ export class MobService {
           this.notiMgr.cancelServerAlarm(alert);
         }
       });
+  }
+
+  private onMobAlerts(alerts: AlertData[]) {
+    const fresh = alerts.filter((a) => !this.known.has(a.id));
+    this.known = new Set(alerts.map((a) => a.id));
+    const raised = fresh.find((a) => a.properties.position);
+    if (raised && Date.now() < this.zoomUntil) {
+      this.zoomUntil = 0;
+      this.zoomTo(raised);
+    }
   }
 
   private vesselPosition(): Position | null {

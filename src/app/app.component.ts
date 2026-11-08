@@ -1986,12 +1986,13 @@ export class AppComponent {
     center: Position;
     zoom?: number;
     activePane?: boolean;
+    exactZoom?: boolean;
   }) {
     // A place to show goes to the active pane, as from the lists, which
     // stops following there. Extensions move the main chart: they don't know
     // about the split.
     if (req.activePane && this.splitView.secondaryActive()) {
-      this.splitView.centerOn(req.center, req.zoom);
+      this.splitView.centerOn(req.center, req.zoom, req.exactZoom);
       return;
     }
     // An explicit reposition outranks follow-vessel mode: turn it off so the
