@@ -17,8 +17,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TimerButtonComponent } from './timer-button.component';
 import { MobReadoutComponent } from './mob-readout.component';
+import { alertTier } from '../alert-tier';
 
 import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
@@ -69,6 +71,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
     MatButtonModule,
     MatCardModule,
     MatProgressBarModule,
+    MatTooltipModule,
     TimerButtonComponent,
     MobReadoutComponent
   ],
@@ -76,15 +79,18 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
     @if (app.uiCtrl().alertList || hidden()) {
       <span></span>
     } @else {
-      @if (isMob() || (alert().visual && !alert().acknowledged)) {
-        <div>
+      @if (
+        tier() === 'card' &&
+        (isMob() || (alert().visual && !alert().acknowledged))
+      ) {
+        <div class="alert-card-wrap" [class]="'alert-' + alert().priority">
           @if (!alert().canAcknowledge && !isMob()) {
             <mat-progress-bar
               mode="determinate"
               [value]="progressValue()"
             ></mat-progress-bar>
           }
-          <mat-card style="padding:5px;border-radius:0;">
+          <mat-card class="alert-card">
             <mat-card-content>
               <div style="display:flex; width:100%;">
                 <div style="width:35px;">
@@ -217,10 +223,176 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
             </mat-card-actions>
           </mat-card>
         </div>
+      } @else if (tier() === 'row' && alert().visual && !alert().acknowledged) {
+        <div class="alert-row" [class]="'alert-' + alert().priority">
+          <mat-icon
+            class="alert-icon {{ alert().icon.class }}"
+            [svgIcon]="alert().icon.svgIcon ?? ''"
+            >{{ alert().icon.name }}</mat-icon
+          >
+          <div class="alert-message" [title]="alert().message">
+            {{ alert().message }}
+          </div>
+          <div class="alert-actions">
+            @if (app.data.activeRoute) {
+              @let isLastPoint =
+                course.courseData().pointIndex ===
+                course.courseData().pointTotal - 1;
+              @if (
+                app.config.course.autoNextPointOnArrival &&
+                app.config.course.autoNextPointTrigger === alert().type
+              ) {
+                @if (isLastPoint) {
+                  <timer-button
+                    [disabled]="nextPointClicked"
+                    [icon]="'clear_all'"
+                    [label]="'End Route in'"
+                    [cancelledLabel]="'End Route'"
+                    [period]="app.config.course.autoNextPointDelay"
+                    (nextPoint)="endRoute()"
+                  >
+                  </timer-button>
+                } @else {
+                  <timer-button
+                    [disabled]="nextPointClicked"
+                    [icon]="'skip_next'"
+                    [label]="'Next point in'"
+                    [cancelledLabel]="'NEXT POINT'"
+                    [period]="app.config.course.autoNextPointDelay"
+                    (nextPoint)="gotoNextPoint()"
+                  >
+                  </timer-button>
+                }
+              } @else if (showStaticNextPoint) {
+                @if (isLastPoint) {
+                  <button
+                    mat-icon-button
+                    matTooltip="End route"
+                    [disabled]="nextPointClicked"
+                    (click)="endRoute()"
+                  >
+                    <mat-icon>clear_all</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    matTooltip="Next point"
+                    [disabled]="nextPointClicked"
+                    (click)="gotoNextPoint()"
+                  >
+                    <mat-icon>skip_next</mat-icon>
+                  </button>
+                }
+              }
+            }
+            @if (alert().sound && alert().canSilence) {
+              <button
+                mat-icon-button
+                [matTooltip]="alert().silenced ? 'Muted' : 'Mute'"
+                [disabled]="alert().silenced"
+                (click)="muteAlarm()"
+              >
+                <mat-icon
+                  class="ob"
+                  [svgIcon]="
+                    alert().silenced
+                      ? 'sound-off-fill'
+                      : 'sound-unavailable-fill'
+                  "
+                ></mat-icon>
+              </button>
+            }
+            @if (alert().canAcknowledge) {
+              <button
+                mat-icon-button
+                matTooltip="Acknowledge"
+                (click)="ackAlarm()"
+              >
+                <mat-icon>check</mat-icon>
+              </button>
+            } @else {
+              <button mat-icon-button matTooltip="Dismiss" (click)="hide()">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+          @if (!alert().canAcknowledge) {
+            <mat-progress-bar
+              class="alert-timer"
+              mode="determinate"
+              [value]="progressValue()"
+            ></mat-progress-bar>
+          }
+        </div>
       }
     }
   `,
-  styles: [],
+  styles: [
+    `
+      .alert-card-wrap {
+        margin-bottom: 4px;
+      }
+      .alert-card {
+        padding: 5px;
+        border-radius: 6px;
+        border-left: 5px solid var(--alert-color, gray);
+      }
+      .alert-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+        margin-bottom: 4px;
+        padding: 0 4px 0 8px;
+        border-left: 5px solid var(--alert-color, gray);
+        border-radius: 6px;
+        overflow: hidden;
+        background-color: var(--mat-app-background-color, white);
+      }
+      /* Translucent like the Plotter Extensions widgets, so the chart shows through. */
+      @supports (background-color: color-mix(in srgb, white 78%, transparent)) {
+        .alert-row,
+        .alert-card {
+          background-color: color-mix(
+            in srgb,
+            var(--mat-app-background-color, white) 78%,
+            transparent
+          );
+        }
+      }
+      .alert-emergency,
+      .alert-alarm {
+        --alert-color: #f44336;
+      }
+      .alert-warn,
+      .alert-alert {
+        --alert-color: #ff9800;
+      }
+      .alert-icon {
+        flex: none;
+      }
+      .alert-message {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .alert-actions {
+        flex: none;
+        display: flex;
+        align-items: center;
+      }
+      .alert-timer {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 3px;
+      }
+    `
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AlertComponent {
@@ -232,6 +404,7 @@ export class AlertComponent {
 
   hidden = signal<boolean>(false); // alert card is hidden
   protected isMob = computed(() => this.alert().type === 'mob');
+  protected tier = computed(() => alertTier(this.alert()));
   progressValue = signal<number>(100);
 
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();

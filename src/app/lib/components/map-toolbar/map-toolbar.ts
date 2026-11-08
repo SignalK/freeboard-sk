@@ -37,6 +37,8 @@ export interface ToolbarItem {
   disabled?: boolean;
   /** Count shown on the button. A hidden item with a badge puts a dot on the overflow button. */
   badge?: number;
+  /** The button pulses: something behind it has not been dealt with yet. */
+  pulse?: boolean;
   /** Opens this menu (a submenu when the item is in the overflow menu). */
   menu?: MatMenuPanel;
   action?: () => void;
