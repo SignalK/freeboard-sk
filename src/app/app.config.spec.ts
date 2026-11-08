@@ -300,6 +300,16 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.vessels.windVectors).toBe(true);
   });
 
+  it('keeps the wind vectors on through a save and reload', () => {
+    const cfg = defaultConfig();
+    cfg.vessels.windVectors = true;
+    // saved as JSON, to localStorage and to the server's applicationData
+    const reloaded = JSON.parse(JSON.stringify(cfg)) as LegacyAppConfig;
+    expect(isSavedConfig(reloaded)).toBe(true);
+    cleanConfig(reloaded, {});
+    expect(reloaded.vessels.windVectors).toBe(true);
+  });
+
   it('displays the vessel trail by default', () => {
     expect(defaultConfig().vessels.trail).toBe(true);
   });
