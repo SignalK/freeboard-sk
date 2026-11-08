@@ -49,6 +49,10 @@ import { AlertData } from './alert.component';
             <mat-icon>near_me</mat-icon>
             {{ navigating() ? 'NAVIGATING' : 'DIRECT-TO' }}
           </button>
+        } @else {
+          <span class="mob-note"
+            >No MOB position reported, so no ZOOM or DIRECT-TO.</span
+          >
         }
         @if (alert().canCancel) {
           <button mat-raised-button (click)="mob.end(alert())">
@@ -76,6 +80,7 @@ import { AlertData } from './alert.component';
       .mob-actions {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 6px;
       }
     `
