@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
   ALARM_METHOD,
@@ -591,19 +592,27 @@ export class NotificationManager {
   /**
    * @description Raise Alarm on server
    * @param path Alarm type to raise
+   * @returns The id of the notification the server raised, or null
    */
-  public raiseServerAlarm(alarmType: string, message?: string) {
-    if (this.app.featureFlags().notificationApi) {
-      this.signalk.api
-        .post(this.app.skApiVersion, `notifications/mob`, { message: message })
-        .subscribe(
-          (r: { id: string }) => {
-            this.app.debug(`MOB Alarm raised (${r.id})`);
-          },
-          (err: HttpErrorResponse) => {
-            this.app.parseHttpErrorResponse(err);
-          }
-        );
+  public async raiseServerAlarm(
+    alarmType: string,
+    message?: string
+  ): Promise<string | null> {
+    if (!this.app.featureFlags().notificationApi) {
+      return null;
+    }
+    try {
+      const r = await firstValueFrom(
+        this.signalk.api.post(this.app.skApiVersion, `notifications/mob`, {
+          message: message
+        })
+      );
+      const id = (r as { id?: string }).id ?? null;
+      this.app.debug(`MOB Alarm raised (${id})`);
+      return id;
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      return null;
     }
   }
 

@@ -703,7 +703,7 @@ export class AppComponent {
       buttonClass: 'button-warn',
       disabled: !this.app.featureFlags().notificationApi,
       pinned: true,
-      action: () => this.mob.raise()
+      action: () => void this.mob.raise()
     });
     return items;
   }

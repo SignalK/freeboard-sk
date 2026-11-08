@@ -41,7 +41,7 @@ function setup(opts: {
   const mobAlerts = signal<AlertItems>([]);
   const notiMgr = {
     mobAlerts,
-    raiseServerAlarm: vi.fn(),
+    raiseServerAlarm: vi.fn(() => Promise.resolve('m1')),
     cancelServerAlarm: vi.fn()
   };
   TestBed.configureTestingModule({
@@ -79,9 +79,9 @@ describe('MobService', () => {
     expect(course.setDestination).not.toHaveBeenCalled();
   });
 
-  it('zooms to the MOB it raised once the server reports it', () => {
+  it('zooms to the MOB it raised once the server reports it', async () => {
     const { mob, app, mobAlerts } = setup({});
-    mob.raise();
+    await mob.raise();
     expect(app.mapMoveRequest()).toBeNull();
     mobAlerts.set([['notifications.mob.m1', alert]]);
     TestBed.tick();
@@ -89,6 +89,35 @@ describe('MobService', () => {
       activePane: true,
       exactZoom: true
     });
+  });
+
+  it('zooms to it when the notification beats the answer to the request', async () => {
+    const { mob, app, mobAlerts } = setup({});
+    const raised = mob.raise();
+    mobAlerts.set([['notifications.mob.m1', alert]]);
+    TestBed.tick();
+    await raised;
+    expect(app.mapMoveRequest()).not.toBeNull();
+  });
+
+  it('does not zoom to a MOB another display raised meanwhile', async () => {
+    const { mob, app, mobAlerts } = setup({});
+    await mob.raise();
+    const other = {
+      id: 'm2',
+      properties: { position: { latitude: 10, longitude: 20 } }
+    } as AlertData;
+    mobAlerts.set([['notifications.mob.m2', other]]);
+    TestBed.tick();
+    expect(app.mapMoveRequest()).toBeNull();
+
+    mobAlerts.set([
+      ['notifications.mob.m2', other],
+      ['notifications.mob.m1', alert]
+    ]);
+    TestBed.tick();
+    const move = app.mapMoveRequest() as { center: number[] };
+    expect(move.center[0]).toBeCloseTo(178.425, 2);
   });
 
   it('fits the vessel and the MOB live, and the MOB alone in playback', () => {

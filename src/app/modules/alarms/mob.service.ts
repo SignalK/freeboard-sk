@@ -10,9 +10,6 @@ import { AlertData } from './components/alert.component';
 import { NotificationManager } from './notification-manager';
 import { mobBox } from './mob';
 
-/** How long the server may take to report a MOB this display raised. */
-const RAISE_ECHO_MS = 10000;
-
 /**
  * Person overboard actions. Nothing here changes the course on its own: an
  * autopilot following the destination turns the boat the moment it changes,
@@ -26,10 +23,8 @@ export class MobService {
   private mapService = inject(MapService);
   private splitView = inject(SplitViewService);
 
-  /** MOB alarms already on screen, so a new one can be told apart. */
-  private known = new Set<string>();
-  /** Until when a new MOB is the one this display raised. */
-  private zoomUntil = 0;
+  /** The MOB this display raised, until it has zoomed to it. */
+  private zoomPending: string | null = null;
   /**
    * Set while a history playback runs: the vessel it shows is not where the
    * boat is, so a fit to it could zoom far out from the MOB.
@@ -49,9 +44,15 @@ export class MobService {
    * playback shows the vessel. The other displays get the alarm but keep the
    * view they are navigating on.
    */
-  raise() {
-    this.zoomUntil = Date.now() + RAISE_ECHO_MS;
-    this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
+  async raise() {
+    this.zoomPending = null;
+    const id = await this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
+    if (!id) {
+      return;
+    }
+    // the notification may arrive before the server's answer to the request
+    this.zoomPending = id;
+    this.onMobAlerts(this.notiMgr.mobAlerts().map(([, a]) => a));
   }
 
   /** Fit the active chart pane to the vessel and the MOB, or to the MOB alone in playback. */
@@ -128,11 +129,11 @@ export class MobService {
   }
 
   private onMobAlerts(alerts: AlertData[]) {
-    const fresh = alerts.filter((a) => !this.known.has(a.id));
-    this.known = new Set(alerts.map((a) => a.id));
-    const raised = fresh.find((a) => a.properties.position);
-    if (raised && Date.now() < this.zoomUntil) {
-      this.zoomUntil = 0;
+    const raised = alerts.find(
+      (a) => a.id === this.zoomPending && a.properties.position
+    );
+    if (raised) {
+      this.zoomPending = null;
       this.zoomTo(raised);
     }
   }
