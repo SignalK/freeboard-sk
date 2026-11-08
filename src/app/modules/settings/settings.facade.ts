@@ -289,8 +289,13 @@ export class SettingsFacade {
   resourcePathList: string[] = []; // resource layer list
   fixedPosition: Position = [0, 0];
 
-  settings!: IAppConfig;
   data!: FBAppData;
+
+  // The config in use, read on every access: a config loaded from the server
+  // replaces the object while the settings dialog may be open.
+  get settings(): IAppConfig {
+    return this.app.config;
+  }
 
   // Observables
   protected changeEvent: Subject<string[]>;
@@ -305,7 +310,6 @@ export class SettingsFacade {
     this.change$ = this.changeEvent.asObservable();
 
     this.data = this.app.data;
-    this.settings = this.app.config;
 
     this.fixedPosition =
       this.settings.vessels.fixedPosition.slice() as Position;
@@ -324,7 +328,6 @@ export class SettingsFacade {
 
   /** Refresh dynamic data from sources */
   refresh() {
-    this.settings = this.app.config;
     this.fixedPosition =
       this.settings.vessels.fixedPosition.slice() as Position;
     this.getApps();
