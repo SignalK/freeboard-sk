@@ -287,14 +287,38 @@ export class SettingsFacade {
   applicationList: AppListEntry[] = []; // installed webapp list
   favouritesList: AppListEntry[] = []; // favourite webapp selections
   resourcePathList: string[] = []; // resource layer list
-  fixedPosition: Position = [0, 0];
-
   data!: FBAppData;
 
   // The config in use, read on every access: a config loaded from the server
   // replaces the object while the settings dialog may be open.
   get settings(): IAppConfig {
     return this.app.config;
+  }
+
+  // The fixed position being edited, kept apart from the config until
+  // applySettings(). It follows a config that replaces the one it was taken
+  // from, unless the user has edited it since.
+  private position: {
+    from: IAppConfig | null;
+    taken: Position;
+    edit: Position;
+  } = { from: null, taken: [0, 0], edit: [0, 0] };
+
+  get fixedPosition(): Position {
+    const config = this.app.config;
+    const p = this.position;
+    if (p.from !== config) {
+      const edited =
+        p.from !== null &&
+        (p.edit[0] !== p.taken[0] || p.edit[1] !== p.taken[1]);
+      const taken = config.vessels.fixedPosition.slice() as Position;
+      this.position = {
+        from: config,
+        taken,
+        edit: edited ? p.edit : (taken.slice() as Position)
+      };
+    }
+    return this.position.edit;
   }
 
   // Observables
@@ -310,9 +334,6 @@ export class SettingsFacade {
     this.change$ = this.changeEvent.asObservable();
 
     this.data = this.app.data;
-
-    this.fixedPosition =
-      this.settings.vessels.fixedPosition.slice() as Position;
   }
 
   /** Notify of setting attribute change */
@@ -328,8 +349,7 @@ export class SettingsFacade {
 
   /** Refresh dynamic data from sources */
   refresh() {
-    this.fixedPosition =
-      this.settings.vessels.fixedPosition.slice() as Position;
+    this.position = { from: null, taken: [0, 0], edit: [0, 0] };
     this.getApps();
     this.getResourcePaths();
     this.app.fetchUnitPrefsFromSKServer();
