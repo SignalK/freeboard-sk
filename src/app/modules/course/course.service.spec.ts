@@ -477,6 +477,54 @@ describe('CourseService when following a route ends', () => {
     return { app, routeRemove };
   }
 
+  it('takes a route hidden while followed off the map when another is followed', () => {
+    const app = {
+      config: { units: { distance: 'naut-mile' } },
+      useMagnetic: false,
+      data: {
+        activeWaypoint: null as string | null,
+        activeRoute: 'rte-1' as string | null,
+        activeRouteReversed: false
+      }
+    };
+    const routeRemove = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: {} },
+        { provide: AppFacade, useValue: app },
+        {
+          provide: SKResourceService,
+          useValue: {
+            routes: signal(null),
+            fromCache: (): void => undefined,
+            waypointAddFromServer: (): void => undefined,
+            routeAddFromServer: (): void => undefined,
+            selectionIsFiltered: () => true,
+            selectionHas: (_: string, id: string) => id === 'rte-2',
+            routeRemove
+          }
+        }
+      ]
+    });
+    const pt = {
+      href: '/resources/routes/rte-2',
+      type: 'RoutePoint',
+      position: { longitude: 1, latitude: 1 }
+    };
+    TestBed.inject(CourseService).parseSelf({
+      courseApi: {
+        arrivalCircle: 250,
+        activeRoute: { href: '/resources/routes/rte-2', pointIndex: 0 },
+        nextPoint: pt,
+        previousPoint: pt
+      },
+      courseCalcs: {}
+    } as unknown as SKVessel);
+    expect(app.data.activeRoute).toBe('rte-2');
+    expect(routeRemove).toHaveBeenCalledWith(['rte-1']);
+  });
+
   it('takes a route hidden while followed off the map', () => {
     const { app, routeRemove } = setupFollowing([]);
     expect(app.data.activeRoute).toBeNull();

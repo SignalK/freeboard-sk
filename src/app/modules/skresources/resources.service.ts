@@ -2413,11 +2413,13 @@ export class SKResourceService {
     }
     this.app.debug(`** refreshRoutes(): ${query}`);
     try {
-      if (this.app.data.activeRoute) {
-        this.selectionAdd('routes', this.app.data.activeRoute);
-      }
+      // The followed route is shown even when hidden; the selection keeps
+      // the hide for when following ends.
+      const active = this.app.data.activeRoute;
       const rtes = await this.listFromServer<FBRoute>('routes', query);
-      const flist = rtes.filter((route: FBRoute) => route[2]);
+      const flist = rtes
+        .filter((route: FBRoute) => route[2] || route[0] === active)
+        .map((route: FBRoute): FBRoute => [route[0], route[1], true]);
       this.routeCacheSignal.set(flist);
     } catch (err) {
       this.app.debug('** refreshRoutes:', err);

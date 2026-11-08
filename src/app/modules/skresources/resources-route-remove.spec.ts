@@ -21,7 +21,8 @@ function svc(
     app: {
       config: { selections: { routes: selections } },
       data: { activeRoute },
-      saveConfig: (): void => undefined
+      saveConfig: (): void => undefined,
+      debug: (): void => undefined
     },
     routeCacheSignal: signal<FBRoutes>(cache)
   });
@@ -61,5 +62,36 @@ describe('SKResourceService.routeRemove()', () => {
     s.routeRemove();
     expect(cacheIds(s)).toEqual([]);
     expect(selectionOf(s)).toEqual([]);
+  });
+});
+
+describe('SKResourceService.refreshRoutes() and the followed route', () => {
+  const served = (selected: Record<string, boolean>): FBRoutes =>
+    Object.entries(selected).map(
+      ([id, shown]) => [id, {}, shown] as unknown as FBRoute
+    );
+
+  it('shows the followed route without adding it to the selection', async () => {
+    const s = svc([], [], 'r2');
+    Object.assign(s as unknown as Record<string, unknown>, {
+      listFromServer: async () => served({ r1: false, r2: false })
+    });
+    await s.refreshRoutes();
+    expect(cacheIds(s)).toEqual(['r2']);
+    expect(
+      (
+        s as unknown as { routeCacheSignal: () => FBRoutes }
+      ).routeCacheSignal()[0][2]
+    ).toBe(true);
+    expect(selectionOf(s)).toEqual([]);
+  });
+
+  it('shows only the selected routes when none is followed', async () => {
+    const s = svc(['r1'], [], null);
+    Object.assign(s as unknown as Record<string, unknown>, {
+      listFromServer: async () => served({ r1: true, r2: false })
+    });
+    await s.refreshRoutes();
+    expect(cacheIds(s)).toEqual(['r1']);
   });
 });

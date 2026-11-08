@@ -335,6 +335,27 @@ export class CourseService {
 
   /** Update CourseData Signal */
   private processCourseData(value: SKCourseApi) {
+    const followed = this.app.data.activeRoute;
+    this.processCourseApi(value);
+    this.dropHiddenRoute(followed);
+  }
+
+  /**
+   * A route hidden while it was followed leaves the map once another route,
+   * or none, is followed.
+   */
+  private dropHiddenRoute(followed: string | null) {
+    if (
+      followed &&
+      followed !== this.app.data.activeRoute &&
+      this.skres.selectionIsFiltered('routes') &&
+      !this.skres.selectionHas('routes', followed)
+    ) {
+      this.skres.routeRemove([followed]);
+    }
+  }
+
+  private processCourseApi(value: SKCourseApi) {
     const clearCourse = (value: CourseData) => {
       value.position = null;
       value.startPosition = null;
@@ -347,17 +368,8 @@ export class CourseService {
       value.pointTotal = 0;
       value.pointNames = [];
       value.destPointName = '';
-      const ended = this.app.data.activeRoute;
       this.app.data.activeRoute = null;
       this.app.data.activeRouteReversed = false;
-      // a route hidden while it was followed goes once following ends
-      if (
-        ended &&
-        this.skres.selectionIsFiltered('routes') &&
-        !this.skres.selectionHas('routes', ended)
-      ) {
-        this.skres.routeRemove([ended]);
-      }
       return value;
     };
 
