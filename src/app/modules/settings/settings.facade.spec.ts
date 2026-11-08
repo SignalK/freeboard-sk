@@ -31,8 +31,10 @@ describe('SettingsFacade with a config loaded after it was created', () => {
 
   it('edits the loaded config', () => {
     const { facade, loaded } = setup();
-    facade.settings.vessels.windVectors = !loaded.vessels.windVectors;
+    const windVectors = !loaded.vessels.windVectors;
+    facade.settings.vessels.windVectors = windVectors;
     expect(facade.settings).toBe(loaded);
+    expect(loaded.vessels.windVectors).toBe(windVectors);
   });
 
   it('keeps the loaded fixed position when saving an unrelated change', () => {
