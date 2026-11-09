@@ -33,3 +33,21 @@ testGlobal.ResizeObserver = class ResizeObserverMock {
   unobserve() {}
   disconnect() {}
 };
+
+// Node 26 ships its own Web Storage globals: localStorage is undefined unless
+// Node runs with --localstorage-file, and sessionStorage is Node's own store,
+// not an instance of jsdom's Storage. Either way they shadow jsdom's, so hand
+// specs jsdom's in-memory storage whenever a jsdom window exists. Remove this
+// once on vitest 5, which does it itself (vitest-dev/vitest#10293).
+const domWindow = (
+  globalThis as typeof globalThis & { jsdom?: { window: Window } }
+).jsdom?.window;
+if (domWindow) {
+  for (const name of ['localStorage', 'sessionStorage'] as const) {
+    Object.defineProperty(globalThis, name, {
+      value: domWindow[name],
+      configurable: true,
+      writable: true
+    });
+  }
+}
