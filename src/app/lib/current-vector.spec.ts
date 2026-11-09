@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CURRENT_INPUT_MAX_AGE_MS,
+  CURRENT_MIN_COMPUTED_DRIFT,
   CURRENT_SMOOTHING_MS,
   CurrentSmoother,
   CurrentSource,
@@ -14,13 +15,20 @@ const toDeg = (r: number) => (r * 180) / Math.PI;
 const KN = 1 / 1.943844;
 
 const NOW = 1_000_000;
+const HOUR = 3_600_000;
+const STALE = NOW - CURRENT_INPUT_MAX_AGE_MS - 1;
 
 const source = (over: Partial<CurrentSource> = {}): CurrentSource => ({
   sog: 6 * KN,
+  sogUpdatedAt: NOW,
   cogTrue: deg(0),
+  cogTrueUpdatedAt: NOW,
   cogMagnetic: null,
+  cogMagneticUpdatedAt: 0,
   headingTrue: deg(0),
+  headingTrueUpdatedAt: NOW,
   headingMagnetic: null,
+  headingMagneticUpdatedAt: 0,
   magneticVariation: null,
   stw: 5 * KN,
   stwUpdatedAt: NOW,
@@ -149,7 +157,9 @@ describe('currentSample()', () => {
         cogTrue: null,
         headingTrue: null,
         cogMagnetic: deg(85),
+        cogMagneticUpdatedAt: NOW,
         headingMagnetic: deg(85),
+        headingMagneticUpdatedAt: NOW,
         magneticVariation: deg(5)
       }),
       NOW
@@ -164,6 +174,56 @@ describe('currentSample()', () => {
         NOW
       )
     ).toBeNull();
+  });
+
+  it('is null once the heading stops reporting', () => {
+    expect(
+      currentSample(source({ headingTrueUpdatedAt: STALE }), NOW)
+    ).toBeNull();
+  });
+
+  it('uses a fresh magnetic heading when the true heading is stale', () => {
+    const s = currentSample(
+      source({
+        headingTrue: deg(30),
+        headingTrueUpdatedAt: STALE,
+        headingMagnetic: deg(355),
+        headingMagneticUpdatedAt: NOW,
+        magneticVariation: deg(5)
+      }),
+      NOW
+    );
+    expect(s?.vector.drift).toBeCloseTo(1 * KN);
+  });
+
+  it('is null once the magnetic heading it falls back to is stale', () => {
+    expect(
+      currentSample(
+        source({
+          headingTrue: null,
+          headingMagnetic: deg(355),
+          headingMagneticUpdatedAt: STALE,
+          magneticVariation: deg(5)
+        }),
+        NOW
+      )
+    ).toBeNull();
+  });
+
+  it('is null once SOG or COG stops reporting', () => {
+    expect(currentSample(source({ sogUpdatedAt: STALE }), NOW)).toBeNull();
+    expect(currentSample(source({ cogTrueUpdatedAt: STALE }), NOW)).toBeNull();
+  });
+
+  it('is null while the log looks stalled', () => {
+    // a fouled paddlewheel: nearly no speed through the water at 6 kn SOG
+    expect(currentSample(source({ stw: 0.2 * KN }), NOW)).toBeNull();
+  });
+
+  it('still works a current out at low speed through the water', () => {
+    // drifting at anchor or slowly: a low log reading is not a stall
+    const s = currentSample(source({ sog: 1.5 * KN, stw: 0.2 * KN }), NOW);
+    expect(s?.vector.drift).toBeCloseTo(1.3 * KN);
   });
 
   it('is null without a heading', () => {
@@ -201,6 +261,37 @@ describe('CurrentSmoother', () => {
     expect(Math.min(toDeg(m?.set ?? 0), 360 - toDeg(m?.set ?? 0))).toBeCloseTo(
       0
     );
+  });
+
+  it('returns no worked-out current too weak to tell from instrument error', () => {
+    const s = new CurrentSmoother();
+    expect(
+      s.update(sample(90, CURRENT_MIN_COMPUTED_DRIFT * 0.9), NOW)
+    ).toBeNull();
+    expect(
+      s.update(sample(90, CURRENT_MIN_COMPUTED_DRIFT * 2), NOW + 1e9)?.drift
+    ).toBeCloseTo(CURRENT_MIN_COMPUTED_DRIFT * 2);
+  });
+
+  it('passes a weak published current through', () => {
+    expect(
+      new CurrentSmoother().update(
+        {
+          vector: { set: 1, drift: CURRENT_MIN_COMPUTED_DRIFT / 2 },
+          smoothed: false
+        },
+        NOW
+      )?.drift
+    ).toBeCloseTo(CURRENT_MIN_COMPUTED_DRIFT / 2);
+  });
+
+  it('starts afresh when time steps back', () => {
+    // switching from live to a playback of the past
+    const s = new CurrentSmoother();
+    s.update(sample(90, 1), NOW);
+    const c = s.update(sample(270, 2), NOW - HOUR);
+    expect(c?.drift).toBeCloseTo(2);
+    expect(toDeg(c?.set ?? 0)).toBeCloseTo(270);
   });
 
   it('passes a published current through and restarts after a gap', () => {

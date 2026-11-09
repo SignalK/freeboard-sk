@@ -1399,6 +1399,7 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
     d.state = value;
   } else if (v.path === 'navigation.speedOverGround') {
     d.sog = value;
+    d.sogUpdatedAt = Date.now();
   }
   // ** environment sun / mode
   else if (v.path === 'environment.mode') {
@@ -1461,8 +1462,10 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
   // ** cog **
   else if (v.path === 'navigation.courseOverGroundTrue') {
     d.cogTrue = value;
+    d.cogTrueUpdatedAt = Date.now();
   } else if (v.path === 'navigation.courseOverGroundMagnetic') {
     d.cogMagnetic = value;
+    d.cogMagneticUpdatedAt = Date.now();
   }
 
   // ** heading **

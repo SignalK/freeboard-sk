@@ -308,6 +308,11 @@ export class SKVessel extends SKTargetBase {
   registrations: SKRegistrations = {};
   resourceUpdates: PathValue[] = []; // resource deltas
   sog?: number;
+  // local receipt times of SOG and COG: the current worked out from them must
+  // not outlive the GPS that reports them
+  sogUpdatedAt = 0;
+  cogTrueUpdatedAt = 0;
+  cogMagneticUpdatedAt = 0;
   // navigation.speedThroughWater and when it last arrived: a log that stops
   // reporting must not keep feeding the current worked out from it
   stw: number | null = null;
