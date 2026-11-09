@@ -36,7 +36,7 @@ import { AlertData } from './alert.component';
         }
       </div>
       <div class="mob-actions">
-        @if (alert().properties.position) {
+        @if (position()) {
           <button mat-raised-button (click)="mob.zoomTo(alert())">
             <mat-icon>zoom_in</mat-icon>
             ZOOM
@@ -100,17 +100,22 @@ export class MobReadoutComponent {
     mobElapsed(this.alert().createdAt, this.now())
   );
 
+  protected position = computed(() => mobPosition(this.alert()));
+
   protected navigating = computed(() => {
-    const at = mobPosition(this.alert());
+    const at = this.position();
     return !!at && isMobDestination(this.course.courseData().position, at);
   });
 
-  /** Re-read on each tick: the vessel position is plain state, not a signal. */
+  /**
+   * Re-read on each tick: the vessel position is plain state, not a signal.
+   * None in playback, where the vessel shown is not where the boat is.
+   */
   protected readout = computed(() => {
     this.now();
-    const at = mobPosition(this.alert());
+    const at = this.position();
     const self = this.app.data.vessels.self;
-    if (!at || !self.positionReceived || !self.position) {
+    if (!at || this.mob.playback || !self.positionReceived || !self.position) {
       return null;
     }
     const r = bearingDistanceReadout(self.position, at);
