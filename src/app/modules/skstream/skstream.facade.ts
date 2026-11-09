@@ -138,9 +138,23 @@ export class SKStreamFacade {
   readonly selfPositionStale = this.positionStaleSignal.asReadonly();
 
   private currentSmoother = new CurrentSmoother();
+  /** The time of the self data in playback (epoch ms), null live. */
+  private playbackTime: number | null = null;
   private selfCurrentSignal = signal<CurrentVector | null>(null);
   /** Set and drift of the current at the own vessel, null when unknown. */
   readonly selfCurrent = this.selfCurrentSignal.asReadonly();
+
+  /** Re-evaluate what ages with time even while the stream is silent: the
+   * self position and the current worked out from inputs that age out. */
+  private startSelfChecks() {
+    setInterval(() => {
+      this.refreshSelfPositionStale();
+      const self = this.app.data.vessels.self;
+      if (self) {
+        this.refreshSelfCurrent(self);
+      }
+    }, SELF_POSITION_STALE_CHECK_INTERVAL);
+  }
 
   /** Re-evaluate self position age against the current time. */
   refreshSelfPositionStale(): void {
@@ -190,15 +204,7 @@ export class SKStreamFacade {
       }
     });
 
-    setInterval(() => {
-      this.refreshSelfPositionStale();
-      // clears the current once its inputs age out, also when the stream
-      // has gone silent
-      const self = this.app.data.vessels.self;
-      if (self) {
-        this.refreshSelfCurrent(self);
-      }
-    }, SELF_POSITION_STALE_CHECK_INTERVAL);
+    this.startSelfChecks();
 
     this.app.vesselTrackSelection$.subscribe((ids) =>
       this.worker.postMessage({ cmd: 'trackSelection', options: { ids } })
@@ -491,6 +497,8 @@ export class SKStreamFacade {
     const result = msg.result;
     if (msg.action === 'update' && result) {
       // delta message
+      const time = msg.playback ? Date.parse(msg.timestamp) : NaN;
+      this.playbackTime = Number.isFinite(time) ? time : null;
 
       this.parseVesselSelf(result.self);
 
@@ -579,12 +587,12 @@ export class SKStreamFacade {
 
   private refreshSelfCurrent(v: SKVessel) {
     const now = Date.now();
-    // the data's own time, so that playback smooths at its own rate
-    const dataTime = Date.parse(v.positionTimestamp);
+    // Inputs age by when they arrived; the smoothing runs on the data's own
+    // time, so that playback smooths at its own rate.
     this.selfCurrentSignal.set(
       this.currentSmoother.update(
         currentSample(v, now),
-        Number.isFinite(dataTime) ? dataTime : now
+        this.playbackTime ?? now
       )
     );
   }

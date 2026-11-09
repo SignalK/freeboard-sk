@@ -63,63 +63,84 @@ describe('SKStreamFacade.parseVesselOther — AIS target orientation', () => {
 });
 
 // The current arrow on the own vessel reads selfCurrent, worked out from the
-// vessel's motion on every self update.
+// vessel's motion on every self update and on the periodic self checks.
 describe('SKStreamFacade.refreshSelfCurrent', () => {
   const facadeFor = () => {
     const facade = Object.create(SKStreamFacade.prototype) as unknown as {
+      app: { data: { vessels: { self: SKVessel | null } } };
       currentSmoother: CurrentSmoother;
+      playbackTime: number | null;
       selfCurrentSignal: ReturnType<typeof signal<CurrentVector | null>>;
       selfCurrent: () => CurrentVector | null;
       refreshSelfCurrent: (v: SKVessel) => void;
+      refreshSelfPositionStale: () => void;
+      startSelfChecks: () => void;
     };
+    facade.app = { data: { vessels: { self: null } } };
     facade.currentSmoother = new CurrentSmoother();
+    facade.playbackTime = null;
     facade.selfCurrentSignal = signal<CurrentVector | null>(null);
     facade.selfCurrent = facade.selfCurrentSignal;
+    facade.refreshSelfPositionStale = () => undefined;
     return facade;
+  };
+
+  /** Making 3 m/s over ground with the log at 2 m/s, all on north. */
+  const moving = (props: Partial<SKVessel> = {}) => {
+    const now = Date.now();
+    return Object.assign(new SKVessel(), {
+      sog: 3,
+      sogUpdatedAt: now,
+      cogTrue: 0,
+      cogTrueUpdatedAt: now,
+      headingTrue: 0,
+      headingTrueUpdatedAt: now,
+      stw: 2,
+      stwUpdatedAt: now,
+      ...props
+    });
   };
 
   it('publishes the current from log, heading, SOG and COG', () => {
     const facade = facadeFor();
-    facade.refreshSelfCurrent(
-      Object.assign(new SKVessel(), {
-        sog: 3,
-        cogTrue: 0,
-        headingTrue: 0,
-        stw: 2,
-        stwUpdatedAt: Date.now()
-      })
-    );
+    facade.refreshSelfCurrent(moving());
     expect(facade.selfCurrent()?.drift).toBeCloseTo(1);
   });
 
-  it('clears the current once the log has gone silent', () => {
+  it('clears the current on the periodic check once the log has gone silent', () => {
     vi.useFakeTimers();
     try {
       const facade = facadeFor();
-      const v = Object.assign(new SKVessel(), {
-        sog: 3,
-        cogTrue: 0,
-        headingTrue: 0,
-        stw: 2,
-        stwUpdatedAt: Date.now()
-      });
+      const v = moving();
+      facade.app.data.vessels.self = v;
       facade.refreshSelfCurrent(v);
+      facade.startSelfChecks();
       expect(facade.selfCurrent()).not.toBeNull();
 
-      vi.advanceTimersByTime(CURRENT_INPUT_MAX_AGE_MS + 1);
-      facade.refreshSelfCurrent(v);
+      vi.advanceTimersByTime(CURRENT_INPUT_MAX_AGE_MS + 2000);
       expect(facade.selfCurrent()).toBeNull();
     } finally {
+      vi.clearAllTimers();
       vi.useRealTimers();
     }
   });
 
   it('publishes nothing without a log', () => {
     const facade = facadeFor();
-    facade.refreshSelfCurrent(
-      Object.assign(new SKVessel(), { sog: 3, cogTrue: 0, headingTrue: 0 })
-    );
+    facade.refreshSelfCurrent(moving({ stw: null, stwUpdatedAt: 0 }));
     expect(facade.selfCurrent()).toBeNull();
+  });
+
+  it('smooths on the playback time in playback', () => {
+    const facade = facadeFor();
+    const start = Date.parse('2026-06-01T12:00:00Z');
+    facade.playbackTime = start;
+    facade.refreshSelfCurrent(moving());
+    // half a minute of the voyage later, the log reads 1 m/s less: the
+    // smoothed current moves most of the way, however little real time passed
+    facade.playbackTime = start + 30000;
+    facade.refreshSelfCurrent(moving({ stw: 1 }));
+    expect(facade.selfCurrent()?.drift).toBeCloseTo(1 + (1 - Math.exp(-1)));
   });
 });
 
