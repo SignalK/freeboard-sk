@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -482,7 +483,9 @@ export class RadarAPIService {
         )
         .subscribe({
           next: () => resolve(),
-          error: () => reject(new Error('Error setting Radar control value!'))
+          // the HTTP error itself, so the alert can tell a missing login
+          // (401/403) from a value the radar refused, and show the status
+          error: (err: HttpErrorResponse) => reject(err)
         });
     });
   }

@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -539,6 +540,20 @@ describe('RadarAPIService init() (#755)', () => {
       'vessels/self/radars/radar-1/controls/gain',
       { auto: true }
     );
+  });
+
+  it('rejects a refused control change with the HTTP error', async () => {
+    const service = TestBed.inject(RadarAPIService);
+    await service.init();
+    const refused = new HttpErrorResponse({
+      status: 401,
+      statusText: 'Unauthorized'
+    });
+    put.mockReturnValueOnce(throwError(() => refused));
+
+    await expect(
+      service.setControl(undefined, 'bearingAlignment', { value: 0.1 })
+    ).rejects.toBe(refused);
   });
 
   it('resolves the current control values from /controls', async () => {
