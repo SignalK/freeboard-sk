@@ -399,6 +399,47 @@ describe('FBMapComponent — a route from a recorded track', () => {
       expect(near(route[route.length - 1], track.end)).toBe(true);
     });
 
+    // years of a track at a few thousand points come hours apart, and a
+    // passage at route detail is simplified to the turns of its legs
+    it('makes the route from a whole track thinned to steps longer than a gap', () => {
+      const track = passage(0);
+      const cmp = bareComponent();
+      const whole = new Subject<unknown>();
+      const detail = new Subject<unknown>();
+      cmp.trackHistory.wholeTrack = vi.fn((_s, _c, within) =>
+        within ? detail : whole
+      );
+      tap(cmp, HISTORY_ID, 'self', clipped(track));
+      const keep = (a: unknown[], kept: (i: number) => boolean) =>
+        a.filter((_, i) => kept(i));
+      const every40 = (i: number) => i % 40 === 0;
+      // the anchorages, the turn and the arrival, the legs between left out
+      const legEnds = (i: number) => i < 120 || i === 149 || i >= 179;
+
+      whole.next({
+        context: 'self',
+        lines: [keep(track.lines[0], every40)],
+        times: [keep(track.times[0], every40)],
+        resolution: 'PT40M'
+      });
+
+      expect(cmp.overlay().trackHistory.routePending).toBe(true);
+      const [, , within] = cmp.trackHistory.wholeTrack.mock.calls[1];
+      expect(within.from).toBeLessThanOrEqual(Date.parse(track.times[0][119]));
+      expect(within.to).toBeGreaterThanOrEqual(Date.parse(track.times[0][179]));
+
+      detail.next({
+        context: 'self',
+        lines: [keep(track.lines[0], legEnds)],
+        times: [keep(track.times[0], legEnds)],
+        epsilon: 10
+      });
+
+      const route = cmp.overlay().trackHistory.route;
+      expect(near(route[0], A)).toBe(true);
+      expect(near(route[route.length - 1], track.end)).toBe(true);
+    });
+
     it('drops an answer for a popover no longer open', () => {
       const track = passage(0);
       const { cmp, answer } = withWholeTrack();
