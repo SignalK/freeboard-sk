@@ -100,10 +100,11 @@ export class MobService {
    * while an autopilot is engaged.
    */
   directTo(alert: AlertData) {
-    const position = alert.properties.position;
-    if (!position) {
+    const at = mobPosition(alert);
+    if (!at) {
       return;
     }
+    const position = { latitude: at[1], longitude: at[0] };
     const go = async () => {
       // the waypoint stays the destination until the server takes the MOB
       if (await this.course.setDestination(position)) {
@@ -165,8 +166,10 @@ export class MobService {
   }
 }
 
-/** The MOB position as `[lon, lat]`, when the notification carries one. */
+/** The MOB position as `[lon, lat]`, when the notification carries a usable one. */
 export function mobPosition(alert: AlertData): Position | null {
   const p = alert.properties.position;
-  return p ? [p.longitude, p.latitude] : null;
+  return p && Number.isFinite(p.latitude) && Number.isFinite(p.longitude)
+    ? [p.longitude, p.latitude]
+    : null;
 }

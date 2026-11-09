@@ -196,6 +196,15 @@ describe('MobService', () => {
     expect(app.data.activeWaypoint).toBeNull();
   });
 
+  it('offers no Direct-To for a position without a latitude', () => {
+    const { mob, course } = setup({});
+    mob.directTo({
+      id: 'm1',
+      properties: { position: { longitude: 178.4 } }
+    } as unknown as AlertData);
+    expect(course.setDestination).not.toHaveBeenCalled();
+  });
+
   it('keeps the waypoint when the server refuses the destination', async () => {
     const { mob, app } = setup({ accepted: false });
     mob.directTo(alert);
