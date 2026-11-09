@@ -876,13 +876,13 @@
   <!-- Vessel / destination -->
   @if (dfeat.navData.position) {
     @if (dfeat.navData.startPosition) {
+      <!-- above the routes (500) so the leg being steered stays on top of the
+           active route; below the route drafts being edited (510) -->
       <fb-xte-path
-        [color]=""
         [startPosition]="dfeat.navData.startPosition"
         [destPosition]="dfeat.navData.position"
-        [zIndex]="340"
+        [zIndex]="505"
         [visible]="true"
-        [layerProperties]=""
       >
       </fb-xte-path>
     }
