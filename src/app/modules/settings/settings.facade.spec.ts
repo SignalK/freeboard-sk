@@ -66,4 +66,27 @@ describe('SettingsFacade with a config loaded after it was created', () => {
     facade.applySettings();
     expect(loaded.vessels.fixedPosition).toEqual([10, 20]);
   });
+
+  it('follows two configs loaded in a row', () => {
+    const { app, facade, saved } = setup();
+    expect(facade.fixedPosition).toEqual([24.6, 59.8]);
+    const second = defaultConfig();
+    second.vessels.fixedPosition = [-61.5, 16.2];
+    app.config = second;
+    expect(facade.fixedPosition).toEqual([-61.5, 16.2]);
+    facade.applySettings();
+    expect(saved.at(-1)?.vessels.fixedPosition).toEqual([-61.5, 16.2]);
+  });
+
+  it('keeps an entered position across two configs loaded in a row', () => {
+    const { app, facade, saved } = setup();
+    facade.fixedPosition[0] = 10;
+    facade.fixedPosition[1] = 20;
+    const second = defaultConfig();
+    second.vessels.fixedPosition = [-61.5, 16.2];
+    app.config = second;
+    expect(facade.fixedPosition).toEqual([10, 20]);
+    facade.applySettings();
+    expect(saved.at(-1)?.vessels.fixedPosition).toEqual([10, 20]);
+  });
 });
