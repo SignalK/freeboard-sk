@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
@@ -592,14 +593,18 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
 
   it('does nothing when the route cannot be read from the server', async () => {
     const t = following();
-    t.skres.fromServer.mockImplementation(() =>
-      Promise.reject(new Error('offline'))
-    );
+    const refused = new HttpErrorResponse({
+      status: 403,
+      statusText: 'Forbidden',
+      url: '/signalk/v2/api/resources/routes/old'
+    });
+    t.skres.fromServer.mockImplementation(() => Promise.reject(refused));
 
     expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
     expect(t.skres.postToServer).not.toHaveBeenCalled();
-    expect(t.app.parseHttpErrorResponse).toHaveBeenCalledWith(
-      new Error('offline')
+    expect(t.app.parseHttpErrorResponse).toHaveBeenCalledWith(refused);
+    expect((t.app.parseHttpErrorResponse.mock.calls[0] as unknown[])[0]).toBe(
+      refused
     );
   });
 
