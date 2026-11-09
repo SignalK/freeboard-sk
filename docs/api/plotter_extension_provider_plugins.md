@@ -1199,14 +1199,20 @@ Declare:
   registers its manifest and mounts its assets. A package without it can be
   neither installed from the App Store nor run.
 - **`signalk-category-plotter-extensions`** (required) — marks the package as
-  a plotter extension. Hosts find installable extensions by searching the npm
-  registry for this keyword (`keywords:signalk-category-plotter-extensions`),
-  so a host can offer to send the user to the App Store to install one.
-- **At least one existing `signalk-category-*` keyword** (recommended) — the
+  a plotter extension, and does two things:
+  - **It lists your extension under the App Store's _Plotter Extensions_
+    category** (Signal K server 2.36.0 and later). Without it, users browsing
+    that category will not see your extension.
+  - **It lets hosts find your extension.** Hosts find installable extensions
+    by searching the npm registry for this keyword
+    (`keywords:signalk-category-plotter-extensions`), so a host can offer to
+    send the user to the App Store to install one.
+- **At least one other `signalk-category-*` keyword** (recommended) — the
   App Store category that fits what your extension does: `chart-plotters`,
-  `weather`, `ais`, `utility`, and so on. The server only shows categories it
-  knows and silently ignores the rest; the current list is
-  `CAT_KEYWORDS_TO_NAMES` in the server's
+  `weather`, `ais`, `utility`, and so on. This also places your extension in
+  a category on servers older than 2.36.0, which don't know _Plotter
+  Extensions_. The server only shows categories it knows and silently ignores
+  the rest; the current list is `CAT_KEYWORDS_TO_NAMES` in the server's
   [`src/categories.ts`](https://github.com/SignalK/signalk-server/blob/master/src/categories.ts).
 
 ## Declaring companion plugins
