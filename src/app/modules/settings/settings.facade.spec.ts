@@ -89,4 +89,30 @@ describe('SettingsFacade with a config loaded after it was created', () => {
     facade.applySettings();
     expect(saved.at(-1)?.vessels.fixedPosition).toEqual([10, 20]);
   });
+
+  it('keeps a position entered before two configs loaded in a row', () => {
+    const app = {
+      config: defaultConfig(),
+      data: { vessels: { self: { position: [0, 0] as Position } } },
+      debug: (): void => undefined,
+      saveConfig: (): void => undefined
+    };
+    const facade = new SettingsFacade(
+      app as unknown as AppFacade,
+      {} as SignalKClient
+    );
+    facade.fixedPosition[0] = 10;
+    facade.fixedPosition[1] = 20;
+    for (const position of [
+      [24.6, 59.8],
+      [-61.5, 16.2]
+    ] as Position[]) {
+      const loaded = defaultConfig();
+      loaded.vessels.fixedPosition = position;
+      app.config = loaded;
+      expect(facade.fixedPosition).toEqual([10, 20]);
+    }
+    facade.applySettings();
+    expect(app.config.vessels.fixedPosition).toEqual([10, 20]);
+  });
 });
