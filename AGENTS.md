@@ -89,8 +89,9 @@ live.)
   fix doesn't need surrounding code cleaned up; a small feature doesn't need extra
   configurability. Don't add error handling for cases that can't happen — validate
   at boundaries (user input, server responses), trust internal code.
-- **Self-documenting code.** Comments explain *why*, not *what*. No echo comments.
-  Documentation describes current state, not development history.
+- **Self-documenting code.** Comments explain *why*, not *what*. No echo comments,
+  and no docstrings for their own sake. Documentation describes current state, not
+  development history.
 - **TypeScript.** New code is TypeScript with real types; avoid `any`. Reuse
   existing types over inventing local ones. `strictNullChecks` is on, so code
   must handle `null` and `undefined`.
