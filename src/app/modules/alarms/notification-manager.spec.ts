@@ -336,6 +336,7 @@ describe('NotificationManager alert actions', () => {
   });
 
   const arrive = ({
+    path = PATH,
     id = ID,
     state = ALARM_STATE.alert,
     acknowledged = false,
@@ -343,7 +344,7 @@ describe('NotificationManager alert actions', () => {
   } = {}) => {
     const msg = new NotificationMessage();
     msg.result = {
-      path: PATH,
+      path,
       value: {
         id,
         state,
@@ -372,10 +373,10 @@ describe('NotificationManager alert actions', () => {
     posts[i].response.complete();
   };
 
-  const shown = (mgr: NotificationManager) => {
-    const alert = mgr.getAlert(PATH);
+  const shown = (mgr: NotificationManager, path = PATH) => {
+    const alert = mgr.getAlert(path);
     if (!alert) {
-      throw new Error(`no alert at ${PATH}`);
+      throw new Error(`no alert at ${path}`);
     }
     return alert;
   };
@@ -533,6 +534,199 @@ describe('NotificationManager alert actions', () => {
 
     expect(posts.map((p) => p.path)).toEqual([`notifications/${ID}/silence`]);
     expect(shown(mgr).silenced).toBe(true);
+  });
+
+  it('keeps the alert silenced in this browser when the server refuses MUTE', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    posts[0].response.error({ status: 401 });
+    arrive();
+
+    expect(shown(mgr).silenced).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  it('keeps a refused MUTE when the server reports the alert silenced and then not', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    posts[0].response.error({ status: 401 });
+    arrive({ silenced: true });
+    arrive();
+
+    expect(shown(mgr).silenced).toBe(true);
+  });
+
+  it('keeps a refused MUTE whose silenced delta arrived before the refusal', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    arrive({ silenced: true });
+    posts[0].response.error({ status: 401 });
+    arrive();
+
+    expect(shown(mgr).silenced).toBe(true);
+  });
+
+  it('does not silence an alert that escalated before MUTE was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    arrive({ state: ALARM_STATE.alarm });
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert that cleared and returned before MUTE was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    clear();
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert that changed state and back before MUTE was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    arrive({ state: ALARM_STATE.alarm });
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert that cleared and returned before Silence All was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    clear();
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert that changed state and back before Silence All was refused', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    arrive({ state: ALARM_STATE.alarm });
+    arrive();
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('keeps a refused Silence All when the server reports the alert silenced and then not', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    posts[0].response.error({ status: 403 });
+    arrive({ silenced: true });
+    arrive();
+
+    expect(shown(mgr).silenced).toBe(true);
+  });
+
+  it('sounds again when an alarm silenced in this browser escalates', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silence(PATH);
+    posts[0].response.error({ status: 403 });
+    arrive({ state: ALARM_STATE.alarm });
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('still reports a refused ACK', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    const failure = { status: 401 };
+    posts[0].response.error(failure);
+
+    expect(shown(mgr).acknowledged).toBe(false);
+    expect(errors).toEqual([failure]);
+  });
+
+  const OTHER_PATH = 'notifications.navigation.anchor';
+  const OTHER_ID = '3f0c9a52-7d1e-4b8a-a6c2-5e9d8b7f1a24';
+
+  for (const status of [401, 403]) {
+    it(`silences every alert in this browser when the server refuses Silence All with ${status}`, () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+      arrive({ path: OTHER_PATH, id: OTHER_ID });
+
+      mgr.silenceAll();
+      posts[0].response.error({ status });
+
+      expect(posts.map((p) => p.path)).toEqual(['notifications/silenceAll']);
+      expect(shown(mgr).silenced).toBe(true);
+      expect(shown(mgr, OTHER_PATH).silenced).toBe(true);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  it('shows the alerts silenced as soon as Silence All is pressed', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+
+    expect(shown(mgr).silenced).toBe(true);
+  });
+
+  it('shows the server status again once a delta confirms Silence All', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    succeed();
+    arrive({ silenced: true });
+    arrive();
+
+    expect(shown(mgr).silenced).toBe(false);
+  });
+
+  it('does not silence an alert raised while Silence All is under way', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    arrive({ path: OTHER_PATH, id: OTHER_ID });
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr, OTHER_PATH).silenced).toBe(false);
+  });
+
+  it('reverts Silence All and reports the error when the request fails', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.silenceAll();
+    const failure = { status: 500 };
+    posts[0].response.error(failure);
+
+    expect(shown(mgr).silenced).toBe(false);
+    expect(errors).toEqual([failure]);
   });
 });
 

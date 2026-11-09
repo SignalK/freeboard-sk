@@ -25,6 +25,12 @@ type AlertFlag = 'acknowledged' | 'silenced';
 /** An acknowledge / silence request and the alarm state it was sent for */
 interface PendingAction {
   state: AlertData['priority'];
+  /** The request has not been answered yet */
+  inFlight: boolean;
+  /** A delta confirmed the action while the request was in flight */
+  confirmed?: boolean;
+  /** A silence the server refused, kept in this browser only (isRefused()) */
+  local?: boolean;
 }
 
 /** The Notifications API gives every notification an id and a status. */
@@ -42,6 +48,16 @@ interface CpaNotification extends SKNotification {
     cpaPositions?: { self?: unknown; target?: unknown };
   };
   other?: string;
+}
+
+/**
+ * Whether the server refused an action because the user may not change
+ * notifications, as on a display nobody is logged in to. Freeboard then keeps
+ * a silence in this browser only, so a sounding alarm can still be quietened.
+ * It lasts until the alarm changes state, as one the server silenced would.
+ */
+function isRefused(err: HttpErrorResponse): boolean {
+  return err?.status === 401 || err?.status === 403;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -387,7 +403,8 @@ export class NotificationManager {
    *
    * The action is therefore kept pending, shown over the server's status, until
    * a delta confirms it (settlePendingActions()). If the request fails it is
-   * dropped, and the alert shows the server's latest status again.
+   * dropped, and the alert shows the server's latest status again, except for a
+   * silence the server refuses to this user, which stays (isRefused()).
    * @param path Path of the alert
    * @param action Notifications API action
    * @param flag Alert status flag the action sets
@@ -408,7 +425,7 @@ export class NotificationManager {
       return;
     }
     const { id } = alert;
-    const entry: PendingAction = { state: alert.priority };
+    const entry: PendingAction = { state: alert.priority, inFlight: true };
     pending.set(id, entry);
     this.emitSignals();
     this.signalk.api
@@ -416,15 +433,42 @@ export class NotificationManager {
       .subscribe(
         () => {
           this.app.debug(`${action} ${id}, ${path}`);
+          this.answerPendingAction(pending, id, entry, 'done');
         },
         (err: HttpErrorResponse) => {
-          if (pending.get(id) === entry) {
-            pending.delete(id);
-            this.emitSignals();
+          if (action === 'silence' && isRefused(err)) {
+            this.answerPendingAction(pending, id, entry, 'refused');
+            return;
           }
+          this.answerPendingAction(pending, id, entry, 'failed');
           this.app.parseHttpErrorResponse(err);
         }
       );
+  }
+
+  /**
+   * Apply the answer to an action's request to its pending entry, unless a
+   * delta has already dropped the entry because the alert cleared, was
+   * replaced or changed state; the answer then concerns an alarm that is gone.
+   * A refused silence stays in this browser (isRefused()), and a successful
+   * request whose delta already confirmed it is settled.
+   */
+  private answerPendingAction(
+    pending: Map<string, PendingAction>,
+    id: string,
+    entry: PendingAction,
+    answer: 'done' | 'refused' | 'failed'
+  ) {
+    entry.inFlight = false;
+    if (pending.get(id) !== entry) {
+      return;
+    }
+    if (answer === 'refused') {
+      entry.local = true;
+    } else if (answer === 'failed' || entry.confirmed) {
+      pending.delete(id);
+      this.emitSignals();
+    }
   }
 
   /**
@@ -445,14 +489,25 @@ export class NotificationManager {
    * @description Drop the pending actions a notification delta settles: those
    * it confirms, and those sent for a different alarm state. The server clears
    * acknowledged / silenced when an alarm escalates, so a pending action must
-   * not hide the escalated alarm.
+   * not hide the escalated alarm. A confirmation that arrives while the
+   * request is in flight is noted, and the answer settles it, since a refusal
+   * keeps the silence in this browser after all.
    * @param v Notification value
    */
   private settlePendingActions(v: ApiNotification) {
     for (const flag of ['acknowledged', 'silenced'] as const) {
       const entry = this.pendingActions[flag].get(v.id);
-      if (entry && (v.status[flag] || v.state !== entry.state)) {
+      if (!entry) {
+        continue;
+      }
+      if (v.state !== entry.state) {
         this.pendingActions[flag].delete(v.id);
+      } else if (v.status[flag] && !entry.local) {
+        if (entry.inFlight) {
+          entry.confirmed = true;
+        } else {
+          this.pendingActions[flag].delete(v.id);
+        }
       }
     }
   }
@@ -467,21 +522,44 @@ export class NotificationManager {
   }
 
   /**
-   * @description Silence All alerts
+   * @description Silence All alerts. Each alert it covers shows silenced
+   * straight away, as for MUTE (see applyAlertAction()). Only the alerts there
+   * when it is pressed are covered, so an alarm raised or escalated while the
+   * request is under way still sounds.
    */
   public silenceAll() {
-    if (this.app.featureFlags().notificationApi) {
-      this.signalk.api
-        .post(this.app.skApiVersion, `notifications/silenceAll`, {})
-        .subscribe(
-          () => {
-            this.app.debug(`Silenced All alerts`);
-          },
-          (err: HttpErrorResponse) => {
+    if (!this.app.featureFlags().notificationApi) {
+      return;
+    }
+    const pending = this.pendingActions.silenced;
+    const entries = new Map<string, PendingAction>();
+    for (const alert of this.alertMap.values()) {
+      if (alert.canSilence && !alert.silenced && !pending.has(alert.id)) {
+        const entry: PendingAction = { state: alert.priority, inFlight: true };
+        pending.set(alert.id, entry);
+        entries.set(alert.id, entry);
+      }
+    }
+    this.emitSignals();
+    this.signalk.api
+      .post(this.app.skApiVersion, `notifications/silenceAll`, {})
+      .subscribe(
+        () => {
+          this.app.debug(`Silenced All alerts`);
+          for (const [id, entry] of entries) {
+            this.answerPendingAction(pending, id, entry, 'done');
+          }
+        },
+        (err: HttpErrorResponse) => {
+          const answer = isRefused(err) ? 'refused' : 'failed';
+          for (const [id, entry] of entries) {
+            this.answerPendingAction(pending, id, entry, answer);
+          }
+          if (answer === 'failed') {
             this.app.parseHttpErrorResponse(err);
           }
-        );
-    }
+        }
+      );
   }
 
   /**
