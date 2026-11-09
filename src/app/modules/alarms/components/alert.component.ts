@@ -139,7 +139,8 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                       ACK
                     </button>
                   </div>
-                } @else {
+                } @else if (!isMob()) {
+                  <!-- a MOB card stays up with its rescue actions until it is ended -->
                   <button
                     mat-raised-button
                     matTooltip="Dismiss"
