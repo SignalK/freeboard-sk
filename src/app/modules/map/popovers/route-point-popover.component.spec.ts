@@ -34,6 +34,98 @@ describe('RoutePointPopoverComponent — Skip', () => {
 });
 
 /**
+ * The distance, time to go and arrival time of a point, for points not yet
+ * passed.
+ */
+describe('RoutePointPopoverComponent — estimates', () => {
+  const render = (point: Partial<ActiveRoutePoint>) => {
+    TestBed.configureTestingModule({
+      imports: [RoutePointPopoverComponent],
+      providers: [
+        {
+          provide: AppFacade,
+          useValue: {
+            config: { units: { positionFormat: 'XY' } },
+            formatValueForDisplay: (v: number, unit: string) => `${v} ${unit}`
+          }
+        }
+      ]
+    });
+    const fixture = TestBed.createComponent(RoutePointPopoverComponent);
+    fixture.componentRef.setInput('point', point as ActiveRoutePoint);
+    fixture.detectChanges();
+    return { fixture };
+  };
+
+  beforeEach(() => TestBed.resetTestingModule());
+
+  it('shows the distance, time to go and arrival time of a point ahead', () => {
+    const { fixture } = render({
+      index: 2,
+      total: 4,
+      isNext: false,
+      distance: 3704,
+      timeToGo: 1440
+    });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('DTG:');
+    expect(text).toContain('3704 m');
+    expect(text).toContain('TTG:');
+    expect(text).toContain('1440 s');
+    expect(text).toContain('ETA:');
+  });
+
+  it('shows the distance alone while the vessel is stopped', () => {
+    const { fixture } = render({
+      index: 2,
+      total: 4,
+      isNext: false,
+      distance: 3704
+    });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('DTG:');
+    expect(text).not.toContain('TTG:');
+    expect(text).not.toContain('ETA:');
+  });
+
+  it('leaves out the estimates for a point already passed', () => {
+    const { fixture } = render({ index: 0, total: 4, isNext: false });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).not.toContain('DTG:');
+    expect(text).not.toContain('ETA:');
+  });
+});
+
+describe('RoutePointPopoverComponent — ETA', () => {
+  const eta = (ttg: number, now: Date) =>
+    (
+      Object.create(RoutePointPopoverComponent.prototype) as unknown as {
+        eta: (ttg: number, now: Date) => string;
+      }
+    ).eta(ttg, now);
+
+  it('gives the time alone when it is today', () => {
+    const now = new Date(2026, 10, 7, 10, 0);
+    expect(eta(1800, now)).toBe(
+      new Date(2026, 10, 7, 10, 30).toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit'
+      })
+    );
+  });
+
+  it('adds the date when it is not today', () => {
+    const now = new Date(2026, 10, 7, 22, 0);
+    expect(eta(4 * 3600, now)).toContain(
+      new Date(2026, 10, 8).toLocaleDateString()
+    );
+  });
+});
+
+/**
  * The buttons act on the point as shown: Skip carries the index on screen, so
  * a course that advances while the popover is open is not skipped twice.
  */

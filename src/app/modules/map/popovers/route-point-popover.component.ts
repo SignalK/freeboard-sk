@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  computed,
   inject,
   input,
   output
@@ -39,6 +40,26 @@ import { ActiveRoutePoint } from '../route-point-pick';
           }
         </div>
       </div>
+      @if (point().distance !== undefined) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">DTG:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ app.formatValueForDisplay(point().distance, 'm') }}
+          </div>
+        </div>
+      }
+      @if (point().timeToGo; as ttg) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">TTG:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ app.formatValueForDisplay(ttg, 's') }}
+          </div>
+        </div>
+        <div style="display:flex;">
+          <div style="font-weight:bold;">ETA:</div>
+          <div style="flex: 1 1 auto;text-align:right;">{{ arrival() }}</div>
+        </div>
+      }
       @if (point().position; as pos) {
         <div style="display:flex;">
           <div style="font-weight:bold;">Latitude:</div>
@@ -100,6 +121,25 @@ export class RoutePointPopoverComponent {
 
   protected app = inject(AppFacade);
   protected readonly icon = { class: 'icon-route', name: 'location_on' };
+
+  /** The arrival time, taken when the point is shown like its time to go. */
+  protected arrival = computed(() => {
+    const ttg = this.point().timeToGo;
+    return ttg ? this.eta(ttg) : '';
+  });
+
+  /** The time of arrival `ttg` seconds from now, with the date when it is not
+   *  today. */
+  protected eta(ttg: number, now = new Date()): string {
+    const at = new Date(now.getTime() + ttg * 1000);
+    const time = at.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+    return at.toDateString() === now.toDateString()
+      ? time
+      : `${at.toLocaleDateString()} ${time}`;
+  }
 
   /** Skip applies to the point being headed for, when another follows it. */
   protected canSkip() {

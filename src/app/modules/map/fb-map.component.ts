@@ -213,10 +213,12 @@ import { waypointSnapAt } from './ol/lib/waypoint-snap';
 import { drawnWaypoints } from './ol/lib/resources/route-waypoint-overlap';
 import {
   ActiveRoutePoint,
+  distanceAlongRoute,
   followedPointIndex,
   pickRoutePoints,
   preferredRoutePoint,
-  ROUTE_POINT_PICK_PX
+  ROUTE_POINT_PICK_PX,
+  timeToGo
 } from './route-point-pick';
 import { AppIconDef, SymbolService } from '../icons';
 import {
@@ -2345,13 +2347,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private activeRoutePoint(index: number): ActiveRoutePoint {
     const c = this.course.courseData();
     // Point names are in the order the route is stored.
-    const stored = followedPointIndex(
-      index,
-      c.pointTotal,
-      this.app.data.activeRouteReversed
-    );
+    const reversed = this.app.data.activeRouteReversed;
+    const stored = followedPointIndex(index, c.pointTotal, reversed);
+    const self = this.app.data.vessels.self;
+    // The course's point index can arrive before the geometry of a newly
+    // followed route, so the distance is measured on the cached route only
+    // when its point count matches the course.
+    const geometry = this.app.data.activeRoute
+      ? this.skres.fromCache('routes', this.app.data.activeRoute)?.[1].feature
+          .geometry.coordinates
+      : undefined;
+    const followed =
+      geometry && geometry.length === c.pointTotal
+        ? reversed
+          ? [...geometry].reverse()
+          : geometry
+        : null;
+    const distance =
+      self.position && followed
+        ? distanceAlongRoute(self.position, followed, c.pointIndex, index)
+        : undefined;
     return {
       index,
+      distance,
+      timeToGo: timeToGo(distance, self.sog),
       total: c.pointTotal,
       name: c.pointNames?.[stored] || undefined,
       position: c.activeRoutePoints?.[stored],
