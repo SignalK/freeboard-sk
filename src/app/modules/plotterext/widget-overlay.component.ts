@@ -29,7 +29,10 @@ import {
 } from './types';
 
 const HOLD_MS = 1500;
-const MOVE_SLOP_PX = 8;
+// A finger drifts over a 1.5 s hold, more so on a moving boat; the same
+// tolerance as the map's own long-press (map.component.ts) keeps the hold
+// alive while a pan still cancels it.
+const MOVE_SLOP_PX = 15;
 
 interface CellStyle {
   [key: string]: string;

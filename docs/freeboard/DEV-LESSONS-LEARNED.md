@@ -500,7 +500,7 @@ Remember that the overlay's anchor, not the popover box, is where the pointer is
 
 **The trap.** The plotter-extension widget overlay (`widget-overlay.component.ts`)
 listens for `pointerdown` on the whole **document**, in the capture phase, not on
-its own elements. A press that stays within 8px for 1.5 s on an empty cell of a
+its own elements. A press that stays within 15px for 1.5 s on an empty cell of a
 widget anchor area (every corner but the top-left, plus top and bottom centre)
 opens the *Add widget* picker whenever an installed extension offers an addable
 widget there. It skips only the
