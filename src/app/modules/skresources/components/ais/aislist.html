@@ -93,6 +93,11 @@
   <div class="resources vessels" [class.buddies]="app.featureFlags().buddyList">
     @if(this.app.sIsFetching()) {
     <mat-progress-bar mode="query"></mat-progress-bar>
+    } @let hidden = chartShown(); @if (hidden) {
+    <div class="filter-hint">
+      <mat-icon>filter_alt</mat-icon>
+      Chart shows {{ hidden.shown }} of {{ hidden.total }} vessels
+    </div>
     } @if (app.config.selections.aisFilterByShipType) {
     <mat-card>
       <mat-card-content>
@@ -124,7 +129,11 @@
     </mat-card>
 
     } @else {
-    <cdk-virtual-scroll-viewport class="vscroller" itemSize="48">
+    <cdk-virtual-scroll-viewport
+      class="vscroller"
+      [class.hinted]="hidden"
+      itemSize="48"
+    >
       <mat-card
         *cdkVirtualFor="let r of filteredList(); let i= index;"
         style="border-bottom: silver 1px outset; border-radius: unset"
