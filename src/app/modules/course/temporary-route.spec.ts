@@ -22,11 +22,14 @@ const HOUR = 60 * MIN;
 const iso = (t: number) => new Date(t).toISOString();
 
 /** A temporary route stored `createdAgo` ago, optionally released `releasedAgo` ago. */
-const temp = (createdAgo: number, releasedAgo?: number) =>
+const temp = (createdAgo: number, releasedAgo?: number, source?: string) =>
   route({
     temporary: {
       created: iso(NOW - createdAgo),
-      ...(releasedAgo !== undefined ? { released: iso(NOW - releasedAgo) } : {})
+      ...(releasedAgo !== undefined
+        ? { released: iso(NOW - releasedAgo) }
+        : {}),
+      ...(source !== undefined ? { source } : {})
     }
   });
 
@@ -141,6 +144,45 @@ describe('temporaryRoutesToDelete', () => {
       ['latest', temp(HOUR)]
     ];
     expect(temporaryRoutesToDelete(routes, null, NOW)).toEqual(['damaged']);
+  });
+
+  it('keeps the temporary route a kept END HERE copy was cut from', () => {
+    const routes: Array<[string, ReturnType<typeof route>]> = [
+      ['older', temp(3 * HOUR, 2 * HOUR)],
+      ['original', temp(HOUR, MIN)],
+      ['copy', temp(MIN, undefined, 'original')]
+    ];
+    expect(temporaryRoutesToDelete(routes, 'copy', NOW)).toEqual(['older']);
+  });
+
+  it('keeps every route in a chain of END HERE copies', () => {
+    const routes: Array<[string, ReturnType<typeof route>]> = [
+      ['original', temp(3 * HOUR, 2 * HOUR)],
+      ['first', temp(2 * HOUR, HOUR, 'original')],
+      ['second', temp(HOUR, undefined, 'first')]
+    ];
+    expect(temporaryRoutesToDelete(routes, 'second', NOW)).toEqual([]);
+  });
+
+  it('deletes the source along with an END HERE copy that is due', () => {
+    const routes: Array<[string, ReturnType<typeof route>]> = [
+      [
+        'original',
+        temp(TEMPORARY_ROUTE_KEEP_MS + 2 * HOUR, TEMPORARY_ROUTE_KEEP_MS + HOUR)
+      ],
+      [
+        'copy',
+        temp(
+          TEMPORARY_ROUTE_KEEP_MS + HOUR,
+          TEMPORARY_ROUTE_KEEP_MS,
+          'original'
+        )
+      ]
+    ];
+    expect(temporaryRoutesToDelete(routes, null, NOW)).toEqual([
+      'original',
+      'copy'
+    ]);
   });
 
   it('ignores routes that are not temporary', () => {

@@ -189,7 +189,12 @@ export class TemporaryRouteService {
     if (Array.isArray(meta) && meta.length === coordinates.length) {
       properties.coordinatesMeta = followedRouteUpTo(meta, endIndex, reversed);
     }
-    properties.temporary = temporaryRouteMarker(new Date());
+    properties.temporary = {
+      ...temporaryRouteMarker(new Date()),
+      // A temporary source would otherwise be swept as soon as the copy,
+      // the newer temporary route, is stored.
+      ...(isTemporaryRoute(route) ? { source: routeId } : {})
+    };
     const endName =
       properties.coordinatesMeta?.[endIndex]?.name || `point ${endIndex + 1}`;
     copy.name = `${route.name || TEMPORARY_ROUTE_NAME} → ${endName}`;

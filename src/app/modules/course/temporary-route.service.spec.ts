@@ -473,15 +473,25 @@ function namedRoute(id: string, n: number): FBRoute {
 describe('TemporaryRouteService — ending the active route at a point', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
-  const following = (opts: { reversed?: boolean; nextIndex?: number } = {}) => {
+  const following = (
+    opts: { reversed?: boolean; nextIndex?: number; temporary?: boolean } = {}
+  ) => {
     const t = setup();
-    t.routes.set([namedRoute('old', 5)]);
+    const old = () => {
+      const route = namedRoute('old', 5);
+      if (opts.temporary) {
+        route[1].feature.properties!['temporary'] = temporaryRouteMarker(
+          new Date(Date.now() - HOUR)
+        );
+      }
+      return route;
+    };
+    t.routes.set([old()]);
+    t.server.routes = [old()];
     t.app.data.activeRoute = 'old';
     t.app.data.activeRouteReversed = opts.reversed ?? false;
     t.course.courseData.set({ pointIndex: opts.nextIndex ?? 1 });
-    t.skres.fromServer.mockImplementation(() =>
-      Promise.resolve(namedRoute('old', 5)[1])
-    );
+    t.skres.fromServer.mockImplementation(() => Promise.resolve(old()[1]));
     t.setServerActiveRoute('old', {
       pointIndex: opts.nextIndex ?? 1,
       reverse: opts.reversed ?? false
@@ -640,5 +650,35 @@ describe('TemporaryRouteService — ending the active route at a point', () => {
     await t.service.endActiveRouteAt('old', 1, 3);
 
     expect(t.infoPanel.open).toHaveBeenCalledWith('routes', 'copy-1');
+  });
+
+  it('keeps a temporary route that END HERE was cut from', async () => {
+    const t = following({ temporary: true });
+    t.course.activateRoute.mockImplementationOnce(() => {
+      t.server.routes = [...t.server.routes, ['copy-1', posted(t), true]];
+      t.setServerActiveRoute('copy-1', { pointIndex: 1 });
+      return Promise.resolve(true);
+    });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBe('copy-1');
+    await settle();
+
+    expect(
+      (posted(t).feature.properties?.['temporary'] as TemporaryRouteMarker)
+        .source
+    ).toBe('old');
+    expect(t.skres.listFromServer).toHaveBeenCalled();
+    expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
+  });
+
+  it('names no source when the route END HERE was cut from is saved', async () => {
+    const t = following();
+
+    await t.service.endActiveRouteAt('old', 1, 3);
+
+    expect(
+      (posted(t).feature.properties?.['temporary'] as TemporaryRouteMarker)
+        .source
+    ).toBeUndefined();
   });
 });

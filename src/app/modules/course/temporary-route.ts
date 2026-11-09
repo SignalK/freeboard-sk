@@ -7,7 +7,9 @@
  * properties. The most recent temporary route is kept after it stops being
  * followed, so a detour or a course cleared elsewhere does not lose it; it is
  * deleted when a newer temporary route replaces it, or once it has not been
- * followed for a day. Saving it under a name removes the marker.
+ * followed for a day. A temporary route cut short with END HERE does not
+ * replace the route it was cut from, which is kept as long as the copy is.
+ * Saving it under a name removes the marker.
  */
 
 export const TEMPORARY_ROUTE_NAME = 'Temporary route';
@@ -28,6 +30,9 @@ export interface TemporaryRouteMarker {
   created: string;
   /** ISO 8601 time the route last stopped being followed. */
   released?: string;
+  /** The temporary route this one was cut from by END HERE. The source is
+   *  kept while this route is, so the user can still go back to it. */
+  source?: string;
 }
 
 type RouteLike =
@@ -52,7 +57,7 @@ export function promoteTemporaryRoute(route: RouteLike) {
 }
 
 /** A marker time as epoch ms; NaN when missing or unreadable. */
-function markerTime(route: RouteLike, key: keyof TemporaryRouteMarker) {
+function markerTime(route: RouteLike, key: 'created' | 'released') {
   const value = (
     route?.feature?.properties?.['temporary'] as Record<string, unknown>
   )?.[key];
@@ -67,7 +72,8 @@ function markerTime(route: RouteLike, key: keyof TemporaryRouteMarker) {
  * - the most recent temporary route once it has not been followed for
  *   `keepMs`, counted from when it stopped (from when it was stored if no
  *   Freeboard saw it stop);
- * - every other temporary route.
+ * - every other temporary route;
+ * - but never the source of a temporary route that is kept.
  *
  * A missing or unreadable creation time sorts oldest and never counts as
  * recent, so a damaged marker cannot keep a route alive.
@@ -94,22 +100,43 @@ export function temporaryRoutesToDelete(
       newestCreated = created;
     }
   }
-  return temporary
-    .filter(([id, route]) => {
-      if (id === activeId) {
-        return false;
+  const due = new Set(
+    temporary
+      .filter(([id, route]) => {
+        if (id === activeId) {
+          return false;
+        }
+        const released = markerTime(route, 'released');
+        if (Number.isNaN(released) && now - createdOf(route) < graceMs) {
+          return false;
+        }
+        if (id === newest) {
+          const since = Number.isNaN(released) ? createdOf(route) : released;
+          return now - since >= keepMs;
+        }
+        return true;
+      })
+      .map(([id]) => id)
+  );
+  // A kept route keeps its source, which keeps its own source in turn.
+  let spared = true;
+  while (spared) {
+    spared = false;
+    for (const [id, route] of temporary) {
+      const source = sourceOf(route);
+      if (!due.has(id) && source && due.delete(source)) {
+        spared = true;
       }
-      const released = markerTime(route, 'released');
-      if (Number.isNaN(released) && now - createdOf(route) < graceMs) {
-        return false;
-      }
-      if (id === newest) {
-        const since = Number.isNaN(released) ? createdOf(route) : released;
-        return now - since >= keepMs;
-      }
-      return true;
-    })
-    .map(([id]) => id);
+    }
+  }
+  return [...due];
+}
+
+function sourceOf(route: RouteLike): string | null {
+  const value = (
+    route?.feature?.properties?.['temporary'] as Record<string, unknown>
+  )?.['source'];
+  return typeof value === 'string' ? value : null;
 }
 
 /** The route id at the end of a Course API href (`/resources/routes/<id>`). */
