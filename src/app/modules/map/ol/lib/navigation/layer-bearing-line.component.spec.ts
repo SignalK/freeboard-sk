@@ -11,7 +11,11 @@ import { MapComponent } from '../map.component';
 import { isHandleDrag } from '../handle-drag';
 import { SHIFT_VESSEL_END, ShiftVesselEnd } from '../view.directive';
 import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import { Feature } from 'ol';
 import { LineString } from 'ol/geom';
+import { Style } from 'ol/style';
+import { destinationStyles } from '../../../mapconfig';
 
 // Bearing & Distance (#905): the placed end point can be dragged.
 describe('BearingLineComponent marker drag', () => {
@@ -291,5 +295,52 @@ describe('BearingLineComponent during a follow glide', () => {
     expect(start[1]).toBeCloseTo(at[1] - 30);
     expect(end[0]).toBeCloseTo(fromLonLat(marker)[0]);
     expect(end[1]).toBeCloseTo(fromLonLat(marker)[1]);
+  });
+});
+
+// The destination keeps its name on the chart while the line to it is styled
+// separately from its point.
+describe('BearingLineComponent destination label', () => {
+  const map = {
+    addLayer: vi.fn(),
+    removeLayer: vi.fn(),
+    render: vi.fn(),
+    addInteraction: vi.fn(),
+    removeInteraction: vi.fn(),
+    getTargetElement: () => document.createElement('div')
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [BearingLineComponent],
+      providers: [{ provide: MapComponent, useValue: { getMap: () => map } }]
+    }).compileComponents();
+  });
+
+  function labels(zoom: number) {
+    const fixture = TestBed.createComponent(BearingLineComponent);
+    fixture.componentRef.setInput('vesselPosition', [178.4, -18.1]);
+    fixture.componentRef.setInput('markerPosition', [178.6, -17.9]);
+    fixture.componentRef.setInput('markerName', 'Momi Bay');
+    fixture.componentRef.setInput('bearingStyles', destinationStyles);
+    fixture.componentRef.setInput('labelMinZoom', 12);
+    fixture.componentRef.setInput('mapZoom', zoom);
+    fixture.detectChanges();
+    const source = fixture.componentInstance.source as VectorSource;
+    const textOf = (f: Feature) =>
+      ((f.getStyle() as Style).getText()?.getText() as string) ?? '';
+    const point = source.getFeatureById('d.base') as Feature;
+    const line = source
+      .getFeatures()
+      .find((f) => f.getGeometry() instanceof LineString) as Feature;
+    return { point: textOf(point), line: textOf(line) };
+  }
+
+  it('names the destination point and leaves the line unlabelled', () => {
+    expect(labels(14)).toEqual({ point: 'Momi Bay', line: '' });
+  });
+
+  it('hides the name below the label zoom', () => {
+    expect(labels(10).point).toBe('');
   });
 });

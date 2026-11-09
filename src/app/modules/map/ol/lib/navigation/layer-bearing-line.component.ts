@@ -208,7 +208,9 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
         geometry: new Point(fromLonLat(markerPosition))
       });
       fp.setId('d.base');
-      fp.setStyle(this.buildStyle('line'));
+      fp.setStyle(
+        this.buildStyle(this.bearingStyles?.['point'] ? 'point' : 'line')
+      );
       this.updateLabel(fp);
       fa.push(fp);
       if (this.showRing()) {
