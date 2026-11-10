@@ -23,12 +23,22 @@ keyboard). A short list of the widgets that fit there appears — choose one
 and it's added to your screen. As you place more, widgets stack neatly from
 the edge inward.
 
-**To change or remove a widget**, press and hold the widget itself. This
-opens its settings, where you can adjust it (if it has any options) or
-remove it from the screen.
+**To change, move or remove a widget**, press and hold the widget itself.
+This opens its settings, where you can adjust it (if it has any options),
+remove it from the screen, or **Move** it. Choose **Move** and every spot the
+widget fits is outlined in blue, with a bar across the chart: *Drag the
+widget, or tap where it should go*. Tap an outlined spot, or drag the widget
+onto one, and it moves there with its settings intact. Tap the widget itself,
+or **Cancel**, to leave it where it was.
 
-Your layout is remembered, so the widgets you place are still there the next
-time you open Freeboard-SK.
+Your layout and each widget's settings are remembered, so the widgets you
+place are still there, set up as you left them, the next time you open
+Freeboard-SK. When you're signed in to your Signal K server, both are saved
+with your Freeboard settings on the server and follow you to every device you
+sign in on: set up a gauge on the helm tablet and it's ready on your phone
+too. A server administrator can also ship ready-configured widgets to every
+device through Freeboard's default settings. A plugin may keep some choices
+to the one screen they were made on.
 
 Some widgets can also narrow down what's shown elsewhere on the chart — for
 example, showing only certain waypoints. When a widget does this, a small
