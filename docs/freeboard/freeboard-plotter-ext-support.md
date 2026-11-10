@@ -58,7 +58,8 @@ package; Freeboard depends on it (`^0.25.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
-`overlays.image`, `overlays.data`, `actions`, `actions.overlay`, `map.pick`.
+`overlays.image`, `overlays.animated`, `overlays.data`, `actions`, `actions.overlay`,
+`map.pick`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -821,6 +822,21 @@ see *The `overlays.data` capability*) — and saves the user's choices in `confi
   canvas budget. Live (unrequested) frames are accepted at most every
   `LIVE_FRAME_MIN_INTERVAL_MS` (200 ms) per overlay (`overlays.throttled`), and
   every `overlay.request` states that pace as `liveInterval`.
+- **Animation (`overlays.animated`).** An image overlay whose
+  `preferredLiveInterval` is under 200 ms animates: `OverlayRegistry` grants it
+  that interval, but never under `ANIMATED_MIN_INTERVAL_MS` (33 ms, 30 fps), and
+  only `MAX_ANIMATED_OVERLAYS` (1) at a time, in render order. The others, and
+  every overlay while `prefers-reduced-motion: reduce` matches, keep 200 ms (or
+  their own slower preference). The granted interval is each entry's
+  `liveInterval`. It is what `overlay.request` states and what the live-frame
+  throttle enforces, and a change to it is emitted as `overlay.state` (which
+  carries `liveInterval` for every image overlay). **Back-off:** while an
+  overlay animates, its `<fb-plugin-overlay>` times each map composition
+  (`precompose` to `postcompose`, skipping gestures and view animations) and
+  reports it with `reportFrameCost`. When the smoothed cost exceeds half the
+  granted interval, the interval doubles (up to 200 ms). When it falls under a
+  fifth of half the interval, it halves again toward the preference. Either
+  change waits `BACKOFF_SETTLE_MS` (2 s) after the last.
 - **User controls.** The Chart list shows one row per overlay above the chart
   rows (every overlay draws above every chart), with its own *Show in Map*
   checkbox and *Set Opacity* slider. Shown-but-suspended overlays say so. An

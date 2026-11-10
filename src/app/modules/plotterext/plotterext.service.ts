@@ -116,7 +116,10 @@ import {
   resolveOverlayUrl,
   type ResolvedUrl
 } from './data-overlay-style';
-import type { OverlayStyle } from 'signalk-plotterext-bus/host';
+import type {
+  OverlayStateEvent,
+  OverlayStyle
+} from 'signalk-plotterext-bus/host';
 import { createNightModeMethods } from './nightmode-methods';
 import {
   createEventsMethods,
@@ -789,18 +792,22 @@ export class PlotterExtensionService {
 
   /**
    * Emit `overlay.state` to the owning extension for each overlay whose
-   * visibility, opacity or suspension changed — whoever changed it. The first
+   * visibility, opacity or suspension changed — whoever changed it — or, for
+   * an image overlay, whose granted live-frame interval changed. The first
    * report of an overlay seeds silently; a runtime reads the starting state
-   * with `overlay.list`.
+   * with `overlay.list` and its interval from `overlay.request`.
    */
   private emitOverlayStates(entries: OverlayEntry[]) {
     const next = new Map<string, string>();
     for (const e of entries) {
-      const state = {
+      const state: OverlayStateEvent = {
         overlayId: e.id,
         visible: e.visible,
         opacity: e.opacity,
-        suspended: e.suspended
+        suspended: e.suspended,
+        ...(e.liveInterval !== undefined
+          ? { liveInterval: e.liveInterval }
+          : {})
       };
       const sig = JSON.stringify(state);
       next.set(e.key, sig);
@@ -1434,6 +1441,17 @@ export class PlotterExtensionService {
     this.overlays.setConfigOpener((entry) =>
       this.openOverlayConfigPanel(entry)
     );
+    // No animated overlays when the user's system asks for reduced motion.
+    // Absent where the browser has no matchMedia (the unit tests' DOM).
+    const reducedMotion = globalThis.matchMedia?.(
+      '(prefers-reduced-motion: reduce)'
+    );
+    if (reducedMotion) {
+      this.overlays.reducedMotion.set(reducedMotion.matches);
+      reducedMotion.addEventListener('change', (e) =>
+        this.overlays.reducedMotion.set(e.matches)
+      );
+    }
     effect(() => {
       const urls = this.dataStyleUrls();
       untracked(() => this.fetchDataStyles(urls));

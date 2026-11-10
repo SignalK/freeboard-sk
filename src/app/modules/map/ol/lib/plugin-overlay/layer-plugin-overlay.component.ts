@@ -108,6 +108,27 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       map.on('moveend', viewChanged),
       map.on('change:size', viewChanged)
     );
+    // While this overlay animates, report what compositing each map frame
+    // costs, so the registry can lengthen the interval it grants. Gestures
+    // are left out: their cost is the user's, not the animation's.
+    let composeStart = 0;
+    this.listenerKeys.push(
+      map.on('precompose', () => (composeStart = performance.now())),
+      map.on('postcompose', () => {
+        const view = map.getView();
+        if (
+          !composeStart ||
+          view.getInteracting() ||
+          view.getAnimating() ||
+          !this.plotterExt.overlays.entry(this.overlayKey)?.animated
+        ) {
+          return;
+        }
+        this.plotterExt.overlays.reportFrameCost(
+          performance.now() - composeStart
+        );
+      })
+    );
     this.requestIfNeeded();
   }
 

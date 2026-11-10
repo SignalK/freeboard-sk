@@ -29,6 +29,7 @@ import { MapService } from '../map/ol/lib/map.service';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 import { PlotterExtensionManifest } from './types';
 import type { FetchJson } from './data-overlay-model';
+import { LIVE_FRAME_MIN_INTERVAL_MS } from './overlay-registry';
 
 const manifest = (id: string): PlotterExtensionManifest =>
   ({
@@ -328,7 +329,13 @@ describe('PlotterExtensionService image overlays', () => {
     await a.overlays.setVisibility(['depth'], false);
     await settle();
     expect(seenA).toEqual([
-      { overlayId: 'depth', visible: false, opacity: 1, suspended: false }
+      {
+        overlayId: 'depth',
+        visible: false,
+        opacity: 1,
+        suspended: false,
+        liveInterval: LIVE_FRAME_MIN_INTERVAL_MS
+      }
     ]);
     expect(seenB).toEqual([]);
     expect(saveConfig).toHaveBeenCalled();
@@ -339,8 +346,32 @@ describe('PlotterExtensionService image overlays', () => {
       overlayId: 'depth',
       visible: false,
       opacity: 0.5,
-      suspended: false
+      suspended: false,
+      liveInterval: LIVE_FRAME_MIN_INTERVAL_MS
     });
+  });
+
+  it('advertises overlays.animated and reports a changed live-frame interval', async () => {
+    const animated = manifest('ext-c');
+    animated.overlays![0].preferredLiveInterval = 40;
+    service.manifests.set({ ...service.manifests(), 'ext-c': animated });
+    TestBed.tick();
+    const c = await runtime('ext-c');
+    expect(c.hasCapability('overlays.animated')).toBe(true);
+    const seen = await recorder<OverlayStateEvent>(c, 'overlay.state');
+    await settle();
+    expect(service.overlays.entry('ext-c/depth')?.liveInterval).toBe(40);
+    service.overlays.reducedMotion.set(true);
+    await settle();
+    expect(seen).toEqual([
+      {
+        overlayId: 'depth',
+        visible: true,
+        opacity: 1,
+        suspended: false,
+        liveInterval: LIVE_FRAME_MIN_INTERVAL_MS
+      }
+    ]);
   });
 
   it('reloads the saved choices once the server config is in (init)', async () => {
