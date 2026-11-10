@@ -542,6 +542,6 @@ function radarTargetError(
     return 'This radar does not support target tracking.';
   }
   return what === 'acquire'
-    ? 'The radar could not acquire a target there.'
+    ? 'The radar could not start tracking.'
     : 'The radar could not stop tracking this target.';
 }
