@@ -11,7 +11,7 @@ import { OpenBridgeIcons } from './openbridge';
 import { PoiIcons } from './poi';
 import { AtoNsType1 } from './atons';
 import { WaypointIcons, getWaypointDefs } from './waypoints';
-import { VesselAisIcons, AIS_TYPE_IDS } from './vessels';
+import { VesselAisIcons, AIS_TYPE_IDS, AIS_FISHING_TYPE_ID } from './vessels';
 import { RESERVED_DEFAULT_NS } from './symbol-ref';
 
 // ---- Module-level hook for SymbolService ----
@@ -316,7 +316,9 @@ export const getAlertIcon = (alert: AlertData): AppIconDef => {
 export const getAisIcon = (
   id: number | string | null | undefined
 ): AppIconDef => {
-  if (typeof id === 'number') {
+  if (id === AIS_FISHING_TYPE_ID) {
+    id = 'fishing';
+  } else if (typeof id === 'number') {
     id = Math.floor(id / 10) * 10;
   }
   if (!id || !(id in AIS_TYPE_IDS)) {

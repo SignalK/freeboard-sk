@@ -11,6 +11,7 @@ import { MapComponent } from '../map.component';
 import { AISBaseLayerComponent } from './ais-base.component';
 import { SKVessel } from 'src/app/modules/skresources';
 import { MapImageRegistry } from '../map-image-registry.service';
+import { aisVesselStyleId } from 'src/app/modules/icons';
 
 // ** Signal K AIS Vessel targets **
 @Component({
@@ -139,9 +140,10 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
           ? this.mapImages.getVessel('inactive', isMoored)
           : target.buddy
             ? this.mapImages.getVessel('buddy', isMoored)
-            : shipClass === -1
-              ? this.mapImages.getVessel('default', isMoored)
-              : this.mapImages.getVessel(shipClass, isMoored);
+            : this.mapImages.getVessel(
+                target.type?.id ? aisVesselStyleId(target.type.id) : 'default',
+                isMoored
+              );
 
     const iconStyle = () =>
       new Style({

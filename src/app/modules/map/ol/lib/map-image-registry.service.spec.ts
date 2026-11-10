@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { Circle, Icon } from 'ol/style';
 import {
   MapImageRegistry,
   WIND_ARROW_SYMBOL,
@@ -111,5 +112,26 @@ describe('MapImageRegistry current arrows (#521)', () => {
     // Overrides are geographic vectors too — they must rotate with the view.
     expect(ocean.getRotateWithView()).toBe(true);
     expect(tidal.getRotateWithView()).toBe(true);
+  });
+});
+
+/**
+ * Fishing vessels (AIS type 30) get their own icon and moored marker, so they
+ * no longer look like the pleasure craft they share the 30s with (#1236).
+ */
+describe('MapImageRegistry.getVessel fishing (#1236)', () => {
+  const reg = new MapImageRegistry();
+
+  it('draws an underway fishing vessel with the fishing icon', () => {
+    expect((reg.getVessel('fishing') as Icon).getSrc()).toContain(
+      'ais_fishing.svg'
+    );
+  });
+
+  it('fills a moored fishing vessel with a colour of its own', () => {
+    const fishing = (reg.getVessel('fishing', true) as Circle).getFill();
+    const pleasure = (reg.getVessel(30, true) as Circle).getFill();
+    expect(fishing?.getColor()).toBe('#FF8C00');
+    expect(fishing?.getColor()).not.toBe(pleasure?.getColor());
   });
 });
