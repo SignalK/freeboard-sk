@@ -198,7 +198,10 @@ export interface MaskedAngle {
   /** Where the caret goes in `text`. */
   caret: number;
   /** A hemisphere typed into the text: true for S or W (or `-`), false for
-   *  N or E (or `+`), null when none was typed. It is not kept in `text`. */
+   *  N or E (or `+`), null when none was typed. It is not kept in `text`,
+   *  unless it is wrong for the axis or contradicts itself (`47E` for a
+   *  latitude, `-47N`): it then stays in `text`, which no longer parses, and
+   *  this is null. */
   negative: boolean | null;
 }
 
@@ -211,7 +214,8 @@ export interface MaskedAngle {
  * and seconds) or when a space or mark is typed, so `5 3` gives `5° 3'`.
  * Digits past the last part become its decimals, and a `.` or `,` starts
  * them. Marks are rebuilt each time, so typing one is never needed and never
- * doubles it. A hemisphere letter or sign is taken out and reported.
+ * doubles it. A hemisphere letter or sign is taken out and reported, but a
+ * wrong or contradictory one is kept so the field shows it as an error.
  *
  * `deleting` is set for a deletion: a trailing space the user just erased is
  * then not put back.
@@ -231,7 +235,8 @@ export function maskAngle(
   // Whether the decimal point is in the typed text, or was put there by a
   // digit overflowing the last part: only a typed one moves the caret.
   let pointTyped = false;
-  let negative: boolean | null = null;
+  let sign: '+' | '-' | null = null;
+  let letters = '';
   let kept = 0;
   let keptBeforeCaret = 0;
 
@@ -271,10 +276,10 @@ export function maskAngle(
       if (closes && !last && ints[cur] !== '') {
         ints.push('');
       }
-    } else if (c === '-' || c === neg) {
-      negative = true;
-    } else if (c === '+' || c === pos) {
-      negative = false;
+    } else if (c === '-' || c === '+') {
+      sign = c;
+    } else if (c >= 'A' && c <= 'Z') {
+      letters += c;
     }
     if (keep) {
       kept++;
@@ -318,11 +323,30 @@ export function maskAngle(
     }
   });
 
+  const at =
+    open && keptBeforeCaret === kept ? out.length : after[keptBeforeCaret];
+
+  // Every direction given must agree, and every letter must belong to the
+  // axis. Dropping a wrong one would quietly save another position.
+  const named = [
+    ...(sign ? [sign === '-'] : []),
+    ...[...letters].map((l) => (l === neg ? true : l === pos ? false : null))
+  ];
+  const conflict =
+    named.includes(null) || (named.includes(true) && named.includes(false));
+  if (conflict) {
+    const prefix = sign && letters.length ? sign : '';
+    const shown = `${prefix}${out} ${letters}`.trimEnd();
+    return {
+      text: shown,
+      caret: caret >= text.length ? shown.length : at + prefix.length,
+      negative: null
+    };
+  }
   return {
     text: out,
-    caret:
-      open && keptBeforeCaret === kept ? out.length : after[keptBeforeCaret],
-    negative
+    caret: at,
+    negative: named.length ? (named[named.length - 1] as boolean) : null
   };
 }
 

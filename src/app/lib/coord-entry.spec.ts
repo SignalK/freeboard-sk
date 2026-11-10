@@ -166,6 +166,26 @@ describe('maskAngle', () => {
     });
     expect(at('3.5E', 'DD', 'lon').negative).toBe(false);
   });
+
+  it('keeps a letter of the other axis, so the text does not parse', () => {
+    const typed = at('2459.5E', 'DDM', 'lat');
+    expect(typed).toEqual({
+      text: `24° 59.5' E`,
+      caret: `24° 59.5' E`.length,
+      negative: null
+    });
+    expect(parseAngle(typed.text, 'lat')).toBeNull();
+  });
+
+  it('keeps a sign that contradicts the letter, so the text does not parse', () => {
+    const typed = at('-47N', 'DD', 'lat');
+    expect(typed).toMatchObject({ text: '-47° N', negative: null });
+    expect(parseAngle(typed.text, 'lat')).toBeNull();
+    expect(at('-47S', 'DD', 'lat')).toMatchObject({
+      text: '47°',
+      negative: true
+    });
+  });
 });
 
 describe('dropDigitBefore', () => {

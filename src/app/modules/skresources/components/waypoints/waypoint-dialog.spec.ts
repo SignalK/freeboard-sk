@@ -203,6 +203,17 @@ describe('waypoint dialog position entry', () => {
     expect(save(fixture, close)[1]).toBeCloseTo(-47.6375, 9);
   });
 
+  it('refuses a hemisphere letter that does not belong to the axis', async () => {
+    const { fixture } = await open([0, 0], 'DMdH');
+    const [lat] = positionInputs(fixture);
+    keys(fixture, lat, '2459.5E');
+    expect(lat.value).toBe(`24° 59.5' E`);
+    lat.dispatchEvent(new Event('blur')); // an error shows once touched
+    fixture.detectChanges();
+    expect(el(fixture).textContent).toContain('Not a valid latitude.');
+    expect(saveButton(fixture).disabled).toBe(true);
+  });
+
   it('moves the list to a hemisphere letter typed after the value', async () => {
     const { fixture, close } = await open([0, 0]);
     const [lat] = positionInputs(fixture);
