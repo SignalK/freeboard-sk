@@ -492,7 +492,7 @@ describe('cleanConfig() legacy migration', () => {
       parameters: null,
       favourites: ['/@mxtommy/kip']
     };
-    cfg.display.plugins = plugins;
+    cfg.display.plugins = structuredClone(plugins);
     cleanConfig(cfg, {});
     expect(cfg.display.plugins).toEqual(plugins);
   });
