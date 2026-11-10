@@ -78,8 +78,8 @@
       mat-icon-button
       class="range-step range-in"
       aria-label="Shorter range"
-      [disabled]="rangeOff || rangeAt === 0"
-      (click)="stepRange(-1)"
+      [disabled]="rangeOff || !rangeSteps().shorter"
+      (click)="stepRange('shorter')"
     >
       <mat-icon>add</mat-icon>
     </button>
@@ -90,16 +90,14 @@
       [disabled]="rangeOff"
     >
       <span class="range-name">Range</span>
-      <span class="range-text"
-        >{{ rangeAt === -1 ? '—' : rangeLabel(ranges()[rangeAt]) }}</span
-      >
+      <span class="range-text">{{ rangeText() }}</span>
     </button>
     <button
       mat-icon-button
       class="range-step range-out"
       aria-label="Longer range"
-      [disabled]="rangeOff || rangeAt === ranges().length - 1"
-      (click)="stepRange(1)"
+      [disabled]="rangeOff || !rangeSteps().longer"
+      (click)="stepRange('longer')"
     >
       <mat-icon>remove</mat-icon>
     </button>

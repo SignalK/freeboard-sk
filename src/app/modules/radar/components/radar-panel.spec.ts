@@ -604,6 +604,35 @@ describe('RadarPanel', () => {
       });
     });
 
+    it('steps from the nearest listed range to a reported range not listed', () => {
+      atRange(926, [500, 750, 1000, 1500]);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.range-text')!.textContent?.trim()).toBe(
+        '1/2 nm'
+      );
+
+      rangeButton(el, 'range-out').click();
+      fixture.detectChanges();
+      rangeButton(el, 'range-in').click();
+
+      expect(api.setControl.mock.calls.map((c) => c[2])).toEqual([
+        { value: 1000 },
+        { value: 750 }
+      ]);
+    });
+
+    it('greys a step past the list from a reported range not listed', () => {
+      atRange(2000, [500, 750, 1000, 1500]);
+      const el: HTMLElement = open().nativeElement;
+
+      expect(rangeButton(el, 'range-out').disabled).toBe(true);
+      rangeButton(el, 'range-in').click();
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'range', {
+        value: 1500
+      });
+    });
+
     it('jumps to any range from the list behind the range shown', async () => {
       const fixture = open();
       rangeButton(fixture.nativeElement, 'range-value').click();
