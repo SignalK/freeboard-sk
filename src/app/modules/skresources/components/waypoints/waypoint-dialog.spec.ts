@@ -231,6 +231,13 @@ describe('waypoint dialog position entry', () => {
     expect(saveButton(fixture).disabled).toBe(true);
   });
 
+  it('keeps the full precision when only the hemisphere changes', async () => {
+    const { fixture, close } = await open([-3.123456789, 47.987654321], 'DMdH');
+    await pick(fixture, 0, 'S');
+    await pick(fixture, 1, 'E');
+    expect(save(fixture, close)).toEqual([3.123456789, -47.987654321]);
+  });
+
   it('moves the list to a hemisphere letter typed after the value', async () => {
     const { fixture, close } = await open([0, 0]);
     const [lat] = positionInputs(fixture);

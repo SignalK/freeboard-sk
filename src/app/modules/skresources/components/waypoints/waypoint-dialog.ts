@@ -558,12 +558,10 @@ export class WaypointDialog {
       this.wptLon = this.readAxis('lon') ?? this.wptLon;
     });
     this.inpLatHem.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.dropTypedDirection(this.inpLat);
-      this.wptLat = this.readAxis('lat') ?? this.wptLat;
+      this.wptLat = this.withHemisphere('lat', this.wptLat);
     });
     this.inpLonHem.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.dropTypedDirection(this.inpLon);
-      this.wptLon = this.readAxis('lon') ?? this.wptLon;
+      this.wptLon = this.withHemisphere('lon', this.wptLon);
     });
     this.inpUtm.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       const pos = utmOf(this.inpUtm);
@@ -625,6 +623,27 @@ export class WaypointDialog {
     return hem.value === HEMISPHERES[axis].neg
       ? -Math.abs(value)
       : Math.abs(value);
+  }
+
+  /**
+   * The value of an axis once its hemisphere list has changed. While the text
+   * still shows the retained value, only its sign changes, so the precision
+   * the rounded text lacks is kept.
+   */
+  private withHemisphere(axis: CoordAxis, retained: number): number {
+    const control = axis === 'lat' ? this.inpLat : this.inpLon;
+    this.dropTypedDirection(control);
+    const format = this.entryFormat();
+    if (
+      format !== 'UTM' &&
+      control.value === formatMagnitude(retained, format)
+    ) {
+      const negative =
+        (axis === 'lat' ? this.inpLatHem : this.inpLonHem).value ===
+        HEMISPHERES[axis].neg;
+      return negative ? -Math.abs(retained) : Math.abs(retained);
+    }
+    return this.readAxis(axis) ?? retained;
   }
 
   /** Once the list is used, it alone says the hemisphere: take any sign or
