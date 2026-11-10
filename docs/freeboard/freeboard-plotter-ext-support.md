@@ -39,12 +39,18 @@ package; Freeboard depends on it (`^0.24.0`) and imports its host entry point
   settings on the server, and in a server's global default settings, which can
   preset the widgets they place (keyed by placement `instanceId`). State a
   browser kept under the earlier `fb-plotterext-state` localStorage key is
-  read until the first `state.set` moves it into the config.
+  read until the first `state.set` moves it into the config. That is
+  `storage: 'user'`, the default. **`storage: 'device'`** (capability
+  `state.storage`) is kept in this browser's localStorage under
+  `fb-plotterext-device-state`, never in the config, so it is neither saved to
+  the server nor preset by global defaults. Removing a widget clears its
+  instance state from both stores; each device-state save also drops the
+  instance state of widgets no longer placed (removed on another device).
 
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
 `widgets`, `panels.iframe`, `panels.state`, `buttons`, `buttons.visibility`,
-`buttons.decorations`, `events.publish`, `signalk.stream`,
+`buttons.decorations`, `events.publish`, `state.storage`, `signalk.stream`,
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,

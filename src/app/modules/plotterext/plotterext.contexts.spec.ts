@@ -219,6 +219,157 @@ describe('PlotterExtensionService iframe contexts', () => {
     expect(stored()).toBeUndefined();
   });
 
+  describe("storage: 'device'", () => {
+    const DEVICE_KEY = 'fb-plotterext-device-state';
+
+    function deviceStored(): object {
+      return JSON.parse(localStorage.getItem(DEVICE_KEY) ?? '{}');
+    }
+
+    function place(...instanceIds: string[]) {
+      (config.plotterExtensions.widgets as unknown[]).push(
+        ...instanceIds.map((instanceId) => ({
+          instanceId,
+          extension: 'ext-a',
+          widget: 'gauge',
+          anchor: 'bottom-right',
+          col: 0,
+          row: 0
+        }))
+      );
+    }
+
+    it('keeps device state in this browser, apart from the user state', async () => {
+      place('inst-1');
+      const client = await connect(attachGauge);
+      await client.state.set({ v: 1 });
+      await client.state.set({ v: 2 }, { storage: 'device' });
+      await client.state.set(
+        { open: ['a'] },
+        {
+          scope: 'extension',
+          storage: 'device'
+        }
+      );
+      expect(stored()).toEqual({
+        'ext-a': { instances: { 'inst-1': { v: 1 } } }
+      });
+      expect(deviceStored()).toEqual({
+        'ext-a': {
+          instances: { 'inst-1': { v: 2 } },
+          extension: { open: ['a'] }
+        }
+      });
+      await expect(client.state.get()).resolves.toEqual({ v: 1 });
+      await expect(
+        client.state.get(undefined, { storage: 'device' })
+      ).resolves.toEqual({ v: 2 });
+      await expect(
+        client.state.get(['open'], { scope: 'extension', storage: 'device' })
+      ).resolves.toEqual({ open: ['a'] });
+    });
+
+    it('never falls back from one store to the other', async () => {
+      place('inst-1');
+      config.plotterExtensions.state = {
+        'ext-a': { instances: { 'inst-1': { only: 'user' } } }
+      };
+      const client = await connect(attachGauge);
+      await expect(
+        client.state.get(undefined, { storage: 'device' })
+      ).resolves.toEqual({});
+      await client.state.set({ only: 'device' }, { storage: 'device' });
+      await expect(client.state.get()).resolves.toEqual({ only: 'user' });
+    });
+
+    it('does not take device state from the app config or the earlier browser store', async () => {
+      place('inst-1');
+      localStorage.setItem(
+        'fb-plotterext-state',
+        JSON.stringify({ 'ext-a': { instances: { 'inst-1': { old: 1 } } } })
+      );
+      const client = await connect(attachGauge);
+      await expect(
+        client.state.get(undefined, { storage: 'device' })
+      ).resolves.toEqual({});
+    });
+
+    it('names the store in state.changed', async () => {
+      place('inst-1');
+      const client = await connect(attachGauge);
+      const seen: unknown[] = [];
+      await client.subscribe(['state.changed'], (_n, p) => seen.push(p));
+      await client.state.set({ v: 1 });
+      await client.state.set({ v: 2 }, { storage: 'device' });
+      await vi.waitFor(() => expect(seen).toHaveLength(2));
+      expect(seen).toEqual([
+        {
+          scope: 'instance',
+          storage: 'user',
+          instanceId: 'inst-1',
+          keys: ['v']
+        },
+        {
+          scope: 'instance',
+          storage: 'device',
+          instanceId: 'inst-1',
+          keys: ['v']
+        }
+      ]);
+    });
+
+    it('refuses a storage it does not know', async () => {
+      const client = await connect(attachGauge);
+      expect(
+        await reason(
+          client.call('state.set', { storage: 'session', values: { v: 1 } })
+        )
+      ).toBe(-32602);
+      expect(
+        await reason(client.call('state.get', { storage: 'session' }))
+      ).toBe(-32602);
+      expect(stored()).toBeUndefined();
+      expect(localStorage.getItem(DEVICE_KEY)).toBeNull();
+    });
+
+    it("removes a widget's instance state from both stores", async () => {
+      place('inst-1', 'inst-2');
+      const client = await connect(attachGauge);
+      await client.state.set({ v: 1 });
+      await client.state.set({ v: 2 }, { storage: 'device' });
+      localStorage.setItem(
+        DEVICE_KEY,
+        JSON.stringify({
+          'ext-a': { instances: { 'inst-1': { v: 2 }, 'inst-2': { w: 3 } } }
+        })
+      );
+      service.removeWidget('inst-1');
+      expect(
+        (stored() as Record<string, { instances?: object }>)['ext-a'].instances
+      ).toEqual({});
+      expect(deviceStored()).toEqual({
+        'ext-a': { instances: { 'inst-2': { w: 3 } } }
+      });
+    });
+
+    it('drops device state of widgets no longer placed when it saves', async () => {
+      place('inst-1');
+      localStorage.setItem(
+        DEVICE_KEY,
+        JSON.stringify({
+          'ext-a': { instances: { gone: { v: 9 } }, extension: { keep: 1 } },
+          'ext-b': { instances: { 'also-gone': { v: 8 } } }
+        })
+      );
+      const client = await connect(attachGauge);
+      await client.state.set({ v: 1 }, { storage: 'device' });
+      expect(deviceStored()).toEqual({
+        'ext-a': { instances: { 'inst-1': { v: 1 } }, extension: { keep: 1 } },
+        'ext-b': { instances: {} }
+      });
+    });
+  });
+
   it('gives a widget its instance context, instance state and config-panel methods', async () => {
     const client = await connect((iframe) =>
       service.attachWidget(iframe, {
