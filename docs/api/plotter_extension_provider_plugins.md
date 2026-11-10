@@ -353,7 +353,15 @@ await client.subscribe(['event.name'], (name, params) => {}) // bus events
 
 - `client.state.get(keys?, scope?)` / `client.state.set(values, scope?)` —
   host-persisted key/value storage. Scope defaults to the widget `instance`;
-  pass `'extension'` for state shared across all your contexts.
+  pass `'extension'` for state shared across all your contexts. Values follow
+  the user to every device by default. For a choice that belongs to one screen
+  (which windows were open, a layout picked for a phone), pass an options
+  object instead of the scope string:
+  `client.state.set({ titleBars }, { scope: 'extension', storage: 'device' })`,
+  and read it back the same way. `'device'` values stay in this browser and
+  are separate from the user's values (capability `state.storage`; a host
+  without it keeps everything per user). Never keep secrets in state: a server
+  can preset users' values from its defaults.
 - `client.signalk.subscribe(paths, ev => …)` — live SK values; the callback
   gets `{ path, value, … }`. Returns an unsubscribe function.
 - `client.signalk.put(path, value)` — a SK PUT through the user's session.
