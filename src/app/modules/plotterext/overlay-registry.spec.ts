@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  ANIMATED_MIN_INTERVAL_MS,
+  BACKOFF_SETTLE_MS,
   LIVE_FRAME_MIN_INTERVAL_MS,
   MAX_ACTIVE_OVERLAYS,
   OverlayRefusal,
@@ -436,5 +438,222 @@ describe('OverlayRegistry frames', () => {
     expect(r.latestRequestsFor('ext-a', 'renderer')).toEqual([latest]);
     r.setVisibility(['ext-a/a'], false);
     expect(r.latestRequestsFor('ext-a', 'renderer')).toEqual([]);
+  });
+});
+
+describe('OverlayRegistry animated overlays (overlays.animated)', () => {
+  const interval = (r: OverlayRegistry, key: string) =>
+    r.entry(key)?.liveInterval;
+
+  it('grants an animated overlay its preferred interval, never below 30 fps', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(
+      defs(
+        'ext-a',
+        def('wind', { preferredLiveInterval: 50 }),
+        def('fast', { preferredLiveInterval: 5 })
+      )
+    );
+    // only one animates at a time; the other keeps the normal pace
+    expect(interval(r, 'ext-a/wind')).toBe(50);
+    expect(r.entry('ext-a/wind')?.animated).toBe(true);
+    expect(interval(r, 'ext-a/fast')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    expect(r.entry('ext-a/fast')?.animated).toBe(false);
+    r.setVisibility(['ext-a/wind'], false);
+    expect(interval(r, 'ext-a/fast')).toBe(ANIMATED_MIN_INTERVAL_MS);
+  });
+
+  it('keeps the normal pace without a preference, and a slower one when asked', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(
+      defs(
+        'ext-a',
+        def('still'),
+        def('slow', { preferredLiveInterval: 1000 }),
+        def('bad', { preferredLiveInterval: -3 })
+      )
+    );
+    expect(interval(r, 'ext-a/still')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    expect(interval(r, 'ext-a/slow')).toBe(1000);
+    expect(r.entry('ext-a/slow')?.animated).toBe(false);
+    expect(interval(r, 'ext-a/bad')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+  });
+
+  it('does not animate under reduced motion', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
+    r.setReducedMotion(true);
+    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    r.setReducedMotion(false);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+  });
+
+  it('states and enforces the granted interval', () => {
+    let t = 1000;
+    const r = new OverlayRegistry();
+    r.now = () => t;
+    r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
+    r.registerSink('ext-a/wind', () => undefined);
+    expect(r.newRequest('ext-a/wind', VIEW, 0)!.liveInterval).toBe(40);
+    const live = () =>
+      r.acceptFrame('ext-a', 'renderer', {
+        overlayId: 'wind',
+        extent: VIEW.extent,
+        image: fakeImage()
+      });
+    expect(live()).toEqual({ accepted: true });
+    t += 39;
+    expect(live()).toEqual({ accepted: false, reason: 'overlays.throttled' });
+    t += 1;
+    expect(live()).toEqual({ accepted: true });
+  });
+
+  /**
+   * A registry with one animated overlay (`wind`, 40 ms) and a clock, plus
+   * `run(cost)`: one window of compositions, one per granted interval, each
+   * costing `cost` ms.
+   */
+  function animatedRig() {
+    let t = 0;
+    const r = new OverlayRegistry();
+    r.now = () => t;
+    r.setDefinitions(
+      defs(
+        'ext-a',
+        def('wind', { preferredLiveInterval: 40 }),
+        def('rain', { preferredLiveInterval: 50 })
+      )
+    );
+    const run = (cost: number) => {
+      const end = t + BACKOFF_SETTLE_MS;
+      while (t <= end) {
+        r.reportFrameCost(cost);
+        t += r.entries().find((e) => e.animated)!.liveInterval!;
+      }
+    };
+    return { r, run, tick: (ms: number) => (t += ms) };
+  }
+
+  it('backs off when compositing takes over half the time, one step per window', () => {
+    const { r, run } = animatedRig();
+    run(5);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+    run(25);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    run(60);
+    expect(interval(r, 'ext-a/wind')).toBe(160);
+    run(150);
+    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    run(150);
+    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+  });
+
+  it('recovers one step per window once the faster interval would be cheap', () => {
+    const { r, run } = animatedRig();
+    run(25);
+    run(60);
+    run(150);
+    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    run(1);
+    expect(interval(r, 'ext-a/wind')).toBe(160);
+    run(1);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    run(1);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+  });
+
+  it('does not flip-flop: recovers only when the faster interval stays well under half', () => {
+    const { r, run } = animatedRig();
+    run(30);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    // 15 ms per 80 ms frame; at 40 ms that would be 37%: too close to 50%
+    run(15);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    // 12 ms would be 30% at 40 ms: safe to go back
+    run(12);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+  });
+
+  it('never backs off for one slow composition, at the start or later', () => {
+    const { r, run } = animatedRig();
+    r.reportFrameCost(500);
+    run(5);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+    run(5);
+    r.reportFrameCost(100);
+    run(5);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+  });
+
+  it('starts afresh for another overlay, and after a pause', () => {
+    const { r, run, tick } = animatedRig();
+    run(30);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    // the slot passes to rain: it starts at its own preference
+    r.setVisibility(['ext-a/wind'], false);
+    expect(interval(r, 'ext-a/rain')).toBe(50);
+    r.reportFrameCost(500);
+    expect(interval(r, 'ext-a/rain')).toBe(50);
+    // a pause: the next window starts at the next sample
+    tick(BACKOFF_SETTLE_MS * 3);
+    r.reportFrameCost(500);
+    expect(interval(r, 'ext-a/rain')).toBe(50);
+  });
+
+  it('gives the slot to an overlay the map draws, not one outside its zoom range', () => {
+    const { r } = animatedRig();
+    r.setInRange('ext-a/wind', false);
+    expect(r.entry('ext-a/wind')?.animated).toBe(false);
+    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    expect(interval(r, 'ext-a/rain')).toBe(50);
+    r.setInRange('ext-a/wind', true);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+  });
+
+  it('refuses live frames while the view moves, and takes them again after', () => {
+    let t = 1000;
+    const r = new OverlayRegistry();
+    r.now = () => t;
+    r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
+    r.registerSink('ext-a/wind', () => undefined);
+    const req = r.newRequest('ext-a/wind', VIEW, 0)!;
+    const live = () =>
+      r.acceptFrame('ext-a', 'renderer', {
+        overlayId: 'wind',
+        extent: VIEW.extent,
+        image: fakeImage()
+      });
+    r.setMoving('ext-a/wind', true);
+    expect(live()).toEqual({ accepted: false, reason: 'overlays.throttled' });
+    // an answer to the request is still taken
+    expect(
+      r.acceptFrame('ext-a', 'renderer', {
+        overlayId: 'wind',
+        requestId: req.requestId,
+        extent: VIEW.extent,
+        image: fakeImage()
+      })
+    ).toEqual({ accepted: true });
+    r.setMoving('ext-a/wind', false);
+    t += 40;
+    expect(live()).toEqual({ accepted: true });
+  });
+
+  it('replays a request with the interval granted now', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
+    r.newRequest('ext-a/wind', VIEW, 0);
+    r.setReducedMotion(true);
+    expect(r.latestRequestsFor('ext-a', 'renderer')[0].liveInterval).toBe(
+      LIVE_FRAME_MIN_INTERVAL_MS
+    );
+  });
+
+  it('ignores frame costs while nothing animates', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(defs('ext-a', def('still')));
+    r.reportFrameCost(500);
+    r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
+    expect(interval(r, 'ext-a/wind')).toBe(40);
   });
 });

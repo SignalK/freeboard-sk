@@ -58,7 +58,8 @@ package; Freeboard depends on it (`^0.25.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
-`overlays.image`, `overlays.data`, `actions`, `actions.overlay`, `map.pick`.
+`overlays.image`, `overlays.animated`, `overlays.data`, `actions`, `actions.overlay`,
+`map.pick`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -821,6 +822,37 @@ see *The `overlays.data` capability*) — and saves the user's choices in `confi
   canvas budget. Live (unrequested) frames are accepted at most every
   `LIVE_FRAME_MIN_INTERVAL_MS` (200 ms) per overlay (`overlays.throttled`), and
   every `overlay.request` states that pace as `liveInterval`.
+- **Animation (`overlays.animated`).** An image overlay whose
+  `preferredLiveInterval` is under 200 ms animates: `OverlayRegistry` grants it
+  that interval, but never under `ANIMATED_MIN_INTERVAL_MS` (33 ms, 30 fps), and
+  only `MAX_ANIMATED_OVERLAYS` (1) at a time, in render order. The others, and
+  every overlay while `prefers-reduced-motion: reduce` matches, keep 200 ms (or
+  their own slower preference). The granted interval is each entry's
+  `liveInterval`. It is what `overlay.request` states and what the live-frame
+  throttle enforces, and a change to it is emitted as `overlay.state` (which
+  carries `liveInterval` for every image overlay); a request replayed to a
+  runtime that subscribes late carries the current grant. The slot goes only
+  to an overlay the map is drawing: `<fb-plugin-overlay>` reports when its
+  overlay leaves or re-enters its `minZoom`/`maxZoom` range (`setInRange`), and
+  the slot passes to the next one. **Gestures:** on each rendered frame the
+  layer marks its overlay moving (`setMoving`) while the view's `ANIMATING`
+  or `INTERACTING` hint is set. `movestart`/`moveend` aren't used because
+  they fire in quick pairs during a Freeboard zoom, so they don't bracket the
+  gesture. Live frames are
+  then refused with `overlays.throttled`, while answers to a request are still
+  taken; the request after the move brings live frames back. **Back-off:**
+  while an overlay animates and a frame of it is drawn, `watchFrameCost`
+  (`frame-cost.ts`) times each map composition (`precompose` to `postcompose`,
+  skipping gestures and view animations) and reports it with
+  `reportFrameCost`. Every `BACKOFF_SETTLE_MS` (2 s) window is judged by its
+  compositing share, the time spent compositing over the window's length. Over
+  half doubles the interval (up to 200 ms). When the share at the halved
+  interval would stay under 35%, it halves back toward the preference. One
+  slow composition is a small part of a window, so it never decides alone. The
+  factor belongs to the animated overlay: another overlay taking the slot
+  starts at its own preference, and a pause in samples starts a new window.
+  Only the main map is timed. Receiving frames over the bus isn't counted,
+  and neither is the second map of the split view, which draws the same frames.
 - **User controls.** The Chart list shows one row per overlay above the chart
   rows (every overlay draws above every chart), with its own *Show in Map*
   checkbox and *Set Opacity* slider. Shown-but-suspended overlays say so. An

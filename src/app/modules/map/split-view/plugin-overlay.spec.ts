@@ -2,6 +2,7 @@ import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Map as OlMap, View } from 'ol';
+import BaseEvent from 'ol/events/Event';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
 import Layer from 'ol/layer/Layer';
@@ -47,8 +48,10 @@ describe('A plugin image overlay in the split view', () => {
   let main: OlMap;
   let deliver: (frame: OverlayFrameDelivery) => void;
   let requested: unknown[][];
+  let moving: Array<[string, boolean]>;
 
   beforeEach(() => {
+    moving = [];
     main = new OlMap({ view: new View({ center: [0, 0], zoom: 10 }) });
     requested = [];
     TestBed.configureTestingModule({
@@ -69,7 +72,10 @@ describe('A plugin image overlay in the split view', () => {
                 deliver = sink;
                 return (): void => undefined;
               },
-              clearRequest: (): void => undefined
+              clearRequest: (): void => undefined,
+              setInRange: (): void => undefined,
+              setMoving: (key: string, on: boolean) => moving.push([key, on]),
+              entry: (): undefined => undefined
             },
             requestOverlayFrame: (...args: unknown[]) => requested.push(args)
           }
@@ -95,6 +101,29 @@ describe('A plugin image overlay in the split view', () => {
       secondPane: renderer(pane.getLayers().item(0))
     };
   };
+
+  it('marks its overlay moving while a frame renders mid-gesture or mid-animation', () => {
+    const { overlay } = openSplit();
+    const render = (animating: number, interacting: number) =>
+      main.dispatchEvent(
+        Object.assign(new BaseEvent('postrender'), {
+          frameState: {
+            viewHints: [animating, interacting],
+            viewState: main.getView().getState()
+          }
+        })
+      );
+    render(0, 1);
+    render(1, 0);
+    render(0, 0);
+    overlay.ngOnDestroy();
+    expect(moving).toEqual([
+      ['ext/depth', true],
+      ['ext/depth', true],
+      ['ext/depth', false],
+      ['ext/depth', false]
+    ]);
+  });
 
   it('keeps the frame the second pane draws open while the main chart moves on', () => {
     const { mainChart, secondPane } = openSplit();

@@ -32,6 +32,23 @@ export const MAX_ACTIVE_OVERLAYS = 4;
 export const LIVE_FRAME_MIN_INTERVAL_MS = 200;
 
 /**
+ * Animated image overlays (capability `overlays.animated`): the shortest
+ * interval ever granted (30 fps), how many overlays animate at once, and the
+ * compositing-cost back-off. The back-off judges each
+ * {@link BACKOFF_SETTLE_MS} window by its compositing share: the time spent
+ * compositing over the window's length. Above {@link BACKOFF_SLOW_SHARE} the
+ * interval doubles; when the share the halved interval would cost stays under
+ * {@link BACKOFF_FAST_SHARE} it halves again (the gap keeps it from
+ * flip-flopping). One slow frame is a small part of a window, so it never
+ * decides alone.
+ */
+export const ANIMATED_MIN_INTERVAL_MS = 33;
+export const MAX_ANIMATED_OVERLAYS = 1;
+export const BACKOFF_SLOW_SHARE = 0.5;
+export const BACKOFF_FAST_SHARE = 0.35;
+export const BACKOFF_SETTLE_MS = 2000;
+
+/**
  * z-index range of each band in the map layer stack (fb-map.component.html).
  *
  * `aboveCharts`: above the charts (10+n) and weather/current layers (50-56),
@@ -84,6 +101,12 @@ export interface OverlayEntry {
   /** Id of the overlay's configuration panel, set only when it is usable. */
   configPanel?: string;
   preferredPixelRatio?: number;
+  /** Image overlays: the live-frame interval the manifest asks for (animation). */
+  preferredLiveInterval?: number;
+  /** Image overlays: the live-frame interval granted now. */
+  liveInterval?: number;
+  /** Image overlays: granted an animation rate (shorter than the normal pace). */
+  animated: boolean;
   /** Data overlays: its features are selectable (capability `actions.overlay`). */
   interactive: boolean;
   /** Interactive overlays: the style layers whose features are selectable; all when unset. */
@@ -156,6 +179,13 @@ function usableConfigPanel(
     : undefined;
 }
 
+/** The interval an animated overlay is granted at a given back-off factor. */
+const animatedInterval = (pref: number, factor: number) =>
+  Math.min(
+    Math.max(pref, ANIMATED_MIN_INTERVAL_MS) * factor,
+    LIVE_FRAME_MIN_INTERVAL_MS
+  );
+
 const positiveOrUndefined = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined;
 
@@ -178,10 +208,23 @@ export class OverlayRegistry {
     (frame: OverlayFrameDelivery) => void
   >();
   private requestSeq = 0;
+  /** The user's system asks for reduced motion: no overlay animates. */
+  private readonly reducedMotion = signal(false);
+  /** Compositing-cost back-off of the animated overlay: its interval is multiplied by `factor`. */
+  private readonly backoff = signal<{ key: string; factor: number } | null>(
+    null
+  );
+  private windowStart = 0;
+  private windowCost = 0;
+  private lastFrameCostAt = -Infinity;
+  /** Image overlays the map is not drawing (outside their zoom range). */
+  private readonly outOfRange = signal<ReadonlySet<string>>(new Set());
+  /** Image overlays whose map is in a gesture or view animation. */
+  private readonly moving = new Set<string>();
   private persist: (settings: OverlaySettings) => void = () => undefined;
   private configOpener: (entry: OverlayEntry) => void = () => undefined;
-  /** Clock for the live-frame pace; replaceable in tests. */
-  now: () => number = () => Date.now();
+  /** Monotonic clock for the live-frame pace and back-off; replaceable in tests. */
+  now: () => number = () => performance.now();
 
   /** Where the user's show/fade choices are saved. */
   setPersist(fn: (settings: OverlaySettings) => void) {
@@ -243,6 +286,10 @@ export class OverlayRegistry {
         preferredPixelRatio: model
           ? undefined
           : positiveOrUndefined(def.preferredPixelRatio),
+        preferredLiveInterval: model
+          ? undefined
+          : positiveOrUndefined(def.preferredLiveInterval),
+        animated: false,
         interactive: !!model && def.interactive === true,
         interactiveLayers: model ? layerIds(def.interactiveLayers) : undefined,
         titleProperty:
@@ -253,6 +300,11 @@ export class OverlayRegistry {
     }
     const ordered: OverlayEntry[] = [];
     let active = 0;
+    let animated = 0;
+    const reducedMotion = this.reducedMotion();
+    const outOfRange = this.outOfRange();
+    const backoff = this.backoff();
+    const factor = (key: string) => (backoff?.key === key ? backoff.factor : 1);
     for (const band of ['aboveCharts', 'aboveResources'] as OverlayBand[]) {
       byBand[band].forEach((e, i) => {
         e.zIndex = BAND_Z[band].base + Math.min(i, BAND_Z[band].span - 1);
@@ -260,11 +312,103 @@ export class OverlayRegistry {
           e.suspended = active >= MAX_ACTIVE_OVERLAYS;
           if (!e.suspended) active++;
         }
+        if (e.type === 'image') {
+          const pref = e.preferredLiveInterval;
+          e.animated =
+            pref !== undefined &&
+            pref < LIVE_FRAME_MIN_INTERVAL_MS &&
+            e.visible &&
+            !e.suspended &&
+            !outOfRange.has(e.key) &&
+            !reducedMotion &&
+            animated < MAX_ANIMATED_OVERLAYS;
+          if (e.animated) animated++;
+          e.liveInterval = e.animated
+            ? animatedInterval(pref!, factor(e.key))
+            : Math.max(pref ?? 0, LIVE_FRAME_MIN_INTERVAL_MS);
+        }
         ordered.push(e);
       });
     }
     return ordered;
   });
+
+  /** Follow the user's reduced-motion preference: while set, nothing animates. */
+  setReducedMotion(reduce: boolean) {
+    this.reducedMotion.set(reduce);
+  }
+
+  /**
+   * Whether the map draws an overlay at the current zoom. One it does not
+   * draw gives up the animation slot.
+   */
+  setInRange(key: string, inRange: boolean) {
+    const now = this.outOfRange();
+    if (now.has(key) !== inRange) return;
+    const next = new Set(now);
+    if (inRange) next.delete(key);
+    else next.add(key);
+    this.outOfRange.set(next);
+  }
+
+  /**
+   * Whether an overlay's map is in a gesture or view animation. Its live
+   * frames are refused (`overlays.throttled`) until the view settles; the
+   * request that follows brings them back.
+   */
+  setMoving(key: string, moving: boolean) {
+    if (moving) this.moving.add(key);
+    else this.moving.delete(key);
+  }
+
+  /**
+   * Report how long the map took to composite one frame while an overlay
+   * animates and is drawn. Each {@link BACKOFF_SETTLE_MS} window is judged by
+   * its compositing share. A different overlay animating, or the same one
+   * after a pause, starts a new window.
+   */
+  reportFrameCost(ms: number) {
+    if (!Number.isFinite(ms) || ms < 0) return;
+    const e = this.entries().find((x) => x.animated);
+    if (!e?.liveInterval) return;
+    const t = this.now();
+    let backoff = this.backoff();
+    if (backoff?.key !== e.key) {
+      backoff = { key: e.key, factor: 1 };
+      this.backoff.set(backoff);
+      this.startWindow(t);
+    } else if (t - this.lastFrameCostAt > BACKOFF_SETTLE_MS) {
+      this.startWindow(t);
+    }
+    this.lastFrameCostAt = t;
+    this.windowCost += ms;
+    const span = t - this.windowStart;
+    if (span < BACKOFF_SETTLE_MS) return;
+    const share = this.windowCost / span;
+    this.startWindow(t);
+    const pref = e.preferredLiveInterval!;
+    let factor = backoff.factor;
+    if (
+      share > BACKOFF_SLOW_SHARE &&
+      e.liveInterval < LIVE_FRAME_MIN_INTERVAL_MS
+    ) {
+      factor *= 2;
+    } else if (
+      factor > 1 &&
+      (share * e.liveInterval) / animatedInterval(pref, factor / 2) <
+        BACKOFF_FAST_SHARE
+    ) {
+      factor /= 2;
+    } else {
+      return;
+    }
+    this.backoff.set({ key: e.key, factor });
+  }
+
+  private startWindow(t: number) {
+    this.windowStart = t;
+    this.windowCost = 0;
+  }
 
   /** Overlays to draw now: shown by the user and within the budget. */
   readonly active = computed(() =>
@@ -394,7 +538,7 @@ export class OverlayRegistry {
       overlayId: e.id,
       requestId: `r-${++this.requestSeq}`,
       ...view,
-      liveInterval: LIVE_FRAME_MIN_INTERVAL_MS
+      liveInterval: e.liveInterval ?? LIVE_FRAME_MIN_INTERVAL_MS
     };
     const before = this.latest.get(key)?.request;
     this.latest.set(key, {
@@ -405,12 +549,24 @@ export class OverlayRegistry {
     return request;
   }
 
-  /** The most recent request per overlay of a runtime — replayed when it subscribes. */
+  /**
+   * The most recent request per overlay of a runtime — replayed when it
+   * subscribes — with the interval granted now, which may have changed since.
+   */
   latestRequestsFor(extension: string, runtime: string): OverlayRequestEvent[] {
     return this.active()
       .filter((e) => e.extension === extension && e.runtime === runtime)
-      .map((e) => this.latest.get(e.key)?.request)
-      .filter((r): r is OverlayRequestEvent => !!r);
+      .flatMap((e) => {
+        const request = this.latest.get(e.key)?.request;
+        return request
+          ? [
+              {
+                ...request,
+                liveInterval: e.liveInterval ?? LIVE_FRAME_MIN_INTERVAL_MS
+              }
+            ]
+          : [];
+      });
   }
 
   /** Drop the pending request of an overlay no longer drawn. */
@@ -489,9 +645,16 @@ export class OverlayRegistry {
       );
     }
     if (frame.requestId === undefined) {
+      if (this.moving.has(key)) {
+        frame.image.close();
+        return { accepted: false, reason: 'overlays.throttled' };
+      }
       const t = this.now();
       const last = this.lastLive.get(key);
-      if (last !== undefined && t - last < LIVE_FRAME_MIN_INTERVAL_MS) {
+      if (
+        last !== undefined &&
+        t - last < (e.liveInterval ?? LIVE_FRAME_MIN_INTERVAL_MS)
+      ) {
         frame.image.close();
         return { accepted: false, reason: 'overlays.throttled' };
       }
