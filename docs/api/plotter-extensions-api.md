@@ -122,6 +122,7 @@ extension id (the providing plugin's id is the recommended key):
 | `buttons.decorations` | Host draws the style, custom colours and badge an extension sets on its own toolbar buttons (`buttons.decorate`) and honours a button's manifest `style`, `colors` and `badge`. Requires `buttons`. See *Decorating buttons*. |
 | `actions`           | Host offers manifest `actions` on chart targets — points, stored resources, vessels, aids to navigation, chart features — reports the user's choice (`action.invoked`, `context.invocation`) and lets the extension show and hide its actions (`actions.setVisibility`). See *Actions*. |
 | `events.publish`    | Host implements `events.publish` (extension-originated events) and the `scope` option on the `publish` button action. See *Publishing events*. |
+| `state.storage`     | Host honours the `storage` parameter of `state.get` / `state.set` (`'user'` or `'device'`) and reports it in `state.changed`. See *State storage*. |
 | `signalk.stream`    | Host streams Signal K path values to extension contexts over the message bus.                                                     |
 | `signalk.put`       | Host relays Signal K PUT requests from extension contexts.                                                                        |
 | `units`             | Host exposes the user's preferred display units (`units.get`).                                                                    |
@@ -916,8 +917,8 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `events.subscribe`      | `{ patterns: string[] }`                       | `{ subscriptionId }`       |
 | `events.unsubscribe`    | `{ subscriptionId }`                           | `{}`                       |
 | `events.publish`        | `{ topic, params?, scope? }`                   | `{}`                       |
-| `state.get`             | `{ scope?, keys? }`                            | `{ values }`               |
-| `state.set`             | `{ scope?, values }`                           | `{}`                       |
+| `state.get`             | `{ scope?, storage?, keys? }`                  | `{ values }`               |
+| `state.set`             | `{ scope?, storage?, values }`                 | `{}`                       |
 | `signalk.subscribe`     | `{ paths: string[] }` (literal paths)          | `{ subscriptionId }`       |
 | `signalk.unsubscribe`   | `{ subscriptionId }`                           | `{}`                       |
 | `signalk.put`           | `{ path, value }`                              | server PUT response        |
@@ -987,9 +988,10 @@ connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
 
-- `state.changed` — `{ scope, instanceId, keys }`: the extension's stored
-  state changed (e.g. its configuration panel saved). Published to the
-  extension's subscribed contexts.
+- `state.changed` — `{ scope, storage, instanceId, keys }`: the extension's
+  stored state changed (e.g. its configuration panel saved). Published to the
+  extension's subscribed contexts. `storage` names the store that changed; a
+  host without `state.storage` omits it, and its absence means `'user'`.
 - `sk.<path>` — `{ path, value, timestamp, $source }`: a subscribed
   Signal K path value, relayed over the host's multiplexed server
   connection (one upstream connection per host, not per widget).
@@ -2350,16 +2352,49 @@ mistakes an overlay feature for one of its own, whatever its id.
 ### State storage
 
 `state.get`/`state.set` give an extension small host-persisted key/value
-storage. Two scopes:
+storage. A value has two independent attributes: its **scope** says who sees
+it, and its **storage** says where it is kept.
+
+**Scope** (`scope`):
 
 - `instance` — keyed by the context's widget instance (default for widget
   contexts; configuration panels opened with `targetInstance` read and
   write the _target's_ instance scope).
 - `extension` — shared across the extension's contexts.
 
+**Storage** (`storage`, capability `state.storage`):
+
+| `storage` | Kept | Notes |
+| --- | --- | --- |
+| `'user'` (default) | With the user's settings, wherever the host keeps them: for example on the server for a signed-in user, so the value follows that user to every device. | A host may preset these values from server-wide defaults, so they must not hold secrets. |
+| `'device'` | On this device only (in a browser host, this browser, shared by its tabs). | Never sent to the server and never taken from server-wide defaults. |
+
+All four combinations of scope and storage exist. Use `'user'` for what belongs
+to the person, such as a widget's configuration; use `'device'` for what
+belongs to one screen, such as which windows were open or a layout chosen for a
+narrow display. Omitting `storage` means `'user'`.
+
+The two stores are **separate**. `state.get` returns only the store it names,
+with no fallback from one to the other and no merging; an extension that wants
+a per-device override of a per-user value reads both and merges them itself.
+`state.set` writes only the store it names.
+
+A host without `state.storage` ignores the `storage` parameter and keeps every
+value as `'user'`, so an extension that depends on `'device'` checks the
+capability first. A host with the capability rejects a `storage` value it does
+not know with an invalid-params error, instead of keeping the value somewhere
+the extension did not ask for. (`storage` is a string, not a boolean, so later
+versions can add values; each new value comes with its own capability.)
+
+When the user removes a widget, the host deletes that placement's `instance`
+state from both stores on the device where it was removed. Other devices may
+still hold `'device'` entries for it; a host prunes those when it finds state
+for an `instanceId` that is no longer placed.
+
 Every successful `state.set` triggers a `state.changed` event — the loop
 that lets a widget re-render live while its configuration panel edits it.
-Quota and persistence backend are host-defined.
+The event carries the `storage` that was written. Quota and persistence
+backend are host-defined.
 
 ### Unit preferences
 
