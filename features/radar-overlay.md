@@ -55,7 +55,8 @@ signs in as its own user keeps its own choice.
   of a dual-range radar), tap the radar's name to pick another; the chart
   follows.
 - **Range rings button** — switches the radar range rings (below) on and off.
-- **Eye button** — shows or hides the radar on this screen.
+- **Eye button** — shows or hides the radar on this screen, together with its
+  targets (see *Radar & Camera Targets*).
 - **Range** — the ranges your radar offers, in its range units (nautical or
   metric) and with its own labels.
 - **Opacity** — how strongly the returns paint over the chart underneath.
@@ -86,7 +87,9 @@ radar transmits, so there is only ever one set; in standby they disappear, or
 return to the usual spacing if **Settings → Vessels → Display Range Circles**
 is on. Switch them with the rings button in the panel or with **Settings →
 Radar → Draw range circles at the radar range while it transmits** — the same
-setting, on by default.
+setting, on by default. **Range circle color**, next to it, sets their color.
+The default dark grey is drawn light grey on a chart dimmed for the night, so
+the rings stay visible; a color you choose is drawn as it is.
 
 **More than one radar.** Besides the radar name in the panel, the radar can be
 chosen in **Settings → Radar → Radar Devices**, with **REFRESH** to re-query
