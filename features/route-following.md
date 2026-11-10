@@ -7,8 +7,8 @@ category: Navigation
 ![Fig 1. Tap a route and choose Start to start following it](route-following-1.jpg)
 
 Start following a route and Freeboard steers you along it, point by point —
-and when plans change underway, you can rejoin it further on or skip a point
-without starting over.
+and when plans change underway, you can rejoin it further on, skip a point,
+or stop short of its end without starting over.
 
 **Following a route.** Tap a route on the chart and choose **Start**, or press
 **Start** beside it in the Routes list or in its info panel, and Freeboard
@@ -52,15 +52,36 @@ separately, so a tablet and a laptop can each keep it where it suits them.
 
 ![Fig 3. Clicking a point on the route you're following — Rejoin here, or Skip to the point after it](route-following-3.jpg)
 
-**Rejoining or skipping a point.** Click a point on the route you're following
-— the point itself, not a leg — and a popover names it ("3 of 4") with its
-position. **Rejoin here** steers straight to that point and then follows the
-route on from it: handy after a detour, or to cut a corner. On the point
-you're heading for, **Skip** steers straight to the point after it. On a
-day-sail loop, the marina is the first point on the way out and the last on
-the way home. The route's info panel offers the same actions: **Rejoin here**
-beside each point, and **Skip this point** beside the one you're heading for.
-Both are unavailable while the route has unsaved edits.
+**How far to a point.** Click a point on the route you're following — the
+point itself, not a leg — and a popover names it ("3 of 4") with its
+position. For a point still ahead it also shows **DTG**, the distance to it
+along the route. While you're under way (above half a knot) it adds **TTG**,
+the time to get there at your current speed over ground, and **ETA**, the
+clock time you'll arrive, with the date if it isn't today. That answers
+"when will we be off that headland?" without measuring by hand. The figures
+are worked out when the popover opens; open it again for fresh ones.
+
+**Rejoining or skipping a point.** In the same popover, **Rejoin here** steers
+straight to that point and then follows the route on from it: handy after a
+detour, or to cut a corner. On the point you're heading for, **Skip** steers
+straight to the point after it. On a day-sail loop, the marina is the first
+point on the way out and the last on the way home.
+
+**Ending the route early.** **End here** follows the route only as far as that
+point: navigation finishes there instead of at the route's last point, and
+you keep heading for the same next point. Use it when today's passage is
+shorter than the route — a long route made from an old track, say, or an
+anchorage short of the usual destination. It's offered on the point you're
+heading for and every point after it, except the last. Freeboard follows a
+temporary copy that ends at that point, shown as "*route* → *point*", and
+leaves your stored route as it was, so you can follow all of it another day.
+The copy is kept and removed like any route you haven't saved (see above);
+press **Save** in its info panel to keep it.
+
+The route's info panel offers the same actions: **Rejoin here** beside each
+point, **Skip this point** beside the one you're heading for, and **End route
+here** (the chequered flag) beside each point the route can end at. They're
+unavailable there while the route has unsaved edits.
 
 **Arriving at a point.** When you reach a point, an alert offers **Next
 point**. To move on without touching anything, turn on **Auto-advance to next
