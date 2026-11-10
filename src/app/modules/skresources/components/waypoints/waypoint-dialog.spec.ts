@@ -92,12 +92,11 @@ function keys(
 function paste(
   f: ComponentFixture<WaypointDialog>,
   input: HTMLInputElement,
-  value: string
+  value: string,
+  inputType = 'insertFromPaste'
 ) {
   input.value = value;
-  input.dispatchEvent(
-    new InputEvent('input', { inputType: 'insertFromPaste', data: value })
-  );
+  input.dispatchEvent(new InputEvent('input', { inputType, data: value }));
   input.dispatchEvent(new Event('blur'));
   f.detectChanges();
 }
@@ -201,6 +200,24 @@ describe('waypoint dialog position entry', () => {
     expect(lat.value).toBe('47.6375°');
     expect(hemispheres(fixture)[0]).toBe('S');
     expect(save(fixture, close)[1]).toBeCloseTo(-47.6375, 9);
+  });
+
+  it('converts a position dropped into the field', async () => {
+    const { fixture, close } = await open([0, 0], 'DMdH');
+    const [lat] = positionInputs(fixture);
+    paste(fixture, lat, `47° 38' 15" S`, 'insertFromDrop');
+    expect(lat.value).toBe(`47° 38.250'`);
+    expect(hemispheres(fixture)[0]).toBe('S');
+    expect(save(fixture, close)[1]).toBeCloseTo(-47.6375, 9);
+  });
+
+  it('keeps the hemisphere of a pasted zero', async () => {
+    const { fixture, close } = await open([0, 0]);
+    const [lat] = positionInputs(fixture);
+    paste(fixture, lat, '0 S');
+    expect(hemispheres(fixture)[0]).toBe('S');
+    type(fixture, lat, '12');
+    expect(save(fixture, close)[1]).toBe(-12);
   });
 
   it('refuses a hemisphere letter that does not belong to the axis', async () => {

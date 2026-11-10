@@ -63,6 +63,13 @@ const ENTRY_EXAMPLES: Record<
   DMS: { lat: `47° 38' 15"`, lon: `3° 30' 00"` }
 };
 
+// Inputs that bring a whole position at once, read as one rather than typed.
+const WHOLE_TEXT_INPUTS = [
+  'insertFromPaste',
+  'insertFromDrop',
+  'insertReplacementText'
+];
+
 const angleValidator =
   (axis: CoordAxis): ValidatorFn =>
   (c: AbstractControl): ValidationErrors | null =>
@@ -651,10 +658,15 @@ export class WaypointDialog {
 
     let text: string;
     let caret: number;
-    const pasted = kind === 'insertFromPaste' ? parseAngle(raw, axis) : null;
+    const pasted = WHOLE_TEXT_INPUTS.includes(kind)
+      ? parseAngle(raw, axis)
+      : null;
     if (pasted !== null) {
-      if (namesDirection(raw)) {
-        hem.setValue(hemisphereOf(pasted, axis), { emitEvent: false });
+      // The letter or sign as typed: the value alone loses it for 0 ("0 S").
+      const named = maskAngle(raw, raw.length, format, axis).negative;
+      if (named !== null) {
+        const { pos, neg } = HEMISPHERES[axis];
+        hem.setValue(named ? neg : pos, { emitEvent: false });
       }
       text = formatMagnitude(pasted, format);
       caret = text.length;
