@@ -40,6 +40,25 @@ describe('FBMapComponent: radar targets', () => {
     );
   });
 
+  it('offers Track Radar Target only while a radar is reported', () => {
+    const cmp = bareComponent();
+    // the picture's power state reads as sending while no radar reported
+    cmp.radarImage = () => true;
+    cmp.app.uiCtrl = () => ({ radarLayer: true });
+    cmp.app.data.vessels.showSelf = true;
+    expect(cmp.canTrackRadarTarget()).toBe(true);
+
+    cmp.radarApi.radarId = () => '';
+    expect(cmp.canTrackRadarTarget()).toBe(false);
+  });
+
+  it('acquires nothing without a radar', async () => {
+    const cmp = bareComponent();
+    cmp.radarApi.radarId = () => '';
+    await cmp.acquireRadarTarget([178.4, -18.0]);
+    expect(cmp.radarApi.acquireTarget).not.toHaveBeenCalled();
+  });
+
   it('acquires nothing while own position is unknown', async () => {
     const cmp = bareComponent();
     cmp.app.data.vessels.self.position = null;

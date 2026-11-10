@@ -1194,9 +1194,7 @@
         <mat-icon>straighten</mat-icon>
         Measure
       </button>
-      @if (
-        radarImage() && app.uiCtrl().radarLayer && app.data.vessels.showSelf
-      ) {
+      @if (canTrackRadarTarget()) {
         <button
           mat-menu-item
           (click)="onContextMenuAction('radar_acquire', item)"

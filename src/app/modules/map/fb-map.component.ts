@@ -1162,14 +1162,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Whether the chart menu offers Track Radar Target: a radar is reported and
+   * its picture shows. The picture's power state alone reads as sending while
+   * no radar has reported at all.
+   */
+  protected canTrackRadarTarget(): boolean {
+    return (
+      !!this.radarApi.radarId() &&
+      this.radarImage() &&
+      this.app.uiCtrl().radarLayer &&
+      this.app.data.vessels.showSelf
+    );
+  }
+
   /** Have the shown radar acquire and track the echo at `pos`. */
   private async acquireRadarTarget(pos: Position) {
+    const radarId = this.radarApi.radarId();
     const request = acquireRequest(this.app.data.vessels.self.position, pos);
-    if (!request) {
+    if (!radarId || !request) {
       return;
     }
     try {
-      await this.radarApi.acquireTarget(this.radarApi.radarId(), request);
+      await this.radarApi.acquireTarget(radarId, request);
       this.app.showMessage(
         'Tracking started. Without an echo there, the radar drops the target after a few sweeps.'
       );
