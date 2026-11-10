@@ -11,12 +11,14 @@ import { MobReadoutComponent } from './mob-readout.component';
 interface Self {
   positionReceived: boolean;
   position?: [number, number];
+  magneticVariation?: number | null;
 }
 
 function mount(
   alert: Partial<AlertData>,
   self: Self = { positionReceived: false },
-  mob: { playback?: boolean } = {}
+  mob: { playback?: boolean } = {},
+  useMagnetic = false
 ): ComponentFixture<MobReadoutComponent> {
   TestBed.configureTestingModule({
     providers: [
@@ -24,6 +26,7 @@ function mount(
         provide: AppFacade,
         useValue: {
           data: { vessels: { self } },
+          useMagnetic,
           formatValueForDisplay: (v: number, unit: string) =>
             `${Math.round(v * 1000) / 1000}${unit}`
         }
@@ -101,13 +104,34 @@ describe('MobReadoutComponent', () => {
       const self: Self = { positionReceived: true, position: [0, -0.01] };
       const f = mount(at, self);
       // due north, about 1112 m
-      expect(text(f)).toMatch(/0rad T\s+111\d(\.\d+)?m/);
+      expect(text(f)).toMatch(/0rad \(T\)\s+111\d(\.\d+)?m/);
 
       self.position = [-0.01, 0];
       vi.advanceTimersByTime(1000);
       f.detectChanges();
       // due east
-      expect(text(f)).toMatch(/1\.571rad T/);
+      expect(text(f)).toMatch(/1\.571rad \(T\)/);
+    });
+
+    it('give the bearing magnetic when that is the heading setting', () => {
+      // variation 0.1 rad east: magnetic = true - variation
+      const self = {
+        positionReceived: true,
+        position: [0, -0.01] as [number, number],
+        magneticVariation: 0.1
+      };
+      const f = mount(at, self, {}, true);
+      expect(text(f)).toMatch(/6\.183rad \(M\)/);
+    });
+
+    it('stay true without a known variation', () => {
+      const f = mount(
+        at,
+        { positionReceived: true, position: [0, -0.01] },
+        {},
+        true
+      );
+      expect(text(f)).toMatch(/0rad \(T\)/);
     });
 
     it('are left out in playback', () => {

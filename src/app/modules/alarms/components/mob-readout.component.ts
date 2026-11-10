@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
+import { magneticToTrue } from 'src/app/lib/true-bearing';
 import { bearingDistanceReadout } from 'src/app/modules/map/bearing-distance';
 import { CourseService } from '../../course';
 import { isMobDestination, mobElapsed } from '../mob';
@@ -31,7 +32,8 @@ import { AlertData } from './alert.component';
         >
         @if (readout(); as r) {
           <span>
-            <b>{{ r.bearing }}</b> T &nbsp; <b>{{ r.distance }}</b>
+            <b>{{ r.bearing }}</b> ({{ r.reference }}) &nbsp;
+            <b>{{ r.distance }}</b>
           </span>
         }
       </div>
@@ -128,12 +130,17 @@ export class MobReadoutComponent {
       return null;
     }
     const r = bearingDistanceReadout(self.position, at);
+    const bearingTrue = Convert.degreesToRadians(r.bearing);
+    // as the course bar shows it: magnetic when that is the heading setting
+    // and the variation is known
+    const magnetic = this.app.useMagnetic
+      ? magneticToTrue(bearingTrue, -(self.magneticVariation ?? NaN))
+      : null;
     return {
-      bearing: this.app.formatValueForDisplay(
-        Convert.degreesToRadians(r.bearing),
-        'rad',
-        { precision: 0 }
-      ),
+      bearing: this.app.formatValueForDisplay(magnetic ?? bearingTrue, 'rad', {
+        precision: 0
+      }),
+      reference: magnetic === null ? 'T' : 'M',
       distance: this.app.formatValueForDisplay(r.distance, 'm', {
         precision: 2
       })
