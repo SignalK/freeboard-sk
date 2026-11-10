@@ -74,7 +74,9 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
       id: 30,
       description: 'Pleasure',
       selected: false,
-      icon: getAisIcon(30).svgIcon
+      // 30 itself is fishing, which has its own icon; show the pleasure craft
+      // (37) icon, as most of the 30s are sailing and pleasure craft.
+      icon: getAisIcon(37).svgIcon
     },
     {
       id: 40,
