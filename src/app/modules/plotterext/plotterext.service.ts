@@ -2907,15 +2907,22 @@ export class PlotterExtensionService {
   /**
    * Save this browser's device state, first dropping the instance state of
    * widgets that are no longer placed (removed on another device, where their
-   * device state could not be reached).
+   * device state could not be reached). Only once the settings in use are
+   * known: while they load, the widget list is not the user's yet.
    */
   private saveDeviceStore(store: ExtensionStateStore) {
-    const placed = new Set(
-      this.app.config.plotterExtensions.widgets.map((w) => w.instanceId)
-    );
-    for (const ext of Object.values(store)) {
-      for (const id of Object.keys(ext.instances ?? {})) {
-        if (!placed.has(id)) delete ext.instances![id];
+    if (this.app.configReady) {
+      const placed = new Set(
+        this.app.config.plotterExtensions.widgets.map((w) => w.instanceId)
+      );
+      for (const [extension, ext] of Object.entries(store)) {
+        for (const id of Object.keys(ext.instances ?? {})) {
+          if (!placed.has(id)) delete ext.instances![id];
+        }
+        if (ext.instances && !Object.keys(ext.instances).length) {
+          delete ext.instances;
+        }
+        if (!Object.keys(ext).length) delete store[extension];
       }
     }
     localStorage.setItem(DEVICE_STATE_STORAGE_KEY, JSON.stringify(store));

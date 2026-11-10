@@ -45,6 +45,7 @@ describe('PlotterExtensionService iframe contexts', () => {
               map: { center: [0, 0], zoomLevel: 10 }
             }),
             saveConfig,
+            configReady: true,
             mapExtent: signal([]),
             debug: () => {},
             isTopWindow: () => true,
@@ -364,8 +365,25 @@ describe('PlotterExtensionService iframe contexts', () => {
       const client = await connect(attachGauge);
       await client.state.set({ v: 1 }, { storage: 'device' });
       expect(deviceStored()).toEqual({
-        'ext-a': { instances: { 'inst-1': { v: 1 } }, extension: { keep: 1 } },
-        'ext-b': { instances: {} }
+        'ext-a': { instances: { 'inst-1': { v: 1 } }, extension: { keep: 1 } }
+      });
+    });
+
+    it('keeps device state of unplaced widgets while the settings load', async () => {
+      const app = TestBed.inject(AppFacade) as unknown as {
+        configReady: boolean;
+      };
+      app.configReady = false;
+      const earlier = { 'ext-b': { instances: { later: { v: 8 } } } };
+      localStorage.setItem(DEVICE_KEY, JSON.stringify(earlier));
+      const client = await connect(attachGauge);
+      await client.state.set(
+        { v: 1 },
+        { scope: 'extension', storage: 'device' }
+      );
+      expect(deviceStored()).toEqual({
+        ...earlier,
+        'ext-a': { extension: { v: 1 } }
       });
     });
   });
