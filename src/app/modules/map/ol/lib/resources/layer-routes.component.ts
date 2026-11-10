@@ -13,8 +13,13 @@ import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { getRhumbLineBearing, GeolibInputCoordinates } from 'geolib';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBRoutes } from 'src/app/types';
-import { MapImageRegistry } from '../map-image-registry.service';
+import { FBRoutes, RouteStyle } from 'src/app/types';
+import {
+  MapImageRegistry,
+  ROUTE_MARKER_END,
+  ROUTE_MARKER_START,
+  ROUTE_MARKER_WAYPOINT
+} from '../map-image-registry.service';
 import {
   drawnTogether,
   drawnWaypointPosition,
@@ -22,11 +27,6 @@ import {
   linkedWaypointId,
   PointLink
 } from './route-waypoint-overlap';
-
-/** Symbol ids used to override the default route marker shapes. */
-export const ROUTE_MARKER_START = 'route-start';
-export const ROUTE_MARKER_WAYPOINT = 'route-waypoint';
-export const ROUTE_MARKER_END = 'route-end';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -39,6 +39,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   @Input() routeStyles?: { [key: string]: Style };
   @Input() activeRoute?: string | null;
   @Input() routes: FBRoutes = [];
+  @Input() routeStyle: RouteStyle = 'flags';
 
   private leaveOverlap?: () => void;
 
@@ -74,6 +75,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       } else if ('activeRoute' in changes) {
         this.onActivateRoute();
       }
+    } else if (this.source && 'routeStyle' in changes) {
+      this.source.changed();
     }
   }
 
@@ -168,14 +171,18 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       });
     }
 
-    // External symbol overrides (null when no provider symbol is registered).
-    // When present, an external symbol replaces the default drawn shape.
-    // Note: external symbols do not inherit the route line colour. The waypoint
-    // symbol is cloned per-segment and rotated to the bearing; start/end symbols
-    // render upright.
-    const startSym = this.mapImages.getExternalSymbol(ROUTE_MARKER_START);
-    const wptSym = this.mapImages.getExternalSymbol(ROUTE_MARKER_WAYPOINT);
-    const endSym = this.mapImages.getExternalSymbol(ROUTE_MARKER_END);
+    // A symbol-provider override wins in either style. 'flags' falls back to
+    // the bundled flag and pin glyphs; 'classic' (marker null) falls back to the
+    // shapes drawn below in the route line's colour, which an icon cannot take.
+    // The waypoint marker is cloned per segment and rotated to the bearing;
+    // start/end markers render upright.
+    const marker = (id: string) =>
+      this.routeStyle === 'classic'
+        ? this.mapImages.getExternalSymbol(id)
+        : this.mapImages.getRouteMarker(id);
+    const startSym = marker(ROUTE_MARKER_START);
+    const wptSym = marker(ROUTE_MARKER_WAYPOINT);
+    const endSym = marker(ROUTE_MARKER_END);
 
     // point styles
     const meta = feature.get('pointMetadata') as PointLink[] | null;

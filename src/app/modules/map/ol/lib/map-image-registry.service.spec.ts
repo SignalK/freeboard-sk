@@ -4,7 +4,10 @@ import {
   MapImageRegistry,
   WIND_ARROW_SYMBOL,
   OCEAN_CURRENT_ARROW_SYMBOL,
-  TIDAL_CURRENT_ARROW_SYMBOL
+  TIDAL_CURRENT_ARROW_SYMBOL,
+  ROUTE_MARKER_START,
+  ROUTE_MARKER_WAYPOINT,
+  ROUTE_MARKER_END
 } from './map-image-registry.service';
 
 /**
@@ -133,5 +136,39 @@ describe('MapImageRegistry.getVessel fishing (#1236)', () => {
     const pleasure = (reg.getVessel(30, true) as Circle).getFill();
     expect(fishing?.getColor()).toBe('#FF8C00');
     expect(fishing?.getColor()).not.toBe(pleasure?.getColor());
+  });
+});
+
+/**
+ * `getRouteMarker` supplies the route start, waypoint and end markers for the
+ * "Flags" route style: the bundled glyph, unless a symbol provider overrides it.
+ */
+describe('MapImageRegistry.getRouteMarker', () => {
+  it('returns the bundled marker for each route point', () => {
+    const reg = new MapImageRegistry();
+    expect(reg.getRouteMarker(ROUTE_MARKER_START).getSrc()).toContain(
+      'routes/route-start.svg'
+    );
+    expect(reg.getRouteMarker(ROUTE_MARKER_WAYPOINT).getSrc()).toContain(
+      'routes/route-waypoint.svg'
+    );
+    expect(reg.getRouteMarker(ROUTE_MARKER_END).getSrc()).toContain(
+      'routes/route-end.svg'
+    );
+  });
+
+  it('caches and reuses the bundled marker', () => {
+    const reg = new MapImageRegistry();
+    expect(reg.getRouteMarker(ROUTE_MARKER_END)).toBe(
+      reg.getRouteMarker(ROUTE_MARKER_END)
+    );
+  });
+
+  it('prefers a symbol-provider override', () => {
+    const reg = new MapImageRegistry();
+    reg.registerSymbolMarker(ROUTE_MARKER_END, { path: './custom-end.svg' });
+    expect(reg.getRouteMarker(ROUTE_MARKER_END).getSrc()).toContain(
+      'custom-end.svg'
+    );
   });
 });

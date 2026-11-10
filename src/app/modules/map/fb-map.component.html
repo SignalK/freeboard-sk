@@ -303,6 +303,7 @@
   <fb-routes
     [routes]="skres.routes()"
     [routeStyles]="featureStyles.route"
+    [routeStyle]="app.config.resources.routeStyle"
     [activeRoute]="activeRoute"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -315,6 +316,7 @@
   <fb-routes
     [routes]="bufferRoutes()"
     [routeStyles]="draftRouteStyles"
+    [routeStyle]="app.config.resources.routeStyle"
     [activeRoute]="activeRoute"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"

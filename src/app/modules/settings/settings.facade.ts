@@ -9,6 +9,7 @@ import {
   IAppConfig,
   MapPanBehavior,
   Position,
+  RouteStyle,
   WindIndicator
 } from 'src/app/types';
 import { OwnVesselIconType } from 'src/app/modules/icons/vessels';
@@ -270,6 +271,10 @@ export class SettingsOptions {
   };
 
   resources = {
+    routeStyle: new Map<RouteStyle, string>([
+      ['flags', 'Flags & pins (default)'],
+      ['classic', 'Classic']
+    ]),
     noteRadius: [5, 10, 20, 50, 100, 150, 200, 500],
     resSetRadius: [0, 5, 10, 20, 50, 100, 150, 200, 500]
   };

@@ -8,6 +8,7 @@ import { Style, Stroke } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
 import { FBRoutes, FBWaypoints } from 'src/app/types';
 import { FreeboardRouteLayerComponent } from './layer-routes.component';
+import { MapImageRegistry } from '../map-image-registry.service';
 import {
   FreeboardWaypointLayerComponent,
   ROUTE_END_HIT_TARGET
@@ -101,7 +102,7 @@ function routeLayer(map: OlMap, routes: FBRoutes): RouteLayer {
     routeStyles: {
       default: new Style({ stroke: new Stroke({ color: 'blue', width: 2 }) })
     },
-    mapImages: { getExternalSymbol: (): null => null }
+    mapImages: new MapImageRegistry()
   });
   c.ngOnInit();
   return c as RouteLayer;
