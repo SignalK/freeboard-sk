@@ -70,19 +70,51 @@
     }
   </mat-menu>
 
-  @let rangeControl = rangeDef(); @if (rangeControl && ranges().length) {
-  <mat-form-field class="compact range" subscriptSizing="dynamic">
-    <mat-label>Range</mat-label>
-    <mat-select
-      [value]="rangeValue()"
-      [disabled]="isDisabled(rangeControl, values().get('range'))"
-      (selectionChange)="setRange($event.value)"
+  @let rangeControl = rangeDef(); @if (rangeControl && ranges().length) { @let
+  rangeOff = isDisabled(rangeControl, values().get('range')); @let rangeAt =
+  rangeIndex();
+  <div class="range">
+    <button
+      mat-icon-button
+      class="range-step range-in"
+      aria-label="Shorter range"
+      [disabled]="rangeOff || rangeAt === 0"
+      (click)="stepRange(-1)"
     >
-      @for (o of ranges(); track o.value) {
-      <mat-option [value]="o.value">{{ rangeLabel(o) }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+      <mat-icon>add</mat-icon>
+    </button>
+    <button
+      class="range-value"
+      aria-label="Choose the range"
+      [matMenuTriggerFor]="rangeMenu"
+      [disabled]="rangeOff"
+    >
+      <span class="range-name">Range</span>
+      <span class="range-text"
+        >{{ rangeAt === -1 ? '—' : rangeLabel(ranges()[rangeAt]) }}</span
+      >
+    </button>
+    <button
+      mat-icon-button
+      class="range-step range-out"
+      aria-label="Longer range"
+      [disabled]="rangeOff || rangeAt === ranges().length - 1"
+      (click)="stepRange(1)"
+    >
+      <mat-icon>remove</mat-icon>
+    </button>
+  </div>
+  <mat-menu #rangeMenu="matMenu">
+    @for (o of ranges(); track o.value; let i = $index) {
+    <button mat-menu-item (click)="setRange(o.value)">
+      <mat-icon
+        >{{ i === rangeAt ? 'radio_button_checked' : 'radio_button_unchecked'
+        }}</mat-icon
+      >
+      {{ rangeLabel(o) }}
+    </button>
+    }
+  </mat-menu>
   }
 
   <div class="ctl">

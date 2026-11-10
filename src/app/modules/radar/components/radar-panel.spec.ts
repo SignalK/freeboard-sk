@@ -528,9 +528,101 @@ describe('RadarPanel', () => {
     expect(el.querySelector<HTMLButtonElement>('.power-button')!.disabled).toBe(
       true
     );
-    expect(
-      el.querySelector('.range mat-select')!.getAttribute('aria-disabled')
-    ).toBe('true');
+    el.querySelectorAll<HTMLButtonElement>('.range button').forEach((b) =>
+      expect(b.disabled).toBe(true)
+    );
+  });
+
+  describe('range', () => {
+    const rangeButton = (el: HTMLElement, which: string) =>
+      el.querySelector<HTMLButtonElement>(`.range .${which}`)!;
+    const atRange = (value: number | undefined, validValues?: number[]) =>
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          ...r.capabilities,
+          controls: {
+            ...r.capabilities.controls,
+            range: { ...r.capabilities.controls['range'], validValues }
+          }
+        } as CapabilityManifest,
+        controls: new Map(r.controls).set('range', { value })
+      }));
+
+    it('shows the range between a shorter + and a longer - button', () => {
+      const el: HTMLElement = open().nativeElement;
+      expect(el.querySelector('.range-text')!.textContent?.trim()).toBe('1 nm');
+
+      rangeButton(el, 'range-in').click();
+
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'range', {
+        value: 926
+      });
+    });
+
+    it('greys the button that would step past either end of the ranges', () => {
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(rangeButton(el, 'range-out').disabled).toBe(true);
+      expect(rangeButton(el, 'range-in').disabled).toBe(false);
+
+      atRange(926);
+      fixture.detectChanges();
+
+      expect(rangeButton(el, 'range-in').disabled).toBe(true);
+      rangeButton(el, 'range-out').click();
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'range', {
+        value: 1852
+      });
+    });
+
+    it('steps once per tap before the radar reports the range sent', () => {
+      atRange(463, [231, 463, 926, 1852]);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      rangeButton(el, 'range-out').click();
+      fixture.detectChanges();
+      rangeButton(el, 'range-out').click();
+
+      expect(api.setControl.mock.calls.map((c) => c[2])).toEqual([
+        { value: 926 },
+        { value: 1852 }
+      ]);
+    });
+
+    it('starts at the shortest range while the radar reports none', () => {
+      atRange(undefined);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.range-text')!.textContent?.trim()).toBe('—');
+
+      rangeButton(el, 'range-out').click();
+
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'range', {
+        value: 926
+      });
+    });
+
+    it('jumps to any range from the list behind the range shown', async () => {
+      const fixture = open();
+      rangeButton(fixture.nativeElement, 'range-value').click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const items = Array.from(
+        document.querySelectorAll<HTMLElement>('.mat-mdc-menu-item')
+      );
+      expect(items.map((i) => i.textContent?.trim())).toEqual([
+        'radio_button_unchecked 1/2 nm',
+        'radio_button_checked 1 nm'
+      ]);
+      items[0].click();
+
+      expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'range', {
+        value: 926
+      });
+    });
   });
 
   it('switches to another radar from the radar menu', async () => {

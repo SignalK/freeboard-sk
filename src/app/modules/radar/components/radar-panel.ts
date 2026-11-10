@@ -159,7 +159,13 @@ export class RadarPanel {
   );
 
   protected rangeDef = computed(() => this.capabilities()?.controls?.['range']);
-  protected rangeValue = computed(() => this.values().get('range')?.value);
+  /** The range in the list the radar is at, or has just been sent, so that
+   *  quick taps on the step buttons each move one range; -1 while the radar
+   *  reports none, as range B of a dual-range radar until it is first set. */
+  protected rangeIndex = computed(() => {
+    const value = this.shownValues().get('range')?.value;
+    return this.ranges().findIndex((o) => Number(o.value) === Number(value));
+  });
 
   constructor() {
     // the zone is drawn and edited on the radar layer, so hiding it or the
@@ -270,6 +276,17 @@ export class RadarPanel {
 
   protected setRange(value: number | string) {
     this.send('range', { value });
+  }
+
+  /** One range shorter (-1) or longer (1), as the MaYaRa radar GUI steps;
+   *  from no range at all either button starts at the shortest. */
+  protected stepRange(step: -1 | 1) {
+    const ranges = this.ranges();
+    const at = this.rangeIndex();
+    const next = at === -1 ? ranges[0] : ranges[at + step];
+    if (next) {
+      this.setRange(next.value);
+    }
   }
 
   protected press(c: SectionControl) {
