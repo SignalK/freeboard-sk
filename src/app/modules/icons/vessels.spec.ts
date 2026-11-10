@@ -13,6 +13,17 @@ describe('aisVesselStyleId', () => {
     expect(aisVesselStyleId(37)).toBe(30);
   });
 
+  it('draws towing, dredging, diving and military vessels as special craft', () => {
+    for (const t of [31, 32, 33, 34, 35]) {
+      expect(aisVesselStyleId(t)).toBe(50);
+    }
+  });
+
+  it('keeps the reserved types 38 and 39 on the type 30 style', () => {
+    expect(aisVesselStyleId(38)).toBe(30);
+    expect(aisVesselStyleId(39)).toBe(30);
+  });
+
   it('buckets other types by tens', () => {
     expect(aisVesselStyleId(74)).toBe(70);
     expect(aisVesselStyleId(-1)).toBe(10);

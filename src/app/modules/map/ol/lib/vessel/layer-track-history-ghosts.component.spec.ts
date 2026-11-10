@@ -33,6 +33,10 @@ describe('TrackHistoryGhostLayerComponent icon', () => {
     expect(iconRequestFor(30)).toBe('fishing');
   });
 
+  it('draws a dive boat with the special craft icon', () => {
+    expect(iconRequestFor(34)).toBe(50);
+  });
+
   it('keeps sailing and pleasure craft on the type 30 icon', () => {
     expect(iconRequestFor(36)).toBe(30);
     expect(iconRequestFor(37)).toBe(30);
