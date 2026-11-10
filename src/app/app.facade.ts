@@ -1239,6 +1239,14 @@ export class AppFacade extends InfoService {
    */
   private configSavePending = false;
 
+  /**
+   * The settings in use are the user's own: the start config is known and no
+   * settings load is under way.
+   */
+  get configReady(): boolean {
+    return this.startConfigKnown && !this.configLoading;
+  }
+
   /** overloaded saveConfig() */
   override saveConfig() {
     if (!this.startConfigKnown || this.configLoading) {

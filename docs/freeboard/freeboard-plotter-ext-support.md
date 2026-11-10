@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.24.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.25.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -39,12 +39,22 @@ package; Freeboard depends on it (`^0.24.0`) and imports its host entry point
   settings on the server, and in a server's global default settings, which can
   preset the widgets they place (keyed by placement `instanceId`). State a
   browser kept under the earlier `fb-plotterext-state` localStorage key is
-  read until the first `state.set` moves it into the config.
+  read until the first `state.set` moves it into the config. That is
+  `storage: 'user'`, the default. **`storage: 'device'`** (capability
+  `state.storage`) is kept in this browser's localStorage under
+  `fb-plotterext-device-state`, never in the config, so it is neither saved to
+  the server nor preset by global defaults. Removing a widget clears its
+  instance state from both stores; each device-state save also drops the
+  instance state of widgets no longer placed (removed on another device), but
+  only once the settings in use are known, never while they load. The device
+  store belongs to the browser, not the user: on a browser where several users
+  sign in, one user's device-state save drops device instance state for widgets
+  placed only in another's layout (extension-scope device state is kept).
 
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
 `widgets`, `panels.iframe`, `panels.state`, `buttons`, `buttons.visibility`,
-`buttons.decorations`, `events.publish`, `signalk.stream`,
+`buttons.decorations`, `events.publish`, `state.storage`, `signalk.stream`,
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,

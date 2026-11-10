@@ -16,6 +16,7 @@ export const HOST_CAPABILITIES = [
   'buttons.visibility',
   'buttons.decorations',
   'events.publish',
+  'state.storage',
   'signalk.stream',
   'signalk.put',
   'units',

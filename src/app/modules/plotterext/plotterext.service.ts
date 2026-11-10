@@ -62,6 +62,9 @@ import {
   RpcError,
   RPC_ERRORS,
   type SetVisibilityParams,
+  type StateGetParams,
+  type StateSetParams,
+  type StateStorage,
   windowPort
 } from 'signalk-plotterext-bus/host';
 import {
@@ -149,6 +152,8 @@ import {
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
+// `storage: 'device'` state: this browser only, never in the app config.
+const DEVICE_STATE_STORAGE_KEY = 'fb-plotterext-device-state';
 // Fixed state/scope key for the embedding-host connection (reverse embedding).
 // The caller's asserted id is adopted into the handshake context.id, but state
 // stays under this single scope — one embedder per server in practice.
@@ -2846,9 +2851,11 @@ export class PlotterExtensionService {
 
   // ---------- state storage ----------
   //
-  // Kept in the app config, so it is saved wherever the config is: it follows
-  // a signed-in user across devices, and a server's global default config can
-  // preset the widgets it places.
+  // `storage: 'user'` (the default) is kept in the app config, so it is saved
+  // wherever the config is: it follows a signed-in user across devices, and a
+  // server's global default config can preset the widgets it places.
+  // `storage: 'device'` is kept in this browser's localStorage and never
+  // leaves it. The two stores are separate: no fallback, no merge.
 
   private loadStore(): ExtensionStateStore {
     const store = this.browserStore();
@@ -2878,16 +2885,7 @@ export class PlotterExtensionService {
 
   /** What this browser kept before the state moved into the config. */
   private browserStore(): ExtensionStateStore {
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem(STATE_STORAGE_KEY) ?? '{}'
-      );
-      return stored && typeof stored === 'object' && !Array.isArray(stored)
-        ? stored
-        : {};
-    } catch {
-      return {};
-    }
+    return this.readStore(STATE_STORAGE_KEY);
   }
 
   /** State is saved as JSON with the config: refuse values JSON can't hold. */
@@ -2902,11 +2900,71 @@ export class PlotterExtensionService {
     }
   }
 
+  private loadDeviceStore(): ExtensionStateStore {
+    return this.readStore(DEVICE_STATE_STORAGE_KEY);
+  }
+
+  /**
+   * Save this browser's device state, first dropping the instance state of
+   * widgets that are no longer placed (removed on another device, where their
+   * device state could not be reached). Only once the settings in use are
+   * known: while they load, the widget list is not the user's yet.
+   */
+  private saveDeviceStore(store: ExtensionStateStore) {
+    if (this.app.configReady) {
+      const placed = new Set(
+        this.app.config.plotterExtensions.widgets.map((w) => w.instanceId)
+      );
+      for (const [extension, ext] of Object.entries(store)) {
+        for (const id of Object.keys(ext.instances ?? {})) {
+          if (!placed.has(id)) delete ext.instances![id];
+        }
+        if (ext.instances && !Object.keys(ext.instances).length) {
+          delete ext.instances;
+        }
+        if (!Object.keys(ext).length) delete store[extension];
+      }
+    }
+    try {
+      localStorage.setItem(DEVICE_STATE_STORAGE_KEY, JSON.stringify(store));
+    } catch {
+      // full, or blocked (e.g. a private window): the earlier state stays
+      throw new RpcError("This browser can't keep device state", {
+        code: RPC_ERRORS.INTERNAL_ERROR,
+        reason: 'STORAGE_UNAVAILABLE'
+      });
+    }
+  }
+
+  /** A stored state map, dropping anything that is not an object (hand-edited or corrupt). */
+  private readStore(key: string): ExtensionStateStore {
+    const isObject = (v: unknown): v is Record<string, unknown> =>
+      !!v && typeof v === 'object' && !Array.isArray(v);
+    try {
+      const stored: unknown = JSON.parse(localStorage.getItem(key) ?? '{}');
+      if (!isObject(stored)) return {};
+      return Object.fromEntries(
+        Object.entries(stored).filter(([, ext]) => isObject(ext))
+      ) as ExtensionStateStore;
+    } catch {
+      return {};
+    }
+  }
+
   private clearInstanceState(extension: string, instanceId: string) {
     const store = this.loadStore();
     if (store[extension]?.instances?.[instanceId]) {
       delete store[extension].instances![instanceId];
       this.saveStore(store);
+    }
+    try {
+      const device = this.loadDeviceStore();
+      if (device[extension]?.instances?.[instanceId]) {
+        delete device[extension].instances![instanceId];
+        this.saveDeviceStore(device);
+      }
+    } catch {
+      // storage unavailable: any device state stays until a later prune
     }
   }
 
@@ -2935,13 +2993,24 @@ export class PlotterExtensionService {
       return (extStore.extension = extStore.extension ?? {});
     };
 
+    const storageOf = (storage: unknown): StateStorage => {
+      if (storage === undefined || storage === 'user') return 'user';
+      if (storage === 'device') return 'device';
+      throw new RpcError(`Unknown state storage: ${String(storage)}`, {
+        code: RPC_ERRORS.INVALID_PARAMS,
+        reason: 'INVALID_STORAGE'
+      });
+    };
+
     return {
       'state.get': async (params) => {
-        const { scope, keys } = (params ?? {}) as {
-          scope?: string;
-          keys?: string[];
-        };
-        const values = resolve(this.loadStore(), scope);
+        const { scope, storage, keys } = (params ?? {}) as StateGetParams;
+        const values = resolve(
+          storageOf(storage) === 'device'
+            ? this.loadDeviceStore()
+            : this.loadStore(),
+          scope
+        );
         if (!keys) return { values };
         const filtered: Record<string, unknown> = {};
         for (const key of keys) {
@@ -2950,24 +3019,26 @@ export class PlotterExtensionService {
         return { values: filtered };
       },
       'state.set': async (params) => {
-        const { scope, values } = (params ?? {}) as {
-          scope?: string;
-          values?: Record<string, unknown>;
-        };
+        const { scope, storage, values } = (params ??
+          {}) as Partial<StateSetParams>;
+        const where = storageOf(storage);
         if (!values || typeof values !== 'object') {
           throw new RpcError('state.set requires a values object', {
             code: RPC_ERRORS.INVALID_PARAMS,
             reason: 'INVALID_VALUES'
           });
         }
-        const store = this.loadStore();
+        const store =
+          where === 'device' ? this.loadDeviceStore() : this.loadStore();
         const target = resolve(store, scope);
         Object.assign(target, this.jsonValues(values));
-        this.saveStore(store);
+        if (where === 'device') this.saveDeviceStore(store);
+        else this.saveStore(store);
         const useInstance =
           (scope ?? (instanceId ? 'instance' : 'extension')) === 'instance';
         this.publishToExtension(extension, 'state.changed', {
           scope: useInstance ? 'instance' : 'extension',
+          storage: where,
           instanceId: useInstance ? instanceId : null,
           keys: Object.keys(values)
         });
