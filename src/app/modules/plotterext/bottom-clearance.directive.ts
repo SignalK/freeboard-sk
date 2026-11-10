@@ -13,19 +13,25 @@ import { PlotterExtensionService } from './plotterext.service';
 import { WIDGET_CELL_GAP } from './types';
 
 /** The placed widgets of the bottom anchors, as the overlay renders them. */
-const BOTTOM_WIDGETS = '.pe-bl .pe-cell, .pe-cb .pe-cell, .pe-br .pe-cell';
+const SIDE_WIDGETS = '.pe-bl .pe-cell, .pe-br .pe-cell';
+/** The bottom-center widgets, which the Lat/Lon status bar rises above. */
+const CENTER_WIDGETS = '.pe-cb .pe-cell';
 
 export interface HRect {
   left: number;
   right: number;
   top: number;
+  /** A bottom-center widget: the status bar sits on top of its stack. */
+  center?: boolean;
 }
 
 /**
  * Bottom offset (px) that keeps a panel spanning `panel` horizontally clear
  * of the `widgets` it overlaps: `base` when it overlaps none, otherwise just
  * above the tallest overlapping stack, but never pushed off the top of an area
- * `areaHeight` high. Offsets count from `areaBottom`.
+ * `areaHeight` high. Offsets count from `areaBottom`. Above a bottom-center
+ * stack the panel keeps its whole `base`, since the status bar it clears at
+ * rest is lifted onto that stack.
  */
 export function bottomClearance(
   panel: { left: number; right: number; height: number },
@@ -37,7 +43,10 @@ export function bottomClearance(
   let bottom = base;
   for (const w of widgets) {
     if (w.left < panel.right && w.right > panel.left) {
-      bottom = Math.max(bottom, areaBottom - w.top + WIDGET_CELL_GAP);
+      bottom = Math.max(
+        bottom,
+        areaBottom - w.top + (w.center ? base : WIDGET_CELL_GAP)
+      );
     }
   }
   return Math.max(base, Math.min(bottom, areaHeight - panel.height));
@@ -121,10 +130,15 @@ export class BottomClearanceDirective implements OnDestroy {
     }
     const area = parent.getBoundingClientRect();
     const panel = this.el.getBoundingClientRect();
-    const widgets = Array.from(
-      document.querySelectorAll<HTMLElement>(BOTTOM_WIDGETS),
-      (cell) => cell.getBoundingClientRect()
-    );
+    const rects = (selector: string, center: boolean): HRect[] =>
+      Array.from(document.querySelectorAll<HTMLElement>(selector), (cell) => {
+        const r = cell.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, center };
+      });
+    const widgets = [
+      ...rects(SIDE_WIDGETS, false),
+      ...rects(CENTER_WIDGETS, true)
+    ];
     const bottom = Math.round(
       bottomClearance(
         {
