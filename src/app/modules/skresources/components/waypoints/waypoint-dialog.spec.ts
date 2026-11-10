@@ -381,6 +381,12 @@ describe('waypoint dialog position entry', () => {
     ]);
   });
 
+  it('can save a position on the UTM band limit', async () => {
+    const { fixture } = await open([-179.5, 84]);
+    await choose(fixture, 'UTM');
+    expect(saveButton(fixture).disabled).toBe(false);
+  });
+
   it('explains that UTM does not cover polar positions', async () => {
     const { fixture } = await open([10, 85]);
     await choose(fixture, 'UTM');

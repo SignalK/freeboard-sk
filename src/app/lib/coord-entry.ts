@@ -377,6 +377,9 @@ export interface UtmPosition {
 /** UTM is defined from 80°S to 84°N; beyond that UPS applies. */
 export const UTM_LAT_MIN = -80;
 export const UTM_LAT_MAX = 84;
+// About a metre of latitude. A position on a band limit, shown with its
+// easting and northing rounded to whole metres, can read back just past it.
+const UTM_LAT_SLACK = 1e-5;
 
 const utmDef = (zone: number, hemisphere: 'N' | 'S') =>
   `+proj=utm +zone=${zone}${hemisphere === 'S' ? ' +south' : ''} +datum=WGS84 +units=m +no_defs`;
@@ -437,10 +440,13 @@ export function fromUtm(utm: UtmPosition): [number, number] | null {
   if (
     !Number.isFinite(lon) ||
     !Number.isFinite(lat) ||
-    lat < UTM_LAT_MIN ||
-    lat > UTM_LAT_MAX
+    lat < UTM_LAT_MIN - UTM_LAT_SLACK ||
+    lat > UTM_LAT_MAX + UTM_LAT_SLACK
   ) {
     return null;
   }
-  return [((((lon + 180) % 360) + 360) % 360) - 180, lat];
+  return [
+    ((((lon + 180) % 360) + 360) % 360) - 180,
+    Math.min(UTM_LAT_MAX, Math.max(UTM_LAT_MIN, lat))
+  ];
 }

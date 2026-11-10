@@ -278,6 +278,18 @@ describe('UTM', () => {
     }
   });
 
+  it('reads back a position on a band limit from whole metres', () => {
+    for (const lat of [84, -80]) {
+      const utm = toUtm(-179.5, lat) as NonNullable<ReturnType<typeof toUtm>>;
+      const back = fromUtm({
+        ...utm,
+        easting: Math.round(utm.easting),
+        northing: Math.round(utm.northing)
+      });
+      expect(back?.[1]).toBeCloseTo(lat, 5);
+    }
+  });
+
   it('is undefined beyond 80°S and 84°N', () => {
     expect(toUtm(0, 84.5)).toBeNull();
     expect(toUtm(0, -80.5)).toBeNull();
