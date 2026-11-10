@@ -44,9 +44,38 @@ export function bottomClearance(
 }
 
 /**
+ * The right edge (px, viewport) the panel reaches at its widest: its CSS
+ * `max-width` resolved against the `area` it sits in, from its `left` edge.
+ * Content that changes the panel's width (route data shown only while making
+ * way) then cannot move it up and down over the widgets. Handles the forms
+ * the panels use, a length, a percentage and `calc(100% - <n>px)`; anything
+ * else reaches the area's right edge.
+ */
+export function maxPanelRight(
+  left: number,
+  maxWidth: string,
+  area: { left: number; width: number }
+): number {
+  const areaRight = area.left + area.width;
+  const px = /^(-?[\d.]+)px$/.exec(maxWidth);
+  const pct = /^([\d.]+)%$/.exec(maxWidth);
+  const calc = /^calc\(([\d.]+)% - ([\d.]+)px\)$/.exec(maxWidth);
+  const width = px
+    ? Number(px[1])
+    : pct
+      ? (area.width * Number(pct[1])) / 100
+      : calc
+        ? (area.width * Number(calc[1])) / 100 - Number(calc[2])
+        : Infinity;
+  return Math.min(areaRight, left + width);
+}
+
+/**
  * Reports the bottom offset that keeps the host panel above the bottom widget
  * stacks it would cover, recomputed as widgets, the panel or the screen
  * change. The value given is the panel's offset with no widget in the way.
+ * The panel's widest span counts, not its current width, so its resting
+ * height depends on the widgets alone.
  */
 @Directive({
   selector: '[fbBottomClearance]'
@@ -98,7 +127,14 @@ export class BottomClearanceDirective implements OnDestroy {
     );
     const bottom = Math.round(
       bottomClearance(
-        { left: panel.left, right: panel.right, height: panel.height },
+        {
+          left: panel.left,
+          right: Math.max(
+            panel.right,
+            maxPanelRight(panel.left, getComputedStyle(this.el).maxWidth, area)
+          ),
+          height: panel.height
+        },
         widgets,
         area.bottom,
         area.height,
