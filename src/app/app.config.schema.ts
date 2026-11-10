@@ -159,7 +159,7 @@ export const AppConfigSchema = Type.Object({
     fixedLocationMode: bool(false),
     fixedPosition: position(),
     trail: bool(true), // from the server when it can supply one (#820)
-    windVectors: bool(true), // vessel TWD, AWD vectors
+    windVectors: bool(false), // vessel TWD, AWD vectors
     currentVector: bool(true), // set / drift arrow at the own vessel
     laylines: bool(false),
     selfLines: Type.Object({
