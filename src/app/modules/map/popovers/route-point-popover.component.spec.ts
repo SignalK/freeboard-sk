@@ -93,9 +93,9 @@ describe('RoutePointPopoverComponent — estimates', () => {
 
     expect(text).toContain('DTG:');
     expect(text).toContain('3704 m');
-    expect(text).toContain('TTG:');
+    expect(text).toContain('TTG at SOG:');
     expect(text).toContain('1440 s');
-    expect(text).toContain('ETA:');
+    expect(text).toContain('ETA at SOG:');
   });
 
   it('shows the distance alone while the vessel is stopped', () => {
@@ -108,8 +108,8 @@ describe('RoutePointPopoverComponent — estimates', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
 
     expect(text).toContain('DTG:');
-    expect(text).not.toContain('TTG:');
-    expect(text).not.toContain('ETA:');
+    expect(text).not.toContain('TTG at SOG:');
+    expect(text).not.toContain('ETA at SOG:');
   });
 
   it('leaves out the estimates for a point already passed', () => {
@@ -117,7 +117,7 @@ describe('RoutePointPopoverComponent — estimates', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
 
     expect(text).not.toContain('DTG:');
-    expect(text).not.toContain('ETA:');
+    expect(text).not.toContain('ETA at SOG:');
   });
 });
 
