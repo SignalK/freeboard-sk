@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Subject } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationManager } from './notification-manager';
 import { AppFacade } from 'src/app/app.facade';
@@ -753,6 +753,19 @@ describe('NotificationManager alert actions', () => {
     posts[0].response.error(new HttpErrorResponse({ status: 401 }));
     expect(await raised).toBeNull();
     expect(errors).toEqual([]);
+  });
+
+  it('gives up on a MOB request the server does not answer in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const mgr = TestBed.inject(NotificationManager);
+      const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+      vi.advanceTimersByTime(3001);
+      expect(await raised).toBeNull();
+      expect(errors).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('reports any other failure to raise a MOB', async () => {

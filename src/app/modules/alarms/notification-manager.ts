@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
   ALARM_METHOD,
@@ -52,6 +52,12 @@ function parseLocalMobs(raw: string | null): StoredLocalMob[] {
   });
 }
 
+/**
+ * How long a raised alarm may wait for the server. A MOB that waits longer,
+ * on a dropped network or a rebooting server, is kept on this display instead.
+ */
+const RAISE_TIMEOUT_MS = 3000;
+
 /** How long a buddy's message stays up: long enough to press LOCATE. */
 const BUDDY_MESSAGE_MS = 10000;
 
@@ -61,8 +67,8 @@ type AlertItems = Array<[string, AlertData]>;
  * What became of a raised alarm: the id the server gave it, or null when the
  * server did not take it. That is the case on a display nobody is logged in
  * to, on a server without the Notifications API (or before Freeboard has
- * found it), and when the request fails; only the last is reported as an
- * error.
+ * found it), and when the request fails or gets no answer in time; only a
+ * failed request is reported as an error.
  */
 export type RaiseResult = { id: string } | null;
 
@@ -652,15 +658,19 @@ export class NotificationManager {
     }
     try {
       const r = await firstValueFrom(
-        this.signalk.api.post(this.app.skApiVersion, `notifications/mob`, {
-          message: message
-        })
+        this.signalk.api
+          .post(this.app.skApiVersion, `notifications/mob`, {
+            message: message
+          })
+          .pipe(timeout(RAISE_TIMEOUT_MS))
       );
       const id = (r as { id?: string }).id;
       this.app.debug(`MOB Alarm raised (${id})`);
       return id ? { id } : null;
     } catch (err) {
-      if (!isRefused(err as HttpErrorResponse)) {
+      if (err instanceof TimeoutError) {
+        this.app.debug('MOB request timed out');
+      } else if (!isRefused(err as HttpErrorResponse)) {
         this.app.parseHttpErrorResponse(err as HttpErrorResponse);
       }
       return null;
