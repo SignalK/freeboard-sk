@@ -223,7 +223,7 @@ interface DialogData {
                       />
                     </mat-form-field>
                     <mat-form-field floatLabel="always" style="width:80px;">
-                      <mat-label>Hemisphere</mat-label>
+                      <mat-label>N/S</mat-label>
                       <mat-select formControlName="hemisphere">
                         <mat-option value="N">N</mat-option>
                         <mat-option value="S">S</mat-option>
@@ -282,7 +282,7 @@ interface DialogData {
                         }
                       </mat-form-field>
                       <mat-form-field floatLabel="always" class="_ap-wpt-hem">
-                        <mat-label>Hemisphere</mat-label>
+                        <mat-label>N/S</mat-label>
                         <mat-select
                           aria-label="Latitude hemisphere"
                           [formControl]="inpLatHem"
@@ -312,7 +312,7 @@ interface DialogData {
                         }
                       </mat-form-field>
                       <mat-form-field floatLabel="always" class="_ap-wpt-hem">
-                        <mat-label>Hemisphere</mat-label>
+                        <mat-label>E/W</mat-label>
                         <mat-select
                           aria-label="Longitude hemisphere"
                           [formControl]="inpLonHem"
