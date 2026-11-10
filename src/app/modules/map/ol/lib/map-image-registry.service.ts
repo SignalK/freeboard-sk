@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Circle, Fill, Icon, Stroke } from 'ol/style';
+import type { RouteStyle } from 'src/app/types';
 import {
   getAtoNDefs,
   ATON_TYPE_IDS,
@@ -347,6 +348,20 @@ export class MapImageRegistry {
       this.buildIcon(this.icons.routes, ROUTE_MARKER_DEFS, id);
     }
     return this.icons.routes[id];
+  }
+
+  /**
+   * @description The icon drawn for a route marker in the given route style:
+   * an override or the bundled glyph for 'flags'; an override or null for
+   * 'classic', whose markers are shapes the route layer draws itself.
+   * @param id ROUTE_MARKER_START | ROUTE_MARKER_WAYPOINT | ROUTE_MARKER_END
+   * @param style Route style setting
+   * @returns Icon object or null
+   */
+  getRouteMarkerFor(id: string, style: RouteStyle): Icon | null {
+    return style === 'classic'
+      ? this.getExternalSymbol(id)
+      : this.getRouteMarker(id);
   }
 
   /**

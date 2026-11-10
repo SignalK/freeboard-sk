@@ -6,12 +6,14 @@ import { LineString, Point } from 'ol/geom';
 import OlMap from 'ol/Map';
 import { Style, Stroke } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
-import { FBRoutes, FBWaypoints } from 'src/app/types';
+import { FBRoutes, FBWaypoints, RouteStyle } from 'src/app/types';
+import { SimpleChange } from '@angular/core';
 import { FreeboardRouteLayerComponent } from './layer-routes.component';
 import { MapImageRegistry } from '../map-image-registry.service';
 import {
   FreeboardWaypointLayerComponent,
-  ROUTE_END_HIT_TARGET
+  ROUTE_END_HIT_TARGET,
+  ROUTE_FLAG_HIT_TARGET
 } from './layer-waypoints.component';
 import { drawnTogether, linkedWaypointId } from './route-waypoint-overlap';
 
@@ -108,7 +110,11 @@ function routeLayer(map: OlMap, routes: FBRoutes): RouteLayer {
   return c as RouteLayer;
 }
 
-function waypointLayer(map: OlMap, waypoints: FBWaypoints): WaypointLayer {
+function waypointLayer(
+  map: OlMap,
+  waypoints: FBWaypoints,
+  routeStyle: RouteStyle
+): WaypointLayer {
   const c = Object.create(
     FreeboardWaypointLayerComponent.prototype
   ) as FreeboardWaypointLayerComponent;
@@ -119,19 +125,26 @@ function waypointLayer(map: OlMap, waypoints: FBWaypoints): WaypointLayer {
     labelPrefixes: [],
     labelMinZoom: 10,
     mapZoom: 14,
-    mapImages: { getWaypoint: (): null => null }
+    routeStyle,
+    mapImages: Object.assign(new MapImageRegistry(), {
+      getWaypoint: (): null => null
+    })
   });
   c.ngOnInit();
   return c as WaypointLayer;
 }
 
 /** Both layers on one map, as the chart has them. */
-function scene(routes: FBRoutes, waypoints: FBWaypoints) {
+function scene(
+  routes: FBRoutes,
+  waypoints: FBWaypoints,
+  routeStyle: RouteStyle = 'classic'
+) {
   const map = stubMap();
   return {
     map,
     routes: routeLayer(map, routes),
-    waypoints: waypointLayer(map, waypoints)
+    waypoints: waypointLayer(map, waypoints, routeStyle)
   };
 }
 
@@ -158,7 +171,7 @@ function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
 /** Whether waypoint `id` shows a visible icon (not just its hit target). */
 function iconShown(layer: WaypointLayer, id: string, resolution = 10) {
   const img = waypointStyle(layer, id, resolution).getImage();
-  return !!img && img !== ROUTE_END_HIT_TARGET;
+  return !!img && img !== ROUTE_END_HIT_TARGET && img !== ROUTE_FLAG_HIT_TARGET;
 }
 
 function routeGeometry(layer: RouteLayer, id = 'r1') {
@@ -214,6 +227,38 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     expect(style.getImage()).toBeTruthy();
     expect(style.getText()?.getText()).toBe('wa');
     expect(style.getText()?.getOffsetY()).toBe(-12);
+  });
+
+  it('keeps the waypoint label above a route end flag, clickable over the flag', () => {
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wa', A)],
+      'flags'
+    );
+    const style = waypointStyle(s.waypoints, 'wa');
+    const base = s.waypoints.source
+      .getFeatureById('waypoint.wa')
+      ?.get('baseStyle') as Style;
+    expect(style.getImage()).toBe(ROUTE_FLAG_HIT_TARGET);
+    expect(style.getText()?.getText()).toBe('wa');
+    expect(style.getText()).toBe(base.getText());
+  });
+
+  it('restyles the waypoints when the route style changes', () => {
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wa', A)]
+    );
+    let changed = 0;
+    s.waypoints.source.on('change', () => changed++);
+    Object.assign(s.waypoints, { routeStyle: 'flags' });
+    s.waypoints.ngOnChanges({
+      routeStyle: new SimpleChange('classic', 'flags', false)
+    });
+    expect(changed).toBe(1);
+    expect(waypointStyle(s.waypoints, 'wa').getImage()).toBe(
+      ROUTE_FLAG_HIT_TARGET
+    );
   });
 
   it('skips only the linked intermediate points on a mixed route', () => {

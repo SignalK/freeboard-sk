@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { SimpleChange } from '@angular/core';
+import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
@@ -79,5 +81,17 @@ describe('route markers by route style', () => {
       const [start] = markers(routeLayer(style, reg));
       expect(src(start)).toContain('custom-start.svg');
     }
+  });
+
+  it('redraws the markers when the route style changes', () => {
+    const layer = routeLayer('flags');
+    const source = new VectorSource();
+    let changed = 0;
+    source.on('change', () => changed++);
+    Object.assign(layer, { source });
+    layer.ngOnChanges({
+      routeStyle: new SimpleChange('flags', 'classic', false)
+    });
+    expect(changed).toBe(1);
   });
 });

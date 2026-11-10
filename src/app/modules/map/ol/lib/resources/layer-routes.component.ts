@@ -177,9 +177,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     // The waypoint marker is cloned per segment and rotated to the bearing;
     // start/end markers render upright.
     const marker = (id: string) =>
-      this.routeStyle === 'classic'
-        ? this.mapImages.getExternalSymbol(id)
-        : this.mapImages.getRouteMarker(id);
+      this.mapImages.getRouteMarkerFor(id, this.routeStyle);
     const startSym = marker(ROUTE_MARKER_START);
     const wptSym = marker(ROUTE_MARKER_WAYPOINT);
     const endSym = marker(ROUTE_MARKER_END);

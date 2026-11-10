@@ -11,9 +11,13 @@ import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBWaypoints } from 'src/app/types';
+import { FBWaypoints, RouteStyle } from 'src/app/types';
 import { SKWaypoint } from 'src/app/modules/skresources';
-import { MapImageRegistry } from '../map-image-registry.service';
+import {
+  MapImageRegistry,
+  ROUTE_MARKER_END,
+  ROUTE_MARKER_START
+} from '../map-image-registry.service';
 import { isRouteEndAt, joinOverlap } from './route-waypoint-overlap';
 
 /**
@@ -24,7 +28,16 @@ export const ROUTE_END_HIT_TARGET = new Circle({
   radius: 12,
   fill: new Fill({ color: 'rgba(0,0,0,0)' })
 });
-/** Label offset sized to a route start/end marker rather than an icon. */
+/**
+ * The hit target over a route start/end flag, which stands up and to the right
+ * of the point (anchored at the foot of its pole), so it is clickable all over.
+ */
+export const ROUTE_FLAG_HIT_TARGET = new Circle({
+  radius: 13,
+  displacement: [7, 12],
+  fill: new Fill({ color: 'rgba(0,0,0,0)' })
+});
+/** Label offset sized to a drawn route start/end shape rather than an icon. */
 const ROUTE_END_LABEL_OFFSET_Y = -12;
 
 // ** Freeboard resource collection format **
@@ -38,6 +51,7 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() waypointStyles?: { [key: string]: Style };
   @Input() activeWaypoint?: string | null;
   @Input() waypoints: FBWaypoints = [];
+  @Input() routeStyle: RouteStyle = 'flags';
 
   private leaveOverlap?: () => void;
 
@@ -75,6 +89,9 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
         this.source.clear();
         this.reloadWaypoints();
       }
+      if ('routeStyle' in changes) {
+        this.source.changed();
+      }
     }
   }
 
@@ -89,6 +106,17 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
     const map = this.mapComponent.getMap();
     if (!map || !isRouteEndAt(map, id, pos, resolution)) {
       return style;
+    }
+    // A flag (or a provider icon) at the route end is as tall as a waypoint
+    // icon, so the waypoint keeps its own label position above it.
+    const flagged =
+      this.mapImages.getRouteMarkerFor(ROUTE_MARKER_START, this.routeStyle) ??
+      this.mapImages.getRouteMarkerFor(ROUTE_MARKER_END, this.routeStyle);
+    if (flagged) {
+      return new Style({
+        image: ROUTE_FLAG_HIT_TARGET,
+        text: style.getText() ?? undefined
+      });
     }
     const text = style.getText()?.clone();
     text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
