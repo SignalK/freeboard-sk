@@ -165,6 +165,21 @@ describe('MovablePanelDirective', () => {
     expect(panel.style.bottom).toBe('20px');
   });
 
+  it('stays under the pointer while its resting offset changes mid-drag', async () => {
+    await mount();
+    fixture.componentInstance.resting = 140;
+    fixture.detectChanges();
+
+    pointer(label, 'pointerdown', { x: 50, y: 400 });
+    pointer(window, 'pointermove', { x: 150, y: 300 });
+    const during = shown(panel);
+    fixture.componentInstance.resting = 60;
+    fixture.detectChanges();
+    expect(panel.style.bottom).toBe('140px');
+    expect(shown(panel)).toEqual(during);
+    pointer(window, 'pointerup', { x: 150, y: 300 });
+  });
+
   it('moves with a mouse drag that starts off the controls, and remembers it', async () => {
     await mount();
     pointer(label, 'pointerdown', { x: 50, y: 500 });

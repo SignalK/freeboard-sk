@@ -133,12 +133,15 @@ export class MovablePanelDirective implements OnDestroy {
    * itself to the space left of that point.
    */
   private place = () => {
+    if (this.gesture?.state === 'dragging') {
+      return;
+    }
     if (!this.placement) {
       this.rest();
       return;
     }
     const area = this.area();
-    if (!area || this.gesture?.state === 'dragging') {
+    if (!area) {
       return;
     }
     const size = this.size();
