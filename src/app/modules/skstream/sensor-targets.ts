@@ -1,0 +1,426 @@
+import {
+  SKSensorTarget,
+  SKVessel
+} from 'src/app/modules/skresources/resource-classes';
+import { GeoUtils } from 'src/app/lib/geoutils';
+import { PathValue, Position } from 'src/app/types';
+
+/*
+ * Radar, camera and other sensor targets: `targets.<type>:<id>` contexts that
+ * report the same navigation paths as a vessel. A target can name the context
+ * it is the same object as in `sameAs` (an AIS vessel, or the target that
+ * first saw a boat without AIS), set by a fusion plugin.
+ */
+
+/**
+ * A target its sensor stopped updating is dropped after this long, well
+ * before the AIS age: a radar or camera that still sees a boat reports it
+ * every few seconds.
+ */
+export const TARGET_MAX_AGE_MS = 60_000;
+
+/**
+ * A target its sensor has not updated for this long is drawn as inactive,
+ * well before it is dropped.
+ */
+export const TARGET_STALE_MS = 20_000;
+
+/** ITU-R M.1371 reporting intervals, in ms. */
+const AIS_INTERVAL = {
+  classAMoored: 180_000,
+  classASlow: 10_000,
+  classAFast: 6_000,
+  classAVeryFast: 2_000,
+  classBMoving: 30_000,
+  classBSlow: 180_000
+};
+const KNOT = 1852 / 3600; // m/s
+const KNOTS_2 = 2 * KNOT;
+const KNOTS_3 = 3 * KNOT;
+const KNOTS_14 = 14 * KNOT;
+const KNOTS_23 = 23 * KNOT;
+
+/**
+ * An AIS position counts as current for twice its reporting interval, and at
+ * least this long, so one or two slots lost on a busy channel do not move the
+ * boat to the radar and back.
+ */
+const AIS_MIN_GRACE_MS = 30_000;
+
+const CREATED_BY_MOTION_PATHS = new Set([
+  'navigation.courseOverGroundTrue',
+  'navigation.speedOverGround'
+]);
+
+/**
+ * Whether the target's sensor has stopped reporting it. A target that has no
+ * position yet counts from its last value of any kind, so a link that
+ * arrives before the position is not lost.
+ */
+export function isSilent(target: SKSensorTarget, now: number): boolean {
+  const seen = target.positionUpdatedAt || target.lastUpdated.valueOf();
+  return now - seen > TARGET_MAX_AGE_MS;
+}
+
+/** Whether the target's sensor has not updated it for a while. */
+export function isStale(target: SKSensorTarget, now: number): boolean {
+  return now - target.lastUpdated.valueOf() > TARGET_STALE_MS;
+}
+
+/** Whether `id` is a radar target, which shows with the radar image. */
+export function isRadarTarget(id: string): boolean {
+  return id.startsWith('targets.radar:');
+}
+
+/**
+ * How often the vessel's AIS transponder reports its position at its current
+ * speed and status. A vessel of unknown class is taken as class B, the less
+ * frequent one.
+ */
+export function aisReportInterval(vessel: SKVessel): number {
+  const sog = vessel.sog ?? 0;
+  if (vessel.aisClass === 'A') {
+    // the moored rate applies only at 3 kn or less, so a status left at
+    // "moored" does not hold a moving vessel at the slow rate
+    if (
+      (vessel.state === 'anchored' || vessel.state === 'moored') &&
+      sog <= KNOTS_3
+    ) {
+      return AIS_INTERVAL.classAMoored;
+    }
+    if (sog > KNOTS_23) {
+      return AIS_INTERVAL.classAVeryFast;
+    }
+    return sog > KNOTS_14 ? AIS_INTERVAL.classAFast : AIS_INTERVAL.classASlow;
+  }
+  return sog > KNOTS_2 ? AIS_INTERVAL.classBMoving : AIS_INTERVAL.classBSlow;
+}
+
+/**
+ * Whether the vessel's AIS position is still current: no more than two of
+ * its reporting intervals old.
+ */
+export function isAisCurrent(vessel: SKVessel, now: number): boolean {
+  if (!vessel.positionUpdatedAt) {
+    return false;
+  }
+  const grace = Math.max(2 * aisReportInterval(vessel), AIS_MIN_GRACE_MS);
+  return now - vessel.positionUpdatedAt <= grace;
+}
+
+/**
+ * Apply one delta value to the target with context `id`. A null position means
+ * the sensor lost the track, so the target is dropped. A lost track stays in
+ * the server's data model with null values, which a null value for a target
+ * not held here must not bring back.
+ * @param cogLineMinutes length of the course line, in minutes of travel at
+ * the target's speed, as for AIS vessels
+ * @returns false when the target was dropped
+ */
+export function processSensorTarget(
+  targets: Map<string, SKSensorTarget>,
+  id: string,
+  v: PathValue,
+  cogLineMinutes: number
+): boolean {
+  if (v.path === 'navigation.position' && !isLonLat(v.value)) {
+    targets.delete(id);
+    return false;
+  }
+  if (v.value === null && !targets.has(id)) {
+    return false;
+  }
+  // Course and speed repeat every second, so they would bring back a target
+  // the radius filter just removed, without a position.
+  if (!targets.has(id) && CREATED_BY_MOTION_PATHS.has(v.path)) {
+    return true;
+  }
+  let d = targets.get(id);
+  if (!d) {
+    d = new SKSensorTarget();
+    d.id = id;
+    d.position = null;
+    const type = id.slice('targets.'.length).split(':')[0];
+    d.type = {
+      id: -1,
+      name: `${type.charAt(0).toUpperCase()}${type.slice(1)} target`
+    };
+    targets.set(id, d);
+  }
+  d.lastUpdated = new Date();
+  const value = v.value as Record<string, unknown>;
+  switch (v.path) {
+    case '':
+      if (typeof value?.name === 'string') {
+        d.name = value.name;
+      }
+      if (typeof value?.mmsi === 'string') {
+        d.mmsi = value.mmsi;
+      }
+      break;
+    case 'name':
+      d.name = v.value as string;
+      break;
+    case 'mmsi':
+      d.mmsi = v.value as string;
+      break;
+    case 'sameAs':
+      d.sameAs = typeof v.value === 'string' ? v.value : null;
+      break;
+    case 'navigation.position':
+      // mayara does not wrap the longitude of a target across the antimeridian
+      d.position = GeoUtils.normaliseCoords([
+        value.longitude as number,
+        value.latitude as number
+      ]);
+      d.positionReceived = true;
+      d.positionUpdatedAt = Date.now();
+      break;
+    case 'navigation.courseOverGroundTrue':
+      d.cog = finiteOrUndefined(v.value);
+      d.orientation = d.cog ?? 0;
+      break;
+    case 'navigation.speedOverGround':
+      d.sog = finiteOrUndefined(v.value);
+      break;
+  }
+  if (d.cog === undefined) {
+    d.vectors.cog = null;
+  } else if (d.position) {
+    d.vectors.cog = [
+      d.position,
+      GeoUtils.rhumbDestination(
+        d.position,
+        d.cog,
+        (d.sog ?? 0) * cogLineMinutes * 60
+      )
+    ];
+  }
+  return true;
+}
+
+/**
+ * The targets to draw: each boat once. A target linked to a vessel on the
+ * chart, own vessel included, is left out (`fusedVessels` draws a vessel that
+ * has no position yet at the target), and targets linked to each other are
+ * drawn as the one they lead to, placed at whichever of them reported its
+ * position last. A link to a vessel that is gone, such as one whose AIS
+ * expired, or to a target without a position is ignored, so the sensor's view
+ * of the boat stays on the chart.
+ */
+export function unlinkedTargets(
+  targets: Map<string, SKSensorTarget>,
+  vessels: Map<string, SKVessel>,
+  self?: SKVessel
+): Map<string, SKSensorTarget> {
+  // A vessel without a position yet still counts: fusedVessels places it at
+  // the target, so drawing the target as well would show the boat twice.
+  const charted = (context: string): boolean =>
+    context === 'vessels.self' || context === self?.id
+      ? Boolean(self?.position)
+      : vessels.has(context);
+  const shown = new Map<string, SKSensorTarget>();
+  const freshest = new Map<string, SKSensorTarget>();
+  targets.forEach((target, id) => {
+    const root = rootOf(id, targets, charted);
+    if (root === id) {
+      shown.set(id, target);
+    }
+    if (
+      targets.has(root) &&
+      target.position &&
+      target.positionUpdatedAt > (freshest.get(root)?.positionUpdatedAt ?? 0)
+    ) {
+      freshest.set(root, target);
+    }
+  });
+  freshest.forEach((target, root) => {
+    const item = shown.get(root);
+    if (item && target.id !== root) {
+      // shown with the course and speed of the target whose line it draws
+      shown.set(
+        root,
+        Object.assign(placedAt(item, target), {
+          cog: target.cog,
+          sog: target.sog,
+          orientation: target.orientation
+        })
+      );
+    }
+  });
+  return shown;
+}
+
+/**
+ * The contexts a target leads to through its `sameAs` links, in order, each
+ * once. A boat drawn at any of them may move when the target does.
+ */
+export function linkedContexts(
+  id: string,
+  targets: Map<string, SKSensorTarget>
+): string[] {
+  const found: string[] = [];
+  let next = targets.get(id)?.sameAs ?? null;
+  while (next !== null && next !== id && !found.includes(next)) {
+    found.push(next);
+    next = targets.get(next)?.sameAs ?? null;
+  }
+  return found;
+}
+
+/**
+ * The targets that lead to `id` through their `sameAs` links. Whether they
+ * are drawn on their own depends on `id` having a position.
+ */
+export function linkingTargets(
+  id: string,
+  targets: Map<string, SKSensorTarget>
+): string[] {
+  return [...targets.keys()].filter((tid) =>
+    linkedContexts(tid, targets).includes(id)
+  );
+}
+
+/**
+ * The context that stands for a target's object: links are followed to a
+ * vessel on the chart or to a target without a usable link. A target without
+ * a position is not a usable link. Targets linked in a loop agree on the
+ * first of them by id.
+ */
+function rootOf(
+  id: string,
+  targets: Map<string, SKSensorTarget>,
+  charted: (context: string) => boolean
+): string {
+  const visited: string[] = [];
+  let current = id;
+  for (;;) {
+    visited.push(current);
+    const next = targets.get(current)?.sameAs ?? null;
+    if (next !== null && charted(next)) {
+      return next;
+    }
+    if (next === null || !targets.get(next)?.position) {
+      return current;
+    }
+    const loop = visited.indexOf(next);
+    if (loop !== -1) {
+      return visited.slice(loop).sort()[0];
+    }
+    current = next;
+  }
+}
+
+/**
+ * The vessels as drawn: a vessel keeps its AIS position while that is
+ * current, as IMO MSC.192(79) asks for an associated target. Once its AIS
+ * falls silent it is placed at the linked sensor target that reported last,
+ * with that one's course, so a boat whose AIS stopped follows the radar still
+ * tracking it. The others are returned as they are.
+ */
+export function fusedVessels(
+  vessels: Map<string, SKVessel>,
+  targets: Map<string, SKSensorTarget>,
+  now = Date.now()
+): Map<string, SKVessel> {
+  const freshest = new Map<string, SKSensorTarget>();
+  const charted = (context: string) => vessels.has(context);
+  targets.forEach((target, id) => {
+    // a target linked through other targets fuses with the vessel at the end
+    const root = rootOf(id, targets, charted);
+    const vessel = vessels.get(root);
+    if (
+      vessel &&
+      target.position &&
+      !isAisCurrent(vessel, now) &&
+      target.positionUpdatedAt > vessel.positionUpdatedAt &&
+      target.positionUpdatedAt > (freshest.get(root)?.positionUpdatedAt ?? 0)
+    ) {
+      freshest.set(root, target);
+    }
+  });
+  if (freshest.size === 0) {
+    return vessels;
+  }
+  const fused = new Map(vessels);
+  freshest.forEach((target, id) => {
+    const vessel = vessels.get(id);
+    if (vessel) {
+      fused.set(
+        id,
+        Object.assign(placedAt(vessel, target), {
+          cog: target.cog ?? vessel.cog,
+          sog: target.sog ?? vessel.sog,
+          orientation:
+            target.cog === undefined ? vessel.orientation : target.orientation
+        })
+      );
+    }
+  });
+  return fused;
+}
+
+/**
+ * A copy of `item` at the position and on the course line of `target`, and as
+ * recently updated as the fresher of the two, so a boat the sensor still
+ * tracks is not drawn as inactive.
+ */
+function placedAt<T extends SKVessel | SKSensorTarget>(
+  item: T,
+  target: SKSensorTarget
+): T {
+  return Object.assign(Object.create(Object.getPrototypeOf(item)), item, {
+    position: target.position,
+    positionUpdatedAt: target.positionUpdatedAt,
+    lastUpdated:
+      target.lastUpdated > item.lastUpdated
+        ? target.lastUpdated
+        : item.lastUpdated,
+    vectors: { ...item.vectors, cog: target.vectors.cog }
+  });
+}
+
+/**
+ * Position of the object a collision alarm names: an AIS vessel, a sensor
+ * target, or a vessel no longer on the chart that a sensor target is linked
+ * to, which the sensor then locates.
+ */
+export function locateTarget(
+  id: string,
+  vessels: Map<string, SKVessel>,
+  targets: Map<string, SKSensorTarget>
+): Position | undefined {
+  // direct links first, then targets that reach `id` through other targets
+  const candidates = [
+    vessels.get(id),
+    targets.get(id),
+    ...[...targets.values()].filter((t) => t.sameAs === id),
+    ...[...targets.entries()]
+      .filter(
+        ([tid, t]) =>
+          t.sameAs !== id && linkedContexts(tid, targets).includes(id)
+      )
+      .map(([, t]) => t)
+  ];
+  return (
+    candidates.find((c) => c?.positionReceived && c.position)?.position ??
+    undefined
+  );
+}
+
+function finiteOrUndefined(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function isLonLat(value: unknown): boolean {
+  const p = value as { latitude?: unknown; longitude?: unknown } | null;
+  return (
+    typeof p?.latitude === 'number' &&
+    typeof p.longitude === 'number' &&
+    Number.isFinite(p.latitude) &&
+    Number.isFinite(p.longitude) &&
+    Math.abs(p.latitude) <= 90
+  );
+}

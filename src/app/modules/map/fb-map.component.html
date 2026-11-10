@@ -475,6 +475,44 @@
     </sk-ais-targets>
   }
 
+  <!-- Radar targets, shown with the radar image -->
+  @if (app.uiCtrl().radarLayer) {
+    <sk-ais-targets
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="dfeat.radarTargets"
+      [targetStyles]="featureStyles.sensorTarget"
+      targetContext="targets"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="targetStaleMs"
+      [zIndex]="970"
+      [cogLineLength]="app.config.vessels.aisCogLine"
+    >
+    </sk-ais-targets>
+  }
+
+  <!-- Camera and other sensor targets -->
+  @if (app.config.ui.showAisTargets) {
+    <sk-ais-targets
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="dfeat.otherTargets"
+      [targetStyles]="featureStyles.sensorTarget"
+      targetContext="targets"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="targetStaleMs"
+      [zIndex]="970"
+      [cogLineLength]="app.config.vessels.aisCogLine"
+    >
+    </sk-ais-targets>
+  }
+
   <!-- SAR targets -->
   @if (app.config.ui.showAisTargets) {
     <sk-ais-targets

@@ -130,6 +130,7 @@ import {
   SKAtoN,
   SKAircraft,
   SKSaR,
+  SKSensorTarget,
   SKMeteo,
   SKStreamFacade,
   AnchorService,
@@ -145,6 +146,7 @@ import {
   mapInteractions,
   aircraftStyles,
   sarStyles,
+  sensorTargetStyles,
   regionStyles,
   routeStyles,
   anchorStyles,
@@ -212,6 +214,7 @@ import {
 } from './route-waypoint-links';
 import { waypointSnapAt } from './ol/lib/waypoint-snap';
 import { drawnWaypoints } from './ol/lib/resources/route-waypoint-overlap';
+import { aisTargetShown } from 'src/app/lib/ais-filter';
 import {
   ActiveRoutePoint,
   distanceAlongRoute,
@@ -246,6 +249,13 @@ import { Observable, Subscription } from 'rxjs';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
+  fusedVessels,
+  isRadarTarget,
+  locateTarget,
+  TARGET_STALE_MS,
+  unlinkedTargets
+} from 'src/app/modules/skstream/sensor-targets';
+import {
   durationLabel,
   HistoryTrack,
   PointTime,
@@ -276,6 +286,9 @@ interface IFeatureData {
   atons: Map<string, SKAtoN>;
   sar: Map<string, SKSaR>;
   meteo: Map<string, SKMeteo>;
+  targets: Map<string, SKSensorTarget>; // sensor targets not linked to a drawn boat
+  radarTargets: Map<string, SKSensorTarget>; // the radar ones among them
+  otherTargets: Map<string, SKSensorTarget>; // camera and other sensors
   self: SKVessel; //self vessel
   ais: Map<string, SKVessel>; // other vessels
   active: SKVessel; // focussed vessel
@@ -467,6 +480,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     destination: destinationStyles,
     aircraft: aircraftStyles,
     sar: sarStyles,
+    sensorTarget: sensorTargetStyles,
     layline: laylineStyles,
     targetAngle: targetAngleStyle,
     raceCourse: raceCourseStyles,
@@ -491,6 +505,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     atons: new Map(),
     sar: new Map(),
     meteo: new Map(),
+    targets: new Map(),
+    radarTargets: new Map(),
+    otherTargets: new Map(),
     self: new SKVessel(), //self vessel
     ais: new Map(), // other vessels
     active: new SKVessel(), // focussed vessel
@@ -678,6 +695,32 @@ export class FBMapComponent implements OnInit, OnDestroy {
   });
   // "Show Track" draws AIS tracks from this zoom, as the stream worker fetches them
   protected readonly aisTrackMinZoom = AIS_TRACK_MIN_ZOOM;
+  protected readonly targetStaleMs = TARGET_STALE_MS;
+
+  /**
+   * The AIS vessels the chart draws, under the AIS display setting and
+   * selections. A sensor target linked to a vessel left out stays on the
+   * chart, so the boat does not disappear.
+   */
+  private drawnAisVessels(): Map<string, SKVessel> {
+    if (!this.app.config.ui.showAisTargets) {
+      return new Map();
+    }
+    const selections = this.app.config.selections;
+    const drawn = new Map<string, SKVessel>();
+    this.app.data.vessels.aisTargets.forEach((vessel, id) => {
+      if (
+        aisTargetShown(id, vessel, {
+          filterIds: selections.aisTargets,
+          filterByShipType: selections.aisFilterByShipType,
+          filterShipTypes: selections.aisTargetTypes
+        })
+      ) {
+        drawn.set(id, vessel);
+      }
+    });
+    return drawn;
+  }
   // Layers drawn at the vessel take each fix at once, not when the glide
   // towards it ends, and are shifted along with the glide (ViewDirective)
   // while the map follows the active vessel; lines from the vessel to a fixed
@@ -908,11 +951,27 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!this.dfeat.self.position || !Array.isArray(this.dfeat.self.position)) {
       this.dfeat.self.position = lastPos;
     }
-    this.dfeat.ais = this.app.data.vessels.aisTargets;
+    this.dfeat.ais = fusedVessels(
+      this.app.data.vessels.aisTargets,
+      this.app.data.targets
+    );
     this.dfeat.aircraft = this.app.data.aircraft;
     this.dfeat.sar = this.app.data.sar;
     this.dfeat.meteo = this.app.data.meteo;
     this.dfeat.atons = this.app.data.atons;
+    this.dfeat.targets = unlinkedTargets(
+      this.app.data.targets,
+      this.drawnAisVessels(),
+      this.app.data.vessels.self
+    );
+    this.dfeat.radarTargets = new Map();
+    this.dfeat.otherTargets = new Map();
+    this.dfeat.targets.forEach((target, id) =>
+      (isRadarTarget(id)
+        ? this.dfeat.radarTargets
+        : this.dfeat.otherTargets
+      ).set(id, target)
+    );
     this.dfeat.active = this.app.data.vessels.active;
     this.dfeat.navData.position = this.course.courseData().position;
     this.dfeat.navData.startPosition = this.course.courseData().startPosition;
@@ -922,7 +981,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
       const self = this.app.data.vessels.self.position;
       if (self) {
         this.app.data.vessels.closest.forEach((id: string) => {
-          const target = this.app.data.vessels.aisTargets.get(id)?.position;
+          const target = locateTarget(
+            id,
+            this.dfeat.ais,
+            this.app.data.targets
+          );
           const cpa = this.app.data.vessels.cpaPositions.get(id);
           if (target || cpa) {
             v.push({
@@ -969,6 +1032,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
               });
             });
           }
+        } else if (type === 'aton' && id?.startsWith('targets.')) {
+          const target = this.dfeat.targets.get(id);
+          if (target) {
+            this.overlay.update((current) => {
+              return Object.assign({}, current, {
+                position: target.position ?? current.position,
+                aton: target
+              });
+            });
+          }
         }
       }
       // The popover follows the vessel in whichever world copy it was opened in:
@@ -997,6 +1070,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'ais':
         return !this.dfeat.ais.has(id);
       case 'aton':
+        if (id.startsWith('targets.')) {
+          return !this.dfeat.targets.has(id);
+        }
         return !(id.startsWith('sar.') ? this.dfeat.sar : this.dfeat.atons).has(
           id
         );
@@ -2486,6 +2562,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       let sar: SKSaR | undefined;
       let meteo: SKMeteo | undefined;
       let aircraft: SKAircraft | undefined;
+      let sensorTarget: SKSensorTarget | undefined;
       let vessel: SKVessel | undefined;
       let icon: AppIconDef | undefined;
       let text: string | undefined;
@@ -2652,6 +2729,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
             addToFeatureList = true;
             aircraft = this.app.data.aircraft.get(id);
             text = aircraft ? aircraft.name || aircraft.mmsi : '';
+            break;
+          case 'targets':
+            icon = {
+              name: 'radar',
+              svgIcon: undefined
+            };
+            addToFeatureList = true;
+            sensorTarget = this.app.data.targets.get(id);
+            text = sensorTarget
+              ? sensorTarget.name ||
+                sensorTarget.mmsi ||
+                sensorTarget.type?.name
+              : '';
             break;
           case TRACK_HISTORY_ID:
             addToFeatureList = true;
@@ -2980,6 +3070,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.id = id;
         poData.aton = meteo;
         poData.position = meteo.position ?? coord;
+        poData.show = true;
+        break;
+      }
+      case 'targets': {
+        const target = this.dfeat.targets.get(id);
+        if (!target) {
+          return false;
+        }
+        poData.type = 'aton';
+        poData.id = id;
+        poData.aton = target;
+        poData.position = target.position ?? coord;
         poData.show = true;
         break;
       }

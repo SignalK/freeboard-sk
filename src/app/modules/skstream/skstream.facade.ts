@@ -315,6 +315,8 @@ export class SKStreamFacade {
           { path: 'design.aisShipType', period: 1000, policy: 'fixed' },
           { path: 'design.length', period: 1000, policy: 'fixed' },
           { path: 'design.beam', period: 1000, policy: 'fixed' },
+          // sets how long an AIS position counts as current next to radar
+          { path: 'sensors.ais.class', period: 1000, policy: 'fixed' },
           { path: 'environment.wind.*', period: 1000, policy: 'fixed' },
           { path: 'environment.mode', period: 1000, policy: 'fixed' },
           { path: 'environment.sun', period: 1000, policy: 'fixed' },
@@ -370,6 +372,13 @@ export class SKStreamFacade {
       cmd: 'subscribe',
       options: {
         context: 'meteo.*',
+        path: [{ path: '*', period: 1000 }]
+      }
+    });
+    this.worker.postMessage({
+      cmd: 'subscribe',
+      options: {
+        context: 'targets.*',
         path: [{ path: '*', period: 1000 }]
       }
     });
@@ -528,6 +537,9 @@ export class SKStreamFacade {
 
       // process Aircraft
       this.app.data.aircraft = result.aircraft;
+
+      // process sensor targets
+      this.app.data.targets = result.targets;
 
       // update AIS Lifecycle signal
       this.aisLifecycle.update(() => {

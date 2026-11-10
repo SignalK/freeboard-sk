@@ -266,6 +266,9 @@ export class SKVessel extends SKTargetBase {
     default: null,
     availableActions: []
   };
+  /** AIS transponder class from `sensors.ais.class`, which sets how often
+   * the vessel reports its position. */
+  aisClass?: 'A' | 'B';
   buddy = false;
   closestApproach: { distance: number | null; timeTo: number | null } = {
     distance: null,
@@ -378,6 +381,21 @@ export class SKSaR extends SKTargetBase {
 export class SKAircraft extends SKTargetBase {
   sog = 0;
   track: Array<Position[]> = [];
+  constructor() {
+    super();
+  }
+}
+
+// ** Sensor target class: a `targets.<type>:<id>` context (radar, camera) **
+export class SKSensorTarget extends SKTargetBase {
+  sog?: number;
+  /** Course over ground; undefined until the sensor reports one. */
+  cog?: number;
+  /** Course line from the target's position; null until it reports a course. */
+  vectors: { cog: Position[] | null } = { cog: null };
+  /** Context this target is the same object as (an AIS vessel or another
+   * target), set by a fusion plugin; `null` when it stands on its own. */
+  sameAs: string | null = null;
   constructor() {
     super();
   }
