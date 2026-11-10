@@ -166,5 +166,9 @@
   { "feature": "radar-overlay", "pr": 1201, "kind": "enhanced", "since": "v3.4.0", "date": "2026-10-27", "title": "feat(radar): remember whether radar overlay is shown" },
   { "feature": null, "pr": 1226, "kind": "skip", "reason": "performance only: track lines are clipped to the view before drawing, so a long track no longer slows panning and zooming; no user-facing change" },
   { "feature": "route-following", "pr": 1250, "kind": "enhanced", "date": "2026-11-09", "title": "feat(routes): show distance and time to a point of the active route" },
-  { "feature": "route-following", "pr": 1249, "kind": "enhanced", "date": "2026-11-10", "title": "feat(routes): end the active route at a chosen point" }
+  { "feature": "route-following", "pr": 1249, "kind": "enhanced", "date": "2026-11-10", "title": "feat(routes): end the active route at a chosen point" },
+  { "feature": "screen-widgets", "pr": 1225, "kind": "enhanced", "date": "2026-11-09", "title": "feat(plotterext): save extension state with the Freeboard settings" },
+  { "feature": "screen-widgets", "pr": 1238, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): move a placed widget" },
+  { "feature": "extension-panels", "pr": 1270, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): keep state per device with storage: 'device'" },
+  { "feature": "extension-map-layers", "pr": 1271, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): let an image overlay animate at a host-granted rate" }
 ]

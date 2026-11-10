@@ -54,7 +54,12 @@ A plugin draws its layer in one of two ways, and you may notice the difference:
   of the view. Freeboard asks for a new picture when you zoom, turn the chart, or move
   well away from where it was drawn, so the layer can look soft for a moment after a
   zoom until the new picture arrives. Layers that need fine detail, such as contour
-  lines, can ask to be drawn sharper.
+  lines, can ask to be drawn sharper. A picture layer can also be animated, such as
+  streaming wind or current particles. Freeboard plays it at up to 30 frames a second,
+  one animated layer at a time. It holds the animation still while you pan or zoom,
+  and slows it down on a slower device or while the chart is busy, so the chart stays
+  responsive. With *reduce motion* turned on in your operating system, it updates at
+  the normal, slower pace.
 - **Data layers**: the plugin supplies the data and how it should look, and Freeboard
   draws it along with the rest of the map. These move smoothly as you pan and zoom, and
   their labels use Freeboard's own font. If a plugin asks for a style Freeboard can't
