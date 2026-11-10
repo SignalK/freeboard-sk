@@ -182,6 +182,11 @@ const AIS_TRACK_DEBOUNCE = 1000;
 // AIS targets whose track came from the v2 Track API: their track is not cut
 // back to the short client-side tail between polls
 const serverTracked = new Set<string>();
+// Vessels the server has flagged as buddies. The buddy list plugin sends the
+// flag once, when a buddy is first seen, so a target that is dropped (quiet
+// for longer than the AIS max age, outside the AIS radius, AIS vessels turned
+// off) and then created again gets it from here.
+const buddies = new Set<string>();
 // AIS track requests overlap (poll, move-end, picks); only the latest applies
 const aisTracksGate = createRequestGate();
 // own-trail requests overlap (a zoom change with the trail length "All", a
@@ -260,6 +265,8 @@ export function initVessels() {
   // flag to indicate at least one position data message received
   vessels.self.positionReceived = false;
   serverTracked.clear();
+  // a new stream is sent the flags again
+  buddies.clear();
   aisTracksGate.invalidate();
 
   initAisTargetStatus();
@@ -1148,6 +1155,7 @@ function parseStreamMessage(data: SKStreamMessage) {
               processNotifications(v);
             } else {
               // other vessels
+              rememberBuddy(data.context, v);
               if (targetFilter?.signalk.vessels) {
                 const oVessel = selectVessel(data.context);
                 processVessel(oVessel, v);
@@ -1292,6 +1300,19 @@ function clearTimers() {
 
 // ********** Process vessel data *******
 
+// ** record a buddy flag, also for a vessel that has no target now
+function rememberBuddy(id: string, v: PathValue) {
+  if (v.path !== '' || !v.value || typeof v.value !== 'object') {
+    return;
+  }
+  const buddy = (v.value as { buddy?: boolean }).buddy;
+  if (buddy === true) {
+    buddies.add(id);
+  } else if (buddy === false) {
+    buddies.delete(id);
+  }
+}
+
 // ** return selected SKVessel from vessels.aisTargets
 function selectVessel(id: string): SKVessel {
   let vessel = vessels.aisTargets.get(id);
@@ -1299,6 +1320,7 @@ function selectVessel(id: string): SKVessel {
     vessel = new SKVessel();
     vessel.id = id;
     vessel.position = null;
+    vessel.buddy = buddies.has(id);
     vessels.aisTargets.set(id, vessel);
   }
   return vessel;
