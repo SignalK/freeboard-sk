@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
@@ -65,11 +66,18 @@ const settle = async () => {
 
 function setup() {
   const app = {
-    data: { activeRoute: null as string | null },
+    data: { activeRoute: null as string | null, activeRouteReversed: false },
     skApiVersion: 2,
-    debug: (): void => undefined
+    debug: (): void => undefined,
+    parseHttpErrorResponse: vi.fn()
   };
-  let serverCourse: { activeRoute: { href: string } | null } = {
+  let serverCourse: {
+    activeRoute: {
+      href: string;
+      pointIndex?: number;
+      reverse?: boolean;
+    } | null;
+  } = {
     activeRoute: null
   };
   const signalk = {
@@ -82,13 +90,34 @@ function setup() {
     routes,
     fromCache: (_collection: string, id: string) =>
       routes().find((r) => r[0] === id),
-    fromServer: vi.fn(() => Promise.reject(new Error('not found'))),
+    fromServer: vi.fn((): Promise<FBRoute[1]> =>
+      Promise.reject(new Error('not found'))
+    ),
     listFromServer: vi.fn(() => Promise.resolve(server.routes)),
     putToServer: vi.fn(() => Promise.resolve({})),
     deleteFromServer: vi.fn(() => Promise.resolve()),
-    selectionRemove: vi.fn()
+    selectionRemove: vi.fn(),
+    selectionAdd: vi.fn(),
+    buildRoute: (coordinates: number[][]) =>
+      [
+        'new',
+        {
+          name: '',
+          description: '',
+          distance: 0,
+          feature: {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates },
+            properties: {}
+          }
+        },
+        true
+      ] as unknown as FBRoute,
+    postToServer: vi.fn((): Promise<{ id?: string }> =>
+      Promise.resolve({ id: 'copy-1' })
+    )
   };
-  const courseData = signal({});
+  const courseData = signal<{ pointIndex?: number }>({});
   const course = {
     courseData,
     activateRoute: vi.fn(() => Promise.resolve(true))
@@ -128,9 +157,12 @@ function setup() {
     courseData.set({});
     TestBed.tick();
   };
-  const setServerActiveRoute = (id: string | null) => {
+  const setServerActiveRoute = (
+    id: string | null,
+    opts: { pointIndex?: number; reverse?: boolean } = {}
+  ) => {
     serverCourse = {
-      activeRoute: id ? { href: `/resources/routes/${id}` } : null
+      activeRoute: id ? { href: `/resources/routes/${id}`, ...opts } : null
     };
   };
 
@@ -144,6 +176,7 @@ function setup() {
     course,
     plotterExt,
     infoPanel,
+    app,
     courseUpdate,
     setServerActiveRoute
   };
@@ -419,5 +452,238 @@ describe('TemporaryRouteService — cleaning up', () => {
       'routes',
       'rte-older'
     );
+  });
+});
+
+/** A stored route through `n` points named P1, P2, ... */
+function namedRoute(id: string, n: number): FBRoute {
+  const route = storedRoute(id);
+  route[1].name = 'Old track';
+  route[1].feature.geometry.coordinates = Array.from({ length: n }, (_, i) => [
+    23 + i / 10,
+    60
+  ]);
+  route[1].feature.properties = {
+    coordinatesMeta: Array.from({ length: n }, (_, i) => ({
+      name: `P${i + 1}`
+    }))
+  };
+  return route;
+}
+
+describe('TemporaryRouteService — ending the active route at a point', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const following = (
+    opts: { reversed?: boolean; nextIndex?: number; temporary?: boolean } = {}
+  ) => {
+    const t = setup();
+    const old = () => {
+      const route = namedRoute('old', 5);
+      if (opts.temporary) {
+        route[1].feature.properties!['temporary'] = temporaryRouteMarker(
+          new Date(Date.now() - HOUR)
+        );
+      }
+      return route;
+    };
+    t.routes.set([old()]);
+    t.server.routes = [old()];
+    t.app.data.activeRoute = 'old';
+    t.app.data.activeRouteReversed = opts.reversed ?? false;
+    t.course.courseData.set({ pointIndex: opts.nextIndex ?? 1 });
+    t.skres.fromServer.mockImplementation(() => Promise.resolve(old()[1]));
+    t.setServerActiveRoute('old', {
+      pointIndex: opts.nextIndex ?? 1,
+      reverse: opts.reversed ?? false
+    });
+    return t;
+  };
+  const posted = (t: ReturnType<typeof setup>) =>
+    (t.skres.postToServer.mock.calls[0] as unknown[])[1] as FBRoute[1];
+
+  it('follows a temporary copy that ends at the point, from the point headed for', async () => {
+    const t = following({ nextIndex: 1 });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBe('copy-1');
+
+    const copy = posted(t);
+    expect(copy.feature.geometry.coordinates).toEqual([
+      [23, 60],
+      [23.1, 60],
+      [23.2, 60],
+      [23.3, 60]
+    ]);
+    expect(
+      (copy.feature.properties?.coordinatesMeta as { name: string }[]).map(
+        (m) => m.name
+      )
+    ).toEqual(['P1', 'P2', 'P3', 'P4']);
+    expect(copy.feature.properties?.['temporary']).toBeTruthy();
+    expect(copy.name).toBe('Old track → P4');
+    expect(t.course.activateRoute).toHaveBeenCalledWith('copy-1', 1);
+    expect(t.skres.putToServer).not.toHaveBeenCalled();
+    expect(t.routes()[0]).toEqual(namedRoute('old', 5));
+  });
+
+  it('lays a reversed route out in the order it is followed', async () => {
+    const t = following({ reversed: true, nextIndex: 0 });
+
+    await t.service.endActiveRouteAt('old', 0, 2);
+
+    const copy = posted(t);
+    expect(copy.feature.geometry.coordinates).toEqual([
+      [23.4, 60],
+      [23.3, 60],
+      [23.2, 60]
+    ]);
+    expect(
+      (copy.feature.properties?.coordinatesMeta as { name: string }[]).map(
+        (m) => m.name
+      )
+    ).toEqual(['P5', 'P4', 'P3']);
+    expect(copy.name).toBe('Old track → P3');
+  });
+
+  it('does not end at a point behind the vessel or at the last point', async () => {
+    const t = following({ nextIndex: 2 });
+
+    expect(await t.service.endActiveRouteAt('old', 2, 1)).toBeNull();
+    expect(await t.service.endActiveRouteAt('old', 2, 4)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('does nothing once another route is followed than the one shown', async () => {
+    const t = following();
+
+    expect(await t.service.endActiveRouteAt('other', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('does nothing once the point headed for is not the one shown', async () => {
+    const t = following({ nextIndex: 2 });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('drops the copy when the course changes while it is stored', async () => {
+    const t = following({ nextIndex: 1 });
+    t.skres.postToServer.mockImplementationOnce(() => {
+      t.course.courseData.set({ pointIndex: 2 });
+      return Promise.resolve({ id: 'copy-1' });
+    });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    await settle();
+
+    expect(t.course.activateRoute).not.toHaveBeenCalled();
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'copy-1');
+  });
+
+  it('does nothing when the route on the server is not the one shown', async () => {
+    const t = following();
+    const edited = namedRoute('old', 5)[1];
+    edited.feature.geometry.coordinates.splice(2, 0, [23.15, 60.01]);
+    t.skres.fromServer.mockImplementation(() => Promise.resolve(edited));
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when the route cannot be read from the server', async () => {
+    const t = following();
+    const refused = new HttpErrorResponse({
+      status: 403,
+      statusText: 'Forbidden',
+      url: '/signalk/v2/api/resources/routes/old'
+    });
+    t.skres.fromServer.mockImplementation(() => Promise.reject(refused));
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+    expect(t.app.parseHttpErrorResponse).toHaveBeenCalledWith(refused);
+    expect((t.app.parseHttpErrorResponse.mock.calls[0] as unknown[])[0]).toBe(
+      refused
+    );
+  });
+
+  it('follows nothing when the server stores the copy without an id', async () => {
+    const t = following();
+    t.skres.postToServer.mockImplementationOnce(() => Promise.resolve({}));
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.course.activateRoute).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when the server course has moved on', async () => {
+    const t = following({ nextIndex: 1 });
+    t.setServerActiveRoute('old', { pointIndex: 2, reverse: false });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    expect(t.skres.postToServer).not.toHaveBeenCalled();
+  });
+
+  it('drops the copy when the server course changes while it is stored', async () => {
+    const t = following({ nextIndex: 1 });
+    t.skres.postToServer.mockImplementationOnce(() => {
+      t.setServerActiveRoute(null);
+      return Promise.resolve({ id: 'copy-1' });
+    });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    await settle();
+
+    expect(t.course.activateRoute).not.toHaveBeenCalled();
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'copy-1');
+  });
+
+  it('removes the copy again when the server will not follow it', async () => {
+    const t = following();
+    t.course.activateRoute.mockResolvedValueOnce(false);
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBeNull();
+    await settle();
+
+    expect(t.skres.deleteFromServer).toHaveBeenCalledWith('routes', 'copy-1');
+  });
+
+  it('moves an info panel showing the route to the copy', async () => {
+    const t = following();
+    t.infoPanel.item.set({ id: 'old' });
+
+    await t.service.endActiveRouteAt('old', 1, 3);
+
+    expect(t.infoPanel.open).toHaveBeenCalledWith('routes', 'copy-1');
+  });
+
+  it('keeps a temporary route that END HERE was cut from', async () => {
+    const t = following({ temporary: true });
+    t.course.activateRoute.mockImplementationOnce(() => {
+      t.server.routes = [...t.server.routes, ['copy-1', posted(t), true]];
+      t.setServerActiveRoute('copy-1', { pointIndex: 1 });
+      return Promise.resolve(true);
+    });
+
+    expect(await t.service.endActiveRouteAt('old', 1, 3)).toBe('copy-1');
+    await settle();
+
+    expect(
+      (posted(t).feature.properties?.['temporary'] as TemporaryRouteMarker)
+        .source
+    ).toBe('old');
+    expect(t.skres.listFromServer).toHaveBeenCalled();
+    expect(t.skres.deleteFromServer).not.toHaveBeenCalled();
+  });
+
+  it('names no source when the route END HERE was cut from is saved', async () => {
+    const t = following();
+
+    await t.service.endActiveRouteAt('old', 1, 3);
+
+    expect(
+      (posted(t).feature.properties?.['temporary'] as TemporaryRouteMarker)
+        .source
+    ).toBeUndefined();
   });
 });

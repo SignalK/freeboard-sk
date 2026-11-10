@@ -215,6 +215,15 @@
             >
               <mat-icon>skip_next</mat-icon>
             </button>
+            } @if (isActive() && canEnd($index)) {
+            <button
+              matIconButton
+              matTooltip="End route here"
+              [disabled]="interacting() || hasUnsavedEdits()"
+              (click)="onEnd($index)"
+            >
+              <mat-icon>sports_score</mat-icon>
+            </button>
             }
           </ng-template>
           <p style="font-size: smaller; padding: 0">

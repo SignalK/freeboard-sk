@@ -15,12 +15,17 @@ import { InfoPanelFacade } from 'src/app/modules/info-panel/info-panel.facade';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
+import { SKRoute } from 'src/app/modules/skresources/resource-classes';
 import { CourseService } from './course.service';
 import {
+  canEndRouteAt,
+  followedRouteUpTo,
   isTemporaryRoute,
   routeIdFromHref,
+  samePoints,
   TEMPORARY_ROUTE_NAME,
   TemporaryRouteMarker,
+  temporaryRouteMarker,
   temporaryRoutesToDelete
 } from './temporary-route';
 
@@ -137,6 +142,91 @@ export class TemporaryRouteService {
   }
 
   /**
+   * Follow active route `routeId` only up to its point `endIndex`, counted in
+   * the order it is followed like `nextIndex`, the point being headed for as
+   * the user saw it. The Course API always follows a route to its last point,
+   * so a temporary copy that ends there is followed instead, from that point;
+   * the stored route is left as it is. Nothing is followed if the route or
+   * the course is no longer the one the user saw: another client, or an
+   * arrival, may change them meanwhile. Both are checked against the server,
+   * the route before it is copied and the course again just before the copy
+   * is followed. Resolves with the copy's id, or null if it was not followed.
+   */
+  async endActiveRouteAt(
+    routeId: string,
+    nextIndex: number,
+    endIndex: number
+  ): Promise<string | null> {
+    const reversed = this.app.data.activeRouteReversed;
+    const unchanged = () =>
+      this.app.data.activeRoute === routeId &&
+      this.app.data.activeRouteReversed === reversed &&
+      this.course.courseData().pointIndex === nextIndex;
+    const shown = this.skres.fromCache('routes', routeId)?.[1];
+    if (!shown || !unchanged()) {
+      return null;
+    }
+    let route: SKRoute;
+    try {
+      route = await this.skres.fromServer('routes', routeId);
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+      return null;
+    }
+    const coordinates = route.feature.geometry.coordinates;
+    if (
+      !samePoints(coordinates, shown.feature.geometry.coordinates) ||
+      !canEndRouteAt(endIndex, nextIndex, coordinates.length) ||
+      !(await this.serverFollows(routeId, nextIndex, reversed))
+    ) {
+      return null;
+    }
+    const [, copy] = this.skres.buildRoute(
+      followedRouteUpTo(coordinates, endIndex, reversed)
+    );
+    const properties = (copy.feature.properties ??= {});
+    const meta = route.feature.properties?.coordinatesMeta;
+    if (Array.isArray(meta) && meta.length === coordinates.length) {
+      properties.coordinatesMeta = followedRouteUpTo(meta, endIndex, reversed);
+    }
+    properties.temporary = {
+      ...temporaryRouteMarker(new Date()),
+      // A temporary source would otherwise be swept as soon as the copy,
+      // the newer temporary route, is stored.
+      ...(isTemporaryRoute(route) ? { source: routeId } : {})
+    };
+    const endName =
+      properties.coordinatesMeta?.[endIndex]?.name || `point ${endIndex + 1}`;
+    copy.name = `${route.name || TEMPORARY_ROUTE_NAME} → ${endName}`;
+    copy.description = route.description ?? '';
+
+    let copyId: string | null;
+    try {
+      copyId = (await this.skres.postToServer('routes', copy)).id ?? null;
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+      return null;
+    }
+    if (!copyId) {
+      return null;
+    }
+    this.skres.selectionAdd('routes', copyId);
+    if (
+      !unchanged() ||
+      !(await this.serverFollows(routeId, nextIndex, reversed)) ||
+      !(await this.course.activateRoute(copyId, nextIndex))
+    ) {
+      await this.deleteUnlessActive([copyId]);
+      return null;
+    }
+    if (this.infoPanelShows(routeId)) {
+      this.infoPanel.open('routes', copyId);
+    }
+    this.sweep();
+    return copyId;
+  }
+
+  /**
    * `id` stopped being this client's active route. A temporary route that is
    * kept is stamped with when it stopped; one that is due is deleted along
    * with any other temporary route that is due.
@@ -244,13 +334,36 @@ export class TemporaryRouteService {
     return deleted;
   }
 
-  private async serverActiveRoute(): Promise<string | null> {
-    const course = (await firstValueFrom(
+  /** Whether the server follows route `routeId` in that direction, heading
+   *  for its point `nextIndex`; false when the course cannot be read. */
+  private async serverFollows(
+    routeId: string,
+    nextIndex: number,
+    reversed: boolean
+  ): Promise<boolean> {
+    try {
+      const active = (await this.serverCourse())?.activeRoute;
+      return (
+        routeIdFromHref(active?.href) === routeId &&
+        active?.pointIndex === nextIndex &&
+        !!active?.reverse === reversed
+      );
+    } catch (err) {
+      this.app.debug('end route: course unavailable', err);
+      return false;
+    }
+  }
+
+  private async serverCourse(): Promise<CourseInfo | null> {
+    return (await firstValueFrom(
       this.signalk.api.get(
         this.app.skApiVersion,
         'vessels/self/navigation/course'
       )
     )) as CourseInfo | null;
-    return routeIdFromHref(course?.activeRoute?.href);
+  }
+
+  private async serverActiveRoute(): Promise<string | null> {
+    return routeIdFromHref((await this.serverCourse())?.activeRoute?.href);
   }
 }

@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  canEndRouteAt,
+  followedRouteUpTo,
   isTemporaryRoute,
+  samePoints,
   promoteTemporaryRoute,
   routeIdFromHref,
   TEMPORARY_ROUTE_GRACE_MS,
@@ -19,11 +22,14 @@ const HOUR = 60 * MIN;
 const iso = (t: number) => new Date(t).toISOString();
 
 /** A temporary route stored `createdAgo` ago, optionally released `releasedAgo` ago. */
-const temp = (createdAgo: number, releasedAgo?: number) =>
+const temp = (createdAgo: number, releasedAgo?: number, source?: string) =>
   route({
     temporary: {
       created: iso(NOW - createdAgo),
-      ...(releasedAgo !== undefined ? { released: iso(NOW - releasedAgo) } : {})
+      ...(releasedAgo !== undefined
+        ? { released: iso(NOW - releasedAgo) }
+        : {}),
+      ...(source !== undefined ? { source } : {})
     }
   });
 
@@ -140,6 +146,45 @@ describe('temporaryRoutesToDelete', () => {
     expect(temporaryRoutesToDelete(routes, null, NOW)).toEqual(['damaged']);
   });
 
+  it('keeps the temporary route a kept END HERE copy was cut from', () => {
+    const routes: Array<[string, ReturnType<typeof route>]> = [
+      ['older', temp(3 * HOUR, 2 * HOUR)],
+      ['original', temp(HOUR, MIN)],
+      ['copy', temp(MIN, undefined, 'original')]
+    ];
+    expect(temporaryRoutesToDelete(routes, 'copy', NOW)).toEqual(['older']);
+  });
+
+  it('keeps every route in a chain of END HERE copies', () => {
+    const routes: Array<[string, ReturnType<typeof route>]> = [
+      ['original', temp(3 * HOUR, 2 * HOUR)],
+      ['first', temp(2 * HOUR, HOUR, 'original')],
+      ['second', temp(HOUR, undefined, 'first')]
+    ];
+    expect(temporaryRoutesToDelete(routes, 'second', NOW)).toEqual([]);
+  });
+
+  it('deletes the source along with an END HERE copy that is due', () => {
+    const routes: Array<[string, ReturnType<typeof route>]> = [
+      [
+        'original',
+        temp(TEMPORARY_ROUTE_KEEP_MS + 2 * HOUR, TEMPORARY_ROUTE_KEEP_MS + HOUR)
+      ],
+      [
+        'copy',
+        temp(
+          TEMPORARY_ROUTE_KEEP_MS + HOUR,
+          TEMPORARY_ROUTE_KEEP_MS,
+          'original'
+        )
+      ]
+    ];
+    expect(temporaryRoutesToDelete(routes, null, NOW)).toEqual([
+      'original',
+      'copy'
+    ]);
+  });
+
   it('ignores routes that are not temporary', () => {
     const routes: Array<[string, ReturnType<typeof route>]> = [
       ['passage', route({})],
@@ -158,5 +203,75 @@ describe('routeIdFromHref', () => {
     expect(routeIdFromHref(undefined)).toBeNull();
     expect(routeIdFromHref(null)).toBeNull();
     expect(routeIdFromHref('')).toBeNull();
+  });
+});
+
+describe('ending a route at a point', () => {
+  it('ends at the point headed for or any point after it, short of the last', () => {
+    expect(canEndRouteAt(2, 2, 5)).toBe(true);
+    expect(canEndRouteAt(3, 2, 5)).toBe(true);
+    expect(canEndRouteAt(1, 2, 5)).toBe(false);
+    expect(canEndRouteAt(4, 2, 5)).toBe(false);
+  });
+
+  it('keeps at least two points', () => {
+    expect(canEndRouteAt(0, 0, 5)).toBe(false);
+    expect(canEndRouteAt(1, 0, 5)).toBe(true);
+  });
+
+  it('takes the points up to the end point in the order they are followed', () => {
+    expect(followedRouteUpTo(['a', 'b', 'c', 'd'], 1, false)).toEqual([
+      'a',
+      'b'
+    ]);
+    expect(followedRouteUpTo(['a', 'b', 'c', 'd'], 1, true)).toEqual([
+      'd',
+      'c'
+    ]);
+  });
+});
+
+describe('samePoints', () => {
+  it('matches the same positions in the same order only', () => {
+    expect(
+      samePoints(
+        [
+          [1, 2],
+          [3, 4]
+        ],
+        [
+          [1, 2],
+          [3, 4]
+        ]
+      )
+    ).toBe(true);
+    expect(
+      samePoints(
+        [
+          [1, 2],
+          [3, 4]
+        ],
+        [
+          [3, 4],
+          [1, 2]
+        ]
+      )
+    ).toBe(false);
+    expect(
+      samePoints(
+        [[1, 2]],
+        [
+          [1, 2],
+          [3, 4]
+        ]
+      )
+    ).toBe(false);
+  });
+
+  it('matches a longitude a whole turn away', () => {
+    expect(samePoints([[181, 2]], [[-179, 2]])).toBe(true);
+    expect(samePoints([[181.2, 2]], [[-178.8, 2]])).toBe(true);
+    expect(samePoints([[181, 2]], [[-178, 2]])).toBe(false);
+    expect(samePoints([[181, 3]], [[-179, 2]])).toBe(false);
   });
 });
