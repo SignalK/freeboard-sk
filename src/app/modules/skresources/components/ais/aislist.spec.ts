@@ -5,6 +5,7 @@ import { AISListComponent } from './aislist';
 import { SKResourceService } from '../../resources.service';
 import { AppFacade } from 'src/app/app.facade';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
+import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 type ShipTypeRow = { id: number; description: string; icon?: string };
 
@@ -19,7 +20,8 @@ describe('AISListComponent ship type filter icons', () => {
         AISListComponent,
         { provide: SKResourceService, useValue: {} },
         { provide: AppFacade, useValue: {} },
-        { provide: TrackHistoryService, useValue: {} }
+        { provide: TrackHistoryService, useValue: {} },
+        { provide: SKStreamFacade, useValue: {} }
       ]
     });
     rows = (
