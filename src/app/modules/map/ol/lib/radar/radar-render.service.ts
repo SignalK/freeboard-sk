@@ -71,7 +71,7 @@ export class RadarRenderService {
       hasSparseSpokes: activeRadar.capabilities.hasSparseSpokes,
       streamUrl: `${this.app.hostDef.ssl ? 'wss' : 'ws'}://${this.app.hostDef.name}:${
         this.app.hostDef.port
-      }/signalk/v2/api/vessels/self/radars/${this.radarApi.radarId()}/${
+      }/signalk/v2/api/vessels/self/radars/${activeRadar.device.id}/${
         this.radarApi.apiVersion() ? 'spokes' : 'stream'
       }`,
       legend: legend
