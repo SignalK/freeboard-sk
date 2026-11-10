@@ -68,9 +68,21 @@ when the underlying data is available:
 - **COG line** — where you will actually end up, projected from your course and speed
   over ground. **COG Line Length** sets the projection time, so the line answers "where
   will I be in N minutes?" With a cross-current, the gap between this line and the
-  heading line is your set and drift, drawn to scale.
+  heading line is your set and drift, drawn to scale; the current arrow (below) shows it
+  directly.
 - **Wind vectors** — true wind direction and apparent wind angle, when the boat reports
-  wind data.
+  wind data. Off by default: turn on **Display Wind Vectors** to show them.
+- **Current (set and drift)** — a blue arrow on the boat pointing where the current is
+  setting, labeled with its drift in your speed unit; the stronger the current, the
+  longer the arrow. If an instrument on board publishes the current, that is what's
+  shown. Otherwise Freeboard works it out as the difference between your motion over
+  the ground (SOG and COG) and through the water (log speed along your heading),
+  smoothed over about half a minute, so it needs a log. A log a few percent off or a
+  compass a few degrees off already looks like a weak current, so a worked-out
+  current under 0.4 kn isn't drawn. Nothing is drawn while the log reads almost
+  nothing as you make way over the ground: that's a fouled paddlewheel, not a current.
+  Under sail, leeway shows up as part of the current. On by default
+  (**Display Current (Set & Drift)**).
 - **Laylines** — when navigating to a destination, the tacking angles that reach it.
 - **Range circles** — equidistant rings centered on the boat, for judging distance off
   at a glance. **Number of Range Circles** sets how many; the spacing adapts to the chart
