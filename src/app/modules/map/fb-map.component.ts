@@ -255,6 +255,7 @@ import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
   fusedVessels,
   isRadarTarget,
+  linkingTargets,
   locateTarget,
   TARGET_STALE_MS,
   unlinkedTargets
@@ -1188,6 +1189,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } catch (err) {
       this.app.showAlert('Radar', (err as Error).message);
     }
+  }
+
+  /**
+   * The radar targets linked to vessel `id`, which is drawn in their place, so
+   * its popover is where they are stopped.
+   */
+  protected radarTargetsLinkedTo(id: string | null): string[] {
+    return id === null
+      ? []
+      : linkingTargets(id, this.app.data.targets).filter(
+          (t) => radarTargetRef(t) !== null
+        );
+  }
+
+  /** Stop the radars tracking the targets linked to vessel `id`. */
+  protected async cancelLinkedRadarTargets(id: string | null) {
+    await Promise.all(
+      this.radarTargetsLinkedTo(id).map((t) => this.cancelRadarTarget(t))
+    );
   }
 
   /** The user chose an extension action from the chart context menu. */

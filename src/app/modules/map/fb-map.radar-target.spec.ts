@@ -7,7 +7,10 @@ import { FBMapComponent } from './fb-map.component';
 const bareComponent = () => {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.app = {
-    data: { vessels: { self: { position: [178.4, -18.1] } } },
+    data: {
+      vessels: { self: { position: [178.4, -18.1] } },
+      targets: new Map()
+    },
     showMessage: vi.fn(),
     showAlert: vi.fn()
   };
@@ -60,5 +63,23 @@ describe('FBMapComponent: radar targets', () => {
     const cmp = bareComponent();
     await cmp.cancelRadarTarget('targets.radar:fur6424A-12');
     expect(cmp.radarApi.cancelTarget).toHaveBeenCalledWith('fur6424A', 12);
+  });
+
+  it('stops every radar target linked to a vessel, and nothing else', async () => {
+    const cmp = bareComponent();
+    const vessel = 'vessels.urn:mrn:imo:mmsi:244060000';
+    cmp.app.data.targets = new Map([
+      ['targets.radar:fur6424A-12', { sameAs: vessel }],
+      ['targets.radar:nav1-3', { sameAs: 'targets.radar:fur6424A-12' }],
+      ['targets.camera:bow-7', { sameAs: vessel }],
+      ['targets.radar:fur6424A-13', { sameAs: null }]
+    ]);
+
+    await cmp.cancelLinkedRadarTargets(vessel);
+
+    expect(cmp.radarApi.cancelTarget.mock.calls).toEqual([
+      ['fur6424A', 12],
+      ['nav1', 3]
+    ]);
   });
 });
