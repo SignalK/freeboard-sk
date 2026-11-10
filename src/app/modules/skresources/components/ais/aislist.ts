@@ -21,10 +21,10 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules';
 import { FBVessel, FBVessels, Position } from 'src/app/types';
 import { ResourceListBase } from '../resource-list-baseclass';
-import { getAisIcon } from 'src/app/modules/icons';
+import { getAisIcon, AIS_FISHING_TYPE_ID } from 'src/app/modules/icons';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
-import { aisTargetShown } from 'src/app/lib/ais-filter';
+import { aisTargetShown, AIS_FILTER_PLEASURE } from 'src/app/lib/ais-filter';
 
 //** AIS Dialog **
 @Component({
@@ -73,12 +73,16 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
       icon: getAisIcon(20).svgIcon
     },
     {
-      id: 30,
+      id: AIS_FISHING_TYPE_ID,
+      description: 'Fishing',
+      selected: false,
+      icon: getAisIcon(AIS_FISHING_TYPE_ID).svgIcon
+    },
+    {
+      id: AIS_FILTER_PLEASURE,
       description: 'Pleasure',
       selected: false,
-      // 30 itself is fishing, which has its own icon; show the pleasure craft
-      // (37) icon, as most of the 30s are sailing and pleasure craft.
-      icon: getAisIcon(37).svgIcon
+      icon: getAisIcon(AIS_FILTER_PLEASURE).svgIcon
     },
     {
       id: 40,

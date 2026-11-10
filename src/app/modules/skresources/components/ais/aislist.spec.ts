@@ -9,8 +9,7 @@ import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 type ShipTypeRow = { id: number; description: string; icon?: string };
 
-// The ship type filter's 30 row covers fishing, sailing and pleasure craft.
-// Fishing (30) has its own icon now, so the row must not show it (#1236).
+// Each ship type filter row shows the icon the chart draws its vessels with.
 describe('AISListComponent ship type filter icons', () => {
   let rows: ShipTypeRow[];
 
@@ -32,12 +31,14 @@ describe('AISListComponent ship type filter icons', () => {
   });
 
   it('shows the pleasure craft icon on the Pleasure row', () => {
-    const pleasure = rows.find((r) => r.id === 30);
-    expect(pleasure?.description).toBe('Pleasure');
+    const pleasure = rows.find((r) => r.description === 'Pleasure');
+    expect(pleasure?.id).toBe(36);
     expect(pleasure?.icon).toBe('ais_active');
   });
 
-  it('does not show the fishing icon on any row', () => {
-    expect(rows.map((r) => r.icon)).not.toContain('ais_fishing');
+  it('gives fishing vessels a row of their own', () => {
+    const fishing = rows.find((r) => r.description === 'Fishing');
+    expect(fishing?.id).toBe(30);
+    expect(fishing?.icon).toBe('ais_fishing');
   });
 });

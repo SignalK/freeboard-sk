@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   aisTargetShown,
   AIS_FILTER_IMO_ONLY,
-  AIS_FILTER_BUDDIES_ONLY
+  AIS_FILTER_BUDDIES_ONLY,
+  AIS_FILTER_PLEASURE
 } from './ais-filter';
 
 const yacht = { registrations: {}, type: { id: 36 } };
@@ -36,9 +37,41 @@ describe('aisTargetShown', () => {
   });
 
   it('matches ship types by their tens', () => {
+    const f = { filterByShipType: true, filterShipTypes: [70] };
+    expect(aisTargetShown('s', ship, f)).toBe(true);
+    expect(aisTargetShown('s', { type: { id: 79 } }, f)).toBe(true);
+    expect(aisTargetShown('y', yacht, f)).toBe(false);
+  });
+
+  it('filters sailing and pleasure craft on the Pleasure row', () => {
+    const f = {
+      filterByShipType: true,
+      filterShipTypes: [AIS_FILTER_PLEASURE]
+    };
+    for (const id of [36, 37, 38, 39]) {
+      expect(aisTargetShown('y', { type: { id } }, f)).toBe(true);
+    }
+    expect(aisTargetShown('f', { type: { id: 30 } }, f)).toBe(false);
+    expect(aisTargetShown('t', { type: { id: 31 } }, f)).toBe(false);
+  });
+
+  it('filters fishing vessels on their own row', () => {
     const f = { filterByShipType: true, filterShipTypes: [30] };
-    expect(aisTargetShown('y', yacht, f)).toBe(true);
-    expect(aisTargetShown('s', ship, f)).toBe(false);
+    expect(aisTargetShown('f', { type: { id: 30 } }, f)).toBe(true);
+    expect(aisTargetShown('y', yacht, f)).toBe(false);
+  });
+
+  it('filters towing, dredging, diving and military vessels as special craft', () => {
+    const f = { filterByShipType: true, filterShipTypes: [50] };
+    for (const id of [31, 32, 33, 34, 35, 52]) {
+      expect(aisTargetShown('t', { type: { id } }, f)).toBe(true);
+    }
+    expect(aisTargetShown('y', yacht, f)).toBe(false);
+  });
+
+  it('hides a target without a ship type under the ship-type filter', () => {
+    const f = { filterByShipType: true, filterShipTypes: [10, 50] };
+    expect(aisTargetShown('x', {}, f)).toBe(false);
   });
 
   it('ignores the ship-type list while the ship-type filter is off', () => {

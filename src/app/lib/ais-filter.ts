@@ -5,9 +5,31 @@
  * say how many vessels the chart actually shows.
  */
 
+import {
+  aisVesselStyleId,
+  AIS_FISHING_TYPE_ID
+} from '../modules/icons/vessels';
+
 /** Sentinel entries in `aisTargetTypes` for the "IMO Only" and "Buddies Only" toggles. */
 export const AIS_FILTER_IMO_ONLY = -999;
 export const AIS_FILTER_BUDDIES_ONLY = -998;
+
+/**
+ * The ship-type filter row for sailing and pleasure craft (36-39). The fishing
+ * row has the id 30, which older releases read as "Pleasure" for the whole 30s.
+ */
+export const AIS_FILTER_PLEASURE = 36;
+
+/** The ship-type filter row of an AIS ship type: the group the chart draws it in. */
+export function aisFilterGroup(typeId: number): number {
+  const style = aisVesselStyleId(typeId);
+  if (style === 'fishing') {
+    return AIS_FISHING_TYPE_ID;
+  }
+  return style === aisVesselStyleId(AIS_FILTER_PLEASURE)
+    ? AIS_FILTER_PLEASURE
+    : Number(style);
+}
 
 export interface AisFilter {
   /** Vessel ids ticked in the list; null or undefined means all of them. */
@@ -38,8 +60,12 @@ export function aisTargetShown(
     (!types?.includes(AIS_FILTER_BUDDIES_ONLY) || target?.buddy === true);
 
   if (filter.filterByShipType && types) {
-    const st = Math.floor((target?.type?.id ?? NaN) / 10) * 10;
-    return types.includes(st) && passesSentinels;
+    const typeId = target?.type?.id;
+    return (
+      typeof typeId === 'number' &&
+      types.includes(aisFilterGroup(typeId)) &&
+      passesSentinels
+    );
   }
   if (Array.isArray(filter.filterIds)) {
     return filter.filterIds.includes(id) && passesSentinels;
