@@ -16,6 +16,9 @@ const bareComponent = () => {
   };
   cmp.radarApi = {
     radarId: () => 'fur6424A',
+    radar: (): { device: { id: string } } | undefined => ({
+      device: { id: 'fur6424A' }
+    }),
     acquireTarget: vi.fn(() => Promise.resolve(4)),
     cancelTarget: vi.fn(() => Promise.resolve())
   };
@@ -49,6 +52,26 @@ describe('FBMapComponent: radar targets', () => {
     expect(cmp.canTrackRadarTarget()).toBe(true);
 
     cmp.radarApi.radarId = () => '';
+    expect(cmp.canTrackRadarTarget()).toBe(false);
+  });
+
+  it('acquires on the radar shown, not one selected but not loaded yet', async () => {
+    const cmp = bareComponent();
+    cmp.radarImage = () => true;
+    cmp.app.uiCtrl = () => ({ radarLayer: true });
+    cmp.app.data.vessels.showSelf = true;
+    cmp.radarApi.radarId = () => 'nav1';
+    expect(cmp.canTrackRadarTarget()).toBe(false);
+    await cmp.acquireRadarTarget([178.4, -18.0]);
+    expect(cmp.radarApi.acquireTarget).not.toHaveBeenCalled();
+  });
+
+  it('offers nothing before the radar details load', () => {
+    const cmp = bareComponent();
+    cmp.radarImage = () => true;
+    cmp.app.uiCtrl = () => ({ radarLayer: true });
+    cmp.app.data.vessels.showSelf = true;
+    cmp.radarApi.radar = () => undefined;
     expect(cmp.canTrackRadarTarget()).toBe(false);
   });
 

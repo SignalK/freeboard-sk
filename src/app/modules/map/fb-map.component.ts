@@ -1163,13 +1163,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * The radar whose picture is shown, while it is still the selected one. On
+   * a switch the selection moves before the new radar's details load, and a
+   * radar list that comes back empty clears the selection but not the details.
+   */
+  private shownRadarId(): string | undefined {
+    const id = this.radarApi.radar()?.device?.id;
+    return id && id === this.radarApi.radarId() ? id : undefined;
+  }
+
+  /**
    * Whether the chart menu offers Track Radar Target: a radar is reported and
    * its picture shows. The picture's power state alone reads as sending while
    * no radar has reported at all.
    */
   protected canTrackRadarTarget(): boolean {
     return (
-      !!this.radarApi.radarId() &&
+      !!this.shownRadarId() &&
       this.radarImage() &&
       this.app.uiCtrl().radarLayer &&
       this.app.data.vessels.showSelf
@@ -1178,7 +1188,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Have the shown radar acquire and track the echo at `pos`. */
   private async acquireRadarTarget(pos: Position) {
-    const radarId = this.radarApi.radarId();
+    const radarId = this.shownRadarId();
     const request = acquireRequest(this.app.data.vessels.self.position, pos);
     if (!radarId || !request) {
       return;
