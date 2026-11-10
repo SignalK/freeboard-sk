@@ -64,6 +64,11 @@ describe('AlertComponent', () => {
   it('keeps a MOB that cannot be acknowledged up, with no Dismiss', () => {
     const f = mount({ type: 'mob', canAcknowledge: false, canCancel: true });
     expect(labels(f).some((l) => l.includes('Dismiss'))).toBe(false);
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('mat-progress-bar')).toBeNull();
+    expect(
+      (el.querySelector('mat-card-actions') as HTMLElement).style.display
+    ).toBe('none');
     expect(labels(f).some((l) => l.includes('END MOB'))).toBe(true);
   });
 

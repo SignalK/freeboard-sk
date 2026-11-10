@@ -78,7 +78,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
     } @else {
       @if (isMob() || (alert().visual && !alert().acknowledged)) {
         <div>
-          @if (!alert().canAcknowledge) {
+          @if (!alert().canAcknowledge && !isMob()) {
             <mat-progress-bar
               mode="determinate"
               [value]="progressValue()"
@@ -110,9 +110,13 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
               }
             </mat-card-content>
 
-            <!-- an acknowledged MOB stays up until it is ended, with its own actions only -->
+            <!-- a MOB stays up until it is ended; once there is nothing to acknowledge it has its own actions only -->
             <mat-card-actions
-              [style.display]="isMob() && alert().acknowledged ? 'none' : null"
+              [style.display]="
+                isMob() && (alert().acknowledged || !alert().canAcknowledge)
+                  ? 'none'
+                  : null
+              "
             >
               <div style="display:flex;flex-wrap: wrap;">
                 @if (alert().sound && alert().canSilence) {
