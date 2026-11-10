@@ -880,6 +880,9 @@
             <div
               class="navdataPanel"
               fbMovablePanel="fb-navdata-panel-position"
+              [fbMovablePanelRestingBottom]="navDataBottom()"
+              [fbBottomClearance]="30"
+              (clearance)="navDataBottom.set($event)"
             >
               @if (navDataPanel().nextPointCtrl) {
                 <route-nextpoint

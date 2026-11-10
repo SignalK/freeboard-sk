@@ -133,6 +133,7 @@ import { WhatsNewService } from './modules/features/whats-new.service';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { TemporaryRouteService } from './modules/course/temporary-route.service';
 import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.component';
+import { BottomClearanceDirective } from './modules/plotterext/bottom-clearance.directive';
 import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
 import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
@@ -185,6 +186,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     AutopilotComponent,
     RouteNextPointComponent,
     MovablePanelDirective,
+    BottomClearanceDirective,
     RouteListComponent,
     WaypointListComponent,
     ChartListComponent,
@@ -344,6 +346,10 @@ export class AppComponent {
       .pipe(map((state) => state.matches)),
     { initialValue: false }
   );
+
+  // The nav data panel's bottom offset, lifted above the bottom widgets it
+  // would cover (until the user moves it).
+  protected navDataBottom = signal<number | null>(null);
 
   // The right-hand toolbar stops above the Action Button (56 px tall, 23 px
   // from the bottom unless widgets lift it).
