@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  RADAR_RING_COLOR,
+  RADAR_RING_NIGHT_COLOR,
   RangeCirclesComponent,
+  radarRingColor,
   sameRings
 } from './layer-range-circles.component';
+import { defaultConfig } from 'src/app/app.config';
 import { LightTheme } from '../themes';
 
 describe('sameRings', () => {
@@ -84,5 +88,22 @@ describe('RangeCirclesComponent circle colour', () => {
   it('keeps the range circle colour for the zoom or fixed circles', () => {
     expect(strokeColor(undefined, '#404040')).toBe('rgba(152, 153, 10, 1)');
     expect(strokeColor(ring)).toBe('rgba(152, 153, 10, 1)');
+  });
+});
+
+describe('radarRingColor', () => {
+  it('starts every configuration at the default colour', () => {
+    expect(defaultConfig().radars.ringColor).toBe(RADAR_RING_COLOR);
+  });
+
+  it('draws the default dark grey light at night', () => {
+    expect(radarRingColor(RADAR_RING_COLOR, false)).toBe(RADAR_RING_COLOR);
+    expect(radarRingColor(RADAR_RING_COLOR, true)).toBe(RADAR_RING_NIGHT_COLOR);
+    expect(radarRingColor(undefined, true)).toBe(RADAR_RING_NIGHT_COLOR);
+  });
+
+  it('keeps a colour the user chose, day and night', () => {
+    expect(radarRingColor('#ff0000', false)).toBe('#ff0000');
+    expect(radarRingColor('#ff0000', true)).toBe('#ff0000');
   });
 });

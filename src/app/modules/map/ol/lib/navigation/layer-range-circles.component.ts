@@ -42,6 +42,24 @@ export function sameRings(a: RangeRing[], b: RangeRing[]): boolean {
 
 const RANGE_CIRCLE_COLOR = 'rgba(152, 153, 10, 1)';
 
+/** The radar range circle colour a new configuration starts with. */
+export const RADAR_RING_COLOR = '#404040';
+/** What the default colour is drawn as on a chart dimmed for the night. */
+export const RADAR_RING_NIGHT_COLOR = '#e0e0e0';
+
+/**
+ * The colour radar range circles are drawn in. The default dark grey would
+ * vanish on a chart dimmed for the night, so there it turns light grey; a
+ * colour the user chose is drawn as it is.
+ */
+export function radarRingColor(
+  chosen: string | undefined,
+  night: boolean
+): string {
+  const color = chosen || RADAR_RING_COLOR;
+  return night && color === RADAR_RING_COLOR ? RADAR_RING_NIGHT_COLOR : color;
+}
+
 const LightTheme = {
   labelText: {
     color: 'rgba(26, 26, 1, 1)'

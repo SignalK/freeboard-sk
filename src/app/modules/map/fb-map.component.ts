@@ -118,6 +118,7 @@ import {
 } from 'src/app/modules/radar/range-rings';
 import {
   RangeRing,
+  radarRingColor,
   sameRings
 } from 'src/app/modules/map/ol/lib/navigation/layer-range-circles.component';
 
@@ -707,6 +708,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // and transmits
   protected showsRadarRings(): boolean {
     return this.app.config.radars.rings && this.radarRings().length > 0;
+  }
+  // the night dimming of the whole screen, not the dark theme, which leaves
+  // the chart as it is
+  protected radarRingColor(): string {
+    return radarRingColor(
+      this.app.config.radars.ringColor,
+      this.skstream.selfNightMode() || this.app.uiCtrl().forceNightMode
+    );
   }
   protected radarRings = computed<RangeRing[]>(
     () => {
