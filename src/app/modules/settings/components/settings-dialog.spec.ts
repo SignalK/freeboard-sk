@@ -46,6 +46,9 @@ describe('settings dialog — note details option placement', () => {
   let dialog: HTMLElement;
   let settings: ReturnType<typeof defaultConfig>;
   let applied: number;
+  let keptRadarChoices: Array<
+    Partial<ReturnType<typeof defaultConfig>['radars']>
+  >;
   const trackSource = signal<TrackSource | null>(null);
   const unitPreferences = signal<SKServerUnitPrefs | undefined>(undefined);
 
@@ -66,6 +69,7 @@ describe('settings dialog — note details option placement', () => {
     trackSource.set(null);
     unitPreferences.set(undefined);
     applied = 0;
+    keptRadarChoices = [];
 
     const facadeStub = {
       settings,
@@ -89,6 +93,9 @@ describe('settings dialog — note details option placement', () => {
       uiCtrl: () => ({ radarLayer: false }),
       serverConfig: { unitPreferences },
       alignUnitPrefs: (): void => undefined,
+      keepRadarChoice: (
+        choice: Partial<ReturnType<typeof defaultConfig>['radars']>
+      ) => keptRadarChoices.push(choice),
       lineDashMap: new Map([['none', 'none']]),
       formatLineDashArray: (): null => null
     } as unknown as AppFacade;
@@ -334,6 +341,18 @@ describe('settings dialog — note details option placement', () => {
       await slideTo(96);
       expect(settings.vessels.trailDuration).toBe(96);
       expect(lengthLabel()).toBe('96 hrs');
+    });
+  });
+
+  describe('radar range circle colour', () => {
+    it('keeps the chosen colour through a settings load, and persists', () => {
+      settings.radars.ringColor = '#ff0000';
+      const before = applied;
+
+      fixture.componentInstance.onRingColor();
+
+      expect(keptRadarChoices).toEqual([{ ringColor: '#ff0000' }]);
+      expect(applied).toBeGreaterThan(before);
     });
   });
 

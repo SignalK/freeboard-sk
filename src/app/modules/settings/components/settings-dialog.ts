@@ -421,6 +421,14 @@ export class SettingsDialog implements OnInit {
     this.facade.emitChangeEvent(value);
   }
 
+  /** Keep the colour through a server settings load that is under way */
+  onRingColor() {
+    this.app.keepRadarChoice({
+      ringColor: this.facade.settings.radars.ringColor
+    });
+    this.persistModel();
+  }
+
   protected get speedUnitSymbol(): string {
     return Convert.getSymbol(this.facade.settings.units.speed);
   }
