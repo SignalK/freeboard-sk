@@ -2936,12 +2936,16 @@ export class PlotterExtensionService {
     }
   }
 
+  /** A stored state map, dropping anything that is not an object (hand-edited or corrupt). */
   private readStore(key: string): ExtensionStateStore {
+    const isObject = (v: unknown): v is Record<string, unknown> =>
+      !!v && typeof v === 'object' && !Array.isArray(v);
     try {
-      const stored = JSON.parse(localStorage.getItem(key) ?? '{}');
-      return stored && typeof stored === 'object' && !Array.isArray(stored)
-        ? stored
-        : {};
+      const stored: unknown = JSON.parse(localStorage.getItem(key) ?? '{}');
+      if (!isObject(stored)) return {};
+      return Object.fromEntries(
+        Object.entries(stored).filter(([, ext]) => isObject(ext))
+      ) as ExtensionStateStore;
     } catch {
       return {};
     }

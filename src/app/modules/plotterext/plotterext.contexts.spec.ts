@@ -369,6 +369,19 @@ describe('PlotterExtensionService iframe contexts', () => {
       });
     });
 
+    it('drops corrupt entries of the device store instead of failing', async () => {
+      place('inst-1');
+      localStorage.setItem(
+        DEVICE_KEY,
+        JSON.stringify({ 'ext-b': null, 'ext-c': 'x', 'ext-d': [1] })
+      );
+      const client = await connect(attachGauge);
+      await client.state.set({ v: 1 }, { storage: 'device' });
+      expect(deviceStored()).toEqual({
+        'ext-a': { instances: { 'inst-1': { v: 1 } } }
+      });
+    });
+
     it('reports a device store this browser cannot write', async () => {
       place('inst-1');
       const client = await connect(attachGauge);
