@@ -1,10 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import ImageSource from 'ol/source/Image';
-import Projection from 'ol/proj/Projection';
 import { circular } from 'ol/geom/Polygon';
 import { createLoader } from 'ol/source/static';
 import { Coordinate } from 'ol/coordinate';
-import { createEmpty } from 'ol/extent';
 import {
   RadarAPIService,
   SKRadarLegendEntry
@@ -88,31 +86,14 @@ export class RadarRenderService {
     this.worker = undefined;
   }
 
-  public createRadarSource(
+  /** Starts the radar picture and hands each new source to `setSource`. */
+  public startRadar(
     radar: RadarRenderDef,
-    shipState: Observable<ShipState>
-  ): ImageSource {
+    shipState: Observable<ShipState>,
+    setSource: (source: ImageSource) => void
+  ) {
     let range = 0;
     let location: Coordinate = [0, 0];
-    const rangeExtent = createEmpty();
-
-    const updateExtent = (location: Coordinate, range: number) => {
-      const radius = range > 0 ? range : 25465; // fallback for initial render
-      const extent = circular(location, radius)
-        .transform('EPSG:4326', 'EPSG:3857')
-        .getExtent();
-      rangeExtent[0] = extent[0];
-      rangeExtent[1] = extent[1];
-      rangeExtent[2] = extent[2];
-      rangeExtent[3] = extent[3];
-    };
-
-    updateExtent(location, range);
-
-    const projection = new Projection({
-      code: 'EPSG:3857', //'radar',
-      units: 'degrees' //'m'
-    });
 
     const radarCanvas = document.createElement('canvas');
     radarCanvas.width = 2 * radar.maxSpokeLen;
@@ -120,16 +101,29 @@ export class RadarRenderService {
 
     const offscreenRadarCanvas = radarCanvas.transferControlToOffscreen();
 
-    const radarSource = new ImageSource({
-      projection: projection,
-      loader: createLoader({
-        imageExtent: rangeExtent,
-        url: '',
-        load: () => {
-          return Promise.resolve(radarCanvas);
-        }
-      })
-    });
+    let radarSource: ImageSource;
+
+    // A static ImageSource keeps the resolution of its first load, so every
+    // new extent gets a source of its own; OL keeps drawing the previous one
+    // until it has loaded. The view's projection lets OL draw the canvas as
+    // is instead of reprojecting it on every refresh.
+    const showAt = () => {
+      const radius = range > 0 ? range : 25465; // fallback for initial render
+      const extent = circular(location, radius)
+        .transform('EPSG:4326', 'EPSG:3857')
+        .getExtent();
+      radarSource = new ImageSource({
+        projection: 'EPSG:3857',
+        loader: createLoader({
+          imageExtent: extent,
+          url: '',
+          load: () => Promise.resolve(radarCanvas)
+        })
+      });
+      setSource(radarSource);
+    };
+
+    showAt();
 
     const worker = new Worker(new URL('./radar-gl.worker', import.meta.url));
     this.worker = worker;
@@ -150,8 +144,7 @@ export class RadarRenderService {
         }
       } else if (event.data.range) {
         range = event.data.range;
-        updateExtent(location, range);
-        radarSource.refresh();
+        showAt();
       }
       if (event.data.msg) {
         this.app.showMessage(event.data.msg);
@@ -167,8 +160,7 @@ export class RadarRenderService {
       location = state.location;
 
       if (locationChanged) {
-        updateExtent(location, range);
-        radarSource.refresh();
+        showAt();
       }
       if (
         lastHeading === undefined ||
@@ -180,6 +172,5 @@ export class RadarRenderService {
         lastHeading = state.heading;
       }
     });
-    return radarSource;
   }
 }

@@ -13,7 +13,7 @@ describe('RadarComponent spoke stream', () => {
   let hidden = false;
   const render = {
     connect: vi.fn(),
-    createRadarSource: vi.fn(),
+    startRadar: vi.fn(),
     disconnect: vi.fn()
   };
   const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
@@ -31,9 +31,11 @@ describe('RadarComponent spoke stream', () => {
       get: () => hidden
     });
     render.connect.mockReset().mockResolvedValue({ id: 'nav1034A' });
-    render.createRadarSource
+    render.startRadar
       .mockReset()
-      .mockImplementation(() => new ImageSource({}));
+      .mockImplementation((_radar, _state, setSource) =>
+        setSource(new ImageSource({}))
+      );
     render.disconnect.mockReset();
     map.addLayer.mockReset();
     map.removeLayer.mockReset();
@@ -58,7 +60,7 @@ describe('RadarComponent spoke stream', () => {
     await flush();
 
     expect(render.connect).toHaveBeenCalledTimes(1);
-    expect(render.createRadarSource).toHaveBeenCalledTimes(1);
+    expect(render.startRadar).toHaveBeenCalledTimes(1);
   });
 
   it('does not open the stream while the page is hidden', async () => {
@@ -81,7 +83,7 @@ describe('RadarComponent spoke stream', () => {
     setHidden(false);
     await flush();
     expect(render.connect).toHaveBeenCalledTimes(2);
-    expect(render.createRadarSource).toHaveBeenCalledTimes(2);
+    expect(render.startRadar).toHaveBeenCalledTimes(2);
   });
 
   it('moves the stream to another radar when one is selected', async () => {
@@ -97,7 +99,7 @@ describe('RadarComponent spoke stream', () => {
 
     expect(render.disconnect).toHaveBeenCalledTimes(1);
     expect(render.connect).toHaveBeenCalledTimes(2);
-    expect(render.createRadarSource).toHaveBeenCalledTimes(2);
+    expect(render.startRadar).toHaveBeenCalledTimes(2);
   });
 
   it('leaves the stream closed when a radar is selected on a hidden page', async () => {
