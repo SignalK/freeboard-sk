@@ -36,7 +36,8 @@ gets the flashing ring, and a dashed red line joins it to your boat.
 ![Fig 2. The same alarm in night mode](collision-alarm-display-2.jpg)
 
 Every vessel with an active collision alarm is drawn, each with its own lines.
-If two alarms name the same vessel, the more urgent one is drawn. In night mode
+Radar targets are included: an alarm on one gets the same ring and lines (see
+*Radar & Camera Targets*). If two alarms name the same vessel, the more urgent one is drawn. In night mode
 the ring and lines are dimmed with the rest of the display.
 
 ## When the alarm sounds

@@ -176,5 +176,9 @@
   { "feature": "vessel-list", "kind": "new", "since": "v1.8.0-rc1", "date": "2019-01-15", "title": "Vessels list: find a vessel by name and choose which vessels the chart shows" },
   { "feature": "vessel-list", "kind": "enhanced", "since": "v2.9.0", "date": "2024-07-06", "title": "Filter the vessels on the chart by AIS ship type" },
   { "feature": "vessel-list", "kind": "enhanced", "since": "v2.10.0", "date": "2024-07-25", "title": "IMO Only filter for the vessels on the chart" },
-  { "feature": "vessel-list", "pr": 1230, "kind": "enhanced", "date": "2026-11-09", "title": "feat(ais): say how many vessels the chart shows while a filter hides some" }
+  { "feature": "vessel-list", "pr": 1230, "kind": "enhanced", "date": "2026-11-09", "title": "feat(ais): say how many vessels the chart shows while a filter hides some" },
+  { "feature": "radar-targets", "pr": 914, "kind": "new", "date": "2026-11-10", "title": "feat(map): show radar and camera targets" },
+  { "feature": "collision-alarm-display", "pr": 914, "kind": "enhanced", "date": "2026-11-10", "title": "feat(map): show radar and camera targets" },
+  { "feature": "radar-targets", "pr": 1219, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): acquire and stop tracking radar targets from the chart" },
+  { "feature": "radar-overlay", "pr": 1224, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): choose the colour of the radar range rings" }
 ]
