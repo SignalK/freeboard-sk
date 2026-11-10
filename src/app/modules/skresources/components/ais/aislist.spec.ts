@@ -7,7 +7,12 @@ import { AppFacade } from 'src/app/app.facade';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
-type ShipTypeRow = { id: number; description: string; icon?: string };
+type ShipTypeRow = {
+  id: number;
+  types: string;
+  description: string;
+  icon?: string;
+};
 
 // Each ship type filter row shows the icon the chart draws its vessels with.
 describe('AISListComponent ship type filter icons', () => {
@@ -34,6 +39,14 @@ describe('AISListComponent ship type filter icons', () => {
     const pleasure = rows.find((r) => r.description === 'Pleasure');
     expect(pleasure?.id).toBe(36);
     expect(pleasure?.icon).toBe('ais_active');
+  });
+
+  it('labels each row with the AIS types it filters', () => {
+    const label = (d: string) => rows.find((r) => r.description === d)?.types;
+    expect(label('Fishing')).toBe('30');
+    expect(label('Pleasure')).toBe('36-39');
+    expect(label('Special')).toBe('31-35, 50-59');
+    expect(label('Cargo')).toBe('70-79');
   });
 
   it('gives fishing vessels a row of their own', () => {

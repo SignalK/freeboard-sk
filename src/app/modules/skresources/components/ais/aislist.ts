@@ -62,60 +62,70 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
   shipTypes = [
     {
       id: 10,
+      types: '10-19',
       description: 'Unspecified',
       selected: false,
       icon: getAisIcon(10).svgIcon
     },
     {
       id: 20,
+      types: '20-29',
       description: 'Wing in Ground',
       selected: false,
       icon: getAisIcon(20).svgIcon
     },
     {
       id: AIS_FISHING_TYPE_ID,
+      types: '30',
       description: 'Fishing',
       selected: false,
       icon: getAisIcon(AIS_FISHING_TYPE_ID).svgIcon
     },
     {
       id: AIS_FILTER_PLEASURE,
+      types: '36-39',
       description: 'Pleasure',
       selected: false,
       icon: getAisIcon(AIS_FILTER_PLEASURE).svgIcon
     },
     {
       id: 40,
+      types: '40-49',
       description: 'High Speed',
       selected: false,
       icon: getAisIcon(40).svgIcon
     },
     {
       id: 50,
+      types: '31-35, 50-59',
       description: 'Special',
       selected: false,
       icon: getAisIcon(50).svgIcon
     },
     {
       id: 60,
+      types: '60-69',
       description: 'Passenger',
       selected: false,
       icon: getAisIcon(60).svgIcon
     },
     {
       id: 70,
+      types: '70-79',
       description: 'Cargo',
       selected: false,
       icon: getAisIcon(70).svgIcon
     },
     {
       id: 80,
+      types: '80-89',
       description: 'Tanker',
       selected: false,
       icon: getAisIcon(80).svgIcon
     },
     {
       id: 90,
+      types: '90-99',
       description: 'Other',
       selected: false,
       icon: getAisIcon(90).svgIcon
