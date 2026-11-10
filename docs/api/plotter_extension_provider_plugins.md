@@ -938,6 +938,65 @@ Things to know:
   button needed. Ask for the density you need with `preferredPixelRatio` (the
   host still clamps it), and pace live frames by the request's `liveInterval`.
 
+### Animating a map layer
+
+Wind or current particles, a radar sweep, a moving front: an animated layer is
+an image overlay that sends live frames at a steady rate. Declare the rate you
+want with `preferredLiveInterval` (milliseconds between frames: `33` is about
+30 frames a second, `100` is 10), and list `overlays.animated` in `optional`.
+A host without it gives you its normal live-frame pace, and the layer still
+works, just less smoothly.
+
+```jsonc
+{
+  "requires": ["background.iframe", "overlays.image"],
+  "optional": ["overlays.animated"],
+  "overlays": [{ "id": "wind-flow", "title": "Wind flow", "type": "image",
+                 "runtime": "renderer", "band": "aboveCharts",
+                 "preferredLiveInterval": 33 }]
+}
+```
+
+The host decides the actual rate. It may grant a longer interval than you asked
+for, animate only one overlay at a time, slow you down when compositing gets
+expensive, or not animate at all when the user asks for reduced motion. Pace by
+the interval you were given, not the one you asked for. Building on the runtime
+above:
+
+```js
+let interval = null // the host's latest grant
+let timer = null
+
+function tick() {
+  timer = setTimeout(tick, interval ?? 200)
+  if (latest && !busy) sendLiveFrame(latest) // no requestId: a live frame
+}
+
+await client.subscribe(['overlay.request'], (_name, req) => {
+  latest = req
+  interval = req.liveInterval ?? interval
+  draw() // answer the request first
+  if (!timer) tick()
+})
+await client.subscribe(['overlay.state'], (_name, st) => {
+  if (st.liveInterval !== undefined) interval = st.liveInterval
+  if (!st.visible || st.suspended) {
+    clearTimeout(timer)
+    timer = null
+    worker.postMessage({ release: true })
+  }
+})
+```
+
+- **Advance the animation in the Worker,** and draw each frame there
+  (`OffscreenCanvas`, then `transferToImageBitmap()`). Keep one frame in flight:
+  await each `overlay.frame` before sending the next.
+- **A refused frame is normal.** During a pan or zoom the host keeps moving the
+  last frame and refuses live frames (`overlays.throttled`) until the view
+  settles, then sends a new request. Skip the frame; don't reset your particles.
+- **Stop when hidden or suspended.** Stop the timer and release your graphics
+  resources until the overlay is shown again.
+
 ## Drawing a map layer from data
 
 With `overlays.data` you do not draw at all. You serve your data — depth grids
