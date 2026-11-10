@@ -126,6 +126,11 @@ export class MobService {
     }
     const position = { latitude: at[1], longitude: at[0] };
     const go = async () => {
+      // the MOB may have been ended while the autopilot warning was open
+      if (!this.notiMgr.mobAlerts().some(([, a]) => a.id === alert.id)) {
+        this.app.showMessage('This MOB has ended.');
+        return;
+      }
       // the waypoint stays the destination until the server takes the MOB
       if (await this.course.setDestination(position, MOB_ARRIVAL_CIRCLE)) {
         this.app.data.activeWaypoint = null;

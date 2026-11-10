@@ -20,6 +20,8 @@ function setup(opts: {
   confirm?: { ok: boolean } | null;
   accepted?: boolean;
   refused?: boolean;
+  /** MOB alerts on screen to begin with */
+  mobs?: AlertItems;
 }) {
   const app = {
     data: {
@@ -34,12 +36,13 @@ function setup(opts: {
     },
     MAP_ZOOM_EXTENT: { min: 1, max: 24 },
     mapMoveRequest: signal<unknown>(null),
-    showConfirm: vi.fn(() => of(opts.confirm ?? null))
+    showConfirm: vi.fn(() => of(opts.confirm ?? null)),
+    showMessage: vi.fn()
   };
   const course = {
     setDestination: vi.fn(() => Promise.resolve(opts.accepted ?? true))
   };
-  const mobAlerts = signal<AlertItems>([]);
+  const mobAlerts = signal<AlertItems>(opts.mobs ?? []);
   const notiMgr = {
     mobAlerts,
     raiseServerAlarm: vi.fn((): Promise<RaiseResult> =>
@@ -70,6 +73,7 @@ const mobAlert = (id: string) =>
   ({ id, properties: { position: MOB } }) as AlertData;
 
 const alert = mobAlert('m1');
+const ACTIVE: AlertItems = [['notifications.mob.m1', alert]];
 const other = {
   id: 'm2',
   properties: { position: { latitude: 10, longitude: 20 } }
@@ -229,7 +233,7 @@ describe('MobService', () => {
   });
 
   it('sets the destination, with a small arrival circle, on Direct-To with no autopilot engaged', async () => {
-    const { mob, app, course } = setup({});
+    const { mob, app, course } = setup({ mobs: ACTIVE });
     mob.directTo(alert);
     await Promise.resolve();
     expect(app.showConfirm).not.toHaveBeenCalled();
@@ -247,7 +251,10 @@ describe('MobService', () => {
   });
 
   it('keeps the waypoint when the server refuses the destination', async () => {
-    const { mob, app } = setup({ accepted: false });
+    const { mob, app } = setup({
+      mobs: ACTIVE,
+      accepted: false
+    });
     mob.directTo(alert);
     await Promise.resolve();
     expect(app.data.activeWaypoint).toBe('wpt1');
@@ -255,6 +262,7 @@ describe('MobService', () => {
 
   it('asks first while the autopilot is engaged', () => {
     const { mob, app, course } = setup({
+      mobs: ACTIVE,
       engaged: true,
       confirm: { ok: true }
     });
@@ -263,8 +271,26 @@ describe('MobService', () => {
     expect(course.setDestination).toHaveBeenCalledWith(MOB, 10);
   });
 
+  it('leaves the course alone when the MOB ended during the warning', () => {
+    const { mob, app, course, mobAlerts } = setup({
+      mobs: ACTIVE,
+      engaged: true
+    });
+    app.showConfirm.mockImplementation(() => {
+      mobAlerts.set([]);
+      return of({ ok: true });
+    });
+    mob.directTo(alert);
+    expect(course.setDestination).not.toHaveBeenCalled();
+    expect(app.showMessage).toHaveBeenCalledWith('This MOB has ended.');
+  });
+
   it('leaves the course alone when the user cancels', () => {
-    const { mob, course } = setup({ engaged: true, confirm: null });
+    const { mob, course } = setup({
+      mobs: ACTIVE,
+      engaged: true,
+      confirm: null
+    });
     mob.directTo(alert);
     expect(course.setDestination).not.toHaveBeenCalled();
   });
