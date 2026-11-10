@@ -146,6 +146,15 @@ import {
                 </button>
               </span>
             }
+            @if (radarTracked() && !isSelf()) {
+              <button
+                mat-icon-button
+                (click)="untrack.emit()"
+                matTooltip="Stop the radar tracking this vessel"
+              >
+                <mat-icon>gps_off</mat-icon>
+              </button>
+            }
             @let exportOffer = trackExportOffer();
             @if (exportOffer) {
               <button
@@ -299,8 +308,12 @@ export class VesselPopoverComponent {
   useMagnetic = input<boolean>();
   isActive = input<boolean>();
   isSelf = input<boolean>();
+  /** A radar tracks a target linked to this vessel. */
+  radarTracked = input<boolean>(false);
   canClose = input<boolean>();
   info = output<string>();
+  /** The user asked the radar to stop tracking the targets linked here. */
+  untrack = output<void>();
   closed = output<void>();
   focused = output<boolean>();
   markPosition = output<Position>();

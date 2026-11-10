@@ -87,6 +87,10 @@ import { AppFacade } from 'src/app/app.facade';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 import { GuardZoneEditService } from 'src/app/modules/radar/guard-zone-edit.service';
 import { powerState, sendsImage } from 'src/app/modules/radar/radar-controls';
+import {
+  acquireRequest,
+  radarTargetRef
+} from 'src/app/modules/radar/radar-targets';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.service';
 import { ExtActionsComponent } from 'src/app/modules/plotterext/ext-actions.component';
@@ -252,6 +256,7 @@ import { AIS_TRACK_MIN_ZOOM } from 'src/app/modules/skstream/track-source';
 import {
   fusedVessels,
   isRadarTarget,
+  linkingTargets,
   locateTarget,
   TARGET_STALE_MS,
   unlinkedTargets
@@ -1157,10 +1162,86 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'get_feature_info':
         this.getFeatureInfo();
         break;
+      case 'radar_acquire':
+        this.acquireRadarTarget(pos);
+        break;
       default:
         this.menuItemSelected.emit(action);
         break;
     }
+  }
+
+  /**
+   * The radar whose picture is shown, while it is still the selected one. On
+   * a switch the selection moves before the new radar's details load, and a
+   * radar list that comes back empty clears the selection but not the details.
+   */
+  private shownRadarId(): string | undefined {
+    const id = this.radarApi.radar()?.device?.id;
+    return id && id === this.radarApi.radarId() ? id : undefined;
+  }
+
+  /**
+   * Whether the chart menu offers Track Radar Target: a radar is reported and
+   * its picture shows. The picture's power state alone reads as sending while
+   * no radar has reported at all.
+   */
+  protected canTrackRadarTarget(): boolean {
+    return (
+      !!this.shownRadarId() &&
+      this.radarImage() &&
+      this.app.uiCtrl().radarLayer &&
+      this.app.data.vessels.showSelf
+    );
+  }
+
+  /** Have the shown radar acquire and track the echo at `pos`. */
+  private async acquireRadarTarget(pos: Position) {
+    const radarId = this.shownRadarId();
+    const request = acquireRequest(this.app.data.vessels.self.position, pos);
+    if (!radarId || !request) {
+      return;
+    }
+    try {
+      await this.radarApi.acquireTarget(radarId, request);
+      this.app.showMessage(
+        'Tracking started. Without an echo there, the radar drops the target after a few sweeps.'
+      );
+    } catch (err) {
+      this.app.showAlert('Radar', (err as Error).message);
+    }
+  }
+
+  /** Stop the radar tracking the target with context `id`. */
+  protected async cancelRadarTarget(id: string | null) {
+    const ref = radarTargetRef(id);
+    if (!ref) {
+      return;
+    }
+    try {
+      await this.radarApi.cancelTarget(ref.radarId, ref.targetId);
+    } catch (err) {
+      this.app.showAlert('Radar', (err as Error).message);
+    }
+  }
+
+  /**
+   * The radar targets linked to vessel `id`, which is drawn in their place, so
+   * its popover is where they are stopped.
+   */
+  protected radarTargetsLinkedTo(id: string | null): string[] {
+    return id === null
+      ? []
+      : linkingTargets(id, this.app.data.targets).filter(
+          (t) => radarTargetRef(t) !== null
+        );
+  }
+
+  /** Stop the radars tracking the targets linked to vessel `id`. */
+  protected async cancelLinkedRadarTargets(id: string | null) {
+    await Promise.all(
+      this.radarTargetsLinkedTo(id).map((t) => this.cancelRadarTarget(t))
+    );
   }
 
   /** The user chose an extension action from the chart context menu. */
