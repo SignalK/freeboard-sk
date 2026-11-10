@@ -34,15 +34,16 @@ export const LIVE_FRAME_MIN_INTERVAL_MS = 200;
 /**
  * Animated image overlays (capability `overlays.animated`): the shortest
  * interval ever granted (30 fps), how many overlays animate at once, and the
- * compositing-cost back-off. A frame's composition costing more than
- * {@link BACKOFF_SLOW_SHARE} of the granted interval doubles it; costing less
- * than {@link BACKOFF_FAST_SHARE} of the interval below halves it again, at
- * most once per {@link BACKOFF_SETTLE_MS}.
+ * compositing-cost back-off. A smoothed composition cost above
+ * {@link BACKOFF_SLOW_SHARE} of the granted interval doubles it; one below
+ * {@link BACKOFF_FAST_SHARE} of the halved interval halves it again (the gap
+ * between the two keeps it from flip-flopping). Each decision waits for
+ * {@link BACKOFF_SETTLE_MS} of samples, so one slow frame never decides.
  */
 export const ANIMATED_MIN_INTERVAL_MS = 33;
 export const MAX_ANIMATED_OVERLAYS = 1;
 export const BACKOFF_SLOW_SHARE = 0.5;
-export const BACKOFF_FAST_SHARE = 0.2;
+export const BACKOFF_FAST_SHARE = 0.35;
 export const BACKOFF_SETTLE_MS = 2000;
 
 /**
@@ -176,6 +177,13 @@ function usableConfigPanel(
     : undefined;
 }
 
+/** The interval an animated overlay is granted at a given back-off factor. */
+const animatedInterval = (pref: number, factor: number) =>
+  Math.min(
+    Math.max(pref, ANIMATED_MIN_INTERVAL_MS) * factor,
+    LIVE_FRAME_MIN_INTERVAL_MS
+  );
+
 const positiveOrUndefined = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined;
 
@@ -199,10 +207,13 @@ export class OverlayRegistry {
   >();
   private requestSeq = 0;
   /** The user's system asks for reduced motion: no overlay animates. */
-  readonly reducedMotion = signal(false);
-  /** Compositing-cost back-off: granted animation intervals are multiplied by it. */
-  private readonly backoff = signal(1);
+  private readonly reducedMotion = signal(false);
+  /** Compositing-cost back-off of the animated overlay: its interval is multiplied by `factor`. */
+  private readonly backoff = signal<{ key: string; factor: number } | null>(
+    null
+  );
   private frameCost: number | undefined;
+  private lastFrameCostAt = -Infinity;
   private lastBackoffChange = -Infinity;
   private persist: (settings: OverlaySettings) => void = () => undefined;
   private configOpener: (entry: OverlayEntry) => void = () => undefined;
@@ -286,6 +297,7 @@ export class OverlayRegistry {
     let animated = 0;
     const reducedMotion = this.reducedMotion();
     const backoff = this.backoff();
+    const factor = (key: string) => (backoff?.key === key ? backoff.factor : 1);
     for (const band of ['aboveCharts', 'aboveResources'] as OverlayBand[]) {
       byBand[band].forEach((e, i) => {
         e.zIndex = BAND_Z[band].base + Math.min(i, BAND_Z[band].span - 1);
@@ -304,10 +316,7 @@ export class OverlayRegistry {
             animated < MAX_ANIMATED_OVERLAYS;
           if (e.animated) animated++;
           e.liveInterval = e.animated
-            ? Math.min(
-                Math.max(pref!, ANIMATED_MIN_INTERVAL_MS) * backoff,
-                LIVE_FRAME_MIN_INTERVAL_MS
-              )
+            ? animatedInterval(pref!, factor(e.key))
             : Math.max(pref ?? 0, LIVE_FRAME_MIN_INTERVAL_MS);
         }
         ordered.push(e);
@@ -316,34 +325,53 @@ export class OverlayRegistry {
     return ordered;
   });
 
+  /** Follow the user's reduced-motion preference: while set, nothing animates. */
+  setReducedMotion(reduce: boolean) {
+    this.reducedMotion.set(reduce);
+  }
+
   /**
    * Report how long the map took to composite one frame while an overlay
-   * animates. A sustained cost above {@link BACKOFF_SLOW_SHARE} of the
-   * granted interval lengthens it; a low cost shortens it again toward the
-   * overlay's own preference.
+   * animates and is drawn. A sustained cost above {@link BACKOFF_SLOW_SHARE}
+   * of the granted interval lengthens it; a low one shortens it again toward
+   * the overlay's own preference. A different overlay animating, or the same
+   * one after a pause, starts the measurement afresh.
    */
   reportFrameCost(ms: number) {
     if (!Number.isFinite(ms) || ms < 0) return;
     const e = this.entries().find((x) => x.animated);
-    if (!e?.liveInterval || e.preferredLiveInterval === undefined) return;
+    if (!e?.liveInterval) return;
+    const t = this.now();
+    let backoff = this.backoff();
+    if (backoff?.key !== e.key) {
+      backoff = { key: e.key, factor: 1 };
+      this.backoff.set(backoff);
+      this.frameCost = undefined;
+      this.lastBackoffChange = t;
+    } else if (t - this.lastFrameCostAt > BACKOFF_SETTLE_MS) {
+      this.frameCost = undefined;
+      this.lastBackoffChange = t;
+    }
+    this.lastFrameCostAt = t;
     this.frameCost =
       this.frameCost === undefined ? ms : this.frameCost * 0.8 + ms * 0.2;
-    const t = this.now();
     if (t - this.lastBackoffChange < BACKOFF_SETTLE_MS) return;
-    const backoff = this.backoff();
+    const pref = e.preferredLiveInterval!;
+    let factor = backoff.factor;
     if (
       this.frameCost > e.liveInterval * BACKOFF_SLOW_SHARE &&
       e.liveInterval < LIVE_FRAME_MIN_INTERVAL_MS
     ) {
-      this.backoff.set(backoff * 2);
+      factor *= 2;
     } else if (
-      backoff > 1 &&
-      this.frameCost < (e.liveInterval / 2) * BACKOFF_FAST_SHARE
+      factor > 1 &&
+      this.frameCost < animatedInterval(pref, factor / 2) * BACKOFF_FAST_SHARE
     ) {
-      this.backoff.set(backoff / 2);
+      factor /= 2;
     } else {
       return;
     }
+    this.backoff.set({ key: e.key, factor });
     this.lastBackoffChange = t;
     this.frameCost = undefined;
   }
@@ -489,10 +517,20 @@ export class OverlayRegistry {
 
   /** The most recent request per overlay of a runtime — replayed when it subscribes. */
   latestRequestsFor(extension: string, runtime: string): OverlayRequestEvent[] {
+    // with the interval granted now, which may have changed since
     return this.active()
       .filter((e) => e.extension === extension && e.runtime === runtime)
-      .map((e) => this.latest.get(e.key)?.request)
-      .filter((r): r is OverlayRequestEvent => !!r);
+      .flatMap((e) => {
+        const request = this.latest.get(e.key)?.request;
+        return request
+          ? [
+              {
+                ...request,
+                liveInterval: e.liveInterval ?? LIVE_FRAME_MIN_INTERVAL_MS
+              }
+            ]
+          : [];
+      });
   }
 
   /** Drop the pending request of an overlay no longer drawn. */

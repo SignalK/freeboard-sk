@@ -27,6 +27,7 @@ import {
   ViewState
 } from './overlay-geometry';
 import { FrameBitmaps, frameSource } from './frame-bitmaps';
+import { watchFrameCost } from './frame-cost';
 
 /**
  * One image map overlay (capability `overlays.image`): an OL image layer whose
@@ -108,26 +109,17 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
       map.on('moveend', viewChanged),
       map.on('change:size', viewChanged)
     );
-    // While this overlay animates, report what compositing each map frame
-    // costs, so the registry can lengthen the interval it grants. Gestures
-    // are left out: their cost is the user's, not the animation's.
-    let composeStart = 0;
+    // While this overlay animates and is drawn, report what compositing each
+    // map frame costs, so the registry can lengthen the interval it grants.
     this.listenerKeys.push(
-      map.on('precompose', () => (composeStart = performance.now())),
-      map.on('postcompose', () => {
-        const view = map.getView();
-        if (
-          !composeStart ||
-          view.getInteracting() ||
-          view.getAnimating() ||
-          !this.plotterExt.overlays.entry(this.overlayKey)?.animated
-        ) {
-          return;
-        }
-        this.plotterExt.overlays.reportFrameCost(
-          performance.now() - composeStart
-        );
-      })
+      ...watchFrameCost(
+        map,
+        () =>
+          this.hasFrame &&
+          !!this.layer?.getVisible() &&
+          !!this.plotterExt.overlays.entry(this.overlayKey)?.animated,
+        (ms) => this.plotterExt.overlays.reportFrameCost(ms)
+      )
     );
     this.requestIfNeeded();
   }

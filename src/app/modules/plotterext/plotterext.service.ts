@@ -1447,9 +1447,9 @@ export class PlotterExtensionService {
       '(prefers-reduced-motion: reduce)'
     );
     if (reducedMotion) {
-      this.overlays.reducedMotion.set(reducedMotion.matches);
+      this.overlays.setReducedMotion(reducedMotion.matches);
       reducedMotion.addEventListener('change', (e) =>
-        this.overlays.reducedMotion.set(e.matches)
+        this.overlays.setReducedMotion(e.matches)
       );
     }
     effect(() => {

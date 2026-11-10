@@ -482,9 +482,9 @@ describe('OverlayRegistry animated overlays (overlays.animated)', () => {
   it('does not animate under reduced motion', () => {
     const r = new OverlayRegistry();
     r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
-    r.reducedMotion.set(true);
+    r.setReducedMotion(true);
     expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
-    r.reducedMotion.set(false);
+    r.setReducedMotion(false);
     expect(interval(r, 'ext-a/wind')).toBe(40);
   });
 
@@ -513,31 +513,94 @@ describe('OverlayRegistry animated overlays (overlays.animated)', () => {
     const r = new OverlayRegistry();
     r.now = () => t;
     r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
-    // 25 ms per frame is over half of 40 ms
-    r.reportFrameCost(25);
-    expect(interval(r, 'ext-a/wind')).toBe(80);
-    // still costly, but too soon to change again
-    t += BACKOFF_SETTLE_MS - 1;
-    r.reportFrameCost(60);
-    expect(interval(r, 'ext-a/wind')).toBe(80);
-    t += 1;
-    r.reportFrameCost(60);
-    expect(interval(r, 'ext-a/wind')).toBe(160);
-    t += BACKOFF_SETTLE_MS;
-    r.reportFrameCost(200);
-    // capped at the normal pace
-    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
-    // cheap frames: back toward the preference, one step at a time
-    t += BACKOFF_SETTLE_MS;
-    for (let i = 0; i < 40; i++) r.reportFrameCost(1);
-    expect(interval(r, 'ext-a/wind')).toBe(160);
-    t += BACKOFF_SETTLE_MS;
-    r.reportFrameCost(1);
-    t += BACKOFF_SETTLE_MS;
-    r.reportFrameCost(1);
-    t += BACKOFF_SETTLE_MS;
-    r.reportFrameCost(1);
+    // samples every 100 ms for `ms` of settle time, each costing `cost`
+    const sample = (cost: number, ms = BACKOFF_SETTLE_MS) => {
+      for (let n = 0; n <= ms; n += 100) {
+        r.reportFrameCost(cost);
+        t += 100;
+      }
+    };
+    // one slow composition (the app starting up) decides nothing
+    r.reportFrameCost(500);
+    t += 100;
+    sample(5, BACKOFF_SETTLE_MS - 200);
     expect(interval(r, 'ext-a/wind')).toBe(40);
+    // sustained cost over half of 40 ms doubles it, once per settle window
+    sample(25);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    sample(60);
+    expect(interval(r, 'ext-a/wind')).toBe(160);
+    sample(150);
+    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    sample(150);
+    expect(interval(r, 'ext-a/wind')).toBe(LIVE_FRAME_MIN_INTERVAL_MS);
+    // cheap enough for the halved interval: back toward the preference
+    sample(1);
+    sample(1);
+    sample(1);
+    sample(1);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+  });
+
+  it('does not flip-flop: a cost fine at the halved interval is needed to recover', () => {
+    let t = 0;
+    const r = new OverlayRegistry();
+    r.now = () => t;
+    r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
+    const sample = (cost: number) => {
+      for (let n = 0; n <= BACKOFF_SETTLE_MS; n += 100) {
+        r.reportFrameCost(cost);
+        t += 100;
+      }
+    };
+    sample(30);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    // 15 ms is 37% of 40 ms: too close to the 50% line to go back
+    sample(15);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    // 12 ms is 30% of 40 ms: safe to go back
+    sample(12);
+    expect(interval(r, 'ext-a/wind')).toBe(40);
+  });
+
+  it('starts afresh for another overlay, and after a pause', () => {
+    let t = 0;
+    const r = new OverlayRegistry();
+    r.now = () => t;
+    r.setDefinitions(
+      defs(
+        'ext-a',
+        def('wind', { preferredLiveInterval: 40 }),
+        def('rain', { preferredLiveInterval: 50 })
+      )
+    );
+    const sample = (cost: number) => {
+      for (let n = 0; n <= BACKOFF_SETTLE_MS; n += 100) {
+        r.reportFrameCost(cost);
+        t += 100;
+      }
+    };
+    sample(30);
+    expect(interval(r, 'ext-a/wind')).toBe(80);
+    // the slot passes to rain: it starts at its own preference
+    r.setVisibility(['ext-a/wind'], false);
+    expect(interval(r, 'ext-a/rain')).toBe(50);
+    r.reportFrameCost(500);
+    expect(interval(r, 'ext-a/rain')).toBe(50);
+    // a pause: the old average is dropped, nothing decided on one sample
+    t += BACKOFF_SETTLE_MS * 3;
+    r.reportFrameCost(500);
+    expect(interval(r, 'ext-a/rain')).toBe(50);
+  });
+
+  it('replays a request with the interval granted now', () => {
+    const r = new OverlayRegistry();
+    r.setDefinitions(defs('ext-a', def('wind', { preferredLiveInterval: 40 })));
+    r.newRequest('ext-a/wind', VIEW, 0);
+    r.setReducedMotion(true);
+    expect(r.latestRequestsFor('ext-a', 'renderer')[0].liveInterval).toBe(
+      LIVE_FRAME_MIN_INTERVAL_MS
+    );
   });
 
   it('ignores frame costs while nothing animates', () => {

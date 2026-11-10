@@ -830,13 +830,20 @@ see *The `overlays.data` capability*) — and saves the user's choices in `confi
   their own slower preference). The granted interval is each entry's
   `liveInterval`. It is what `overlay.request` states and what the live-frame
   throttle enforces, and a change to it is emitted as `overlay.state` (which
-  carries `liveInterval` for every image overlay). **Back-off:** while an
-  overlay animates, its `<fb-plugin-overlay>` times each map composition
-  (`precompose` to `postcompose`, skipping gestures and view animations) and
-  reports it with `reportFrameCost`. When the smoothed cost exceeds half the
-  granted interval, the interval doubles (up to 200 ms). When it falls under a
-  fifth of half the interval, it halves again toward the preference. Either
-  change waits `BACKOFF_SETTLE_MS` (2 s) after the last.
+  carries `liveInterval` for every image overlay); a request replayed to a
+  runtime that subscribes late carries the current grant. The slot goes to the
+  first such overlay in render order whatever the zoom, so one outside its
+  `minZoom`/`maxZoom` holds the slot without drawing. **Back-off:** while an
+  overlay animates and a frame of it is drawn, `watchFrameCost`
+  (`frame-cost.ts`) times each map composition (`precompose` to `postcompose`,
+  skipping gestures and view animations) and reports it with
+  `reportFrameCost`. Only composition is timed, not receiving the frame over
+  the bus. When the smoothed cost exceeds half the granted interval, the
+  interval doubles (up to 200 ms). When it falls under 35% of the halved
+  interval, it halves again toward the preference. Each decision needs
+  `BACKOFF_SETTLE_MS` (2 s) of samples, so no single frame decides. The factor
+  belongs to the animated overlay. Another overlay taking the slot starts at
+  its own preference, and a pause in samples restarts the measurement.
 - **User controls.** The Chart list shows one row per overlay above the chart
   rows (every overlay draws above every chart), with its own *Show in Map*
   checkbox and *Set Opacity* slider. Shown-but-suspended overlays say so. An

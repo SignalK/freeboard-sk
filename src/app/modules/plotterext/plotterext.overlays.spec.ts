@@ -361,7 +361,7 @@ describe('PlotterExtensionService image overlays', () => {
     const seen = await recorder<OverlayStateEvent>(c, 'overlay.state');
     await settle();
     expect(service.overlays.entry('ext-c/depth')?.liveInterval).toBe(40);
-    service.overlays.reducedMotion.set(true);
+    service.overlays.setReducedMotion(true);
     await settle();
     expect(seen).toEqual([
       {
