@@ -28,6 +28,7 @@ import {
 } from './overlay-geometry';
 import { FrameBitmaps, frameSource } from './frame-bitmaps';
 import { watchFrameCost } from './frame-cost';
+import ViewHint from 'ol/ViewHint';
 
 /**
  * One image map overlay (capability `overlays.image`): an OL image layer whose
@@ -108,13 +109,17 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     this.listenerKeys.push(
       map.on('moveend', viewChanged),
       map.on('change:size', viewChanged),
-      // live frames wait while the view moves (spec: Between frames)
-      map.on('movestart', () =>
-        this.plotterExt.overlays.setMoving(this.overlayKey, true)
-      ),
-      map.on('moveend', () =>
-        this.plotterExt.overlays.setMoving(this.overlayKey, false)
-      )
+      // Live frames wait while the view moves (spec: Between frames). Read
+      // from each frame's view hints: movestart/moveend can come in quick
+      // pairs mid-gesture, so they don't bracket one.
+      map.on('postrender', (e) => {
+        const hints = e.frameState?.viewHints;
+        this.plotterExt.overlays.setMoving(
+          this.overlayKey,
+          !!hints &&
+            (hints[ViewHint.ANIMATING] > 0 || hints[ViewHint.INTERACTING] > 0)
+        );
+      })
     );
     // While this overlay animates and is drawn, report what compositing each
     // map frame costs, so the registry can lengthen the interval it grants.

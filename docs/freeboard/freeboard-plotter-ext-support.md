@@ -834,8 +834,11 @@ see *The `overlays.data` capability*) — and saves the user's choices in `confi
   runtime that subscribes late carries the current grant. The slot goes only
   to an overlay the map is drawing: `<fb-plugin-overlay>` reports when its
   overlay leaves or re-enters its `minZoom`/`maxZoom` range (`setInRange`), and
-  the slot passes to the next one. **Gestures:** from `movestart` to
-  `moveend` the layer marks its overlay moving (`setMoving`). Live frames are
+  the slot passes to the next one. **Gestures:** on each rendered frame the
+  layer marks its overlay moving (`setMoving`) while the view's `ANIMATING`
+  or `INTERACTING` hint is set. `movestart`/`moveend` aren't used because
+  they fire in quick pairs during a Freeboard zoom, so they don't bracket the
+  gesture. Live frames are
   then refused with `overlays.throttled`, while answers to a request are still
   taken; the request after the move brings live frames back. **Back-off:**
   while an overlay animates and a frame of it is drawn, `watchFrameCost`
