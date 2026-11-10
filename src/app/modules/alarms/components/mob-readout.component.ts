@@ -40,8 +40,7 @@ import { AlertData } from './alert.component';
       @if (alert().local) {
         <div class="mob-local">
           Only on this display: the server did not take this MOB, so the other
-          displays do not have it. They get a MOB from a display that is logged
-          in.
+          displays do not have it.
         </div>
       }
       <div class="mob-actions">
