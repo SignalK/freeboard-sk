@@ -32,7 +32,9 @@ describe('FBMapComponent: radar targets', () => {
     const { distance } = cmp.radarApi.acquireTarget.mock.calls[0][1];
     expect(distance).toBeGreaterThan(1840);
     expect(distance).toBeLessThan(1860);
-    expect(cmp.app.showMessage).toHaveBeenCalled();
+    expect(cmp.app.showMessage).toHaveBeenCalledWith(
+      expect.stringMatching(/^Tracking started\./)
+    );
   });
 
   it('acquires nothing while own position is unknown', async () => {

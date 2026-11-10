@@ -1169,7 +1169,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     try {
       await this.radarApi.acquireTarget(this.radarApi.radarId(), request);
-      this.app.showMessage('Radar target acquired.');
+      this.app.showMessage(
+        'Tracking started. Without an echo there, the radar drops the target after a few sweeps.'
+      );
     } catch (err) {
       this.app.showAlert('Radar', (err as Error).message);
     }
