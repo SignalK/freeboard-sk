@@ -35,6 +35,8 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
             widgetDef: () => null,
             registerHitTester: () => () => undefined,
             cellOccupied: () => false,
+            movingWidget: signal(null),
+            moveTargets: () => new Proxy({}, { get: () => [] }),
             openAddWidgetPicker
           }
         }

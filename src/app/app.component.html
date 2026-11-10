@@ -874,7 +874,9 @@
           }
 
           <!-- *** Nav data panel ***-->
-          @if (!isInteracting()) {
+          <!-- Hidden while a widget is moved: it sits above the widget overlay
+               and would cover drop targets. -->
+          @if (!isInteracting() && !plotterExt.movingWidget()) {
             <div
               class="navdataPanel"
               fbMovablePanel="fb-navdata-panel-position"

@@ -500,6 +500,41 @@ describe('AppComponent', () => {
     });
   });
 
+  it('hides the nav data panel while a widget is moved, and shows it again after', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const plotterExt = TestBed.inject(PlotterExtensionService);
+    plotterExt.manifests.set({
+      ext: {
+        name: 'Ext',
+        apiVersion: '1',
+        widgets: [
+          { id: 'w', title: 'W', type: 'iframe', url: 'w.html', size: '1x1' }
+        ]
+      }
+    });
+    plotterExt.activeWidgets.set([
+      {
+        instanceId: 'i1',
+        extension: 'ext',
+        widget: 'w',
+        anchor: 'br',
+        col: 3,
+        row: 1
+      }
+    ]);
+    fixture.detectChanges();
+    const panel = () => fixture.nativeElement.querySelector('.navdataPanel');
+    expect(panel()).not.toBeNull();
+
+    plotterExt.startMove('i1');
+    fixture.detectChanges();
+    expect(panel()).toBeNull();
+
+    plotterExt.cancelMove();
+    fixture.detectChanges();
+    expect(panel()).not.toBeNull();
+  });
+
   it('removes a button an extension hides from the right toolbar, and puts it back in its place', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = TestBed.inject(AppFacade);
