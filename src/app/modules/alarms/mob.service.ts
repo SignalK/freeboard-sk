@@ -179,11 +179,13 @@ export class MobService {
     if (!pending) {
       return;
     }
-    const raised = alerts.find((a) => a.id === pending.id);
-    if (raised || Date.now() > pending.until) {
+    if (Date.now() > pending.until) {
       this.zoomPending = null;
+      return;
     }
+    const raised = alerts.find((a) => a.id === pending.id);
     if (raised) {
+      this.zoomPending = null;
       this.zoomTo(raised);
     }
   }

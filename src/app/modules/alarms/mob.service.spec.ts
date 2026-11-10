@@ -195,6 +195,20 @@ describe('MobService', () => {
     }
   });
 
+  it('does not move the chart when its MOB is first reported too late', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const { mob, app, mobAlerts } = setup({});
+      await mob.raise();
+      vi.setSystemTime(Date.now() + 11000);
+      mobAlerts.set([['notifications.mob.m1', alert]]);
+      TestBed.tick();
+      expect(app.mapMoveRequest()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not zoom to a MOB another display raised meanwhile', async () => {
     const { mob, app, mobAlerts } = setup({});
     await mob.raise();
