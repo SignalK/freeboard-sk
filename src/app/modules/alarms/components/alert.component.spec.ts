@@ -66,4 +66,22 @@ describe('AlertComponent', () => {
     expect(labels(f).some((l) => l.includes('Dismiss'))).toBe(false);
     expect(labels(f).some((l) => l.includes('END MOB'))).toBe(true);
   });
+
+  it('keeps an acknowledged MOB card up with its own actions only', () => {
+    const f = mount({
+      type: 'mob',
+      acknowledged: true,
+      canAcknowledge: true,
+      canCancel: true,
+      visual: false
+    });
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('fb-mob-readout')).not.toBeNull();
+    const actions = el.querySelector('mat-card-actions') as HTMLElement;
+    expect(actions.style.display).toBe('none');
+    const readoutButtons = Array.from(
+      el.querySelectorAll('fb-mob-readout button')
+    ).map((b) => b.textContent?.trim());
+    expect(readoutButtons).toEqual(['close END MOB']);
+  });
 });

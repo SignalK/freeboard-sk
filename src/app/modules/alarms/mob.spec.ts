@@ -41,6 +41,13 @@ describe('isMobDestination', () => {
     expect(isMobDestination([178.4, -18.1], [178.4, -18.1])).toBe(true);
   });
 
+  it('matches a destination just within the tolerance, not just outside it', () => {
+    expect(isMobDestination([178.400009, -18.100009], [178.4, -18.1])).toBe(
+      true
+    );
+    expect(isMobDestination([178.400011, -18.1], [178.4, -18.1])).toBe(false);
+  });
+
   it('does not match another destination or none', () => {
     expect(isMobDestination([178.41, -18.1], [178.4, -18.1])).toBe(false);
     expect(isMobDestination(null, [178.4, -18.1])).toBe(false);
