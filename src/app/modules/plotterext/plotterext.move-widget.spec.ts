@@ -56,6 +56,12 @@ describe('PlotterExtensionService moving a widget', () => {
 
   let service: PlotterExtensionService;
   let widgets: PlacedWidget[];
+  let config: {
+    plotterExtensions: {
+      widgets: PlacedWidget[];
+      state?: Record<string, unknown>;
+    };
+  };
   let saves: number;
 
   beforeEach(() => {
@@ -69,8 +75,9 @@ describe('PlotterExtensionService moving a widget', () => {
       strip('sog', 'cb', 0)
     ];
     saves = 0;
+    config = { plotterExtensions: { widgets } };
     const appStub = {
-      config: { plotterExtensions: { widgets } },
+      config,
       debug: () => {},
       saveConfig: () => saves++
     };
@@ -114,7 +121,7 @@ describe('PlotterExtensionService moving a widget', () => {
 
   it('moves the widget and saves the same placement shape', () => {
     const state = { [ext]: { instances: { sog: { saved: true } } } };
-    localStorage.setItem('fb-plotterext-state', JSON.stringify(state));
+    config.plotterExtensions.state = structuredClone(state);
     service.startMove('sog');
     expect(service.dropMovingWidget('bl', { col: 2, row: 1 })).toBe(true);
     expect(widgets.find((w) => w.instanceId === 'sog')).toEqual(
@@ -133,10 +140,7 @@ describe('PlotterExtensionService moving a widget', () => {
     expect(service.cellOccupied('cb', { col: 0, row: 0 })).toBe(false);
     expect(service.cellOccupied('bl', { col: 2, row: 0 })).toBe(true);
     // the widget's own settings stay with it
-    expect(
-      JSON.parse(localStorage.getItem('fb-plotterext-state') ?? '{}')
-    ).toEqual(state);
-    localStorage.removeItem('fb-plotterext-state');
+    expect(config.plotterExtensions.state).toEqual(state);
   });
 
   it('refuses a drop on an occupied cell and keeps the move going', () => {
