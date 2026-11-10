@@ -51,13 +51,13 @@ import { canEndRouteAt } from 'src/app/modules/course/temporary-route';
       }
       @if (point().timeToGo; as ttg) {
         <div style="display:flex;">
-          <div style="font-weight:bold;">TTG:</div>
+          <div style="font-weight:bold;">TTG at SOG:</div>
           <div style="flex: 1 1 auto;text-align:right;">
             {{ app.formatValueForDisplay(ttg, 's') }}
           </div>
         </div>
         <div style="display:flex;">
-          <div style="font-weight:bold;">ETA:</div>
+          <div style="font-weight:bold;">ETA at SOG:</div>
           <div style="flex: 1 1 auto;text-align:right;">{{ arrival() }}</div>
         </div>
       }
