@@ -228,12 +228,12 @@ describe('MobService', () => {
     expect(app.mapMoveRequest()).toBeNull();
   });
 
-  it('sets the destination on Direct-To with no autopilot engaged', async () => {
+  it('sets the destination, with a small arrival circle, on Direct-To with no autopilot engaged', async () => {
     const { mob, app, course } = setup({});
     mob.directTo(alert);
     await Promise.resolve();
     expect(app.showConfirm).not.toHaveBeenCalled();
-    expect(course.setDestination).toHaveBeenCalledWith(MOB);
+    expect(course.setDestination).toHaveBeenCalledWith(MOB, 10);
     expect(app.data.activeWaypoint).toBeNull();
   });
 
@@ -260,7 +260,7 @@ describe('MobService', () => {
     });
     mob.directTo(alert);
     expect(app.showConfirm).toHaveBeenCalled();
-    expect(course.setDestination).toHaveBeenCalledWith(MOB);
+    expect(course.setDestination).toHaveBeenCalledWith(MOB, 10);
   });
 
   it('leaves the course alone when the user cancels', () => {

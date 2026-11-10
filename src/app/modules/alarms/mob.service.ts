@@ -10,6 +10,13 @@ import { AlertData } from './components/alert.component';
 import { NotificationManager } from './notification-manager';
 import { mobBox } from './mob';
 
+/**
+ * Arrival circle for a MOB destination, in metres. The usual one (100 m by
+ * default) would sound the arrival alarm as soon as Direct-To is pressed
+ * near the MOB, and long before the boat reaches the person.
+ */
+const MOB_ARRIVAL_CIRCLE = 10;
+
 /** How long after the server's answer the MOB this display raised may still move its chart. */
 const RAISE_ECHO_MS = 10000;
 
@@ -120,7 +127,7 @@ export class MobService {
     const position = { latitude: at[1], longitude: at[0] };
     const go = async () => {
       // the waypoint stays the destination until the server takes the MOB
-      if (await this.course.setDestination(position)) {
+      if (await this.course.setDestination(position, MOB_ARRIVAL_CIRCLE)) {
         this.app.data.activeWaypoint = null;
       }
     };

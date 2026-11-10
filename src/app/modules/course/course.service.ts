@@ -110,10 +110,14 @@ export class CourseService {
   /**
    * @description Set active destintation
    * @param value resource HREF or Signal K position object
+   * @param arrivalCircle radius in metres; the setting when left out
    * @returns Whether the server accepted it; a rejection has already been
    * reported to the user.
    */
-  public async setDestination(value: SKPosition | string): Promise<boolean> {
+  public async setDestination(
+    value: SKPosition | string,
+    arrivalCircle = this.app.config.course.arrivalCircle
+  ): Promise<boolean> {
     let v: PointDestination;
     if (typeof value === 'string') {
       //href
@@ -128,9 +132,7 @@ export class CourseService {
           this.app.skApiVersion,
           'self',
           'navigation/course/destination',
-          Object.assign(v, {
-            arrivalCircle: this.app.config.course.arrivalCircle
-          })
+          Object.assign(v, { arrivalCircle })
         )
       );
       return true;
