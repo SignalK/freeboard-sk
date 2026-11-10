@@ -698,7 +698,9 @@ export class WaypointDialog {
         axis,
         deleting
       );
-      if (deleting && masked.text === this.shownText[axis]) {
+      // A Backspace that only hit a mark takes the digit before it. A forward
+      // Delete on a mark leaves the text as it is.
+      if (kind.includes('Backward') && masked.text === this.shownText[axis]) {
         const dropped = dropDigitBefore(masked.text, masked.caret);
         masked = maskAngle(dropped.text, dropped.caret, format, axis, true);
       }

@@ -238,6 +238,19 @@ describe('waypoint dialog position entry', () => {
     expect(save(fixture, close)).toEqual([3.123456789, -47.987654321]);
   });
 
+  it('leaves the text alone on a forward Delete over a mark', async () => {
+    const { fixture } = await open([0, 47.6375], 'DMdH');
+    const [lat] = positionInputs(fixture);
+    lat.focus();
+    lat.value = `47 38.250'`; // the browser removed the degree mark
+    lat.setSelectionRange(2, 2);
+    lat.dispatchEvent(
+      new InputEvent('input', { inputType: 'deleteContentForward' })
+    );
+    fixture.detectChanges();
+    expect(lat.value).toBe(`47° 38.250'`);
+  });
+
   it('moves the list to a hemisphere letter typed after the value', async () => {
     const { fixture, close } = await open([0, 0]);
     const [lat] = positionInputs(fixture);
