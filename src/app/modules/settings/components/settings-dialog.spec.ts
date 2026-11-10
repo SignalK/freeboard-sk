@@ -46,6 +46,10 @@ describe('settings dialog — note details option placement', () => {
   let dialog: HTMLElement;
   let settings: ReturnType<typeof defaultConfig>;
   let applied: number;
+  let radarApi: boolean;
+  let keptRadarChoices: Array<
+    Partial<ReturnType<typeof defaultConfig>['radars']>
+  >;
   const trackSource = signal<TrackSource | null>(null);
   const unitPreferences = signal<SKServerUnitPrefs | undefined>(undefined);
 
@@ -66,6 +70,8 @@ describe('settings dialog — note details option placement', () => {
     trackSource.set(null);
     unitPreferences.set(undefined);
     applied = 0;
+    radarApi = false;
+    keptRadarChoices = [];
 
     const facadeStub = {
       settings,
@@ -85,10 +91,13 @@ describe('settings dialog — note details option placement', () => {
         resolveTrailSource(settings.vessels.trailSource, trackSource()) ===
         'server',
       data: initData(),
-      featureFlags: () => ({ radarApi: false }),
+      featureFlags: () => ({ radarApi }),
       uiCtrl: () => ({ radarLayer: false }),
       serverConfig: { unitPreferences },
       alignUnitPrefs: (): void => undefined,
+      keepRadarChoice: (
+        choice: Partial<ReturnType<typeof defaultConfig>['radars']>
+      ) => keptRadarChoices.push(choice),
       lineDashMap: new Map([['none', 'none']]),
       formatLineDashArray: (): null => null
     } as unknown as AppFacade;
@@ -334,6 +343,35 @@ describe('settings dialog — note details option placement', () => {
       await slideTo(96);
       expect(settings.vessels.trailDuration).toBe(96);
       expect(lengthLabel()).toBe('96 hrs');
+    });
+  });
+
+  describe('radar range circle colour', () => {
+    const colorInput = () =>
+      dialog.querySelector<HTMLInputElement>('input[type="color"]');
+
+    it('can be chosen only while the range circles are drawn', async () => {
+      radarApi = true;
+      settings.radars.rings = false;
+      fixture.detectChanges();
+      await selectTab('Radar');
+      expect(colorInput()?.disabled).toBe(true);
+
+      settings.radars.rings = true;
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(colorInput()?.disabled).toBe(false);
+    });
+
+    it('keeps the chosen colour through a settings load, and persists', () => {
+      settings.radars.ringColor = '#ff0000';
+      const before = applied;
+
+      fixture.componentInstance.onRingColor();
+
+      expect(keptRadarChoices).toEqual([{ ringColor: '#ff0000' }]);
+      expect(applied).toBeGreaterThan(before);
     });
   });
 

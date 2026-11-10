@@ -1638,6 +1638,18 @@
                     Draw range circles at the radar range while it transmits
                   </mat-checkbox>
                 </div>
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: 140px">
+                    <mat-label>Range circle color</mat-label>
+                    <input
+                      matInput
+                      type="color"
+                      [(ngModel)]="facade.settings.radars.ringColor"
+                      [disabled]="!facade.settings.radars.rings"
+                      (change)="onRingColor()"
+                    />
+                  </mat-form-field>
+                </div>
               </div>
             </mat-card>
           </div>
