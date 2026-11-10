@@ -51,19 +51,18 @@ import { MobService } from '../mob.service';
     <mat-card appearance="outlined">
       <div class="alert-list-main mat-app-background" cdkDrag>
         <div class="title" cdkDragHandle>
-          @if (app.featureFlags().notificationApi) {
-            <div>
-              <button
-                class="button-warn"
-                mat-raised-button
-                matTooltip="Raise Alarm"
-                [matMenuTriggerFor]="alarmsmenu"
-              >
-                <mat-icon>warning</mat-icon>
-                Raise
-              </button>
-            </div>
-          }
+          <!-- a MOB raised here is kept on this display when the server cannot take it -->
+          <div>
+            <button
+              class="button-warn"
+              mat-raised-button
+              matTooltip="Raise Alarm"
+              [matMenuTriggerFor]="alarmsmenu"
+            >
+              <mat-icon>warning</mat-icon>
+              Raise
+            </button>
+          </div>
           <div
             style="flex: 1 1 auto;
             font-size: 14pt;
