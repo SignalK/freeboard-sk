@@ -2925,7 +2925,15 @@ export class PlotterExtensionService {
         if (!Object.keys(ext).length) delete store[extension];
       }
     }
-    localStorage.setItem(DEVICE_STATE_STORAGE_KEY, JSON.stringify(store));
+    try {
+      localStorage.setItem(DEVICE_STATE_STORAGE_KEY, JSON.stringify(store));
+    } catch {
+      // full, or blocked (e.g. a private window): the earlier state stays
+      throw new RpcError("This browser can't keep device state", {
+        code: RPC_ERRORS.INTERNAL_ERROR,
+        reason: 'STORAGE_UNAVAILABLE'
+      });
+    }
   }
 
   private readStore(key: string): ExtensionStateStore {

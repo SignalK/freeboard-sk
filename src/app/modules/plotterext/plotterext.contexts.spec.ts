@@ -369,6 +369,27 @@ describe('PlotterExtensionService iframe contexts', () => {
       });
     });
 
+    it('reports a device store this browser cannot write', async () => {
+      place('inst-1');
+      const client = await connect(attachGauge);
+      const setItem = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementation(() => {
+          throw new DOMException('full', 'QuotaExceededError');
+        });
+      try {
+        const err = await client.state
+          .set({ v: 1 }, { storage: 'device' })
+          .catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(RpcError);
+        expect((err as RpcError).data).toMatchObject({
+          reason: 'STORAGE_UNAVAILABLE'
+        });
+      } finally {
+        setItem.mockRestore();
+      }
+    });
+
     it('keeps device state of unplaced widgets while the settings load', async () => {
       const app = TestBed.inject(AppFacade) as unknown as {
         configReady: boolean;
