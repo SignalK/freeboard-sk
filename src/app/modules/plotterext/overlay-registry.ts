@@ -34,11 +34,13 @@ export const LIVE_FRAME_MIN_INTERVAL_MS = 200;
 /**
  * Animated image overlays (capability `overlays.animated`): the shortest
  * interval ever granted (30 fps), how many overlays animate at once, and the
- * compositing-cost back-off. A smoothed composition cost above
- * {@link BACKOFF_SLOW_SHARE} of the granted interval doubles it; one below
- * {@link BACKOFF_FAST_SHARE} of the halved interval halves it again (the gap
- * between the two keeps it from flip-flopping). Each decision waits for
- * {@link BACKOFF_SETTLE_MS} of samples, so one slow frame never decides.
+ * compositing-cost back-off. The back-off judges each
+ * {@link BACKOFF_SETTLE_MS} window by its compositing share: the time spent
+ * compositing over the window's length. Above {@link BACKOFF_SLOW_SHARE} the
+ * interval doubles; when the share the halved interval would cost stays under
+ * {@link BACKOFF_FAST_SHARE} it halves again (the gap keeps it from
+ * flip-flopping). One slow frame is a small part of a window, so it never
+ * decides alone.
  */
 export const ANIMATED_MIN_INTERVAL_MS = 33;
 export const MAX_ANIMATED_OVERLAYS = 1;
@@ -212,13 +214,17 @@ export class OverlayRegistry {
   private readonly backoff = signal<{ key: string; factor: number } | null>(
     null
   );
-  private frameCost: number | undefined;
+  private windowStart = 0;
+  private windowCost = 0;
   private lastFrameCostAt = -Infinity;
-  private lastBackoffChange = -Infinity;
+  /** Image overlays the map is not drawing (outside their zoom range). */
+  private readonly outOfRange = signal<ReadonlySet<string>>(new Set());
+  /** Image overlays whose map is in a gesture or view animation. */
+  private readonly moving = new Set<string>();
   private persist: (settings: OverlaySettings) => void = () => undefined;
   private configOpener: (entry: OverlayEntry) => void = () => undefined;
-  /** Clock for the live-frame pace; replaceable in tests. */
-  now: () => number = () => Date.now();
+  /** Monotonic clock for the live-frame pace and back-off; replaceable in tests. */
+  now: () => number = () => performance.now();
 
   /** Where the user's show/fade choices are saved. */
   setPersist(fn: (settings: OverlaySettings) => void) {
@@ -296,6 +302,7 @@ export class OverlayRegistry {
     let active = 0;
     let animated = 0;
     const reducedMotion = this.reducedMotion();
+    const outOfRange = this.outOfRange();
     const backoff = this.backoff();
     const factor = (key: string) => (backoff?.key === key ? backoff.factor : 1);
     for (const band of ['aboveCharts', 'aboveResources'] as OverlayBand[]) {
@@ -312,6 +319,7 @@ export class OverlayRegistry {
             pref < LIVE_FRAME_MIN_INTERVAL_MS &&
             e.visible &&
             !e.suspended &&
+            !outOfRange.has(e.key) &&
             !reducedMotion &&
             animated < MAX_ANIMATED_OVERLAYS;
           if (e.animated) animated++;
@@ -331,11 +339,33 @@ export class OverlayRegistry {
   }
 
   /**
+   * Whether the map draws an overlay at the current zoom. One it does not
+   * draw gives up the animation slot.
+   */
+  setInRange(key: string, inRange: boolean) {
+    const now = this.outOfRange();
+    if (now.has(key) !== inRange) return;
+    const next = new Set(now);
+    if (inRange) next.delete(key);
+    else next.add(key);
+    this.outOfRange.set(next);
+  }
+
+  /**
+   * Whether an overlay's map is in a gesture or view animation. Its live
+   * frames are refused (`overlays.throttled`) until the view settles; the
+   * request that follows brings them back.
+   */
+  setMoving(key: string, moving: boolean) {
+    if (moving) this.moving.add(key);
+    else this.moving.delete(key);
+  }
+
+  /**
    * Report how long the map took to composite one frame while an overlay
-   * animates and is drawn. A sustained cost above {@link BACKOFF_SLOW_SHARE}
-   * of the granted interval lengthens it; a low one shortens it again toward
-   * the overlay's own preference. A different overlay animating, or the same
-   * one after a pause, starts the measurement afresh.
+   * animates and is drawn. Each {@link BACKOFF_SETTLE_MS} window is judged by
+   * its compositing share. A different overlay animating, or the same one
+   * after a pause, starts a new window.
    */
   reportFrameCost(ms: number) {
     if (!Number.isFinite(ms) || ms < 0) return;
@@ -346,34 +376,38 @@ export class OverlayRegistry {
     if (backoff?.key !== e.key) {
       backoff = { key: e.key, factor: 1 };
       this.backoff.set(backoff);
-      this.frameCost = undefined;
-      this.lastBackoffChange = t;
+      this.startWindow(t);
     } else if (t - this.lastFrameCostAt > BACKOFF_SETTLE_MS) {
-      this.frameCost = undefined;
-      this.lastBackoffChange = t;
+      this.startWindow(t);
     }
     this.lastFrameCostAt = t;
-    this.frameCost =
-      this.frameCost === undefined ? ms : this.frameCost * 0.8 + ms * 0.2;
-    if (t - this.lastBackoffChange < BACKOFF_SETTLE_MS) return;
+    this.windowCost += ms;
+    const span = t - this.windowStart;
+    if (span < BACKOFF_SETTLE_MS) return;
+    const share = this.windowCost / span;
+    this.startWindow(t);
     const pref = e.preferredLiveInterval!;
     let factor = backoff.factor;
     if (
-      this.frameCost > e.liveInterval * BACKOFF_SLOW_SHARE &&
+      share > BACKOFF_SLOW_SHARE &&
       e.liveInterval < LIVE_FRAME_MIN_INTERVAL_MS
     ) {
       factor *= 2;
     } else if (
       factor > 1 &&
-      this.frameCost < animatedInterval(pref, factor / 2) * BACKOFF_FAST_SHARE
+      (share * e.liveInterval) / animatedInterval(pref, factor / 2) <
+        BACKOFF_FAST_SHARE
     ) {
       factor /= 2;
     } else {
       return;
     }
     this.backoff.set({ key: e.key, factor });
-    this.lastBackoffChange = t;
-    this.frameCost = undefined;
+  }
+
+  private startWindow(t: number) {
+    this.windowStart = t;
+    this.windowCost = 0;
   }
 
   /** Overlays to draw now: shown by the user and within the budget. */
@@ -515,9 +549,11 @@ export class OverlayRegistry {
     return request;
   }
 
-  /** The most recent request per overlay of a runtime — replayed when it subscribes. */
+  /**
+   * The most recent request per overlay of a runtime — replayed when it
+   * subscribes — with the interval granted now, which may have changed since.
+   */
   latestRequestsFor(extension: string, runtime: string): OverlayRequestEvent[] {
-    // with the interval granted now, which may have changed since
     return this.active()
       .filter((e) => e.extension === extension && e.runtime === runtime)
       .flatMap((e) => {
@@ -609,6 +645,10 @@ export class OverlayRegistry {
       );
     }
     if (frame.requestId === undefined) {
+      if (this.moving.has(key)) {
+        frame.image.close();
+        return { accepted: false, reason: 'overlays.throttled' };
+      }
       const t = this.now();
       const last = this.lastLive.get(key);
       if (

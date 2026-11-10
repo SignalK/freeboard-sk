@@ -831,19 +831,25 @@ see *The `overlays.data` capability*) — and saves the user's choices in `confi
   `liveInterval`. It is what `overlay.request` states and what the live-frame
   throttle enforces, and a change to it is emitted as `overlay.state` (which
   carries `liveInterval` for every image overlay); a request replayed to a
-  runtime that subscribes late carries the current grant. The slot goes to the
-  first such overlay in render order whatever the zoom, so one outside its
-  `minZoom`/`maxZoom` holds the slot without drawing. **Back-off:** while an
-  overlay animates and a frame of it is drawn, `watchFrameCost`
+  runtime that subscribes late carries the current grant. The slot goes only
+  to an overlay the map is drawing: `<fb-plugin-overlay>` reports when its
+  overlay leaves or re-enters its `minZoom`/`maxZoom` range (`setInRange`), and
+  the slot passes to the next one. **Gestures:** from `movestart` to
+  `moveend` the layer marks its overlay moving (`setMoving`). Live frames are
+  then refused with `overlays.throttled`, while answers to a request are still
+  taken; the request after the move brings live frames back. **Back-off:**
+  while an overlay animates and a frame of it is drawn, `watchFrameCost`
   (`frame-cost.ts`) times each map composition (`precompose` to `postcompose`,
   skipping gestures and view animations) and reports it with
-  `reportFrameCost`. Only composition is timed, not receiving the frame over
-  the bus. When the smoothed cost exceeds half the granted interval, the
-  interval doubles (up to 200 ms). When it falls under 35% of the halved
-  interval, it halves again toward the preference. Each decision needs
-  `BACKOFF_SETTLE_MS` (2 s) of samples, so no single frame decides. The factor
-  belongs to the animated overlay. Another overlay taking the slot starts at
-  its own preference, and a pause in samples restarts the measurement.
+  `reportFrameCost`. Every `BACKOFF_SETTLE_MS` (2 s) window is judged by its
+  compositing share, the time spent compositing over the window's length. Over
+  half doubles the interval (up to 200 ms). When the share at the halved
+  interval would stay under 35%, it halves back toward the preference. One
+  slow composition is a small part of a window, so it never decides alone. The
+  factor belongs to the animated overlay: another overlay taking the slot
+  starts at its own preference, and a pause in samples starts a new window.
+  Only the main map is timed. Receiving frames over the bus isn't counted,
+  and neither is the second map of the split view, which draws the same frames.
 - **User controls.** The Chart list shows one row per overlay above the chart
   rows (every overlay draws above every chart), with its own *Show in Map*
   checkbox and *Set Opacity* slider. Shown-but-suspended overlays say so. An

@@ -69,7 +69,10 @@ describe('A plugin image overlay in the split view', () => {
                 deliver = sink;
                 return (): void => undefined;
               },
-              clearRequest: (): void => undefined
+              clearRequest: (): void => undefined,
+              setInRange: (): void => undefined,
+              setMoving: (): void => undefined,
+              entry: (): undefined => undefined
             },
             requestOverlayFrame: (...args: unknown[]) => requested.push(args)
           }

@@ -107,7 +107,14 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     };
     this.listenerKeys.push(
       map.on('moveend', viewChanged),
-      map.on('change:size', viewChanged)
+      map.on('change:size', viewChanged),
+      // live frames wait while the view moves (spec: Between frames)
+      map.on('movestart', () =>
+        this.plotterExt.overlays.setMoving(this.overlayKey, true)
+      ),
+      map.on('moveend', () =>
+        this.plotterExt.overlays.setMoving(this.overlayKey, false)
+      )
     );
     // While this overlay animates and is drawn, report what compositing each
     // map frame costs, so the registry can lengthen the interval it grants.
@@ -147,6 +154,8 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
     this.listenerKeys = [];
     this.unregisterSink?.();
     this.plotterExt.overlays.clearRequest(this.overlayKey);
+    this.plotterExt.overlays.setMoving(this.overlayKey, false);
+    this.plotterExt.overlays.setInRange(this.overlayKey, true);
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
       map.removeLayer(this.layer);
@@ -250,6 +259,8 @@ export class PluginOverlayComponent implements OnInit, OnChanges, OnDestroy {
 
   /** Shown once a frame has arrived, and only within the zoom range. */
   private updateVisibility(zoom: number | undefined) {
-    this.layer?.setVisible(this.hasFrame && this.inZoomRange(zoom));
+    const inRange = this.inZoomRange(zoom);
+    this.layer?.setVisible(this.hasFrame && inRange);
+    this.plotterExt.overlays.setInRange(this.overlayKey, inRange);
   }
 }
