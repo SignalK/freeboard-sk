@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { AlertListComponent } from './alert-list.component';
 import { AppFacade } from 'src/app/app.facade';
+import { MobService } from '../mob.service';
 import { NotificationManager } from '../notification-manager';
 
 /**
@@ -35,7 +36,8 @@ describe('AlertListComponent — drag handle', () => {
             config: { display: { muteSound: false } }
           }
         },
-        { provide: NotificationManager, useValue: {} }
+        { provide: NotificationManager, useValue: {} },
+        { provide: MobService, useValue: {} }
       ]
     });
   });

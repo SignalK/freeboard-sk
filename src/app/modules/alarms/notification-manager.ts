@@ -4,11 +4,12 @@ import { firstValueFrom } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
   ALARM_METHOD,
+  ALARM_STATE,
   NotificationMessage,
   PathValue,
   SKNotification
 } from '../../types/stream';
-import { CpaPositions, Position } from 'src/app/types';
+import { CpaPositions, Position, SKPosition } from 'src/app/types';
 import { AppFacade } from 'src/app/app.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { AlertData, AlertProperties } from './components/alert.component';
@@ -20,6 +21,13 @@ import { AlertPropertiesModal } from './components/alert-properties-modal';
 const BUDDY_MESSAGE_MS = 10000;
 
 type AlertItems = Array<[string, AlertData]>;
+
+/**
+ * What became of a raised alarm: the id the server gave it, or `refused` when
+ * the server would not take it from this user, as on a display nobody is
+ * logged in to. Null when it failed otherwise; the error has been reported.
+ */
+export type RaiseResult = { id: string } | 'refused' | null;
 
 type AlertFlag = 'acknowledged' | 'silenced';
 
@@ -592,12 +600,11 @@ export class NotificationManager {
   /**
    * @description Raise Alarm on server
    * @param path Alarm type to raise
-   * @returns The id of the notification the server raised, or null
    */
   public async raiseServerAlarm(
     alarmType: string,
     message?: string
-  ): Promise<string | null> {
+  ): Promise<RaiseResult> {
     if (!this.app.featureFlags().notificationApi) {
       return null;
     }
@@ -607,12 +614,53 @@ export class NotificationManager {
           message: message
         })
       );
-      const id = (r as { id?: string }).id ?? null;
+      const id = (r as { id?: string }).id;
       this.app.debug(`MOB Alarm raised (${id})`);
-      return id;
+      return id ? { id } : null;
     } catch (err) {
+      if (isRefused(err as HttpErrorResponse)) {
+        return 'refused';
+      }
       this.app.parseHttpErrorResponse(err as HttpErrorResponse);
       return null;
+    }
+  }
+
+  /**
+   * Show a MOB the server refused on this display alone, so the crew still
+   * get its card and marker. It lasts until it is ended here.
+   * @returns The local alert's id
+   */
+  public addLocalMob(position: SKPosition | null, createdAt: number): string {
+    const id = `local-${createdAt}`;
+    const alert: AlertData = {
+      id,
+      path: `notifications.mob.${id}`,
+      priority: ALARM_STATE.emergency,
+      message: 'Person Overboard!',
+      sound: false,
+      visual: true,
+      properties: position ? { position } : {},
+      icon: {},
+      type: 'mob',
+      acknowledged: false,
+      silenced: false,
+      canAcknowledge: false,
+      canSilence: false,
+      canCancel: true,
+      createdAt,
+      local: true
+    };
+    alert.icon = getAlertIcon(alert);
+    this.alertMap.set(alert.path, alert);
+    this.emitSignals();
+    return id;
+  }
+
+  /** End a MOB shown on this display alone. */
+  public removeLocalMob(alert: AlertData) {
+    if (alert.local && this.alertMap.delete(alert.path)) {
+      this.emitSignals();
     }
   }
 

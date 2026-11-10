@@ -35,6 +35,12 @@ import { AlertData } from './alert.component';
           </span>
         }
       </div>
+      @if (alert().local) {
+        <div class="mob-local">
+          Only on this display. The other displays get a MOB only from a display
+          that is logged in.
+        </div>
+      }
       <div class="mob-actions">
         @if (position()) {
           <button mat-raised-button (click)="mob.zoomTo(alert())">
@@ -76,6 +82,9 @@ import { AlertData } from './alert.component';
         flex-wrap: wrap;
         gap: 4px 16px;
         font-size: 1.1em;
+      }
+      .mob-local {
+        font-style: italic;
       }
       .mob-actions {
         display: flex;

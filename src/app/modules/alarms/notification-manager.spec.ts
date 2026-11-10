@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Subject } from 'rxjs';
@@ -727,6 +728,41 @@ describe('NotificationManager alert actions', () => {
 
     expect(shown(mgr).silenced).toBe(false);
     expect(errors).toEqual([failure]);
+  });
+
+  it('returns the id the server gives a raised MOB', async () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+    posts[0].response.next({ state: 'COMPLETED', statusCode: 200, id: ID });
+    posts[0].response.complete();
+    expect(await raised).toEqual({ id: ID });
+  });
+
+  it('says a MOB was refused, without an error, when nobody is logged in', async () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+    posts[0].response.error(new HttpErrorResponse({ status: 401 }));
+    expect(await raised).toBe('refused');
+    expect(errors).toEqual([]);
+  });
+
+  it('shows a MOB kept on this display until it is ended there', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const at = Date.UTC(2026, 10, 9, 12);
+    const id = mgr.addLocalMob({ latitude: -18.1, longitude: 178.4 }, at);
+    const [[, alert]] = mgr.mobAlerts();
+    expect(alert).toMatchObject({
+      id,
+      type: 'mob',
+      local: true,
+      createdAt: at,
+      canCancel: true,
+      canAcknowledge: false,
+      properties: { position: { latitude: -18.1, longitude: 178.4 } }
+    });
+
+    mgr.removeLocalMob(alert);
+    expect(mgr.mobAlerts()).toEqual([]);
   });
 });
 

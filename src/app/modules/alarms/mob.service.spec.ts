@@ -9,7 +9,7 @@ import { SplitViewService } from 'src/app/modules/map/split-view/split-view.serv
 import { CourseService } from '../course';
 import { AlertData } from './components/alert.component';
 import { MobService } from './mob.service';
-import { NotificationManager } from './notification-manager';
+import { NotificationManager, RaiseResult } from './notification-manager';
 
 const MOB = { latitude: -18.1, longitude: 178.4 };
 
@@ -19,6 +19,7 @@ function setup(opts: {
   engaged?: boolean;
   confirm?: { ok: boolean } | null;
   accepted?: boolean;
+  refused?: boolean;
 }) {
   const app = {
     data: {
@@ -41,7 +42,11 @@ function setup(opts: {
   const mobAlerts = signal<AlertItems>([]);
   const notiMgr = {
     mobAlerts,
-    raiseServerAlarm: vi.fn(() => Promise.resolve('m1')),
+    raiseServerAlarm: vi.fn((): Promise<RaiseResult> =>
+      Promise.resolve(opts.refused ? 'refused' : { id: 'm1' })
+    ),
+    addLocalMob: vi.fn(() => 'local-1'),
+    removeLocalMob: vi.fn(),
     cancelServerAlarm: vi.fn()
   };
   TestBed.configureTestingModule({
@@ -81,6 +86,42 @@ describe('MobService', () => {
       'Person Overboard!'
     );
     expect(course.setDestination).not.toHaveBeenCalled();
+  });
+
+  it('keeps a MOB the server refuses on this display, where the vessel was', async () => {
+    const { mob, notiMgr } = setup({ refused: true });
+    const pressedAt = Date.now();
+    await mob.raise();
+    expect(notiMgr.addLocalMob).toHaveBeenCalledWith(
+      { latitude: -18.15, longitude: 178.45 },
+      expect.any(Number)
+    );
+    const [, at] = notiMgr.addLocalMob.mock.calls[0] as unknown as [
+      unknown,
+      number
+    ];
+    expect(at).toBeGreaterThanOrEqual(pressedAt);
+  });
+
+  it('zooms to a refused MOB once it is on this display', async () => {
+    const { mob, app, mobAlerts } = setup({ refused: true });
+    await mob.raise();
+    mobAlerts.set([
+      [
+        'notifications.mob.local-1',
+        { ...mobAlert('local-1'), local: true } as AlertData
+      ]
+    ]);
+    TestBed.tick();
+    expect(app.mapMoveRequest()).not.toBeNull();
+  });
+
+  it('ends a MOB kept on this display there, not on the server', () => {
+    const { mob, notiMgr } = setup({ confirm: { ok: true } });
+    const local = { ...alert, local: true };
+    mob.end(local);
+    expect(notiMgr.removeLocalMob).toHaveBeenCalledWith(local);
+    expect(notiMgr.cancelServerAlarm).not.toHaveBeenCalled();
   });
 
   it('zooms to the MOB it raised once the server reports it', async () => {

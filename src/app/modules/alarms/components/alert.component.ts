@@ -51,6 +51,8 @@ export interface AlertData {
   canSilence?: boolean;
   canCancel?: boolean;
   createdAt: number;
+  /** Kept on this display only: the server refused it (a MOB without login). */
+  local?: boolean;
 }
 
 const SoundFiles: Partial<Record<ALARM_STATE, string>> = {

@@ -48,6 +48,10 @@ export class MobService {
    * the server places it where the vessel is now, which is not where a
    * playback shows the vessel. The other displays get the alarm but keep the
    * view they are navigating on.
+   *
+   * A server that refuses it, on a display nobody is logged in to, still
+   * leaves the MOB on this display, where the vessel was at the press. It is
+   * not sent later: the server would place it where the vessel is then.
    */
   async raise() {
     // a second press before the server answers would raise a second MOB
@@ -56,16 +60,25 @@ export class MobService {
     }
     this.raising = true;
     this.zoomPending = null;
+    const pressedAt = Date.now();
+    const vessel = this.vesselPosition();
     try {
-      const id = await this.notiMgr.raiseServerAlarm(
+      const raised = await this.notiMgr.raiseServerAlarm(
         'mob',
         'Person Overboard!'
       );
-      if (!id) {
+      if (raised === 'refused') {
+        const id = this.notiMgr.addLocalMob(
+          vessel ? { latitude: vessel[1], longitude: vessel[0] } : null,
+          pressedAt
+        );
+        this.zoomPending = { id, until: Date.now() + RAISE_ECHO_MS };
+      } else if (raised) {
+        // the notification may arrive before the server's answer to the request
+        this.zoomPending = { id: raised.id, until: Date.now() + RAISE_ECHO_MS };
+      } else {
         return;
       }
-      // the notification may arrive before the server's answer to the request
-      this.zoomPending = { id, until: Date.now() + RAISE_ECHO_MS };
       this.onMobAlerts(this.notiMgr.mobAlerts().map(([, a]) => a));
     } finally {
       this.raising = false;
@@ -140,7 +153,12 @@ export class MobService {
         'CANCEL'
       )
       .subscribe((res: { ok: boolean } | null) => {
-        if (res?.ok) {
+        if (!res?.ok) {
+          return;
+        }
+        if (alert.local) {
+          this.notiMgr.removeLocalMob(alert);
+        } else {
           this.notiMgr.cancelServerAlarm(alert);
         }
       });

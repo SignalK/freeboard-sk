@@ -76,6 +76,12 @@ describe('MobReadoutComponent', () => {
     expect(text(f)).not.toContain('No MOB position');
   });
 
+  it('says a MOB kept on this display is not on the others', () => {
+    expect(text(mount({ local: true }))).toContain('Only on this display');
+    TestBed.resetTestingModule();
+    expect(text(mount({}))).not.toContain('Only on this display');
+  });
+
   it('ignores a position without a latitude', () => {
     const f = mount({
       properties: { position: { longitude: 178.4 } }
