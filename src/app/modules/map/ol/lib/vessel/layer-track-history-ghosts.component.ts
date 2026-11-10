@@ -20,7 +20,8 @@ import { MapImageRegistry } from '../map-image-registry.service';
 import { selfVesselIcon } from './layer-vessel.component';
 import {
   DEFAULT_OWN_VESSEL_ICON,
-  OwnVesselIconType
+  OwnVesselIconType,
+  aisVesselStyleId
 } from 'src/app/modules/icons/vessels';
 import type { TrackHistoryGhost } from 'src/app/modules/skstream/track-history.service';
 
@@ -98,10 +99,8 @@ export class TrackHistoryGhostLayerComponent
     if (g.context === 'self') {
       return selfVesselIcon(this.mapImages, this.iconScale, this.iconType);
     }
-    const shipClass =
-      typeof g.typeId === 'number'
-        ? Math.abs(Math.floor(g.typeId / 10) * 10)
-        : 'default';
-    return this.mapImages.getVessel(shipClass, false).clone();
+    const styleId =
+      typeof g.typeId === 'number' ? aisVesselStyleId(g.typeId) : 'default';
+    return this.mapImages.getVessel(styleId, false).clone();
   }
 }

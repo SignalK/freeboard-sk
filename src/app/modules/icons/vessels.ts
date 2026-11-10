@@ -77,6 +77,17 @@ export const VesselAisIcons: AppIconSet = {
 // gets its own icon instead of the one its tens bucket would give it.
 export const AIS_FISHING_TYPE_ID = 30;
 
+/**
+ * @description The AIS_TYPE_IDS / AIS_MOORED_STYLE_IDS key for an AIS ship type,
+ * so every map layer draws a vessel type alike.
+ * @param typeId AIS shipType
+ * @returns 'fishing' for type 30, otherwise the type rounded down to the tens
+ */
+export const aisVesselStyleId = (typeId: number): number | string =>
+  typeId === AIS_FISHING_TYPE_ID
+    ? 'fishing'
+    : Math.abs(Math.floor(typeId / 10) * 10);
+
 export const AIS_TYPE_IDS: Record<string, string> = {
   10: 'ais_active',
   20: 'ais_active',
