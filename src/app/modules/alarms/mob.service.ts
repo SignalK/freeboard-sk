@@ -56,8 +56,8 @@ export class MobService {
    * playback shows the vessel. The other displays get the alarm but keep the
    * view they are navigating on.
    *
-   * A server that refuses it, on a display nobody is logged in to, still
-   * leaves the MOB on this display, where the vessel was at the press. It is
+   * A MOB the server does not take (nobody logged in, no Notifications API,
+   * no connection) is still kept on this display, where the vessel was at the press. It is
    * not sent later: the server would place it where the vessel is then.
    */
   async raise() {
@@ -74,17 +74,15 @@ export class MobService {
         'mob',
         'Person Overboard!'
       );
-      if (raised === 'refused') {
+      if (raised) {
+        // the notification may arrive before the server's answer to the request
+        this.zoomPending = { id: raised.id, until: Date.now() + RAISE_ECHO_MS };
+      } else {
         const id = this.notiMgr.addLocalMob(
           vessel ? { latitude: vessel[1], longitude: vessel[0] } : null,
           pressedAt
         );
         this.zoomPending = { id, until: Date.now() + RAISE_ECHO_MS };
-      } else if (raised) {
-        // the notification may arrive before the server's answer to the request
-        this.zoomPending = { id: raised.id, until: Date.now() + RAISE_ECHO_MS };
-      } else {
-        return;
       }
       this.onMobAlerts(this.notiMgr.mobAlerts().map(([, a]) => a));
     } finally {

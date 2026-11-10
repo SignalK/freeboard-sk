@@ -83,6 +83,12 @@ describe('NotificationManager alert properties (#755)', () => {
     notifications.next(msg);
   };
 
+  it('does not raise a MOB on a server without the Notifications API', async () => {
+    app.featureFlags.set({ notificationApi: false });
+    const mgr = TestBed.inject(NotificationManager);
+    expect(await mgr.raiseServerAlarm('mob', 'Person Overboard!')).toBeNull();
+  });
+
   it('carries the notification position into the alert properties', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit(
@@ -741,12 +747,21 @@ describe('NotificationManager alert actions', () => {
     expect(await raised).toEqual({ id: ID });
   });
 
-  it('says a MOB was refused, without an error, when nobody is logged in', async () => {
+  it('says a MOB was not taken, without an error, when nobody is logged in', async () => {
     const mgr = TestBed.inject(NotificationManager);
     const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
     posts[0].response.error(new HttpErrorResponse({ status: 401 }));
-    expect(await raised).toBe('refused');
+    expect(await raised).toBeNull();
     expect(errors).toEqual([]);
+  });
+
+  it('reports any other failure to raise a MOB', async () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+    const failure = new HttpErrorResponse({ status: 500 });
+    posts[0].response.error(failure);
+    expect(await raised).toBeNull();
+    expect(errors).toEqual([failure]);
   });
 
   it('shows a MOB kept on this display until it is ended there', () => {

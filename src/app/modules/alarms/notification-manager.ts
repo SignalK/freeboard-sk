@@ -58,11 +58,13 @@ const BUDDY_MESSAGE_MS = 10000;
 type AlertItems = Array<[string, AlertData]>;
 
 /**
- * What became of a raised alarm: the id the server gave it, or `refused` when
- * the server would not take it from this user, as on a display nobody is
- * logged in to. Null when it failed otherwise; the error has been reported.
+ * What became of a raised alarm: the id the server gave it, or null when the
+ * server did not take it. That is the case on a display nobody is logged in
+ * to, on a server without the Notifications API (or before Freeboard has
+ * found it), and when the request fails; only the last is reported as an
+ * error.
  */
-export type RaiseResult = { id: string } | 'refused' | null;
+export type RaiseResult = { id: string } | null;
 
 type AlertFlag = 'acknowledged' | 'silenced';
 
@@ -658,16 +660,15 @@ export class NotificationManager {
       this.app.debug(`MOB Alarm raised (${id})`);
       return id ? { id } : null;
     } catch (err) {
-      if (isRefused(err as HttpErrorResponse)) {
-        return 'refused';
+      if (!isRefused(err as HttpErrorResponse)) {
+        this.app.parseHttpErrorResponse(err as HttpErrorResponse);
       }
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
       return null;
     }
   }
 
   /**
-   * Show a MOB the server refused on this display alone, so the crew still
+   * Show a MOB the server did not take on this display alone, so the crew still
    * get its card and marker. It lasts, across reloads, until it is ended here.
    * @returns The local alert's id
    */

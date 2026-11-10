@@ -701,7 +701,6 @@ export class AppComponent {
       iconClass: 'ob',
       tooltip: 'Person Overboard',
       buttonClass: 'button-warn',
-      disabled: !this.app.featureFlags().notificationApi,
       pinned: true,
       action: () => void this.mob.raise()
     });

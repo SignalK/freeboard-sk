@@ -46,7 +46,7 @@ function setup(opts: {
   const notiMgr = {
     mobAlerts,
     raiseServerAlarm: vi.fn((): Promise<RaiseResult> =>
-      Promise.resolve(opts.refused ? 'refused' : { id: 'm1' })
+      Promise.resolve(opts.refused ? null : { id: 'm1' })
     ),
     addLocalMob: vi.fn(() => 'local-1'),
     removeLocalMob: vi.fn(),
@@ -92,7 +92,7 @@ describe('MobService', () => {
     expect(course.setDestination).not.toHaveBeenCalled();
   });
 
-  it('keeps a MOB the server refuses on this display, where the vessel was', async () => {
+  it('keeps a MOB the server does not take on this display, where the vessel was', async () => {
     const { mob, notiMgr } = setup({ refused: true });
     const pressedAt = Date.now();
     await mob.raise();
@@ -107,7 +107,7 @@ describe('MobService', () => {
     expect(at).toBeGreaterThanOrEqual(pressedAt);
   });
 
-  it('zooms to a refused MOB once it is on this display', async () => {
+  it('zooms to a MOB kept on this display', async () => {
     const { mob, app, mobAlerts } = setup({ refused: true });
     await mob.raise();
     mobAlerts.set([
