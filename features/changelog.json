@@ -170,5 +170,7 @@
   { "feature": "screen-widgets", "pr": 1225, "kind": "enhanced", "date": "2026-11-09", "title": "feat(plotterext): save extension state with the Freeboard settings" },
   { "feature": "screen-widgets", "pr": 1238, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): move a placed widget" },
   { "feature": "extension-panels", "pr": 1270, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): keep state per device with storage: 'device'" },
-  { "feature": "extension-map-layers", "pr": 1271, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): let an image overlay animate at a host-granted rate" }
+  { "feature": "extension-map-layers", "pr": 1271, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): let an image overlay animate at a host-granted rate" },
+  { "feature": "own-vessel-display", "pr": 1253, "kind": "enhanced", "date": "2026-11-10", "title": "feat(map): show the current (set and drift) as an arrow on the own vessel" },
+  { "feature": "own-vessel-display", "pr": 1252, "kind": "enhanced", "date": "2026-11-10", "title": "feat(vessels): hide the wind vectors on the vessel by default" }
 ]
