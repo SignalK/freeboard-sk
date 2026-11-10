@@ -172,5 +172,9 @@
   { "feature": "extension-panels", "pr": 1270, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): keep state per device with storage: 'device'" },
   { "feature": "extension-map-layers", "pr": 1271, "kind": "enhanced", "date": "2026-11-10", "title": "feat(plotterext): let an image overlay animate at a host-granted rate" },
   { "feature": "own-vessel-display", "pr": 1253, "kind": "enhanced", "date": "2026-11-10", "title": "feat(map): show the current (set and drift) as an arrow on the own vessel" },
-  { "feature": "own-vessel-display", "pr": 1252, "kind": "enhanced", "date": "2026-11-10", "title": "feat(vessels): hide the wind vectors on the vessel by default" }
+  { "feature": "own-vessel-display", "pr": 1252, "kind": "enhanced", "date": "2026-11-10", "title": "feat(vessels): hide the wind vectors on the vessel by default" },
+  { "feature": "vessel-list", "kind": "new", "since": "v1.8.0-rc1", "date": "2019-01-15", "title": "Vessels list: find a vessel by name and choose which vessels the chart shows" },
+  { "feature": "vessel-list", "kind": "enhanced", "since": "v2.9.0", "date": "2024-07-06", "title": "Filter the vessels on the chart by AIS ship type" },
+  { "feature": "vessel-list", "kind": "enhanced", "since": "v2.10.0", "date": "2024-07-25", "title": "IMO Only filter for the vessels on the chart" },
+  { "feature": "vessel-list", "pr": 1230, "kind": "enhanced", "date": "2026-11-09", "title": "feat(ais): say how many vessels the chart shows while a filter hides some" }
 ]
