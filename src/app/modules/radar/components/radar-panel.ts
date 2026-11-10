@@ -159,7 +159,45 @@ export class RadarPanel {
   );
 
   protected rangeDef = computed(() => this.capabilities()?.controls?.['range']);
-  protected rangeValue = computed(() => this.values().get('range')?.value);
+  /** The range the radar is at, or has just been sent, so that quick taps on
+   *  the step buttons each move one range; undefined while the radar reports
+   *  none, as range B of a dual-range radar until it is first set. */
+  private range = computed(() => {
+    const value = this.shownValues().get('range')?.value;
+    return typeof value === 'number' || typeof value === 'string'
+      ? Number(value)
+      : undefined;
+  });
+  protected rangeIndex = computed(() =>
+    this.ranges().findIndex((o) => Number(o.value) === this.range())
+  );
+  protected rangeText = computed(() => {
+    const range = this.range();
+    if (range === undefined) {
+      return '—';
+    }
+    const listed = this.ranges()[this.rangeIndex()];
+    return this.rangeLabel(
+      listed ?? {
+        value: range,
+        label: this.rangeDef()?.descriptions?.[range] ?? ''
+      }
+    );
+  });
+  /** The listed ranges either side of the range, which need not be in the
+   *  list itself: a radar switched to other range units reports its old range
+   *  until the next one is set. Without a range both start at the shortest. */
+  protected rangeSteps = computed(() => {
+    const ranges = this.ranges();
+    const range = this.range();
+    if (range === undefined) {
+      return { shorter: ranges[0], longer: ranges[0] };
+    }
+    return {
+      shorter: ranges.filter((o) => Number(o.value) < range).at(-1),
+      longer: ranges.find((o) => Number(o.value) > range)
+    };
+  });
 
   constructor() {
     // the zone is drawn and edited on the radar layer, so hiding it or the
@@ -270,6 +308,14 @@ export class RadarPanel {
 
   protected setRange(value: number | string) {
     this.send('range', { value });
+  }
+
+  /** One range shorter or longer, as the MaYaRa radar GUI steps. */
+  protected stepRange(step: 'shorter' | 'longer') {
+    const next = this.rangeSteps()[step];
+    if (next) {
+      this.setRange(next.value);
+    }
   }
 
   protected press(c: SectionControl) {

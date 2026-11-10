@@ -165,8 +165,60 @@
     width: 100%;
 }
 
+/* Touch-sized like a chartplotter's range keys: + for a shorter range on the
+   left, - for a longer one on the right, as in the MaYaRa radar GUI. */
 .range {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     margin-top: 4px;
+}
+
+.range-step {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    padding: 12px;
+}
+
+.range-step mat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 32px;
+}
+
+.range-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 4px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.range-value:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.range-name {
+    font-size: 8pt;
+    opacity: 0.7;
+}
+
+.range-text {
+    max-width: 100%;
+    font-size: 18pt;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sections .compact ::ng-deep .mat-mdc-form-field-infix {
