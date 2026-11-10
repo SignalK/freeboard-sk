@@ -48,6 +48,36 @@ describe('splitToolbar', () => {
     expect(ids(splitToolbar(items('a', 'b'), 0).overflow)).toEqual(['a', 'b']);
   });
 
+  describe('with a pinned item (Person Overboard)', () => {
+    const isPinned = (i: ToolbarItem) => i.id === 'mob';
+    const isMore = (i: ToolbarItem) => i.id === 'more';
+
+    it('keeps it apart from the others when everything fits', () => {
+      const split = splitToolbar(items('mob', 'a', 'b'), 3, isMore, isPinned);
+      expect(ids(split.shown)).toEqual(['a', 'b']);
+      expect(ids(split.pinned)).toEqual(['mob']);
+      expect(split.overflowed).toBe(false);
+    });
+
+    it('never moves it into the overflow menu', () => {
+      const split = splitToolbar(
+        items('a', 'b', 'c', 'more', 'mob'),
+        3,
+        isMore,
+        isPinned
+      );
+      expect(ids(split.shown)).toEqual(['a']);
+      expect(ids(split.overflow)).toEqual(['b', 'c']);
+      expect(ids(split.pinned)).toEqual(['mob']);
+    });
+
+    it('stays when nothing else fits', () => {
+      const split = splitToolbar(items('a', 'mob'), 1, isMore, isPinned);
+      expect(ids(split.pinned)).toEqual(['mob']);
+      expect(ids(split.overflow)).toEqual(['a']);
+    });
+  });
+
   describe('with an anchor item (the left toolbar’s More)', () => {
     // Alarms, Layers, Draw, North up, Follow, More, Exit playback, What's New
     const left = items('al', 'la', 'dr', 'nu', 'fo', 'more', 'ex', 'wn');

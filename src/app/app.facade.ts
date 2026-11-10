@@ -333,6 +333,8 @@ export class AppFacade extends InfoService {
     zoom?: number;
     /** Show it on the active pane of the split view, not the main chart. */
     activePane?: boolean;
+    /** The zoom fits something: the split view's pane zooms out to it too. */
+    exactZoom?: boolean;
   } | null>(null);
 
   protected signalk = inject(SignalKClient);

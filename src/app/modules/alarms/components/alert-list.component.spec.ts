@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { AlertListComponent } from './alert-list.component';
 import { AppFacade } from 'src/app/app.facade';
+import { MobService } from '../mob.service';
 import { NotificationManager } from '../notification-manager';
 
 /**
@@ -25,17 +26,21 @@ describe('AlertListComponent — drag handle', () => {
     }
   ];
 
+  let featureFlags: ReturnType<typeof signal<{ notificationApi: boolean }>>;
+
   beforeEach(() => {
+    featureFlags = signal({ notificationApi: true });
     TestBed.configureTestingModule({
       providers: [
         {
           provide: AppFacade,
           useValue: {
-            featureFlags: signal({ notificationApi: true }),
+            featureFlags,
             config: { display: { muteSound: false } }
           }
         },
-        { provide: NotificationManager, useValue: {} }
+        { provide: NotificationManager, useValue: {} },
+        { provide: MobService, useValue: {} }
       ]
     });
   });
@@ -54,5 +59,16 @@ describe('AlertListComponent — drag handle', () => {
     expect(
       fixture.debugElement.query(By.directive(CdkDrag)).nativeElement
     ).toBe(fixture.nativeElement.querySelector('.alert-list-main'));
+  });
+
+  it('offers Raise on a server without the Notifications API', () => {
+    featureFlags.set({ notificationApi: false });
+    const fixture = TestBed.createComponent(AlertListComponent);
+    fixture.componentRef.setInput('alerts', []);
+    fixture.detectChanges();
+    const labels = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button')
+    ).map((b) => b.textContent?.trim());
+    expect(labels).toContain('warning Raise');
   });
 });

@@ -9,7 +9,8 @@ import {
   signal,
   inject,
   ChangeDetectionStrategy,
-  NgZone
+  NgZone,
+  computed
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +18,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { TimerButtonComponent } from './timer-button.component';
+import { MobReadoutComponent } from './mob-readout.component';
 
 import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
@@ -49,6 +51,8 @@ export interface AlertData {
   canSilence?: boolean;
   canCancel?: boolean;
   createdAt: number;
+  /** Kept on this display only: the server refused it (a MOB without login). */
+  local?: boolean;
 }
 
 const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
@@ -65,15 +69,16 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
     MatButtonModule,
     MatCardModule,
     MatProgressBarModule,
-    TimerButtonComponent
+    TimerButtonComponent,
+    MobReadoutComponent
   ],
   template: `
     @if (app.uiCtrl().alertList || hidden()) {
       <span></span>
     } @else {
-      @if (alert().visual && !alert().acknowledged) {
+      @if (isMob() || (alert().visual && !alert().acknowledged)) {
         <div>
-          @if (!alert().canAcknowledge) {
+          @if (!alert().canAcknowledge && !isMob()) {
             <mat-progress-bar
               mode="determinate"
               [value]="progressValue()"
@@ -100,9 +105,19 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   {{ alert().message }}
                 </div>
               </div>
+              @if (isMob()) {
+                <fb-mob-readout [alert]="alert()"></fb-mob-readout>
+              }
             </mat-card-content>
 
-            <mat-card-actions>
+            <!-- a MOB stays up until it is ended; once there is nothing to acknowledge it has its own actions only -->
+            <mat-card-actions
+              [style.display]="
+                isMob() && (alert().acknowledged || !alert().canAcknowledge)
+                  ? 'none'
+                  : null
+              "
+            >
               <div style="display:flex;flex-wrap: wrap;">
                 @if (alert().sound && alert().canSilence) {
                   <div style="text-align: left;">
@@ -130,7 +145,8 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                       ACK
                     </button>
                   </div>
-                } @else {
+                } @else if (!isMob()) {
+                  <!-- a MOB card stays up with its rescue actions until it is ended -->
                   <button
                     mat-raised-button
                     matTooltip="Dismiss"
@@ -215,6 +231,7 @@ export class AlertComponent {
   doNotPlaySound = input<boolean>(false); // config setting
 
   hidden = signal<boolean>(false); // alert card is hidden
+  protected isMob = computed(() => this.alert().type === 'mob');
   progressValue = signal<number>(100);
 
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
@@ -253,6 +270,7 @@ export class AlertComponent {
       this.processAudio();
       if (
         !this.timerRef &&
+        !this.isMob() &&
         !['emergency', 'alarm'].includes(this.alert().priority) &&
         !this.showAutoNextPoint
       ) {

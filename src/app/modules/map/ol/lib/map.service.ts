@@ -82,6 +82,11 @@ export class MapService {
     }
   }
 
+  /** The split view's second pane, while it is open. */
+  getSecondaryMap(): Map | undefined {
+    return this.maps.find((m) => this.secondaryMaps.has(m));
+  }
+
   removeMap(map: Map): void {
     this.maps = this.maps.filter((m) => m !== map);
   }

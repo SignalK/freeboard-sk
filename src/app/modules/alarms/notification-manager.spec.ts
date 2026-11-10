@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Subject } from 'rxjs';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationManager } from './notification-manager';
 import { AppFacade } from 'src/app/app.facade';
@@ -81,6 +82,12 @@ describe('NotificationManager alert properties (#755)', () => {
     msg.result = { path, value };
     notifications.next(msg);
   };
+
+  it('does not raise a MOB on a server without the Notifications API', async () => {
+    app.featureFlags.set({ notificationApi: false });
+    const mgr = TestBed.inject(NotificationManager);
+    expect(await mgr.raiseServerAlarm('mob', 'Person Overboard!')).toBeNull();
+  });
 
   it('carries the notification position into the alert properties', () => {
     const mgr = TestBed.inject(NotificationManager);
@@ -292,11 +299,7 @@ describe('NotificationManager alert actions', () => {
   let posts: Array<{ path: string; response: Subject<unknown> }>;
   let errors: unknown[];
 
-  beforeEach(() => {
-    TestBed.resetTestingModule();
-    notifications = new Subject<NotificationMessage>();
-    posts = [];
-    errors = [];
+  const configure = () =>
     TestBed.configureTestingModule({
       providers: [
         NotificationManager,
@@ -333,6 +336,13 @@ describe('NotificationManager alert actions', () => {
         { provide: MatBottomSheet, useValue: {} }
       ]
     });
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    notifications = new Subject<NotificationMessage>();
+    posts = [];
+    errors = [];
+    configure();
   });
 
   const arrive = ({
@@ -727,6 +737,109 @@ describe('NotificationManager alert actions', () => {
 
     expect(shown(mgr).silenced).toBe(false);
     expect(errors).toEqual([failure]);
+  });
+
+  it('returns the id the server gives a raised MOB', async () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+    posts[0].response.next({ state: 'COMPLETED', statusCode: 200, id: ID });
+    posts[0].response.complete();
+    expect(await raised).toEqual({ id: ID });
+  });
+
+  it('says a MOB was not taken, without an error, when nobody is logged in', async () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+    posts[0].response.error(new HttpErrorResponse({ status: 401 }));
+    expect(await raised).toBeNull();
+    expect(errors).toEqual([]);
+  });
+
+  it('gives up on a MOB request the server does not answer in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const mgr = TestBed.inject(NotificationManager);
+      const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+      vi.advanceTimersByTime(3001);
+      expect(await raised).toBeNull();
+      expect(errors).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports any other failure to raise a MOB', async () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const raised = mgr.raiseServerAlarm('mob', 'Person Overboard!');
+    const failure = new HttpErrorResponse({ status: 500 });
+    posts[0].response.error(failure);
+    expect(await raised).toBeNull();
+    expect(errors).toEqual([failure]);
+  });
+
+  it('shows a MOB kept on this display until it is ended there', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const at = Date.UTC(2026, 10, 9, 12);
+    const id = mgr.addLocalMob({ latitude: -18.1, longitude: 178.4 }, at);
+    const [[, alert]] = mgr.mobAlerts();
+    expect(alert).toMatchObject({
+      id,
+      type: 'mob',
+      local: true,
+      createdAt: at,
+      canCancel: true,
+      canAcknowledge: false,
+      properties: { position: { latitude: -18.1, longitude: 178.4 } }
+    });
+
+    mgr.removeLocalMob(alert);
+    expect(mgr.mobAlerts()).toEqual([]);
+  });
+
+  describe('across a reload', () => {
+    const KEY = 'fb-local-mobs';
+    const reload = () => {
+      TestBed.resetTestingModule();
+      configure();
+      return TestBed.inject(NotificationManager);
+    };
+    afterEach(() => localStorage.removeItem(KEY));
+
+    it('keeps a MOB on this display until it is ended there', () => {
+      const at = Date.UTC(2026, 10, 9, 12);
+      TestBed.inject(NotificationManager).addLocalMob(
+        { latitude: -18.1, longitude: 178.4 },
+        at
+      );
+
+      const after = reload();
+      const [[, alert]] = after.mobAlerts();
+      expect(alert).toMatchObject({
+        local: true,
+        createdAt: at,
+        properties: { position: { latitude: -18.1, longitude: 178.4 } }
+      });
+
+      after.removeLocalMob(alert);
+      expect(reload().mobAlerts()).toEqual([]);
+    });
+
+    it('ignores what it cannot read', () => {
+      localStorage.setItem(
+        KEY,
+        JSON.stringify([
+          null,
+          { createdAt: 'x' },
+          { createdAt: 5, position: { latitude: 'a', longitude: 1 } }
+        ])
+      );
+      const [[, alert], ...rest] = reload().mobAlerts();
+      expect(rest).toEqual([]);
+      expect(alert).toMatchObject({ createdAt: 5, properties: {} });
+
+      localStorage.setItem(KEY, '{not json');
+      expect(reload().mobAlerts()).toEqual([]);
+    });
   });
 });
 

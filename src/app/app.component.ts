@@ -69,6 +69,7 @@ import {
   WeatherForecastModal,
   CourseSettingsModal,
   NotificationManager,
+  MobService,
   CourseService,
   SettingsFacade,
   AutopilotService,
@@ -314,6 +315,7 @@ export class AppComponent {
   protected mapInteract = inject(FBMapInteractService);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
+  private mob = inject(MobService);
   protected course = inject(CourseService);
   protected stream = inject(SKStreamFacade);
   protected skres = inject(SKResourceService);
@@ -693,6 +695,16 @@ export class AppComponent {
         action: () => this.openFeatureBrowser()
       });
     }
+    // Last and pinned: away from Alarms, so neither is pressed for the other.
+    items.push({
+      id: 'mob',
+      svgIcon: 'alarm-mob',
+      iconClass: 'ob',
+      tooltip: 'Person Overboard',
+      buttonClass: 'button-warn',
+      pinned: true,
+      action: () => void this.mob.raise()
+    });
     return items;
   }
 
@@ -1974,12 +1986,13 @@ export class AppComponent {
     center: Position;
     zoom?: number;
     activePane?: boolean;
+    exactZoom?: boolean;
   }) {
     // A place to show goes to the active pane, as from the lists, which
     // stops following there. Extensions move the main chart: they don't know
     // about the split.
     if (req.activePane && this.splitView.secondaryActive()) {
-      this.splitView.centerOn(req.center, req.zoom);
+      this.splitView.centerOn(req.center, req.zoom, req.exactZoom);
       return;
     }
     // An explicit reposition outranks follow-vessel mode: turn it off so the
@@ -2794,6 +2807,7 @@ export class AppComponent {
     if (e.action === 'hello') {
       // ** hello message
       this.app.debug(e);
+      this.mob.playback = !!e.playback;
       if (e.playback) {
         this.mode = SKSTREAM_MODE.PLAYBACK;
       } else {

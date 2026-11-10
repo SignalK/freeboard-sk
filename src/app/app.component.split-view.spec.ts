@@ -76,6 +76,7 @@ describe('AppComponent: map buttons with the chart split', () => {
     second.applyMapMove({ center: [23.5, 60.1], activePane: true });
     expect(second.splitView.centerOn).toHaveBeenCalledWith(
       [23.5, 60.1],
+      undefined,
       undefined
     );
     // The main chart keeps following.

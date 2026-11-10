@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { NotificationManager } from 'src/app/modules';
+import { MobService } from 'src/app/modules';
 
 @Component({
   selector: 'pob-button',
@@ -21,11 +21,9 @@ import { NotificationManager } from 'src/app/modules';
   styles: []
 })
 export class POBButtonComponent {
-  private notiMgr = inject(NotificationManager);
-
-  constructor() {}
+  private mob = inject(MobService);
 
   protected raiseAlarm() {
-    this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
+    void this.mob.raise();
   }
 }

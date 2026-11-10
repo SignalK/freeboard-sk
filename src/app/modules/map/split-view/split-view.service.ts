@@ -53,7 +53,13 @@ export type SplitPane = 'main' | 'secondary';
 /** A shared map button's action, for the second pane to apply to its view. */
 export type PaneCommand =
   | { kind: 'zoom'; step: number }
-  | { kind: 'center'; position: Position; zoom?: number };
+  | {
+      kind: 'center';
+      position: Position;
+      zoom?: number;
+      /** Set the zoom even when it zooms out: the view must fit something. */
+      exactZoom?: boolean;
+    };
 
 /** Whether the chart is split in two, and how the second pane is set up. */
 @Injectable({ providedIn: 'root' })
@@ -190,8 +196,8 @@ export class SplitViewService {
     this.commands.next({ kind: 'zoom', step });
   }
 
-  centerOn(position: Position, zoom?: number) {
-    this.commands.next({ kind: 'center', position, zoom });
+  centerOn(position: Position, zoom?: number, exactZoom = false) {
+    this.commands.next({ kind: 'center', position, zoom, exactZoom });
   }
 
   private update(patch: Partial<SplitViewState>, save = true) {

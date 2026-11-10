@@ -483,8 +483,9 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.center.set([...c.position] as Position);
     // A zoom that comes with a place is the least it needs to show (a note
-    // shows only from the notes zoom on): it never zooms the pane out.
-    if (typeof c.zoom === 'number' && c.zoom > this.zoom()) {
+    // shows only from the notes zoom on): it never zooms the pane out, unless
+    // the view has to fit something.
+    if (typeof c.zoom === 'number' && (c.exactZoom || c.zoom > this.zoom())) {
       this.zoom.set(clampZoom(c.zoom));
     }
   }

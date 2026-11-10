@@ -23,6 +23,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { getAlertIcon } from '../../icons';
 import { AlertData } from './alert.component';
 import { NotificationManager } from '../notification-manager';
+import { MobService } from '../mob.service';
 
 @Component({
   selector: 'alert-list',
@@ -50,19 +51,18 @@ import { NotificationManager } from '../notification-manager';
     <mat-card appearance="outlined">
       <div class="alert-list-main mat-app-background" cdkDrag>
         <div class="title" cdkDragHandle>
-          @if (app.featureFlags().notificationApi) {
-            <div>
-              <button
-                class="button-warn"
-                mat-raised-button
-                matTooltip="Raise Alarm"
-                [matMenuTriggerFor]="alarmsmenu"
-              >
-                <mat-icon>warning</mat-icon>
-                Raise
-              </button>
-            </div>
-          }
+          <!-- a MOB raised here is kept on this display when the server cannot take it -->
+          <div>
+            <button
+              class="button-warn"
+              mat-raised-button
+              matTooltip="Raise Alarm"
+              [matMenuTriggerFor]="alarmsmenu"
+            >
+              <mat-icon>warning</mat-icon>
+              Raise
+            </button>
+          </div>
           <div
             style="flex: 1 1 auto;
             font-size: 14pt;
@@ -194,6 +194,7 @@ export class AlertListComponent {
 
   protected app = inject(AppFacade);
   protected notiMgr = inject(NotificationManager);
+  private mob = inject(MobService);
 
   constructor() {}
 
@@ -227,8 +228,11 @@ export class AlertListComponent {
    * @param alarmType Signal K standard alarm
    */
   protected raiseAlarm(alarmType: string) {
-    const msg = alarmType === 'mob' ? 'Person Overboard!' : undefined;
-    this.notiMgr.raiseServerAlarm(alarmType, msg);
+    if (alarmType === 'mob') {
+      void this.mob.raise();
+      return;
+    }
+    void this.notiMgr.raiseServerAlarm(alarmType);
   }
 
   /**

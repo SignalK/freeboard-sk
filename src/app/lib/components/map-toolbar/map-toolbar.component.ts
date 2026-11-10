@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
+  TOOLBAR_ITEM_PITCH,
   ToolbarItem,
   ToolbarTone,
   needsAttention,
@@ -50,7 +51,8 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
   ],
   host: {
     '[class.left]': "side() === 'left'",
-    '[class.right]': "side() === 'right'"
+    '[class.right]': "side() === 'right'",
+    '[style.min-height.px]': 'minSlots() * pitch'
   },
   template: `
     @for (item of split().shown; track item.id) {
@@ -100,6 +102,13 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
             <mat-icon>more_horiz</mat-icon>
           </button>
         }
+      </div>
+    }
+    @for (item of split().pinned; track item.id) {
+      <div class="toolbarItem">
+        <ng-container
+          *ngTemplateOutlet="button; context: { $implicit: item }"
+        ></ng-container>
       </div>
     }
 
@@ -206,9 +215,6 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
         z-index: 4800;
         padding: 5px 2px 2px 2px;
         overflow: hidden;
-        /* Always room for the overflow button, even when widgets squeeze the
-           toolbar to nothing; it then overlaps the Action Button instead. */
-        min-height: 58px;
       }
       :host(.left) {
         left: 0;
@@ -245,8 +251,24 @@ export class MapToolbarComponent {
     equal: sameToolbarItems
   });
 
+  protected readonly pitch = TOOLBAR_ITEM_PITCH;
+
+  /**
+   * Always room for the overflow button and the pinned items, even when
+   * widgets squeeze the toolbar to nothing; it then overlaps the Action
+   * Button instead.
+   */
+  protected readonly minSlots = computed(
+    () => this.stableItems().filter((i) => i.pinned).length + 1
+  );
+
   readonly split = computed(() =>
-    splitToolbar(this.stableItems(), this.slots(), (i) => !!i.overflowAnchor)
+    splitToolbar(
+      this.stableItems(),
+      Math.max(this.slots(), this.minSlots()),
+      (i) => !!i.overflowAnchor,
+      (i) => !!i.pinned
+    )
   );
 
   /** Items that did not fit. A host with an anchor item renders these at the top of its menu. */
