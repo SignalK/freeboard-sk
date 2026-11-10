@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Subject } from 'rxjs';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { NotificationManager } from './notification-manager';
 import { AppFacade } from 'src/app/app.facade';
@@ -293,11 +293,7 @@ describe('NotificationManager alert actions', () => {
   let posts: Array<{ path: string; response: Subject<unknown> }>;
   let errors: unknown[];
 
-  beforeEach(() => {
-    TestBed.resetTestingModule();
-    notifications = new Subject<NotificationMessage>();
-    posts = [];
-    errors = [];
+  const configure = () =>
     TestBed.configureTestingModule({
       providers: [
         NotificationManager,
@@ -334,6 +330,13 @@ describe('NotificationManager alert actions', () => {
         { provide: MatBottomSheet, useValue: {} }
       ]
     });
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    notifications = new Subject<NotificationMessage>();
+    posts = [];
+    errors = [];
+    configure();
   });
 
   const arrive = ({
@@ -763,6 +766,52 @@ describe('NotificationManager alert actions', () => {
 
     mgr.removeLocalMob(alert);
     expect(mgr.mobAlerts()).toEqual([]);
+  });
+
+  describe('across a reload', () => {
+    const KEY = 'fb-local-mobs';
+    const reload = () => {
+      TestBed.resetTestingModule();
+      configure();
+      return TestBed.inject(NotificationManager);
+    };
+    afterEach(() => localStorage.removeItem(KEY));
+
+    it('keeps a MOB on this display until it is ended there', () => {
+      const at = Date.UTC(2026, 10, 9, 12);
+      TestBed.inject(NotificationManager).addLocalMob(
+        { latitude: -18.1, longitude: 178.4 },
+        at
+      );
+
+      const after = reload();
+      const [[, alert]] = after.mobAlerts();
+      expect(alert).toMatchObject({
+        local: true,
+        createdAt: at,
+        properties: { position: { latitude: -18.1, longitude: 178.4 } }
+      });
+
+      after.removeLocalMob(alert);
+      expect(reload().mobAlerts()).toEqual([]);
+    });
+
+    it('ignores what it cannot read', () => {
+      localStorage.setItem(
+        KEY,
+        JSON.stringify([
+          null,
+          { createdAt: 'x' },
+          { createdAt: 5, position: { latitude: 'a', longitude: 1 } }
+        ])
+      );
+      const [[, alert], ...rest] = reload().mobAlerts();
+      expect(rest).toEqual([]);
+      expect(alert).toMatchObject({ createdAt: 5, properties: {} });
+
+      localStorage.setItem(KEY, '{not json');
+      expect(reload().mobAlerts()).toEqual([]);
+    });
   });
 });
 
