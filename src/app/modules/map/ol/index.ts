@@ -45,6 +45,7 @@ import { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-
 import { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 import { CogLineComponent } from './lib/navigation/layer-cog-line.component';
 import { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
+import { CurrentVectorComponent } from './lib/navigation/layer-current-vector.component';
 import { RasterChartLayerComponent } from './lib/charts/layer-raster-chart.component';
 import { VectorChartLayerComponent } from './lib/charts/layer-vector-chart.component';
 import { WmsChartLayerComponent } from './lib/charts/layer-wms-chart.component';
@@ -111,6 +112,7 @@ export { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-
 export { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 export { CogLineComponent } from './lib/navigation/layer-cog-line.component';
 export { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
+export { CurrentVectorComponent } from './lib/navigation/layer-current-vector.component';
 export { RasterChartLayerComponent } from './lib/charts/layer-raster-chart.component';
 export { VectorChartLayerComponent } from './lib/charts/layer-vector-chart.component';
 export { WmsChartLayerComponent } from './lib/charts/layer-wms-chart.component';
@@ -170,6 +172,7 @@ const declarations = [
   RangeCirclesComponent,
   CogLineComponent,
   WindLinesComponent,
+  CurrentVectorComponent,
   RadarComponent,
   PluginOverlayComponent,
   DataOverlayComponent,

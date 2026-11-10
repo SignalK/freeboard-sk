@@ -1252,6 +1252,19 @@ function selectVessel(id: string): SKVessel {
   return vessel;
 }
 
+const CURRENT_KEYS = ['setTrue', 'setMagnetic', 'drift'] as const;
+type CurrentKey = (typeof CURRENT_KEYS)[number];
+const isCurrentKey = (key: string): key is CurrentKey =>
+  (CURRENT_KEYS as readonly string[]).includes(key);
+
+function setCurrentValue(d: SKVessel, key: CurrentKey, value: unknown) {
+  d.current = {
+    ...d.current,
+    [key]: typeof value === 'number' ? value : null
+  };
+  d.currentUpdatedAt = { ...d.currentUpdatedAt, [key]: Date.now() };
+}
+
 // ** process common vessel data and true / magnetic preference **
 export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
   // The value's shape is selected by `path` (a number for speeds, an object
@@ -1280,6 +1293,20 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
       d.performance.beatAngle = value;
     } else if (v.path === 'performance.gybeAngle') {
       d.performance.gybeAngle = value;
+    } else if (v.path === 'navigation.speedThroughWater') {
+      d.stw = value;
+      d.stwUpdatedAt = Date.now();
+    } else if (v.path === 'environment.current') {
+      for (const key of CURRENT_KEYS) {
+        if (value && typeof value[key] !== 'undefined') {
+          setCurrentValue(d, key, value[key]);
+        }
+      }
+    } else if (v.path.startsWith('environment.current.')) {
+      const key = v.path.slice('environment.current.'.length);
+      if (isCurrentKey(key)) {
+        setCurrentValue(d, key, value);
+      }
     }
     // ** course API data
     else if (v.path.startsWith('navigation.course.')) {
@@ -1372,6 +1399,7 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
     d.state = value;
   } else if (v.path === 'navigation.speedOverGround') {
     d.sog = value;
+    d.sogUpdatedAt = Date.now();
   }
   // ** environment sun / mode
   else if (v.path === 'environment.mode') {
@@ -1434,8 +1462,10 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
   // ** cog **
   else if (v.path === 'navigation.courseOverGroundTrue') {
     d.cogTrue = value;
+    d.cogTrueUpdatedAt = Date.now();
   } else if (v.path === 'navigation.courseOverGroundMagnetic') {
     d.cogMagnetic = value;
+    d.cogMagneticUpdatedAt = Date.now();
   }
 
   // ** heading **
