@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import ImageState from 'ol/ImageState';
 import { AsyncSubject } from 'rxjs';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
@@ -9,11 +10,13 @@ import { fromLonLat } from 'ol/proj';
 import { FBRoutes, FBWaypoints, RouteStyle } from 'src/app/types';
 import { SimpleChange } from '@angular/core';
 import { FreeboardRouteLayerComponent } from './layer-routes.component';
-import { MapImageRegistry } from '../map-image-registry.service';
+import {
+  MapImageRegistry,
+  ROUTE_MARKER_START
+} from '../map-image-registry.service';
 import {
   FreeboardWaypointLayerComponent,
   ROUTE_END_HIT_TARGET,
-  ROUTE_FLAG_HIT_TARGET,
   iconHitTarget
 } from './layer-waypoints.component';
 import { drawnTogether, linkedWaypointId } from './route-waypoint-overlap';
@@ -164,13 +167,19 @@ function routeMarkers(
 }
 
 /** Give the waypoint layer a symbol provider overriding only the route end. */
-function endOverride(layer: WaypointLayer, provided: Icon) {
-  Object.assign(layer, {
-    mapImages: Object.assign(new MapImageRegistry(), {
-      getWaypoint: (): null => null,
-      getExternalSymbol: (id: string) => (id === 'route-end' ? provided : null)
-    })
+function endOverride(layer: WaypointLayer, provided: Icon): MapImageRegistry {
+  const registry = Object.assign(new MapImageRegistry(), {
+    getWaypoint: (): null => null,
+    getExternalSymbol: (id: string) => (id === 'route-end' ? provided : null)
   });
+  Object.assign(layer, { mapImages: registry });
+  return registry;
+}
+
+/** Hold a bundled route-end icon unloaded, whatever the test environment does. */
+function unloaded(icon: Icon) {
+  vi.spyOn(icon, 'load').mockImplementation(() => undefined);
+  vi.spyOn(icon, 'getSize').mockReturnValue(null);
 }
 
 /** The styles waypoint `id` is drawn with at `resolution`. */
@@ -192,7 +201,7 @@ function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
 /** Whether waypoint `id` shows a visible icon (not just its hit target). */
 function iconShown(layer: WaypointLayer, id: string, resolution = 10) {
   const img = waypointStyle(layer, id, resolution).getImage();
-  return !!img && img !== ROUTE_END_HIT_TARGET && img !== ROUTE_FLAG_HIT_TARGET;
+  return !!img && img !== ROUTE_END_HIT_TARGET;
 }
 
 function routeGeometry(layer: RouteLayer, id = 'r1') {
@@ -256,11 +265,27 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       [waypoint('wa', A)],
       'flags'
     );
+    // the bundled start flag, as loaded: a 37 px SVG at scale 0.65, anchored
+    // at the foot of its pole
+    const registry = Object.assign(new MapImageRegistry(), {
+      getWaypoint: (): null => null
+    });
+    const flag = registry.getRouteMarker(ROUTE_MARKER_START);
+    vi.spyOn(flag, 'getSize').mockReturnValue([37, 37]);
+    Object.assign(s.waypoints, { mapImages: registry });
+
     const style = waypointStyle(s.waypoints, 'wa');
     const base = s.waypoints.source
       .getFeatureById('waypoint.wa')
       ?.get('baseStyle') as Style;
-    expect(style.getImage()).toBe(ROUTE_FLAG_HIT_TARGET);
+    const img = style.getImage() as Circle;
+    expect(img).toBe(iconHitTarget(flag));
+    // up and to the right of the point, over the flag's cloth
+    const side = 37 * 0.65;
+    const [dx, dy] = img.getDisplacement();
+    expect(dx).toBeCloseTo(side / 2 - 7 * 0.65);
+    expect(dy).toBeCloseTo(37 * 0.65 - side / 2);
+    expect(img.getRadius()).toBeCloseTo(Math.hypot(side, side) / 2);
     expect(style.getText()?.getText()).toBe('wa');
     expect(style.getText()).toBe(base.getText());
   });
@@ -275,13 +300,20 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels'
     });
-    for (const style of ['flags', 'classic'] as RouteStyle[]) {
+    const styles: RouteStyle[] = [
+      'flags',
+      'classic',
+      'chevrons',
+      'chevrons-static'
+    ];
+    for (const style of styles) {
       const s = scene(
         [route('r1', [A, B], linkAll('wa', 'wb'))],
         [waypoint('wa', A), waypoint('wb', B)],
         style
       );
-      endOverride(s.waypoints, provided);
+      const registry = endOverride(s.waypoints, provided);
+      unloaded(registry.getRouteMarker(ROUTE_MARKER_START));
       const atEnd = waypointStyle(s.waypoints, 'wb');
       const img = atEnd.getImage() as Circle;
       expect(img).toBe(iconHitTarget(provided));
@@ -291,11 +323,10 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       expect(img.getRadius()).toBeCloseTo(Math.hypot(24, 24) / 2);
       expect(atEnd.getText()?.getText()).toBe('wb');
 
-      // the start keeps the target for the marker drawn there
+      // the start keeps the target for the marker drawn there: a drawn shape,
+      // or the bundled flag, held here before its image has loaded
       const atStart = waypointStyle(s.waypoints, 'wa');
-      expect(atStart.getImage()).toBe(
-        style === 'flags' ? ROUTE_FLAG_HIT_TARGET : ROUTE_END_HIT_TARGET
-      );
+      expect(atStart.getImage()).toBe(ROUTE_END_HIT_TARGET);
       const base = s.waypoints.source
         .getFeatureById('waypoint.wa')
         ?.get('baseStyle') as Style;
@@ -324,14 +355,122 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       [waypoint('wb', B)],
       'flags'
     );
-    endOverride(s.waypoints, provided);
+    const registry = endOverride(s.waypoints, provided);
+    unloaded(registry.getRouteMarker(ROUTE_MARKER_START));
     const styles = waypointStyles(s.waypoints, 'wb');
     const images = styles.map((st) => st.getImage());
     expect(images).toHaveLength(2);
-    expect(images).toContain(ROUTE_FLAG_HIT_TARGET);
+    expect(images).toContain(ROUTE_END_HIT_TARGET);
     expect(images).toContain(iconHitTarget(provided));
     // one label only
     expect(styles.filter((st) => st.getText()).length).toBe(1);
+  });
+
+  it('sizes the hit target to a provider icon once its image loads', () => {
+    // as MapImageRegistry builds them: no size until the image has loaded
+    const provided = new Icon({
+      src: './custom-end.svg',
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    let onChange: (() => void) | undefined;
+    vi.spyOn(provided, 'load').mockImplementation(() => undefined);
+    vi.spyOn(provided, 'listenImageChange').mockImplementation((l) => {
+      onChange = l as () => void;
+    });
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, provided);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      ROUTE_END_HIT_TARGET
+    );
+    expect(provided.load).toHaveBeenCalledTimes(1);
+    // asking again while it loads doesn't load it again
+    waypointStyle(s.waypoints, 'wb');
+    expect(provided.load).toHaveBeenCalledTimes(1);
+
+    vi.spyOn(provided, 'getSize').mockReturnValue([24, 24]);
+    vi.spyOn(provided, 'getImageState').mockReturnValue(ImageState.LOADED);
+    let changed = 0;
+    s.waypoints.source.on('change', () => changed++);
+    onChange?.();
+    expect(changed).toBe(1);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      iconHitTarget(provided)
+    );
+    expect(iconHitTarget(provided)?.getRadius()).toBeCloseTo(
+      Math.hypot(24, 24) / 2
+    );
+  });
+
+  it('does not wait on an icon that has already failed to load', () => {
+    const failed = new Icon({
+      src: './missing-end.svg',
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    vi.spyOn(failed, 'getImageState').mockReturnValue(ImageState.ERROR);
+    const listen = vi.spyOn(failed, 'listenImageChange');
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, failed);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      ROUTE_END_HIT_TARGET
+    );
+    expect(listen).not.toHaveBeenCalled();
+  });
+
+  it('keeps the centred hit target when a provider icon fails to load', () => {
+    const provided = new Icon({
+      src: './missing-end.svg',
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    let onChange: (() => void) | undefined;
+    vi.spyOn(provided, 'load').mockImplementation(() => undefined);
+    vi.spyOn(provided, 'listenImageChange').mockImplementation((l) => {
+      onChange = l as () => void;
+    });
+    const unlisten = vi
+      .spyOn(provided, 'unlistenImageChange')
+      .mockImplementation(() => undefined);
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, provided);
+    waypointStyle(s.waypoints, 'wb');
+
+    vi.spyOn(provided, 'getImageState').mockReturnValue(ImageState.ERROR);
+    let changed = 0;
+    s.waypoints.source.on('change', () => changed++);
+    onChange?.();
+    expect(unlisten).toHaveBeenCalledWith(onChange);
+    expect(changed).toBe(0);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      ROUTE_END_HIT_TARGET
+    );
+  });
+
+  it('keeps the centred hit target for an icon that loads with no size', () => {
+    const sizeless = new Icon({
+      src: './no-size.svg',
+      anchor: [0, 0],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    vi.spyOn(sizeless, 'getSize').mockReturnValue([0, 0]);
+    expect(iconHitTarget(sizeless)).toBeNull();
   });
 
   it('places a provider icon hit target over an icon anchored at its foot', () => {
@@ -360,9 +499,11 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       routeStyle: new SimpleChange('classic', 'flags', false)
     });
     expect(changed).toBe(1);
-    expect(waypointStyle(s.waypoints, 'wa').getImage()).toBe(
-      ROUTE_FLAG_HIT_TARGET
-    );
+    // the label moves back up above the flag
+    const base = s.waypoints.source
+      .getFeatureById('waypoint.wa')
+      ?.get('baseStyle') as Style;
+    expect(waypointStyle(s.waypoints, 'wa').getText()).toBe(base.getText());
   });
 
   it('skips only the linked intermediate points on a mixed route', () => {

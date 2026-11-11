@@ -8,6 +8,7 @@ import {
 import { Feature } from 'ol';
 import { Style, Text, Circle, Fill, Icon, Stroke } from 'ol/style';
 import { Point } from 'ol/geom';
+import ImageState from 'ol/ImageState';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
@@ -28,21 +29,14 @@ export const ROUTE_END_HIT_TARGET = new Circle({
   radius: 12,
   fill: new Fill({ color: 'rgba(0,0,0,0)' })
 });
-/**
- * The hit target over a route start/end flag, which stands up and to the right
- * of the point (anchored at the foot of its pole), so it is clickable all over.
- */
-export const ROUTE_FLAG_HIT_TARGET = new Circle({
-  radius: 13,
-  displacement: [7, 12],
-  fill: new Fill({ color: 'rgba(0,0,0,0)' })
-});
 const iconHitTargets = new WeakMap<Icon, Circle>();
 
 /**
  * An invisible circle covering the whole of `icon` wherever its anchor places
- * it, for a symbol provider's route start/end marker. Null until the icon's
- * image has loaded and its size is known.
+ * it, for an icon marking a route's start or end (a bundled flag, or a symbol
+ * provider's override). Null until the icon's image has loaded and its size
+ * is known, and for an image that loads with no size (some browsers report an
+ * SVG without width/height as 0 x 0).
  */
 export function iconHitTarget(icon: Icon): Circle | null {
   const cached = iconHitTargets.get(icon);
@@ -51,7 +45,7 @@ export function iconHitTarget(icon: Icon): Circle | null {
   }
   const size = icon.getSize();
   const anchor = icon.getAnchor();
-  if (!size || !anchor) {
+  if (!size?.[0] || !size[1] || !anchor) {
     return null;
   }
   const [sx, sy] = icon.getScaleArray();
@@ -85,6 +79,8 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() routeStyle: RouteStyle = 'flags';
 
   private leaveOverlap?: () => void;
+  /** Route-end icons this layer is waiting on to size their hit targets. */
+  private awaitedIcons?: WeakSet<Icon>;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -155,20 +151,51 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
     );
   }
 
-  /** The hit target over route end `end`'s marker, and whether it is tall. */
+  /**
+   * The hit target over the marker the route layer draws at route end `end`,
+   * and whether that marker is tall. An icon (a bundled flag or a provider's
+   * override) gets a circle sized to it; a drawn shape, the centred circle.
+   */
   private routeEndMarker(end: RouteEnd): { target: Circle; tall: boolean } {
-    const provided = this.mapImages.getExternalSymbol(
-      end === 'start' ? ROUTE_MARKER_START : ROUTE_MARKER_END
+    const icon = this.mapImages.getRouteMarkerFor(
+      end === 'start' ? ROUTE_MARKER_START : ROUTE_MARKER_END,
+      this.routeStyle
     );
-    if (provided) {
-      return {
-        target: iconHitTarget(provided) ?? ROUTE_END_HIT_TARGET,
-        tall: true
-      };
+    if (!icon) {
+      return { target: ROUTE_END_HIT_TARGET, tall: false };
     }
-    return this.routeStyle === 'flags'
-      ? { target: ROUTE_FLAG_HIT_TARGET, tall: true }
-      : { target: ROUTE_END_HIT_TARGET, tall: false };
+    const target = iconHitTarget(icon);
+    if (!target) {
+      this.restyleWhenLoaded(icon);
+    }
+    return { target: target ?? ROUTE_END_HIT_TARGET, tall: true };
+  }
+
+  /**
+   * Re-style the layer once `icon`'s image has loaded, so its hit target can be
+   * sized to it. Nothing else would: this layer never draws the icon itself,
+   * and OL re-runs its style functions only when the source or view changes.
+   */
+  private restyleWhenLoaded(icon: Icon) {
+    // An image that has already loaded (with no size) or failed won't change
+    // again, so a listener on it would never be removed.
+    const settled = [ImageState.LOADED, ImageState.ERROR];
+    this.awaitedIcons ??= new WeakSet();
+    if (this.awaitedIcons.has(icon) || settled.includes(icon.getImageState())) {
+      return;
+    }
+    this.awaitedIcons.add(icon);
+    const onChange = () => {
+      const state = icon.getImageState();
+      if (state === ImageState.LOADED || state === ImageState.ERROR) {
+        icon.unlistenImageChange(onChange);
+        if (state === ImageState.LOADED) {
+          this.source?.changed();
+        }
+      }
+    };
+    icon.listenImageChange(onChange);
+    icon.load();
   }
 
   /** Labels live on each feature's base style; its style is a function. */
