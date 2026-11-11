@@ -163,10 +163,30 @@ function routeMarkers(
     .map((g) => g.getCoordinates());
 }
 
-/** The style waypoint `id` is drawn with at `resolution`. */
-function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
+/** Give the waypoint layer a symbol provider overriding only the route end. */
+function endOverride(layer: WaypointLayer, provided: Icon) {
+  Object.assign(layer, {
+    mapImages: Object.assign(new MapImageRegistry(), {
+      getWaypoint: (): null => null,
+      getExternalSymbol: (id: string) => (id === 'route-end' ? provided : null)
+    })
+  });
+}
+
+/** The styles waypoint `id` is drawn with at `resolution`. */
+function waypointStyles(
+  layer: WaypointLayer,
+  id: string,
+  resolution = 10
+): Style[] {
   const f = layer.source.getFeatureById('waypoint.' + id) as Feature;
-  return f.getStyleFunction()?.(f, resolution) as Style;
+  const s = f.getStyleFunction()?.(f, resolution) as Style | Style[];
+  return Array.isArray(s) ? s : [s];
+}
+
+/** The (first) style waypoint `id` is drawn with at `resolution`. */
+function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
+  return waypointStyles(layer, id, resolution)[0];
 }
 
 /** Whether waypoint `id` shows a visible icon (not just its hit target). */
@@ -245,9 +265,9 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     expect(style.getText()).toBe(base.getText());
   });
 
-  it('covers a provider route-end icon with the hit target in either style', () => {
-    // a centred 24 px provider icon: the bundled flag's target would miss its
-    // lower left
+  it('covers each route end with the hit target for its own marker', () => {
+    // only the end has a provider icon, a centred 24 px one: the bundled
+    // flag's target would miss its lower left
     const provided = new Icon({
       src: './custom-end.svg',
       size: [24, 24],
@@ -258,24 +278,60 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     for (const style of ['flags', 'classic'] as RouteStyle[]) {
       const s = scene(
         [route('r1', [A, B], linkAll('wa', 'wb'))],
-        [waypoint('wa', A)],
+        [waypoint('wa', A), waypoint('wb', B)],
         style
       );
-      Object.assign(s.waypoints, {
-        mapImages: Object.assign(new MapImageRegistry(), {
-          getWaypoint: (): null => null,
-          getExternalSymbol: (id: string) =>
-            id === 'route-end' ? provided : null
-        })
-      });
-      const img = waypointStyle(s.waypoints, 'wa').getImage() as Circle;
+      endOverride(s.waypoints, provided);
+      const atEnd = waypointStyle(s.waypoints, 'wb');
+      const img = atEnd.getImage() as Circle;
       expect(img).toBe(iconHitTarget(provided));
       const [dx, dy] = img.getDisplacement();
       expect(dx).toBeCloseTo(0);
       expect(dy).toBeCloseTo(0);
       expect(img.getRadius()).toBeCloseTo(Math.hypot(24, 24) / 2);
-      expect(waypointStyle(s.waypoints, 'wa').getText()?.getText()).toBe('wa');
+      expect(atEnd.getText()?.getText()).toBe('wb');
+
+      // the start keeps the target for the marker drawn there
+      const atStart = waypointStyle(s.waypoints, 'wa');
+      expect(atStart.getImage()).toBe(
+        style === 'flags' ? ROUTE_FLAG_HIT_TARGET : ROUTE_END_HIT_TARGET
+      );
+      const base = s.waypoints.source
+        .getFeatureById('waypoint.wa')
+        ?.get('baseStyle') as Style;
+      if (style === 'flags') {
+        expect(atStart.getText()).toBe(base.getText());
+      } else {
+        expect(atStart.getText()?.getOffsetY()).toBe(-12);
+      }
     }
+  });
+
+  it('covers every marker at a waypoint shared by several route ends', () => {
+    const provided = new Icon({
+      src: './custom-end.svg',
+      size: [24, 24],
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    // r1 ends at wb and r2 starts there
+    const s = scene(
+      [
+        route('r1', [A, B], linkAll('wa', 'wb')),
+        route('r2', [B, C], linkAll('wb', 'wc'))
+      ],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, provided);
+    const styles = waypointStyles(s.waypoints, 'wb');
+    const images = styles.map((st) => st.getImage());
+    expect(images).toHaveLength(2);
+    expect(images).toContain(ROUTE_FLAG_HIT_TARGET);
+    expect(images).toContain(iconHitTarget(provided));
+    // one label only
+    expect(styles.filter((st) => st.getText()).length).toBe(1);
   });
 
   it('places a provider icon hit target over an icon anchored at its foot', () => {

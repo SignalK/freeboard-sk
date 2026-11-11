@@ -18,7 +18,7 @@ import {
   ROUTE_MARKER_END,
   ROUTE_MARKER_START
 } from '../map-image-registry.service';
-import { isRouteEndAt, joinOverlap } from './route-waypoint-overlap';
+import { RouteEnd, joinOverlap, routeEndsAt } from './route-waypoint-overlap';
 
 /**
  * Drawn in place of the icon at a route's start or end: invisible (OL still
@@ -128,30 +128,47 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
 
   /**
    * The waypoint's style at `resolution`: without its icon where a drawn route
-   * starts or ends on it, so the route's start/end marker shows instead.
+   * starts or ends on it, so the route's start/end marker shows instead. It
+   * keeps an invisible hit target over each such marker, so the waypoint stays
+   * clickable all over it.
    */
-  private styleAt(feature: Feature, resolution: number): Style {
+  private styleAt(feature: Feature, resolution: number): Style | Style[] {
     const style = feature.get('baseStyle') as Style;
     const id = (feature.getId() as string).slice('waypoint.'.length);
     const pos = (feature.getGeometry() as Point).getCoordinates();
     const map = this.mapComponent.getMap();
-    if (!map || !isRouteEndAt(map, id, pos, resolution)) {
+    const ends = map ? routeEndsAt(map, id, pos, resolution) : [];
+    if (!ends.length) {
       return style;
     }
+    const markers = ends.map((end) => this.routeEndMarker(end));
     // A flag (or a provider icon) at the route end is as tall as a waypoint
     // icon, so the waypoint keeps its own label position above it.
-    const provided =
-      this.mapImages.getExternalSymbol(ROUTE_MARKER_START) ??
-      this.mapImages.getExternalSymbol(ROUTE_MARKER_END);
-    if (provided || this.routeStyle === 'flags') {
-      const target = provided
-        ? (iconHitTarget(provided) ?? ROUTE_END_HIT_TARGET)
-        : ROUTE_FLAG_HIT_TARGET;
-      return new Style({ image: target, text: style.getText() ?? undefined });
+    let text = style.getText() ?? undefined;
+    if (markers.every((m) => !m.tall)) {
+      text = text?.clone();
+      text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
     }
-    const text = style.getText()?.clone();
-    text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
-    return new Style({ image: ROUTE_END_HIT_TARGET, text });
+    const targets = [...new Set(markers.map((m) => m.target))];
+    return targets.map(
+      (image, i) => new Style({ image, text: i === 0 ? text : undefined })
+    );
+  }
+
+  /** The hit target over route end `end`'s marker, and whether it is tall. */
+  private routeEndMarker(end: RouteEnd): { target: Circle; tall: boolean } {
+    const provided = this.mapImages.getExternalSymbol(
+      end === 'start' ? ROUTE_MARKER_START : ROUTE_MARKER_END
+    );
+    if (provided) {
+      return {
+        target: iconHitTarget(provided) ?? ROUTE_END_HIT_TARGET,
+        tall: true
+      };
+    }
+    return this.routeStyle === 'flags'
+      ? { target: ROUTE_FLAG_HIT_TARGET, tall: true }
+      : { target: ROUTE_END_HIT_TARGET, tall: false };
   }
 
   /** Labels live on each feature's base style; its style is a function. */
