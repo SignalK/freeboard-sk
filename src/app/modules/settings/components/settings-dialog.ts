@@ -223,6 +223,8 @@ export class SettingsDialog implements OnInit {
     this.dialogRef.close();
   }
 
+  protected resetting = signal(false);
+
   /** confirm, then replace the user's settings with the server's defaults */
   resetToServerDefaults() {
     this.app
@@ -236,7 +238,10 @@ export class SettingsDialog implements OnInit {
         if (!result?.ok) {
           return;
         }
-        if (!(await this.app.resetToServerDefaults())) {
+        this.resetting.set(true);
+        const reset = await this.app.resetToServerDefaults();
+        this.resetting.set(false);
+        if (!reset) {
           this.app.showAlert(
             'Reset settings',
             'The server did not clear your saved settings, so they were kept. Try again later.'

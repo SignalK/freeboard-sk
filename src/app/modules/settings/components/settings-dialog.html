@@ -7,7 +7,9 @@
     <button
       mat-icon-button
       (click)="resetToServerDefaults()"
+      [disabled]="resetting()"
       matTooltip="Reset to server defaults"
+      aria-label="Reset to server defaults"
     >
       <mat-icon>settings_backup_restore</mat-icon>
     </button>
