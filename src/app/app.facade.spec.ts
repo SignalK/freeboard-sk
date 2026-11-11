@@ -935,3 +935,74 @@ describe('AppFacade radar overlay (#1200)', () => {
     expect(storedOverlay()).toBe(false);
   });
 });
+
+describe('AppFacade.resetToServerDefaults', () => {
+  const STORED_CONFIG_KEY = 'freeboard_config';
+
+  const setup = (loggedIn: boolean) => {
+    const client = {
+      get: vi.fn(() => EMPTY),
+      setAppId: vi.fn(),
+      setAppVersion: vi.fn(),
+      isLoggedIn: vi.fn(() => of(loggedIn)),
+      appDataGet: vi.fn(() => of({})),
+      appDataSet: vi.fn(() => of({})),
+      api: { get: vi.fn(() => EMPTY) }
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: client }]
+    });
+    const app = TestBed.inject(AppFacade);
+    const restart = vi.spyOn(app, 'restartApp').mockImplementation(() => {});
+    return { app, client, restart };
+  };
+
+  beforeEach(() =>
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(defaultConfig()))
+  );
+  afterEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+
+  it("drops this browser's settings and restarts", async () => {
+    const { app, client, restart } = setup(false);
+    await app.loadUserConfigfromServer();
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears a logged-in user's settings on the server", async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataSet).toHaveBeenCalledWith('/', {});
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps every setting when the server does not clear the user ones', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataSet.mockReturnValue(throwError(() => new Error('offline')));
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('saves nothing while the reset restarts Freeboard', async () => {
+    const { app, client } = setup(false);
+    await app.loadUserConfigfromServer();
+
+    await app.resetToServerDefaults();
+    app.saveConfig();
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+});

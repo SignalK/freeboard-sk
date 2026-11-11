@@ -221,6 +221,28 @@ export class SettingsDialog implements OnInit {
     this.dialogRef.close();
   }
 
+  /** confirm, then replace the user's settings with the server's defaults */
+  resetToServerDefaults() {
+    this.app
+      .showConfirm(
+        'Discard your settings and start Freeboard with the defaults set on this server?',
+        'Reset settings',
+        'RESET',
+        'CANCEL'
+      )
+      .subscribe(async (result?: { ok: boolean }) => {
+        if (!result?.ok) {
+          return;
+        }
+        if (!(await this.app.resetToServerDefaults())) {
+          this.app.showAlert(
+            'Reset settings',
+            'The server did not clear your saved settings, so they were kept. Try again later.'
+          );
+        }
+      });
+  }
+
   /** apply wakelock state */
   doWakelock(checked: boolean) {
     this.persistModel();

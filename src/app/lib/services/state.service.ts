@@ -101,6 +101,11 @@ export class State {
     }
   }
 
+  //** forget the persisted app config **
+  clearConfig() {
+    this.ls.delete('config');
+  }
+
   //** persist app data **
   saveData(value: unknown = null) {
     if (value) {

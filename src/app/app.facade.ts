@@ -13,7 +13,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subject, finalize } from 'rxjs';
+import { Observable, Subject, finalize, lastValueFrom } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -1249,8 +1249,46 @@ export class AppFacade extends InfoService {
     return this.startConfigKnown && !this.configLoading;
   }
 
+  private resettingConfig = false;
+
+  /**
+   * Drop the settings saved in this browser, and the logged-in user's on the
+   * server, then start afresh: the server's global defaults apply as on a
+   * first visit, the built-in defaults when it has none. Resolves false, with
+   * nothing dropped, when the server does not clear the user's settings,
+   * since those would come back on the next start.
+   */
+  public async resetToServerDefaults(): Promise<boolean> {
+    this.resettingConfig = true;
+    clearTimeout(this.saveCfgTimer);
+    if (this.isLoggedIn()) {
+      const request = this.signalk.appDataSet('/', {});
+      const cleared =
+        !!request &&
+        (await lastValueFrom(request).then(
+          () => true,
+          () => false
+        ));
+      if (!cleared) {
+        this.resettingConfig = false;
+        return false;
+      }
+    }
+    this.clearConfig();
+    this.restartApp();
+    return true;
+  }
+
+  /** reload Freeboard so every part starts from the settings now in force */
+  restartApp() {
+    window.location.reload();
+  }
+
   /** overloaded saveConfig() */
   override saveConfig() {
+    if (this.resettingConfig) {
+      return;
+    }
     if (!this.startConfigKnown || this.configLoading) {
       this.debug('saveConfig: settings still loading, saved once they are.');
       this.configSavePending = true;
