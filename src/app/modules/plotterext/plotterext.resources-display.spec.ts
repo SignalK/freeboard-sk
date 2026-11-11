@@ -47,6 +47,7 @@ describe('PlotterExtensionService resources.display', () => {
     ]);
     const app = {
       config: { selections: { routes: null as string[] | null } },
+      data: { activeRoute: null },
       saveConfig: (): void => undefined
     };
     setChartsVisibility = vi.fn(async () => undefined);
