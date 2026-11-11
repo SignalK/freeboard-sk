@@ -447,6 +447,37 @@ export const TOOLS: ToolDef[] = [
       return hub.call('nightMode.set', params, { session: a.session });
     }
   }),
+  ...(['show', 'hide'] as const).map((verb) =>
+    tool({
+      name: `fsk_${verb}_resources`,
+      description:
+        verb === 'show'
+          ? "Show stored resources in Freeboard-SK in addition to what is already shown — the same as ticking them in the resource list (capability `resources.display`). Ids not fetched yet are accepted, so a resource just created on the server can be shown at once. Types: routes, waypoints, regions, charts; notes turns the whole notes layer on. Does not move the map — follow with fsk_set_view or fsk_fit_bounds."
+          : "Hide stored resources in Freeboard-SK without touching the rest of that type — the same as unticking them in the resource list (capability `resources.display`). Stored resources are not modified. Types: routes, waypoints, regions, charts. Notes can't be hidden one by one: that rejects with resources.typeNotSupported.",
+      inputSchema: withSession(
+        {
+          type: {
+            type: 'string',
+            description:
+              'Resource type: "routes", "waypoints", "regions", "charts" or "notes".'
+          },
+          ids: {
+            type: 'array',
+            items: { type: 'string' },
+            minItems: 1,
+            description: 'Resource ids (the keys of /resources/<type>).'
+          }
+        },
+        ['type', 'ids']
+      ),
+      run: (hub, a: Session & { type: string; ids: string[] }) =>
+        hub.call(
+          `resources.${verb}`,
+          { type: a.type, ids: a.ids },
+          { session: a.session }
+        )
+    })
+  ),
   tool({
     name: 'fsk_apply_resource_group',
     description:

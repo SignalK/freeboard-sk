@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.25.0`) and imports its host entry point
+package; Freeboard depends on it (`^0.26.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -56,7 +56,8 @@ package; Freeboard depends on it (`^0.25.0`) and imports its host entry point
 `widgets`, `panels.iframe`, `panels.state`, `buttons`, `buttons.visibility`,
 `buttons.decorations`, `events.publish`, `state.storage`, `signalk.stream`,
 `signalk.put`, `units`,
-`map`, `resources`, `resources.filter`, `routes`, `charts`, `charts.time`,
+`map`, `resources`, `resources.filter`, `resources.display`, `routes`, `charts`,
+`charts.time`,
 `nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
 `overlays.image`, `overlays.animated`, `overlays.data`, `actions`, `actions.overlay`,
 `map.pick`.
@@ -440,6 +441,52 @@ parseable instant is `charts.badRequest`.
 | `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers to the service and emits `chart.*` events (`emitChartChanges`) |
 | `src/app/modules/skresources/resources.service.ts` | `chartsForHostApi` / `setChartsVisibility` / `setChartsOpacity` / `setChartsOrder` / `setChartsTime` / `chartIsTemporal` |
 | `src/app/lib/chart-time.ts`, `src/app/modules/map/ol/lib/charts/chart-utils.ts` | the time model (timeline, instants) and how an instant is applied to each OpenLayers source |
+
+## The `resources.display` capability
+
+`resources.show` / `resources.hide` change, one resource at a time, the same
+display choice the user makes by ticking or unticking a resource in its list.
+They never touch stored resources; create, edit and delete go through the
+server's resources API, and Freeboard follows the change from the server's
+`resources.*` deltas.
+
+### The display model
+
+Routes, waypoints and regions are displayed through
+`app.config.selections.<type>` (an explicit id list, or `null` = "show all").
+`SKResourceService.showStored` adds ids to the list (a no-op in show-all mode)
+and refreshes, keeping ids it has not fetched yet so a resource an extension has
+just created appears once it arrives. `hideStored` removes ids, first
+materialising show-all mode into an explicit list of what is shown, unless none
+of the ids is shown, in which case show-all is kept so later resources still
+appear. Charts go through `setChartsVisibility`, as `chart.setVisibility` does.
+
+**Notes** have no per-note selection: they are fetched around the map centre and
+drawn above a zoom level. Following the spec's rule for coarser hosts,
+`resources.show` on notes turns the notes layer on (`ui.showNotes`) and
+`resources.hide` is refused.
+
+### Events
+
+No new events. Showing or hiding a route emits `route.visible` /
+`route.hidden` through the selection sync; hiding one also drops its mirror at
+once, pending edits included, as `route.hide` does. Charts emit
+`chart.visibility` as usual.
+
+### Error reasons
+
+`resources.badRequest` (missing or non-string `type`, or `ids` not a non-empty
+array of strings), `resources.typeNotSupported` (any type other than routes,
+waypoints, regions and charts, and `hide` on notes; `data.type` names it),
+`resources.notSupported`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/resource-display-methods.ts` | the `resources.show` / `resources.hide` handlers + param validation |
+| `src/app/modules/plotterext/plotterext.service.ts` | binds them (`setStoredVisible`), drops a hidden route's mirror, turns the notes layer on |
+| `src/app/modules/skresources/resources.service.ts` | `showStored` / `hideStored` on the selection lists |
 
 ## The `nightMode` capability
 
