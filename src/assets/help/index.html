@@ -1855,15 +1855,15 @@
           Freeboard displays vessels with the following icons:
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
-              <img src="../img/ship_red.png" style="width: 12px" alt="" />
+              <img src="../img/vessels/self.png" style="width: 12px" alt="" />
             </div>
             <div>Vessel associated Signal K "self"</div>
           </div>
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
               <img
-                src="../img/vessels/ais_self.png"
-                style="width: 12px"
+                src="../img/vessels/ais_self.svg"
+                style="width: 24px"
                 alt=""
               />
             </div>
@@ -1914,12 +1914,22 @@
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
               <img
+                src="../img/vessels/ais_fishing.svg"
+                style="width: 24px"
+                alt=""
+              />
+            </div>
+            <div>Fishing <i>(AIS type 30)</i></div>
+          </div>
+          <div style="display: flex">
+            <div style="width: 30px; text-align: center">
+              <img
                 src="../img/vessels/ais_active.svg"
                 style="width: 24px"
                 alt=""
               />
             </div>
-            <div>Pleasure <i>(AIS type 30-39)</i></div>
+            <div>Pleasure <i>(AIS type 36-39)</i></div>
           </div>
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
@@ -1939,7 +1949,11 @@
                 alt=""
               />
             </div>
-            <div>Special Vessel <i>(AIS type 50-59)</i></div>
+            <div>
+              Special Vessel <i>(AIS type 31-35, 50-59)</i>: tows, dredgers,
+              dive boats and military vessels, as well as pilot boats, tugs and
+              search &amp; rescue
+            </div>
           </div>
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
@@ -1980,6 +1994,30 @@
               />
             </div>
             <div>Other <i>(AIS type 90-99)</i></div>
+          </div>
+          <div style="display: flex">
+            <div style="width: 30px; text-align: center">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="10"
+                  cy="10"
+                  r="8"
+                  stroke="#ff6f00"
+                  stroke-width="2"
+                  fill="none"
+                />
+              </svg>
+            </div>
+            <div>
+              Radar or camera target
+              <i>(grey when not updated for 20 seconds)</i>. See the Feature
+              Browser &rarr; Radar &amp; Camera Targets.
+            </div>
           </div>
 
           Freeboard provides the ability to de-clutter the screen of vessels in
@@ -2043,15 +2081,11 @@
 
           <div style="display: flex; flex-wrap: wrap">
             <div>
-              <img
-                src="./img/vessels/ais_list.png"
-                style="max-width: 250px"
-                alt=""
-              />
+              <img src="./img/ais_list.png" style="max-width: 250px" alt="" />
             </div>
             <div>
               <img
-                src="./img/vessels/ais_shiptypes.png"
+                src="./img/ais_shiptypes.png"
                 style="max-width: 250px"
                 alt=""
               />
