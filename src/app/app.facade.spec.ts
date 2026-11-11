@@ -995,6 +995,68 @@ describe('AppFacade.resetToServerDefaults', () => {
     expect(restart).not.toHaveBeenCalled();
   });
 
+  it('sends the clear only after the save under way has landed', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    const save = new Subject<object>();
+    client.appDataSet.mockReturnValueOnce(save);
+    app.saveConfig();
+
+    const reset = app.resetToServerDefaults();
+    await Promise.resolve();
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+
+    save.complete();
+    await expect(reset).resolves.toBe(true);
+    expect(client.appDataSet).toHaveBeenLastCalledWith('/', {});
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up on a clear the server does not answer and saves again', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataSet.mockReturnValueOnce(new Subject<object>());
+
+    vi.useFakeTimers();
+    try {
+      const reset = app.resetToServerDefaults();
+      await vi.advanceTimersByTimeAsync(10000);
+      await expect(reset).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(client.appDataSet).toHaveBeenLastCalledWith('/', app.config);
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('keeps the save a failed reset held back', async () => {
+    const { app, client } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataSet.mockReturnValueOnce(
+      throwError(() => new Error('offline'))
+    );
+    app.saveConfigDebounced();
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(client.appDataSet).toHaveBeenCalledTimes(2);
+    expect(client.appDataSet).toHaveBeenLastCalledWith('/', app.config);
+  });
+
+  it('runs one reset at a time', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+
+    const first = app.resetToServerDefaults();
+    const second = app.resetToServerDefaults();
+
+    expect(second).toBe(first);
+    await first;
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
   it('saves nothing while the reset restarts Freeboard', async () => {
     const { app, client } = setup(false);
     await app.loadUserConfigfromServer();

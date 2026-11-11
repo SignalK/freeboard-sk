@@ -13,7 +13,16 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subject, finalize, lastValueFrom } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  finalize,
+  from,
+  lastValueFrom,
+  switchMap,
+  throwError,
+  timeout
+} from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -96,6 +105,9 @@ const FSK: AppInfoDef = {
 };
 
 const SERVER_APPDATA_VERSION = '1.0.0';
+
+/** how long a reset waits for the server to clear the user's settings */
+const RESET_CLEAR_TIMEOUT_MS = 10000;
 
 // Development SK server host details
 const DEV_SERVER = {
@@ -1250,6 +1262,7 @@ export class AppFacade extends InfoService {
   }
 
   private resettingConfig = false;
+  private reset?: Promise<boolean>;
 
   /**
    * Drop the settings saved in this browser, and the logged-in user's on the
@@ -1258,25 +1271,42 @@ export class AppFacade extends InfoService {
    * nothing dropped, when the server does not clear the user's settings,
    * since those would come back on the next start.
    */
-  public async resetToServerDefaults(): Promise<boolean> {
+  public resetToServerDefaults(): Promise<boolean> {
+    this.reset ??= this.runReset().finally(() => (this.reset = undefined));
+    return this.reset;
+  }
+
+  private async runReset(): Promise<boolean> {
     this.resettingConfig = true;
     clearTimeout(this.saveCfgTimer);
-    if (this.isLoggedIn()) {
-      const request = this.signalk.appDataSet('/', {});
-      const cleared =
-        !!request &&
-        (await lastValueFrom(request).then(
-          () => true,
-          () => false
-        ));
-      if (!cleared) {
-        this.resettingConfig = false;
-        return false;
-      }
+    if (this.isLoggedIn() && !(await this.clearServerConfig())) {
+      this.resettingConfig = false;
+      // the saves held back while the reset ran, and the debounced one it cancelled
+      this.saveConfig();
+      return false;
     }
     this.clearConfig();
     this.restartApp();
     return true;
+  }
+
+  /**
+   * Sent once the save under way has landed, so it cannot overwrite the
+   * clear. Within the time limit or not at all.
+   */
+  private clearServerConfig(): Promise<boolean> {
+    const clear = from(this.serverSaveSettled()).pipe(
+      switchMap(
+        () =>
+          this.signalk.appDataSet('/', {}) ??
+          throwError(() => new Error('applicationData unavailable'))
+      ),
+      timeout(RESET_CLEAR_TIMEOUT_MS)
+    );
+    return lastValueFrom(clear).then(
+      () => true,
+      () => false
+    );
   }
 
   /** reload Freeboard so every part starts from the settings now in force */
@@ -1304,6 +1334,13 @@ export class AppFacade extends InfoService {
    * either order, and an older config landing last would undo the newer one.
    */
   private serverSave: 'idle' | 'busy' | 'again' = 'idle';
+  private serverSaveIdle: Array<() => void> = [];
+
+  private serverSaveSettled(): Promise<void> {
+    return this.serverSave === 'idle'
+      ? Promise.resolve()
+      : new Promise((settled) => this.serverSaveIdle.push(settled));
+  }
 
   private saveConfigToServer() {
     if (!this.isLoggedIn() || this.userConfigUnreadable) {
@@ -1326,6 +1363,9 @@ export class AppFacade extends InfoService {
           // through saveConfig(), which holds it while a settings load runs
           if (again) {
             this.saveConfig();
+          }
+          if (this.serverSave === 'idle') {
+            this.serverSaveIdle.splice(0).forEach((settled) => settled());
           }
         })
       )
