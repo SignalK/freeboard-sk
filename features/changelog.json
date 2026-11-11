@@ -189,6 +189,6 @@
   { "feature": "waypoints", "pr": 1234, "kind": "enhanced", "date": "2026-11-10", "title": "feat(waypoints): enter a waypoint position in DD, DDM, DMS or UTM" },
   { "feature": "radar-overlay", "pr": 1280, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): step the radar range with + and - buttons" },
   { "feature": "extension-panels", "pr": 1297, "kind": "enhanced", "date": "2026-11-11", "title": "feat(plotterext): implement resources.show and resources.hide" },
-  { "feature": "route-planning", "pr": 1285, "kind": "enhanced", "date": "2026-11-11", "title": "feat(routes): mark routes with flags and pins, with a classic style option" },
-  { "feature": "route-planning", "pr": 1251, "kind": "enhanced", "date": "2026-11-11", "title": "feat(routes): add chevron route styles that show the direction of travel" }
+  { "feature": "route-styles", "pr": 1285, "kind": "new", "date": "2026-11-11", "title": "feat(routes): mark routes with flags and pins, with a classic style option" },
+  { "feature": "route-styles", "pr": 1251, "kind": "enhanced", "date": "2026-11-11", "title": "feat(routes): add chevron route styles that show the direction of travel" }
 ]
