@@ -78,6 +78,7 @@
       mat-icon-button
       class="range-step range-in"
       aria-label="Shorter range"
+      matTooltip="Shorter range"
       [disabled]="rangeOff || !rangeSteps().shorter"
       (click)="stepRange('shorter')"
     >
@@ -96,6 +97,7 @@
       mat-icon-button
       class="range-step range-out"
       aria-label="Longer range"
+      matTooltip="Longer range"
       [disabled]="rangeOff || !rangeSteps().longer"
       (click)="stepRange('longer')"
     >
