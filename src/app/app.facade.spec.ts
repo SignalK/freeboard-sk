@@ -1012,10 +1012,11 @@ describe('AppFacade.resetToServerDefaults', () => {
     expect(restart).toHaveBeenCalledTimes(1);
   });
 
-  it('gives up on a clear the server does not answer and saves again', async () => {
+  it('saves again only once a clear past the time limit has settled', async () => {
     const { app, client, restart } = setup(true);
     await app.loadUserConfigfromServer();
-    client.appDataSet.mockReturnValueOnce(new Subject<object>());
+    const clear = new Subject<object>();
+    client.appDataSet.mockReturnValueOnce(clear);
 
     vi.useFakeTimers();
     try {
@@ -1025,8 +1026,54 @@ describe('AppFacade.resetToServerDefaults', () => {
     } finally {
       vi.useRealTimers();
     }
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
 
+    clear.next({});
+    clear.complete();
+
+    expect(client.appDataSet).toHaveBeenCalledTimes(2);
     expect(client.appDataSet).toHaveBeenLastCalledWith('/', app.config);
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('never sends a clear that waited past the time limit', async () => {
+    const { app, client } = setup(true);
+    await app.loadUserConfigfromServer();
+    const save = new Subject<object>();
+    client.appDataSet.mockReturnValueOnce(save);
+    app.saveConfig();
+
+    vi.useFakeTimers();
+    try {
+      const reset = app.resetToServerDefaults();
+      await vi.advanceTimersByTimeAsync(10000);
+      await expect(reset).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+    save.complete();
+    await Promise.resolve();
+
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+  });
+
+  it('asks the server whether the user is logged in', async () => {
+    const { app, client, restart } = setup(true);
+    expect(app.isLoggedIn()).toBe(false);
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataSet).toHaveBeenCalledWith('/', {});
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps every setting when the login check fails', async () => {
+    const { app, client, restart } = setup(false);
+    client.isLoggedIn.mockReturnValue(throwError(() => new Error('offline')));
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
     expect(restart).not.toHaveBeenCalled();
   });
 
