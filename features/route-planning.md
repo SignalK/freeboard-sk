@@ -84,32 +84,10 @@ the route on the chart. The route stays in your Routes list, ready to show
 again, and the list's checkbox stays in step. (A route that is currently
 active can't be hidden.)
 
-**How routes look.** Choose how routes are drawn under **Settings → Course →
-Routes → Route style**. The map redraws as soon as you change it.
+**How routes look.** To change how routes are drawn on the chart, see *Route
+Styles*.
 
-- **Flags & pins** (the default): a green flag where the route starts, a red
-  flag where it ends, and a pin at each point in between, pointing toward the
-  next one, so you can see which way the route runs at a glance.
-- **Classic**: Freeboard's earlier small shapes: a circle at the start, a
-  triangle at each point and a diamond at the end. They take the route line's
-  color, so the active route and a route you're editing stand out by their
-  markers too.
-- **Chevrons (animated)**: chevrons flow along every leg in the direction the
-  route runs, with a thin guide line on each side. Route points are plain dots,
-  since the chevrons show the direction.
-- **Chevrons (static)**: the same chevrons, standing still. Choose this on a
-  slow device, because the animated style keeps redrawing the map while a
-  route is shown.
-
-![Fig 3. Chevrons show which way each route runs: the route being followed in blue, another route in green](route-planning-3.jpg)
-
-The chevrons stay evenly spaced at every zoom level. When you follow a route in
-reverse, they point the other way. With Flags & pins or Classic, the route
-you're following also shows direction arrows along its legs. If a symbol
-provider supplies its own route markers, those replace the built-in ones in
-every style; see *Custom Map Symbols*.
-
-![Fig 4. Make Route in the popover of a tapped track](route-planning-4.jpg)
+![Fig 3. Make Route in the popover of a tapped track](route-planning-3.jpg)
 
 **Making a route from a recorded track.** A passage you've already made
 safely is a good route to follow again, and so is one you've watched another
@@ -123,7 +101,7 @@ Freeboard can pick out the passage, offers **Make Route**.
 or in its popover when the info panel is turned off, ready to **Start**,
 **Save** or **Reverse** like any route you've drawn.
 
-![Fig 5. The route made from a passage between two anchorages, ready to Start or Save](route-planning-5.jpg)
+![Fig 4. The route made from a passage between two anchorages, ready to Start or Save](route-planning-4.jpg)
 
 Which passage you get:
 
