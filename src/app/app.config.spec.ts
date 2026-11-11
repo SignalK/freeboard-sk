@@ -364,6 +364,30 @@ describe('cleanConfig() legacy migration', () => {
     expect(defaultConfig().selections.chartsInViewOnly).toBe(false);
   });
 
+  it('ticks the Pleasure row once where the old 30s row was ticked', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.selections, 'aisPleasureRowApplied');
+    cfg.selections.aisTargetTypes = [30, 70];
+    cleanConfig(cfg, {});
+    expect(cfg.selections.aisTargetTypes).toEqual([30, 70, 36]);
+    expect(cfg.selections.aisPleasureRowApplied).toBe(true);
+  });
+
+  it('leaves the Pleasure row unticked where the old 30s row was not', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.selections, 'aisPleasureRowApplied');
+    cfg.selections.aisTargetTypes = [70];
+    cleanConfig(cfg, {});
+    expect(cfg.selections.aisTargetTypes).toEqual([70]);
+  });
+
+  it('keeps the Pleasure row unticked once the user unticked it', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    cfg.selections.aisTargetTypes = [30];
+    cleanConfig(cfg, {});
+    expect(cfg.selections.aisTargetTypes).toEqual([30]);
+  });
+
   it('turns the chart list in-view filter off for a config saved without it', () => {
     const cfg: LegacyAppConfig = defaultConfig();
     delete cfg.selections.chartsInViewOnly;

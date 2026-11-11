@@ -67,6 +67,11 @@ describe('AISVesselsLayerComponent.buildVesselStyle icon (#1236)', () => {
     expect(iconRequestFor(30, 'moored')).toEqual(['fishing', true]);
   });
 
+  it('asks for the special craft icon for a tow', () => {
+    expect(iconRequestFor(31)).toEqual([50, false]);
+    expect(iconRequestFor(31, 'moored')).toEqual([50, true]);
+  });
+
   it('keeps sailing and pleasure craft on the type 30 icon', () => {
     expect(iconRequestFor(36)[0]).toBe(30);
     expect(iconRequestFor(37)[0]).toBe(30);

@@ -299,6 +299,9 @@ export const AppConfigSchema = Type.Object({
     aisTargets: nullable(Type.Array(Type.String())),
     aisTargetTypes: Type.Array(Type.Number(), { default: [] }),
     aisFilterByShipType: bool(false),
+    /** One-time marker for splitting the ship-type filter's 30s row into
+     * Fishing (30) and Pleasure (36). */
+    aisPleasureRowApplied: bool(true),
     aisState: strings(), // ais state values used to filter targets
     resourceSets: Type.Record(Type.String(), Type.Any(), { default: {} }), // additional resources
     infolayers: nullable(Type.Array(Type.String())),

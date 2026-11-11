@@ -11,6 +11,8 @@ import { Convert } from './lib/convert';
 import { legacyPanBehavior, normaliseCenterOffset } from './lib/follow-offset';
 import { SKVessel } from './modules';
 import { migrateTrailSource } from './modules/skstream/track-source';
+import { AIS_FILTER_PLEASURE } from './lib/ais-filter';
+import { AIS_FISHING_TYPE_ID } from './modules/icons/vessels';
 
 const isSection = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -204,6 +206,20 @@ function migrate(settings: LegacyAppConfig) {
     }
     // legacy notes selections section
     delete selections.notes;
+    // The ship-type filter's 30 row covered all of the 30s until fishing got
+    // its own row with that id. Tick the new Pleasure row wherever 30 was
+    // ticked, once: after this, unticking Pleasure must stick.
+    if (!selections.aisPleasureRowApplied) {
+      const types = selections.aisTargetTypes;
+      if (
+        Array.isArray(types) &&
+        types.includes(AIS_FISHING_TYPE_ID) &&
+        !types.includes(AIS_FILTER_PLEASURE)
+      ) {
+        types.push(AIS_FILTER_PLEASURE);
+      }
+      selections.aisPleasureRowApplied = true;
+    }
   }
   if (typeof settings.radars === 'undefined') {
     settings.radars = { deviceId: '' } as typeof settings.radars;

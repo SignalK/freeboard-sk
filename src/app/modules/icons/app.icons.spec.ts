@@ -12,6 +12,12 @@ describe('getAisIcon', () => {
     expect(getAisIcon(37).svgIcon).toBe('ais_active');
   });
 
+  it('returns the special craft icon for towing, dredging, diving and military vessels', () => {
+    for (const t of [31, 32, 33, 34, 35]) {
+      expect(getAisIcon(t).svgIcon).toBe('ais_special');
+    }
+  });
+
   it('buckets other types by tens', () => {
     expect(getAisIcon(74).svgIcon).toBe('ais_cargo');
   });

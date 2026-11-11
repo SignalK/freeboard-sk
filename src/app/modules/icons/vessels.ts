@@ -73,20 +73,30 @@ export const VesselAisIcons: AppIconSet = {
   ]
 };
 
-// Fishing (30) shares the 30s with sailing (36) and pleasure craft (37), so it
-// gets its own icon instead of the one its tens bucket would give it.
+// The 30s mix vessels a skipper must tell apart: fishing (30) gets its own
+// icon, and towing, dredging, diving and military vessels (31-35) are drawn as
+// special craft like the 50s. Only 36-39 keep the pleasure craft icon.
 export const AIS_FISHING_TYPE_ID = 30;
+const AIS_SPECIAL_CRAFT_TYPES = { first: 31, last: 35 };
+const AIS_SPECIAL_STYLE_ID = 50;
 
 /**
  * @description The AIS_TYPE_IDS / AIS_MOORED_STYLE_IDS key for an AIS ship type,
- * so every map layer draws a vessel type alike.
+ * so every map layer, list and dialog draws a vessel type alike.
  * @param typeId AIS shipType
- * @returns 'fishing' for type 30, otherwise the type rounded down to the tens
  */
-export const aisVesselStyleId = (typeId: number): number | string =>
-  typeId === AIS_FISHING_TYPE_ID
-    ? 'fishing'
-    : Math.abs(Math.floor(typeId / 10) * 10);
+export const aisVesselStyleId = (typeId: number): number | string => {
+  if (typeId === AIS_FISHING_TYPE_ID) {
+    return 'fishing';
+  }
+  if (
+    typeId >= AIS_SPECIAL_CRAFT_TYPES.first &&
+    typeId <= AIS_SPECIAL_CRAFT_TYPES.last
+  ) {
+    return AIS_SPECIAL_STYLE_ID;
+  }
+  return Math.abs(Math.floor(typeId / 10) * 10);
+};
 
 export const AIS_TYPE_IDS: Record<string, string> = {
   10: 'ais_active',

@@ -21,10 +21,10 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules';
 import { FBVessel, FBVessels, Position } from 'src/app/types';
 import { ResourceListBase } from '../resource-list-baseclass';
-import { getAisIcon } from 'src/app/modules/icons';
+import { getAisIcon, AIS_FISHING_TYPE_ID } from 'src/app/modules/icons';
 import { TrackHistoryService } from 'src/app/modules/skstream/track-history.service';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
-import { aisTargetShown } from 'src/app/lib/ais-filter';
+import { aisTargetShown, AIS_FILTER_PLEASURE } from 'src/app/lib/ais-filter';
 
 //** AIS Dialog **
 @Component({
@@ -62,56 +62,70 @@ export class AISListComponent extends ResourceListBase<FBVessel> {
   shipTypes = [
     {
       id: 10,
+      types: '10-19',
       description: 'Unspecified',
       selected: false,
       icon: getAisIcon(10).svgIcon
     },
     {
       id: 20,
+      types: '20-29',
       description: 'Wing in Ground',
       selected: false,
       icon: getAisIcon(20).svgIcon
     },
     {
-      id: 30,
+      id: AIS_FISHING_TYPE_ID,
+      types: '30',
+      description: 'Fishing',
+      selected: false,
+      icon: getAisIcon(AIS_FISHING_TYPE_ID).svgIcon
+    },
+    {
+      id: AIS_FILTER_PLEASURE,
+      types: '36-39',
       description: 'Pleasure',
       selected: false,
-      // 30 itself is fishing, which has its own icon; show the pleasure craft
-      // (37) icon, as most of the 30s are sailing and pleasure craft.
-      icon: getAisIcon(37).svgIcon
+      icon: getAisIcon(AIS_FILTER_PLEASURE).svgIcon
     },
     {
       id: 40,
+      types: '40-49',
       description: 'High Speed',
       selected: false,
       icon: getAisIcon(40).svgIcon
     },
     {
       id: 50,
+      types: '31-35, 50-59',
       description: 'Special',
       selected: false,
       icon: getAisIcon(50).svgIcon
     },
     {
       id: 60,
+      types: '60-69',
       description: 'Passenger',
       selected: false,
       icon: getAisIcon(60).svgIcon
     },
     {
       id: 70,
+      types: '70-79',
       description: 'Cargo',
       selected: false,
       icon: getAisIcon(70).svgIcon
     },
     {
       id: 80,
+      types: '80-89',
       description: 'Tanker',
       selected: false,
       icon: getAisIcon(80).svgIcon
     },
     {
       id: 90,
+      types: '90-99',
       description: 'Other',
       selected: false,
       icon: getAisIcon(90).svgIcon
