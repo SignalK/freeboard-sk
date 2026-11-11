@@ -158,6 +158,7 @@ mat-nav-list {
     overflow-x: auto;
     overflow-y: hidden;
     border: gray 1px solid;
+    border-radius: 10px;
 }
 
 .bottomSheet {
