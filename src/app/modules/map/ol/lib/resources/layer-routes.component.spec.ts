@@ -155,6 +155,7 @@ function layer(opts: {
   ) as FreeboardRouteLayerComponent;
   Object.assign(c, {
     mapComponent: { getMap: () => render },
+    zone: { runOutsideAngular: <T>(fn: () => T) => fn() },
     mapImages: { getRouteMarkerFor: () => null },
     routeStyles,
     routes: [['r1', {}, true]] as unknown as FBRoutes,
@@ -275,6 +276,19 @@ describe('FreeboardRouteLayerComponent flow animation timer', () => {
     render.render.mockReset();
     vi.advanceTimersByTime(500);
     expect(render.render.mock.calls.length).toBeGreaterThanOrEqual(5);
+    c.ngOnDestroy();
+  });
+
+  it('keeps the redraw ticks out of change detection', () => {
+    vi.useFakeTimers();
+    const c = layer({});
+    const outside = vi.fn(<T>(fn: () => T) => fn());
+    Object.assign(c, { zone: { runOutsideAngular: outside } });
+    c.routeStyle = 'chevrons';
+    c.ngOnChanges({
+      routeStyle: new SimpleChange('chevrons-static', 'chevrons', false)
+    });
+    expect(outside).toHaveBeenCalledOnce();
     c.ngOnDestroy();
   });
 

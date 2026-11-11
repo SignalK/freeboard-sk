@@ -2,7 +2,9 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  inject,
   Input,
+  NgZone,
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
@@ -51,6 +53,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
 
   private leaveOverlap?: () => void;
   private flowTimer?: ReturnType<typeof setInterval>;
+  private zone = inject(NgZone);
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -105,11 +108,14 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       this.stopFlowTimer();
       this.mapComponent.getMap()?.render();
     } else if (!this.flowTimer) {
-      this.flowTimer = setInterval(() => {
-        if (!document.hidden) {
-          this.mapComponent.getMap()?.render();
-        }
-      }, FLOW_FRAME_MS);
+      // A map render needs no change detection, which each tick would run.
+      this.flowTimer = this.zone.runOutsideAngular(() =>
+        setInterval(() => {
+          if (!document.hidden) {
+            this.mapComponent.getMap()?.render();
+          }
+        }, FLOW_FRAME_MS)
+      );
     }
   }
 
