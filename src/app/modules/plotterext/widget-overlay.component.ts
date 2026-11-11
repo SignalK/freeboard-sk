@@ -18,8 +18,10 @@ import {
   OnDestroy,
   OnInit,
   computed,
+  effect,
   inject,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -301,6 +303,14 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
   private onPointerMove = (e: PointerEvent) => this.pointerMove(e);
   private onPointerEnd = () => this.cancelHold();
   private unregisterHitTester: (() => void) | null = null;
+
+  constructor() {
+    // A move can end without this overlay (its widget hidden by a resize), so
+    // a drag still in hand must not carry its offset into the next move.
+    effect(() => {
+      if (!this.service.movingWidget()) untracked(() => this.dragCancel());
+    });
+  }
 
   ngOnInit() {
     // Expose this overlay's screen->cell hit test to the host service so the
