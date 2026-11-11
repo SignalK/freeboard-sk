@@ -29,21 +29,13 @@ export const ROUTE_END_HIT_TARGET = new Circle({
   radius: 12,
   fill: new Fill({ color: 'rgba(0,0,0,0)' })
 });
-/**
- * The hit target over a route start/end flag, which stands up and to the right
- * of the point (anchored at the foot of its pole), so it is clickable all over.
- */
-export const ROUTE_FLAG_HIT_TARGET = new Circle({
-  radius: 13,
-  displacement: [7, 12],
-  fill: new Fill({ color: 'rgba(0,0,0,0)' })
-});
 const iconHitTargets = new WeakMap<Icon, Circle>();
 
 /**
  * An invisible circle covering the whole of `icon` wherever its anchor places
- * it, for a symbol provider's route start/end marker. Null until the icon's
- * image has loaded and its size is known.
+ * it, for an icon marking a route's start or end (a bundled flag, or a symbol
+ * provider's override). Null until the icon's image has loaded and its size
+ * is known.
  */
 export function iconHitTarget(icon: Icon): Circle | null {
   const cached = iconHitTargets.get(icon);
@@ -159,25 +151,23 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   }
 
   /**
-   * The hit target over route end `end`'s marker, and whether it is tall.
-   * Mirrors MapImageRegistry.getRouteMarkerFor(), which picks the marker the
-   * route layer draws there: a provider override in either style, else the
-   * bundled flag ('flags') or a drawn shape ('classic').
+   * The hit target over the marker the route layer draws at route end `end`,
+   * and whether that marker is tall. An icon (a bundled flag or a provider's
+   * override) gets a circle sized to it; a drawn shape, the centred circle.
    */
   private routeEndMarker(end: RouteEnd): { target: Circle; tall: boolean } {
-    const provided = this.mapImages.getExternalSymbol(
-      end === 'start' ? ROUTE_MARKER_START : ROUTE_MARKER_END
+    const icon = this.mapImages.getRouteMarkerFor(
+      end === 'start' ? ROUTE_MARKER_START : ROUTE_MARKER_END,
+      this.routeStyle
     );
-    if (provided) {
-      const target = iconHitTarget(provided);
-      if (!target) {
-        this.restyleWhenLoaded(provided);
-      }
-      return { target: target ?? ROUTE_END_HIT_TARGET, tall: true };
+    if (!icon) {
+      return { target: ROUTE_END_HIT_TARGET, tall: false };
     }
-    return this.routeStyle === 'flags'
-      ? { target: ROUTE_FLAG_HIT_TARGET, tall: true }
-      : { target: ROUTE_END_HIT_TARGET, tall: false };
+    const target = iconHitTarget(icon);
+    if (!target) {
+      this.restyleWhenLoaded(icon);
+    }
+    return { target: target ?? ROUTE_END_HIT_TARGET, tall: true };
   }
 
   /**

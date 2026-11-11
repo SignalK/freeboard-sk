@@ -10,11 +10,13 @@ import { fromLonLat } from 'ol/proj';
 import { FBRoutes, FBWaypoints, RouteStyle } from 'src/app/types';
 import { SimpleChange } from '@angular/core';
 import { FreeboardRouteLayerComponent } from './layer-routes.component';
-import { MapImageRegistry } from '../map-image-registry.service';
+import {
+  MapImageRegistry,
+  ROUTE_MARKER_START
+} from '../map-image-registry.service';
 import {
   FreeboardWaypointLayerComponent,
   ROUTE_END_HIT_TARGET,
-  ROUTE_FLAG_HIT_TARGET,
   iconHitTarget
 } from './layer-waypoints.component';
 import { drawnTogether, linkedWaypointId } from './route-waypoint-overlap';
@@ -193,7 +195,7 @@ function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
 /** Whether waypoint `id` shows a visible icon (not just its hit target). */
 function iconShown(layer: WaypointLayer, id: string, resolution = 10) {
   const img = waypointStyle(layer, id, resolution).getImage();
-  return !!img && img !== ROUTE_END_HIT_TARGET && img !== ROUTE_FLAG_HIT_TARGET;
+  return !!img && img !== ROUTE_END_HIT_TARGET;
 }
 
 function routeGeometry(layer: RouteLayer, id = 'r1') {
@@ -257,11 +259,27 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       [waypoint('wa', A)],
       'flags'
     );
+    // the bundled start flag, as loaded: a 37 px SVG at scale 0.65, anchored
+    // at the foot of its pole
+    const registry = Object.assign(new MapImageRegistry(), {
+      getWaypoint: (): null => null
+    });
+    const flag = registry.getRouteMarker(ROUTE_MARKER_START);
+    vi.spyOn(flag, 'getSize').mockReturnValue([37, 37]);
+    Object.assign(s.waypoints, { mapImages: registry });
+
     const style = waypointStyle(s.waypoints, 'wa');
     const base = s.waypoints.source
       .getFeatureById('waypoint.wa')
       ?.get('baseStyle') as Style;
-    expect(style.getImage()).toBe(ROUTE_FLAG_HIT_TARGET);
+    const img = style.getImage() as Circle;
+    expect(img).toBe(iconHitTarget(flag));
+    // up and to the right of the point, over the flag's cloth
+    const side = 37 * 0.65;
+    const [dx, dy] = img.getDisplacement();
+    expect(dx).toBeCloseTo(side / 2 - 7 * 0.65);
+    expect(dy).toBeCloseTo(37 * 0.65 - side / 2);
+    expect(img.getRadius()).toBeCloseTo(Math.hypot(side, side) / 2);
     expect(style.getText()?.getText()).toBe('wa');
     expect(style.getText()).toBe(base.getText());
   });
@@ -292,11 +310,10 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       expect(img.getRadius()).toBeCloseTo(Math.hypot(24, 24) / 2);
       expect(atEnd.getText()?.getText()).toBe('wb');
 
-      // the start keeps the target for the marker drawn there
+      // the start keeps the target for the marker drawn there: a drawn shape,
+      // or a bundled flag whose image hasn't loaded yet
       const atStart = waypointStyle(s.waypoints, 'wa');
-      expect(atStart.getImage()).toBe(
-        style === 'flags' ? ROUTE_FLAG_HIT_TARGET : ROUTE_END_HIT_TARGET
-      );
+      expect(atStart.getImage()).toBe(ROUTE_END_HIT_TARGET);
       const base = s.waypoints.source
         .getFeatureById('waypoint.wa')
         ?.get('baseStyle') as Style;
@@ -329,7 +346,7 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     const styles = waypointStyles(s.waypoints, 'wb');
     const images = styles.map((st) => st.getImage());
     expect(images).toHaveLength(2);
-    expect(images).toContain(ROUTE_FLAG_HIT_TARGET);
+    expect(images).toContain(ROUTE_END_HIT_TARGET);
     expect(images).toContain(iconHitTarget(provided));
     // one label only
     expect(styles.filter((st) => st.getText()).length).toBe(1);
@@ -402,9 +419,11 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       routeStyle: new SimpleChange('classic', 'flags', false)
     });
     expect(changed).toBe(1);
-    expect(waypointStyle(s.waypoints, 'wa').getImage()).toBe(
-      ROUTE_FLAG_HIT_TARGET
-    );
+    // the label moves back up above the flag
+    const base = s.waypoints.source
+      .getFeatureById('waypoint.wa')
+      ?.get('baseStyle') as Style;
+    expect(waypointStyle(s.waypoints, 'wa').getText()).toBe(base.getText());
   });
 
   it('skips only the linked intermediate points on a mixed route', () => {
