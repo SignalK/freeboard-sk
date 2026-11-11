@@ -13,7 +13,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subject, finalize, lastValueFrom, timeout } from 'rxjs';
+import { Observable, Subject, finalize, firstValueFrom, timeout } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -1285,12 +1285,16 @@ export class AppFacade extends InfoService {
     return true;
   }
 
-  /** asked afresh: a reset may run before the start-up login check answered */
+  /**
+   * Asked afresh: a reset may run before the start-up login check answered.
+   * The login status request itself, as `isLoggedIn()` reads a failure as
+   * logged out, and a logged-in user's settings would then stay on the server.
+   */
   private askLoggedIn(): Promise<boolean | undefined> {
-    return lastValueFrom(
-      this.signalk.isLoggedIn().pipe(timeout(RESET_CLEAR_TIMEOUT_MS))
+    return firstValueFrom(
+      this.signalk.getLoginStatus().pipe(timeout(RESET_CLEAR_TIMEOUT_MS))
     ).then(
-      (loggedIn) => loggedIn,
+      (status: { status?: string }) => status?.status === 'loggedIn',
       () => undefined
     );
   }

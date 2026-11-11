@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EMPTY, of, Subject, throwError } from 'rxjs';
+import { concat, EMPTY, NEVER, of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
@@ -944,8 +944,14 @@ describe('AppFacade.resetToServerDefaults', () => {
       get: vi.fn(() => EMPTY),
       setAppId: vi.fn(),
       setAppVersion: vi.fn(),
-      isLoggedIn: vi.fn(() => of(loggedIn)),
-      appDataGet: vi.fn(() => of({})),
+      // the client's own status stream never completes
+      isLoggedIn: vi.fn(() => concat(of(loggedIn), NEVER)),
+      getLoginStatus: vi.fn(() =>
+        of({ status: loggedIn ? 'loggedIn' : 'notLoggedIn' })
+      ),
+      appDataGet: vi.fn((_path: string, _context: APPDATA_CONTEXT) =>
+        of<object>({})
+      ),
       appDataSet: vi.fn(() => of({})),
       api: { get: vi.fn(() => EMPTY) }
     };
@@ -1069,7 +1075,9 @@ describe('AppFacade.resetToServerDefaults', () => {
 
   it('keeps every setting when the login check fails', async () => {
     const { app, client, restart } = setup(false);
-    client.isLoggedIn.mockReturnValue(throwError(() => new Error('offline')));
+    client.getLoginStatus.mockReturnValue(
+      throwError(() => new Error('offline'))
+    );
 
     await expect(app.resetToServerDefaults()).resolves.toBe(false);
 
@@ -1102,6 +1110,23 @@ describe('AppFacade.resetToServerDefaults', () => {
     await first;
     expect(client.appDataSet).toHaveBeenCalledTimes(1);
     expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the browser settings when a failed reset still cleared the server', async () => {
+    const own = defaultConfig();
+    own.selections.charts = ['mine'];
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(own));
+    const { app, client } = setup(true);
+    const global = defaultConfig();
+    global.selections.charts = ['enc'];
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        of(context === APPDATA_CONTEXT.GLOBAL ? global : {})
+    );
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.selections.charts).toEqual(['mine']);
   });
 
   it('saves nothing while the reset restarts Freeboard', async () => {
