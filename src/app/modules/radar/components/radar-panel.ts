@@ -4,14 +4,15 @@ import {
   effect,
   inject,
   output,
-  signal
+  signal,
+  viewChildren
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatMenuItem, MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
@@ -106,6 +107,9 @@ export class RadarPanel {
   // sections are not rebuilt for every control update
   private capabilities = computed(() => this.radar()?.capabilities);
   protected sections = computed(() => controlSections(this.capabilities()));
+  private rangeItems = viewChildren('rangeItem', {
+    read: MatMenuItem
+  });
   protected ranges = computed(() => rangeOptions(this.capabilities()));
   protected values = computed(
     () => this.radar()?.controls ?? new Map<string, ControlValue>()
@@ -308,6 +312,12 @@ export class RadarPanel {
 
   protected setRange(value: number | string) {
     this.send('range', { value });
+  }
+
+  /** The list opens on the range in use, as a drop-down would, rather than
+   *  at the shortest with the range in use scrolled out of sight. */
+  protected showRangeInList() {
+    this.rangeItems()[this.rangeIndex()]?.focus();
   }
 
   /** One range shorter or longer, as the MaYaRa radar GUI steps. */
