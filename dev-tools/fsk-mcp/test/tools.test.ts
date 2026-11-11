@@ -271,3 +271,24 @@ test('fsk_list_picks reads what the runtime recorded', async () => {
   ]);
   assert.deepStrictEqual(result, recorded);
 });
+
+test('fsk_show_resources / fsk_hide_resources relay type, ids and session', () => {
+  assert.deepStrictEqual(
+    run('fsk_show_resources', {
+      type: 'waypoints',
+      ids: ['w1'],
+      session: 's1'
+    }),
+    [['resources.show', { type: 'waypoints', ids: ['w1'] }, { session: 's1' }]]
+  );
+  assert.deepStrictEqual(
+    run('fsk_hide_resources', { type: 'routes', ids: ['r1', 'r2'] }),
+    [
+      [
+        'resources.hide',
+        { type: 'routes', ids: ['r1', 'r2'] },
+        { session: undefined }
+      ]
+    ]
+  );
+});

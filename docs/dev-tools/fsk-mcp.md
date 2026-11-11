@@ -115,6 +115,7 @@ capabilities. If the list is empty, see _Troubleshooting_.
 | `fsk_fit_bounds`                      | `map.fitBounds`                       | fit the map to a bounding box                                                                                             |
 | `fsk_list_resources`                  | `resources.list`                      | query a resource collection (relayed, authenticated)                                                                      |
 | `fsk_set_filter` / `fsk_clear_filter` | `resources.setFilter` / `clearFilter` | display-only resource filters                                                                                             |
+| `fsk_show_resources` / `fsk_hide_resources` | `resources.show` / `resources.hide` | show or hide individual stored resources (same as ticking them in the resource list); notes can only be shown, as a layer |
 | `fsk_list_routes` / `fsk_get_route`   | `route.list` / `route.get`            | inspect the visible routes                                                                                                |
 | `fsk_apply_resource_group`            | `resourceGroup.apply`                 | apply a stored resource group to the display (same as checking it in the Resource Groups list)                            |
 | `fsk_publish`                         | `events.publish`                      | publish an event onto the extension bus, e.g. to poke an extension's background runtime as its toolbar button would        |
