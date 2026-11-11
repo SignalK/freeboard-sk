@@ -393,6 +393,51 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     );
   });
 
+  it('keeps the centred hit target when a provider icon fails to load', () => {
+    const provided = new Icon({
+      src: './missing-end.svg',
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    let onChange: (() => void) | undefined;
+    vi.spyOn(provided, 'load').mockImplementation(() => undefined);
+    vi.spyOn(provided, 'listenImageChange').mockImplementation((l) => {
+      onChange = l as () => void;
+    });
+    const unlisten = vi
+      .spyOn(provided, 'unlistenImageChange')
+      .mockImplementation(() => undefined);
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, provided);
+    waypointStyle(s.waypoints, 'wb');
+
+    vi.spyOn(provided, 'getImageState').mockReturnValue(ImageState.ERROR);
+    let changed = 0;
+    s.waypoints.source.on('change', () => changed++);
+    onChange?.();
+    expect(unlisten).toHaveBeenCalledWith(onChange);
+    expect(changed).toBe(0);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      ROUTE_END_HIT_TARGET
+    );
+  });
+
+  it('keeps the centred hit target for an icon that loads with no size', () => {
+    const sizeless = new Icon({
+      src: './no-size.svg',
+      anchor: [0, 0],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    vi.spyOn(sizeless, 'getSize').mockReturnValue([0, 0]);
+    expect(iconHitTarget(sizeless)).toBeNull();
+  });
+
   it('places a provider icon hit target over an icon anchored at its foot', () => {
     const flag = new Icon({
       src: './custom-start.svg',

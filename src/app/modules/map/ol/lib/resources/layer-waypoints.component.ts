@@ -35,7 +35,8 @@ const iconHitTargets = new WeakMap<Icon, Circle>();
  * An invisible circle covering the whole of `icon` wherever its anchor places
  * it, for an icon marking a route's start or end (a bundled flag, or a symbol
  * provider's override). Null until the icon's image has loaded and its size
- * is known.
+ * is known, and for an image that loads with no size (some browsers report an
+ * SVG without width/height as 0 x 0).
  */
 export function iconHitTarget(icon: Icon): Circle | null {
   const cached = iconHitTargets.get(icon);
@@ -44,7 +45,7 @@ export function iconHitTarget(icon: Icon): Circle | null {
   }
   const size = icon.getSize();
   const anchor = icon.getAnchor();
-  if (!size || !anchor) {
+  if (!size?.[0] || !size[1] || !anchor) {
     return null;
   }
   const [sx, sy] = icon.getScaleArray();
