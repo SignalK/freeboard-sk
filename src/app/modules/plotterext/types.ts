@@ -23,6 +23,7 @@ export const HOST_CAPABILITIES = [
   'map',
   'resources',
   'resources.filter',
+  'resources.display',
   'routes',
   'charts',
   'charts.time',

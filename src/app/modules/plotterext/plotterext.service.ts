@@ -127,6 +127,10 @@ import {
   publishEvent
 } from './events-methods';
 import { createResourceGroupMethods } from './resourcegroup-methods';
+import {
+  createResourceDisplayMethods,
+  type PerItemDisplayType
+} from './resource-display-methods';
 import { evalCondition, isValidFilterCondition } from './filter-condition';
 import { parseParams } from './method-params';
 import {
@@ -1613,6 +1617,49 @@ export class PlotterExtensionService {
     });
   }
 
+  /** Host API handlers for the `resources.display` capability. */
+  private resourceDisplayMethods(): Record<string, MethodHandler> {
+    return createResourceDisplayMethods({
+      setVisible: (type, ids, visible) =>
+        this.setStoredVisible(type, ids, visible),
+      showNotes: () =>
+        this.app.uiConfig.update((ui) =>
+          ui.showNotes ? ui : { ...ui, showNotes: true }
+        )
+    });
+  }
+
+  /**
+   * `resources.show` / `resources.hide` for a per-item type: the same display
+   * change the user makes in that type's resource list. Hiding a route is
+   * `route.hide` on it, so a mirrored buffer leaves the visible set at once
+   * (`route.hidden saved:true`), pending edits included; showing one is picked
+   * up by the selection sync, which emits `route.visible`.
+   */
+  private async setStoredVisible(
+    type: PerItemDisplayType,
+    ids: string[],
+    visible: boolean
+  ): Promise<void> {
+    if (type === 'charts') {
+      await this.skres.setChartsVisibility(ids, visible);
+      return;
+    }
+    if (visible) {
+      await this.skres.showStored(type, ids);
+      return;
+    }
+    this.skres.hideStored(type, ids);
+    if (type === 'routes') {
+      for (const id of ids) {
+        const buf = this.routeRegistry.getByHref(id);
+        if (buf) {
+          this.routeRegistry.delete(buf.routeId, true);
+        }
+      }
+    }
+  }
+
   /** Host API handlers for the `resourceGroups` capability. */
   private resourceGroupMethods(): Record<string, MethodHandler> {
     return createResourceGroupMethods({
@@ -2516,6 +2563,7 @@ export class PlotterExtensionService {
         ...this.chartMethods(),
         ...this.nightModeMethods(),
         ...this.resourceGroupMethods(),
+        ...this.resourceDisplayMethods(),
         ...createOverlayMethods(this.overlays, opts.extension, ctx.runtime),
         ...createEventsMethods(this.eventsDeps, opts.extension),
         ...this.uiPanelMethods(opts.extension),

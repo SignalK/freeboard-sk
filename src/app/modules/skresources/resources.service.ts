@@ -227,6 +227,9 @@ type OutboundChart = Omit<SKChart, 'defaultOpacity'> & {
 
 export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
+/** Stored-resource collections displayed through a per-id selection list. */
+export type StoredDisplayType = 'routes' | 'waypoints' | 'regions';
+
 /** Where a per-chart palette opens, below the map's top controls. */
 const PALETTE_TOP = 70;
 /** Header depth kept on screen, so the palette's drag handle stays reachable. */
@@ -2532,12 +2535,66 @@ export class SKResourceService {
    * @param id Route identifier
    */
   public routeHide(id: string) {
-    if (!this.selectionIsFiltered('routes')) {
-      const shown = this.routeCacheSignal().map((r: FBRoute) => r[0]);
-      this.selectionClear('routes');
-      this.selectionAdd('routes', shown);
+    this.hideStored('routes', [id]);
+  }
+
+  /**
+   * @description Display stored resources in addition to those already shown,
+   * as ticking them in the resource list does. Ids not fetched yet stay in the
+   * selection, so a resource just created on the server appears once the
+   * refresh brings it in. While the collection is unfiltered ("show all")
+   * everything is already shown and only the refresh happens.
+   * @param collection Resource collection
+   * @param ids Resource identifiers
+   */
+  public async showStored(collection: StoredDisplayType, ids: string[]) {
+    this.selectionAdd(collection, ids);
+    if (collection === 'routes') {
+      await this.refreshRoutes();
+    } else if (collection === 'waypoints') {
+      await this.refreshWaypoints();
+    } else {
+      await this.refreshRegions();
     }
-    this.routeRemove([id]);
+  }
+
+  /**
+   * @description Stop displaying stored resources, leaving the rest shown, as
+   * unticking them in the resource list does. While the collection is
+   * unfiltered ("show all"), selectionRemove is a no-op, so the shown set is
+   * first materialised into an explicit selection — otherwise the resources
+   * would reappear on the next refresh. When none of the ids is shown, the
+   * collection is left unfiltered, so resources created later still appear.
+   * @param collection Resource collection
+   * @param ids Resource identifiers
+   */
+  public hideStored(collection: StoredDisplayType, ids: string[]) {
+    if (!this.selectionIsFiltered(collection)) {
+      const shown = this.storedCacheIds(collection);
+      if (!ids.some((id) => shown.includes(id))) {
+        return;
+      }
+      this.selectionClear(collection);
+      this.selectionAdd(collection, shown);
+    }
+    if (collection === 'routes') {
+      this.routeRemove(ids);
+    } else if (collection === 'waypoints') {
+      this.waypointRemove(ids);
+    } else {
+      this.regionRemove(ids);
+    }
+  }
+
+  /** Ids of the resources currently in a collection's displayed cache. */
+  private storedCacheIds(collection: StoredDisplayType): string[] {
+    const cache =
+      collection === 'routes'
+        ? this.routeCacheSignal()
+        : collection === 'waypoints'
+          ? this.waypointCacheSignal()
+          : this.regionCacheSignal();
+    return cache.map((r) => r[0]);
   }
 
   /**
