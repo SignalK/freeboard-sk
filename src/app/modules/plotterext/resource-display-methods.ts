@@ -1,4 +1,5 @@
 import { RpcError, type MethodHandler } from 'signalk-plotterext-bus/host';
+import type { StoredDisplayType } from 'src/app/modules/skresources/resources.service';
 import { parseParams } from './method-params';
 
 // The schema loads with the validator on the first call, keeping TypeBox out
@@ -6,14 +7,17 @@ import { parseParams } from './method-params';
 const schemas = () => import('./resource-display-params');
 
 /** The types Freeboard shows and hides one resource at a time. */
-export type PerItemDisplayType = 'routes' | 'waypoints' | 'regions' | 'charts';
+export type PerItemDisplayType = StoredDisplayType | 'charts';
 
-const PER_ITEM: readonly string[] = [
+const PER_ITEM: readonly PerItemDisplayType[] = [
   'routes',
   'waypoints',
   'regions',
   'charts'
-] satisfies PerItemDisplayType[];
+];
+
+const isPerItem = (type: string): type is PerItemDisplayType =>
+  (PER_ITEM as readonly string[]).includes(type);
 
 export interface ResourceDisplayMethodsDeps {
   /** Show or hide these resources of a per-item type, leaving the rest alone. */
@@ -43,8 +47,8 @@ export function createResourceDisplayMethods(
         params,
         'resources.badRequest'
       );
-      if (PER_ITEM.includes(type)) {
-        await deps.setVisible(type as PerItemDisplayType, ids, visible);
+      if (isPerItem(type)) {
+        await deps.setVisible(type, ids, visible);
         return {};
       }
       if (type === 'notes' && visible) {
