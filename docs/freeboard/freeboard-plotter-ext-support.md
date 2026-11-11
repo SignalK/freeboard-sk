@@ -58,7 +58,7 @@ package; Freeboard depends on it (`^0.26.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `resources.display`, `routes`, `charts`,
 `charts.time`,
-`nightMode`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
+`nightMode`, `display`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
 `overlays.image`, `overlays.animated`, `overlays.data`, `actions`, `actions.overlay`,
 `map.pick`.
 
@@ -487,6 +487,16 @@ waypoints, regions and charts, and `hide` on notes; `data.type` names it),
 | `src/app/modules/plotterext/resource-display-methods.ts` | the `resources.show` / `resources.hide` handlers + param validation |
 | `src/app/modules/plotterext/plotterext.service.ts` | binds them (`setStoredVisible`), drops a hidden route's mirror, turns the notes layer on |
 | `src/app/modules/skresources/resources.service.ts` | `showStored` / `hideStored` on the selection lists |
+
+## The `display` capability
+
+`display.get` → `{ panelOpacity }` reports the **Panel background** display
+setting (`config.display.panelOpacity`): a number from 0 to 1, or `null` for
+Default, where the route bar stays opaque and widgets keep their own look. The
+handler is a pure factory (`display-methods.ts`). `display.changed` is emitted
+from a `config$` subscription that `init()` starts once, so a change in the settings dialog
+and a settings load from the server both reach extensions; `emitDisplayChange`
+de-dupes and seeds silently.
 
 ## The `nightMode` capability
 
