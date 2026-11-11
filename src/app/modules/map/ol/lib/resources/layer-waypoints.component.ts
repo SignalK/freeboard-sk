@@ -79,7 +79,7 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() routeStyle: RouteStyle = 'flags';
 
   private leaveOverlap?: () => void;
-  /** Provider icons this layer is waiting on to size their hit targets. */
+  /** Route-end icons this layer is waiting on to size their hit targets. */
   private awaitedIcons?: WeakSet<Icon>;
 
   constructor(
@@ -177,8 +177,11 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
    * and OL re-runs its style functions only when the source or view changes.
    */
   private restyleWhenLoaded(icon: Icon) {
+    // An image that has already loaded (with no size) or failed won't change
+    // again, so a listener on it would never be removed.
+    const settled = [ImageState.LOADED, ImageState.ERROR];
     this.awaitedIcons ??= new WeakSet();
-    if (this.awaitedIcons.has(icon)) {
+    if (this.awaitedIcons.has(icon) || settled.includes(icon.getImageState())) {
       return;
     }
     this.awaitedIcons.add(icon);

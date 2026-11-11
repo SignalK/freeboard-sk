@@ -167,13 +167,19 @@ function routeMarkers(
 }
 
 /** Give the waypoint layer a symbol provider overriding only the route end. */
-function endOverride(layer: WaypointLayer, provided: Icon) {
-  Object.assign(layer, {
-    mapImages: Object.assign(new MapImageRegistry(), {
-      getWaypoint: (): null => null,
-      getExternalSymbol: (id: string) => (id === 'route-end' ? provided : null)
-    })
+function endOverride(layer: WaypointLayer, provided: Icon): MapImageRegistry {
+  const registry = Object.assign(new MapImageRegistry(), {
+    getWaypoint: (): null => null,
+    getExternalSymbol: (id: string) => (id === 'route-end' ? provided : null)
   });
+  Object.assign(layer, { mapImages: registry });
+  return registry;
+}
+
+/** Hold a bundled route-end icon unloaded, whatever the test environment does. */
+function unloaded(icon: Icon) {
+  vi.spyOn(icon, 'load').mockImplementation(() => undefined);
+  vi.spyOn(icon, 'getSize').mockReturnValue(null);
 }
 
 /** The styles waypoint `id` is drawn with at `resolution`. */
@@ -306,7 +312,8 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
         [waypoint('wa', A), waypoint('wb', B)],
         style
       );
-      endOverride(s.waypoints, provided);
+      const registry = endOverride(s.waypoints, provided);
+      unloaded(registry.getRouteMarker(ROUTE_MARKER_START));
       const atEnd = waypointStyle(s.waypoints, 'wb');
       const img = atEnd.getImage() as Circle;
       expect(img).toBe(iconHitTarget(provided));
@@ -317,7 +324,7 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       expect(atEnd.getText()?.getText()).toBe('wb');
 
       // the start keeps the target for the marker drawn there: a drawn shape,
-      // or a bundled flag whose image hasn't loaded yet
+      // or the bundled flag, held here before its image has loaded
       const atStart = waypointStyle(s.waypoints, 'wa');
       expect(atStart.getImage()).toBe(ROUTE_END_HIT_TARGET);
       const base = s.waypoints.source
@@ -348,7 +355,8 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       [waypoint('wb', B)],
       'flags'
     );
-    endOverride(s.waypoints, provided);
+    const registry = endOverride(s.waypoints, provided);
+    unloaded(registry.getRouteMarker(ROUTE_MARKER_START));
     const styles = waypointStyles(s.waypoints, 'wb');
     const images = styles.map((st) => st.getImage());
     expect(images).toHaveLength(2);
@@ -397,6 +405,27 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     expect(iconHitTarget(provided)?.getRadius()).toBeCloseTo(
       Math.hypot(24, 24) / 2
     );
+  });
+
+  it('does not wait on an icon that has already failed to load', () => {
+    const failed = new Icon({
+      src: './missing-end.svg',
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    vi.spyOn(failed, 'getImageState').mockReturnValue(ImageState.ERROR);
+    const listen = vi.spyOn(failed, 'listenImageChange');
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, failed);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      ROUTE_END_HIT_TARGET
+    );
+    expect(listen).not.toHaveBeenCalled();
   });
 
   it('keeps the centred hit target when a provider icon fails to load', () => {
