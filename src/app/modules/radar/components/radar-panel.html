@@ -89,6 +89,7 @@
       aria-label="Choose the range"
       [matMenuTriggerFor]="rangeMenu"
       [disabled]="rangeOff"
+      (menuOpened)="showRangeInList()"
     >
       <span class="range-name">Range</span>
       <span class="range-text">{{ rangeText() }}</span>
@@ -106,7 +107,7 @@
   </div>
   <mat-menu #rangeMenu="matMenu">
     @for (o of ranges(); track o.value; let i = $index) {
-    <button mat-menu-item (click)="setRange(o.value)">
+    <button mat-menu-item #rangeItem (click)="setRange(o.value)">
       <mat-icon
         >{{ i === rangeAt ? 'radio_button_checked' : 'radio_button_unchecked'
         }}</mat-icon
