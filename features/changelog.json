@@ -182,5 +182,9 @@
   { "feature": "radar-targets", "pr": 1219, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): acquire and stop tracking radar targets from the chart" },
   { "feature": "radar-overlay", "pr": 1224, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): choose the colour of the radar range rings" },
   { "feature": "person-overboard", "kind": "new", "since": "v1.8.0-rc1", "date": "2019-02-03", "title": "Raise a Person Overboard (M.O.B.) alarm" },
-  { "feature": "person-overboard", "pr": 1255, "kind": "enhanced", "date": "2026-11-10", "title": "feat(alarms): add a Person Overboard button and keep the MOB on screen" }
+  { "feature": "person-overboard", "pr": 1255, "kind": "enhanced", "date": "2026-11-10", "title": "feat(alarms): add a Person Overboard button and keep the MOB on screen" },
+  { "feature": "waypoints", "kind": "new", "since": "v0.0.2", "date": "2016-07-21", "title": "Waypoints on the chart and in a waypoint list" },
+  { "feature": "waypoints", "kind": "enhanced", "since": "v2.11.4", "date": "2024-09-22", "title": "Style waypoints by their type" },
+  { "feature": "waypoints", "kind": "enhanced", "since": "v2.24.0", "date": "2026-06-03", "title": "Choose a waypoint's symbol for more waypoint types" },
+  { "feature": "waypoints", "pr": 1234, "kind": "enhanced", "date": "2026-11-10", "title": "feat(waypoints): enter a waypoint position in DD, DDM, DMS or UTM" }
 ]
