@@ -285,7 +285,7 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
   byAnchor = computed(() => {
     const result: Record<string, PlacedWidget[]> = {};
     for (const anchor of ANCHORS) result[anchor] = [];
-    for (const placed of this.service.activeWidgets()) {
+    for (const placed of this.service.shownWidgets()) {
       result[placed.anchor]?.push(placed);
     }
     return result;

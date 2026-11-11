@@ -8,7 +8,8 @@ import {
   Inject,
   OnDestroy,
   OnInit,
-  ViewChild
+  ViewChild,
+  signal
 } from '@angular/core';
 import {
   MAT_DIALOG_DATA,
@@ -19,7 +20,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PlotterExtensionService } from './plotterext.service';
-import { PanelContribution } from './types';
+import { PanelContribution, ScreenClass, minScreenOf } from './types';
+import { ScreenClassPicker } from './screen-class-picker.component';
 
 export interface PlotterPanelDialogData {
   extension: string;
@@ -35,7 +37,7 @@ export interface PlotterPanelDialogData {
 
 @Component({
   selector: 'fb-plotterext-panel-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule, ScreenClassPicker],
   template: `
     <div class="pe-panel-header" mat-dialog-title>
       <span>{{ data.panel ? data.panel.title : data.title }}</span>
@@ -58,6 +60,13 @@ export interface PlotterPanelDialogData {
       </mat-dialog-content>
     }
     @if (data.targetInstance) {
+      <!-- in dialog content for its themed text colour (see .pe-panel-noconfig) -->
+      <mat-dialog-content class="pe-panel-screen">
+        <fb-screen-class-picker
+          [value]="minScreen()"
+          (changed)="setMinScreen($event)"
+        />
+      </mat-dialog-content>
       <mat-dialog-actions class="pe-panel-actions">
         <button mat-button class="pe-remove" (click)="removeWidget()">
           <mat-icon>delete</mat-icon> Remove widget
@@ -92,6 +101,9 @@ export interface PlotterPanelDialogData {
         height: 100%;
         border: none;
       }
+      .pe-panel-screen {
+        padding: 12px 24px 0;
+      }
       .pe-panel-actions {
         justify-content: flex-start;
       }
@@ -108,6 +120,7 @@ export class PlotterPanelDialog implements OnInit, AfterViewInit, OnDestroy {
   frame?: ElementRef<HTMLIFrameElement>;
 
   url?: SafeResourceUrl;
+  protected minScreen = signal<ScreenClass>('phone');
   private detach: (() => void) | null = null;
 
   constructor(
@@ -118,6 +131,13 @@ export class PlotterPanelDialog implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    const instance = this.data.targetInstance;
+    const placed =
+      instance &&
+      this.service.placements().find((w) => w.instanceId === instance);
+    if (placed) {
+      this.minScreen.set(minScreenOf(placed));
+    }
     // set the iframe src before first render so it loads with the dialog
     const panel = this.data.panel;
     if (!panel) return;
@@ -146,6 +166,13 @@ export class PlotterPanelDialog implements OnInit, AfterViewInit, OnDestroy {
       this.service.removeWidget(this.data.targetInstance);
     }
     this.dialogRef.close();
+  }
+
+  setMinScreen(min: ScreenClass) {
+    this.minScreen.set(min);
+    if (this.data.targetInstance) {
+      this.service.setMinScreen(this.data.targetInstance, min);
+    }
   }
 
   moveWidget() {

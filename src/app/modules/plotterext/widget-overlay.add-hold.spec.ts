@@ -32,6 +32,7 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
           useValue: {
             filterChips: signal([]),
             activeWidgets: signal([]),
+            shownWidgets: signal([]),
             widgetDef: () => null,
             registerHitTester: () => () => undefined,
             cellOccupied: () => false,

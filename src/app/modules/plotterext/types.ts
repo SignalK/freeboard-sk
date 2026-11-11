@@ -295,6 +295,42 @@ export interface PlacedWidget {
   anchor: AnchorId;
   col: number;
   row: number;
+  /** Hidden on screens smaller than this class; absent shows it everywhere. */
+  minScreen?: string;
+}
+
+export type ScreenClass = 'phone' | 'tablet' | 'monitor';
+
+export const SCREEN_CLASSES: ScreenClass[] = ['phone', 'tablet', 'monitor'];
+
+export const SCREEN_CLASS_LABELS: Record<ScreenClass, string> = {
+  phone: 'All screens',
+  tablet: 'Tablet and up',
+  monitor: 'Monitor only'
+};
+
+/** Viewport widths (CSS px) where the tablet and monitor classes start. */
+export const TABLET_MIN_WIDTH = 760;
+export const MONITOR_MIN_WIDTH = 1400;
+
+export function screenClassOf(width: number): ScreenClass {
+  if (width >= MONITOR_MIN_WIDTH) return 'monitor';
+  return width >= TABLET_MIN_WIDTH ? 'tablet' : 'phone';
+}
+
+/**
+ * The smallest screen class a placement shows on. A class this build doesn't
+ * know (stored by a later release) counts as every screen.
+ */
+export function minScreenOf(placed: PlacedWidget): ScreenClass {
+  return SCREEN_CLASSES.find((c) => c === placed.minScreen) ?? 'phone';
+}
+
+export function shownOn(placed: PlacedWidget, screen: ScreenClass): boolean {
+  return (
+    SCREEN_CLASSES.indexOf(screen) >=
+    SCREEN_CLASSES.indexOf(minScreenOf(placed))
+  );
 }
 
 /** A widget that could be added at a pressed anchor cell. */

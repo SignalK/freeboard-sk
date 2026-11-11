@@ -104,7 +104,7 @@ class ClearanceHost {
  * bottom edge is at y = 600, and each widget cell is given its rectangle.
  */
 describe('BottomClearanceDirective', () => {
-  const activeWidgets = signal<unknown[]>([]);
+  const shownWidgets = signal<unknown[]>([]);
   const cells: HTMLElement[] = [];
 
   const cell = (anchor: string, rect: DOMRect) => {
@@ -122,7 +122,7 @@ describe('BottomClearanceDirective', () => {
     TestBed.configureTestingModule({
       imports: [ClearanceHost],
       providers: [
-        { provide: PlotterExtensionService, useValue: { activeWidgets } }
+        { provide: PlotterExtensionService, useValue: { shownWidgets } }
       ]
     });
     const fixture = TestBed.createComponent(ClearanceHost);

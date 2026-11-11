@@ -8,11 +8,13 @@ import { PlotterExtensionService } from './plotterext.service';
 
 describe('PlotterPanelDialog with no configuration panel', () => {
   let fixture: ComponentFixture<PlotterPanelDialog>;
+  const setMinScreen = vi.fn();
 
   const message = () =>
     fixture.nativeElement.querySelector('.pe-panel-noconfig') as HTMLElement;
 
   beforeEach(() => {
+    setMinScreen.mockClear();
     TestBed.configureTestingModule({
       imports: [PlotterPanelDialog],
       providers: [
@@ -33,7 +35,9 @@ describe('PlotterPanelDialog with no configuration panel', () => {
           useValue: {
             resolveAssetUrl: (u: string) => u,
             attachPanel: () => (): void => undefined,
-            removeWidget: (): void => undefined
+            removeWidget: (): void => undefined,
+            placements: () => [{ instanceId: 'inst-1', minScreen: 'tablet' }],
+            setMinScreen
           }
         }
       ]
@@ -54,6 +58,21 @@ describe('PlotterPanelDialog with no configuration panel', () => {
   it('takes its colour from the dialog rather than a hard-coded one', () => {
     (fixture.nativeElement as HTMLElement).style.color = 'rgb(1, 2, 3)';
     expect(getComputedStyle(message()).color).toBe('rgb(1, 2, 3)');
+  });
+
+  it('shows the screen size the widget is set to', () => {
+    const checked = fixture.nativeElement.querySelector(
+      'mat-button-toggle.mat-button-toggle-checked'
+    ) as HTMLElement;
+    expect(checked.textContent?.trim()).toBe('Tablet and up');
+  });
+
+  it('saves another screen size when one is picked', () => {
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('mat-button-toggle button')
+    ) as HTMLButtonElement[];
+    buttons.find((b) => b.textContent?.trim() === 'Monitor only')?.click();
+    expect(setMinScreen).toHaveBeenCalledWith('inst-1', 'monitor');
   });
 });
 
