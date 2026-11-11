@@ -444,8 +444,10 @@ export class CourseService {
 
         const rte = this.skres.fromCache('routes', this.app.data.activeRoute);
         if (!rte) {
-          // add route to cache
-          this.skres.routeAddFromServer([this.app.data.activeRoute]);
+          // The refresh shows the followed route even when it is hidden, and
+          // leaves the selection alone, so a hide still holds once following
+          // ends.
+          this.skres.refreshRoutes();
           // handleRouteSignal() updates activeRoute point details from cache
         } else {
           this.updateActiveRoutePointDetails(c, rte);
