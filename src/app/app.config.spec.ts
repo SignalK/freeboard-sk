@@ -423,7 +423,7 @@ describe('cleanConfig() legacy migration', () => {
  * 2.15 configs from before the 2.17 settings layout. `cleaned` holds what
  * `cleanConfig()` made of each before it was built on the settings schema,
  * plus each setting added since then at its default (`radars.overlay`,
- * `radars.ringColor`).
+ * `radars.ringColor`, `resources.routeStyle`).
  */
 describe('cleanConfig() on configs saved by earlier releases', () => {
   for (const { savedBy, saved, cleaned } of savedConfigs.configs) {

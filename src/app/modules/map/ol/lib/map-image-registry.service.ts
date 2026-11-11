@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Circle, Fill, Icon, Stroke } from 'ol/style';
+import type { RouteStyle } from 'src/app/types';
 import {
   getAtoNDefs,
   ATON_TYPE_IDS,
@@ -20,6 +21,7 @@ interface MapImages {
   poi: MapImageCollection;
   vessels: MapImageCollection;
   waypoints: MapImageCollection;
+  routes: MapImageCollection;
   symbols: MapImageCollection;
 }
 
@@ -40,6 +42,33 @@ export const WIND_ARROW_SYMBOL = 'windIndicator-arrow';
 // customised independently and stay distinguishable when shown together.
 export const OCEAN_CURRENT_ARROW_SYMBOL = 'oceanCurrentIndicator-arrow';
 export const TIDAL_CURRENT_ARROW_SYMBOL = 'tidalCurrentIndicator-arrow';
+
+/** Symbol refs for the route markers; a provider may override each one. */
+export const ROUTE_MARKER_START = 'route-start';
+export const ROUTE_MARKER_WAYPOINT = 'route-waypoint';
+export const ROUTE_MARKER_END = 'route-end';
+
+// Bundled route markers: green start flag, red end flag and a waypoint pin. The
+// flags anchor at the foot of the pole and the pin at the centre of its hole,
+// so the marked point sits under the part of the glyph a user aims at. The pin
+// points up and is rotated to each leg's bearing by the route layer.
+const ROUTE_MARKER_DEFS: MapIconDefs = {
+  [ROUTE_MARKER_START]: {
+    path: './assets/img/routes/route-start.svg',
+    scale: 0.65,
+    anchor: [7, 37]
+  },
+  [ROUTE_MARKER_END]: {
+    path: './assets/img/routes/route-end.svg',
+    scale: 0.65,
+    anchor: [7, 37]
+  },
+  [ROUTE_MARKER_WAYPOINT]: {
+    path: './assets/img/routes/route-waypoint.svg',
+    scale: 0.5,
+    anchor: [17.66, 25.31]
+  }
+};
 
 // Built-in wind arrow glyph, drawn north-up and rotated by the renderer to
 // point in the direction the wind is flowing towards.
@@ -82,6 +111,7 @@ export class MapImageRegistry {
     poi: Object.create(null),
     vessels: Object.create(null),
     waypoints: Object.create(null),
+    routes: Object.create(null),
     symbols: Object.create(null)
   };
 
@@ -301,6 +331,37 @@ export class MapImageRegistry {
       this.buildIcon(this.icons.symbols, this.symbolDefs, id, rotate, key);
     }
     return this.icons.symbols[key] ?? null;
+  }
+
+  /**
+   * @description Returns the marker for a route's start, intermediate point or
+   * end, resolving a symbol-provider override before the bundled glyph.
+   * @param id ROUTE_MARKER_START | ROUTE_MARKER_WAYPOINT | ROUTE_MARKER_END
+   * @returns Icon object
+   */
+  getRouteMarker(id: string): Icon {
+    const ext = this.getExternalSymbol(id);
+    if (ext) {
+      return ext;
+    }
+    if (!this.icons.routes[id]) {
+      this.buildIcon(this.icons.routes, ROUTE_MARKER_DEFS, id);
+    }
+    return this.icons.routes[id];
+  }
+
+  /**
+   * @description The icon drawn for a route marker in the given route style:
+   * an override or the bundled glyph for 'flags'; an override or null for
+   * 'classic', whose markers are shapes the route layer draws itself.
+   * @param id ROUTE_MARKER_START | ROUTE_MARKER_WAYPOINT | ROUTE_MARKER_END
+   * @param style Route style setting
+   * @returns Icon object or null
+   */
+  getRouteMarkerFor(id: string, style: RouteStyle): Icon | null {
+    return style === 'classic'
+      ? this.getExternalSymbol(id)
+      : this.getRouteMarker(id);
   }
 
   /**

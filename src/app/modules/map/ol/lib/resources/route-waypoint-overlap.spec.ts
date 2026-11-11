@@ -4,13 +4,17 @@ import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { LineString, Point } from 'ol/geom';
 import OlMap from 'ol/Map';
-import { Style, Stroke } from 'ol/style';
+import { Circle, Icon, Style, Stroke } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
-import { FBRoutes, FBWaypoints } from 'src/app/types';
+import { FBRoutes, FBWaypoints, RouteStyle } from 'src/app/types';
+import { SimpleChange } from '@angular/core';
 import { FreeboardRouteLayerComponent } from './layer-routes.component';
+import { MapImageRegistry } from '../map-image-registry.service';
 import {
   FreeboardWaypointLayerComponent,
-  ROUTE_END_HIT_TARGET
+  ROUTE_END_HIT_TARGET,
+  ROUTE_FLAG_HIT_TARGET,
+  iconHitTarget
 } from './layer-waypoints.component';
 import { drawnTogether, linkedWaypointId } from './route-waypoint-overlap';
 
@@ -101,13 +105,17 @@ function routeLayer(map: OlMap, routes: FBRoutes): RouteLayer {
     routeStyles: {
       default: new Style({ stroke: new Stroke({ color: 'blue', width: 2 }) })
     },
-    mapImages: { getExternalSymbol: (): null => null }
+    mapImages: new MapImageRegistry()
   });
   c.ngOnInit();
   return c as RouteLayer;
 }
 
-function waypointLayer(map: OlMap, waypoints: FBWaypoints): WaypointLayer {
+function waypointLayer(
+  map: OlMap,
+  waypoints: FBWaypoints,
+  routeStyle: RouteStyle
+): WaypointLayer {
   const c = Object.create(
     FreeboardWaypointLayerComponent.prototype
   ) as FreeboardWaypointLayerComponent;
@@ -118,19 +126,26 @@ function waypointLayer(map: OlMap, waypoints: FBWaypoints): WaypointLayer {
     labelPrefixes: [],
     labelMinZoom: 10,
     mapZoom: 14,
-    mapImages: { getWaypoint: (): null => null }
+    routeStyle,
+    mapImages: Object.assign(new MapImageRegistry(), {
+      getWaypoint: (): null => null
+    })
   });
   c.ngOnInit();
   return c as WaypointLayer;
 }
 
 /** Both layers on one map, as the chart has them. */
-function scene(routes: FBRoutes, waypoints: FBWaypoints) {
+function scene(
+  routes: FBRoutes,
+  waypoints: FBWaypoints,
+  routeStyle: RouteStyle = 'classic'
+) {
   const map = stubMap();
   return {
     map,
     routes: routeLayer(map, routes),
-    waypoints: waypointLayer(map, waypoints)
+    waypoints: waypointLayer(map, waypoints, routeStyle)
   };
 }
 
@@ -148,16 +163,36 @@ function routeMarkers(
     .map((g) => g.getCoordinates());
 }
 
-/** The style waypoint `id` is drawn with at `resolution`. */
-function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
+/** Give the waypoint layer a symbol provider overriding only the route end. */
+function endOverride(layer: WaypointLayer, provided: Icon) {
+  Object.assign(layer, {
+    mapImages: Object.assign(new MapImageRegistry(), {
+      getWaypoint: (): null => null,
+      getExternalSymbol: (id: string) => (id === 'route-end' ? provided : null)
+    })
+  });
+}
+
+/** The styles waypoint `id` is drawn with at `resolution`. */
+function waypointStyles(
+  layer: WaypointLayer,
+  id: string,
+  resolution = 10
+): Style[] {
   const f = layer.source.getFeatureById('waypoint.' + id) as Feature;
-  return f.getStyleFunction()?.(f, resolution) as Style;
+  const s = f.getStyleFunction()?.(f, resolution) as Style | Style[];
+  return Array.isArray(s) ? s : [s];
+}
+
+/** The (first) style waypoint `id` is drawn with at `resolution`. */
+function waypointStyle(layer: WaypointLayer, id: string, resolution = 10) {
+  return waypointStyles(layer, id, resolution)[0];
 }
 
 /** Whether waypoint `id` shows a visible icon (not just its hit target). */
 function iconShown(layer: WaypointLayer, id: string, resolution = 10) {
   const img = waypointStyle(layer, id, resolution).getImage();
-  return !!img && img !== ROUTE_END_HIT_TARGET;
+  return !!img && img !== ROUTE_END_HIT_TARGET && img !== ROUTE_FLAG_HIT_TARGET;
 }
 
 function routeGeometry(layer: RouteLayer, id = 'r1') {
@@ -213,6 +248,121 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     expect(style.getImage()).toBeTruthy();
     expect(style.getText()?.getText()).toBe('wa');
     expect(style.getText()?.getOffsetY()).toBe(-12);
+  });
+
+  it('keeps the waypoint label above a route end flag, clickable over the flag', () => {
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wa', A)],
+      'flags'
+    );
+    const style = waypointStyle(s.waypoints, 'wa');
+    const base = s.waypoints.source
+      .getFeatureById('waypoint.wa')
+      ?.get('baseStyle') as Style;
+    expect(style.getImage()).toBe(ROUTE_FLAG_HIT_TARGET);
+    expect(style.getText()?.getText()).toBe('wa');
+    expect(style.getText()).toBe(base.getText());
+  });
+
+  it('covers each route end with the hit target for its own marker', () => {
+    // only the end has a provider icon, a centred 24 px one: the bundled
+    // flag's target would miss its lower left
+    const provided = new Icon({
+      src: './custom-end.svg',
+      size: [24, 24],
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    for (const style of ['flags', 'classic'] as RouteStyle[]) {
+      const s = scene(
+        [route('r1', [A, B], linkAll('wa', 'wb'))],
+        [waypoint('wa', A), waypoint('wb', B)],
+        style
+      );
+      endOverride(s.waypoints, provided);
+      const atEnd = waypointStyle(s.waypoints, 'wb');
+      const img = atEnd.getImage() as Circle;
+      expect(img).toBe(iconHitTarget(provided));
+      const [dx, dy] = img.getDisplacement();
+      expect(dx).toBeCloseTo(0);
+      expect(dy).toBeCloseTo(0);
+      expect(img.getRadius()).toBeCloseTo(Math.hypot(24, 24) / 2);
+      expect(atEnd.getText()?.getText()).toBe('wb');
+
+      // the start keeps the target for the marker drawn there
+      const atStart = waypointStyle(s.waypoints, 'wa');
+      expect(atStart.getImage()).toBe(
+        style === 'flags' ? ROUTE_FLAG_HIT_TARGET : ROUTE_END_HIT_TARGET
+      );
+      const base = s.waypoints.source
+        .getFeatureById('waypoint.wa')
+        ?.get('baseStyle') as Style;
+      if (style === 'flags') {
+        expect(atStart.getText()).toBe(base.getText());
+      } else {
+        expect(atStart.getText()?.getOffsetY()).toBe(-12);
+      }
+    }
+  });
+
+  it('covers every marker at a waypoint shared by several route ends', () => {
+    const provided = new Icon({
+      src: './custom-end.svg',
+      size: [24, 24],
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    // r1 ends at wb and r2 starts there
+    const s = scene(
+      [
+        route('r1', [A, B], linkAll('wa', 'wb')),
+        route('r2', [B, C], linkAll('wb', 'wc'))
+      ],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, provided);
+    const styles = waypointStyles(s.waypoints, 'wb');
+    const images = styles.map((st) => st.getImage());
+    expect(images).toHaveLength(2);
+    expect(images).toContain(ROUTE_FLAG_HIT_TARGET);
+    expect(images).toContain(iconHitTarget(provided));
+    // one label only
+    expect(styles.filter((st) => st.getText()).length).toBe(1);
+  });
+
+  it('places a provider icon hit target over an icon anchored at its foot', () => {
+    const flag = new Icon({
+      src: './custom-start.svg',
+      size: [20, 40],
+      anchor: [0, 40],
+      scale: 0.5,
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    const target = iconHitTarget(flag);
+    expect(target?.getDisplacement()).toEqual([5, 10]);
+    expect(target?.getRadius()).toBeCloseTo(Math.hypot(10, 20) / 2);
+  });
+
+  it('restyles the waypoints when the route style changes', () => {
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wa', A)]
+    );
+    let changed = 0;
+    s.waypoints.source.on('change', () => changed++);
+    Object.assign(s.waypoints, { routeStyle: 'flags' });
+    s.waypoints.ngOnChanges({
+      routeStyle: new SimpleChange('classic', 'flags', false)
+    });
+    expect(changed).toBe(1);
+    expect(waypointStyle(s.waypoints, 'wa').getImage()).toBe(
+      ROUTE_FLAG_HIT_TARGET
+    );
   });
 
   it('skips only the linked intermediate points on a mixed route', () => {

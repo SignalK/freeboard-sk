@@ -6,15 +6,19 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, Text, Circle, Fill, Stroke } from 'ol/style';
+import { Style, Text, Circle, Fill, Icon, Stroke } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBWaypoints } from 'src/app/types';
+import { FBWaypoints, RouteStyle } from 'src/app/types';
 import { SKWaypoint } from 'src/app/modules/skresources';
-import { MapImageRegistry } from '../map-image-registry.service';
-import { isRouteEndAt, joinOverlap } from './route-waypoint-overlap';
+import {
+  MapImageRegistry,
+  ROUTE_MARKER_END,
+  ROUTE_MARKER_START
+} from '../map-image-registry.service';
+import { RouteEnd, joinOverlap, routeEndsAt } from './route-waypoint-overlap';
 
 /**
  * Drawn in place of the icon at a route's start or end: invisible (OL still
@@ -24,7 +28,47 @@ export const ROUTE_END_HIT_TARGET = new Circle({
   radius: 12,
   fill: new Fill({ color: 'rgba(0,0,0,0)' })
 });
-/** Label offset sized to a route start/end marker rather than an icon. */
+/**
+ * The hit target over a route start/end flag, which stands up and to the right
+ * of the point (anchored at the foot of its pole), so it is clickable all over.
+ */
+export const ROUTE_FLAG_HIT_TARGET = new Circle({
+  radius: 13,
+  displacement: [7, 12],
+  fill: new Fill({ color: 'rgba(0,0,0,0)' })
+});
+const iconHitTargets = new WeakMap<Icon, Circle>();
+
+/**
+ * An invisible circle covering the whole of `icon` wherever its anchor places
+ * it, for a symbol provider's route start/end marker. Null until the icon's
+ * image has loaded and its size is known.
+ */
+export function iconHitTarget(icon: Icon): Circle | null {
+  const cached = iconHitTargets.get(icon);
+  if (cached) {
+    return cached;
+  }
+  const size = icon.getSize();
+  const anchor = icon.getAnchor();
+  if (!size || !anchor) {
+    return null;
+  }
+  const [sx, sy] = icon.getScaleArray();
+  const w = size[0] * sx;
+  const h = size[1] * sy;
+  // the icon's centre relative to the point, in screen pixels (y down)
+  const cx = w / 2 - anchor[0] * sx;
+  const cy = h / 2 - anchor[1] * sy;
+  const target = new Circle({
+    radius: Math.hypot(w, h) / 2,
+    displacement: [cx, -cy],
+    fill: new Fill({ color: 'rgba(0,0,0,0)' })
+  });
+  iconHitTargets.set(icon, target);
+  return target;
+}
+/** Label offset sized to a drawn route start/end shape rather than an icon. */
 const ROUTE_END_LABEL_OFFSET_Y = -12;
 
 // ** Freeboard resource collection format **
@@ -38,6 +82,7 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() waypointStyles?: { [key: string]: Style };
   @Input() activeWaypoint?: string | null;
   @Input() waypoints: FBWaypoints = [];
+  @Input() routeStyle: RouteStyle = 'flags';
 
   private leaveOverlap?: () => void;
 
@@ -75,24 +120,55 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
         this.source.clear();
         this.reloadWaypoints();
       }
+      if ('routeStyle' in changes) {
+        this.source.changed();
+      }
     }
   }
 
   /**
    * The waypoint's style at `resolution`: without its icon where a drawn route
-   * starts or ends on it, so the route's start/end marker shows instead.
+   * starts or ends on it, so the route's start/end marker shows instead. It
+   * keeps an invisible hit target over each such marker, so the waypoint stays
+   * clickable all over it.
    */
-  private styleAt(feature: Feature, resolution: number): Style {
+  private styleAt(feature: Feature, resolution: number): Style | Style[] {
     const style = feature.get('baseStyle') as Style;
     const id = (feature.getId() as string).slice('waypoint.'.length);
     const pos = (feature.getGeometry() as Point).getCoordinates();
     const map = this.mapComponent.getMap();
-    if (!map || !isRouteEndAt(map, id, pos, resolution)) {
+    const ends = map ? routeEndsAt(map, id, pos, resolution) : [];
+    if (!ends.length) {
       return style;
     }
-    const text = style.getText()?.clone();
-    text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
-    return new Style({ image: ROUTE_END_HIT_TARGET, text });
+    const markers = ends.map((end) => this.routeEndMarker(end));
+    // A flag (or a provider icon) at the route end is as tall as a waypoint
+    // icon, so the waypoint keeps its own label position above it.
+    let text = style.getText() ?? undefined;
+    if (markers.every((m) => !m.tall)) {
+      text = text?.clone();
+      text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
+    }
+    const targets = [...new Set(markers.map((m) => m.target))];
+    return targets.map(
+      (image, i) => new Style({ image, text: i === 0 ? text : undefined })
+    );
+  }
+
+  /** The hit target over route end `end`'s marker, and whether it is tall. */
+  private routeEndMarker(end: RouteEnd): { target: Circle; tall: boolean } {
+    const provided = this.mapImages.getExternalSymbol(
+      end === 'start' ? ROUTE_MARKER_START : ROUTE_MARKER_END
+    );
+    if (provided) {
+      return {
+        target: iconHitTarget(provided) ?? ROUTE_END_HIT_TARGET,
+        tall: true
+      };
+    }
+    return this.routeStyle === 'flags'
+      ? { target: ROUTE_FLAG_HIT_TARGET, tall: true }
+      : { target: ROUTE_END_HIT_TARGET, tall: false };
   }
 
   /** Labels live on each feature's base style; its style is a function. */

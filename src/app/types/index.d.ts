@@ -37,6 +37,10 @@ export type WindIndicator = 'arrow' | 'barb';
 // returns to it on the next position update).
 export type MapPanBehavior = 'offset' | 'exit' | 'none';
 
+// How route points are marked: 'flags' draws a start flag, waypoint pins and
+// an end flag; 'classic' draws small shapes in the route line's colour.
+export type RouteStyle = 'flags' | 'classic';
+
 // Screen-fixed offset of the map centre from the vessel: each axis is a whole
 // percentage of the distance from the viewport centre to that edge. `x` is
 // across the screen (positive = right), `y` up it (positive = above the vessel,

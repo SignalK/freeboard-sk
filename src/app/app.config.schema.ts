@@ -6,6 +6,7 @@ import type {
   MapPanBehavior,
   MFBAction,
   Position,
+  RouteStyle,
   SpeedUnitDef,
   TemperatureUnitDef,
   WindIndicator
@@ -198,6 +199,7 @@ export const AppConfigSchema = Type.Object({
       '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%'
     ),
     fetchRadius: num(0), // nmi/km within which to return resources
+    routeStyle: choice<RouteStyle>('flags'),
     notes: Type.Object({
       rootFilter: str(
         '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%'

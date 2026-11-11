@@ -134,16 +134,21 @@ export function drawnWaypointPosition(
   return undefined;
 }
 
+/** Which end of a route: its first point or its last. */
+export type RouteEnd = 'start' | 'end';
+
 /**
- * True when a drawn route starts or ends on waypoint `id`, drawn together with
- * the waypoint's position `pos` at `resolution`.
+ * The route ends drawn on waypoint `id` together with the waypoint's position
+ * `pos` at `resolution`: 'start' where a drawn route starts there, 'end' where
+ * one ends there (both when several routes meet). Empty when none does.
  */
-export function isRouteEndAt(
+export function routeEndsAt(
   map: OlMap,
   id: string,
   pos: number[],
   resolution: number
-): boolean {
+): RouteEnd[] {
+  const found = new Set<RouteEnd>();
   for (const s of sourcesOf(map).routes) {
     for (const f of s.getFeatures()) {
       const geom = f.getGeometry();
@@ -157,20 +162,19 @@ export function isRouteEndAt(
       // The end's link is the last metadata entry, not the one at the last
       // vertex index: mid-drag, OL Modify has already inserted a vertex that
       // the metadata gains only at modifyend (always between two vertices).
-      const ends: Array<[PointLink, number[]]> = [
-        [meta?.[0], geom.getFirstCoordinate()],
-        [meta?.[meta.length - 1], geom.getLastCoordinate()]
+      const ends: Array<[RouteEnd, PointLink, number[]]> = [
+        ['start', meta?.[0], geom.getFirstCoordinate()],
+        ['end', meta?.[meta.length - 1], geom.getLastCoordinate()]
       ];
-      if (
-        ends.some(
-          ([link, coord]) =>
-            linkedWaypointId(link) === id &&
-            drawnTogether(coord, pos, resolution)
-        )
-      ) {
-        return true;
+      for (const [end, link, coord] of ends) {
+        if (
+          linkedWaypointId(link) === id &&
+          drawnTogether(coord, pos, resolution)
+        ) {
+          found.add(end);
+        }
       }
     }
   }
-  return false;
+  return [...found];
 }
