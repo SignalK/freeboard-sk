@@ -4,7 +4,7 @@ import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { LineString, Point } from 'ol/geom';
 import OlMap from 'ol/Map';
-import { Style, Stroke } from 'ol/style';
+import { Circle, Icon, Style, Stroke } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
 import { FBRoutes, FBWaypoints, RouteStyle } from 'src/app/types';
 import { SimpleChange } from '@angular/core';
@@ -13,7 +13,8 @@ import { MapImageRegistry } from '../map-image-registry.service';
 import {
   FreeboardWaypointLayerComponent,
   ROUTE_END_HIT_TARGET,
-  ROUTE_FLAG_HIT_TARGET
+  ROUTE_FLAG_HIT_TARGET,
+  iconHitTarget
 } from './layer-waypoints.component';
 import { drawnTogether, linkedWaypointId } from './route-waypoint-overlap';
 
@@ -242,6 +243,53 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     expect(style.getImage()).toBe(ROUTE_FLAG_HIT_TARGET);
     expect(style.getText()?.getText()).toBe('wa');
     expect(style.getText()).toBe(base.getText());
+  });
+
+  it('covers a provider route-end icon with the hit target in either style', () => {
+    // a centred 24 px provider icon: the bundled flag's target would miss its
+    // lower left
+    const provided = new Icon({
+      src: './custom-end.svg',
+      size: [24, 24],
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    for (const style of ['flags', 'classic'] as RouteStyle[]) {
+      const s = scene(
+        [route('r1', [A, B], linkAll('wa', 'wb'))],
+        [waypoint('wa', A)],
+        style
+      );
+      Object.assign(s.waypoints, {
+        mapImages: Object.assign(new MapImageRegistry(), {
+          getWaypoint: (): null => null,
+          getExternalSymbol: (id: string) =>
+            id === 'route-end' ? provided : null
+        })
+      });
+      const img = waypointStyle(s.waypoints, 'wa').getImage() as Circle;
+      expect(img).toBe(iconHitTarget(provided));
+      const [dx, dy] = img.getDisplacement();
+      expect(dx).toBeCloseTo(0);
+      expect(dy).toBeCloseTo(0);
+      expect(img.getRadius()).toBeCloseTo(Math.hypot(24, 24) / 2);
+      expect(waypointStyle(s.waypoints, 'wa').getText()?.getText()).toBe('wa');
+    }
+  });
+
+  it('places a provider icon hit target over an icon anchored at its foot', () => {
+    const flag = new Icon({
+      src: './custom-start.svg',
+      size: [20, 40],
+      anchor: [0, 40],
+      scale: 0.5,
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    const target = iconHitTarget(flag);
+    expect(target?.getDisplacement()).toEqual([5, 10]);
+    expect(target?.getRadius()).toBeCloseTo(Math.hypot(10, 20) / 2);
   });
 
   it('restyles the waypoints when the route style changes', () => {

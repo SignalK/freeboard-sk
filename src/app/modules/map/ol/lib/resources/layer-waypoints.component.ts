@@ -6,7 +6,7 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, Text, Circle, Fill, Stroke } from 'ol/style';
+import { Style, Text, Circle, Fill, Icon, Stroke } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
@@ -37,6 +37,37 @@ export const ROUTE_FLAG_HIT_TARGET = new Circle({
   displacement: [7, 12],
   fill: new Fill({ color: 'rgba(0,0,0,0)' })
 });
+const iconHitTargets = new WeakMap<Icon, Circle>();
+
+/**
+ * An invisible circle covering the whole of `icon` wherever its anchor places
+ * it, for a symbol provider's route start/end marker. Null until the icon's
+ * image has loaded and its size is known.
+ */
+export function iconHitTarget(icon: Icon): Circle | null {
+  const cached = iconHitTargets.get(icon);
+  if (cached) {
+    return cached;
+  }
+  const size = icon.getSize();
+  const anchor = icon.getAnchor();
+  if (!size || !anchor) {
+    return null;
+  }
+  const [sx, sy] = icon.getScaleArray();
+  const w = size[0] * sx;
+  const h = size[1] * sy;
+  // the icon's centre relative to the point, in screen pixels (y down)
+  const cx = w / 2 - anchor[0] * sx;
+  const cy = h / 2 - anchor[1] * sy;
+  const target = new Circle({
+    radius: Math.hypot(w, h) / 2,
+    displacement: [cx, -cy],
+    fill: new Fill({ color: 'rgba(0,0,0,0)' })
+  });
+  iconHitTargets.set(icon, target);
+  return target;
+}
 /** Label offset sized to a drawn route start/end shape rather than an icon. */
 const ROUTE_END_LABEL_OFFSET_Y = -12;
 
@@ -109,14 +140,14 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
     }
     // A flag (or a provider icon) at the route end is as tall as a waypoint
     // icon, so the waypoint keeps its own label position above it.
-    const flagged =
-      this.mapImages.getRouteMarkerFor(ROUTE_MARKER_START, this.routeStyle) ??
-      this.mapImages.getRouteMarkerFor(ROUTE_MARKER_END, this.routeStyle);
-    if (flagged) {
-      return new Style({
-        image: ROUTE_FLAG_HIT_TARGET,
-        text: style.getText() ?? undefined
-      });
+    const provided =
+      this.mapImages.getExternalSymbol(ROUTE_MARKER_START) ??
+      this.mapImages.getExternalSymbol(ROUTE_MARKER_END);
+    if (provided || this.routeStyle === 'flags') {
+      const target = provided
+        ? (iconHitTarget(provided) ?? ROUTE_END_HIT_TARGET)
+        : ROUTE_FLAG_HIT_TARGET;
+      return new Style({ image: target, text: style.getText() ?? undefined });
     }
     const text = style.getText()?.clone();
     text?.setOffsetY(ROUTE_END_LABEL_OFFSET_Y);
