@@ -294,7 +294,13 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels'
     });
-    for (const style of ['flags', 'classic'] as RouteStyle[]) {
+    const styles: RouteStyle[] = [
+      'flags',
+      'classic',
+      'chevrons',
+      'chevrons-static'
+    ];
+    for (const style of styles) {
       const s = scene(
         [route('r1', [A, B], linkAll('wa', 'wb'))],
         [waypoint('wa', A), waypoint('wb', B)],
