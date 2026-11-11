@@ -42,7 +42,7 @@ radar doesn't change screens that are already open, so one screen can keep a
 clean chart while the radar keeps running for the others; a kiosk display that
 signs in as its own user keeps its own choice.
 
-![Fig 2. The radar control panel, transmitting](radar-overlay-2.jpg)
+![Fig 2. The top of the radar control panel, transmitting: the range between its + and − buttons](radar-overlay-2.jpg)
 
 **The control panel.**
 
@@ -57,8 +57,13 @@ signs in as its own user keeps its own choice.
 - **Range rings button** — switches the radar range rings (below) on and off.
 - **Eye button** — shows or hides the radar on this screen, together with its
   targets (see *Radar & Camera Targets*).
-- **Range** — the ranges your radar offers, in its range units (nautical or
-  metric) and with its own labels.
+- **Range** — the current range, large, between a **+** and a **−** button.
+  **+** steps to the next shorter range and **−** to the next longer one, as on
+  a chartplotter's range keys; a button greys out at the shortest or longest
+  range. Tap the range itself to pick any range from the list. The ranges are
+  your radar's own, in its range units (nautical or metric) and with its own
+  labels. Before range B of a dual-range radar is first set, either button
+  starts at the shortest range.
 - **Opacity** — how strongly the returns paint over the chart underneath.
 - **Radar controls** — everything else your radar offers, in collapsible
   sections as in the MaYaRa radar app (such as Base, Targets, Trails, Advanced,
