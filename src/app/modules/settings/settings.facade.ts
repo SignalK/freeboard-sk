@@ -191,8 +191,7 @@ export class SettingsOptions {
   navDataOpacity = new Map([
     [1, 'Opaque'],
     [0.85, '85 %'],
-    [0.7, '70 %'],
-    [0.5, '50 %']
+    [0.7, '70 %']
   ]);
 
   windIndicator = new Map<WindIndicator, string>([
