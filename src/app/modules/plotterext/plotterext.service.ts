@@ -1396,6 +1396,7 @@ export class PlotterExtensionService {
     window.addEventListener('resize', () => {
       this.viewportTick.update((n) => n + 1);
       this.screenClass.set(screenClassOf(window.innerWidth));
+      this.endMoveOfHiddenWidget();
     });
     this.bridgeRouteEvents();
     // Relay window changes (`window.bounds` / `window.state` / `window.closed`)
@@ -2180,6 +2181,31 @@ export class PlotterExtensionService {
     return occupied;
   }
 
+  /**
+   * The placed widget this screen hides at a cell of an anchor area, if any.
+   * Its cell stays taken, so a press there opens its settings instead: the
+   * one way to change or remove it without a larger screen.
+   */
+  hiddenWidgetAt(
+    anchor: AnchorId,
+    cell: { col: number; row: number }
+  ): PlacedWidget | null {
+    const shown = this.shownWidgets();
+    return (
+      this.activeWidgets().find((placed) => {
+        if (placed.anchor !== anchor || shown.includes(placed)) return false;
+        const def = this.widgetDef(placed.extension, placed.widget);
+        const size = parseSize(def?.size ?? '1x1');
+        return (
+          cell.row >= placed.row &&
+          cell.row < placed.row + size.rows &&
+          cell.col >= placed.col &&
+          cell.col < placed.col + size.cols
+        );
+      }) ?? null
+    );
+  }
+
   /** Whether a cell of an anchor area is occupied by a placed widget. */
   cellOccupied(anchor: AnchorId, cell: { col: number; row: number }): boolean {
     return this.occupancy(anchor)[cell.row]?.[cell.col] ?? true;
@@ -2464,9 +2490,7 @@ export class PlotterExtensionService {
 
   /** Start moving a placed widget: the overlay shows where it can go. */
   startMove(instanceId: string) {
-    const placed = this.activeWidgets().find(
-      (p) => p.instanceId === instanceId
-    );
+    const placed = this.shownWidgets().find((p) => p.instanceId === instanceId);
     this.movingWidget.set(placed ?? null);
   }
 
@@ -2512,9 +2536,15 @@ export class PlotterExtensionService {
       );
     });
     this.activeWidgets.set(active);
-    // A widget removed or no longer shown mid-move ends the move.
+    this.endMoveOfHiddenWidget();
+  }
+
+  /** A widget removed or no longer shown mid-move ends the move. */
+  private endMoveOfHiddenWidget() {
     const moving = untracked(this.movingWidget);
-    if (moving && !active.includes(moving)) this.cancelMove();
+    if (moving && !untracked(this.shownWidgets).includes(moving)) {
+      this.cancelMove();
+    }
   }
 
   // ---------- live contexts (one per iframe) ----------

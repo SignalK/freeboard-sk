@@ -121,4 +121,28 @@ describe('PlotterExtensionService widgets by screen size', () => {
     expect('minScreen' in widgets[0]).toBe(false);
     expect(saveConfig).toHaveBeenCalledTimes(2);
   });
+
+  it('finds the hidden widget in its cell, and only there', () => {
+    service.screenClass.set('phone');
+    expect(service.hiddenWidgetAt('br', { col: 3, row: 1 })?.instanceId).toBe(
+      'i-tablet'
+    );
+    expect(service.hiddenWidgetAt('tr', { col: 3, row: 0 })).toBeNull();
+    service.screenClass.set('tablet');
+    expect(service.hiddenWidgetAt('br', { col: 3, row: 1 })).toBeNull();
+  });
+
+  it('does not start moving a widget this screen hides', () => {
+    service.screenClass.set('phone');
+    service.startMove('i-tablet');
+    expect(service.movingWidget()).toBeNull();
+  });
+
+  it('ends the move when its widget gets hidden', () => {
+    service.screenClass.set('tablet');
+    service.startMove('i-phone');
+    expect(service.movingWidget()?.instanceId).toBe('i-phone');
+    service.setMinScreen('i-phone', 'monitor');
+    expect(service.movingWidget()).toBeNull();
+  });
 });

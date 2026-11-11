@@ -468,14 +468,23 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
     ) {
       return;
     }
-    const hit = this.hitTest(e.clientX, e.clientY);
+    const hits = this.hitTestAll(e.clientX, e.clientY);
+    const hit = hits[0];
     if (!hit) return;
-    if (this.service.cellOccupied(hit.anchor, hit.cell)) return;
+    // A cell this screen hides a widget in opens that widget's settings. The
+    // anchor areas overlap on a phone, so every area under the press counts.
+    let hidden: PlacedWidget | null = null;
+    for (const h of hits) {
+      hidden ??= this.service.hiddenWidgetAt(h.anchor, h.cell);
+    }
+    if (!hidden && this.service.cellOccupied(hit.anchor, hit.cell)) return;
     this.downPoint = { x: e.clientX, y: e.clientY };
     this.holdTimer = setTimeout(() => {
       this.holdTimer = null;
       this.zone.run(() =>
-        this.service.openAddWidgetPicker(hit.anchor, hit.cell)
+        hidden
+          ? this.service.openConfigPanel(hidden)
+          : this.service.openAddWidgetPicker(hit.anchor, hit.cell)
       );
     }, HOLD_MS);
   }
@@ -497,6 +506,18 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
     x: number,
     y: number
   ): { anchor: AnchorId; cell: { col: number; row: number } } | null {
+    return this.hitTestAll(x, y)[0] ?? null;
+  }
+
+  /** Every anchor area under a point, in the order hitTest picks from. */
+  private hitTestAll(
+    x: number,
+    y: number
+  ): Array<{ anchor: AnchorId; cell: { col: number; row: number } }> {
+    const hits: Array<{
+      anchor: AnchorId;
+      cell: { col: number; row: number };
+    }> = [];
     const areas = (this.host.nativeElement as HTMLElement).querySelectorAll(
       '.pe-anchor'
     );
@@ -515,8 +536,8 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
         rows - 1,
         Math.max(0, Math.floor(((y - rect.top) / rect.height) * rows))
       );
-      return { anchor, cell: { col, row } };
+      hits.push({ anchor, cell: { col, row } });
     }
-    return null;
+    return hits;
   }
 }
