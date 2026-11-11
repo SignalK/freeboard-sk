@@ -27,6 +27,7 @@ function svc(selections: string[] | null, cache: FBRoutes): SKResourceService {
   Object.assign(s as unknown as Record<string, unknown>, {
     app: {
       config: { selections: { routes: selections } },
+      data: { activeRoute: null },
       saveConfig: (): void => undefined
     },
     routeCacheSignal: signal<FBRoutes>(cache)

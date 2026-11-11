@@ -96,7 +96,7 @@ describe('CourseService course API data (#755)', () => {
             routes: signal(null),
             fromCache: (): void => undefined,
             waypointAddFromServer: (): void => undefined,
-            routeAddFromServer: (): void => undefined
+            refreshRoutes: (): void => undefined
           }
         }
       ]
@@ -264,7 +264,7 @@ describe('CourseService destination point name', () => {
           useValue: {
             routes: signal(null),
             fromCache: () => route,
-            routeAddFromServer: (): void => undefined
+            refreshRoutes: (): void => undefined
           }
         }
       ]
@@ -435,5 +435,161 @@ describe('CourseService arrival circle', () => {
     expect(await service.setArrivalCircle(50)).toBe(false);
 
     expect(parseHttpErrorResponse).toHaveBeenCalled();
+  });
+});
+
+describe('CourseService when following a route ends', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  function setupFollowing(selection: string[] | null) {
+    const app = {
+      config: { units: { distance: 'naut-mile' } },
+      useMagnetic: false,
+      data: {
+        activeWaypoint: null as string | null,
+        activeRoute: 'rte-1' as string | null,
+        activeRouteReversed: false
+      }
+    };
+    const routeRemove = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: {} },
+        { provide: AppFacade, useValue: app },
+        {
+          provide: SKResourceService,
+          useValue: {
+            routes: signal(null),
+            selectionIsFiltered: () => selection !== null,
+            selectionHas: (_: string, id: string) =>
+              selection?.includes(id) ?? false,
+            routeRemove
+          }
+        }
+      ]
+    });
+    const service = TestBed.inject(CourseService);
+    service.parseSelf({
+      courseApi: { arrivalCircle: 250, activeRoute: null, nextPoint: null },
+      courseCalcs: {}
+    } as unknown as SKVessel);
+    return { app, routeRemove };
+  }
+
+  it('takes a route hidden while followed off the map when another is followed', () => {
+    const app = {
+      config: { units: { distance: 'naut-mile' } },
+      useMagnetic: false,
+      data: {
+        activeWaypoint: null as string | null,
+        activeRoute: 'rte-1' as string | null,
+        activeRouteReversed: false
+      }
+    };
+    const routeRemove = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: {} },
+        { provide: AppFacade, useValue: app },
+        {
+          provide: SKResourceService,
+          useValue: {
+            routes: signal(null),
+            fromCache: (): void => undefined,
+            waypointAddFromServer: (): void => undefined,
+            refreshRoutes: (): void => undefined,
+            selectionIsFiltered: () => true,
+            selectionHas: (_: string, id: string) => id === 'rte-2',
+            routeRemove
+          }
+        }
+      ]
+    });
+    const pt = {
+      href: '/resources/routes/rte-2',
+      type: 'RoutePoint',
+      position: { longitude: 1, latitude: 1 }
+    };
+    TestBed.inject(CourseService).parseSelf({
+      courseApi: {
+        arrivalCircle: 250,
+        activeRoute: { href: '/resources/routes/rte-2', pointIndex: 0 },
+        nextPoint: pt,
+        previousPoint: pt
+      },
+      courseCalcs: {}
+    } as unknown as SKVessel);
+    expect(app.data.activeRoute).toBe('rte-2');
+    expect(routeRemove).toHaveBeenCalledWith(['rte-1']);
+  });
+
+  it('fetches a hidden route it starts to follow without showing it again', () => {
+    const app = {
+      config: { units: { distance: 'naut-mile' } },
+      useMagnetic: false,
+      data: {
+        activeWaypoint: null as string | null,
+        activeRoute: null as string | null,
+        activeRouteReversed: false
+      }
+    };
+    const refreshRoutes = vi.fn();
+    const routeAddFromServer = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        CourseService,
+        { provide: SignalKClient, useValue: {} },
+        { provide: AppFacade, useValue: app },
+        {
+          provide: SKResourceService,
+          useValue: {
+            routes: signal(null),
+            fromCache: (): void => undefined,
+            waypointAddFromServer: (): void => undefined,
+            refreshRoutes,
+            routeAddFromServer,
+            selectionIsFiltered: () => true,
+            selectionHas: () => false,
+            routeRemove: vi.fn()
+          }
+        }
+      ]
+    });
+    const pt = {
+      href: '/resources/routes/rte-2',
+      type: 'RoutePoint',
+      position: { longitude: 1, latitude: 1 }
+    };
+    TestBed.inject(CourseService).parseSelf({
+      courseApi: {
+        arrivalCircle: 250,
+        activeRoute: { href: '/resources/routes/rte-2', pointIndex: 0 },
+        nextPoint: pt,
+        previousPoint: pt
+      },
+      courseCalcs: {}
+    } as unknown as SKVessel);
+    expect(app.data.activeRoute).toBe('rte-2');
+    expect(refreshRoutes).toHaveBeenCalled();
+    // adding it from the server would put it back in the saved selection
+    expect(routeAddFromServer).not.toHaveBeenCalled();
+  });
+
+  it('takes a route hidden while followed off the map', () => {
+    const { app, routeRemove } = setupFollowing([]);
+    expect(app.data.activeRoute).toBeNull();
+    expect(routeRemove).toHaveBeenCalledWith(['rte-1']);
+  });
+
+  it('leaves a route that is still selected on the map', () => {
+    const { routeRemove } = setupFollowing(['rte-1']);
+    expect(routeRemove).not.toHaveBeenCalled();
+  });
+
+  it('leaves the route on the map while every route is shown', () => {
+    const { routeRemove } = setupFollowing(null);
+    expect(routeRemove).not.toHaveBeenCalled();
   });
 });

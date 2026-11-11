@@ -2413,11 +2413,13 @@ export class SKResourceService {
     }
     this.app.debug(`** refreshRoutes(): ${query}`);
     try {
-      if (this.app.data.activeRoute) {
-        this.selectionAdd('routes', this.app.data.activeRoute);
-      }
+      // The followed route is shown even when hidden; the selection keeps
+      // the hide for when following ends.
       const rtes = await this.listFromServer<FBRoute>('routes', query);
-      const flist = rtes.filter((route: FBRoute) => route[2]);
+      const active = this.app.data.activeRoute;
+      const flist = rtes
+        .filter((route: FBRoute) => route[2] || route[0] === active)
+        .map((route: FBRoute): FBRoute => [route[0], route[1], true]);
       this.routeCacheSignal.set(flist);
     } catch (err) {
       this.app.debug('** refreshRoutes:', err);
@@ -2512,16 +2514,22 @@ export class SKResourceService {
   /**
    * @description Remove FBRoute objects from the Route Cache
    * @param ids Array of route identifiers. If not supplied all routes are removed.
+   * The active route is never removed.
    */
   public routeRemove(ids?: string[]) {
+    // The active route stays on the map while it is followed: its line shows
+    // the way ahead. The selection still records the hide, so the route goes
+    // once following ends.
+    const active = this.app.data.activeRoute;
     this.routeCacheSignal.update((current: FBRoutes) => {
       if (!ids) {
-        // remove all entries
         this.selectionClear('routes');
-        return [];
+        return current.filter((r: FBRoute) => r[0] === active);
       } else {
         this.selectionRemove('routes', ids);
-        return current.filter((r: FBRoute) => !ids.includes(r[0]));
+        return current.filter(
+          (r: FBRoute) => r[0] === active || !ids.includes(r[0])
+        );
       }
     });
   }

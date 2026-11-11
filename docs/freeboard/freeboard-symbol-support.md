@@ -132,9 +132,9 @@ real-aton   / virtual-aton          (generic / fallback AtoN)
 ```
 
 **Route markers:** `route-start`, `route-waypoint` (cloned per segment, rotated
-to bearing), `route-end`. An override applies in both settings of
+to bearing), `route-end`. An override applies in every setting of
 Course → Routes → **Route style**: it replaces the bundled flag/pin glyph
-under *Flags & pins* and the drawn shape under *Classic*.
+under *Flags & pins* and the drawn shape under the others.
 
 **Weather indicators** — flow arrows drawn programmatically and rotated to the
 reported direction:

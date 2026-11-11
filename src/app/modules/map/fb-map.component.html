@@ -305,6 +305,7 @@
     [routeStyles]="featureStyles.route"
     [routeStyle]="app.config.resources.routeStyle"
     [activeRoute]="activeRoute"
+    [activeReversed]="app.data.activeRouteReversed"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
@@ -318,6 +319,7 @@
     [routeStyles]="draftRouteStyles"
     [routeStyle]="app.config.resources.routeStyle"
     [activeRoute]="activeRoute"
+    [activeReversed]="app.data.activeRouteReversed"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
@@ -325,8 +327,12 @@
   >
   </fb-routes>
 
-  <!-- Routes -->
-  @if (activeRoute && !app.data.activeRouteIsEditing) {
+  <!-- The chevron route styles show the direction along the line itself -->
+  @if (
+    activeRoute &&
+    !app.data.activeRouteIsEditing &&
+    !drawsFlow(app.config.resources.routeStyle)
+  ) {
     <fb-route-direction
       [points]="course.courseData().activeRoutePoints"
       [pointIndex]="course.courseData().pointIndex"

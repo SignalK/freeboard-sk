@@ -335,6 +335,27 @@ export class CourseService {
 
   /** Update CourseData Signal */
   private processCourseData(value: SKCourseApi) {
+    const followed = this.app.data.activeRoute;
+    this.processCourseApi(value);
+    this.dropHiddenRoute(followed);
+  }
+
+  /**
+   * A route hidden while it was followed leaves the map once another route,
+   * or none, is followed.
+   */
+  private dropHiddenRoute(followed: string | null) {
+    if (
+      followed &&
+      followed !== this.app.data.activeRoute &&
+      this.skres.selectionIsFiltered('routes') &&
+      !this.skres.selectionHas('routes', followed)
+    ) {
+      this.skres.routeRemove([followed]);
+    }
+  }
+
+  private processCourseApi(value: SKCourseApi) {
     const clearCourse = (value: CourseData) => {
       value.position = null;
       value.startPosition = null;
@@ -423,8 +444,10 @@ export class CourseService {
 
         const rte = this.skres.fromCache('routes', this.app.data.activeRoute);
         if (!rte) {
-          // add route to cache
-          this.skres.routeAddFromServer([this.app.data.activeRoute]);
+          // The refresh shows the followed route even when it is hidden, and
+          // leaves the selection alone, so a hide still holds once following
+          // ends.
+          this.skres.refreshRoutes();
           // handleRouteSignal() updates activeRoute point details from cache
         } else {
           this.updateActiveRoutePointDetails(c, rte);

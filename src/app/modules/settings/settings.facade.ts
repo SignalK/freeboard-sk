@@ -273,7 +273,9 @@ export class SettingsOptions {
   resources = {
     routeStyle: new Map<RouteStyle, string>([
       ['flags', 'Flags & pins (default)'],
-      ['classic', 'Classic']
+      ['classic', 'Classic'],
+      ['chevrons', 'Chevrons (animated)'],
+      ['chevrons-static', 'Chevrons (static)']
     ]),
     noteRadius: [5, 10, 20, 50, 100, 150, 200, 500],
     resSetRadius: [0, 5, 10, 20, 50, 100, 150, 200, 500]

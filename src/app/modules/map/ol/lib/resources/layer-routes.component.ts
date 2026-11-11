@@ -2,12 +2,16 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  inject,
   Input,
+  NgZone,
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
 import { Style, Stroke, Fill, Circle, RegularShape } from 'ol/style';
 import { LineString, Point } from 'ol/geom';
+import { asString } from 'ol/color';
+import type { Coordinate } from 'ol/coordinate';
 import { toLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
@@ -27,6 +31,10 @@ import {
   linkedWaypointId,
   PointLink
 } from './route-waypoint-overlap';
+import { drawRouteFlow, drawsFlow, flowPhase } from './route-flow';
+
+/** Redraw interval of the animated direction chevrons: ~12 fps keeps a Pi cool. */
+const FLOW_FRAME_MS = 80;
 
 // ** Freeboard resource collection format **
 @Component({
@@ -40,8 +48,12 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   @Input() activeRoute?: string | null;
   @Input() routes: FBRoutes = [];
   @Input() routeStyle: RouteStyle = 'flags';
+  /** The active route is followed from its last point to its first. */
+  @Input() activeReversed = false;
 
   private leaveOverlap?: () => void;
+  private flowTimer?: ReturnType<typeof setInterval>;
+  private zone = inject(NgZone);
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -59,9 +71,11 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       this.leaveOverlap = joinOverlap(map, 'routes', this.source);
     }
     this.parseFBRoutes(this.routes);
+    this.syncFlowTimer();
   }
 
   override ngOnDestroy() {
+    this.stopFlowTimer();
     this.leaveOverlap?.();
     super.ngOnDestroy();
   }
@@ -75,8 +89,40 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       } else if ('activeRoute' in changes) {
         this.onActivateRoute();
       }
-    } else if (this.source && 'routeStyle' in changes) {
+    } else if (
+      this.source &&
+      ('routeStyle' in changes || 'activeReversed' in changes)
+    ) {
       this.source.changed();
+    }
+    if (this.source && ('routes' in changes || 'routeStyle' in changes)) {
+      this.syncFlowTimer();
+    }
+  }
+
+  /** Runs the redraw timer only while there is a route to animate. */
+  private syncFlowTimer() {
+    const wanted =
+      this.routeStyle === 'chevrons' && this.routes.some((r) => r[2]);
+    if (!wanted) {
+      this.stopFlowTimer();
+      this.mapComponent.getMap()?.render();
+    } else if (!this.flowTimer) {
+      // A map render needs no change detection, which each tick would run.
+      this.flowTimer = this.zone.runOutsideAngular(() =>
+        setInterval(() => {
+          if (!document.hidden) {
+            this.mapComponent.getMap()?.render();
+          }
+        }, FLOW_FRAME_MS)
+      );
+    }
+  }
+
+  private stopFlowTimer() {
+    if (this.flowTimer) {
+      clearInterval(this.flowTimer);
+      this.flowTimer = undefined;
     }
   }
 
@@ -140,7 +186,6 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     const styles = [];
     const id = (feature.getId() as string).split('.').slice(-1)[0];
     const isActive = id === this.activeRoute;
-    let ptFill: Fill;
 
     if (typeof this.routeStyles === 'undefined') {
       if (this.layerProperties && this.layerProperties.style) {
@@ -159,20 +204,45 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     }
 
     // line style
-    if (isActive && typeof this.routeStyles.active !== 'undefined') {
-      styles.push(this.routeStyles.active);
-      ptFill = new Fill({
-        color: this.routeStyles.active.getStroke()?.getColor()
-      });
-    } else {
-      styles.push(this.routeStyles.default.clone());
-      ptFill = new Fill({
-        color: this.routeStyles.default.getStroke()?.getColor()
-      });
+    const lineStyle =
+      isActive && typeof this.routeStyles.active !== 'undefined'
+        ? this.routeStyles.active
+        : this.routeStyles.default.clone();
+    styles.push(lineStyle);
+    const lineColor = lineStyle.getStroke()?.getColor();
+    const ptFill = new Fill({ color: lineColor });
+
+    // direction of travel: guide lines either side and chevrons along it
+    const flow = drawsFlow(this.routeStyle);
+    if (flow) {
+      const flowColor = Array.isArray(lineColor)
+        ? asString(lineColor)
+        : typeof lineColor === 'string'
+          ? lineColor
+          : 'green';
+      const reverse = isActive && this.activeReversed;
+      styles.push(
+        new Style({
+          renderer: (pixelCoords, state) =>
+            drawRouteFlow(
+              state.context,
+              pixelCoords as Coordinate[],
+              state.pixelRatio,
+              {
+                color: flowColor,
+                reverse,
+                phase: flowPhase(
+                  this.routeStyle === 'chevrons',
+                  performance.now()
+                )
+              }
+            )
+        })
+      );
     }
 
-    // A symbol-provider override wins in either style. 'flags' falls back to
-    // the bundled flag and pin glyphs; 'classic' (marker null) falls back to the
+    // A symbol-provider override wins in every style. 'flags' falls back to
+    // the bundled flag and pin glyphs; the others (marker null) fall back to the
     // shapes drawn below in the route line's colour, which an icon cannot take.
     // The waypoint marker is cloned per segment and rotated to the bearing;
     // start/end markers render upright.
@@ -223,7 +293,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
               image: img
             })
           );
-        } else if (isActive) {
+        } else if (isActive || flow) {
+          // the chevrons, or the active route's own arrows, show the way
           styles.push(
             new Style({
               geometry: new Point(start),
