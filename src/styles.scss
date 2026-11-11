@@ -41,12 +41,6 @@ b { font-weight: 500; }
     animation-iteration-count: infinite;
 }
 
-/* The nav data panel draws one translucent background itself; opaque
-   backgrounds on its parts (each dial, the route point buttons) would cover it. */
-.navdataPanel .mat-app-background {
-    background-color: transparent;
-}
-
 .ol-scale-bar {
     bottom: unset;
     top: 10px;

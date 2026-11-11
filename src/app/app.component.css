@@ -159,14 +159,6 @@ mat-nav-list {
     overflow-y: hidden;
     border: gray 1px solid;
     border-radius: 10px;
-    background-color: var(--mat-app-background-color, white);
-}
-
-/* Translucent like the Plotter Extensions widgets, so the chart shows through. */
-@supports (background-color: color-mix(in srgb, white 78%, transparent)) {
-    .navdataPanel {
-        background-color: color-mix(in srgb, var(--mat-app-background-color, white) 78%, transparent);
-    }
 }
 
 .bottomSheet {
