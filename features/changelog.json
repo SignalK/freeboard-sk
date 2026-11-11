@@ -180,5 +180,7 @@
   { "feature": "radar-targets", "pr": 914, "kind": "new", "date": "2026-11-10", "title": "feat(map): show radar and camera targets" },
   { "feature": "collision-alarm-display", "pr": 914, "kind": "enhanced", "date": "2026-11-10", "title": "feat(map): show radar and camera targets" },
   { "feature": "radar-targets", "pr": 1219, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): acquire and stop tracking radar targets from the chart" },
-  { "feature": "radar-overlay", "pr": 1224, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): choose the colour of the radar range rings" }
+  { "feature": "radar-overlay", "pr": 1224, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): choose the colour of the radar range rings" },
+  { "feature": "person-overboard", "kind": "new", "since": "v1.8.0-rc1", "date": "2019-02-03", "title": "Raise a Person Overboard (M.O.B.) alarm" },
+  { "feature": "person-overboard", "pr": 1255, "kind": "enhanced", "date": "2026-11-10", "title": "feat(alarms): add a Person Overboard button and keep the MOB on screen" }
 ]

@@ -17,7 +17,8 @@ Choose it in **Settings → Display → Action Button**:
   new-waypoint dialog with the position filled in, ready to name and save. It
   is greyed out until Freeboard knows where the vessel is.
 - **Person Overboard** — a red button that raises a Person Overboard alarm on
-  the Signal K server, so every device connected to it sounds the alarm.
+  the Signal K server, so every device connected to it sounds the alarm (see
+  *Person Overboard*).
 - **Autopilot Console** — opens and closes the autopilot console. It lights
   up while the autopilot is engaged, and is greyed out unless the server
   reports an autopilot.
