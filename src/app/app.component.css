@@ -161,6 +161,13 @@ mat-nav-list {
     border-radius: 10px;
 }
 
+/* The chart shows through the panel when the user picks a lower opacity. */
+@supports (background-color: color-mix(in srgb, white 50%, transparent)) {
+    .navdataTranslucent {
+        background-color: color-mix(in srgb, var(--mat-app-background-color, white) var(--fb-navdata-alpha), transparent);
+    }
+}
+
 .bottomSheet {
     position: absolute;
     z-index: 4902;

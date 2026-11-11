@@ -262,6 +262,24 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.display.splitView).toBe(true);
   });
 
+  it('keeps the route bar opaque by default', () => {
+    expect(defaultConfig().display.navDataOpacity).toBe(1);
+  });
+
+  it('keeps the route bar opaque for a config saved without the setting', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.display, 'navDataOpacity');
+    cleanConfig(cfg, {});
+    expect(cfg.display.navDataOpacity).toBe(1);
+  });
+
+  it('keeps the route bar opacity the user chose', () => {
+    const cfg = defaultConfig();
+    cfg.display.navDataOpacity = 0.7;
+    cleanConfig(cfg, {});
+    expect(cfg.display.navDataOpacity).toBe(0.7);
+  });
+
   it('restores the instruments settings for a config saved without them', () => {
     const cfg: LegacyAppConfig = defaultConfig();
     unset(cfg.display, 'plugins');

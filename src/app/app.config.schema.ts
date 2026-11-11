@@ -89,6 +89,7 @@ export const AppConfigSchema = Type.Object({
     }),
     preferInfoPanel: bool(true),
     splitView: bool(false), // offer the Split view button: a second chart pane
+    navDataOpacity: num(1), // route bar background opacity; below 1 the chart shows through
     singleClickNoteDetails: bool(false),
     windIndicator: choice<WindIndicator>('barb'),
     statusBar: Type.Object({
