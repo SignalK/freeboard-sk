@@ -1801,7 +1801,9 @@
             server.
           </ul>
           All Alerts are available to view via the Alerts List.<br />
-          The following Alarms can be raised:
+          A <b>Person Overboard</b> alarm can be raised from the Alerts List, or
+          with the red Person Overboard button at the bottom of the toolbar. See
+          the Feature Browser &rarr; Person Overboard.
           <div>
             <img src="./img/alarms.png" style="max-width: 350px" alt="" />
           </div>
@@ -1814,9 +1816,7 @@
               <i class="material-icons" style="color: orangered">warning</i>
               button on the toolbar to display the Alerts List:
             </li>
-            <li>
-              Click the <b>RAISE</b> button and select the desired alarm type.
-            </li>
+            <li>Click the <b>RAISE</b> button and select <b>Overboard!</b>.</li>
           </ul>
 
           An alarm request will be sent to the Signal K server which will emit a
@@ -1826,12 +1826,16 @@
           <i>Silenced</i>.
           <ul>
             <li>
-              Silencing the alert will mute any sound and the alert card remains
-              visible.
+              Silencing the alert (<b>MUTE</b>) will mute any sound and the
+              alert card remains visible. On a display nobody is logged in to,
+              MUTE silences that display only: the alarm stays active on the
+              server and on other displays, and sounds again if it escalates.
             </li>
             <li>
-              Acknowledging the alert will close the alert card and silence any
-              sound. The alert remains an entry in the Alert List.
+              Acknowledging the alert (<b>ACK</b>) will close the alert card and
+              silence any sound. The alert remains an entry in the Alert List.
+              Acknowledging needs a logged-in user. A Person Overboard card
+              stays visible after ACK, until the MOB is ended.
             </li>
           </ul>
 
