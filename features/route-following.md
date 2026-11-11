@@ -15,7 +15,8 @@ or stop short of its end without starting over.
 starts following it from its first point. To start partway along, press
 **Start here** beside a point in the info panel's point list, or open the
 route's **Points** and choose **Start at nearest point** to pick up the route
-at the point closest to your boat.
+at the point closest to your boat. If the route is hidden, it appears on the
+chart while you follow it and is hidden again once you stop.
 
 **Following a route you haven't saved.** For a quick "take me there" route —
 around a shoal, or into an anchorage — you don't have to name and save it
