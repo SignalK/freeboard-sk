@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { SKResourceService } from './resources.service';
-import { FBWaypoint, FBWaypoints } from 'src/app/types/resources/freeboard';
+import {
+  FBChart,
+  FBWaypoint,
+  FBWaypoints
+} from 'src/app/types/resources/freeboard';
 
 /**
  * `showStored` / `hideStored` back the plotter-extension `resources.show` /
@@ -76,5 +80,51 @@ describe('SKResourceService.hideStored', () => {
     t.s.hideStored('waypoints', ['unknown']);
     expect(t.selection()).toBeNull();
     expect(t.cacheIds()).toEqual(['w1', 'w2']);
+  });
+});
+
+describe('SKResourceService.setChartsVisibility with an unlisted id', () => {
+  // resources.show accepts a chart id the server list does not have yet (a
+  // chart just created). It must not count towards "every chart is shown".
+  const chart = (id: string, shown: boolean) =>
+    [id, {}, shown] as unknown as FBChart;
+
+  function charts(selection: string[] | null) {
+    const s = Object.create(SKResourceService.prototype) as SKResourceService;
+    Object.assign(s as unknown as Record<string, unknown>, {
+      app: {
+        config: { selections: { charts: selection } },
+        saveConfig: (): void => undefined,
+        debug: (): void => undefined
+      },
+      listChartsFromServer: async () => [
+        chart('osm', true),
+        chart('A', true),
+        chart('B', false)
+      ],
+      appendOSM: (list: unknown) => list,
+      refreshCharts: async () => undefined
+    });
+    return {
+      s,
+      selection: () =>
+        (
+          s as unknown as {
+            app: { config: { selections: { charts: string[] | null } } };
+          }
+        ).app.config.selections.charts
+    };
+  }
+
+  it('keeps a chart the user hid hidden', async () => {
+    const t = charts(['osm', 'A']);
+    await t.s.setChartsVisibility(['C'], true);
+    expect(t.selection()).toEqual(['osm', 'A', 'C']);
+  });
+
+  it('still returns to show-all once every listed chart is shown', async () => {
+    const t = charts(['osm', 'A']);
+    await t.s.setChartsVisibility(['B'], true);
+    expect(t.selection()).toBeNull();
   });
 });

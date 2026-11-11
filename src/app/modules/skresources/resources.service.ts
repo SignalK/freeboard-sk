@@ -2183,7 +2183,9 @@ export class SKResourceService {
     if (!changed) {
       return;
     }
-    if (nowVisible.size >= available.length) {
+    // Compare by id, not count: an id not listed yet (a chart just created)
+    // must not stand in for a chart the user has hidden.
+    if (available.every((c: FBChart) => nowVisible.has(c[0]))) {
       this.selectionUnfilter('charts');
     } else {
       this.selectionClear('charts');
