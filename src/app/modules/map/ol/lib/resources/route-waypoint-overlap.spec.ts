@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import ImageState from 'ol/ImageState';
 import { AsyncSubject } from 'rxjs';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
@@ -332,6 +333,47 @@ describe('one marker where a route point meets its waypoint (#991)', () => {
     expect(images).toContain(iconHitTarget(provided));
     // one label only
     expect(styles.filter((st) => st.getText()).length).toBe(1);
+  });
+
+  it('sizes the hit target to a provider icon once its image loads', () => {
+    // as MapImageRegistry builds them: no size until the image has loaded
+    const provided = new Icon({
+      src: './custom-end.svg',
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    });
+    let onChange: (() => void) | undefined;
+    vi.spyOn(provided, 'load').mockImplementation(() => undefined);
+    vi.spyOn(provided, 'listenImageChange').mockImplementation((l) => {
+      onChange = l as () => void;
+    });
+    const s = scene(
+      [route('r1', [A, B], linkAll('wa', 'wb'))],
+      [waypoint('wb', B)],
+      'flags'
+    );
+    endOverride(s.waypoints, provided);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      ROUTE_END_HIT_TARGET
+    );
+    expect(provided.load).toHaveBeenCalledTimes(1);
+    // asking again while it loads doesn't load it again
+    waypointStyle(s.waypoints, 'wb');
+    expect(provided.load).toHaveBeenCalledTimes(1);
+
+    vi.spyOn(provided, 'getSize').mockReturnValue([24, 24]);
+    vi.spyOn(provided, 'getImageState').mockReturnValue(ImageState.LOADED);
+    let changed = 0;
+    s.waypoints.source.on('change', () => changed++);
+    onChange?.();
+    expect(changed).toBe(1);
+    expect(waypointStyle(s.waypoints, 'wb').getImage()).toBe(
+      iconHitTarget(provided)
+    );
+    expect(iconHitTarget(provided)?.getRadius()).toBeCloseTo(
+      Math.hypot(24, 24) / 2
+    );
   });
 
   it('places a provider icon hit target over an icon anchored at its foot', () => {

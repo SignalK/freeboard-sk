@@ -8,6 +8,7 @@ import {
 import { Feature } from 'ol';
 import { Style, Text, Circle, Fill, Icon, Stroke } from 'ol/style';
 import { Point } from 'ol/geom';
+import ImageState from 'ol/ImageState';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
@@ -85,6 +86,8 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() routeStyle: RouteStyle = 'flags';
 
   private leaveOverlap?: () => void;
+  /** Provider icons this layer is waiting on to size their hit targets. */
+  private awaitedIcons?: WeakSet<Icon>;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -155,20 +158,50 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
     );
   }
 
-  /** The hit target over route end `end`'s marker, and whether it is tall. */
+  /**
+   * The hit target over route end `end`'s marker, and whether it is tall.
+   * Mirrors MapImageRegistry.getRouteMarkerFor(), which picks the marker the
+   * route layer draws there: a provider override in either style, else the
+   * bundled flag ('flags') or a drawn shape ('classic').
+   */
   private routeEndMarker(end: RouteEnd): { target: Circle; tall: boolean } {
     const provided = this.mapImages.getExternalSymbol(
       end === 'start' ? ROUTE_MARKER_START : ROUTE_MARKER_END
     );
     if (provided) {
-      return {
-        target: iconHitTarget(provided) ?? ROUTE_END_HIT_TARGET,
-        tall: true
-      };
+      const target = iconHitTarget(provided);
+      if (!target) {
+        this.restyleWhenLoaded(provided);
+      }
+      return { target: target ?? ROUTE_END_HIT_TARGET, tall: true };
     }
     return this.routeStyle === 'flags'
       ? { target: ROUTE_FLAG_HIT_TARGET, tall: true }
       : { target: ROUTE_END_HIT_TARGET, tall: false };
+  }
+
+  /**
+   * Re-style the layer once `icon`'s image has loaded, so its hit target can be
+   * sized to it. Nothing else would: this layer never draws the icon itself,
+   * and OL re-runs its style functions only when the source or view changes.
+   */
+  private restyleWhenLoaded(icon: Icon) {
+    this.awaitedIcons ??= new WeakSet();
+    if (this.awaitedIcons.has(icon)) {
+      return;
+    }
+    this.awaitedIcons.add(icon);
+    const onChange = () => {
+      const state = icon.getImageState();
+      if (state === ImageState.LOADED || state === ImageState.ERROR) {
+        icon.unlistenImageChange(onChange);
+        if (state === ImageState.LOADED) {
+          this.source?.changed();
+        }
+      }
+    };
+    icon.listenImageChange(onChange);
+    icon.load();
   }
 
   /** Labels live on each feature's base style; its style is a function. */
