@@ -145,6 +145,11 @@ export class InfoService {
     this.emitConfigEvent('saved');
   }
 
+  /** forget the app config persisted in this browser */
+  clearConfig() {
+    this.state.clearConfig();
+  }
+
   /** load app data */
   loadData() {
     this.data = this.state.loadData(this.data);
