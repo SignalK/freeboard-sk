@@ -187,5 +187,6 @@
   { "feature": "waypoints", "kind": "enhanced", "since": "v2.11.4", "date": "2024-09-22", "title": "Style waypoints by their type" },
   { "feature": "waypoints", "kind": "enhanced", "since": "v2.24.0", "date": "2026-06-03", "title": "Choose a waypoint's symbol for more waypoint types" },
   { "feature": "waypoints", "pr": 1234, "kind": "enhanced", "date": "2026-11-10", "title": "feat(waypoints): enter a waypoint position in DD, DDM, DMS or UTM" },
-  { "feature": "radar-overlay", "pr": 1280, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): step the radar range with + and - buttons" }
+  { "feature": "radar-overlay", "pr": 1280, "kind": "enhanced", "date": "2026-11-10", "title": "feat(radar): step the radar range with + and - buttons" },
+  { "feature": "extension-panels", "pr": 1297, "kind": "enhanced", "date": "2026-11-11", "title": "feat(plotterext): implement resources.show and resources.hide" }
 ]

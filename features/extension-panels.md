@@ -42,6 +42,15 @@ filtering the waypoints list to just the ones matching your search. When a
 panel does this, a small chip appears near the top of the screen describing
 the filter; tap its **×** to clear it and show everything again.
 
+A plugin can also put a single waypoint, route, region or chart on the chart,
+or take one off, without changing anything else you have shown. For example,
+it can show a waypoint it has just created, or the route it wants you to look
+at. The item's tick in its list (Waypoints, Routes, Regions or Charts) changes
+as if you had tapped it yourself, so you can untick it the same way. No filter
+chip appears, because nothing is being filtered: only your own selection
+changes. A plugin can't show or hide individual notes, but it can turn the
+Notes layer back on if it needs it.
+
 ## Floating windows
 
 ![Fig 3. A plugin's window floating over the chart](extension-panels-3.jpg)
