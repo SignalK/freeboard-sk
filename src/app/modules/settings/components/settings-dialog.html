@@ -555,16 +555,6 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
-                      [(ngModel)]="facade.settings.map.animateRoutes"
-                      (change)="persistModel()"
-                      matTooltip="Move the arrows along each route in its direction of travel. Turn off on a slow device."
-                      label="after"
-                    >
-                      Animate route direction
-                    </mat-checkbox>
-                  </div>
-                  <div class="setting-card-row-item">
-                    <mat-checkbox
                       [(ngModel)]="facade.settings.map.doubleClickZoom"
                       (change)="persistModel()"
                       matTooltip="Double Click map to zoom"
@@ -851,7 +841,7 @@
                       <mat-select
                         [(ngModel)]="facade.settings.resources.routeStyle"
                         (selectionChange)="persistModel()"
-                        matTooltip="How route points are marked on the map."
+                        matTooltip="How routes are drawn on the map. Animated chevrons need more from a slow device."
                       >
                         @for(i of options.resources.routeStyle; track i[0]) {
                         <mat-option [value]="i[0]">{{i[1]}}</mat-option>

@@ -65,6 +65,7 @@ import { trueWindDirection } from 'src/app/lib/true-bearing';
 import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { isPanKey } from 'src/app/lib/pan-keys';
 import { shownFromZoom } from './ol/lib/charts/chart-utils';
+import { drawsFlow } from './ol/lib/resources/route-flow';
 import { zoomDisplayText } from 'src/app/lib/zoom-display';
 import { isRefollowActivity, RefollowTimer } from 'src/app/lib/refollow-timer';
 import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
@@ -667,6 +668,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private http = inject(HttpClient);
   protected app = inject(AppFacade);
+  protected drawsFlow = drawsFlow;
   protected skres = inject(SKResourceService);
   protected skresOther = inject(FBCustomResourceService);
   protected skstream = inject(SKStreamFacade);

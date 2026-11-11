@@ -352,16 +352,16 @@ export class MapImageRegistry {
 
   /**
    * @description The icon drawn for a route marker in the given route style:
-   * an override or the bundled glyph for 'flags'; an override or null for
-   * 'classic', whose markers are shapes the route layer draws itself.
+   * an override or the bundled glyph for 'flags'; an override or null for the
+   * other styles, whose markers are shapes the route layer draws itself.
    * @param id ROUTE_MARKER_START | ROUTE_MARKER_WAYPOINT | ROUTE_MARKER_END
    * @param style Route style setting
    * @returns Icon object or null
    */
   getRouteMarkerFor(id: string, style: RouteStyle): Icon | null {
-    return style === 'classic'
-      ? this.getExternalSymbol(id)
-      : this.getRouteMarker(id);
+    return style === 'flags'
+      ? this.getRouteMarker(id)
+      : this.getExternalSymbol(id);
   }
 
   /**

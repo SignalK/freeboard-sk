@@ -4,6 +4,13 @@
  * pixels so they stay equally dense at every zoom level.
  */
 
+import type { RouteStyle } from 'src/app/types';
+
+/** Whether a route style draws the direction chevrons. */
+export function drawsFlow(style: RouteStyle): boolean {
+  return style === 'chevrons' || style === 'chevrons-static';
+}
+
 /** Screen-space sizes, in CSS pixels. */
 export const ROUTE_FLOW = {
   /** Distance between chevrons along the line. */

@@ -17,9 +17,9 @@ import { ROUTE_FLOW } from './route-flow';
 
 /**
  * The "Route style" setting picks how route points are marked: 'flags' draws
- * the bundled start flag, waypoint pins and end flag; 'classic' draws small
- * shapes in the route line's colour. A symbol-provider override replaces a
- * marker in either style.
+ * the bundled start flag, waypoint pins and end flag; the other styles draw
+ * small shapes in the route line's colour. A symbol-provider override replaces
+ * a marker in every style.
  */
 const LINE_COLOUR = 'rgb(0, 0, 255)';
 
@@ -78,8 +78,23 @@ describe('route markers by route style', () => {
     expect((end as RegularShape).getFill()?.getColor()).toBe(LINE_COLOUR);
   });
 
-  it('uses a symbol-provider override in either style', () => {
-    for (const style of ['flags', 'classic'] as RouteStyle[]) {
+  it('draws circles at the waypoints in the chevron styles', () => {
+    for (const style of ['chevrons', 'chevrons-static'] as RouteStyle[]) {
+      const [start, wpt, end] = markers(routeLayer(style));
+      expect(start).toBeInstanceOf(Circle);
+      expect(wpt).toBeInstanceOf(Circle);
+      expect(end).toBeInstanceOf(RegularShape);
+      expect((wpt as Circle).getFill()?.getColor()).toBe(LINE_COLOUR);
+    }
+  });
+
+  it('uses a symbol-provider override in every style', () => {
+    for (const style of [
+      'flags',
+      'classic',
+      'chevrons',
+      'chevrons-static'
+    ] as RouteStyle[]) {
       const reg = new MapImageRegistry();
       reg.registerSymbolMarker(ROUTE_MARKER_START, {
         path: './custom-start.svg'
@@ -133,7 +148,7 @@ const render = { render: vi.fn() };
 function layer(opts: {
   activeRoute?: string;
   activeReversed?: boolean;
-  animateFlow?: boolean;
+  routeStyle?: RouteStyle;
 }): FreeboardRouteLayerComponent {
   const c = Object.create(
     FreeboardRouteLayerComponent.prototype
@@ -145,7 +160,7 @@ function layer(opts: {
     routes: [['r1', {}, true]] as unknown as FBRoutes,
     activeRoute: opts.activeRoute ?? null,
     activeReversed: opts.activeReversed ?? false,
-    animateFlow: opts.animateFlow ?? false,
+    routeStyle: opts.routeStyle ?? 'chevrons-static',
     source: new VectorSource()
   });
   return c;
@@ -201,7 +216,25 @@ describe('FreeboardRouteLayerComponent direction chevrons', () => {
     expect(pointing(chevrons(c))).toBe(1);
   });
 
-  it('start moving when animation is turned on, without a restyle', () => {
+  it('are drawn only in the chevron styles', () => {
+    const feature = new Feature(
+      new LineString([
+        [100, 500],
+        [600, 500]
+      ])
+    );
+    feature.setId('route.r1');
+    const drawn = (routeStyle: RouteStyle) =>
+      (layer({ routeStyle }).buildStyle(feature, 1) as Style[]).some((s) =>
+        s.getRenderer()
+      );
+    expect(drawn('flags')).toBe(false);
+    expect(drawn('classic')).toBe(false);
+    expect(drawn('chevrons')).toBe(true);
+    expect(drawn('chevrons-static')).toBe(true);
+  });
+
+  it('start moving when the animated style is chosen, before a restyle', () => {
     const c = layer({});
     const feature = new Feature(
       new LineString([
@@ -226,29 +259,33 @@ describe('FreeboardRouteLayerComponent direction chevrons', () => {
       return rec.strokes[1][0][1];
     };
     expect(firstX(0)).toBe(firstX(ROUTE_FLOW.periodMs / 4));
-    c.animateFlow = true;
+    c.routeStyle = 'chevrons';
     expect(firstX(0)).not.toBe(firstX(ROUTE_FLOW.periodMs / 4));
   });
 });
 
 describe('FreeboardRouteLayerComponent flow animation timer', () => {
-  it('redraws the map once animation is turned on', () => {
+  it('redraws the map once the animated style is chosen', () => {
     vi.useFakeTimers();
     const c = layer({});
-    c.animateFlow = true;
-    c.ngOnChanges({ animateFlow: new SimpleChange(false, true, false) });
+    c.routeStyle = 'chevrons';
+    c.ngOnChanges({
+      routeStyle: new SimpleChange('chevrons-static', 'chevrons', false)
+    });
     render.render.mockReset();
     vi.advanceTimersByTime(500);
     expect(render.render.mock.calls.length).toBeGreaterThanOrEqual(5);
     c.ngOnDestroy();
   });
 
-  it('stops redrawing when animation is turned off', () => {
+  it('stops redrawing when another style is chosen', () => {
     vi.useFakeTimers();
-    const c = layer({ animateFlow: true });
-    c.ngOnChanges({ animateFlow: new SimpleChange(false, true, false) });
-    c.animateFlow = false;
-    c.ngOnChanges({ animateFlow: new SimpleChange(true, false, false) });
+    const c = layer({ routeStyle: 'chevrons' });
+    c.ngOnChanges({
+      routeStyle: new SimpleChange('chevrons-static', 'chevrons', false)
+    });
+    c.routeStyle = 'flags';
+    c.ngOnChanges({ routeStyle: new SimpleChange('chevrons', 'flags', false) });
     render.render.mockReset();
     vi.advanceTimersByTime(500);
     expect(render.render).not.toHaveBeenCalled();

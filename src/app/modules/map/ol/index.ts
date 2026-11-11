@@ -30,6 +30,7 @@ import { BearingLineComponent } from './lib/navigation/layer-bearing-line.compon
 import { HeadingLineComponent } from './lib/navigation/layer-heading-line.component';
 import { LaylineComponent } from './lib/navigation/layer-layline.component';
 import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
+import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 import { TrackHistoryLayerComponent } from './lib/vessel/layer-track-history.component';
@@ -94,6 +95,7 @@ export { BearingLineComponent } from './lib/navigation/layer-bearing-line.compon
 export { HeadingLineComponent } from './lib/navigation/layer-heading-line.component';
 export { LaylineComponent } from './lib/navigation/layer-layline.component';
 export { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
+export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 export {
@@ -159,6 +161,7 @@ const declarations = [
   VesselTrailComponent,
   TrackHistoryLayerComponent,
   TrackHistoryGhostLayerComponent,
+  DirectionOfTravelComponent,
   FBFeatureLayerComponent,
   RacingStartLineLayerComponent,
   AISFlagsLayerComponent,

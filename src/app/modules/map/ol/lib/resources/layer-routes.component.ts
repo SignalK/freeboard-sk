@@ -29,7 +29,7 @@ import {
   linkedWaypointId,
   PointLink
 } from './route-waypoint-overlap';
-import { drawRouteFlow, flowPhase } from './route-flow';
+import { drawRouteFlow, drawsFlow, flowPhase } from './route-flow';
 
 /** Redraw interval of the animated direction chevrons: ~12 fps keeps a Pi cool. */
 const FLOW_FRAME_MS = 80;
@@ -48,8 +48,6 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   @Input() routeStyle: RouteStyle = 'flags';
   /** The active route is followed from its last point to its first. */
   @Input() activeReversed = false;
-  /** Move the direction chevrons along the routes. */
-  @Input() animateFlow = false;
 
   private leaveOverlap?: () => void;
   private flowTimer?: ReturnType<typeof setInterval>;
@@ -94,14 +92,15 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     ) {
       this.source.changed();
     }
-    if (this.source && ('routes' in changes || 'animateFlow' in changes)) {
+    if (this.source && ('routes' in changes || 'routeStyle' in changes)) {
       this.syncFlowTimer();
     }
   }
 
   /** Runs the redraw timer only while there is a route to animate. */
   private syncFlowTimer() {
-    const wanted = this.animateFlow && this.routes.some((r) => r[2]);
+    const wanted =
+      this.routeStyle === 'chevrons' && this.routes.some((r) => r[2]);
     if (!wanted) {
       this.stopFlowTimer();
       this.mapComponent.getMap()?.render();
@@ -208,30 +207,36 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     const ptFill = new Fill({ color: lineColor });
 
     // direction of travel: guide lines either side and chevrons along it
-    const flowColor = Array.isArray(lineColor)
-      ? asString(lineColor)
-      : typeof lineColor === 'string'
-        ? lineColor
-        : 'green';
-    const reverse = isActive && this.activeReversed;
-    styles.push(
-      new Style({
-        renderer: (pixelCoords, state) =>
-          drawRouteFlow(
-            state.context,
-            pixelCoords as Coordinate[],
-            state.pixelRatio,
-            {
-              color: flowColor,
-              reverse,
-              phase: flowPhase(this.animateFlow, performance.now())
-            }
-          )
-      })
-    );
+    const flow = drawsFlow(this.routeStyle);
+    if (flow) {
+      const flowColor = Array.isArray(lineColor)
+        ? asString(lineColor)
+        : typeof lineColor === 'string'
+          ? lineColor
+          : 'green';
+      const reverse = isActive && this.activeReversed;
+      styles.push(
+        new Style({
+          renderer: (pixelCoords, state) =>
+            drawRouteFlow(
+              state.context,
+              pixelCoords as Coordinate[],
+              state.pixelRatio,
+              {
+                color: flowColor,
+                reverse,
+                phase: flowPhase(
+                  this.routeStyle === 'chevrons',
+                  performance.now()
+                )
+              }
+            )
+        })
+      );
+    }
 
-    // A symbol-provider override wins in either style. 'flags' falls back to
-    // the bundled flag and pin glyphs; 'classic' (marker null) falls back to the
+    // A symbol-provider override wins in every style. 'flags' falls back to
+    // the bundled flag and pin glyphs; the others (marker null) fall back to the
     // shapes drawn below in the route line's colour, which an icon cannot take.
     // The waypoint marker is cloned per segment and rotated to the bearing;
     // start/end markers render upright.
@@ -282,7 +287,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
               image: img
             })
           );
-        } else {
+        } else if (isActive || flow) {
+          // the chevrons, or the active route's own arrows, show the way
           styles.push(
             new Style({
               geometry: new Point(start),
@@ -293,6 +299,29 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
                   color: 'white'
                 }),
                 fill: ptFill
+              })
+            })
+          );
+        } else {
+          const d = getRhumbLineBearing(
+            toLonLat(start) as GeolibInputCoordinates,
+            toLonLat(end) as GeolibInputCoordinates
+          );
+          const rotation = (d * Math.PI) / 180;
+          styles.push(
+            new Style({
+              geometry: new Point(start),
+              image: new RegularShape({
+                radius: 6,
+                stroke: new Stroke({
+                  width: 1,
+                  color: 'white'
+                }),
+                fill: ptFill,
+                points: 3,
+                angle: 0,
+                rotateWithView: true,
+                rotation: rotation
               })
             })
           );

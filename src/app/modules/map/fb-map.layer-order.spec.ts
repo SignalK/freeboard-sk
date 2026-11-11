@@ -47,7 +47,13 @@ describe('fb-map layer order', () => {
   });
 
   it('draws the CPA alarm above routes, waypoints, notes and regions', () => {
-    for (const tag of ['fb-routes', 'fb-waypoints', 'fb-notes', 'fb-regions']) {
+    for (const tag of [
+      'fb-routes',
+      'fb-route-direction',
+      'fb-waypoints',
+      'fb-notes',
+      'fb-regions'
+    ]) {
       expect(cpa(), tag).toBeGreaterThan(Math.max(...z(tag)));
     }
   });
