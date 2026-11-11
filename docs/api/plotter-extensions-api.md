@@ -23,7 +23,8 @@ the existing Signal K plugin/app-store flow.
 > implemented by the reference host (Freeboard-SK) and the reference
 > extensions (`signalk-instrument-widgets`, `signalk-poi-search`): widgets,
 > panels, toolbar buttons, state storage, Signal K data relay, unit
-> preferences, resource display filters, map control, live route editing,
+> preferences, resource display filters, showing and hiding stored resources
+> (`resources.display`), map control, live route editing,
 > chart-layer management, headless background runtimes, image map overlays
 > (`overlays.image`), host-drawn data overlays (`overlays.data`), map actions
 > (`actions`, `actions.overlay`), map picks (`map.pick`), button
@@ -130,6 +131,7 @@ extension id (the providing plugin's id is the recommended key):
 | `map.pick`          | Host implements `map.pick` / `map.cancelPick` (the user picks a point or feature for an extension) and emits `map.picked`. See *Picking on the map*. |
 | `resources`         | Host implements `resources.list` (relayed resource queries).                                                                      |
 | `resources.filter`  | Host implements imperative resource display filters.                                                                              |
+| `resources.display` | Host lets an extension show and hide individual stored resources (`resources.show` / `resources.hide`). See *Showing and hiding stored resources*. |
 | `routes`            | Host implements live route edit-buffer commands (`route.*`) and emits route lifecycle/mutation events.                            |
 | `charts`            | Host implements chart-layer management (`chart.*`) — enumerate the managed charts, toggle visibility/opacity/order — and emits `chart.*` change events. |
 | `charts.time`       | Host can retarget a time-varying chart to a chosen instant (`chart.setTime`), reports each chart's time dimension in `chart.list`, and emits `chart.time`. Requires `charts`. |
@@ -927,6 +929,8 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `resources.list`        | `{ type, query? }`                             | resource collection        |
 | `resources.setFilter`   | `{ type, filter }`                             | `{}`                       |
 | `resources.clearFilter` | `{ type }`                                     | `{}`                       |
+| `resources.show`        | `{ type, ids: string[] }`                      | `{}`                       |
+| `resources.hide`        | `{ type, ids: string[] }`                      | `{}`                       |
 | `route.list`            | —                                              | `{ routes }` (the visible set) |
 | `route.create`          | `{ points (≥2), name?, description? }`         | `{ routeId, rev }`         |
 | `route.show`            | `{ ref }` (stored route reference)             | `{ routeId, rev }`         |
@@ -1194,6 +1198,97 @@ The host tracks at most one filter per (extension, resource type); a new
 `setFilter` replaces it. Filters from multiple extensions compose by
 intersection. Filters are not persisted across host reloads.
 
+### Showing and hiding stored resources
+
+The `resources.display` capability lets an extension show or hide individual
+stored resources — one waypoint, a few notes, a region — without touching the
+rest of that type. It changes the same display choice the user makes in the
+host's own resource lists, the way a user ticks or unticks one waypoint:
+
+```json
+{ "type": "waypoints", "ids": ["urn:mrn:signalk:uuid:..."] }
+```
+
+- `resources.show({ type, ids })` — display these resources, in addition to
+  whatever of that type is already displayed. It never hides anything.
+- `resources.hide({ type, ids })` — stop displaying these resources. It never
+  hides anything that is not listed, and the stored resources are untouched.
+
+`type` names a resource collection, and `ids` are resource ids — the keys of
+`/resources/<type>`, as in a resource group. `ids` must be a non-empty array of
+strings. Ids that resolve to no existing resource are ignored rather than
+rejected, so a host must not reject an id merely because it has not seen that
+resource yet. That is what lets an extension create a resource through the
+server's resources API and show it straight away:
+
+```js
+const res = await fetch('/signalk/v2/api/resources/waypoints', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(waypoint)
+})
+const { id } = await res.json()
+await client.call('resources.show', { type: 'waypoints', ids: [id] })
+```
+
+**Creating, editing and deleting** resources is not part of this API. An
+extension does that through the server's resources API directly, as above, and
+a host keeps its display in step with the server whoever made the change. The
+reference host follows the server's `resources.*` deltas, so a new resource
+appears there without any call. `resources.show` is still needed when the user
+has narrowed a type to a chosen few (a new resource is not among them) or has
+hidden it.
+
+**Display, not position.** "Displayed" means the resource is part of what the
+host draws: it appears whenever its place is in view and the host's own display
+rules allow — a host may, for example, draw notes only above a zoom level. Showing
+a resource does not move the map to it; follow it with `map.center` or
+`map.fitBounds` for that.
+
+**Types.** This version defines `routes`, `waypoints`, `regions`, `notes` and
+`charts`; a host may accept any other resource type it displays. Routes and
+charts are included so every stored resource can be shown and hidden through one
+call, but each has a richer interface of its own, and both calls are the same
+display change:
+
+- **Routes.** `resources.show` on a stored route has the effect of the user
+  displaying it, and `resources.hide` the effect of `route.hide` on it. A host
+  that supports `routes` emits `route.visible` / `route.hidden` for the change
+  as usual, whichever call made it. To read or edit the route, use the
+  `route.*` methods (see *Live routes*): `route.show` also returns the
+  `routeId` handle that `resources.show` does not. Unsaved draft routes have no
+  resource id and are reached only through `route.*`.
+- **Charts.** `resources.show` / `resources.hide` on charts is
+  `chart.setVisibility` with `visible: true` / `false`, and a host that
+  supports `charts` emits `chart.visibility` as usual. Opacity, order and time
+  live under `chart.*` (see *Chart layers*).
+
+**Hosts with coarser display control.** A host need not track display per
+resource for every type; it may only be able to turn a whole type on or off.
+Such a host:
+
+- may satisfy `resources.show` by displaying the whole type, since that hides
+  nothing the extension did not ask it to hide;
+- rejects `resources.hide` for that type with `resources.typeNotSupported`,
+  since it cannot hide the listed resources without hiding the rest.
+
+A host rejects both calls with `resources.typeNotSupported` for a type it does
+not display at all, or whose display it cannot change.
+
+**Filters still apply.** A display filter (`resources.setFilter`) is applied on
+top of the display choices that `resources.show` and `resources.hide` change,
+so a resource hidden by any extension's filter stays hidden after
+`resources.show`.
+
+**Persistence** follows the host's handling of the user's own display choices:
+the change lasts as long as the same change made by the user would.
+
+**Errors** use the standard `error.data.reason` convention:
+`resources.badRequest` (invalid params — a missing or non-string `type`, or
+`ids` that is not a non-empty array of strings), `resources.typeNotSupported`
+(the host cannot carry out this call for this type; `error.data.type` names it),
+`resources.notSupported` (host lacks `resources.display`).
+
 ### Live routes
 
 The `routes` capability gives an extension read/write access to the routes the
@@ -1251,6 +1346,9 @@ model lives in the *events* and route properties, not in the verbs.
   `route.save`.
 - `route.show({ ref })` brings an existing **stored** route into the visible set
   and returns its `routeId`, so the extension can read and edit it in place.
+  (An extension that only needs a stored route on the map, with no handle, can
+  use `resources.show` with `type: "routes"`, the call it uses for every other
+  resource type; see *Showing and hiding stored resources*.)
 - `route.hide({ routeId })` removes a route from the map. For a **stored** route
   this just unchecks its visibility — the resource is untouched
   (`route.hidden saved:true`). For an **unsaved** route it deletes it, since the

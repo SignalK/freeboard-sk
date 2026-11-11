@@ -275,6 +275,7 @@ required and optional capabilities and lists your contributions. A real one
 | `signalk.put`       | Send SK PUT requests (`client.signalk.put`)                   |
 | `resources`         | Run resource queries (`resources.list`)                       |
 | `resources.filter`  | Push display filters (`resources.setFilter`)                  |
+| `resources.display` | Show and hide individual stored resources — one waypoint, note, region, route or chart (`resources.show` / `resources.hide`) |
 | `map`               | Read/drive/follow the map view (`map.*`, `map.view` event)    |
 | `map.pick`          | Ask the user to pick a point or feature (`map.pick`, `map.picked` event) |
 | `routes`            | Read & edit the routes on the chart (`route.*`)               |
@@ -526,6 +527,15 @@ Points that generalise:
 - **Filters are display-only and user-owned.** You push an id set or a property
   `match`; the host must surface it as something the user can clear. Watch
   `filters.changed` so an externally-cleared filter updates your UI.
+- **A filter narrows; `resources.show` adds.** A filter can only hide, and it
+  lasts only until the user clears it. To change what the user has chosen to
+  display — bring one waypoint into view, hide one note — use `resources.show`
+  / `resources.hide` (capability `resources.display`) instead.
+- **Create, edit and delete through the server.** The host API has no resource
+  CRUD: write with the server's resources API (`POST`/`PUT`/`DELETE` on
+  `/signalk/v2/api/resources/<type>`), and the host follows the change. Call
+  `resources.show` with the new id afterwards, since the user may have narrowed
+  that type's display to a chosen few.
 - **Follow the viewport, don't poll it.** If your results depend on what the
   user is looking at, subscribe to `map.view` and re-run when it fires — the
   host emits it once the pan/zoom settles, so you get one refresh per gesture.
