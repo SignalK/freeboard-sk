@@ -262,22 +262,29 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.display.splitView).toBe(true);
   });
 
-  it('keeps the route bar opaque by default', () => {
-    expect(defaultConfig().display.navDataOpacity).toBe(1);
+  it('leaves the panel background at Default by default', () => {
+    expect(defaultConfig().display.panelOpacity).toBeNull();
   });
 
-  it('keeps the route bar opaque for a config saved without the setting', () => {
+  it('leaves the panel background at Default for a config saved without it', () => {
     const cfg: LegacyAppConfig = defaultConfig();
-    unset(cfg.display, 'navDataOpacity');
+    unset(cfg.display, 'panelOpacity');
     cleanConfig(cfg, {});
-    expect(cfg.display.navDataOpacity).toBe(1);
+    expect(cfg.display.panelOpacity).toBeNull();
   });
 
-  it('keeps the route bar opacity the user chose', () => {
+  it('keeps the panel opacity the user chose', () => {
     const cfg = defaultConfig();
-    cfg.display.navDataOpacity = 0.7;
+    cfg.display.panelOpacity = 0.7;
     cleanConfig(cfg, {});
-    expect(cfg.display.navDataOpacity).toBe(0.7);
+    expect(cfg.display.panelOpacity).toBe(0.7);
+  });
+
+  it('keeps an explicit Opaque choice apart from Default', () => {
+    const cfg = defaultConfig();
+    cfg.display.panelOpacity = 1;
+    cleanConfig(cfg, {});
+    expect(cfg.display.panelOpacity).toBe(1);
   });
 
   it('restores the instruments settings for a config saved without them', () => {
