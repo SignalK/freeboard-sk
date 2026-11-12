@@ -40,6 +40,19 @@ too. A server administrator can also ship ready-configured widgets to every
 device through Freeboard's default settings. A plugin may keep some choices
 to the one screen they were made on.
 
+**To show a widget only on larger screens**, use its **Show on** choice —
+at the top of the list you pick from when adding a widget, or in the
+widget's settings later: **All screens** (the default), **Tablet and up**
+(760 px wide or more), or **Monitor only** (1400 px or more). This is how a
+large gauge set up for a chart-table monitor stays off your phone, even
+though the same layout follows you to both. The choice follows the width of
+the screen, so turning a tablet or resizing the browser window can show or
+hide the widget. A hidden widget still holds its place, so nothing else is
+added on top of it — press and hold that empty-looking spot to open its
+settings, where you can change **Show on** or remove the widget.
+
+![Fig 2. One layout on a phone, a tablet and a monitor: the clock at top right shows everywhere, the wind dial from tablet up, and the clock at bottom left on the monitor only](screen-widgets-2.jpg)
+
 Some widgets can also narrow down what's shown elsewhere on the chart — for
 example, showing only certain waypoints. When a widget does this, a small
 chip appears near the top of the screen describing the filter; tap its **×**

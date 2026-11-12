@@ -190,5 +190,6 @@
   { "feature": "radar-overlay", "pr": 1280, "kind": "enhanced", "since": "v3.5.0-beta.0", "date": "2026-11-10", "title": "feat(radar): step the radar range with + and - buttons" },
   { "feature": "extension-panels", "pr": 1297, "kind": "enhanced", "since": "v3.5.0-beta.0", "date": "2026-11-11", "title": "feat(plotterext): implement resources.show and resources.hide" },
   { "feature": "route-styles", "pr": 1285, "kind": "new", "since": "v3.5.0-beta.0", "date": "2026-11-11", "title": "feat(routes): mark routes with flags and pins, with a classic style option" },
-  { "feature": "route-styles", "pr": 1251, "kind": "enhanced", "since": "v3.5.0-beta.0", "date": "2026-11-11", "title": "feat(routes): add chevron route styles that show the direction of travel" }
+  { "feature": "route-styles", "pr": 1251, "kind": "enhanced", "since": "v3.5.0-beta.0", "date": "2026-11-11", "title": "feat(routes): add chevron route styles that show the direction of travel" },
+  { "feature": "screen-widgets", "pr": 1307, "kind": "enhanced", "date": "2026-11-12", "title": "feat(plotterext): show each widget only from a chosen screen size up" }
 ]
