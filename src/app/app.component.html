@@ -879,6 +879,12 @@
           @if (!isInteracting() && !plotterExt.movingWidget()) {
             <div
               class="navdataPanel"
+              [class.navdataTranslucent]="
+                (app.config.display.panelOpacity ?? 1) < 1
+              "
+              [style.--fb-navdata-alpha]="
+                (app.config.display.panelOpacity ?? 1) * 100 + '%'
+              "
               fbMovablePanel="fb-navdata-panel-position"
               [fbMovablePanelRestingBottom]="navDataBottom()"
               [fbBottomClearance]="30"

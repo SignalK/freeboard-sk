@@ -262,6 +262,31 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.display.splitView).toBe(true);
   });
 
+  it('leaves the panel background at Default by default', () => {
+    expect(defaultConfig().display.panelOpacity).toBeNull();
+  });
+
+  it('leaves the panel background at Default for a config saved without it', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.display, 'panelOpacity');
+    cleanConfig(cfg, {});
+    expect(cfg.display.panelOpacity).toBeNull();
+  });
+
+  it('keeps the panel opacity the user chose', () => {
+    const cfg = defaultConfig();
+    cfg.display.panelOpacity = 0.7;
+    cleanConfig(cfg, {});
+    expect(cfg.display.panelOpacity).toBe(0.7);
+  });
+
+  it('keeps an explicit Opaque choice apart from Default', () => {
+    const cfg = defaultConfig();
+    cfg.display.panelOpacity = 1;
+    cleanConfig(cfg, {});
+    expect(cfg.display.panelOpacity).toBe(1);
+  });
+
   it('restores the instruments settings for a config saved without them', () => {
     const cfg: LegacyAppConfig = defaultConfig();
     unset(cfg.display, 'plugins');

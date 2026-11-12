@@ -188,6 +188,13 @@ export class SettingsOptions {
     [-1, 'On']
   ]);
 
+  panelOpacity = new Map<number | null, string>([
+    [null, 'Default'],
+    [1, 'Opaque'],
+    [0.85, '85 %'],
+    [0.7, '70 %']
+  ]);
+
   windIndicator = new Map<WindIndicator, string>([
     ['barb', 'Wind barb'],
     ['arrow', 'Arrow']

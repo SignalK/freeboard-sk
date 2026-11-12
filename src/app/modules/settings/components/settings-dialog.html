@@ -93,6 +93,21 @@
                       Enable split view
                     </mat-checkbox>
                   </div>
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Panel background</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.display.panelOpacity"
+                        canSelectNullableOptions
+                        matTooltip="How much of the chart shows through the route bar and the widgets. Default keeps the route bar opaque and draws each widget as its plugin intends."
+                        (selectionChange)="persistModel()"
+                      >
+                        @for(i of options.panelOpacity; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
                 </div>
               </mat-card-content>
             </mat-card>
