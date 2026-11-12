@@ -282,6 +282,7 @@ required and optional capabilities and lists your contributions. A real one
 | `charts`            | Manage chart-layer display — visibility/opacity/order (`chart.*`) |
 | `units`             | Read the user's display-unit preferences (`units.get`)        |
 | `nightMode`         | Read/set the host's night-vision display state (`nightMode.*`) |
+| `display`           | Draw your widget like the host's own panels — its theme and panel background opacity (`display.get`, `display.changed` event) |
 | `resourceGroups`    | Apply a stored resource group to the display (`resourceGroup.apply`) |
 | `background.iframe` | Run a headless background runtime                             |
 | `overlays.image`    | Draw a map layer the host composites (`overlay.*`)            |
@@ -457,6 +458,39 @@ await client.state.set({ path: chosenPath /* … */ }) // fires state.changed
 
 A widget with no `configPanel` still gets a host-provided dialog on long-press
 so the user can remove it; the host always provides a Remove affordance.
+
+### Looking like the host's panels
+
+A widget sits on the chart next to the host's own panels, so it should look
+like them. With capability `display` the host tells you its theme and how
+see-through the user wants panels on the chart:
+
+```css
+/* Canvas is the theme's background colour, so it follows color-scheme. */
+.card { background: color-mix(in srgb, Canvas var(--card-alpha), transparent); }
+```
+
+```js
+function applyDisplay({ panelOpacity, colorScheme }) {
+  // The host's theme, not the browser's: prefers-color-scheme inside your
+  // iframe reflects only the browser, and the host may differ from it.
+  document.documentElement.style.colorScheme = colorScheme
+  // The card background only; text and marks stay opaque so readings remain
+  // legible. null: the user made no common choice, so keep your own look.
+  const alpha = panelOpacity ?? MY_DEFAULT_ALPHA
+  document.documentElement.style.setProperty('--card-alpha', `${alpha * 100}%`)
+}
+
+if (client.hasCapability('display')) {
+  applyDisplay(await client.display.get())
+  await client.subscribe(['display.changed'], (_name, state) => applyDisplay(state))
+}
+```
+
+- **Keep your own look when you have to.** On a host without `display`, or
+  when `panelOpacity` is `null`, draw the card as you would anyway.
+- **Night mode wins.** It applies on top of both fields; follow
+  `nightMode.changed` as well (see the `nightMode` capability).
 
 ## Example: a panel that drives the host
 
