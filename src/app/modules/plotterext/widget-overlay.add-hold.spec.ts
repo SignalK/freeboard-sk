@@ -11,6 +11,8 @@ import { pointerEvent } from './windows/testing';
 describe('PlotterExtensionOverlay press-and-hold to add', () => {
   let fixture: ComponentFixture<PlotterExtensionOverlay>;
   let openAddWidgetPicker: ReturnType<typeof vi.fn>;
+  let openConfigPanel: ReturnType<typeof vi.fn>;
+  let hiddenWidgetAt: ReturnType<typeof vi.fn>;
 
   const press = (x: number, y: number) =>
     document.body.dispatchEvent(
@@ -24,6 +26,8 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     openAddWidgetPicker = vi.fn();
+    openConfigPanel = vi.fn();
+    hiddenWidgetAt = vi.fn(() => null);
     TestBed.configureTestingModule({
       imports: [PlotterExtensionOverlay],
       providers: [
@@ -32,9 +36,12 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
           useValue: {
             filterChips: signal([]),
             activeWidgets: signal([]),
+            shownWidgets: signal([]),
             widgetDef: () => null,
             registerHitTester: () => () => undefined,
             cellOccupied: () => false,
+            hiddenWidgetAt,
+            openConfigPanel,
             movingWidget: signal(null),
             moveTargets: () => new Proxy({}, { get: () => [] }),
             openAddWidgetPicker
@@ -42,11 +49,12 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
         }
       ]
     });
-    // Only the bottom-center area has a size: 200 x 100 px at (100, 500).
+    // Only the bottom-center area and, under it as on a phone, the
+    // bottom-right one have a size: 200 x 100 px at (100, 500).
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
       function (this: Element) {
         const anchor = (this as HTMLElement).dataset?.['anchor'];
-        return anchor === 'cb'
+        return anchor === 'cb' || anchor === 'br'
           ? new DOMRect(100, 500, 200, 100)
           : new DOMRect(-1000, -1000, 0, 0);
       }
@@ -102,5 +110,25 @@ describe('PlotterExtensionOverlay press-and-hold to add', () => {
     move(270, 520);
     vi.advanceTimersByTime(1500);
     expect(openAddWidgetPicker).not.toHaveBeenCalled();
+  });
+
+  it('opens the settings of a widget this screen hides in the held cell', () => {
+    const hidden = { instanceId: 'i-hidden', minScreen: 'monitor' };
+    hiddenWidgetAt.mockReturnValue(hidden);
+    press(250, 520);
+    vi.advanceTimersByTime(1500);
+    expect(hiddenWidgetAt).toHaveBeenCalledWith('cb', { col: 1, row: 0 });
+    expect(openConfigPanel).toHaveBeenCalledWith(hidden);
+    expect(openAddWidgetPicker).not.toHaveBeenCalled();
+  });
+
+  it('finds a hidden widget in an area under the one the press lands in', () => {
+    const hidden = { instanceId: 'i-hidden', minScreen: 'tablet' };
+    hiddenWidgetAt.mockImplementation((anchor: string) =>
+      anchor === 'br' ? hidden : null
+    );
+    press(250, 520);
+    vi.advanceTimersByTime(1500);
+    expect(openConfigPanel).toHaveBeenCalledWith(hidden);
   });
 });

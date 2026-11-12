@@ -255,7 +255,9 @@ export const AppConfigSchema = Type.Object({
         widget: Type.String(), // manifest-local widget id
         anchor: Type.Unsafe<'tr' | 'ct' | 'cb' | 'bl' | 'br'>(Type.String()),
         col: Type.Number(), // origin cell column (0 | 1)
-        row: Type.Number() // origin cell row (0 | 1)
+        row: Type.Number(), // origin cell row (0 | 1)
+        // smallest screen class it shows on; absent or unknown = every screen
+        minScreen: Type.Optional(Type.String())
       }),
       { default: [] }
     ),

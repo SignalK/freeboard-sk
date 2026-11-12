@@ -101,7 +101,7 @@ export class BottomClearanceDirective implements OnDestroy {
 
   constructor() {
     afterRenderEffect(() => {
-      this.plotterExt.activeWidgets();
+      this.plotterExt.shownWidgets();
       this.measure();
     });
     afterNextRender(() => {

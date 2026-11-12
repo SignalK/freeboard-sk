@@ -85,7 +85,10 @@ import {
   WidgetCandidate,
   WidgetContribution,
   cellHeightPx,
-  parseSize
+  parseSize,
+  ScreenClass,
+  screenClassOf,
+  shownOn
 } from './types';
 import {
   applyDecorate,
@@ -193,6 +196,16 @@ export class PlotterExtensionService {
   readonly manifests = signal<Record<string, PlotterExtensionManifest>>({});
   // placements whose extension is present and compatible (drives the overlay)
   readonly activeWidgets = signal<PlacedWidget[]>([]);
+  /** The screen class of the current viewport (see screenClassOf). */
+  readonly screenClass = signal<ScreenClass>(screenClassOf(window.innerWidth));
+  /**
+   * The active widgets this screen shows. Hidden ones still hold their cells
+   * (see occupancy), so a larger screen never finds two widgets in one place.
+   */
+  readonly shownWidgets = computed(() => {
+    const screen = this.screenClass();
+    return this.activeWidgets().filter((p) => shownOn(p, screen));
+  });
   readonly initialized = signal(false);
 
   // Bumped on window resize so the size-derived offset computeds below — which
@@ -207,7 +220,7 @@ export class PlotterExtensionService {
    */
   readonly actionButtonLift = computed(() => {
     this.viewportTick();
-    const br = this.activeWidgets().filter((p) => p.anchor === 'br');
+    const br = this.shownWidgets().filter((p) => p.anchor === 'br');
     if (!br.length) return 0;
     const rows = br.some((p) => p.row === 0) ? 2 : 1;
     return rows * cellHeightPx() + (rows - 1) * WIDGET_CELL_GAP + 6;
@@ -221,7 +234,7 @@ export class PlotterExtensionService {
    */
   readonly statusBarLift = computed(() => {
     this.viewportTick();
-    const cb = this.activeWidgets().filter((p) => p.anchor === 'cb');
+    const cb = this.shownWidgets().filter((p) => p.anchor === 'cb');
     if (!cb.length) return 0;
     const rows = cb.some((p) => p.row === 0) ? 2 : 1;
     return rows * cellHeightPx() + (rows - 1) * WIDGET_CELL_GAP + 4;
@@ -237,7 +250,7 @@ export class PlotterExtensionService {
    */
   readonly toolbarTopOffset = computed(() => {
     this.viewportTick();
-    const tr = this.activeWidgets().filter((p) => p.anchor === 'tr');
+    const tr = this.shownWidgets().filter((p) => p.anchor === 'tr');
     if (!tr.length) return 0;
     const rows = tr.some((p) => p.row === 1) ? 2 : 1;
     return rows * cellHeightPx() + (rows - 1) * WIDGET_CELL_GAP + 4;
@@ -1380,9 +1393,11 @@ export class PlotterExtensionService {
     // Recompute size-derived widget offsets on viewport/orientation changes.
     // The service is an app-lifetime root singleton, so this listener lives for
     // the session by design.
-    window.addEventListener('resize', () =>
-      this.viewportTick.update((n) => n + 1)
-    );
+    window.addEventListener('resize', () => {
+      this.viewportTick.update((n) => n + 1);
+      this.screenClass.set(screenClassOf(window.innerWidth));
+      this.endMoveOfHiddenWidget();
+    });
     this.bridgeRouteEvents();
     // Relay window changes (`window.bounds` / `window.state` / `window.closed`)
     // to the extension that owns the window. App-lifetime singleton.
@@ -2166,6 +2181,31 @@ export class PlotterExtensionService {
     return occupied;
   }
 
+  /**
+   * The placed widget this screen hides at a cell of an anchor area, if any.
+   * Its cell stays taken, so a press there opens its settings instead: the
+   * one way to change or remove it without a larger screen.
+   */
+  hiddenWidgetAt(
+    anchor: AnchorId,
+    cell: { col: number; row: number }
+  ): PlacedWidget | null {
+    const shown = this.shownWidgets();
+    return (
+      this.activeWidgets().find((placed) => {
+        if (placed.anchor !== anchor || shown.includes(placed)) return false;
+        const def = this.widgetDef(placed.extension, placed.widget);
+        const size = parseSize(def?.size ?? '1x1');
+        return (
+          cell.row >= placed.row &&
+          cell.row < placed.row + size.rows &&
+          cell.col >= placed.col &&
+          cell.col < placed.col + size.cols
+        );
+      }) ?? null
+    );
+  }
+
   /** Whether a cell of an anchor area is occupied by a placed widget. */
   cellOccupied(anchor: AnchorId, cell: { col: number; row: number }): boolean {
     return this.occupancy(anchor)[cell.row]?.[cell.col] ?? true;
@@ -2360,7 +2400,8 @@ export class PlotterExtensionService {
           choice.extension,
           choice.widget,
           anchor,
-          choice.origin
+          choice.origin,
+          choice.minScreen
         );
         if (this.widgetHasConfigPanel(placed)) {
           this.openConfigPanel(placed);
@@ -2373,7 +2414,8 @@ export class PlotterExtensionService {
     extension: string,
     widget: WidgetContribution,
     anchor: AnchorId,
-    origin: { col: number; row: number }
+    origin: { col: number; row: number },
+    minScreen: ScreenClass = 'phone'
   ): PlacedWidget {
     const placed: PlacedWidget = {
       // uuid.v4() (not crypto.randomUUID) so placement works on plain-HTTP
@@ -2384,12 +2426,26 @@ export class PlotterExtensionService {
       widget: widget.id,
       anchor,
       col: origin.col,
-      row: origin.row
+      row: origin.row,
+      ...(minScreen !== 'phone' && { minScreen })
     };
     this.app.config.plotterExtensions.widgets.push(placed);
     this.app.saveConfig();
     this.refreshActiveWidgets();
     return placed;
+  }
+
+  /** Show a placed widget only from screen class `min` up. */
+  setMinScreen(instanceId: string, min: ScreenClass) {
+    const placed = this.placements().find((w) => w.instanceId === instanceId);
+    if (!placed) return;
+    if (min === 'phone') {
+      delete placed.minScreen;
+    } else {
+      placed.minScreen = min;
+    }
+    this.app.saveConfig();
+    this.refreshActiveWidgets();
   }
 
   removeWidget(instanceId: string) {
@@ -2434,9 +2490,7 @@ export class PlotterExtensionService {
 
   /** Start moving a placed widget: the overlay shows where it can go. */
   startMove(instanceId: string) {
-    const placed = this.activeWidgets().find(
-      (p) => p.instanceId === instanceId
-    );
+    const placed = this.shownWidgets().find((p) => p.instanceId === instanceId);
     this.movingWidget.set(placed ?? null);
   }
 
@@ -2482,9 +2536,15 @@ export class PlotterExtensionService {
       );
     });
     this.activeWidgets.set(active);
-    // A widget removed or no longer shown mid-move ends the move.
+    this.endMoveOfHiddenWidget();
+  }
+
+  /** A widget removed or no longer shown mid-move ends the move. */
+  private endMoveOfHiddenWidget() {
     const moving = untracked(this.movingWidget);
-    if (moving && !active.includes(moving)) this.cancelMove();
+    if (moving && !untracked(this.shownWidgets).includes(moving)) {
+      this.cancelMove();
+    }
   }
 
   // ---------- live contexts (one per iframe) ----------
