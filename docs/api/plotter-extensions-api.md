@@ -137,7 +137,7 @@ extension id (the providing plugin's id is the recommended key):
 | `charts.time`       | Host can retarget a time-varying chart to a chosen instant (`chart.setTime`), reports each chart's time dimension in `chart.list`, and emits `chart.time`. Requires `charts`. |
 | `resourceGroups`    | Host can apply a stored resource group (`resourceGroup.apply`) — show the group's routes, waypoints, regions and charts — and emits `resourceGroup.applied`. |
 | `nightMode`         | Host implements the `nightMode.*` methods (read/force the night-vision display state, follow the server's `environment.mode`) and emits `nightMode.changed`. |
-| `display`           | Host implements `display.get` (the background opacity the user chose for panels on the chart) and emits `display.changed`. See *Panel background*. |
+| `display`           | Host implements `display.get` (how it draws the panels on its chart: the background opacity the user chose for them, and its light or dark theme) and emits `display.changed`. See *Panel appearance*. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 | `windows`           | Host can show an extension's iframe panels as floating windows (`ui.openWindow` and the other `ui.*Window` methods) and emits `window.*` events. See *Windows*. |
 | `overlays.image`    | Host composites map layers whose pixels an extension's background runtime draws (`overlay.*` methods, `overlay.request` / `overlay.state` events). Requires `background.iframe`. See *Map overlays*. |
@@ -956,7 +956,7 @@ not match and the handshake is refused — a deliberate limitation, not a bug.)
 | `buttons.decorate`      | `{ ids: string[], style?, colors?, badge? }`   | `{}`                       |
 | `nightMode.get`         | —                                              | `{ enabled, auto }`        |
 | `nightMode.set`         | `{ enabled?, auto? }`                           | `{}`                       |
-| `display.get`           | —                                              | `{ panelOpacity }`         |
+| `display.get`           | —                                              | `{ panelOpacity, colorScheme }` |
 | `ui.openPanel`          | `{ panel }`                                    | `{}`                       |
 | `ui.togglePanel`        | `{ panel }`                                    | `{}`                       |
 | `ui.openConfigPanel`    | — (widget contexts)                            | `{}`                       |
@@ -1061,8 +1061,9 @@ handled by the protocol layer, not subscribed to.
   *every* change, whether an extension called `nightMode.set`, the user toggled
   the host's own night-mode control, or the server's `environment.mode` flipped
   while `auto` is on. See *Night mode*.
-- `display.changed` — `{ panelOpacity }`: the user chose another panel
-  background opacity. Origin-transparent. See *Panel background*.
+- `display.changed` — `{ panelOpacity, colorScheme }`: the panel background
+  opacity or the host's theme changed. Carries the full state.
+  Origin-transparent. See *Panel appearance*.
 - `panel.state` — `{ panel, visible, collapsed, targetInstance?, targetOverlay? }`: one of the
   extension's loaded panels was shown or hidden, or collapsed or expanded.
   Origin-transparent, and delivered only to the owning extension's contexts.
@@ -2615,25 +2616,35 @@ reads it once with `nightMode.get`.
 (invalid params — e.g. a non-boolean `enabled`/`auto`, or neither field present),
 `nightMode.notSupported` (host lacks `nightMode`).
 
-### Panel background
+### Panel appearance
 
 A host draws its own panels on the chart, such as a route bar, and an
 extension draws its widget's card itself. The `display` capability tells
-extensions how see-through the user wants panels on the chart, so the host's
-panels and every widget can look alike.
+extensions how the host draws its panels, so the host's panels and every
+widget can look alike. The state is read-only: the user chooses it in the
+host.
 
-**`display.get`** returns `{ panelOpacity }`:
+**`display.get`** returns `{ panelOpacity, colorScheme }`:
 
-- a number from 0 to 1 — the opacity the user chose for panel backgrounds;
-- `null` — the user chose none, and each panel keeps its own look.
+- **`panelOpacity`** — how see-through the user wants panels on the chart:
+  - a number from 0 to 1 — the opacity the user chose for panel backgrounds;
+  - `null` — the user chose none, and each panel keeps its own look.
+- **`colorScheme`** — `'light'` or `'dark'`: the theme the host currently
+  shows, in CSS `color-scheme` terms. This is the resolved state, whatever
+  decided it (the user's choice, the browser, or the server's
+  `environment.mode`). An extension that follows the host's theme reads it
+  instead of its own `prefers-color-scheme` media query, which reflects only
+  the browser and can disagree with the host.
 
 An extension applies `panelOpacity` to its card background only. Text,
 pointers and marks stay opaque, so readings remain legible however see-through
-the card is. Night mode colours still apply on top.
+the card is. Night mode (see *Night mode*) still applies on top of both
+fields.
 
-**`display.changed`** (see *Host events*) carries the same `{ panelOpacity }`
-and is emitted **origin-transparently** whenever the choice changes. A context
-that needs the value before the first change reads it once with `display.get`.
+**`display.changed`** (see *Host events*) carries the full
+`{ panelOpacity, colorScheme }` and is emitted **origin-transparently**
+whenever either field changes. A context that needs the state before the first
+change reads it once with `display.get`.
 
 **Errors**: `display.notSupported` (host lacks `display`).
 
