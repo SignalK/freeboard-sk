@@ -490,13 +490,23 @@ waypoints, regions and charts, and `hide` on notes; `data.type` names it),
 
 ## The `display` capability
 
-`display.get` → `{ panelOpacity }` reports the **Panel background** display
-setting (`config.display.panelOpacity`): a number from 0 to 1, or `null` for
-Default, where the route bar stays opaque and widgets keep their own look. The
-handler is a pure factory (`display-methods.ts`). `display.changed` is emitted
-from a `config$` subscription that `init()` starts once, so a change in the settings dialog
-and a settings load from the server both reach extensions; `emitDisplayChange`
-de-dupes and seeds silently.
+`display.get` → `{ panelOpacity, colorScheme }`.
+
+- **`panelOpacity`** is the **Panel background** display setting
+  (`config.display.panelOpacity`): a number from 0 to 1, or `null` for Default,
+  where the route bar stays opaque and widgets keep their own look.
+- **`colorScheme`** is the theme Freeboard shows. `AppComponent.setDarkTheme()`
+  resolves it from the Dark Mode setting (browser, Signal K `environment.mode`, or
+  manual) and publishes it as `uiCtrl().darkTheme`; the service reads it through a
+  `computed`.
+
+The handler is a pure factory (`display-methods.ts`). `display.changed` carries the
+full state. An opacity change arrives from a `config$` subscription that `init()`
+starts once, so the settings dialog and a settings load from the server both reach
+extensions. A theme flip arrives from an effect on the resolved theme, which
+`setDarkTheme()` re-evaluates on settings changes and on every realtime delta
+(not during playback).
+`emitDisplayChange` de-dupes on both fields and seeds silently at `init()`.
 
 ## The `nightMode` capability
 

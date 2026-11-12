@@ -1,9 +1,7 @@
-import { type MethodHandler } from 'signalk-plotterext-bus/host';
-
-export interface DisplayState {
-  /** null: the user chose none, and each panel keeps its own look. */
-  panelOpacity: number | null;
-}
+import {
+  type DisplayState,
+  type MethodHandler
+} from 'signalk-plotterext-bus/host';
 
 export interface DisplayMethodsDeps {
   getState: () => DisplayState;
