@@ -425,6 +425,14 @@ export const TOOLS: ToolDef[] = [
       hub.call('nightMode.get', {}, { session: a.session })
   }),
   tool({
+    name: 'fsk_get_display',
+    description:
+      "Read Freeboard-SK's display state: { panelOpacity }. panelOpacity is the background opacity (0..1) the user chose for the route bar and widgets, or null when they kept the default and each panel draws its own.",
+    inputSchema: withSession(),
+    run: (hub, a: Session) =>
+      hub.call('display.get', {}, { session: a.session })
+  }),
+  tool({
     name: 'fsk_set_night_mode',
     description:
       "Control Freeboard-SK's night mode. Force on with { enabled: true }, force off with { enabled: false }, or follow the server's environment.mode with { auto: true }. Setting `enabled` is a manual override and turns `auto` off. Supply at least one field.",

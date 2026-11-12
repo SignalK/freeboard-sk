@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { EMPTY } from 'rxjs';
 import {
   afterEach,
   beforeEach,
@@ -80,6 +81,7 @@ function configureHost(
             display: { nightMode: false },
             map: { center: [0, 0], zoomLevel: 10 }
           },
+          config$: EMPTY,
           mapExtent: signal([]),
           debug: () => {},
           isTopWindow: () => true,

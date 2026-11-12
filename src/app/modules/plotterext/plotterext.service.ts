@@ -124,6 +124,7 @@ import type {
   OverlayStyle
 } from 'signalk-plotterext-bus/host';
 import { createNightModeMethods } from './nightmode-methods';
+import { createDisplayMethods, type DisplayState } from './display-methods';
 import {
   createEventsMethods,
   type EventsMethodsDeps,
@@ -1743,6 +1744,44 @@ export class PlotterExtensionService {
     this.emitNightModeChange(this.readNightMode());
   }
 
+  /** Host API handlers for the `display` capability. */
+  private displayMethods(): Record<string, MethodHandler> {
+    return createDisplayMethods({ getState: () => this.readDisplay() });
+  }
+
+  private readDisplay(): DisplayState {
+    return { panelOpacity: this.app.config.display.panelOpacity ?? null };
+  }
+
+  private followingDisplay = false;
+
+  /**
+   * Emit `display.changed` when the panel background opacity changes, from the
+   * settings dialog or a settings load from the server. Started from init(),
+   * when the user config is final, so the stored choice seeds silently.
+   */
+  private followDisplayOnce(): void {
+    if (this.followingDisplay) return;
+    this.followingDisplay = true;
+    this.emitDisplayChange(this.readDisplay());
+    this.app.config$.subscribe(() =>
+      this.emitDisplayChange(this.readDisplay())
+    );
+  }
+
+  /** Last display state broadcast, for de-duping `display.changed`. */
+  private prevDisplay: DisplayState | null = null;
+
+  /** Broadcast `display.changed` when the state changes; seeds silently. */
+  private emitDisplayChange(state: DisplayState): void {
+    const prev = this.prevDisplay;
+    this.prevDisplay = state;
+    if (prev === null || prev.panelOpacity === state.panelOpacity) {
+      return;
+    }
+    this.broadcastMessage('display.changed', state);
+  }
+
   /** Last night-mode state broadcast, for de-duping `nightMode.changed`. */
   private prevNightMode: NightModeState | null = null;
 
@@ -2125,6 +2164,7 @@ export class PlotterExtensionService {
     this.refreshActiveWidgets();
     this.initialized.set(true);
     this.attachEmbeddingHostOnce();
+    this.followDisplayOnce();
   }
 
   // ---------- discovery ----------
@@ -2622,6 +2662,7 @@ export class PlotterExtensionService {
         ...this.routeMethods(),
         ...this.chartMethods(),
         ...this.nightModeMethods(),
+        ...this.displayMethods(),
         ...this.resourceGroupMethods(),
         ...this.resourceDisplayMethods(),
         ...createOverlayMethods(this.overlays, opts.extension, ctx.runtime),
