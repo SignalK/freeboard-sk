@@ -621,6 +621,11 @@ export class AppComponent {
     this.focusMap();
   }
 
+  /** The What's New button: unseen feature changes, unless turned off. */
+  protected showWhatsNew(): boolean {
+    return this.app.config.display.whatsNew && this.whatsNew.hasUnseen();
+  }
+
   /**
    * Left toolbar buttons, top to bottom. Built on every change detection
    * pass because several conditions are plain (non-signal) state.
@@ -691,7 +696,7 @@ export class AppComponent {
       });
     }
     // A passive indicator, present only while unseen feature changes exist.
-    if (this.whatsNew.hasUnseen()) {
+    if (this.showWhatsNew()) {
       items.push({
         id: 'whatsNew',
         icon: 'tips_and_updates',
