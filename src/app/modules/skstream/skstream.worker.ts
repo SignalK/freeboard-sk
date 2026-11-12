@@ -1422,6 +1422,7 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
     }
     if (v.path === 'navigation.closestApproach') {
       d.closestApproach = value;
+      d.closestApproachUpdatedAt = Date.now();
     }
   }
   // ** all vessels
