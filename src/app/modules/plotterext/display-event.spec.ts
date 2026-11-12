@@ -80,12 +80,16 @@ describe('PlotterExtensionService display.changed event', () => {
     ).contexts.add({
       conn: { publish: (event, params) => published.push({ event, params }) }
     });
+  });
+
+  // init() starts following the display state; each test chooses when.
+  const follow = () =>
     (
       service as unknown as { followDisplayOnce: () => void }
     ).followDisplayOnce();
-  });
 
   it('publishes the new opacity when the user picks one', () => {
+    follow();
     choose(0.7);
     expect(displayEvents()).toEqual([
       {
@@ -101,6 +105,7 @@ describe('PlotterExtensionService display.changed event', () => {
   });
 
   it('publishes the full state when the theme flips', () => {
+    follow();
     choose(0.85);
     uiCtrl.update((c) => ({ ...c, darkTheme: true }));
     TestBed.tick();
@@ -111,19 +116,45 @@ describe('PlotterExtensionService display.changed event', () => {
     expect(displayEvents()).toHaveLength(2);
   });
 
-  it('does not publish when another UI control changes', () => {
+  it('emits nothing when an unrelated UI control changes', () => {
+    follow();
     TestBed.tick();
     uiCtrl.update((c) => ({ ...c, forceNightMode: true }));
     TestBed.tick();
     expect(displayEvents()).toHaveLength(0);
   });
 
+  it('seeds silently at init() from the final config, not an earlier theme flip', async () => {
+    // The theme resolves while the stored config is still loading; the stored
+    // opacity lands before init() without a config$ event reaching us.
+    uiCtrl.update((c) => ({ ...c, darkTheme: true }));
+    TestBed.tick();
+    TestBed.inject(AppFacade).config.display.panelOpacity = 0.7;
+    follow();
+    TestBed.tick();
+    expect(displayEvents()).toHaveLength(0);
+    const methods = (
+      service as unknown as {
+        displayMethods: () => Record<
+          string,
+          (p: unknown, c: unknown) => Promise<unknown>
+        >;
+      }
+    ).displayMethods();
+    expect(await methods['display.get'](undefined, {})).toEqual({
+      panelOpacity: 0.7,
+      colorScheme: 'dark'
+    });
+  });
+
   it('does not publish when a save leaves the opacity as it was', () => {
+    follow();
     choose(null);
     expect(displayEvents()).toHaveLength(0);
   });
 
   it('answers display.get with the current choice', async () => {
+    follow();
     choose(0.85);
     const methods = (
       service as unknown as {

@@ -504,7 +504,8 @@ The handler is a pure factory (`display-methods.ts`). `display.changed` carries 
 full state. An opacity change arrives from a `config$` subscription that `init()`
 starts once, so the settings dialog and a settings load from the server both reach
 extensions. A theme flip arrives from an effect on the resolved theme, which
-`setDarkTheme()` re-evaluates on settings changes and on every realtime delta.
+`setDarkTheme()` re-evaluates on settings changes and on every realtime delta
+(not during playback).
 `emitDisplayChange` de-dupes on both fields and seeds silently at `init()`.
 
 ## The `nightMode` capability
