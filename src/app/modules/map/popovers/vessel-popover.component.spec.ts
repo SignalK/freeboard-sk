@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { VesselPopoverComponent } from './vessel-popover.component';
 import { AppFacade } from 'src/app/app.facade';
@@ -76,6 +76,20 @@ describe('VesselPopoverComponent — CPA and TCPA', () => {
     const text = show(vessel('vessels.b', null, null));
     expect(text).not.toContain('120 m');
     expect(text).not.toContain('300 s');
+  });
+
+  describe('between updates', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('counts the TCPA down from when it arrived', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(100_000);
+      const v = vessel('vessels.a', 120, 300);
+      v.closestApproachUpdatedAt = 96_000;
+      const text = render()(v);
+      expect(text).toContain('296 s');
+      expect(text).toContain('120 m');
+    });
   });
 });
 

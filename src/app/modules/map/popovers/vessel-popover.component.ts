@@ -415,8 +415,13 @@ export class VesselPopoverComponent {
           );
         }
         if (typeof closestApproach.timeTo === 'number') {
+          // A sender may publish only when the closest approach moves, so
+          // count the time down from when it arrived.
+          const elapsed = vessel.closestApproachUpdatedAt
+            ? (Date.now() - vessel.closestApproachUpdatedAt) / 1000
+            : 0;
           this.tcpa = this.app.formatValueForDisplay(
-            closestApproach.timeTo,
+            closestApproach.timeTo - elapsed,
             's'
           );
         }
