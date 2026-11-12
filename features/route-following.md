@@ -51,6 +51,13 @@ you leave it by when the screen resizes or turns, and it reopens there the
 next time a course is active. The position is remembered on each device
 separately, so a tablet and a laptop can each keep it where it suits them.
 
+**Seeing the chart through the course panel.** Settings → Display →
+**Panel background** sets how see-through the panel is. **85 %** or **70 %**
+lets the chart show behind it while its readings stay solid; **Default** and
+**Opaque** keep it solid, as before. The light and dark themes each keep their
+own colours. Screen widgets that support it follow the same choice, so the
+panel and the widgets around it look alike (see *Screen Widgets*).
+
 ![Fig 3. Clicking a point on the route you're following — Rejoin here, or Skip to the point after it](route-following-3.jpg)
 
 **How far to a point.** Click a point on the route you're following — the

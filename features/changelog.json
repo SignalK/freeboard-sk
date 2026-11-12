@@ -191,5 +191,8 @@
   { "feature": "extension-panels", "pr": 1297, "kind": "enhanced", "since": "v3.5.0-beta.0", "date": "2026-11-11", "title": "feat(plotterext): implement resources.show and resources.hide" },
   { "feature": "route-styles", "pr": 1285, "kind": "new", "since": "v3.5.0-beta.0", "date": "2026-11-11", "title": "feat(routes): mark routes with flags and pins, with a classic style option" },
   { "feature": "route-styles", "pr": 1251, "kind": "enhanced", "since": "v3.5.0-beta.0", "date": "2026-11-11", "title": "feat(routes): add chevron route styles that show the direction of travel" },
-  { "feature": "screen-widgets", "pr": 1307, "kind": "enhanced", "date": "2026-11-12", "title": "feat(plotterext): show each widget only from a chosen screen size up" }
+  { "feature": "screen-widgets", "pr": 1307, "kind": "enhanced", "date": "2026-11-12", "title": "feat(plotterext): show each widget only from a chosen screen size up" },
+  { "feature": "route-following", "pr": 1296, "kind": "enhanced", "date": "2026-11-12", "title": "feat(ui): add a panel background setting, starting with the route bar" },
+  { "feature": "screen-widgets", "pr": 1309, "kind": "enhanced", "date": "2026-11-12", "title": "feat(plotterext): tell widgets the panel background opacity" },
+  { "feature": "screen-widgets", "pr": 1316, "kind": "enhanced", "date": "2026-11-12", "title": "feat(plotterext): report the host's color scheme in the display capability" }
 ]
