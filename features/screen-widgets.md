@@ -58,5 +58,14 @@ example, showing only certain waypoints. When a widget does this, a small
 chip appears near the top of the screen describing the filter; tap its **×**
 to clear it and show everything again.
 
+**Matching Freeboard's look.** A widget draws its own card, so how it looks is
+up to its plugin. Widgets that support it follow Freeboard instead: they
+switch with Freeboard's light or dark theme (even when that follows your
+Signal K server's day and night mode rather than your device's setting), and
+take how see-through their card is from Settings → Display →
+**Panel background**, so they match the course panel beside them. On
+**Default** each widget keeps its plugin's own background; **Opaque** makes
+every supporting widget solid.
+
 If you haven't installed any plugins that provide screen widgets, none of
 this is visible — Freeboard looks and works exactly as it always has.
