@@ -702,15 +702,19 @@ export class AppComponent {
       });
     }
     // Last and pinned: away from Alarms, so neither is pressed for the other.
-    items.push({
-      id: 'mob',
-      svgIcon: 'alarm-mob',
-      iconClass: 'ob',
-      tooltip: 'Person Overboard',
-      buttonClass: 'button-warn',
-      pinned: true,
-      action: () => void this.mob.raise()
-    });
+    // Left out while the POB action button is on screen, so there is only one;
+    // that button hides while drawing, so this one comes back then.
+    if (this.app.config.display.fab !== 'pob' || interacting) {
+      items.push({
+        id: 'mob',
+        svgIcon: 'alarm-mob',
+        iconClass: 'ob',
+        tooltip: 'Person Overboard',
+        buttonClass: 'button-warn',
+        pinned: true,
+        action: () => void this.mob.raise()
+      });
+    }
     return items;
   }
 
