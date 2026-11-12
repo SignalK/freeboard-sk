@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, type WritableSignal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MatDialog } from '@angular/material/dialog';
@@ -18,6 +18,7 @@ describe('PlotterExtensionService display.changed event', () => {
   let published: Array<{ event: string; params: unknown }>;
   let service: PlotterExtensionService;
   let config$: Subject<ConfigEvent>;
+  let uiCtrl: WritableSignal<{ forceNightMode: boolean; darkTheme: boolean }>;
 
   const displayEvents = () =>
     published.filter((p) => p.event === 'display.changed');
@@ -29,6 +30,7 @@ describe('PlotterExtensionService display.changed event', () => {
 
   beforeEach(() => {
     config$ = new Subject<ConfigEvent>();
+    uiCtrl = signal({ forceNightMode: false, darkTheme: false });
     published = [];
     TestBed.configureTestingModule({
       providers: [
@@ -44,7 +46,7 @@ describe('PlotterExtensionService display.changed event', () => {
             },
             config$,
             mapExtent: signal<number[]>([]),
-            uiCtrl: signal({ forceNightMode: false }),
+            uiCtrl,
             uiConfig: signal({ autoNightMode: false }),
             debug: () => {}
           }
@@ -86,10 +88,34 @@ describe('PlotterExtensionService display.changed event', () => {
   it('publishes the new opacity when the user picks one', () => {
     choose(0.7);
     expect(displayEvents()).toEqual([
-      { event: 'display.changed', params: { panelOpacity: 0.7 } }
+      {
+        event: 'display.changed',
+        params: { panelOpacity: 0.7, colorScheme: 'light' }
+      }
     ]);
     choose(null);
-    expect(displayEvents().at(-1)?.params).toEqual({ panelOpacity: null });
+    expect(displayEvents().at(-1)?.params).toEqual({
+      panelOpacity: null,
+      colorScheme: 'light'
+    });
+  });
+
+  it('publishes the full state when the theme flips', () => {
+    choose(0.85);
+    uiCtrl.update((c) => ({ ...c, darkTheme: true }));
+    TestBed.tick();
+    expect(displayEvents().at(-1)?.params).toEqual({
+      panelOpacity: 0.85,
+      colorScheme: 'dark'
+    });
+    expect(displayEvents()).toHaveLength(2);
+  });
+
+  it('does not publish when another UI control changes', () => {
+    TestBed.tick();
+    uiCtrl.update((c) => ({ ...c, forceNightMode: true }));
+    TestBed.tick();
+    expect(displayEvents()).toHaveLength(0);
   });
 
   it('does not publish when a save leaves the opacity as it was', () => {
@@ -108,7 +134,8 @@ describe('PlotterExtensionService display.changed event', () => {
       }
     ).displayMethods();
     expect(await methods['display.get'](undefined, {})).toEqual({
-      panelOpacity: 0.85
+      panelOpacity: 0.85,
+      colorScheme: 'light'
     });
   });
 });

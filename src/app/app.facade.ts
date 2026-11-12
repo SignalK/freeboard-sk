@@ -215,13 +215,15 @@ export class AppFacade extends InfoService {
     routeBuilder: boolean; // display BuildRoute
     suppressContextMenu: boolean; // prevent display of context menu
     forceNightMode: boolean; // force setting of night mode
+    darkTheme: boolean; // the dark theme is applied (resolved by AppComponent)
   }>({
     alertList: false,
     autopilotConsole: false,
     radarLayer: false,
     routeBuilder: false,
     suppressContextMenu: false,
-    forceNightMode: false
+    forceNightMode: false,
+    darkTheme: false
   });
 
   // persisted UI configuration items

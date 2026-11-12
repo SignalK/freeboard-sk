@@ -427,7 +427,7 @@ export const TOOLS: ToolDef[] = [
   tool({
     name: 'fsk_get_display',
     description:
-      "Read Freeboard-SK's display state: { panelOpacity }. panelOpacity is the background opacity (0..1) the user chose for the route bar and widgets, or null when they kept the default and each panel draws its own.",
+      "Read Freeboard-SK's display state: { panelOpacity, colorScheme }. panelOpacity is the background opacity (0..1) the user chose for the route bar and widgets, or null when they kept the default and each panel draws its own. colorScheme is 'light' or 'dark': the theme Freeboard currently shows.",
     inputSchema: withSession(),
     run: (hub, a: Session) =>
       hub.call('display.get', {}, { session: a.session })

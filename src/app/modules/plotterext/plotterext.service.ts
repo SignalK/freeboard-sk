@@ -120,11 +120,13 @@ import {
   type ResolvedUrl
 } from './data-overlay-style';
 import type {
+  ColorScheme,
+  DisplayState,
   OverlayStateEvent,
   OverlayStyle
 } from 'signalk-plotterext-bus/host';
 import { createNightModeMethods } from './nightmode-methods';
-import { createDisplayMethods, type DisplayState } from './display-methods';
+import { createDisplayMethods } from './display-methods';
 import {
   createEventsMethods,
   type EventsMethodsDeps,
@@ -1437,6 +1439,16 @@ export class PlotterExtensionService {
     // Auto-only changes that don't move the resolved state are emitted directly
     // by applyNightMode; emitNightModeChange dedups so each real change fires once.
     effect(() => this.emitNightModeChange(this.readNightMode()));
+    // Emit `display.changed` when the theme flips: the settings dialog, the
+    // browser's colour scheme, or the server's environment.mode. Panel opacity
+    // changes arrive through config$ (followDisplayOnce), which also gates this
+    // until init() has seeded the state.
+    effect(() => {
+      this.colorScheme();
+      untracked(() => {
+        if (this.followingDisplay) this.emitDisplayChange(this.readDisplay());
+      });
+    });
     // Emit `map.view` whenever the chart viewport settles, whether the user
     // panned/zoomed, the host recentred, or an extension called map.center /
     // map.fitBounds (origin-transparent). mapExtent is written once per OL
@@ -1749,8 +1761,16 @@ export class PlotterExtensionService {
     return createDisplayMethods({ getState: () => this.readDisplay() });
   }
 
+  /** The theme the user sees, resolved by AppComponent.setDarkTheme(). */
+  private colorScheme = computed<ColorScheme>(() =>
+    this.app.uiCtrl().darkTheme ? 'dark' : 'light'
+  );
+
   private readDisplay(): DisplayState {
-    return { panelOpacity: this.app.config.display.panelOpacity ?? null };
+    return {
+      panelOpacity: this.app.config.display.panelOpacity ?? null,
+      colorScheme: this.colorScheme()
+    };
   }
 
   private followingDisplay = false;
@@ -1758,7 +1778,7 @@ export class PlotterExtensionService {
   /**
    * Emit `display.changed` when the panel background opacity changes, from the
    * settings dialog or a settings load from the server. Started from init(),
-   * when the user config is final, so the stored choice seeds silently.
+   * when the user config is final, so the stored state seeds silently.
    */
   private followDisplayOnce(): void {
     if (this.followingDisplay) return;
@@ -1776,7 +1796,11 @@ export class PlotterExtensionService {
   private emitDisplayChange(state: DisplayState): void {
     const prev = this.prevDisplay;
     this.prevDisplay = state;
-    if (prev === null || prev.panelOpacity === state.panelOpacity) {
+    if (
+      prev === null ||
+      (prev.panelOpacity === state.panelOpacity &&
+        prev.colorScheme === state.colorScheme)
+    ) {
       return;
     }
     this.broadcastMessage('display.changed', state);

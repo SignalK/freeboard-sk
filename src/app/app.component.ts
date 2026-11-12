@@ -973,6 +973,7 @@ export class AppComponent {
       el.classList.remove('dark-theme');
     }
     this.app.config.display.darkMode.enabled = enabled;
+    this.app.uiCtrl.update((c) => ({ ...c, darkTheme: enabled }));
   }
 
   private formatInstrumentsUrl() {
