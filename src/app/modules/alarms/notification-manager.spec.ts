@@ -297,6 +297,7 @@ describe('NotificationManager alert actions', () => {
   const ID = '6efdf5cc-bcb2-4b6e-9c8b-dbcd0539822b';
   let notifications: Subject<NotificationMessage>;
   let posts: Array<{ path: string; response: Subject<unknown> }>;
+  let gets: Array<{ path: string; response: Subject<unknown> }>;
   let errors: unknown[];
 
   const configure = () =>
@@ -329,6 +330,11 @@ describe('NotificationManager alert actions', () => {
                 const response = new Subject<unknown>();
                 posts.push({ path, response });
                 return response.asObservable();
+              },
+              get: (_version: number, path: string) => {
+                const response = new Subject<unknown>();
+                gets.push({ path, response });
+                return response.asObservable();
               }
             }
           }
@@ -341,6 +347,7 @@ describe('NotificationManager alert actions', () => {
     TestBed.resetTestingModule();
     notifications = new Subject<NotificationMessage>();
     posts = [];
+    gets = [];
     errors = [];
     configure();
   });
@@ -794,6 +801,122 @@ describe('NotificationManager alert actions', () => {
 
     mgr.removeLocalMob(alert);
     expect(mgr.mobAlerts()).toEqual([]);
+  });
+
+  describe('alerts the server no longer has', () => {
+    const OTHER =
+      'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789';
+    afterEach(() => localStorage.removeItem('fb-local-mobs'));
+
+    const list = (
+      i: number,
+      entries: Array<{ path: string; state?: string }>
+    ) => {
+      gets[i].response.next(
+        Object.fromEntries(
+          entries.map(({ path, state }, n) => [
+            `id-${n}`,
+            { context: 'vessels.self', path, value: { state } }
+          ])
+        )
+      );
+      gets[i].response.complete();
+    };
+
+    it('drops the alerts the server no longer lists as active', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+      arrive({ path: OTHER, id: 'b5f4a7d2-0c39-4a8e-9d0e-3f1f8f2a4c11' });
+
+      const done = mgr.dropStaleAlerts();
+      expect(gets.map((g) => g.path)).toEqual(['notifications']);
+      list(0, [{ path: OTHER, state: ALARM_STATE.normal }]);
+      await done;
+
+      expect(mgr.alerts()).toEqual([]);
+    });
+
+    it('keeps the alerts the server still lists as active', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+      arrive({ path: OTHER, id: 'b5f4a7d2-0c39-4a8e-9d0e-3f1f8f2a4c11' });
+
+      const done = mgr.dropStaleAlerts();
+      list(0, [{ path: PATH, state: ALARM_STATE.alert }]);
+      await done;
+
+      expect(mgr.alerts().map(([path]) => path)).toEqual([PATH]);
+    });
+
+    it('keeps an alert the server lists without a state', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      const done = mgr.dropStaleAlerts();
+      list(0, [{ path: PATH }]);
+      await done;
+
+      expect(shown(mgr).path).toBe(PATH);
+    });
+
+    it('keeps a MOB the server no longer lists until it is ended', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive({ path: 'notifications.mob', state: ALARM_STATE.emergency });
+      const [[, raised]] = mgr.mobAlerts();
+
+      const done = mgr.dropStaleAlerts();
+      list(0, []);
+      await done;
+
+      expect(mgr.mobAlerts()).toEqual([['notifications.mob', raised]]);
+    });
+
+    it('keeps an alert a delta updated while the list was on its way', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      const done = mgr.dropStaleAlerts();
+      arrive({ state: ALARM_STATE.alarm });
+      list(0, []);
+      await done;
+
+      expect(shown(mgr).priority).toBe(ALARM_STATE.alarm);
+    });
+
+    it('drops the pending action of an alert it drops', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+      mgr.acknowledge(PATH);
+
+      const done = mgr.dropStaleAlerts();
+      list(0, []);
+      await done;
+      arrive();
+
+      expect(shown(mgr).acknowledged).toBe(false);
+    });
+
+    it('keeps the alerts when the server cannot list its notifications', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      const done = mgr.dropStaleAlerts();
+      gets[0].response.error(new HttpErrorResponse({ status: 401 }));
+      await done;
+
+      expect(shown(mgr).path).toBe(PATH);
+      expect(errors).toEqual([]);
+    });
+
+    it('keeps a MOB shown on this display alone, without asking the server', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      mgr.addLocalMob(null, Date.UTC(2026, 10, 9, 12));
+
+      await mgr.dropStaleAlerts();
+
+      expect(gets).toEqual([]);
+      expect(mgr.mobAlerts()).toHaveLength(1);
+    });
   });
 
   describe('across a reload', () => {

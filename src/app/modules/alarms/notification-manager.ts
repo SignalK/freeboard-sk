@@ -89,6 +89,12 @@ interface PendingAction {
 type ApiNotification = SKNotification &
   Required<Pick<SKNotification, 'id' | 'status'>>;
 
+/** An entry of the Notifications API's list, as far as it is read here */
+interface ListedNotification {
+  path?: string;
+  value?: Partial<SKNotification> | null;
+}
+
 /**
  * `navigation.closestApproach` notification. The other vessel is named by
  * `data.targetRef` (the shared collision alarm shape); `other` is the older,
@@ -580,6 +586,59 @@ export class NotificationManager {
   private dropPendingActions(id: string) {
     this.pendingActions.acknowledged.delete(id);
     this.pendingActions.silenced.delete(id);
+  }
+
+  /**
+   * @description Drop the alerts the server no longer has. An alert goes when
+   * a delta clears it, and none comes for one that a restarted server has
+   * forgotten, so it would stay up for good, and ACK or MUTE would only get
+   * "Alarm not found!". The server's list of notifications settles it. An
+   * alert a delta has updated since the list was asked for is the server's
+   * latest word and stays, as do the MOBs kept on this display alone.
+   *
+   * A MOB is left alone: it goes when it is ended, by its clearing delta or by
+   * END MOB, never because a server lost track of it.
+   */
+  public async dropStaleAlerts() {
+    if (!this.app.featureFlags().notificationApi) {
+      return;
+    }
+    const asked = [...this.alertMap].filter(([, alert]) => !alert.local);
+    if (!asked.length) {
+      return;
+    }
+    let listed: Record<string, ListedNotification> | null;
+    try {
+      listed = await firstValueFrom(
+        this.signalk.api.get(this.app.skApiVersion, 'notifications')
+      );
+    } catch {
+      this.app.debug('Could not list the notifications on the server');
+      return;
+    }
+    // Matched by path, as the alerts are kept: a server that does not manage
+    // notifications may give one no id. Active as parse() takes it.
+    const active = new Set(
+      Object.values(listed ?? {})
+        .filter((n) => n?.value && n.value.state !== 'normal')
+        .map((n) => n.path)
+    );
+    let dropped = false;
+    for (const [path, alert] of asked) {
+      if (
+        alert.type === 'mob' ||
+        this.alertMap.get(path) !== alert ||
+        active.has(path)
+      ) {
+        continue;
+      }
+      this.dropPendingActions(alert.id);
+      this.alertMap.delete(path);
+      dropped = true;
+    }
+    if (dropped) {
+      this.emitSignals();
+    }
   }
 
   /**
