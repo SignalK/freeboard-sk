@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { computed, effect, inject, Injectable } from '@angular/core';
 import ImageSource from 'ol/source/Image';
 import { circular } from 'ol/geom/Polygon';
 import { createLoader } from 'ol/source/static';
@@ -10,6 +10,8 @@ import {
 import { ShipState } from './ship-state.model';
 import { Observable, Subscription } from 'rxjs';
 import { AppFacade } from 'src/app/app.facade';
+import { radarRange } from 'src/app/modules/radar/range-rings';
+import { SpokeAdjustment } from 'src/app/modules/radar/radar-local-view';
 
 // Radar Definition for rendering
 export interface RadarRenderDef {
@@ -20,6 +22,15 @@ export interface RadarRenderDef {
   hasSparseSpokes: boolean;
   streamUrl: string;
   legend: Record<string, SKRadarLegendEntry>;
+  /** spoke values from here up are not echoes (Doppler, trails) */
+  pixelColors: number;
+}
+
+/** How this screen shows the radar's picture: its echoes reshaped, and drawn
+ *  out to `clip`, a fraction of the range the radar sends. */
+export interface RadarView {
+  adjustment: SpokeAdjustment;
+  clip: number;
 }
 
 @Injectable({
@@ -34,7 +45,28 @@ export class RadarRenderService {
 
   private shipStateSubscription?: Subscription;
 
+  private view = computed<RadarView>(
+    () => {
+      const sent = radarRange(this.radarApi.radar());
+      const shown = this.radarApi.shownRange();
+      return {
+        adjustment: this.radarApi.spokeAdjustment(),
+        clip: sent && shown && shown < sent ? shown / sent : 1
+      };
+    },
+    {
+      equal: (a, b) =>
+        a.clip === b.clip &&
+        a.adjustment.gain === b.adjustment.gain &&
+        a.adjustment.sea === b.adjustment.sea
+    }
+  );
+
   constructor() {
+    effect(() => {
+      const view = this.view();
+      this.worker?.postMessage({ view });
+    });
     const gl = new OffscreenCanvas(10, 10).getContext('webgl2');
     if (gl !== null) {
       this.hasWebgl = true;
@@ -74,7 +106,10 @@ export class RadarRenderService {
       }/signalk/v2/api/vessels/self/radars/${activeRadar.device.id}/${
         this.radarApi.apiVersion() ? 'spokes' : 'stream'
       }`,
-      legend: legend
+      legend: legend,
+      pixelColors:
+        activeRadar.capabilities.legend?.pixelColors ??
+        activeRadar.capabilities.pixelValues
     };
   }
 
@@ -131,6 +166,7 @@ export class RadarRenderService {
     worker.postMessage({ canvas: offscreenRadarCanvas, radar: radar }, [
       offscreenRadarCanvas
     ]);
+    worker.postMessage({ view: this.view() });
 
     let lastRedraw = 0;
     const REDRAW_INTERVAL_MS = 33;

@@ -116,11 +116,7 @@ import {
   gateZoom,
   paneStatusBarLift
 } from './split-view/split-view';
-import {
-  radarRange,
-  rangeRingScale,
-  ringLabel
-} from 'src/app/modules/radar/range-rings';
+import { rangeRingScale, ringLabel } from 'src/app/modules/radar/range-rings';
 import {
   RangeRing,
   radarRingColor,
@@ -782,7 +778,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // the scale units input follows the distance unit, so a unit change
       // redraws the rings
       const scale = rangeRingScale(
-        radarRange(radar),
+        this.radarApi.shownRange(),
         (this.scaleUnits() || this.app.config.units.distance) as TARGET_UNIT
       );
       if (!scale) {

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
@@ -7,6 +7,14 @@ import { SKStreamFacade } from '../skstream/skstream.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { DeltaSignal } from 'src/app/types';
 import { AcquireRequest } from './radar-targets';
+import {
+  EMULATOR_BRAND,
+  LocalView,
+  NO_ADJUSTMENT,
+  refusesChanges,
+  shownControls,
+  spokeAdjustment
+} from './radar-local-view';
 
 // While no radar is listed, vessel updates look for one again: the radar
 // provider (a plugin or its container) can start after Freeboard. The wait
@@ -134,6 +142,34 @@ export class RadarAPIService {
   // which return a bare array with no version envelope.
   private _apiVersion = signal<string>('');
   readonly apiVersion = this._apiVersion.asReadonly();
+  // the changes this screen made to a radar it may watch but not change
+  private _localView = signal<LocalView | undefined>(undefined);
+  /** This screen sets gain, sea and range of the selected radar for itself. */
+  readonly localView = computed(() => {
+    const view = this._localView();
+    return view && view.radarId === this._radar()?.device?.id
+      ? view
+      : undefined;
+  });
+  /** The selected radar's controls as this screen shows them. */
+  readonly shownControls = computed(() => {
+    const controls = this._radar()?.controls ?? new Map<string, ControlValue>();
+    const view = this.localView();
+    return view ? shownControls(controls, view.controls) : controls;
+  });
+  /** The selected radar's range (m) as this screen shows it. */
+  readonly shownRange = computed(() => {
+    const value = this.shownControls().get('range')?.value;
+    return typeof value === 'number' ? value : undefined;
+  });
+  /** How this screen reshapes the selected radar's echoes. */
+  readonly spokeAdjustment = computed(() => {
+    const view = this.localView();
+    const controls = this._radar()?.controls;
+    return view && controls
+      ? spokeAdjustment(controls, view.controls)
+      : NO_ADJUSTMENT;
+  });
 
   private app = inject(AppFacade);
   private signalk = inject(SignalKClient);
@@ -488,6 +524,35 @@ export class RadarAPIService {
           // (401/403) from a value the radar refused, and show the status
           error: (err: HttpErrorResponse) => reject(err)
         });
+    });
+  }
+
+  /** Whether a change the server refused with `status` makes radar
+   *  `radarId` one this screen may only watch: true for the emulator. */
+  public watchOnly(radarId: string, status: number | undefined): boolean {
+    if (
+      !refusesChanges(status) ||
+      this._radar()?.device?.id !== radarId ||
+      this._radar()?.device?.brand !== EMULATOR_BRAND
+    ) {
+      return false;
+    }
+    if (this._localView()?.radarId !== radarId) {
+      this._localView.set({ radarId, controls: new Map() });
+    }
+    return true;
+  }
+
+  /** Set gain, sea or range of the radar this screen may only watch, for
+   *  this screen alone. */
+  public setLocal(radarId: string, controlId: string, change: ControlChange) {
+    this._localView.update((view) => {
+      if (view?.radarId !== radarId) {
+        return view;
+      }
+      const controls = new Map(view.controls);
+      controls.set(controlId, { ...controls.get(controlId), ...change });
+      return { radarId, controls };
     });
   }
 

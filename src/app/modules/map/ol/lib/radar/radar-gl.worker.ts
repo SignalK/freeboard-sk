@@ -1,11 +1,18 @@
 /// <reference lib="webworker" />
 
-import { RadarRenderDef } from './radar-render.service';
+import type { RadarRenderDef, RadarView } from './radar-render.service';
+import {
+  adjustSpoke,
+  NO_ADJUSTMENT
+} from 'src/app/modules/radar/radar-local-view';
 import { RadarMessage } from './RadarMessage';
 import { RadarPolarBuffer } from './radar-polar-buffer';
 import { fromString } from 'ol/color';
 
 let vHeading = 0;
+let vView: RadarView = { adjustment: NO_ADJUSTMENT, clip: 1 };
+// draws the picture again, once the radar's canvas has arrived
+let redraw: (() => void) | undefined;
 // Spokes arrive hundreds of times a second; the picture is redrawn at most
 // this often, which is also how often the map takes a new frame.
 const FRAME_INTERVAL_MS = 33;
@@ -30,11 +37,12 @@ const fragCode = `#version 300 es
   uniform usampler2D u_polar;
   uniform sampler2D u_colors;
   uniform int u_colorCount;
+  uniform float u_clip;
   out vec4 color;
   const float TWO_PI = 6.28318530718;
   void main() {
     float r = length(v_position);
-    if (r >= 1.0) {
+    if (r >= u_clip) {
       discard;
     }
     float bearing = atan(v_position.x, v_position.y);
@@ -73,6 +81,10 @@ function compile(
 addEventListener('message', (event) => {
   if (event.data.heading !== undefined) {
     vHeading = event.data.heading;
+  }
+  if (event.data.view !== undefined) {
+    vView = event.data.view;
+    redraw?.();
   }
   if (event.data.canvas) {
     const radarCanvas = event.data.canvas as OffscreenCanvas;
@@ -167,6 +179,7 @@ addEventListener('message', (event) => {
       polar.data
     );
     gl.uniform1i(gl.getUniformLocation(program, 'u_polar'), 0);
+    const clipUniform = gl.getUniformLocation(program, 'u_clip');
 
     let frameScheduled = false;
     function drawFrame() {
@@ -184,6 +197,7 @@ addEventListener('message', (event) => {
           polar.data.subarray(first * polar.samples, end * polar.samples)
         );
       }
+      gl.uniform1f(clipUniform, vView.clip);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       postMessage({ redraw: true });
@@ -194,6 +208,7 @@ addEventListener('message', (event) => {
         setTimeout(drawFrame, FRAME_INTERVAL_MS);
       }
     }
+    redraw = scheduleFrame;
 
     // The spoke angle counts from the bow; the picture is north up.
     function toBearing(angle: number): number {
@@ -221,6 +236,12 @@ addEventListener('message', (event) => {
             lastRange = spoke.range;
             postMessage({ range: spoke.range });
           }
+          adjustSpoke(
+            spoke.data,
+            spoke.range,
+            radar.pixelColors,
+            vView.adjustment
+          );
           polar.write(toBearing(spoke.angle), spoke.data);
         }
         scheduleFrame();
