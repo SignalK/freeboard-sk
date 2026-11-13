@@ -734,6 +734,72 @@ describe('AppFacade global default config', () => {
       defaultConfig().selections.charts
     );
   });
+
+  it('keeps a user who saves to this browser only off the server', async () => {
+    const own = defaultConfig();
+    own.display.saveToServer = false;
+    own.selections.charts = ['mine'];
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(own));
+    const user = defaultConfig();
+    user.selections.charts = ['account'];
+    const { app, client } = setup(true, { user, global: globalDefaults() });
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+    expect(app.config.selections.charts).toEqual(['mine']);
+    expect(client.appDataGet).not.toHaveBeenCalled();
+
+    app.config.ui.mapNorthUp = false;
+    app.saveConfig();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(localStorage.getItem(STORED_CONFIG_KEY) ?? '{}').ui.mapNorthUp
+    ).toBe(false);
+  });
+
+  it('keeps a visitor whose global defaults save to this browser only off the server when they log in', async () => {
+    const preset = globalDefaults();
+    preset.display.saveToServer = false;
+    const { app, client } = setup(false, { global: preset });
+    await app.loadUserConfigfromServer();
+    client.isLoggedIn.mockReturnValue(of(true));
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+    app.saveConfig();
+
+    expect(client.appDataGet).toHaveBeenCalledTimes(1);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it('keeps this browser only when chosen while the account settings load', async () => {
+    const user = defaultConfig();
+    user.selections.charts = ['account'];
+    const reply = new Subject<object>();
+    const { app, client } = setup(true, {});
+    client.appDataGet.mockReturnValue(reply);
+
+    const load = app.loadUserConfigfromServer();
+    await Promise.resolve();
+    app.config.display.saveToServer = false;
+    app.saveConfig();
+    reply.next(user);
+
+    await expect(load).resolves.toBe(false);
+    expect(app.config.display.saveToServer).toBe(false);
+    expect(app.config.selections.charts).not.toEqual(['account']);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it('saves to the server again once the user turns it back on', async () => {
+    const { app, client } = setup(true, {});
+    await app.loadUserConfigfromServer();
+    app.config.display.saveToServer = false;
+    app.saveConfig();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+
+    app.config.display.saveToServer = true;
+    app.saveConfig();
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('AppFacade radar overlay (#1200)', () => {
