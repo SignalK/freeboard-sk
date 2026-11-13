@@ -89,6 +89,8 @@ export const AppConfigSchema = Type.Object({
     }),
     preferInfoPanel: bool(true),
     splitView: bool(false), // offer the Split view button: a second chart pane
+    // false keeps a logged-in user's settings in this browser only
+    saveToServer: bool(true),
     // background opacity of the panels on the chart (route bar, widgets);
     // null leaves each as it draws itself, below 1 the chart shows through
     panelOpacity: nullable(Type.Number()),

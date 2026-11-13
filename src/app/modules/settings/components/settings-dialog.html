@@ -94,6 +94,16 @@
                     </mat-checkbox>
                   </div>
                   <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.saveToServer"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Save your settings to your account on the Signal K server when logged in. Un-check to keep them in this browser only."
+                    >
+                      Save settings on the server
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
                       <mat-label>Panel background</mat-label>
                       <mat-select

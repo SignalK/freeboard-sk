@@ -683,7 +683,7 @@ export class AppFacade extends InfoService {
       return false;
     }
     this.isLoggedIn.set(loggedIn);
-    if (loggedIn) {
+    if (loggedIn && this.config.display.saveToServer) {
       this.debug(
         'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
       );
@@ -1270,7 +1270,11 @@ export class AppFacade extends InfoService {
   private serverSave: 'idle' | 'busy' | 'again' = 'idle';
 
   private saveConfigToServer() {
-    if (!this.isLoggedIn() || this.userConfigUnreadable) {
+    if (
+      !this.isLoggedIn() ||
+      this.userConfigUnreadable ||
+      !this.config.display.saveToServer
+    ) {
       return;
     }
     if (this.serverSave !== 'idle') {
