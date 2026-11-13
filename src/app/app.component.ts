@@ -1143,22 +1143,9 @@ export class AppComponent {
     this.signalk.getLoginStatus().subscribe({
       next: (r) => {
         this.app.data.loginRequired = r.authenticationRequired ?? false;
-        this.app.isLoggedIn.update(() =>
-          r.status === 'loggedIn' ? true : false
-        );
-        // ** Request using cached auth token and display badge
-        this.signalk.get('/plugins/freeboard-sk').subscribe(
-          () => {
-            this.app.debug('User Authenticated');
-            this.app.isLoggedIn.set(true);
-          },
-          (err: HttpErrorResponse) => {
-            if (err.status === 401) {
-              this.app.debug('User NOT Authenticated');
-              this.app.isLoggedIn.set(false);
-            }
-          }
-        );
+        // the request carries the cached token, so this is the token's
+        // state; an admin-only probe would count every non-admin as logged out
+        this.app.isLoggedIn.set(r.status === 'loggedIn');
       },
       // an unreachable server leaves the login state as it is
       error: () => this.app.debug('Login status not available')
