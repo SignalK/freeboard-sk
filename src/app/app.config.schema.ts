@@ -91,6 +91,8 @@ export const AppConfigSchema = Type.Object({
     splitView: bool(false), // offer the Split view button: a second chart pane
     whatsNew: bool(true), // light the What's New button while changes are unseen
     positionBar: bool(true), // the bar with the pointer's Lat/Lon, zoom and bearing
+    // false keeps a logged-in user's settings in this browser only
+    saveToServer: bool(true),
     // background opacity of the panels on the chart (route bar, widgets);
     // null leaves each as it draws itself, below 1 the chart shows through
     panelOpacity: nullable(Type.Number()),
