@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EMPTY, of, Subject, throwError } from 'rxjs';
+import { concat, EMPTY, NEVER, of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
@@ -933,5 +933,210 @@ describe('AppFacade radar overlay (#1200)', () => {
     app.showRadarOverlay(false);
     expect(app.uiCtrl().radarLayer).toBe(false);
     expect(storedOverlay()).toBe(false);
+  });
+});
+
+describe('AppFacade.resetToServerDefaults', () => {
+  const STORED_CONFIG_KEY = 'freeboard_config';
+
+  const setup = (loggedIn: boolean) => {
+    const client = {
+      get: vi.fn(() => EMPTY),
+      setAppId: vi.fn(),
+      setAppVersion: vi.fn(),
+      // the client's own status stream never completes
+      isLoggedIn: vi.fn(() => concat(of(loggedIn), NEVER)),
+      getLoginStatus: vi.fn(() =>
+        of({ status: loggedIn ? 'loggedIn' : 'notLoggedIn' })
+      ),
+      appDataGet: vi.fn((_path: string, _context: APPDATA_CONTEXT) =>
+        of<object>({})
+      ),
+      appDataSet: vi.fn(() => of({})),
+      api: { get: vi.fn(() => EMPTY) }
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: client }]
+    });
+    const app = TestBed.inject(AppFacade);
+    const restart = vi.spyOn(app, 'restartApp').mockImplementation(() => {});
+    return { app, client, restart };
+  };
+
+  beforeEach(() =>
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(defaultConfig()))
+  );
+  afterEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+
+  it("drops this browser's settings and restarts", async () => {
+    const { app, client, restart } = setup(false);
+    await app.loadUserConfigfromServer();
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears a logged-in user's settings on the server", async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataSet).toHaveBeenCalledWith('/', {});
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps every setting when the server does not clear the user ones', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataSet.mockReturnValue(throwError(() => new Error('offline')));
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('sends the clear only after the save under way has landed', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    const save = new Subject<object>();
+    client.appDataSet.mockReturnValueOnce(save);
+    app.saveConfig();
+
+    const reset = app.resetToServerDefaults();
+    await Promise.resolve();
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+
+    save.complete();
+    await expect(reset).resolves.toBe(true);
+    expect(client.appDataSet).toHaveBeenLastCalledWith('/', {});
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves again only once a clear past the time limit has settled', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    const clear = new Subject<object>();
+    client.appDataSet.mockReturnValueOnce(clear);
+
+    vi.useFakeTimers();
+    try {
+      const reset = app.resetToServerDefaults();
+      await vi.advanceTimersByTimeAsync(10000);
+      await expect(reset).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+
+    clear.next({});
+    clear.complete();
+
+    expect(client.appDataSet).toHaveBeenCalledTimes(2);
+    expect(client.appDataSet).toHaveBeenLastCalledWith('/', app.config);
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('never sends a clear that waited past the time limit', async () => {
+    const { app, client } = setup(true);
+    await app.loadUserConfigfromServer();
+    const save = new Subject<object>();
+    client.appDataSet.mockReturnValueOnce(save);
+    app.saveConfig();
+
+    vi.useFakeTimers();
+    try {
+      const reset = app.resetToServerDefaults();
+      await vi.advanceTimersByTimeAsync(10000);
+      await expect(reset).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+    save.complete();
+    await Promise.resolve();
+
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+  });
+
+  it('asks the server whether the user is logged in', async () => {
+    const { app, client, restart } = setup(true);
+    expect(app.isLoggedIn()).toBe(false);
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataSet).toHaveBeenCalledWith('/', {});
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps every setting when the login check fails', async () => {
+    const { app, client, restart } = setup(false);
+    client.getLoginStatus.mockReturnValue(
+      throwError(() => new Error('offline'))
+    );
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('keeps the save a failed reset held back', async () => {
+    const { app, client } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataSet.mockReturnValueOnce(
+      throwError(() => new Error('offline'))
+    );
+    app.saveConfigDebounced();
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(client.appDataSet).toHaveBeenCalledTimes(2);
+    expect(client.appDataSet).toHaveBeenLastCalledWith('/', app.config);
+  });
+
+  it('runs one reset at a time', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+
+    const first = app.resetToServerDefaults();
+    const second = app.resetToServerDefaults();
+
+    expect(second).toBe(first);
+    await first;
+    expect(client.appDataSet).toHaveBeenCalledTimes(1);
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the browser settings when a failed reset still cleared the server', async () => {
+    const own = defaultConfig();
+    own.selections.charts = ['mine'];
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(own));
+    const { app, client } = setup(true);
+    const global = defaultConfig();
+    global.selections.charts = ['enc'];
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        of(context === APPDATA_CONTEXT.GLOBAL ? global : {})
+    );
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+
+    expect(app.config.selections.charts).toEqual(['mine']);
+  });
+
+  it('saves nothing while the reset restarts Freeboard', async () => {
+    const { app, client } = setup(false);
+    await app.loadUserConfigfromServer();
+
+    await app.resetToServerDefaults();
+    app.saveConfig();
+
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(client.appDataSet).not.toHaveBeenCalled();
   });
 });
