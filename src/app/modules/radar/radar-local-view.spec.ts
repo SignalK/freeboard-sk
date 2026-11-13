@@ -80,6 +80,13 @@ describe('radar local view', () => {
     expect(cleared[99]).toBe(8);
   });
 
+  it('reshapes from the value shown when Auto alone is switched off here', () => {
+    const radar = controls({ gain: { auto: true, value: 80 } });
+    expect(
+      spokeAdjustment(radar, new Map([['gain', { auto: false }]])).gain
+    ).toBeCloseTo(0.24);
+  });
+
   it('never brings back what the radar’s own sea took away', () => {
     const radar = controls({ sea: { value: 80 } });
     expect(spokeAdjustment(radar, new Map([['sea', { value: 10 }]])).sea).toBe(

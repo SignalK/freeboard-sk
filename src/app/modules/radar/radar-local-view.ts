@@ -105,12 +105,14 @@ export function spokeAdjustment(
   local: Map<string, ControlChange>
 ): SpokeAdjustment {
   const delta = (id: string, effect: (cv: ControlChange) => number) => {
-    const set = local.get(id);
     const reported = radar.get(id);
-    if (!set || set.auto || !reported) {
+    const change = local.get(id);
+    if (!change || !reported) {
       return 0;
     }
-    return effect(set) - effect(reported);
+    // as shownControls() shows it: an Auto switch alone keeps the value
+    const set = { ...reported, ...change };
+    return set.auto ? 0 : effect(set) - effect(reported);
   };
   return {
     gain: delta('gain', (cv) => gainShift(level(cv))),
