@@ -889,6 +889,9 @@
               fbMovablePanel="fb-navdata-panel-position"
               [fbMovablePanelRestingBottom]="navDataBottom()"
               [fbBottomClearance]="30"
+              [fbBottomClearanceLeftToolbar]="
+                leftToolbar() ? leftToolbarItems().length : 0
+              "
               (clearance)="navDataBottom.set($event)"
               (besideLeftToolbar)="navDataBesideToolbar.set($event)"
             >

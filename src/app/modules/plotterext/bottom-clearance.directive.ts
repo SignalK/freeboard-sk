@@ -109,6 +109,11 @@ export function reachesLeftToolbar(
 })
 export class BottomClearanceDirective implements OnDestroy {
   readonly fbBottomClearance = input.required<number>();
+  /**
+   * The buttons the left-hand toolbar offers, 0 while it is hidden. The
+   * panel is measured again when it changes, as that moves the lowest button.
+   */
+  readonly fbBottomClearanceLeftToolbar = input(0);
   readonly clearance = output<number>();
   readonly besideLeftToolbar = output<boolean>();
 
@@ -122,6 +127,7 @@ export class BottomClearanceDirective implements OnDestroy {
   constructor() {
     afterRenderEffect(() => {
       this.plotterExt.shownWidgets();
+      this.fbBottomClearanceLeftToolbar();
       this.measure();
     });
     afterNextRender(() => {

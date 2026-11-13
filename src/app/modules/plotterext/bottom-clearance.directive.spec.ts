@@ -111,6 +111,7 @@ describe('reachesLeftToolbar', () => {
       style="max-width: 300px"
       [fbBottomClearance]="30"
       (clearance)="emitted.push($event)"
+      [fbBottomClearanceLeftToolbar]="toolbarItems()"
       (besideLeftToolbar)="beside.push($event)"
     ></div>
   `
@@ -118,6 +119,7 @@ describe('reachesLeftToolbar', () => {
 class ClearanceHost {
   emitted: number[] = [];
   beside: boolean[] = [];
+  toolbarItems = signal(0);
 }
 
 /**
@@ -198,5 +200,24 @@ describe('BottomClearanceDirective', () => {
   it('reports a resting panel clear of the left toolbar', async () => {
     const fixture = await mount();
     expect(fixture.componentInstance.beside).toEqual([false]);
+  });
+
+  it('measures again when the left toolbar appears', async () => {
+    // the bar is lifted beside where the toolbar's lowest button will be
+    cell('pe-bl', new DOMRect(0, 476, 124, 124));
+    const fixture = await mount();
+    expect(fixture.componentInstance.beside).toEqual([false]);
+    const toolbar = document.createElement('fb-map-toolbar');
+    toolbar.className = 'left';
+    const item = document.createElement('div');
+    item.className = 'toolbarItem';
+    item.getBoundingClientRect = () => new DOMRect(0, 352, 50, 48);
+    toolbar.appendChild(item);
+    document.body.appendChild(toolbar);
+    cells.push(toolbar);
+    fixture.componentInstance.toolbarItems.set(8);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.beside).toEqual([false, true]);
   });
 });
