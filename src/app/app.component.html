@@ -879,6 +879,7 @@
           @if (!isInteracting() && !plotterExt.movingWidget()) {
             <div
               class="navdataPanel"
+              [class.navdataBesideToolbar]="navDataBesideToolbar()"
               [class.navdataTranslucent]="
                 (app.config.display.panelOpacity ?? 1) < 1
               "
@@ -889,6 +890,7 @@
               [fbMovablePanelRestingBottom]="navDataBottom()"
               [fbBottomClearance]="30"
               (clearance)="navDataBottom.set($event)"
+              (besideLeftToolbar)="navDataBesideToolbar.set($event)"
             >
               @if (navDataPanel().nextPointCtrl) {
                 <route-nextpoint

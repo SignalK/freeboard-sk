@@ -350,6 +350,8 @@ export class AppComponent {
   // The nav data panel's bottom offset, lifted above the bottom widgets it
   // would cover (until the user moves it).
   protected navDataBottom = signal<number | null>(null);
+  /** The nav data panel's resting place reaches the left toolbar's buttons. */
+  protected navDataBesideToolbar = signal(false);
 
   // The right-hand toolbar stops above the Action Button (56 px tall, 23 px
   // from the bottom unless widgets lift it).

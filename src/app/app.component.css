@@ -236,3 +236,10 @@ mat-nav-list {
         max-width: calc(100% - 115px);
     }
 }
+
+/* Lifted over bottom widgets on a small screen, the panel would cover the
+   lowest left-hand toolbar buttons (MOB): it moves right of the toolbar. */
+.navdataPanel.navdataBesideToolbar {
+    left: 50px;
+    max-width: calc(100% - 115px);
+}
