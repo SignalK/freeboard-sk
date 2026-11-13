@@ -596,4 +596,59 @@ describe('RadarAPIService init() (#755)', () => {
       );
     });
   });
+
+  describe('a radar this screen may only watch', () => {
+    const emulator = () =>
+      held.set('vessels/self/radars/radar-1', [
+        of({ name: 'Emulator HALO', brand: 'Emulator' })
+      ]);
+
+    it('is the emulator, once the server refuses a change to it', async () => {
+      emulator();
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      expect(service.watchOnly('radar-1', 500)).toBe(false);
+      expect(service.localView()).toBeUndefined();
+      expect(service.watchOnly('radar-1', 403)).toBe(true);
+      expect(service.localView()?.radarId).toBe('radar-1');
+    });
+
+    it('is never a real radar', async () => {
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      expect(service.watchOnly('radar-1', 401)).toBe(false);
+      expect(service.localView()).toBeUndefined();
+    });
+
+    it('shows gain and range as set on this screen, and sends nothing', async () => {
+      emulator();
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      service.watchOnly('radar-1', 401);
+
+      service.setLocal('radar-1', 'gain', { auto: false, value: 100 });
+      service.setLocal('radar-1', 'range', { value: 1500 });
+
+      expect(service.shownControls().get('gain')).toEqual(
+        expect.objectContaining({ auto: false, value: 100 })
+      );
+      expect(service.shownRange()).toBe(1500);
+      expect(service.spokeAdjustment().gain).toBeGreaterThan(0);
+      expect(service.radar()?.controls.get('gain')?.value).toBe(50);
+      expect(put).not.toHaveBeenCalled();
+    });
+
+    it('shows no further than the range the radar sends', async () => {
+      emulator();
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      service.watchOnly('radar-1', 403);
+
+      service.setLocal('radar-1', 'range', { value: 6000 });
+
+      expect(service.shownRange()).toBe(3000);
+    });
+  });
 });

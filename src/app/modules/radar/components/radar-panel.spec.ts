@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { signal, WritableSignal } from '@angular/core';
+import { computed, signal, Signal, WritableSignal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RadarPanel } from './radar-panel';
@@ -11,6 +12,12 @@ import {
   ControlValue,
   RadarAPIService
 } from '../radar-api.service';
+import {
+  EMULATOR_BRAND,
+  LocalView,
+  refusesChanges,
+  shownControls
+} from '../radar-local-view';
 
 /**
  * The radar panel follows the MaYaRa radar GUI: a power lozenge with the radar
@@ -84,6 +91,14 @@ describe('RadarPanel', () => {
     radars: WritableSignal<Array<{ id: string; name: string }>>;
     init: ReturnType<typeof vi.fn>;
     setControl: ReturnType<typeof vi.fn>;
+    localView: Signal<LocalView | undefined>;
+    shownControls: Signal<Map<string, ControlValue>>;
+    watchOnly: ReturnType<typeof vi.fn>;
+    setLocal: ReturnType<typeof vi.fn>;
+  };
+  let app: {
+    showMessage: ReturnType<typeof vi.fn>;
+    parseHttpErrorResponse: ReturnType<typeof vi.fn>;
   };
 
   const values = (v: Record<string, ControlValue>) =>
@@ -103,6 +118,11 @@ describe('RadarPanel', () => {
         firmwareVersion: { value: '01.05' }
       })
     });
+    // as RadarAPIService keeps the view of a radar this screen may only watch
+    const local = signal<LocalView | undefined>(undefined);
+    const localView = computed(() =>
+      local()?.radarId === radar().device.id ? local() : undefined
+    );
     api = {
       radar,
       radars: signal([
@@ -110,7 +130,43 @@ describe('RadarPanel', () => {
         { id: 'fur6424B', name: 'DRS4D-NXT 6424 B' }
       ]),
       init: vi.fn(async () => 'fur6424B'),
-      setControl: vi.fn(async () => undefined)
+      setControl: vi.fn(async () => undefined),
+      localView,
+      shownControls: computed(() => {
+        const view = localView();
+        return view
+          ? shownControls(radar().controls, view.controls)
+          : radar().controls;
+      }),
+      watchOnly: vi.fn((radarId: string, status?: number) => {
+        if (
+          !refusesChanges(status) ||
+          radar().device.brand !== EMULATOR_BRAND
+        ) {
+          return false;
+        }
+        if (!localView()) {
+          local.set({ radarId, controls: new Map() });
+        }
+        return true;
+      }),
+      setLocal: vi.fn(
+        (radarId: string, controlId: string, change: ControlValue) =>
+          local.update(
+            (view) =>
+              view && {
+                radarId,
+                controls: new Map(view.controls).set(controlId, {
+                  ...view.controls.get(controlId),
+                  ...change
+                })
+              }
+          )
+      )
+    };
+    app = {
+      showMessage: vi.fn(),
+      parseHttpErrorResponse: vi.fn()
     };
     TestBed.configureTestingModule({
       imports: [RadarPanel],
@@ -125,7 +181,8 @@ describe('RadarPanel', () => {
             uiCtrl: () => ui(),
             formatValueForDisplay: (v: number) => `${v}`,
             saveConfig: (): void => undefined,
-            parseHttpErrorResponse: (): void => undefined
+            showMessage: app.showMessage,
+            parseHttpErrorResponse: app.parseHttpErrorResponse
           }
         },
         { provide: RadarAPIService, useValue: api }
@@ -514,6 +571,67 @@ describe('RadarPanel', () => {
 
     expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'power', {
       value: 2
+    });
+  });
+
+  describe('on a login that may watch the radar but not change it', () => {
+    const refused = (status: number) =>
+      api.setControl.mockRejectedValue(new HttpErrorResponse({ status }));
+    const emulator = () =>
+      radar.update((r) => ({
+        ...r,
+        device: { id: 'emu0001', name: 'Emulator HALO', brand: 'Emulator' }
+      }));
+    const rangeText = (el: HTMLElement) =>
+      el.querySelector('.range-text')!.textContent?.trim();
+    const tap = async (fixture: ReturnType<typeof open>, selector: string) => {
+      fixture.nativeElement.querySelector(selector).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('changes the range of the emulator on this screen only, saying so once', async () => {
+      emulator();
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+      expect(rangeText(el)).toBe('1/2 nm');
+      expect(radar().controls.get('range')?.value).toBe(1852);
+
+      await tap(fixture, '.range .range-out');
+      expect(rangeText(el)).toBe('1 nm');
+      expect(api.setControl).toHaveBeenCalledTimes(1);
+      expect(app.showMessage).toHaveBeenCalledTimes(1);
+      expect(app.parseHttpErrorResponse).not.toHaveBeenCalled();
+    });
+
+    it('answers a change only the radar can make with a note, not an error', async () => {
+      emulator();
+      refused(401);
+      const fixture = open();
+
+      await tap(fixture, '.range .range-in');
+      await tap(fixture, '.power-button');
+
+      expect(app.showMessage).toHaveBeenCalledTimes(2);
+      expect(app.showMessage).toHaveBeenLastCalledWith(
+        'This login may watch the radar but not change it.'
+      );
+      expect(app.parseHttpErrorResponse).not.toHaveBeenCalled();
+    });
+
+    it('reports a refused change to a real radar as an error', async () => {
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+
+      expect(rangeText(el)).toBe('1 nm');
+      expect(app.parseHttpErrorResponse).toHaveBeenCalledTimes(1);
+      expect(api.localView()).toBeUndefined();
     });
   });
 
