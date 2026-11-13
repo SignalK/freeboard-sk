@@ -78,6 +78,7 @@
       mat-icon-button
       class="range-step range-in"
       aria-label="Shorter range"
+      matTooltip="Shorter range"
       [disabled]="rangeOff || !rangeSteps().shorter"
       (click)="stepRange('shorter')"
     >
@@ -88,6 +89,7 @@
       aria-label="Choose the range"
       [matMenuTriggerFor]="rangeMenu"
       [disabled]="rangeOff"
+      (menuOpened)="showRangeInList()"
     >
       <span class="range-name">Range</span>
       <span class="range-text">{{ rangeText() }}</span>
@@ -96,6 +98,7 @@
       mat-icon-button
       class="range-step range-out"
       aria-label="Longer range"
+      matTooltip="Longer range"
       [disabled]="rangeOff || !rangeSteps().longer"
       (click)="stepRange('longer')"
     >
@@ -104,7 +107,7 @@
   </div>
   <mat-menu #rangeMenu="matMenu">
     @for (o of ranges(); track o.value; let i = $index) {
-    <button mat-menu-item (click)="setRange(o.value)">
+    <button mat-menu-item #rangeItem (click)="setRange(o.value)">
       <mat-icon
         >{{ i === rangeAt ? 'radio_button_checked' : 'radio_button_unchecked'
         }}</mat-icon

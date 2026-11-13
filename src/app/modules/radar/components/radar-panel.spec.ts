@@ -633,6 +633,17 @@ describe('RadarPanel', () => {
       });
     });
 
+    it('opens the list on the range in use', async () => {
+      const fixture = open();
+      rangeButton(fixture.nativeElement, 'range-value').click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(document.activeElement?.textContent?.trim()).toBe(
+        'radio_button_checked 1 nm'
+      );
+    });
+
     it('jumps to any range from the list behind the range shown', async () => {
       const fixture = open();
       rangeButton(fixture.nativeElement, 'range-value').click();
