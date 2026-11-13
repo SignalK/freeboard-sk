@@ -770,6 +770,25 @@ describe('AppFacade global default config', () => {
     expect(client.appDataSet).not.toHaveBeenCalled();
   });
 
+  it('keeps this browser only when chosen while the account settings load', async () => {
+    const user = defaultConfig();
+    user.selections.charts = ['account'];
+    const reply = new Subject<object>();
+    const { app, client } = setup(true, {});
+    client.appDataGet.mockReturnValue(reply);
+
+    const load = app.loadUserConfigfromServer();
+    await Promise.resolve();
+    app.config.display.saveToServer = false;
+    app.saveConfig();
+    reply.next(user);
+
+    await expect(load).resolves.toBe(false);
+    expect(app.config.display.saveToServer).toBe(false);
+    expect(app.config.selections.charts).not.toEqual(['account']);
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
   it('saves to the server again once the user turns it back on', async () => {
     const { app, client } = setup(true, {});
     await app.loadUserConfigfromServer();

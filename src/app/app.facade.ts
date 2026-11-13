@@ -722,7 +722,13 @@ export class AppFacade extends InfoService {
         this.signalk.appDataGet('/', context) as Observable<IAppConfig>
       ).subscribe({
         next: (serverSettings) => {
-          if (load !== this.configLoads) {
+          // a user who chose this browser only while the account's settings
+          // were on their way keeps the settings they have
+          if (
+            load !== this.configLoads ||
+            (context === APPDATA_CONTEXT.USER &&
+              !this.config.display.saveToServer)
+          ) {
             resolve('stale');
             return;
           }
