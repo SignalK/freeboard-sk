@@ -18,36 +18,43 @@ const BOTTOM_WIDGETS = '.pe-bl .pe-cell, .pe-cb .pe-cell, .pe-br .pe-cell';
 /** The Lat/Lon status bar, which rises above the widgets under its text. */
 const STATUS_BAR = '.ol-mouse-position';
 
-export interface HRect {
+export interface HSpan {
   left: number;
   right: number;
-  top: number;
-  /** A widget under the status bar, which sits on top of its stack. */
-  center?: boolean;
 }
+
+export interface HRect extends HSpan {
+  top: number;
+}
+
+const overlaps = (a: HSpan, b: HSpan) => a.left < b.right && a.right > b.left;
 
 /**
  * Bottom offset (px) that keeps a panel spanning `panel` horizontally clear
  * of the `widgets` it overlaps: `base` when it overlaps none, otherwise just
  * above the tallest overlapping stack, but never pushed off the top of an area
- * `areaHeight` high. Offsets count from `areaBottom`. Above a stack under the
- * status bar the panel keeps its whole `base`, since the status bar it clears
- * at rest is lifted onto that stack.
+ * `areaHeight` high. Offsets count from `areaBottom`.
+ *
+ * A status bar in `statusBars` rises onto the tallest stack under it. A panel
+ * over a status bar keeps its whole `base`, which clears the status bar at
+ * rest, above that stack, even where the stack under the panel is lower.
  */
 export function bottomClearance(
   panel: { left: number; right: number; height: number },
   widgets: HRect[],
   areaBottom: number,
   areaHeight: number,
-  base: number
+  base: number,
+  statusBars: HSpan[] = []
 ): number {
   let bottom = base;
+  const bars = statusBars.filter((b) => overlaps(b, panel));
   for (const w of widgets) {
-    if (w.left < panel.right && w.right > panel.left) {
-      bottom = Math.max(
-        bottom,
-        areaBottom - w.top + (w.center ? base : WIDGET_CELL_GAP)
-      );
+    if (overlaps(w, panel)) {
+      bottom = Math.max(bottom, areaBottom - w.top + WIDGET_CELL_GAP);
+    }
+    if (bars.some((b) => overlaps(b, w))) {
+      bottom = Math.max(bottom, areaBottom - w.top + base);
     }
   }
   return Math.max(base, Math.min(bottom, areaHeight - panel.height));
@@ -106,6 +113,8 @@ export class BottomClearanceDirective implements OnDestroy {
   private plotterExt = inject(PlotterExtensionService);
   private resizeObserver?: ResizeObserver;
   private last: number | null = null;
+  // status bars watched for a change of width, which moves the stacks under them
+  private watchedBars = new WeakSet<Element>();
 
   constructor() {
     afterRenderEffect(() => {
@@ -123,12 +132,24 @@ export class BottomClearanceDirective implements OnDestroy {
         if (parent) {
           this.resizeObserver.observe(parent);
         }
+        if (!this.fbBottomClearanceStatusBar()) {
+          document
+            .querySelectorAll(STATUS_BAR)
+            .forEach((bar) => this.watch(bar));
+        }
       });
     });
   }
 
   ngOnDestroy() {
     this.resizeObserver?.disconnect();
+  }
+
+  private watch(bar: Element) {
+    if (this.resizeObserver && !this.watchedBars.has(bar)) {
+      this.watchedBars.add(bar);
+      this.resizeObserver.observe(bar);
+    }
   }
 
   private measure() {
@@ -141,19 +162,18 @@ export class BottomClearanceDirective implements OnDestroy {
     const statusBar = this.fbBottomClearanceStatusBar();
     const bars = statusBar
       ? []
-      : Array.from(document.querySelectorAll<HTMLElement>(STATUS_BAR), (bar) =>
-          bar.getBoundingClientRect()
+      : Array.from(
+          document.querySelectorAll<HTMLElement>(STATUS_BAR),
+          (bar) => {
+            this.watch(bar);
+            return bar.getBoundingClientRect();
+          }
         );
     const widgets = Array.from(
       document.querySelectorAll<HTMLElement>(BOTTOM_WIDGETS),
       (cell): HRect => {
         const r = cell.getBoundingClientRect();
-        return {
-          left: r.left,
-          right: r.right,
-          top: r.top,
-          center: bars.some((b) => b.left < r.right && b.right > r.left)
-        };
+        return { left: r.left, right: r.right, top: r.top };
       }
     );
     const bottom = Math.round(
@@ -175,7 +195,8 @@ export class BottomClearanceDirective implements OnDestroy {
         widgets,
         area.bottom,
         area.height,
-        this.fbBottomClearance()
+        this.fbBottomClearance(),
+        bars
       )
     );
     if (bottom !== this.last) {

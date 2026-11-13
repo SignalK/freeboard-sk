@@ -41,10 +41,49 @@ describe('bottomClearance', () => {
     ).toBe(254 + WIDGET_CELL_GAP);
   });
 
-  it('keeps its resting offset above a bottom-center stack, over the status bar', () => {
-    expect(clear([{ left: 400, right: 524, top: 476, center: true }])).toBe(
-      124 + 30
-    );
+  it('keeps its resting offset above a stack under a status bar it overlaps', () => {
+    expect(
+      bottomClearance(
+        panel,
+        [{ left: 400, right: 524, top: 476 }],
+        600,
+        600,
+        30,
+        [{ left: 300, right: 600 }]
+      )
+    ).toBe(124 + 30);
+  });
+
+  it('clears a status bar lifted by a taller stack than the one beneath', () => {
+    // the status bar spans both stacks and rises onto the 174 px one; the
+    // panel covers only the 84 px stack but still overlaps the status bar
+    const stacks = [
+      { left: 100, right: 224, top: 426 },
+      { left: 500, right: 624, top: 516 }
+    ];
+    expect(
+      bottomClearance(
+        { left: 450, right: 700, height: 100 },
+        stacks,
+        600,
+        600,
+        30,
+        [{ left: 150, right: 550 }]
+      )
+    ).toBe(174 + 30);
+  });
+
+  it('ignores a status bar the panel does not overlap', () => {
+    expect(
+      bottomClearance(
+        { left: 700, right: 900, height: 100 },
+        [{ left: 400, right: 524, top: 476 }],
+        600,
+        600,
+        30,
+        [{ left: 300, right: 600 }]
+      )
+    ).toBe(30);
   });
 
   it('never pushes the panel off the top of the area', () => {
@@ -184,6 +223,48 @@ describe('BottomClearanceDirective', () => {
     cell('pe-bl', new DOMRect(200, 476, 124, 124));
     const fixture = await mount();
     expect(fixture.componentInstance.emitted).toEqual([124 + 30]);
+  });
+
+  it('re-measures when the status bar grows or shrinks', async () => {
+    const observed: Element[] = [];
+    let notify = () => {};
+    const Original = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor(cb: () => void) {
+        notify = cb;
+      }
+      observe(el: Element) {
+        observed.push(el);
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    try {
+      let barRect = new DOMRect(300, 570, 300, 20);
+      const bar = document.createElement('div');
+      bar.className = 'ol-mouse-position';
+      bar.getBoundingClientRect = () => barRect;
+      document.body.appendChild(bar);
+      cells.push(bar);
+      cell('pe-bl', new DOMRect(350, 476, 124, 124));
+      // the panel may grow to x = 800, short of the taller stack
+      cell('pe-br', new DOMRect(820, 416, 124, 184));
+      const fixture = await mount(
+        ClearanceHost,
+        new DOMRect(500, 470, 120, 100)
+      );
+      expect(observed).toContain(bar);
+      expect(fixture.componentInstance.emitted.at(-1)).toBe(124 + 30);
+      // the text grows and the status bar now reaches the taller stack
+      barRect = new DOMRect(300, 570, 600, 20);
+      notify();
+      expect(fixture.componentInstance.emitted.at(-1)).toBe(184 + 30);
+      barRect = new DOMRect(300, 570, 300, 20);
+      notify();
+      expect(fixture.componentInstance.emitted.at(-1)).toBe(124 + 30);
+    } finally {
+      globalThis.ResizeObserver = Original;
+    }
   });
 
   it('lifts the status bar above a widget under its text', async () => {
