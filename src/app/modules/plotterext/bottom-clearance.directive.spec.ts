@@ -172,13 +172,22 @@ describe('BottomClearanceDirective', () => {
     cells.push(stack);
   };
 
-  // the Lat/Lon status bar, its text spanning x 300..600 at the bottom
-  const statusBar = () => {
-    const bar = document.createElement('div');
-    bar.className = 'ol-mouse-position';
-    bar.getBoundingClientRect = () => new DOMRect(300, 570, 300, 20);
+  // a Lat/Lon status bar in a chart pane, which by default fills the area
+  const inPane = (bar: HTMLElement, pane = new DOMRect(0, 0, 1000, 600)) => {
+    const parent = document.createElement('div');
+    parent.getBoundingClientRect = () => pane;
+    Object.defineProperty(bar, 'offsetParent', { get: () => parent });
     document.body.appendChild(bar);
     cells.push(bar);
+  };
+
+  // the status bar's text spanning x 300..600 at the bottom of its pane
+  const statusBar = (pane?: DOMRect) => {
+    const bar = document.createElement('div');
+    bar.className = 'ol-mouse-position';
+    const bottom = (pane?.bottom ?? 600) - 30;
+    bar.getBoundingClientRect = () => new DOMRect(300, bottom, 300, 20);
+    inPane(bar, pane);
   };
 
   const mount = async <T extends { emitted: number[] }>(
@@ -244,8 +253,7 @@ describe('BottomClearanceDirective', () => {
       const bar = document.createElement('div');
       bar.className = 'ol-mouse-position';
       bar.getBoundingClientRect = () => barRect;
-      document.body.appendChild(bar);
-      cells.push(bar);
+      inPane(bar);
       cell('pe-bl', new DOMRect(350, 476, 124, 124));
       // the panel may grow to x = 800, short of the taller stack
       cell('pe-br', new DOMRect(820, 416, 124, 184));
@@ -265,6 +273,21 @@ describe('BottomClearanceDirective', () => {
     } finally {
       globalThis.ResizeObserver = Original;
     }
+  });
+
+  it('rises over a stack under a status bar it covers only by that bar', async () => {
+    statusBar();
+    cell('pe-bl', new DOMRect(400, 476, 124, 124));
+    const fixture = await mount(ClearanceHost, new DOMRect(10, 470, 120, 100));
+    expect(fixture.componentInstance.emitted).toEqual([124 + 30]);
+  });
+
+  it('ignores the status bar of the upper of two stacked charts', async () => {
+    // the upper pane ends mid-screen, so its status bar rests there
+    statusBar(new DOMRect(0, 0, 1000, 300));
+    cell('pe-bl', new DOMRect(400, 476, 124, 124));
+    const fixture = await mount(ClearanceHost, new DOMRect(10, 470, 120, 100));
+    expect(fixture.componentInstance.emitted).toEqual([30]);
   });
 
   it('lifts the status bar above a widget under its text', async () => {

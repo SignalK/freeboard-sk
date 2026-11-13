@@ -30,6 +30,16 @@ export interface HRect extends HSpan {
 const overlaps = (a: HSpan, b: HSpan) => a.left < b.right && a.right > b.left;
 
 /**
+ * Whether a status bar belongs to a chart pane reaching the bottom of `area`.
+ * With the charts stacked, the upper pane's status bar sits mid-screen and
+ * never rises onto the widgets along the bottom.
+ */
+const inBottomPane = (bar: HTMLElement, area: DOMRect) => {
+  const pane = bar.offsetParent;
+  return !!pane && pane.getBoundingClientRect().bottom >= area.bottom - 1;
+};
+
+/**
  * Bottom offset (px) that keeps a panel spanning `panel` horizontally clear
  * of the `widgets` it overlaps: `base` when it overlaps none, otherwise just
  * above the tallest overlapping stack, but never pushed off the top of an area
@@ -162,13 +172,12 @@ export class BottomClearanceDirective implements OnDestroy {
     const statusBar = this.fbBottomClearanceStatusBar();
     const bars = statusBar
       ? []
-      : Array.from(
-          document.querySelectorAll<HTMLElement>(STATUS_BAR),
-          (bar) => {
+      : Array.from(document.querySelectorAll<HTMLElement>(STATUS_BAR))
+          .filter((bar) => {
             this.watch(bar);
-            return bar.getBoundingClientRect();
-          }
-        );
+            return inBottomPane(bar, area);
+          })
+          .map((bar) => bar.getBoundingClientRect());
     const widgets = Array.from(
       document.querySelectorAll<HTMLElement>(BOTTOM_WIDGETS),
       (cell): HRect => {
