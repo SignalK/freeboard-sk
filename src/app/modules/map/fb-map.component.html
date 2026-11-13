@@ -1299,6 +1299,9 @@
   <div
     class="ol-mouse-position"
     [style.bottom]="statusBarLift() > 0 ? statusBarLift() + 'px' : null"
+    [fbBottomClearance]="0"
+    fbBottomClearanceStatusBar
+    (clearance)="widgetLift.set($event)"
   >
     <span
       style="background-color: rgba(250, 250, 250, 0.7); padding: 0 5px 0 5px"

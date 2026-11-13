@@ -230,26 +230,12 @@ export class PlotterExtensionService {
   });
 
   /**
-   * Bottom offset (px) for the Lat/Lon status bar: 0 when no widget occupies
-   * the bottom-center anchor (the bar keeps its default resting position),
-   * otherwise just above the bottom-center widget stack (which sits flush
-   * against the screen bottom). Mirrors actionButtonLift for the bottom-right.
-   */
-  readonly statusBarLift = computed(() => {
-    this.viewportTick();
-    const cb = this.shownWidgets().filter((p) => p.anchor === 'cb');
-    if (!cb.length) return 0;
-    const rows = cb.some((p) => p.row === 0) ? 2 : 1;
-    return rows * cellHeightPx() + (rows - 1) * WIDGET_CELL_GAP + 4;
-  });
-
-  /**
    * Top offset (px) for the right-hand toolbar (the Show/Hide Toolbars button
    * and the expanded toolbar below it): 0 when no widget occupies the
    * top-right anchor (the toolbar keeps its normal position), otherwise just
    * below the top-right widget stack (which sits flush against the screen
    * top). The top-right anchor has top gravity, so the non-gravity row is
-   * row 1. Mirrors actionButtonLift/statusBarLift.
+   * row 1. Mirrors actionButtonLift.
    */
   readonly toolbarTopOffset = computed(() => {
     this.viewportTick();

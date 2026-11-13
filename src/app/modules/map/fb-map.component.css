@@ -12,11 +12,15 @@
 }
 
 .ol-mouse-position {
-    width: 100%;
+    /* As wide as its text, so the widgets it must rise above are the ones
+       under the text, not every one along the bottom. */
+    width: max-content;
+    max-width: 100%;
     top: unset;
     bottom: 10px; 
-    left: unset; 
+    left: 50%; 
     right:unset; 
+    transform: translateX(-50%);
     text-align: center;
     color: rgb(30,30,30);
     font-family: roboto; 

@@ -99,6 +99,21 @@ class ClearanceHost {
   emitted: number[] = [];
 }
 
+@Component({
+  imports: [BottomClearanceDirective],
+  template: `
+    <div
+      id="panel"
+      [fbBottomClearance]="0"
+      fbBottomClearanceStatusBar
+      (clearance)="emitted.push($event)"
+    ></div>
+  `
+})
+class StatusBarHost {
+  emitted: number[] = [];
+}
+
 /**
  * jsdom does no layout: the panel spans x 10..210 in a 1000 x 600 area whose
  * bottom edge is at y = 600, and each widget cell is given its rectangle.
@@ -118,21 +133,33 @@ describe('BottomClearanceDirective', () => {
     cells.push(stack);
   };
 
-  const mount = async () => {
+  // the Lat/Lon status bar, its text spanning x 300..600 at the bottom
+  const statusBar = () => {
+    const bar = document.createElement('div');
+    bar.className = 'ol-mouse-position';
+    bar.getBoundingClientRect = () => new DOMRect(300, 570, 300, 20);
+    document.body.appendChild(bar);
+    cells.push(bar);
+  };
+
+  const mount = async <T extends { emitted: number[] }>(
+    host: new () => T = ClearanceHost as unknown as new () => T,
+    rect = new DOMRect(10, 470, 120, 100)
+  ) => {
     TestBed.configureTestingModule({
-      imports: [ClearanceHost],
+      imports: [host],
       providers: [
         { provide: PlotterExtensionService, useValue: { shownWidgets } }
       ]
     });
-    const fixture = TestBed.createComponent(ClearanceHost);
+    const fixture = TestBed.createComponent(host);
     const panel = (fixture.nativeElement as HTMLElement).querySelector(
       '#panel'
     ) as HTMLElement;
     const area = fixture.nativeElement as HTMLElement;
     area.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 600);
     Object.defineProperty(panel, 'offsetParent', { get: () => area });
-    panel.getBoundingClientRect = () => new DOMRect(10, 470, 120, 100);
+    panel.getBoundingClientRect = () => rect;
     fixture.detectChanges();
     await fixture.whenStable();
     return fixture;
@@ -152,9 +179,23 @@ describe('BottomClearanceDirective', () => {
     expect(fixture.componentInstance.emitted).toEqual([124 + WIDGET_CELL_GAP]);
   });
 
-  it('keeps its resting offset above a bottom-center stack', async () => {
-    cell('pe-cb', new DOMRect(100, 476, 124, 124));
+  it('keeps its resting offset above a stack the status bar sits on', async () => {
+    statusBar();
+    cell('pe-bl', new DOMRect(200, 476, 124, 124));
     const fixture = await mount();
     expect(fixture.componentInstance.emitted).toEqual([124 + 30]);
+  });
+
+  it('lifts the status bar above a widget under its text', async () => {
+    cell('pe-bl', new DOMRect(200, 476, 124, 124));
+    const fixture = await mount(StatusBarHost, new DOMRect(300, 570, 300, 20));
+    expect(fixture.componentInstance.emitted).toEqual([124 + WIDGET_CELL_GAP]);
+  });
+
+  it('leaves the status bar down beside widgets clear of its text', async () => {
+    // the status bar spans only its own text, never its widest
+    cell('pe-br', new DOMRect(700, 476, 124, 124));
+    const fixture = await mount(StatusBarHost, new DOMRect(300, 570, 300, 20));
+    expect(fixture.componentInstance.emitted).toEqual([0]);
   });
 });
