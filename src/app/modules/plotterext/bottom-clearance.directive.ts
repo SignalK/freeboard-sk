@@ -5,6 +5,7 @@ import {
   OnDestroy,
   afterNextRender,
   afterRenderEffect,
+  booleanAttribute,
   inject,
   input,
   output
@@ -12,10 +13,10 @@ import {
 import { PlotterExtensionService } from './plotterext.service';
 import { WIDGET_CELL_GAP } from './types';
 
-/** The placed widgets of the bottom anchors, as the overlay renders them. */
-const SIDE_WIDGETS = '.pe-bl .pe-cell, .pe-br .pe-cell';
-/** The bottom-center widgets, which the Lat/Lon status bar rises above. */
-const CENTER_WIDGETS = '.pe-cb .pe-cell';
+/** The placed widgets of all bottom anchors. */
+const BOTTOM_WIDGETS = '.pe-bl .pe-cell, .pe-cb .pe-cell, .pe-br .pe-cell';
+/** The Lat/Lon status bar, which rises above the widgets under its text. */
+const STATUS_BAR = '.ol-mouse-position';
 /** The buttons of the left-hand map toolbar, which run down from the top. */
 const LEFT_TOOLBAR_ITEMS = 'fb-map-toolbar.left .toolbarItem';
 
@@ -23,7 +24,7 @@ export interface HRect {
   left: number;
   right: number;
   top: number;
-  /** A bottom-center widget: the status bar sits on top of its stack. */
+  /** A widget under the status bar, which sits on top of its stack. */
   center?: boolean;
 }
 
@@ -31,9 +32,9 @@ export interface HRect {
  * Bottom offset (px) that keeps a panel spanning `panel` horizontally clear
  * of the `widgets` it overlaps: `base` when it overlaps none, otherwise just
  * above the tallest overlapping stack, but never pushed off the top of an area
- * `areaHeight` high. Offsets count from `areaBottom`. Above a bottom-center
- * stack the panel keeps its whole `base`, since the status bar it clears at
- * rest is lifted onto that stack.
+ * `areaHeight` high. Offsets count from `areaBottom`. Above a stack under the
+ * status bar the panel keeps its whole `base`, since the status bar it clears
+ * at rest is lifted onto that stack.
  */
 export function bottomClearance(
   panel: { left: number; right: number; height: number },
@@ -75,13 +76,21 @@ export function reachesLeftToolbar(
  *
  * On a small screen that lift can bring the panel up beside the buttons of the
  * left-hand toolbar; `besideLeftToolbar` reports when it does, so the host can
- * move the panel clear of them.
+ * move the panel clear of them. The status bar itself never moves aside, so it
+ * skips that check.
  */
 @Directive({
   selector: '[fbBottomClearance]'
 })
 export class BottomClearanceDirective implements OnDestroy {
   readonly fbBottomClearance = input.required<number>();
+  /**
+   * The host is the status bar itself: it rises above every widget under
+   * it, by its current width.
+   */
+  readonly fbBottomClearanceStatusBar = input(false, {
+    transform: booleanAttribute
+  });
   /**
    * The buttons the left-hand toolbar offers, 0 while it is hidden. The
    * panel is measured again when it changes, as that moves the lowest button.
@@ -129,15 +138,24 @@ export class BottomClearanceDirective implements OnDestroy {
     }
     const area = parent.getBoundingClientRect();
     const panel = this.el.getBoundingClientRect();
-    const rects = (selector: string, center: boolean): HRect[] =>
-      Array.from(document.querySelectorAll<HTMLElement>(selector), (cell) => {
+    const statusBar = this.fbBottomClearanceStatusBar();
+    const bars = statusBar
+      ? []
+      : Array.from(document.querySelectorAll<HTMLElement>(STATUS_BAR), (bar) =>
+          bar.getBoundingClientRect()
+        );
+    const widgets = Array.from(
+      document.querySelectorAll<HTMLElement>(BOTTOM_WIDGETS),
+      (cell): HRect => {
         const r = cell.getBoundingClientRect();
-        return { left: r.left, right: r.right, top: r.top, center };
-      });
-    const widgets = [
-      ...rects(SIDE_WIDGETS, false),
-      ...rects(CENTER_WIDGETS, true)
-    ];
+        return {
+          left: r.left,
+          right: r.right,
+          top: r.top,
+          center: bars.some((b) => b.left < r.right && b.right > r.left)
+        };
+      }
+    );
     const bottom = Math.round(
       bottomClearance(
         {
@@ -154,6 +172,9 @@ export class BottomClearanceDirective implements OnDestroy {
     if (bottom !== this.last) {
       this.last = bottom;
       this.zone.run(() => this.clearance.emit(bottom));
+    }
+    if (statusBar) {
+      return;
     }
     const beside = reachesLeftToolbar(
       area.bottom - bottom - panel.height,
