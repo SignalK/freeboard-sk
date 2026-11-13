@@ -159,7 +159,7 @@ interface CellStyle {
       }
       .pe-cb {
         /* flush against the screen bottom; the Lat/Lon status bar lifts to
-           sit above this widget stack (see statusBarLift) */
+           sit above the widget stacks under it (see BottomClearanceDirective) */
         bottom: 0;
         left: 50%;
         transform: translateX(calc(-50% + var(--pe-center-shift, 0px)));

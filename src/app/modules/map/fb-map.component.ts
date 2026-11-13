@@ -93,6 +93,7 @@ import {
   radarTargetRef
 } from 'src/app/modules/radar/radar-targets';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
+import { BottomClearanceDirective } from 'src/app/modules/plotterext/bottom-clearance.directive';
 import { TemporaryRouteService } from 'src/app/modules/course/temporary-route.service';
 import { ExtActionsComponent } from 'src/app/modules/plotterext/ext-actions.component';
 import type { UsableAction } from 'src/app/modules/plotterext/actions';
@@ -370,7 +371,8 @@ const OVERLAY_FEATURE_ENTRY = 'overlay-feature.';
     S57PopoverComponent,
     LayerWindWeatherComponent,
     LayerCurrentsWeatherComponent,
-    TidalCurrentsLayerComponent
+    TidalCurrentsLayerComponent,
+    BottomClearanceDirective
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
@@ -442,10 +444,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   protected mapZoomLevel = signal<number>(1);
-  /** Room left under the status bar for widgets along the bottom of the screen. */
+  /** Room the status bar leaves under it for the widgets beneath its text. */
+  protected widgetLift = signal(0);
   protected statusBarLift = computed(() =>
     paneStatusBarLift(
-      this.plotterExt.statusBarLift(),
+      this.widgetLift(),
       !!this.splitView.secondaryMap(),
       this.splitView.stacked(),
       this.splitView.secondaryActive()
