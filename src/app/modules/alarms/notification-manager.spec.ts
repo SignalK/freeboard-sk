@@ -298,6 +298,7 @@ describe('NotificationManager alert actions', () => {
   let notifications: Subject<NotificationMessage>;
   let posts: Array<{ path: string; response: Subject<unknown> }>;
   let gets: Array<{ path: string; response: Subject<unknown> }>;
+  let deletes: Array<{ path: string; response: Subject<unknown> }>;
   let errors: unknown[];
 
   const configure = () =>
@@ -335,6 +336,11 @@ describe('NotificationManager alert actions', () => {
                 const response = new Subject<unknown>();
                 gets.push({ path, response });
                 return response.asObservable();
+              },
+              delete: (_version: number, path: string) => {
+                const response = new Subject<unknown>();
+                deletes.push({ path, response });
+                return response.asObservable();
               }
             }
           }
@@ -348,6 +354,7 @@ describe('NotificationManager alert actions', () => {
     notifications = new Subject<NotificationMessage>();
     posts = [];
     gets = [];
+    deletes = [];
     errors = [];
     configure();
   });
@@ -808,6 +815,8 @@ describe('NotificationManager alert actions', () => {
       'notifications.navigation.closestApproach.urn:mrn:imo:mmsi:123456789';
     afterEach(() => localStorage.removeItem('fb-local-mobs'));
 
+    const settle = () => new Promise((resolve) => setTimeout(resolve));
+
     const list = (
       i: number,
       entries: Array<{ path: string; state?: string }>
@@ -906,6 +915,70 @@ describe('NotificationManager alert actions', () => {
 
       expect(shown(mgr).path).toBe(PATH);
       expect(errors).toEqual([]);
+    });
+
+    it('drops the alert when ACK fails on an alarm the server no longer lists', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      mgr.acknowledge(PATH);
+      const failure = { status: 400, error: { message: 'Alarm not found!' } };
+      posts[0].response.error(failure);
+      expect(errors).toEqual([failure]);
+      list(0, []);
+      await settle();
+
+      expect(mgr.alerts()).toEqual([]);
+    });
+
+    it('keeps the alert when MUTE fails on an alarm the server still lists', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      mgr.silence(PATH);
+      posts[0].response.error(new HttpErrorResponse({ status: 400 }));
+      list(0, [{ path: PATH, state: ALARM_STATE.alert }]);
+      await settle();
+
+      expect(shown(mgr).silenced).toBe(false);
+    });
+
+    it('does not ask the server when an action fails for another reason', () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      mgr.silence(PATH);
+      posts[0].response.error(new HttpErrorResponse({ status: 500 }));
+
+      expect(gets).toEqual([]);
+      expect(shown(mgr).path).toBe(PATH);
+    });
+
+    it('ends a MOB the server no longer lists when END MOB fails', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive({ path: 'notifications.mob', state: ALARM_STATE.emergency });
+      const [[, mob]] = mgr.mobAlerts();
+
+      mgr.cancelServerAlarm(mob);
+      deletes[0].response.error(new HttpErrorResponse({ status: 400 }));
+      list(0, []);
+      await settle();
+
+      expect(mgr.mobAlerts()).toEqual([]);
+      expect(errors).toHaveLength(1);
+    });
+
+    it('drops the alert when CLEAR fails on an alarm the server no longer lists', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      mgr.clear(PATH);
+      expect(deletes.map((d) => d.path)).toEqual([`notifications/${ID}`]);
+      deletes[0].response.error(new HttpErrorResponse({ status: 400 }));
+      list(0, []);
+      await settle();
+
+      expect(mgr.alerts()).toEqual([]);
     });
 
     it('keeps a MOB shown on this display alone, without asking the server', async () => {

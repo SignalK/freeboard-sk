@@ -118,6 +118,14 @@ function isRefused(err: HttpErrorResponse): boolean {
   return err?.status === 401 || err?.status === 403;
 }
 
+/**
+ * Whether a failed action may mean the server no longer has the alarm: it
+ * answers an id it does not know with a 400 ("Alarm not found!") or a 404.
+ */
+function mayBeForgotten(err: HttpErrorResponse): boolean {
+  return err?.status === 400 || err?.status === 404;
+}
+
 @Injectable({ providedIn: 'root' })
 export class NotificationManager {
   /** Alerts as last reported by the server */
@@ -471,7 +479,9 @@ export class NotificationManager {
    * The action is therefore kept pending, shown over the server's status, until
    * a delta confirms it (settlePendingActions()). If the request fails it is
    * dropped, and the alert shows the server's latest status again, except for a
-   * silence the server refuses to this user, which stays (isRefused()).
+   * silence the server refuses to this user, which stays (isRefused()). As the
+   * failure may be the server no longer having the alarm (mayBeForgotten()),
+   * the alert then goes if the server does not list it (dropStaleAlerts()).
    * @param path Path of the alert
    * @param action Notifications API action
    * @param flag Alert status flag the action sets
@@ -509,6 +519,9 @@ export class NotificationManager {
           }
           this.answerPendingAction(pending, id, entry, 'failed');
           this.app.parseHttpErrorResponse(err);
+          if (mayBeForgotten(err)) {
+            void this.dropStaleAlerts();
+          }
         }
       );
   }
@@ -598,8 +611,10 @@ export class NotificationManager {
    *
    * A MOB is left alone: it goes when it is ended, by its clearing delta or by
    * END MOB, never because a server lost track of it.
+   * @param ended Path of an alert the user has just ended (END MOB, CLEAR),
+   * which goes even if it is a MOB
    */
-  public async dropStaleAlerts() {
+  public async dropStaleAlerts(ended?: string) {
     if (!this.app.featureFlags().notificationApi) {
       return;
     }
@@ -626,7 +641,7 @@ export class NotificationManager {
     let dropped = false;
     for (const [path, alert] of asked) {
       if (
-        alert.type === 'mob' ||
+        (alert.type === 'mob' && path !== ended) ||
         this.alertMap.get(path) !== alert ||
         active.has(path)
       ) {
@@ -683,7 +698,9 @@ export class NotificationManager {
   }
 
   /**
-   * @description Clear / Cancel alert
+   * @description Clear / Cancel alert. If the server does not know it, the
+   * alert goes if the server does not list it, as after a failed ACK
+   * (applyAlertAction()).
    * @param path Path of the the alert to cancel
    */
   public clear(path: string) {
@@ -698,6 +715,9 @@ export class NotificationManager {
             },
             (err: HttpErrorResponse) => {
               this.app.parseHttpErrorResponse(err);
+              if (mayBeForgotten(err)) {
+                void this.dropStaleAlerts(path);
+              }
             }
           );
       }
@@ -808,7 +828,8 @@ export class NotificationManager {
   }
 
   /**
-   * @description Cancel Alarm on server
+   * @description Cancel Alarm on server. If the server does not know it, the
+   * alarm goes if the server does not list it, as for CLEAR (clear()).
    * @param alert Alarm to cancel
    * @returns Observable
    */
@@ -822,6 +843,9 @@ export class NotificationManager {
           },
           (err: HttpErrorResponse) => {
             this.app.parseHttpErrorResponse(err);
+            if (mayBeForgotten(err)) {
+              void this.dropStaleAlerts(alert.path);
+            }
           }
         );
     }
