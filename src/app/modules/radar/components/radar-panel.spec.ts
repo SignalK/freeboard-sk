@@ -607,6 +607,59 @@ describe('RadarPanel', () => {
       expect(app.parseHttpErrorResponse).not.toHaveBeenCalled();
     });
 
+    // each refusal arrives when the test lets it
+    const held = () => {
+      const refusals: Array<() => void> = [];
+      api.setControl.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            refusals.push(() => reject(new HttpErrorResponse({ status: 403 })))
+          )
+      );
+      return refusals;
+    };
+    const settle = async (fixture: ReturnType<typeof open>) => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('keeps the latest range when refusals arrive out of order', async () => {
+      emulator();
+      const refusals = held();
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      el.querySelector<HTMLElement>('.range .range-in')!.click();
+      fixture.detectChanges();
+      el.querySelector<HTMLElement>('.range .range-out')!.click();
+      fixture.detectChanges();
+
+      refusals[1]();
+      await settle(fixture);
+      refusals[0]();
+      await settle(fixture);
+
+      expect(rangeText(el)).toBe('1 nm');
+    });
+
+    it('keeps a range set on this screen over an older refusal', async () => {
+      emulator();
+      const refusals = held();
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      el.querySelector<HTMLElement>('.range .range-in')!.click();
+      el.querySelector<HTMLElement>('.power-button')!.click();
+      refusals[1]();
+      await settle(fixture);
+
+      el.querySelector<HTMLElement>('.range .range-out')!.click();
+      fixture.detectChanges();
+      refusals[0]();
+      await settle(fixture);
+
+      expect(rangeText(el)).toBe('1 nm');
+      expect(api.setControl).toHaveBeenCalledTimes(2);
+    });
+
     it('answers a change only the radar can make with a note, not an error', async () => {
       emulator();
       refused(401);

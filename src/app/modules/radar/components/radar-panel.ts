@@ -412,6 +412,8 @@ export class RadarPanel {
   private send(controlId: string, change: ControlChange) {
     const radarId = this.radar()?.device?.id;
     if (radarId && this.radarApi.localView() && LOCAL_CONTROLS.has(controlId)) {
+      // a change still on its way is older than this one
+      this.forget(controlId);
       this.radarApi.setLocal(radarId, controlId, change);
       return;
     }
@@ -426,16 +428,24 @@ export class RadarPanel {
     const sent = { radarId, change: { ...kept, ...change }, over };
     this.sent.update((all) => new Map(all).set(controlId, sent));
     this.radarApi.setControl(radarId, controlId, change).catch((err) => {
-      // a change that did not reach the radar is not reported back
-      this.sent.update((all) => {
-        if (all.get(controlId) !== sent) {
-          return all;
-        }
-        const rest = new Map(all);
-        rest.delete(controlId);
-        return rest;
-      });
-      this.report(err, radarId, controlId, change);
+      // a change that did not reach the radar is not reported back; only
+      // the latest one may become this screen's setting
+      const latest = this.sent().get(controlId) === sent;
+      if (latest) {
+        this.forget(controlId);
+      }
+      this.report(err, radarId, controlId, latest ? sent.change : undefined);
+    });
+  }
+
+  private forget(controlId: string) {
+    this.sent.update((all) => {
+      if (!all.has(controlId)) {
+        return all;
+      }
+      const rest = new Map(all);
+      rest.delete(controlId);
+      return rest;
     });
   }
 
@@ -456,8 +466,10 @@ export class RadarPanel {
       this.app.parseHttpErrorResponse(err);
       return;
     }
-    if (controlId && change && LOCAL_CONTROLS.has(controlId)) {
-      this.radarApi.setLocal(radarId, controlId, change);
+    if (controlId && LOCAL_CONTROLS.has(controlId)) {
+      if (change) {
+        this.radarApi.setLocal(radarId, controlId, change);
+      }
       if (!watching) {
         this.app.showMessage(WATCH_ONLY_MESSAGE);
       }
