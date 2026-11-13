@@ -14,7 +14,7 @@ import { WhatsNewService } from './modules/features/whats-new.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
 import { connectExtension } from 'signalk-plotterext-bus/extension';
 import { SignalKClient } from 'signalk-client-angular';
-import { config, throwError } from 'rxjs';
+import { config, of, throwError } from 'rxjs';
 
 /** The type of the item the info panel shows. */
 function shownType(infoPanel: InfoPanelFacade) {
@@ -58,6 +58,29 @@ describe('AppComponent', () => {
     expect(unhandled).not.toHaveBeenCalled();
     expect(app.isLoggedIn()).toBe(true);
   });
+
+  for (const [status, loggedIn] of [
+    ['loggedIn', true],
+    ['notLoggedIn', false]
+  ] as const) {
+    it(`takes the login state from the server's login status (${status})`, () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = TestBed.inject(AppFacade);
+      app.isLoggedIn.set(!loggedIn);
+      const signalk = TestBed.inject(SignalKClient);
+      vi.spyOn(signalk, 'getLoginStatus').mockReturnValue(
+        of({ status, authenticationRequired: true })
+      );
+      const get = vi.spyOn(signalk, 'get');
+      (
+        fixture.componentInstance as unknown as {
+          handleSKAuthChange(): void;
+        }
+      ).handleSKAuthChange();
+      expect(app.isLoggedIn()).toBe(loggedIn);
+      expect(get).not.toHaveBeenCalled();
+    });
+  }
 
   it('ignores text or a link dropped on the map', () => {
     const fixture = TestBed.createComponent(AppComponent);
