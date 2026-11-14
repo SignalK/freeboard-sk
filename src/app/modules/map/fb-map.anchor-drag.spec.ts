@@ -6,10 +6,10 @@ import { fromLonLat } from 'ol/proj';
 
 import { FBMapComponent } from './fb-map.component';
 
-// While the anchor is dragged, and until the stream reports it where the server
-// accepted it, the anchor layer is told to hold the point where the user put it
-// (anchorMoving). Exercised on a bare prototype instance, as in
-// fb-map.waypoint-snap.spec.ts.
+// While the anchor is dragged ('drag'), and from the drop until the stream
+// reports it where the server accepted it ('pending'), the anchor layer is told
+// to hold the point where the user put it (anchorMove). Exercised on a bare
+// prototype instance, as in fb-map.waypoint-snap.spec.ts.
 
 function deferred() {
   let resolve!: (v?: unknown) => void;
@@ -25,7 +25,7 @@ function deferred() {
 function bareComponent(): any {
   const cmp = Object.create(FBMapComponent.prototype);
   cmp.ngZone = { run: (fn: () => void) => fn() };
-  cmp.anchorMoving = signal(false);
+  cmp.anchorMove = signal(null);
   cmp.anchorMoveSeq = 0;
   cmp.answers = [] as ReturnType<typeof deferred>[];
   cmp.arrivals = [] as ReturnType<typeof deferred>[];
@@ -67,7 +67,7 @@ describe('FBMapComponent: holding the anchor while it is moved', () => {
   it('holds the anchor from the start of the drag', () => {
     const cmp = bareComponent();
     cmp.onModifyStart({ features: new Collection([anchorFeature()]) });
-    expect(cmp.anchorMoving()).toBe(true);
+    expect(cmp.anchorMove()).toBe('drag');
   });
 
   it('does not hold the anchor for other features', () => {
@@ -75,21 +75,22 @@ describe('FBMapComponent: holding the anchor while it is moved', () => {
     const f = new Feature(new Point([0, 0]));
     f.setId('waypoint.a');
     cmp.onModifyStart({ features: new Collection([f]) });
-    expect(cmp.anchorMoving()).toBe(false);
+    expect(cmp.anchorMove()).toBeNull();
   });
 
   it('keeps holding after the server accepts, until the stream reports the anchor there', async () => {
     const cmp = bareComponent();
     dragAnchor(cmp);
+    expect(cmp.anchorMove()).toBe('pending');
     cmp.answers[0].resolve(true);
     await settle();
     expect(cmp.anchor.whenAnchorAt).toHaveBeenCalledWith(
       cmp.anchor.setAnchorPosition.mock.calls[0][0]
     );
-    expect(cmp.anchorMoving()).toBe(true);
+    expect(cmp.anchorMove()).toBe('pending');
     cmp.arrivals[0].resolve();
     await settle();
-    expect(cmp.anchorMoving()).toBe(false);
+    expect(cmp.anchorMove()).toBeNull();
     expect(cmp.anchor.reportRefusal).not.toHaveBeenCalled();
   });
 
@@ -99,7 +100,7 @@ describe('FBMapComponent: holding the anchor while it is moved', () => {
     const refusal = { status: 403 };
     cmp.answers[0].reject(refusal);
     await settle();
-    expect(cmp.anchorMoving()).toBe(false);
+    expect(cmp.anchorMove()).toBeNull();
     expect(cmp.anchor.whenAnchorAt).not.toHaveBeenCalled();
     expect(cmp.anchor.reportRefusal).toHaveBeenCalledWith(
       refusal,
@@ -114,6 +115,25 @@ describe('FBMapComponent: holding the anchor while it is moved', () => {
     cmp.onModifyStart({ features: new Collection([f]) });
     cmp.answers[0].reject({ status: 403 });
     await settle();
-    expect(cmp.anchorMoving()).toBe(true);
+    expect(cmp.anchorMove()).toBe('drag');
+  });
+
+  it('ends the hold of a drag whose Modify session ends without a drop', () => {
+    const cmp = bareComponent();
+    cmp.onModifyStart({ features: new Collection([anchorFeature()]) });
+    cmp.endAnchorDrag();
+    expect(cmp.anchorMove()).toBeNull();
+  });
+
+  it('keeps holding a dropped move after its Modify session ends', async () => {
+    const cmp = bareComponent();
+    dragAnchor(cmp);
+    cmp.endAnchorDrag();
+    expect(cmp.anchorMove()).toBe('pending');
+    cmp.answers[0].resolve(true);
+    await settle();
+    cmp.arrivals[0].resolve();
+    await settle();
+    expect(cmp.anchorMove()).toBeNull();
   });
 });

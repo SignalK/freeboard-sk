@@ -438,10 +438,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
   /**
-   * The anchor is being dragged, or its new position awaits the server's
-   * answer: the anchor layer keeps the point where the user put it until then.
+   * Where a move of the anchor stands: 'drag' while the user drags it,
+   * 'pending' from the drop until the stream reports the anchor there, the
+   * server refuses the move or the wait times out. The anchor layer keeps the
+   * point where the user put it in both.
    */
-  protected anchorMoving = signal(false);
+  protected anchorMove = signal<'drag' | 'pending' | null>(null);
   /** Counts anchor drags, so the answer to one move cannot end a later drag's hold. */
   private anchorMoveSeq = 0;
   protected mapZoomLevel = signal<number>(1);
@@ -814,6 +816,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     effect(() => {
       const editing = !!this.zoneEdit.edit();
       untracked(() => this.mapInteract.setZoneEditing(editing));
+    });
+    // A Modify session that ends mid-drag sends no modifyend, so end that
+    // drag's hold of the anchor here. A dropped move stays held after Finish.
+    effect(() => {
+      if (!this.mapInteract.isModifying()) {
+        untracked(() => this.endAnchorDrag());
+      }
     });
   }
 
@@ -2266,13 +2275,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** End the hold of an anchor drag whose Modify session ended without a drop. */
+  protected endAnchorDrag() {
+    if (this.anchorMove() === 'drag') {
+      this.anchorMove.set(null);
+    }
+  }
+
   /** Handle OL modify start event */
   protected onModifyStart(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
     if (f.getId() === 'anchor') {
       this.anchorMoveSeq++;
-      this.anchorMoving.set(true);
+      this.anchorMove.set('drag');
     }
     const forSave = this.mapInteract.draw.forSave;
     if (!forSave) {
@@ -2376,6 +2392,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (fid === 'anchor') {
         const seq = this.anchorMoveSeq;
         const moved = pc;
+        this.anchorMove.set('pending');
         (this.anchor.setAnchorPosition(moved) ?? Promise.resolve())
           .then(() => this.anchor.whenAnchorAt(moved))
           .catch((err: HttpErrorResponse) => {
@@ -2383,7 +2400,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           })
           .finally(() => {
             if (seq === this.anchorMoveSeq) {
-              this.anchorMoving.set(false);
+              this.anchorMove.set(null);
             }
           });
       }
@@ -3098,8 +3115,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.readOnly = true;
         break;
       case 'anchor':
-        this.anchorMoveSeq++;
-        this.anchorMoving.set(false);
         this.modifyFeature('anchor', coord);
         return;
       case 'list':
