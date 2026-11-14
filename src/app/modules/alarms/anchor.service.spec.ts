@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom, of } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from '../../app.facade';
@@ -12,11 +13,15 @@ describe('AnchorService plugin commands', () => {
   let service: AnchorService;
   let post: ReturnType<typeof vi.fn>;
   let get: ReturnType<typeof vi.fn>;
+  let showAlert: ReturnType<typeof vi.fn>;
+  let parseHttpErrorResponse: ReturnType<typeof vi.fn>;
   const vessel: Position = [178.0, -17.8];
 
   beforeEach(() => {
     post = vi.fn(() => of({}));
     get = vi.fn(() => of({ value: { type: 'sector', radius: 40 } }));
+    showAlert = vi.fn();
+    parseHttpErrorResponse = vi.fn();
     TestBed.configureTestingModule({
       providers: [
         AnchorService,
@@ -24,7 +29,9 @@ describe('AnchorService plugin commands', () => {
           provide: AppFacade,
           useValue: {
             debug: (): void => undefined,
-            data: { vessels: { self: { position: vessel } } }
+            data: { vessels: { self: { position: vessel } } },
+            showAlert,
+            parseHttpErrorResponse
           }
         },
         { provide: SignalKClient, useValue: { post, api: { get } } },
@@ -112,6 +119,44 @@ describe('AnchorService plugin commands', () => {
 
     it('has no rode-length placement', () => {
       expect(service.supportsManualSet()).toBe(false);
+    });
+  });
+
+  describe('reportRefusal', () => {
+    const refusal = (status: number, message?: string) =>
+      new HttpErrorResponse({ status, error: message ? { message } : null });
+
+    it("shows a plugin's reason without a login hint, also for a 403", () => {
+      for (const status of [403, 409, 400]) {
+        service.reportRefusal(
+          refusal(status, 'Boat is outside the watch zone.'),
+          'Anchor not moved'
+        );
+      }
+
+      expect(showAlert.mock.calls).toEqual([
+        ['Anchor not moved', 'Boat is outside the watch zone.'],
+        ['Anchor not moved', 'Boat is outside the watch zone.'],
+        ['Anchor not moved', 'Boat is outside the watch zone.']
+      ]);
+      expect(parseHttpErrorResponse).not.toHaveBeenCalled();
+    });
+
+    it('leaves a missing login, a failure or no reason to the usual report', () => {
+      const unauthorised = refusal(401, 'Unauthorized');
+      const failed = refusal(500, 'internal error');
+      const silent = refusal(403);
+
+      service.reportRefusal(unauthorised, 'Anchor not moved');
+      service.reportRefusal(failed, 'Anchor not moved');
+      service.reportRefusal(silent, 'Anchor not moved');
+
+      expect(parseHttpErrorResponse.mock.calls).toEqual([
+        [unauthorised],
+        [failed],
+        [silent]
+      ]);
+      expect(showAlert).not.toHaveBeenCalled();
     });
   });
 });

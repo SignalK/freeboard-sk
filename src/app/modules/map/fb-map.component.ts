@@ -2368,7 +2368,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       // shift anchor
       if (fid === 'anchor') {
         this.anchor.setAnchorPosition(pc)?.catch((err: HttpErrorResponse) => {
-          this.app.parseHttpErrorResponse(err);
+          this.anchor.reportRefusal(err, 'Anchor not moved');
         });
       }
     }

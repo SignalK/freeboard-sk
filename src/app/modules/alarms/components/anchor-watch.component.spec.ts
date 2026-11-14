@@ -21,6 +21,7 @@ describe('AnchorWatchComponent default alarm radius', () => {
     drop: ReturnType<typeof vi.fn>;
     setRadius: ReturnType<typeof vi.fn>;
     setRaisedSignal: ReturnType<typeof vi.fn>;
+    reportRefusal: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -28,7 +29,8 @@ describe('AnchorWatchComponent default alarm radius', () => {
     anchor = {
       drop: vi.fn(() => of(undefined)),
       setRadius: vi.fn(() => of(undefined)),
-      setRaisedSignal: vi.fn()
+      setRaisedSignal: vi.fn(),
+      reportRefusal: vi.fn()
     };
     TestBed.configureTestingModule({
       providers: [
@@ -36,8 +38,7 @@ describe('AnchorWatchComponent default alarm radius', () => {
           provide: AppFacade,
           useValue: {
             config: { anchor: { radius: 40 }, units: { length: 'm' } },
-            saveConfig,
-            parseHttpErrorResponse: vi.fn()
+            saveConfig
           }
         },
         { provide: AnchorService, useValue: anchor }
@@ -230,6 +231,10 @@ describe('AnchorWatchComponent default alarm radius', () => {
 
     component.stepRadius(10);
 
+    expect(anchor.reportRefusal).toHaveBeenCalledWith(
+      expect.anything(),
+      'Radius not changed'
+    );
     expect(component['displayRadius']()).toBe('30 m');
     component.stepRadius(1);
     expect(anchor.setRadius).toHaveBeenLastCalledWith(31);
@@ -283,7 +288,7 @@ describe('AnchorWatchComponent shift anchor', () => {
   let position: WritableSignal<Position | null>;
   let pending: { resolve: () => void; reject: (e: unknown) => void }[];
   let setAnchorPosition: ReturnType<typeof vi.fn>;
-  let parseHttpErrorResponse: ReturnType<typeof vi.fn>;
+  let reportRefusal: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     position = signal<Position | null>([0, 0]);
@@ -294,19 +299,18 @@ describe('AnchorWatchComponent shift anchor', () => {
           pending.push({ resolve: () => resolve(true), reject })
         )
     );
-    parseHttpErrorResponse = vi.fn();
+    reportRefusal = vi.fn();
     TestBed.configureTestingModule({
       providers: [
         {
           provide: AppFacade,
           useValue: {
-            config: { anchor: { radius: 40 }, units: { length: 'm' } },
-            parseHttpErrorResponse
+            config: { anchor: { radius: 40 }, units: { length: 'm' } }
           }
         },
         {
           provide: AnchorService,
-          useValue: { position, setAnchorPosition }
+          useValue: { position, setAnchorPosition, reportRefusal }
         }
       ]
     });
@@ -420,7 +424,10 @@ describe('AnchorWatchComponent shift anchor', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(parseHttpErrorResponse).toHaveBeenCalled();
+    expect(reportRefusal).toHaveBeenCalledWith(
+      expect.anything(),
+      'Anchor not moved'
+    );
     expect(setAnchorPosition).toHaveBeenCalledTimes(1);
   });
 });
