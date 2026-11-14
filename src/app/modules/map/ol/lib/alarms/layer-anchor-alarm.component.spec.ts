@@ -54,6 +54,14 @@ describe('AnchorFeatures', () => {
     ]);
   });
 
+  it('leaves the anchor point untouched when its position has not changed', () => {
+    const af = new AnchorFeatures();
+    af.place(ANCHOR, 50, LINE, false);
+    const revision = af.anchor.getGeometry()?.getRevision();
+    af.place([...ANCHOR], 55, LINE, false);
+    expect(af.anchor.getGeometry()?.getRevision()).toBe(revision);
+  });
+
   it('draws no line to the vessel when its position is not known', () => {
     const af = new AnchorFeatures();
     expect(af.place(ANCHOR, 50, null, false)).toEqual([af.circle, af.anchor]);

@@ -30,6 +30,9 @@ import {
 import { WORLD_WIDTH_3857 } from '../../../route-extend';
 import { AsyncSubject } from 'rxjs';
 
+/** Closer than this, in map units (metres), counts as the same point. */
+const SAME_POINT_M = 1e-3;
+
 /**
  * The anchor alarm's line to the vessel, watch circle and anchor point. They
  * are moved, not rebuilt, on every update: a Modify session started by tapping
@@ -73,11 +76,18 @@ export class AnchorFeatures {
     } else if (!holdAnchor) {
       // Stay in the world copy a Modify session shifted the point into, or its
       // hit-test would miss the anchor the user sees there.
-      const shift = worldCopyOffset(
-        ag.getCoordinates()[0] - anchor[0],
-        WORLD_WIDTH_3857
-      );
-      ag.setCoordinates([anchor[0] + shift, anchor[1]]);
+      const [x, y] = ag.getCoordinates();
+      const nx = anchor[0] + worldCopyOffset(x - anchor[0], WORLD_WIDTH_3857);
+      // Any change makes a Modify session re-index the point, which drops a
+      // drag that was pressed but has not moved yet; so only a real move is
+      // written. The round trip through lon/lat alone shifts the point by
+      // far less than a millimetre.
+      if (
+        Math.abs(x - nx) > SAME_POINT_M ||
+        Math.abs(y - anchor[1]) > SAME_POINT_M
+      ) {
+        ag.setCoordinates([nx, anchor[1]]);
+      }
     }
     shown.push(this.anchor);
     return shown;

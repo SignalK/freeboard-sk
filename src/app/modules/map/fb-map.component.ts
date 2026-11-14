@@ -442,6 +442,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * answer: the anchor layer keeps the point where the user put it until then.
    */
   protected anchorMoving = signal(false);
+  /** Counts anchor drags, so the answer to one move cannot end a later drag's hold. */
+  private anchorMoveSeq = 0;
   protected mapZoomLevel = signal<number>(1);
   /** Room left under the status bar for widgets along the bottom of the screen. */
   protected statusBarLift = computed(() =>
@@ -2269,6 +2271,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
     if (f.getId() === 'anchor') {
+      this.anchorMoveSeq++;
       this.anchorMoving.set(true);
     }
     const forSave = this.mapInteract.draw.forSave;
@@ -2371,11 +2374,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
       pc = toLonLat(c) as Position;
       // shift anchor
       if (fid === 'anchor') {
-        (this.anchor.setAnchorPosition(pc) ?? Promise.resolve())
+        const seq = this.anchorMoveSeq;
+        const moved = pc;
+        (this.anchor.setAnchorPosition(moved) ?? Promise.resolve())
+          .then(() => this.anchor.whenAnchorAt(moved))
           .catch((err: HttpErrorResponse) => {
             this.anchor.reportRefusal(err, 'Anchor not moved');
           })
-          .finally(() => this.anchorMoving.set(false));
+          .finally(() => {
+            if (seq === this.anchorMoveSeq) {
+              this.anchorMoving.set(false);
+            }
+          });
       }
     }
     forSave['coords'] = pc;
@@ -3088,6 +3098,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.readOnly = true;
         break;
       case 'anchor':
+        this.anchorMoveSeq++;
         this.anchorMoving.set(false);
         this.modifyFeature('anchor', coord);
         return;
