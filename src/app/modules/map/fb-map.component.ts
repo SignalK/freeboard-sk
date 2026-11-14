@@ -437,6 +437,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected olMapControls = mapControls;
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
+  /**
+   * The anchor is being dragged, or its new position awaits the server's
+   * answer: the anchor layer keeps the point where the user put it until then.
+   */
+  protected anchorMoving = signal(false);
   protected mapZoomLevel = signal<number>(1);
   /** Room left under the status bar for widgets along the bottom of the screen. */
   protected statusBarLift = computed(() =>
@@ -2263,6 +2268,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected onModifyStart(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
+    if (f.getId() === 'anchor') {
+      this.anchorMoving.set(true);
+    }
     const forSave = this.mapInteract.draw.forSave;
     if (!forSave) {
       return;
@@ -2363,9 +2371,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
       pc = toLonLat(c) as Position;
       // shift anchor
       if (fid === 'anchor') {
-        this.anchor.setAnchorPosition(pc)?.catch((err: HttpErrorResponse) => {
-          this.anchor.reportRefusal(err, 'Anchor not moved');
-        });
+        (this.anchor.setAnchorPosition(pc) ?? Promise.resolve())
+          .catch((err: HttpErrorResponse) => {
+            this.anchor.reportRefusal(err, 'Anchor not moved');
+          })
+          .finally(() => this.anchorMoving.set(false));
       }
     }
     forSave['coords'] = pc;
@@ -3078,6 +3088,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.readOnly = true;
         break;
       case 'anchor':
+        this.anchorMoving.set(false);
         this.modifyFeature('anchor', coord);
         return;
       case 'list':

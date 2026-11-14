@@ -904,6 +904,7 @@
       [radius]="anchor.radius()"
       [anchorPosition]="anchor.position()"
       [vesselPosition]="dfeat.self.position"
+      [holdAnchor]="anchorMoving() && mapInteract.isModifying()"
       [anchorStyles]="featureStyles.anchor"
       [zIndex]="300"
     >
