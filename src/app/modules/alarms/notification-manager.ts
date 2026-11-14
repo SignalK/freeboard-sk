@@ -611,8 +611,9 @@ export class NotificationManager {
    *
    * A MOB is left alone: it goes when it is ended, by its clearing delta or by
    * END MOB, never because a server lost track of it.
-   * @param ended Path of an alert the user has just ended (END MOB, CLEAR),
-   * which goes even if it is a MOB
+   * @param ended Id of an alert the user has just ended (END MOB, CLEAR),
+   * which goes even if it is a MOB. By id, as a new MOB may have taken the
+   * path while the request was under way.
    */
   public async dropStaleAlerts(ended?: string) {
     if (!this.app.featureFlags().notificationApi) {
@@ -641,7 +642,7 @@ export class NotificationManager {
     let dropped = false;
     for (const [path, alert] of asked) {
       if (
-        (alert.type === 'mob' && path !== ended) ||
+        (alert.type === 'mob' && (ended === undefined || alert.id !== ended)) ||
         this.alertMap.get(path) !== alert ||
         active.has(path)
       ) {
@@ -716,7 +717,7 @@ export class NotificationManager {
             (err: HttpErrorResponse) => {
               this.app.parseHttpErrorResponse(err);
               if (mayBeForgotten(err)) {
-                void this.dropStaleAlerts(path);
+                void this.dropStaleAlerts(alert.id);
               }
             }
           );
@@ -844,7 +845,7 @@ export class NotificationManager {
           (err: HttpErrorResponse) => {
             this.app.parseHttpErrorResponse(err);
             if (mayBeForgotten(err)) {
-              void this.dropStaleAlerts(alert.path);
+              void this.dropStaleAlerts(alert.id);
             }
           }
         );

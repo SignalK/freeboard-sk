@@ -981,6 +981,25 @@ describe('NotificationManager alert actions', () => {
       expect(mgr.alerts()).toEqual([]);
     });
 
+    it('keeps a MOB that took the path while a failed END MOB was under way', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive({ path: 'notifications.mob', state: ALARM_STATE.emergency });
+      const [[, ended]] = mgr.mobAlerts();
+
+      mgr.cancelServerAlarm(ended);
+      const raised = 'c3a1f6e2-5b7d-4f8a-9e2c-1d4b6a8f0e97';
+      arrive({
+        path: 'notifications.mob',
+        id: raised,
+        state: ALARM_STATE.emergency
+      });
+      deletes[0].response.error(new HttpErrorResponse({ status: 400 }));
+      list(0, []);
+      await settle();
+
+      expect(mgr.mobAlerts().map(([, mob]) => mob.id)).toEqual([raised]);
+    });
+
     it('keeps a MOB shown on this display alone, without asking the server', async () => {
       const mgr = TestBed.inject(NotificationManager);
       mgr.addLocalMob(null, Date.UTC(2026, 10, 9, 12));
