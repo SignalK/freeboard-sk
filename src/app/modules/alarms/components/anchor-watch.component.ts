@@ -276,7 +276,7 @@ export class AnchorWatchComponent {
           this.steppedRadii = [];
           this.takeUpRadius(reported);
           this.showAdjustRadius(reported);
-          this.app.parseHttpErrorResponse(err);
+          this.anchor.reportRefusal(err, 'Radius not changed');
         }
       });
   }
@@ -351,7 +351,7 @@ export class AnchorWatchComponent {
             this.app.saveConfig();
           },
           error: (err: HttpErrorResponse) => {
-            this.app.parseHttpErrorResponse(err);
+            this.anchor.reportRefusal(err, 'Radius not changed');
           }
         });
     }
@@ -382,7 +382,7 @@ export class AnchorWatchComponent {
           this.app.saveConfig();
         },
         error: (err: HttpErrorResponse) => {
-          this.app.parseHttpErrorResponse(err);
+          this.anchor.reportRefusal(err, 'Anchor not set');
         }
       });
   }
@@ -416,7 +416,7 @@ export class AnchorWatchComponent {
         },
         error: (err: HttpErrorResponse) => {
           this.anchor.setRaisedSignal(true);
-          this.app.parseHttpErrorResponse(err);
+          this.anchor.reportRefusal(err, 'Anchor not dropped');
         }
       });
   }
@@ -431,7 +431,7 @@ export class AnchorWatchComponent {
       .subscribe({
         next: () => undefined,
         error: (err: HttpErrorResponse) => {
-          this.app.parseHttpErrorResponse(err);
+          this.anchor.reportRefusal(err, 'Anchor not raised');
         }
       });
   }
@@ -494,7 +494,7 @@ export class AnchorWatchComponent {
           this.shiftTarget = null;
           this.shiftedPositions = [];
         }
-        this.app.parseHttpErrorResponse(err);
+        this.anchor.reportRefusal(err, 'Anchor not moved');
       })
       .finally(() => {
         this.shiftSending = false;
