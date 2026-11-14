@@ -14,7 +14,8 @@ import {
   NO_ADJUSTMENT,
   refusesChanges,
   shownControls,
-  spokeAdjustment
+  spokeAdjustment,
+  watchingView
 } from './radar-local-view';
 
 // While no radar is listed, vessel updates look for one again: the radar
@@ -345,6 +346,14 @@ export class RadarAPIService {
     });
 
     this._radar.set({ device, capabilities, controls });
+    const watching = watchingView(
+      selected,
+      device.brand,
+      this.app.config.radars.watchRange
+    );
+    if (watching && this._localView()?.radarId !== selected) {
+      this._localView.set(watching);
+    }
 
     // A Range Units change while this loaded read the capabilities again,
     // and this load's own answer may be the older one, so read them once more.

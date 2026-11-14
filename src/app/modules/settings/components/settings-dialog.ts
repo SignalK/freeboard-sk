@@ -114,6 +114,8 @@ export class SettingsDialog implements OnInit {
 
   protected unitsChangedSignal = signal<number>(0);
   protected radarList = signal<SKRadar[]>([]);
+  /** Ranges (m) the radar emulator can be set to open at for watching. */
+  protected watchRanges = [926, 1852, 2778, 5556, 11112];
 
   private saveOnClose = false;
   private arrivalCircleChanged = false;

@@ -40,6 +40,20 @@ export interface SpokeAdjustment {
 
 export const NO_ADJUSTMENT: SpokeAdjustment = { gain: 0, sea: 0 };
 
+/**
+ * The view of a screen set to only watch the emulator: it opens at
+ * `watchRange` (m), and gain, sea and range act here from the start.
+ */
+export function watchingView(
+  radarId: string,
+  brand: string | undefined,
+  watchRange: number | null | undefined
+): LocalView | undefined {
+  return brand === EMULATOR_BRAND && typeof watchRange === 'number'
+    ? { radarId, controls: new Map([['range', { value: watchRange }]]) }
+    : undefined;
+}
+
 /** An answer that says this login may not change the radar. */
 export function refusesChanges(status: number | undefined): boolean {
   return status === 401 || status === 403;

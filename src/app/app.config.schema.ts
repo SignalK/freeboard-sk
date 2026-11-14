@@ -239,7 +239,9 @@ export const AppConfigSchema = Type.Object({
     opacity: num(1),
     rings: bool(true), // range circles follow the radar range while it transmits
     ringColor: str('#404040'),
-    overlay: bool(false) // radar picture shown on the chart, again after a reload
+    overlay: bool(false), // radar picture shown on the chart, again after a reload
+    // the emulator is only watched on this screen, opening at this range (m)
+    watchRange: nullable(Type.Number())
   }),
   experiments: bool(false),
   plotterExtensions: Type.Object({

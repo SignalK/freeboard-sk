@@ -63,7 +63,7 @@ describe('RadarAPIService init() (#755)', () => {
   let held: Map<string, Array<Observable<unknown>>>;
   let configEvents: Subject<'saved' | 'ready'>;
   let app: {
-    config: { radars: { deviceId: string } };
+    config: { radars: { deviceId: string; watchRange?: number | null } };
     config$: Observable<'saved' | 'ready'>;
     skApiVersion: number;
     saveConfig: () => void;
@@ -638,6 +638,26 @@ describe('RadarAPIService init() (#755)', () => {
       expect(service.spokeAdjustment().gain).toBeGreaterThan(0);
       expect(service.radar()?.controls.get('gain')?.value).toBe(50);
       expect(put).not.toHaveBeenCalled();
+    });
+
+    it('opens the emulator at the range set to watch it at', async () => {
+      emulator();
+      app.config.radars.watchRange = 1500;
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      expect(service.localView()?.radarId).toBe('radar-1');
+      expect(service.shownRange()).toBe(1500);
+      expect(service.radar()?.controls.get('range')?.value).toBe(3000);
+    });
+
+    it('opens a real radar as it is, whatever range is set to watch at', async () => {
+      app.config.radars.watchRange = 1500;
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      expect(service.localView()).toBeUndefined();
+      expect(service.shownRange()).toBe(3000);
     });
 
     it('shows a range the radar reports as text', async () => {

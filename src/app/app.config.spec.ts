@@ -629,7 +629,8 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
       opacity: 1,
       rings: true,
       ringColor: '#404040',
-      overlay: false
+      overlay: false,
+      watchRange: null
     });
   });
 
@@ -647,7 +648,8 @@ describe('cleanConfig() for sections saved before a setting existed', () => {
       opacity: 0.5,
       rings: false,
       ringColor: '#404040',
-      overlay: false
+      overlay: false,
+      watchRange: null
     });
   });
 
