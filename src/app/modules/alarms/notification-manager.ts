@@ -229,8 +229,15 @@ export class NotificationManager {
       return;
     }
 
-    // test for return to normal state
-    if (!msg.value || (msg.value as SKNotification)?.state === 'normal') {
+    // test for return to normal state. A nominal value is within its normal
+    // range too ("entered a range within the normal zone"), nothing to alert
+    // on; a zone the user added in the Data Browser starts out nominal.
+    const state = (msg.value as SKNotification | null)?.state;
+    if (
+      !msg.value ||
+      state === ALARM_STATE.normal ||
+      state === ALARM_STATE.nominal
+    ) {
       const cleared = this.alertMap.get(msg.path);
       if (cleared) {
         this.dropPendingActions(cleared.id);

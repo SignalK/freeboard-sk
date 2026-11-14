@@ -275,6 +275,27 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(alert.visual).toBe(true);
   });
 
+  it('shows no alert for a value in its nominal range', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.tanks.freshWater.4.currentLevel',
+      notification({ state: ALARM_STATE.nominal, message: '0.21 < value < 1' })
+    );
+
+    expect(mgr.alerts()).toEqual([]);
+  });
+
+  it('takes an alert down when its value returns to the nominal range', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const path = 'notifications.tanks.freshWater.4.currentLevel';
+    emit(path, notification({ state: ALARM_STATE.alert }));
+    expect(mgr.alerts()).toHaveLength(1);
+
+    emit(path, notification({ state: ALARM_STATE.nominal }));
+
+    expect(mgr.alerts()).toEqual([]);
+  });
+
   it('keeps a notification sent with an empty method quiet', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit('notifications.fire', notification({ method: [] }));
