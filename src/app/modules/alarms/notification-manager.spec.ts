@@ -275,6 +275,31 @@ describe('NotificationManager alert properties (#755)', () => {
     expect(alert.visual).toBe(true);
   });
 
+  it('raises no alert for a state that means nothing is wrong', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.electrical.switches.bank.13.5.state',
+      notification({ state: ALARM_STATE.nominal, message: 'Freezer on' })
+    );
+    emit(
+      'notifications.tanks.fuel.0.currentLevel',
+      notification({ state: ALARM_STATE.normal })
+    );
+
+    expect(mgr.alerts()).toEqual([]);
+  });
+
+  it('clears an alert that returns to nominal', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const path = 'notifications.electrical.switches.bank.13.5.state';
+    emit(path, notification({ state: ALARM_STATE.warn }));
+    expect(mgr.alerts()).toHaveLength(1);
+
+    emit(path, notification({ state: ALARM_STATE.nominal }));
+
+    expect(mgr.alerts()).toEqual([]);
+  });
+
   it('keeps a notification sent with an empty method quiet', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit('notifications.fire', notification({ method: [] }));

@@ -229,8 +229,14 @@ export class NotificationManager {
       return;
     }
 
-    // test for return to normal state
-    if (!msg.value || (msg.value as SKNotification)?.state === 'normal') {
+    // normal and nominal both mean nothing is wrong: a value back in range,
+    // or a switch or level in its expected state
+    const state = (msg.value as SKNotification | undefined)?.state;
+    if (
+      !msg.value ||
+      state === ALARM_STATE.normal ||
+      state === ALARM_STATE.nominal
+    ) {
       const cleared = this.alertMap.get(msg.path);
       if (cleared) {
         this.dropPendingActions(cleared.id);
