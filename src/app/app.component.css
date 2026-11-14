@@ -230,6 +230,14 @@ mat-nav-list {
     }     
 }
 
+/* Over bottom-left widgets the panel lines up with their left edge; on short
+   screens it stays clear of the left toolbar instead. */
+@media only screen and (min-height: 601px) {
+    .navdataPanel.navdataFlush {
+        left: 0;
+    }
+}
+
 @media only screen and (max-height: 600px) { 
     .navdataPanel {
         left: 50px;
