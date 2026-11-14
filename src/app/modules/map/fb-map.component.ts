@@ -329,6 +329,12 @@ enum INTERACTION_MODE {
 const OFFSET_GRACE_PERIOD = 2000;
 
 /**
+ * How long a dropped anchor stays where the user put it while the server has
+ * not answered the move: neither the plugin route nor HttpClient has a timeout.
+ */
+export const ANCHOR_REQUEST_TIMEOUT_MS = 10000;
+
+/**
  * Prefix of the ids Freeboard gives the data-overlay features it lists after a
  * click (capability `actions.overlay`), followed by the owning extension,
  * overlay, source and feature id. Only the prefix is read: an overlay feature's own id is the
@@ -2392,17 +2398,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (fid === 'anchor') {
         const seq = this.anchorMoveSeq;
         const moved = pc;
+        const release = () => {
+          if (seq === this.anchorMoveSeq) {
+            this.anchorMove.set(null);
+          }
+        };
         this.anchorMove.set('pending');
+        const deadline = setTimeout(release, ANCHOR_REQUEST_TIMEOUT_MS);
         (this.anchor.setAnchorPosition(moved) ?? Promise.resolve())
+          .finally(() => clearTimeout(deadline))
           .then(() => this.anchor.whenAnchorAt(moved))
           .catch((err: HttpErrorResponse) => {
             this.anchor.reportRefusal(err, 'Anchor not moved');
           })
-          .finally(() => {
-            if (seq === this.anchorMoveSeq) {
-              this.anchorMove.set(null);
-            }
-          });
+          .finally(release);
       }
     }
     forSave['coords'] = pc;

@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { Collection, Feature } from 'ol';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 
-import { FBMapComponent } from './fb-map.component';
+import { ANCHOR_REQUEST_TIMEOUT_MS, FBMapComponent } from './fb-map.component';
 
 // While the anchor is dragged ('drag'), and from the drop until the stream
 // reports it where the server accepted it ('pending'), the anchor layer is told
@@ -64,6 +64,10 @@ function dragAnchor(cmp: any, f = anchorFeature()) {
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
 describe('FBMapComponent: holding the anchor while it is moved', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('holds the anchor from the start of the drag', () => {
     const cmp = bareComponent();
     cmp.onModifyStart({ features: new Collection([anchorFeature()]) });
@@ -118,14 +122,16 @@ describe('FBMapComponent: holding the anchor while it is moved', () => {
     expect(cmp.anchorMove()).toBe('drag');
   });
 
-  it('ends the hold of a drag whose Modify session ends without a drop', () => {
+  // endAnchorDrag is what the constructor effect calls when the Modify session
+  // ends; the effect itself needs the whole map's injector.
+  it('endAnchorDrag ends the hold of a drag that was not dropped', () => {
     const cmp = bareComponent();
     cmp.onModifyStart({ features: new Collection([anchorFeature()]) });
     cmp.endAnchorDrag();
     expect(cmp.anchorMove()).toBeNull();
   });
 
-  it('keeps holding a dropped move after its Modify session ends', async () => {
+  it('endAnchorDrag keeps holding a dropped move', async () => {
     const cmp = bareComponent();
     dragAnchor(cmp);
     cmp.endAnchorDrag();
@@ -135,5 +141,25 @@ describe('FBMapComponent: holding the anchor while it is moved', () => {
     cmp.arrivals[0].resolve();
     await settle();
     expect(cmp.anchorMove()).toBeNull();
+  });
+
+  it('releases the anchor when the server does not answer the move in time', async () => {
+    vi.useFakeTimers();
+    const cmp = bareComponent();
+    dragAnchor(cmp);
+    await vi.advanceTimersByTimeAsync(ANCHOR_REQUEST_TIMEOUT_MS - 1);
+    expect(cmp.anchorMove()).toBe('pending');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(cmp.anchorMove()).toBeNull();
+  });
+
+  it('does not cut the wait for the stream short once the server has answered', async () => {
+    vi.useFakeTimers();
+    const cmp = bareComponent();
+    dragAnchor(cmp);
+    cmp.answers[0].resolve(true);
+    await vi.advanceTimersByTimeAsync(ANCHOR_REQUEST_TIMEOUT_MS);
+    expect(cmp.anchor.whenAnchorAt).toHaveBeenCalled();
+    expect(cmp.anchorMove()).toBe('pending');
   });
 });
