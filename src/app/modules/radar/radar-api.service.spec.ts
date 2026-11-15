@@ -651,6 +651,18 @@ describe('RadarAPIService init() (#755)', () => {
       expect(service.radar()?.controls.get('range')?.value).toBe(3000);
     });
 
+    it('opens the emulator at the range to watch at when settings arrive later', async () => {
+      emulator();
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+      expect(service.localView()).toBeUndefined();
+
+      app.config.radars.watchRange = 1500;
+      configEvents.next('ready');
+
+      expect(service.shownRange()).toBe(1500);
+    });
+
     it('opens a real radar as it is, whatever range is set to watch at', async () => {
       app.config.radars.watchRange = 1500;
       const service = TestBed.inject(RadarAPIService);

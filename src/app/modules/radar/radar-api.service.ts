@@ -208,6 +208,23 @@ export class RadarAPIService {
       this._radars().some((r) => r.id === saved)
     ) {
       this.init(saved);
+      return;
+    }
+    // the radar opened before the range to watch it at was known
+    const device = this._radar()?.device;
+    if (device?.id) {
+      this.openForWatching(device.id, device.brand);
+    }
+  }
+
+  private openForWatching(radarId: string, brand: string | undefined) {
+    const watching = watchingView(
+      radarId,
+      brand,
+      this.app.config.radars.watchRange
+    );
+    if (watching && this._localView()?.radarId !== radarId) {
+      this._localView.set(watching);
     }
   }
 
@@ -346,14 +363,7 @@ export class RadarAPIService {
     });
 
     this._radar.set({ device, capabilities, controls });
-    const watching = watchingView(
-      selected,
-      device.brand,
-      this.app.config.radars.watchRange
-    );
-    if (watching && this._localView()?.radarId !== selected) {
-      this._localView.set(watching);
-    }
+    this.openForWatching(selected, device.brand);
 
     // A Range Units change while this loaded read the capabilities again,
     // and this load's own answer may be the older one, so read them once more.
