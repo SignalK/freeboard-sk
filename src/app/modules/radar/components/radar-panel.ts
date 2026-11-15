@@ -358,21 +358,20 @@ export class RadarPanel {
   }
 
   protected setZoneEnabled(c: SectionControl, enabled: boolean) {
+    const radarId = this.radar()?.device?.id;
     this.zoneEdit
       .setEnabled(c.id, enabled)
-      .catch((err) => this.report(err, this.radar()?.device?.id));
+      .catch((err) => this.report(err, radarId));
   }
 
   protected clearZone(c: SectionControl) {
-    this.zoneEdit
-      .clear(c.id)
-      .catch((err) => this.report(err, this.radar()?.device?.id));
+    const radarId = this.radar()?.device?.id;
+    this.zoneEdit.clear(c.id).catch((err) => this.report(err, radarId));
   }
 
   protected saveZone() {
-    this.zoneEdit
-      .save()
-      .catch((err) => this.report(err, this.radar()?.device?.id));
+    const radarId = this.radar()?.device?.id;
+    this.zoneEdit.save().catch((err) => this.report(err, radarId));
   }
 
   /** Bearings in degrees relative to the bow, distances in the user's

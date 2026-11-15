@@ -1112,6 +1112,31 @@ describe('RadarPanel', () => {
       expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
     });
 
+    it('reports a refused zone change for the radar it was sent to', async () => {
+      withZone(zone);
+      let refuse = (): void => undefined;
+      api.setControl.mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            refuse = () => reject(new HttpErrorResponse({ status: 403 }));
+          })
+      );
+      const fixture = open();
+      zoneBlock(fixture.nativeElement)
+        .querySelector<HTMLElement>('mat-slide-toggle button')!
+        .click();
+      radar.update((r) => ({
+        ...r,
+        device: { id: 'emu0001', name: 'Emulator HALO', brand: 'Emulator' }
+      }));
+
+      refuse();
+      await fixture.whenStable();
+
+      expect(api.watchOnly).toHaveBeenCalledWith('fur6424A', 403);
+      expect(api.localView()).toBeUndefined();
+    });
+
     it('switches a zone off as the radar holds it', () => {
       withZone(zone);
       const el: HTMLElement = open().nativeElement;
