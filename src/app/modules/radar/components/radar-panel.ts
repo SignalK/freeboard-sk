@@ -425,12 +425,6 @@ export class RadarPanel {
 
   private send(controlId: string, change: ControlChange) {
     const radarId = this.radar()?.device?.id;
-    if (radarId && this.radarApi.localView() && LOCAL_CONTROLS.has(controlId)) {
-      // a change still on its way is older than this one
-      this.forget(controlId);
-      this.radarApi.setLocal(radarId, controlId, change);
-      return;
-    }
     const over = this.values().get(controlId);
     // an Auto switch sends only { auto }, so a value sent over the same
     // report is kept with it
@@ -439,6 +433,12 @@ export class RadarPanel {
       before && before.radarId === radarId && before.over === over
         ? before.change
         : {};
+    if (radarId && this.radarApi.localView() && LOCAL_CONTROLS.has(controlId)) {
+      // a change still on its way is older than this one
+      this.forget(controlId);
+      this.radarApi.setLocal(radarId, controlId, { ...kept, ...change });
+      return;
+    }
     const sent = { radarId, change: { ...kept, ...change }, over };
     this.sent.update((all) => new Map(all).set(controlId, sent));
     this.radarApi.setControl(radarId, controlId, change).catch((err) => {

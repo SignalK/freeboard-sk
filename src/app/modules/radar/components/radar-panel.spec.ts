@@ -681,6 +681,42 @@ describe('RadarPanel', () => {
       ).toBe(true);
     });
 
+    it('keeps a gain still on its way when Auto is switched on and off here', async () => {
+      emulator();
+      radar.update((r) => ({
+        ...r,
+        controls: new Map(r.controls).set('gain', { auto: false, value: 50 })
+      }));
+      const refusals = held();
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      const thumb = () =>
+        control(el, 'Gain').querySelector<HTMLInputElement>(
+          'input[matSliderThumb]'
+        )!;
+      const toggle = () =>
+        control(el, 'Gain').querySelector<HTMLElement>(
+          'mat-slide-toggle button'
+        )!;
+      thumb().value = '80';
+      thumb().dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      el.querySelector<HTMLElement>('.power-button')!.click();
+      refusals[1]();
+      await settle(fixture);
+
+      toggle().click();
+      fixture.detectChanges();
+      toggle().click();
+      fixture.detectChanges();
+      expect(thumb().value).toBe('80');
+
+      refusals[0]();
+      await settle(fixture);
+      expect(thumb().value).toBe('80');
+      expect(api.setControl).toHaveBeenCalledTimes(2);
+    });
+
     it('keeps the latest range when refusals arrive out of order', async () => {
       emulator();
       const refusals = held();
