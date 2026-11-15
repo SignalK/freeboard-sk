@@ -134,7 +134,10 @@ export class RadarPanel {
   });
   private radarRange = computed(() => {
     const value = this.radar()?.controls?.get('range')?.value;
-    return typeof value === 'number' ? value : undefined;
+    const range = typeof value === 'string' ? Number(value) : value;
+    return typeof range === 'number' && Number.isFinite(range) && range > 0
+      ? range
+      : undefined;
   });
   protected values = this.radarApi.shownControls;
   // Each change sent from a control, with the radar and the report it was

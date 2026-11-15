@@ -652,6 +652,35 @@ describe('RadarPanel', () => {
       fixture.detectChanges();
     };
 
+    it('zooms no further out than a range reported as text', async () => {
+      emulator();
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          ...r.capabilities,
+          controls: {
+            ...r.capabilities.controls,
+            range: {
+              ...r.capabilities.controls['range'],
+              validValues: [926, 1852, 3704]
+            }
+          }
+        } as CapabilityManifest,
+        controls: new Map(r.controls).set('range', { value: '1852' })
+      }));
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+      await tap(fixture, '.range .range-out');
+
+      expect(rangeText(el)).toBe('1 nm');
+      expect(
+        el.querySelector<HTMLButtonElement>('.range .range-out')!.disabled
+      ).toBe(true);
+    });
+
     it('keeps the latest range when refusals arrive out of order', async () => {
       emulator();
       const refusals = held();
