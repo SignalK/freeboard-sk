@@ -640,6 +640,16 @@ describe('RadarAPIService init() (#755)', () => {
       expect(put).not.toHaveBeenCalled();
     });
 
+    it('shows a range the radar reports as text', async () => {
+      held.set('vessels/self/radars/radar-1/controls', [
+        of({ ...controls, range: { value: '3000' } })
+      ]);
+      const service = TestBed.inject(RadarAPIService);
+      await service.init();
+
+      expect(service.shownRange()).toBe(3000);
+    });
+
     it('shows no further than the range the radar sends', async () => {
       emulator();
       const service = TestBed.inject(RadarAPIService);

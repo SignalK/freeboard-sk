@@ -7,6 +7,7 @@ import { SKStreamFacade } from '../skstream/skstream.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { DeltaSignal } from 'src/app/types';
 import { AcquireRequest } from './radar-targets';
+import { parseRange } from './range-rings';
 import {
   EMULATOR_BRAND,
   LocalView,
@@ -158,10 +159,9 @@ export class RadarAPIService {
     return view ? shownControls(controls, view.controls) : controls;
   });
   /** The selected radar's range (m) as this screen shows it. */
-  readonly shownRange = computed(() => {
-    const value = this.shownControls().get('range')?.value;
-    return typeof value === 'number' ? value : undefined;
-  });
+  readonly shownRange = computed(() =>
+    parseRange(this.shownControls().get('range')?.value)
+  );
   /** How this screen reshapes the selected radar's echoes. */
   readonly spokeAdjustment = computed(() => {
     const view = this.localView();
