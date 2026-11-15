@@ -42,6 +42,7 @@ import { GuardZoneEditService } from '../guard-zone-edit.service';
 import { dragHandle, ZoneHandle } from '../guard-zone-edit';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { LOCAL_CONTROLS, zoomSteps } from '../radar-local-view';
+import { radarRange } from '../range-rings';
 
 type ZoneField = 'startAngle' | 'endAngle' | 'startDistance' | 'endDistance';
 const FIELD_HANDLES: Record<ZoneField, ZoneHandle> = {
@@ -132,13 +133,7 @@ export class RadarPanel {
         ].sort((a, b) => Number(a.value) - Number(b.value));
     return zoomSteps(sent, radarRange);
   });
-  private radarRange = computed(() => {
-    const value = this.radar()?.controls?.get('range')?.value;
-    const range = typeof value === 'string' ? Number(value) : value;
-    return typeof range === 'number' && Number.isFinite(range) && range > 0
-      ? range
-      : undefined;
-  });
+  private radarRange = computed(() => radarRange(this.radar()));
   protected values = this.radarApi.shownControls;
   // Each change sent from a control, with the radar and the report it was
   // made over. A radar that refuses a change reports its old value again,

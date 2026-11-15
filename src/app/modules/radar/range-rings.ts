@@ -107,5 +107,8 @@ export function ringLabel(distance: number, unit: TARGET_UNIT): string {
 /** The radar's range (m), or undefined when it has not reported one. */
 export function radarRange(radar: ActiveRadar | undefined): number | undefined {
   const value = radar?.controls?.get('range')?.value;
-  return typeof value === 'number' ? value : undefined;
+  const range = typeof value === 'string' ? Number(value) : value;
+  return typeof range === 'number' && Number.isFinite(range) && range > 0
+    ? range
+    : undefined;
 }
