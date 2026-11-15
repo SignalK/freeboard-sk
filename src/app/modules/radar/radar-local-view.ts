@@ -23,7 +23,7 @@ const SEA_CUT_AT_BOAT = 1.6;
 /** How far out, in metres, the sea's cut falls to about a third */
 const SEA_CUT_RANGE = 500;
 /** Zooming in further than this shows the radar's pixels as blocks */
-const MAX_ZOOM = 8;
+const MAX_ZOOM = 12;
 
 /** The changes made on this screen to a radar it may not change. */
 export interface LocalView {

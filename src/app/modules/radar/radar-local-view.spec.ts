@@ -31,6 +31,14 @@ describe('radar local view', () => {
     ]);
   });
 
+  it('zooms a radar sending 6 nm in as far as 0.5 nm', () => {
+    const nm = 1852;
+    const ranges = [0.25, 0.5, 1, 3, 6].map((n) => ({ value: n * nm }));
+    expect(zoomSteps(ranges, 6 * nm).map((o) => o.value / nm)).toEqual([
+      0.5, 1, 3, 6
+    ]);
+  });
+
   it('shows gain as set here and the range no further than the radar sends', () => {
     const radar = controls({
       gain: { auto: true, value: 30 },
