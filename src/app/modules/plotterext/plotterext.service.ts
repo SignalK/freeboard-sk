@@ -200,7 +200,9 @@ export class PlotterExtensionService {
   // placements whose extension is present and compatible (drives the overlay)
   readonly activeWidgets = signal<PlacedWidget[]>([]);
   /** The screen class of the current viewport (see screenClassOf). */
-  readonly screenClass = signal<ScreenClass>(screenClassOf(window.innerWidth));
+  readonly screenClass = signal<ScreenClass>(
+    screenClassOf(window.innerWidth, window.innerHeight)
+  );
   /**
    * The active widgets this screen shows. Hidden ones still hold their cells
    * (see occupancy), so a larger screen never finds two widgets in one place.
@@ -1398,7 +1400,9 @@ export class PlotterExtensionService {
     // the session by design.
     window.addEventListener('resize', () => {
       this.viewportTick.update((n) => n + 1);
-      this.screenClass.set(screenClassOf(window.innerWidth));
+      this.screenClass.set(
+        screenClassOf(window.innerWidth, window.innerHeight)
+      );
       this.endMoveOfHiddenWidget();
     });
     this.bridgeRouteEvents();
