@@ -116,9 +116,21 @@ export class RadarPanel {
   protected ranges = computed(() => {
     const ranges = rangeOptions(this.capabilities());
     const radarRange = this.radarRange();
-    return this.radarApi.localView() && radarRange !== undefined
-      ? zoomSteps(ranges, radarRange)
-      : ranges;
+    if (!this.radarApi.localView() || radarRange === undefined) {
+      return ranges;
+    }
+    // the range it sends may be one not listed, as after a units change,
+    // and zooming out has to reach it
+    const sent = ranges.some((o) => o.value === radarRange)
+      ? ranges
+      : [
+          ...ranges,
+          {
+            value: radarRange,
+            label: this.rangeDef()?.descriptions?.[radarRange] ?? ''
+          }
+        ].sort((a, b) => Number(a.value) - Number(b.value));
+    return zoomSteps(sent, radarRange);
   });
   private radarRange = computed(() => {
     const value = this.radar()?.controls?.get('range')?.value;

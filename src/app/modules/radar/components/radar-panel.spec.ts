@@ -607,6 +607,35 @@ describe('RadarPanel', () => {
       expect(app.parseHttpErrorResponse).not.toHaveBeenCalled();
     });
 
+    it('zooms back out to the range the emulator sends, though not listed', async () => {
+      emulator();
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          ...r.capabilities,
+          controls: {
+            ...r.capabilities.controls,
+            range: {
+              ...r.capabilities.controls['range'],
+              validValues: [500, 1000, 2000]
+            }
+          }
+        } as CapabilityManifest
+      }));
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+      expect(rangeText(el)).toBe('1000');
+
+      await tap(fixture, '.range .range-out');
+      expect(rangeText(el)).toBe('1 nm');
+      expect(
+        el.querySelector<HTMLButtonElement>('.range .range-out')!.disabled
+      ).toBe(true);
+    });
+
     // each refusal arrives when the test lets it
     const held = () => {
       const refusals: Array<() => void> = [];
