@@ -9,9 +9,22 @@ import { fromLonLat, get as getProjection } from 'ol/proj';
 import ReprojImage from 'ol/reproj/Image';
 import { RadarRenderDef } from './radar-render.service';
 import { ShipState } from './ship-state.model';
+import { signal } from '@angular/core';
+import { NO_ADJUSTMENT } from 'src/app/modules/radar/radar-local-view';
 
 describe('RadarRenderService', () => {
   const showMessage = vi.fn();
+  // the range this screen shows, which a login that may only watch the
+  // emulator sets for itself
+  const shownRange = signal<number | undefined>(undefined);
+  const radarApi = {
+    radar: () => ({
+      device: { id: 'r1', name: 'Radar' },
+      controls: new Map([['range', { value: 1852 }]])
+    }),
+    shownRange,
+    spokeAdjustment: () => NO_ADJUSTMENT
+  };
 
   beforeEach(() => {
     vi.stubGlobal(
@@ -25,7 +38,7 @@ describe('RadarRenderService', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AppFacade, useValue: { showMessage, debug: vi.fn() } },
-        { provide: RadarAPIService, useValue: {} }
+        { provide: RadarAPIService, useValue: radarApi }
       ]
     });
   });
@@ -33,6 +46,7 @@ describe('RadarRenderService', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     showMessage.mockReset();
+    shownRange.set(undefined);
   });
 
   // The stream closes on every standby, once per watchman cycle.
@@ -61,6 +75,7 @@ describe('RadarRenderService', () => {
     });
     TestBed.overrideProvider(RadarAPIService, {
       useValue: {
+        ...radarApi,
         radarId: () => 'radar-b',
         apiVersion: () => '3.4.0',
         radar: () => ({
@@ -81,7 +96,10 @@ describe('RadarRenderService', () => {
   });
 
   describe('radar picture', () => {
-    let worker: { onmessage?: (event: { data: object }) => void };
+    let worker: {
+      onmessage?: (event: { data: object }) => void;
+      posted: object[];
+    };
     let sources: ImageSource[];
     let service: RadarRenderService;
     let shipState: Subject<ShipState>;
@@ -92,7 +110,8 @@ describe('RadarRenderService', () => {
       maxSpokeLen: 512,
       hasSparseSpokes: false,
       streamUrl: 'ws://localhost/spokes',
-      legend: {}
+      legend: {},
+      pixelColors: 16
     };
     const view = getProjection('EPSG:3857')!;
     const loaded = async (source: ImageSource) => {
@@ -107,11 +126,14 @@ describe('RadarRenderService', () => {
         'Worker',
         class {
           onmessage?: (event: { data: object }) => void;
+          posted: object[] = [];
           constructor() {
             // eslint-disable-next-line @typescript-eslint/no-this-alias
             worker = this;
           }
-          postMessage(): void {}
+          postMessage(message: object): void {
+            this.posted.push(message);
+          }
           terminate(): void {}
         }
       );
@@ -152,6 +174,20 @@ describe('RadarRenderService', () => {
       const [resolutionX] = [image.getResolution()].flat();
       expect((maxX - minX) / 2).toBeCloseTo(1852, -1);
       expect(resolutionX).toBeCloseTo((maxX - minX) / (2 * radar.maxSpokeLen));
+    });
+
+    it('draws the picture out to the range this screen shows', () => {
+      TestBed.tick();
+      expect(worker.posted).toContainEqual({
+        view: { adjustment: NO_ADJUSTMENT, clip: 1 }
+      });
+
+      shownRange.set(926);
+      TestBed.tick();
+
+      expect(worker.posted.at(-1)).toEqual({
+        view: { adjustment: NO_ADJUSTMENT, clip: 0.5 }
+      });
     });
 
     it('follows the vessel when it moves', async () => {

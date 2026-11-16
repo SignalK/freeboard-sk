@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   Component,
   computed,
@@ -40,6 +41,8 @@ import { GuardZone, guardZoneFromControl } from '../guard-zones';
 import { GuardZoneEditService } from '../guard-zone-edit.service';
 import { dragHandle, ZoneHandle } from '../guard-zone-edit';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
+import { LOCAL_CONTROLS, zoomSteps } from '../radar-local-view';
+import { radarRange } from '../range-rings';
 
 type ZoneField = 'startAngle' | 'endAngle' | 'startDistance' | 'endDistance';
 const FIELD_HANDLES: Record<ZoneField, ZoneHandle> = {
@@ -50,6 +53,9 @@ const FIELD_HANDLES: Record<ZoneField, ZoneHandle> = {
 };
 
 const AREA_TYPES = ['sector', 'zone', 'rect'];
+const WATCH_ONLY_REASON = 'This login may watch the radar but not change it.';
+const WATCH_ONLY_MESSAGE =
+  'You may watch this radar but not change it. Gain, sea and range now change this screen only.';
 // hundredths of a mile or kilometre: 10 to 20 m, as fine as a zone needs
 const DISTANCE_DECIMALS = 2;
 const DISTANCE_STEP = 10 ** -DISTANCE_DECIMALS;
@@ -106,10 +112,29 @@ export class RadarPanel {
   // sections are not rebuilt for every control update
   private capabilities = computed(() => this.radar()?.capabilities);
   protected sections = computed(() => controlSections(this.capabilities()));
-  protected ranges = computed(() => rangeOptions(this.capabilities()));
-  protected values = computed(
-    () => this.radar()?.controls ?? new Map<string, ControlValue>()
-  );
+  /** The ranges to pick from; on a radar this screen may only watch, the
+   *  ones it can zoom to within the range the radar sends. */
+  protected ranges = computed(() => {
+    const ranges = rangeOptions(this.capabilities());
+    const radarRange = this.radarRange();
+    if (!this.radarApi.localView() || radarRange === undefined) {
+      return ranges;
+    }
+    // the range it sends may be one not listed, as after a units change,
+    // and zooming out has to reach it
+    const sent = ranges.some((o) => o.value === radarRange)
+      ? ranges
+      : [
+          ...ranges,
+          {
+            value: radarRange,
+            label: this.rangeDef()?.descriptions?.[radarRange] ?? ''
+          }
+        ].sort((a, b) => Number(a.value) - Number(b.value));
+    return zoomSteps(sent, radarRange);
+  });
+  private radarRange = computed(() => radarRange(this.radar()));
+  protected values = this.radarApi.shownControls;
   // Each change sent from a control, with the radar and the report it was
   // made over. A radar that refuses a change reports its old value again,
   // and a control only moves back when its binding changes, so the control
@@ -331,19 +356,20 @@ export class RadarPanel {
   }
 
   protected setZoneEnabled(c: SectionControl, enabled: boolean) {
+    const radarId = this.radar()?.device?.id;
     this.zoneEdit
       .setEnabled(c.id, enabled)
-      .catch((err) => this.app.parseHttpErrorResponse(err));
+      .catch((err) => this.report(err, radarId));
   }
 
   protected clearZone(c: SectionControl) {
-    this.zoneEdit
-      .clear(c.id)
-      .catch((err) => this.app.parseHttpErrorResponse(err));
+    const radarId = this.radar()?.device?.id;
+    this.zoneEdit.clear(c.id).catch((err) => this.report(err, radarId));
   }
 
   protected saveZone() {
-    this.zoneEdit.save().catch((err) => this.app.parseHttpErrorResponse(err));
+    const radarId = this.radar()?.device?.id;
+    this.zoneEdit.save().catch((err) => this.report(err, radarId));
   }
 
   /** Bearings in degrees relative to the bow, distances in the user's
@@ -402,20 +428,63 @@ export class RadarPanel {
       before && before.radarId === radarId && before.over === over
         ? before.change
         : {};
+    if (radarId && this.radarApi.localView() && LOCAL_CONTROLS.has(controlId)) {
+      // a change still on its way is older than this one
+      this.forget(controlId);
+      this.radarApi.setLocal(radarId, controlId, { ...kept, ...change });
+      return;
+    }
     const sent = { radarId, change: { ...kept, ...change }, over };
     this.sent.update((all) => new Map(all).set(controlId, sent));
     this.radarApi.setControl(radarId, controlId, change).catch((err) => {
-      // a change that did not reach the radar is not reported back
-      this.sent.update((all) => {
-        if (all.get(controlId) !== sent) {
-          return all;
-        }
-        const rest = new Map(all);
-        rest.delete(controlId);
-        return rest;
-      });
-      this.app.parseHttpErrorResponse(err);
+      // a change that did not reach the radar is not reported back; only
+      // the latest one may become this screen's setting
+      const latest = this.sent().get(controlId) === sent;
+      if (latest) {
+        this.forget(controlId);
+      }
+      this.report(err, radarId, controlId, latest ? sent.change : undefined);
     });
+  }
+
+  private forget(controlId: string) {
+    this.sent.update((all) => {
+      if (!all.has(controlId)) {
+        return all;
+      }
+      const rest = new Map(all);
+      rest.delete(controlId);
+      return rest;
+    });
+  }
+
+  /**
+   * A change the server refused. On the radar emulator, a login that may not
+   * change the radar watches it instead: gain, sea and range then change
+   * this screen only, and the user is told so once rather than on every tap.
+   */
+  private report(
+    err: unknown,
+    radarId: string | undefined,
+    controlId?: string,
+    change?: ControlChange
+  ) {
+    const status = err instanceof HttpErrorResponse ? err.status : undefined;
+    const watching = this.radarApi.localView() !== undefined;
+    if (!radarId || !this.radarApi.watchOnly(radarId, status)) {
+      this.app.parseHttpErrorResponse(err);
+      return;
+    }
+    if (controlId && LOCAL_CONTROLS.has(controlId)) {
+      if (change) {
+        this.radarApi.setLocal(radarId, controlId, change);
+      }
+      if (!watching) {
+        this.app.showMessage(WATCH_ONLY_MESSAGE);
+      }
+    } else {
+      this.app.showMessage(WATCH_ONLY_REASON);
+    }
   }
 
   /** The slider bounds: the auto adjustment's while adjusting on auto. */

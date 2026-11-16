@@ -126,4 +126,10 @@ describe('radarRange', () => {
     expect(radarRange(radar({}))).toBeUndefined();
     expect(radarRange(undefined)).toBeUndefined();
   });
+
+  it('reads a range reported as text, and only a real one', () => {
+    expect(radarRange(radar({ range: { value: '1852' } }))).toBe(1852);
+    expect(radarRange(radar({ range: { value: 'off' } }))).toBeUndefined();
+    expect(radarRange(radar({ range: { value: 0 } }))).toBeUndefined();
+  });
 });

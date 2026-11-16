@@ -1,5 +1,5 @@
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
-import { ActiveRadar } from './radar-api.service';
+import type { ActiveRadar } from './radar-api.service';
 
 // Ring counts tried in turn: the first that puts the rings at round distances
 // wins, as on a radar display. Four is the fallback.
@@ -106,6 +106,13 @@ export function ringLabel(distance: number, unit: TARGET_UNIT): string {
 
 /** The radar's range (m), or undefined when it has not reported one. */
 export function radarRange(radar: ActiveRadar | undefined): number | undefined {
-  const value = radar?.controls?.get('range')?.value;
-  return typeof value === 'number' ? value : undefined;
+  return parseRange(radar?.controls?.get('range')?.value);
+}
+
+/** A range control's value (m), which a radar may report as text. */
+export function parseRange(value: unknown): number | undefined {
+  const range = typeof value === 'string' ? Number(value) : value;
+  return typeof range === 'number' && Number.isFinite(range) && range > 0
+    ? range
+    : undefined;
 }

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { signal, WritableSignal } from '@angular/core';
+import { computed, signal, Signal, WritableSignal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RadarPanel } from './radar-panel';
@@ -11,6 +12,12 @@ import {
   ControlValue,
   RadarAPIService
 } from '../radar-api.service';
+import {
+  EMULATOR_BRAND,
+  LocalView,
+  refusesChanges,
+  shownControls
+} from '../radar-local-view';
 
 /**
  * The radar panel follows the MaYaRa radar GUI: a power lozenge with the radar
@@ -84,6 +91,14 @@ describe('RadarPanel', () => {
     radars: WritableSignal<Array<{ id: string; name: string }>>;
     init: ReturnType<typeof vi.fn>;
     setControl: ReturnType<typeof vi.fn>;
+    localView: Signal<LocalView | undefined>;
+    shownControls: Signal<Map<string, ControlValue>>;
+    watchOnly: ReturnType<typeof vi.fn>;
+    setLocal: ReturnType<typeof vi.fn>;
+  };
+  let app: {
+    showMessage: ReturnType<typeof vi.fn>;
+    parseHttpErrorResponse: ReturnType<typeof vi.fn>;
   };
 
   const values = (v: Record<string, ControlValue>) =>
@@ -103,6 +118,11 @@ describe('RadarPanel', () => {
         firmwareVersion: { value: '01.05' }
       })
     });
+    // as RadarAPIService keeps the view of a radar this screen may only watch
+    const local = signal<LocalView | undefined>(undefined);
+    const localView = computed(() =>
+      local()?.radarId === radar().device.id ? local() : undefined
+    );
     api = {
       radar,
       radars: signal([
@@ -110,7 +130,43 @@ describe('RadarPanel', () => {
         { id: 'fur6424B', name: 'DRS4D-NXT 6424 B' }
       ]),
       init: vi.fn(async () => 'fur6424B'),
-      setControl: vi.fn(async () => undefined)
+      setControl: vi.fn(async () => undefined),
+      localView,
+      shownControls: computed(() => {
+        const view = localView();
+        return view
+          ? shownControls(radar().controls, view.controls)
+          : radar().controls;
+      }),
+      watchOnly: vi.fn((radarId: string, status?: number) => {
+        if (
+          !refusesChanges(status) ||
+          radar().device.brand !== EMULATOR_BRAND
+        ) {
+          return false;
+        }
+        if (!localView()) {
+          local.set({ radarId, controls: new Map() });
+        }
+        return true;
+      }),
+      setLocal: vi.fn(
+        (radarId: string, controlId: string, change: ControlValue) =>
+          local.update(
+            (view) =>
+              view && {
+                radarId,
+                controls: new Map(view.controls).set(controlId, {
+                  ...view.controls.get(controlId),
+                  ...change
+                })
+              }
+          )
+      )
+    };
+    app = {
+      showMessage: vi.fn(),
+      parseHttpErrorResponse: vi.fn()
     };
     TestBed.configureTestingModule({
       imports: [RadarPanel],
@@ -125,7 +181,8 @@ describe('RadarPanel', () => {
             uiCtrl: () => ui(),
             formatValueForDisplay: (v: number) => `${v}`,
             saveConfig: (): void => undefined,
-            parseHttpErrorResponse: (): void => undefined
+            showMessage: app.showMessage,
+            parseHttpErrorResponse: app.parseHttpErrorResponse
           }
         },
         { provide: RadarAPIService, useValue: api }
@@ -514,6 +571,214 @@ describe('RadarPanel', () => {
 
     expect(api.setControl).toHaveBeenCalledWith('fur6424A', 'power', {
       value: 2
+    });
+  });
+
+  describe('on a login that may watch the radar but not change it', () => {
+    const refused = (status: number) =>
+      api.setControl.mockRejectedValue(new HttpErrorResponse({ status }));
+    const emulator = () =>
+      radar.update((r) => ({
+        ...r,
+        device: { id: 'emu0001', name: 'Emulator HALO', brand: 'Emulator' }
+      }));
+    const rangeText = (el: HTMLElement) =>
+      el.querySelector('.range-text')!.textContent?.trim();
+    const tap = async (fixture: ReturnType<typeof open>, selector: string) => {
+      fixture.nativeElement.querySelector(selector).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('changes the range of the emulator on this screen only, saying so once', async () => {
+      emulator();
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+      expect(rangeText(el)).toBe('1/2 nm');
+      expect(radar().controls.get('range')?.value).toBe(1852);
+
+      await tap(fixture, '.range .range-out');
+      expect(rangeText(el)).toBe('1 nm');
+      expect(api.setControl).toHaveBeenCalledTimes(1);
+      expect(app.showMessage).toHaveBeenCalledTimes(1);
+      expect(app.parseHttpErrorResponse).not.toHaveBeenCalled();
+    });
+
+    it('zooms back out to the range the emulator sends, though not listed', async () => {
+      emulator();
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          ...r.capabilities,
+          controls: {
+            ...r.capabilities.controls,
+            range: {
+              ...r.capabilities.controls['range'],
+              validValues: [500, 1000, 2000]
+            }
+          }
+        } as CapabilityManifest
+      }));
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+      expect(rangeText(el)).toBe('1000');
+
+      await tap(fixture, '.range .range-out');
+      expect(rangeText(el)).toBe('1 nm');
+      expect(
+        el.querySelector<HTMLButtonElement>('.range .range-out')!.disabled
+      ).toBe(true);
+    });
+
+    // each refusal arrives when the test lets it
+    const held = () => {
+      const refusals: Array<() => void> = [];
+      api.setControl.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            refusals.push(() => reject(new HttpErrorResponse({ status: 403 })))
+          )
+      );
+      return refusals;
+    };
+    const settle = async (fixture: ReturnType<typeof open>) => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('zooms no further out than a range reported as text', async () => {
+      emulator();
+      radar.update((r) => ({
+        ...r,
+        capabilities: {
+          ...r.capabilities,
+          controls: {
+            ...r.capabilities.controls,
+            range: {
+              ...r.capabilities.controls['range'],
+              validValues: [926, 1852, 3704]
+            }
+          }
+        } as CapabilityManifest,
+        controls: new Map(r.controls).set('range', { value: '1852' })
+      }));
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+      await tap(fixture, '.range .range-out');
+
+      expect(rangeText(el)).toBe('1 nm');
+      expect(
+        el.querySelector<HTMLButtonElement>('.range .range-out')!.disabled
+      ).toBe(true);
+    });
+
+    it('keeps a gain still on its way when Auto is switched on and off here', async () => {
+      emulator();
+      radar.update((r) => ({
+        ...r,
+        controls: new Map(r.controls).set('gain', { auto: false, value: 50 })
+      }));
+      const refusals = held();
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      const thumb = () =>
+        control(el, 'Gain').querySelector<HTMLInputElement>(
+          'input[matSliderThumb]'
+        )!;
+      const toggle = () =>
+        control(el, 'Gain').querySelector<HTMLElement>(
+          'mat-slide-toggle button'
+        )!;
+      thumb().value = '80';
+      thumb().dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      el.querySelector<HTMLElement>('.power-button')!.click();
+      refusals[1]();
+      await settle(fixture);
+
+      toggle().click();
+      fixture.detectChanges();
+      toggle().click();
+      fixture.detectChanges();
+      expect(thumb().value).toBe('80');
+
+      refusals[0]();
+      await settle(fixture);
+      expect(thumb().value).toBe('80');
+      expect(api.setControl).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the latest range when refusals arrive out of order', async () => {
+      emulator();
+      const refusals = held();
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      el.querySelector<HTMLElement>('.range .range-in')!.click();
+      fixture.detectChanges();
+      el.querySelector<HTMLElement>('.range .range-out')!.click();
+      fixture.detectChanges();
+
+      refusals[1]();
+      await settle(fixture);
+      refusals[0]();
+      await settle(fixture);
+
+      expect(rangeText(el)).toBe('1 nm');
+    });
+
+    it('keeps a range set on this screen over an older refusal', async () => {
+      emulator();
+      const refusals = held();
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+      el.querySelector<HTMLElement>('.range .range-in')!.click();
+      el.querySelector<HTMLElement>('.power-button')!.click();
+      refusals[1]();
+      await settle(fixture);
+
+      el.querySelector<HTMLElement>('.range .range-out')!.click();
+      fixture.detectChanges();
+      refusals[0]();
+      await settle(fixture);
+
+      expect(rangeText(el)).toBe('1 nm');
+      expect(api.setControl).toHaveBeenCalledTimes(2);
+    });
+
+    it('answers a change only the radar can make with a note, not an error', async () => {
+      emulator();
+      refused(401);
+      const fixture = open();
+
+      await tap(fixture, '.range .range-in');
+      await tap(fixture, '.power-button');
+
+      expect(app.showMessage).toHaveBeenCalledTimes(2);
+      expect(app.showMessage).toHaveBeenLastCalledWith(
+        'This login may watch the radar but not change it.'
+      );
+      expect(app.parseHttpErrorResponse).not.toHaveBeenCalled();
+    });
+
+    it('reports a refused change to a real radar as an error', async () => {
+      refused(403);
+      const fixture = open();
+      const el: HTMLElement = fixture.nativeElement;
+
+      await tap(fixture, '.range .range-in');
+
+      expect(rangeText(el)).toBe('1 nm');
+      expect(app.parseHttpErrorResponse).toHaveBeenCalledTimes(1);
+      expect(api.localView()).toBeUndefined();
     });
   });
 
@@ -910,6 +1175,31 @@ describe('RadarPanel', () => {
       fixture.detectChanges();
 
       expect(TestBed.inject(GuardZoneEditService).edit()).toBeUndefined();
+    });
+
+    it('reports a refused zone change for the radar it was sent to', async () => {
+      withZone(zone);
+      let refuse = (): void => undefined;
+      api.setControl.mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            refuse = () => reject(new HttpErrorResponse({ status: 403 }));
+          })
+      );
+      const fixture = open();
+      zoneBlock(fixture.nativeElement)
+        .querySelector<HTMLElement>('mat-slide-toggle button')!
+        .click();
+      radar.update((r) => ({
+        ...r,
+        device: { id: 'emu0001', name: 'Emulator HALO', brand: 'Emulator' }
+      }));
+
+      refuse();
+      await fixture.whenStable();
+
+      expect(api.watchOnly).toHaveBeenCalledWith('fur6424A', 403);
+      expect(api.localView()).toBeUndefined();
     });
 
     it('switches a zone off as the radar holds it', () => {
