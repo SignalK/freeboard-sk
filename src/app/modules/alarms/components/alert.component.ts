@@ -10,7 +10,8 @@ import {
   inject,
   ChangeDetectionStrategy,
   NgZone,
-  computed
+  computed,
+  untracked
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -165,7 +166,8 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   <div>
                     @if (
                       app.config.course.autoNextPointOnArrival &&
-                      app.config.course.autoNextPointTrigger === alert().type
+                      app.config.course.autoNextPointTrigger === alert().type &&
+                      (isLastPoint || !course.serverAdvancesRoute())
                     ) {
                       <div>
                         @if (isLastPoint) {
@@ -260,9 +262,19 @@ export class AlertComponent {
       this.showStaticNextPoint =
         !!al.type &&
         ['perpendicularPassed', 'arrivalCircleEntered'].includes(al.type);
+      // Untracked: course updates arrive every second and must not re-run the
+      // audio and the hide timer below.
+      const serverAdvances = untracked(() => {
+        const course = this.course.courseData();
+        return (
+          course.pointIndex !== course.pointTotal - 1 &&
+          this.course.serverAdvancesRoute()
+        );
+      });
       this.showAutoNextPoint =
         this.showStaticNextPoint &&
-        this.app.config.course.autoNextPointTrigger === al.type;
+        this.app.config.course.autoNextPointTrigger === al.type &&
+        !serverAdvances;
       // Read here, unconditionally, so the effect re-runs when the input
       // changes. processAudio() also reads it, but only behind guards that
       // can short-circuit, so this is the one registration that always runs.

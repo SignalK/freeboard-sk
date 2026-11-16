@@ -76,7 +76,7 @@ describe('CourseService course API data (#755)', () => {
     position: { longitude: lon, latitude: lat }
   });
 
-  function setupWithData() {
+  function setupWithData(signalk: object = {}) {
     const app = {
       config: { units: { distance: 'naut-mile' } },
       useMagnetic: false,
@@ -88,7 +88,7 @@ describe('CourseService course API data (#755)', () => {
     TestBed.configureTestingModule({
       providers: [
         CourseService,
-        { provide: SignalKClient, useValue: {} },
+        { provide: SignalKClient, useValue: signalk },
         { provide: AppFacade, useValue: app },
         {
           provide: SKResourceService,
@@ -148,6 +148,36 @@ describe('CourseService course API data (#755)', () => {
     expect(app.data.activeWaypoint).toBeNull();
     expect(c.pointIndex).toBe(2);
     expect(c.pointTotal).toBe(5);
+  });
+
+  it('learns from the server whether it advances a newly followed route', async () => {
+    const followRoute = async (autoAdvance?: string) => {
+      const get = vi.fn(() => of({ autoAdvance }));
+      const { service } = setupWithData({ api: { get } });
+      service.parseSelf(
+        vesselWithCourse({
+          arrivalCircle: 250,
+          activeRoute: {
+            href: '/resources/routes/rte-1',
+            pointIndex: 0,
+            pointTotal: 3,
+            reverse: false,
+            name: 'Home'
+          },
+          nextPoint: point(-80.1, 25.1, '/resources/routes/rte-1'),
+          previousPoint: point(-80.2, 25.2)
+        })
+      );
+      await Promise.resolve();
+      expect(get).toHaveBeenCalledTimes(1);
+      const advances = service.serverAdvancesRoute();
+      TestBed.resetTestingModule();
+      return advances;
+    };
+
+    expect(await followRoute('either')).toBe(true);
+    expect(await followRoute('off')).toBe(false);
+    expect(await followRoute(undefined)).toBe(false);
   });
 
   it('clears the course when the destination is removed', () => {

@@ -3,20 +3,38 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { AppFacade } from 'src/app/app.facade';
+import type { ALARM_STATE } from 'src/app/types';
 import { CourseService } from '../../course';
 import { MobService } from '../mob.service';
 import { NotificationManager } from '../notification-manager';
 import { AlertComponent, AlertData } from './alert.component';
 
-function mount(alert: Partial<AlertData>): ComponentFixture<AlertComponent> {
+interface RouteContext {
+  pointIndex: number;
+  pointTotal: number;
+  serverAdvances: boolean;
+}
+
+function mount(
+  alert: Partial<AlertData>,
+  route?: RouteContext
+): ComponentFixture<AlertComponent> {
   TestBed.configureTestingModule({
     providers: [
       {
         provide: AppFacade,
         useValue: {
           uiCtrl: signal({ alertList: false }),
-          config: { course: {} },
-          data: { activeRoute: null, vessels: { self: {} } },
+          config: {
+            course: route
+              ? {
+                  autoNextPointOnArrival: true,
+                  autoNextPointTrigger: 'perpendicularPassed',
+                  autoNextPointDelay: 5000
+                }
+              : {}
+          },
+          data: { activeRoute: route ? 'rte-1' : null, vessels: { self: {} } },
           audio: {},
           formatValueForDisplay: () => ''
         }
@@ -24,7 +42,14 @@ function mount(alert: Partial<AlertData>): ComponentFixture<AlertComponent> {
       { provide: NotificationManager, useValue: {} },
       {
         provide: CourseService,
-        useValue: { courseData: signal({ position: null }) }
+        useValue: {
+          courseData: signal({
+            position: null,
+            pointIndex: route?.pointIndex ?? -1,
+            pointTotal: route?.pointTotal ?? 0
+          }),
+          serverAdvancesRoute: signal(route?.serverAdvances ?? false)
+        }
       },
       { provide: MobService, useValue: {} }
     ]
@@ -88,5 +113,41 @@ describe('AlertComponent', () => {
       el.querySelectorAll('fb-mob-readout button')
     ).map((b) => b.textContent?.trim());
     expect(readoutButtons).toEqual(['close END MOB']);
+  });
+
+  describe('on arriving at a route point', () => {
+    const arrival: Partial<AlertData> = {
+      type: 'perpendicularPassed',
+      priority: 'alert' as ALARM_STATE,
+      canAcknowledge: false
+    };
+
+    it('counts down to the next point itself', () => {
+      const f = mount(arrival, {
+        pointIndex: 1,
+        pointTotal: 4,
+        serverAdvances: false
+      });
+      expect(labels(f).some((l) => l.includes('Next point in'))).toBe(true);
+    });
+
+    it('leaves advancing to a server that advances the route', () => {
+      const f = mount(arrival, {
+        pointIndex: 1,
+        pointTotal: 4,
+        serverAdvances: true
+      });
+      expect(labels(f).some((l) => l.includes('Next point in'))).toBe(false);
+      expect(labels(f).some((l) => l.includes('NEXT POINT'))).toBe(true);
+    });
+
+    it('still ends the route at its last point', () => {
+      const f = mount(arrival, {
+        pointIndex: 3,
+        pointTotal: 4,
+        serverAdvances: true
+      });
+      expect(labels(f).some((l) => l.includes('End Route in'))).toBe(true);
+    });
   });
 });

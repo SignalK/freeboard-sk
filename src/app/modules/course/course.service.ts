@@ -10,6 +10,9 @@ import { firstValueFrom } from 'rxjs';
 import { Convert } from 'src/app/lib/convert';
 import { followedPointIndex } from '../map/route-point-pick';
 
+// autoAdvance modes in which the server moves a followed route on by itself.
+const SERVER_ADVANCE_MODES = ['arrivalCircle', 'perpendicular', 'either'];
+
 // ** Signal K course operations
 @Injectable({ providedIn: 'root' })
 export class CourseService {
@@ -37,6 +40,11 @@ export class CourseService {
     destPointName: ''
   });
   readonly courseData = this._courseData.asReadonly();
+
+  // Advancing from here as well would skip a point when the server already
+  // advances the route.
+  private _serverAdvancesRoute = signal(false);
+  readonly serverAdvancesRoute = this._serverAdvancesRoute.asReadonly();
 
   constructor(
     private signalk: SignalKClient,
@@ -338,6 +346,27 @@ export class CourseService {
     const followed = this.app.data.activeRoute;
     this.processCourseApi(value);
     this.dropHiddenRoute(followed);
+    if (this.app.data.activeRoute && this.app.data.activeRoute !== followed) {
+      void this.refreshServerAutoAdvance();
+    }
+  }
+
+  private async refreshServerAutoAdvance() {
+    try {
+      const course = await firstValueFrom(
+        this.signalk.api.get(
+          this.app.skApiVersion,
+          'vessels/self/navigation/course'
+        )
+      );
+      this._serverAdvancesRoute.set(
+        SERVER_ADVANCE_MODES.includes(
+          (course as { autoAdvance?: string } | null)?.autoAdvance ?? ''
+        )
+      );
+    } catch {
+      this._serverAdvancesRoute.set(false);
+    }
   }
 
   /**
