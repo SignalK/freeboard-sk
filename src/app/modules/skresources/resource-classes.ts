@@ -274,6 +274,9 @@ export class SKVessel extends SKTargetBase {
     distance: null,
     timeTo: null
   };
+  /** Client-clock epoch ms at which `closestApproach` was received, so its
+   * `timeTo` can count down between updates (0 = none yet). */
+  closestApproachUpdatedAt = 0;
   cog?: number | null;
   cogTrue: number | null = null;
   cogMagnetic: number | null = null;
