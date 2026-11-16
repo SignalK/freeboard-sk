@@ -202,6 +202,25 @@ export class AnchorService {
   }
 
   /**
+   * @description Tell the user why an anchor command failed. The anchor alarm
+   * plugins refuse a command, such as a zone that would leave the boat outside
+   * it, with a 403 and the reason, which parseHttpErrorResponse() would present
+   * as a login problem. The server's own refusal of a user is a 401, and a
+   * failure that is not a refusal (5xx) is reported as before.
+   * @param err The failed request
+   * @param title What did not happen, such as "Anchor not moved"
+   */
+  public reportRefusal(err: HttpErrorResponse, title: string) {
+    const message: unknown = err.error?.message;
+    const refused = err.status >= 400 && err.status < 500 && err.status !== 401;
+    if (!refused || typeof message !== 'string' || !message) {
+      this.app.parseHttpErrorResponse(err);
+      return;
+    }
+    this.app.showAlert(title, message);
+  }
+
+  /**
    * @description Query anchor status from server
    */
   public queryAnchorStatus(context: string, position?: Position) {
