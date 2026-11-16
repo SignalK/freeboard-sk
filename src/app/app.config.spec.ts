@@ -262,6 +262,24 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.display.splitView).toBe(true);
   });
 
+  it('shows the position bar by default', () => {
+    expect(defaultConfig().display.positionBar).toBe(true);
+  });
+
+  it('shows the position bar for a config saved without the setting', () => {
+    const cfg: LegacyAppConfig = defaultConfig();
+    unset(cfg.display, 'positionBar');
+    cleanConfig(cfg, {});
+    expect(cfg.display.positionBar).toBe(true);
+  });
+
+  it('keeps the position bar hidden once the user hid it', () => {
+    const cfg = defaultConfig();
+    cfg.display.positionBar = false;
+    cleanConfig(cfg, {});
+    expect(cfg.display.positionBar).toBe(false);
+  });
+
   it('leaves the panel background at Default by default', () => {
     expect(defaultConfig().display.panelOpacity).toBeNull();
   });

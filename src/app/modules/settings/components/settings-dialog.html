@@ -104,6 +104,16 @@
                     </mat-checkbox>
                   </div>
                   <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.positionBar"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Show the bar at the bottom of the chart with the pointer's position, the zoom level, and the bearing and distance from the vessel."
+                    >
+                      Show position bar
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
                       <mat-label>Panel background</mat-label>
                       <mat-select
