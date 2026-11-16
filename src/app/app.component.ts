@@ -352,6 +352,10 @@ export class AppComponent {
   protected navDataBottom = signal<number | null>(null);
   /** The nav data panel's resting place reaches the left toolbar's buttons. */
   protected navDataBesideToolbar = signal(false);
+  // Flush with the left edge, like the bottom-left widgets it sits on.
+  protected navDataFlush = computed(() =>
+    this.plotterExt.shownWidgets().some((p) => p.anchor === 'bl')
+  );
 
   // The right-hand toolbar stops above the Action Button (56 px tall, 23 px
   // from the bottom unless widgets lift it).
