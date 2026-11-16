@@ -12,6 +12,7 @@ import { followedPointIndex } from '../map/route-point-pick';
 
 // autoAdvance modes in which the server moves a followed route on by itself.
 const SERVER_ADVANCE_MODES = ['arrivalCircle', 'perpendicular', 'either'];
+const SERVER_ADVANCE_RETRY_MS = 5000;
 
 // ** Signal K course operations
 @Injectable({ providedIn: 'root' })
@@ -346,12 +347,26 @@ export class CourseService {
     const followed = this.app.data.activeRoute;
     this.processCourseApi(value);
     this.dropHiddenRoute(followed);
-    if (this.app.data.activeRoute && this.app.data.activeRoute !== followed) {
+    const retryDue =
+      this.serverAdvanceRetryAt !== null &&
+      Date.now() >= this.serverAdvanceRetryAt;
+    if (
+      this.app.data.activeRoute &&
+      (this.app.data.activeRoute !== followed || retryDue)
+    ) {
       void this.refreshServerAutoAdvance();
     }
   }
 
+  // Only the latest read may set the signal: a slower answer for a route
+  // followed before must not override it. A failed read is retried with a
+  // later course update, at most every SERVER_ADVANCE_RETRY_MS.
+  private serverAdvanceRequest = 0;
+  private serverAdvanceRetryAt: number | null = null;
+
   private async refreshServerAutoAdvance() {
+    const request = ++this.serverAdvanceRequest;
+    this.serverAdvanceRetryAt = null;
     try {
       const course = await firstValueFrom(
         this.signalk.api.get(
@@ -359,12 +374,19 @@ export class CourseService {
           'vessels/self/navigation/course'
         )
       );
+      if (request !== this.serverAdvanceRequest) {
+        return;
+      }
       this._serverAdvancesRoute.set(
         SERVER_ADVANCE_MODES.includes(
           (course as { autoAdvance?: string } | null)?.autoAdvance ?? ''
         )
       );
     } catch {
+      if (request !== this.serverAdvanceRequest) {
+        return;
+      }
+      this.serverAdvanceRetryAt = Date.now() + SERVER_ADVANCE_RETRY_MS;
       this._serverAdvancesRoute.set(false);
     }
   }

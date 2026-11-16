@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { CourseService } from './course.service';
 import { SignalKClient } from 'signalk-client-angular';
@@ -96,7 +96,8 @@ describe('CourseService course API data (#755)', () => {
             routes: signal(null),
             fromCache: (): void => undefined,
             waypointAddFromServer: (): void => undefined,
-            refreshRoutes: (): void => undefined
+            refreshRoutes: (): void => undefined,
+            selectionIsFiltered: () => false
           }
         }
       ]
@@ -178,6 +179,65 @@ describe('CourseService course API data (#755)', () => {
     expect(await followRoute('either')).toBe(true);
     expect(await followRoute('off')).toBe(false);
     expect(await followRoute(undefined)).toBe(false);
+  });
+
+  const followedRoute = (id: string, pointIndex = 0) =>
+    vesselWithCourse({
+      arrivalCircle: 250,
+      activeRoute: {
+        href: `/resources/routes/${id}`,
+        pointIndex,
+        pointTotal: 3,
+        reverse: false,
+        name: id
+      },
+      nextPoint: point(-80.1, 25.1, `/resources/routes/${id}`),
+      previousPoint: point(-80.2, 25.2)
+    });
+
+  it('reads the setting again after a failed read, at most every 5 s', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000);
+    const get = vi
+      .fn()
+      .mockReturnValueOnce(throwError(() => new Error('offline')))
+      .mockReturnValue(of({ autoAdvance: 'either' }));
+    const { service } = setupWithData({ api: { get } });
+
+    service.parseSelf(followedRoute('rte-1', 0));
+    await Promise.resolve();
+    service.parseSelf(followedRoute('rte-1', 1));
+    await Promise.resolve();
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(service.serverAdvancesRoute()).toBe(false);
+
+    now.mockReturnValue(6000);
+    service.parseSelf(followedRoute('rte-1', 1));
+    await Promise.resolve();
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(service.serverAdvancesRoute()).toBe(true);
+
+    service.parseSelf(followedRoute('rte-1', 2));
+    await Promise.resolve();
+    expect(get).toHaveBeenCalledTimes(2);
+    now.mockRestore();
+  });
+
+  it('ignores the answer for a route followed before', async () => {
+    const first = new Subject<{ autoAdvance?: string }>();
+    const get = vi
+      .fn()
+      .mockReturnValueOnce(first)
+      .mockReturnValue(of({ autoAdvance: 'either' }));
+    const { service } = setupWithData({ api: { get } });
+
+    service.parseSelf(followedRoute('rte-1'));
+    service.parseSelf(followedRoute('rte-2'));
+    await Promise.resolve();
+    expect(service.serverAdvancesRoute()).toBe(true);
+
+    first.error(new Error('offline'));
+    await Promise.resolve();
+    expect(service.serverAdvancesRoute()).toBe(true);
   });
 
   it('clears the course when the destination is removed', () => {
