@@ -148,7 +148,9 @@ export class SettingsOptions {
         ['CURENT', 'Currents'],
         ['MAGVAR', 'Magnetic Variation'],
         ['RIVERS', 'Rivers'],
-        ['LAKARE', 'Lakes']
+        ['LAKARE', 'Lakes'],
+        ['BUISGL', 'Buildings'],
+        ['LNDELV', 'Land Elevation']
       ])
     }
   };
