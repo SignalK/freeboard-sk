@@ -144,7 +144,7 @@ describe('S57Style conditional symbology — features split at a tile edge', () 
   it('hatches a shoreline construction area in two parts', () => {
     const split = run('GetCSSLCONS03', splitArea('SLCONS'));
 
-    expect(split).toContain('AP(CROSSX01');
+    expect(split).toContain('AP(CROSSX01)');
     expect(split).toEqual(run('GetCSSLCONS03', area('SLCONS')));
   });
 

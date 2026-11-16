@@ -301,7 +301,7 @@ export class S57Style {
       }
     } else {
       if (geomType === GeometryType.AREA) {
-        retval.push('AP(CROSSX01');
+        retval.push('AP(CROSSX01)');
       }
       if (bquapos) {
         if (2 <= quapos && quapos < 10) {
