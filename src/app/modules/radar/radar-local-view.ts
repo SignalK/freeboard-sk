@@ -23,7 +23,7 @@ const SEA_CUT_AT_BOAT = 1.6;
 /** How far out, in metres, the sea's cut falls to about a third */
 const SEA_CUT_RANGE = 500;
 /** Zooming in further than this shows the radar's pixels as blocks */
-const MAX_ZOOM = 8;
+const MAX_ZOOM = 12;
 
 /** The changes made on this screen to a radar it may not change. */
 export interface LocalView {
@@ -39,6 +39,20 @@ export interface SpokeAdjustment {
 }
 
 export const NO_ADJUSTMENT: SpokeAdjustment = { gain: 0, sea: 0 };
+
+/**
+ * The view of a screen set to only watch the emulator: it opens at
+ * `watchRange` (m), and gain, sea and range act here from the start.
+ */
+export function watchingView(
+  radarId: string,
+  brand: string | undefined,
+  watchRange: number | null | undefined
+): LocalView | undefined {
+  return brand === EMULATOR_BRAND && typeof watchRange === 'number'
+    ? { radarId, controls: new Map([['range', { value: watchRange }]]) }
+    : undefined;
+}
 
 /** An answer that says this login may not change the radar. */
 export function refusesChanges(status: number | undefined): boolean {

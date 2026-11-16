@@ -7,6 +7,7 @@ import {
   refusesChanges,
   shownControls,
   spokeAdjustment,
+  watchingView,
   zoomSteps
 } from './radar-local-view';
 
@@ -27,6 +28,14 @@ describe('radar local view', () => {
     }));
     expect(zoomSteps(ranges, 2000).map((o) => o.value)).toEqual([
       250, 500, 1000, 2000
+    ]);
+  });
+
+  it('zooms a radar sending 6 nm in as far as 0.5 nm', () => {
+    const nm = 1852;
+    const ranges = [0.25, 0.5, 1, 3, 6].map((n) => ({ value: n * nm }));
+    expect(zoomSteps(ranges, 6 * nm).map((o) => o.value / nm)).toEqual([
+      0.5, 1, 3, 6
     ]);
   });
 
@@ -92,5 +101,21 @@ describe('radar local view', () => {
     expect(spokeAdjustment(radar, new Map([['sea', { value: 10 }]])).sea).toBe(
       0
     );
+  });
+});
+
+describe('watchingView', () => {
+  it('opens the emulator at the range to watch it at', () => {
+    const view = watchingView('emu', 'Emulator', 5556);
+    expect(view?.radarId).toBe('emu');
+    expect(view?.controls.get('range')).toEqual({ value: 5556 });
+  });
+
+  it('leaves the emulator to its owner without a range to watch it at', () => {
+    expect(watchingView('emu', 'Emulator', null)).toBeUndefined();
+  });
+
+  it('never watches a real radar', () => {
+    expect(watchingView('r1', 'Furuno', 5556)).toBeUndefined();
   });
 });

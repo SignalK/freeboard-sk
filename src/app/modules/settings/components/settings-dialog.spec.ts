@@ -99,7 +99,8 @@ describe('settings dialog — note details option placement', () => {
         choice: Partial<ReturnType<typeof defaultConfig>['radars']>
       ) => keptRadarChoices.push(choice),
       lineDashMap: new Map([['none', 'none']]),
-      formatLineDashArray: (): null => null
+      formatLineDashArray: (): null => null,
+      formatValueForDisplay: (value: number) => `${value} m`
     } as unknown as AppFacade;
 
     TestBed.configureTestingModule({

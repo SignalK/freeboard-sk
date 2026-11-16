@@ -1699,6 +1699,26 @@
                   </mat-form-field>
                 </div>
               </div>
+              <div class="setting-card-row">
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: 100%">
+                    <mat-label>Radar emulator: only watch, open at</mat-label>
+                    <mat-select
+                      [(ngModel)]="facade.settings.radars.watchRange"
+                      canSelectNullableOptions
+                      matTooltip="Open the radar emulator at this range and let gain, sea and range change this screen only, as for a guest of a demo. Real radars are not affected."
+                      (selectionChange)="persistModel()"
+                    >
+                      <mat-option [value]="null">Off</mat-option>
+                      @for (range of watchRanges; track range) {
+                      <mat-option [value]="range"
+                        >{{ app.formatValueForDisplay(range, 'm') }}</mat-option
+                      >
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
             </mat-card>
           </div>
         </div>
