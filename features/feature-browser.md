@@ -26,3 +26,8 @@ top of the **More actions** menu instead. It only shows up when there's somethin
 you about, and disappears once you've opened the browser. Freeboard no
 longer interrupts you with a welcome screen or a "what's new" popup when it
 starts — this lightbulb is the quiet, opt-in replacement.
+
+Don't want the lightbulb at all? Uncheck **Show What's New** in
+**Settings → Display** and it stays hidden, even when there's something new.
+The Feature Browser itself stays in the main menu and the **More actions**
+menu.
