@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { FeatureLike } from 'ol/Feature';
+import { Type as OlGeometryType } from 'ol/geom/Geometry';
 import { Subject } from 'rxjs';
 import * as xml2js from 'xml2js';
 import { Style } from 'ol/style';
@@ -68,10 +69,27 @@ interface ColorTable {
   colors: Map<string, string>;
 }
 
-enum GeometryType {
+export enum GeometryType {
   POINT = 0,
   LINES = 1,
   AREA = 2
+}
+
+// A vector tile cuts a line or area that crosses the tile edge into parts, so
+// a Multi* geometry is the same S-52 object as its single-part form.
+export function s52GeometryType(
+  type: OlGeometryType | undefined
+): GeometryType {
+  switch (type) {
+    case 'LineString':
+    case 'MultiLineString':
+      return GeometryType.LINES;
+    case 'Polygon':
+    case 'MultiPolygon':
+      return GeometryType.AREA;
+    default:
+      return GeometryType.POINT;
+  }
 }
 
 export enum DisplayPriority {
@@ -398,15 +416,9 @@ export class S57Service {
       return -1;
     }
     const name = properties['LAYER'];
-    const geomType = geometry.getType();
+    const type = s52GeometryType(geometry.getType());
 
     let lookupTable = LookupTable.PAPER_CHART;
-    let type = GeometryType.POINT;
-    if (geomType === 'Polygon') {
-      type = GeometryType.AREA;
-    } else if (geomType === 'LineString') {
-      type = GeometryType.LINES;
-    }
     switch (type) {
       case GeometryType.POINT:
         {

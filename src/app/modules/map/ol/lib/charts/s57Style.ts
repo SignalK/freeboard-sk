@@ -1,4 +1,10 @@
-import { S57Service, Lookup, DisplayCategory } from './s57.service';
+import {
+  S57Service,
+  Lookup,
+  DisplayCategory,
+  GeometryType,
+  s52GeometryType
+} from './s57.service';
 import { FeatureLike } from 'ol/Feature';
 import { Style, Fill, Stroke, Icon, Text } from 'ol/style';
 import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
@@ -265,7 +271,9 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2072
   private GetCSQUAPOS01(feature: FeatureLike): string[] {
-    if (feature.getGeometry()?.getType() === 'LineString') {
+    if (
+      s52GeometryType(feature.getGeometry()?.getType()) === GeometryType.LINES
+    ) {
       return this.GetCSQQUALIN01(feature);
     } else {
       return this.GetCSQQUAPNT01(feature);
@@ -276,7 +284,7 @@ export class S57Style {
   private GetCSSLCONS03(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const featureProperties = feature.getProperties();
-    const geometry = feature.getGeometry();
+    const geomType = s52GeometryType(feature.getGeometry()?.getType());
 
     let quapos = 0;
     let bquapos = false;
@@ -285,15 +293,15 @@ export class S57Style {
       bquapos = true;
     }
 
-    if (geometry?.getType() === 'Point') {
+    if (geomType === GeometryType.POINT) {
       if (bquapos) {
         if (2 <= quapos && quapos < 10) {
           retval.push('SY(LOWACC01)');
         }
       }
     } else {
-      if (geometry?.getType() === 'Polygon') {
-        retval.push('AP(CROSSX01');
+      if (geomType === GeometryType.AREA) {
+        retval.push('AP(CROSSX01)');
       }
       if (bquapos) {
         if (2 <= quapos && quapos < 10) {
@@ -664,7 +672,10 @@ export class S57Style {
       objl = parseInt(featureProperties['OBJL']);
     }
 
-    if (DEPARE === objl && geometry?.getType() === 'LineString') {
+    if (
+      DEPARE === objl &&
+      s52GeometryType(geometry?.getType()) === GeometryType.LINES
+    ) {
       if (featureProperties['DRVAL1']) {
         drval1 = parseFloat(featureProperties['DRVAL1']);
       }
@@ -782,14 +793,14 @@ export class S57Style {
   private GetCSOBSTRN04(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const props = feature.getProperties();
-    const geomType = feature.getGeometry()?.getType();
+    const geomType = s52GeometryType(feature.getGeometry()?.getType());
     const layer = props['layer'];
 
     const valsou =
       props['VALSOU'] !== undefined ? parseFloat(props['VALSOU']) : NaN;
     const watlev = props['WATLEV'] ? parseInt(props['WATLEV']) : 0;
 
-    if (geomType === 'Point') {
+    if (geomType === GeometryType.POINT) {
       if (!isNaN(valsou)) {
         if (valsou <= 0) {
           retval.push(layer === 'UWTROC' ? 'SY(UWTROC04)' : 'SY(OBSTRN11)');
@@ -807,7 +818,7 @@ export class S57Style {
           retval.push(layer === 'UWTROC' ? 'SY(UWTROC03)' : 'SY(OBSTRN01)');
         }
       }
-    } else if (geomType === 'LineString') {
+    } else if (geomType === GeometryType.LINES) {
       if (!isNaN(valsou) && valsou <= this.s57Service.options.safetyDepth) {
         retval.push('LS(DOTT,2,CHBLK)');
       } else {
@@ -834,14 +845,14 @@ export class S57Style {
   private GetCSWRECKS02(feature: FeatureLike): string[] {
     const retval: string[] = [];
     const props = feature.getProperties();
-    const geomType = feature.getGeometry()?.getType();
+    const geomType = s52GeometryType(feature.getGeometry()?.getType());
 
     const valsou =
       props['VALSOU'] !== undefined ? parseFloat(props['VALSOU']) : NaN;
     const watlev = props['WATLEV'] ? parseInt(props['WATLEV']) : 0;
     const catwrk = props['CATWRK'] ? parseInt(props['CATWRK']) : 0;
 
-    if (geomType === 'Point') {
+    if (geomType === GeometryType.POINT) {
       if (!isNaN(valsou)) {
         if (valsou <= 0) {
           retval.push('SY(WRECKS01)');
