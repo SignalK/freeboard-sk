@@ -12,13 +12,17 @@ screen until the recovery is over.
 
 **The red Person Overboard button** sits at the bottom of the left toolbar, set
 apart from the Alarms button. It never moves into the **…** menu, however small
-the screen. Press it once: Freeboard raises a MOB alarm on your Signal K server,
-which records the boat's position and the time. The display you pressed it on
-zooms in on the boat; every other Freeboard aboard sounds the alarm but keeps its
-view, so whoever is navigating isn't thrown off their chart.
+the screen. If you've set the action button to **Person Overboard**, that button
+in the bottom-right corner is your Person Overboard button instead, and the
+toolbar leaves its own out so there aren't two. The toolbar's button comes back
+while you draw or measure, when the action button hides (see *Action Button*).
 
-You can also raise it from the Alert List (**Raise → Overboard!**), or with the
-action button when it's set to **Person Overboard** (see *Action Button*).
+Press it once: Freeboard raises a MOB alarm on your Signal K server, which
+records the boat's position and the time. The display you pressed it on zooms in
+on the boat; every other Freeboard aboard sounds the alarm but keeps its view, so
+whoever is navigating isn't thrown off their chart.
+
+You can also raise it from the Alert List (**Raise → Overboard!**).
 
 **When the server can't take it** — nobody is signed in on this display, the
 connection is down, or the server doesn't answer within a few seconds — Freeboard

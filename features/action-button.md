@@ -30,10 +30,11 @@ Choose it in **Settings → Display → Action Button**:
   it does on the toolbar, including any count, highlight or warning color
   the plugin gives it.
 
-Autopilot, Radar and plugin buttons normally sit on the right-hand toolbar.
-Whichever one you choose moves to the corner instead, so it never appears
-twice. On a phone, where a long toolbar pushes buttons into the **…** menu,
-this is how to keep the one you use most in sight.
+Person Overboard normally sits at the bottom of the left toolbar, and
+Autopilot, Radar and plugin buttons on the right-hand toolbar. Whichever one
+you choose moves to the corner instead, so it never appears twice. On a
+phone, where a long toolbar pushes buttons into the **…** menu, this is how to
+keep the one you use most in sight.
 
 ## Things to know
 
@@ -45,3 +46,5 @@ this is how to keep the one you use most in sight.
 - The Action Button moves up out of the way when screen widgets occupy the
   bottom-right corner.
 - It is hidden while you draw or measure on the chart, and in kiosk mode.
+  If it's set to Person Overboard, the toolbar's Person Overboard button comes
+  back meanwhile, so there is always one on screen.
