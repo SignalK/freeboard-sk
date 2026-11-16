@@ -9,7 +9,13 @@ import {
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Feature } from 'ol';
 import { FeatureLike } from 'ol/Feature';
-import { LineString, MultiLineString, MultiPolygon, Polygon } from 'ol/geom';
+import {
+  LineString,
+  MultiLineString,
+  MultiPoint,
+  MultiPolygon,
+  Polygon
+} from 'ol/geom';
 
 import { DefaultOptions, GeometryType, S57Service } from './s57.service';
 import { S57Style } from './s57Style';
@@ -114,15 +120,76 @@ describe('S57Style conditional symbology — features split at a tile edge', () 
   const style = new S57Style({
     options: { ...DefaultOptions }
   } as S57Service);
-  const quapos = (feature: FeatureLike): string[] =>
-    (
-      style as unknown as {
-        GetCSQUAPOS01: (f: FeatureLike) => string[];
-      }
-    ).GetCSQUAPOS01(feature);
+  type Procedure =
+    | 'GetCSQUAPOS01'
+    | 'GetCSSLCONS03'
+    | 'GetCSDEPCNT02'
+    | 'GetCSOBSTRN04'
+    | 'GetCSWRECKS02';
+  const run = (procedure: Procedure, feature: FeatureLike): string[] =>
+    (style as unknown as Record<Procedure, (f: FeatureLike) => string[]>)[
+      procedure
+    ](feature);
+  const quapos = (feature: FeatureLike) => run('GetCSQUAPOS01', feature);
+  const withProps = (feature: Feature, props: Record<string, string>) => {
+    feature.setProperties(props);
+    return feature;
+  };
 
   it('draws a coastline in two parts as a line', () => {
     expect(quapos(splitLine('COALNE'))).toEqual(quapos(line('COALNE')));
     expect(quapos(splitLine('COALNE'))).toEqual(['LS(SOLD,1,CSTLN)']);
+  });
+
+  it('hatches a shoreline construction area in two parts', () => {
+    const split = run('GetCSSLCONS03', splitArea('SLCONS'));
+
+    expect(split).toContain('AP(CROSSX01');
+    expect(split).toEqual(run('GetCSSLCONS03', area('SLCONS')));
+  });
+
+  it('marks a low-accuracy shoreline construction point in two parts', () => {
+    const points = new Feature({
+      geometry: new MultiPoint([
+        [0, 0],
+        [1, 1]
+      ]),
+      layer: 'SLCONS',
+      QUAPOS: '4'
+    });
+
+    expect(run('GetCSSLCONS03', points)).toEqual(['SY(LOWACC01)']);
+  });
+
+  // DRVAL1 is above and VALDCO below the safety depth, so the result shows
+  // which of the two the contour was drawn from.
+  it('takes the depth of a depth area edge in two parts from DRVAL1', () => {
+    const edge = withProps(splitLine('DEPCNT'), {
+      OBJL: '42',
+      DRVAL1: '10',
+      VALDCO: '1',
+      QUAPOS: '4'
+    });
+
+    expect(run('GetCSDEPCNT02', edge)).toEqual(['LS(DASH,1,DEPCN)']);
+  });
+
+  it('draws an obstruction line in two parts as a line', () => {
+    expect(run('GetCSOBSTRN04', splitLine('OBSTRN'))).toEqual([
+      'LS(DASH,2,CHBLK)'
+    ]);
+  });
+
+  it('draws wreck points in two parts as a wreck symbol', () => {
+    const wrecks = new Feature({
+      geometry: new MultiPoint([
+        [0, 0],
+        [1, 1]
+      ]),
+      layer: 'WRECKS',
+      WATLEV: '4'
+    });
+
+    expect(run('GetCSWRECKS02', wrecks)).toEqual(['SY(WRECKS05)']);
   });
 });
