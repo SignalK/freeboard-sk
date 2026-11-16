@@ -866,6 +866,17 @@ describe('NotificationManager alert actions', () => {
       expect(mgr.alerts()).toEqual([]);
     });
 
+    it('drops an alert the server lists as nominal', async () => {
+      const mgr = TestBed.inject(NotificationManager);
+      arrive();
+
+      const done = mgr.dropStaleAlerts();
+      list(0, [{ path: PATH, state: ALARM_STATE.nominal }]);
+      await done;
+
+      expect(mgr.alerts()).toEqual([]);
+    });
+
     it('keeps the alerts the server still lists as active', async () => {
       const mgr = TestBed.inject(NotificationManager);
       arrive();

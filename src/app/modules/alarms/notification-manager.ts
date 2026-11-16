@@ -643,7 +643,12 @@ export class NotificationManager {
     // notifications may give one no id. Active as parse() takes it.
     const active = new Set(
       Object.values(listed ?? {})
-        .filter((n) => n?.value && n.value.state !== 'normal')
+        .filter(
+          (n) =>
+            n?.value &&
+            n.value.state !== ALARM_STATE.normal &&
+            n.value.state !== ALARM_STATE.nominal
+        )
         .map((n) => n.path)
     );
     let dropped = false;
