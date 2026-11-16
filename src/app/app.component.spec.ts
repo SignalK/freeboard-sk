@@ -7,6 +7,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 import { By } from '@angular/platform-browser';
 import { WritableSignal } from '@angular/core';
 import { RadarAPIService } from './modules/radar/radar-api.service';
+import { FBMapInteractService } from './modules/map/fbmap-interact.service';
 import { InfoPanelFacade } from './modules/info-panel/info-panel.facade';
 import { RouteBufferRegistry } from './modules/plotterext/route-buffer.registry';
 import { Position } from './types';
@@ -498,6 +499,54 @@ describe('AppComponent', () => {
       menu.toggleRadarOverlay();
       expect(connect).toHaveBeenCalledTimes(1);
       expect(shownType(infoPanel)).toBe('radars');
+    });
+  });
+
+  describe('the Person Overboard buttons', () => {
+    const setup = (fab: 'wpt' | 'pob') => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = TestBed.inject(AppFacade);
+      app.uiConfig.update((c) =>
+        Object.assign({}, c, { toolbarButtons: true })
+      );
+      app.config.display.fab = fab;
+      fixture.detectChanges();
+      return { fixture, app };
+    };
+    const toolbarMob = (fixture: ComponentFixture<AppComponent>) =>
+      fixture.debugElement.query(By.css('button[data-toolbar-item="mob"]'));
+    const actionMob = (fixture: ComponentFixture<AppComponent>) =>
+      fixture.debugElement.query(By.css('pob-button'));
+
+    it('keeps the toolbar button when the action button is something else', () => {
+      const { fixture } = setup('wpt');
+      expect(toolbarMob(fixture)).not.toBeNull();
+      expect(actionMob(fixture)).toBeNull();
+    });
+
+    it('shows only the action button when the action button is POB', () => {
+      const { fixture } = setup('pob');
+      expect(toolbarMob(fixture)).toBeNull();
+      expect(actionMob(fixture)).not.toBeNull();
+    });
+
+    it('follows a change of the action button setting', () => {
+      const { fixture, app } = setup('wpt');
+      app.config.display.fab = 'pob';
+      fixture.detectChanges();
+      expect(toolbarMob(fixture)).toBeNull();
+
+      app.config.display.fab = 'wpt';
+      fixture.detectChanges();
+      expect(toolbarMob(fixture)).not.toBeNull();
+    });
+
+    it('keeps the toolbar button while drawing hides the action button', () => {
+      const { fixture } = setup('pob');
+      TestBed.inject(FBMapInteractService).isMeasuring.set(true);
+      fixture.detectChanges();
+      expect(actionMob(fixture)).toBeNull();
+      expect(toolbarMob(fixture)).not.toBeNull();
     });
   });
 
