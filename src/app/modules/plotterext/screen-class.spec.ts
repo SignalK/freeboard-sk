@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   MONITOR_MIN_WIDTH,
   PlacedWidget,
+  TABLET_MIN_HEIGHT,
   TABLET_MIN_WIDTH,
   minScreenOf,
   screenClassOf,
@@ -19,11 +20,21 @@ const placed = (minScreen?: string): PlacedWidget => ({
 });
 
 describe('screenClassOf', () => {
+  const tall = TABLET_MIN_HEIGHT;
+
   it('starts each class at its minimum width', () => {
-    expect(screenClassOf(TABLET_MIN_WIDTH - 1)).toBe('phone');
-    expect(screenClassOf(TABLET_MIN_WIDTH)).toBe('tablet');
-    expect(screenClassOf(MONITOR_MIN_WIDTH - 1)).toBe('tablet');
-    expect(screenClassOf(MONITOR_MIN_WIDTH)).toBe('monitor');
+    expect(screenClassOf(TABLET_MIN_WIDTH - 1, tall)).toBe('phone');
+    expect(screenClassOf(TABLET_MIN_WIDTH, tall)).toBe('tablet');
+    expect(screenClassOf(MONITOR_MIN_WIDTH - 1, tall)).toBe('tablet');
+    expect(screenClassOf(MONITOR_MIN_WIDTH, tall)).toBe('monitor');
+  });
+
+  it('keeps a phone on its side a phone', () => {
+    // iPhone 15 Pro in landscape, Safari toolbars shown
+    expect(screenClassOf(852, 340)).toBe('phone');
+    expect(screenClassOf(MONITOR_MIN_WIDTH, TABLET_MIN_HEIGHT - 1)).toBe(
+      'phone'
+    );
   });
 });
 

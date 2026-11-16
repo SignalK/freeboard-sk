@@ -313,10 +313,15 @@ export const SCREEN_CLASS_LABELS: Record<ScreenClass, string> = {
 /** Viewport widths (CSS px) where the tablet and monitor classes start. */
 export const TABLET_MIN_WIDTH = 760;
 export const MONITOR_MIN_WIDTH = 1400;
+/**
+ * A phone turned on its side is as wide as a tablet but leaves no height for
+ * a row of widgets under the map, so a viewport this low stays a phone.
+ */
+export const TABLET_MIN_HEIGHT = 500;
 
-export function screenClassOf(width: number): ScreenClass {
-  if (width >= MONITOR_MIN_WIDTH) return 'monitor';
-  return width >= TABLET_MIN_WIDTH ? 'tablet' : 'phone';
+export function screenClassOf(width: number, height: number): ScreenClass {
+  if (height < TABLET_MIN_HEIGHT || width < TABLET_MIN_WIDTH) return 'phone';
+  return width >= MONITOR_MIN_WIDTH ? 'monitor' : 'tablet';
 }
 
 /**
