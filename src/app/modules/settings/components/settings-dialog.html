@@ -94,6 +94,16 @@
                     </mat-checkbox>
                   </div>
                   <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.whatsNew"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Show the What's New button while there are feature changes you have not seen."
+                    >
+                      Show What's New
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
                       <mat-label>Panel background</mat-label>
                       <mat-select
