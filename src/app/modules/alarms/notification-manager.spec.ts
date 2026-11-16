@@ -699,12 +699,35 @@ describe('NotificationManager alert actions', () => {
     expect(shown(mgr).silenced).toBe(false);
   });
 
-  it('still reports a refused ACK', () => {
+  it('keeps the alert acknowledged in this browser when the server refuses ACK', () => {
     const mgr = TestBed.inject(NotificationManager);
     arrive();
 
     mgr.acknowledge(PATH);
-    const failure = { status: 401 };
+    posts[0].response.error({ status: 401 });
+    arrive();
+
+    expect(shown(mgr).acknowledged).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  it('acknowledges in this browser only until the alarm changes state', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    posts[0].response.error({ status: 403 });
+    arrive({ state: ALARM_STATE.alarm });
+
+    expect(shown(mgr).acknowledged).toBe(false);
+  });
+
+  it('still reports an ACK that fails for another reason', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    const failure = { status: 500 };
     posts[0].response.error(failure);
 
     expect(shown(mgr).acknowledged).toBe(false);
