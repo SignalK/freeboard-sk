@@ -329,6 +329,12 @@ enum INTERACTION_MODE {
 const OFFSET_GRACE_PERIOD = 2000;
 
 /**
+ * How long a dropped anchor stays where the user put it while the server has
+ * not answered the move: neither the plugin route nor HttpClient has a timeout.
+ */
+export const ANCHOR_REQUEST_TIMEOUT_MS = 10000;
+
+/**
  * Prefix of the ids Freeboard gives the data-overlay features it lists after a
  * click (capability `actions.overlay`), followed by the owning extension,
  * overlay, source and feature id. Only the prefix is read: an overlay feature's own id is the
@@ -437,6 +443,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected olMapControls = mapControls;
   protected trueWindDirection = trueWindDirection;
   protected olMapInteractions = signal<Array<{ name: string }>>([]);
+  /**
+   * Where a move of the anchor stands: 'drag' while the user drags it,
+   * 'pending' from the drop until the stream reports the anchor there, the
+   * server refuses the move or the wait times out. The anchor layer keeps the
+   * point where the user put it in both.
+   */
+  protected anchorMove = signal<'drag' | 'pending' | null>(null);
+  /** Counts anchor drags, so the answer to one move cannot end a later drag's hold. */
+  private anchorMoveSeq = 0;
   protected mapZoomLevel = signal<number>(1);
   /** Room left under the status bar for widgets along the bottom of the screen. */
   protected statusBarLift = computed(() =>
@@ -807,6 +822,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     effect(() => {
       const editing = !!this.zoneEdit.edit();
       untracked(() => this.mapInteract.setZoneEditing(editing));
+    });
+    // A Modify session that ends mid-drag sends no modifyend, so end that
+    // drag's hold of the anchor here. A dropped move stays held after Finish.
+    effect(() => {
+      if (!this.mapInteract.isModifying()) {
+        untracked(() => this.endAnchorDrag());
+      }
     });
   }
 
@@ -2259,10 +2281,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** End the hold of an anchor drag whose Modify session ended without a drop. */
+  protected endAnchorDrag() {
+    if (this.anchorMove() === 'drag') {
+      this.anchorMove.set(null);
+    }
+  }
+
   /** Handle OL modify start event */
   protected onModifyStart(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
+    if (f.getId() === 'anchor') {
+      this.anchorMoveSeq++;
+      this.anchorMove.set('drag');
+    }
     const forSave = this.mapInteract.draw.forSave;
     if (!forSave) {
       return;
@@ -2363,9 +2396,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
       pc = toLonLat(c) as Position;
       // shift anchor
       if (fid === 'anchor') {
-        this.anchor.setAnchorPosition(pc)?.catch((err: HttpErrorResponse) => {
-          this.anchor.reportRefusal(err, 'Anchor not moved');
-        });
+        const seq = this.anchorMoveSeq;
+        const moved = pc;
+        const release = () => {
+          if (seq === this.anchorMoveSeq) {
+            this.anchorMove.set(null);
+          }
+        };
+        this.anchorMove.set('pending');
+        const deadline = setTimeout(release, ANCHOR_REQUEST_TIMEOUT_MS);
+        (this.anchor.setAnchorPosition(moved) ?? Promise.resolve())
+          .finally(() => clearTimeout(deadline))
+          .then(() => this.anchor.whenAnchorAt(moved))
+          .catch((err: HttpErrorResponse) => {
+            this.anchor.reportRefusal(err, 'Anchor not moved');
+          })
+          .finally(release);
       }
     }
     forSave['coords'] = pc;

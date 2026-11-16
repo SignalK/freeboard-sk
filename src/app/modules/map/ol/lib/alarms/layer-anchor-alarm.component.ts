@@ -18,10 +18,93 @@ import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Circle, LineString, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
+import type { Coordinate as MapCoordinate } from 'ol/coordinate';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords, mapifyRadius } from '../util';
+import {
+  fromLonLatArray,
+  mapifyCoords,
+  mapifyRadius,
+  worldCopyOffset
+} from '../util';
+import { WORLD_WIDTH_3857 } from '../../../route-extend';
 import { AsyncSubject } from 'rxjs';
+
+/** Closer than this, in map units (metres), counts as the same point. */
+const SAME_POINT_M = 1e-3;
+
+/**
+ * The anchor alarm's line to the vessel, watch circle and anchor point. They
+ * are moved, not rebuilt, on every update: a Modify session started by tapping
+ * the anchor holds that Feature object, and a rebuilt one would leave it
+ * editing a Feature that is no longer drawn.
+ */
+export class AnchorFeatures {
+  readonly line = new Feature<LineString>();
+  readonly circle = new Feature<Circle>();
+  readonly anchor = new Feature<Point>();
+
+  constructor() {
+    this.anchor.setId('anchor');
+  }
+
+  /**
+   * Place the features at map coordinates and return those to draw.
+   * @param holdAnchor leave the anchor point where it is, as while the user
+   * drags it or the move is waiting for the server's answer
+   */
+  place(
+    anchor: MapCoordinate,
+    radius: number,
+    line: MapCoordinate[] | null,
+    holdAnchor: boolean
+  ): Feature[] {
+    const shown: Feature[] = [];
+    if (line) {
+      const lg = this.line.getGeometry();
+      if (lg) lg.setCoordinates(line);
+      else this.line.setGeometry(new LineString(line));
+      shown.push(this.line);
+    }
+    const cg = this.circle.getGeometry();
+    if (cg) cg.setCenterAndRadius(anchor, radius);
+    else this.circle.setGeometry(new Circle(anchor, radius));
+    shown.push(this.circle);
+    const ag = this.anchor.getGeometry();
+    if (!ag) {
+      this.anchor.setGeometry(new Point(anchor));
+    } else if (!holdAnchor) {
+      // Stay in the world copy a Modify session shifted the point into, or its
+      // hit-test would miss the anchor the user sees there.
+      const [x, y] = ag.getCoordinates();
+      const nx = anchor[0] + worldCopyOffset(x - anchor[0], WORLD_WIDTH_3857);
+      // Any change makes a Modify session re-index the point, which drops a
+      // drag that was pressed but has not moved yet; so only a real move is
+      // written. The round trip through lon/lat alone shifts the point by
+      // far less than a millimetre.
+      if (
+        Math.abs(x - nx) > SAME_POINT_M ||
+        Math.abs(y - anchor[1]) > SAME_POINT_M
+      ) {
+        ag.setCoordinates([nx, anchor[1]]);
+      }
+    }
+    shown.push(this.anchor);
+    return shown;
+  }
+}
+
+/** Make the source hold exactly these features, keeping those it already has. */
+export function syncSource(source: VectorSource, features: Feature[]) {
+  const wanted = new Set(features);
+  source
+    .getFeatures()
+    .filter((f) => !wanted.has(f))
+    .forEach((f) => source.removeFeature(f));
+  features
+    .filter((f) => !source.hasFeature(f))
+    .forEach((f) => source.addFeature(f));
+}
 
 // ** Freeboard Anchor Alarm component **
 @Component({
@@ -34,6 +117,7 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected layer?: Layer;
   public source?: VectorSource;
   protected features: Array<Feature> = [];
+  protected anchorFeatures = new AnchorFeatures();
 
   /**
    * This event is triggered after the layer is initialized
@@ -44,6 +128,8 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected radius = input.required<number>();
   protected anchorPosition = input<Coordinate | null>();
   protected vesselPosition = input<Coordinate | null>();
+  /** Keep the anchor point where it is drawn, not at anchorPosition. */
+  protected holdAnchor = input<boolean>(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() anchorStyles?: { [key: string]: any };
@@ -68,10 +154,10 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
       this.radius();
       this.anchorPosition();
       this.vesselPosition();
+      this.holdAnchor();
       this.parseValues();
       if (this.source) {
-        this.source.clear();
-        this.source.addFeatures(this.features);
+        syncSource(this.source, this.features);
       }
     });
   }
@@ -127,28 +213,29 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
       this.radius() < 0 ? 0 : this.radius(),
       anchorPosition
     );
-    const fa: Feature[] = [];
     const vesselPosition = this.vesselPosition();
-    if (vesselPosition) {
-      this.mapifiedLine = mapifyCoords([anchorPosition, vesselPosition]);
-      const f = new Feature({
-        geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-      });
-      f.setStyle(this.buildStyle('line'));
-      fa.push(f);
+    this.mapifiedLine = vesselPosition
+      ? mapifyCoords([anchorPosition, vesselPosition])
+      : [];
+    const af = this.anchorFeatures;
+    this.features = af.place(
+      fromLonLat(anchorPosition),
+      this.mapifiedRadius,
+      vesselPosition ? fromLonLatArray(this.mapifiedLine) : null,
+      this.holdAnchor()
+    );
+    // A restyle is a feature change, on which a Modify session re-indexes the
+    // anchor, so only one that changes something is applied.
+    for (const [f, key] of [
+      [af.line, 'line'],
+      [af.circle, 'circle'],
+      [af.anchor, 'anchor']
+    ] as const) {
+      const style = this.buildStyle(key);
+      if (f.getStyle() !== style) {
+        f.setStyle(style);
+      }
     }
-    const fc = new Feature({
-      geometry: new Circle(fromLonLat(anchorPosition), this.mapifiedRadius)
-    });
-    fc.setStyle(this.buildStyle('circle'));
-    fa.push(fc);
-    const fp = new Feature({
-      geometry: new Point(fromLonLat(anchorPosition))
-    });
-    fp.setId('anchor');
-    fp.setStyle(this.buildStyle('anchor'));
-    fa.push(fp);
-    this.features = fa;
   }
 
   // build target style

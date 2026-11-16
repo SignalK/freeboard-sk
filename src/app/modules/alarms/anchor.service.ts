@@ -29,6 +29,14 @@ interface WatchZone {
   radius?: number;
 }
 
+/**
+ * How long a move the server accepted may wait for the stream to report the
+ * anchor at its new position.
+ */
+const ARRIVAL_TIMEOUT_MS = 3000;
+/** Closer than this, in degrees (about 1 cm), counts as the same position. */
+const SAME_POSITION_DEG = 1e-7;
+
 @Injectable({ providedIn: 'root' })
 export class AnchorService {
   // **************** ATTRIBUTES ***************************
@@ -40,6 +48,8 @@ export class AnchorService {
   readonly radius = this.radiusSignal.asReadonly();
   private pluginSignal = signal<AnchorPlugin>('anchoralarm');
   readonly plugin = this.pluginSignal.asReadonly();
+  /** Moves waiting for the stream to report the anchor at their position. */
+  private arrivals: Array<{ position: Position; done: () => void }> = [];
   // *******************************************************
 
   constructor(
@@ -221,6 +231,41 @@ export class AnchorService {
   }
 
   /**
+   * Resolves once the stream reports the anchor at this position, or after
+   * ARRIVAL_TIMEOUT_MS: the server answers a move before the move's delta
+   * reaches the stream.
+   */
+  public whenAnchorAt(position: Position): Promise<void> {
+    return new Promise((resolve) => {
+      const arrival = {
+        position,
+        done: () => {
+          this.arrivals = this.arrivals.filter((a) => a !== arrival);
+          resolve();
+        }
+      };
+      this.arrivals.push(arrival);
+      setTimeout(arrival.done, ARRIVAL_TIMEOUT_MS);
+      this.settleArrivals(this.positionSignal());
+    });
+  }
+
+  // Takes the position rather than reading positionSignal, which would make
+  // the stream effect that calls it depend on that signal too.
+  private settleArrivals(at: Position | null) {
+    if (!at) {
+      return;
+    }
+    this.arrivals
+      .filter(
+        (a) =>
+          Math.abs(a.position[0] - at[0]) < SAME_POSITION_DEG &&
+          Math.abs(a.position[1] - at[1]) < SAME_POSITION_DEG
+      )
+      .forEach((a) => a.done());
+  }
+
+  /**
    * @description Query anchor status from server
    */
   public queryAnchorStatus(context: string, position?: Position) {
@@ -261,6 +306,7 @@ export class AnchorService {
     ) {
       this.positionSignal.set(r.position);
       this.raisedSignal.set(false);
+      this.settleArrivals(r.position);
     } else {
       if (position) {
         this.positionSignal.set(position);
