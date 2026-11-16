@@ -5,7 +5,8 @@ import {
   BottomClearanceDirective,
   HRect,
   bottomClearance,
-  maxPanelRight
+  maxPanelRight,
+  reachesLeftToolbar
 } from './bottom-clearance.directive';
 import { PlotterExtensionService } from './plotterext.service';
 import { WIDGET_CELL_GAP } from './types';
@@ -84,6 +85,24 @@ describe('maxPanelRight', () => {
   });
 });
 
+describe('reachesLeftToolbar', () => {
+  it('is false while the panel top stays below the lowest button', () => {
+    expect(reachesLeftToolbar(520, [{ bottom: 100 }, { bottom: 515 }])).toBe(
+      false
+    );
+  });
+
+  it('is true once the panel top rises past the lowest button', () => {
+    expect(reachesLeftToolbar(474, [{ bottom: 100 }, { bottom: 515 }])).toBe(
+      true
+    );
+  });
+
+  it('is false without a left toolbar', () => {
+    expect(reachesLeftToolbar(0, [])).toBe(false);
+  });
+});
+
 @Component({
   imports: [BottomClearanceDirective],
   template: `
@@ -92,11 +111,15 @@ describe('maxPanelRight', () => {
       style="max-width: 300px"
       [fbBottomClearance]="30"
       (clearance)="emitted.push($event)"
+      [fbBottomClearanceLeftToolbar]="toolbarItems()"
+      (besideLeftToolbar)="beside.push($event)"
     ></div>
   `
 })
 class ClearanceHost {
   emitted: number[] = [];
+  beside: boolean[] = [];
+  toolbarItems = signal(0);
 }
 
 /**
@@ -156,5 +179,45 @@ describe('BottomClearanceDirective', () => {
     cell('pe-cb', new DOMRect(100, 476, 124, 124));
     const fixture = await mount();
     expect(fixture.componentInstance.emitted).toEqual([124 + 30]);
+  });
+
+  it('reports a panel lifted beside the left toolbar buttons', async () => {
+    // the panel rests 130 px up, so its top is at y = 370; the lowest left
+    // toolbar button ends at y = 400
+    const toolbar = document.createElement('fb-map-toolbar');
+    toolbar.className = 'left';
+    const item = document.createElement('div');
+    item.className = 'toolbarItem';
+    item.getBoundingClientRect = () => new DOMRect(0, 352, 50, 48);
+    toolbar.appendChild(item);
+    document.body.appendChild(toolbar);
+    cells.push(toolbar);
+    cell('pe-bl', new DOMRect(0, 476, 124, 124));
+    const fixture = await mount();
+    expect(fixture.componentInstance.beside).toEqual([true]);
+  });
+
+  it('reports a resting panel clear of the left toolbar', async () => {
+    const fixture = await mount();
+    expect(fixture.componentInstance.beside).toEqual([false]);
+  });
+
+  it('measures again when the left toolbar appears', async () => {
+    // the bar is lifted beside where the toolbar's lowest button will be
+    cell('pe-bl', new DOMRect(0, 476, 124, 124));
+    const fixture = await mount();
+    expect(fixture.componentInstance.beside).toEqual([false]);
+    const toolbar = document.createElement('fb-map-toolbar');
+    toolbar.className = 'left';
+    const item = document.createElement('div');
+    item.className = 'toolbarItem';
+    item.getBoundingClientRect = () => new DOMRect(0, 352, 50, 48);
+    toolbar.appendChild(item);
+    document.body.appendChild(toolbar);
+    cells.push(toolbar);
+    fixture.componentInstance.toolbarItems.set(8);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.beside).toEqual([false, true]);
   });
 });

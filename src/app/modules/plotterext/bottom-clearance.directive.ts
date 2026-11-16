@@ -16,6 +16,8 @@ import { WIDGET_CELL_GAP } from './types';
 const SIDE_WIDGETS = '.pe-bl .pe-cell, .pe-br .pe-cell';
 /** The bottom-center widgets, which the Lat/Lon status bar rises above. */
 const CENTER_WIDGETS = '.pe-cb .pe-cell';
+/** The buttons of the left-hand map toolbar, which run down from the top. */
+const LEFT_TOOLBAR_ITEMS = 'fb-map-toolbar.left .toolbarItem';
 
 export interface HRect {
   left: number;
@@ -80,28 +82,52 @@ export function maxPanelRight(
 }
 
 /**
+ * Whether a panel whose top edge rests at `panelTop` (px, viewport) would
+ * reach up into the left-hand toolbar, whose lowest button ends at the
+ * largest bottom of `items`.
+ */
+export function reachesLeftToolbar(
+  panelTop: number,
+  items: { bottom: number }[]
+): boolean {
+  return items.some((i) => i.bottom > panelTop);
+}
+
+/**
  * Reports the bottom offset that keeps the host panel above the bottom widget
  * stacks it would cover, recomputed as widgets, the panel or the screen
  * change. The value given is the panel's offset with no widget in the way.
  * The panel's widest span counts, not its current width, so its resting
  * height depends on the widgets alone.
+ *
+ * On a small screen that lift can bring the panel up beside the buttons of the
+ * left-hand toolbar; `besideLeftToolbar` reports when it does, so the host can
+ * move the panel clear of them.
  */
 @Directive({
   selector: '[fbBottomClearance]'
 })
 export class BottomClearanceDirective implements OnDestroy {
   readonly fbBottomClearance = input.required<number>();
+  /**
+   * The buttons the left-hand toolbar offers, 0 while it is hidden. The
+   * panel is measured again when it changes, as that moves the lowest button.
+   */
+  readonly fbBottomClearanceLeftToolbar = input(0);
   readonly clearance = output<number>();
+  readonly besideLeftToolbar = output<boolean>();
 
   private el: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
   private zone = inject(NgZone);
   private plotterExt = inject(PlotterExtensionService);
   private resizeObserver?: ResizeObserver;
   private last: number | null = null;
+  private lastBeside: boolean | null = null;
 
   constructor() {
     afterRenderEffect(() => {
       this.plotterExt.shownWidgets();
+      this.fbBottomClearanceLeftToolbar();
       this.measure();
     });
     afterNextRender(() => {
@@ -158,6 +184,17 @@ export class BottomClearanceDirective implements OnDestroy {
     if (bottom !== this.last) {
       this.last = bottom;
       this.zone.run(() => this.clearance.emit(bottom));
+    }
+    const beside = reachesLeftToolbar(
+      area.bottom - bottom - panel.height,
+      Array.from(
+        document.querySelectorAll<HTMLElement>(LEFT_TOOLBAR_ITEMS),
+        (item) => item.getBoundingClientRect()
+      )
+    );
+    if (beside !== this.lastBeside) {
+      this.lastBeside = beside;
+      this.zone.run(() => this.besideLeftToolbar.emit(beside));
     }
   }
 }
