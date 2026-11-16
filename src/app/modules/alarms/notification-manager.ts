@@ -89,6 +89,12 @@ interface PendingAction {
 type ApiNotification = SKNotification &
   Required<Pick<SKNotification, 'id' | 'status'>>;
 
+/** An entry of the Notifications API's list, as far as it is read here */
+interface ListedNotification {
+  path?: string;
+  value?: Partial<SKNotification> | null;
+}
+
 /**
  * `navigation.closestApproach` notification. The other vessel is named by
  * `data.targetRef` (the shared collision alarm shape); `other` is the older,
@@ -110,6 +116,14 @@ interface CpaNotification extends SKNotification {
  */
 function isRefused(err: HttpErrorResponse): boolean {
   return err?.status === 401 || err?.status === 403;
+}
+
+/**
+ * Whether a failed action may mean the server no longer has the alarm: it
+ * answers an id it does not know with a 400 ("Alarm not found!") or a 404.
+ */
+function mayBeForgotten(err: HttpErrorResponse): boolean {
+  return err?.status === 400 || err?.status === 404;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -465,7 +479,9 @@ export class NotificationManager {
    * The action is therefore kept pending, shown over the server's status, until
    * a delta confirms it (settlePendingActions()). If the request fails it is
    * dropped, and the alert shows the server's latest status again, except for a
-   * silence the server refuses to this user, which stays (isRefused()).
+   * silence the server refuses to this user, which stays (isRefused()). As the
+   * failure may be the server no longer having the alarm (mayBeForgotten()),
+   * the alert then goes if the server does not list it (dropStaleAlerts()).
    * @param path Path of the alert
    * @param action Notifications API action
    * @param flag Alert status flag the action sets
@@ -503,6 +519,9 @@ export class NotificationManager {
           }
           this.answerPendingAction(pending, id, entry, 'failed');
           this.app.parseHttpErrorResponse(err);
+          if (mayBeForgotten(err)) {
+            void this.dropStaleAlerts();
+          }
         }
       );
   }
@@ -583,6 +602,62 @@ export class NotificationManager {
   }
 
   /**
+   * @description Drop the alerts the server no longer has. An alert goes when
+   * a delta clears it, and none comes for one that a restarted server has
+   * forgotten, so it would stay up for good, and ACK or MUTE would only get
+   * "Alarm not found!". The server's list of notifications settles it. An
+   * alert a delta has updated since the list was asked for is the server's
+   * latest word and stays, as do the MOBs kept on this display alone.
+   *
+   * A MOB is left alone: it goes when it is ended, by its clearing delta or by
+   * END MOB, never because a server lost track of it.
+   * @param ended Id of an alert the user has just ended (END MOB, CLEAR),
+   * which goes even if it is a MOB. By id, as a new MOB may have taken the
+   * path while the request was under way.
+   */
+  public async dropStaleAlerts(ended?: string) {
+    if (!this.app.featureFlags().notificationApi) {
+      return;
+    }
+    const asked = [...this.alertMap].filter(([, alert]) => !alert.local);
+    if (!asked.length) {
+      return;
+    }
+    let listed: Record<string, ListedNotification> | null;
+    try {
+      listed = await firstValueFrom(
+        this.signalk.api.get(this.app.skApiVersion, 'notifications')
+      );
+    } catch {
+      this.app.debug('Could not list the notifications on the server');
+      return;
+    }
+    // Matched by path, as the alerts are kept: a server that does not manage
+    // notifications may give one no id. Active as parse() takes it.
+    const active = new Set(
+      Object.values(listed ?? {})
+        .filter((n) => n?.value && n.value.state !== 'normal')
+        .map((n) => n.path)
+    );
+    let dropped = false;
+    for (const [path, alert] of asked) {
+      if (
+        (alert.type === 'mob' && (ended === undefined || alert.id !== ended)) ||
+        this.alertMap.get(path) !== alert ||
+        active.has(path)
+      ) {
+        continue;
+      }
+      this.dropPendingActions(alert.id);
+      this.alertMap.delete(path);
+      dropped = true;
+    }
+    if (dropped) {
+      this.emitSignals();
+    }
+  }
+
+  /**
    * @description Silence All alerts. Each alert it covers shows silenced
    * straight away, as for MUTE (see applyAlertAction()). Only the alerts there
    * when it is pressed are covered, so an alarm raised or escalated while the
@@ -624,7 +699,9 @@ export class NotificationManager {
   }
 
   /**
-   * @description Clear / Cancel alert
+   * @description Clear / Cancel alert. If the server does not know it, the
+   * alert goes if the server does not list it, as after a failed ACK
+   * (applyAlertAction()).
    * @param path Path of the the alert to cancel
    */
   public clear(path: string) {
@@ -639,6 +716,9 @@ export class NotificationManager {
             },
             (err: HttpErrorResponse) => {
               this.app.parseHttpErrorResponse(err);
+              if (mayBeForgotten(err)) {
+                void this.dropStaleAlerts(alert.id);
+              }
             }
           );
       }
@@ -749,7 +829,8 @@ export class NotificationManager {
   }
 
   /**
-   * @description Cancel Alarm on server
+   * @description Cancel Alarm on server. If the server does not know it, the
+   * alarm goes if the server does not list it, as for CLEAR (clear()).
    * @param alert Alarm to cancel
    * @returns Observable
    */
@@ -763,6 +844,9 @@ export class NotificationManager {
           },
           (err: HttpErrorResponse) => {
             this.app.parseHttpErrorResponse(err);
+            if (mayBeForgotten(err)) {
+              void this.dropStaleAlerts(alert.id);
+            }
           }
         );
     }

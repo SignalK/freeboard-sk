@@ -2771,6 +2771,8 @@ export class AppComponent {
     // ** start trail timer
     this.startTimers();
     this.temporaryRoutes.sweep();
+    // ** alerts a restarted server no longer has
+    void this.notiMgr.dropStaleAlerts();
   }
 
   // ** handle connection closure
