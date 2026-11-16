@@ -226,8 +226,9 @@ export class ConfirmDialog implements OnInit {
         <div class="about-row">
           <div class="item"><img [src]="data.logo" /></div>
           <div class="item">
-            <span style="font-weight:bold;">{{ data.name }}</span
-            >&nbsp;&nbsp;<br />
+            <span style="font-weight:bold;">{{
+              data.name
+            }}</span>&nbsp;&nbsp;<br />
             <span class="description">
               {{ data.description }}
             </span>
