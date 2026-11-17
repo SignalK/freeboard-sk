@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppFacade } from 'src/app/app.facade';
 import type { ALARM_STATE } from 'src/app/types';
@@ -48,7 +48,9 @@ function mount(
             pointIndex: route?.pointIndex ?? -1,
             pointTotal: route?.pointTotal ?? 0
           }),
-          serverAdvancesRoute: signal(route?.serverAdvances ?? false)
+          serverAdvancesRoute: vi.fn(() =>
+            Promise.resolve(route?.serverAdvances ?? false)
+          )
         }
       },
       { provide: MobService, useValue: {} }
@@ -122,32 +124,53 @@ describe('AlertComponent', () => {
       canAcknowledge: false
     };
 
-    it('counts down to the next point itself', () => {
-      const f = mount(arrival, {
-        pointIndex: 1,
-        pointTotal: 4,
-        serverAdvances: false
-      });
+    const answered = async (f: ComponentFixture<AlertComponent>) => {
+      await Promise.resolve();
+      f.detectChanges();
+      return f;
+    };
+    const serverRead = () =>
+      TestBed.inject(CourseService).serverAdvancesRoute as ReturnType<
+        typeof vi.fn
+      >;
+
+    it('counts down to the next point itself', async () => {
+      const f = await answered(
+        mount(arrival, { pointIndex: 1, pointTotal: 4, serverAdvances: false })
+      );
       expect(labels(f).some((l) => l.includes('Next point in'))).toBe(true);
     });
 
-    it('leaves advancing to a server that advances the route', () => {
+    it('leaves advancing to a server that advances the route', async () => {
       const f = mount(arrival, {
         pointIndex: 1,
         pointTotal: 4,
         serverAdvances: true
       });
+      expect(labels(f).some((l) => l.includes('NEXT POINT'))).toBe(false);
+      await answered(f);
       expect(labels(f).some((l) => l.includes('Next point in'))).toBe(false);
-      expect(labels(f).some((l) => l.includes('NEXT POINT'))).toBe(true);
+      expect(labels(f).some((l) => l.includes('NEXT POINT'))).toBe(false);
     });
 
-    it('still ends the route at its last point', () => {
-      const f = mount(arrival, {
-        pointIndex: 3,
-        pointTotal: 4,
-        serverAdvances: true
+    it('asks the server again at every arrival', async () => {
+      const f = await answered(
+        mount(arrival, { pointIndex: 1, pointTotal: 4, serverAdvances: true })
+      );
+      f.componentRef.setInput('alert', {
+        ...f.componentInstance.alert(),
+        id: 'a2'
       });
+      f.detectChanges();
+      expect(serverRead()).toHaveBeenCalledTimes(2);
+    });
+
+    it('still ends the route at its last point', async () => {
+      const f = await answered(
+        mount(arrival, { pointIndex: 3, pointTotal: 4, serverAdvances: true })
+      );
       expect(labels(f).some((l) => l.includes('End Route in'))).toBe(true);
+      expect(serverRead()).not.toHaveBeenCalled();
     });
   });
 });
