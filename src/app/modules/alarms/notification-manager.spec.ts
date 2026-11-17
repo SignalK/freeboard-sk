@@ -35,6 +35,7 @@ describe('NotificationManager alert properties (#755)', () => {
     };
     debug: () => void;
     showMessage: () => void;
+    isLoggedIn: ReturnType<typeof signal<boolean>>;
   };
 
   beforeEach(() => {
@@ -45,7 +46,8 @@ describe('NotificationManager alert properties (#755)', () => {
       config: { display: { depthAlarm: { enabled: true }, muteSound: true } },
       data: { vessels: { closest: [], cpaPositions: new Map() } },
       debug: (): void => undefined,
-      showMessage: (): void => undefined
+      showMessage: (): void => undefined,
+      isLoggedIn: signal(false)
     };
     TestBed.configureTestingModule({
       providers: [
@@ -321,6 +323,8 @@ describe('NotificationManager alert actions', () => {
   let gets: Array<{ path: string; response: Subject<unknown> }>;
   let deletes: Array<{ path: string; response: Subject<unknown> }>;
   let errors: unknown[];
+  let messages: string[];
+  let loggedIn: ReturnType<typeof signal<boolean>>;
 
   const configure = () =>
     TestBed.configureTestingModule({
@@ -336,7 +340,10 @@ describe('NotificationManager alert actions', () => {
             data: { vessels: { closest: [] } },
             skApiVersion: 2,
             debug: (): void => undefined,
-            showMessage: (): void => undefined,
+            showMessage: (message: string): void => {
+              messages.push(message);
+            },
+            isLoggedIn: loggedIn,
             parseHttpErrorResponse: (err: unknown) => errors.push(err)
           }
         },
@@ -377,6 +384,8 @@ describe('NotificationManager alert actions', () => {
     gets = [];
     deletes = [];
     errors = [];
+    messages = [];
+    loggedIn = signal(false);
     configure();
   });
 
@@ -699,12 +708,99 @@ describe('NotificationManager alert actions', () => {
     expect(shown(mgr).silenced).toBe(false);
   });
 
-  it('still reports a refused ACK', () => {
+  it('keeps the alert acknowledged in this browser when the server refuses ACK', () => {
     const mgr = TestBed.inject(NotificationManager);
     arrive();
 
     mgr.acknowledge(PATH);
-    const failure = { status: 401 };
+    posts[0].response.error({ status: 401 });
+    arrive();
+
+    expect(shown(mgr).acknowledged).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  const refuseAcks = (mgr: NotificationManager, count: number, from = 0) => {
+    for (let i = from; i < from + count; i++) {
+      const path = `${PATH}${i}`;
+      arrive({ path, id: `${ID}${i}` });
+      mgr.acknowledge(path);
+      posts[posts.length - 1].response.error({ status: 401 });
+    }
+  };
+
+  it('says once that refused ACKs hold on this display only', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    TestBed.tick();
+
+    refuseAcks(mgr, 4);
+
+    expect(messages).toEqual([
+      'Acknowledged on this display only. Sign in to acknowledge alarms for the whole boat.'
+    ]);
+  });
+
+  it('says it again after the login state changes', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    TestBed.tick();
+    refuseAcks(mgr, 1);
+
+    loggedIn.set(true);
+    TestBed.tick();
+    loggedIn.set(false);
+    TestBed.tick();
+    refuseAcks(mgr, 1, 1);
+
+    expect(messages.length).toBe(2);
+  });
+
+  it('keeps the notice for a later refusal when the alarm changed state first', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    TestBed.tick();
+    arrive();
+
+    mgr.acknowledge(PATH);
+    arrive({ state: ALARM_STATE.alarm });
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).acknowledged).toBe(false);
+    expect(messages).toEqual([]);
+
+    mgr.acknowledge(PATH);
+    posts[1].response.error({ status: 401 });
+
+    expect(shown(mgr).acknowledged).toBe(true);
+    expect(messages.length).toBe(1);
+  });
+
+  it('shows no display-only notice for a refused MUTE', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    TestBed.tick();
+    arrive();
+
+    mgr.silence(PATH);
+    posts[0].response.error({ status: 401 });
+
+    expect(messages).toEqual([]);
+  });
+
+  it('acknowledges in this browser only until the alarm changes state', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    posts[0].response.error({ status: 403 });
+    arrive({ state: ALARM_STATE.alarm });
+
+    expect(shown(mgr).acknowledged).toBe(false);
+  });
+
+  it('still reports an ACK that fails for another reason', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    arrive();
+
+    mgr.acknowledge(PATH);
+    const failure = { status: 500 };
     posts[0].response.error(failure);
 
     expect(shown(mgr).acknowledged).toBe(false);

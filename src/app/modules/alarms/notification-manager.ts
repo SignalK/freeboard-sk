@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -61,6 +61,9 @@ const RAISE_TIMEOUT_MS = 3000;
 /** How long a buddy's message stays up: long enough to press LOCATE. */
 const BUDDY_MESSAGE_MS = 10000;
 
+const LOCAL_ACK_MESSAGE =
+  'Acknowledged on this display only. Sign in to acknowledge alarms for the whole boat.';
+
 type AlertItems = Array<[string, AlertData]>;
 
 /**
@@ -81,7 +84,7 @@ interface PendingAction {
   inFlight: boolean;
   /** A delta confirmed the action while the request was in flight */
   confirmed?: boolean;
-  /** A silence the server refused, kept in this browser only (isRefused()) */
+  /** An action the server refused, kept in this browser only (isRefused()) */
   local?: boolean;
 }
 
@@ -111,8 +114,9 @@ interface CpaNotification extends SKNotification {
 /**
  * Whether the server refused an action because the user may not change
  * notifications, as on a display nobody is logged in to. Freeboard then keeps
- * a silence in this browser only, so a sounding alarm can still be quietened.
- * It lasts until the alarm changes state, as one the server silenced would.
+ * the silence or acknowledgement in this browser only, so a sounding alarm can
+ * still be quietened. It lasts until the alarm changes state, as one the
+ * server acted on would.
  */
 function isRefused(err: HttpErrorResponse): boolean {
   return err?.status === 401 || err?.status === 403;
@@ -152,7 +156,18 @@ export class NotificationManager {
   private signalk = inject(SignalKClient);
   private bottomSheet = inject(MatBottomSheet);
 
+  /**
+   * LOCAL_ACK_MESSAGE was shown since the login state last changed, so further
+   * refused ACKs stay in this browser without repeating it
+   */
+  private localAckNoticeShown = false;
+
   constructor() {
+    effect(() => {
+      this.app.isLoggedIn();
+      this.localAckNoticeShown = false;
+    });
+
     this.alertMap = new Map();
     const localMobs = this.readLocalMobs();
     if (localMobs.length) {
@@ -485,8 +500,8 @@ export class NotificationManager {
    *
    * The action is therefore kept pending, shown over the server's status, until
    * a delta confirms it (settlePendingActions()). If the request fails it is
-   * dropped, and the alert shows the server's latest status again, except for a
-   * silence the server refuses to this user, which stays (isRefused()). As the
+   * dropped, and the alert shows the server's latest status again, except for an
+   * action the server refuses to this user, which stays (isRefused()). As the
    * failure may be the server no longer having the alarm (mayBeForgotten()),
    * the alert then goes if the server does not list it (dropStaleAlerts()).
    * @param path Path of the alert
@@ -520,8 +535,16 @@ export class NotificationManager {
           this.answerPendingAction(pending, id, entry, 'done');
         },
         (err: HttpErrorResponse) => {
-          if (action === 'silence' && isRefused(err)) {
-            this.answerPendingAction(pending, id, entry, 'refused');
+          if (isRefused(err)) {
+            const kept = this.answerPendingAction(
+              pending,
+              id,
+              entry,
+              'refused'
+            );
+            if (kept && action === 'acknowledge') {
+              this.noteLocalAcknowledge();
+            }
             return;
           }
           this.answerPendingAction(pending, id, entry, 'failed');
@@ -534,21 +557,33 @@ export class NotificationManager {
   }
 
   /**
+   * Tell the user once that a refused ACK holds on this display only: the
+   * server and the other displays still show the alarm unacknowledged.
+   */
+  private noteLocalAcknowledge() {
+    if (!this.localAckNoticeShown) {
+      this.localAckNoticeShown = true;
+      this.app.showMessage(LOCAL_ACK_MESSAGE);
+    }
+  }
+
+  /**
    * Apply the answer to an action's request to its pending entry, unless a
    * delta has already dropped the entry because the alert cleared, was
    * replaced or changed state; the answer then concerns an alarm that is gone.
-   * A refused silence stays in this browser (isRefused()), and a successful
+   * A refused action stays in this browser (isRefused()), and a successful
    * request whose delta already confirmed it is settled.
+   * @returns Whether the entry was still pending, so the answer applied
    */
   private answerPendingAction(
     pending: Map<string, PendingAction>,
     id: string,
     entry: PendingAction,
     answer: 'done' | 'refused' | 'failed'
-  ) {
+  ): boolean {
     entry.inFlight = false;
     if (pending.get(id) !== entry) {
-      return;
+      return false;
     }
     if (answer === 'refused') {
       entry.local = true;
@@ -556,6 +591,7 @@ export class NotificationManager {
       pending.delete(id);
       this.emitSignals();
     }
+    return true;
   }
 
   /**
@@ -578,7 +614,7 @@ export class NotificationManager {
    * acknowledged / silenced when an alarm escalates, so a pending action must
    * not hide the escalated alarm. A confirmation that arrives while the
    * request is in flight is noted, and the answer settles it, since a refusal
-   * keeps the silence in this browser after all.
+   * keeps the action in this browser after all.
    * @param v Notification value
    */
   private settlePendingActions(v: ApiNotification) {
