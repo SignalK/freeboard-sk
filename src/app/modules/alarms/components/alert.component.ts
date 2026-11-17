@@ -247,7 +247,10 @@ export class AlertComponent {
   // it is read, false at the last point and away from a route. The card then
   // offers no advance of its own, which would skip a point.
   protected serverAdvances = signal<boolean | undefined>(false);
+  // A raise on the same path can keep its id, so an arrival is told apart by
+  // its time as well; the token rejects an answer for an earlier arrival.
   private serverAdvancesReadFor?: string;
+  private serverAdvancesToken = 0;
   protected nextPointClicked = false;
   private audio?: HTMLAudioElement;
   private source?: MediaElementAudioSourceNode;
@@ -282,10 +285,20 @@ export class AlertComponent {
   }
 
   private readServerAdvances(al: AlertData) {
-    if (this.serverAdvancesReadFor === al.id) {
+    const arrival = `${al.id}@${al.createdAt}`;
+    if (this.serverAdvancesReadFor === arrival) {
       return;
     }
-    this.serverAdvancesReadFor = al.id;
+    this.serverAdvancesReadFor = arrival;
+    const token = ++this.serverAdvancesToken;
+    // The card is kept for a new alert on the same path: its countdown starts
+    // afresh.
+    if (this.timerRef) {
+      clearInterval(this.timerRef);
+      this.timerRef = null;
+    }
+    this.hidden.set(false);
+    this.progressValue.set(100);
     const course = this.course.courseData();
     const atIntermediatePoint =
       this.showStaticNextPoint &&
@@ -298,7 +311,7 @@ export class AlertComponent {
     }
     this.serverAdvances.set(undefined);
     void this.course.serverAdvancesRoute().then((advances) => {
-      if (this.serverAdvancesReadFor === al.id) {
+      if (token === this.serverAdvancesToken) {
         this.serverAdvances.set(advances);
         this.updateAutoNextPoint(al);
         this.startHideTimer();

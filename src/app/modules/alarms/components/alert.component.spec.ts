@@ -153,16 +153,46 @@ describe('AlertComponent', () => {
       expect(labels(f).some((l) => l.includes('NEXT POINT'))).toBe(false);
     });
 
-    it('asks the server again at every arrival', async () => {
+    it('asks the server again at every arrival, even with the same id', async () => {
       const f = await answered(
         mount(arrival, { pointIndex: 1, pointTotal: 4, serverAdvances: true })
       );
       f.componentRef.setInput('alert', {
         ...f.componentInstance.alert(),
-        id: 'a2'
+        createdAt: f.componentInstance.alert().createdAt + 1000
       });
       f.detectChanges();
       expect(serverRead()).toHaveBeenCalledTimes(2);
+    });
+
+    it('takes only the answer for the latest arrival', async () => {
+      const f = mount(arrival, {
+        pointIndex: 1,
+        pointTotal: 4,
+        serverAdvances: true
+      });
+      let answerFirst: (advances: boolean) => void = () => undefined;
+      serverRead().mockReset();
+      serverRead()
+        .mockReturnValueOnce(
+          new Promise<boolean>((resolve) => (answerFirst = resolve))
+        )
+        .mockResolvedValue(true);
+      f.componentRef.setInput('alert', {
+        ...f.componentInstance.alert(),
+        createdAt: f.componentInstance.alert().createdAt + 1000
+      });
+      f.detectChanges();
+      f.componentRef.setInput('alert', {
+        ...f.componentInstance.alert(),
+        createdAt: f.componentInstance.alert().createdAt + 2000
+      });
+      f.detectChanges();
+      await answered(f);
+      answerFirst(false);
+      await answered(f);
+      expect(labels(f).some((l) => l.includes('Next point in'))).toBe(false);
+      expect(labels(f).some((l) => l.includes('NEXT POINT'))).toBe(false);
     });
 
     it('still ends the route at its last point', async () => {
