@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
@@ -41,10 +41,49 @@ describe('bottomClearance', () => {
     ).toBe(254 + WIDGET_CELL_GAP);
   });
 
-  it('keeps its resting offset above a bottom-center stack, over the status bar', () => {
-    expect(clear([{ left: 400, right: 524, top: 476, center: true }])).toBe(
-      124 + 30
-    );
+  it('keeps its resting offset above a stack under a status bar it overlaps', () => {
+    expect(
+      bottomClearance(
+        panel,
+        [{ left: 400, right: 524, top: 476 }],
+        600,
+        600,
+        30,
+        [{ left: 300, right: 600 }]
+      )
+    ).toBe(124 + 30);
+  });
+
+  it('clears a status bar lifted by a taller stack than the one beneath', () => {
+    // the status bar spans both stacks and rises onto the 174 px one; the
+    // panel covers only the 84 px stack but still overlaps the status bar
+    const stacks = [
+      { left: 100, right: 224, top: 426 },
+      { left: 500, right: 624, top: 516 }
+    ];
+    expect(
+      bottomClearance(
+        { left: 450, right: 700, height: 100 },
+        stacks,
+        600,
+        600,
+        30,
+        [{ left: 150, right: 550 }]
+      )
+    ).toBe(174 + 30);
+  });
+
+  it('ignores a status bar the panel does not overlap', () => {
+    expect(
+      bottomClearance(
+        { left: 700, right: 900, height: 100 },
+        [{ left: 400, right: 524, top: 476 }],
+        600,
+        600,
+        30,
+        [{ left: 300, right: 600 }]
+      )
+    ).toBe(30);
   });
 
   it('never pushes the panel off the top of the area', () => {
@@ -89,6 +128,23 @@ class ClearanceHost {
   toolbarItems = signal(0);
 }
 
+@Component({
+  imports: [BottomClearanceDirective],
+  template: `
+    <div
+      id="panel"
+      [fbBottomClearance]="0"
+      fbBottomClearanceStatusBar
+      (clearance)="emitted.push($event)"
+      (besideLeftToolbar)="beside.push($event)"
+    ></div>
+  `
+})
+class StatusBarHost {
+  emitted: number[] = [];
+  beside: boolean[] = [];
+}
+
 /**
  * jsdom does no layout: the panel spans x 10..210 in a 1000 x 600 area whose
  * bottom edge is at y = 600, and each widget cell is given its rectangle.
@@ -108,29 +164,49 @@ describe('BottomClearanceDirective', () => {
     cells.push(stack);
   };
 
-  let panelRect: DOMRect;
+  // a Lat/Lon status bar in a chart pane, which by default fills the area
+  const inPane = (bar: HTMLElement, pane = new DOMRect(0, 0, 1000, 600)) => {
+    const parent = document.createElement('div');
+    parent.getBoundingClientRect = () => pane;
+    Object.defineProperty(bar, 'offsetParent', { get: () => parent });
+    document.body.appendChild(bar);
+    cells.push(bar);
+  };
 
-  const mount = async () => {
+  // the status bar's text spanning x 300..600 at the bottom of its pane
+  const statusBar = (pane?: DOMRect) => {
+    const bar = document.createElement('div');
+    bar.className = 'ol-mouse-position';
+    const bottom = (pane?.bottom ?? 600) - 30;
+    bar.getBoundingClientRect = () => new DOMRect(300, bottom, 300, 20);
+    inPane(bar, pane);
+  };
+
+  const mount = async <T extends { emitted: number[] } = ClearanceHost>(
+    host: new () => T = ClearanceHost as unknown as new () => T,
+    rect: DOMRect | (() => DOMRect) = new DOMRect(10, 470, 120, 100),
+    areaRect = new DOMRect(0, 0, 1000, 600)
+  ) => {
     TestBed.configureTestingModule({
-      imports: [ClearanceHost],
+      imports: [host],
       providers: [
         { provide: PlotterExtensionService, useValue: { shownWidgets } }
       ]
     });
-    const fixture = TestBed.createComponent(ClearanceHost);
+    const fixture = TestBed.createComponent(host);
     const panel = (fixture.nativeElement as HTMLElement).querySelector(
       '#panel'
     ) as HTMLElement;
     const area = fixture.nativeElement as HTMLElement;
-    area.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 600);
+    area.getBoundingClientRect = () => areaRect;
     Object.defineProperty(panel, 'offsetParent', { get: () => area });
-    panel.getBoundingClientRect = () => panelRect;
+    panel.getBoundingClientRect = () =>
+      typeof rect === 'function' ? rect() : rect;
     fixture.detectChanges();
     await fixture.whenStable();
     return fixture;
   };
 
-  beforeEach(() => (panelRect = new DOMRect(10, 470, 120, 100)));
   afterEach(() => cells.splice(0).forEach((c) => c.remove()));
 
   it('reports the resting offset with no widget beneath', async () => {
@@ -153,6 +229,7 @@ describe('BottomClearanceDirective', () => {
 
   it('rises over a taller stack once it grows that wide', async () => {
     let notify = () => {};
+    let panelRect = new DOMRect(10, 470, 120, 100);
     const Original = globalThis.ResizeObserver;
     globalThis.ResizeObserver = class {
       constructor(cb: () => void) {
@@ -165,7 +242,7 @@ describe('BottomClearanceDirective', () => {
     try {
       cell('pe-bl', new DOMRect(0, 476, 124, 124));
       cell('pe-bl', new DOMRect(150, 346, 124, 254));
-      const fixture = await mount();
+      const fixture = await mount(ClearanceHost, () => panelRect);
       expect(fixture.componentInstance.emitted.at(-1)).toBe(
         124 + WIDGET_CELL_GAP
       );
@@ -180,15 +257,84 @@ describe('BottomClearanceDirective', () => {
     }
   });
 
-  it('keeps its resting offset above a bottom-center stack', async () => {
-    cell('pe-cb', new DOMRect(100, 476, 124, 124));
-    const fixture = await mount();
+  it('keeps its resting offset above a stack the status bar sits on', async () => {
+    statusBar();
+    cell('pe-bl', new DOMRect(200, 476, 124, 124));
+    const fixture = await mount(ClearanceHost, new DOMRect(10, 470, 300, 100));
     expect(fixture.componentInstance.emitted).toEqual([124 + 30]);
   });
 
-  it('reports a panel lifted beside the left toolbar buttons', async () => {
-    // the panel rests 130 px up, so its top is at y = 370; the lowest left
-    // toolbar button ends at y = 400
+  it('re-measures when the status bar grows or shrinks', async () => {
+    const observed: Element[] = [];
+    let notify = () => {};
+    const Original = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor(cb: () => void) {
+        notify = cb;
+      }
+      observe(el: Element) {
+        observed.push(el);
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    try {
+      let barRect = new DOMRect(300, 570, 300, 20);
+      const bar = document.createElement('div');
+      bar.className = 'ol-mouse-position';
+      bar.getBoundingClientRect = () => barRect;
+      inPane(bar);
+      cell('pe-bl', new DOMRect(350, 476, 124, 124));
+      // the panel may grow to x = 800, short of the taller stack
+      cell('pe-br', new DOMRect(820, 416, 124, 184));
+      const fixture = await mount(
+        ClearanceHost,
+        new DOMRect(500, 470, 120, 100)
+      );
+      expect(observed).toContain(bar);
+      expect(fixture.componentInstance.emitted.at(-1)).toBe(124 + 30);
+      // the text grows and the status bar now reaches the taller stack
+      barRect = new DOMRect(300, 570, 600, 20);
+      notify();
+      expect(fixture.componentInstance.emitted.at(-1)).toBe(184 + 30);
+      barRect = new DOMRect(300, 570, 300, 20);
+      notify();
+      expect(fixture.componentInstance.emitted.at(-1)).toBe(124 + 30);
+    } finally {
+      globalThis.ResizeObserver = Original;
+    }
+  });
+
+  it('rises over a stack under a status bar it covers only by that bar', async () => {
+    statusBar();
+    cell('pe-bl', new DOMRect(400, 476, 124, 124));
+    const fixture = await mount(ClearanceHost, new DOMRect(10, 470, 300, 100));
+    expect(fixture.componentInstance.emitted).toEqual([124 + 30]);
+  });
+
+  it('ignores the status bar of the upper of two stacked charts', async () => {
+    // the upper pane ends mid-screen, so its status bar rests there
+    statusBar(new DOMRect(0, 0, 1000, 300));
+    cell('pe-bl', new DOMRect(400, 476, 124, 124));
+    const fixture = await mount(ClearanceHost, new DOMRect(10, 470, 300, 100));
+    expect(fixture.componentInstance.emitted).toEqual([30]);
+  });
+
+  it('lifts the status bar above a widget under its text', async () => {
+    cell('pe-bl', new DOMRect(200, 476, 124, 124));
+    const fixture = await mount(StatusBarHost, new DOMRect(300, 570, 300, 20));
+    expect(fixture.componentInstance.emitted).toEqual([124 + WIDGET_CELL_GAP]);
+  });
+
+  it('leaves the status bar down beside widgets clear of its text', async () => {
+    // the status bar spans only its own text, never its widest
+    cell('pe-br', new DOMRect(700, 476, 124, 124));
+    const fixture = await mount(StatusBarHost, new DOMRect(300, 570, 300, 20));
+    expect(fixture.componentInstance.emitted).toEqual([0]);
+  });
+
+  // the left toolbar's lowest button, ending at y = 400
+  const leftToolbar = () => {
     const toolbar = document.createElement('fb-map-toolbar');
     toolbar.className = 'left';
     const item = document.createElement('div');
@@ -197,6 +343,11 @@ describe('BottomClearanceDirective', () => {
     toolbar.appendChild(item);
     document.body.appendChild(toolbar);
     cells.push(toolbar);
+  };
+
+  it('reports a panel lifted beside the left toolbar buttons', async () => {
+    // the panel rests 130 px up, so its top is at y = 370
+    leftToolbar();
     cell('pe-bl', new DOMRect(0, 476, 124, 124));
     const fixture = await mount();
     expect(fixture.componentInstance.beside).toEqual([true]);
@@ -212,17 +363,60 @@ describe('BottomClearanceDirective', () => {
     cell('pe-bl', new DOMRect(0, 476, 124, 124));
     const fixture = await mount();
     expect(fixture.componentInstance.beside).toEqual([false]);
-    const toolbar = document.createElement('fb-map-toolbar');
-    toolbar.className = 'left';
-    const item = document.createElement('div');
-    item.className = 'toolbarItem';
-    item.getBoundingClientRect = () => new DOMRect(0, 352, 50, 48);
-    toolbar.appendChild(item);
-    document.body.appendChild(toolbar);
-    cells.push(toolbar);
+    leftToolbar();
     fixture.componentInstance.toolbarItems.set(8);
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.componentInstance.beside).toEqual([false, true]);
+  });
+
+  it('leaves the left toolbar check to the panels, not the status bar', async () => {
+    leftToolbar();
+    cell('pe-bl', new DOMRect(300, 476, 124, 124));
+    const fixture = await mount(StatusBarHost, new DOMRect(300, 570, 300, 20));
+    expect(fixture.componentInstance.emitted).toEqual([124 + WIDGET_CELL_GAP]);
+    expect(fixture.componentInstance.beside).toEqual([]);
+  });
+
+  it('keeps the route bar clear of MOB and the coordinates on a phone', async () => {
+    // 390 x 664 as measured in Freeboard: the left toolbar's lowest button
+    // (MOB) ends at y = 471, two 1x1 widgets sit at the bottom left, and the
+    // status bar has risen onto them
+    const phone = new DOMRect(0, 0, 390, 664);
+    const toolbar = document.createElement('fb-map-toolbar');
+    toolbar.className = 'left';
+    const mob = document.createElement('div');
+    mob.className = 'toolbarItem';
+    mob.getBoundingClientRect = () => new DOMRect(2, 413, 50, 58);
+    toolbar.appendChild(mob);
+    document.body.appendChild(toolbar);
+    cells.push(toolbar);
+    cell('pe-bl', new DOMRect(0, 580, 96, 84));
+    cell('pe-bl', new DOMRect(102, 580, 96, 84));
+    const bar = document.createElement('div');
+    bar.className = 'ol-mouse-position';
+    const status = new DOMRect(52, 555, 286, 19);
+    bar.getBoundingClientRect = () => status;
+    inPane(bar, phone);
+
+    const fixture = await mount(
+      ClearanceHost,
+      new DOMRect(10, 0, 317, 100),
+      phone
+    );
+    const lift = fixture.componentInstance.emitted.at(-1) ?? 0;
+    // the route bar stays above the status bar, which keeps its own room above
+    // the widgets, and is reported beside the toolbar so it moves clear of MOB
+    expect(lift).toBe(84 + 30);
+    expect(phone.bottom - lift).toBeLessThanOrEqual(status.top);
+    expect(fixture.componentInstance.beside).toEqual([true]);
+    // moved right of the toolbar it still spans the status bar and the
+    // second widget, so it keeps that place instead of dropping back
+    const moved = { left: 50, right: 327, height: 100 };
+    const widgets = [
+      { left: 0, right: 96, top: 580 },
+      { left: 102, right: 198, top: 580 }
+    ];
+    expect(bottomClearance(moved, widgets, 664, 664, 30, [status])).toBe(lift);
   });
 });
