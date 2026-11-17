@@ -15,7 +15,7 @@ import { WhatsNewService } from './modules/features/whats-new.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
 import { connectExtension } from 'signalk-plotterext-bus/extension';
 import { SignalKClient } from 'signalk-client-angular';
-import { config, throwError } from 'rxjs';
+import { config, of, throwError } from 'rxjs';
 
 /** The type of the item the info panel shows. */
 function shownType(infoPanel: InfoPanelFacade) {
@@ -59,6 +59,56 @@ describe('AppComponent', () => {
     expect(unhandled).not.toHaveBeenCalled();
     expect(app.isLoggedIn()).toBe(true);
   });
+
+  for (const [status, loggedIn] of [
+    ['loggedIn', true],
+    ['notLoggedIn', false]
+  ] as const) {
+    it(`takes the login state from the server's login status (${status})`, () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = TestBed.inject(AppFacade);
+      app.isLoggedIn.set(!loggedIn);
+      const signalk = TestBed.inject(SignalKClient);
+      vi.spyOn(signalk, 'getLoginStatus').mockReturnValue(
+        of({ status, authenticationRequired: true })
+      );
+      const get = vi.spyOn(signalk, 'get');
+      (
+        fixture.componentInstance as unknown as {
+          handleSKAuthChange(): void;
+        }
+      ).handleSKAuthChange();
+      expect(app.isLoggedIn()).toBe(loggedIn);
+      expect(get).not.toHaveBeenCalled();
+    });
+  }
+
+  for (const [authenticationRequired, hidden] of [
+    [false, true],
+    [true, false]
+  ] as const) {
+    it(`${hidden ? 'hides' : 'shows'} the menu's login badge for a logged-out user when login is${authenticationRequired ? '' : ' not'} required`, () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const signalk = TestBed.inject(SignalKClient);
+      vi.spyOn(signalk, 'getLoginStatus').mockReturnValue(
+        of({ status: 'notLoggedIn', authenticationRequired })
+      );
+      (
+        fixture.componentInstance as unknown as {
+          handleSKAuthChange(): void;
+        }
+      ).handleSKAuthChange();
+      fixture.detectChanges();
+
+      const menuButton = fixture.debugElement
+        .queryAll(By.directive(MatMenuTrigger))
+        .find((de) => de.nativeElement.getAttribute('mattooltip') === 'Menu');
+      expect(TestBed.inject(AppFacade).isLoggedIn()).toBe(false);
+      expect(
+        menuButton?.nativeElement.classList.contains('mat-badge-hidden')
+      ).toBe(hidden);
+    });
+  }
 
   it('ignores text or a link dropped on the map', () => {
     const fixture = TestBed.createComponent(AppComponent);
