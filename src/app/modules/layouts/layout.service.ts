@@ -77,6 +77,8 @@ export class LayoutService {
   });
 
   private listening = false;
+  /** Counts the user's switches of layout (Switch to, Load theirs, New blank). */
+  private switches = 0;
 
   constructor() {
     // device state of a widget in any saved layout outlives a switch away
@@ -257,6 +259,9 @@ export class LayoutService {
         )
       );
     } catch (err) {
+      // the server answers 404 for any provider failure, an unreadable file
+      // too; saving it back is still safe, as the plugin's set() reads the
+      // stored file first and refuses one it can't read
       return err instanceof HttpErrorResponse && err.status === 404
         ? 'missing'
         : null;
@@ -264,11 +269,12 @@ export class LayoutService {
   }
 
   /**
-   * Whether this screen still shows the layout it showed when an action
-   * started: a switch made while a save runs must not be linked to the save.
+   * Whether the user hasn't switched layouts since `at`: a save finishing
+   * after a switch must not link the screen to what it saved. (A layout
+   * deleted elsewhere meanwhile isn't a switch: saving puts it back.)
    */
-  private stillOn(id: string | undefined) {
-    return this.copy.link()?.id === id;
+  private noSwitchSince(at: number) {
+    return this.switches === at;
   }
 
   private async put(
@@ -329,9 +335,10 @@ export class LayoutService {
       return this.saveAs();
     }
     const content = contentOf(this.app.config);
+    const at = this.switches;
     try {
       const stored = await this.put(link.id, link.name, content, link.revision);
-      if (stored && this.stillOn(link.id)) {
+      if (stored && this.noSwitchSince(at)) {
         this.copy.setLink(this.app.config, linkTo(link.id, stored));
       }
     } catch (err) {
@@ -341,8 +348,9 @@ export class LayoutService {
         const stored = await this.put(link.id, link.name, content).catch(
           (e) => (this.app.parseHttpErrorResponse(e), null)
         );
-        if (stored && this.stillOn(link.id))
+        if (stored && this.noSwitchSince(at)) {
           this.copy.setLink(this.app.config, linkTo(link.id, stored));
+        }
         return;
       }
       if (!current || current.revision === link.revision) {
@@ -350,14 +358,15 @@ export class LayoutService {
         this.app.parseHttpErrorResponse(err);
         return;
       }
-      await this.resolveConflict(link.id, current, content);
+      await this.resolveConflict(link.id, current, content, at);
     }
   }
 
   private async resolveConflict(
     id: string,
     current: SavedLayout,
-    content: LayoutContent
+    content: LayoutContent,
+    at: number
   ) {
     this.layouts.update((all) => ({ ...all, [id]: current }));
     const choice: LayoutConflictChoice | undefined = await firstValueFrom(
@@ -365,11 +374,11 @@ export class LayoutService {
         .open(LayoutConflictDialog, { data: { name: current.name } })
         .afterClosed()
     );
-    if (!this.stillOn(id)) return;
+    if (!this.noSwitchSince(at)) return;
     if (choice === 'overwrite') {
       try {
         const stored = await this.put(id, current.name, content);
-        if (stored && this.stillOn(id)) {
+        if (stored && this.noSwitchSince(at)) {
           this.copy.setLink(this.app.config, linkTo(id, stored));
         }
       } catch (err) {
@@ -378,6 +387,7 @@ export class LayoutService {
     } else if (choice === 'saveAs') {
       await this.saveAs();
     } else if (choice === 'discard') {
+      this.switches++;
       this.show(id, current);
     }
   }
@@ -388,6 +398,7 @@ export class LayoutService {
    * it: its widgets restart under those ids, without their device settings.
    */
   async saveAs() {
+    const at = this.switches;
     const name = await this.askName(
       'Save as new layout',
       this.copy.link()?.name
@@ -415,7 +426,7 @@ export class LayoutService {
         // saved back over the layout it came from, the widgets keep their ids
         id === from ? content : withNewIds(content, () => uuid.v4())
       );
-      if (stored && this.stillOn(from)) this.show(id, stored);
+      if (stored && this.noSwitchSince(at)) this.show(id, stored);
     } catch (err) {
       this.app.parseHttpErrorResponse(err);
     }
@@ -431,6 +442,7 @@ export class LayoutService {
       return;
     }
     this.layouts.update((all) => ({ ...all, [id]: layout }));
+    this.switches++;
     this.show(id, layout);
   }
 
@@ -440,6 +452,7 @@ export class LayoutService {
     if (!link) return;
     const layout = await this.fetch(link.id);
     if (layout) {
+      this.switches++;
       this.show(link.id, layout);
     }
   }
@@ -447,6 +460,7 @@ export class LayoutService {
   /** Start this screen afresh with no widgets and no layout. */
   async newBlank() {
     if (!(await this.confirmLeave())) return;
+    this.switches++;
     this.plotterExt.applyLayout({ widgets: [], instances: {} });
     this.copy.setLink(this.app.config, null);
   }

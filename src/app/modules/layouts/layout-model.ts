@@ -48,7 +48,7 @@ export interface WorkingCopy {
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** A grid cell the widget overlay can index. */
+/** A widget's column or row: a non-negative integer. */
 const isCell = (v: unknown): v is number =>
   Number.isInteger(v) && Number(v) >= 0;
 

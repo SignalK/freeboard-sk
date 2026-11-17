@@ -174,7 +174,7 @@ describe('reading stored layouts', () => {
     });
   });
 
-  it('drops widgets placed outside the grid', () => {
+  it('drops widgets with a negative or fractional cell', () => {
     const at = (col: number, row: number) => ({ ...widget('a'), col, row });
 
     expect(

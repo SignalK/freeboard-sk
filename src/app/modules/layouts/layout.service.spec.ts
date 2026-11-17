@@ -2,7 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable, of, Subject, switchMap, throwError } from 'rxjs';
+import {
+  Observable,
+  of,
+  ReplaySubject,
+  Subject,
+  switchMap,
+  throwError
+} from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 
 import { AppFacade } from '../../app.facade';
@@ -85,6 +92,8 @@ describe('LayoutService', () => {
   let config: IAppConfig;
   let deltas: Subject<DeltaSignal>;
   let dialogResult: unknown;
+  /** A dialog answer that arrives later, in place of `dialogResult`. */
+  let dialogAnswer: Observable<unknown> | undefined;
   let app: {
     config: IAppConfig;
     skApiVersion: number;
@@ -124,7 +133,9 @@ describe('LayoutService', () => {
         {
           provide: MatDialog,
           useValue: {
-            open: () => ({ afterClosed: () => of(dialogResult) })
+            open: () => ({
+              afterClosed: () => dialogAnswer ?? of(dialogResult)
+            })
           }
         }
       ]
@@ -153,6 +164,7 @@ describe('LayoutService', () => {
     config = defaultConfig();
     deltas = new Subject();
     dialogResult = undefined;
+    dialogAnswer = undefined;
     applyLayout = vi.fn((content: LayoutContent) =>
       applyContent(config, content)
     );
@@ -503,6 +515,77 @@ describe('LayoutService', () => {
 
       expect(service.link()?.id).toBe('c');
       expect(config.plotterExtensions.widgets).toEqual([widget('c')]);
+    });
+
+    /** Hold the server's answer to saves without a base revision, or all saves. */
+    const holdPuts = (onlyWithoutBase = false) => {
+      const answered = new ReplaySubject<void>(1);
+      const put = server.api.put;
+      server.api.put = (v, path, body) =>
+        onlyWithoutBase && body.baseRevision !== undefined
+          ? put(v, path, body)
+          : answered.pipe(switchMap(() => put(v, path, body)));
+      return () => {
+        answered.next();
+        answered.complete();
+      };
+    };
+
+    it('links the layout it puts back even after hearing it was deleted', async () => {
+      const { service } = await start();
+      await service.load('h');
+      edit((c) => (c.plotterExtensions.widgets[0].col = 1));
+      delete server.layouts['h'];
+      const answer = holdPuts(true);
+
+      const saving = service.save();
+      await vi.waitFor(() => expect(server.puts).toHaveLength(1));
+      delta('h', null);
+      expect(service.link()).toBeNull();
+      answer();
+      await saving;
+
+      expect(service.link()?.id).toBe('h');
+      expect(service.modified()).toBe(false);
+    });
+
+    it('does not show a layout saved as new after a switch made meanwhile', async () => {
+      server.add('c', layout('Chart table', 'c'));
+      const { service } = await start();
+      await service.load('h');
+      dialogResult = 'Copy';
+      const answer = holdPuts();
+
+      const saving = service.saveAs();
+      await service.load('c');
+      answer();
+      await saving;
+
+      expect(service.link()?.id).toBe('c');
+      expect(Object.values(server.layouts).map((l) => l.name)).toContain(
+        'Copy'
+      );
+    });
+
+    it('drops a conflict choice made after a switch', async () => {
+      server.add('c', layout('Chart table', 'c'));
+      const { service } = await start();
+      await service.load('h');
+      edit((c) => (c.plotterExtensions.widgets[0].col = 1));
+      server.add('h', layout('Helm', 'a', 'b'), 2);
+      const choice = new Subject<unknown>();
+      dialogAnswer = choice;
+
+      const saving = service.save();
+      await vi.waitFor(() => expect(server.puts).toHaveLength(1));
+      dialogAnswer = undefined;
+      await service.load('c');
+      choice.next('overwrite');
+      choice.complete();
+      await saving;
+
+      expect(server.layouts['h'].revision).toBe(2);
+      expect(service.link()?.id).toBe('c');
     });
 
     it('asks before replacing a newer save from another screen', async () => {

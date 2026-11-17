@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EMPTY, of, Subject, throwError } from 'rxjs';
+import { EMPTY, of, ReplaySubject, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
@@ -10,6 +10,7 @@ import { LineStyleDash } from './modules/settings/components/linestyle-select.co
 import { SplitViewService } from './modules/map/split-view/split-view.service';
 import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
 import { APPDATA_CONTEXT, SignalKClient } from 'signalk-client-angular';
+import { WorkingCopyStore } from './modules/layouts/working-copy.store';
 import { version as PACKAGE_VERSION } from '../../package.json';
 
 describe('AppFacade app version (#458)', () => {
@@ -529,6 +530,53 @@ describe('AppFacade.loadUserConfigfromServer', () => {
     await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
 
     expect(app.config.ui.mapNorthUp).toBe(false);
+  });
+});
+
+describe('AppFacade named layouts working copy (#1346)', () => {
+  afterEach(() => localStorage.clear());
+
+  it('keeps a widget change made while the settings load', async () => {
+    const answer = new ReplaySubject<object>(1);
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SignalKClient,
+          useValue: {
+            get: vi.fn(() => EMPTY),
+            setAppId: vi.fn(),
+            setAppVersion: vi.fn(),
+            isLoggedIn: vi.fn(() => of(true)),
+            appDataGet: vi.fn(() => answer),
+            appDataSet: vi.fn(() => EMPTY),
+            api: { get: vi.fn(() => EMPTY) }
+          }
+        }
+      ]
+    });
+    const app = TestBed.inject(AppFacade);
+    const widget = (instanceId: string) => ({
+      instanceId,
+      extension: 'ext',
+      widget: 'gauge',
+      anchor: 'tr' as const,
+      col: 0,
+      row: 0
+    });
+    app.config.plotterExtensions.widgets = [widget('mine')];
+    TestBed.inject(WorkingCopyStore).start(app.config, null);
+
+    const loading = app.loadUserConfigfromServer();
+    app.config.plotterExtensions.widgets.push(widget('added'));
+    app.saveConfig();
+    const server = defaultConfig();
+    server.plotterExtensions.widgets = [widget('another-screen')];
+    answer.next(server);
+    await loading;
+
+    expect(
+      app.config.plotterExtensions.widgets.map((w) => w.instanceId)
+    ).toEqual(['mine', 'added']);
   });
 });
 
