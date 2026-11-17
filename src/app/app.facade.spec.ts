@@ -1,11 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { concat, EMPTY, NEVER, of, ReplaySubject, Subject, throwError } from 'rxjs';
+import {
+  concat,
+  EMPTY,
+  NEVER,
+  of,
+  ReplaySubject,
+  Subject,
+  throwError
+} from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import '@vitest/web-worker';
 import { Map as OlMap } from 'ol';
 import { AppFacade } from './app.facade';
 import { defaultConfig } from './app.config';
+import { WORKING_COPY_STORAGE_KEY } from './modules/layouts/working-copy.store';
+import { contentOf } from './modules/layouts/layout-model';
 import { LineStyleDash } from './modules/settings/components/linestyle-select.component';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
 import { SPLIT_VIEW_STORAGE_KEY } from './modules/map/split-view/split-view';
@@ -1020,7 +1030,10 @@ describe('AppFacade.resetToServerDefaults', () => {
   beforeEach(() =>
     localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(defaultConfig()))
   );
-  afterEach(() => localStorage.removeItem(STORED_CONFIG_KEY));
+  afterEach(() => {
+    localStorage.removeItem(STORED_CONFIG_KEY);
+    localStorage.removeItem(WORKING_COPY_STORAGE_KEY);
+  });
 
   it("drops this browser's settings and restarts", async () => {
     const { app, client, restart } = setup(false);
@@ -1241,5 +1254,20 @@ describe('AppFacade.resetToServerDefaults', () => {
 
     expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
     expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it("keeps this screen's widget layout", async () => {
+    const workingCopy = JSON.stringify({
+      content: contentOf(defaultConfig()),
+      link: null
+    });
+    localStorage.setItem(WORKING_COPY_STORAGE_KEY, workingCopy);
+    const { app } = setup(false);
+    await app.loadUserConfigfromServer();
+
+    await app.resetToServerDefaults();
+    app.saveConfig();
+
+    expect(localStorage.getItem(WORKING_COPY_STORAGE_KEY)).toBe(workingCopy);
   });
 });

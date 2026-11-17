@@ -234,7 +234,10 @@ export class SettingsDialog implements OnInit {
           // user can still show as logged out here
           (this.app.isLoggedIn()
             ? ' This applies on every device you sign in on.'
-            : ' If you are signed in, this applies on every device you sign in on.'),
+            : ' If you are signed in, this applies on every device you sign in on.') +
+          // a screen's widgets live in its own working copy, which the reset
+          // keeps, so say how to clear them
+          ' This screen keeps its widgets; choose New blank under Layouts to clear them.',
         'Reset settings',
         'RESET',
         'CANCEL'

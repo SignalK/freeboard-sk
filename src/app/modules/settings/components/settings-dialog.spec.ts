@@ -201,6 +201,13 @@ describe('settings dialog — note details option placement', () => {
         'If you are signed in, this applies on every device you sign in on.'
       );
     });
+
+    it("says that the reset keeps this screen's widgets", () => {
+      reset();
+      expect(confirms[0]).toContain(
+        'This screen keeps its widgets; choose New blank under Layouts to clear them.'
+      );
+    });
   });
 
   describe('unit choices', () => {
