@@ -197,6 +197,8 @@ A server admin can preset the settings that people start with. This needs securi
 
 To create them, set Freeboard-SK up as wanted while logged in, then copy the saved file `~/.signalk/applicationData/users/<user>/freeboard/1.0.0.json` to `~/.signalk/applicationData/global/freeboard/1.0.0.json`.
 
+For a server where many people share one login, such as a public demo, add `"demoMode": true` to the `display` section of that global file. A logged-in user then keeps their settings in their browser: Freeboard-SK neither loads nor saves the account's settings, so one visitor's changes do not reach the next.
+
 ---
 
 ## System Requirements:

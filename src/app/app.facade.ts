@@ -690,7 +690,19 @@ export class AppFacade extends InfoService {
       return false;
     }
     this.isLoggedIn.set(loggedIn);
-    if (loggedIn && this.config.display.saveToServer) {
+    if (loggedIn) {
+      const demo = await this.readDemoMode(load);
+      if (demo === 'stale') {
+        return false;
+      }
+      // without knowing, saving to the account could overwrite a shared one
+      this.userConfigUnreadable = demo === 'unreadable';
+      if (demo === 'unreadable') {
+        return false;
+      }
+      this.demoMode = demo;
+    }
+    if (loggedIn && !this.isDemoMode()) {
       this.debug(
         'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
       );
@@ -719,6 +731,43 @@ export class AppFacade extends InfoService {
     );
   }
 
+  /**
+   * Whether the server's global default config puts Freeboard in demo mode,
+   * where everyone shares one login: the account's settings are then neither
+   * loaded nor saved, and each browser keeps its own.
+   */
+  private readDemoMode(
+    load: number
+  ): Promise<boolean | 'unreadable' | 'stale'> {
+    return new Promise((resolve) => {
+      (
+        this.signalk.appDataGet('/', APPDATA_CONTEXT.GLOBAL) as Observable<{
+          display?: { demoMode?: unknown };
+        }>
+      ).subscribe({
+        next: (global) => {
+          if (load !== this.configLoads) {
+            resolve('stale');
+            return;
+          }
+          resolve(global?.display?.demoMode === true);
+        },
+        error: () => {
+          console.info(
+            'applicationData: Unable to retrieve global settings from server!'
+          );
+          resolve(load === this.configLoads ? 'unreadable' : 'stale');
+        }
+      });
+    });
+  }
+
+  private isDemoMode(): boolean {
+    return this.demoMode;
+  }
+
+  private demoMode = false;
+
   /** Fetch a config stored on the server and apply it if it is a saved one */
   private applyServerConfig(
     context: APPDATA_CONTEXT,
@@ -729,13 +778,7 @@ export class AppFacade extends InfoService {
         this.signalk.appDataGet('/', context) as Observable<IAppConfig>
       ).subscribe({
         next: (serverSettings) => {
-          // a user who chose this browser only while the account's settings
-          // were on their way keeps the settings they have
-          if (
-            load !== this.configLoads ||
-            (context === APPDATA_CONTEXT.USER &&
-              !this.config.display.saveToServer)
-          ) {
+          if (load !== this.configLoads) {
             resolve('stale');
             return;
           }
@@ -1414,11 +1457,7 @@ export class AppFacade extends InfoService {
   }
 
   private saveConfigToServer() {
-    if (
-      !this.isLoggedIn() ||
-      this.userConfigUnreadable ||
-      !this.config.display.saveToServer
-    ) {
+    if (!this.isLoggedIn() || this.userConfigUnreadable || this.isDemoMode()) {
       return;
     }
     if (this.serverSave !== 'idle') {
