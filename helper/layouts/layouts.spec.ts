@@ -46,6 +46,13 @@ describe('LayoutStore', () => {
     expect((await store.get('helm')).revision).toBe(2);
   });
 
+  it('refuses a save made from a copy of a layout deleted since', async () => {
+    await expect(
+      store.set('helm', { ...helm, baseRevision: 1 })
+    ).rejects.toThrow(/no longer exists/);
+    expect(await store.list()).toEqual({});
+  });
+
   it('saves without a base revision whatever is stored', async () => {
     await store.set('helm', helm);
     await store.set('helm', { ...helm, baseRevision: 1 });
@@ -67,7 +74,8 @@ describe('LayoutStore', () => {
   });
 
   it('keeps no base revision in what it stores', async () => {
-    await store.set('helm', { ...helm, baseRevision: 0 });
+    await store.set('helm', helm);
+    await store.set('helm', { ...helm, baseRevision: 1 });
 
     expect(await store.get('helm')).not.toHaveProperty('baseRevision');
   });

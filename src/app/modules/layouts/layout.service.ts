@@ -102,7 +102,13 @@ export class LayoutService {
       });
     }
     await this.refresh();
-    if (!this.copy.settled && !(await this.waitingForSignIn())) {
+    // a superseded settings load's callback settles nothing: the latest
+    // load's own callback runs once its settings are in place
+    if (
+      !this.copy.settled &&
+      !(await this.waitingForSignIn()) &&
+      this.app.configReady
+    ) {
       this.settleStart();
     }
     const link = this.copy.link();
@@ -238,15 +244,31 @@ export class LayoutService {
   }
 
   private async fetch(id: string): Promise<SavedLayout | null> {
+    const result = await this.read(id);
+    return result === 'missing' ? null : result;
+  }
+
+  /** A layout from the server; 'missing' only when the server says so. */
+  private async read(id: string): Promise<SavedLayout | 'missing' | null> {
     try {
       return parseSavedLayout(
         await firstValueFrom(
           this.signalk.api.get(this.app.skApiVersion, `${PATH}/${id}`)
         )
       );
-    } catch {
-      return null;
+    } catch (err) {
+      return err instanceof HttpErrorResponse && err.status === 404
+        ? 'missing'
+        : null;
     }
+  }
+
+  /**
+   * Whether this screen still shows the layout it showed when an action
+   * started: a switch made while a save runs must not be linked to the save.
+   */
+  private stillOn(id: string | undefined) {
+    return this.copy.link()?.id === id;
   }
 
   private async put(
@@ -309,25 +331,22 @@ export class LayoutService {
     const content = contentOf(this.app.config);
     try {
       const stored = await this.put(link.id, link.name, content, link.revision);
-      if (stored) {
+      if (stored && this.stillOn(link.id)) {
         this.copy.setLink(this.app.config, linkTo(link.id, stored));
       }
     } catch (err) {
-      const current = await this.fetch(link.id);
-      if (!current) {
+      const current = await this.read(link.id);
+      if (current === 'missing') {
         // deleted on another screen: saving puts it back
-        if (this.available()) {
-          const stored = await this.put(link.id, link.name, content).catch(
-            (e) => (this.app.parseHttpErrorResponse(e), null)
-          );
-          if (stored)
-            this.copy.setLink(this.app.config, linkTo(link.id, stored));
-        } else {
-          this.app.parseHttpErrorResponse(err);
-        }
+        const stored = await this.put(link.id, link.name, content).catch(
+          (e) => (this.app.parseHttpErrorResponse(e), null)
+        );
+        if (stored && this.stillOn(link.id))
+          this.copy.setLink(this.app.config, linkTo(link.id, stored));
         return;
       }
-      if (current.revision === link.revision) {
+      if (!current || current.revision === link.revision) {
+        // not refused for being out of date, or not readable to tell
         this.app.parseHttpErrorResponse(err);
         return;
       }
@@ -346,10 +365,13 @@ export class LayoutService {
         .open(LayoutConflictDialog, { data: { name: current.name } })
         .afterClosed()
     );
+    if (!this.stillOn(id)) return;
     if (choice === 'overwrite') {
       try {
         const stored = await this.put(id, current.name, content);
-        if (stored) this.copy.setLink(this.app.config, linkTo(id, stored));
+        if (stored && this.stillOn(id)) {
+          this.copy.setLink(this.app.config, linkTo(id, stored));
+        }
       } catch (err) {
         this.app.parseHttpErrorResponse(err);
       }
@@ -384,17 +406,16 @@ export class LayoutService {
       if (!r?.ok) return;
     }
     const id = existing?.[0] ?? uuid.v4();
+    const from = this.copy.link()?.id;
     const content = contentOf(this.app.config);
     try {
       const stored = await this.put(
         id,
         existing?.[1].name ?? name,
         // saved back over the layout it came from, the widgets keep their ids
-        id === this.copy.link()?.id
-          ? content
-          : withNewIds(content, () => uuid.v4())
+        id === from ? content : withNewIds(content, () => uuid.v4())
       );
-      if (stored) this.show(id, stored);
+      if (stored && this.stillOn(from)) this.show(id, stored);
     } catch (err) {
       this.app.parseHttpErrorResponse(err);
     }

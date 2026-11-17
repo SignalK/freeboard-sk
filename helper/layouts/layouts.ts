@@ -122,11 +122,12 @@ export class LayoutStore {
       const current = await this.read(id);
       if (
         save.baseRevision !== undefined &&
-        current &&
-        current.revision !== save.baseRevision
+        current?.revision !== save.baseRevision
       ) {
         throw new Error(
-          `Layout ${id} is at revision ${current.revision}, not ${save.baseRevision}`
+          current
+            ? `Layout ${id} is at revision ${current.revision}, not ${save.baseRevision}`
+            : `Layout ${id} no longer exists`
         );
       }
       const stored: StoredLayout = {

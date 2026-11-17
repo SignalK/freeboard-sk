@@ -1257,13 +1257,15 @@ export class AppFacade extends InfoService {
 
   /** overloaded saveConfig() */
   override saveConfig() {
+    // this screen's widgets are put back over the settings a load brings, so
+    // a change made while one runs must be in the working copy already
+    this.layoutCopy.snapshot(this.config);
     if (!this.startConfigKnown || this.configLoading) {
       this.debug('saveConfig: settings still loading, saved once they are.');
       this.configSavePending = true;
       return;
     }
     this.configSavePending = false;
-    this.layoutCopy.snapshot(this.config);
     super.saveConfig();
     this.saveConfigToServer();
   }

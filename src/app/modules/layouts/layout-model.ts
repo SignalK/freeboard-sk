@@ -48,23 +48,30 @@ export interface WorkingCopy {
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
+/** A grid cell the widget overlay can index. */
+const isCell = (v: unknown): v is number =>
+  Number.isInteger(v) && Number(v) >= 0;
+
 const isWidget = (v: unknown): v is PlotterExtensionWidget =>
   isObject(v) &&
   typeof v.instanceId === 'string' &&
   typeof v.extension === 'string' &&
   typeof v.widget === 'string' &&
   typeof v.anchor === 'string' &&
-  typeof v.col === 'number' &&
-  typeof v.row === 'number';
+  isCell(v.col) &&
+  isCell(v.row);
+
+/** Keys that would reach an object's prototype when assigned. */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /** Instance settings, keeping only well-formed entries. */
 function parseInstances(value: unknown): InstanceStates {
   const result: InstanceStates = {};
   if (!isObject(value)) return result;
   for (const [extension, byInstance] of Object.entries(value)) {
-    if (!isObject(byInstance)) continue;
+    if (!isObject(byInstance) || UNSAFE_KEYS.has(extension)) continue;
     for (const [instanceId, values] of Object.entries(byInstance)) {
-      if (!isObject(values)) continue;
+      if (!isObject(values) || UNSAFE_KEYS.has(instanceId)) continue;
       (result[extension] = result[extension] ?? {})[instanceId] = values;
     }
   }

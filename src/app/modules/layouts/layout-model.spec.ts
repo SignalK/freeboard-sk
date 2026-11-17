@@ -174,6 +174,31 @@ describe('reading stored layouts', () => {
     });
   });
 
+  it('drops widgets placed outside the grid', () => {
+    const at = (col: number, row: number) => ({ ...widget('a'), col, row });
+
+    expect(
+      parseSavedLayout({
+        name: 'Helm',
+        revision: 1,
+        widgets: [at(0, -1), at(1.5, 0), at(Number.NaN, 0), at(2, 3)],
+        instances: {}
+      })?.widgets
+    ).toEqual([at(2, 3)]);
+  });
+
+  it('ignores settings keyed to reach an object prototype', () => {
+    const parsed = parseSavedLayout(
+      JSON.parse(
+        '{"name":"Helm","revision":1,"widgets":[],"instances":' +
+          '{"__proto__":{"injected":{"v":1}},"ext":{"constructor":{"v":2},"a":{"v":3}}}}'
+      )
+    );
+
+    expect(parsed?.instances).toEqual({ ext: { a: { v: 3 } } });
+    expect(({} as Record<string, unknown>)['injected']).toBeUndefined();
+  });
+
   it('rejects what is not a layout', () => {
     expect(parseSavedLayout({ name: 'Helm', widgets: [] })).toBeNull();
     expect(parseSavedLayout('Helm')).toBeNull();

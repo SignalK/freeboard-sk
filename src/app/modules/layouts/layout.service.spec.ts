@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable, of, Subject, throwError } from 'rxjs';
+import { Observable, of, Subject, switchMap, throwError } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 
 import { AppFacade } from '../../app.facade';
@@ -61,8 +61,7 @@ class FakeServer {
       const current = this.layouts[id];
       if (
         body.baseRevision !== undefined &&
-        current &&
-        current.revision !== body.baseRevision
+        current?.revision !== body.baseRevision
       ) {
         return throwError(() => new HttpErrorResponse({ status: 400 }));
       }
@@ -95,6 +94,7 @@ describe('LayoutService', () => {
     showAlert: ReturnType<typeof vi.fn>;
     parseHttpErrorResponse: ReturnType<typeof vi.fn>;
     isLoggedIn: () => boolean;
+    configReady: boolean;
   };
   /** What the server's login status says. */
   let loginStatus: { authenticationRequired: boolean };
@@ -164,7 +164,8 @@ describe('LayoutService', () => {
       showConfirm: vi.fn(() => of({ ok: true })),
       showAlert: vi.fn(() => of(undefined)),
       parseHttpErrorResponse: vi.fn(),
-      isLoggedIn: () => true
+      isLoggedIn: () => true,
+      configReady: true
     };
     loginStatus = { authenticationRequired: true };
   });
@@ -247,6 +248,14 @@ describe('LayoutService', () => {
       expect(config.plotterExtensions.widgets).toEqual([widget('mine')]);
       expect(copy.copy()?.content.widgets).toEqual([widget('mine')]);
       expect(service.link()).toBeNull();
+    });
+
+    it('settles nothing from a settings load another has superseded', async () => {
+      app.configReady = false;
+
+      const { copy } = await start();
+
+      expect(copy.settled).toBe(false);
     });
 
     it('settles signed out on a server that needs no sign-in', async () => {
@@ -438,6 +447,62 @@ describe('LayoutService', () => {
       expect(service.link()?.revision).toBe(2);
       expect(service.modified()).toBe(false);
       expect(service.outdated()).toBeNull();
+    });
+
+    it('puts a layout deleted on another screen back when saved', async () => {
+      const { service } = await start();
+      await service.load('h');
+      edit((c) => (c.plotterExtensions.widgets[0].col = 1));
+      delete server.layouts['h'];
+
+      await service.save();
+
+      expect(server.layouts['h']).toMatchObject({
+        name: 'Helm',
+        revision: 1,
+        widgets: [widget('a', 1)]
+      });
+      expect(service.modified()).toBe(false);
+    });
+
+    it("reports a refused save it can't look into, overwriting nothing", async () => {
+      const { service } = await start();
+      await service.load('h');
+      edit((c) => (c.plotterExtensions.widgets[0].col = 1));
+      server.add('h', layout('Helm', 'a', 'b'), 2);
+      const get = server.api.get;
+      server.api.get = (v, path) =>
+        path === `${PATH}/h`
+          ? throwError(() => new HttpErrorResponse({ status: 503 }))
+          : get(v, path);
+
+      await service.save();
+
+      expect(app.parseHttpErrorResponse).toHaveBeenCalled();
+      expect(server.layouts['h'].revision).toBe(2);
+      expect(server.layouts['h'].widgets).toHaveLength(2);
+    });
+
+    it('does not link a save to a layout switched to while it ran', async () => {
+      server.add('c', layout('Chart table', 'c'));
+      const { service } = await start();
+      await service.load('h');
+      edit((c) => (c.plotterExtensions.widgets[0].col = 1));
+      const answered = new Subject<void>();
+      const put = server.api.put;
+      server.api.put = (v, path, body) => {
+        const done = put(v, path, body);
+        return answered.pipe(switchMap(() => done));
+      };
+
+      const saving = service.save();
+      await service.load('c');
+      answered.next();
+      answered.complete();
+      await saving;
+
+      expect(service.link()?.id).toBe('c');
+      expect(config.plotterExtensions.widgets).toEqual([widget('c')]);
     });
 
     it('asks before replacing a newer save from another screen', async () => {
