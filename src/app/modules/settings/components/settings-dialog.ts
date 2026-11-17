@@ -230,9 +230,11 @@ export class SettingsDialog implements OnInit {
     this.app
       .showConfirm(
         'Discard your settings and start Freeboard with the defaults set on this server?' +
+          // the login check may not have answered yet, so a signed-in
+          // user can still show as logged out here
           (this.app.isLoggedIn()
             ? ' This applies on every device you sign in on.'
-            : ''),
+            : ' If you are signed in, this applies on every device you sign in on.'),
         'Reset settings',
         'RESET',
         'CANCEL'

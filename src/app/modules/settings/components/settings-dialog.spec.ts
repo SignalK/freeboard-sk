@@ -195,9 +195,11 @@ describe('settings dialog — note details option placement', () => {
       );
     });
 
-    it('does not mention other devices to a user who is not signed in', () => {
+    it('warns about other devices while the login state is not known', () => {
       reset();
-      expect(confirms[0]).not.toContain('every device');
+      expect(confirms[0]).toContain(
+        'If you are signed in, this applies on every device you sign in on.'
+      );
     });
   });
 
