@@ -159,6 +159,32 @@ export function applyContent(config: IAppConfig, content: LayoutContent) {
   }
 }
 
+/**
+ * The same widgets and settings under new instance ids, so a layout saved as
+ * new shares nothing an extension keeps by instance id with the original.
+ */
+export function withNewIds(
+  content: LayoutContent,
+  newId: () => string
+): LayoutContent {
+  const ids = new Map(content.widgets.map((w) => [w.instanceId, newId()]));
+  const instances: InstanceStates = {};
+  for (const [extension, states] of Object.entries(content.instances)) {
+    instances[extension] = Object.fromEntries(
+      Object.entries(states)
+        .filter(([id]) => ids.has(id))
+        .map(([id, state]) => [ids.get(id)!, structuredClone(state)])
+    );
+  }
+  return {
+    widgets: content.widgets.map((w) => ({
+      ...structuredClone(w),
+      instanceId: ids.get(w.instanceId)!
+    })),
+    instances
+  };
+}
+
 /** JSON with object keys sorted, so equal content compares equal. */
 function canonical(value: unknown): string {
   return JSON.stringify(value, (_key, v) =>

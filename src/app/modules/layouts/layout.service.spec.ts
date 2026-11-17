@@ -422,8 +422,11 @@ describe('LayoutService', () => {
       expect(service.link()?.revision).toBe(2);
     });
 
-    it('saves as a new layout keeping the widgets, linked to it', async () => {
-      config.plotterExtensions.widgets = [widget('mine')];
+    it('saves as a new layout under new widget ids, and shows it', async () => {
+      config.plotterExtensions.widgets = [widget('mine', 2)];
+      config.plotterExtensions.state = {
+        ext: { instances: { mine: { path: 'x' } } }
+      };
       const { service } = await start();
       dialogResult = 'Chart table';
 
@@ -432,8 +435,15 @@ describe('LayoutService', () => {
       const [id, saved] = Object.entries(server.layouts).find(
         ([, l]) => l.name === 'Chart table'
       )!;
-      expect(saved.widgets).toEqual([widget('mine')]);
+      const newId = saved.widgets[0].instanceId;
+      expect(newId).not.toBe('mine');
+      expect(saved.widgets).toEqual([
+        { ...widget('mine', 2), instanceId: newId }
+      ]);
+      expect(saved.instances).toEqual({ ext: { [newId]: { path: 'x' } } });
+      expect(config.plotterExtensions.widgets).toEqual(saved.widgets);
       expect(service.link()?.id).toBe(id);
+      expect(service.modified()).toBe(false);
       expect(service.unsaved()).toBe(false);
     });
 
@@ -446,10 +456,10 @@ describe('LayoutService', () => {
 
       expect(app.showConfirm).toHaveBeenCalled();
       expect(Object.keys(server.layouts)).toEqual(['h']);
-      expect(server.layouts['h']).toMatchObject({
-        name: 'Helm',
-        widgets: [widget('mine')]
-      });
+      expect(server.layouts['h']).toMatchObject({ name: 'Helm' });
+      expect(server.layouts['h'].widgets.map((w) => w.widget)).toEqual([
+        'gauge'
+      ]);
       expect(service.link()?.id).toBe('h');
     });
   });

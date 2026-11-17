@@ -64,7 +64,10 @@ package; Freeboard depends on it (`^0.26.0`) and imports its host entry point
   unchanged copy takes each new version as it arrives, while a changed one
   (placements or `'user'` instance state differ from the version it loaded)
   keeps its changes and offers the newer version. A save carries the revision
-  it was based on, and the plugin refuses a stale one. The config's
+  it was based on, and the plugin refuses a stale one. *Save as new* gives
+  every widget a new `instanceId` (its `'user'` state follows it), so two
+  layouts never share an instance; the widgets restart under the new ids and
+  their `'device'` state stays with the old ones. The config's
   `plotterExtensions.widgets` and `state` still mirror the screen that saved
   last, for older releases; `plotterExtensions.namedLayouts` marks settings
   saved by a release with named layouts, so a new screen starts on the layout

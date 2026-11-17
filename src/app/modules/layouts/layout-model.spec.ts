@@ -11,7 +11,8 @@ import {
   parseSavedLayout,
   parseWorkingCopy,
   sameContent,
-  SavedLayout
+  SavedLayout,
+  withNewIds
 } from './layout-model';
 
 const widget = (
@@ -115,6 +116,25 @@ describe('comparing layouts', () => {
     expect(isModified({ content: { ...a, widgets: [] }, link: null })).toBe(
       false
     );
+  });
+});
+
+describe('saving a layout as new', () => {
+  it('gives each widget a new id, its settings following it', () => {
+    let n = 0;
+    const content: LayoutContent = {
+      widgets: [widget('a'), widget('b', 'other')],
+      instances: { ext: { a: { x: 1 } }, other: { b: { y: 2 } } }
+    };
+
+    expect(withNewIds(content, () => `new-${++n}`)).toEqual({
+      widgets: [
+        { ...widget('a'), instanceId: 'new-1' },
+        { ...widget('b', 'other'), instanceId: 'new-2' }
+      ],
+      instances: { ext: { 'new-1': { x: 1 } }, other: { 'new-2': { y: 2 } } }
+    });
+    expect(content.widgets[0].instanceId).toBe('a');
   });
 });
 

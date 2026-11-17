@@ -18,7 +18,8 @@ import {
   LAYOUTS_RESOURCE_TYPE,
   parseSavedLayout,
   sameContent,
-  SavedLayout
+  SavedLayout,
+  withNewIds
 } from './layout-model';
 import { WorkingCopyStore } from './working-copy.store';
 import {
@@ -353,7 +354,8 @@ export class LayoutService {
 
   /**
    * Save this screen's widgets as a layout of a new name, or over the layout
-   * of that name after asking. The working copy is then linked to it.
+   * of that name after asking, under new instance ids. This screen then shows
+   * it: its widgets restart under those ids, without their device settings.
    */
   async saveAs() {
     const name = await this.askName(
@@ -378,9 +380,9 @@ export class LayoutService {
       const stored = await this.put(
         id,
         existing?.[1].name ?? name,
-        contentOf(this.app.config)
+        withNewIds(contentOf(this.app.config), () => uuid.v4())
       );
-      if (stored) this.copy.setLink(this.app.config, linkTo(id, stored));
+      if (stored) this.show(id, stored);
     } catch (err) {
       this.app.parseHttpErrorResponse(err);
     }
