@@ -29,16 +29,13 @@ import { FeatureLike } from 'ol/Feature';
 import { fromLonLat, transformExtent } from 'ol/proj';
 
 import {
+  gridPointBudget,
   TidalCurrentsService,
   TidalCurrentGridResponse
 } from '../tidal-currents.service';
 import { MapComponent } from '../map.component';
 import { MapImageRegistry } from '../map-image-registry.service';
 import { AppFacade } from 'src/app/app.facade';
-
-const ARROW_SPACING_PX = 50;
-const MIN_POINTS = 100;
-const MAX_POINTS = 1500;
 
 @Component({
   selector: 'ol-map > fb-tidal-currents',
@@ -180,16 +177,9 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       );
   }
 
-  /** Arrow budget scaled to the map size. */
   private maxPoints(): number {
-    const size = this.mapComponent.getMap()?.getSize();
-    if (!size) {
-      return MIN_POINTS;
-    }
-    const n = Math.round(
-      (size[0] * size[1]) / (ARROW_SPACING_PX * ARROW_SPACING_PX)
-    );
-    return Math.max(MIN_POINTS, Math.min(MAX_POINTS, n));
+    const [width, height] = this.mapComponent.getMap()?.getSize() ?? [0, 0];
+    return gridPointBudget(width, height);
   }
 
   private getBbox(): [number, number, number, number] | null {

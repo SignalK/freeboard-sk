@@ -4,6 +4,18 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 
+const ARROW_SPACING_PX = 50;
+const MIN_POINTS = 100;
+const MAX_POINTS = 1500;
+
+/** `/currents/grid` point budget for a map of the given size (CSS px). */
+export function gridPointBudget(width: number, height: number): number {
+  const n = Math.round(
+    (width * height) / (ARROW_SPACING_PX * ARROW_SPACING_PX)
+  );
+  return Math.max(MIN_POINTS, Math.min(MAX_POINTS, n));
+}
+
 // Targets the `signalk-tidal-currents` plugin v0.2.0 `/currents/grid` response, e.g.:
 // { time: "2026-07-10T09:00:00.000Z",
 //   units: { speedKn: "knots (magnitude)", u: "m/s east", v: "m/s north" },
