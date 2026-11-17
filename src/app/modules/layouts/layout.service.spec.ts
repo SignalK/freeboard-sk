@@ -68,7 +68,7 @@ class FakeServer {
       const current = this.layouts[id];
       if (
         body.baseRevision !== undefined &&
-        current?.revision !== body.baseRevision
+        (current?.revision ?? 0) !== body.baseRevision
       ) {
         return throwError(() => new HttpErrorResponse({ status: 400 }));
       }
@@ -517,18 +517,22 @@ describe('LayoutService', () => {
       expect(config.plotterExtensions.widgets).toEqual([widget('c')]);
     });
 
-    /** Hold the server's answer to saves without a base revision, or all saves. */
-    const holdPuts = (onlyWithoutBase = false) => {
+    /**
+     * Hold the server's answer to the saves `hold` picks: `answer()` lets them
+     * through, and `held` counts those sent meanwhile.
+     */
+    const holdPuts = (
+      hold: (body: Record<string, unknown>) => boolean = () => true
+    ) => {
       const answered = new ReplaySubject<void>(1);
       const put = server.api.put;
-      server.api.put = (v, path, body) =>
-        onlyWithoutBase && body.baseRevision !== undefined
-          ? put(v, path, body)
-          : answered.pipe(switchMap(() => put(v, path, body)));
-      return () => {
-        answered.next();
-        answered.complete();
+      const status = { held: 0, answer: () => answered.next() };
+      server.api.put = (v, path, body) => {
+        if (!hold(body)) return put(v, path, body);
+        status.held++;
+        return answered.pipe(switchMap(() => put(v, path, body)));
       };
+      return status;
     };
 
     it('links the layout it puts back even after hearing it was deleted', async () => {
@@ -536,13 +540,13 @@ describe('LayoutService', () => {
       await service.load('h');
       edit((c) => (c.plotterExtensions.widgets[0].col = 1));
       delete server.layouts['h'];
-      const answer = holdPuts(true);
+      const putBack = holdPuts((body) => body.baseRevision === 0);
 
       const saving = service.save();
-      await vi.waitFor(() => expect(server.puts).toHaveLength(1));
+      await vi.waitFor(() => expect(putBack.held).toBe(1));
       delta('h', null);
       expect(service.link()).toBeNull();
-      answer();
+      putBack.answer();
       await saving;
 
       expect(service.link()?.id).toBe('h');
@@ -554,17 +558,64 @@ describe('LayoutService', () => {
       const { service } = await start();
       await service.load('h');
       dialogResult = 'Copy';
-      const answer = holdPuts();
+      const pending = holdPuts();
 
       const saving = service.saveAs();
+      await vi.waitFor(() => expect(pending.held).toBe(1));
       await service.load('c');
-      answer();
+      pending.answer();
       await saving;
 
       expect(service.link()?.id).toBe('c');
       expect(Object.values(server.layouts).map((l) => l.name)).toContain(
         'Copy'
       );
+    });
+
+    it('keeps changes made while a layout saves as new, under its new ids', async () => {
+      const { service } = await start();
+      await service.load('h');
+      dialogResult = 'Copy';
+      const pending = holdPuts();
+
+      const saving = service.saveAs();
+      await vi.waitFor(() => expect(pending.held).toBe(1));
+      edit((c) => (c.plotterExtensions.widgets[0].col = 3));
+      pending.answer();
+      await saving;
+
+      const [id, saved] = Object.entries(server.layouts).find(
+        ([, l]) => l.name === 'Copy'
+      )!;
+      const newId = saved.widgets[0].instanceId;
+      expect(saved.widgets[0].col).toBe(0);
+      expect(config.plotterExtensions.widgets).toEqual([
+        { ...widget('a', 3), instanceId: newId }
+      ]);
+      expect(service.link()?.id).toBe(id);
+      expect(service.modified()).toBe(true);
+    });
+
+    it('treats a layout another screen put back first as a conflict', async () => {
+      const { service } = await start();
+      await service.load('h');
+      edit((c) => (c.plotterExtensions.widgets[0].col = 1));
+      delete server.layouts['h'];
+      const put = server.api.put;
+      server.api.put = (v, path, body) => {
+        // the other screen's put-back lands just before this one's
+        if (body.baseRevision === 0) server.add('h', layout('Helm', 'z'));
+        return put(v, path, body);
+      };
+      dialogResult = 'discard';
+
+      await service.save();
+
+      expect(server.layouts['h'].widgets.map((w) => w.instanceId)).toEqual([
+        'z'
+      ]);
+      expect(config.plotterExtensions.widgets).toEqual([widget('z')]);
+      expect(service.link()?.id).toBe('h');
     });
 
     it('drops a conflict choice made after a switch', async () => {

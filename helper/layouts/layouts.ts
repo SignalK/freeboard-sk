@@ -120,9 +120,10 @@ export class LayoutStore {
     const save = parseSave(value);
     return this.serialized(async () => {
       const current = await this.read(id);
+      // a base revision of 0 creates the layout only if it doesn't exist
       if (
         save.baseRevision !== undefined &&
-        current?.revision !== save.baseRevision
+        (current?.revision ?? 0) !== save.baseRevision
       ) {
         throw new Error(
           current

@@ -109,6 +109,8 @@ export class LayoutService {
     if (
       !this.copy.settled &&
       !(await this.waitingForSignIn()) &&
+      // a layout picked meanwhile settled it
+      !this.copy.settled &&
       this.app.configReady
     ) {
       this.settleStart();
@@ -344,13 +346,7 @@ export class LayoutService {
     } catch (err) {
       const current = await this.read(link.id);
       if (current === 'missing') {
-        // deleted on another screen: saving puts it back
-        const stored = await this.put(link.id, link.name, content).catch(
-          (e) => (this.app.parseHttpErrorResponse(e), null)
-        );
-        if (stored && this.noSwitchSince(at)) {
-          this.copy.setLink(this.app.config, linkTo(link.id, stored));
-        }
+        await this.putBack(link, content, at);
         return;
       }
       if (!current || current.revision === link.revision) {
@@ -359,6 +355,26 @@ export class LayoutService {
         return;
       }
       await this.resolveConflict(link.id, current, content, at);
+    }
+  }
+
+  /**
+   * The layout was deleted on another screen: saving puts it back, unless
+   * another screen put it back first, which is then a conflict like any other.
+   */
+  private async putBack(link: LayoutLink, content: LayoutContent, at: number) {
+    try {
+      const stored = await this.put(link.id, link.name, content, 0);
+      if (stored && this.noSwitchSince(at)) {
+        this.copy.setLink(this.app.config, linkTo(link.id, stored));
+      }
+    } catch (err) {
+      const current = await this.read(link.id);
+      if (current && current !== 'missing') {
+        await this.resolveConflict(link.id, current, content, at);
+      } else {
+        this.app.parseHttpErrorResponse(err);
+      }
     }
   }
 
@@ -417,16 +433,27 @@ export class LayoutService {
       if (!r?.ok) return;
     }
     const id = existing?.[0] ?? uuid.v4();
-    const from = this.copy.link()?.id;
+    // saved back over the layout it came from, the widgets keep their ids
+    const keepIds = id === this.copy.link()?.id;
+    const newIds = new Map<string, string>();
+    const newId = (old: string) =>
+      newIds.get(old) ?? newIds.set(old, uuid.v4()).get(old)!;
     const content = contentOf(this.app.config);
     try {
       const stored = await this.put(
         id,
         existing?.[1].name ?? name,
-        // saved back over the layout it came from, the widgets keep their ids
-        id === from ? content : withNewIds(content, () => uuid.v4())
+        keepIds ? content : withNewIds(content, newId)
       );
-      if (stored && this.noSwitchSince(at)) this.show(id, stored);
+      if (!stored || !this.noSwitchSince(at)) return;
+      const live = contentOf(this.app.config);
+      if (sameContent(live, content)) {
+        this.show(id, stored);
+      } else {
+        // changed while it saved: keep the changes, under the saved ids
+        if (!keepIds) this.plotterExt.applyLayout(withNewIds(live, newId));
+        this.copy.setLink(this.app.config, linkTo(id, stored));
+      }
     } catch (err) {
       this.app.parseHttpErrorResponse(err);
     }

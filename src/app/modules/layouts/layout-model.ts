@@ -172,9 +172,11 @@ export function applyContent(config: IAppConfig, content: LayoutContent) {
  */
 export function withNewIds(
   content: LayoutContent,
-  newId: () => string
+  newId: (instanceId: string) => string
 ): LayoutContent {
-  const ids = new Map(content.widgets.map((w) => [w.instanceId, newId()]));
+  const ids = new Map(
+    content.widgets.map((w) => [w.instanceId, newId(w.instanceId)])
+  );
   const instances: InstanceStates = {};
   for (const [extension, states] of Object.entries(content.instances)) {
     instances[extension] = Object.fromEntries(

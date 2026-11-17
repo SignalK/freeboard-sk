@@ -53,6 +53,15 @@ describe('LayoutStore', () => {
     expect(await store.list()).toEqual({});
   });
 
+  it('creates a layout from base revision 0 only if it does not exist', async () => {
+    expect(
+      (await store.set('helm', { ...helm, baseRevision: 0 })).revision
+    ).toBe(1);
+    await expect(
+      store.set('helm', { ...helm, baseRevision: 0 })
+    ).rejects.toThrow(/revision 1, not 0/);
+  });
+
   it('saves without a base revision whatever is stored', async () => {
     await store.set('helm', helm);
     await store.set('helm', { ...helm, baseRevision: 1 });
