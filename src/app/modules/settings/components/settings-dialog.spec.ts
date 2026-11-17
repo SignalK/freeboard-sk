@@ -5,6 +5,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { of } from 'rxjs';
 
 import { SettingsDialog } from './settings-dialog';
 import { SettingsFacade } from '../settings.facade';
@@ -52,6 +53,8 @@ describe('settings dialog — note details option placement', () => {
   >;
   const trackSource = signal<TrackSource | null>(null);
   const unitPreferences = signal<SKServerUnitPrefs | undefined>(undefined);
+  const loggedIn = signal(false);
+  let confirms: string[];
 
   /** Activate a tab by its visible label and let its body attach. */
   const selectTab = async (label: string) => {
@@ -72,6 +75,8 @@ describe('settings dialog — note details option placement', () => {
     applied = 0;
     radarApi = false;
     keptRadarChoices = [];
+    loggedIn.set(false);
+    confirms = [];
 
     const facadeStub = {
       settings,
@@ -100,7 +105,12 @@ describe('settings dialog — note details option placement', () => {
       ) => keptRadarChoices.push(choice),
       lineDashMap: new Map([['none', 'none']]),
       formatLineDashArray: (): null => null,
-      formatValueForDisplay: (value: number) => `${value} m`
+      formatValueForDisplay: (value: number) => `${value} m`,
+      isLoggedIn: loggedIn,
+      showConfirm: (message: string) => {
+        confirms.push(message);
+        return of(undefined);
+      }
     } as unknown as AppFacade;
 
     TestBed.configureTestingModule({
@@ -167,6 +177,28 @@ describe('settings dialog — note details option placement', () => {
 
     expect(settings.display.singleClickNoteDetails).toBe(true);
     expect(applied).toBeGreaterThan(before);
+  });
+
+  describe('reset to server defaults', () => {
+    const reset = () =>
+      (
+        fixture.componentInstance as unknown as {
+          resetToServerDefaults(): void;
+        }
+      ).resetToServerDefaults();
+
+    it('tells a signed-in user that the reset reaches every device', () => {
+      loggedIn.set(true);
+      reset();
+      expect(confirms[0]).toContain(
+        'This applies on every device you sign in on.'
+      );
+    });
+
+    it('does not mention other devices to a user who is not signed in', () => {
+      reset();
+      expect(confirms[0]).not.toContain('every device');
+    });
   });
 
   describe('unit choices', () => {

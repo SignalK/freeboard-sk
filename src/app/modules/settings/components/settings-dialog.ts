@@ -229,7 +229,10 @@ export class SettingsDialog implements OnInit {
   resetToServerDefaults() {
     this.app
       .showConfirm(
-        'Discard your settings and start Freeboard with the defaults set on this server?',
+        'Discard your settings and start Freeboard with the defaults set on this server?' +
+          (this.app.isLoggedIn()
+            ? ' This applies on every device you sign in on.'
+            : ''),
         'Reset settings',
         'RESET',
         'CANCEL'
