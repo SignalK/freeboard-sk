@@ -17,11 +17,7 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
           !app.featureFlags().radarApi || !app.uiCtrl().radarLayer
       }"
       mat-fab
-      [disabled]="
-        !active() ||
-        !this.app.data.vessels.showSelf ||
-        this.app.instrumentPanel().open
-      "
+      [disabled]="!active() || !this.app.data.vessels.showSelf"
       matTooltip="Radar Overlay"
       matTooltipPosition="above"
     >
