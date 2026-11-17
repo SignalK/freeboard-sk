@@ -257,11 +257,26 @@ describe('LayoutService', () => {
       expect(service.modified()).toBe(true);
     });
 
-    it('takes "Default" once it can read the layouts, if it still has no widgets', async () => {
+    it('keeps a screen left blank on purpose blank, over "Default"', async () => {
       server.add('d', layout('Default', 'a'));
       const empty = { widgets: [], instances: {} };
 
       const { service } = await start({ content: empty, link: null });
+
+      expect(config.plotterExtensions.widgets).toEqual([]);
+      expect(service.link()).toBeNull();
+    });
+
+    it('takes "Default" once signed in, after starting signed out with no widgets', async () => {
+      const readable = server.api.get;
+      server.api.get = () =>
+        throwError(() => new HttpErrorResponse({ status: 401 }));
+      const { service } = await start();
+      server.api.get = readable;
+      server.add('d', layout('Default', 'a'));
+      config.plotterExtensions.namedLayouts = true;
+
+      await service.init();
 
       expect(config.plotterExtensions.widgets).toEqual([widget('a')]);
       expect(service.link()?.id).toBe('d');

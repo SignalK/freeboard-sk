@@ -114,14 +114,6 @@ export class LayoutService {
         this.copy.setLink(this.app.config, null);
       }
     }
-    // a screen showing no layout and no widgets of its own takes "Default",
-    // also when it could only read the layouts once signed in
-    if (!this.copy.link() && !this.copy.copy()?.content.widgets.length) {
-      const fallback = findDefault(this.layouts());
-      if (fallback) {
-        this.show(...fallback);
-      }
-    }
   }
 
   /** Reload the list of layouts from the server. */
