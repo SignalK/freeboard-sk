@@ -37,6 +37,10 @@
           &nbsp;Groups
         </button>
       }
+      <button mat-menu-item (click)="displayLeftMenu('layoutList', true)">
+        <mat-icon>dashboard_customize</mat-icon>
+        &nbsp;Layouts
+      </button>
       @if (app.featureFlags().infoLayers) {
         <button mat-menu-item (click)="showOverlaysMoved()">
           <mat-icon>layers</mat-icon>
@@ -635,6 +639,11 @@
                     <group-list (closed)="displayLeftMenu()"> </group-list>
                   }
                 }
+                @if (leftMenuCtrl().layoutList) {
+                  @defer {
+                    <layout-list (closed)="displayLeftMenu()"></layout-list>
+                  }
+                }
                 @if (leftMenuCtrl().anchorWatch) {
                   <anchor-watch
                     [showSelf]="app.data.vessels.showSelf"
@@ -657,6 +666,17 @@
               class="statusBar"
               [style.top.px]="20 + plotterExt.toolbarTopOffset()"
             >
+              @if (layouts.outdated()) {
+                <div class="statusBarItem">
+                  <mat-icon
+                    style="cursor: pointer"
+                    (click)="displayLeftMenu('layoutList', true)"
+                    matTooltip="This screen's layout was changed on another screen"
+                    matTooltipPosition="below"
+                    >sync_problem
+                  </mat-icon>
+                </div>
+              }
               @if (!wakeLock.enabled() && wakeLock.isAvailable) {
                 <div class="statusBarItem">
                   <mat-icon

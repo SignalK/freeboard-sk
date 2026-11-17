@@ -16,6 +16,8 @@ const makeServer = () =>
     debug: () => undefined,
     error: vi.fn(),
     handleMessage: vi.fn(),
+    getDataDirPath: () => '/nonexistent/freeboard-sk',
+    registerResourceProvider: vi.fn(),
     setPluginStatus: vi.fn(),
     setPluginError: vi.fn()
   }) as unknown as FreeboardHelperApp;
@@ -65,6 +67,9 @@ describe('freeboard-sk helper plugin', () => {
     );
 
     expect(initAlarms).toHaveBeenCalledWith(server, 'freeboard-sk');
+    expect(server.registerResourceProvider).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'freeboardLayouts' })
+    );
     expect(server.setPluginStatus).toHaveBeenCalledWith('Started');
     expect(readSettings(plugin)).toEqual({
       settings: { alarms: { enable: true } }

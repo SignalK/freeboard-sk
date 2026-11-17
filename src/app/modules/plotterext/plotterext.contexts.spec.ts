@@ -369,6 +369,49 @@ describe('PlotterExtensionService iframe contexts', () => {
       });
     });
 
+    it('keeps device state of widgets in other saved layouts', async () => {
+      place('inst-1');
+      service.retainInstances(() => ['other-layout']);
+      localStorage.setItem(
+        DEVICE_KEY,
+        JSON.stringify({
+          'ext-a': { instances: { 'other-layout': { v: 7 }, gone: { v: 9 } } }
+        })
+      );
+      const client = await connect(attachGauge);
+      await client.state.set({ v: 1 }, { storage: 'device' });
+      expect(deviceStored()).toEqual({
+        'ext-a': {
+          instances: { 'other-layout': { v: 7 }, 'inst-1': { v: 1 } }
+        }
+      });
+    });
+
+    it('tells a widget still placed that a layout changed its settings', async () => {
+      place('inst-1');
+      const client = await connect(attachGauge);
+      await client.state.set({ path: 'a', size: 1 });
+      const seen: unknown[] = [];
+      await client.subscribe(['state.changed'], (_n, p) => seen.push(p));
+
+      service.applyLayout({
+        widgets: [...(config.plotterExtensions.widgets as never[])],
+        instances: { 'ext-a': { 'inst-1': { path: 'b', size: 1 } } }
+      });
+
+      await vi.waitFor(() => expect(seen).toHaveLength(1));
+      expect(seen[0]).toEqual({
+        scope: 'instance',
+        storage: 'user',
+        instanceId: 'inst-1',
+        keys: ['path']
+      });
+      await expect(client.state.get()).resolves.toEqual({
+        path: 'b',
+        size: 1
+      });
+    });
+
     it('drops corrupt entries of the device store instead of failing', async () => {
       place('inst-1');
       localStorage.setItem(

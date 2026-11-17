@@ -70,6 +70,7 @@ import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
 import { S57Service } from './modules/map/ol';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
+import { WorkingCopyStore } from './modules/layouts/working-copy.store';
 import {
   LineStyleDash,
   LineStyleDef
@@ -347,6 +348,7 @@ export class AppFacade extends InfoService {
   private dom = inject(DomSanitizer);
   private s57 = inject(S57Service);
   private splitView = inject(SplitViewService);
+  private layoutCopy = inject(WorkingCopyStore);
 
   /**
    * Whether the chart the map buttons act on follows the vessel: the main
@@ -593,6 +595,8 @@ export class AppFacade extends InfoService {
 
   /** Initialise and raise "settings$.load" event */
   private doPostConfigLoad() {
+    // this screen keeps its own widgets, whatever the loaded settings hold
+    this.layoutCopy.overlay(this.config);
     // initialise signals
     this.uiConfig.update(() => this.config.ui);
     Object.assign(this.config.radars, this.radarChoicesWhileLoading);
@@ -1259,6 +1263,7 @@ export class AppFacade extends InfoService {
       return;
     }
     this.configSavePending = false;
+    this.layoutCopy.snapshot(this.config);
     super.saveConfig();
     this.saveConfigToServer();
   }

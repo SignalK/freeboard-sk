@@ -268,6 +268,10 @@ export const AppConfigSchema = Type.Object({
       }),
       { default: [] }
     ),
+    // saved by a release with named layouts (#1346): from then on these
+    // widgets mirror the last screen's working copy, kept for older releases,
+    // and a new screen starts on the "Default" layout instead of them
+    namedLayouts: Type.Optional(Type.Boolean()),
     // what extensions keep through the host API's `state.*`, per extension:
     // its own values and each of its widget placements' values
     state: Type.Optional(

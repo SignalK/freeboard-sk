@@ -1,0 +1,82 @@
+/* The header grows with the current-layout block, so the list follows it
+   in a column rather than at the fixed offset other resource lists use. */
+.resourcelist.layouts {
+  display: flex;
+  flex-direction: column;
+}
+
+.resourcelist.layouts .resources {
+  position: static;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-top: silver 1px outset;
+}
+
+.current {
+  padding: 0 5px;
+}
+
+.current-group {
+  margin: 0 0 8px;
+  padding: 0 8px 6px;
+  border: 1px solid rgba(127, 127, 127, 0.4);
+  border-radius: 6px;
+}
+
+.current-group legend {
+  padding: 0 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.current-name {
+  padding: 2px 0 2px;
+  overflow-wrap: anywhere;
+}
+
+.current-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.outdated {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 4px;
+  color: var(--mat-sys-error);
+}
+
+.outdated span {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.unavailable,
+.empty {
+  padding: 10px;
+  font-style: italic;
+}
+
+.name,
+.detail {
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+  white-space: nowrap;
+}
+
+.name {
+  padding-top: 6px;
+}
+
+.detail {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.shown-mark {
+  padding: 6px 4px 0;
+}

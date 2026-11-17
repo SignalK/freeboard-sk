@@ -1,0 +1,146 @@
+<div class="resourcelist layouts">
+  <mat-card style="border-radius: unset">
+    <mat-card-title>
+      <div class="title-block">
+        <div style="width: 50px">
+          <button
+            mat-icon-button
+            (click)="close()"
+            matTooltip="Close Layouts"
+            matTooltipPosition="right"
+          >
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Layouts</div>
+        <div>
+          <button
+            mat-icon-button
+            (click)="layouts.refresh()"
+            matTooltip="Reload Layouts"
+            matTooltipPosition="below"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+    </mat-card-title>
+    <mat-card-content>
+      <div class="current">
+        <fieldset class="current-group">
+          <legend>Current layout</legend>
+          <div class="current-name">
+            @if (layouts.link(); as link) {
+            <b>{{ link.name }}</b>
+            @if (layouts.modified()) {
+            <i>&nbsp;(changed, not saved)</i>
+            } } @else if (layouts.unsaved()) {
+            <i>Widgets not saved as a layout</i>
+            } @else {
+            <i>No widgets</i>
+            }
+          </div>
+          @if (layouts.outdated()) {
+          <div class="outdated">
+            <mat-icon>sync_problem</mat-icon>
+            <span>Saved on another screen since this screen loaded it.</span>
+            <button mat-button (click)="layouts.reload()">Load theirs</button>
+          </div>
+          }
+        </fieldset>
+        @if (layouts.available()) {
+        <div class="current-actions">
+          <button
+            mat-stroked-button
+            [disabled]="!layouts.link() || !layouts.modified()"
+            (click)="layouts.save()"
+          >
+            <mat-icon>save</mat-icon>
+            Save
+          </button>
+          <button mat-stroked-button (click)="layouts.saveAs()">
+            <mat-icon>library_add</mat-icon>
+            Save as new
+          </button>
+          <button mat-stroked-button (click)="layouts.newBlank()">
+            <mat-icon>note_add</mat-icon>
+            New blank
+          </button>
+        </div>
+        } @else {
+        <div class="unavailable">
+          Saved layouts need the Freeboard-SK plugin enabled on the Signal K
+          server.
+        </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="resources">
+    @for (item of list(); track item[0]) {
+    <mat-card
+      style="border-bottom: silver 1px outset; border-radius: unset"
+      [class.shown]="layouts.link()?.id === item[0]"
+    >
+      <mat-card-content>
+        <div style="display: flex; padding-left: 5px">
+          <div style="flex: 1 1 auto; min-width: 0">
+            <div class="name">
+              <b>{{ item[1].name }}</b>
+            </div>
+            <div class="detail">
+              {{ item[1].widgets.length }} {{ item[1].widgets.length === 1 ?
+              'widget' : 'widgets' }} @if (item[1].updated) { &middot; saved {{
+              item[1].updated | date: 'short' }} }
+            </div>
+          </div>
+          @if (layouts.link()?.id === item[0]) {
+          <div class="shown-mark">
+            <mat-icon
+              matTooltip="This screen shows this layout"
+              matTooltipPosition="left"
+              >check</mat-icon
+            >
+          </div>
+          }
+        </div>
+      </mat-card-content>
+      <mat-card-actions>
+        <div style="display: flex; width: 100%">
+          <div style="flex: 1 1 auto">
+            <button
+              mat-icon-button
+              (click)="layouts.remove(item[0])"
+              matTooltip="Delete Layout"
+              matTooltipPosition="above"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              (click)="layouts.rename(item[0])"
+              matTooltip="Rename Layout"
+              matTooltipPosition="above"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+          </div>
+          <div>
+            <button mat-button (click)="layouts.load(item[0])">
+              <mat-icon>open_in_browser</mat-icon>
+              Switch to
+            </button>
+          </div>
+        </div>
+      </mat-card-actions>
+    </mat-card>
+    } @empty { @if (layouts.available()) {
+    <div class="empty">
+      No saved layouts yet. Use <b>Save as new</b> to save this screen's
+      widgets. A screen with no widgets of its own starts on the layout named
+      "Default".
+    </div>
+    } }
+  </div>
+</div>
