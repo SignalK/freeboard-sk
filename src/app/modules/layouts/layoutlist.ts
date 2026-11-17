@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  OnInit,
   output
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -27,7 +28,7 @@ import { LayoutService } from './layout.service';
     MatTooltipModule
   ]
 })
-export class LayoutListComponent {
+export class LayoutListComponent implements OnInit {
   closed = output<void>();
 
   protected layouts = inject(LayoutService);

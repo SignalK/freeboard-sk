@@ -29,9 +29,15 @@ export class WorkingCopyStore {
 
   /**
    * Copies are taken only once the layout this screen starts on is settled:
-   * before that the config may still hold another screen's widgets.
+   * before that the config may still hold another screen's widgets, or, before
+   * a sign-in, none of the user's.
    */
   private started = false;
+
+  /** Whether the layout this screen starts on is settled. */
+  get settled() {
+    return this.started;
+  }
 
   /** Whether this browser held a working copy when the app started. */
   readonly existedAtStart = this._copy() !== null;
@@ -87,8 +93,8 @@ export class WorkingCopyStore {
     config.plotterExtensions.namedLayouts = true;
   }
 
-  /** Link the working copy to a named layout, or unlink it. */
+  /** Link the working copy to a named layout, or unlink it: a choice that settles it. */
   setLink(config: IAppConfig, link: LayoutLink | null) {
-    this.write({ content: contentOf(config), link });
+    this.start(config, link);
   }
 }

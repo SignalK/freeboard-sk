@@ -63,8 +63,8 @@ export default (server: FreeboardHelperApp): Plugin => {
 
       server.debug(`Applied config: ${JSON.stringify(SETTINGS)}`);
 
-      initAlarms(server, plugin.id);
       registerLayoutsProvider(server);
+      initAlarms(server, plugin.id);
       server.setPluginStatus('Started');
     } catch (error) {
       const msg = 'Started with errors!';

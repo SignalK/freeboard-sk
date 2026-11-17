@@ -16,6 +16,7 @@ import { AppFacade } from '../../app.facade';
 import { SKResourceService } from '../skresources/resources.service';
 import { MapService } from '../map/ol/lib/map.service';
 import { SKStreamFacade } from '../skstream/skstream.facade';
+import type { PlotterExtensionWidget } from '../../types';
 
 // Each iframe context kind (widget, panel, background) gets the shared host API
 // plus its own handshake context, state scope and kind-specific methods. These
@@ -387,19 +388,26 @@ describe('PlotterExtensionService iframe contexts', () => {
       });
     });
 
-    it('tells a widget still placed that a layout changed its settings', async () => {
+    it('tells only a widget still placed that a layout changed its settings', async () => {
       place('inst-1');
       const client = await connect(attachGauge);
       await client.state.set({ path: 'a', size: 1 });
       const seen: unknown[] = [];
       await client.subscribe(['state.changed'], (_n, p) => seen.push(p));
 
+      const placed = config.plotterExtensions
+        .widgets as PlotterExtensionWidget[];
       service.applyLayout({
-        widgets: [...(config.plotterExtensions.widgets as never[])],
-        instances: { 'ext-a': { 'inst-1': { path: 'b', size: 1 } } }
+        widgets: [...placed, { ...placed[0], instanceId: 'inst-new' }],
+        instances: {
+          'ext-a': { 'inst-1': { path: 'b', size: 1 }, 'inst-new': { x: 1 } }
+        }
       });
 
       await vi.waitFor(() => expect(seen).toHaveLength(1));
+      // a widget the layout newly places reads its settings when it starts
+      await new Promise((r) => setTimeout(r, 20));
+      expect(seen).toHaveLength(1);
       expect(seen[0]).toEqual({
         scope: 'instance',
         storage: 'user',

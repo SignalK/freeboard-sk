@@ -75,7 +75,6 @@ export class LayoutService {
       : null;
   });
 
-  private started = false;
   private listening = false;
 
   constructor() {
@@ -102,8 +101,7 @@ export class LayoutService {
       });
     }
     await this.refresh();
-    if (!this.started) {
-      this.started = true;
+    if (!this.copy.settled) {
       this.settleStart();
     }
     const link = this.copy.link();
@@ -151,6 +149,10 @@ export class LayoutService {
    * widgets in the settings if a release before named layouts saved them, and
    * otherwise from the "Default" layout, if there is one: the widgets in the
    * settings then only mirror another screen's, for older releases.
+   *
+   * With neither, nothing is settled: before a sign-in the settings may not
+   * be the user's yet, so this runs again on the next start, and a working
+   * copy taken now would cover the user's widgets once they load.
    */
   private settleStart() {
     const config = this.app.config;
@@ -165,6 +167,8 @@ export class LayoutService {
     if (!ownWidgets && fallback) {
       applyContent(config, fallback[1]);
       link = linkTo(...fallback);
+    } else if (!ext.widgets.length) {
+      return;
     }
     this.copy.start(config, link);
     this.app.saveConfig();
@@ -183,7 +187,15 @@ export class LayoutService {
       return;
     }
     const layout = parseSavedLayout(value);
-    if (!layout) return;
+    if (layout) {
+      this.onSaved(id, layout);
+    } else {
+      // servers before 2.37 send the body of the save, not what was stored
+      void this.fetch(id).then((stored) => stored && this.onSaved(id, stored));
+    }
+  }
+
+  private onSaved(id: string, layout: SavedLayout) {
     this.layouts.update((all) => ({ ...all, [id]: layout }));
     this.onServerVersion(id, layout);
   }
@@ -246,8 +258,11 @@ export class LayoutService {
     const stored = await this.fetch(id);
     if (stored) {
       this.layouts.update((all) => ({ ...all, [id]: stored }));
+      return stored;
     }
-    return stored;
+    // saved, but not read back: the list still says what was stored
+    await this.refresh();
+    return this.layouts()[id] ?? null;
   }
 
   /** Ask before replacing widgets that aren't saved anywhere. */

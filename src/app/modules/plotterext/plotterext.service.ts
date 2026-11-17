@@ -2598,12 +2598,14 @@ export class PlotterExtensionService {
    */
   applyLayout(content: LayoutContent) {
     const before = contentOf(this.app.config).instances;
+    const placed = new Set(
+      this.app.config.plotterExtensions.widgets.map((w) => w.instanceId)
+    );
     applyContent(this.app.config, content);
     const after = content.instances;
     this.cancelMove();
     this.app.saveConfig();
     this.refreshActiveWidgets();
-    const placed = new Set(content.widgets.map((w) => w.instanceId));
     for (const widget of content.widgets) {
       const was = before[widget.extension]?.[widget.instanceId] ?? {};
       const now = after[widget.extension]?.[widget.instanceId] ?? {};
@@ -3185,6 +3187,8 @@ export class PlotterExtensionService {
       delete store[extension].instances![instanceId];
       this.saveStore(store);
     }
+    // another saved layout may still show it on this screen
+    if ([...this.retainedInstances()].includes(instanceId)) return;
     try {
       const device = this.loadDeviceStore();
       if (device[extension]?.instances?.[instanceId]) {

@@ -47,7 +47,8 @@
   flex-wrap: wrap;
   gap: 4px;
   padding-top: 4px;
-  color: var(--mat-sys-error);
+  /* the theme has no --mat-sys-* tokens; a mid-tone reads on light and dark */
+  color: #e8710a;
 }
 
 .outdated span {

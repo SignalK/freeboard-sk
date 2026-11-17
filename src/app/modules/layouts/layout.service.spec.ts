@@ -221,6 +221,27 @@ describe('LayoutService', () => {
       expect(config.plotterExtensions.widgets).toEqual([]);
     });
 
+    it("waits for a sign-in, rather than covering the user's widgets with none", async () => {
+      const readable = server.api.get;
+      server.api.get = () =>
+        throwError(() => new HttpErrorResponse({ status: 401 }));
+      const { service, copy } = await start();
+
+      expect(copy.settled).toBe(false);
+      expect(localStorage.getItem(WORKING_COPY_STORAGE_KEY)).toBeNull();
+
+      // signed in: the user's settings load, with widgets an older release saved
+      server.api.get = readable;
+      config.plotterExtensions.widgets = [widget('mine')];
+      copy.overlay(config);
+      app.saveConfig();
+      await service.init();
+
+      expect(config.plotterExtensions.widgets).toEqual([widget('mine')]);
+      expect(copy.copy()?.content.widgets).toEqual([widget('mine')]);
+      expect(service.link()).toBeNull();
+    });
+
     it('keeps the working copy this browser holds, edits included', async () => {
       server.add('h', layout('Helm', 'a'));
       server.add('d', layout('Default', 'd'));
@@ -286,6 +307,23 @@ describe('LayoutService', () => {
       expect(service.link()?.revision).toBe(2);
       expect(service.modified()).toBe(false);
       expect(service.outdated()).toBeNull();
+    });
+
+    it('replaces an unchanged copy when the server sends what was saved, not what was stored', async () => {
+      const { service } = await start();
+      await service.load('h');
+
+      server.add('h', layout('Helm', 'a', 'b'), 2);
+      deltas.next({
+        path: 'resources.freeboardLayouts.h',
+        value: { ...layout('Helm', 'a', 'b'), baseRevision: 1 }
+      });
+      await vi.waitFor(() => expect(service.link()?.revision).toBe(2));
+
+      expect(config.plotterExtensions.widgets.map((w) => w.instanceId)).toEqual(
+        ['a', 'b']
+      );
+      expect(service.modified()).toBe(false);
     });
 
     it('leaves a changed copy alone and offers the newer version', async () => {
