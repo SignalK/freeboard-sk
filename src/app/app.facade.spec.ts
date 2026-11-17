@@ -1062,6 +1062,25 @@ describe('AppFacade.resetToServerDefaults', () => {
     expect(restart).toHaveBeenCalledTimes(1);
   });
 
+  it('reads the settings once a refused save under way has landed', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    // a read-only user, whose save the server refuses
+    client.appDataGet.mockReturnValue(of({}));
+    const save = new Subject<object>();
+    client.appDataSet.mockReturnValueOnce(save);
+    app.saveConfig();
+
+    const reset = app.resetToServerDefaults();
+    // let the reset reach the save under way
+    await new Promise((resolve) => setTimeout(resolve));
+    save.error({ status: 403 });
+
+    await expect(reset).resolves.toBe(true);
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
   it('clears the settings when it cannot read whether there are any', async () => {
     const { app, client, restart } = setup(true);
     await app.loadUserConfigfromServer();

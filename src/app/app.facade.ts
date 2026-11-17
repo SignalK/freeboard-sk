@@ -1277,11 +1277,11 @@ export class AppFacade extends InfoService {
     this.resettingConfig = true;
     clearTimeout(this.saveCfgTimer);
     const loggedIn = await this.askLoggedIn();
+    const stored = loggedIn ? await this.userConfigStored() : false;
     if (
       loggedIn === undefined ||
-      (loggedIn &&
-        (await this.userConfigStored()) &&
-        !(await this.clearServerConfig()))
+      stored === undefined ||
+      (stored && !(await this.clearServerConfig()))
     ) {
       this.resettingConfig = false;
       // the saves held back while the reset ran, and the debounced one it cancelled
@@ -1308,14 +1308,23 @@ export class AppFacade extends InfoService {
   }
 
   /**
-   * Whether the logged-in user may have settings stored on the server. A
-   * read-only user cannot clear them, so a reset that finds none skips the
-   * clear. A save under way may store some, and settings that cannot be read
-   * may exist, so both count as stored.
+   * Whether the logged-in user has settings stored on the server, read once
+   * the save under way has landed, as it may store some. A read-only user
+   * cannot clear them, so a reset that finds none skips the clear. Settings
+   * that cannot be read may exist, so they count as stored. Undefined when
+   * the save under way does not land within the time limit.
    */
-  private userConfigStored(): Promise<boolean> {
-    if (this.serverSave !== 'idle') {
-      return Promise.resolve(true);
+  private async userConfigStored(): Promise<boolean | undefined> {
+    let limit: ReturnType<typeof setTimeout> | undefined;
+    const settled = await Promise.race([
+      this.serverSaveSettled().then(() => true),
+      new Promise<false>((resolve) => {
+        limit = setTimeout(() => resolve(false), RESET_CLEAR_TIMEOUT_MS);
+      })
+    ]);
+    clearTimeout(limit);
+    if (!settled) {
+      return undefined;
     }
     return firstValueFrom(
       (
