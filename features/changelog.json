@@ -195,5 +195,6 @@
   { "feature": "screen-widgets", "pr": 1307, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(plotterext): show each widget only from a chosen screen size up" },
   { "feature": "route-following", "pr": 1296, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(ui): add a panel background setting, starting with the route bar" },
   { "feature": "screen-widgets", "pr": 1309, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(plotterext): tell widgets the panel background opacity" },
-  { "feature": "screen-widgets", "pr": 1316, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(plotterext): report the host's color scheme in the display capability" }
+  { "feature": "screen-widgets", "pr": 1316, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(plotterext): report the host's color scheme in the display capability" },
+  { "feature": "screen-widgets", "pr": 1352, "kind": "enhanced", "date": "2026-11-17", "title": "feat(plotterext): named widget layouts each screen can pick" }
 ]
