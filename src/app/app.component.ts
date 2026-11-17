@@ -1897,13 +1897,12 @@ export class AppComponent {
               this.app.loadUserConfigfromServer().then((loaded: boolean) => {
                 if (loaded) {
                   this.loadSymbolsThenFetchResources();
-                  // re-run plotter extension discovery now that we are
-                  // authenticated, so auth-gated extensions and the
-                  // server-stored widget layout appear without a page reload
-                  void this.layouts
-                    .init()
-                    .finally(() => this.plotterExt.init());
                 }
+                // signed in: the screen's layout can settle now, even when
+                // the user has no settings stored yet; then re-run plotter
+                // extension discovery, so auth-gated extensions and the
+                // server-stored widget layout appear without a page reload
+                void this.layouts.init().finally(() => this.plotterExt.init());
               });
               if (onConnect) {
                 this.queryAfterConnect();

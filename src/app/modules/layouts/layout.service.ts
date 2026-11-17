@@ -102,7 +102,7 @@ export class LayoutService {
       });
     }
     await this.refresh();
-    if (!this.copy.settled) {
+    if (!this.copy.settled && !(await this.waitingForSignIn())) {
       this.settleStart();
     }
     const link = this.copy.link();
@@ -116,8 +116,25 @@ export class LayoutService {
     }
   }
 
-  /** Reload the list of layouts from the server. */
-  async refresh() {
+  /**
+   * Signed out of a server that needs a sign-in: the settings in use may not
+   * be the user's yet, and a working copy taken now would cover theirs once
+   * they sign in. The screen settles then, or when the user picks a layout.
+   */
+  private async waitingForSignIn(): Promise<boolean> {
+    if (this.app.isLoggedIn()) return false;
+    try {
+      const status = (await firstValueFrom(this.signalk.getLoginStatus())) as {
+        authenticationRequired?: boolean;
+      };
+      return !!status?.authenticationRequired;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Reload the list of layouts from the server; false when it can't be read. */
+  async refresh(): Promise<boolean> {
     try {
       const response = await firstValueFrom(
         this.signalk.api.get(this.app.skApiVersion, PATH)
@@ -131,9 +148,11 @@ export class LayoutService {
       }
       this.layouts.set(layouts);
       this.available.set(true);
+      return true;
     } catch {
       // no provider (Freeboard's plugin disabled) or not reachable
       this.available.set(false);
+      return false;
     }
   }
 
@@ -142,10 +161,6 @@ export class LayoutService {
    * widgets in the settings if a release before named layouts saved them, and
    * otherwise from the "Default" layout, if there is one: the widgets in the
    * settings then only mirror another screen's, for older releases.
-   *
-   * With neither, nothing is settled: before a sign-in the settings may not
-   * be the user's yet, so this runs again on the next start, and a working
-   * copy taken now would cover the user's widgets once they load.
    */
   private settleStart() {
     const config = this.app.config;
@@ -160,8 +175,6 @@ export class LayoutService {
     if (!ownWidgets && fallback) {
       applyContent(config, fallback[1]);
       link = linkTo(...fallback);
-    } else if (!ext.widgets.length) {
-      return;
     }
     this.copy.start(config, link);
     this.app.saveConfig();
@@ -189,6 +202,8 @@ export class LayoutService {
   }
 
   private onSaved(id: string, layout: SavedLayout) {
+    // fetches for quick successive saves can answer out of order
+    if (layout.revision < (this.layouts()[id]?.revision ?? 0)) return;
     this.layouts.update((all) => ({ ...all, [id]: layout }));
     this.onServerVersion(id, layout);
   }
@@ -240,6 +255,7 @@ export class LayoutService {
     content: LayoutContent,
     baseRevision?: number
   ) {
+    const before = baseRevision ?? this.layouts()[id]?.revision ?? 0;
     await firstValueFrom(
       this.signalk.api.put(this.app.skApiVersion, `${PATH}/${id}`, {
         name,
@@ -253,9 +269,9 @@ export class LayoutService {
       this.layouts.update((all) => ({ ...all, [id]: stored }));
       return stored;
     }
-    // saved, but not read back: the list still says what was stored
-    await this.refresh();
-    return this.layouts()[id] ?? null;
+    // saved, but not read back: the list may say what was stored
+    const listed = (await this.refresh()) ? this.layouts()[id] : undefined;
+    return listed && listed.revision > before ? listed : null;
   }
 
   /** Ask before replacing widgets that aren't saved anywhere. */
@@ -368,11 +384,15 @@ export class LayoutService {
       if (!r?.ok) return;
     }
     const id = existing?.[0] ?? uuid.v4();
+    const content = contentOf(this.app.config);
     try {
       const stored = await this.put(
         id,
         existing?.[1].name ?? name,
-        withNewIds(contentOf(this.app.config), () => uuid.v4())
+        // saved back over the layout it came from, the widgets keep their ids
+        id === this.copy.link()?.id
+          ? content
+          : withNewIds(content, () => uuid.v4())
       );
       if (stored) this.show(id, stored);
     } catch (err) {

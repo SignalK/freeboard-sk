@@ -397,6 +397,12 @@ describe('PlotterExtensionService iframe contexts', () => {
 
       const placed = config.plotterExtensions
         .widgets as PlotterExtensionWidget[];
+      const publish = vi.spyOn(
+        service as unknown as {
+          publishToExtension: (ext: string, event: string, p: unknown) => void;
+        },
+        'publishToExtension'
+      );
       service.applyLayout({
         widgets: [...placed, { ...placed[0], instanceId: 'inst-new' }],
         instances: {
@@ -404,10 +410,11 @@ describe('PlotterExtensionService iframe contexts', () => {
         }
       });
 
-      await vi.waitFor(() => expect(seen).toHaveLength(1));
       // a widget the layout newly places reads its settings when it starts
-      await new Promise((r) => setTimeout(r, 20));
-      expect(seen).toHaveLength(1);
+      expect(
+        publish.mock.calls.filter(([, event]) => event === 'state.changed')
+      ).toHaveLength(1);
+      await vi.waitFor(() => expect(seen).toHaveLength(1));
       expect(seen[0]).toEqual({
         scope: 'instance',
         storage: 'user',

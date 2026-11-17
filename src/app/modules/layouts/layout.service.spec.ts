@@ -94,7 +94,10 @@ describe('LayoutService', () => {
     showConfirm: ReturnType<typeof vi.fn>;
     showAlert: ReturnType<typeof vi.fn>;
     parseHttpErrorResponse: ReturnType<typeof vi.fn>;
+    isLoggedIn: () => boolean;
   };
+  /** What the server's login status says. */
+  let loginStatus: { authenticationRequired: boolean };
   let applyLayout: ReturnType<typeof vi.fn>;
 
   /** Start the service as the app does, on a browser holding `stored`. */
@@ -106,7 +109,10 @@ describe('LayoutService', () => {
       providers: [
         LayoutService,
         { provide: AppFacade, useValue: app },
-        { provide: SignalKClient, useValue: { api: server.api } },
+        {
+          provide: SignalKClient,
+          useValue: { api: server.api, getLoginStatus: () => of(loginStatus) }
+        },
         {
           provide: SKWorkerService,
           useValue: { resourceDelta$: () => deltas.asObservable() }
@@ -157,8 +163,10 @@ describe('LayoutService', () => {
       showMessage: vi.fn(),
       showConfirm: vi.fn(() => of({ ok: true })),
       showAlert: vi.fn(() => of(undefined)),
-      parseHttpErrorResponse: vi.fn()
+      parseHttpErrorResponse: vi.fn(),
+      isLoggedIn: () => true
     };
+    loginStatus = { authenticationRequired: true };
   });
 
   afterEach(() => {
@@ -221,17 +229,16 @@ describe('LayoutService', () => {
       expect(config.plotterExtensions.widgets).toEqual([]);
     });
 
-    it("waits for a sign-in, rather than covering the user's widgets with none", async () => {
-      const readable = server.api.get;
-      server.api.get = () =>
-        throwError(() => new HttpErrorResponse({ status: 401 }));
+    it("waits for a sign-in, rather than covering the user's widgets", async () => {
+      app.isLoggedIn = () => false;
+      server.add('d', layout('Default', 'a'));
       const { service, copy } = await start();
 
       expect(copy.settled).toBe(false);
       expect(localStorage.getItem(WORKING_COPY_STORAGE_KEY)).toBeNull();
 
       // signed in: the user's settings load, with widgets an older release saved
-      server.api.get = readable;
+      app.isLoggedIn = () => true;
       config.plotterExtensions.widgets = [widget('mine')];
       copy.overlay(config);
       app.saveConfig();
@@ -240,6 +247,24 @@ describe('LayoutService', () => {
       expect(config.plotterExtensions.widgets).toEqual([widget('mine')]);
       expect(copy.copy()?.content.widgets).toEqual([widget('mine')]);
       expect(service.link()).toBeNull();
+    });
+
+    it('settles signed out on a server that needs no sign-in', async () => {
+      app.isLoggedIn = () => false;
+      loginStatus = { authenticationRequired: false };
+
+      const { copy } = await start();
+
+      expect(copy.settled).toBe(true);
+    });
+
+    it('keeps the widgets added to a new screen with no "Default"', async () => {
+      const { service, copy } = await start();
+
+      edit((c) => c.plotterExtensions.widgets.push(widget('new')));
+
+      expect(service.unsaved()).toBe(true);
+      expect(copy.copy()?.content.widgets).toEqual([widget('new')]);
     });
 
     it('keeps the working copy this browser holds, edits included', async () => {
@@ -268,10 +293,12 @@ describe('LayoutService', () => {
     });
 
     it('takes "Default" once signed in, after starting signed out with no widgets', async () => {
+      app.isLoggedIn = () => false;
       const readable = server.api.get;
       server.api.get = () =>
         throwError(() => new HttpErrorResponse({ status: 401 }));
       const { service } = await start();
+      app.isLoggedIn = () => true;
       server.api.get = readable;
       server.add('d', layout('Default', 'a'));
       config.plotterExtensions.namedLayouts = true;
@@ -339,6 +366,16 @@ describe('LayoutService', () => {
         ['a', 'b']
       );
       expect(service.modified()).toBe(false);
+    });
+
+    it('keeps the newest version when fetches answer out of order', async () => {
+      const { service } = await start();
+      await service.load('h');
+
+      delta('h', { ...layout('Helm', 'a', 'b'), revision: 3 });
+      delta('h', { ...layout('Helm', 'a'), revision: 2 });
+
+      expect(service.layouts()['h'].revision).toBe(3);
     });
 
     it('leaves a changed copy alone and offers the newer version', async () => {
@@ -460,6 +497,18 @@ describe('LayoutService', () => {
       expect(service.link()?.id).toBe(id);
       expect(service.modified()).toBe(false);
       expect(service.unsaved()).toBe(false);
+    });
+
+    it('keeps the widget ids when saved back over the layout they came from', async () => {
+      const { service } = await start();
+      await service.load('h');
+      edit((c) => (c.plotterExtensions.widgets[0].col = 1));
+      dialogResult = 'Helm';
+
+      await service.saveAs();
+
+      expect(server.layouts['h'].widgets).toEqual([widget('a', 1)]);
+      expect(service.modified()).toBe(false);
     });
 
     it('asks before saving over a layout of the same name', async () => {
