@@ -13,7 +13,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subject, finalize } from 'rxjs';
+import { Observable, Subject, finalize, firstValueFrom, timeout } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -97,6 +97,9 @@ const FSK: AppInfoDef = {
 };
 
 const SERVER_APPDATA_VERSION = '1.0.0';
+
+/** how long a reset waits for each answer from the server */
+const RESET_CLEAR_TIMEOUT_MS = 10000;
 
 // Development SK server host details
 const DEV_SERVER = {
@@ -1255,8 +1258,129 @@ export class AppFacade extends InfoService {
     return this.startConfigKnown && !this.configLoading;
   }
 
+  private resettingConfig = false;
+  private reset?: Promise<boolean>;
+
+  /**
+   * Drop the settings saved in this browser, and the logged-in user's on the
+   * server, then start afresh: the server's global defaults apply as on a
+   * first visit, the built-in defaults when it has none. Resolves false, with
+   * nothing dropped, when the server does not clear the user's settings,
+   * since those would come back on the next start.
+   */
+  public resetToServerDefaults(): Promise<boolean> {
+    this.reset ??= this.runReset().finally(() => (this.reset = undefined));
+    return this.reset;
+  }
+
+  private async runReset(): Promise<boolean> {
+    this.resettingConfig = true;
+    clearTimeout(this.saveCfgTimer);
+    const loggedIn = await this.askLoggedIn();
+    const stored = loggedIn ? await this.userConfigStored() : false;
+    if (
+      loggedIn === undefined ||
+      stored === undefined ||
+      (stored && !(await this.clearServerConfig()))
+    ) {
+      this.resettingConfig = false;
+      // the saves held back while the reset ran, and the debounced one it cancelled
+      this.saveConfig();
+      return false;
+    }
+    this.clearConfig();
+    this.restartApp();
+    return true;
+  }
+
+  /**
+   * Asked afresh: a reset may run before the start-up login check answered.
+   * The login status request itself, as `isLoggedIn()` reads a failure as
+   * logged out, and a logged-in user's settings would then stay on the server.
+   */
+  private askLoggedIn(): Promise<boolean | undefined> {
+    return firstValueFrom(
+      this.signalk.getLoginStatus().pipe(timeout(RESET_CLEAR_TIMEOUT_MS))
+    ).then(
+      (status: { status?: string }) => status?.status === 'loggedIn',
+      () => undefined
+    );
+  }
+
+  /**
+   * Whether the logged-in user has settings stored on the server, read once
+   * the save under way has landed, as it may store some. A read-only user
+   * cannot clear them, so a reset that finds none skips the clear. Settings
+   * that cannot be read may exist, so they count as stored. Undefined when
+   * the save under way does not land within the time limit.
+   */
+  private async userConfigStored(): Promise<boolean | undefined> {
+    let limit: ReturnType<typeof setTimeout> | undefined;
+    const settled = await Promise.race([
+      this.serverSaveSettled().then(() => true),
+      new Promise<false>((resolve) => {
+        limit = setTimeout(() => resolve(false), RESET_CLEAR_TIMEOUT_MS);
+      })
+    ]);
+    clearTimeout(limit);
+    if (!settled) {
+      return undefined;
+    }
+    return firstValueFrom(
+      (
+        this.signalk.appDataGet(
+          '/',
+          APPDATA_CONTEXT.USER
+        ) as Observable<IAppConfig>
+      ).pipe(timeout(RESET_CLEAR_TIMEOUT_MS))
+    ).then(isSavedConfig, () => true);
+  }
+
+  /**
+   * Sent as a server save, once the save under way has landed, so no save
+   * can overtake it either way: a save after a failed reset goes out only
+   * when the clear has settled, even one that outlasts the time limit.
+   */
+  private clearServerConfig(): Promise<boolean> {
+    return new Promise((resolve) => {
+      let abandoned = false;
+      const limit = setTimeout(() => {
+        abandoned = true;
+        resolve(false);
+      }, RESET_CLEAR_TIMEOUT_MS);
+      const settle = (cleared: boolean) => {
+        clearTimeout(limit);
+        resolve(cleared);
+      };
+      void this.serverSaveSettled().then(() => {
+        if (abandoned) {
+          return;
+        }
+        const request = this.signalk.appDataSet('/', {});
+        if (!request) {
+          settle(false);
+          return;
+        }
+        this.serverSave = 'busy';
+        request.pipe(finalize(() => this.serverSaveFinished())).subscribe({
+          next: () => settle(true),
+          error: () => settle(false),
+          complete: () => settle(false)
+        });
+      });
+    });
+  }
+
+  /** reload Freeboard so every part starts from the settings now in force */
+  restartApp() {
+    window.location.reload();
+  }
+
   /** overloaded saveConfig() */
   override saveConfig() {
+    if (this.resettingConfig) {
+      return;
+    }
     // this screen's widgets are put back over the settings a load brings, so
     // a change made while one runs must be in the working copy already
     this.layoutCopy.snapshot(this.config);
@@ -1275,6 +1399,13 @@ export class AppFacade extends InfoService {
    * either order, and an older config landing last would undo the newer one.
    */
   private serverSave: 'idle' | 'busy' | 'again' = 'idle';
+  private serverSaveIdle: Array<() => void> = [];
+
+  private serverSaveSettled(): Promise<void> {
+    return this.serverSave === 'idle'
+      ? Promise.resolve()
+      : new Promise((settled) => this.serverSaveIdle.push(settled));
+  }
 
   private saveConfigToServer() {
     if (!this.isLoggedIn() || this.userConfigUnreadable) {
@@ -1289,21 +1420,22 @@ export class AppFacade extends InfoService {
       return;
     }
     this.serverSave = 'busy';
-    request
-      .pipe(
-        finalize(() => {
-          const again = this.serverSave === 'again';
-          this.serverSave = 'idle';
-          // through saveConfig(), which holds it while a settings load runs
-          if (again) {
-            this.saveConfig();
-          }
-        })
-      )
-      .subscribe({
-        next: () => this.debug('saveConfig: config saved to server.'),
-        error: () => this.debug('saveConfig: Cannot save config to server!')
-      });
+    request.pipe(finalize(() => this.serverSaveFinished())).subscribe({
+      next: () => this.debug('saveConfig: config saved to server.'),
+      error: () => this.debug('saveConfig: Cannot save config to server!')
+    });
+  }
+
+  private serverSaveFinished() {
+    const again = this.serverSave === 'again';
+    this.serverSave = 'idle';
+    // through saveConfig(), which holds it while a settings load runs
+    if (again) {
+      this.saveConfig();
+    }
+    if (this.serverSave === 'idle') {
+      this.serverSaveIdle.splice(0).forEach((settled) => settled());
+    }
   }
 
   private saveCfgTimer?: ReturnType<typeof setTimeout>;

@@ -223,6 +223,41 @@ export class SettingsDialog implements OnInit {
     this.dialogRef.close();
   }
 
+  protected resetting = signal(false);
+
+  /** confirm, then replace the user's settings with the server's defaults */
+  resetToServerDefaults() {
+    this.app
+      .showConfirm(
+        'Discard your settings and start Freeboard with the defaults set on this server?' +
+          // the login check may not have answered yet, so a signed-in
+          // user can still show as logged out here
+          (this.app.isLoggedIn()
+            ? ' This applies on every device you sign in on.'
+            : ' If you are signed in, this applies on every device you sign in on.') +
+          // a screen's widgets live in its own working copy, which the reset
+          // keeps, so say how to clear them
+          ' This screen keeps its widgets; choose New blank under Layouts to clear them.',
+        'Reset settings',
+        'RESET',
+        'CANCEL'
+      )
+      .subscribe(async (result?: { ok: boolean }) => {
+        if (!result?.ok) {
+          return;
+        }
+        this.resetting.set(true);
+        const reset = await this.app.resetToServerDefaults();
+        this.resetting.set(false);
+        if (!reset) {
+          this.app.showAlert(
+            'Reset settings',
+            'The server did not clear your saved settings, so they were kept. Try again later.'
+          );
+        }
+      });
+  }
+
   /** apply wakelock state */
   doWakelock(checked: boolean) {
     this.persistModel();

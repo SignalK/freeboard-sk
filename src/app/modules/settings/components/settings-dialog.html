@@ -4,6 +4,15 @@
   </span>
   <span style="flex: 1 1 auto; text-align: center">Settings</span>
   <span style="text-align: right">
+    <button
+      mat-icon-button
+      (click)="resetToServerDefaults()"
+      [disabled]="resetting()"
+      matTooltip="Reset to server defaults"
+      aria-label="Reset to server defaults"
+    >
+      <mat-icon>settings_backup_restore</mat-icon>
+    </button>
     <button mat-icon-button (click)="handleClose()">
       <mat-icon>close</mat-icon>
     </button>
