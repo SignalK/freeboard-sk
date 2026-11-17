@@ -997,8 +997,14 @@ describe('AppFacade.resetToServerDefaults', () => {
       getLoginStatus: vi.fn(() =>
         of({ status: loggedIn ? 'loggedIn' : 'notLoggedIn' })
       ),
-      appDataGet: vi.fn((_path: string, _context: APPDATA_CONTEXT) =>
-        of<object>({})
+      // a logged-in user has settings stored on the server; the start-up
+      // load finds none, so it does not save them back
+      appDataGet: vi.fn((_path: string, context: APPDATA_CONTEXT) =>
+        of<object>(
+          loggedIn && context === APPDATA_CONTEXT.USER && app?.configReady
+            ? defaultConfig()
+            : {}
+        )
       ),
       appDataSet: vi.fn(() => of({})),
       api: { get: vi.fn(() => EMPTY) }
@@ -1006,7 +1012,7 @@ describe('AppFacade.resetToServerDefaults', () => {
     TestBed.configureTestingModule({
       providers: [{ provide: SignalKClient, useValue: client }]
     });
-    const app = TestBed.inject(AppFacade);
+    const app: AppFacade = TestBed.inject(AppFacade);
     const restart = vi.spyOn(app, 'restartApp').mockImplementation(() => {});
     return { app, client, restart };
   };
@@ -1035,6 +1041,35 @@ describe('AppFacade.resetToServerDefaults', () => {
 
     expect(client.appDataSet).toHaveBeenCalledWith('/', {});
     expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets a user with no settings on the server without clearing them', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    // a read-only user, who may read the settings but not clear them
+    client.appDataGet.mockReturnValue(of({}));
+    client.appDataSet.mockReturnValue(throwError(() => ({ status: 403 })));
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataGet).toHaveBeenLastCalledWith(
+      '/',
+      APPDATA_CONTEXT.USER
+    );
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the settings when it cannot read whether there are any', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataGet.mockReturnValue(throwError(() => new Error('offline')));
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataSet).toHaveBeenCalledWith('/', {});
     expect(restart).toHaveBeenCalledTimes(1);
   });
 
@@ -1113,6 +1148,7 @@ describe('AppFacade.resetToServerDefaults', () => {
 
   it('asks the server whether the user is logged in', async () => {
     const { app, client, restart } = setup(true);
+    client.appDataGet.mockReturnValue(of(defaultConfig()));
     expect(app.isLoggedIn()).toBe(false);
 
     await expect(app.resetToServerDefaults()).resolves.toBe(true);

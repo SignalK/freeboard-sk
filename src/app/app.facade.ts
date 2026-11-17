@@ -1279,7 +1279,9 @@ export class AppFacade extends InfoService {
     const loggedIn = await this.askLoggedIn();
     if (
       loggedIn === undefined ||
-      (loggedIn && !(await this.clearServerConfig()))
+      (loggedIn &&
+        (await this.userConfigStored()) &&
+        !(await this.clearServerConfig()))
     ) {
       this.resettingConfig = false;
       // the saves held back while the reset ran, and the debounced one it cancelled
@@ -1303,6 +1305,26 @@ export class AppFacade extends InfoService {
       (status: { status?: string }) => status?.status === 'loggedIn',
       () => undefined
     );
+  }
+
+  /**
+   * Whether the logged-in user may have settings stored on the server. A
+   * read-only user cannot clear them, so a reset that finds none skips the
+   * clear. A save under way may store some, and settings that cannot be read
+   * may exist, so both count as stored.
+   */
+  private userConfigStored(): Promise<boolean> {
+    if (this.serverSave !== 'idle') {
+      return Promise.resolve(true);
+    }
+    return firstValueFrom(
+      (
+        this.signalk.appDataGet(
+          '/',
+          APPDATA_CONTEXT.USER
+        ) as Observable<IAppConfig>
+      ).pipe(timeout(RESET_CLEAR_TIMEOUT_MS))
+    ).then(isSavedConfig, () => true);
   }
 
   /**
