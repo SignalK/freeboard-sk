@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -60,6 +60,9 @@ const RAISE_TIMEOUT_MS = 3000;
 
 /** How long a buddy's message stays up: long enough to press LOCATE. */
 const BUDDY_MESSAGE_MS = 10000;
+
+const LOCAL_ACK_MESSAGE =
+  'Acknowledged on this display only. Sign in to acknowledge alarms for the whole boat.';
 
 type AlertItems = Array<[string, AlertData]>;
 
@@ -153,7 +156,18 @@ export class NotificationManager {
   private signalk = inject(SignalKClient);
   private bottomSheet = inject(MatBottomSheet);
 
+  /**
+   * LOCAL_ACK_MESSAGE was shown since the login state last changed, so further
+   * refused ACKs stay in this browser without repeating it
+   */
+  private localAckNoticeShown = false;
+
   constructor() {
+    effect(() => {
+      this.app.isLoggedIn();
+      this.localAckNoticeShown = false;
+    });
+
     this.alertMap = new Map();
     const localMobs = this.readLocalMobs();
     if (localMobs.length) {
@@ -523,6 +537,9 @@ export class NotificationManager {
         (err: HttpErrorResponse) => {
           if (isRefused(err)) {
             this.answerPendingAction(pending, id, entry, 'refused');
+            if (action === 'acknowledge') {
+              this.noteLocalAcknowledge();
+            }
             return;
           }
           this.answerPendingAction(pending, id, entry, 'failed');
@@ -532,6 +549,17 @@ export class NotificationManager {
           }
         }
       );
+  }
+
+  /**
+   * Tell the user once that a refused ACK holds on this display only: the
+   * server and the other displays still show the alarm unacknowledged.
+   */
+  private noteLocalAcknowledge() {
+    if (!this.localAckNoticeShown) {
+      this.localAckNoticeShown = true;
+      this.app.showMessage(LOCAL_ACK_MESSAGE);
+    }
   }
 
   /**
