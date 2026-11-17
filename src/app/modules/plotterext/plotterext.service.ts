@@ -163,6 +163,11 @@ import {
   type PointMeta
 } from 'src/app/modules/skresources/components/route-reorder.util';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
+import {
+  applyContent,
+  contentOf,
+  type LayoutContent
+} from 'src/app/modules/layouts/layout-model';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
 // `storage: 'device'` state: this browser only, never in the app config.
@@ -2575,6 +2580,49 @@ export class PlotterExtensionService {
     return true;
   }
 
+  /**
+   * Instance ids that saved layouts other than this screen's hold, whose
+   * device state is kept for when one of them is loaded here.
+   */
+  private retainedInstances: () => Iterable<string> = () => [];
+
+  /** Keep the device state of these widget instances while they aren't placed. */
+  retainInstances(ids: () => Iterable<string>) {
+    this.retainedInstances = ids;
+  }
+
+  /**
+   * Show a layout: its widgets replace the placed ones, and a widget still
+   * placed whose settings changed is told so (`state.changed`), so it shows
+   * them without a reload.
+   */
+  applyLayout(content: LayoutContent) {
+    const before = contentOf(this.app.config).instances;
+    const placed = new Set(
+      this.app.config.plotterExtensions.widgets.map((w) => w.instanceId)
+    );
+    applyContent(this.app.config, content);
+    const after = content.instances;
+    this.cancelMove();
+    this.app.saveConfig();
+    this.refreshActiveWidgets();
+    for (const widget of content.widgets) {
+      const was = before[widget.extension]?.[widget.instanceId] ?? {};
+      const now = after[widget.extension]?.[widget.instanceId] ?? {};
+      const keys = [
+        ...new Set([...Object.keys(was), ...Object.keys(now)])
+      ].filter((k) => JSON.stringify(was[k]) !== JSON.stringify(now[k]));
+      if (keys.length && placed.has(widget.instanceId)) {
+        this.publishToExtension(widget.extension, 'state.changed', {
+          scope: 'instance',
+          storage: 'user',
+          instanceId: widget.instanceId,
+          keys
+        });
+      }
+    }
+  }
+
   private refreshActiveWidgets() {
     const manifests = this.manifests();
     const active = this.placements().filter((p) => {
@@ -3093,9 +3141,10 @@ export class PlotterExtensionService {
    */
   private saveDeviceStore(store: ExtensionStateStore) {
     if (this.app.configReady) {
-      const placed = new Set(
-        this.app.config.plotterExtensions.widgets.map((w) => w.instanceId)
-      );
+      const placed = new Set([
+        ...this.app.config.plotterExtensions.widgets.map((w) => w.instanceId),
+        ...this.retainedInstances()
+      ]);
       for (const [extension, ext] of Object.entries(store)) {
         for (const id of Object.keys(ext.instances ?? {})) {
           if (!placed.has(id)) delete ext.instances![id];
@@ -3138,6 +3187,8 @@ export class PlotterExtensionService {
       delete store[extension].instances![instanceId];
       this.saveStore(store);
     }
+    // another saved layout may still show it on this screen
+    if ([...this.retainedInstances()].includes(instanceId)) return;
     try {
       const device = this.loadDeviceStore();
       if (device[extension]?.instances?.[instanceId]) {

@@ -50,6 +50,28 @@ package; Freeboard depends on it (`^0.26.0`) and imports its host entry point
   store belongs to the browser, not the user: on a browser where several users
   sign in, one user's device-state save drops device instance state for widgets
   placed only in another's layout (extension-scope device state is kept).
+  Device instance state of widgets in any saved named layout is kept too, so
+  it is still there when a screen loads that layout again.
+- **Named layouts (#1346).** Each screen keeps a *working copy* of its widgets
+  and their `instance` / `'user'` state in this browser
+  (`fb-layout-working-copy`), put back over every config that loads, so a
+  signed-in user's synced settings no longer decide one screen's widgets.
+  Extension-scope state stays with the user's settings. Named layouts are kept
+  per server, not per user, as the `freeboardLayouts` resource type that
+  Freeboard's server plugin serves (`helper/layouts/`); the server's
+  `resources.freeboardLayouts.<id>` deltas tell every screen when one is saved,
+  renamed or deleted. A working copy may be linked to one named layout: an
+  unchanged copy takes each new version as it arrives, while a changed one
+  (placements or `'user'` instance state differ from the version it loaded)
+  keeps its changes and offers the newer version. A save carries the revision
+  it was based on, and the plugin refuses a stale one. *Save as new* gives
+  every widget a new `instanceId` (its `'user'` state follows it), so two
+  layouts never share an instance; the widgets restart under the new ids and
+  their `'device'` state stays with the old ones. The config's
+  `plotterExtensions.widgets` and `state` still mirror the screen that saved
+  last, for older releases; `plotterExtensions.namedLayouts` marks settings
+  saved by a release with named layouts, so a new screen starts on the layout
+  named "Default" instead of that mirror.
 
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 

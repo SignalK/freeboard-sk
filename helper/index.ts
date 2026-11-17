@@ -10,6 +10,7 @@ import { IRouter, Application, Request, Response } from 'express';
 import { createRequire } from 'node:module';
 import { Type } from 'typebox';
 import { initAlarms, shutdownAlarms } from './alarms/alarms.js';
+import { registerLayoutsProvider } from './layouts/layouts.js';
 
 // Import attributes for JSON need Node 18.20 / 20.10; require works on every
 // Node the engines range allows.
@@ -62,6 +63,7 @@ export default (server: FreeboardHelperApp): Plugin => {
 
       server.debug(`Applied config: ${JSON.stringify(SETTINGS)}`);
 
+      registerLayoutsProvider(server);
       initAlarms(server, plugin.id);
       server.setPluginStatus('Started');
     } catch (error) {

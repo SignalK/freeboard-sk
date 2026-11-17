@@ -124,6 +124,8 @@ import {
 } from './modules/map/fbmap-interact.service';
 import { RadarAPIService } from './modules/radar/radar-api.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
+import { LayoutService } from './modules/layouts/layout.service';
+import { LayoutListComponent } from './modules/layouts/layoutlist';
 import { decorationToolbarFields } from './modules/plotterext/button-decorations';
 import {
   extensionButtonId,
@@ -195,6 +197,7 @@ const TRACK_API_NOTICE_KEY = 'fb-track-api-notice-dismissed';
     TrackListComponent,
     AISListComponent,
     GroupListComponent,
+    LayoutListComponent,
     BuildRouteComponent,
     InfoPanelComponent,
     NotePanel,
@@ -245,6 +248,7 @@ export class AppComponent {
     trackList: boolean;
     aisList: boolean;
     resourceGroups: boolean;
+    layoutList: boolean;
     anchorWatch: boolean;
     weatherList: boolean;
   }>({
@@ -257,6 +261,7 @@ export class AppComponent {
     trackList: false,
     aisList: false,
     resourceGroups: false,
+    layoutList: false,
     anchorWatch: false,
     weatherList: false
   });
@@ -335,6 +340,7 @@ export class AppComponent {
   private symbols = inject(SymbolService);
   protected routeBuffers = inject(RouteBufferRegistry);
   protected plotterExt = inject(PlotterExtensionService);
+  protected layouts = inject(LayoutService);
   private temporaryRoutes = inject(TemporaryRouteService);
   protected whatsNew = inject(WhatsNewService);
 
@@ -1188,8 +1194,9 @@ export class AppComponent {
             .finally(() => {
               this.loadSymbolsThenFetchResources();
               // after user config is final so persisted widget placements
-              // reflect the server-stored layout, not a stale local copy
-              this.plotterExt.init();
+              // reflect the server-stored layout, not a stale local copy;
+              // the screen's layout is settled before the widgets are placed
+              void this.layouts.init().finally(() => this.plotterExt.init());
             });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
@@ -1620,6 +1627,7 @@ export class AppComponent {
       trackList: false,
       aisList: false,
       resourceGroups: false,
+      layoutList: false,
       anchorWatch: false,
       weatherList: false
     };
@@ -1650,6 +1658,9 @@ export class AppComponent {
         break;
       case 'resourceGroups':
         lm.resourceGroups = show;
+        break;
+      case 'layoutList':
+        lm.layoutList = show;
         break;
       case 'weatherList':
         lm.weatherList = show;
@@ -1886,11 +1897,12 @@ export class AppComponent {
               this.app.loadUserConfigfromServer().then((loaded: boolean) => {
                 if (loaded) {
                   this.loadSymbolsThenFetchResources();
-                  // re-run plotter extension discovery now that we are
-                  // authenticated, so auth-gated extensions and the
-                  // server-stored widget layout appear without a page reload
-                  this.plotterExt.init();
                 }
+                // signed in: the screen's layout can settle now, even when
+                // the user has no settings stored yet; then re-run plotter
+                // extension discovery, so auth-gated extensions and the
+                // server-stored widget layout appear without a page reload
+                void this.layouts.init().finally(() => this.plotterExt.init());
               });
               if (onConnect) {
                 this.queryAfterConnect();

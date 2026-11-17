@@ -70,6 +70,7 @@ import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
 import { S57Service } from './modules/map/ol';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
+import { WorkingCopyStore } from './modules/layouts/working-copy.store';
 import {
   LineStyleDash,
   LineStyleDef
@@ -347,6 +348,7 @@ export class AppFacade extends InfoService {
   private dom = inject(DomSanitizer);
   private s57 = inject(S57Service);
   private splitView = inject(SplitViewService);
+  private layoutCopy = inject(WorkingCopyStore);
 
   /**
    * Whether the chart the map buttons act on follows the vessel: the main
@@ -593,6 +595,8 @@ export class AppFacade extends InfoService {
 
   /** Initialise and raise "settings$.load" event */
   private doPostConfigLoad() {
+    // this screen keeps its own widgets, whatever the loaded settings hold
+    this.layoutCopy.overlay(this.config);
     // initialise signals
     this.uiConfig.update(() => this.config.ui);
     Object.assign(this.config.radars, this.radarChoicesWhileLoading);
@@ -1253,6 +1257,9 @@ export class AppFacade extends InfoService {
 
   /** overloaded saveConfig() */
   override saveConfig() {
+    // this screen's widgets are put back over the settings a load brings, so
+    // a change made while one runs must be in the working copy already
+    this.layoutCopy.snapshot(this.config);
     if (!this.startConfigKnown || this.configLoading) {
       this.debug('saveConfig: settings still loading, saved once they are.');
       this.configSavePending = true;
