@@ -36,9 +36,7 @@ import { MapComponent } from '../map.component';
 import { MapImageRegistry } from '../map-image-registry.service';
 import { AppFacade } from 'src/app/app.facade';
 
-/** Target screen distance between current arrows (CSS px). */
 const ARROW_SPACING_PX = 50;
-/** Bounds on the /currents/grid arrow budget (the plugin caps at 5000). */
 const MIN_POINTS = 100;
 const MAX_POINTS = 1500;
 
@@ -115,13 +113,8 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       zIndex: this.zIndex,
       visible: this.show,
       style: (feature) => this.currentsStyleFunction(feature),
-      // Hide arrows whose icon/label would overlap one already drawn: the
-      // plugin thins in geographic cells, so clustered stations (or a lattice
-      // node next to a station) can still land a few pixels apart. A named
-      // group: `true` would share one declutter group with the vector chart
-      // layers, letting chart labels hide arrows (and vice versa).
+      // own group, so chart labels don't hide arrows
       declutter: 'tidal-currents',
-      // Declutter keeps the feature drawn first, so draw by `rank`.
       renderOrder: (a, b) => Number(a.get('rank')) - Number(b.get('rank'))
     });
     this.layer.set('id', 'tidal-currents');
@@ -187,11 +180,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       );
   }
 
-  /**
-   * Arrow budget for the current viewport: about one arrow per
-   * ARROW_SPACING_PX square of map, so a larger map (or a desktop screen vs.
-   * a phone) gets proportionally more arrows instead of a fixed count.
-   */
+  /** Arrow budget scaled to the map size. */
   private maxPoints(): number {
     const size = this.mapComponent.getMap()?.getSize();
     if (!size) {
@@ -228,9 +217,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       return;
     }
     this.source.clear();
-    // `/currents/grid` lists its lattice first and the stations shown at
-    // their own positions after it: draw in reverse so decluttering keeps a
-    // station's own arrow over a nearby lattice node repeating its vector.
+    // stations come last in the response; draw them first so declutter keeps them
     const features = points.map((point, index) => {
       const feature = new Feature({
         geometry: new Point(fromLonLat([point.longitude, point.latitude])),
