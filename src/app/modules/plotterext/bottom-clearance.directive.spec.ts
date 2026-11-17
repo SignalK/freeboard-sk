@@ -184,7 +184,8 @@ describe('BottomClearanceDirective', () => {
 
   const mount = async <T extends { emitted: number[] } = ClearanceHost>(
     host: new () => T = ClearanceHost as unknown as new () => T,
-    rect: DOMRect | (() => DOMRect) = new DOMRect(10, 470, 120, 100)
+    rect: DOMRect | (() => DOMRect) = new DOMRect(10, 470, 120, 100),
+    areaRect = new DOMRect(0, 0, 1000, 600)
   ) => {
     TestBed.configureTestingModule({
       imports: [host],
@@ -197,7 +198,7 @@ describe('BottomClearanceDirective', () => {
       '#panel'
     ) as HTMLElement;
     const area = fixture.nativeElement as HTMLElement;
-    area.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 600);
+    area.getBoundingClientRect = () => areaRect;
     Object.defineProperty(panel, 'offsetParent', { get: () => area });
     panel.getBoundingClientRect = () =>
       typeof rect === 'function' ? rect() : rect;
@@ -375,5 +376,47 @@ describe('BottomClearanceDirective', () => {
     const fixture = await mount(StatusBarHost, new DOMRect(300, 570, 300, 20));
     expect(fixture.componentInstance.emitted).toEqual([124 + WIDGET_CELL_GAP]);
     expect(fixture.componentInstance.beside).toEqual([]);
+  });
+
+  it('keeps the route bar clear of MOB and the coordinates on a phone', async () => {
+    // 390 x 664 as measured in Freeboard: the left toolbar's lowest button
+    // (MOB) ends at y = 471, two 1x1 widgets sit at the bottom left, and the
+    // status bar has risen onto them
+    const phone = new DOMRect(0, 0, 390, 664);
+    const toolbar = document.createElement('fb-map-toolbar');
+    toolbar.className = 'left';
+    const mob = document.createElement('div');
+    mob.className = 'toolbarItem';
+    mob.getBoundingClientRect = () => new DOMRect(2, 413, 50, 58);
+    toolbar.appendChild(mob);
+    document.body.appendChild(toolbar);
+    cells.push(toolbar);
+    cell('pe-bl', new DOMRect(0, 580, 96, 84));
+    cell('pe-bl', new DOMRect(102, 580, 96, 84));
+    const bar = document.createElement('div');
+    bar.className = 'ol-mouse-position';
+    const status = new DOMRect(52, 555, 286, 19);
+    bar.getBoundingClientRect = () => status;
+    inPane(bar, phone);
+
+    const fixture = await mount(
+      ClearanceHost,
+      new DOMRect(10, 0, 317, 100),
+      phone
+    );
+    const lift = fixture.componentInstance.emitted.at(-1) ?? 0;
+    // the route bar stays above the status bar, which keeps its own room above
+    // the widgets, and is reported beside the toolbar so it moves clear of MOB
+    expect(lift).toBe(84 + 30);
+    expect(phone.bottom - lift).toBeLessThanOrEqual(status.top);
+    expect(fixture.componentInstance.beside).toEqual([true]);
+    // moved right of the toolbar it still spans the status bar and the
+    // second widget, so it keeps that place instead of dropping back
+    const moved = { left: 50, right: 327, height: 100 };
+    const widgets = [
+      { left: 0, right: 96, top: 580 },
+      { left: 102, right: 198, top: 580 }
+    ];
+    expect(bottomClearance(moved, widgets, 664, 664, 30, [status])).toBe(lift);
   });
 });
