@@ -195,6 +195,28 @@ describe('AlertComponent', () => {
       expect(labels(f).some((l) => l.includes('NEXT POINT'))).toBe(false);
     });
 
+    it('offers NEXT POINT again at the next arrival after it was used', async () => {
+      const f = await answered(
+        mount(
+          { ...arrival, type: 'arrivalCircleEntered' },
+          { pointIndex: 1, pointTotal: 4, serverAdvances: false }
+        )
+      );
+      const nextPoint = () =>
+        Array.from(
+          (f.nativeElement as HTMLElement).querySelectorAll('button')
+        ).find((b) => b.textContent?.includes('NEXT POINT'));
+      nextPoint()?.click();
+      f.detectChanges();
+      f.componentRef.setInput('alert', {
+        ...f.componentInstance.alert(),
+        createdAt: f.componentInstance.alert().createdAt + 1000
+      });
+      f.detectChanges();
+      await answered(f);
+      expect(nextPoint()?.disabled).toBe(false);
+    });
+
     it('still ends the route at its last point', async () => {
       const f = await answered(
         mount(arrival, { pointIndex: 3, pointTotal: 4, serverAdvances: true })

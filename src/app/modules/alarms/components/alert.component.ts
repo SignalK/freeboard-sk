@@ -299,6 +299,7 @@ export class AlertComponent {
     }
     this.hidden.set(false);
     this.progressValue.set(100);
+    this.nextPointClicked = false;
     const course = this.course.courseData();
     const atIntermediatePoint =
       this.showStaticNextPoint &&
