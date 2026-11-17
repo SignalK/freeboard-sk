@@ -754,6 +754,25 @@ describe('NotificationManager alert actions', () => {
     expect(messages.length).toBe(2);
   });
 
+  it('keeps the notice for a later refusal when the alarm changed state first', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    TestBed.tick();
+    arrive();
+
+    mgr.acknowledge(PATH);
+    arrive({ state: ALARM_STATE.alarm });
+    posts[0].response.error({ status: 401 });
+
+    expect(shown(mgr).acknowledged).toBe(false);
+    expect(messages).toEqual([]);
+
+    mgr.acknowledge(PATH);
+    posts[1].response.error({ status: 401 });
+
+    expect(shown(mgr).acknowledged).toBe(true);
+    expect(messages.length).toBe(1);
+  });
+
   it('shows no display-only notice for a refused MUTE', () => {
     const mgr = TestBed.inject(NotificationManager);
     TestBed.tick();

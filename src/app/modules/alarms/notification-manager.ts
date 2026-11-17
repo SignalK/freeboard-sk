@@ -536,8 +536,13 @@ export class NotificationManager {
         },
         (err: HttpErrorResponse) => {
           if (isRefused(err)) {
-            this.answerPendingAction(pending, id, entry, 'refused');
-            if (action === 'acknowledge') {
+            const kept = this.answerPendingAction(
+              pending,
+              id,
+              entry,
+              'refused'
+            );
+            if (kept && action === 'acknowledge') {
               this.noteLocalAcknowledge();
             }
             return;
@@ -568,16 +573,17 @@ export class NotificationManager {
    * replaced or changed state; the answer then concerns an alarm that is gone.
    * A refused action stays in this browser (isRefused()), and a successful
    * request whose delta already confirmed it is settled.
+   * @returns Whether the entry was still pending, so the answer applied
    */
   private answerPendingAction(
     pending: Map<string, PendingAction>,
     id: string,
     entry: PendingAction,
     answer: 'done' | 'refused' | 'failed'
-  ) {
+  ): boolean {
     entry.inFlight = false;
     if (pending.get(id) !== entry) {
-      return;
+      return false;
     }
     if (answer === 'refused') {
       entry.local = true;
@@ -585,6 +591,7 @@ export class NotificationManager {
       pending.delete(id);
       this.emitSignals();
     }
+    return true;
   }
 
   /**
