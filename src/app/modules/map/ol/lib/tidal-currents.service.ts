@@ -138,10 +138,11 @@ export class TidalCurrentsService {
 
   getGridCurrents(
     bbox: [number, number, number, number],
-    time?: Date
+    time?: Date,
+    maxPoints = 200
   ): Observable<TidalCurrentGridResponse> {
     const [w, s, e, n] = bbox;
-    let url = `/currents/grid?bbox=${encodeURIComponent(`${w},${s},${e},${n}`)}&maxPoints=200`;
+    let url = `/currents/grid?bbox=${encodeURIComponent(`${w},${s},${e},${n}`)}&maxPoints=${maxPoints}`;
     if (time) {
       url += `&time=${encodeURIComponent(time.toISOString())}`;
     }

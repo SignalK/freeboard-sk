@@ -36,6 +36,12 @@ import { MapComponent } from '../map.component';
 import { MapImageRegistry } from '../map-image-registry.service';
 import { AppFacade } from 'src/app/app.facade';
 
+/** Target screen distance between current arrows (CSS px). */
+const ARROW_SPACING_PX = 50;
+/** Bounds on the /currents/grid arrow budget (the plugin caps at 5000). */
+const MIN_POINTS = 100;
+const MAX_POINTS = 1500;
+
 @Component({
   selector: 'ol-map > fb-tidal-currents',
   template: '<ng-content></ng-content>',
@@ -108,7 +114,15 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       opacity: this.normalizedOpacity,
       zIndex: this.zIndex,
       visible: this.show,
-      style: (feature) => this.currentsStyleFunction(feature)
+      style: (feature) => this.currentsStyleFunction(feature),
+      // Hide arrows whose icon/label would overlap one already drawn: the
+      // plugin thins in geographic cells, so clustered stations (or a lattice
+      // node next to a station) can still land a few pixels apart. A named
+      // group: `true` would share one declutter group with the vector chart
+      // layers, letting chart labels hide arrows (and vice versa).
+      declutter: 'tidal-currents',
+      // Declutter keeps the feature drawn first, so draw by `rank`.
+      renderOrder: (a, b) => Number(a.get('rank')) - Number(b.get('rank'))
     });
     this.layer.set('id', 'tidal-currents');
     map.addLayer(this.layer);
@@ -159,7 +173,11 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
     }
 
     return this.currents
-      .getGridCurrents(bbox, this.currents.selectedTime() ?? undefined)
+      .getGridCurrents(
+        bbox,
+        this.currents.selectedTime() ?? undefined,
+        this.maxPoints()
+      )
       .pipe(
         tap((response) => this.renderCurrents(response.points)),
         catchError(() => {
@@ -167,6 +185,22 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
           return of<TidalCurrentGridResponse | null>(null);
         })
       );
+  }
+
+  /**
+   * Arrow budget for the current viewport: about one arrow per
+   * ARROW_SPACING_PX square of map, so a larger map (or a desktop screen vs.
+   * a phone) gets proportionally more arrows instead of a fixed count.
+   */
+  private maxPoints(): number {
+    const size = this.mapComponent.getMap()?.getSize();
+    if (!size) {
+      return MIN_POINTS;
+    }
+    const n = Math.round(
+      (size[0] * size[1]) / (ARROW_SPACING_PX * ARROW_SPACING_PX)
+    );
+    return Math.max(MIN_POINTS, Math.min(MAX_POINTS, n));
   }
 
   private getBbox(): [number, number, number, number] | null {
@@ -194,11 +228,15 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       return;
     }
     this.source.clear();
+    // `/currents/grid` lists its lattice first and the stations shown at
+    // their own positions after it: draw in reverse so decluttering keeps a
+    // station's own arrow over a nearby lattice node repeating its vector.
     const features = points.map((point, index) => {
       const feature = new Feature({
         geometry: new Point(fromLonLat([point.longitude, point.latitude])),
         driftKts: point.speedKn,
-        setDeg: point.direction
+        setDeg: point.direction,
+        rank: points.length - 1 - index
       });
       feature.setId('tidal.' + index);
       const speedLabel = this.currents.formatSpeed(point.speedKn);
