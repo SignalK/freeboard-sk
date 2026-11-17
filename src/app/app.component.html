@@ -505,7 +505,11 @@
                   [disabled]="isInteracting()"
                   matBadge="!"
                   matBadgeOverlap="true"
-                  [matBadgeHidden]="app.isLoggedIn()"
+                  [matBadgeHidden]="
+                    app.isLoggedIn() ||
+                    !app.data.loginRequired ||
+                    !!app.hostDef.params.token
+                  "
                   matTooltip="Menu"
                   matTooltipPosition="right"
                   [matMenuTriggerFor]="mainmenu"

@@ -82,6 +82,33 @@ describe('AppComponent', () => {
     });
   }
 
+  for (const [authenticationRequired, hidden] of [
+    [false, true],
+    [true, false]
+  ] as const) {
+    it(`${hidden ? 'hides' : 'shows'} the menu's login badge for a logged-out user when login is${authenticationRequired ? '' : ' not'} required`, () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const signalk = TestBed.inject(SignalKClient);
+      vi.spyOn(signalk, 'getLoginStatus').mockReturnValue(
+        of({ status: 'notLoggedIn', authenticationRequired })
+      );
+      (
+        fixture.componentInstance as unknown as {
+          handleSKAuthChange(): void;
+        }
+      ).handleSKAuthChange();
+      fixture.detectChanges();
+
+      const menuButton = fixture.debugElement
+        .queryAll(By.directive(MatMenuTrigger))
+        .find((de) => de.nativeElement.getAttribute('mattooltip') === 'Menu');
+      expect(TestBed.inject(AppFacade).isLoggedIn()).toBe(false);
+      expect(
+        menuButton?.nativeElement.classList.contains('mat-badge-hidden')
+      ).toBe(hidden);
+    });
+  }
+
   it('ignores text or a link dropped on the map', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const map = fixture.componentInstance as unknown as {
