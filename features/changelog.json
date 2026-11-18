@@ -204,5 +204,9 @@
   { "feature": "saved-settings", "kind": "new", "since": "v0.0.2", "date": "2015-05-21", "title": "Remember settings in the browser" },
   { "feature": "saved-settings", "kind": "enhanced", "since": "v1.9.0", "date": "2020-05-05", "title": "Save settings with your user on the Signal K server" },
   { "feature": "saved-settings", "pr": 1306, "kind": "enhanced", "date": "2026-11-17", "title": "feat(settings): add a reset to server defaults button" },
-  { "feature": "saved-settings", "pr": 1325, "kind": "enhanced", "date": "2026-11-18", "title": "feat(settings): keep settings in the browser in demo mode" }
+  { "feature": "saved-settings", "pr": 1325, "kind": "enhanced", "date": "2026-11-18", "title": "feat(settings): keep settings in the browser in demo mode" },
+  { "feature": "s57-charts", "kind": "new", "since": "v2.6.0", "date": "2023-07-26", "title": "Implement displaying S-57 vector tiles" },
+  { "feature": "s57-charts", "kind": "enhanced", "since": "v2.17.0", "date": "2025-08-27", "title": "Choose the S-57 color table" },
+  { "feature": "s57-charts", "kind": "enhanced", "since": "v2.21.0", "date": "2026-04-19", "title": "Choose which extra S-57 layers to show" },
+  { "feature": "s57-charts", "pr": 1341, "kind": "enhanced", "date": "2026-11-16", "title": "feat(charts): offer buildings and land elevation as S-57 layers" }
 ]
