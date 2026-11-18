@@ -89,7 +89,8 @@ area appears.
 Current set:
 
 > Charts · Waypoints · Routes · Tracks · Notes · Navigation · Autopilot · Weather · Radar
-> · AIS & Vessels · Alarms & Notifications · Import/Export · Extensions · Display
+> · AIS & Vessels · Alarms & Notifications · Import/Export · Extensions · Display · Map
+> · Configuration
 
 **The organising principle — categorise by *area*, not *mechanism*.** A category is a
 feature area a user thinks in ("I want to do something with waypoints"), never an
@@ -98,7 +99,9 @@ implementation detail. Consequences:
 - **There is no "Settings" category.** A setting is a mechanism, not an area — it travels
   *with* the feature it configures. A wind-barb display option is a **Weather** feature;
   night mode is **Display**; a unit preference is **Display**. A "Settings" bucket would
-  wrongly pull configuration out of the features it belongs to.
+  wrongly pull configuration out of the features it belongs to. **Configuration** is not
+  that bucket: it holds the app's settings as a whole (where they are saved, shared across
+  devices, reset, and the server's defaults), never a setting that configures one feature.
 - Some near-neighbours are deliberately distinct areas:
   - **Routes / Tracks** — *managing the resource*. Routes = planning your own passage;
     Tracks = recorded history (own **and** other vessels' — a common use).
