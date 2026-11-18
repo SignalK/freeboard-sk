@@ -212,6 +212,15 @@ describe('extentFromBounds', () => {
     expect(extentFromBounds([-179.99, -89.99, 179.99, 89.99])).toBeDefined();
   });
 
+  it('rejects a longitude past the edges, also in bounds read as crossing', () => {
+    expect(extentFromBounds([190, -20, -170, -10])).toBe(undefined);
+    expect(extentFromBounds([170, -20, -190, -10])).toBe(undefined);
+  });
+
+  it('leaves swapped bounds, read as crossing most of the world, unclipped', () => {
+    expect(extentFromBounds([20, 40, 10, 50])).toBe(undefined);
+  });
+
   it('runs bounds that cross the antimeridian (west > east) east past 180°', () => {
     // Fiji: 174.6°E across 180° to 178.2°W.
     const extent = extentFromBounds([174.6, -21.9, -178.2, -11.2]);

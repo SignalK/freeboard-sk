@@ -208,20 +208,27 @@ const WORLD_WIDTH = getWidth(
  * Convert bounds in chart metadata [minLon, minLat, maxLon, maxLat] to an
  * EPSG:3857 extent in the primary world. Bounds that cross the antimeridian
  * (west > east, RFC 7946 §5.2) run east past 180°.
- * @returns undefined if bounds are invalid or missing, or touch the +/-180 /
- * +/-90 edges.
+ * @returns undefined if bounds are invalid or missing, touch the +/-180 /
+ * +/-90 edges, or cross the antimeridian over more than 180°.
  */
 export function extentFromBounds(bounds?: number[]): Extent | undefined {
   if (!Array.isArray(bounds) || bounds.length < 4) return undefined;
   if (
     bounds[0] <= -180 ||
+    bounds[0] >= 180 ||
     bounds[1] <= -90 ||
+    bounds[2] <= -180 ||
     bounds[2] >= 180 ||
     bounds[3] >= 90
   ) {
     return undefined;
   }
   const east = bounds[0] > bounds[2] ? bounds[2] + 360 : bounds[2];
+  // West > east across more than half the world is likelier swapped bounds
+  // than a chart, and clipping to it would hide the chart where it is.
+  if (bounds[0] > bounds[2] && east - bounds[0] > 180) {
+    return undefined;
+  }
   return transformExtent(
     [bounds[0], bounds[1], east, bounds[3]],
     'EPSG:4326',
