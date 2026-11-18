@@ -198,5 +198,7 @@
   { "feature": "screen-widgets", "pr": 1316, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(plotterext): report the host's color scheme in the display capability" },
   { "feature": "screen-widgets", "pr": 1352, "kind": "enhanced", "date": "2026-11-17", "title": "feat(plotterext): named widget layouts each screen can pick" },
   { "feature": null, "pr": 1326, "kind": "skip", "reason": "demo only: a login that may only watch the MaYaRa radar emulator changes gain, sea and range on its own screen; real radars are never affected" },
-  { "feature": null, "pr": 1338, "kind": "skip", "reason": "demo only: a setting that opens the MaYaRa radar emulator for watching at a set range, set as a demo server's default; real radars are never affected" }
+  { "feature": null, "pr": 1338, "kind": "skip", "reason": "demo only: a setting that opens the MaYaRa radar emulator for watching at a set range, set as a demo server's default; real radars are never affected" },
+  { "feature": "position-bar", "kind": "new", "since": "v1.8.0-rc1", "date": "2018-09-12", "title": "Show a position readout and the zoom level at the bottom of the chart" },
+  { "feature": "position-bar", "pr": 1337, "kind": "enhanced", "date": "2026-11-16", "title": "feat(settings): add a setting to hide the position bar" }
 ]
