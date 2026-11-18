@@ -3,6 +3,7 @@ import { Coordinate } from 'ol/coordinate';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
 import Layer from 'ol/layer/Layer';
+import TileJSON from 'ol/source/TileJSON';
 import TileSource from 'ol/source/Tile';
 import UrlTile from 'ol/source/UrlTile';
 import { DROP } from 'ol/structs/PriorityQueue';
@@ -17,11 +18,12 @@ import { getUid } from 'ol/util';
  * charts' tiles first makes the chart on top appear first; the ones below
  * still load, for where it has no coverage.
  *
- * Only charts the Signal K server serves take part. An online layer on top,
- * such as OpenSeaMap's seamarks over the base chart or a radar overlay, is
- * mostly transparent and comes in over the uplink, and a time-varying one
- * queues a new set of tiles on every step: ahead of the charts below, either
- * would hold them up. Such layers keep OpenLayers' own order.
+ * Only charts the Signal K server serves are ranked, and only static ones.
+ * Every other tile layer loads after them: an online layer, such as
+ * OpenSeaMap's seamarks over the base chart, the online base map beneath or
+ * a radar overlay, comes in over the uplink, and a time-varying one queues a
+ * new set of tiles on every step, so either would hold up the local charts.
+ * Local tiles come quickly, so the others lose little.
  */
 
 /**
@@ -34,17 +36,30 @@ import { getUid } from 'ol/util';
 export const CHART_RANK_STEP = 4096;
 export const MAX_CHART_RANK = 10;
 
+/**
+ * Set on a chart layer whose tiles change over time, through a time
+ * dimension or an auto-refresh: it keeps queueing new ones, so it is not
+ * ranked.
+ */
+export const CHART_VARIES = 'chartVaries';
+
 const servedHere = new WeakMap<UrlTile, { key: string; here: boolean }>();
 
 /**
  * Whether a tile source loads from the server that serves Freeboard, the
- * Signal K server, where the local charts are.
+ * Signal K server, where the local charts are. A TileJSON source keeps its
+ * templates in its TileJSON, and a pmtiles chart's carry a `pmtiles://`
+ * prefix.
  */
 export function isServedHere(source: TileSource): boolean {
   if (!(source instanceof UrlTile)) {
     return false;
   }
-  const urls = source.getUrls();
+  // A TileJSON document comes from wherever its chart points; OpenLayers
+  // takes `tiles` that are no array without complaint.
+  const tiles =
+    source instanceof TileJSON ? source.getTileJSON()?.tiles : undefined;
+  const urls = source.getUrls() ?? (Array.isArray(tiles) ? tiles : undefined);
   const key = urls?.join('\n') ?? '';
   let known = servedHere.get(source);
   if (known?.key !== key) {
@@ -52,7 +67,11 @@ export function isServedHere(source: TileSource): boolean {
       !!urls?.length &&
       urls.every((url) => {
         try {
-          return new URL(url, location.href).origin === location.origin;
+          const target = new URL(
+            url.replace(/^pmtiles:\/\//, ''),
+            location.href
+          );
+          return target.origin === location.origin;
         } catch {
           return false;
         }
@@ -64,19 +83,23 @@ export function isServedHere(source: TileSource): boolean {
 }
 
 /**
- * Each chart's place from the top among the charts served here, keyed by its
- * tile source's uid (the key the tile queue uses): by z-index, then later in
- * the tree on top, as OpenLayers draws them. A layer without a z-index takes
- * its group's. A source shown by two layers takes the upper one's place.
+ * Each chart's place from the top among the static, visible charts served
+ * here, keyed by its tile source's uid (the key the tile queue uses): by
+ * z-index, then later in the tree on top, as OpenLayers draws them. A layer
+ * without a z-index takes its group's. A source shown by two layers takes
+ * the upper one's place.
  */
 export function chartRanks(group: LayerGroup): Map<string, number> {
   const charts: { key: string; zIndex: number; order: number }[] = [];
   const walk = (children: Collection<BaseLayer>, inherited: number) =>
     children.forEach((layer) => {
+      if (!layer.getVisible()) {
+        return;
+      }
       const zIndex = layer.getZIndex() ?? inherited;
       if (layer instanceof LayerGroup) {
         walk(layer.getLayers(), zIndex);
-      } else if (layer instanceof Layer) {
+      } else if (layer instanceof Layer && !layer.get(CHART_VARIES)) {
         const source = layer.getRenderSource();
         if (source instanceof TileSource && isServedHere(source)) {
           charts.push({ key: getUid(source), zIndex, order: charts.length });
@@ -133,7 +156,7 @@ export class TopFirstMap extends OlMap {
     }
     return topFirstTilePriority(
       priority,
-      this.ranks.byKey.get(tileSourceKey) ?? 0
+      this.ranks.byKey.get(tileSourceKey) ?? MAX_CHART_RANK
     );
   }
 }

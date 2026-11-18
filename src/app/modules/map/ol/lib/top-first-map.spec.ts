@@ -6,11 +6,13 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorSource from 'ol/source/Vector';
 import VectorTileSource from 'ol/source/VectorTile';
+import TileJSON from 'ol/source/TileJSON';
 import XYZ from 'ol/source/XYZ';
 import { DROP } from 'ol/structs/PriorityQueue';
 import Tile from 'ol/Tile';
 import { getUid } from 'ol/util';
 import {
+  CHART_VARIES,
   chartRanks,
   isServedHere,
   MAX_CHART_RANK,
@@ -106,6 +108,34 @@ describe('chartRanks', () => {
     expect(ranks.get(getUid(shared))).toBe(0);
     expect(ranks.get(keyOf(middle))).toBe(1);
   });
+
+  it('leaves out hidden layers, those in hidden groups, and time-varying charts', () => {
+    const shared = new XYZ({ url: 'x/{z}/{x}/{y}' });
+    const hidden = new TileLayer({
+      source: shared,
+      zIndex: 40,
+      visible: false
+    });
+    const inHiddenGroup = tiles(35);
+    const radar = tiles(30);
+    radar.set(CHART_VARIES, true);
+    const chart = tiles(20);
+    const ranks = chartRanks(
+      new LayerGroup({
+        layers: [
+          new TileLayer({ source: shared, zIndex: 10 }),
+          chart,
+          radar,
+          new LayerGroup({ layers: [inHiddenGroup], visible: false }),
+          hidden
+        ]
+      })
+    );
+    expect(ranks.get(keyOf(chart))).toBe(0);
+    expect(ranks.get(getUid(shared))).toBe(1);
+    expect(ranks.has(keyOf(radar))).toBe(false);
+    expect(ranks.has(keyOf(inHiddenGroup))).toBe(false);
+  });
 });
 
 describe('isServedHere', () => {
@@ -119,6 +149,24 @@ describe('isServedHere', () => {
     expect(
       isServedHere(new XYZ({ url: 'https://tiles.example.org/{z}/{x}/{y}' }))
     ).toBe(false);
+  });
+
+  it('reads the templates of TileJSON and pmtiles sources', () => {
+    const tileJson = new TileJSON({
+      tileJSON: { tiles: ['/signalk/v1/api/c/{z}/{x}/{y}'] }
+    });
+    expect(isServedHere(tileJson)).toBe(true);
+    const pmtiles = new XYZ({ url: 'pmtiles:///charts/c.pmtiles/{z}/{x}/{y}' });
+    expect(isServedHere(pmtiles)).toBe(true);
+  });
+
+  it('takes a TileJSON whose tiles are no list as not served here', () => {
+    const broken = new TileJSON({
+      tileJSON: {
+        tiles: '/signalk/v1/api/c/{z}/{x}/{y}' as unknown as string[]
+      }
+    });
+    expect(isServedHere(broken)).toBe(false);
   });
 
   it('follows a source pointed elsewhere', () => {
@@ -177,6 +225,21 @@ describe('TopFirstMap', () => {
     expect(priority(chart)).toBeLessThan(priority(satellite));
     satellite.setZIndex(30);
     expect(priority(satellite)).toBeLessThan(priority(chart));
+  });
+
+  it('queues an online layer after the local charts, the one below them too', () => {
+    const map = new TopFirstMap();
+    const base = online(0);
+    const satellite = tiles(10);
+    const chart = tiles(20);
+    [base, satellite, chart].forEach((layer) => map.addLayer(layer));
+    (map as unknown as { frameState_: FrameState }).frameState_ = frameWanting(
+      [base, satellite, chart].map(keyOf)
+    );
+    const priority = (layer: TileLayer) =>
+      map.getTilePriority(tile, keyOf(layer), [0, 0], 2.4);
+    expect(priority(chart)).toBeLessThan(priority(satellite));
+    expect(priority(satellite)).toBeLessThan(priority(base));
   });
 
   it('drops a tile no frame wants', () => {

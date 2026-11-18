@@ -27,7 +27,7 @@ import {
   v8,
   type StylePropertySpecification
 } from '@maplibre/maplibre-gl-style-spec';
-import { ChartImageAdjustment } from 'src/app/types';
+import { ChartImageAdjustment, FBChart } from 'src/app/types';
 import {
   chartRefreshIntervalMs,
   chartTimeTileUrl
@@ -1274,6 +1274,15 @@ export function startChartTileRefresh(
     source.setTileUrlFunction(wrapped, key);
   }, interval);
   return () => clearInterval(timer);
+}
+
+/**
+ * Whether a chart's tiles change over time, through a time dimension or an
+ * auto-refresh. True for a chart with a time dimension also while it shows
+ * its newest frame and nothing plays.
+ */
+export function chartVaries(chart: FBChart): boolean {
+  return !!(chart[1].time || chart[1].refreshInterval);
 }
 
 /** Query parameter a refresh tick stamps on every tile URL. */

@@ -22,12 +22,14 @@ import {
   applyChartTimeToWmts,
   attachImageAdjustmentFilter,
   chartLayerClassName,
+  chartVaries,
   resolveLayerZoomRange,
   setChartExtent,
   startChartTileRefresh,
   webMercatorMatrixSet,
   WmtsCapabilitiesDoc
 } from './chart-utils';
+import { CHART_VARIES } from '../top-first-map';
 
 // ** Freeboard WMTS Chart **
 @Component({
@@ -173,6 +175,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
         );
       }
     }
+    this.layer?.set(CHART_VARIES, chartVaries(chart));
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
   }

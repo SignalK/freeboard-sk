@@ -21,10 +21,12 @@ import {
   applyChartTimeToTileSource,
   attachImageAdjustmentFilter,
   chartLayerClassName,
+  chartVaries,
   resolveLayerZoomRange,
   setChartExtent,
   startChartTileRefresh
 } from './chart-utils';
+import { CHART_VARIES } from '../top-first-map';
 
 // ** Freeboard TileJSON Chart **
 @Component({
@@ -153,6 +155,7 @@ export class TileJsonChartLayerComponent implements OnDestroy {
         );
       }
     }
+    this.layer?.set(CHART_VARIES, chartVaries(chart));
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
   }
