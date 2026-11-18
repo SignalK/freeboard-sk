@@ -1,5 +1,8 @@
 import { Collection, Map as OlMap } from 'ol';
 import { Coordinate } from 'ol/coordinate';
+import { FrameState, MapOptions } from 'ol/Map';
+import MapEvent from 'ol/MapEvent';
+import TileGrid from 'ol/tilegrid/TileGrid';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
 import Layer from 'ol/layer/Layer';
@@ -27,14 +30,19 @@ import { getUid } from 'ol/util';
  */
 
 /**
- * OpenLayers' priority (lower loads sooner) is 65536·ln(resolution), a zoom
- * level apart by 65536·ln 2 ≈ 45 400, plus the distance from the centre in
- * tile pixels, up to about 3 400 on a 4K screen. A step per chart larger than
- * that, and capped inside a zoom level, so every chart's tiles at one zoom
- * still load before the coarser ones preloaded beneath them.
+ * A tile's priority (lower loads sooner) is, from most to least weight: how
+ * many zoom levels it lies coarser than the level its source shows now (so a
+ * preloaded placeholder comes after every layer's current tiles), the rank of
+ * its chart, then its distance from the centre in tile pixels, up to about
+ * 3 400 on a 4K screen. OpenLayers ranks by the absolute resolution instead,
+ * which puts a chart on a finer grid, or one not overzoomed, ahead of the
+ * chart above it.
  */
+export const LEVEL_STEP = 65536;
 export const CHART_RANK_STEP = 4096;
 export const MAX_CHART_RANK = 10;
+/** Behind every chart, the capped ones too, and still inside a level. */
+export const UNRANKED = MAX_CHART_RANK + 1;
 
 /**
  * Set on a chart layer whose tiles change over time, through a time
@@ -82,15 +90,44 @@ export function isServedHere(source: TileSource): boolean {
   return known.here;
 }
 
+/** A tile source shown on the map and, when it is a ranked chart, its rank. */
+export interface ShownTileSource {
+  source: TileSource;
+  rank?: number;
+  /** Its grid and the level it shows at a view resolution, kept for the frame. */
+  shownAt?: { view: number; grid: TileGrid; z: number };
+}
+
+/** Whether a frame wanted at least one tile from a source. */
+function wantsAny(tiles: Record<string, unknown> | undefined): boolean {
+  for (const _ in tiles) {
+    return true;
+  }
+  return false;
+}
+
 /**
- * Each chart's place from the top among the static, visible charts served
- * here, keyed by its tile source's uid (the key the tile queue uses): by
- * z-index, then later in the tree on top, as OpenLayers draws them. A layer
- * without a z-index takes its group's. A source shown by two layers takes
- * the upper one's place.
+ * The tile sources of the visible layers, keyed by uid (the key the tile
+ * queue uses), with a rank from the top for the static charts served here.
+ * Ranks follow OpenLayers' drawing order: by z-index, then later in the tree
+ * on top, a layer without a z-index taking its group's. A source shown by two
+ * layers takes the upper one's place. With `wanted`, the tiles a frame
+ * wanted by source, only charts it wanted tiles from are ranked: one outside
+ * its zoom range or extent would otherwise push those below it towards the
+ * cap. OpenLayers lists a source in range but outside its extent with no
+ * tiles.
  */
-export function chartRanks(group: LayerGroup): Map<string, number> {
-  const charts: { key: string; zIndex: number; order: number }[] = [];
+export function shownTileSources(
+  group: LayerGroup,
+  wanted?: Record<string, Record<string, unknown>>
+): Map<string, ShownTileSource> {
+  const shown: {
+    key: string;
+    source: TileSource;
+    chart: boolean;
+    zIndex: number;
+    order: number;
+  }[] = [];
   const walk = (children: Collection<BaseLayer>, inherited: number) =>
     children.forEach((layer) => {
       if (!layer.getVisible()) {
@@ -99,38 +136,80 @@ export function chartRanks(group: LayerGroup): Map<string, number> {
       const zIndex = layer.getZIndex() ?? inherited;
       if (layer instanceof LayerGroup) {
         walk(layer.getLayers(), zIndex);
-      } else if (layer instanceof Layer && !layer.get(CHART_VARIES)) {
+      } else if (layer instanceof Layer) {
         const source = layer.getRenderSource();
-        if (source instanceof TileSource && isServedHere(source)) {
-          charts.push({ key: getUid(source), zIndex, order: charts.length });
+        if (source instanceof TileSource) {
+          const key = getUid(source);
+          const chart =
+            !layer.get(CHART_VARIES) &&
+            isServedHere(source) &&
+            (!wanted || wantsAny(wanted[key]));
+          shown.push({ key, source, chart, zIndex, order: shown.length });
         }
       }
     });
   walk(group.getLayers(), group.getZIndex() ?? 0);
-  charts.sort((a, b) => b.zIndex - a.zIndex || b.order - a.order);
-  const ranks = new Map<string, number>();
-  for (const { key } of charts) {
-    if (!ranks.has(key)) {
-      ranks.set(key, ranks.size);
+  shown.sort((a, b) => b.zIndex - a.zIndex || b.order - a.order);
+  const byKey = new Map<string, ShownTileSource>();
+  let rank = 0;
+  for (const { key, source, chart } of shown) {
+    const known = byKey.get(key);
+    if (!known) {
+      byKey.set(
+        key,
+        chart ? { source, rank: Math.min(rank++, MAX_CHART_RANK) } : { source }
+      );
+    } else if (chart && known.rank === undefined) {
+      known.rank = Math.min(rank++, MAX_CHART_RANK);
     }
   }
-  return ranks;
+  return byKey;
 }
 
-/** A tile's priority, put behind those of the `rank` charts above it. */
-export function topFirstTilePriority(priority: number, rank: number): number {
-  return priority === DROP
-    ? priority
-    : priority + Math.min(rank, MAX_CHART_RANK) * CHART_RANK_STEP;
+/**
+ * How many levels of `grid` a tile at `tileResolution` lies coarser than
+ * level `shownZ`, the one its source shows now, chosen as the renderers
+ * choose it (`getZForResolution` with the source's `zDirection`). Past its
+ * finest level a source shows that one, overzoomed, so its tiles there count
+ * as current. Counted by level, not by resolution, since a grid of its own
+ * need not halve the resolution from one level to the next.
+ */
+export function levelsCoarser(
+  grid: TileGrid,
+  shownZ: number,
+  tileResolution: number
+): number {
+  return Math.max(0, shownZ - grid.getZForResolution(tileResolution));
+}
+
+/** A tile's priority from its level, its chart's rank and its distance. */
+export function topFirstTilePriority(
+  level: number,
+  rank: number,
+  distance: number
+): number {
+  return (
+    level * LEVEL_STEP + Math.min(rank, UNRANKED) * CHART_RANK_STEP + distance
+  );
 }
 
 /** A map that loads the tiles of its upper charts first. */
 export class TopFirstMap extends OlMap {
-  private ranks?: {
+  private frame?: FrameState;
+  private shown?: {
     group: LayerGroup;
     revision: number;
-    byKey: Map<string, number>;
+    frame?: FrameState;
+    byKey: Map<string, ShownTileSource>;
   };
+
+  constructor(options?: MapOptions) {
+    super(options);
+    // The tiles a frame wanted tell which charts draw now.
+    this.on('postrender', (e: MapEvent) => {
+      this.frame = e.frameState ?? undefined;
+    });
+  }
 
   override getTilePriority(
     tile: Tile,
@@ -147,16 +226,54 @@ export class TopFirstMap extends OlMap {
     if (priority === DROP) {
       return priority;
     }
-    // The group's revision moves with every change in the tree, a z-index
-    // or a layer added included, so the ranks are worked out again only then.
+    // Worked out again for each frame, and when the layer tree changes in
+    // between: a z-index, a layer added or a source swapped.
     const group = this.getLayerGroup();
     const revision = group.getRevision();
-    if (this.ranks?.group !== group || this.ranks.revision !== revision) {
-      this.ranks = { group, revision, byKey: chartRanks(group) };
+    const frame = this.frame;
+    if (
+      this.shown?.group !== group ||
+      this.shown.revision !== revision ||
+      this.shown.frame !== frame
+    ) {
+      this.shown = {
+        group,
+        revision,
+        frame,
+        byKey: shownTileSources(group, frame?.wantedTiles)
+      };
     }
-    return topFirstTilePriority(
-      priority,
-      this.ranks.byKey.get(tileSourceKey) ?? MAX_CHART_RANK
-    );
+    const shown = this.shown.byKey.get(tileSourceKey);
+    // The view as the frame being prioritised saw it: by the time the queue
+    // is reprioritised after it, a gesture may have moved the view on.
+    const view = this.getView();
+    const viewResolution =
+      frame?.viewState.resolution ?? view.getResolution() ?? tileResolution;
+    let level: number;
+    if (shown) {
+      if (shown.shownAt?.view !== viewResolution) {
+        const grid = shown.source.getTileGridForProjection(
+          frame?.viewState.projection ?? view.getProjection()
+        );
+        shown.shownAt = {
+          view: viewResolution,
+          grid,
+          z: grid.getZForResolution(viewResolution, shown.source.zDirection)
+        };
+      }
+      level = levelsCoarser(
+        shown.shownAt.grid,
+        shown.shownAt.z,
+        tileResolution
+      );
+    } else {
+      level = Math.max(
+        0,
+        Math.round(Math.log2(tileResolution / viewResolution))
+      );
+    }
+    // OpenLayers' priority less its resolution term is the distance.
+    const distance = priority - 65536 * Math.log(tileResolution);
+    return topFirstTilePriority(level, shown?.rank ?? UNRANKED, distance);
   }
 }
