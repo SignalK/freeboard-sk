@@ -736,30 +736,35 @@ export class AppFacade extends InfoService {
    * where everyone shares one login: the account's settings are then neither
    * loaded nor saved, and each browser keeps its own.
    */
-  private readDemoMode(
+  private async readDemoMode(
     load: number
   ): Promise<boolean | 'unreadable' | 'stale'> {
-    return new Promise((resolve) => {
-      (
-        this.signalk.appDataGet('/', APPDATA_CONTEXT.GLOBAL) as Observable<{
-          display?: { demoMode?: unknown };
-        }>
-      ).subscribe({
-        next: (global) => {
-          if (load !== this.configLoads) {
-            resolve('stale');
-            return;
-          }
-          resolve(global?.display?.demoMode === true);
-        },
-        error: () => {
-          console.info(
-            'applicationData: Unable to retrieve global settings from server!'
-          );
-          resolve(load === this.configLoads ? 'unreadable' : 'stale');
+    const demo = await this.readGlobalDemoMode();
+    return load === this.configLoads ? demo : 'stale';
+  }
+
+  private readGlobalDemoMode(
+    limitMs?: number
+  ): Promise<boolean | 'unreadable'> {
+    const request = this.signalk.appDataGet(
+      '/',
+      APPDATA_CONTEXT.GLOBAL
+    ) as Observable<{ display?: { demoMode?: unknown } }>;
+    return firstValueFrom(
+      limitMs === undefined ? request : request.pipe(timeout(limitMs))
+    ).then(
+      (global) => global?.display?.demoMode === true,
+      (error: unknown) => {
+        // a server that serves no global defaults cannot ask for demo mode
+        if (error instanceof HttpErrorResponse && error.status === 404) {
+          return false;
         }
-      });
-    });
+        console.info(
+          'applicationData: Unable to retrieve global settings from server!'
+        );
+        return 'unreadable';
+      }
+    );
   }
 
   private isDemoMode(): boolean {

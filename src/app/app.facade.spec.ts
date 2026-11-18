@@ -841,6 +841,23 @@ describe('AppFacade global default config', () => {
     expect(client.appDataSet).not.toHaveBeenCalled();
   });
 
+  it('loads the account when the server serves no global defaults', async () => {
+    const user = defaultConfig();
+    user.selections.charts = ['account'];
+    const { app, client } = setup(true, { user });
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.GLOBAL
+          ? throwError(() => new HttpErrorResponse({ status: 404 }))
+          : of(user)
+    );
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+    expect(app.config.selections.charts).toEqual(['account']);
+    app.saveConfig();
+    expect(client.appDataSet).toHaveBeenCalled();
+  });
+
   it('still saves to the account outside demo mode', async () => {
     const { app, client } = setup(true, { global: globalDefaults() });
     await app.loadUserConfigfromServer();
