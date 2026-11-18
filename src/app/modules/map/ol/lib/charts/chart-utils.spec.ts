@@ -221,6 +221,22 @@ describe('extentFromBounds', () => {
     expect(extentFromBounds([20, 40, 10, 50])).toBe(undefined);
   });
 
+  it('rejects bounds with south above north, or no area', () => {
+    expect(extentFromBounds([170, 10, -170, -10])).toBe(undefined);
+    expect(extentFromBounds([10, 10, 20, -10])).toBe(undefined);
+    expect(extentFromBounds([10, 5, 20, 5])).toBe(undefined);
+    expect(extentFromBounds([0, 0, 0, 0])).toBe(undefined);
+  });
+
+  it('rejects bounds that are not finite numbers', () => {
+    expect(extentFromBounds([NaN, -20, 10, -10])).toBe(undefined);
+    // eslint-disable-next-line no-sparse-arrays
+    expect(extentFromBounds([10, , 20, -10] as number[])).toBe(undefined);
+    expect(
+      extentFromBounds(['170', -20, '-170', -10] as unknown as number[])
+    ).toBe(undefined);
+  });
+
   it('runs bounds that cross the antimeridian (west > east) east past 180°', () => {
     // Fiji: 174.6°E across 180° to 178.2°W.
     const extent = extentFromBounds([174.6, -21.9, -178.2, -11.2]);
@@ -378,6 +394,17 @@ describe('setChartExtent', () => {
     map.getView().setCenter([x(181), 0]);
     expect(clipped.getExtent()?.[0]).toBeCloseTo(x(185), 3);
     expect(unclipped.getExtent()).toBe(undefined);
+  });
+
+  it('leaves a chart with NaN bounds unclipped', () => {
+    const map = mapAt(0);
+    const layer = new TileLayer();
+    map.addLayer(layer);
+    const setExtent = vi.spyOn(layer, 'setExtent');
+    setChartExtent(layer, [NaN, -22, -173, -15], map);
+    map.getView().setCenter([x(181), 0]);
+    expect(layer.getExtent()).toBe(undefined);
+    expect(setExtent).not.toHaveBeenCalled();
   });
 
   it('stops moving a chart whose bounds have gone', () => {

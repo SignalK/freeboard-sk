@@ -208,15 +208,23 @@ const WORLD_WIDTH = getWidth(
  * Convert bounds in chart metadata [minLon, minLat, maxLon, maxLat] to an
  * EPSG:3857 extent in the primary world. Bounds that cross the antimeridian
  * (west > east, RFC 7946 §5.2) run east past 180°.
- * @returns undefined if bounds are invalid or missing, touch the +/-180 /
- * +/-90 edges, or cross the antimeridian over more than 180°.
+ * @returns undefined if bounds are missing or not finite numbers, enclose no
+ * area or have south above north, touch the +/-180 / +/-90 edges, or cross
+ * the antimeridian over more than 180°.
  */
 export function extentFromBounds(bounds?: number[]): Extent | undefined {
   if (!Array.isArray(bounds) || bounds.length < 4) return undefined;
+  // A NaN would pass the range checks and give an extent that never equals
+  // itself, which followChartExtents() would set again without end.
+  if (![0, 1, 2, 3].every((i) => Number.isFinite(bounds[i]))) {
+    return undefined;
+  }
   if (
     bounds[0] <= -180 ||
     bounds[0] >= 180 ||
     bounds[1] <= -90 ||
+    bounds[0] === bounds[2] ||
+    bounds[1] >= bounds[3] ||
     bounds[2] <= -180 ||
     bounds[2] >= 180 ||
     bounds[3] >= 90
