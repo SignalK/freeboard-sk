@@ -2652,7 +2652,7 @@ export class AppComponent {
     }
   }
 
-  /** fetch non-standard resources from server */
+  /** fetch tracks, the one non-standard resource Freeboard reads */
   private fetchOtherResources() {
     this.skres.refreshTracks();
   }
