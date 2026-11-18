@@ -1317,7 +1317,7 @@ export class AppFacade extends InfoService {
 
   /**
    * Drop the settings saved in this browser, and the logged-in user's on the
-   * server, then start afresh: the server's global defaults apply as on a
+   * server outside demo mode, then start afresh: the server's global defaults apply as on a
    * first visit, the built-in defaults when it has none. Resolves false, with
    * nothing dropped, when the server does not clear the user's settings,
    * since those would come back on the next start.
@@ -1331,9 +1331,15 @@ export class AppFacade extends InfoService {
     this.resettingConfig = true;
     clearTimeout(this.saveCfgTimer);
     const loggedIn = await this.askLoggedIn();
-    const stored = loggedIn ? await this.userConfigStored() : false;
+    // a shared demo account keeps its settings; only this browser resets
+    const demo = loggedIn
+      ? await this.readGlobalDemoMode(RESET_CLEAR_TIMEOUT_MS)
+      : false;
+    const stored =
+      loggedIn && demo === false ? await this.userConfigStored() : false;
     if (
       loggedIn === undefined ||
+      demo === 'unreadable' ||
       stored === undefined ||
       (stored && !(await this.clearServerConfig()))
     ) {

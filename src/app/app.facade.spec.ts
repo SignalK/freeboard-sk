@@ -1177,12 +1177,53 @@ describe('AppFacade.resetToServerDefaults', () => {
   it('clears the settings when it cannot read whether there are any', async () => {
     const { app, client, restart } = setup(true);
     await app.loadUserConfigfromServer();
-    client.appDataGet.mockReturnValue(throwError(() => new Error('offline')));
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.USER
+          ? throwError(() => new Error('offline'))
+          : of({})
+    );
 
     await expect(app.resetToServerDefaults()).resolves.toBe(true);
 
     expect(client.appDataSet).toHaveBeenCalledWith('/', {});
     expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets only this browser in demo mode, leaving the shared account's settings", async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        of(
+          context === APPDATA_CONTEXT.GLOBAL
+            ? { display: { demoMode: true } }
+            : defaultConfig()
+        )
+    );
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps every setting when it cannot tell whether it is in demo mode', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.GLOBAL
+          ? throwError(() => new Error('offline'))
+          : of(defaultConfig())
+    );
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
+    expect(restart).not.toHaveBeenCalled();
   });
 
   it('keeps every setting when the server does not clear the user ones', async () => {
