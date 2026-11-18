@@ -20,7 +20,6 @@ import { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.compone
 import { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 import { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
-import { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 import { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
 import { AlarmComponent } from './lib/alarms/layer-alarm.component';
 import { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
@@ -85,7 +84,6 @@ export { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.compone
 export { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 export { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
-export { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 export { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
 export { AlarmComponent } from './lib/alarms/layer-alarm.component';
 export { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
@@ -147,7 +145,6 @@ const declarations = [
   FreeboardRegionLayerComponent,
   TrackLayerComponent,
   ChartBoundsLayerComponent,
-  ResourceSetLayerComponent,
   AnchorAlarmComponent,
   AlarmComponent,
   CPAAlarmComponent,

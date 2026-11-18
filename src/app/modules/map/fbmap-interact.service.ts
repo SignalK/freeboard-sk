@@ -20,7 +20,6 @@ import {
   Position
 } from 'src/app/types';
 import { SKAircraft, SKAtoN, SKMeteo, SKVessel } from '../skresources';
-import { GeoJSONFeature } from 'ol/format/GeoJSON';
 import { AlertData } from '../alarms';
 import { ActiveRoutePoint } from './route-point-pick';
 import type { PointMeta } from '../skresources/components/route-reorder.util';
@@ -45,8 +44,6 @@ export interface IPopover {
   content: any[] | null;
   featureCount: number | undefined;
   resource?: FBRoute | FBWaypoint | FBNote | FBRegion;
-  /** The feature a resource set popover shows. */
-  resourceSet?: GeoJSONFeature;
   vessel?: SKVessel;
   isSelf?: boolean;
   aton?: SKAtoN;

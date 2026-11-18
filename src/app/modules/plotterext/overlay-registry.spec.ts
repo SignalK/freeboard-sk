@@ -64,7 +64,7 @@ describe('OverlayRegistry entries', () => {
     expect(one.zIndex).toBeGreaterThan(56); // above weather/currents
     expect(two.zIndex).toBeLessThan(99); // below radar
     // never over AIS targets (200+), alarms (300, 350) or vessel lines
-    expect(top.zIndex).toBeGreaterThan(120); // above resource sets
+    expect(top.zIndex).toBeGreaterThan(110); // above tracks
     expect(top.zIndex).toBeLessThan(200);
   });
 

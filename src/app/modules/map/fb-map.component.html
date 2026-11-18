@@ -280,25 +280,6 @@
     </ais-targets-track>
   }
 
-  <!-- Resource Sets -->
-  @for (
-    resSet of this.skresOther.resourceSets();
-    track resSet[0];
-    let idx = $index
-  ) {
-    <div>
-      <fb-resource-sets
-        [darkMode]="app.uiConfig().invertColor"
-        [collection]="resSet[0]"
-        [resourceSets]="resSet[1]"
-        [labelMinZoom]="app.config.map.labelsMinZoom"
-        [mapZoom]="mapZoomLevel()"
-        [zIndex]="120 + idx"
-      >
-      </fb-resource-sets>
-    </div>
-  }
-
   <!-- Routes -->
   <fb-routes
     [routes]="skres.routes()"
@@ -810,20 +791,6 @@
             (chosen)="popoverClosed()"
           ></fb-ext-actions>
         </resource-popover>
-      }
-      @if (overlay().type === 'rset') {
-        <resourceset-popover
-          [canClose]="app.config.map.popoverMulti"
-          [title]="overlay().title"
-          [resource]="overlay().resourceSet"
-          (modify)="modifyFeature(); popoverClosed()"
-          (delete)="
-            deleteFeature(overlay().id, overlay().type); popoverClosed()
-          "
-          (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
-          (closed)="popoverClosed()"
-        >
-        </resourceset-popover>
       }
       @if (overlay().type === 'ais') {
         <div>

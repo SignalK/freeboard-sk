@@ -33,13 +33,6 @@ interface AppListEntry {
   url: string | null;
 }
 
-interface ResourceTypeList {
-  [key: string]: {
-    $source: string;
-    description: string;
-  };
-}
-
 /** Settings Option Choices */
 export class SettingsOptions {
   private symDegree = String.fromCharCode(186);
@@ -286,8 +279,7 @@ export class SettingsOptions {
       ['chevrons', 'Chevrons (animated)'],
       ['chevrons-static', 'Chevrons (static)']
     ]),
-    noteRadius: [5, 10, 20, 50, 100, 150, 200, 500],
-    resSetRadius: [0, 5, 10, 20, 50, 100, 150, 200, 500]
+    noteRadius: [5, 10, 20, 50, 100, 150, 200, 500]
   };
 
   zoomLevels = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
@@ -302,7 +294,6 @@ export class SettingsOptions {
 export class SettingsFacade {
   applicationList: AppListEntry[] = []; // installed webapp list
   favouritesList: AppListEntry[] = []; // favourite webapp selections
-  resourcePathList: string[] = []; // resource layer list
   data!: FBAppData;
 
   // The config in use, read on every access: a config loaded from the server
@@ -367,24 +358,7 @@ export class SettingsFacade {
   refresh() {
     this.position = { from: null, taken: [0, 0], edit: [0, 0] };
     this.getApps();
-    this.getResourcePaths();
     this.app.fetchUnitPrefsFromSKServer();
-  }
-
-  /** Populate list of available non-standard resource paths */
-  private getResourcePaths() {
-    this.signalk.api.get(this.app.skApiVersion, 'resources').subscribe(
-      (r: ResourceTypeList) => {
-        this.resourcePathList = Object.keys(r)
-          .filter((i: string) => {
-            return !this.app.IGNORE_RESOURCES.includes(i);
-          })
-          .sort();
-      },
-      (): void => {
-        this.resourcePathList = [];
-      }
-    );
   }
 
   /** Populate applications list */

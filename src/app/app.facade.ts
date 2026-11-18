@@ -63,8 +63,6 @@ import {
 } from './app.config';
 
 import { getSvgList } from './modules/icons';
-import { PLOTTER_EXTENSIONS_RESOURCE } from './modules/plotterext/types';
-import { SYMBOL_RESOURCE_TYPE } from './types/symbols';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
@@ -130,13 +128,6 @@ export class AppFacade extends InfoService {
    */
   private sessionToken?: string;
 
-  public readonly STANDARD_RESOURCES = [
-    'routes',
-    'waypoints',
-    'regions',
-    'notes',
-    'charts'
-  ];
   public readonly CUSTOM_RESOURCES: Array<{
     name: string;
     description: string;
@@ -163,12 +154,6 @@ export class AppFacade extends InfoService {
       featureKey: 'resourceGroups'
     }
   ];
-  public get IGNORE_RESOURCES() {
-    return this.STANDARD_RESOURCES.concat(
-      this.CUSTOM_RESOURCES.map((i) => i.name),
-      ['buddies', PLOTTER_EXTENSIONS_RESOURCE, SYMBOL_RESOURCE_TYPE]
-    );
-  }
 
   public serverConfig = {
     unitPreferences: signal<SKServerUnitPrefs | undefined>(undefined),
@@ -794,7 +779,6 @@ export class AppFacade extends InfoService {
           cleanConfig(serverSettings, this.hostDef.params);
           this.config = serverSettings;
           this.doPostConfigLoad();
-          this.alignCustomResourcesPaths();
           this.alignUnitPrefs(this.serverConfig.unitPreferences());
           this.startConfigKnown = true;
           this.saveConfig();
@@ -1266,22 +1250,6 @@ export class AppFacade extends InfoService {
     }
     this.config.map.centerOffset = outcome.offset;
     return 'adopted';
-  }
-
-  /**
-   * @description Align selected custom resource paths with those enabled on the server.
-   */
-  alignCustomResourcesPaths() {
-    this.signalk.api
-      .get(this.skApiVersion, '/resources')
-      .subscribe((res: { [key: string]: { description: string } }) => {
-        const paths = Object.keys(res).filter(
-          (i) => !this.IGNORE_RESOURCES.includes(i)
-        );
-        this.config.resources.paths = this.config.resources.paths.filter((k) =>
-          paths.includes(k)
-        );
-      });
   }
 
   /**

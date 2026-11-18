@@ -58,9 +58,8 @@ export const BACKOFF_SETTLE_MS = 2000;
  * its own anchor alarm ring (300), own-vessel lines (330-350) and AIS
  * AtoN/base-station targets (200-220), so no z-index is both above the former
  * and below the latter. The spec's hard rule — never cover the vessel, alarm
- * indications or AIS targets — wins: the band sits above radar (99), tracks
- * (100-110) and resource sets (120+), below everything from AIS targets (200)
- * up.
+ * indications or AIS targets — wins: the band sits above radar (99) and
+ * tracks (100-110), below everything from AIS targets (200) up.
  */
 const BAND_Z: Record<OverlayBand, { base: number; span: number }> = {
   aboveCharts: { base: 60, span: 30 },

@@ -524,25 +524,6 @@ export class SettingsDialog implements OnInit {
   }
 
   /**
-   * Handle custom resource path selection changes
-   * @param f
-   */
-  onResPathSelected(f: MatSelectionList) {
-    this.facade.settings.resources.paths = f.selectedOptions.selected.map(
-      (i) => i.value
-    );
-    //ensure all selected paths have relevant 'selections' entry
-    this.facade.settings.resources.paths.forEach((i) => {
-      if (i in this.facade.settings.selections.resourceSets) {
-        /* already has selection array */
-      } else {
-        this.facade.settings.selections.resourceSets[i] = [];
-      } //create selection array
-    });
-    this.persistModel();
-  }
-
-  /**
    * delete auth token
    */
   clearAuthToken() {

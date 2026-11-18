@@ -2,7 +2,6 @@ export * from './components/feature-properties-modal';
 
 export * from './resources.service';
 export * from './resource-classes';
-export * from './custom-resource-classes';
 export * from './custom-resources-service';
 
 export * from './components/active-resource-dialog';
@@ -42,8 +41,5 @@ export * from './components/waypoints/waypoint-dialog';
 export * from './components/waypoints/waypoint-panel';
 
 export * from './components/groups/grouplist';
-
-export * from './components/resourcesets/resourceset-list-modal';
-export * from './components/resourcesets/resourceset-feature-properties-modal';
 
 export * from './components/weather/weatherlist';

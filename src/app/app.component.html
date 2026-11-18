@@ -71,24 +71,6 @@
           &nbsp;Tracks
         </button>
       }
-      @if (app.config.resources.paths.length !== 0) {
-        <div>
-          @for (p of app.config.resources.paths.sort(); track p) {
-            <div>
-              <button
-                mat-menu-item
-                (click)="openExperiment({ choice: p, value: null })"
-              >
-                <mat-icon
-                  class="ob"
-                  svgIcon="chart-display-settings-iec"
-                ></mat-icon>
-                &nbsp;{{ p }}
-              </button>
-            </div>
-          }
-        </div>
-      }
     </mat-menu>
 
     <fb-experiments (selected)="openExperiment($event)"></fb-experiments>
@@ -293,11 +275,6 @@
       <a mat-menu-item (click)="displayLeftMenu('aisList', true)">
         <mat-icon>directions_boat</mat-icon>
         <span>Vessels</span>
-      </a>
-
-      <a mat-menu-item (click)="importResourceSet()">
-        <mat-icon>upload</mat-icon>
-        <span>Resource Sets</span>
       </a>
 
       @if (features.playbackAPI) {

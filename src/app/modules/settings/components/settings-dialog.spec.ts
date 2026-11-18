@@ -83,7 +83,6 @@ describe('settings dialog — note details option placement', () => {
       applicationList: [],
       favouritesList: [],
       fixedPosition: [0, 0],
-      resourcePathList: [],
       refresh: (): void => undefined,
       applySettings: () => applied++,
       emitChangeEvent: (): void => undefined

@@ -359,14 +359,6 @@ export const processUrlTokens = (s: string, config: IAppConfig): string => {
                 Convert.nauticalMilesToKm(config.resources.notes.getRadius)
               );
         return dist * 1000;
-      } else if (i === 'fetch:radius') {
-        const dist =
-          config.units.distance === 'kilometer'
-            ? config.resources.notes.getRadius
-            : Math.floor(
-                Convert.nauticalMilesToKm(config.resources.fetchRadius)
-              );
-        return dist * 1000;
       } else {
         return i;
       }

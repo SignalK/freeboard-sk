@@ -200,10 +200,6 @@ export const AppConfigSchema = Type.Object({
     trailResolutionApplied: bool(true)
   }),
   resources: Type.Object({
-    fetchFilter: str(
-      '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%'
-    ),
-    fetchRadius: num(0), // nmi/km within which to return resources
     routeStyle: choice<RouteStyle>('flags'),
     notes: Type.Object({
       rootFilter: str(
@@ -217,8 +213,7 @@ export const AppConfigSchema = Type.Object({
     video: Type.Object({
       enable: bool(false),
       url: nullable(Type.String())
-    }),
-    paths: strings()
+    })
   }),
   signalk: Type.Object({
     vessels: bool(true),
@@ -318,7 +313,6 @@ export const AppConfigSchema = Type.Object({
      * Fishing (30) and Pleasure (36). */
     aisPleasureRowApplied: bool(true),
     aisState: strings(), // ais state values used to filter targets
-    resourceSets: Type.Record(Type.String(), Type.Any(), { default: {} }), // additional resources
     infolayers: nullable(Type.Array(Type.String())),
     weatherWindEnabled: bool(false),
     oceanCurrentsEnabled: bool(false),

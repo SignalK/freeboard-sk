@@ -36,7 +36,6 @@ import {
   AircraftPopoverComponent,
   AlarmPopoverComponent,
   ResourcePopoverComponent,
-  ResourceSetPopoverComponent,
   RoutePointPopoverComponent,
   VesselPopoverComponent,
   S57PopoverComponent,
@@ -52,7 +51,6 @@ import { bearingDistanceReadout } from './bearing-distance';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature, Map as OlMap } from 'ol';
-import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
@@ -126,7 +124,6 @@ import {
 
 import {
   SKResourceService,
-  FBCustomResourceService,
   SKChart,
   SKWaypoint,
   SKVessel,
@@ -367,7 +364,6 @@ const OVERLAY_FEATURE_ENTRY = 'overlay-feature.';
     AircraftPopoverComponent,
     AlarmPopoverComponent,
     ResourcePopoverComponent,
-    ResourceSetPopoverComponent,
     RoutePointPopoverComponent,
     VesselPopoverComponent,
     S57PopoverComponent,
@@ -684,7 +680,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected app = inject(AppFacade);
   protected drawsFlow = drawsFlow;
   protected skres = inject(SKResourceService);
-  protected skresOther = inject(FBCustomResourceService);
   protected skstream = inject(SKStreamFacade);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
@@ -2718,14 +2713,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
           });
         }
         switch (t[0]) {
-          case 'rset':
-            addToFeatureList = true;
-            icon = {
-              name: 'star',
-              svgIcon: undefined
-            };
-            text = feature.get('name');
-            break;
           case 'alarm':
             addToFeatureList = true;
             icon = {
@@ -3384,18 +3371,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
         ];
         poData.title = this.course.courseData().destPointName ?? 'Destination';
         poData.show = true;
-        break;
-      case 'rset':
-        poData.id = id;
-        poData.type = t[0];
-        poData.resourceSet = this.skresOther.fromResourceSetCache(
-          id,
-          true
-        ) as IPopover['resourceSet'];
-        poData.title =
-          (poData.resourceSet as GeoJsonFeature)?.properties?.name ??
-          'Resource Set';
-        poData.show = poData.resourceSet ? true : false;
         break;
       default:
         return;
@@ -4128,10 +4103,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.skres.refreshNotes();
       this.app.debug(`fetching Notes...`);
     }
-    if (this.shouldFetchResourceSets(zoomChanged)) {
-      this.app.debug(`fetching ResourceSets...`);
-      this.skresOther.refreshResourceSetsInBounds();
-    }
   }
 
   // returns true when map center has moved a distance > (threshold / 2)
@@ -4156,24 +4127,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (d >= cr / 2) {
       this.app.data.lastGet = this.app.config.map.center;
       return true;
-    } else {
-      return false;
-    }
-  }
-
-  // ** returns true if skresOther.refreshResourceSetsInBounds() should be called
-  private shouldFetchResourceSets(zoomChanged?: boolean) {
-    if (
-      this.app.config.resources.fetchRadius !== 0 &&
-      this.app.config.resources.fetchFilter
-    ) {
-      if (!this.skresOther.anyResourceSetSelection()) {
-        return false;
-      }
-      if (zoomChanged) {
-        return true;
-      }
-      return this.mapMoveThresholdExceeded(50);
     } else {
       return false;
     }

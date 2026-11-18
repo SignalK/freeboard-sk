@@ -52,8 +52,6 @@ import {
   AtoNPropertiesModal,
   AircraftPropertiesModal,
   ActiveResourcePropertiesModal,
-  ResourceSetModal,
-  ResourceSetFeatureModal,
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
@@ -147,7 +145,6 @@ import {
   SKResourceType,
   WaypointPanel
 } from './modules/skresources';
-import { SKResourceSet } from './modules/skresources/custom-resource-classes';
 import { SymbolService, setSymbolRegistry } from './modules/icons';
 import { unlinkedTargets } from './modules/skstream/sensor-targets';
 import {
@@ -1129,19 +1126,6 @@ export class AppComponent {
           );
         }
         break;
-      default:
-        // resource set
-        if (this.app.config.resources.paths.includes(e.choice)) {
-          this.bottomSheet
-            .open(ResourceSetModal, {
-              disableClose: true,
-              data: { path: e.choice }
-            })
-            .afterDismissed()
-            .subscribe(() => {
-              this.focusMap();
-            });
-        }
     }
   }
 
@@ -1843,37 +1827,6 @@ export class AppComponent {
       });
   }
 
-  /** Import ResourceSet */
-  protected async importResourceSet() {
-    const { ResourceImportDialog } =
-      await import('src/app/modules/skresources/components/resourcesets/resource-upload-dialog');
-    this.dialog
-      .open(ResourceImportDialog, {
-        disableClose: true,
-        data: {}
-      })
-      .afterClosed()
-      .subscribe((res: { path: string; data: string }) => {
-        if (!res) {
-          return;
-        } // cancelled
-        try {
-          const d = JSON.parse(res.data);
-          // the import dialog targets custom resource collections (it filters
-          // the standard types out), which postToServer()'s collection union
-          // does not model.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.skres.postToServer(res.path as any, d);
-        } catch {
-          this.app.showAlert(
-            'Load Resource',
-            'Resources were not loaded!\nInvalid JSON.'
-          );
-        }
-        this.focusMap();
-      });
-  }
-
   // ** show login dialog **
   protected async showLogin(
     message?: string | null,
@@ -2257,19 +2210,6 @@ export class AppComponent {
       }
     } else if (e.type === 'alarm') {
       this.notiMgr.showAlertInfo(e.id);
-    } else if (e.type === 'rset') {
-      const rSet = this.skresOther.fromResourceSetCache(e.id) as SKResourceSet;
-      if (rSet) {
-        this.bottomSheet
-          .open(ResourceSetFeatureModal, {
-            disableClose: true,
-            data: { id: e.id, item: rSet }
-          })
-          .afterDismissed()
-          .subscribe(() => {
-            this.focusMap();
-          });
-      }
     } else {
       // vessel
       const id =
@@ -2715,7 +2655,6 @@ export class AppComponent {
   /** fetch non-standard resources from server */
   private fetchOtherResources() {
     this.skres.refreshTracks();
-    this.skresOther.refreshResourceSetsInBounds();
   }
 
   /** open WS Stream */
@@ -2741,7 +2680,6 @@ export class AppComponent {
         'The connected Signal K server is not supported by this version of Freeboard-SK.\n Signal K server version 2 or later is required!'
       );
     }
-    this.app.alignCustomResourcesPaths();
     this.signalk.api.getSelf().subscribe(
       (r: { name?: string }) => {
         this.stream.post({

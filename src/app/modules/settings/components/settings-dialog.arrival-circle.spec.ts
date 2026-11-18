@@ -90,7 +90,6 @@ describe('settings dialog — arrival circle', () => {
             applicationList: [],
             favouritesList: [],
             fixedPosition: [0, 0],
-            resourcePathList: [],
             refresh: (): void => undefined,
             applySettings: (): void => undefined,
             emitChangeEvent: (): void => undefined
