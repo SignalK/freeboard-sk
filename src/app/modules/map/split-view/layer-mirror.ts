@@ -14,7 +14,10 @@ import { ObjectEvent } from 'ol/Object';
 import { unByKey } from 'ol/Observable';
 import { FrameState } from 'ol/Map';
 import RasterSource from 'ol/source/Raster';
-import { followImageFilter } from '../ol/lib/charts/chart-utils';
+import {
+  followChartExtents,
+  followImageFilter
+} from '../ol/lib/charts/chart-utils';
 import { ON_TWIN, OnTwin, releaseTiles } from '../ol/lib/util';
 
 /*
@@ -281,6 +284,9 @@ export function mirrorCollection(
 export function mirrorLayers(source: OlMap, target: OlMap): () => void {
   const group = new LayerGroup();
   target.addLayer(group);
+  // A twin takes its original's extent, placed for the world copy the main
+  // chart shows; the second pane re-places it for its own.
+  followChartExtents(target);
   const stop = mirrorCollection(source.getLayers(), group.getLayers());
   return () => {
     stop();

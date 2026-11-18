@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Feature, Map as OlMap } from 'ol';
+import { Feature, Map as OlMap, View } from 'ol';
 import BaseEvent from 'ol/events/Event';
 import { Point } from 'ol/geom';
+import { fromLonLat } from 'ol/proj';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
 import ImageLayer from 'ol/layer/Image';
@@ -20,7 +21,8 @@ import { Style } from 'ol/style';
 import {
   attachImageAdjustmentFilter,
   chartLayerClassName,
-  IMAGE_FILTER
+  IMAGE_FILTER,
+  setChartExtent
 } from '../ol/lib/charts/chart-utils';
 import { ON_TWIN } from '../ol/lib/util';
 import { mirrorLayers } from './layer-mirror';
@@ -44,6 +46,34 @@ const twinsOn = (map: OlMap): BaseLayer[] =>
   (map.getLayers().item(0) as LayerGroup).getLayers().getArray();
 
 describe('mirrorLayers', () => {
+  it('places a chart in the world copy each pane shows', () => {
+    const x = (lon: number) => fromLonLat([lon, 0])[0];
+    const viewAt = (lon: number) =>
+      new View({ center: fromLonLat([lon, -18]), zoom: 8 });
+    // The main chart panned east past 180°; the second pane centred from
+    // the vessel's position, back in the primary world.
+    const main = new OlMap({ view: viewAt(181) });
+    const second = new OlMap({ view: viewAt(-179) });
+    const chart = new TileLayer();
+    setChartExtent(chart, [-179.5, -22, -178, -15], main);
+    main.addLayer(chart);
+
+    mirrorLayers(main, second);
+    const twin = twinsOn(second)[0];
+    expect(chart.getExtent()?.[0]).toBeCloseTo(x(180.5), 3);
+    expect(twin.getExtent()?.[0]).toBeCloseTo(x(-179.5), 3);
+
+    // Each pane follows its own view, not the other's.
+    second.getView().setCenter(fromLonLat([181, -18]));
+    main.getView().setCenter(fromLonLat([-179, -18]));
+    expect(chart.getExtent()?.[0]).toBeCloseTo(x(-179.5), 3);
+    expect(twin.getExtent()?.[0]).toBeCloseTo(x(180.5), 3);
+
+    // New bounds reach the twin, placed for the second pane.
+    setChartExtent(chart, [-178.5, -22, -177, -15], main);
+    expect(twin.getExtent()?.[0]).toBeCloseTo(x(181.5), 3);
+  });
+
   it('shows every layer again with the same source and properties', () => {
     const main = new OlMap();
     const tiles = new TileLayer({ source: new XYZ({ url: 'x/{z}/{x}/{y}' }) });

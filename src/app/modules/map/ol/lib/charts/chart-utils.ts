@@ -1,5 +1,5 @@
-import { Map as OlMap } from 'ol';
-import { equals, Extent, getWidth } from 'ol/extent';
+import { Collection, Map as OlMap } from 'ol';
+import { equals, Extent, getCenter, getWidth, intersects } from 'ol/extent';
 import { unByKey } from 'ol/Observable';
 import { equivalent, get as getProjection, transformExtent } from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
@@ -206,21 +206,12 @@ const WORLD_WIDTH = getWidth(
 
 /**
  * Convert bounds in chart metadata [minLon, minLat, maxLon, maxLat] to an
- * EPSG:3857 extent in the world copy nearest `centerX`, the render-space x of
- * the map's centre. Bounds that cross the antimeridian (west > east, RFC 7946
- * §5.2) run east past 180°.
- *
- * A layer extent is a single box, and OpenLayers neither repeats it in other
- * world copies nor wraps it, so the box has to sit in the copy the map shows:
- * a chart in the primary world is not drawn while the map is panned past 180°
- * into the next one.
+ * EPSG:3857 extent in the primary world. Bounds that cross the antimeridian
+ * (west > east, RFC 7946 §5.2) run east past 180°.
  * @returns undefined if bounds are invalid or missing, or touch the +/-180 /
  * +/-90 edges.
  */
-export function extentFromBounds(
-  bounds?: number[],
-  centerX = 0
-): Extent | undefined {
+export function extentFromBounds(bounds?: number[]): Extent | undefined {
   if (!Array.isArray(bounds) || bounds.length < 4) return undefined;
   if (
     bounds[0] <= -180 ||
@@ -231,59 +222,132 @@ export function extentFromBounds(
     return undefined;
   }
   const east = bounds[0] > bounds[2] ? bounds[2] + 360 : bounds[2];
-  const extent = transformExtent(
+  return transformExtent(
     [bounds[0], bounds[1], east, bounds[3]],
     'EPSG:4326',
     'EPSG:3857'
   );
-  const offset = worldCopyOffset(
-    centerX - (extent[0] + extent[2]) / 2,
-    WORLD_WIDTH
-  );
-  return [extent[0] + offset, extent[1], extent[2] + offset, extent[3]];
 }
 
-/** The bounds a chart layer is clipped to, kept for followChartExtents(). */
-const CHART_BOUNDS = 'chartBounds';
+/**
+ * The layer extent that clips a chart to `chartExtent` (as from
+ * extentFromBounds()) on a map centred at render-space `centerX` and showing
+ * `viewExtent`.
+ *
+ * A layer extent is a single box, and OpenLayers neither repeats it in other
+ * world copies nor wraps it, so the box is placed in the copy nearest the
+ * centre: the centre runs on past 180° while the map is panned. A zoomed-out
+ * map can show a chart in two copies at once, which one box cannot hold, so
+ * the chart is left unclipped (undefined) there.
+ */
+export function placeChartExtent(
+  chartExtent: Extent,
+  centerX: number,
+  viewExtent?: Extent
+): Extent | undefined {
+  const offset = worldCopyOffset(
+    centerX - getCenter(chartExtent)[0],
+    WORLD_WIDTH
+  );
+  const placed = [
+    chartExtent[0] + offset,
+    chartExtent[1],
+    chartExtent[2] + offset,
+    chartExtent[3]
+  ];
+  const shownShifted = (shift: number) =>
+    !!viewExtent &&
+    intersects(viewExtent, [
+      placed[0] + shift,
+      placed[1],
+      placed[2] + shift,
+      placed[3]
+    ]);
+  return shownShifted(-WORLD_WIDTH) || shownShifted(WORLD_WIDTH)
+    ? undefined
+    : placed;
+}
+
+/**
+ * A chart layer's extent in the primary world, from which each map that
+ * shows the layer places its own: a split view's second pane can be in
+ * another world copy than the main chart.
+ */
+const CHART_EXTENT = 'chartExtent';
 
 const followedMaps = new WeakSet<OlMap>();
 
-const viewCenterX = (map: OlMap): number => map.getView().getCenter()?.[0] ?? 0;
+function viewOf(map: OlMap): { centerX: number; viewExtent?: Extent } {
+  const view = map.getView();
+  const size = map.getSize();
+  return {
+    centerX: view.getCenter()?.[0] ?? 0,
+    viewExtent: size && view.isDef() ? view.calculateExtent(size) : undefined
+  };
+}
+
+function placeLayerExtent(
+  layer: BaseLayer,
+  { centerX, viewExtent }: ReturnType<typeof viewOf>
+) {
+  const chartExtent = layer.get(CHART_EXTENT) as Extent | undefined;
+  if (!chartExtent) {
+    return;
+  }
+  const extent = placeChartExtent(chartExtent, centerX, viewExtent);
+  const current = layer.getExtent();
+  if (extent ? !current || !equals(current, extent) : current) {
+    layer.setExtent(extent);
+  }
+}
 
 /**
- * Re-place each chart layer's extent in the world copy the map shows whenever
- * the view's centre moves. The centre runs on past 180° while the map is
- * panned, and jumps back into the primary world when it is set from a
- * position, so either can move it into another copy.
+ * Keep the extents of the chart layers on `map`, groups included, placed for
+ * what the map shows: as its view moves, zooms or is replaced, as the map is
+ * resized, and as layers are added or their charts change.
  */
-function followChartExtents(map: OlMap) {
+export function followChartExtents(map: OlMap) {
   if (followedMaps.has(map)) {
     return;
   }
   followedMaps.add(map);
+  let updating = false;
   const update = () => {
-    const centerX = viewCenterX(map);
-    map.getLayers().forEach((layer) => {
-      const bounds = layer.get(CHART_BOUNDS) as number[] | undefined;
-      if (!bounds) {
-        return;
-      }
-      const extent = extentFromBounds(bounds, centerX);
-      const current = layer.getExtent();
-      if (extent && (!current || !equals(current, extent))) {
-        layer.setExtent(extent);
-      }
-    });
+    // Placing an extent changes the layer group, which calls back in here.
+    if (updating) {
+      return;
+    }
+    updating = true;
+    try {
+      const view = viewOf(map);
+      const place = (layers: Collection<BaseLayer>) =>
+        layers.forEach((layer) => {
+          placeLayerExtent(layer, view);
+          if (layer instanceof LayerGroup) {
+            place(layer.getLayers());
+          }
+        });
+      place(map.getLayers());
+    } finally {
+      updating = false;
+    }
   };
   let viewKey: EventsKey | undefined;
   const watchView = () => {
     if (viewKey) {
       unByKey(viewKey);
     }
-    viewKey = map.getView().on('change:center', update);
+    viewKey = map.getView().on('propertychange', update);
     update();
   };
-  map.on('change:view', watchView);
+  map.on('propertychange', (e: ObjectEvent) => {
+    if (e.key === 'view') {
+      watchView();
+    } else if (e.key === 'size') {
+      update();
+    }
+  });
+  map.getLayerGroup().on('change', update);
   watchView();
 }
 
@@ -297,11 +361,13 @@ export function setChartExtent(
   bounds: number[] | undefined,
   map: OlMap
 ) {
-  const extent = extentFromBounds(bounds, viewCenterX(map));
-  layer.set(CHART_BOUNDS, extent ? bounds : undefined);
-  layer.setExtent(extent);
-  if (extent) {
+  const chartExtent = extentFromBounds(bounds);
+  layer.set(CHART_EXTENT, chartExtent);
+  if (chartExtent) {
     followChartExtents(map);
+    placeLayerExtent(layer, viewOf(map));
+  } else {
+    layer.setExtent(undefined);
   }
 }
 
