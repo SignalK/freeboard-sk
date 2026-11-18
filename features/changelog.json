@@ -196,5 +196,7 @@
   { "feature": "route-following", "pr": 1296, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(ui): add a panel background setting, starting with the route bar" },
   { "feature": "screen-widgets", "pr": 1309, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(plotterext): tell widgets the panel background opacity" },
   { "feature": "screen-widgets", "pr": 1316, "kind": "enhanced", "since": "v3.5.0-beta.1", "date": "2026-11-12", "title": "feat(plotterext): report the host's color scheme in the display capability" },
-  { "feature": "screen-widgets", "pr": 1352, "kind": "enhanced", "date": "2026-11-17", "title": "feat(plotterext): named widget layouts each screen can pick" }
+  { "feature": "screen-widgets", "pr": 1352, "kind": "enhanced", "date": "2026-11-17", "title": "feat(plotterext): named widget layouts each screen can pick" },
+  { "feature": null, "pr": 1326, "kind": "skip", "reason": "demo only: a login that may only watch the MaYaRa radar emulator changes gain, sea and range on its own screen; real radars are never affected" },
+  { "feature": null, "pr": 1338, "kind": "skip", "reason": "demo only: a setting that opens the MaYaRa radar emulator for watching at a set range, set as a demo server's default; real radars are never affected" }
 ]
