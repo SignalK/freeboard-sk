@@ -208,40 +208,52 @@ const WORLD_WIDTH = getWidth(
  * Convert bounds in chart metadata [minLon, minLat, maxLon, maxLat] to an
  * EPSG:3857 extent in the primary world. Bounds that cross the antimeridian
  * (west > east, RFC 7946 §5.2) run east past 180°.
- * @returns undefined if bounds are missing or not finite numbers, enclose no
+ * @returns undefined if bounds are missing, not finite numbers or numeric
+ * strings, enclose no
  * area or have south above north, touch the +/-180 / +/-90 edges, or cross
  * the antimeridian over more than 180°.
  */
-export function extentFromBounds(bounds?: number[]): Extent | undefined {
+export function extentFromBounds(
+  bounds?: readonly unknown[]
+): Extent | undefined {
   if (!Array.isArray(bounds) || bounds.length < 4) return undefined;
+  const [w, s, e, n] = [0, 1, 2, 3].map((i) => toCoordinate(bounds[i]));
   // A NaN would pass the range checks and give an extent that never equals
   // itself, which followChartExtents() would set again without end.
-  if (![0, 1, 2, 3].every((i) => Number.isFinite(bounds[i]))) {
+  if (![w, s, e, n].every((v) => Number.isFinite(v))) {
     return undefined;
   }
   if (
-    bounds[0] <= -180 ||
-    bounds[0] >= 180 ||
-    bounds[1] <= -90 ||
-    bounds[0] === bounds[2] ||
-    bounds[1] >= bounds[3] ||
-    bounds[2] <= -180 ||
-    bounds[2] >= 180 ||
-    bounds[3] >= 90
+    w <= -180 ||
+    w >= 180 ||
+    s <= -90 ||
+    w === e ||
+    s >= n ||
+    e <= -180 ||
+    e >= 180 ||
+    n >= 90
   ) {
     return undefined;
   }
-  const east = bounds[0] > bounds[2] ? bounds[2] + 360 : bounds[2];
+  const east = w > e ? e + 360 : e;
   // West > east across more than half the world is likelier swapped bounds
   // than a chart, and clipping to it would hide the chart where it is.
-  if (bounds[0] > bounds[2] && east - bounds[0] > 180) {
+  if (w > e && east - w > 180) {
     return undefined;
   }
-  return transformExtent(
-    [bounds[0], bounds[1], east, bounds[3]],
-    'EPSG:4326',
-    'EPSG:3857'
-  );
+  return transformExtent([w, s, east, n], 'EPSG:4326', 'EPSG:3857');
+}
+
+/**
+ * A bound as a number. Chart metadata passes through from the provider, which
+ * may send numeric strings; those would concatenate instead of add. Anything
+ * else, `null` and `''` included, gives NaN rather than `Number()`'s 0.
+ */
+function toCoordinate(value: unknown): number {
+  if (typeof value === 'number') {
+    return value;
+  }
+  return typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN;
 }
 
 /**

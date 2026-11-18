@@ -231,10 +231,17 @@ describe('extentFromBounds', () => {
   it('rejects bounds that are not finite numbers', () => {
     expect(extentFromBounds([NaN, -20, 10, -10])).toBe(undefined);
     // eslint-disable-next-line no-sparse-arrays
-    expect(extentFromBounds([10, , 20, -10] as number[])).toBe(undefined);
-    expect(
-      extentFromBounds(['170', -20, '-170', -10] as unknown as number[])
-    ).toBe(undefined);
+    expect(extentFromBounds([10, , 20, -10])).toBe(undefined);
+    for (const bad of ['abc', '', '  ', 'Infinity', null, true]) {
+      expect(extentFromBounds([bad, -20, 10, -10])).toBe(undefined);
+    }
+  });
+
+  it('reads bounds given as numeric strings as numbers', () => {
+    // Added as strings, 360 would be appended to '-178.2'.
+    const extent = extentFromBounds(['174.6', '-21.9', '-178.2', -11.2]);
+    expect(extent?.[0]).toBeCloseTo(fromLonLat([174.6, 0])[0], 3);
+    expect(extent?.[2]).toBeCloseTo(fromLonLat([181.8, 0])[0], 3);
   });
 
   it('runs bounds that cross the antimeridian (west > east) east past 180°', () => {
