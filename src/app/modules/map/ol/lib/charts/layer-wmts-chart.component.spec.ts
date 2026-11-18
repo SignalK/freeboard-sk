@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Map as OlMap } from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import WMTS from 'ol/source/WMTS';
 
@@ -17,7 +18,12 @@ import { FBChart } from 'src/app/types';
  */
 describe('WmtsChartLayerComponent — time-varying chart', () => {
   const T0 = '2026-09-18T12:00:00.000Z';
-  const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
+  // A real map underneath: a chart's extent is placed by the map's view.
+  const map = Object.assign(new OlMap(), {
+    addLayer: vi.fn(),
+    removeLayer: vi.fn(),
+    render: vi.fn()
+  });
 
   // The least a parsed WMTS capabilities document needs for
   // optionsFromCapabilities: one layer with a REST tile template and a Time
@@ -149,7 +155,12 @@ describe('WmtsChartLayerComponent — time-varying chart', () => {
  * a UTM set listed first and the Web Mercator set under another name.
  */
 describe('WmtsChartLayerComponent — tile matrix set', () => {
-  const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
+  // A real map underneath: a chart's extent is placed by the map's view.
+  const map = Object.assign(new OlMap(), {
+    addLayer: vi.fn(),
+    removeLayer: vi.fn(),
+    render: vi.fn()
+  });
 
   const matrix = (scale: number, topLeft: number[]) => [
     {

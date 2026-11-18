@@ -1,4 +1,6 @@
-import { Extent } from 'ol/extent';
+import { Map as OlMap } from 'ol';
+import { equals, Extent, getWidth } from 'ol/extent';
+import { unByKey } from 'ol/Observable';
 import { equivalent, get as getProjection, transformExtent } from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import RenderEvent from 'ol/render/Event';
@@ -31,6 +33,7 @@ import {
   chartTimeTileUrl
 } from 'src/app/lib/chart-time';
 import { bboxInView, LonLatBox } from 'src/app/lib/map-fit';
+import { worldCopyOffset } from '../util';
 
 /**
  * Build a CSS canvas `filter` string from a chart's image adjustment, or `''`
@@ -197,25 +200,109 @@ export function resolveLayerMaxZoom(
   return chartMax;
 }
 
+const WORLD_WIDTH = getWidth(
+  (getProjection('EPSG:3857') as Projection).getExtent()
+);
+
 /**
- * Convert bounds in  chart metadata [minLon, minLat, maxLon, maxLat] to an EPSG:3857 extent
- * @returns undefined if bounds are invalid or missing, touch the +/-180 / +/-90
- * edges, or cross the antimeridian (west > east, RFC 7946 §5.2). A layer
- * extent is a single box, and one unwrapped past 180 would hide the chart when
- * the map shows it from the other side of the antimeridian.
+ * Convert bounds in chart metadata [minLon, minLat, maxLon, maxLat] to an
+ * EPSG:3857 extent in the world copy nearest `centerX`, the render-space x of
+ * the map's centre. Bounds that cross the antimeridian (west > east, RFC 7946
+ * §5.2) run east past 180°.
+ *
+ * A layer extent is a single box, and OpenLayers neither repeats it in other
+ * world copies nor wraps it, so the box has to sit in the copy the map shows:
+ * a chart in the primary world is not drawn while the map is panned past 180°
+ * into the next one.
+ * @returns undefined if bounds are invalid or missing, or touch the +/-180 /
+ * +/-90 edges.
  */
-export function extentFromBounds(bounds?: number[]): Extent | undefined {
+export function extentFromBounds(
+  bounds?: number[],
+  centerX = 0
+): Extent | undefined {
   if (!Array.isArray(bounds) || bounds.length < 4) return undefined;
   if (
     bounds[0] <= -180 ||
     bounds[1] <= -90 ||
     bounds[2] >= 180 ||
-    bounds[3] >= 90 ||
-    bounds[0] > bounds[2]
+    bounds[3] >= 90
   ) {
     return undefined;
   }
-  return transformExtent(bounds, 'EPSG:4326', 'EPSG:3857');
+  const east = bounds[0] > bounds[2] ? bounds[2] + 360 : bounds[2];
+  const extent = transformExtent(
+    [bounds[0], bounds[1], east, bounds[3]],
+    'EPSG:4326',
+    'EPSG:3857'
+  );
+  const offset = worldCopyOffset(
+    centerX - (extent[0] + extent[2]) / 2,
+    WORLD_WIDTH
+  );
+  return [extent[0] + offset, extent[1], extent[2] + offset, extent[3]];
+}
+
+/** The bounds a chart layer is clipped to, kept for followChartExtents(). */
+const CHART_BOUNDS = 'chartBounds';
+
+const followedMaps = new WeakSet<OlMap>();
+
+const viewCenterX = (map: OlMap): number => map.getView().getCenter()?.[0] ?? 0;
+
+/**
+ * Re-place each chart layer's extent in the world copy the map shows whenever
+ * the view's centre moves. The centre runs on past 180° while the map is
+ * panned, and jumps back into the primary world when it is set from a
+ * position, so either can move it into another copy.
+ */
+function followChartExtents(map: OlMap) {
+  if (followedMaps.has(map)) {
+    return;
+  }
+  followedMaps.add(map);
+  const update = () => {
+    const centerX = viewCenterX(map);
+    map.getLayers().forEach((layer) => {
+      const bounds = layer.get(CHART_BOUNDS) as number[] | undefined;
+      if (!bounds) {
+        return;
+      }
+      const extent = extentFromBounds(bounds, centerX);
+      const current = layer.getExtent();
+      if (extent && (!current || !equals(current, extent))) {
+        layer.setExtent(extent);
+      }
+    });
+  };
+  let viewKey: EventsKey | undefined;
+  const watchView = () => {
+    if (viewKey) {
+      unByKey(viewKey);
+    }
+    viewKey = map.getView().on('change:center', update);
+    update();
+  };
+  map.on('change:view', watchView);
+  watchView();
+}
+
+/**
+ * Clip a chart layer to its bounds, so it requests and draws tiles only
+ * there, in whichever world copy the map shows. Bounds that give no extent
+ * leave the layer unclipped.
+ */
+export function setChartExtent(
+  layer: BaseLayer,
+  bounds: number[] | undefined,
+  map: OlMap
+) {
+  const extent = extentFromBounds(bounds, viewCenterX(map));
+  layer.set(CHART_BOUNDS, extent ? bounds : undefined);
+  layer.setExtent(extent);
+  if (extent) {
+    followChartExtents(map);
+  }
 }
 
 /**

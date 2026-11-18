@@ -19,8 +19,8 @@ import {
   applyChartTimeToTileSource,
   attachImageAdjustmentFilter,
   chartLayerClassName,
-  extentFromBounds,
   resolveLayerZoomRange,
+  setChartExtent,
   startChartTileRefresh
 } from './chart-utils';
 
@@ -128,7 +128,7 @@ export class RasterChartLayerComponent implements OnDestroy {
         }
       }
       if (this.layer) {
-        this.layer.setExtent(extentFromBounds(chart[1].bounds));
+        setChartExtent(this.layer, chart[1].bounds, map);
         this.layer.set('id', chart[0]);
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
@@ -150,7 +150,7 @@ export class RasterChartLayerComponent implements OnDestroy {
       this.layer.setMinZoom(zoom.min ?? -Infinity);
       this.layer.setMaxZoom(zoom.max ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-      this.layer.setExtent(extentFromBounds(chart[1].bounds));
+      setChartExtent(this.layer, chart[1].bounds, map);
     }
     // pmtiles (WebGL) layers are static local files, so neither the time
     // dimension nor auto-refresh applies to them.

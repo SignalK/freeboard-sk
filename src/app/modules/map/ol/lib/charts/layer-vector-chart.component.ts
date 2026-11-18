@@ -17,7 +17,7 @@ import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
 import { initPMTilesVectorLayer } from './pmtiles-utils';
-import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import { resolveLayerMaxZoom, setChartExtent } from './chart-utils';
 
 // ** Freeboard Vector TileLayer Chart **
 @Component({
@@ -98,7 +98,7 @@ export class VectorChartLayerComponent implements OnDestroy {
       if (this.layer) {
         this.layer.setMinZoom(minZ);
         this.layer.setMaxZoom(layerMaxZ ?? Infinity);
-        this.layer.setExtent(extentFromBounds(chart[1].bounds));
+        setChartExtent(this.layer, chart[1].bounds, map);
         if (chart[1].style) {
           applyStyle(this.layer, chart[1].style);
         }
@@ -123,7 +123,7 @@ export class VectorChartLayerComponent implements OnDestroy {
       this.layer.setMinZoom(minZ);
       this.layer.setMaxZoom(layerMaxZ ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-      this.layer.setExtent(extentFromBounds(chart[1].bounds));
+      setChartExtent(this.layer, chart[1].bounds, map);
     }
     map.render();
   }

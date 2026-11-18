@@ -19,12 +19,15 @@ import {
   normaliseStyleForOl,
   resolveLayerMaxZoom,
   resolveLayerZoomRange,
+  setChartExtent,
   startChartTileRefresh,
   cacheBustTileUrl,
   CHART_REFRESH_URL_PARAM,
   webMercatorMatrixSet
 } from './chart-utils';
 
+import { Map as OlMap, View } from 'ol';
+import { fromLonLat } from 'ol/proj';
 import LayerGroup from 'ol/layer/Group';
 import TileLayer from 'ol/layer/Tile';
 import VectorTileLayer from 'ol/layer/VectorTile';
@@ -203,8 +206,82 @@ describe('extentFromBounds', () => {
     expect(extentFromBounds([-179.99, -89.99, 179.99, 89.99])).toBeDefined();
   });
 
-  it('returns undefined for bounds that cross the antimeridian (west > east)', () => {
-    expect(extentFromBounds([174.6, -21.9, -178.2, -11.2])).toBe(undefined);
+  // Fiji: 174.6°E across 180° to 178.2°W.
+  const fiji = [174.6, -21.9, -178.2, -11.2];
+  const x = (lon: number) => fromLonLat([lon, 0])[0];
+
+  it('runs bounds that cross the antimeridian (west > east) east past 180°', () => {
+    const extent = extentFromBounds(fiji);
+    expect(extent?.[0]).toBeCloseTo(x(174.6), 3);
+    expect(extent?.[2]).toBeCloseTo(x(181.8), 3);
+  });
+
+  it('places a crossing chart in the world copy of a map centred east of 180°', () => {
+    // A map centred from a position at 178.5°W sits in the primary world,
+    // so the chart's west part lies past -180°.
+    const extent = extentFromBounds(fiji, x(-178.5));
+    expect(extent?.[0]).toBeCloseTo(x(174.6 - 360), 3);
+    expect(extent?.[2]).toBeCloseTo(x(-178.2), 3);
+  });
+
+  it('places a chart in the next world copy once the map is panned past 180°', () => {
+    // Tonga, 175°W–173°W, seen after panning east from Fiji to 181°E.
+    const tonga = [-175, -22, -173, -15];
+    expect(extentFromBounds(tonga)?.[0]).toBeCloseTo(x(-175), 3);
+    const extent = extentFromBounds(tonga, x(181));
+    expect(extent?.[0]).toBeCloseTo(x(185), 3);
+    expect(extent?.[2]).toBeCloseTo(x(187), 3);
+  });
+});
+
+describe('setChartExtent', () => {
+  const x = (lon: number) => fromLonLat([lon, 0])[0];
+  const mapAt = (lon: number) =>
+    new OlMap({ view: new View({ center: [x(lon), 0], zoom: 8 }) });
+
+  it('clips a chart to its bounds in the world copy the map shows', () => {
+    const map = mapAt(178);
+    const layer = new TileLayer();
+    setChartExtent(layer, [174.6, -21.9, -178.2, -11.2], map);
+    map.addLayer(layer);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(174.6), 3);
+
+    // Recentred on a vessel at 178.5°W: the centre jumps to the primary
+    // world's west edge, and the extent follows it.
+    map.getView().setCenter([x(-178.5), 0]);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(174.6 - 360), 3);
+    expect(layer.getExtent()?.[2]).toBeCloseTo(x(-178.2), 3);
+  });
+
+  it('follows a new view set on the map', () => {
+    const map = mapAt(0);
+    const layer = new TileLayer();
+    setChartExtent(layer, [-175, -22, -173, -15], map);
+    map.addLayer(layer);
+    map.setView(new View({ center: [x(181), 0], zoom: 8 }));
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(185), 3);
+  });
+
+  it('leaves a chart without usable bounds unclipped as the map moves', () => {
+    const map = mapAt(0);
+    const clipped = new TileLayer();
+    const unclipped = new TileLayer();
+    setChartExtent(clipped, [-175, -22, -173, -15], map);
+    setChartExtent(unclipped, [-180, -85, 180, 85], map);
+    map.addLayer(clipped);
+    map.addLayer(unclipped);
+    map.getView().setCenter([x(181), 0]);
+    expect(unclipped.getExtent()).toBe(undefined);
+  });
+
+  it('stops moving a chart whose bounds have gone', () => {
+    const map = mapAt(0);
+    const layer = new TileLayer();
+    setChartExtent(layer, [-175, -22, -173, -15], map);
+    map.addLayer(layer);
+    setChartExtent(layer, undefined, map);
+    map.getView().setCenter([x(181), 0]);
+    expect(layer.getExtent()).toBe(undefined);
   });
 });
 
