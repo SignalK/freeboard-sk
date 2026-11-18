@@ -1894,10 +1894,10 @@ export class AppComponent {
             next: (r) => {
               // ** authenticated
               this.app.setAuthToken((r as { token: string }).token);
-              this.app.loadUserConfigfromServer().then((loaded: boolean) => {
-                if (loaded) {
-                  this.loadSymbolsThenFetchResources();
-                }
+              void this.app.loadUserConfigfromServer().finally(() => {
+                // also when the settings stay as they were: signed in, the
+                // server may hand out resources it withheld before
+                this.loadSymbolsThenFetchResources();
                 // signed in: the screen's layout can settle now, even when
                 // the user has no settings stored yet; then re-run plotter
                 // extension discovery, so auth-gated extensions and the

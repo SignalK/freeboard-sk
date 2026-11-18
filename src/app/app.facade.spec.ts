@@ -656,7 +656,7 @@ describe('AppFacade global default config', () => {
     await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
 
     expect(app.config.ui.mapNorthUp).toBe(false);
-    expect(client.appDataGet).toHaveBeenCalledTimes(2);
+    expect(client.appDataGet).toHaveBeenCalledTimes(3);
   });
 
   it('gives a user without saved settings the global defaults', async () => {
@@ -681,7 +681,7 @@ describe('AppFacade global default config', () => {
     expect(app.config.selections.charts).toEqual(
       defaultConfig().selections.charts
     );
-    expect(client.appDataGet).toHaveBeenCalledTimes(1);
+    expect(client.appDataGet).toHaveBeenCalledTimes(2);
 
     vi.useFakeTimers();
     try {
@@ -704,7 +704,7 @@ describe('AppFacade global default config', () => {
     await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
 
     expect(app.config.selections.charts).toEqual(['mine']);
-    expect(client.appDataGet).toHaveBeenCalledTimes(1);
+    expect(client.appDataGet).toHaveBeenCalledTimes(2);
   });
 
   it('stores nothing in this browser before the server was asked', async () => {
@@ -741,10 +741,11 @@ describe('AppFacade global default config', () => {
     const globalReply = new Subject<object>();
     const user = defaultConfig();
     user.selections.charts = ['mine'];
-    client.appDataGet.mockImplementation(
-      (_path: string, context: APPDATA_CONTEXT) =>
-        context === APPDATA_CONTEXT.GLOBAL ? globalReply : of(user)
-    );
+    client.appDataGet
+      .mockImplementation((_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.GLOBAL ? of({}) : of(user)
+      )
+      .mockImplementationOnce(() => globalReply);
 
     const visitorLoad = app.loadUserConfigfromServer();
     await Promise.resolve();
@@ -792,6 +793,79 @@ describe('AppFacade global default config', () => {
       defaultConfig().selections.charts
     );
   });
+
+  const demoDefaults = () => {
+    const cfg = globalDefaults();
+    (cfg.display as Record<string, unknown>).demoMode = true;
+    return cfg;
+  };
+
+  it('keeps a logged-in user off the account in demo mode', async () => {
+    const own = defaultConfig();
+    own.selections.charts = ['mine'];
+    localStorage.setItem(STORED_CONFIG_KEY, JSON.stringify(own));
+    const user = defaultConfig();
+    user.selections.charts = ['account'];
+    const { app, client } = setup(true, { user, global: demoDefaults() });
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+    expect(app.config.selections.charts).toEqual(['mine']);
+    expect(client.appDataGet).toHaveBeenCalledTimes(1);
+    expect(client.appDataGet).toHaveBeenCalledWith('/', APPDATA_CONTEXT.GLOBAL);
+
+    app.config.ui.mapNorthUp = false;
+    app.saveConfig();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(localStorage.getItem(STORED_CONFIG_KEY) ?? '{}').ui.mapNorthUp
+    ).toBe(false);
+  });
+
+  it('gives a first-time visitor in demo mode the global defaults when they log in', async () => {
+    const user = defaultConfig();
+    user.selections.charts = ['account'];
+    const { app, client } = setup(true, { user, global: demoDefaults() });
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+    expect(app.config.selections.charts).toEqual(['enc']);
+    app.saveConfig();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it('leaves the account alone when it cannot tell whether it is in demo mode', async () => {
+    const { app, client } = setup(true, { user: defaultConfig() });
+    client.appDataGet.mockReturnValue(throwError(() => new Error('down')));
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(false);
+    app.saveConfig();
+    expect(client.appDataSet).not.toHaveBeenCalled();
+  });
+
+  it('loads the account when the server serves no global defaults', async () => {
+    const user = defaultConfig();
+    user.selections.charts = ['account'];
+    const { app, client } = setup(true, { user });
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.GLOBAL
+          ? throwError(() => new HttpErrorResponse({ status: 404 }))
+          : of(user)
+    );
+
+    await expect(app.loadUserConfigfromServer()).resolves.toBe(true);
+    expect(app.config.selections.charts).toEqual(['account']);
+    app.saveConfig();
+    expect(client.appDataSet).toHaveBeenCalled();
+  });
+
+  it('still saves to the account outside demo mode', async () => {
+    const { app, client } = setup(true, { global: globalDefaults() });
+    await app.loadUserConfigfromServer();
+
+    app.config.ui.mapNorthUp = false;
+    app.saveConfig();
+    expect(client.appDataSet).toHaveBeenCalled();
+  });
 });
 
 describe('AppFacade radar overlay (#1200)', () => {
@@ -826,6 +900,12 @@ describe('AppFacade radar overlay (#1200)', () => {
     });
     return TestBed.inject(AppFacade);
   };
+
+  const answerUserReads = (answer: Subject<object>) =>
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.USER ? answer : of({})
+    );
 
   const storedOverlay = () =>
     JSON.parse(localStorage.getItem(STORED_CONFIG_KEY) ?? '{}').radars?.overlay;
@@ -875,10 +955,10 @@ describe('AppFacade radar overlay (#1200)', () => {
     const app = setup(user);
     await app.loadUserConfigfromServer();
     const answer = new Subject<object>();
-    client.appDataGet.mockReturnValue(answer);
+    answerUserReads(answer);
 
     const login = app.loadUserConfigfromServer();
-    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(4));
     app.showRadarOverlay(true);
     answer.next(defaultConfig());
     answer.complete();
@@ -893,11 +973,11 @@ describe('AppFacade radar overlay (#1200)', () => {
     await app.loadUserConfigfromServer();
     const answer = new Subject<object>();
     client.isLoggedIn.mockReturnValue(of(true));
-    client.appDataGet.mockReturnValue(answer);
+    answerUserReads(answer);
     client.appDataSet.mockClear();
 
     const login = app.loadUserConfigfromServer();
-    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(3));
     app.showRadarOverlay(true);
     expect(client.appDataSet).not.toHaveBeenCalled();
 
@@ -923,9 +1003,9 @@ describe('AppFacade radar overlay (#1200)', () => {
     app.showRadarOverlay(false);
 
     const answer = new Subject<object>();
-    client.appDataGet.mockReturnValue(answer);
+    answerUserReads(answer);
     const login = app.loadUserConfigfromServer();
-    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(client.appDataGet).toHaveBeenCalledTimes(4));
     first.next({});
     first.complete();
     expect(client.appDataSet).toHaveBeenCalledTimes(1);
@@ -1097,12 +1177,53 @@ describe('AppFacade.resetToServerDefaults', () => {
   it('clears the settings when it cannot read whether there are any', async () => {
     const { app, client, restart } = setup(true);
     await app.loadUserConfigfromServer();
-    client.appDataGet.mockReturnValue(throwError(() => new Error('offline')));
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.USER
+          ? throwError(() => new Error('offline'))
+          : of({})
+    );
 
     await expect(app.resetToServerDefaults()).resolves.toBe(true);
 
     expect(client.appDataSet).toHaveBeenCalledWith('/', {});
     expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets only this browser in demo mode, leaving the shared account's settings", async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        of(
+          context === APPDATA_CONTEXT.GLOBAL
+            ? { display: { demoMode: true } }
+            : defaultConfig()
+        )
+    );
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(true);
+
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).toBeNull();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps every setting when it cannot tell whether it is in demo mode', async () => {
+    const { app, client, restart } = setup(true);
+    await app.loadUserConfigfromServer();
+    client.appDataGet.mockImplementation(
+      (_path: string, context: APPDATA_CONTEXT) =>
+        context === APPDATA_CONTEXT.GLOBAL
+          ? throwError(() => new Error('offline'))
+          : of(defaultConfig())
+    );
+
+    await expect(app.resetToServerDefaults()).resolves.toBe(false);
+
+    expect(client.appDataSet).not.toHaveBeenCalledWith('/', {});
+    expect(localStorage.getItem(STORED_CONFIG_KEY)).not.toBeNull();
+    expect(restart).not.toHaveBeenCalled();
   });
 
   it('keeps every setting when the server does not clear the user ones', async () => {

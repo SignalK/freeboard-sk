@@ -691,6 +691,18 @@ export class AppFacade extends InfoService {
     }
     this.isLoggedIn.set(loggedIn);
     if (loggedIn) {
+      const demo = await this.readDemoMode(load);
+      if (demo === 'stale') {
+        return false;
+      }
+      // without knowing, saving to the account could overwrite a shared one
+      this.userConfigUnreadable = demo === 'unreadable';
+      if (demo === 'unreadable') {
+        return false;
+      }
+      this.demoMode = demo;
+    }
+    if (loggedIn && !this.isDemoMode()) {
       this.debug(
         'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
       );
@@ -718,6 +730,48 @@ export class AppFacade extends InfoService {
       (await this.applyServerConfig(APPDATA_CONTEXT.GLOBAL, load)) === 'applied'
     );
   }
+
+  /**
+   * Whether the server's global default config puts Freeboard in demo mode,
+   * where everyone shares one login: the account's settings are then neither
+   * loaded nor saved, and each browser keeps its own.
+   */
+  private async readDemoMode(
+    load: number
+  ): Promise<boolean | 'unreadable' | 'stale'> {
+    const demo = await this.readGlobalDemoMode();
+    return load === this.configLoads ? demo : 'stale';
+  }
+
+  private readGlobalDemoMode(
+    limitMs?: number
+  ): Promise<boolean | 'unreadable'> {
+    const request = this.signalk.appDataGet(
+      '/',
+      APPDATA_CONTEXT.GLOBAL
+    ) as Observable<{ display?: { demoMode?: unknown } }>;
+    return firstValueFrom(
+      limitMs === undefined ? request : request.pipe(timeout(limitMs))
+    ).then(
+      (global) => global?.display?.demoMode === true,
+      (error: unknown) => {
+        // a server that serves no global defaults cannot ask for demo mode
+        if (error instanceof HttpErrorResponse && error.status === 404) {
+          return false;
+        }
+        console.info(
+          'applicationData: Unable to retrieve global settings from server!'
+        );
+        return 'unreadable';
+      }
+    );
+  }
+
+  private isDemoMode(): boolean {
+    return this.demoMode;
+  }
+
+  private demoMode = false;
 
   /** Fetch a config stored on the server and apply it if it is a saved one */
   private applyServerConfig(
@@ -1263,7 +1317,7 @@ export class AppFacade extends InfoService {
 
   /**
    * Drop the settings saved in this browser, and the logged-in user's on the
-   * server, then start afresh: the server's global defaults apply as on a
+   * server outside demo mode, then start afresh: the server's global defaults apply as on a
    * first visit, the built-in defaults when it has none. Resolves false, with
    * nothing dropped, when the server does not clear the user's settings,
    * since those would come back on the next start.
@@ -1277,9 +1331,15 @@ export class AppFacade extends InfoService {
     this.resettingConfig = true;
     clearTimeout(this.saveCfgTimer);
     const loggedIn = await this.askLoggedIn();
-    const stored = loggedIn ? await this.userConfigStored() : false;
+    // a shared demo account keeps its settings; only this browser resets
+    const demo = loggedIn
+      ? await this.readGlobalDemoMode(RESET_CLEAR_TIMEOUT_MS)
+      : false;
+    const stored =
+      loggedIn && demo === false ? await this.userConfigStored() : false;
     if (
       loggedIn === undefined ||
+      demo === 'unreadable' ||
       stored === undefined ||
       (stored && !(await this.clearServerConfig()))
     ) {
@@ -1408,7 +1468,7 @@ export class AppFacade extends InfoService {
   }
 
   private saveConfigToServer() {
-    if (!this.isLoggedIn() || this.userConfigUnreadable) {
+    if (!this.isLoggedIn() || this.userConfigUnreadable || this.isDemoMode()) {
       return;
     }
     if (this.serverSave !== 'idle') {
