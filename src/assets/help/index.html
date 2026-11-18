@@ -1714,43 +1714,6 @@
           </div>
         </div>
 
-        <div class="panel" id="resourceset">
-          <h4><i class="material-icons">upload</i>Resource Set</h4>
-          Freeboard allows you to upload resource data stored in files to
-          `non-standard` resource paths that accept `PUT` or `POST` requests.
-          <br />&nbsp;<br />
-          To upload data:
-          <ul>
-            <li>
-              Select the <i class="material-icons">upload</i>Resource Set menu
-              option.
-            </li>
-            <li>
-              Select the desired destination path from the drop-down list.<br />
-              <i
-                >Note: only paths detected under `signalk/v2/api/resources` are
-                listed.</i
-              >
-            </li>
-            <li>
-              Click and select (or drop) the file containing the resource data.
-            </li>
-            <li>
-              Click <b>Load</b> to upload the file contents to the server.
-            </li>
-            <b
-              >Important:
-              <i
-                >Freeboard does not attempt to validate the file contents in any
-                way so please ensure you are uploading appropirate content for
-                the selected destination.
-              </i></b
-            >
-          </ul>
-          For information about using <i>ResourceSets</i> see
-          <a href="#resourcepaths">Resource Paths</a> in in <i>Settings</i>.
-        </div>
-
         <div class="panel" id="anchor">
           <h4><i class="material-icons">anchor</i> Anchor Watch</h4>
 
@@ -2834,69 +2797,6 @@
               <i>Fetch Notes within</i> field
             </li>
           </ul>
-
-          <span id="resourcepaths"></span>
-          <b>Layers:</b><br />
-          Freeboard provides the ability display feature data contained in
-          compliant JSON format layers on the map. The available resource paths
-          are listed in this section and can be selected to enable them for use
-          with Freeboard.<br />
-
-          <i
-            >Note: This functionality requires that you have configured the
-            <b>Resources Provider</b> plugin to serve the required resource
-            paths.</i
-          >
-
-          <img
-            src="./img/settings_resources_layers.png"
-            style="height: 200px"
-            alt=""
-          /><br />
-
-          <br />&nbsp;<br />
-          <ul>
-            <li>
-              <b>Fetch Radius</b>: When set, will only fetch resource set
-              features with a position that is within the specified distance
-              from the current map center. Select <i>0</i> to retrieve all
-              features.
-            </li>
-          </ul>
-          <i
-            >Note: Tracks are not selected here. Freeboard finds where the
-            server keeps tracks by itself; see the Feature Browser &rarr;
-            Imported Tracks.</i
-          >
-          <br />&nbsp;<br />
-
-          Data from the resource paths that you enable in Freeboard Settings is
-          treated as ResourceSets.<br />
-
-          ResourceSets are a non-standard Signal K resource format that can be
-          created to form collections of features that can be displayed in
-          layers on the map. They are a JSON file with a specific structure
-          which can be created using any text editor.<br />
-
-          The JSON structure chosen aligns closely with the current Signal K
-          resource specification and adopts the use of GeoJSON
-          FeatureCollection.<br />
-
-          <br />
-          The ResourceSet file should be stored on the Signal K server in the
-          folder used as the source for that path.<br />
-          The file name should be a valid uuid
-          <i>(e.g. 0d95e282-3e1f-4521-8c30-8288addbdb69)</i>. <br />&nbsp;<br />
-
-          <i
-            >Check out the
-            <a
-              target="_blank"
-              href="https://github.com/SignalK/freeboard-sk/wiki"
-              >Freeboard Wiki</a
-            >
-            for more details regarding the file format.</i
-          >
 
           <hr />
 

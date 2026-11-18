@@ -1,11 +1,4 @@
-import {
-  PointFeature,
-  MultiPointFeature,
-  LineStringFeature,
-  MultiLineStringFeature,
-  PolygonFeature,
-  MultiPolygonFeature
-} from './geojson';
+import { MultiLineStringFeature } from './geojson';
 import type { TimeDef } from 'src/app/modules/skresources/components/charts/maplib';
 
 // *** Freeboard defined RESOURCE types
@@ -14,24 +7,6 @@ export type Tracks = { [id: string]: TrackResource };
 
 export interface TrackResource {
   feature: MultiLineStringFeature;
-}
-
-export type ResourceSets = { [id: string]: ResourceSet };
-
-export interface ResourceSet extends CustomResource {
-  type: 'ResourceSet';
-  styles?: CustomStyles;
-  values: {
-    type: 'FeatureCollection';
-    features: Array<
-      | PointFeature
-      | MultiPointFeature
-      | LineStringFeature
-      | MultiLineStringFeature
-      | PolygonFeature
-      | MultiPolygonFeature
-    >;
-  };
 }
 
 /**
@@ -67,16 +42,4 @@ export interface CustomResource {
   description?: string | null;
   type: string;
   values: { [key: string]: unknown };
-}
-
-export interface CustomStyles {
-  default?: CustomStyle;
-  [key: string]: CustomStyle | undefined;
-}
-
-export interface CustomStyle {
-  stroke: string;
-  fill: string;
-  width: number;
-  lineDash?: Array<number>;
 }

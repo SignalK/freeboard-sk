@@ -451,6 +451,26 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.selections).not.toHaveProperty('notes');
   });
 
+  // ResourceSets were removed (#1355). Their settings stay in a saved config,
+  // so an older Freeboard reading the same server config keeps its choices.
+  it('keeps the retired ResourceSet settings a config was saved with', () => {
+    const cfg = defaultConfig() as unknown as {
+      resources: Record<string, unknown>;
+      selections: Record<string, unknown>;
+    };
+    cfg.resources.paths = ['resource-sets'];
+    cfg.resources.fetchRadius = 5;
+    cfg.resources.fetchFilter = '?distance=%fetch:radius%';
+    cfg.selections.resourceSets = { 'resource-sets': ['abc'] };
+    cleanConfig(cfg as unknown as LegacyAppConfig, {});
+    expect(cfg.resources).toMatchObject({
+      paths: ['resource-sets'],
+      fetchRadius: 5,
+      fetchFilter: '?distance=%fetch:radius%'
+    });
+    expect(cfg.selections.resourceSets).toEqual({ 'resource-sets': ['abc'] });
+  });
+
   it('produces a config with every default key present', () => {
     const cfg = legacyConfig();
     cleanConfig(cfg, {});
