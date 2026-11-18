@@ -7,6 +7,7 @@ import {
   applyChartTimeToWmts,
   CHART_TIME_LIVE_KEY,
   extentFromBounds,
+  followChartExtents,
   createTileRecoveryScheduler,
   startChartTileRecovery,
   fetchArrayBufferWithRetry,
@@ -30,6 +31,10 @@ import {
 import { Map as OlMap, View } from 'ol';
 import { fromLonLat } from 'ol/proj';
 import LayerGroup from 'ol/layer/Group';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import { Point } from 'ol/geom';
+import Feature from 'ol/Feature';
 import TileLayer from 'ol/layer/Tile';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
@@ -307,15 +312,50 @@ describe('setChartExtent', () => {
     expect(layer.getExtent()?.[0]).toBeCloseTo(x(150), 3);
   });
 
-  it('places a chart inside a layer group', () => {
-    const map = mapAt(0);
-    const group = new LayerGroup();
-    map.addLayer(group);
+  it('places a chart added inside nested layer groups', () => {
+    const map = mapAt(181);
+    followChartExtents(map);
+    const outer = new LayerGroup();
+    const inner = new LayerGroup();
+    outer.getLayers().push(inner);
+    map.addLayer(outer);
+    // Its extent placed for another map, as a split-view twin's is.
+    const layer = new TileLayer();
+    setChartExtent(layer, tonga, mapAt(0));
+    inner.getLayers().push(layer);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(185), 3);
+    map.getView().setCenter([x(-174), 0]);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(-175), 3);
+  });
+
+  it('lets go of a chart taken off the map', () => {
+    const map = mapAt(181);
     const layer = new TileLayer();
     setChartExtent(layer, tonga, map);
-    group.getLayers().push(layer);
-    map.getView().setCenter([x(181), 0]);
-    expect(layer.getExtent()?.[0]).toBeCloseTo(x(185), 3);
+    map.addLayer(layer);
+    map.removeLayer(layer);
+    layer.setExtent([0, 0, 1, 1]);
+    map.getView().setCenter([x(-174), 0]);
+    expect(layer.getExtent()).toEqual([0, 0, 1, 1]);
+  });
+
+  it('does not re-place charts as features change', () => {
+    const map = mapAt(0);
+    map.setSize([1280, 800]);
+    const chart = new TileLayer();
+    setChartExtent(chart, tonga, map);
+    map.addLayer(chart);
+    const point = new Point([0, 0]);
+    map.addLayer(
+      new VectorLayer({
+        source: new VectorSource({ features: [new Feature(point)] })
+      })
+    );
+    const calculateExtent = vi.spyOn(map.getView(), 'calculateExtent');
+    for (let i = 0; i < 50; i++) {
+      point.setCoordinates([i, i]);
+    }
+    expect(calculateExtent).not.toHaveBeenCalled();
   });
 
   it('leaves a chart without usable bounds unclipped as the map moves', () => {

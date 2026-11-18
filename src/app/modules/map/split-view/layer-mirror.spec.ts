@@ -74,6 +74,28 @@ describe('mirrorLayers', () => {
     expect(twin.getExtent()?.[0]).toBeCloseTo(x(181.5), 3);
   });
 
+  it('clips or unclips a twin for its own pane', () => {
+    const x = (lon: number) => fromLonLat([lon, 0])[0];
+    const sizedMap = (zoom: number) => {
+      const map = new OlMap({
+        view: new View({ center: fromLonLat([166, -18]), zoom })
+      });
+      map.setSize([1280, 800]);
+      return map;
+    };
+    // The main chart zoomed out to show the Pacific twice, the second pane
+    // zoomed in; the chart is added once the split view is open.
+    const main = sizedMap(1);
+    const second = sizedMap(8);
+    mirrorLayers(main, second);
+    const chart = new TileLayer();
+    setChartExtent(chart, [150, -81, -65, 81], main);
+    main.addLayer(chart);
+    const twin = twinsOn(second)[0];
+    expect(chart.getExtent()).toBe(undefined);
+    expect(twin.getExtent()?.[0]).toBeCloseTo(x(150), 3);
+  });
+
   it('shows every layer again with the same source and properties', () => {
     const main = new OlMap();
     const tiles = new TileLayer({ source: new XYZ({ url: 'x/{z}/{x}/{y}' }) });

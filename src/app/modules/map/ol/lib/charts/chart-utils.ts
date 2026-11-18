@@ -6,7 +6,7 @@ import TileLayer from 'ol/layer/Tile';
 import RenderEvent from 'ol/render/Event';
 import { EventsKey } from 'ol/events';
 import { ObjectEvent } from 'ol/Object';
-import LayerGroup from 'ol/layer/Group';
+import LayerGroup, { GroupEvent } from 'ol/layer/Group';
 import BaseLayer from 'ol/layer/Base';
 import Layer from 'ol/layer/Layer';
 import Tile from 'ol/Tile';
@@ -304,50 +304,78 @@ function placeLayerExtent(
 /**
  * Keep the extents of the chart layers on `map`, groups included, placed for
  * what the map shows: as its view moves, zooms or is replaced, as the map is
- * resized, and as layers are added or their charts change.
+ * resized, and as layers are added or their chart extents set. A split
+ * view's twin copies its original's extent and is placed again here.
+ *
+ * Layers are watched for their 'chartExtent' and 'extent' properties only:
+ * a layer group's own 'change' fires for every feature that changes, AIS
+ * targets included.
  */
 export function followChartExtents(map: OlMap) {
   if (followedMaps.has(map)) {
     return;
   }
   followedMaps.add(map);
-  let updating = false;
-  const update = () => {
-    // Placing an extent changes the layer group, which calls back in here.
-    if (updating) {
-      return;
-    }
-    updating = true;
-    try {
-      const view = viewOf(map);
-      const place = (layers: Collection<BaseLayer>) =>
-        layers.forEach((layer) => {
-          placeLayerExtent(layer, view);
-          if (layer instanceof LayerGroup) {
-            place(layer.getLayers());
+  const watched = new WeakMap<BaseLayer, EventsKey>();
+  const watch = (layer: BaseLayer) => {
+    if (!watched.has(layer)) {
+      watched.set(
+        layer,
+        layer.on('propertychange', (e: ObjectEvent) => {
+          if (e.key === CHART_EXTENT || e.key === 'extent') {
+            placeLayerExtent(layer, viewOf(map));
           }
-        });
-      place(map.getLayers());
-    } finally {
-      updating = false;
+        })
+      );
     }
+    if (layer.get(CHART_EXTENT) !== undefined) {
+      placeLayerExtent(layer, viewOf(map));
+    }
+    if (layer instanceof LayerGroup) {
+      layer.getLayers().forEach(watch);
+    }
+  };
+  const unwatch = (layer: BaseLayer) => {
+    const key = watched.get(layer);
+    if (key) {
+      unByKey(key);
+      watched.delete(layer);
+    }
+    if (layer instanceof LayerGroup) {
+      layer.getLayers().forEach(unwatch);
+    }
+  };
+  const placeAll = () => {
+    const view = viewOf(map);
+    const place = (layers: Collection<BaseLayer>) =>
+      layers.forEach((layer) => {
+        placeLayerExtent(layer, view);
+        if (layer instanceof LayerGroup) {
+          place(layer.getLayers());
+        }
+      });
+    place(map.getLayers());
   };
   let viewKey: EventsKey | undefined;
   const watchView = () => {
     if (viewKey) {
       unByKey(viewKey);
     }
-    viewKey = map.getView().on('propertychange', update);
-    update();
+    viewKey = map.getView().on('propertychange', placeAll);
+    placeAll();
   };
   map.on('propertychange', (e: ObjectEvent) => {
     if (e.key === 'view') {
       watchView();
     } else if (e.key === 'size') {
-      update();
+      placeAll();
     }
   });
-  map.getLayerGroup().on('change', update);
+  // Nested groups pass on their own 'addlayer' and 'removelayer'.
+  const group = map.getLayerGroup();
+  group.on('addlayer', (e: GroupEvent) => watch(e.layer));
+  group.on('removelayer', (e: GroupEvent) => unwatch(e.layer));
+  map.getLayers().forEach(watch);
   watchView();
 }
 
@@ -361,10 +389,10 @@ export function setChartExtent(
   bounds: number[] | undefined,
   map: OlMap
 ) {
+  followChartExtents(map);
   const chartExtent = extentFromBounds(bounds);
   layer.set(CHART_EXTENT, chartExtent);
   if (chartExtent) {
-    followChartExtents(map);
     placeLayerExtent(layer, viewOf(map));
   } else {
     layer.setExtent(undefined);
