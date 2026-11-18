@@ -208,5 +208,6 @@
   { "feature": "s57-charts", "kind": "new", "since": "v2.6.0", "date": "2023-07-26", "title": "Implement displaying S-57 vector tiles" },
   { "feature": "s57-charts", "kind": "enhanced", "since": "v2.17.0", "date": "2025-08-27", "title": "Choose the S-57 color table" },
   { "feature": "s57-charts", "kind": "enhanced", "since": "v2.21.0", "date": "2026-04-19", "title": "Choose which extra S-57 layers to show" },
-  { "feature": "s57-charts", "pr": 1341, "kind": "enhanced", "date": "2026-11-16", "title": "feat(charts): offer buildings and land elevation as S-57 layers" }
+  { "feature": "s57-charts", "pr": 1341, "kind": "enhanced", "date": "2026-11-16", "title": "feat(charts): offer buildings and land elevation as S-57 layers" },
+  { "feature": null, "pr": 1360, "kind": "skip", "reason": "removal: ResourceSets and the custom resource paths setting were removed (#1355); no feature doc to update, announced in the release notes" }
 ]
