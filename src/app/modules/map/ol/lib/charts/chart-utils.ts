@@ -271,7 +271,8 @@ export function placeChartExtent(
 /**
  * A chart layer's extent in the primary world, from which each map that
  * shows the layer places its own: a split view's second pane can be in
- * another world copy than the main chart.
+ * another world copy than the main chart. `null` marks a chart without
+ * usable bounds, so a twin that copies it is unclipped too.
  */
 const CHART_EXTENT = 'chartExtent';
 
@@ -290,11 +291,13 @@ function placeLayerExtent(
   layer: BaseLayer,
   { centerX, viewExtent }: ReturnType<typeof viewOf>
 ) {
-  const chartExtent = layer.get(CHART_EXTENT) as Extent | undefined;
-  if (!chartExtent) {
+  const chartExtent = layer.get(CHART_EXTENT) as Extent | null | undefined;
+  if (chartExtent === undefined) {
     return;
   }
-  const extent = placeChartExtent(chartExtent, centerX, viewExtent);
+  const extent = chartExtent
+    ? placeChartExtent(chartExtent, centerX, viewExtent)
+    : undefined;
   const current = layer.getExtent();
   if (extent ? !current || !equals(current, extent) : current) {
     layer.setExtent(extent);
@@ -390,13 +393,8 @@ export function setChartExtent(
   map: OlMap
 ) {
   followChartExtents(map);
-  const chartExtent = extentFromBounds(bounds);
-  layer.set(CHART_EXTENT, chartExtent);
-  if (chartExtent) {
-    placeLayerExtent(layer, viewOf(map));
-  } else {
-    layer.setExtent(undefined);
-  }
+  layer.set(CHART_EXTENT, extentFromBounds(bounds) ?? null);
+  placeLayerExtent(layer, viewOf(map));
 }
 
 /**

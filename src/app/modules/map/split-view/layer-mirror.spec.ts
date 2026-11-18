@@ -74,7 +74,7 @@ describe('mirrorLayers', () => {
     expect(twin.getExtent()?.[0]).toBeCloseTo(x(181.5), 3);
   });
 
-  it('clips or unclips a twin for its own pane', () => {
+  it('clips or unclips a twin for its own pane, and unclips it with its chart', () => {
     const x = (lon: number) => fromLonLat([lon, 0])[0];
     const sizedMap = (zoom: number) => {
       const map = new OlMap({
@@ -94,6 +94,9 @@ describe('mirrorLayers', () => {
     const twin = twinsOn(second)[0];
     expect(chart.getExtent()).toBe(undefined);
     expect(twin.getExtent()?.[0]).toBeCloseTo(x(150), 3);
+
+    setChartExtent(chart, undefined, main);
+    expect(twin.getExtent()).toBe(undefined);
   });
 
   it('shows every layer again with the same source and properties', () => {
