@@ -21,8 +21,8 @@ import {
   applyChartTimeToWms,
   attachImageAdjustmentFilter,
   chartLayerClassName,
-  extentFromBounds,
   resolveLayerZoomRange,
+  setChartExtent,
   startChartTileRefresh
 } from './chart-utils';
 
@@ -122,7 +122,6 @@ export class WmsChartLayerComponent implements OnDestroy {
         minZoom: zoom.min,
         maxZoom: zoom.max,
         opacity: chart[1].defaultOpacity ?? 1,
-        extent: extentFromBounds(chart[1].bounds),
         className: chartLayerClassName(chart[0])
       });
 
@@ -131,6 +130,7 @@ export class WmsChartLayerComponent implements OnDestroy {
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
+        setChartExtent(this.layer, chart[1].bounds, this.map);
         this.setImageAdjustment = attachImageAdjustmentFilter(this.layer);
         this.map.addLayer(this.layer);
       }
@@ -144,7 +144,7 @@ export class WmsChartLayerComponent implements OnDestroy {
       this.layer.setMinZoom(zoom.min ?? -Infinity);
       this.layer.setMaxZoom(zoom.max ?? Infinity);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-      this.layer.setExtent(extentFromBounds(chart[1].bounds));
+      setChartExtent(this.layer, chart[1].bounds, this.map);
       const src = this.layer.getSource() as TileWMS;
       const l = chart[1].layers ? chart[1].layers.join(',') : '';
       const p = src.getParams();

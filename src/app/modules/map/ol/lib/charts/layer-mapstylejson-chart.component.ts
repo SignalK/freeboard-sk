@@ -13,7 +13,7 @@ import LayerGroup from 'ol/layer/Group';
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
-import { applyMapStyle, extentFromBounds } from './chart-utils';
+import { applyMapStyle, setChartExtent } from './chart-utils';
 
 // ** Freeboard MapStyleJSON Chart **
 @Component({
@@ -68,7 +68,7 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-        this.layer.setExtent(extentFromBounds(chart[1].bounds));
+        setChartExtent(this.layer, chart[1].bounds, map);
         applyMapStyle(this.layer, `${chart[1].url}`).then((stop) => {
           // If we were destroyed before the async style apply resolved, stop the
           // outage-recovery watcher now; otherwise keep it for ngOnDestroy.
@@ -83,7 +83,7 @@ export class MapStyleJsonChartLayerComponent implements OnDestroy {
     } else {
       this.layer.setZIndex(this.zIndex());
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-      this.layer.setExtent(extentFromBounds(chart[1].bounds));
+      setChartExtent(this.layer, chart[1].bounds, map);
     }
     map.render();
   }

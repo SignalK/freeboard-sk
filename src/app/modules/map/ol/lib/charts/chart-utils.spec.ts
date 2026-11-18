@@ -7,6 +7,7 @@ import {
   applyChartTimeToWmts,
   CHART_TIME_LIVE_KEY,
   extentFromBounds,
+  followChartExtents,
   createTileRecoveryScheduler,
   startChartTileRecovery,
   fetchArrayBufferWithRetry,
@@ -18,14 +19,22 @@ import {
   MIN_CHART_REFRESH_INTERVAL_MS,
   normaliseStyleForOl,
   resolveLayerMaxZoom,
+  placeChartExtent,
   resolveLayerZoomRange,
+  setChartExtent,
   startChartTileRefresh,
   cacheBustTileUrl,
   CHART_REFRESH_URL_PARAM,
   webMercatorMatrixSet
 } from './chart-utils';
 
+import { Map as OlMap, View } from 'ol';
+import { fromLonLat } from 'ol/proj';
 import LayerGroup from 'ol/layer/Group';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import { Point } from 'ol/geom';
+import Feature from 'ol/Feature';
 import TileLayer from 'ol/layer/Tile';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
@@ -203,8 +212,216 @@ describe('extentFromBounds', () => {
     expect(extentFromBounds([-179.99, -89.99, 179.99, 89.99])).toBeDefined();
   });
 
-  it('returns undefined for bounds that cross the antimeridian (west > east)', () => {
-    expect(extentFromBounds([174.6, -21.9, -178.2, -11.2])).toBe(undefined);
+  it('rejects a longitude past the edges, also in bounds read as crossing', () => {
+    expect(extentFromBounds([190, -20, -170, -10])).toBe(undefined);
+    expect(extentFromBounds([170, -20, -190, -10])).toBe(undefined);
+  });
+
+  it('leaves swapped bounds, read as crossing most of the world, unclipped', () => {
+    expect(extentFromBounds([20, 40, 10, 50])).toBe(undefined);
+  });
+
+  it('rejects bounds with south above north, or no area', () => {
+    expect(extentFromBounds([170, 10, -170, -10])).toBe(undefined);
+    expect(extentFromBounds([10, 10, 20, -10])).toBe(undefined);
+    expect(extentFromBounds([10, 5, 20, 5])).toBe(undefined);
+    expect(extentFromBounds([0, 0, 0, 0])).toBe(undefined);
+  });
+
+  it('rejects bounds that are not finite numbers', () => {
+    expect(extentFromBounds([NaN, -20, 10, -10])).toBe(undefined);
+    // eslint-disable-next-line no-sparse-arrays
+    expect(extentFromBounds([10, , 20, -10])).toBe(undefined);
+    for (const bad of ['abc', '', '  ', 'Infinity', null, true]) {
+      expect(extentFromBounds([bad, -20, 10, -10])).toBe(undefined);
+    }
+  });
+
+  it('reads bounds given as numeric strings as numbers', () => {
+    // Added as strings, 360 would be appended to '-178.2'.
+    const extent = extentFromBounds(['174.6', '-21.9', '-178.2', -11.2]);
+    expect(extent?.[0]).toBeCloseTo(fromLonLat([174.6, 0])[0], 3);
+    expect(extent?.[2]).toBeCloseTo(fromLonLat([181.8, 0])[0], 3);
+  });
+
+  it('runs bounds that cross the antimeridian (west > east) east past 180°', () => {
+    // Fiji: 174.6°E across 180° to 178.2°W.
+    const extent = extentFromBounds([174.6, -21.9, -178.2, -11.2]);
+    expect(extent?.[0]).toBeCloseTo(fromLonLat([174.6, 0])[0], 3);
+    expect(extent?.[2]).toBeCloseTo(fromLonLat([181.8, 0])[0], 3);
+  });
+});
+
+const x = (lon: number) => fromLonLat([lon, 0])[0];
+const fiji = [174.6, -21.9, -178.2, -11.2];
+const tonga = [-175, -22, -173, -15];
+// GOES-West imagery: 145° wide across 180°.
+const goesWest = [150, -81, -65, 81];
+
+describe('placeChartExtent', () => {
+  const place = (bounds: number[], centerX: number, viewExtent?: number[]) =>
+    placeChartExtent(extentFromBounds(bounds) ?? [], centerX, viewExtent);
+
+  it('keeps a chart in the primary world for a map centred there', () => {
+    expect(place(tonga, x(-174))?.[0]).toBeCloseTo(x(-175), 3);
+  });
+
+  it('places a crossing chart in the world copy of a map centred east of 180°', () => {
+    // A map centred from a position at 178.5°W sits in the primary world,
+    // so the chart's west part lies past -180°.
+    const extent = place(fiji, x(-178.5));
+    expect(extent?.[0]).toBeCloseTo(x(174.6 - 360), 3);
+    expect(extent?.[2]).toBeCloseTo(x(-178.2), 3);
+  });
+
+  it('places a chart in the next world copy once the map is panned past 180°', () => {
+    // Tonga, seen after panning east from Fiji to 181°E.
+    const extent = place(tonga, x(181));
+    expect(extent?.[0]).toBeCloseTo(x(185), 3);
+    expect(extent?.[2]).toBeCloseTo(x(187), 3);
+  });
+
+  it('leaves a chart unclipped while the map shows it in two world copies', () => {
+    // Centred on Noumea, 540° of longitude wide: GOES-West shows over the
+    // Pacific and again a world further west, ending at 65°W.
+    const wide = [x(-104), -1e7, x(436), 1e7];
+    expect(place(goesWest, x(166), wide)).toBe(undefined);
+  });
+
+  it('clips a chart the map shows in one world copy only', () => {
+    const close = [x(160), -3e6, x(172), -2e6];
+    expect(place(goesWest, x(166), close)?.[0]).toBeCloseTo(x(150), 3);
+  });
+});
+
+describe('setChartExtent', () => {
+  const mapAt = (lon: number, zoom = 8) =>
+    new OlMap({ view: new View({ center: [x(lon), 0], zoom }) });
+
+  it('clips a chart to its bounds in the world copy the map shows', () => {
+    const map = mapAt(178);
+    const layer = new TileLayer();
+    setChartExtent(layer, fiji, map);
+    map.addLayer(layer);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(174.6), 3);
+
+    // Recentred on a vessel at 178.5°W: the centre jumps to the primary
+    // world's west edge, and the extent follows it.
+    map.getView().setCenter([x(-178.5), 0]);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(174.6 - 360), 3);
+    expect(layer.getExtent()?.[2]).toBeCloseTo(x(-178.2), 3);
+  });
+
+  it('does not touch the extent while the map moves within one world copy', () => {
+    const map = mapAt(-174);
+    const layer = new TileLayer();
+    setChartExtent(layer, tonga, map);
+    map.addLayer(layer);
+    const setExtent = vi.spyOn(layer, 'setExtent');
+    for (let lon = -179; lon <= -170; lon += 0.5) {
+      map.getView().setCenter([x(lon), 0]);
+    }
+    expect(setExtent).not.toHaveBeenCalled();
+  });
+
+  it('follows a new view set on the map', () => {
+    const map = mapAt(0);
+    const layer = new TileLayer();
+    setChartExtent(layer, tonga, map);
+    map.addLayer(layer);
+    map.setView(new View({ center: [x(181), 0], zoom: 8 }));
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(185), 3);
+  });
+
+  it('unclips a chart while a zoomed-out map shows it twice, and clips it again', () => {
+    const map = mapAt(166, 1);
+    map.setSize([1280, 800]);
+    const layer = new TileLayer();
+    setChartExtent(layer, goesWest, map);
+    map.addLayer(layer);
+    expect(layer.getExtent()).toBe(undefined);
+    map.getView().setZoom(6);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(150), 3);
+  });
+
+  it('places a chart added inside nested layer groups', () => {
+    const map = mapAt(181);
+    followChartExtents(map);
+    const outer = new LayerGroup();
+    const inner = new LayerGroup();
+    outer.getLayers().push(inner);
+    map.addLayer(outer);
+    // Its extent placed for another map, as a split-view twin's is.
+    const layer = new TileLayer();
+    setChartExtent(layer, tonga, mapAt(0));
+    inner.getLayers().push(layer);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(185), 3);
+    map.getView().setCenter([x(-174), 0]);
+    expect(layer.getExtent()?.[0]).toBeCloseTo(x(-175), 3);
+  });
+
+  it('lets go of a chart taken off the map', () => {
+    const map = mapAt(181);
+    const layer = new TileLayer();
+    setChartExtent(layer, tonga, map);
+    map.addLayer(layer);
+    map.removeLayer(layer);
+    layer.setExtent([0, 0, 1, 1]);
+    map.getView().setCenter([x(-174), 0]);
+    expect(layer.getExtent()).toEqual([0, 0, 1, 1]);
+  });
+
+  it('does not re-place charts as features change', () => {
+    const map = mapAt(0);
+    map.setSize([1280, 800]);
+    const chart = new TileLayer();
+    setChartExtent(chart, tonga, map);
+    map.addLayer(chart);
+    const point = new Point([0, 0]);
+    map.addLayer(
+      new VectorLayer({
+        source: new VectorSource({ features: [new Feature(point)] })
+      })
+    );
+    const calculateExtent = vi.spyOn(map.getView(), 'calculateExtent');
+    for (let i = 0; i < 50; i++) {
+      point.setCoordinates([i, i]);
+    }
+    expect(calculateExtent).not.toHaveBeenCalled();
+  });
+
+  it('leaves a chart without usable bounds unclipped as the map moves', () => {
+    const map = mapAt(0);
+    const clipped = new TileLayer();
+    const unclipped = new TileLayer();
+    setChartExtent(clipped, tonga, map);
+    setChartExtent(unclipped, [-180, -85, 180, 85], map);
+    map.addLayer(clipped);
+    map.addLayer(unclipped);
+    map.getView().setCenter([x(181), 0]);
+    expect(clipped.getExtent()?.[0]).toBeCloseTo(x(185), 3);
+    expect(unclipped.getExtent()).toBe(undefined);
+  });
+
+  it('leaves a chart with NaN bounds unclipped', () => {
+    const map = mapAt(0);
+    const layer = new TileLayer();
+    map.addLayer(layer);
+    const setExtent = vi.spyOn(layer, 'setExtent');
+    setChartExtent(layer, [NaN, -22, -173, -15], map);
+    map.getView().setCenter([x(181), 0]);
+    expect(layer.getExtent()).toBe(undefined);
+    expect(setExtent).not.toHaveBeenCalled();
+  });
+
+  it('stops moving a chart whose bounds have gone', () => {
+    const map = mapAt(0);
+    const layer = new TileLayer();
+    setChartExtent(layer, tonga, map);
+    map.addLayer(layer);
+    setChartExtent(layer, undefined, map);
+    map.getView().setCenter([x(181), 0]);
+    expect(layer.getExtent()).toBe(undefined);
   });
 });
 

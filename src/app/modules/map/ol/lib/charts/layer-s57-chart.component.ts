@@ -15,7 +15,7 @@ import { VectorLayerStyleFactory } from './vectorLayerStyleFactory';
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
-import { extentFromBounds } from './chart-utils';
+import { setChartExtent } from './chart-utils';
 
 // ** Freeboard S-57 Chart **
 @Component({
@@ -71,7 +71,7 @@ export class S57ChartLayerComponent implements OnDestroy {
         if (chart[1].style) {
           applyStyle(this.layer, chart[1].style);
         }
-        this.layer.setExtent(extentFromBounds(chart[1].bounds));
+        setChartExtent(this.layer, chart[1].bounds, map);
 
         this.layer.set('id', chart[0]);
         this.layer.set('chartId', chart[0]);
@@ -82,7 +82,7 @@ export class S57ChartLayerComponent implements OnDestroy {
     } else {
       this.layer.setZIndex(this.zIndex());
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-      this.layer.setExtent(extentFromBounds(chart[1].bounds));
+      setChartExtent(this.layer, chart[1].bounds, map);
     }
     map.render();
   }

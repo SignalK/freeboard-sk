@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Map as OlMap } from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 
@@ -21,7 +22,12 @@ import { ChartResource, FBChart } from 'src/app/types';
 describe('RasterChartLayerComponent — time-varying chart', () => {
   const T0 = '2026-09-18T12:00:00.000Z';
   const REFRESH = 2 * MIN_CHART_REFRESH_INTERVAL_MS;
-  const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
+  // A real map underneath: a chart's extent is placed by the map's view.
+  const map = Object.assign(new OlMap(), {
+    addLayer: vi.fn(),
+    removeLayer: vi.fn(),
+    render: vi.fn()
+  });
 
   const radar = (timeValue: string | null): FBChart => {
     const chart = new SKChart({
@@ -190,7 +196,12 @@ describe('RasterChartLayerComponent — time-varying chart', () => {
  * its remote server on every refresh tick and time step, so it keeps none.
  */
 describe('RasterChartLayerComponent — lower-zoom placeholder', () => {
-  const map = { addLayer: vi.fn(), removeLayer: vi.fn(), render: vi.fn() };
+  // A real map underneath: a chart's extent is placed by the map's view.
+  const map = Object.assign(new OlMap(), {
+    addLayer: vi.fn(),
+    removeLayer: vi.fn(),
+    render: vi.fn()
+  });
 
   const chart = (url: string, extra: Partial<ChartResource> = {}): FBChart => [
     'chart',
