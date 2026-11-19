@@ -129,7 +129,7 @@ the PR that changed it):
 |-------|---------|
 | `feature` | the doc `id` this event concerns (`null` for a `skip`) |
 | `pr` | the PR number that introduced the change |
-| `kind` | `new` (feature's first appearance), `enhanced` (a change to an existing feature), or `skip` (a PR deliberately not surfaced to users) |
+| `kind` | `new` (feature's first appearance), `enhanced` (a change to an existing feature), or `skip` (a PR that needs no feature doc: kept out of the Feature Browser, but still listed in the Release notes) |
 | `since` | the release the change shipped in — leave blank/omit on `master` until released, then set it |
 | `date` | ISO date the change landed — drives the details-pane history table |
 | `title` | the PR title verbatim (with its `type(scope):` prefix); the prefix is stripped for display |

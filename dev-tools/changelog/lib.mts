@@ -196,8 +196,9 @@ const TYPE_HEADINGS = { fix: '🐛 Bug Fixes' };
  *
  * - New Features: features with a `new` row in this release (doc title + summary).
  * - Improvements: features enhanced (only) in this release (per enhancement).
- * - Bug Fixes / Other Changes: merged PRs in range NOT present in the ledger,
- *   grouped by conventional-commit type.
+ * - Bug Fixes / Other Changes: merged PRs in range with no feature row in the
+ *   ledger (a `skip` row does not hide a PR), grouped by conventional-commit
+ *   type. `docs` PRs are omitted.
  */
 export function renderNotes({
   ledger,
@@ -235,10 +236,17 @@ export function renderNotes({
     }
   }
 
-  const ledgerPRs = new Set(ledger.map((r) => r.pr));
+  // Only a feature row (new/enhanced) takes a PR out of the lists below: it is
+  // already described under its feature. A `skip` row just means "no feature
+  // doc needed", so a skipped perf/feat PR is still listed under Other Changes.
+  // Docs-only PRs are left out of the notes entirely.
+  const featurePRs = new Set(
+    ledger.filter((r) => r.kind !== 'skip').map((r) => r.pr)
+  );
   const byType = new Map<string, ParsedCommit[]>();
   for (const c of commits) {
-    if (c.pr === null || ledgerPRs.has(c.pr)) continue;
+    if (c.pr === null || featurePRs.has(c.pr)) continue;
+    if (c.type === 'docs') continue;
     const key = c.type === 'fix' ? 'fix' : 'other';
     const bucket = byType.get(key);
     if (bucket) bucket.push(c);

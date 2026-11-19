@@ -148,7 +148,9 @@ describe('renderNotes', () => {
       since: 'v2.0.0',
       title: 'feat: radar'
     },
-    { feature: null, pr: 520, kind: 'skip', reason: 'internal' }
+    { feature: null, pr: 520, kind: 'skip', reason: 'internal' },
+    { feature: null, pr: 512, kind: 'skip', reason: 'performance only' },
+    { feature: null, pr: 777, kind: 'skip', reason: 'extension API only' }
   ];
   const features = {
     'weather-overlays': {
@@ -161,7 +163,10 @@ describe('renderNotes', () => {
   const commits = [
     { type: 'fix', title: 'guard OffscreenCanvas on non-WebGL', pr: 519 },
     { type: 'feat', title: 'add overlays', pr: 413 }, // in ledger → excluded
-    { type: 'perf', title: 'speed up tile load', pr: 512 },
+    { type: 'feat', title: 'unify wind indicator', pr: 520 }, // feature + skip row → excluded
+    { type: 'perf', title: 'speed up tile load', pr: 512 }, // skip row → still listed
+    { type: 'feat', title: 'add charts.time capability', pr: 777 }, // skip row → still listed
+    { type: 'docs', title: 'document anchor watch', pr: 530 }, // docs → omitted
     { type: 'chore', title: 'bump deps', pr: 400 }
   ];
 
@@ -176,6 +181,7 @@ describe('renderNotes', () => {
         '- guard OffscreenCanvas on non-WebGL (#519)\n\n' +
         '## 🔧 Other Changes\n\n' +
         '- speed up tile load (#512)\n' +
+        '- add charts.time capability (#777)\n' +
         '- bump deps (#400)\n'
     );
   });
