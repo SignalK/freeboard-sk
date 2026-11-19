@@ -27,6 +27,7 @@ import type { Position } from 'src/app/types';
 import { FeatureLike } from 'ol/Feature';
 import { Extent, getWidth } from 'ol/extent';
 import { hitToleranceForPointer, worldCopyOffset } from './util';
+import { TopFirstMap } from './top-first-map';
 import {
   clearHeldVertexOnRelease,
   clearVertexDeleted,
@@ -216,7 +217,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // outside the zone eliminates that; the specific handlers that must update
     // Angular state re-enter the zone via ngZone.run() (see below).
     this.ngZone.runOutsideAngular(() => {
-      const map = new Map();
+      const map = new TopFirstMap();
       this.map = map;
       map.setTarget(target);
       map.setProperties(this.properties ?? {}, true);

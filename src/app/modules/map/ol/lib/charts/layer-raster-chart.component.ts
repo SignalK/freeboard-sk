@@ -19,10 +19,12 @@ import {
   applyChartTimeToTileSource,
   attachImageAdjustmentFilter,
   chartLayerClassName,
+  chartVaries,
   resolveLayerZoomRange,
   setChartExtent,
   startChartTileRefresh
 } from './chart-utils';
+import { CHART_VARIES } from '../top-first-map';
 
 import { resolveChartTime } from 'src/app/lib/chart-time';
 import { ChartImageAdjustment, FBChart } from 'src/app/types';
@@ -177,6 +179,7 @@ export class RasterChartLayerComponent implements OnDestroy {
         );
       }
     }
+    this.layer?.set(CHART_VARIES, chartVaries(chart));
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     map.render();
   }

@@ -21,10 +21,12 @@ import {
   applyChartTimeToWms,
   attachImageAdjustmentFilter,
   chartLayerClassName,
+  chartVaries,
   resolveLayerZoomRange,
   setChartExtent,
   startChartTileRefresh
 } from './chart-utils';
+import { CHART_VARIES } from '../top-first-map';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -173,6 +175,7 @@ export class WmsChartLayerComponent implements OnDestroy {
         );
       }
     }
+    this.layer?.set(CHART_VARIES, chartVaries(chart));
     this.setImageAdjustment?.(chart[1].imageAdjustment);
     this.map.render();
   }
