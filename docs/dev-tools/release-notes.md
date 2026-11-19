@@ -40,8 +40,8 @@ touches GitHub, so `render <tag> > preview.md` is a safe **dry run**. Sections:
 - **✨ Improvements** — features enhanced (only) in this release.
 - **🐛 Bug Fixes / 🔧 Other Changes** — PRs merged in the tag range that have no
   feature row in the ledger, grouped by conventional-commit type. A `skip` row does not
-  hide a PR: a skipped `perf` or `feat` PR is listed under Other Changes. `docs` PRs are
-  left out.
+  hide a PR: it is listed by its type like any other, so a skipped `perf` or `feat` PR
+  appears under Other Changes. `docs` PRs are left out.
 
 The tag range's lower bound is the previous **stable** tag for a stable release (so it
 spans all the betas) or the previous tag of any kind for a pre-release. `render` reads

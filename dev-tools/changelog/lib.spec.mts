@@ -163,6 +163,7 @@ describe('renderNotes', () => {
   const commits = [
     { type: 'fix', title: 'guard OffscreenCanvas on non-WebGL', pr: 519 },
     { type: 'feat', title: 'add overlays', pr: 413 }, // in ledger → excluded
+    { type: 'feat', title: 'unify wind indicator', pr: 520 }, // feature + skip row → excluded
     { type: 'perf', title: 'speed up tile load', pr: 512 }, // skip row → still listed
     { type: 'feat', title: 'add charts.time capability', pr: 777 }, // skip row → still listed
     { type: 'docs', title: 'document anchor watch', pr: 530 }, // docs → omitted
