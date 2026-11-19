@@ -401,7 +401,7 @@ export class AppComponent {
       if (!drawer) {
         return;
       }
-      if (this.infoPanel.opened() || this.app.instrumentPanel().activate) {
+      if (this.infoPanel.opened() || this.app.instrumentPanel().open) {
         if (!drawer.opened) {
           this.openDrawer();
         }
