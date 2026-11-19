@@ -287,6 +287,21 @@ describe('AppComponent', () => {
     });
   });
 
+  describe('the side drawer, with the instrument app kept running', () => {
+    const setup = () => {
+      const app = TestBed.inject(AppFacade);
+      app.config.display.plugins.instruments = '/@signalk/instrumentpanel';
+      app.config.display.plugins.startOnOpen = false;
+      const fixture = TestBed.createComponent(AppComponent);
+      return { app, fixture };
+    };
+
+    it('starts without an error', () => {
+      const { fixture } = setup();
+      expect(() => fixture.detectChanges()).not.toThrow();
+    });
+  });
+
   it('sandboxes the instrument panel iframe with form submission allowed', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
