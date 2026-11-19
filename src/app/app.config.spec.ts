@@ -524,7 +524,7 @@ describe('cleanConfig() defaults', () => {
       'openstreetmap',
       'openseamap'
     ]);
-    expect(defaultConfig().map.s57Options.otherLayers).toHaveLength(7);
+    expect(defaultConfig().map.s57Options.otherLayers).toHaveLength(9);
   });
 
   it('fills a setting saved without a value', () => {
