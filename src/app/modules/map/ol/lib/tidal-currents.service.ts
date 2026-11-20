@@ -4,16 +4,32 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 
-const ARROW_SPACING_PX = 50;
+export type TidalCurrentsDensity = 'low' | 'standard' | 'high';
+
+// Low suits slow clients and Pi-class servers (Play refetches every step);
+// high gives the finest field the plugin can serve.
+const DENSITY: Record<
+  TidalCurrentsDensity,
+  { spacingPx: number; maxPoints: number }
+> = {
+  low: { spacingPx: 100, maxPoints: 200 },
+  standard: { spacingPx: 70, maxPoints: 600 },
+  high: { spacingPx: 50, maxPoints: 1500 }
+};
 const MIN_POINTS = 100;
-const MAX_POINTS = 1500;
 
 /** `/currents/grid` point budget for a map of the given size (CSS px). */
-export function gridPointBudget(width: number, height: number): number {
-  const n = Math.round(
-    (width * height) / (ARROW_SPACING_PX * ARROW_SPACING_PX)
-  );
-  return Math.max(MIN_POINTS, Math.min(MAX_POINTS, n));
+export function gridPointBudget(
+  width: number,
+  height: number,
+  density: TidalCurrentsDensity = 'standard'
+): number {
+  // a value saved by a later release falls back to standard
+  const { spacingPx, maxPoints } = Object.hasOwn(DENSITY, density)
+    ? DENSITY[density]
+    : DENSITY.standard;
+  const n = Math.round((width * height) / (spacingPx * spacingPx));
+  return Math.max(MIN_POINTS, Math.min(maxPoints, n));
 }
 
 // Targets the `signalk-tidal-currents` plugin v0.2.0 `/currents/grid` response, e.g.:

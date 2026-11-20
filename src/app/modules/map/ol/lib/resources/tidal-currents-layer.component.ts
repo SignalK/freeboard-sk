@@ -30,6 +30,7 @@ import { fromLonLat, transformExtent } from 'ol/proj';
 
 import {
   gridPointBudget,
+  TidalCurrentsDensity,
   TidalCurrentsService,
   TidalCurrentGridResponse
 } from '../tidal-currents.service';
@@ -46,6 +47,7 @@ import { AppFacade } from 'src/app/app.facade';
 export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
   @Input() show = false;
   @Input() opacity = 0.7;
+  @Input() density: TidalCurrentsDensity = 'standard';
 
   private layer?: VectorLayer<VectorSource>;
   private source?: VectorSource;
@@ -179,7 +181,7 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
 
   private maxPoints(): number {
     const [width, height] = this.mapComponent.getMap()?.getSize() ?? [0, 0];
-    return gridPointBudget(width, height);
+    return gridPointBudget(width, height, this.density);
   }
 
   private getBbox(): [number, number, number, number] | null {
