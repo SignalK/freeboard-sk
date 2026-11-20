@@ -209,6 +209,7 @@
   { "feature": "s57-charts", "kind": "enhanced", "since": "v2.17.0", "date": "2025-08-27", "title": "Choose the S-57 color table" },
   { "feature": "s57-charts", "kind": "enhanced", "since": "v2.21.0", "date": "2026-04-19", "title": "Choose which extra S-57 layers to show" },
   { "feature": "s57-charts", "pr": 1341, "kind": "enhanced", "since": "v3.5.0-beta.2", "date": "2026-11-16", "title": "feat(charts): offer buildings and land elevation as S-57 layers" },
+  { "feature": "s57-charts", "pr": 1367, "kind": "enhanced", "date": "2026-11-20", "title": "feat(charts): draw buildings and land elevation by default" },
   { "feature": null, "pr": 1360, "kind": "skip", "reason": "removal: ResourceSets and the custom resource paths setting were removed (#1355); no feature doc to update, announced in the release notes" },
   { "feature": null, "pr": 1363, "kind": "skip", "reason": "performance only: the top chart's tiles load before the charts beneath it, so a faster layer underneath no longer shows first on every zoom; no new control or setting" }
 ]
