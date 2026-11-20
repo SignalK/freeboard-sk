@@ -16,7 +16,7 @@ import { WhatsNewService } from './modules/features/whats-new.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
 import { connectExtension } from 'signalk-plotterext-bus/extension';
 import { SignalKClient } from 'signalk-client-angular';
-import { config, of, throwError } from 'rxjs';
+import { config, of, Subject, throwError } from 'rxjs';
 
 /** The type of the item the info panel shows. */
 function shownType(infoPanel: InfoPanelFacade) {
@@ -195,6 +195,22 @@ describe('AppComponent', () => {
     // Transient conditions disable the button but keep its place, so the
     // buttons below it do not shift up and down as the user works.
     expect(toolbarButton(fixture, 'av_timer')?.disabled).toBe(true);
+  });
+
+  it('opens the instruments panel only once the deprecation notice is dismissed', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = TestBed.inject(AppFacade);
+    app.uiConfig.update((c) => Object.assign({}, c, { toolbarButtons: true }));
+    app.config.display.plugins.instruments = '/@signalk/instrumentpanel';
+    const dismissed = new Subject<unknown>();
+    vi.spyOn(app, 'showInstrumentPanelDeprecation').mockReturnValue(dismissed);
+    fixture.detectChanges();
+
+    toolbarButton(fixture, 'av_timer')?.click();
+    expect(app.instrumentPanel().open).toBe(false);
+
+    dismissed.next(true);
+    expect(app.instrumentPanel().open).toBe(true);
   });
 
   describe('when the left toolbar runs out of room', () => {

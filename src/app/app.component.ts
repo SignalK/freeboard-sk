@@ -1579,6 +1579,12 @@ export class AppComponent {
     if (this.app.instrumentPanel().open) {
       return;
     }
+    this.app
+      .showInstrumentPanelDeprecation()
+      .subscribe(() => this.showInstrumentPanel());
+  }
+
+  private showInstrumentPanel() {
     if (this.infoPanel.opened()) {
       this.infoPanel.close();
     }

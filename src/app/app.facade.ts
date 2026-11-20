@@ -13,7 +13,14 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subject, finalize, firstValueFrom, timeout } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  finalize,
+  firstValueFrom,
+  of,
+  timeout
+} from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -1541,6 +1548,26 @@ export class AppFacade extends InfoService {
         }
       })
       .afterClosed();
+  }
+
+  // In memory rather than sessionStorage, so a reload shows the notice again.
+  private instrumentPanelNoticeShown = false;
+
+  /** Tell the user, once per page load, that the instruments panel is going
+   * away. Emits when the notice is dismissed, or at once if already shown. */
+  showInstrumentPanelDeprecation(): Observable<unknown> {
+    if (this.instrumentPanelNoticeShown) {
+      return of(true);
+    }
+    this.instrumentPanelNoticeShown = true;
+    return this.showAlert(
+      'Instrument Panel is being retired',
+      'The Instrument Panel will be removed in the next release of Freeboard-SK.\n\n' +
+        'To keep showing KIP, the Instrument Panel or another Signal K webapp ' +
+        'inside Freeboard, install the "Freeboard Companion Apps" plugin from ' +
+        'the Signal K App Store. It can show any webapp in the side panel or ' +
+        'in a floating window.'
+    );
   }
 
   /** display error list dialog */
