@@ -29,10 +29,13 @@ shows straight away:
   Underwater Rocks, Wrecks, Submarine Cable, Submarine Pipelines, Berths, Mooring
   Facilities, Landmarks, Distance Marks, Currents, Magnetic Variation, Rivers,
   Lakes, Buildings and Land Elevation. Depth Soundings, Depth Contours,
-  Obstructions, Underwater Rocks, Wrecks, Rivers and Lakes are on by default. A
-  layer only shows on charts that contain that kind of object.
+  Obstructions, Underwater Rocks, Wrecks, Rivers, Lakes, Buildings and Land
+  Elevation are on by default. A layer only shows on charts that contain that
+  kind of object. Upgrading keeps the layers you had already chosen; tick
+  Buildings and Land Elevation to add them.
 
 **Buildings and Land Elevation** add what you take bearings on near a harbor.
+Charts carry them only at harbor and coastal scales, so they appear as you zoom in.
 Buildings are filled brown with an outline. Land Elevation draws elevation contours
 as thin lines in the land color, and peaks as spot heights with their height; the
 contours themselves carry no label.
