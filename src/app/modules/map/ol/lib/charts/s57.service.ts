@@ -59,7 +59,9 @@ export const DefaultOptions: Options = {
     'WRECKS',
     'DEPCNT',
     'RIVERS',
-    'LAKARE'
+    'LAKARE',
+    'BUISGL',
+    'LNDELV'
   ],
   depthUnit: 'm'
 };

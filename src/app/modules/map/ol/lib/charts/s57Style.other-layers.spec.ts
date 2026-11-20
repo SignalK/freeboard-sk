@@ -82,20 +82,8 @@ describe('S-57 buildings and land elevation', () => {
     expect(layers.get('LNDELV')).toBe('Land Elevation');
   });
 
-  it('are not drawn with the default layers', () => {
+  it('are drawn with the default layers', () => {
     const style = styleWith(DefaultOptions.otherLayers);
-
-    expect(style.getStyle(building(), 1)).toBeUndefined();
-    expect(style.getStyle(contour(), 1)).toBeUndefined();
-    expect(style.getStyle(spotHeight(), 1)).toBeUndefined();
-  });
-
-  it('are drawn once picked', () => {
-    const style = styleWith([
-      ...DefaultOptions.otherLayers,
-      'BUISGL',
-      'LNDELV'
-    ]);
 
     // chartsymbols.xml: BUISGL area AC(CHBRN);LS(SOLD,1,LANDF), LNDELV line
     // LS(SOLD,1,LANDF) (S-52 gives contour lines no label), LNDELV point
@@ -103,5 +91,15 @@ describe('S-57 buildings and land elevation', () => {
     expect(hasFill(style.getStyle(building(), 1))).toBe(true);
     expect(hasStroke(style.getStyle(contour(), 1))).toBe(true);
     expect(texts(style.getStyle(spotHeight(), 1))).toContain('772');
+  });
+
+  it('are not drawn once unpicked', () => {
+    const style = styleWith(
+      DefaultOptions.otherLayers.filter((l) => l !== 'BUISGL' && l !== 'LNDELV')
+    );
+
+    expect(style.getStyle(building(), 1)).toBeUndefined();
+    expect(style.getStyle(contour(), 1)).toBeUndefined();
+    expect(style.getStyle(spotHeight(), 1)).toBeUndefined();
   });
 });
