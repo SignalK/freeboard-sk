@@ -4,6 +4,7 @@ import { AppFacade } from './app.facade';
 import { afterEach, beforeEach, expect, describe, it, vi } from 'vitest';
 import '@vitest/web-worker';
 import { MatMenuTrigger } from '@angular/material/menu';
+import { MatSidenav } from '@angular/material/sidenav';
 import { By } from '@angular/platform-browser';
 import { WritableSignal } from '@angular/core';
 import { RadarAPIService } from './modules/radar/radar-api.service';
@@ -284,6 +285,38 @@ describe('AppComponent', () => {
       expect(labels.indexOf("What's New")).toBeLessThan(
         labels.indexOf('Settings')
       );
+    });
+  });
+
+  describe('the side drawer, with the instrument app kept running', () => {
+    const drawer = (fixture: ComponentFixture<AppComponent>) =>
+      fixture.debugElement.query(By.directive(MatSidenav))
+        .componentInstance as MatSidenav;
+
+    const setup = () => {
+      const app = TestBed.inject(AppFacade);
+      app.config.display.plugins.instruments = '/@signalk/instrumentpanel';
+      app.config.display.plugins.startOnOpen = false;
+      const fixture = TestBed.createComponent(AppComponent);
+      return { app, fixture };
+    };
+
+    it('starts without an error, the drawer closed', () => {
+      const { fixture } = setup();
+      expect(() => fixture.detectChanges()).not.toThrow();
+      expect(drawer(fixture).opened).toBe(false);
+    });
+
+    it('closes the drawer with the instrument panel', () => {
+      const { app, fixture } = setup();
+      fixture.detectChanges();
+      app.instrumentPanel.set({ open: true, activate: true });
+      fixture.detectChanges();
+      expect(drawer(fixture).opened).toBe(true);
+
+      app.instrumentPanel.set({ open: false, activate: true });
+      fixture.detectChanges();
+      expect(drawer(fixture).opened).toBe(false);
     });
   });
 
