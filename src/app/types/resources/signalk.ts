@@ -66,6 +66,18 @@ export interface ChartImageAdjustment {
 }
 
 /**
+ * Where a chart hides the charts beneath it, as declared on the chart resource
+ * by its provider: per range of zooms, the Web Mercator tiles (`z/x/y`) it
+ * fills entirely, at every zoom from `minzoom` to `maxzoom` (without it, every
+ * zoom above). See signalk-charts-provider-simple's `docs/chart-coverage.md`.
+ */
+export type ChartCoverage = {
+  minzoom: number;
+  maxzoom?: number;
+  tiles: string[];
+}[];
+
+/**
  * Time dimension of a time-varying chart (weather radar, satellite, nowcast),
  * as declared on the chart resource by its provider — see the *Time-varying
  * charts* chart-resource convention in `docs/api/plotter-extensions-api.md`.
@@ -124,6 +136,8 @@ export type ChartResource = Omit<SKChartResource, 'type' | 'format'> & {
   // Time dimension of a time-varying chart. Absent means the chart is a single
   // static image (or the provider does not expose its frames).
   time?: ChartTimeDimension;
+  // Where the chart hides the charts beneath it (an S-57 chart).
+  coverage?: ChartCoverage;
   imageAdjustment?: ChartImageAdjustment;
   // Lowest zoom level the chart is drawn at, as a local display preference.
   // Distinct from the declared `minzoom`, which describes the tiles that exist.

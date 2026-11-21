@@ -16,6 +16,7 @@ import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
 import { setChartExtent } from './chart-utils';
+import { CHART_COVERAGE } from './chart-coverage';
 
 // ** Freeboard S-57 Chart **
 @Component({
@@ -77,11 +78,13 @@ export class S57ChartLayerComponent implements OnDestroy {
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
+        this.layer.set(CHART_COVERAGE, chart[1].coverage);
         map.addLayer(this.layer);
       }
     } else {
       this.layer.setZIndex(this.zIndex());
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
+      this.layer.set(CHART_COVERAGE, chart[1].coverage);
       setChartExtent(this.layer, chart[1].bounds, map);
     }
     map.render();
