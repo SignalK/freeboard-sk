@@ -349,8 +349,9 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
       .alert-row {
         position: relative;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 6px;
+        column-gap: 6px;
         min-height: 32px;
         margin-bottom: 3px;
         padding: 0 2px 0 6px;
@@ -385,8 +386,9 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
         height: 20px;
         font-size: 20px;
       }
+      /* Keeps room for some text; on a narrow panel the buttons wrap below it. */
       .alert-message {
-        flex: 1 1 auto;
+        flex: 1 1 120px;
         min-width: 0;
         white-space: nowrap;
         overflow: hidden;
@@ -394,7 +396,11 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
       }
       .alert-actions {
         flex: none;
+        max-width: 100%;
+        margin-left: auto;
         display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
         align-items: center;
       }
       .alert-actions .mat-mdc-icon-button {
