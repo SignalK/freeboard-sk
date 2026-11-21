@@ -68,6 +68,40 @@
       </div>
       @if (app.config.selections.tidalCurrentsEnabled) {
       <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 4px 0 14px;
+        "
+      >
+        <span style="font-size: 11px">Arrow density</span>
+        <mat-button-toggle-group
+          hideSingleSelectionIndicator
+          [value]="app.config.selections.tidalCurrentsDensity"
+          (change)="setTidalDensity($event.value)"
+          aria-label="Tidal current arrow density"
+          style="
+            --mat-button-toggle-height: 20px;
+            --mat-button-toggle-label-text-line-height: 20px;
+            --mat-button-toggle-label-text-size: 11px;
+          "
+        >
+          <mat-button-toggle
+            value="low"
+            matTooltip="Fewest arrows: for slower devices and servers"
+            >Low</mat-button-toggle
+          >
+          <mat-button-toggle value="standard">Standard</mat-button-toggle>
+          <mat-button-toggle
+            value="high"
+            matTooltip="Most arrows: more load on the device and server"
+            >High</mat-button-toggle
+          >
+        </mat-button-toggle-group>
+      </div>
+      <div
         style="margin-top: 6px; border-top: 1px solid #333; padding-top: 6px"
       >
         <!-- clickable/draggable 24h time bar -->

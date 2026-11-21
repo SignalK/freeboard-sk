@@ -19,6 +19,7 @@ import {
   type Options as S57Options
 } from './modules/map/ol/lib/charts/s57.service';
 import { DEFAULT_TAP_FADE_SPEED } from './modules/map/cursor-marker';
+import type { TidalCurrentsDensity } from './modules/map/ol/lib/tidal-currents.service';
 
 // A choice is checked only as a string or a number: a value a later release
 // adds must survive an earlier release reading and saving the same config, as
@@ -317,6 +318,7 @@ export const AppConfigSchema = Type.Object({
     weatherWindEnabled: bool(false),
     oceanCurrentsEnabled: bool(false),
     tidalCurrentsEnabled: bool(false),
+    tidalCurrentsDensity: choice<TidalCurrentsDensity>('standard'),
     chartsInViewOnly: bool(false) // chart list shows only charts in the map view
   })
 });

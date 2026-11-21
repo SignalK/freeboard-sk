@@ -4,6 +4,34 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 
+export type TidalCurrentsDensity = 'low' | 'standard' | 'high';
+
+// Low suits slow clients and Pi-class servers (Play refetches every step);
+// high gives the finest field the plugin can serve.
+const DENSITY: Record<
+  TidalCurrentsDensity,
+  { spacingPx: number; maxPoints: number }
+> = {
+  low: { spacingPx: 100, maxPoints: 200 },
+  standard: { spacingPx: 70, maxPoints: 600 },
+  high: { spacingPx: 50, maxPoints: 1500 }
+};
+const MIN_POINTS = 100;
+
+/** `/currents/grid` point budget for a map of the given size (CSS px). */
+export function gridPointBudget(
+  width: number,
+  height: number,
+  density: TidalCurrentsDensity = 'standard'
+): number {
+  // a value saved by a later release falls back to standard
+  const { spacingPx, maxPoints } = Object.hasOwn(DENSITY, density)
+    ? DENSITY[density]
+    : DENSITY.standard;
+  const n = Math.round((width * height) / (spacingPx * spacingPx));
+  return Math.max(MIN_POINTS, Math.min(maxPoints, n));
+}
+
 // Targets the `signalk-tidal-currents` plugin v0.2.0 `/currents/grid` response, e.g.:
 // { time: "2026-07-10T09:00:00.000Z",
 //   units: { speedKn: "knots (magnitude)", u: "m/s east", v: "m/s north" },
@@ -138,10 +166,11 @@ export class TidalCurrentsService {
 
   getGridCurrents(
     bbox: [number, number, number, number],
-    time?: Date
+    time?: Date,
+    maxPoints = 200
   ): Observable<TidalCurrentGridResponse> {
     const [w, s, e, n] = bbox;
-    let url = `/currents/grid?bbox=${encodeURIComponent(`${w},${s},${e},${n}`)}&maxPoints=200`;
+    let url = `/currents/grid?bbox=${encodeURIComponent(`${w},${s},${e},${n}`)}&maxPoints=${maxPoints}`;
     if (time) {
       url += `&time=${encodeURIComponent(time.toISOString())}`;
     }

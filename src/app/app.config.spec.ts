@@ -262,6 +262,19 @@ describe('cleanConfig() legacy migration', () => {
     expect(cfg.display.splitView).toBe(true);
   });
 
+  it('draws tidal current arrows at standard density by default', () => {
+    expect(defaultConfig().selections.tidalCurrentsDensity).toBe('standard');
+  });
+
+  it('keeps a tidal current density a later release added', () => {
+    const cfg = defaultConfig() as unknown as {
+      selections: { tidalCurrentsDensity: string };
+    };
+    cfg.selections.tidalCurrentsDensity = 'ultra';
+    cleanConfig(cfg as unknown as LegacyAppConfig, {});
+    expect(cfg.selections.tidalCurrentsDensity).toBe('ultra');
+  });
+
   it('shows the position bar by default', () => {
     expect(defaultConfig().display.positionBar).toBe(true);
   });

@@ -13,9 +13,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 
 import { AppFacade } from 'src/app/app.facade';
-import { TidalCurrentsService } from 'src/app/modules/map/ol/lib/tidal-currents.service';
+import {
+  TidalCurrentsDensity,
+  TidalCurrentsService
+} from 'src/app/modules/map/ol/lib/tidal-currents.service';
 
 @Component({
   selector: 'weather-list',
@@ -29,7 +33,8 @@ import { TidalCurrentsService } from 'src/app/modules/map/ol/lib/tidal-currents.
     MatCardModule,
     MatCheckboxModule,
     MatButtonModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatButtonToggleModule
   ]
 })
 export class WeatherListComponent implements OnDestroy {
@@ -174,6 +179,14 @@ export class WeatherListComponent implements OnDestroy {
       this.currents.pause();
     }
     this.app.config.selections.tidalCurrentsEnabled = checked;
+    this.app.saveConfig();
+  }
+
+  protected setTidalDensity(density: TidalCurrentsDensity) {
+    if (!this.app.config?.selections) {
+      return;
+    }
+    this.app.config.selections.tidalCurrentsDensity = density;
     this.app.saveConfig();
   }
 }

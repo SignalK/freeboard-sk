@@ -29,6 +29,8 @@ import { FeatureLike } from 'ol/Feature';
 import { fromLonLat, transformExtent } from 'ol/proj';
 
 import {
+  gridPointBudget,
+  TidalCurrentsDensity,
   TidalCurrentsService,
   TidalCurrentGridResponse
 } from '../tidal-currents.service';
@@ -45,6 +47,7 @@ import { AppFacade } from 'src/app/app.facade';
 export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
   @Input() show = false;
   @Input() opacity = 0.7;
+  @Input() density: TidalCurrentsDensity = 'standard';
 
   private layer?: VectorLayer<VectorSource>;
   private source?: VectorSource;
@@ -108,7 +111,10 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       opacity: this.normalizedOpacity,
       zIndex: this.zIndex,
       visible: this.show,
-      style: (feature) => this.currentsStyleFunction(feature)
+      style: (feature) => this.currentsStyleFunction(feature),
+      // own group, so chart labels don't hide arrows
+      declutter: 'tidal-currents',
+      renderOrder: (a, b) => Number(a.get('rank')) - Number(b.get('rank'))
     });
     this.layer.set('id', 'tidal-currents');
     map.addLayer(this.layer);
@@ -159,7 +165,11 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
     }
 
     return this.currents
-      .getGridCurrents(bbox, this.currents.selectedTime() ?? undefined)
+      .getGridCurrents(
+        bbox,
+        this.currents.selectedTime() ?? undefined,
+        this.maxPoints()
+      )
       .pipe(
         tap((response) => this.renderCurrents(response.points)),
         catchError(() => {
@@ -167,6 +177,11 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
           return of<TidalCurrentGridResponse | null>(null);
         })
       );
+  }
+
+  private maxPoints(): number {
+    const [width, height] = this.mapComponent.getMap()?.getSize() ?? [0, 0];
+    return gridPointBudget(width, height, this.density);
   }
 
   private getBbox(): [number, number, number, number] | null {
@@ -194,11 +209,13 @@ export class TidalCurrentsLayerComponent implements OnChanges, OnDestroy {
       return;
     }
     this.source.clear();
+    // stations come last in the response; draw them first so declutter keeps them
     const features = points.map((point, index) => {
       const feature = new Feature({
         geometry: new Point(fromLonLat([point.longitude, point.latitude])),
         driftKts: point.speedKn,
-        setDeg: point.direction
+        setDeg: point.direction,
+        rank: points.length - 1 - index
       });
       feature.setId('tidal.' + index);
       const speedLabel = this.currents.formatSpeed(point.speedKn);
