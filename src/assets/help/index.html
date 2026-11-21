@@ -2549,7 +2549,11 @@
 
           <b>Auto-advance to next point on arrival</b>: Check this option to
           automatically advance to the next route point once the target
-          notification has been received.<br />
+          notification has been received. A Signal K server whose course setting
+          <i>autoAdvance</i> is on moves the route on by itself at every point
+          but the last; Freeboard then leaves those points to the server and
+          offers no advance of its own, and this option (with its trigger and
+          delay) applies only at the route's last point.<br />
 
           <b>Notification type to use</b>: Select the notification from the
           server to use to trigger the advancement to the next point.<br />

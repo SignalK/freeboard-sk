@@ -341,6 +341,33 @@ export class CourseService {
   }
 
   /**
+   * Whether the server moves the followed route on to the next point by
+   * itself. Read at each arrival, since the server publishes no change of the
+   * setting; a server without it, or a failed read, does not advance.
+   */
+  async serverAdvancesRoute(): Promise<boolean> {
+    try {
+      const course = (await firstValueFrom(
+        this.signalk.api.get(
+          this.app.skApiVersion,
+          'vessels/self/navigation/course'
+        )
+      )) as { autoAdvance?: string; arrivalCircle?: number } | null;
+      switch (course?.autoAdvance) {
+        case 'perpendicular':
+        case 'either':
+          return true;
+        case 'arrivalCircle':
+          return (course.arrivalCircle ?? 0) > 0;
+        default:
+          return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * A route hidden while it was followed leaves the map once another route,
    * or none, is followed.
    */
