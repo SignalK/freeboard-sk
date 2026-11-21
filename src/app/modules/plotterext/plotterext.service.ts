@@ -1370,6 +1370,11 @@ export class PlotterExtensionService {
   private ws: WebSocket | null = null;
   private wsReady = false;
   private pathRefs = new Map<string, number>();
+  // Paths subscribed on the current socket, each with the path as its
+  // subscriptionId
+  private socketPaths = new Set<string>();
+  /** The server's hello listed `subscriptionIds`: it can end one subscription */
+  private canUnsubscribeById = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -3663,11 +3668,15 @@ export class PlotterExtensionService {
         this.pathRefs.set(path, count - 1);
       }
     }
-    if (gone.length && this.wsReady) {
+    // A server without subscription ids closes the connection on any
+    // unsubscribe but unsubscribe-all, so there the paths stay subscribed
+    // and handleDelta drops their deltas.
+    if (gone.length && this.wsReady && this.canUnsubscribeById) {
       this.wsSend({
-        context: 'vessels.self',
-        unsubscribe: gone.map((path) => ({ path }))
+        context: '*',
+        unsubscribe: gone.map((path) => ({ subscriptionId: path }))
       });
+      gone.forEach((path) => this.socketPaths.delete(path));
     }
     if (this.pathRefs.size === 0) {
       this.closeSocket();
@@ -3692,6 +3701,8 @@ export class PlotterExtensionService {
     this.ws = ws;
     ws.onopen = () => {
       this.wsReady = true;
+      this.socketPaths.clear();
+      this.canUnsubscribeById = false;
       const paths = [...this.pathRefs.keys()];
       if (paths.length) this.sendSubscribe(paths);
     };
@@ -3725,15 +3736,22 @@ export class PlotterExtensionService {
 
   private sendSubscribe(paths: string[]) {
     if (!this.wsReady) return;
-    this.wsSend({
-      context: 'vessels.self',
-      subscribe: paths.map((path) => ({
-        path,
-        period: SK_PATH_PERIOD,
-        policy: 'instant',
-        minPeriod: 200
-      }))
-    });
+    for (const path of paths) {
+      if (this.socketPaths.has(path)) continue;
+      this.socketPaths.add(path);
+      this.wsSend({
+        context: 'vessels.self',
+        subscriptionId: path,
+        subscribe: [
+          {
+            path,
+            period: SK_PATH_PERIOD,
+            policy: 'instant',
+            minPeriod: 200
+          }
+        ]
+      });
+    }
   }
 
   private wsSend(msg: unknown) {
@@ -3744,6 +3762,7 @@ export class PlotterExtensionService {
 
   private handleDelta(raw: unknown) {
     let delta: {
+      capabilities?: unknown;
       updates?: Array<{
         timestamp?: string;
         $source?: string;
@@ -3755,6 +3774,9 @@ export class PlotterExtensionService {
       delta = JSON.parse(raw as string);
     } catch {
       return;
+    }
+    if (Array.isArray(delta.capabilities)) {
+      this.canUnsubscribeById = delta.capabilities.includes('subscriptionIds');
     }
     if (!Array.isArray(delta.updates)) return;
     for (const update of delta.updates) {
