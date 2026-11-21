@@ -58,8 +58,13 @@ class S57LayerStyler extends VectorLayerStyler {
     vectorLayer.setMaxZoom(23);
     vectorLayer.setRenderOrder(style.renderOrder);
 
+    // A refresh changes how the features look, not which features there are,
+    // so the loaded tiles are drawn again rather than fetched again: a refetch
+    // blanks the chart and shows the charts beneath it until its tiles are
+    // back, twice on every page load as the symbols and then their image
+    // arrive.
     this.s57service.refresh.subscribe(() => {
-      source.refresh();
+      vectorLayer.changed();
     });
   }
 }
