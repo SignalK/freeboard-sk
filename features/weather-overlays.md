@@ -40,6 +40,15 @@ resources list):
   to see how currents shift through the day, with **Play** to animate
   through time and **Now** to jump back to the current moment.
 
+  Once the layer is on, an **Arrow density** choice — **Low**, **Standard**
+  (the default) or **High** — sits under the toggle and sets how closely the
+  arrows are spaced. The spacing stays roughly the same on screen, so a larger
+  map shows more arrows, and arrows that would overlap are thinned out,
+  keeping a station's own reading over a nearby grid point. Choose Low on a
+  slower device or when the server runs on a Raspberry Pi, especially while
+  playing the tide forward; High shows the finest detail the plugin has, at
+  the cost of more work for the device and the server.
+
 Both current arrows can also be replaced with custom artwork through a symbol
 provider plugin, each under its own well-known id — `oceanCurrentIndicator-arrow`
 and `tidalCurrentIndicator-arrow` — so the two overlays stay distinguishable

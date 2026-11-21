@@ -212,5 +212,6 @@
   { "feature": "s57-charts", "pr": 1367, "kind": "enhanced", "since": "v3.5.0-beta.3", "date": "2026-11-20", "title": "feat(charts): draw buildings and land elevation by default" },
   { "feature": null, "pr": 1360, "kind": "skip", "reason": "removal: ResourceSets and the custom resource paths setting were removed (#1355); no feature doc to update, announced in the release notes" },
   { "feature": null, "pr": 1363, "kind": "skip", "reason": "performance only: the top chart's tiles load before the charts beneath it, so a faster layer underneath no longer shows first on every zoom; no new control or setting" },
-  { "feature": null, "pr": 1370, "kind": "skip", "reason": "deprecation notice only: a one-time popup on the Instruments button points users to the Freeboard Companion Apps plugin ahead of the panel's removal (#883); no new capability to document" }
+  { "feature": null, "pr": 1370, "kind": "skip", "reason": "deprecation notice only: a one-time popup on the Instruments button points users to the Freeboard Companion Apps plugin ahead of the panel's removal (#883); no new capability to document" },
+  { "feature": "weather-overlays", "pr": 1353, "kind": "enhanced", "date": "2026-11-21", "title": "feat(weather): scale tidal current arrows to the map size, with a density choice" }
 ]
