@@ -6,7 +6,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting
 } from '@angular/common/http/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Feature } from 'ol';
 import { Point, Polygon } from 'ol/geom';
 
@@ -113,25 +113,21 @@ describe('S57Style — lookups chosen before a change', () => {
     expect(style.getStyle(land, 10)?.length).toBeGreaterThan(0);
   });
 
-  it('chooses a lookup again after the options change, not before', () => {
+  it('styles a feature drawn before an options change like a new one after it', () => {
     service.fetchSymbols();
     TestBed.inject(HttpTestingController)
       .expectOne('assets/s57/chartsymbols.xml')
       .flush(chartSymbolsXml);
     const style = new S57Style(service);
-    const restricted = area('RESARE');
-    const select = vi.spyOn(service, 'selectLookup');
-
-    style.getStyle(restricted, 10);
-    style.getStyle(restricted, 10);
-    expect(select).toHaveBeenCalledTimes(1);
-
-    service.setOptions({ ...DefaultOptions });
-    style.getStyle(restricted, 10);
-    expect(select).toHaveBeenCalledTimes(1);
+    // a fairway's boundary is a dashed line under Plain boundaries and a
+    // complex line, which this renderer does not draw, under Symbolized
+    const fairway = area('FAIRWY');
+    const plain = style.getStyle(fairway, 10);
 
     service.setOptions({ ...DefaultOptions, boundaries: 'Symbolized' });
-    style.getStyle(restricted, 10);
-    expect(select).toHaveBeenCalledTimes(2);
+
+    const symbolized = style.getStyle(area('FAIRWY'), 10);
+    expect(symbolized).not.toEqual(plain);
+    expect(style.getStyle(fairway, 10)).toEqual(symbolized);
   });
 });
