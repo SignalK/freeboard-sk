@@ -268,6 +268,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   <button
                     mat-icon-button
                     matTooltip="End route"
+                    aria-label="End route"
                     [disabled]="nextPointClicked"
                     (click)="endRoute()"
                   >
@@ -277,6 +278,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   <button
                     mat-icon-button
                     matTooltip="Next point"
+                    aria-label="Next point"
                     [disabled]="nextPointClicked"
                     (click)="gotoNextPoint()"
                   >
@@ -289,6 +291,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
               <button
                 mat-icon-button
                 [matTooltip]="alert().silenced ? 'Muted' : 'Mute'"
+                [attr.aria-label]="alert().silenced ? 'Muted' : 'Mute'"
                 [disabled]="alert().silenced"
                 (click)="muteAlarm()"
               >
@@ -306,12 +309,18 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
               <button
                 mat-icon-button
                 matTooltip="Acknowledge"
+                aria-label="Acknowledge"
                 (click)="ackAlarm()"
               >
                 <mat-icon>check</mat-icon>
               </button>
             } @else {
-              <button mat-icon-button matTooltip="Dismiss" (click)="hide()">
+              <button
+                mat-icon-button
+                matTooltip="Dismiss"
+                aria-label="Dismiss"
+                (click)="hide()"
+              >
                 <mat-icon>close</mat-icon>
               </button>
             }
