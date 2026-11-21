@@ -110,6 +110,7 @@ const COMPARED_KEYS = [
   'pressed',
   'disabled',
   'badge',
+  'pulse',
   'menu',
   'overflowAnchor',
   'pinned'
