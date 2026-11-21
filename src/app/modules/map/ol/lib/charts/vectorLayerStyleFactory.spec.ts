@@ -42,6 +42,36 @@ describe('S-57 chart refresh', () => {
     expect(refetch).not.toHaveBeenCalled();
     expect(layer.getRevision()).toBeGreaterThan(revision);
   });
+
+  // OpenLayers sorts a loaded tile's features again only for a new render
+  // order function; the sort is where display priority and the safe contour
+  // are worked out.
+  it('sorts the loaded features again, in the S-57 order', () => {
+    const service = {
+      refresh: new Subject<void>(),
+      lookupRevision: 0,
+      options: { safetyDepth: 3 },
+      selectLookup: () => -1,
+      fetchSymbols: () => undefined
+    } as unknown as S57Service;
+    const styler = new VectorLayerStyleFactory(service).CreateVectorLayerStyler(
+      chart
+    )!;
+    const layer = styler.CreateLayer();
+    styler.ApplyStyle(layer);
+    const before = layer.getRenderOrder();
+
+    service.refresh.next();
+
+    const after = layer.getRenderOrder();
+    expect(after).toBeTypeOf('function');
+    expect(after).not.toBe(before);
+    const sea = new Feature({ layer: 'SEAARE' });
+    const land = new Feature({ layer: 'LNDARE' });
+    const reference = new S57Style(service).renderOrder;
+    expect(Math.sign(after!(sea, land))).toBe(Math.sign(reference(sea, land)));
+    expect(Math.sign(after!(land, sea))).toBe(Math.sign(reference(land, sea)));
+  });
 });
 
 describe('S57Style lookup cache', () => {

@@ -62,8 +62,12 @@ class S57LayerStyler extends VectorLayerStyler {
     // so the loaded tiles are drawn again rather than fetched again: a refetch
     // blanks the chart and shows the charts beneath it until its tiles are
     // back, twice on every page load as the symbols and then their image
-    // arrive.
+    // arrive. OpenLayers sorts a loaded tile's features again only when the
+    // render order function changes, and the sort is where a feature's display
+    // priority and the safe contour are worked out, so each refresh hands it a
+    // new one.
     this.s57service.refresh.subscribe(() => {
+      vectorLayer.setRenderOrder((a, b) => style.renderOrder(a, b));
       vectorLayer.changed();
     });
   }
