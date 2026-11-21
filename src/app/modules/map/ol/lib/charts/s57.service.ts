@@ -142,6 +142,12 @@ export class S57Service {
   private lookupStartIndex: Map<string, number> = new Map<string, number>();
   private styles: Map<string, Style> = new Map<string, Style>();
   public refresh: Subject<void> = new Subject<void>();
+  /**
+   * Counts the changes that can change which lookup a feature takes: the
+   * lookups loading and the options changing. A lookup chosen for a feature
+   * holds only under the revision it was chosen in.
+   */
+  public lookupRevision = 0;
   private symbolsLoaded = false;
 
   //options
@@ -173,6 +179,7 @@ export class S57Service {
             this.processColors(symbolsJs);
           });
           this.symbolsLoaded = true;
+          this.lookupRevision++;
           this.refresh.next();
           const image = new Image();
           image.onload = () => {
@@ -198,6 +205,7 @@ export class S57Service {
         this.styles = new Map<string, Style>();
       }
       this.selectedColorTable = this.options.colorTable;
+      this.lookupRevision++;
       this.refresh.next();
     }
   }

@@ -6,7 +6,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting
 } from '@angular/common/http/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Feature } from 'ol';
 import { Point, Polygon } from 'ol/geom';
 
@@ -84,5 +84,54 @@ describe('S57Service.selectLookup — first key of the lookup list', () => {
 
     expect(index).toBeGreaterThanOrEqual(0);
     expect(service.getLookup(index).name).toBe(first.name);
+  });
+});
+
+// A tile's features keep the lookup chosen for them; the chart layer only
+// redraws them when the symbols arrive or the options change.
+describe('S57Style — lookups chosen before a change', () => {
+  let service: S57Service;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()]
+    });
+    service = TestBed.inject(S57Service);
+    service.init({ ...DefaultOptions });
+  });
+
+  it('styles a feature drawn before the symbols arrived once they have', () => {
+    const style = new S57Style(service);
+    const land = area('LNDARE');
+    expect(style.getStyle(land, 10)).toBeUndefined();
+
+    service.fetchSymbols();
+    TestBed.inject(HttpTestingController)
+      .expectOne('assets/s57/chartsymbols.xml')
+      .flush(chartSymbolsXml);
+
+    expect(style.getStyle(land, 10)?.length).toBeGreaterThan(0);
+  });
+
+  it('chooses a lookup again after the options change, not before', () => {
+    service.fetchSymbols();
+    TestBed.inject(HttpTestingController)
+      .expectOne('assets/s57/chartsymbols.xml')
+      .flush(chartSymbolsXml);
+    const style = new S57Style(service);
+    const restricted = area('RESARE');
+    const select = vi.spyOn(service, 'selectLookup');
+
+    style.getStyle(restricted, 10);
+    style.getStyle(restricted, 10);
+    expect(select).toHaveBeenCalledTimes(1);
+
+    service.setOptions({ ...DefaultOptions });
+    style.getStyle(restricted, 10);
+    expect(select).toHaveBeenCalledTimes(1);
+
+    service.setOptions({ ...DefaultOptions, boundaries: 'Symbolized' });
+    style.getStyle(restricted, 10);
+    expect(select).toHaveBeenCalledTimes(2);
   });
 });

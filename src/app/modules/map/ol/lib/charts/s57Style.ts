@@ -13,9 +13,14 @@ const DRGARE = 46; // Dredged area
 const DEPARE = 42; // Depth Area
 
 const LOOKUPINDEXKEY = '$lupIndex';
+const LOOKUPREVISIONKEY = '$lupRevision';
 
-// the selected lookup is cached on the feature object itself
-type LookupCachedFeature = FeatureLike & { [LOOKUPINDEXKEY]?: number };
+// the selected lookup is cached on the feature object itself, with the
+// service's lookup revision it was chosen under
+type LookupCachedFeature = FeatureLike & {
+  [LOOKUPINDEXKEY]?: number;
+  [LOOKUPREVISIONKEY]?: number;
+};
 
 type TextStyleConfig = {
   textAlign: CanvasTextAlign;
@@ -1133,18 +1138,8 @@ export class S57Style {
     // Proper fix: compute safe contour in a pre-render pass over all features.
     const o1 = this.updateSafeContour(feature1);
     const o2 = this.updateSafeContour(feature2);
-    const cached1 = feature1 as LookupCachedFeature;
-    const cached2 = feature2 as LookupCachedFeature;
-    let lupIndex1 = cached1[LOOKUPINDEXKEY];
-    let lupIndex2 = cached2[LOOKUPINDEXKEY];
-    if (!lupIndex1) {
-      lupIndex1 = this.s57Service.selectLookup(feature1);
-      cached1[LOOKUPINDEXKEY] = lupIndex1;
-    }
-    if (!lupIndex2) {
-      lupIndex2 = this.s57Service.selectLookup(feature2);
-      cached2[LOOKUPINDEXKEY] = lupIndex2;
-    }
+    const lupIndex1 = this.lookupIndex(feature1);
+    const lupIndex2 = this.lookupIndex(feature2);
 
     if (l1 !== l2) {
       return l1 - l2;
@@ -1165,17 +1160,29 @@ export class S57Style {
     return 0;
   };
 
+  /**
+   * The lookup a feature takes, chosen again once the lookups have loaded or
+   * the options have changed: a feature drawn before the symbols arrived
+   * would otherwise keep "no lookup" for as long as its tile is loaded.
+   */
+  private lookupIndex(feature: FeatureLike): number {
+    const cached = feature as LookupCachedFeature;
+    const revision = this.s57Service.lookupRevision;
+    let lupIndex = cached[LOOKUPINDEXKEY];
+    if (lupIndex === undefined || cached[LOOKUPREVISIONKEY] !== revision) {
+      lupIndex = this.s57Service.selectLookup(feature);
+      cached[LOOKUPINDEXKEY] = lupIndex;
+      cached[LOOKUPREVISIONKEY] = revision;
+    }
+    return lupIndex;
+  }
+
   public getStyle = (
     feature: FeatureLike,
     resolution: number
   ): Style[] | undefined => {
     this.currentResolution = resolution;
-    const cached = feature as LookupCachedFeature;
-    let lupIndex = cached[LOOKUPINDEXKEY];
-    if (lupIndex === undefined || lupIndex === null) {
-      lupIndex = this.s57Service.selectLookup(feature);
-      cached[LOOKUPINDEXKEY] = lupIndex;
-    }
+    const lupIndex = this.lookupIndex(feature);
     if (lupIndex >= 0) {
       const lup = this.s57Service.getLookup(lupIndex);
       // simple feature filter
