@@ -119,15 +119,15 @@ mat-nav-list {
 .alarmPanel {
     position: absolute;
     z-index: 4902;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(560px, calc(100vw - 260px));
+    /* Top left, clear of the left toolbar, the zoom buttons and the north arrow. */
+    top: 56px;
+    left: 110px;
+    width: min(440px, calc(100vw - 170px));
 }
 
-/* About three rows; the rest scroll and are counted on the Alarms button. */
+/* About four rows; the rest scroll and are counted on the Alarms button. */
 .alarmRows {
-    max-height: 150px;
+    max-height: 140px;
     overflow-y: auto;
 }
 

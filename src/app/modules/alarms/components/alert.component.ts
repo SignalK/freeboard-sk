@@ -342,9 +342,10 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
         display: flex;
         align-items: center;
         gap: 6px;
-        min-height: 40px;
-        margin-bottom: 4px;
-        padding: 0 4px 0 8px;
+        min-height: 32px;
+        margin-bottom: 3px;
+        padding: 0 2px 0 6px;
+        font-size: 13px;
         border-left: 5px solid var(--alert-color, gray);
         border-radius: 6px;
         overflow: hidden;
@@ -371,6 +372,9 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
       }
       .alert-icon {
         flex: none;
+        width: 20px;
+        height: 20px;
+        font-size: 20px;
       }
       .alert-message {
         flex: 1 1 auto;
@@ -383,6 +387,12 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
         flex: none;
         display: flex;
         align-items: center;
+      }
+      .alert-actions .mat-mdc-icon-button {
+        width: 32px;
+        height: 32px;
+        padding: 4px;
+        --mat-icon-button-state-layer-size: 32px;
       }
       .alert-timer {
         position: absolute;
