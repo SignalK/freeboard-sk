@@ -27,11 +27,18 @@ describe('alertTier', () => {
     );
   });
 
+  it('shows a dragging anchor or shallow water as a card from alarm on, otherwise only on the button', () => {
+    for (const type of ['anchor', 'depth']) {
+      expect(alertTier({ priority: ALARM_STATE.alarm, type })).toBe('card');
+      expect(alertTier({ priority: ALARM_STATE.warn, type })).toBe('button');
+    }
+  });
+
   it('shows another alarm as a row', () => {
     expect(
       alertTier({ priority: ALARM_STATE.alarm, type: 'notification' })
     ).toBe('row');
-    expect(alertTier({ priority: ALARM_STATE.alarm, type: 'drift' })).toBe(
+    expect(alertTier({ priority: ALARM_STATE.alarm, type: 'buddy' })).toBe(
       'row'
     );
   });

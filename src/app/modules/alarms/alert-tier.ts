@@ -15,6 +15,13 @@ export const STANDARD_ALARM_TYPES: ReadonlySet<string> = new Set([
   'aground'
 ]);
 
+/** Alerts that need acting on at once from `alarm` on, like a standard alarm. */
+const URGENT_FROM_ALARM_TYPES: ReadonlySet<string> = new Set([
+  'cpa',
+  'anchor',
+  'depth'
+]);
+
 /** Alerts that offer to move on along the active route. */
 const ROUTE_ARRIVAL_TYPES: ReadonlySet<string> = new Set([
   'perpendicularPassed',
@@ -39,7 +46,7 @@ export function alertTier(alert: {
   if (type && STANDARD_ALARM_TYPES.has(type)) {
     return 'card';
   }
-  if (type === 'cpa') {
+  if (type && URGENT_FROM_ALARM_TYPES.has(type)) {
     return priority === ALARM_STATE.alarm ? 'card' : 'button';
   }
   if (priority === ALARM_STATE.alarm) {
