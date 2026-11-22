@@ -216,5 +216,5 @@
   { "feature": "weather-overlays", "pr": 1353, "kind": "enhanced", "since": "v3.5.0-beta.4", "date": "2026-11-21", "title": "feat(weather): scale tidal current arrows to the map size, with a density choice" },
   { "feature": null, "pr": 1378, "kind": "skip", "reason": "performance only: skips loading tiles under an opaque S-57 chart where the provider has published it draws them fully; no new control or setting" },
   { "feature": "alerts", "kind": "new", "since": "v1.8.0-rc1", "date": "2018-09-12", "title": "0.1.0 Port to Angular framework" },
-  { "feature": "alerts", "pr": 1376, "kind": "enhanced", "date": "2026-11-22", "title": "feat(alarms): keep routine alerts off the chart and show the rest compactly" }
+  { "feature": "alerts", "pr": 1376, "kind": "enhanced", "since": "v3.5.0-beta.5", "date": "2026-11-22", "title": "feat(alarms): keep routine alerts off the chart and show the rest compactly" }
 ]
