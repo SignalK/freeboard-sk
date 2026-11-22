@@ -16,10 +16,13 @@ import TileJSON from 'ol/source/TileJSON';
 import XYZ from 'ol/source/XYZ';
 import { DROP } from 'ol/structs/PriorityQueue';
 import Tile from 'ol/Tile';
+import TileState from 'ol/TileState';
 import { getUid } from 'ol/util';
+import { CHART_COVERAGE } from './charts/chart-coverage';
 import {
   CHART_RANK_STEP,
   CHART_VARIES,
+  hiddenBeneath,
   isServedHere,
   levelsCoarser,
   LEVEL_STEP,
@@ -426,5 +429,161 @@ describe('TopFirstMap', () => {
       []
     );
     expect(map.getTilePriority(tile, keyOf(layer), [0, 0], 2.4)).toBe(DROP);
+  });
+});
+
+// An S-57 chart filling 10/315/381 from z9 to z12, and z13/2485/3060 on.
+const coverage = [
+  { minzoom: 9, maxzoom: 12, tiles: ['10/315/381'] },
+  { minzoom: 12, tiles: ['13/2485/3060'] }
+];
+const s57 = (zIndex: number) => {
+  const layer = tiles(zIndex);
+  layer.set(CHART_COVERAGE, coverage);
+  return layer;
+};
+// The frame of a map drawn at level `z`, as OpenLayers hands it on.
+const frameAt = (group: LayerGroup, z: number, wanted = {}) =>
+  ({
+    viewState: {
+      center: [0, 0],
+      resolution: resolutionAt(z),
+      zoom: z,
+      projection: mercator,
+      rotation: 0
+    },
+    layerStatesArray: group.getLayerStatesArray(),
+    wantedTiles: wanted
+  }) as unknown as FrameState;
+
+describe('hiddenBeneath', () => {
+  it('hides the sources beneath an opaque chart with coverage, at its zooms', () => {
+    const satellite = tiles(10);
+    const chart = s57(20);
+    const seamarks = online(30);
+    const group = new LayerGroup({ layers: [satellite, chart, seamarks] });
+
+    const at11 = hiddenBeneath(frameAt(group, 11));
+    expect([...at11.keys()]).toEqual([keyOf(satellite)]);
+    expect(at11.get(keyOf(satellite))?.entries.map((e) => e.minzoom)).toEqual([
+      9
+    ]);
+    expect(
+      hiddenBeneath(frameAt(group, 14))
+        .get(keyOf(satellite))
+        ?.entries.map((e) => e.minzoom)
+    ).toEqual([12]);
+    expect(hiddenBeneath(frameAt(group, 8)).size).toBe(0);
+  });
+
+  it('hides nothing beneath a translucent, hidden or out-of-range chart', () => {
+    const satellite = tiles(10);
+    const chart = s57(20);
+    const group = new LayerGroup({ layers: [satellite, chart] });
+    chart.setOpacity(0.8);
+    expect(hiddenBeneath(frameAt(group, 11)).size).toBe(0);
+    chart.setOpacity(1);
+    chart.setVisible(false);
+    expect(hiddenBeneath(frameAt(group, 11)).size).toBe(0);
+    chart.setVisible(true);
+    chart.setMaxZoom(10);
+    expect(hiddenBeneath(frameAt(group, 11)).size).toBe(0);
+  });
+
+  it('leaves a source on a grid of its own alone', () => {
+    const own = new TileLayer({
+      source: new XYZ({
+        url: 'x/{z}/{x}/{y}',
+        tileGrid: new TileGrid({
+          extent: mercator.getExtent(),
+          resolutions: createXYZ()
+            .getResolutions()
+            .map((r) => r * 1.2)
+        })
+      }),
+      zIndex: 10
+    });
+    const group = new LayerGroup({ layers: [own, s57(20)] });
+    expect(hiddenBeneath(frameAt(group, 11)).size).toBe(0);
+  });
+});
+
+describe('TopFirstMap under coverage', () => {
+  // A map that drew a frame at `z` wanting `tile` from `lower`.
+  const drawn = (map: TopFirstMap, z: number, lower: TileLayer, tile: Tile) => {
+    const frame = frameAt(map.getLayerGroup(), z, {
+      [keyOf(lower)]: { [tile.getKey()]: true }
+    });
+    (map as unknown as { frameState_: FrameState }).frameState_ = frame;
+    map.dispatchEvent(new MapEvent('postrender', map, frame));
+  };
+  const tileOf = (layer: TileLayer, z: number, x: number, y: number) =>
+    (layer.getSource() as XYZ).getTile(z, x, y, 1, mercator);
+
+  it('sets a covered tile empty instead of loading it, and rebuilds it once uncovered', () => {
+    const satellite = tiles(10);
+    const chart = s57(20);
+    const map = new TopFirstMap();
+    [satellite, chart].forEach((layer) => map.addLayer(layer));
+    const covered = tileOf(satellite, 12, 315 * 4 + 1, 381 * 4 + 2);
+
+    drawn(map, 12, satellite, covered);
+    expect(
+      map.getTilePriority(covered, keyOf(satellite), [0, 0], resolutionAt(12))
+    ).toBe(DROP);
+    expect(covered.getState()).toBe(TileState.EMPTY);
+
+    const before = satellite.getSource()?.getKey();
+    chart.setOpacity(0.5);
+    drawn(map, 12, satellite, covered);
+    map.getTilePriority(covered, keyOf(satellite), [0, 0], resolutionAt(12));
+    expect(satellite.getSource()?.getKey()).not.toBe(before);
+    const rebuilt = tileOf(satellite, 12, 315 * 4 + 1, 381 * 4 + 2);
+    drawn(map, 12, satellite, rebuilt);
+    expect(
+      map.getTilePriority(rebuilt, keyOf(satellite), [0, 0], resolutionAt(12))
+    ).not.toBe(DROP);
+    expect(rebuilt.getState()).toBe(TileState.IDLE);
+  });
+
+  it('keeps the source as it is while the same coverage hides it', () => {
+    const satellite = tiles(10);
+    const map = new TopFirstMap();
+    [satellite, s57(20)].forEach((layer) => map.addLayer(layer));
+    const before = satellite.getSource()?.getKey();
+    const covered = tileOf(satellite, 12, 315 * 4, 381 * 4);
+    // At z12 a second entry holds as well.
+    drawn(map, 11, satellite, covered);
+    map.getTilePriority(covered, keyOf(satellite), [0, 0], resolutionAt(12));
+    drawn(map, 12, satellite, covered);
+    map.getTilePriority(covered, keyOf(satellite), [0, 0], resolutionAt(12));
+    expect(satellite.getSource()?.getKey()).toBe(before);
+  });
+
+  it('loads a tile outside the coverage as before', () => {
+    const satellite = tiles(10);
+    const map = new TopFirstMap();
+    [satellite, s57(20)].forEach((layer) => map.addLayer(layer));
+    const open = tileOf(satellite, 12, 316 * 4, 381 * 4);
+    drawn(map, 12, satellite, open);
+    expect(
+      map.getTilePriority(open, keyOf(satellite), [0, 0], resolutionAt(12))
+    ).not.toBe(DROP);
+    expect(open.getState()).toBe(TileState.IDLE);
+  });
+
+  it('rebuilds the tiles when the map is zoomed past the coverage', () => {
+    const satellite = tiles(10);
+    const map = new TopFirstMap();
+    [satellite, s57(20)].forEach((layer) => map.addLayer(layer));
+    // Listed for z9 to z12 only: at z13 the chart fills 13/2485/3060 alone.
+    const covered = tileOf(satellite, 11, 315 * 2, 381 * 2);
+    drawn(map, 11, satellite, covered);
+    map.getTilePriority(covered, keyOf(satellite), [0, 0], resolutionAt(11));
+    expect(covered.getState()).toBe(TileState.EMPTY);
+    const before = satellite.getSource()?.getKey();
+    drawn(map, 13, satellite, covered);
+    map.getTilePriority(covered, keyOf(satellite), [0, 0], resolutionAt(11));
+    expect(satellite.getSource()?.getKey()).not.toBe(before);
   });
 });

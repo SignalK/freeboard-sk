@@ -5,13 +5,23 @@ import MapEvent from 'ol/MapEvent';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
-import Layer from 'ol/layer/Layer';
+import Layer, { inView } from 'ol/layer/Layer';
 import TileJSON from 'ol/source/TileJSON';
 import TileSource from 'ol/source/Tile';
 import UrlTile from 'ol/source/UrlTile';
 import { DROP } from 'ol/structs/PriorityQueue';
 import Tile from 'ol/Tile';
+import TileState from 'ol/TileState';
 import { getUid } from 'ol/util';
+
+import {
+  CHART_COVERAGE,
+  CoverageEntry,
+  coverageEntries,
+  entriesAt,
+  insideCoverage,
+  isXyzGrid
+} from './charts/chart-coverage';
 
 /*
  * OpenLayers queues the tiles of every layer together and loads them nearest
@@ -27,6 +37,15 @@ import { getUid } from 'ol/util';
  * a radar overlay, comes in over the uplink, and a time-varying one queues a
  * new set of tiles on every step, so either would hold up the local charts.
  * Local tiles come quickly, so the others lose little.
+ */
+
+/*
+ * Where an S-57 chart drawn fully opaque declares that it fills a tile
+ * (`coverage`), the tiles of the layers beneath it there are not loaded at
+ * all: they are set empty instead of queued, which OpenLayers draws as
+ * nothing. Once that no longer holds, because the chart is made translucent,
+ * hidden, moved down or zoomed past its coverage, the source's tiles are
+ * rebuilt so they load.
  */
 
 /**
@@ -193,6 +212,59 @@ export function topFirstTilePriority(
   );
 }
 
+/** The coverage entries that hide tiles of a source now. */
+export interface HiddenBeneath {
+  source: UrlTile;
+  entries: CoverageEntry[];
+}
+
+/**
+ * For each tile source drawn beneath a chart with coverage that a frame
+ * draws fully opaque, the coverage entries that hold at the level that chart
+ * shows. Only URL tile sources on an XYZ grid can be matched to coverage
+ * tiles and rebuilt once uncovered. A source shown by two layers takes the
+ * upper one's place.
+ */
+export function hiddenBeneath(frame: FrameState): Map<string, HiddenBeneath> {
+  const hidden = new Map<string, HiddenBeneath>();
+  const seen = new Set<string>();
+  // OpenLayers draws by z-index, the later of two equal layers on top.
+  const states = frame.layerStatesArray
+    .map((state, order) => ({ state, order }))
+    .sort(
+      (a, b) =>
+        (b.state.zIndex ?? 0) - (a.state.zIndex ?? 0) || b.order - a.order
+    );
+  const above: CoverageEntry[] = [];
+  for (const { state } of states) {
+    if (!inView(state, frame.viewState)) {
+      continue;
+    }
+    const source = state.layer.getRenderSource();
+    if (!(source instanceof TileSource)) {
+      continue;
+    }
+    const key = getUid(source);
+    const grid = source.getTileGridForProjection(frame.viewState.projection);
+    if (!seen.has(key)) {
+      seen.add(key);
+      if (above.length > 0 && source instanceof UrlTile && isXyzGrid(grid)) {
+        hidden.set(key, { source, entries: [...above] });
+      }
+    }
+    const coverage = coverageEntries(state.layer.get(CHART_COVERAGE));
+    if (coverage.length > 0 && state.opacity === 1) {
+      above.push(
+        ...entriesAt(
+          coverage,
+          grid.getZForResolution(frame.viewState.resolution, source.zDirection)
+        )
+      );
+    }
+  }
+  return hidden;
+}
+
 /** A map that loads the tiles of its upper charts first. */
 export class TopFirstMap extends OlMap {
   private frame?: FrameState;
@@ -202,12 +274,23 @@ export class TopFirstMap extends OlMap {
     frame?: FrameState;
     byKey: Map<string, ShownTileSource>;
   };
+  /** The sources beneath coverage in the last frame. */
+  private hidden = new Map<string, HiddenBeneath>();
+  /** The sources with tiles set empty, and the coverage entries hiding them. */
+  private emptied = new Map<string, HiddenBeneath>();
+  private uncoveredCount = 0;
 
   constructor(options?: MapOptions) {
     super(options);
     // The tiles a frame wanted tell which charts draw now.
     this.on('postrender', (e: MapEvent) => {
       this.frame = e.frameState ?? undefined;
+      // Checked on every frame: an empty tile is never queued again, so a
+      // change that uncovers it may queue nothing.
+      this.hidden = this.frame?.layerStatesArray
+        ? hiddenBeneath(this.frame)
+        : new Map();
+      this.restoreUncovered(this.hidden);
     });
   }
 
@@ -243,6 +326,21 @@ export class TopFirstMap extends OlMap {
         byKey: shownTileSources(group, frame?.wantedTiles)
       };
     }
+    const hides = this.hidden.get(tileSourceKey);
+    if (
+      hides &&
+      tile.getState() === TileState.IDLE &&
+      insideCoverage(
+        hides.entries,
+        tile.tileCoord[0],
+        tile.tileCoord[1],
+        tile.tileCoord[2]
+      )
+    ) {
+      tile.setState(TileState.EMPTY);
+      this.emptied.set(tileSourceKey, hides);
+      return DROP;
+    }
     const shown = this.shown.byKey.get(tileSourceKey);
     // The view as the frame being prioritised saw it: by the time the queue
     // is reprioritised after it, a gesture may have moved the view on.
@@ -275,5 +373,31 @@ export class TopFirstMap extends OlMap {
     // OpenLayers' priority less its resolution term is the distance.
     const distance = priority - 65536 * Math.log(tileResolution);
     return topFirstTilePriority(level, shown?.rank ?? UNRANKED, distance);
+  }
+
+  /**
+   * Rebuild the tiles of each source whose tiles were set empty under a
+   * coverage entry that no longer hides them. An empty tile stays empty, so
+   * a new source key makes OpenLayers create fresh ones; tiles that loaded
+   * keep their URL and come back from the browser's cache.
+   */
+  private restoreUncovered(hidden: Map<string, HiddenBeneath>) {
+    let restored = false;
+    for (const [sourceKey, emptied] of this.emptied) {
+      const now = new Set(hidden.get(sourceKey)?.entries);
+      if (emptied.entries.every((entry) => now.has(entry))) {
+        continue;
+      }
+      const source = emptied.source;
+      source.setTileUrlFunction(
+        source.getTileUrlFunction(),
+        `${source.getKey().replace(/#\d+$/, '')}#${String(++this.uncoveredCount)}`
+      );
+      this.emptied.delete(sourceKey);
+      restored = true;
+    }
+    if (restored) {
+      this.render();
+    }
   }
 }

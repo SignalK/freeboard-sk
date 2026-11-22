@@ -15,6 +15,7 @@ import {
   NoteResource,
   PathValue,
   ChartResource,
+  ChartCoverage,
   ChartImageAdjustment,
   ChartTimeDimension,
   SKCourseApi,
@@ -153,6 +154,7 @@ export class SKChart {
   proxy: boolean;
   refreshInterval?: number;
   time?: ChartTimeDimension;
+  coverage?: ChartCoverage;
   // Instant the chart is currently showing, or null for its newest frame (the
   // live frame where the source serves one). Session state (never persisted)
   // — every chart starts on its newest frame on load. Optional only so it can
@@ -189,6 +191,7 @@ export class SKChart {
     this.proxy = chart?.proxy ?? false;
     this.refreshInterval = chart?.refreshInterval;
     this.time = chart?.time;
+    this.coverage = chart?.coverage;
     // A resource carries no selection; an instance carries the session's.
     this.timeValue = src?.timeValue !== undefined ? src.timeValue : null;
   }
