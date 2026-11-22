@@ -150,6 +150,7 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
           [class]="buttonClass(item)"
           [class.custom-bg]="!!item.colors?.bg"
           [class.custom-fg]="!!item.colors?.fg"
+          [class.pulse]="!!item.pulse"
           [style.--toolbar-button-bg]="item.colors?.bg ?? null"
           [style.--toolbar-button-fg]="item.colors?.fg ?? null"
           [disabled]="item.disabled"
@@ -174,6 +175,7 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
           [class]="buttonClass(item)"
           [class.custom-bg]="!!item.colors?.bg"
           [class.custom-fg]="!!item.colors?.fg"
+          [class.pulse]="!!item.pulse"
           [style.--toolbar-button-bg]="item.colors?.bg ?? null"
           [style.--toolbar-button-fg]="item.colors?.fg ?? null"
           [disabled]="item.disabled"
@@ -230,6 +232,21 @@ const TONE_ICON_CLASS: Record<ToolbarTone, string> = {
       }
       .custom-fg {
         color: var(--toolbar-button-fg) !important;
+      }
+      .pulse {
+        animation: toolbar-pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes toolbar-pulse {
+        50% {
+          transform: scale(1.15);
+          box-shadow: 0 0 0 6px rgba(244, 67, 54, 0.5);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pulse {
+          animation: none;
+          outline: 3px solid rgb(244, 67, 54);
+        }
       }
       .toolbarItem {
         text-align: center;

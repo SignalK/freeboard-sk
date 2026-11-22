@@ -143,6 +143,13 @@ describe('sameToolbarItems', () => {
     expect(sameToolbarItems(build(false), build(false).reverse())).toBe(false);
   });
 
+  it('sees a change of pulse alone', () => {
+    const pulsing = (pulse: boolean): ToolbarItem[] => [
+      { id: 'a', tooltip: 'A', badge: 2, pulse }
+    ];
+    expect(sameToolbarItems(pulsing(true), pulsing(false))).toBe(false);
+  });
+
   it('compares colours by value', () => {
     const colored = (bg: string): ToolbarItem[] => [
       { id: 'a', tooltip: 'A', colors: { bg } }

@@ -13,6 +13,7 @@ import { CpaPositions, Position, SKPosition } from 'src/app/types';
 import { AppFacade } from 'src/app/app.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { AlertData, AlertProperties } from './components/alert.component';
+import { STANDARD_ALARM_TYPES } from './alert-tier';
 import { getAlertIcon } from '../icons';
 import { SignalKClient } from 'signalk-client-angular';
 import { AlertPropertiesModal } from './components/alert-properties-modal';
@@ -433,19 +434,7 @@ export class NotificationManager {
    * @returns true if value is a standard alarm
    */
   private isStandardAlarm(value: string): boolean {
-    return [
-      'mob',
-      'sinking',
-      'fire',
-      'piracy',
-      'flooding',
-      'collision',
-      'grounding',
-      'listing',
-      'adrift',
-      'abandon',
-      'aground'
-    ].includes(value);
+    return STANDARD_ALARM_TYPES.has(value);
   }
 
   /**

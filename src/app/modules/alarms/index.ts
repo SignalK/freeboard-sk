@@ -6,3 +6,4 @@ export * from './components/alert-properties-modal';
 export * from './components/anchor-watch.component';
 export * from './anchor.service';
 export * from './mob.service';
+export * from './alert-tier';

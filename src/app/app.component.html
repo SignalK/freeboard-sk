@@ -838,8 +838,22 @@
               ></alert-list>
             }
             <div class="alarmPanel">
-              @for (n of notiMgr.alerts(); track n[0]) {
-                <span style="margin-bottom: 5px">
+              @for (n of cardAlerts(); track n[0]) {
+                <fb-alert
+                  [audioStatus]="audioStatus()"
+                  [alert]="n[1]"
+                  [acknowledged]="n[1].acknowledged"
+                  [silenced]="n[1].silenced"
+                  [doNotPlaySound]="app.config.display.muteSound"
+                  (nextPoint)="
+                    course.coursePointIndex(course.courseData().pointIndex + 1)
+                  "
+                  (routeEnd)="clearDestination()"
+                >
+                </fb-alert>
+              }
+              <div class="alarmRows">
+                @for (n of otherAlerts(); track n[0]) {
                   <fb-alert
                     [audioStatus]="audioStatus()"
                     [alert]="n[1]"
@@ -854,8 +868,8 @@
                     (routeEnd)="clearDestination()"
                   >
                   </fb-alert>
-                </span>
-              }
+                }
+              </div>
             </div>
           }
 
