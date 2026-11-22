@@ -12,7 +12,7 @@ const VesselSelfIcons: AppIconSet = {
 
 /** Selectable icons for the owner's own vessel. */
 export type OwnVesselIconType =
-  'classic' | 'monohull' | 'catamaran' | 'powerboat';
+  'classic' | 'monohull' | 'catamaran' | 'trimaran' | 'powerboat';
 
 export interface OwnVesselIconDef {
   path: string;
@@ -43,6 +43,12 @@ export const OwnVesselIcons: Record<OwnVesselIconType, OwnVesselIconDef> = {
     path: './assets/img/vessels/self_catamaran.svg',
     scale: 0.9,
     width: 22.56,
+    height: 45
+  },
+  trimaran: {
+    path: './assets/img/vessels/self_trimaran.svg',
+    scale: 0.9,
+    width: 28,
     height: 45
   },
   powerboat: {

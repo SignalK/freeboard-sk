@@ -206,6 +206,7 @@ export class SettingsOptions {
       ['classic', 'Default vessel symbol'],
       ['monohull', 'Sailing Monohull'],
       ['catamaran', 'Catamaran'],
+      ['trimaran', 'Trimaran'],
       ['powerboat', 'Powerboat']
     ]),
     headingLine: new Map([

@@ -293,6 +293,7 @@ describe('selfVesselIcon own-vessel types', () => {
     ['classic', 'self.png'],
     ['monohull', 'self_monohull.svg'],
     ['catamaran', 'self_catamaran.svg'],
+    ['trimaran', 'self_trimaran.svg'],
     ['powerboat', 'self_powerboat.svg']
   ])('draws a %s from its own icon', (type, file) => {
     const icon = selfVesselIcon(noOverrides, 0.9, type);
