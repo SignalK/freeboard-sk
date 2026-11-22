@@ -654,15 +654,6 @@
                   </mat-icon>
                 </div>
               }
-              @if (!wakeLock.enabled() && wakeLock.isAvailable) {
-                <div class="statusBarItem">
-                  <mat-icon
-                    matTooltip="WakeLock is turned off"
-                    matTooltipPosition="below"
-                    >visibility_off
-                  </mat-icon>
-                </div>
-              }
               @if (!app.uiConfig().showCourseData) {
                 <div class="statusBarItem">
                   <mat-icon
