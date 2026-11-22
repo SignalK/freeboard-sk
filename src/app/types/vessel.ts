@@ -31,10 +31,10 @@ export interface SKCourseCalcs {
   bearingMagnetic?: number;
   velocityMadeGood?: number;
   distance?: number;
-  timeToGo?: number;
+  timeToGo?: number | null;
   estimatedTimeOfArrival?: string | null;
   'route.distance'?: number;
-  'route.timeToGo'?: number;
+  'route.timeToGo'?: number | null;
   'route.estimatedTimeOfArrival'?: string | null;
   [path: string]: number | string | null | undefined;
 }

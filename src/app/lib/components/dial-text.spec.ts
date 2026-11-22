@@ -60,4 +60,24 @@ describe('ETADialComponent — locale time formatting', () => {
   it('shows hours and minutes only in a 24-hour locale', () => {
     expect(renderETA('en-GB')).toBe('18:16');
   });
+
+  // The route bar keeps the ETA cell while VMG <= 0, so a cleared ETA must
+  // not leave the last time on show (#1350).
+  it('shows -- once its value is cleared', () => {
+    pinLocale('en-US');
+    const fixture = TestBed.createComponent(ETADialComponent);
+    fixture.componentRef.setInput('value', eta);
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('value', null);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.dial-text-value')!.textContent!.trim()).toBe(
+      '--'
+    );
+    expect(el.querySelector('.dial-text-units')!.textContent!.trim()).toBe(
+      '--'
+    );
+  });
 });

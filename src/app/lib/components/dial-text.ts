@@ -46,10 +46,13 @@ export class TextDialComponent {
       <div class="dial-text-units">{{ units }}</div>
     </div>
   `,
-  styleUrls: ['./dial-text.css']
+  styleUrls: ['./dial-text.css'],
+  // As wide as an hr:min value, so the route bar keeps its width when the
+  // value gives way to '--' (#1350).
+  styles: ['.dial-text-value { min-width: 4.6ch; }']
 })
 export class TTGDialComponent {
-  value = input<number>();
+  value = input<number | null>();
   subTitle = input<string>();
   protected ttg: string = '--';
   protected units: string = 'min';
@@ -98,10 +101,13 @@ export class TTGDialComponent {
       <div class="dial-text-units">{{ etaDate }}</div>
     </div>
   `,
-  styleUrls: ['./dial-text.css']
+  styleUrls: ['./dial-text.css'],
+  // As wide as a 12-hour time such as '12:45 PM', so the route bar keeps its
+  // width when the value gives way to '--' (#1350).
+  styles: ['.dial-text-value { min-width: 7.7ch; }']
 })
 export class ETADialComponent {
-  value = input<Date>();
+  value = input<Date | null>();
   subTitle = input<string>();
   protected etaTime: string = '--';
   protected etaDate: string = '--';
@@ -118,6 +124,9 @@ export class ETADialComponent {
           minute: '2-digit'
         });
         this.etaDate = v.toLocaleDateString();
+      } else {
+        this.etaTime = '--';
+        this.etaDate = '--';
       }
     });
   }
