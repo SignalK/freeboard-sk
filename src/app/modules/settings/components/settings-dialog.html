@@ -922,7 +922,7 @@
                             <mat-select
                               [(ngModel)]="facade.settings.vessels.iconType"
                               (selectionChange)="persistModel()"
-                              matTooltip="Icon used to draw your own vessel."
+                              matTooltip="Icon used to draw your own vessel. From vessel hull type follows the Hull Type and Ship Type set in the server's Vessel Base Data."
                             >
                               @for(i of options.vessel.selfIconType; track i[0])
                               {

@@ -72,6 +72,7 @@ describe('SKResourceService.vesselFromServer', () => {
     expect(v.design).toEqual({
       length: { overall: 12.2 },
       beam: 4.1,
+      hullType: null,
       draft: { current: 1.8, maximum: 2.1 },
       airHeight: 18
     });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aisVesselStyleId } from './vessels';
+import { aisVesselStyleId, ownVesselIconType } from './vessels';
 
 // The AIS layer and the track-history ghosts both pick a vessel's image with
 // this, so a fishing vessel's ghost matches its live target (#1236).
@@ -28,4 +28,31 @@ describe('aisVesselStyleId', () => {
     expect(aisVesselStyleId(74)).toBe(70);
     expect(aisVesselStyleId(-1)).toBe(10);
   });
+});
+
+describe('ownVesselIconType', () => {
+  it('draws the chosen icon whatever the hull type', () => {
+    expect(ownVesselIconType('powerboat', 'catamaran', 36)).toBe('powerboat');
+  });
+
+  it('draws an icon a later release added as the default', () => {
+    expect(
+      ownVesselIconType('hovercraft' as unknown as 'classic', null, null)
+    ).toBe('classic');
+  });
+
+  it.each([
+    ['catamaran', 37, 'catamaran'],
+    ['trimaran', null, 'trimaran'],
+    ['monohull', 36, 'monohull'],
+    ['monohull', 37, 'powerboat'],
+    ['monohull', -1, 'classic'],
+    ['monohull', null, 'classic'],
+    [null, 36, 'classic']
+  ] as const)(
+    'draws hull type %s with ship type %s as %s',
+    (hull, ship, icon) => {
+      expect(ownVesselIconType('hullType', hull, ship)).toBe(icon);
+    }
+  );
 });

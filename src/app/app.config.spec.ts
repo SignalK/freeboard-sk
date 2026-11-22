@@ -95,7 +95,7 @@ describe('cleanConfig() legacy migration', () => {
     const cfg = legacyConfig();
     delete (cfg.vessels as Partial<IAppConfig['vessels']>).iconType;
     cleanConfig(cfg, {});
-    expect(cfg.vessels.iconType).toBe('classic');
+    expect(cfg.vessels.iconType).toBe('hullType');
 
     cfg.vessels.iconType = 'catamaran';
     cleanConfig(cfg, {});

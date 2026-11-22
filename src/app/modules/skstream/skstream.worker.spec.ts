@@ -1038,6 +1038,29 @@ describe('skstream.worker processVessel — AIS track points', () => {
 // The current arrives as one environment.current object or as its separate
 // values; each value keeps its own receipt time so a stale one is not taken
 // for fresh because another one arrived.
+describe('skstream.worker processVessel — design.hullType', () => {
+  it('keeps a hull type the server knows', () => {
+    const vessel = new SKVessel();
+    processVessel(vessel, { path: 'design.hullType', value: 'trimaran' }, true);
+    expect(vessel.design.hullType).toBe('trimaran');
+  });
+
+  it('drops an unknown or cleared hull type', () => {
+    const vessel = new SKVessel();
+    processVessel(
+      vessel,
+      { path: 'design.hullType', value: 'catamaran' },
+      true
+    );
+    processVessel(vessel, { path: 'design.hullType', value: 'raft' }, true);
+    expect(vessel.design.hullType).toBeNull();
+
+    processVessel(vessel, { path: 'design.hullType', value: 'monohull' }, true);
+    processVessel(vessel, { path: 'design.hullType', value: null }, true);
+    expect(vessel.design.hullType).toBeNull();
+  });
+});
+
 describe('skstream.worker processVessel — environment.current', () => {
   afterEach(() => {
     vi.restoreAllMocks();

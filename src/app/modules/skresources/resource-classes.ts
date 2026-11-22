@@ -362,6 +362,7 @@ export class SKVessel extends SKTargetBase {
   design: SKVesselDesign = {
     airHeight: null,
     beam: null,
+    hullType: null,
     draft: {
       current: null,
       maximum: null

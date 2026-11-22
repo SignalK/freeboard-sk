@@ -23,9 +23,13 @@ import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
 import { MapImageRegistry } from '../map-image-registry.service';
 import { actualSizeIconScale } from 'src/app/lib/vessel-icon-scale';
+import type { HullType } from '@signalk/server-api/typebox';
 import {
   DEFAULT_OWN_VESSEL_ICON,
+  HULL_TYPE_ICON,
+  OwnVesselIconSetting,
   OwnVesselIconType,
+  ownVesselIconType,
   OwnVesselIcons
 } from 'src/app/modules/icons/vessels';
 
@@ -41,6 +45,23 @@ export function selfVesselOverride(
   return iconType === DEFAULT_OWN_VESSEL_ICON
     ? mapImages.getExternalSymbol(VESSEL_SELF_MARKER)
     : null;
+}
+
+/** The icon type the own vessel is drawn with. Following the hull type keeps
+ * a symbol provider's override: it stands in for any icon not picked by hand. */
+export function selfVesselIconType(
+  mapImages: MapImageRegistry,
+  setting: OwnVesselIconSetting,
+  hullType: HullType | null | undefined,
+  aisShipTypeId: number | null | undefined
+): OwnVesselIconType {
+  if (
+    setting === HULL_TYPE_ICON &&
+    mapImages.getExternalSymbol(VESSEL_SELF_MARKER)
+  ) {
+    return DEFAULT_OWN_VESSEL_ICON;
+  }
+  return ownVesselIconType(setting, hullType, aisShipTypeId);
 }
 
 /** The own-vessel icon at `iconScale`: the symbol provider override for the

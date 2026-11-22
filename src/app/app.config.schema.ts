@@ -12,7 +12,7 @@ import type {
   WindIndicator
 } from './types';
 import type { LineStyleDash } from './modules/settings/components/linestyle-select.component';
-import type { OwnVesselIconType } from './modules/icons/vessels';
+import type { OwnVesselIconSetting } from './modules/icons/vessels';
 import type { TrailSource } from './modules/skstream/track-source';
 import {
   DefaultOptions,
@@ -176,7 +176,7 @@ export const AppConfigSchema = Type.Object({
     aisCogLine: num(10), // minutes
     iconScale: num(0.9),
     iconActualSize: bool(false), // scale to the reported beam and length overall
-    iconType: choice<OwnVesselIconType>('classic'),
+    iconType: choice<OwnVesselIconSetting>('hullType'),
     rangeCircles: bool(false),
     rangeCirclesFixed: bool(false), // a fixed distance rather than one from the zoom
     rangeCirclesDistance: num(1000), // m, between circles when fixed

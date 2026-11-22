@@ -1,5 +1,6 @@
 // Vessel Icons
 
+import type { HullType } from '@signalk/server-api/typebox';
 import { AppIconSet } from './app.icons';
 import type { MapIconDefs } from '../map/ol/lib/map-image-registry.service';
 
@@ -10,9 +11,14 @@ const VesselSelfIcons: AppIconSet = {
   files: ['ais_self.svg']
 };
 
-/** Selectable icons for the owner's own vessel. */
+/** Built-in icons for the owner's own vessel. */
 export type OwnVesselIconType =
   'classic' | 'monohull' | 'catamaran' | 'trimaran' | 'powerboat';
+
+/** The `vessels.iconType` setting: a built-in icon, or the one that fits the
+ * vessel's hull type and ship type from the server. */
+export const HULL_TYPE_ICON = 'hullType';
+export type OwnVesselIconSetting = OwnVesselIconType | typeof HULL_TYPE_ICON;
 
 export interface OwnVesselIconDef {
   path: string;
@@ -56,6 +62,44 @@ export const OwnVesselIcons: Record<OwnVesselIconType, OwnVesselIconDef> = {
     scale: 0.9,
     width: 17,
     height: 45
+  }
+};
+
+const AIS_SAILING_TYPE_ID = 36;
+
+/**
+ * @description The built-in icon the `vessels.iconType` setting draws. For
+ * `hullType` a monohull is drawn sailing or powered from its AIS ship type;
+ * without either type the default symbol stands, so a symbol provider's
+ * override still applies.
+ * @param setting the `vessels.iconType` setting
+ * @param hullType `design.hullType`
+ * @param aisShipTypeId `design.aisShipType` id
+ */
+export const ownVesselIconType = (
+  setting: OwnVesselIconSetting,
+  hullType: HullType | null | undefined,
+  aisShipTypeId: number | null | undefined
+): OwnVesselIconType => {
+  if (setting !== HULL_TYPE_ICON) {
+    // a setting a later release added is drawn as the default
+    return Object.hasOwn(OwnVesselIcons, setting)
+      ? setting
+      : DEFAULT_OWN_VESSEL_ICON;
+  }
+  switch (hullType) {
+    case 'catamaran':
+    case 'trimaran':
+      return hullType;
+    case 'monohull':
+      if (aisShipTypeId === AIS_SAILING_TYPE_ID) {
+        return 'monohull';
+      }
+      return aisShipTypeId && aisShipTypeId > 0
+        ? 'powerboat'
+        : DEFAULT_OWN_VESSEL_ICON;
+    default:
+      return DEFAULT_OWN_VESSEL_ICON;
   }
 };
 

@@ -116,6 +116,9 @@ import {
   paneStatusBarLift
 } from './split-view/split-view';
 import { rangeRingScale, ringLabel } from 'src/app/modules/radar/range-rings';
+import type { OwnVesselIconType } from 'src/app/modules/icons/vessels';
+import { selfVesselIconType } from './ol/lib/vessel/layer-vessel.component';
+import { MapImageRegistry } from './ol/lib/map-image-registry.service';
 import {
   RangeRing,
   radarRingColor,
@@ -516,6 +519,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
       .map((b) => this.bufferToFBRoute(b))
   );
 
+  protected selfIconType(): OwnVesselIconType {
+    return selfVesselIconType(
+      this.mapImages,
+      this.app.config.vessels.iconType,
+      this.dfeat.self.design.hullType,
+      this.dfeat.self.type?.id
+    );
+  }
+
   // ** map feature data
   protected dfeat: IFeatureData = {
     aircraft: new Map(),
@@ -678,6 +690,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private http = inject(HttpClient);
   protected app = inject(AppFacade);
+  private mapImages = inject(MapImageRegistry);
   protected drawsFlow = drawsFlow;
   protected skres = inject(SKResourceService);
   protected skstream = inject(SKStreamFacade);

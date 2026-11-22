@@ -456,6 +456,41 @@ describe('settings dialog — note details option placement', () => {
         true
       );
     });
+
+    it('previews the override when following the hull type', async () => {
+      settings.vessels.iconType = 'hullType';
+      TestBed.inject(AppFacade).data.vessels.self.design.hullType = 'trimaran';
+      await selectTab('Vessels');
+
+      expect(previews().length).toBeGreaterThan(0);
+      expect(previews().every((p) => p === '/plugin/self.svg')).toBe(true);
+    });
+  });
+
+  describe('own vessel icon from the hull type', () => {
+    const previews = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLImageElement>('mat-radio-button img')
+      ).map((i) => i.getAttribute('src'));
+
+    it('previews the icon for the hull type the server reports', async () => {
+      settings.vessels.iconType = 'hullType';
+      TestBed.inject(AppFacade).data.vessels.self.design.hullType = 'trimaran';
+      await selectTab('Vessels');
+
+      expect(previews().length).toBeGreaterThan(0);
+      expect(previews().every((p) => p?.includes('self_trimaran.svg'))).toBe(
+        true
+      );
+    });
+
+    it('previews the default symbol while no hull type is set', async () => {
+      settings.vessels.iconType = 'hullType';
+      await selectTab('Vessels');
+
+      expect(previews().length).toBeGreaterThan(0);
+      expect(previews().every((p) => p?.includes('self.png'))).toBe(true);
+    });
   });
 
   describe('other vessels tracks (#821)', () => {
