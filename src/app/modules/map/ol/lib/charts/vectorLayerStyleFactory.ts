@@ -58,8 +58,16 @@ class S57LayerStyler extends VectorLayerStyler {
     vectorLayer.setMaxZoom(23);
     vectorLayer.setRenderOrder(style.renderOrder);
 
+    // The service refreshes when the symbols load, when their image loads and
+    // when the options change. None of these changes which features a tile
+    // holds, so the loaded tiles are styled and sorted again rather than
+    // fetched again, which would blank the chart and show the charts beneath
+    // it until they were back. OpenLayers sorts a loaded tile's features again
+    // only for a new render order function, and the sort is where display
+    // priority and the safe contour are worked out, so each refresh sets one.
     this.s57service.refresh.subscribe(() => {
-      source.refresh();
+      vectorLayer.setRenderOrder((a, b) => style.renderOrder(a, b));
+      vectorLayer.changed();
     });
   }
 }

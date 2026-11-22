@@ -86,3 +86,48 @@ describe('S57Service.selectLookup — first key of the lookup list', () => {
     expect(service.getLookup(index).name).toBe(first.name);
   });
 });
+
+// A tile's features keep the lookup chosen for them; the chart layer only
+// redraws them when the symbols arrive or the options change.
+describe('S57Style — lookups chosen before a change', () => {
+  let service: S57Service;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()]
+    });
+    service = TestBed.inject(S57Service);
+    service.init({ ...DefaultOptions });
+  });
+
+  it('styles a feature drawn before the symbols arrived once they have', () => {
+    const style = new S57Style(service);
+    const land = area('LNDARE');
+    expect(style.getStyle(land, 10)).toBeUndefined();
+
+    service.fetchSymbols();
+    TestBed.inject(HttpTestingController)
+      .expectOne('assets/s57/chartsymbols.xml')
+      .flush(chartSymbolsXml);
+
+    expect(style.getStyle(land, 10)?.length).toBeGreaterThan(0);
+  });
+
+  it('styles a feature drawn before an options change like a new one after it', () => {
+    service.fetchSymbols();
+    TestBed.inject(HttpTestingController)
+      .expectOne('assets/s57/chartsymbols.xml')
+      .flush(chartSymbolsXml);
+    const style = new S57Style(service);
+    // a fairway's boundary is a dashed line under Plain boundaries and a
+    // complex line, which this renderer does not draw, under Symbolized
+    const fairway = area('FAIRWY');
+    const plain = style.getStyle(fairway, 10);
+
+    service.setOptions({ ...DefaultOptions, boundaries: 'Symbolized' });
+
+    const symbolized = style.getStyle(area('FAIRWY'), 10);
+    expect(symbolized).not.toEqual(plain);
+    expect(style.getStyle(fairway, 10)).toEqual(symbolized);
+  });
+});
