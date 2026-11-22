@@ -14,9 +14,18 @@ import { applyStyle } from 'ol-mapbox-style';
 import { VectorLayerStyleFactory } from './vectorLayerStyleFactory';
 import { MapComponent } from '../map.component';
 
-import { FBChart } from 'src/app/types';
+import { ChartCoverage, FBChart } from 'src/app/types';
 import { setChartExtent } from './chart-utils';
 import { CHART_COVERAGE } from './chart-coverage';
+
+/**
+ * The chart's coverage, where Freeboard draws it with its own S-52 styling,
+ * whose depth and land areas fill it. A style of the chart's own may leave
+ * them out, so it claims none.
+ */
+export function opaqueCoverage(chart: FBChart): ChartCoverage | undefined {
+  return chart[1].style ? undefined : chart[1].coverage;
+}
 
 // ** Freeboard S-57 Chart **
 @Component({
@@ -78,13 +87,13 @@ export class S57ChartLayerComponent implements OnDestroy {
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
-        this.layer.set(CHART_COVERAGE, chart[1].coverage);
+        this.layer.set(CHART_COVERAGE, opaqueCoverage(chart));
         map.addLayer(this.layer);
       }
     } else {
       this.layer.setZIndex(this.zIndex());
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-      this.layer.set(CHART_COVERAGE, chart[1].coverage);
+      this.layer.set(CHART_COVERAGE, opaqueCoverage(chart));
       setChartExtent(this.layer, chart[1].bounds, map);
     }
     map.render();
