@@ -980,7 +980,9 @@
                       </button>
                     </div>
                   </div>
-                  @if (course.courseData().vmg) {
+                  <!-- Shown at a VMG of 0 too, so the bar keeps its width as
+                       VMG crosses zero. -->
+                  @if (course.courseData().vmg !== null) {
                     <ap-dial-text
                       [title]="'VMG'"
                       [value]="app.formatSpeed(course.courseData().vmg, true)"

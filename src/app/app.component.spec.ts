@@ -728,22 +728,94 @@ describe('AppComponent', () => {
       course.parseSelf(calcs(2.5));
       fixture.detectChanges();
       const closing = titles(fixture);
+      expect(closing).toContain('VMG');
       expect(closing).toContain('TTG (RT)');
       expect(closing).toContain('ETA (RT)');
       expect(valueOf(fixture, 'TTG')).not.toEqual(['--']);
 
-      course.parseSelf(calcs(-0.5));
-      fixture.detectChanges();
-      expect(titles(fixture)).toEqual(closing);
-      expect(valueOf(fixture, 'TTG')).toEqual(['--']);
-      expect(valueOf(fixture, 'TTG (RT)')).toEqual(['--']);
-      expect(valueOf(fixture, 'ETA')).toEqual(['--']);
-      expect(valueOf(fixture, 'ETA (RT)')).toEqual(['--']);
+      for (const vmg of [0, -0.5]) {
+        course.parseSelf(calcs(vmg));
+        fixture.detectChanges();
+        expect(titles(fixture)).toEqual(closing);
+        expect(valueOf(fixture, 'TTG')).toEqual(['--']);
+        expect(valueOf(fixture, 'TTG (RT)')).toEqual(['--']);
+        expect(valueOf(fixture, 'ETA')).toEqual(['--']);
+        expect(valueOf(fixture, 'ETA (RT)')).toEqual(['--']);
+      }
 
       course.parseSelf(calcs(2.5));
       fixture.detectChanges();
       expect(titles(fixture)).toEqual(closing);
       expect(valueOf(fixture, 'TTG')).not.toEqual(['--']);
+    });
+
+    // jsdom does no layout, so the bar is given a width of 100 px per cell
+    // and a 200 px high widget sits under the right end of the full bar.
+    it('keeps its height above a widget under its right end', () => {
+      const observers: { notify: () => void; targets: Element[] }[] = [];
+      const Original = globalThis.ResizeObserver;
+      globalThis.ResizeObserver = class {
+        private entry: { notify: () => void; targets: Element[] };
+        constructor(cb: () => void) {
+          this.entry = { notify: cb, targets: [] };
+          observers.push(this.entry);
+        }
+        observe(target: Element) {
+          this.entry.targets.push(target);
+        }
+        unobserve() {}
+        disconnect() {}
+      } as unknown as typeof ResizeObserver;
+      const stack = document.createElement('div');
+      stack.className = 'pe-br';
+      const widget = document.createElement('div');
+      widget.className = 'pe-cell';
+      widget.getBoundingClientRect = () => new DOMRect(800, 400, 124, 200);
+      stack.appendChild(widget);
+      document.body.appendChild(stack);
+      try {
+        const fixture = setup();
+        const course = TestBed.inject(CourseService);
+        fixture.detectChanges();
+        // runs the clearance directive's afterNextRender, which observes the bar
+        TestBed.tick();
+        const panel = (fixture.nativeElement as HTMLElement).querySelector(
+          '.navdataPanel'
+        ) as HTMLElement;
+        const area = document.createElement('div');
+        area.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 600);
+        Object.defineProperty(panel, 'offsetParent', { get: () => area });
+        panel.getBoundingClientRect = () =>
+          new DOMRect(
+            0,
+            470,
+            panel.querySelectorAll('.dial-text').length * 100,
+            100
+          );
+        const clearance = () => {
+          fixture.detectChanges();
+          observers
+            .filter((o) => o.targets.includes(panel))
+            .forEach((o) => o.notify());
+          return (
+            fixture.componentInstance as unknown as {
+              navDataBottom: () => number | null;
+            }
+          ).navDataBottom();
+        };
+
+        course.parseSelf(calcs(2.5));
+        const closing = clearance();
+        expect(closing).toBeGreaterThanOrEqual(200);
+
+        for (const vmg of [0, -0.5, 2.5]) {
+          course.parseSelf(calcs(vmg));
+          expect(clearance()).toBe(closing);
+        }
+      } finally {
+        stack.remove();
+        globalThis.ResizeObserver = Original;
+      }
     });
   });
 
