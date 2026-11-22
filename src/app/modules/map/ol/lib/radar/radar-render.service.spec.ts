@@ -55,44 +55,70 @@ describe('RadarRenderService', () => {
     expect(showMessage).not.toHaveBeenCalled();
   });
 
-  // While another radar is selected but not loaded yet, the radar shown is
-  // still the old one, and its stream must match its spoke geometry.
-  it('streams the radar whose geometry it draws', async () => {
-    vi.stubGlobal(
-      'OffscreenCanvas',
-      class {
-        getContext(): object {
-          return {};
-        }
-      }
-    );
-    TestBed.overrideProvider(AppFacade, {
-      useValue: {
-        showMessage,
-        debug: vi.fn(),
-        hostDef: { ssl: false, name: 'localhost', port: 3000 }
-      }
-    });
-    TestBed.overrideProvider(RadarAPIService, {
-      useValue: {
-        ...radarApi,
-        radarId: () => 'radar-b',
-        apiVersion: () => '3.4.0',
-        radar: () => ({
-          device: { id: 'radar-a', name: 'Radar A' },
-          capabilities: {
-            spokesPerRevolution: 2048,
-            maxSpokeLength: 512,
-            hasSparseSpokes: false
+  describe('spoke stream', () => {
+    const connectWith = async (
+      token: string | undefined,
+      apiVersion: string | undefined
+    ) => {
+      vi.stubGlobal(
+        'OffscreenCanvas',
+        class {
+          getContext(): object {
+            return {};
           }
-        })
-      }
+        }
+      );
+      TestBed.overrideProvider(AppFacade, {
+        useValue: {
+          showMessage,
+          debug: vi.fn(),
+          hostDef: { ssl: false, name: 'localhost', port: 3000 },
+          getFBToken: () => token
+        }
+      });
+      TestBed.overrideProvider(RadarAPIService, {
+        useValue: {
+          ...radarApi,
+          radarId: () => 'radar-b',
+          apiVersion: () => apiVersion,
+          radar: () => ({
+            device: { id: 'radar-a', name: 'Radar A' },
+            capabilities: {
+              spokesPerRevolution: 2048,
+              maxSpokeLength: 512,
+              hasSparseSpokes: false
+            }
+          })
+        }
+      });
+      return TestBed.inject(RadarRenderService).connect();
+    };
+
+    // While another radar is selected but not loaded yet, the radar shown is
+    // still the old one, and its stream must match its spoke geometry.
+    it('streams the radar whose geometry it draws', async () => {
+      const def = await connectWith(undefined, '3.4.0');
+      expect(def?.id).toBe('radar-a');
+      expect(def?.streamUrl).toBe(
+        'ws://localhost:3000/signalk/v2/api/vessels/self/radars/radar-a/spokes'
+      );
     });
-    const def = await TestBed.inject(RadarRenderService).connect();
-    expect(def?.id).toBe('radar-a');
-    expect(def?.streamUrl).toBe(
-      'ws://localhost:3000/signalk/v2/api/vessels/self/radars/radar-a/spokes'
-    );
+
+    // Without read-only access the server refuses a stream that carries no
+    // token, and the radar draws nothing (#1290).
+    it('carries the sign-in token', async () => {
+      const def = await connectWith('abc.def', '3.4.0');
+      expect(def?.streamUrl).toBe(
+        'ws://localhost:3000/signalk/v2/api/vessels/self/radars/radar-a/spokes?token=abc.def'
+      );
+    });
+
+    it('carries the sign-in token to a server older than Radar API 3.4.0', async () => {
+      const def = await connectWith('abc.def', undefined);
+      expect(def?.streamUrl).toBe(
+        'ws://localhost:3000/signalk/v2/api/vessels/self/radars/radar-a/stream?token=abc.def'
+      );
+    });
   });
 
   describe('radar picture', () => {

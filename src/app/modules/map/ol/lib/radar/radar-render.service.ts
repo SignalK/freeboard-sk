@@ -92,6 +92,11 @@ export class RadarRenderService {
       idx++;
     });
 
+    // A WebSocket can't carry the token in a header the way REST requests do,
+    // so it goes on the URL, as for the main stream. Without read-only access
+    // the server refuses the spoke stream otherwise.
+    const token = this.app.getFBToken();
+
     return {
       id: activeRadar.device.id,
       name: activeRadar.device.name,
@@ -105,7 +110,7 @@ export class RadarRenderService {
         this.app.hostDef.port
       }/signalk/v2/api/vessels/self/radars/${activeRadar.device.id}/${
         this.radarApi.apiVersion() ? 'spokes' : 'stream'
-      }`,
+      }${token ? `?token=${encodeURIComponent(token)}` : ''}`,
       legend: legend,
       pixelColors:
         activeRadar.capabilities.legend?.pixelColors ??
