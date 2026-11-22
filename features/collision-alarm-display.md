@@ -42,7 +42,8 @@ the ring and lines are dimmed with the rest of the display.
 
 ## When the alarm sounds
 
-The alarm also appears as an alert card with an **ACK** button, and a **MUTE**
-button when the alarm plays a sound. Acknowledging closes the card, but the
+At alarm level or above, the alarm also appears as an alert card with an
+**ACK** button, and a **MUTE** button when the alarm plays a sound. A
+warning-level approach shows only on the Alarms button (see *Alerts & Alarms*). Acknowledging closes the card, but the
 drawing stays on the chart until the plugin clears the alarm. See *Alerts &
 Alarms* in the online help.

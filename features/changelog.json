@@ -214,5 +214,7 @@
   { "feature": null, "pr": 1363, "kind": "skip", "reason": "performance only: the top chart's tiles load before the charts beneath it, so a faster layer underneath no longer shows first on every zoom; no new control or setting" },
   { "feature": null, "pr": 1370, "kind": "skip", "reason": "deprecation notice only: a one-time popup on the Instruments button points users to the Freeboard Companion Apps plugin ahead of the panel's removal (#883); no new capability to document" },
   { "feature": "weather-overlays", "pr": 1353, "kind": "enhanced", "since": "v3.5.0-beta.4", "date": "2026-11-21", "title": "feat(weather): scale tidal current arrows to the map size, with a density choice" },
-  { "feature": null, "pr": 1378, "kind": "skip", "reason": "performance only: skips loading tiles under an opaque S-57 chart where the provider has published it draws them fully; no new control or setting" }
+  { "feature": null, "pr": 1378, "kind": "skip", "reason": "performance only: skips loading tiles under an opaque S-57 chart where the provider has published it draws them fully; no new control or setting" },
+  { "feature": "alerts", "kind": "new", "since": "v1.8.0-rc1", "date": "2018-09-12", "title": "0.1.0 Port to Angular framework" },
+  { "feature": "alerts", "pr": 1376, "kind": "enhanced", "date": "2026-11-22", "title": "feat(alarms): keep routine alerts off the chart and show the rest compactly" }
 ]
