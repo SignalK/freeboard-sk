@@ -10,11 +10,15 @@ const chart = (style?: string): FBChart =>
 
 describe('opaqueCoverage', () => {
   it("claims the chart's coverage under Freeboard's own styling", () => {
-    expect(opaqueCoverage(chart())).toEqual(coverage);
+    expect(opaqueCoverage(chart(), true)).toEqual(coverage);
+  });
+
+  it('claims none before the S-52 lookups have loaded', () => {
+    expect(opaqueCoverage(chart(), false)).toBe(undefined);
   });
 
   it('claims none under a style of the chart', () => {
-    expect(opaqueCoverage(chart('https://example.org/style.json'))).toBe(
+    expect(opaqueCoverage(chart('https://example.org/style.json'), true)).toBe(
       undefined
     );
   });

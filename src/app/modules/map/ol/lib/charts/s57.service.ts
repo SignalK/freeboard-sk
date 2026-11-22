@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { FeatureLike } from 'ol/Feature';
@@ -148,6 +148,8 @@ export class S57Service {
    * holds only under the revision it was chosen in.
    */
   public lookupRevision = 0;
+  /** Whether the S-52 lookups loaded, so charts draw their depth and land areas. */
+  public readonly lookupsReady = signal(false);
   private symbolsLoaded = false;
 
   //options
@@ -177,6 +179,7 @@ export class S57Service {
             this.processSymbols(symbolsJs);
             this.processLookup(symbolsJs);
             this.processColors(symbolsJs);
+            this.lookupsReady.set(!err && this.lookups.length > 0);
           });
           this.symbolsLoaded = true;
           this.lookupRevision++;
