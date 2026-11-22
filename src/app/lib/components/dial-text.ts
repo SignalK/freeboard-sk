@@ -42,20 +42,42 @@ export class TextDialComponent {
           <span class="dial-text-subtitle"> ({{ subTitle() }}) </span>
         }
       </div>
-      <div class="dial-text-value">{{ ttg }}</div>
+      <div class="dial-text-value">
+        <span>{{ ttg }}</span>
+        <span class="dial-text-reserve" aria-hidden="true">{{
+          lastShown
+        }}</span>
+      </div>
       <div class="dial-text-units">{{ units }}</div>
     </div>
   `,
   styleUrls: ['./dial-text.css'],
-  // As wide as an hr:min value, so the route bar keeps its width when the
-  // value gives way to '--' (#1350).
-  styles: ['.dial-text-value { min-width: 4.6ch; }']
+  // The route bar keeps its width when the value gives way to '--' (#1350):
+  // at least as wide as an hr:min value, and once cleared as wide as the last
+  // value shown, which a day count can make wider still.
+  styles: [
+    `
+      .dial-text-value {
+        display: grid;
+        min-width: 4.6ch;
+      }
+      .dial-text-value > span {
+        grid-area: 1 / 1;
+      }
+      .dial-text-reserve {
+        visibility: hidden;
+      }
+    `
+  ]
 })
 export class TTGDialComponent {
   value = input<number | null>();
   subTitle = input<string>();
   protected ttg: string = '--';
   protected units: string = 'min';
+  /** The last value shown, kept (invisibly) after it is cleared to hold the
+   *  cell's width. */
+  protected lastShown: string = '';
 
   constructor() {
     effect(() => {
@@ -63,7 +85,9 @@ export class TTGDialComponent {
       if (typeof cv !== 'number') {
         this.ttg = '--';
         this.units = 'min';
-      } else if (cv < 60) {
+        return;
+      }
+      if (cv < 60) {
         this.ttg = Math.floor(cv).toString();
         this.units = 'min';
       } else if (cv < 60 * 24) {
@@ -81,6 +105,7 @@ export class TTGDialComponent {
         this.ttg = `${days}:${('00' + hours).slice(-2)}:${minutes}`;
         this.units = 'day:hr:min';
       }
+      this.lastShown = this.ttg;
     });
   }
 }

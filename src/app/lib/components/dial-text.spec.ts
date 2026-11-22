@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ETADialComponent } from './dial-text';
+import { ETADialComponent, TTGDialComponent } from './dial-text';
 
 /**
  * Issue #443: the ETA dial built its display string by slicing the
@@ -79,5 +79,27 @@ describe('ETADialComponent — locale time formatting', () => {
     expect(el.querySelector('.dial-text-units')!.textContent!.trim()).toBe(
       '--'
     );
+  });
+});
+
+// The route bar keeps the TTG cell while VMG <= 0, and its width with it, so
+// the cell keeps room for a day count it showed before it was cleared (#1350).
+describe('TTGDialComponent once cleared', () => {
+  it('shows -- and keeps room for the last value shown', () => {
+    const fixture = TestBed.createComponent(TTGDialComponent);
+    fixture.componentRef.setInput('value', 24 * 60 + 62);
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('value', null);
+    fixture.detectChanges();
+
+    const [shown, reserve] = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '.dial-text-value > span'
+      ),
+      (span) => span.textContent!.trim()
+    );
+    expect(shown).toBe('--');
+    expect(reserve).toBe('1:01:02');
   });
 });

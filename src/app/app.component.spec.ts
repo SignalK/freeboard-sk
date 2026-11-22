@@ -702,7 +702,16 @@ describe('AppComponent', () => {
             .querySelector('.dial-text-title')!
             .textContent!.replace(/\s+/g, ' ')
             .trim(),
-          value: cell.querySelector('.dial-text-value')!.textContent!.trim()
+          // the text shown, without the room a TTG cell keeps for its last value
+          value: Array.from(cell.querySelector('.dial-text-value')!.childNodes)
+            .filter(
+              (n) =>
+                !(n instanceof HTMLElement) ||
+                !n.classList.contains('dial-text-reserve')
+            )
+            .map((n) => n.textContent)
+            .join('')
+            .trim()
         })
       );
     const titles = (fixture: ComponentFixture<AppComponent>) =>
