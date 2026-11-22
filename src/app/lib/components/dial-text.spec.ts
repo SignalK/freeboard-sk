@@ -3,6 +3,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { ETADialComponent, TTGDialComponent } from './dial-text';
 
+/** The time an ETA dial shows, without the hidden copy that holds its width. */
+const shownTime = (el: HTMLElement): string =>
+  (el.querySelector('.dial-text-value > span') ??
+    el.querySelector('.dial-text-value'))!.textContent!.trim();
+
 /**
  * Issue #443: the ETA dial built its display string by slicing the
  * ':'-separated parts of a full `toLocaleTimeString()`. That drops the seconds,
@@ -47,9 +52,7 @@ describe('ETADialComponent — locale time formatting', () => {
     fixture.componentRef.setInput('value', eta);
     fixture.detectChanges();
     // `etaTime` is protected; the template is what a user reads.
-    return (fixture.nativeElement as HTMLElement)
-      .querySelector('.dial-text-value')!
-      .textContent!.trim();
+    return shownTime(fixture.nativeElement);
   };
 
   it('keeps the day period in a 12-hour locale', () => {
@@ -73,12 +76,31 @@ describe('ETADialComponent — locale time formatting', () => {
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.dial-text-value')!.textContent!.trim()).toBe(
-      '--'
-    );
+    expect(shownTime(el)).toBe('--');
     expect(el.querySelector('.dial-text-units')!.textContent!.trim()).toBe(
       '--'
     );
+  });
+
+  // Some locales write a time wider than the cell's minimum width, so once
+  // cleared the cell keeps room for the last time shown (#1350).
+  it('keeps room for the last time shown once cleared', () => {
+    pinLocale('en-CA');
+    const fixture = TestBed.createComponent(ETADialComponent);
+    fixture.componentRef.setInput('value', eta);
+    fixture.detectChanges();
+    const shown = shownTime(fixture.nativeElement);
+
+    fixture.componentRef.setInput('value', null);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(shownTime(el)).toBe('--');
+    expect(
+      el
+        .querySelector('.dial-text-value .dial-text-reserve')!
+        .textContent!.trim()
+    ).toBe(shown);
   });
 });
 

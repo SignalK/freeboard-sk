@@ -30,6 +30,23 @@ export class TextDialComponent {
   units = input<string>();
 }
 
+/**
+ * Styles for a value line that holds its width once cleared: the hidden
+ * `.dial-text-reserve` copy of the last value shares the grid cell of the text
+ * shown, so the line stays as wide as that value.
+ */
+const HELD_WIDTH = `
+  .dial-text-value {
+    display: grid;
+  }
+  .dial-text-value > span {
+    grid-area: 1 / 1;
+  }
+  .dial-text-reserve {
+    visibility: hidden;
+  }
+`;
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ap-dial-ttg',
@@ -55,20 +72,7 @@ export class TextDialComponent {
   // The route bar keeps its width when the value gives way to '--' (#1350):
   // at least as wide as an hr:min value, and once cleared as wide as the last
   // value shown, which a day count can make wider still.
-  styles: [
-    `
-      .dial-text-value {
-        display: grid;
-        min-width: 4.6ch;
-      }
-      .dial-text-value > span {
-        grid-area: 1 / 1;
-      }
-      .dial-text-reserve {
-        visibility: hidden;
-      }
-    `
-  ]
+  styles: [HELD_WIDTH, '.dial-text-value { min-width: 4.6ch; }']
 })
 export class TTGDialComponent {
   value = input<number | null>();
@@ -122,20 +126,29 @@ export class TTGDialComponent {
           <span class="dial-text-subtitle"> ({{ subTitle() }}) </span>
         }
       </div>
-      <div class="dial-text-value">{{ etaTime }}</div>
+      <div class="dial-text-value">
+        <span>{{ etaTime }}</span>
+        <span class="dial-text-reserve" aria-hidden="true">{{
+          lastShown
+        }}</span>
+      </div>
       <div class="dial-text-units">{{ etaDate }}</div>
     </div>
   `,
   styleUrls: ['./dial-text.css'],
-  // As wide as a 12-hour time such as '12:45 PM', so the route bar keeps its
-  // width when the value gives way to '--' (#1350).
-  styles: ['.dial-text-value { min-width: 7.7ch; }']
+  // The route bar keeps its width when the value gives way to '--' (#1350):
+  // at least as wide as a 12-hour time such as '12:45 PM', and once cleared as
+  // wide as the last time shown, which some locales make wider still.
+  styles: [HELD_WIDTH, '.dial-text-value { min-width: 7.7ch; }']
 })
 export class ETADialComponent {
   value = input<Date | null>();
   subTitle = input<string>();
   protected etaTime: string = '--';
   protected etaDate: string = '--';
+  /** The last time shown, kept (invisibly) after it is cleared to hold the
+   *  cell's width. */
+  protected lastShown: string = '';
 
   constructor() {
     effect(() => {
@@ -149,6 +162,7 @@ export class ETADialComponent {
           minute: '2-digit'
         });
         this.etaDate = v.toLocaleDateString();
+        this.lastShown = this.etaTime;
       } else {
         this.etaTime = '--';
         this.etaDate = '--';
