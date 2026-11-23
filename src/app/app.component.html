@@ -980,7 +980,9 @@
                       </button>
                     </div>
                   </div>
-                  @if (course.courseData().vmg) {
+                  <!-- Shown at a VMG of 0 too, so the bar keeps its width as
+                       VMG crosses zero. -->
+                  @if (course.courseData().vmg !== null) {
                     <ap-dial-text
                       [title]="'VMG'"
                       [value]="app.formatSpeed(course.courseData().vmg, true)"
@@ -1018,13 +1020,20 @@
                       >
                       </ap-dial-text>
                     }
-                    @if (course.courseData().route.ttg; as ttg) {
-                      <ap-dial-ttg subTitle="RT" [value]="ttg"> </ap-dial-ttg>
-                    }
-                    @if (course.courseData().route.eta; as eta) {
-                      <ap-dial-eta [title]="'ETA'" subTitle="RT" [value]="eta">
-                      </ap-dial-eta>
-                    }
+                    <!-- TTG and ETA stay in place, showing '--' while VMG <= 0,
+                         so the bar's width, and its height above the widgets
+                         under it, holds steady. -->
+                    <ap-dial-ttg
+                      subTitle="RT"
+                      [value]="course.courseData().route.ttg"
+                    >
+                    </ap-dial-ttg>
+                    <ap-dial-eta
+                      [title]="'ETA'"
+                      subTitle="RT"
+                      [value]="course.courseData().route.eta"
+                    >
+                    </ap-dial-eta>
                   }
                   @if (course.courseData().dtg; as dtg) {
                     <ap-dial-text
@@ -1034,12 +1043,12 @@
                     >
                     </ap-dial-text>
                   }
-                  @if (course.courseData().ttg; as ttg) {
-                    <ap-dial-ttg [value]="ttg"> </ap-dial-ttg>
-                  }
-                  @if (course.courseData().eta; as eta) {
-                    <ap-dial-eta [title]="'ETA'" [value]="eta"> </ap-dial-eta>
-                  }
+                  <ap-dial-ttg [value]="course.courseData().ttg"> </ap-dial-ttg>
+                  <ap-dial-eta
+                    [title]="'ETA'"
+                    [value]="course.courseData().eta"
+                  >
+                  </ap-dial-eta>
                 </div>
               }
             </div>

@@ -518,12 +518,16 @@ export class CourseService {
             );
     }
 
+    // The server sends null while the vessel isn't closing on the point
+    // (VMG <= 0), which is no time to go rather than 0 minutes.
     if (typeof v.courseCalcs.timeToGo !== 'undefined') {
-      c.ttg = v.courseCalcs.timeToGo / 60;
+      const ttg = v.courseCalcs.timeToGo;
+      c.ttg = typeof ttg === 'number' ? ttg / 60 : null;
     }
 
     if (typeof v.courseCalcs['route.timeToGo'] !== 'undefined') {
-      c.route.ttg = v.courseCalcs['route.timeToGo'] / 60;
+      const ttg = v.courseCalcs['route.timeToGo'];
+      c.route.ttg = typeof ttg === 'number' ? ttg / 60 : null;
     }
 
     if (typeof v.courseCalcs.estimatedTimeOfArrival !== 'undefined') {

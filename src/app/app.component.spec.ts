@@ -17,6 +17,8 @@ import { PlotterExtensionService } from './modules/plotterext/plotterext.service
 import { connectExtension } from 'signalk-plotterext-bus/extension';
 import { SignalKClient } from 'signalk-client-angular';
 import { config, of, Subject, throwError } from 'rxjs';
+import { CourseService } from './modules/course/course.service';
+import { SKVessel } from './modules/skresources';
 
 /** The type of the item the info panel shows. */
 function shownType(infoPanel: InfoPanelFacade) {
@@ -646,6 +648,174 @@ describe('AppComponent', () => {
       fixture.detectChanges();
       expect(actionMob(fixture)).toBeNull();
       expect(toolbarMob(fixture)).not.toBeNull();
+    });
+  });
+
+  // The route bar's height above the widgets under it follows its width, so
+  // its cells must not come and go as VMG crosses zero (#1350).
+  describe('the route bar as VMG crosses zero', () => {
+    const setup = () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = TestBed.inject(AppFacade);
+      app.data.activeRoute = 'route-1';
+      (
+        fixture.componentInstance as unknown as {
+          navDataPanel: WritableSignal<{
+            show: boolean;
+            nextPointCtrl: boolean;
+            apModeColor: string;
+            apModeText: string;
+          }>;
+        }
+      ).navDataPanel.set({
+        show: true,
+        nextPointCtrl: false,
+        apModeColor: '',
+        apModeText: ''
+      });
+      return fixture;
+    };
+    // course calcValues as the course provider sends them; no Course API
+    // update, which would clear the active route
+    const calcs = (vmg: number) => {
+      const closing = vmg > 0;
+      const courseCalcs: SKVessel['courseCalcs'] = {
+        crossTrackError: 25,
+        bearingTrue: 1,
+        velocityMadeGood: vmg,
+        distance: 5000,
+        'route.distance': 12000,
+        timeToGo: closing ? 3600 : null,
+        estimatedTimeOfArrival: closing ? '2026-11-22T18:16:00Z' : null,
+        'route.timeToGo': closing ? 9000 : null,
+        'route.estimatedTimeOfArrival': closing ? '2026-11-22T19:46:00Z' : null
+      };
+      return { courseCalcs } as SKVessel;
+    };
+    const cells = (fixture: ComponentFixture<AppComponent>) =>
+      Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll(
+          '.navdataPanel .dial-text'
+        ),
+        (cell) => ({
+          title: cell
+            .querySelector('.dial-text-title')!
+            .textContent!.replace(/\s+/g, ' ')
+            .trim(),
+          // the text shown, without the room a TTG cell keeps for its last value
+          value: Array.from(cell.querySelector('.dial-text-value')!.childNodes)
+            .filter(
+              (n) =>
+                !(n instanceof HTMLElement) ||
+                !n.classList.contains('dial-text-reserve')
+            )
+            .map((n) => n.textContent)
+            .join('')
+            .trim()
+        })
+      );
+    const titles = (fixture: ComponentFixture<AppComponent>) =>
+      cells(fixture).map((c) => c.title);
+    const valueOf = (fixture: ComponentFixture<AppComponent>, title: string) =>
+      cells(fixture)
+        .filter((c) => c.title === title)
+        .map((c) => c.value);
+
+    it('keeps the TTG and ETA cells, showing -- while VMG is not positive', () => {
+      const fixture = setup();
+      const course = TestBed.inject(CourseService);
+
+      course.parseSelf(calcs(2.5));
+      fixture.detectChanges();
+      const closing = titles(fixture);
+      expect(closing).toContain('VMG');
+      expect(closing).toContain('TTG (RT)');
+      expect(closing).toContain('ETA (RT)');
+      expect(valueOf(fixture, 'TTG')).not.toEqual(['--']);
+
+      for (const vmg of [0, -0.5]) {
+        course.parseSelf(calcs(vmg));
+        fixture.detectChanges();
+        expect(titles(fixture)).toEqual(closing);
+        expect(valueOf(fixture, 'TTG')).toEqual(['--']);
+        expect(valueOf(fixture, 'TTG (RT)')).toEqual(['--']);
+        expect(valueOf(fixture, 'ETA')).toEqual(['--']);
+        expect(valueOf(fixture, 'ETA (RT)')).toEqual(['--']);
+      }
+
+      course.parseSelf(calcs(2.5));
+      fixture.detectChanges();
+      expect(titles(fixture)).toEqual(closing);
+      expect(valueOf(fixture, 'TTG')).not.toEqual(['--']);
+    });
+
+    // jsdom does no layout, so the bar is given a width of 100 px per cell
+    // and a 200 px high widget sits under the right end of the full bar.
+    it('keeps its height above a widget under its right end', () => {
+      const observers: { notify: () => void; targets: Element[] }[] = [];
+      const Original = globalThis.ResizeObserver;
+      globalThis.ResizeObserver = class {
+        private entry: { notify: () => void; targets: Element[] };
+        constructor(cb: () => void) {
+          this.entry = { notify: cb, targets: [] };
+          observers.push(this.entry);
+        }
+        observe(target: Element) {
+          this.entry.targets.push(target);
+        }
+        unobserve() {}
+        disconnect() {}
+      } as unknown as typeof ResizeObserver;
+      const stack = document.createElement('div');
+      stack.className = 'pe-br';
+      const widget = document.createElement('div');
+      widget.className = 'pe-cell';
+      widget.getBoundingClientRect = () => new DOMRect(800, 400, 124, 200);
+      stack.appendChild(widget);
+      document.body.appendChild(stack);
+      try {
+        const fixture = setup();
+        const course = TestBed.inject(CourseService);
+        fixture.detectChanges();
+        // runs the clearance directive's afterNextRender, which observes the bar
+        TestBed.tick();
+        const panel = (fixture.nativeElement as HTMLElement).querySelector(
+          '.navdataPanel'
+        ) as HTMLElement;
+        const area = document.createElement('div');
+        area.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 600);
+        Object.defineProperty(panel, 'offsetParent', { get: () => area });
+        panel.getBoundingClientRect = () =>
+          new DOMRect(
+            0,
+            470,
+            panel.querySelectorAll('.dial-text').length * 100,
+            100
+          );
+        const clearance = () => {
+          fixture.detectChanges();
+          observers
+            .filter((o) => o.targets.includes(panel))
+            .forEach((o) => o.notify());
+          return (
+            fixture.componentInstance as unknown as {
+              navDataBottom: () => number | null;
+            }
+          ).navDataBottom();
+        };
+
+        course.parseSelf(calcs(2.5));
+        const closing = clearance();
+        expect(closing).toBeGreaterThanOrEqual(200);
+
+        for (const vmg of [0, -0.5, 2.5]) {
+          course.parseSelf(calcs(vmg));
+          expect(clearance()).toBe(closing);
+        }
+      } finally {
+        stack.remove();
+        globalThis.ResizeObserver = Original;
+      }
     });
   });
 

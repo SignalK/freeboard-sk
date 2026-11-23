@@ -1,7 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ETADialComponent } from './dial-text';
+import { ETADialComponent, TTGDialComponent } from './dial-text';
+
+/** The time an ETA dial shows, without the hidden copy that holds its width. */
+const shownTime = (el: HTMLElement): string =>
+  (el.querySelector('.dial-text-value > span') ??
+    el.querySelector('.dial-text-value'))!.textContent!.trim();
 
 /**
  * Issue #443: the ETA dial built its display string by slicing the
@@ -47,9 +52,7 @@ describe('ETADialComponent — locale time formatting', () => {
     fixture.componentRef.setInput('value', eta);
     fixture.detectChanges();
     // `etaTime` is protected; the template is what a user reads.
-    return (fixture.nativeElement as HTMLElement)
-      .querySelector('.dial-text-value')!
-      .textContent!.trim();
+    return shownTime(fixture.nativeElement);
   };
 
   it('keeps the day period in a 12-hour locale', () => {
@@ -59,5 +62,66 @@ describe('ETADialComponent — locale time formatting', () => {
 
   it('shows hours and minutes only in a 24-hour locale', () => {
     expect(renderETA('en-GB')).toBe('18:16');
+  });
+
+  // The route bar keeps the ETA cell while VMG <= 0, so a cleared ETA must
+  // not leave the last time on show (#1350).
+  it('shows -- once its value is cleared', () => {
+    pinLocale('en-US');
+    const fixture = TestBed.createComponent(ETADialComponent);
+    fixture.componentRef.setInput('value', eta);
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('value', null);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(shownTime(el)).toBe('--');
+    expect(el.querySelector('.dial-text-units')!.textContent!.trim()).toBe(
+      '--'
+    );
+  });
+
+  // Some locales write a time wider than the cell's minimum width, so once
+  // cleared the cell keeps room for the last time shown (#1350).
+  it('keeps room for the last time shown once cleared', () => {
+    pinLocale('en-CA');
+    const fixture = TestBed.createComponent(ETADialComponent);
+    fixture.componentRef.setInput('value', eta);
+    fixture.detectChanges();
+    const shown = shownTime(fixture.nativeElement);
+
+    fixture.componentRef.setInput('value', null);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(shownTime(el)).toBe('--');
+    expect(
+      el
+        .querySelector('.dial-text-value .dial-text-reserve')!
+        .textContent!.trim()
+    ).toBe(shown);
+  });
+});
+
+// The route bar keeps the TTG cell while VMG <= 0, and its width with it, so
+// the cell keeps room for a day count it showed before it was cleared (#1350).
+describe('TTGDialComponent once cleared', () => {
+  it('shows -- and keeps room for the last value shown', () => {
+    const fixture = TestBed.createComponent(TTGDialComponent);
+    fixture.componentRef.setInput('value', 24 * 60 + 62);
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('value', null);
+    fixture.detectChanges();
+
+    const [shown, reserve] = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '.dial-text-value > span'
+      ),
+      (span) => span.textContent!.trim()
+    );
+    expect(shown).toBe('--');
+    expect(reserve).toBe('1:01:02');
   });
 });
