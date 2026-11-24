@@ -7,3 +7,4 @@ export * from './components/anchor-watch.component';
 export * from './anchor.service';
 export * from './mob.service';
 export * from './alert-tier';
+export * from './alert-text';

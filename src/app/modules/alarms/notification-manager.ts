@@ -295,6 +295,10 @@ export class NotificationManager {
         path: msg.path,
         priority: v.state,
         message: v.message,
+        location:
+          typeof v.location === 'string'
+            ? v.location.trim() || undefined
+            : undefined,
         sound: method.includes(ALARM_METHOD.sound),
         visual: method.includes(ALARM_METHOD.visual),
         properties: {},

@@ -74,6 +74,12 @@ import { NotificationManager } from '../notification-manager';
               <div class="key-label">Message:</div>
               <div style="flex: 1 1 auto;">{{ data.alert.message }}</div>
             </div>
+            @if (data.alert.location) {
+              <div style="display:flex;">
+                <div class="key-label">Location:</div>
+                <div style="flex: 1 1 auto;">{{ data.alert.location }}</div>
+              </div>
+            }
             <div style="display:flex;">
               <div class="key-label">Type:</div>
               <div style="flex: 1 1 auto;">{{ data.alert.type }}</div>

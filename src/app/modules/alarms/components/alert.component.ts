@@ -21,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TimerButtonComponent } from './timer-button.component';
 import { MobReadoutComponent } from './mob-readout.component';
 import { alertTier } from '../alert-tier';
+import { alertText } from '../alert-text';
 
 import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
@@ -42,6 +43,7 @@ export interface AlertData {
   path: string;
   priority: ALARM_STATE;
   message: string;
+  location?: string;
   sound: boolean;
   visual: boolean;
   properties: AlertProperties;
@@ -108,7 +110,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   line-clamp: 2;
                   text-overflow:ellipsis;"
                 >
-                  {{ alert().message }}
+                  {{ text() }}
                 </div>
               </div>
               @if (isMob()) {
@@ -230,8 +232,8 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
             [svgIcon]="alert().icon.svgIcon ?? ''"
             >{{ alert().icon.name }}</mat-icon
           >
-          <div class="alert-message" [title]="alert().message">
-            {{ alert().message }}
+          <div class="alert-message" [title]="text()">
+            {{ text() }}
           </div>
           <div class="alert-actions">
             @if (app.data.activeRoute) {
@@ -430,6 +432,7 @@ export class AlertComponent {
   hidden = signal<boolean>(false); // alert card is hidden
   protected isMob = computed(() => this.alert().type === 'mob');
   protected tier = computed(() => alertTier(this.alert()));
+  protected text = computed(() => alertText(this.alert()));
   progressValue = signal<number>(100);
 
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
