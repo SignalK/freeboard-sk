@@ -7,7 +7,7 @@ import { CourseService } from '../../course';
 import { MobService } from '../mob.service';
 import { NotificationManager } from '../notification-manager';
 import { AlertComponent, AlertData } from './alert.component';
-import { ALARM_STATE } from 'src/app/types';
+import { ALARM_STATE } from 'src/app/types/stream';
 
 function mount(alert: Partial<AlertData>): ComponentFixture<AlertComponent> {
   TestBed.configureTestingModule({
