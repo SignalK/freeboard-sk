@@ -1,6 +1,7 @@
 // ** Signal K vessel data shapes (full model + delta-derived maps) **
 
 import type { ActiveRoute, NextPreviousPoint } from '@signalk/server-api';
+import type { HullType } from '@signalk/server-api/typebox';
 import { SKPosition } from './resources/signalk';
 
 /**
@@ -55,6 +56,7 @@ export interface SKCourseApi {
 export interface SKVesselDesign {
   airHeight: number | null;
   beam: number | null;
+  hullType: HullType | null;
   draft: {
     current?: number | null;
     maximum?: number | null;

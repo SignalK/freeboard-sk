@@ -2,6 +2,7 @@
 
 import { SKStreamAPI, Alarm, AlarmState } from './stream-api';
 import type { Subscription } from 'rxjs';
+import type { HullType } from '@signalk/server-api/typebox';
 import {
   SKVessel,
   SKAtoN,
@@ -1326,6 +1327,8 @@ function selectVessel(id: string): SKVessel {
   return vessel;
 }
 
+const HULL_TYPES = new Set<HullType>(['monohull', 'catamaran', 'trimaran']);
+
 const CURRENT_KEYS = ['setTrue', 'setMagnetic', 'drift'] as const;
 type CurrentKey = (typeof CURRENT_KEYS)[number];
 const isCurrentKey = (key: string): key is CurrentKey =>
@@ -1456,6 +1459,8 @@ export function processVessel(d: SKVessel, v: PathValue, isSelf = false) {
     d.design.length = value ?? null;
   } else if (v.path === 'design.beam') {
     d.design.beam = value ?? null;
+  } else if (v.path === 'design.hullType') {
+    d.design.hullType = HULL_TYPES.has(value) ? value : null;
   } else if (v.path === 'navigation.position' && value) {
     // position is not null
     if (

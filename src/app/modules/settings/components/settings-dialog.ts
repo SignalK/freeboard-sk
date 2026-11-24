@@ -37,12 +37,12 @@ import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { MapImageRegistry } from 'src/app/modules/map/ol/lib/map-image-registry.service';
-import { selfVesselOverride } from 'src/app/modules/map/ol/lib/vessel/layer-vessel.component';
-import { AppFacade } from 'src/app/app.facade';
 import {
-  DEFAULT_OWN_VESSEL_ICON,
-  OwnVesselIcons
-} from 'src/app/modules/icons/vessels';
+  selfVesselIconType,
+  selfVesselOverride
+} from 'src/app/modules/map/ol/lib/vessel/layer-vessel.component';
+import { AppFacade } from 'src/app/app.facade';
+import { OwnVesselIcons } from 'src/app/modules/icons/vessels';
 import {
   serverTrailAvailable,
   TRAIL_DURATION_ALL,
@@ -139,11 +139,16 @@ export class SettingsDialog implements OnInit {
   }
 
   protected get selfIconPreview(): string {
-    const iconType = this.facade.settings.vessels.iconType;
+    const self = this.app.data.vessels.self;
+    const iconType = selfVesselIconType(
+      this.mapImages,
+      this.facade.settings.vessels.iconType,
+      self.design.hullType,
+      self.type?.id
+    );
     return (
       selfVesselOverride(this.mapImages, iconType)?.getSrc() ??
-      OwnVesselIcons[iconType]?.path ??
-      OwnVesselIcons[DEFAULT_OWN_VESSEL_ICON].path
+      OwnVesselIcons[iconType].path
     );
   }
   private course = inject(CourseService);

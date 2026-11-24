@@ -315,6 +315,7 @@ export class SKStreamFacade {
           { path: 'design.aisShipType', period: 1000, policy: 'fixed' },
           { path: 'design.length', period: 1000, policy: 'fixed' },
           { path: 'design.beam', period: 1000, policy: 'fixed' },
+          { path: 'design.hullType', period: 1000, policy: 'fixed' },
           // sets how long an AIS position counts as current next to radar
           { path: 'sensors.ais.class', period: 1000, policy: 'fixed' },
           { path: 'environment.wind.*', period: 1000, policy: 'fixed' },
