@@ -7,6 +7,7 @@ import { CourseService } from '../../course';
 import { MobService } from '../mob.service';
 import { NotificationManager } from '../notification-manager';
 import { AlertComponent, AlertData } from './alert.component';
+import { ALARM_STATE } from 'src/app/types/stream';
 
 function mount(alert: Partial<AlertData>): ComponentFixture<AlertComponent> {
   TestBed.configureTestingModule({
@@ -55,6 +56,22 @@ const labels = (f: ComponentFixture<AlertComponent>) =>
 
 describe('AlertComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
+
+  it('shows the place of a row alert apart from its message', () => {
+    const f = mount({
+      priority: ALARM_STATE.alarm,
+      type: 'notification',
+      message: 'Highwater',
+      location: 'ER Port'
+    });
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('.alert-message-text')?.textContent?.trim()).toBe(
+      'Highwater'
+    );
+    expect(el.querySelector('.alert-place')?.textContent?.trim()).toBe(
+      '· ER Port'
+    );
+  });
 
   it('lets an alert that cannot be acknowledged be dismissed', () => {
     const f = mount({ canAcknowledge: false });

@@ -22,6 +22,7 @@ import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { AppFacade } from 'src/app/app.facade';
 import { getAlertIcon } from '../../icons';
 import { AlertData } from './alert.component';
+import { alertText } from '../alert-text';
 import { NotificationManager } from '../notification-manager';
 import { MobService } from '../mob.service';
 
@@ -123,7 +124,7 @@ import { MobService } from '../mob.service';
                       'amber-text': item[1].priority === 'alert'
                     }"
                   >
-                    {{ item[1].message }}
+                    {{ alertText(item[1]) }}
                   </div>
                   <div style="width:90px;">
                     @if (
@@ -195,6 +196,7 @@ export class AlertListComponent {
   protected app = inject(AppFacade);
   protected notiMgr = inject(NotificationManager);
   private mob = inject(MobService);
+  protected alertText = alertText;
 
   constructor() {}
 

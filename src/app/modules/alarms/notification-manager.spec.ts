@@ -254,6 +254,51 @@ describe('NotificationManager alert properties (#755)', () => {
     }
   });
 
+  it('carries the notification location into the alert', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.nmea.navigational.22.unset.8196',
+      notification({ message: 'Highwater', location: ' ER Port ' })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.message).toBe('Highwater');
+    expect(alert.location).toBe('ER Port');
+  });
+
+  it('gives an alert no location when the notification sends a blank one', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    emit(
+      'notifications.nmea.navigational.22.unset.8196',
+      notification({ message: 'Highwater', location: '  ' })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.location).toBeUndefined();
+  });
+
+  it('gives an alert no location when the location is not text', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const location = 5 as unknown as string;
+    emit(
+      'notifications.nmea.navigational.22.unset.8196',
+      notification({ message: 'Highwater', location })
+    );
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.location).toBeUndefined();
+  });
+
+  it('drops the location when the next delta for the path has none', () => {
+    const mgr = TestBed.inject(NotificationManager);
+    const path = 'notifications.nmea.navigational.22.unset.8196';
+    emit(path, notification({ message: 'Highwater', location: 'ER Port' }));
+    emit(path, notification({ message: 'Highwater' }));
+
+    const [[, alert]] = mgr.alerts();
+    expect(alert.location).toBeUndefined();
+  });
+
   it('leaves properties empty when the notification carries neither', () => {
     const mgr = TestBed.inject(NotificationManager);
     emit('notifications.fire', notification());

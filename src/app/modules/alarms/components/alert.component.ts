@@ -21,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TimerButtonComponent } from './timer-button.component';
 import { MobReadoutComponent } from './mob-readout.component';
 import { alertTier } from '../alert-tier';
+import { alertPlace, alertText } from '../alert-text';
 
 import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
@@ -42,6 +43,7 @@ export interface AlertData {
   path: string;
   priority: ALARM_STATE;
   message: string;
+  location?: string;
   sound: boolean;
   visual: boolean;
   properties: AlertProperties;
@@ -108,7 +110,7 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   line-clamp: 2;
                   text-overflow:ellipsis;"
                 >
-                  {{ alert().message }}
+                  {{ text() }}
                 </div>
               </div>
               @if (isMob()) {
@@ -230,8 +232,16 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
             [svgIcon]="alert().icon.svgIcon ?? ''"
             >{{ alert().icon.name }}</mat-icon
           >
-          <div class="alert-message" [title]="alert().message">
-            {{ alert().message }}
+          <!-- the message gives way to the place, which tells alerts sharing a text apart -->
+          <div class="alert-message" [title]="text()">
+            @if (alert().message) {
+              <span class="alert-message-text">{{ alert().message }}</span>
+            }
+            @if (place(); as p) {
+              <span class="alert-place">{{
+                alert().message ? '· ' + p : p
+              }}</span>
+            }
           </div>
           <div class="alert-actions">
             @if (app.data.activeRoute) {
@@ -390,9 +400,25 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
       .alert-message {
         flex: 1 1 120px;
         min-width: 0;
+        display: flex;
+        gap: 0.3em;
         white-space: nowrap;
         overflow: hidden;
+      }
+      .alert-message-text {
+        min-width: 0;
+        overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .alert-place {
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .alert-message-text + .alert-place {
+        flex: none;
+        max-width: 60%;
       }
       .alert-actions {
         flex: none;
@@ -430,6 +456,8 @@ export class AlertComponent {
   hidden = signal<boolean>(false); // alert card is hidden
   protected isMob = computed(() => this.alert().type === 'mob');
   protected tier = computed(() => alertTier(this.alert()));
+  protected text = computed(() => alertText(this.alert()));
+  protected place = computed(() => alertPlace(this.alert()));
   progressValue = signal<number>(100);
 
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();

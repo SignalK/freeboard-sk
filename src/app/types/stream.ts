@@ -27,6 +27,7 @@ export interface SKNotification {
   state: ALARM_STATE;
   method?: ALARM_METHOD[]; // some providers (e.g. Victron Venus) send none
   message: string;
+  location?: string; // the place aboard as text, e.g. an NMEA 2000 alert's location
   status?: {
     silenced: boolean;
     acknowledged: boolean;
