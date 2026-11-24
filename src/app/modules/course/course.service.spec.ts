@@ -76,7 +76,7 @@ describe('CourseService course API data (#755)', () => {
     position: { longitude: lon, latitude: lat }
   });
 
-  function setupWithData() {
+  function setupWithData(signalk: object = {}) {
     const app = {
       config: { units: { distance: 'naut-mile' } },
       useMagnetic: false,
@@ -88,7 +88,7 @@ describe('CourseService course API data (#755)', () => {
     TestBed.configureTestingModule({
       providers: [
         CourseService,
-        { provide: SignalKClient, useValue: {} },
+        { provide: SignalKClient, useValue: signalk },
         { provide: AppFacade, useValue: app },
         {
           provide: SKResourceService,
@@ -148,6 +148,30 @@ describe('CourseService course API data (#755)', () => {
     expect(app.data.activeWaypoint).toBeNull();
     expect(c.pointIndex).toBe(2);
     expect(c.pointTotal).toBe(5);
+  });
+
+  it('asks the server whether it advances the route', async () => {
+    const answer = async (course: object | Error) => {
+      const get = vi.fn(() =>
+        course instanceof Error ? throwError(() => course) : of(course)
+      );
+      const { service } = setupWithData({ api: { get } });
+      const advances = await service.serverAdvancesRoute();
+      TestBed.resetTestingModule();
+      return advances;
+    };
+
+    expect(await answer({ autoAdvance: 'either' })).toBe(true);
+    expect(await answer({ autoAdvance: 'perpendicular' })).toBe(true);
+    expect(
+      await answer({ autoAdvance: 'arrivalCircle', arrivalCircle: 50 })
+    ).toBe(true);
+    expect(
+      await answer({ autoAdvance: 'arrivalCircle', arrivalCircle: 0 })
+    ).toBe(false);
+    expect(await answer({ autoAdvance: 'off' })).toBe(false);
+    expect(await answer({})).toBe(false);
+    expect(await answer(new Error('offline'))).toBe(false);
   });
 
   it('clears the course when the destination is removed', () => {

@@ -10,7 +10,8 @@ import {
   inject,
   ChangeDetectionStrategy,
   NgZone,
-  computed
+  computed,
+  untracked
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -171,7 +172,8 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                   <div>
                     @if (
                       app.config.course.autoNextPointOnArrival &&
-                      app.config.course.autoNextPointTrigger === alert().type
+                      app.config.course.autoNextPointTrigger === alert().type &&
+                      serverAdvances() === false
                     ) {
                       <div>
                         @if (isLastPoint) {
@@ -196,7 +198,9 @@ const SoundFiles: Partial<Record<ALARM_STATE, string>> = {
                           </timer-button>
                         }
                       </div>
-                    } @else if (showStaticNextPoint) {
+                    } @else if (
+                      showStaticNextPoint && serverAdvances() === false
+                    ) {
                       @if (isLastPoint) {
                         <button
                           mat-button
@@ -437,6 +441,14 @@ export class AlertComponent {
 
   protected showStaticNextPoint = false;
   protected showAutoNextPoint = false;
+  // Whether the server moves the route on from this arrival: undefined while
+  // it is read, false at the last point and away from a route. The card then
+  // offers no advance of its own, which would skip a point.
+  protected serverAdvances = signal<boolean | undefined>(false);
+  // A raise on the same path can keep its id, so an arrival is told apart by
+  // its time as well; the token rejects an answer for an earlier arrival.
+  private serverAdvancesReadFor?: string;
+  private serverAdvancesToken = 0;
   protected nextPointClicked = false;
   private audio?: HTMLAudioElement;
   private source?: MediaElementAudioSourceNode;
@@ -458,38 +470,91 @@ export class AlertComponent {
       this.showStaticNextPoint =
         !!al.type &&
         ['perpendicularPassed', 'arrivalCircleEntered'].includes(al.type);
-      this.showAutoNextPoint =
-        this.showStaticNextPoint &&
-        this.app.config.course.autoNextPointTrigger === al.type;
+      // Untracked: course updates arrive every second and must not re-run the
+      // audio and the hide timer below.
+      untracked(() => this.readServerAdvances(al));
       // Read here, unconditionally, so the effect re-runs when the input
       // changes. processAudio() also reads it, but only behind guards that
       // can short-circuit, so this is the one registration that always runs.
       this.doNotPlaySound();
       this.processAudio();
-      if (
-        !this.timerRef &&
-        !this.isMob() &&
-        !['emergency', 'alarm'].includes(this.alert().priority) &&
-        !this.showAutoNextPoint
-      ) {
-        // hide after set time secs. Run the 100ms ticker OUTSIDE the Angular
-        // zone so it doesn't trigger an app-wide change detection 10x/sec; the
-        // progressValue/hidden signal writes mark this OnPush component for
-        // check on their own.
-        this.ngZone.runOutsideAngular(() => {
-          this.timerRef = setInterval(() => {
-            if (this.progressValue() > 0) {
-              this.progressValue.update((value) => value - 4);
-            } else {
-              this.hidden.set(true);
-              if (this.timerRef) {
-                clearInterval(this.timerRef);
-              }
-            }
-          }, 100);
-        });
+      this.startHideTimer();
+    });
+  }
+
+  private readServerAdvances(al: AlertData) {
+    const arrival = `${al.id}@${al.createdAt}`;
+    if (this.serverAdvancesReadFor === arrival) {
+      return;
+    }
+    this.serverAdvancesReadFor = arrival;
+    const token = ++this.serverAdvancesToken;
+    // The card is kept for a new alert on the same path: its countdown starts
+    // afresh.
+    if (this.timerRef) {
+      clearInterval(this.timerRef);
+      this.timerRef = null;
+    }
+    this.hidden.set(false);
+    this.progressValue.set(100);
+    this.nextPointClicked = false;
+    const course = this.course.courseData();
+    const atIntermediatePoint =
+      this.showStaticNextPoint &&
+      !!this.app.data.activeRoute &&
+      course.pointIndex !== course.pointTotal - 1;
+    if (!atIntermediatePoint) {
+      this.serverAdvances.set(false);
+      this.updateAutoNextPoint(al);
+      return;
+    }
+    this.serverAdvances.set(undefined);
+    void this.course.serverAdvancesRoute().then((advances) => {
+      if (token === this.serverAdvancesToken) {
+        this.serverAdvances.set(advances);
+        this.updateAutoNextPoint(al);
+        this.startHideTimer();
       }
     });
+  }
+
+  private updateAutoNextPoint(al: AlertData) {
+    this.showAutoNextPoint =
+      this.showStaticNextPoint &&
+      this.app.config.course.autoNextPointTrigger === al.type &&
+      this.serverAdvances() === false;
+  }
+
+  // The card stays up while its countdown runs; it waits for the server's
+  // answer before it decides.
+  private startHideTimer() {
+    // Untracked: the answer arriving must not re-run the effect and its audio.
+    if (untracked(this.serverAdvances) === undefined) {
+      return;
+    }
+    if (
+      !this.timerRef &&
+      !this.isMob() &&
+      !['emergency', 'alarm'].includes(this.alert().priority) &&
+      !this.showAutoNextPoint
+    ) {
+      // hide after set time secs. Run the 100ms ticker OUTSIDE the Angular
+      // zone so it doesn't trigger an app-wide change detection 10x/sec; the
+      // progressValue/hidden signal writes mark this OnPush component for
+      // check on their own.
+      this.ngZone.runOutsideAngular(() => {
+        this.timerRef = setInterval(() => {
+          if (this.progressValue() > 0) {
+            this.progressValue.update((value) => value - 4);
+          } else {
+            this.hidden.set(true);
+            if (this.timerRef) {
+              clearInterval(this.timerRef);
+            }
+          }
+        }, 100);
+      });
+    }
   }
 
   ngOnDestroy() {
