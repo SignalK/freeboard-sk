@@ -2,9 +2,13 @@
 
 import type { Static } from 'typebox';
 import type { AppConfigSchema } from '../app.config.schema';
-import { Position, LineString, MultiLineString } from './resources/geojson';
-import { FBCharts } from './resources/freeboard';
-import {
+import type {
+  Position,
+  LineString,
+  MultiLineString
+} from './resources/geojson';
+import type { FBCharts } from './resources/freeboard';
+import type {
   SKMeteo,
   SKSaR,
   SKAtoN,

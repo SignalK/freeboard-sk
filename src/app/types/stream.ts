@@ -7,6 +7,9 @@ import type {
   Update
 } from '@signalk/server-api';
 import type { MultiLineString, Position } from './resources/geojson';
+import type { SKPosition } from './resources/signalk';
+
+export type { SKPosition };
 
 // Notification types
 export enum ALARM_STATE {
@@ -70,12 +73,6 @@ export interface ActionResult {
   statusCode?: number;
   message?: string;
   timestamp?: string;
-}
-
-export interface SKPosition {
-  latitude: number;
-  longitude: number;
-  altitude?: number;
 }
 
 // ** Stream (WebSocket) messages **

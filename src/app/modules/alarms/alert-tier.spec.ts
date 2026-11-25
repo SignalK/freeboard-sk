@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALARM_STATE } from 'src/app/types/stream';
+import { ALARM_STATE } from 'src/app/types';
 import { alertTier } from './alert-tier';
 
 describe('alertTier', () => {
