@@ -101,4 +101,55 @@ describe('WakeLockService', () => {
     await wakeLock.disable();
     expect(wakeLock.wanted()).toBe(false);
   });
+
+  it('removes the release listener it added', async () => {
+    const wakeLock = TestBed.inject(WakeLockService);
+    const enabling = wakeLock.enable();
+    resolveRequest(sentinel as unknown as WakeLockSentinel);
+    await enabling;
+    await wakeLock.disable();
+    const added = sentinel.addEventListener.mock.calls[0];
+    expect(sentinel.removeEventListener).toHaveBeenCalledWith(
+      added[0],
+      added[1]
+    );
+  });
+
+  it('takes the lock back once per return to the page', async () => {
+    const wakeLock = TestBed.inject(WakeLockService);
+    const visibility = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('visible');
+    const newSentinel = () => ({
+      release: vi.fn(() => Promise.resolve()),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn()
+    });
+    const dropLock = (held: typeof sentinel) =>
+      (
+        held.addEventListener.mock.calls.find(
+          ([type]) => type === 'release'
+        )?.[1] as () => void
+      )();
+
+    const enabling = wakeLock.enable();
+    resolveRequest(sentinel as unknown as WakeLockSentinel);
+    await enabling;
+
+    let held = sentinel;
+    for (let cycle = 1; cycle <= 2; cycle++) {
+      dropLock(held);
+      expect(wakeLock.enabled()).toBe(false);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.waitFor(() =>
+        expect(navigator.wakeLock.request).toHaveBeenCalledTimes(cycle + 1)
+      );
+      held = newSentinel();
+      resolveRequest(held as unknown as WakeLockSentinel);
+      await vi.waitFor(() => expect(wakeLock.enabled()).toBe(true));
+    }
+    expect(navigator.wakeLock.request).toHaveBeenCalledTimes(3);
+    visibility.mockRestore();
+    await wakeLock.disable();
+  });
 });
