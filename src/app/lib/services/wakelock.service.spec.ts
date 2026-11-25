@@ -76,4 +76,29 @@ describe('WakeLockService', () => {
     await enabling;
     expect(wakeLock.enabled()).toBe(true);
   });
+
+  // The status bar shows the lost-lock icon for wanted() && !enabled().
+  it('stays wanted when the browser releases the lock', async () => {
+    const wakeLock = TestBed.inject(WakeLockService);
+    const enabling = wakeLock.enable();
+    resolveRequest(sentinel as unknown as WakeLockSentinel);
+    await enabling;
+    expect(wakeLock.wanted()).toBe(true);
+    expect(wakeLock.enabled()).toBe(true);
+    const onRelease = sentinel.addEventListener.mock.calls.find(
+      ([type]) => type === 'release'
+    )?.[1] as () => void;
+    onRelease();
+    expect(wakeLock.wanted()).toBe(true);
+    expect(wakeLock.enabled()).toBe(false);
+  });
+
+  it('is not wanted once disabled', async () => {
+    const wakeLock = TestBed.inject(WakeLockService);
+    const enabling = wakeLock.enable();
+    resolveRequest(sentinel as unknown as WakeLockSentinel);
+    await enabling;
+    await wakeLock.disable();
+    expect(wakeLock.wanted()).toBe(false);
+  });
 });

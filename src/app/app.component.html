@@ -654,6 +654,15 @@
                   </mat-icon>
                 </div>
               }
+              @if (wakeLock.wanted() && !wakeLock.enabled()) {
+                <div class="statusBarItem">
+                  <mat-icon
+                    matTooltip="Screen may sleep: the browser released the wake lock"
+                    matTooltipPosition="below"
+                    >visibility_off
+                  </mat-icon>
+                </div>
+              }
               @if (!app.uiConfig().showCourseData) {
                 <div class="statusBarItem">
                   <mat-icon
