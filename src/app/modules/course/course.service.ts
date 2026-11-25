@@ -10,6 +10,15 @@ import { firstValueFrom } from 'rxjs';
 import { Convert } from 'src/app/lib/convert';
 import { followedPointIndex } from '../map/route-point-pick';
 
+/** When the server moves a followed route on to its next point. */
+export const AUTO_ADVANCE_MODES = [
+  'either',
+  'arrivalCircle',
+  'perpendicular',
+  'off'
+] as const;
+export type AutoAdvance = (typeof AUTO_ADVANCE_MODES)[number];
+
 // ** Signal K course operations
 @Injectable({ providedIn: 'root' })
 export class CourseService {
@@ -346,24 +355,57 @@ export class CourseService {
    * setting; a server without it, or a failed read, does not advance.
    */
   async serverAdvancesRoute(): Promise<boolean> {
+    const course = await this.readCourseSettings();
+    switch (course?.autoAdvance) {
+      case 'perpendicular':
+      case 'either':
+        return true;
+      case 'arrivalCircle':
+        return (course.arrivalCircle ?? 0) > 0;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * The server's route advance setting, or undefined when the server has
+   * none or cannot be read.
+   */
+  async getAutoAdvance(): Promise<AutoAdvance | undefined> {
+    const mode = (await this.readCourseSettings())?.autoAdvance;
+    return AUTO_ADVANCE_MODES.find((m) => m === mode);
+  }
+
+  async setAutoAdvance(mode: AutoAdvance): Promise<boolean> {
     try {
-      const course = (await firstValueFrom(
+      await firstValueFrom(
+        this.signalk.api.putWithContext(
+          this.app.skApiVersion,
+          'self',
+          'navigation/course/autoAdvance',
+          { value: mode }
+        )
+      );
+      return true;
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+      return false;
+    }
+  }
+
+  private async readCourseSettings(): Promise<{
+    autoAdvance?: string;
+    arrivalCircle?: number;
+  } | null> {
+    try {
+      return (await firstValueFrom(
         this.signalk.api.get(
           this.app.skApiVersion,
           'vessels/self/navigation/course'
         )
       )) as { autoAdvance?: string; arrivalCircle?: number } | null;
-      switch (course?.autoAdvance) {
-        case 'perpendicular':
-        case 'either':
-          return true;
-        case 'arrivalCircle':
-          return (course.arrivalCircle ?? 0) > 0;
-        default:
-          return false;
-      }
     } catch {
-      return false;
+      return null;
     }
   }
 

@@ -174,6 +174,26 @@ describe('CourseService course API data (#755)', () => {
     expect(await answer(new Error('offline'))).toBe(false);
   });
 
+  it("reads the server's route advance setting", async () => {
+    const answer = async (course: object | Error) => {
+      const get = vi.fn(() =>
+        course instanceof Error ? throwError(() => course) : of(course)
+      );
+      const { service } = setupWithData({ api: { get } });
+      const mode = await service.getAutoAdvance();
+      TestBed.resetTestingModule();
+      return mode;
+    };
+
+    expect(await answer({ autoAdvance: 'perpendicular' })).toBe(
+      'perpendicular'
+    );
+    expect(await answer({ autoAdvance: 'off' })).toBe('off');
+    expect(await answer({ autoAdvance: 'sometimes' })).toBeUndefined();
+    expect(await answer({})).toBeUndefined();
+    expect(await answer(new Error('offline'))).toBeUndefined();
+  });
+
   it('clears the course when the destination is removed', () => {
     const { service, app } = setupWithData();
     service.parseSelf(
@@ -457,6 +477,27 @@ describe('CourseService arrival circle', () => {
     const { service, parseHttpErrorResponse } = setup(true);
 
     expect(await service.setArrivalCircle(50)).toBe(false);
+
+    expect(parseHttpErrorResponse).toHaveBeenCalled();
+  });
+
+  it("sets the server's route advance", async () => {
+    const { service, putWithContext } = setup();
+
+    expect(await service.setAutoAdvance('off')).toBe(true);
+
+    expect(putWithContext).toHaveBeenCalledWith(
+      2,
+      'self',
+      'navigation/course/autoAdvance',
+      { value: 'off' }
+    );
+  });
+
+  it('reports a refused route advance setting', async () => {
+    const { service, parseHttpErrorResponse } = setup(true);
+
+    expect(await service.setAutoAdvance('either')).toBe(false);
 
     expect(parseHttpErrorResponse).toHaveBeenCalled();
   });

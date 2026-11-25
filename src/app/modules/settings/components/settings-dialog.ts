@@ -55,7 +55,10 @@ import {
   clampCenterOffset
 } from 'src/app/lib/follow-offset';
 import { RadarAPIService, SKRadar } from '../../radar/radar-api.service';
-import { CourseService } from 'src/app/modules/course/course.service';
+import {
+  AutoAdvance,
+  CourseService
+} from 'src/app/modules/course/course.service';
 import { IAppConfig } from 'src/app/types';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 import { actionButtonOptions } from 'src/app/modules/plotterext/action-button';
@@ -114,6 +117,14 @@ export class SettingsDialog implements OnInit {
 
   protected unitsChangedSignal = signal<number>(0);
   protected radarList = signal<SKRadar[]>([]);
+  /** The server's route advance setting; undefined where the server has none. */
+  protected serverAutoAdvance = signal<AutoAdvance | undefined>(undefined);
+  protected readonly autoAdvanceOptions: Array<[AutoAdvance, string]> = [
+    ['either', 'Arrival circle or perpendicular'],
+    ['arrivalCircle', 'Arrival circle'],
+    ['perpendicular', 'Perpendicular passed'],
+    ['off', 'Off']
+  ];
 
   private saveOnClose = false;
   private arrivalCircleChanged = false;
@@ -163,6 +174,18 @@ export class SettingsDialog implements OnInit {
       }
     });
     this.refreshRadars();
+    this.course
+      .getAutoAdvance()
+      .then((mode) => this.serverAutoAdvance.set(mode));
+  }
+
+  /** The server applies the choice to every client at once, so it is sent right away. */
+  protected async onServerAutoAdvanceChange(mode: AutoAdvance) {
+    const previous = this.serverAutoAdvance();
+    this.serverAutoAdvance.set(mode);
+    if (!(await this.course.setAutoAdvance(mode))) {
+      this.serverAutoAdvance.set(previous);
+    }
   }
 
   protected refreshRadars() {

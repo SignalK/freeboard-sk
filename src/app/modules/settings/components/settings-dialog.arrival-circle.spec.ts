@@ -34,6 +34,10 @@ describe('settings dialog — arrival circle', () => {
   let destination: number[] | null;
   let courseCircle: number;
   let setArrivalCircle: ReturnType<typeof vi.fn>;
+  let serverMode: string | undefined;
+  let setAutoAdvance: ReturnType<
+    typeof vi.fn<(mode: string) => Promise<boolean>>
+  >;
   const trackSource = signal<TrackSource | null>(null);
 
   const selectTab = async (label: string) => {
@@ -76,6 +80,8 @@ describe('settings dialog — arrival circle', () => {
     destination = null;
     courseCircle = 100;
     setArrivalCircle = vi.fn(() => Promise.resolve(true));
+    serverMode = undefined;
+    setAutoAdvance = vi.fn(() => Promise.resolve(true));
 
     TestBed.configureTestingModule({
       imports: [SettingsDialog],
@@ -136,17 +142,23 @@ describe('settings dialog — arrival circle', () => {
               position: destination,
               arrivalCircle: courseCircle
             }),
-            setArrivalCircle
+            setArrivalCircle,
+            getAutoAdvance: () => Promise.resolve(serverMode),
+            setAutoAdvance: (mode: string) => setAutoAdvance(mode)
           }
         }
       ]
     });
 
+    await createDialog();
+  });
+
+  async function createDialog() {
     fixture = TestBed.createComponent(SettingsDialog);
     fixture.detectChanges();
     await fixture.whenStable();
     dialog = fixture.nativeElement as HTMLElement;
-  });
+  }
 
   it('applies a new arrival circle to the course being followed on close', async () => {
     destination = [24.95, 60.16];
@@ -216,5 +228,60 @@ describe('settings dialog — arrival circle', () => {
     closeDialog();
 
     expect(setArrivalCircle).not.toHaveBeenCalled();
+  });
+
+  /** The server's route advance field on the Course tab, if shown. */
+  const serverAdvanceField = async () => {
+    await selectTab('Course');
+    return Array.from(
+      dialog.querySelectorAll<HTMLElement>('mat-form-field')
+    ).find((f) => (f.textContent ?? '').includes('Server advances the route'));
+  };
+
+  const chooseServerAdvance = async (label: string) => {
+    const field = await serverAdvanceField();
+    (field?.querySelector('mat-select') as HTMLElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const option = Array.from(
+      document.querySelectorAll<HTMLElement>('mat-option')
+    ).find((o) => (o.textContent ?? '').trim() === label);
+    expect(option, `no option ${label}`).toBeTruthy();
+    option?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
+
+  it('offers no server route advance on a server without it', async () => {
+    expect(await serverAdvanceField()).toBeUndefined();
+  });
+
+  it("shows and sets the server's route advance", async () => {
+    serverMode = 'either';
+    fixture.destroy();
+    await createDialog();
+
+    const field = await serverAdvanceField();
+    expect(field?.textContent).toContain('Arrival circle or perpendicular');
+
+    await chooseServerAdvance('Off');
+
+    expect(setAutoAdvance).toHaveBeenCalledWith('off');
+    expect((await serverAdvanceField())?.textContent).toContain('Off');
+  });
+
+  it('shows the previous choice again when the server refuses it', async () => {
+    serverMode = 'either';
+    setAutoAdvance = vi.fn(() => Promise.resolve(false));
+    fixture.destroy();
+    await createDialog();
+
+    await chooseServerAdvance('Perpendicular passed');
+
+    expect(setAutoAdvance).toHaveBeenCalledWith('perpendicular');
+    expect((await serverAdvanceField())?.textContent).toContain(
+      'Arrival circle or perpendicular'
+    );
   });
 });

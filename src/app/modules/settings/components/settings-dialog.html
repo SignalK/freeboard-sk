@@ -795,6 +795,25 @@
                   </div>
                 </div>
 
+                @if (serverAutoAdvance(); as mode) {
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Server advances the route</mat-label>
+                      <mat-select
+                        matTooltip="When the Signal K server moves a followed route on to its next point. Applies to every client of this server."
+                        [value]="mode"
+                        (selectionChange)="onServerAutoAdvanceChange($event.value)"
+                      >
+                        @for(o of autoAdvanceOptions; track o[0]) {
+                        <mat-option [value]="o[0]">{{o[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                </div>
+                }
+
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
                     <mat-checkbox
