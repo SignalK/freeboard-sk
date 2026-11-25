@@ -13,14 +13,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import {
-  Observable,
-  Subject,
-  finalize,
-  firstValueFrom,
-  of,
-  timeout
-} from 'rxjs';
+import { Observable, Subject, finalize, firstValueFrom, timeout } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
@@ -189,19 +182,10 @@ export class AppFacade extends InfoService {
   kioskMode = signal<boolean>(false); // kiosk mode flag
   hasAuthToken = signal<boolean>(false); // auth token has been presented
   isLoggedIn = signal<boolean>(false); // logged in to SK Server
-  instrumentPanelAvailable = signal<boolean>(true); // show instrument panel button
   skAuthChange = signal<string | undefined>(undefined); // Signal K cookie change event
 
   sIsFetching = signal<boolean>(false); // show progress for fetching data from server
   sTrueMagChoice = signal<string>(''); // preferred path True / Magnetic
-
-  instrumentPanel = signal<{
-    open: boolean;
-    activate: boolean;
-  }>({
-    open: false,
-    activate: false
-  });
 
   // non-persisted UIstate attributes
   uiCtrl = signal<{
@@ -396,7 +380,6 @@ export class AppFacade extends InfoService {
     this.parseLaunchUrl();
 
     /** test for launch within iframe */
-    this.instrumentPanelAvailable.update(() => this.isTopWindow());
     if (!this.isTopWindow()) {
       // listen for messages from parent
       window.addEventListener('message', (event) => {
@@ -435,11 +418,7 @@ export class AppFacade extends InfoService {
    */
   public useInfoPanel(): boolean {
     const mediaQuery = window.matchMedia('(max-width: 760px)');
-    return (
-      !mediaQuery.matches &&
-      !this.instrumentPanel().open &&
-      this.config.display.preferInfoPanel
-    );
+    return !mediaQuery.matches && this.config.display.preferInfoPanel;
   }
 
   /**
@@ -1548,26 +1527,6 @@ export class AppFacade extends InfoService {
         }
       })
       .afterClosed();
-  }
-
-  // In memory rather than sessionStorage, so a reload shows the notice again.
-  private instrumentPanelNoticeShown = false;
-
-  /** Tell the user, once per page load, that the instruments panel is going
-   * away. Emits when the notice is dismissed, or at once if already shown. */
-  showInstrumentPanelDeprecation(): Observable<unknown> {
-    if (this.instrumentPanelNoticeShown) {
-      return of(true);
-    }
-    this.instrumentPanelNoticeShown = true;
-    return this.showAlert(
-      'Instrument Panel is being retired',
-      'The Instrument Panel will be removed in the next release of Freeboard-SK.\n\n' +
-        'To keep showing KIP, the Instrument Panel or another Signal K webapp ' +
-        'inside Freeboard, install the "Freeboard Companion Apps" plugin from ' +
-        'the Signal K App Store. It can show any webapp in the side panel or ' +
-        'in a floating window.'
-    );
   }
 
   /** display error list dialog */

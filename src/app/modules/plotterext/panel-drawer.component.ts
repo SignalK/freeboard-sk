@@ -87,8 +87,8 @@ export class PlotterPanelFrame implements OnInit, OnDestroy {
   imports: [MatButtonModule, MatIconModule, PlotterPanelFrame],
   host: { '[class.pe-open]': 'isOpen()' },
   // The drawer is an in-flow flex sibling of the map container (not an
-  // overlay): when open it widens and pushes the display to the left,
-  // mirroring Freeboard's instrument-app sidenav. Panels are kept mounted
+  // overlay): when open it widens and pushes the display to the left, so
+  // the chart stays fully visible beside it. Panels are kept mounted
   // while hidden (keepAlive) — only the visible one is shown.
   template: `
     <div class="pe-drawer-inner" (transitionend)="onTransitionEnd($event)">
