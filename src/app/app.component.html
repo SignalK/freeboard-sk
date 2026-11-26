@@ -654,10 +654,10 @@
                   </mat-icon>
                 </div>
               }
-              @if (!wakeLock.enabled() && wakeLock.isAvailable) {
+              @if (wakeLock.wanted() && !wakeLock.enabled()) {
                 <div class="statusBarItem">
                   <mat-icon
-                    matTooltip="WakeLock is turned off"
+                    matTooltip="Screen may sleep: the wake lock is not active"
                     matTooltipPosition="below"
                     >visibility_off
                   </mat-icon>
