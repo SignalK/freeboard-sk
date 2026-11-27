@@ -140,6 +140,7 @@ extension id (the providing plugin's id is the recommended key):
 | `display`           | Host implements `display.get` (how it draws the panels on its chart: the background opacity the user chose for them, and its light or dark theme) and emits `display.changed`. See *Panel appearance*. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 | `windows`           | Host can show an extension's iframe panels as floating windows (`ui.openWindow` and the other `ui.*Window` methods) and emits `window.*` events. See *Windows*. |
+| `panes`             | Host lets the user show an iframe panel marked `pane: true` as a pane of its screen, beside the chart, as a chartplotter shows a radar or camera picture in a split screen. See *Panes*. |
 | `overlays.image`    | Host composites map layers whose pixels an extension's background runtime draws (`overlay.*` methods, `overlay.request` / `overlay.state` events). Requires `background.iframe`. See *Map overlays*. |
 | `overlays.animated` | Host grants an image overlay that declares `preferredLiveInterval` a shorter live-frame interval, within its own budget, and reports changes to it in `overlay.state`. Requires `overlays.image`. See *Animated overlays*. |
 | `overlays.data`     | Host draws map layers from data and a MapLibre style an extension supplies (`overlay.*` methods including `overlay.refresh`, `overlay.setData`, `overlay.setLayer` and `overlay.setState`; `overlay.state` events). See *Data overlays*. |
@@ -211,7 +212,7 @@ host supporting `panels.iframe` must implement is a sandboxed iframe served
 by the providing plugin.
 
 **Panel fields:** `id`, `title`, `type` (`iframe`), `url`, `lifecycle?`,
-`apiVersion?`.
+`apiVersion?`, `pane?` (see *Panes*).
 
 **Lifecycle values**
 
@@ -233,6 +234,8 @@ aside, and configuration panels in a dialog.
 
 With the `windows` capability, an extension can also show any of its iframe
 panels in a floating window over the chart, several at once; see *Windows*.
+With the `panes` capability, the user can show a panel marked `pane: true`
+beside the chart in a split screen; see *Panes*.
 With `panels.state`, an extension can follow whether each of its loaded panels
 is on screen, for example to pause a hidden `keepAlive` panel; see *Panel
 state*.
@@ -2976,6 +2979,43 @@ more windows), `windows.modalOpen` (another modal window is already open),
 `windows.notSupported` (host lacks `windows`).
 
 An `embedding-host` context has no manifest, so it cannot open windows.
+
+### Panes
+
+A **pane** shows one of an extension's iframe panels as a part of the host's
+screen, beside the chart: a radar picture, a camera, a sonar. Chartplotters
+call this a split screen. The capability is `panes`.
+
+The **user** chooses what a pane shows, from the chart and the panels the
+extensions offer for it; an extension never opens a pane itself. A panel is
+offered when its manifest entry says so:
+
+```json
+{
+  "id": "ppi",
+  "title": "Radar",
+  "type": "iframe",
+  "url": "/plugins/my-radar/gui/viewer.html",
+  "pane": true
+}
+```
+
+Mark a panel `pane: true` only when it is a whole view that is useful on its
+own and fills any size it is given, from a narrow strip to half a large
+screen: not a form, a settings page or a configuration panel. Its `title`
+names it where the user chooses, so keep it short. The same panel can still be
+opened in the drawer or in a window.
+
+A pane is loaded while it is shown and unloaded when the user chooses
+something else or closes the split screen, whatever the panel's `lifecycle`.
+The host remembers the choice per device and shows the same panel again the
+next time, while the extension still offers it.
+
+A pane's context is a panel's: `kind` `panel`, `id` the panel's id, with the
+shared host API and `state.*` in the extension scope. `ui.closePanel` from a
+pane closes the split screen, leaving the chart on its own. A page that does
+not speak the bus still shows: a pane needs no handshake, as with any iframe
+panel.
 
 ---
 
