@@ -22,7 +22,7 @@ describe('SplitPaneFrameComponent', () => {
     const detach = vi.fn();
     const ext = {
       resolveAssetUrl: (url: string) => `http://boat.local${url}`,
-      attachPanel: vi.fn(() => detach)
+      attachPane: vi.fn(() => detach)
     };
     const split = { close: vi.fn() };
     TestBed.configureTestingModule({
@@ -54,7 +54,7 @@ describe('SplitPaneFrameComponent', () => {
     const iframe = (fixture.nativeElement as HTMLElement).querySelector(
       'iframe'
     );
-    expect(ext.attachPanel).toHaveBeenCalledWith(
+    expect(ext.attachPane).toHaveBeenCalledWith(
       iframe,
       expect.objectContaining({
         extension: 'radar-plugin',
@@ -65,7 +65,7 @@ describe('SplitPaneFrameComponent', () => {
 
   it('closes the split view when the panel closes itself', () => {
     const { ext, split } = setup();
-    const [, opts] = ext.attachPanel.mock.calls[0] as unknown as [
+    const [, opts] = ext.attachPane.mock.calls[0] as unknown as [
       HTMLIFrameElement,
       { close: () => void }
     ];

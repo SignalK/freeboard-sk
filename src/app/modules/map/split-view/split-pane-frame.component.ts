@@ -58,7 +58,7 @@ export class SplitPaneFrameComponent implements OnInit, OnDestroy {
     this.url = this.sanitizer.bypassSecurityTrustResourceUrl(
       this.service.resolveAssetUrl(panel.url ?? '')
     );
-    this.detach = this.service.attachPanel(this.frame.nativeElement, {
+    this.detach = this.service.attachPane(this.frame.nativeElement, {
       extension,
       panel,
       close: () => this.split.close()

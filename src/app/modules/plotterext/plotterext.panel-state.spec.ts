@@ -464,6 +464,28 @@ describe('PlotterExtensionService panel state', () => {
     await expect(a.client.panels.list()).resolves.toEqual([]);
   });
 
+  it('lists a split-view pane while it is shown and reports it hidden when it goes', async () => {
+    const a = await follower('ext-a');
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    frames.push(iframe);
+    const extA = service.manifests()['ext-a'];
+    const other = extA.panels!.find((p) => p.id === 'other')!;
+    const detach = service.attachPane(iframe, {
+      extension: 'ext-a',
+      panel: other,
+      close: () => {}
+    });
+    await settle();
+    await expect(a.client.panels.list()).resolves.toEqual([
+      state('other', true)
+    ]);
+    detach();
+    await settle();
+    expect(a.seen).toEqual([state('other', true), state('other', false)]);
+    await expect(a.client.panels.list()).resolves.toEqual([]);
+  });
+
   it('does not list a panel shown in a window', async () => {
     const a = await runtime('ext-a');
     await a.call('ui.openWindow', { panel: 'kept' });
