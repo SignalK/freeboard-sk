@@ -77,6 +77,7 @@ import {
   ButtonContribution,
   HOST_API_VERSION,
   HOST_CAPABILITIES,
+  PaneChoice,
   PanelContribution,
   PlacedWidget,
   PlotterExtensionManifest,
@@ -383,6 +384,26 @@ export class PlotterExtensionService {
           (panel) => !!this.iframePanel(extension, panel)
         )
       );
+    }
+    return result;
+  });
+
+  // ---------- split view panes (capability `panes`) ----------
+
+  /**
+   * The panels of compatible extensions the user may show in the split view's
+   * second pane, in manifest order.
+   */
+  readonly paneChoices = computed<PaneChoice[]>(() => {
+    const result: PaneChoice[] = [];
+    for (const [extension, manifest] of Object.entries(this.manifests())) {
+      if (!this.isCompatible(manifest)) continue;
+      for (const { id, pane } of manifest.panels ?? []) {
+        const panel = pane === true && this.iframePanel(extension, id);
+        if (panel) {
+          result.push({ extension, extensionName: manifest.name, panel });
+        }
+      }
     }
     return result;
   });
@@ -977,7 +998,8 @@ export class PlotterExtensionService {
 
   /**
    * Every loaded panel's state, keyed: drawer panels (visible while the drawer
-   * shows them) and open configuration dialogs (always visible while open).
+   * shows them), open configuration dialogs and split-view panes (always
+   * visible while loaded).
    * Freeboard has no panel collapse, so `collapsed` is always false.
    */
   private readonly panelStates = computed(() => {
@@ -998,6 +1020,12 @@ export class PlotterExtensionService {
           ...(c.targetInstance ? { targetInstance: c.targetInstance } : {}),
           ...(c.targetOverlay ? { targetOverlay: c.targetOverlay } : {})
         }
+      });
+    }
+    for (const p of this.panes()) {
+      states.set(`pane:${p.id}`, {
+        extension: p.extension,
+        state: { panel: p.panel, visible: true, collapsed: false }
       });
     }
     return states;
@@ -2828,6 +2856,32 @@ export class PlotterExtensionService {
         }
       }
     });
+  }
+
+  /** Panels loaded in the split view's second pane, for `panels.state`. */
+  private readonly panes = signal<
+    Array<{ id: number; extension: string; panel: string }>
+  >([]);
+  private paneSeq = 0;
+
+  /**
+   * Attach a panel shown in the split view's second pane (capability
+   * `panes`): a panel on the bus, reported visible until detached.
+   */
+  attachPane(
+    iframe: HTMLIFrameElement,
+    opts: { extension: string; panel: PanelContribution; close: () => void }
+  ): () => void {
+    const id = ++this.paneSeq;
+    this.panes.update((list) => [
+      ...list,
+      { id, extension: opts.extension, panel: opts.panel.id }
+    ]);
+    const detach = this.attachPanel(iframe, opts);
+    return () => {
+      detach();
+      this.panes.update((list) => list.filter((p) => p.id !== id));
+    };
   }
 
   /**

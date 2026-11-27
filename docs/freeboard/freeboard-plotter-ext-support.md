@@ -80,7 +80,7 @@ package; Freeboard depends on it (`^0.26.0`) and imports its host entry point
 `signalk.put`, `units`,
 `map`, `resources`, `resources.filter`, `resources.display`, `routes`, `charts`,
 `charts.time`,
-`nightMode`, `display`, `resourceGroups`, `background.iframe`, `ui`, `windows`,
+`nightMode`, `display`, `resourceGroups`, `background.iframe`, `ui`, `windows`, `panes`,
 `overlays.image`, `overlays.animated`, `overlays.data`, `actions`, `actions.overlay`,
 `map.pick`.
 
@@ -765,6 +765,32 @@ same options as `ui.openWindow`; each button remembers the window it opened.
 | `src/app/modules/plotterext/windows/window.component.ts` | one window: title bar, gestures, the bus-connected iframe |
 | `src/app/modules/plotterext/windows/window-layer.component.ts` | the window area, modal backdrop, Escape |
 | `dev-tools/fsk-mcp/src/tools.ts` | `fsk_open_window` / `fsk_update_window` / `fsk_list_windows` / `fsk_close_window` |
+
+## The `panes` capability
+
+Panels a manifest marks `pane: true` can be shown in the split view's second
+pane instead of the second chart (see *Panes* in the API spec).
+
+### In Freeboard
+
+- With at least one such panel offered, the split view button opens a menu:
+  *Second chart*, each offered panel by its `title`, and *Close split view*
+  while the split is open. With none, the button toggles the second chart as
+  before.
+- The choice is kept per device with the rest of the split view's state
+  (`fb-split-view` in local storage, field `pane`). A panel whose extension no
+  longer offers it shows the second chart until it comes back.
+- The pane is `fb-split-map` with its `pane` input set: the divider and the
+  panel sizing stay the same, and the page is loaded in an iframe in place of
+  the chart. It is on the bus as a panel (`attachPanel`); `ui.closePanel`
+  closes the split view.
+- The shared map buttons act on the main chart while a panel is shown.
+
+### Key files
+
+- `src/app/modules/map/split-view/split-pane-frame.component.ts` — the iframe.
+- `src/app/modules/plotterext/plotterext.service.ts` — `paneChoices`.
+- `src/app/app.component.ts` / `.html` — the menu and `splitPane`.
 
 ## The `resourceGroups` capability
 

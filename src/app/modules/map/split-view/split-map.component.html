@@ -18,37 +18,47 @@
   <mat-icon>drag_indicator</mat-icon>
 </div>
 
-<ol-map
-  class="split-ol-map"
-  [secondary]="true"
-  [logo]="false"
-  [olInteractions]="interactions()"
-  [olControls]="olControls"
-  (mapReady)="onMapReady($event)"
-  (mapMoveEnd)="onMoveEnd($event)"
-  (mapPointerDown)="onPress()"
-  (mapPointerDrag)="onDrag()"
-  (mapPointerMove)="onPointerMove($event)"
-  (mapSingleClick)="onTap($event)"
-  (mapContextMenu)="onContextMenu($event)"
-  (contextmenu)="onContextMenu($event)"
-  (keydown)="onKeydown($event)"
-  olView
-  [zoom]="zoom()"
-  [center]="center()"
-  [rotation]="rotation()"
-  [minZoom]="app.MAP_ZOOM_EXTENT.min"
-  [maxZoom]="app.MAP_ZOOM_EXTENT.max"
-  [enableAnimation]="false"
->
-  <!-- The main chart's layers are mirrored in from code; this pane adds
-       only the outline of what the main chart is showing. -->
-  <fb-view-footprint [ring]="footprint()" [zIndex]="950"></fb-view-footprint>
-  @if (split.secondaryActive() && statusBar(); as bar) {
-    <ol-control>
-      <ol-content>
-        <ng-container [ngTemplateOutlet]="bar"></ng-container>
-      </ol-content>
-    </ol-control>
+@if (pane(); as choice) {
+  @for (shown of [choice]; track paneFrameKey(shown)) {
+    <fb-split-pane-frame
+      [choice]="shown"
+      [style.padding-left.px]="inset().left"
+      [style.padding-right.px]="inset().right"
+    ></fb-split-pane-frame>
   }
-</ol-map>
+} @else {
+  <ol-map
+    class="split-ol-map"
+    [secondary]="true"
+    [logo]="false"
+    [olInteractions]="interactions()"
+    [olControls]="olControls"
+    (mapReady)="onMapReady($event)"
+    (mapMoveEnd)="onMoveEnd($event)"
+    (mapPointerDown)="onPress()"
+    (mapPointerDrag)="onDrag()"
+    (mapPointerMove)="onPointerMove($event)"
+    (mapSingleClick)="onTap($event)"
+    (mapContextMenu)="onContextMenu($event)"
+    (contextmenu)="onContextMenu($event)"
+    (keydown)="onKeydown($event)"
+    olView
+    [zoom]="zoom()"
+    [center]="center()"
+    [rotation]="rotation()"
+    [minZoom]="app.MAP_ZOOM_EXTENT.min"
+    [maxZoom]="app.MAP_ZOOM_EXTENT.max"
+    [enableAnimation]="false"
+  >
+    <!-- The main chart's layers are mirrored in from code; this pane adds
+         only the outline of what the main chart is showing. -->
+    <fb-view-footprint [ring]="footprint()" [zIndex]="950"></fb-view-footprint>
+    @if (split.secondaryActive() && statusBar(); as bar) {
+      <ol-control>
+        <ol-content>
+          <ng-container [ngTemplateOutlet]="bar"></ng-container>
+        </ol-content>
+      </ol-control>
+    }
+  </ol-map>
+}

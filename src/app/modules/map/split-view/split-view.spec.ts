@@ -5,9 +5,12 @@ import {
   DEFAULT_SPLIT_VIEW,
   fitRatio,
   gateZoom,
+  paneFrameKey,
+  paneInset,
   paneStatusBarLift,
   parseSplitViewState,
   ratioFromPointer,
+  resolvePane,
   SPLIT_RATIO_MAX,
   SPLIT_RATIO_MIN,
   viewFootprint
@@ -87,7 +90,8 @@ describe('parseSplitViewState', () => {
       northUp: false,
       follow: true,
       zoom: 9.5,
-      center: [22.1, 60.2]
+      center: [22.1, 60.2],
+      pane: { extension: 'radar-plugin', panel: 'ppi' }
     };
     expect(parseSplitViewState(JSON.stringify(stored))).toEqual(stored);
   });
@@ -107,6 +111,12 @@ describe('parseSplitViewState', () => {
       ratio: SPLIT_RATIO_MAX,
       northUp: false
     });
+  });
+
+  it('shows a second chart for a malformed stored pane', () => {
+    for (const pane of ['ppi', { extension: 'radar-plugin' }, { panel: 3 }]) {
+      expect(parseSplitViewState(JSON.stringify({ pane })).pane).toBeNull();
+    }
   });
 
   it('rejects a stored centre outside the world', () => {
@@ -204,5 +214,61 @@ describe('paneStatusBarLift', () => {
   it('needs no room with no widget along the bottom', () => {
     expect(paneStatusBarLift(0, true, true, true)).toBe(0);
     expect(paneStatusBarLift(0, false, false, false)).toBe(0);
+  });
+});
+
+describe('paneInset', () => {
+  it('keeps a page beside the chart clear of the right toolbar', () => {
+    expect(paneInset(54, false)).toEqual({ left: 0, right: 54 });
+  });
+
+  it('keeps a page below the chart clear of both toolbars', () => {
+    expect(paneInset(54, true)).toEqual({ left: 54, right: 54 });
+  });
+});
+
+describe('resolvePane', () => {
+  const ppi = {
+    extension: 'radar-plugin',
+    extensionName: 'Radar',
+    panel: { id: 'ppi', title: 'Radar', type: 'iframe' as const, url: '/r' }
+  };
+
+  it('finds the chosen panel among those offered', () => {
+    expect(
+      resolvePane({ extension: 'radar-plugin', panel: 'ppi' }, [ppi])
+    ).toBe(ppi);
+  });
+
+  it('shows a second chart while the chosen panel is not offered', () => {
+    expect(resolvePane({ extension: 'radar-plugin', panel: 'ppi' }, [])).toBe(
+      null
+    );
+    expect(resolvePane({ extension: 'other', panel: 'ppi' }, [ppi])).toBe(null);
+    expect(resolvePane(null, [ppi])).toBe(null);
+  });
+});
+
+describe('paneFrameKey', () => {
+  const ppi = {
+    extension: 'radar-plugin',
+    extensionName: 'Radar',
+    panel: { id: 'ppi', title: 'Radar', type: 'iframe' as const, url: '/r' }
+  };
+
+  it('keeps the page loaded while panel and page stay the same', () => {
+    expect(
+      paneFrameKey({
+        ...ppi,
+        extensionName: 'Radar 2',
+        panel: { ...ppi.panel, title: 'PPI' }
+      })
+    ).toBe(paneFrameKey(ppi));
+  });
+
+  it('loads the page again when the manifest names another page', () => {
+    expect(
+      paneFrameKey({ ...ppi, panel: { ...ppi.panel, url: '/r2' } })
+    ).not.toBe(paneFrameKey(ppi));
   });
 });

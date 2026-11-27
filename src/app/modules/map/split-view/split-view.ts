@@ -1,5 +1,6 @@
 import { Coordinate } from 'ol/coordinate';
 import { Position } from 'src/app/types';
+import type { PaneChoice } from 'src/app/modules/plotterext/types';
 
 /**
  * The split view's state. Kept per device, not in the synced config: a layout
@@ -14,6 +15,41 @@ export interface SplitViewState {
   /** Where the second pane was last left; null until it has been moved. */
   zoom: number | null;
   center: Position | null;
+  /** The extension panel the second pane shows; null for a second chart. */
+  pane: PaneRef | null;
+}
+
+/** An extension's panel, by the extension's id and the panel's. */
+export interface PaneRef {
+  extension: string;
+  panel: string;
+}
+
+export function samePane(a: PaneRef | null, b: PaneRef | null): boolean {
+  return a?.extension === b?.extension && a?.panel === b?.panel;
+}
+
+export function paneRef(choice: PaneChoice): PaneRef {
+  return { extension: choice.extension, panel: choice.panel.id };
+}
+
+/**
+ * What the pane's page is loaded for: a change of panel, or of the page its
+ * manifest names, loads it again.
+ */
+export function paneFrameKey(choice: PaneChoice): string {
+  return `${choice.extension}\n${choice.panel.id}\n${choice.panel.url ?? ''}`;
+}
+
+/**
+ * The offered panel `chosen` names: while its extension offers it, that
+ * panel; else null, and the pane shows a second chart.
+ */
+export function resolvePane(
+  chosen: PaneRef | null,
+  offered: PaneChoice[]
+): PaneChoice | null {
+  return (chosen && offered.find((c) => samePane(paneRef(c), chosen))) ?? null;
 }
 
 export const SPLIT_VIEW_STORAGE_KEY = 'fb-split-view';
@@ -31,13 +67,33 @@ export const SPLIT_RATIO_MAX = 0.7;
  */
 export const MIN_PANE_PX = 200;
 
+/** The width of the map toolbars along the left and right edges of the panel. */
+export const TOOLBAR_INSET_PX = 54;
+
+/** Room an extension's page keeps clear on each side, in px. */
+export interface PaneInset {
+  left: number;
+  right: number;
+}
+
+/**
+ * The room a page in the second pane leaves for the map toolbars, which run
+ * down the panel's outer edges over both panes: the right one beside the
+ * chart, both when the panes are stacked. A chart is drawn under the toolbars;
+ * a page would have its own buttons covered.
+ */
+export function paneInset(toolbars: number, stacked: boolean): PaneInset {
+  return { left: stacked ? toolbars : 0, right: toolbars };
+}
+
 export const DEFAULT_SPLIT_VIEW: SplitViewState = {
   enabled: false,
   ratio: 0.6,
   northUp: true,
   follow: false,
   zoom: null,
-  center: null
+  center: null,
+  pane: null
 };
 
 export function clampRatio(ratio: number): number {
@@ -86,6 +142,12 @@ export function fitRatio(
   return Math.min(1 - floor, Math.max(floor, ratio));
 }
 
+const isPaneRef = (p: unknown): p is PaneRef =>
+  typeof p === 'object' &&
+  p !== null &&
+  typeof (p as PaneRef).extension === 'string' &&
+  typeof (p as PaneRef).panel === 'string';
+
 const isPosition = (p: unknown): p is Position =>
   Array.isArray(p) &&
   p.length >= 2 &&
@@ -115,7 +177,10 @@ export function parseSplitViewState(raw: string | null): SplitViewState {
     northUp: flag(v.northUp, DEFAULT_SPLIT_VIEW.northUp),
     follow: flag(v.follow, DEFAULT_SPLIT_VIEW.follow),
     zoom: typeof v.zoom === 'number' && Number.isFinite(v.zoom) ? v.zoom : null,
-    center: isPosition(v.center) ? [v.center[0], v.center[1]] : null
+    center: isPosition(v.center) ? [v.center[0], v.center[1]] : null,
+    pane: isPaneRef(v.pane)
+      ? { extension: v.pane.extension, panel: v.pane.panel }
+      : null
   };
 }
 

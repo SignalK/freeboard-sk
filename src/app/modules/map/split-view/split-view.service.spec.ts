@@ -78,6 +78,39 @@ describe('SplitViewService: the pointer over the second pane', () => {
   });
 });
 
+describe('SplitViewService: what the second pane shows', () => {
+  const ppi = { extension: 'radar-plugin', panel: 'ppi' };
+  beforeEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+  afterEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+
+  it('opens the split view with the chosen panel', () => {
+    const split = new SplitViewService();
+    split.show(ppi);
+    expect(split.enabled()).toBe(true);
+    expect(split.pane()).toEqual(ppi);
+  });
+
+  it('switches an open split view between a panel and a second chart', () => {
+    const split = new SplitViewService();
+    split.show(ppi);
+    split.show(null);
+    expect(split.enabled()).toBe(true);
+    expect(split.pane()).toBeNull();
+  });
+
+  it('remembers the choice for the next time the split view opens', () => {
+    const split = new SplitViewService();
+    split.show(ppi);
+    split.close();
+    expect(split.enabled()).toBe(false);
+
+    const reloaded = new SplitViewService();
+    expect(reloaded.pane()).toEqual(ppi);
+    reloaded.toggle();
+    expect(reloaded.pane()).toEqual(ppi);
+  });
+});
+
 describe('SplitViewService: layout and saving', () => {
   const stored = () =>
     JSON.parse(localStorage.getItem(SPLIT_VIEW_STORAGE_KEY) ?? 'null');

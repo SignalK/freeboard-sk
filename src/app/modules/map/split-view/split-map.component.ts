@@ -50,6 +50,8 @@ import { mirrorLayers } from './layer-mirror';
 import { hitsAtPixel } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hits';
 import {
   fitRatio,
+  PaneInset,
+  paneFrameKey,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_SHARE_VAR,
@@ -57,6 +59,8 @@ import {
   viewFootprint
 } from './split-view';
 import { PaneCommand, SplitPane, SplitViewService } from './split-view.service';
+import { SplitPaneFrameComponent } from './split-pane-frame.component';
+import { PaneChoice } from 'src/app/modules/plotterext/types';
 
 /** The stretch over which a control's anchoring is measured, in px. */
 const OVERSCAN_PROBE_PX = 100;
@@ -107,13 +111,15 @@ function positioned(el: Element): HTMLElement[] {
     FreeboardOpenlayersModule,
     MatIconModule,
     MatTooltipModule,
-    NgTemplateOutlet
+    NgTemplateOutlet,
+    SplitPaneFrameComponent
   ],
   templateUrl: './split-map.component.html',
   styleUrls: ['./split-map.component.css'],
   host: {
     '[class.active-pane]': 'split.secondaryActive()',
-    '[class.stacked]': 'split.stacked()'
+    '[class.stacked]': 'split.stacked()',
+    '[class.dragging]': 'dragging()'
   }
 })
 export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -128,6 +134,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly olControls = mapControls;
   /** The user's distance unit, for the scale bar. */
   readonly scaleUnits = input<string>('');
+  /** The extension panel shown instead of a second chart, if any. */
+  readonly pane = input<PaneChoice | null>(null);
+  /** Room the panel keeps clear of the map toolbars. */
+  readonly inset = input<PaneInset>({ left: 0, right: 0 });
   /** The main chart's status bar, shown here while this pane is active. */
   readonly statusBar = input<TemplateRef<unknown> | null>(null);
 
@@ -502,6 +512,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.center.set([...vessel.position] as Position);
     return true;
   }
+
+  protected readonly paneFrameKey = paneFrameKey;
 
   // ---------- divider ----------
 
