@@ -185,6 +185,39 @@
       >
     </ng-template>
 
+    <mat-menu #splitmenu="matMenu">
+      <button
+        mat-menu-item
+        role="menuitemradio"
+        [attr.aria-checked]="isSplitPane(null)"
+        (click)="showSplitPane(null)"
+      >
+        <mat-icon>{{ isSplitPane(null) ? 'check' : 'map' }}</mat-icon>
+        <span>Second chart</span>
+      </button>
+      @for (
+        choice of plotterExt.paneChoices();
+        track choice.extension + '\n' + choice.panel.id
+      ) {
+        <button
+          mat-menu-item
+          role="menuitemradio"
+          [attr.aria-checked]="isSplitPane(choice)"
+          (click)="showSplitPane(choice)"
+        >
+          <mat-icon>{{ isSplitPane(choice) ? 'check' : 'web_asset' }}</mat-icon>
+          <span>{{ choice.panel.title }}</span>
+        </button>
+      }
+      @if (splitView.enabled()) {
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="splitView.close()">
+          <mat-icon>close</mat-icon>
+          <span>Close split view</span>
+        </button>
+      }
+    </mat-menu>
+
     <mat-menu #editmenu="matMenu">
       <a mat-menu-item (click)="mapInteract.startMeasuring('LineString')">
         <mat-icon>straighten</mat-icon>
@@ -790,10 +823,14 @@
               </fb-map>
             </div>
             @if (splitActive()) {
-              <fb-split-map
-                [scaleUnits]="app.config.units.distance"
-                [statusBar]="fbMap.statusBar"
-              ></fb-split-map>
+              @if (splitPane(); as pane) {
+                <fb-split-map [pane]="pane"></fb-split-map>
+              } @else {
+                <fb-split-map
+                  [scaleUnits]="app.config.units.distance"
+                  [statusBar]="fbMap.statusBar"
+                ></fb-split-map>
+              }
             }
           </div>
           <!--/map panel-->

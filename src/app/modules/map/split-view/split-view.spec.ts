@@ -87,7 +87,8 @@ describe('parseSplitViewState', () => {
       northUp: false,
       follow: true,
       zoom: 9.5,
-      center: [22.1, 60.2]
+      center: [22.1, 60.2],
+      pane: { extension: 'radar-plugin', panel: 'ppi' }
     };
     expect(parseSplitViewState(JSON.stringify(stored))).toEqual(stored);
   });
@@ -107,6 +108,12 @@ describe('parseSplitViewState', () => {
       ratio: SPLIT_RATIO_MAX,
       northUp: false
     });
+  });
+
+  it('shows a second chart for a malformed stored pane', () => {
+    for (const pane of ['ppi', { extension: 'radar-plugin' }, { panel: 3 }]) {
+      expect(parseSplitViewState(JSON.stringify({ pane })).pane).toBeNull();
+    }
   });
 
   it('rejects a stored centre outside the world', () => {

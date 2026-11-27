@@ -8,7 +8,9 @@ import type { OverlayHit } from 'src/app/modules/map/ol/lib/data-overlay/overlay
 import { Position } from 'src/app/types';
 import {
   clampRatio,
+  samePane,
   fitRatio,
+  PaneRef,
   parseSplitViewState,
   SplitViewState,
   SPLIT_RATIO_MAX,
@@ -90,6 +92,8 @@ export class SplitViewService {
   readonly ratio = computed(() => this.state().ratio);
   readonly northUp = computed(() => this.state().northUp);
   readonly follow = computed(() => this.state().follow);
+  /** The extension panel chosen for the second pane; null for a chart. */
+  readonly pane = computed(() => this.state().pane, { equal: samePane });
   /** The second pane's zoom as last reported by its map. */
   readonly zoom = computed(() => this.state().zoom);
 
@@ -143,6 +147,23 @@ export class SplitViewService {
     // A pane that has just opened is the one the user is about to set up.
     this.active.set(enabled ? 'secondary' : 'main');
     this.update({ enabled });
+  }
+
+  /**
+   * Opens the split view, if it is closed, with `pane` in the second pane: an
+   * extension's panel, or null for a second chart.
+   */
+  show(pane: PaneRef | null) {
+    if (!this.state().enabled) {
+      this.active.set('secondary');
+    }
+    this.update({ enabled: true, pane });
+  }
+
+  close() {
+    if (this.state().enabled) {
+      this.toggle();
+    }
   }
 
   activate(pane: SplitPane) {

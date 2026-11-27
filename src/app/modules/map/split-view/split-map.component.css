@@ -8,6 +8,11 @@
   border-left: 8px solid #2b3846;
 }
 
+/* A page in the pane would take the pointer from a divider dragged over it. */
+:host(.dragging) fb-split-pane-frame {
+  pointer-events: none;
+}
+
 .split-ol-map {
   display: block;
   width: 100%;

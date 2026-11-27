@@ -123,6 +123,7 @@ import {
 } from './modules/map/fbmap-interact.service';
 import { RadarAPIService } from './modules/radar/radar-api.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
+import type { PaneChoice } from './modules/plotterext/types';
 import { LayoutService } from './modules/layouts/layout.service';
 import { LayoutListComponent } from './modules/layouts/layoutlist';
 import { decorationToolbarFields } from './modules/plotterext/button-decorations';
@@ -216,6 +217,7 @@ export class AppComponent {
   @ViewChild('fbMap', { static: false }) fbMap!: FBMapComponent;
   @ViewChild('layersmenu', { static: true }) private layersMenu!: MatMenu;
   @ViewChild('editmenu', { static: true }) private editMenu!: MatMenu;
+  @ViewChild('splitmenu', { static: true }) private splitMenu!: MatMenu;
   @ViewChild('settingsmenu', { static: true }) private settingsMenu!: MatMenu;
   @ViewChild(ExperimentsComponent, { static: true })
   private experiments!: ExperimentsComponent;
@@ -813,12 +815,21 @@ export class AppComponent {
     );
     if (this.app.config.display.splitView) {
       const split = this.splitView.enabled();
+      // With extension panels to choose from, the button asks what the second
+      // pane shows.
+      const choose = this.plotterExt.paneChoices().length > 0;
       items.push({
         id: 'splitView',
         icon: 'vertical_split',
-        tooltip: split ? 'Close split view' : 'Split view: a second chart',
+        tooltip: choose
+          ? 'Split view'
+          : split
+            ? 'Close split view'
+            : 'Split view: a second chart',
         active: split,
-        action: () => this.splitView.toggle()
+        ...(choose
+          ? { menu: this.splitMenu }
+          : { action: () => this.splitView.toggle() })
       });
     }
     if (this.app.config.experiments) {
@@ -909,6 +920,40 @@ export class AppComponent {
       !!this.app.config.display.splitView &&
       !this.app.kioskMode() &&
       this.splitView.enabled()
+    );
+  }
+
+  /**
+   * The extension panel the second pane shows: the one chosen, while its
+   * extension still offers it. Null shows a second chart.
+   */
+  protected splitPane = computed<PaneChoice | null>(() => {
+    const chosen = this.splitView.pane();
+    return (
+      (chosen &&
+        this.plotterExt
+          .paneChoices()
+          .find(
+            (c) =>
+              c.extension === chosen.extension && c.panel.id === chosen.panel
+          )) ??
+      null
+    );
+  });
+
+  protected isSplitPane(choice: PaneChoice | null): boolean {
+    const shown = this.splitPane();
+    return this.splitView.enabled()
+      ? choice === null
+        ? shown === null
+        : shown?.extension === choice.extension &&
+          shown.panel.id === choice.panel.id
+      : false;
+  }
+
+  protected showSplitPane(choice: PaneChoice | null) {
+    this.splitView.show(
+      choice && { extension: choice.extension, panel: choice.panel.id }
     );
   }
 

@@ -14,6 +14,18 @@ export interface SplitViewState {
   /** Where the second pane was last left; null until it has been moved. */
   zoom: number | null;
   center: Position | null;
+  /** The extension panel the second pane shows; null for a second chart. */
+  pane: PaneRef | null;
+}
+
+/** An extension's panel, by the extension's id and the panel's. */
+export interface PaneRef {
+  extension: string;
+  panel: string;
+}
+
+export function samePane(a: PaneRef | null, b: PaneRef | null): boolean {
+  return a?.extension === b?.extension && a?.panel === b?.panel;
 }
 
 export const SPLIT_VIEW_STORAGE_KEY = 'fb-split-view';
@@ -37,7 +49,8 @@ export const DEFAULT_SPLIT_VIEW: SplitViewState = {
   northUp: true,
   follow: false,
   zoom: null,
-  center: null
+  center: null,
+  pane: null
 };
 
 export function clampRatio(ratio: number): number {
@@ -86,6 +99,12 @@ export function fitRatio(
   return Math.min(1 - floor, Math.max(floor, ratio));
 }
 
+const isPaneRef = (p: unknown): p is PaneRef =>
+  typeof p === 'object' &&
+  p !== null &&
+  typeof (p as PaneRef).extension === 'string' &&
+  typeof (p as PaneRef).panel === 'string';
+
 const isPosition = (p: unknown): p is Position =>
   Array.isArray(p) &&
   p.length >= 2 &&
@@ -115,7 +134,10 @@ export function parseSplitViewState(raw: string | null): SplitViewState {
     northUp: flag(v.northUp, DEFAULT_SPLIT_VIEW.northUp),
     follow: flag(v.follow, DEFAULT_SPLIT_VIEW.follow),
     zoom: typeof v.zoom === 'number' && Number.isFinite(v.zoom) ? v.zoom : null,
-    center: isPosition(v.center) ? [v.center[0], v.center[1]] : null
+    center: isPosition(v.center) ? [v.center[0], v.center[1]] : null,
+    pane: isPaneRef(v.pane)
+      ? { extension: v.pane.extension, panel: v.pane.panel }
+      : null
   };
 }
 
