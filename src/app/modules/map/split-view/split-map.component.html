@@ -19,7 +19,7 @@
 </div>
 
 @if (pane(); as choice) {
-  @for (shown of [choice]; track paneKey(shown)) {
+  @for (shown of [choice]; track paneFrameKey(shown)) {
     <fb-split-pane-frame
       [choice]="shown"
       [style.padding-left.px]="inset().left"

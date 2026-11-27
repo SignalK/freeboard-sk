@@ -34,6 +34,14 @@ export function paneRef(choice: PaneChoice): PaneRef {
 }
 
 /**
+ * What the pane's page is loaded for: a change of panel, or of the page its
+ * manifest names, loads it again.
+ */
+export function paneFrameKey(choice: PaneChoice): string {
+  return `${choice.extension}\n${choice.panel.id}\n${choice.panel.url ?? ''}`;
+}
+
+/**
  * The offered panel `chosen` names: while its extension offers it, that
  * panel; else null, and the pane shows a second chart.
  */

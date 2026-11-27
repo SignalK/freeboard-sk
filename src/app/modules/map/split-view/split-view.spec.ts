@@ -5,6 +5,7 @@ import {
   DEFAULT_SPLIT_VIEW,
   fitRatio,
   gateZoom,
+  paneFrameKey,
   paneInset,
   paneStatusBarLift,
   parseSplitViewState,
@@ -245,5 +246,29 @@ describe('resolvePane', () => {
     );
     expect(resolvePane({ extension: 'other', panel: 'ppi' }, [ppi])).toBe(null);
     expect(resolvePane(null, [ppi])).toBe(null);
+  });
+});
+
+describe('paneFrameKey', () => {
+  const ppi = {
+    extension: 'radar-plugin',
+    extensionName: 'Radar',
+    panel: { id: 'ppi', title: 'Radar', type: 'iframe' as const, url: '/r' }
+  };
+
+  it('keeps the page loaded while panel and page stay the same', () => {
+    expect(
+      paneFrameKey({
+        ...ppi,
+        extensionName: 'Radar 2',
+        panel: { ...ppi.panel, title: 'PPI' }
+      })
+    ).toBe(paneFrameKey(ppi));
+  });
+
+  it('loads the page again when the manifest names another page', () => {
+    expect(
+      paneFrameKey({ ...ppi, panel: { ...ppi.panel, url: '/r2' } })
+    ).not.toBe(paneFrameKey(ppi));
   });
 });

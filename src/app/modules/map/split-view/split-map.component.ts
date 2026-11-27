@@ -51,6 +51,7 @@ import { hitsAtPixel } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hit
 import {
   fitRatio,
   PaneInset,
+  paneFrameKey,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_SHARE_VAR,
@@ -512,9 +513,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     return true;
   }
 
-  protected paneKey(choice: PaneChoice): string {
-    return `${choice.extension}\n${choice.panel.id}`;
-  }
+  protected readonly paneFrameKey = paneFrameKey;
 
   // ---------- divider ----------
 
