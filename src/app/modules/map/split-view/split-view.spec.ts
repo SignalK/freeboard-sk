@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   activeZoom,
+  chartOffset,
   clampRatio,
   DEFAULT_SPLIT_VIEW,
   fitRatio,
@@ -293,5 +294,24 @@ describe('paneFrameKey', () => {
     expect(
       paneFrameKey({ ...ppi, panel: { ...ppi.panel, url: '/r2' } })
     ).not.toBe(paneFrameKey(ppi));
+  });
+});
+
+describe('chartOffset', () => {
+  it('is nothing while the chart starts the panel', () => {
+    expect(chartOffset({ left: 0, top: 0 }, { left: 0, top: 0 })).toEqual({
+      left: 0,
+      top: 0
+    });
+  });
+
+  it('measures from the panel to the chart, wherever the panel is', () => {
+    expect(
+      chartOffset({ left: 40, top: 10 }, { left: 680.4, top: 10 })
+    ).toEqual({ left: 640, top: 0 });
+    expect(chartOffset({ left: 0, top: 10 }, { left: 0, top: 418.6 })).toEqual({
+      left: 0,
+      top: 409
+    });
   });
 });

@@ -49,6 +49,9 @@ import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
 import { hitsAtPixel } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hits';
 import {
+  CHART_LEFT_VAR,
+  CHART_TOP_VAR,
+  chartOffset,
   dividerAt,
   fitRatio,
   PaneInset,
@@ -156,6 +159,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private stopMirror: (() => void) | undefined;
   private stopUseWatch: (() => void)[] = [];
   private panelSize: ResizeObserver | undefined;
+  private chartPlace: ResizeObserver | undefined;
+  private placeFrame = 0;
   private gripFrame = 0;
   private gripRatio: number | null = null;
   private vessels: Subscription | undefined;
@@ -178,6 +183,11 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private documentListeners: [string, (e: Event) => void][] = [];
 
   constructor() {
+    effect(() => {
+      this.split.swapped();
+      this.split.stacked();
+      untracked(() => this.placeChartControls());
+    });
     effect(() => {
       if (this.split.follow()) {
         untracked(() => this.centerOnVessel());
@@ -255,10 +265,39 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
       this.panelSize.observe(panel);
+      // The chart moves without resizing when the sides are swapped.
+      const main = panel.querySelector<HTMLElement>('.mapMain');
+      if (main) {
+        this.chartPlace = new ResizeObserver(() => this.placeChartControls());
+        this.chartPlace.observe(main);
+      }
     }
   }
 
+  /** Moves the chart controls pinned to the screen to where the chart is. */
+  private placeChartControls() {
+    cancelAnimationFrame(this.placeFrame);
+    this.placeFrame = requestAnimationFrame(() => {
+      const panel = this.host.nativeElement.parentElement;
+      const main = panel?.querySelector<HTMLElement>('.mapMain');
+      if (!panel || !main) {
+        return;
+      }
+      const { left, top } = chartOffset(
+        panel.getBoundingClientRect(),
+        main.getBoundingClientRect()
+      );
+      const root = document.documentElement.style;
+      root.setProperty(CHART_LEFT_VAR, `${left}px`);
+      root.setProperty(CHART_TOP_VAR, `${top}px`);
+    });
+  }
+
   ngOnDestroy() {
+    this.chartPlace?.disconnect();
+    cancelAnimationFrame(this.placeFrame);
+    document.documentElement.style.removeProperty(CHART_LEFT_VAR);
+    document.documentElement.style.removeProperty(CHART_TOP_VAR);
     this.documentListeners.forEach(([type, fn]) =>
       document.removeEventListener(type, fn, true)
     );

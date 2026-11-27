@@ -258,3 +258,12 @@ mat-nav-list {
     left: 50px;
     max-width: calc(100% - 115px);
 }
+
+/* Goes with the chart when the split view's second pane is left of or above
+   it (SplitMapComponent sets the variables). */
+.northArrow {
+    position: absolute;
+    top: calc(var(--fb-chart-top, 0px) + 60px);
+    left: calc(var(--fb-chart-left, 0px) + 56px);
+    width: 50px;
+}

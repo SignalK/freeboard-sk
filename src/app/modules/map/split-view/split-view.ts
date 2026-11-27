@@ -69,6 +69,26 @@ export const SPLIT_RATIO_MAX = 0.7;
  */
 export const MIN_PANE_PX = 200;
 
+/**
+ * CSS variables on the document: where the main chart starts in the map panel,
+ * for the chart controls Freeboard pins to the screen (zoom buttons, north
+ * arrow), which go with the chart when the second pane is on its left or above
+ * it.
+ */
+export const CHART_LEFT_VAR = '--fb-chart-left';
+export const CHART_TOP_VAR = '--fb-chart-top';
+
+/** How far the main chart is from the map panel's top left corner, in px. */
+export function chartOffset(
+  panel: { left: number; top: number },
+  chart: { left: number; top: number }
+): { left: number; top: number } {
+  return {
+    left: Math.max(0, Math.round(chart.left - panel.left)),
+    top: Math.max(0, Math.round(chart.top - panel.top))
+  };
+}
+
 /** The width of the map toolbars along the left and right edges of the panel. */
 export const TOOLBAR_INSET_PX = 54;
 
