@@ -94,6 +94,8 @@ export class SplitViewService {
   readonly follow = computed(() => this.state().follow);
   /** The extension panel chosen for the second pane; null for a chart. */
   readonly pane = computed(() => this.state().pane, { equal: samePane });
+  /** Whether the second pane is left of (above) the main chart. */
+  readonly swapped = computed(() => this.state().swapped);
   /** The second pane's zoom as last reported by its map. */
   readonly zoom = computed(() => this.state().zoom);
 
@@ -158,6 +160,11 @@ export class SplitViewService {
       this.active.set('secondary');
     }
     this.update({ enabled: true, pane });
+  }
+
+  /** Puts the second pane on the other side of the main chart. */
+  swapSides() {
+    this.update({ swapped: !this.state().swapped });
   }
 
   close() {

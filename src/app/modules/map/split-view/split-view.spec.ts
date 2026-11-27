@@ -8,6 +8,7 @@ import {
   paneFrameKey,
   paneInset,
   paneStatusBarLift,
+  dividerAt,
   parseSplitViewState,
   ratioFromPointer,
   resolvePane,
@@ -53,6 +54,22 @@ describe('ratioFromPointer', () => {
   });
 });
 
+describe('ratioFromPointer with the sides swapped', () => {
+  const rect = { left: 100, top: 50, width: 1000, height: 600 };
+
+  it('measures the main chart from the far edge', () => {
+    expect(ratioFromPointer(rect, 500, 0, false, true)).toBeCloseTo(0.6);
+    expect(ratioFromPointer(rect, 0, 290, true, true)).toBeCloseTo(0.6);
+  });
+});
+
+describe('dividerAt', () => {
+  it('puts the divider at the main chart share, or across from it when swapped', () => {
+    expect(dividerAt(0.6, false)).toBe(0.6);
+    expect(dividerAt(0.6, true)).toBeCloseTo(0.4);
+  });
+});
+
 describe('fitRatio', () => {
   it('keeps a ratio that leaves both panes room', () => {
     expect(fitRatio(0.6, 1200, 340)).toBe(0.6);
@@ -91,7 +108,8 @@ describe('parseSplitViewState', () => {
       follow: true,
       zoom: 9.5,
       center: [22.1, 60.2],
-      pane: { extension: 'radar-plugin', panel: 'ppi' }
+      pane: { extension: 'radar-plugin', panel: 'ppi' },
+      swapped: true
     };
     expect(parseSplitViewState(JSON.stringify(stored))).toEqual(stored);
   });
@@ -224,6 +242,11 @@ describe('paneInset', () => {
 
   it('keeps a page below the chart clear of both toolbars', () => {
     expect(paneInset(54, true)).toEqual({ left: 54, right: 54 });
+    expect(paneInset(54, true, true)).toEqual({ left: 54, right: 54 });
+  });
+
+  it('keeps a page left of the chart clear of the left toolbar', () => {
+    expect(paneInset(54, false, true)).toEqual({ left: 54, right: 0 });
   });
 });
 

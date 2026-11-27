@@ -775,7 +775,8 @@ pane instead of the second chart (see *Panes* in the API spec).
 
 - With at least one such panel offered, the split view button opens a menu:
   *Second chart*, each offered panel by its `title`, and *Close split view*
-  while the split is open. With none, the button toggles the second chart as
+  while the split is open, with *Swap sides* to put the second pane left of
+  (above) the main chart. With none, the button toggles the second chart as
   before.
 - The choice is kept per device with the rest of the split view's state
   (`fb-split-view` in local storage, field `pane`). A panel whose extension no

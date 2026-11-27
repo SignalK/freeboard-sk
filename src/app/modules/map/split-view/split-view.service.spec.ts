@@ -111,6 +111,21 @@ describe('SplitViewService: what the second pane shows', () => {
   });
 });
 
+describe('SplitViewService: swapping sides', () => {
+  beforeEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+  afterEach(() => localStorage.removeItem(SPLIT_VIEW_STORAGE_KEY));
+
+  it('puts the second pane on the other side and back, and remembers it', () => {
+    const split = new SplitViewService();
+    expect(split.swapped()).toBe(false);
+    split.swapSides();
+    expect(split.swapped()).toBe(true);
+    expect(new SplitViewService().swapped()).toBe(true);
+    split.swapSides();
+    expect(split.swapped()).toBe(false);
+  });
+});
+
 describe('SplitViewService: layout and saving', () => {
   const stored = () =>
     JSON.parse(localStorage.getItem(SPLIT_VIEW_STORAGE_KEY) ?? 'null');

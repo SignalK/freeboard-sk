@@ -941,7 +941,8 @@ export class AppComponent {
   protected splitPaneInset = computed(() =>
     paneInset(
       this.app.uiCtrl().suppressContextMenu ? 0 : TOOLBAR_INSET_PX,
-      this.splitView.stacked()
+      this.splitView.stacked(),
+      this.splitView.swapped()
     )
   );
 

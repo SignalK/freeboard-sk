@@ -49,6 +49,7 @@ import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
 import { hitsAtPixel } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hits';
 import {
+  dividerAt,
   fitRatio,
   PaneInset,
   paneFrameKey,
@@ -119,7 +120,8 @@ function positioned(el: Element): HTMLElement[] {
   host: {
     '[class.active-pane]': 'split.secondaryActive()',
     '[class.stacked]': 'split.stacked()',
-    '[class.dragging]': 'dragging()'
+    '[class.dragging]': 'dragging()',
+    '[class.swapped]': 'split.swapped()'
   }
 })
 export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -162,6 +164,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private gripRect: DOMRect | null = null;
   private gripPanel: [number, number] | null = null;
   private gripStacked = false;
+  private gripSwapped = false;
   private gripStart = 0;
   /** How far along the split from the divider the grip was pressed. */
   private gripOffset = 0;
@@ -552,10 +555,12 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const size = this.gripStacked ? this.gripRect.height : this.gripRect.width;
     const start = this.split.shownRatio();
     this.gripStart = start;
+    this.gripSwapped = this.split.swapped();
     // The divider keeps its place under the pointer instead of jumping to it.
+    const at = dividerAt(start, this.gripSwapped) * size;
     this.gripOffset = this.gripStacked
-      ? ev.clientY - (this.gripRect.top + start * size)
-      : ev.clientX - (this.gripRect.left + start * size);
+      ? ev.clientY - (this.gripRect.top + at)
+      : ev.clientX - (this.gripRect.left + at);
     // Moves come at pointer rate: outside Angular they set a few style
     // properties and run no change detection.
     this.zone.runOutsideAngular(() => {
@@ -601,7 +606,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.gripRect,
       ev.clientX - (this.gripStacked ? 0 : this.gripOffset),
       ev.clientY - (this.gripStacked ? this.gripOffset : 0),
-      this.gripStacked
+      this.gripStacked,
+      this.gripSwapped
     );
     if (ratio === null) {
       return;
@@ -733,19 +739,21 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const stacked = this.split.stacked();
     const back = stacked ? 'ArrowUp' : 'ArrowLeft';
     const forward = stacked ? 'ArrowDown' : 'ArrowRight';
-    const ratio =
+    // Where the divider goes, from the panel's left (top) edge.
+    const at = dividerAt(this.split.shownRatio(), this.split.swapped());
+    const to =
       ev.key === 'Home'
         ? SPLIT_RATIO_MIN
         : ev.key === 'End'
           ? SPLIT_RATIO_MAX
           : ev.key === back
-            ? this.split.shownRatio() - 0.05
+            ? at - 0.05
             : ev.key === forward
-              ? this.split.shownRatio() + 0.05
+              ? at + 0.05
               : null;
-    if (ratio !== null) {
+    if (to !== null) {
       ev.preventDefault();
-      this.split.setRatio(ratio);
+      this.split.setRatio(dividerAt(to, this.split.swapped()));
     }
   }
 

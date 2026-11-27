@@ -17,6 +17,8 @@ export interface SplitViewState {
   center: Position | null;
   /** The extension panel the second pane shows; null for a second chart. */
   pane: PaneRef | null;
+  /** The second pane goes left of the main chart (above it when stacked). */
+  swapped: boolean;
 }
 
 /** An extension's panel, by the extension's id and the panel's. */
@@ -78,12 +80,20 @@ export interface PaneInset {
 
 /**
  * The room a page in the second pane leaves for the map toolbars, which run
- * down the panel's outer edges over both panes: the right one beside the
- * chart, both when the panes are stacked. A chart is drawn under the toolbars;
- * a page would have its own buttons covered.
+ * down the panel's outer edges over both panes: the one on the pane's outer
+ * side beside the chart (the left one with the sides swapped), both when the
+ * panes are stacked. A chart is drawn under the toolbars; a page would have
+ * its own buttons covered.
  */
-export function paneInset(toolbars: number, stacked: boolean): PaneInset {
-  return { left: stacked ? toolbars : 0, right: toolbars };
+export function paneInset(
+  toolbars: number,
+  stacked: boolean,
+  swapped = false
+): PaneInset {
+  return {
+    left: stacked || swapped ? toolbars : 0,
+    right: stacked || !swapped ? toolbars : 0
+  };
 }
 
 export const DEFAULT_SPLIT_VIEW: SplitViewState = {
@@ -93,7 +103,8 @@ export const DEFAULT_SPLIT_VIEW: SplitViewState = {
   follow: false,
   zoom: null,
   center: null,
-  pane: null
+  pane: null,
+  swapped: false
 };
 
 export function clampRatio(ratio: number): number {
@@ -105,21 +116,31 @@ export function clampRatio(ratio: number): number {
 
 /**
  * The ratio for a divider dragged to client point (x, y). `stacked` is true
- * when the panes are above each other (the panel is taller than wide). Null
- * when the panel has no size along the divider's axis, so the divider stays
- * put.
+ * when the panes are above each other (the panel is taller than wide), and
+ * `swapped` when the main chart is the right (lower) one. Null when the panel
+ * has no size along the divider's axis, so the divider stays put.
  */
 export function ratioFromPointer(
   rect: { left: number; top: number; width: number; height: number },
   x: number,
   y: number,
-  stacked: boolean
+  stacked: boolean,
+  swapped = false
 ): number | null {
   const size = stacked ? rect.height : rect.width;
   if (!(size > 0)) {
     return null;
   }
-  return clampRatio(stacked ? (y - rect.top) / size : (x - rect.left) / size);
+  const along = stacked ? (y - rect.top) / size : (x - rect.left) / size;
+  return clampRatio(swapped ? 1 - along : along);
+}
+
+/**
+ * Where the divider sits along the panel, from its left (top) edge, for the
+ * main chart's `share`.
+ */
+export function dividerAt(share: number, swapped: boolean): number {
+  return swapped ? 1 - share : share;
 }
 
 /**
@@ -180,7 +201,8 @@ export function parseSplitViewState(raw: string | null): SplitViewState {
     center: isPosition(v.center) ? [v.center[0], v.center[1]] : null,
     pane: isPaneRef(v.pane)
       ? { extension: v.pane.extension, panel: v.pane.panel }
-      : null
+      : null,
+    swapped: flag(v.swapped, DEFAULT_SPLIT_VIEW.swapped)
   };
 }
 

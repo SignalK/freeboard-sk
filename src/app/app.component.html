@@ -211,6 +211,10 @@
       }
       @if (splitView.enabled()) {
         <mat-divider></mat-divider>
+        <button mat-menu-item (click)="splitView.swapSides()">
+          <mat-icon>swap_horiz</mat-icon>
+          <span>Swap sides</span>
+        </button>
         <button mat-menu-item (click)="splitView.close()">
           <mat-icon>close</mat-icon>
           <span>Close split view</span>
@@ -785,6 +789,7 @@
             class="mapPanel"
             [class.split]="splitActive()"
             [class.stacked]="splitActive() && splitView.stacked()"
+            [class.swapped]="splitActive() && splitView.swapped()"
             (dragover)="mapDragOver($event)"
             (drop)="mapDrop($event)"
           >
