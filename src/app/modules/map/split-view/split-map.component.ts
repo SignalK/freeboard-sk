@@ -49,7 +49,13 @@ import { zoomKeyDirection } from 'src/app/lib/zoom-keys';
 import { mirrorLayers } from './layer-mirror';
 import { hitsAtPixel } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hits';
 import {
+  CHART_LEFT_VAR,
+  CHART_TOP_VAR,
+  chartOffset,
+  dividerAt,
   fitRatio,
+  PaneInset,
+  paneFrameKey,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_SHARE_VAR,
@@ -57,6 +63,8 @@ import {
   viewFootprint
 } from './split-view';
 import { PaneCommand, SplitPane, SplitViewService } from './split-view.service';
+import { SplitPaneFrameComponent } from './split-pane-frame.component';
+import { PaneChoice } from 'src/app/modules/plotterext/types';
 
 /** The stretch over which a control's anchoring is measured, in px. */
 const OVERSCAN_PROBE_PX = 100;
@@ -107,13 +115,16 @@ function positioned(el: Element): HTMLElement[] {
     FreeboardOpenlayersModule,
     MatIconModule,
     MatTooltipModule,
-    NgTemplateOutlet
+    NgTemplateOutlet,
+    SplitPaneFrameComponent
   ],
   templateUrl: './split-map.component.html',
   styleUrls: ['./split-map.component.css'],
   host: {
     '[class.active-pane]': 'split.secondaryActive()',
-    '[class.stacked]': 'split.stacked()'
+    '[class.stacked]': 'split.stacked()',
+    '[class.dragging]': 'dragging()',
+    '[class.swapped]': 'split.swapped()'
   }
 })
 export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -128,6 +139,10 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly olControls = mapControls;
   /** The user's distance unit, for the scale bar. */
   readonly scaleUnits = input<string>('');
+  /** The extension panel shown instead of a second chart, if any. */
+  readonly pane = input<PaneChoice | null>(null);
+  /** Room the panel keeps clear of the map toolbars. */
+  readonly inset = input<PaneInset>({ left: 0, right: 0 });
   /** The main chart's status bar, shown here while this pane is active. */
   readonly statusBar = input<TemplateRef<unknown> | null>(null);
 
@@ -144,6 +159,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private stopMirror: (() => void) | undefined;
   private stopUseWatch: (() => void)[] = [];
   private panelSize: ResizeObserver | undefined;
+  private chartPlace: ResizeObserver | undefined;
+  private placeFrame = 0;
   private gripFrame = 0;
   private gripRatio: number | null = null;
   private vessels: Subscription | undefined;
@@ -152,6 +169,7 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private gripRect: DOMRect | null = null;
   private gripPanel: [number, number] | null = null;
   private gripStacked = false;
+  private gripSwapped = false;
   private gripStart = 0;
   /** How far along the split from the divider the grip was pressed. */
   private gripOffset = 0;
@@ -165,6 +183,11 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private documentListeners: [string, (e: Event) => void][] = [];
 
   constructor() {
+    effect(() => {
+      this.split.swapped();
+      this.split.stacked();
+      untracked(() => this.placeChartControls());
+    });
     effect(() => {
       if (this.split.follow()) {
         untracked(() => this.centerOnVessel());
@@ -242,10 +265,39 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
       this.panelSize.observe(panel);
+      // The chart moves without resizing when the sides are swapped.
+      const main = panel.querySelector<HTMLElement>('.mapMain');
+      if (main) {
+        this.chartPlace = new ResizeObserver(() => this.placeChartControls());
+        this.chartPlace.observe(main);
+      }
     }
   }
 
+  /** Moves the chart controls pinned to the screen to where the chart is. */
+  private placeChartControls() {
+    cancelAnimationFrame(this.placeFrame);
+    this.placeFrame = requestAnimationFrame(() => {
+      const panel = this.host.nativeElement.parentElement;
+      const main = panel?.querySelector<HTMLElement>('.mapMain');
+      if (!panel || !main) {
+        return;
+      }
+      const { left, top } = chartOffset(
+        panel.getBoundingClientRect(),
+        main.getBoundingClientRect()
+      );
+      const root = document.documentElement.style;
+      root.setProperty(CHART_LEFT_VAR, `${left}px`);
+      root.setProperty(CHART_TOP_VAR, `${top}px`);
+    });
+  }
+
   ngOnDestroy() {
+    this.chartPlace?.disconnect();
+    cancelAnimationFrame(this.placeFrame);
+    document.documentElement.style.removeProperty(CHART_LEFT_VAR);
+    document.documentElement.style.removeProperty(CHART_TOP_VAR);
     this.documentListeners.forEach(([type, fn]) =>
       document.removeEventListener(type, fn, true)
     );
@@ -503,6 +555,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     return true;
   }
 
+  protected readonly paneFrameKey = paneFrameKey;
+
   // ---------- divider ----------
 
   /** The main chart's share of the panel, as the divider reports it. */
@@ -540,10 +594,12 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const size = this.gripStacked ? this.gripRect.height : this.gripRect.width;
     const start = this.split.shownRatio();
     this.gripStart = start;
+    this.gripSwapped = this.split.swapped();
     // The divider keeps its place under the pointer instead of jumping to it.
+    const at = dividerAt(start, this.gripSwapped) * size;
     this.gripOffset = this.gripStacked
-      ? ev.clientY - (this.gripRect.top + start * size)
-      : ev.clientX - (this.gripRect.left + start * size);
+      ? ev.clientY - (this.gripRect.top + at)
+      : ev.clientX - (this.gripRect.left + at);
     // Moves come at pointer rate: outside Angular they set a few style
     // properties and run no change detection.
     this.zone.runOutsideAngular(() => {
@@ -589,7 +645,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.gripRect,
       ev.clientX - (this.gripStacked ? 0 : this.gripOffset),
       ev.clientY - (this.gripStacked ? this.gripOffset : 0),
-      this.gripStacked
+      this.gripStacked,
+      this.gripSwapped
     );
     if (ratio === null) {
       return;
@@ -721,19 +778,21 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const stacked = this.split.stacked();
     const back = stacked ? 'ArrowUp' : 'ArrowLeft';
     const forward = stacked ? 'ArrowDown' : 'ArrowRight';
-    const ratio =
+    // Where the divider goes, from the panel's left (top) edge.
+    const at = dividerAt(this.split.shownRatio(), this.split.swapped());
+    const to =
       ev.key === 'Home'
         ? SPLIT_RATIO_MIN
         : ev.key === 'End'
           ? SPLIT_RATIO_MAX
           : ev.key === back
-            ? this.split.shownRatio() - 0.05
+            ? at - 0.05
             : ev.key === forward
-              ? this.split.shownRatio() + 0.05
+              ? at + 0.05
               : null;
-    if (ratio !== null) {
+    if (to !== null) {
       ev.preventDefault();
-      this.split.setRatio(ratio);
+      this.split.setRatio(dividerAt(to, this.split.swapped()));
     }
   }
 

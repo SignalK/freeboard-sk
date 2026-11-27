@@ -123,6 +123,7 @@ import {
 } from './modules/map/fbmap-interact.service';
 import { RadarAPIService } from './modules/radar/radar-api.service';
 import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
+import type { PaneChoice } from './modules/plotterext/types';
 import { LayoutService } from './modules/layouts/layout.service';
 import { LayoutListComponent } from './modules/layouts/layoutlist';
 import { decorationToolbarFields } from './modules/plotterext/button-decorations';
@@ -140,7 +141,14 @@ import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component'
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
 import { SplitMapComponent } from './modules/map/split-view/split-map.component';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
-import { SPLIT_SHARE_VAR } from './modules/map/split-view/split-view';
+import {
+  paneInset,
+  paneRef,
+  resolvePane,
+  samePane,
+  SPLIT_SHARE_VAR,
+  TOOLBAR_INSET_PX
+} from './modules/map/split-view/split-view';
 import {
   RoutePanel,
   SKResourceType,
@@ -216,6 +224,7 @@ export class AppComponent {
   @ViewChild('fbMap', { static: false }) fbMap!: FBMapComponent;
   @ViewChild('layersmenu', { static: true }) private layersMenu!: MatMenu;
   @ViewChild('editmenu', { static: true }) private editMenu!: MatMenu;
+  @ViewChild('splitmenu', { static: true }) private splitMenu!: MatMenu;
   @ViewChild('settingsmenu', { static: true }) private settingsMenu!: MatMenu;
   @ViewChild(ExperimentsComponent, { static: true })
   private experiments!: ExperimentsComponent;
@@ -813,12 +822,21 @@ export class AppComponent {
     );
     if (this.app.config.display.splitView) {
       const split = this.splitView.enabled();
+      // With extension panels to choose from, the button asks what the second
+      // pane shows.
+      const choose = this.plotterExt.paneChoices().length > 0;
       items.push({
         id: 'splitView',
         icon: 'vertical_split',
-        tooltip: split ? 'Close split view' : 'Split view: a second chart',
+        tooltip: choose
+          ? 'Split view'
+          : split
+            ? 'Close split view'
+            : 'Split view: a second chart',
         active: split,
-        action: () => this.splitView.toggle()
+        ...(choose
+          ? { menu: this.splitMenu }
+          : { action: () => this.splitView.toggle() })
       });
     }
     if (this.app.config.experiments) {
@@ -910,6 +928,35 @@ export class AppComponent {
       !this.app.kioskMode() &&
       this.splitView.enabled()
     );
+  }
+
+  /**
+   * The extension panel the second pane shows: the one chosen, while its
+   * extension still offers it. Null shows a second chart.
+   */
+  protected splitPane = computed(() =>
+    resolvePane(this.splitView.pane(), this.plotterExt.paneChoices())
+  );
+
+  protected splitPaneInset = computed(() =>
+    paneInset(
+      this.app.uiCtrl().suppressContextMenu ? 0 : TOOLBAR_INSET_PX,
+      this.splitView.stacked(),
+      this.splitView.swapped()
+    )
+  );
+
+  /** Whether the open split view shows `choice`; null for a second chart. */
+  protected isSplitPane(choice: PaneChoice | null): boolean {
+    const shown = this.splitPane();
+    return (
+      this.splitView.enabled() &&
+      samePane(shown && paneRef(shown), choice && paneRef(choice))
+    );
+  }
+
+  protected showSplitPane(choice: PaneChoice | null) {
+    this.splitView.show(choice && paneRef(choice));
   }
 
   /** The main chart's share of the panel; a dragged divider overrides it. */

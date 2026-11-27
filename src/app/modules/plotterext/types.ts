@@ -33,6 +33,7 @@ export const HOST_CAPABILITIES = [
   'background.iframe',
   'ui',
   'windows',
+  'panes',
   'overlays.image',
   'overlays.animated',
   'overlays.data',
@@ -268,6 +269,15 @@ export interface PanelContribution {
   tagName?: string;
   lifecycle?: string;
   apiVersion?: string;
+  /** Offered for the split view's second pane (capability `panes`). */
+  pane?: boolean;
+}
+
+/** A panel the user may show in the split view's second pane. */
+export interface PaneChoice {
+  extension: string;
+  extensionName: string;
+  panel: PanelContribution;
 }
 
 export interface PlotterExtensionManifest {

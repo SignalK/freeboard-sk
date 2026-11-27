@@ -97,6 +97,15 @@ b { font-weight: 500; }
     flex-direction: column;
 }
 
+/* The second pane can go left of the main chart (above it when stacked). */
+.mapPanel.split.swapped {
+    flex-direction: row-reverse;
+}
+
+.mapPanel.split.stacked.swapped {
+    flex-direction: column-reverse;
+}
+
 /* While the divider is dragged each chart is drawn bigger than its pane and
    shown through it (see SplitMapComponent.gripDown). */
 .mapPanel.split .mapMain {

@@ -25,7 +25,12 @@ const bareComponent = (follow = false) => {
   cmp.app = { MAP_ZOOM_EXTENT: { min: 2, max: 24 } };
   cmp.zoom = signal(10);
   cmp.center = signal([0, 0]);
-  cmp.split = { follow: () => follow, setFollow: vi.fn(), activate: vi.fn() };
+  cmp.split = {
+    follow: () => follow,
+    setFollow: vi.fn(),
+    activate: vi.fn(),
+    swapped: () => false
+  };
   return cmp;
 };
 
@@ -222,9 +227,10 @@ describe('SplitMapComponent: double-click and keys', () => {
 describe('SplitMapComponent: the divider', () => {
   const key = (k: string) =>
     ({ key: k, preventDefault: vi.fn() }) as unknown as KeyboardEvent;
-  const withDivider = (stacked: boolean) => {
+  const withDivider = (stacked: boolean, swapped = false) => {
     const cmp = bareComponent();
     cmp.split.stacked = () => stacked;
+    cmp.split.swapped = () => swapped;
     cmp.split.shownRatio = () => 0.5;
     cmp.split.setRatio = vi.fn();
     return cmp;
@@ -238,6 +244,21 @@ describe('SplitMapComponent: the divider', () => {
     const stacked = withDivider(true);
     stacked.gripKey(key('ArrowUp'));
     expect(stacked.split.setRatio).toHaveBeenCalledWith(0.45);
+  });
+
+  it('moves the divider the way the arrow points with the sides swapped', () => {
+    const side = withDivider(false, true);
+    side.gripKey(key('ArrowRight'));
+    expect(side.split.setRatio.mock.calls[0][0]).toBeCloseTo(0.45);
+  });
+
+  it('takes the divider to the end Home or End names with the sides swapped', () => {
+    const cmp = withDivider(false, true);
+    cmp.gripKey(key('Home'));
+    cmp.gripKey(key('End'));
+    const [[home], [end]] = cmp.split.setRatio.mock.calls;
+    expect(home).toBeCloseTo(0.7);
+    expect(end).toBeCloseTo(0.3);
   });
 
   describe('dragged', () => {

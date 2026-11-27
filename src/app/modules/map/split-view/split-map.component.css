@@ -8,6 +8,17 @@
   border-left: 8px solid #2b3846;
 }
 
+/* The strip a page keeps clear of the map toolbars. */
+fb-split-pane-frame {
+  box-sizing: border-box;
+  background-color: #2b3846;
+}
+
+/* A page in the pane would take the pointer from a divider dragged over it. */
+:host(.dragging) fb-split-pane-frame {
+  pointer-events: none;
+}
+
 .split-ol-map {
   display: block;
   width: 100%;
@@ -85,4 +96,26 @@
 
 :host(.stacked) .split-grip mat-icon {
   transform: rotate(90deg);
+}
+
+/* The second pane left of (above) the main chart: the divider is on its
+   other edge. */
+:host(.swapped) {
+  border-left: 0;
+  border-right: 8px solid #2b3846;
+}
+
+:host(.swapped) .split-grip {
+  left: calc(100% + 4px);
+}
+
+:host(.stacked.swapped) {
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 8px solid #2b3846;
+}
+
+:host(.stacked.swapped) .split-grip {
+  top: calc(100% + 4px);
+  left: 75%;
 }

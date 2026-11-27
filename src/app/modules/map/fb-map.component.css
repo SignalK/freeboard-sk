@@ -26,10 +26,12 @@
     font-family: roboto; 
 }
 
+/* With the split view's second pane left of or above the chart, the
+   variables say how far (SplitMapComponent). */
 .ol-zoom {
     position: fixed; 
-    top:10px; 
-    left:60px; 
+    top: calc(var(--fb-chart-top, 0px) + 10px);
+    left: calc(var(--fb-chart-left, 0px) + 60px);
     color: rgb(30,30,30);
     font-family:roboto; 
     background-color: transparent;  

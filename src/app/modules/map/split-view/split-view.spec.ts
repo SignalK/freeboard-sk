@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   activeZoom,
+  chartOffset,
   clampRatio,
   DEFAULT_SPLIT_VIEW,
   fitRatio,
   gateZoom,
+  paneFrameKey,
+  paneInset,
   paneStatusBarLift,
+  dividerAt,
   parseSplitViewState,
   ratioFromPointer,
+  resolvePane,
   SPLIT_RATIO_MAX,
   SPLIT_RATIO_MIN,
   viewFootprint
@@ -50,6 +55,22 @@ describe('ratioFromPointer', () => {
   });
 });
 
+describe('ratioFromPointer with the sides swapped', () => {
+  const rect = { left: 100, top: 50, width: 1000, height: 600 };
+
+  it('measures the main chart from the far edge', () => {
+    expect(ratioFromPointer(rect, 500, 0, false, true)).toBeCloseTo(0.6);
+    expect(ratioFromPointer(rect, 0, 290, true, true)).toBeCloseTo(0.6);
+  });
+});
+
+describe('dividerAt', () => {
+  it('puts the divider at the main chart share, or across from it when swapped', () => {
+    expect(dividerAt(0.6, false)).toBe(0.6);
+    expect(dividerAt(0.6, true)).toBeCloseTo(0.4);
+  });
+});
+
 describe('fitRatio', () => {
   it('keeps a ratio that leaves both panes room', () => {
     expect(fitRatio(0.6, 1200, 340)).toBe(0.6);
@@ -87,7 +108,9 @@ describe('parseSplitViewState', () => {
       northUp: false,
       follow: true,
       zoom: 9.5,
-      center: [22.1, 60.2]
+      center: [22.1, 60.2],
+      pane: { extension: 'radar-plugin', panel: 'ppi' },
+      swapped: true
     };
     expect(parseSplitViewState(JSON.stringify(stored))).toEqual(stored);
   });
@@ -107,6 +130,12 @@ describe('parseSplitViewState', () => {
       ratio: SPLIT_RATIO_MAX,
       northUp: false
     });
+  });
+
+  it('shows a second chart for a malformed stored pane', () => {
+    for (const pane of ['ppi', { extension: 'radar-plugin' }, { panel: 3 }]) {
+      expect(parseSplitViewState(JSON.stringify({ pane })).pane).toBeNull();
+    }
   });
 
   it('rejects a stored centre outside the world', () => {
@@ -204,5 +233,85 @@ describe('paneStatusBarLift', () => {
   it('needs no room with no widget along the bottom', () => {
     expect(paneStatusBarLift(0, true, true, true)).toBe(0);
     expect(paneStatusBarLift(0, false, false, false)).toBe(0);
+  });
+});
+
+describe('paneInset', () => {
+  it('keeps a page beside the chart clear of the right toolbar', () => {
+    expect(paneInset(54, false)).toEqual({ left: 0, right: 54 });
+  });
+
+  it('keeps a page below the chart clear of both toolbars', () => {
+    expect(paneInset(54, true)).toEqual({ left: 54, right: 54 });
+    expect(paneInset(54, true, true)).toEqual({ left: 54, right: 54 });
+  });
+
+  it('keeps a page left of the chart clear of the left toolbar', () => {
+    expect(paneInset(54, false, true)).toEqual({ left: 54, right: 0 });
+  });
+});
+
+describe('resolvePane', () => {
+  const ppi = {
+    extension: 'radar-plugin',
+    extensionName: 'Radar',
+    panel: { id: 'ppi', title: 'Radar', type: 'iframe' as const, url: '/r' }
+  };
+
+  it('finds the chosen panel among those offered', () => {
+    expect(
+      resolvePane({ extension: 'radar-plugin', panel: 'ppi' }, [ppi])
+    ).toBe(ppi);
+  });
+
+  it('shows a second chart while the chosen panel is not offered', () => {
+    expect(resolvePane({ extension: 'radar-plugin', panel: 'ppi' }, [])).toBe(
+      null
+    );
+    expect(resolvePane({ extension: 'other', panel: 'ppi' }, [ppi])).toBe(null);
+    expect(resolvePane(null, [ppi])).toBe(null);
+  });
+});
+
+describe('paneFrameKey', () => {
+  const ppi = {
+    extension: 'radar-plugin',
+    extensionName: 'Radar',
+    panel: { id: 'ppi', title: 'Radar', type: 'iframe' as const, url: '/r' }
+  };
+
+  it('keeps the page loaded while panel and page stay the same', () => {
+    expect(
+      paneFrameKey({
+        ...ppi,
+        extensionName: 'Radar 2',
+        panel: { ...ppi.panel, title: 'PPI' }
+      })
+    ).toBe(paneFrameKey(ppi));
+  });
+
+  it('loads the page again when the manifest names another page', () => {
+    expect(
+      paneFrameKey({ ...ppi, panel: { ...ppi.panel, url: '/r2' } })
+    ).not.toBe(paneFrameKey(ppi));
+  });
+});
+
+describe('chartOffset', () => {
+  it('is nothing while the chart starts the panel', () => {
+    expect(chartOffset({ left: 0, top: 0 }, { left: 0, top: 0 })).toEqual({
+      left: 0,
+      top: 0
+    });
+  });
+
+  it('measures from the panel to the chart, wherever the panel is', () => {
+    expect(
+      chartOffset({ left: 40, top: 10 }, { left: 680.4, top: 10 })
+    ).toEqual({ left: 640, top: 0 });
+    expect(chartOffset({ left: 0, top: 10 }, { left: 0, top: 418.6 })).toEqual({
+      left: 0,
+      top: 409
+    });
   });
 });
