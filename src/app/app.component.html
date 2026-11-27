@@ -824,7 +824,10 @@
             </div>
             @if (splitActive()) {
               @if (splitPane(); as pane) {
-                <fb-split-map [pane]="pane"></fb-split-map>
+                <fb-split-map
+                  [pane]="pane"
+                  [inset]="splitPaneInset()"
+                ></fb-split-map>
               } @else {
                 <fb-split-map
                   [scaleUnits]="app.config.units.distance"

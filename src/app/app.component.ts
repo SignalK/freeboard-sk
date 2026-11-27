@@ -141,7 +141,14 @@ import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component'
 import { ExtWindowLayerComponent } from './modules/plotterext/windows/window-layer.component';
 import { SplitMapComponent } from './modules/map/split-view/split-map.component';
 import { SplitViewService } from './modules/map/split-view/split-view.service';
-import { SPLIT_SHARE_VAR } from './modules/map/split-view/split-view';
+import {
+  paneInset,
+  paneRef,
+  resolvePane,
+  samePane,
+  SPLIT_SHARE_VAR,
+  TOOLBAR_INSET_PX
+} from './modules/map/split-view/split-view';
 import {
   RoutePanel,
   SKResourceType,
@@ -927,34 +934,28 @@ export class AppComponent {
    * The extension panel the second pane shows: the one chosen, while its
    * extension still offers it. Null shows a second chart.
    */
-  protected splitPane = computed<PaneChoice | null>(() => {
-    const chosen = this.splitView.pane();
-    return (
-      (chosen &&
-        this.plotterExt
-          .paneChoices()
-          .find(
-            (c) =>
-              c.extension === chosen.extension && c.panel.id === chosen.panel
-          )) ??
-      null
-    );
-  });
+  protected splitPane = computed(() =>
+    resolvePane(this.splitView.pane(), this.plotterExt.paneChoices())
+  );
 
+  protected splitPaneInset = computed(() =>
+    paneInset(
+      this.app.uiCtrl().suppressContextMenu ? 0 : TOOLBAR_INSET_PX,
+      this.splitView.stacked()
+    )
+  );
+
+  /** Whether the open split view shows `choice`; null for a second chart. */
   protected isSplitPane(choice: PaneChoice | null): boolean {
     const shown = this.splitPane();
-    return this.splitView.enabled()
-      ? choice === null
-        ? shown === null
-        : shown?.extension === choice.extension &&
-          shown.panel.id === choice.panel.id
-      : false;
+    return (
+      this.splitView.enabled() &&
+      samePane(shown && paneRef(shown), choice && paneRef(choice))
+    );
   }
 
   protected showSplitPane(choice: PaneChoice | null) {
-    this.splitView.show(
-      choice && { extension: choice.extension, panel: choice.panel.id }
-    );
+    this.splitView.show(choice && paneRef(choice));
   }
 
   /** The main chart's share of the panel; a dragged divider overrides it. */

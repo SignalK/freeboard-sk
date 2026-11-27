@@ -20,7 +20,11 @@
 
 @if (pane(); as choice) {
   @for (shown of [choice]; track paneKey(shown)) {
-    <fb-split-pane-frame [choice]="shown"></fb-split-pane-frame>
+    <fb-split-pane-frame
+      [choice]="shown"
+      [style.padding-left.px]="inset().left"
+      [style.padding-right.px]="inset().right"
+    ></fb-split-pane-frame>
   }
 } @else {
   <ol-map

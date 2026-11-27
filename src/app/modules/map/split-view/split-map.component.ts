@@ -50,6 +50,7 @@ import { mirrorLayers } from './layer-mirror';
 import { hitsAtPixel } from 'src/app/modules/map/ol/lib/data-overlay/overlay-hits';
 import {
   fitRatio,
+  PaneInset,
   ratioFromPointer,
   SPLIT_RATIO_MAX,
   SPLIT_SHARE_VAR,
@@ -134,6 +135,8 @@ export class SplitMapComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly scaleUnits = input<string>('');
   /** The extension panel shown instead of a second chart, if any. */
   readonly pane = input<PaneChoice | null>(null);
+  /** Room the panel keeps clear of the map toolbars. */
+  readonly inset = input<PaneInset>({ left: 0, right: 0 });
   /** The main chart's status bar, shown here while this pane is active. */
   readonly statusBar = input<TemplateRef<unknown> | null>(null);
 

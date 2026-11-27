@@ -1,5 +1,6 @@
 import { Coordinate } from 'ol/coordinate';
 import { Position } from 'src/app/types';
+import type { PaneChoice } from 'src/app/modules/plotterext/types';
 
 /**
  * The split view's state. Kept per device, not in the synced config: a layout
@@ -28,6 +29,21 @@ export function samePane(a: PaneRef | null, b: PaneRef | null): boolean {
   return a?.extension === b?.extension && a?.panel === b?.panel;
 }
 
+export function paneRef(choice: PaneChoice): PaneRef {
+  return { extension: choice.extension, panel: choice.panel.id };
+}
+
+/**
+ * The offered panel `chosen` names: while its extension offers it, that
+ * panel; else null, and the pane shows a second chart.
+ */
+export function resolvePane(
+  chosen: PaneRef | null,
+  offered: PaneChoice[]
+): PaneChoice | null {
+  return (chosen && offered.find((c) => samePane(paneRef(c), chosen))) ?? null;
+}
+
 export const SPLIT_VIEW_STORAGE_KEY = 'fb-split-view';
 /**
  * CSS variable on the map panel: the main chart's share while the divider is
@@ -42,6 +58,25 @@ export const SPLIT_RATIO_MAX = 0.7;
  * the whole ratio range to drag the divider through.
  */
 export const MIN_PANE_PX = 200;
+
+/** The width of the map toolbars along the left and right edges of the panel. */
+export const TOOLBAR_INSET_PX = 54;
+
+/** Room an extension's page keeps clear on each side, in px. */
+export interface PaneInset {
+  left: number;
+  right: number;
+}
+
+/**
+ * The room a page in the second pane leaves for the map toolbars, which run
+ * down the panel's outer edges over both panes: the right one beside the
+ * chart, both when the panes are stacked. A chart is drawn under the toolbars;
+ * a page would have its own buttons covered.
+ */
+export function paneInset(toolbars: number, stacked: boolean): PaneInset {
+  return { left: stacked ? toolbars : 0, right: toolbars };
+}
 
 export const DEFAULT_SPLIT_VIEW: SplitViewState = {
   enabled: false,

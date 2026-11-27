@@ -5,9 +5,11 @@ import {
   DEFAULT_SPLIT_VIEW,
   fitRatio,
   gateZoom,
+  paneInset,
   paneStatusBarLift,
   parseSplitViewState,
   ratioFromPointer,
+  resolvePane,
   SPLIT_RATIO_MAX,
   SPLIT_RATIO_MIN,
   viewFootprint
@@ -211,5 +213,37 @@ describe('paneStatusBarLift', () => {
   it('needs no room with no widget along the bottom', () => {
     expect(paneStatusBarLift(0, true, true, true)).toBe(0);
     expect(paneStatusBarLift(0, false, false, false)).toBe(0);
+  });
+});
+
+describe('paneInset', () => {
+  it('keeps a page beside the chart clear of the right toolbar', () => {
+    expect(paneInset(54, false)).toEqual({ left: 0, right: 54 });
+  });
+
+  it('keeps a page below the chart clear of both toolbars', () => {
+    expect(paneInset(54, true)).toEqual({ left: 54, right: 54 });
+  });
+});
+
+describe('resolvePane', () => {
+  const ppi = {
+    extension: 'radar-plugin',
+    extensionName: 'Radar',
+    panel: { id: 'ppi', title: 'Radar', type: 'iframe' as const, url: '/r' }
+  };
+
+  it('finds the chosen panel among those offered', () => {
+    expect(
+      resolvePane({ extension: 'radar-plugin', panel: 'ppi' }, [ppi])
+    ).toBe(ppi);
+  });
+
+  it('shows a second chart while the chosen panel is not offered', () => {
+    expect(resolvePane({ extension: 'radar-plugin', panel: 'ppi' }, [])).toBe(
+      null
+    );
+    expect(resolvePane({ extension: 'other', panel: 'ppi' }, [ppi])).toBe(null);
+    expect(resolvePane(null, [ppi])).toBe(null);
   });
 });
